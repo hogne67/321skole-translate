@@ -1,51 +1,68 @@
+// app/api/translate/route.ts
 import OpenAI from "openai";
-import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-type Body = {
-  text?: string;
-  targetLang?: string;
-};
+function pickString(obj: any, keys: string[]) {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function langName(code: string) {
+  const m: Record<string, string> = {
+    no: "Norwegian (Bokmål)",
+    en: "English",
+    uk: "Ukrainian",
+    ar: "Arabic",
+    pl: "Polish",
+    es: "Spanish",
+    pt: "Portuguese (Brazil)",
+  };
+  return m[code] ?? code;
+}
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as Body;
-    const text = (body.text || "").trim();
-    const targetLang = (body.targetLang || "").trim();
+    const body = await req.json().catch(() => ({}));
+    const text = pickString(body, ["text", "sourceText", "input"]);
+    const targetLang = pickString(body, ["targetLang", "to", "lang"]) || "no";
+    const targetLanguageName = langName(targetLang);
 
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "OPENAI_API_KEY mangler i .env.local" },
-        { status: 500 }
-      );
-    }
-    if (!text) return NextResponse.json({ error: "Mangler tekst." }, { status: 400 });
-    if (!targetLang) return NextResponse.json({ error: "Mangler språk." }, { status: 400 });
+    if (!text) return Response.json({ error: "Mangler tekst." }, { status: 400 });
 
-    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-
-    const resp = await client.responses.create({
-      model,
+    const r = await client.responses.create({
+      model: "gpt-4o-mini",
       input: [
         {
           role: "system",
           content:
-            "Du er en profesjonell oversetter. Oversett teksten nøyaktig og naturlig. Ikke legg til forklaringer.",
+            "You are a precise translator. Output ONLY the translation, no quotes, no explanations.",
         },
         {
           role: "user",
-          content: `Mål-språk: ${targetLang}\n\nTekst:\n${text}`,
+          content:
+            `TARGET LANGUAGE: ${targetLanguageName}\n` +
+            `CRITICAL: The output MUST be written ONLY in ${targetLanguageName}. No mixed languages.\n\n` +
+            `TEXT:\n${text}\n\n` +
+            `Translate the TEXT into ${targetLanguageName}. Keep meaning, tone, and formatting. Return only the translation.`,
         },
       ],
     });
 
-    return NextResponse.json({ translation: (resp.output_text || "").trim() });
+    const translatedText = (r.output_text ?? "").trim();
+
+    if (!translatedText) {
+      return Response.json({ error: "Tom oversettelse fra modellen." }, { status: 500 });
+    }
+
+    // ✅ This is the only shape the frontend expects
+    return Response.json({ translatedText });
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message || "Ukjent feil" }, { status: 500 });
+    console.error("Translate route error:", err);
+    return Response.json({ error: err?.message ?? "Translate failed" }, { status: 500 });
   }
 }
