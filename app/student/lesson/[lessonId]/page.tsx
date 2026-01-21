@@ -26,6 +26,45 @@ type TranslatedTask = {
   translatedOptions?: string[];
 };
 
+const LANGUAGE_OPTIONS: Array<{ code: string; label: string }> = [
+  { code: "no", label: "Norsk (Bokmål)" },
+  { code: "en", label: "English" },
+  { code: "sv", label: "Svenska" },
+  { code: "da", label: "Dansk" },
+  { code: "de", label: "Deutsch" },
+  { code: "nl", label: "Nederlands" },
+  { code: "fr", label: "Français" },
+  { code: "es", label: "Español" },
+  { code: "it", label: "Italiano" },
+  { code: "pt", label: "Português" },
+  { code: "pl", label: "Polski" },
+  { code: "cs", label: "Čeština" },
+  { code: "sk", label: "Slovenčina" },
+  { code: "hu", label: "Magyar" },
+  { code: "ro", label: "Română" },
+  { code: "bg", label: "Български" },
+  { code: "el", label: "Ελληνικά" },
+  { code: "fi", label: "Suomi" },
+  { code: "uk", label: "Українська" },
+  { code: "ru", label: "Русский" },
+  { code: "sr", label: "Српски" },
+  { code: "ar", label: "العربية" },
+  { code: "fa", label: "فارسی" },
+  { code: "tr", label: "Türkçe" },
+  { code: "ur", label: "اردو" },
+  { code: "hi", label: "हिन्दी" },
+  { code: "bn", label: "বাংলা" },
+  { code: "ta", label: "தமிழ்" },
+  { code: "so", label: "Soomaali" },
+  { code: "ti", label: "ትግርኛ (Tigrinya)" },
+  { code: "am", label: "አማርኛ (Amharic)" },
+  { code: "vi", label: "Tiếng Việt" },
+  { code: "th", label: "ไทย" },
+  { code: "zh", label: "中文" },
+  { code: "ja", label: "日本語" },
+  { code: "ko", label: "한국어" },
+];
+
 async function translateOne(text: string, targetLang: string) {
   const res = await fetch("/api/translate", {
     method: "POST",
@@ -405,7 +444,8 @@ export default function StudentLessonPage() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
 
-    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs =
+      activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
     if (!segs.length) return;
 
     const nextIdx = Math.max(0, (activeSentenceIndex ?? 0) - 1);
@@ -416,7 +456,8 @@ export default function StudentLessonPage() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
 
-    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs =
+      activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
     if (!segs.length) return;
 
     const nextIdx = Math.min(segs.length - 1, (activeSentenceIndex ?? 0) + 1);
@@ -689,7 +730,9 @@ export default function StudentLessonPage() {
     setTranslating("tasks");
 
     try {
-      const sorted = tasksArr.slice().sort((a: any, b: any) => (a?.order ?? 999) - (b?.order ?? 999));
+      const sorted = tasksArr
+        .slice()
+        .sort((a: any, b: any) => (a?.order ?? 999) - (b?.order ?? 999));
 
       const out: TranslatedTask[] = [];
 
@@ -873,12 +916,11 @@ export default function StudentLessonPage() {
               onChange={(e) => setTargetLang(e.target.value)}
               style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
             >
-              <option value="no">Norsk</option>
-              <option value="en">English</option>
-              <option value="pt">Português</option>
-              <option value="es">Español</option>
-              <option value="uk">Українська</option>
-              <option value="ar">العربية</option>
+              {LANGUAGE_OPTIONS.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -1147,43 +1189,42 @@ export default function StudentLessonPage() {
                   ) : null}
 
                   {type === "truefalse" ? (
-  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-    <button
-      type="button"
-      onClick={() => setAnswer(stableId, true)}
-      aria-pressed={val === true}
-      style={{
-        ...btnStyle,
-        borderColor: val === true ? "rgba(0,0,0,0.25)" : "#ddd",
-        background: val === true ? "rgba(46, 204, 113, 0.9)" : "white",
-        color: val === true ? "white" : "black",
-        fontWeight: val === true ? 700 : 400,
-        boxShadow: val === true ? "0 6px 14px rgba(0,0,0,0.12)" : "none",
-      }}
-    >
-      True
-    </button>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => setAnswer(stableId, true)}
+                        aria-pressed={val === true}
+                        style={{
+                          ...btnStyle,
+                          borderColor: val === true ? "rgba(0,0,0,0.25)" : "#ddd",
+                          background: val === true ? "rgba(46, 204, 113, 0.9)" : "white",
+                          color: val === true ? "white" : "black",
+                          fontWeight: val === true ? 700 : 400,
+                          boxShadow: val === true ? "0 6px 14px rgba(0,0,0,0.12)" : "none",
+                        }}
+                      >
+                        True
+                      </button>
 
-    <button
-      type="button"
-      onClick={() => setAnswer(stableId, false)}
-      aria-pressed={val === false}
-      style={{
-        ...btnStyle,
-        borderColor: val === false ? "rgba(0,0,0,0.25)" : "#ddd",
-        background: val === false ? "rgba(231, 76, 60, 0.9)" : "white",
-        color: val === false ? "white" : "black",
-        fontWeight: val === false ? 700 : 400,
-        boxShadow: val === false ? "0 6px 14px rgba(0,0,0,0.12)" : "none",
-      }}
-    >
-      False
-    </button>
-  </div>
-) : null}
+                      <button
+                        type="button"
+                        onClick={() => setAnswer(stableId, false)}
+                        aria-pressed={val === false}
+                        style={{
+                          ...btnStyle,
+                          borderColor: val === false ? "rgba(0,0,0,0.25)" : "#ddd",
+                          background: val === false ? "rgba(231, 76, 60, 0.9)" : "white",
+                          color: val === false ? "white" : "black",
+                          fontWeight: val === false ? 700 : 400,
+                          boxShadow: val === false ? "0 6px 14px rgba(0,0,0,0.12)" : "none",
+                        }}
+                      >
+                        False
+                      </button>
+                    </div>
+                  ) : null}
 
-
-                  {type === "open" || (!["mcq", "truefalse"].includes(type)) ? (
+                  {type === "open" || !["mcq", "truefalse"].includes(type) ? (
                     <textarea
                       value={typeof val === "string" ? val : val ?? ""}
                       onChange={(e) => setAnswer(stableId, e.target.value)}
