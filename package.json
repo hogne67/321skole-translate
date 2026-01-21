@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.3.2",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.0",
     "next": "16.1.1",

@@ -1,15 +1,19 @@
+// app/producer/[id]/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth } from "firebase/auth";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type TaskType = "truefalse" | "mcq" | "open";
 type ReleaseMode = "ALL_AT_ONCE" | "TEXT_FIRST";
+type AnswerSpace = "short" | "medium" | "long";
+type CoverFormat = "16:9" | "4:3";
 
 type Task = {
   id: string;
@@ -18,6 +22,9 @@ type Task = {
   prompt: string;
   options?: string[];
   correctAnswer?: any;
+
+  // ✅ PDF: per open task
+  answerSpace?: AnswerSpace;
 };
 
 type Lesson = {
@@ -35,6 +42,11 @@ type Lesson = {
   language?: string;
   estimatedMinutes?: number;
   releaseMode?: ReleaseMode;
+
+  // ✅ PDF/branding
+  producerName?: string;
+  coverImageUrl?: string;
+  coverImageFormat?: CoverFormat;
 };
 
 function uidNow() {
@@ -42,10 +54,7 @@ function uidNow() {
 }
 
 function newId() {
-  return (
-    Math.random().toString(36).slice(2, 10) +
-    Date.now().toString(36).slice(2, 6)
-  );
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(2, 6);
 }
 
 function parseTags(text: string) {
@@ -56,10 +65,23 @@ function parseTags(text: string) {
     .slice(0, 30);
 }
 
+function countWords(text: string) {
+  const t = (text ?? "").trim();
+  if (!t) return 0;
+  return t.split(/\s+/).filter(Boolean).length;
+}
+
+function countCharsWithSpaces(text: string) {
+  return (text ?? "").length;
+}
+
+function countCharsNoSpaces(text: string) {
+  return (text ?? "").replace(/\s+/g, "").length;
+}
+
 export default function ProducerLessonEditorPage() {
   const params = useParams<{ id: string }>();
   const lessonId = params.id;
-  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -73,6 +95,7 @@ export default function ProducerLessonEditorPage() {
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState("");
   const [sourceText, setSourceText] = useState("");
+  
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [tasks, setTasks] = useState<Task[]>([]);
 
@@ -83,11 +106,26 @@ export default function ProducerLessonEditorPage() {
   const [estimatedMinutes, setEstimatedMinutes] = useState<number>(20);
   const [releaseMode, setReleaseMode] = useState<ReleaseMode>("ALL_AT_ONCE");
 
+  // ✅ PDF/branding state
+  const [producerName, setProducerName] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [coverImageFormat, setCoverImageFormat] = useState<CoverFormat>("16:9");
+  const [uploadingCover, setUploadingCover] = useState(false);
+
   const sortedTasks = useMemo(() => {
     const t = [...tasks];
     t.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     return t;
   }, [tasks]);
+
+  // ✅ Word/char counts
+  const wordCount = useMemo(() => countWords(sourceText), [sourceText]);
+  const charCountWithSpaces = useMemo(() => countCharsWithSpaces(sourceText), [sourceText]);
+  const charCountNoSpaces = useMemo(() => countCharsNoSpaces(sourceText), [sourceText]);
+
+  // ✅ Preview sizing
+  const previewW = 560;
+  const previewH = coverImageFormat === "4:3" ? Math.round(previewW * 3 / 4) : Math.round(previewW * 9 / 16);
 
   useEffect(() => {
     let alive = true;
@@ -134,10 +172,13 @@ export default function ProducerLessonEditorPage() {
         setTopic(data.topic ?? "");
         setTagsText(Array.isArray(data.tags) ? data.tags.join(", ") : "");
         setLanguage(data.language ?? "English");
-        setEstimatedMinutes(
-          typeof data.estimatedMinutes === "number" ? data.estimatedMinutes : 20
-        );
+        setEstimatedMinutes(typeof data.estimatedMinutes === "number" ? data.estimatedMinutes : 20);
         setReleaseMode((data.releaseMode ?? "ALL_AT_ONCE") as ReleaseMode);
+
+        // ✅ PDF/branding
+        setProducerName(data.producerName ?? "");
+        setCoverImageUrl(data.coverImageUrl ?? "");
+        setCoverImageFormat((data.coverImageFormat as CoverFormat) ?? "16:9");
 
         setLoading(false);
       } catch (e: any) {
@@ -152,6 +193,42 @@ export default function ProducerLessonEditorPage() {
     };
   }, [lessonId]);
 
+  async function uploadCover(file: File) {
+    setErr(null);
+    setUploadingCover(true);
+
+    try {
+      await ensureAnonymousUser();
+      const u = uidNow();
+      if (!u) throw new Error("No auth uid.");
+
+      if (!file.type.startsWith("image/")) {
+        throw new Error("Velg en bildefil (jpg/png/webp).");
+      }
+
+      const maxBytes = 8 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        throw new Error("Filen er for stor. Maks 8MB.");
+      }
+
+      const safeName = file.name.replaceAll(" ", "_");
+      const path = `covers/${u}/${lessonId}/${Date.now()}-${safeName}`;
+      const r = ref(storage, path);
+
+      await uploadBytes(r, file, {
+        contentType: file.type,
+        cacheControl: "public,max-age=31536000",
+      });
+
+      const url = await getDownloadURL(r);
+      setCoverImageUrl(url);
+    } catch (e: any) {
+      setErr(e?.message ?? "Upload feilet.");
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
   async function save() {
     setErr(null);
     setSaving(true);
@@ -162,7 +239,6 @@ export default function ProducerLessonEditorPage() {
 
       const tags = parseTags(tagsText);
 
-      // Normaliser order
       const normalized = sortedTasks.map((t, idx) => ({
         ...t,
         order: idx + 1,
@@ -179,10 +255,13 @@ export default function ProducerLessonEditorPage() {
         topic: topic.trim(),
         tags,
         language: language.trim(),
-        estimatedMinutes: Number.isFinite(estimatedMinutes)
-          ? Number(estimatedMinutes)
-          : 20,
+        estimatedMinutes: Number.isFinite(estimatedMinutes) ? Number(estimatedMinutes) : 20,
         releaseMode,
+
+        // ✅ PDF/branding
+        producerName: producerName.trim(),
+        coverImageUrl: coverImageUrl.trim(),
+        coverImageFormat,
 
         updatedAt: serverTimestamp(),
       });
@@ -199,7 +278,6 @@ export default function ProducerLessonEditorPage() {
     setErr(null);
     setPublishing(true);
     try {
-      // lagre først
       await save();
 
       await updateDoc(doc(db, "lessons", lessonId), {
@@ -217,8 +295,7 @@ export default function ProducerLessonEditorPage() {
 
   function addTask(type: TaskType) {
     const id = newId();
-    const nextOrder =
-      (sortedTasks[sortedTasks.length - 1]?.order ?? sortedTasks.length) + 1;
+    const nextOrder = (sortedTasks[sortedTasks.length - 1]?.order ?? sortedTasks.length) + 1;
 
     const base: Task = {
       id,
@@ -227,14 +304,12 @@ export default function ProducerLessonEditorPage() {
       prompt: "",
     };
 
-    if (type === "truefalse") {
-      base.correctAnswer = "true";
-    }
-
+    if (type === "truefalse") base.correctAnswer = "true";
     if (type === "mcq") {
       base.options = ["Option A", "Option B", "Option C", "Option D"];
       base.correctAnswer = "Option A";
     }
+    if (type === "open") base.answerSpace = "medium";
 
     setTasks((prev) => [...prev, base]);
   }
@@ -258,31 +333,19 @@ export default function ProducerLessonEditorPage() {
   }
 
   function updateTask(taskId: string, patch: Partial<Task>) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t))
-    );
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)));
   }
 
-  if (loading) {
-    return <main style={{ padding: 20 }}>Laster…</main>;
-  }
+  if (loading) return <main style={{ padding: 20 }}>Laster…</main>;
 
   if (err) {
     return (
       <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>Producer editor</h1>
-        <div
-          style={{
-            marginTop: 12,
-            border: "1px solid #f3b4b4",
-            borderRadius: 12,
-            padding: 12,
-          }}
-        >
+        <div style={{ marginTop: 12, border: "1px solid #f3b4b4", borderRadius: 12, padding: 12 }}>
           <div style={{ fontWeight: 800 }}>Feil</div>
           <pre style={{ whiteSpace: "pre-wrap" }}>{err}</pre>
         </div>
-
         <div style={{ marginTop: 12 }}>
           <Link href="/producer">← Tilbake</Link>
         </div>
@@ -292,32 +355,16 @@ export default function ProducerLessonEditorPage() {
 
   return (
     <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <div>
           <Link href="/producer">← Tilbake</Link>
-          <h1 style={{ fontSize: 24, fontWeight: 900, marginTop: 10 }}>
-            Producer editor
-          </h1>
+          <h1 style={{ fontSize: 24, fontWeight: 900, marginTop: 10 }}>Producer editor</h1>
           <div style={{ fontSize: 13, opacity: 0.7 }}>
             id: {lessonId} · uid: {uid ?? "—"} · status: {status}
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
-        >
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <Link
             href={`/producer/${lessonId}/preview`}
             style={{
@@ -331,11 +378,20 @@ export default function ProducerLessonEditorPage() {
             Preview
           </Link>
 
-          <button
-            onClick={save}
-            disabled={saving}
-            style={{ padding: "8px 12px" }}
+          <Link
+            href={`/producer/${lessonId}/print`}
+            style={{
+              padding: "8px 12px",
+              border: "1px solid #ddd",
+              borderRadius: 10,
+              textDecoration: "none",
+              color: "inherit",
+            }}
           >
+            Printable PDF
+          </Link>
+
+          <button onClick={save} disabled={saving} style={{ padding: "8px 12px" }}>
             {saving ? "Lagrer…" : "Lagre"}
           </button>
 
@@ -351,14 +407,7 @@ export default function ProducerLessonEditorPage() {
       </div>
 
       {/* Lesson meta */}
-      <section
-        style={{
-          marginTop: 16,
-          border: "1px solid #e5e7eb",
-          borderRadius: 12,
-          padding: 14,
-        }}
-      >
+      <section style={{ marginTop: 16, border: "1px solid #e5e7eb", borderRadius: 12, padding: 14 }}>
         <div style={{ display: "grid", gap: 10 }}>
           <label style={{ display: "grid", gap: 6 }}>
             <div style={{ fontWeight: 800 }}>Tittel</div>
@@ -380,7 +429,118 @@ export default function ProducerLessonEditorPage() {
             />
           </label>
 
-          {/* ✅ NY metadata */}
+          <label style={{ display: "grid", gap: 6 }}>
+            <div style={{ fontWeight: 800 }}>Produsent (vises i PDF)</div>
+            <input
+              value={producerName}
+              onChange={(e) => setProducerName(e.target.value)}
+              style={{ padding: "10px 12px" }}
+              placeholder="F.eks. 321skole / Hogne / GuideToGo"
+            />
+          </label>
+
+          {/* Banner */}
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ fontWeight: 800 }}>Banner image (cover)</div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <label
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: 10,
+                  cursor: uploadingCover ? "not-allowed" : "pointer",
+                  opacity: uploadingCover ? 0.6 : 1,
+                  display: "inline-block",
+                }}
+              >
+                {uploadingCover ? "Uploader…" : "Last opp bilde"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  disabled={uploadingCover}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadCover(f);
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setCoverImageUrl("")}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: 10,
+                  background: "#fff",
+                }}
+                disabled={uploadingCover || !coverImageUrl}
+                title="Fjerner URL (sletter ikke fra Storage i denne MVP-en)"
+              >
+                Fjern bilde
+              </button>
+
+              <label style={{ display: "grid", gap: 6, maxWidth: 240 }}>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>Format</div>
+                <select
+                  value={coverImageFormat}
+                  onChange={(e) => setCoverImageFormat(e.target.value as CoverFormat)}
+                  style={{ padding: "10px 12px" }}
+                >
+                  <option value="16:9">16:9 (banner)</option>
+                  <option value="4:3">4:3 (klassisk)</option>
+                </select>
+              </label>
+            </div>
+
+            <div style={{ fontSize: 12, opacity: 0.7 }}>
+              (Låst) Bildet kommer fra opplasting til Firebase Storage. URL + format lagres i lesson når du trykker{" "}
+              <b>Lagre</b>.
+            </div>
+
+            {coverImageUrl?.trim() ? (
+              <div style={{ marginTop: 10 }}>
+                <img
+                  src={coverImageUrl}
+                  alt="Banner preview"
+                  style={{
+                    width: "100%",
+                    maxWidth: previewW,
+                    height: previewH,
+                    objectFit: "cover",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 10,
+                    display: "block",
+                  }}
+                />
+                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+                  Preview: {coverImageFormat} (croppes med cover)
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginTop: 10,
+                  width: "100%",
+                  maxWidth: previewW,
+                  height: previewH,
+                  border: "1px dashed #bbb",
+                  borderRadius: 10,
+                  display: "grid",
+                  placeItems: "center",
+                  color: "#777",
+                  fontSize: 12,
+                }}
+              >
+                Ingen banner valgt ({coverImageFormat})
+              </div>
+            )}
+          </div>
+
+          {/* Metadata */}
           <label style={{ display: "grid", gap: 6 }}>
             <div style={{ fontWeight: 800 }}>Tema / topic</div>
             <input
@@ -399,9 +559,7 @@ export default function ProducerLessonEditorPage() {
               style={{ padding: "10px 12px" }}
               placeholder="work, safety, norway"
             />
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              Lagres som array i Firestore.
-            </div>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>Lagres som array i Firestore.</div>
           </label>
 
           <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
@@ -463,6 +621,10 @@ export default function ProducerLessonEditorPage() {
               style={{ padding: "10px 12px", width: "100%" }}
               placeholder="Skriv inn kildetekst…"
             />
+            <div style={{ fontSize: 12, opacity: 0.75 }}>
+              <b>{wordCount}</b> ord · <b>{charCountNoSpaces}</b> tegn (uten mellomrom) ·{" "}
+              <b>{charCountWithSpaces}</b> tegn (med mellomrom)
+            </div>
           </label>
         </div>
       </section>
@@ -481,22 +643,13 @@ export default function ProducerLessonEditorPage() {
           <h2 style={{ fontSize: 18, fontWeight: 900 }}>Oppgaver</h2>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button
-              onClick={() => addTask("truefalse")}
-              style={{ padding: "8px 10px" }}
-            >
+            <button onClick={() => addTask("truefalse")} style={{ padding: "8px 10px" }}>
               + True/False
             </button>
-            <button
-              onClick={() => addTask("mcq")}
-              style={{ padding: "8px 10px" }}
-            >
+            <button onClick={() => addTask("mcq")} style={{ padding: "8px 10px" }}>
               + MCQ
             </button>
-            <button
-              onClick={() => addTask("open")}
-              style={{ padding: "8px 10px" }}
-            >
+            <button onClick={() => addTask("open")} style={{ padding: "8px 10px" }}>
               + Open
             </button>
           </div>
@@ -527,24 +680,11 @@ export default function ProducerLessonEditorPage() {
                     <div style={{ fontSize: 12, opacity: 0.7 }}>
                       #{idx + 1} · {t.type.toUpperCase()} · id: {t.id}
                     </div>
-                    <div
-                      style={{
-                        marginTop: 6,
-                        display: "flex",
-                        gap: 8,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <button
-                        onClick={() => moveTask(t.id, -1)}
-                        disabled={idx === 0}
-                      >
+                    <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button onClick={() => moveTask(t.id, -1)} disabled={idx === 0}>
                         ↑
                       </button>
-                      <button
-                        onClick={() => moveTask(t.id, +1)}
-                        disabled={idx === sortedTasks.length - 1}
-                      >
+                      <button onClick={() => moveTask(t.id, +1)} disabled={idx === sortedTasks.length - 1}>
                         ↓
                       </button>
                       <button onClick={() => removeTask(t.id)} title="Slett task">
@@ -557,11 +697,7 @@ export default function ProducerLessonEditorPage() {
                     <div style={{ fontSize: 12, opacity: 0.7 }}>Type</div>
                     <select
                       value={t.type}
-                      onChange={(e) =>
-                        updateTask(t.id, {
-                          type: e.target.value as TaskType,
-                        })
-                      }
+                      onChange={(e) => updateTask(t.id, { type: e.target.value as TaskType })}
                     >
                       <option value="truefalse">truefalse</option>
                       <option value="mcq">mcq</option>
@@ -601,14 +737,10 @@ export default function ProducerLessonEditorPage() {
                     </label>
 
                     <label style={{ display: "grid", gap: 6 }}>
-                      <div style={{ fontWeight: 800 }}>
-                        Correct answer (må matche et alternativ)
-                      </div>
+                      <div style={{ fontWeight: 800 }}>Correct answer (må matche et alternativ)</div>
                       <input
                         value={typeof t.correctAnswer === "string" ? t.correctAnswer : ""}
-                        onChange={(e) =>
-                          updateTask(t.id, { correctAnswer: e.target.value })
-                        }
+                        onChange={(e) => updateTask(t.id, { correctAnswer: e.target.value })}
                         style={{ padding: "10px 12px" }}
                         placeholder="F.eks. Option A"
                       />
@@ -622,9 +754,7 @@ export default function ProducerLessonEditorPage() {
                       <div style={{ fontWeight: 800 }}>Correct answer</div>
                       <select
                         value={t.correctAnswer ?? "true"}
-                        onChange={(e) =>
-                          updateTask(t.id, { correctAnswer: e.target.value })
-                        }
+                        onChange={(e) => updateTask(t.id, { correctAnswer: e.target.value })}
                         style={{ padding: "10px 12px" }}
                       >
                         <option value="true">true</option>
@@ -638,8 +768,28 @@ export default function ProducerLessonEditorPage() {
                 )}
 
                 {t.type === "open" && (
-                  <div style={{ marginTop: 10, fontSize: 13, opacity: 0.75 }}>
-                    Open tasks har ingen fasit her. Learner får AI-feedback når de leverer.
+                  <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                    <label style={{ display: "grid", gap: 6, maxWidth: 280 }}>
+                      <div style={{ fontWeight: 800 }}>Skriveplass i PDF</div>
+                      <select
+                        value={t.answerSpace ?? "medium"}
+                        onChange={(e) =>
+                          updateTask(t.id, {
+                            answerSpace: e.target.value as AnswerSpace,
+                          })
+                        }
+                        style={{ padding: "10px 12px" }}
+                      >
+                        <option value="short">Short</option>
+                        <option value="medium">Medium</option>
+                        <option value="long">Long</option>
+                      </select>
+                      <div style={{ fontSize: 12, opacity: 0.7 }}>Lagres per oppgave (brukes i Printable PDF).</div>
+                    </label>
+
+                    <div style={{ fontSize: 13, opacity: 0.75 }}>
+                      Open tasks har ingen fasit her. Learner får AI-feedback når de leverer.
+                    </div>
                   </div>
                 )}
               </div>
@@ -654,4 +804,3 @@ export default function ProducerLessonEditorPage() {
     </main>
   );
 }
-
