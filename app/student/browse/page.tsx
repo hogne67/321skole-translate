@@ -27,6 +27,13 @@ export default function StudentBrowsePage() {
   const [hideOpened, setHideOpened] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const navLinkStyle: React.CSSProperties = {
+    textDecoration: "none",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "inherit",
+  };
+
   useEffect(() => {
     let alive = true;
 
@@ -91,29 +98,47 @@ export default function StudentBrowsePage() {
   }, [lessons, hideOpened, openedIds]);
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: 16 }}>
+    <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Browse</h1>
+
+      {/* ✅ Student navigation (samme som Dashboard) */}
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginBottom: 14,
+        }}
+      >
+        <Link href="/student" style={navLinkStyle}>
+          Dashboard
+        </Link>
+        <Link href="/student/browse" style={navLinkStyle}>
+          Library
+        </Link>
+        <Link href="/student/generator" style={navLinkStyle}>
+          Textgenerator
+        </Link>
+        <Link href="/student/translate" style={navLinkStyle}>
+          Translator
+        </Link>
+        <Link href="/student/vocab" style={navLinkStyle}>
+          Glossary
+        </Link>
+      </div>
+
+      <hr style={{ margin: "10px 0 14px" }} />
+
+      <p style={{ opacity: 0.75, marginTop: 0 }}>
+        Her ser du publiserte lessons. Du kan skjule eller markere de du allerede har hentet.
+      </p>
+
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <h3 style={{ marginTop: 0 }}>Browse</h3>
-          <p style={{ opacity: 0.75, marginTop: 6 }}>
-            Her ser du publiserte lessons. Du kan skjule eller markere de du allerede har hentet.
-          </p>
-        </div>
-
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={hideOpened}
-              onChange={(e) => setHideOpened(e.target.checked)}
-            />
-            Skjul hentede
-          </label>
-
-          <Link href="/student" style={{ textDecoration: "none" }}>
-            ← Dashboard
-          </Link>
-        </div>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer" }}>
+          <input type="checkbox" checked={hideOpened} onChange={(e) => setHideOpened(e.target.checked)} />
+          Skjul hentede
+        </label>
       </div>
 
       {error && (
@@ -185,6 +210,6 @@ export default function StudentBrowsePage() {
           })}
         </div>
       )}
-    </div>
+    </main>
   );
 }

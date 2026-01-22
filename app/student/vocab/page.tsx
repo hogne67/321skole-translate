@@ -1,8 +1,8 @@
 // app/student/vocab/page.tsx
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
+import React, { useMemo, useState } from "react";
 
 type VocabItem = {
   term: string;
@@ -47,6 +47,13 @@ export default function StudentVocabPage() {
 
   const hasText = useMemo(() => text.trim().length > 0, [text]);
 
+  const navLinkStyle: React.CSSProperties = {
+    textDecoration: "none",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "inherit",
+  };
+
   async function onRun() {
     setErr(null);
     setBusy(true);
@@ -63,23 +70,40 @@ export default function StudentVocabPage() {
   }
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <div>
-          <h3 style={{ marginTop: 0 }}>Glosefinner</h3>
-          <div style={{ opacity: 0.75, fontSize: 13 }}>
-            Lim inn en tekst → få gloser med eksempelsetning + oversettelse (kontekst).
-          </div>
-        </div>
+    <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Glossary</h1>
 
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <Link href="/student">Dashboard</Link>
-          <Link href="/student/translator">Translator</Link>
-          <Link href="/student/results">My results</Link>
-        </div>
+      {/* Student navigation */}
+      <div
+        style={{
+          display: "flex",
+          gap: 20,
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginBottom: 14,
+        }}
+      >
+        <Link href="/student" style={navLinkStyle}>
+          Dashboard
+        </Link>
+        <Link href="/student/browse" style={navLinkStyle}>
+          Library
+        </Link>
+        <Link href="/student/generator" style={navLinkStyle}>
+          Textgenerator
+        </Link>
+        <Link href="/student/translate" style={navLinkStyle}>
+          Translator
+        </Link>
+        <Link href="/student/vocab" style={navLinkStyle}>
+          Glossary
+        </Link>
+      </div>
+<div style={{ opacity: 0.75, fontSize: 18, marginBottom: 18 }}>
+        Lim inn en tekst → få gloser med eksempelsetning + oversettelse (kontekst).
       </div>
 
-      <hr style={{ margin: "16px 0" }} />
+      <hr style={{ margin: "10px 0 14px" }} />
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -122,7 +146,12 @@ export default function StudentVocabPage() {
             max={30}
             value={count}
             onChange={(e) => setCount(Number(e.target.value))}
-            style={{ width: 90, border: "1px solid #ddd", borderRadius: 10, padding: "8px 10px" }}
+            style={{
+              width: 90,
+              border: "1px solid #ddd",
+              borderRadius: 10,
+              padding: "8px 10px",
+            }}
           />
         </label>
 
@@ -153,20 +182,34 @@ export default function StudentVocabPage() {
           rows={10}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          style={{ width: "100%", border: "1px solid #ddd", borderRadius: 10, padding: 10, fontFamily: "inherit" }}
+          style={{
+            width: "100%",
+            border: "1px solid #ddd",
+            borderRadius: 10,
+            padding: 10,
+            fontFamily: "inherit",
+          }}
           placeholder="Paste a text here…"
         />
       </div>
 
-      {items.length > 0 && (
+      {items.length > 0 ? (
         <>
           <div style={{ height: 12 }} />
+
           <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12 }}>
             <div style={{ fontWeight: 600, marginBottom: 8 }}>Vocabulary</div>
 
             <div style={{ display: "grid", gap: 12 }}>
               {items.map((it, idx) => (
-                <div key={idx} style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+                <div
+                  key={idx}
+                  style={{
+                    border: "1px solid #eee",
+                    borderRadius: 12,
+                    padding: 12,
+                  }}
+                >
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "baseline" }}>
                     <div style={{ fontWeight: 800 }}>
                       {it.term}
@@ -176,8 +219,17 @@ export default function StudentVocabPage() {
                         </span>
                       ) : null}
                     </div>
+
                     {it.pos ? (
-                      <span style={{ fontSize: 12, opacity: 0.7, border: "1px solid #ddd", borderRadius: 999, padding: "2px 8px" }}>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          opacity: 0.7,
+                          border: "1px solid #ddd",
+                          borderRadius: 999,
+                          padding: "2px 8px",
+                        }}
+                      >
                         {it.pos}
                       </span>
                     ) : null}
@@ -196,14 +248,16 @@ export default function StudentVocabPage() {
 
                   <div style={{ marginTop: 10 }}>
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>Example translation</div>
-                    <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>{it.exampleTranslation}</div>
+                    <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>
+                      {it.exampleTranslation}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </>
-      )}
-    </div>
+      ) : null}
+    </main>
   );
 }

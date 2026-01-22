@@ -5,14 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 
 type MyLessonRow = {
   id: string; // submissionId
@@ -39,6 +32,13 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  const navLinkStyle: React.CSSProperties = {
+    textDecoration: "none",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "inherit",
+  };
+
   useEffect(() => {
     let alive = true;
 
@@ -53,10 +53,7 @@ export default function StudentDashboard() {
         /* ----------------------------
            1) Hent mine submissions
         ---------------------------- */
-        const qMine = query(
-          collection(db, "submissions"),
-          where("uid", "==", user.uid)
-        );
+        const qMine = query(collection(db, "submissions"), where("uid", "==", user.uid));
         const snap = await getDocs(qMine);
         if (!alive) return;
 
@@ -70,23 +67,15 @@ export default function StudentDashboard() {
               (mangler publishedLessonId)
         ---------------------------- */
         rows = rows.filter(
-          (r) =>
-            typeof r.publishedLessonId === "string" &&
-            r.publishedLessonId.trim().length > 0
+          (r) => typeof r.publishedLessonId === "string" && r.publishedLessonId.trim().length > 0
         );
 
         /* ----------------------------
            3) Sorter lokalt (nyeste først)
         ---------------------------- */
         rows.sort((a: any, b: any) => {
-          const ta =
-            a?.updatedAt?.toMillis?.() ??
-            a?.createdAt?.toMillis?.() ??
-            0;
-          const tb =
-            b?.updatedAt?.toMillis?.() ??
-            b?.createdAt?.toMillis?.() ??
-            0;
+          const ta = a?.updatedAt?.toMillis?.() ?? a?.createdAt?.toMillis?.() ?? 0;
+          const tb = b?.updatedAt?.toMillis?.() ?? b?.createdAt?.toMillis?.() ?? 0;
           return tb - ta;
         });
 
@@ -94,17 +83,13 @@ export default function StudentDashboard() {
            4) Fyll inn metadata ved behov
               (kun UI, ingen writes)
         ---------------------------- */
-        const needMeta = rows.filter(
-          (r) => r.publishedLessonId && !r.lessonTitle
-        );
+        const needMeta = rows.filter((r) => r.publishedLessonId && !r.lessonTitle);
 
         if (needMeta.length > 0) {
           const metas = await Promise.all(
             needMeta.map(async (r) => {
               try {
-                const ps = await getDoc(
-                  doc(db, "published_lessons", r.publishedLessonId!)
-                );
+                const ps = await getDoc(doc(db, "published_lessons", r.publishedLessonId!));
                 if (!ps.exists()) return null;
 
                 const data = ps.data() as any;
@@ -122,9 +107,7 @@ export default function StudentDashboard() {
           );
 
           const metaMap = new Map<string, PublishedMeta>();
-          metas.filter(Boolean).forEach((m: any) =>
-            metaMap.set(m.id, m.meta)
-          );
+          metas.filter(Boolean).forEach((m: any) => metaMap.set(m.id, m.meta));
 
           rows.forEach((r) => {
             if (!r.lessonTitle) {
@@ -156,32 +139,37 @@ export default function StudentDashboard() {
   }, []);
 
   return (
-    <main style={{ maxWidth: 900, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 34, fontWeight: 800, marginBottom: 8 }}>
-        Student dashboard
-      </h1>
+    <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Dashboard</h1>
 
-      <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-        
-      </div>
-       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <Link href="/student" style={{ textDecoration: "none" }}>
-            Dashboard
-          </Link>
-          <Link href="/student/browse" style={{ textDecoration: "none" }}>
-            Library
-          </Link>
-          <Link href="/student/generator" style={{ textDecoration: "none" }}>
-            Textgenerator
-          </Link>
-          <Link href="/student/translate" style={{ textDecoration: "none" }}>
+      {/* ✅ Student navigation (rett under overskrift) */}
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginBottom: 14,
+        }}
+      >
+        <Link href="/student" style={navLinkStyle}>
+          Dashboard
+        </Link>
+        <Link href="/student/browse" style={navLinkStyle}>
+          Library
+        </Link>
+        <Link href="/student/generator" style={navLinkStyle}>
+          Textgenerator
+        </Link>
+        <Link href="/student/translate" style={navLinkStyle}>
           Translator
         </Link>
-        <Link href="/student/vocab" style={{ textDecoration: "none" }}>
+        <Link href="/student/vocab" style={navLinkStyle}>
           Glossary
         </Link>
-          
-        </div>
+      </div>
+
+      <hr style={{ margin: "10px 0 14px" }} />
 
       {err && (
         <div
@@ -201,12 +189,9 @@ export default function StudentDashboard() {
       ) : items.length === 0 ? (
         <div style={{ marginTop: 16 }}>
           <p>Du har ikke hentet noen lessons ennå.</p>
-          <Link href="/student/browse">
-            Gå til Browse og velg en lesson
-          </Link>
+          <Link href="/student/browse">Gå til Library og velg en lesson</Link>
         </div>
       ) : (
-        
         <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
           {items.map((l) => (
             <Link
@@ -220,17 +205,10 @@ export default function StudentDashboard() {
                 textDecoration: "none",
                 color: "inherit",
               }}
-              
             >
-              <div style={{ fontWeight: 800 }}>
-                {l.lessonTitle || "Lesson"}
+              <div style={{ fontWeight: 900 }}>{l.lessonTitle || "Lesson"}</div>
 
-                
-              </div>
-
-              
-
-              <div style={{ opacity: 0.7, fontSize: 13 }}>
+              <div style={{ opacity: 0.7, fontSize: 12, marginTop: 4 }}>
                 {l.lessonLevel ? `Nivå: ${l.lessonLevel}` : null}
                 {l.lessonLanguage ? ` • ${l.lessonLanguage}` : null}
                 {l.status ? ` • ${l.status}` : null}

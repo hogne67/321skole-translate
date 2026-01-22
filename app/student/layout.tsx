@@ -11,9 +11,15 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         </div>
 
         <nav style={{ display: "flex", gap: 14 }}>
-          <Link href="/producer">Teacher</Link>
-          <Link href="/student">Student</Link>
-          <Link href="/321lessons">Library</Link>
+          <Link href="/student" style={{ textDecoration: "none" }}>
+            Student
+          </Link>
+          <Link href="/producer" style={{ textDecoration: "none" }}>
+            Teacher
+          </Link>
+          <Link href="/321lessons" style={{ textDecoration: "none" }}>
+            Library
+          </Link>
         </nav>
       </header>
 

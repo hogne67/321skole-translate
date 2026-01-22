@@ -336,7 +336,7 @@ export default function LessonsLandingPage() {
             const isNew = pubMs ? Date.now() - pubMs < 7 * 24 * 60 * 60 * 1000 : false;
 
             return (
-              <Link key={l.id} href={`/321lessons/${l.id}`} className="card">
+              <Link key={l.id} href={`/student/lesson/${l.id}`} className="card">
                 <div className="imgWrap">
                   <div className="badge">
                     <span>{(l.level || "—").toUpperCase()}</span>

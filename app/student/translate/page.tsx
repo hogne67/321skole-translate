@@ -1,5 +1,7 @@
+// app/student/translate/page.tsx
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 async function translateOne(text: string, targetLang: string) {
@@ -20,6 +22,13 @@ export default function StudentTranslatorPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const navLinkStyle: React.CSSProperties = {
+    textDecoration: "none",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "inherit",
+  };
+
   async function onTranslate() {
     setErr(null);
     setBusy(true);
@@ -34,8 +43,37 @@ export default function StudentTranslatorPage() {
   }
 
   return (
-    <div>
-      <h3 style={{ marginTop: 0 }}>Translator</h3>
+    <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Translator</h1>
+
+      {/* ✅ Student navigation (samme som de andre sidene) */}
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginBottom: 14,
+        }}
+      >
+        <Link href="/student" style={navLinkStyle}>
+          Dashboard
+        </Link>
+        <Link href="/student/browse" style={navLinkStyle}>
+          Library
+        </Link>
+        <Link href="/student/generator" style={navLinkStyle}>
+          Textgenerator
+        </Link>
+        <Link href="/student/translate" style={navLinkStyle}>
+          Translator
+        </Link>
+        <Link href="/student/vocab" style={navLinkStyle}>
+          Glossary
+        </Link>
+      </div>
+
+      <hr style={{ margin: "10px 0 14px" }} />
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <select
@@ -56,7 +94,14 @@ export default function StudentTranslatorPage() {
           type="button"
           onClick={onTranslate}
           disabled={busy || !source.trim()}
-          style={{ border: "1px solid #ddd", borderRadius: 10, padding: "8px 12px", background: "white" }}
+          style={{
+            border: "1px solid #ddd",
+            borderRadius: 10,
+            padding: "8px 12px",
+            background: "white",
+            cursor: "pointer",
+            opacity: busy || !source.trim() ? 0.6 : 1,
+          }}
         >
           {busy ? "Translating…" : "Translate"}
         </button>
@@ -73,7 +118,13 @@ export default function StudentTranslatorPage() {
             rows={10}
             value={source}
             onChange={(e) => setSource(e.target.value)}
-            style={{ width: "100%", border: "1px solid #ddd", borderRadius: 10, padding: 10, fontFamily: "inherit" }}
+            style={{
+              width: "100%",
+              border: "1px solid #ddd",
+              borderRadius: 10,
+              padding: 10,
+              fontFamily: "inherit",
+            }}
             placeholder="Paste text here…"
           />
         </div>
@@ -84,11 +135,17 @@ export default function StudentTranslatorPage() {
             rows={10}
             value={out}
             readOnly
-            style={{ width: "100%", border: "1px solid #ddd", borderRadius: 10, padding: 10, fontFamily: "inherit" }}
+            style={{
+              width: "100%",
+              border: "1px solid #ddd",
+              borderRadius: 10,
+              padding: 10,
+              fontFamily: "inherit",
+            }}
             placeholder="Result…"
           />
         </div>
       </div>
-    </div>
+    </main>
   );
 }

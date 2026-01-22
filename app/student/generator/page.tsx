@@ -55,6 +55,13 @@ export default function StudentGeneratorPage() {
 
   const canGenerate = useMemo(() => topic.trim().length > 0, [topic]);
 
+  const navLinkStyle: React.CSSProperties = {
+    textDecoration: "none",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "inherit",
+  };
+
   async function onGenerate() {
     setErr(null);
     setBusy(true);
@@ -102,23 +109,37 @@ export default function StudentGeneratorPage() {
   }
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <div>
-          <h3 style={{ marginTop: 0 }}>My generator</h3>
-          <div style={{ opacity: 0.75, fontSize: 13 }}>
-            Simple practice lesson generator (optional).
-          </div>
-        </div>
+    <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>My generator</h1>
 
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <Link href="/student">Dashboard</Link>
-          <Link href="/student/browse">Browse</Link>
-          <Link href="/student/results">My results</Link>
-        </div>
+      {/* ✅ Student navigation (samme som Dashboard/Browse) */}
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginBottom: 14,
+        }}
+      >
+        <Link href="/student" style={navLinkStyle}>
+          Dashboard
+        </Link>
+        <Link href="/student/browse" style={navLinkStyle}>
+          Library
+        </Link>
+        <Link href="/student/generator" style={navLinkStyle}>
+          Textgenerator
+        </Link>
+        <Link href="/student/translate" style={navLinkStyle}>
+          Translator
+        </Link>
+        <Link href="/student/vocab" style={navLinkStyle}>
+          Glossary
+        </Link>
       </div>
 
-      <hr style={{ margin: "16px 0" }} />
+      <hr style={{ margin: "10px 0 14px" }} />
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -201,9 +222,7 @@ export default function StudentGeneratorPage() {
               {saving ? "Saving…" : "Save & Open"}
             </button>
 
-            <span style={{ opacity: 0.75, fontSize: 13 }}>
-              Saves as a private draft (not published).
-            </span>
+            <span style={{ opacity: 0.75, fontSize: 13 }}>Saves as a private draft (not published).</span>
           </div>
 
           <div style={{ height: 12 }} />
@@ -246,6 +265,7 @@ export default function StudentGeneratorPage() {
           </div>
         </>
       )}
-    </div>
+    </main>
   );
 }
+
