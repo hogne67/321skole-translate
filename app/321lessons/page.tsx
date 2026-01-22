@@ -1,3 +1,4 @@
+// app/321lessons/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -16,17 +17,56 @@ type PublishedLesson = {
   status?: "published" | "draft";
   publishedAt?: any;
   searchText?: string;
+
+  imageUrl?: string;
 };
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
 const LANGS: { code: string; label: string }[] = [
-  { code: "no", label: "Norsk" },
+  { code: "no", label: "Norsk (Bokmål)" },
   { code: "en", label: "English" },
-  { code: "pt", label: "Português" },
+  { code: "sv", label: "Svenska" },
+  { code: "da", label: "Dansk" },
+  { code: "de", label: "Deutsch" },
+  { code: "nl", label: "Nederlands" },
+  { code: "fr", label: "Français" },
   { code: "es", label: "Español" },
+  { code: "it", label: "Italiano" },
+  { code: "pt", label: "Português" },
+  { code: "pl", label: "Polski" },
+  { code: "cs", label: "Čeština" },
+  { code: "sk", label: "Slovenčina" },
+  { code: "hu", label: "Magyar" },
+  { code: "ro", label: "Română" },
+  { code: "bg", label: "Български" },
+  { code: "el", label: "Ελληνικά" },
+  { code: "fi", label: "Suomi" },
   { code: "uk", label: "Українська" },
+  { code: "ru", label: "Русский" },
+  { code: "sr", label: "Српски" },
   { code: "ar", label: "العربية" },
+  { code: "fa", label: "فارسی" },
+  { code: "tr", label: "Türkçe" },
+  { code: "ur", label: "اردو" },
+  { code: "hi", label: "हिन्दी" },
+  { code: "bn", label: "বাংলা" },
+  { code: "ta", label: "தமிழ்" },
+  { code: "so", label: "Soomaali" },
+  { code: "ti", label: "ትግርኛ (Tigrinya)" },
+  { code: "am", label: "አማርኛ (Amharic)" },
+  { code: "vi", label: "Tiếng Việt" },
+  { code: "th", label: "ไทย" },
+  { code: "zh", label: "中文" },
+  { code: "ja", label: "日本語" },
+  { code: "ko", label: "한국어" },
 ];
+
+function tsToMs(ts: any): number | null {
+  // Firestore Timestamp har vanligvis { seconds, nanoseconds }
+  const s = ts?.seconds;
+  if (typeof s === "number") return s * 1000;
+  return null;
+}
 
 export default function LessonsLandingPage() {
   const [all, setAll] = useState<PublishedLesson[]>([]);
@@ -49,8 +89,6 @@ export default function LessonsLandingPage() {
         const q = query(
           collection(db, "published_lessons"),
           where("isActive", "==", true),
-          // Hvis du IKKE har status i published_lessons, kommenter ut linjen under:
-          // where("status", "==", "published"),
           limit(300)
         );
 
@@ -62,6 +100,7 @@ export default function LessonsLandingPage() {
           ...(d.data() as any),
         }));
 
+        // sort: nyeste først
         rows.sort((a: any, b: any) => {
           const at = a?.publishedAt?.seconds ?? 0;
           const bt = b?.publishedAt?.seconds ?? 0;
@@ -108,22 +147,91 @@ export default function LessonsLandingPage() {
   }, [all, qText, level, lang, topic]);
 
   return (
-    <main style={{ maxWidth: 1100, margin: "0 auto", padding: 20 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <h1 style={{ fontSize: 34, margin: 0 }}>321lessons</h1>
-          <p style={{ marginTop: 8, opacity: 0.75 }}>Finn publiserte oppgaver på nivå, språk og tema.</p>
-        </div>
+    <main>
+      <style jsx>{`
+        .cards {
+          margin-top: 10px;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+        @media (max-width: 900px) {
+          .cards {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 560px) {
+          .cards {
+            grid-template-columns: 1fr;
+          }
+        }
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Link href="/producer" style={{ textDecoration: "none" }}>
-            Producer
-          </Link>
-          <Link href="/learner" style={{ textDecoration: "none" }}>
-            Learner
-          </Link>
-        </div>
-      </header>
+        .card {
+          text-decoration: none;
+          color: inherit;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          border-radius: 14px;
+          overflow: hidden;
+          background: white;
+          display: flex;
+          flex-direction: column;
+          min-height: 100%;
+        }
+
+        .imgWrap {
+          width: 100%;
+          aspect-ratio: 3 / 2;
+          background: rgba(0, 0, 0, 0.06);
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .badge {
+          position: absolute;
+          top: 10px;
+          left: 10px;
+          display: inline-flex;
+          gap: 8px;
+          align-items: center;
+          padding: 7px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 900;
+          background: rgba(151, 156, 106, 0.95);
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          backdrop-filter: blur(4px);
+        }
+
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 8px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 900;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          background: rgba(255, 255, 255, 0.9);
+        }
+
+        .content {
+          padding: 14px;
+        }
+        .metaRow {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 8px;
+          opacity: 0.75;
+        }
+      `}</style>
 
       {error ? (
         <section
@@ -140,7 +248,7 @@ export default function LessonsLandingPage() {
 
       <section
         style={{
-          marginTop: 16,
+          marginTop: 12,
           padding: 14,
           border: "1px solid rgba(0,0,0,0.12)",
           borderRadius: 12,
@@ -207,52 +315,62 @@ export default function LessonsLandingPage() {
       </section>
 
       {!loading && filtered.length === 0 ? (
-        <section style={{ marginTop: 10, padding: 14, border: "1px dashed rgba(0,0,0,0.25)", borderRadius: 12 }}>
+        <section
+          style={{
+            marginTop: 10,
+            padding: 14,
+            border: "1px dashed rgba(0,0,0,0.25)",
+            borderRadius: 12,
+          }}
+        >
           <p style={{ margin: 0, opacity: 0.8 }}>
             Ingen publiserte oppgaver funnet. Prøv å fjerne filtre eller søke på noe annet.
           </p>
         </section>
       ) : null}
 
-      <section
-        style={{
-          marginTop: 10,
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: 12,
-        }}
-      >
+      <section className="cards">
         {!loading &&
-          filtered.map((l) => (
-            <Link
-              key={l.id}
-              href={`/student/lesson/${l.id}`}
-              style={{
-                textDecoration: "none",
-                color: "inherit",
-                border: "1px solid rgba(0,0,0,0.12)",
-                borderRadius: 14,
-                padding: 14,
-              }}
-            >
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8, opacity: 0.75 }}>
-                {l.level ? <span>{l.level}</span> : null}
-                {l.language ? <span>• {l.language.toUpperCase()}</span> : null}
-                {(l.topics || []).slice(0, 2).map((t) => (
-                  <span key={t}>• {t}</span>
-                ))}
-              </div>
+          filtered.map((l) => {
+            const pubMs = tsToMs(l.publishedAt);
+            const isNew = pubMs ? Date.now() - pubMs < 7 * 24 * 60 * 60 * 1000 : false;
 
-              <h3 style={{ margin: "6px 0 8px", fontSize: 18 }}>{l.title}</h3>
-              {l.description ? (
-                <p style={{ margin: 0, opacity: 0.8, lineHeight: 1.4 }}>
-                  {l.description.length > 120 ? l.description.slice(0, 120) + "…" : l.description}
-                </p>
-              ) : (
-                <p style={{ margin: 0, opacity: 0.6 }}>Åpne for detaljer</p>
-              )}
-            </Link>
-          ))}
+            return (
+              <Link key={l.id} href={`/321lessons/${l.id}`} className="card">
+                <div className="imgWrap">
+                  <div className="badge">
+                    <span>{(l.level || "—").toUpperCase()}</span>
+                  </div>
+
+                  {l.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={l.imageUrl} alt={l.title} className="img" />
+                  ) : (
+                    <div style={{ fontSize: 13, opacity: 0.6 }}>Bilde</div>
+                  )}
+                </div>
+
+                <div className="content">
+                  <div className="metaRow">
+                    {l.language ? <span>• {l.language.toUpperCase()}</span> : null}
+                    {(l.topics || []).slice(0, 2).map((t) => (
+                      <span key={t}>• {t}</span>
+                    ))}
+                  </div>
+
+                  <h3 style={{ margin: "6px 0 8px", fontSize: 18 }}>{l.title}</h3>
+
+                  {l.description ? (
+                    <p style={{ margin: 0, opacity: 0.8, lineHeight: 1.4 }}>
+                      {l.description.length > 120 ? l.description.slice(0, 120) + "…" : l.description}
+                    </p>
+                  ) : (
+                    <p style={{ margin: 0, opacity: 0.6 }}>Åpne for detaljer</p>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
       </section>
     </main>
   );

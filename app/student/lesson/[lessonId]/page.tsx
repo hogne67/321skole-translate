@@ -13,9 +13,11 @@ type Lesson = {
   level?: string;
   topic?: string;
   sourceText?: string;
-  tasks?: any; // expected array or JSON string
+  tasks?: any;
   status?: "draft" | "published";
   language?: string;
+
+  coverImageUrl?: string; // ✅ her
 };
 
 type AnswersMap = Record<string, any>;
@@ -129,17 +131,16 @@ function toTtsLang(lang: string): TtsLang {
 // ---- Text follow (Level A): sentence segmentation + proportional timing ----
 type SentenceSeg = {
   text: string;
-  startChar: number; // in full text (trimmed)
-  endChar: number; // exclusive
-  startRatio: number; // 0..1 based on cumulative weight
-  endRatio: number; // 0..1
+  startChar: number;
+  endChar: number;
+  startRatio: number;
+  endRatio: number;
 };
 
 function segmentSentences(fullText: string): { clean: string; segs: SentenceSeg[] } {
   const clean = (fullText || "").replace(/\r\n/g, "\n").trim();
   if (!clean) return { clean: "", segs: [] };
 
-  // Split on sentence-ish boundaries while keeping punctuation with sentence.
   const parts = clean
     .split(/(?<=[.!?])\s+|\n+/g)
     .map((s) => s.trim())
@@ -177,7 +178,6 @@ function segmentSentences(fullText: string): { clean: string; segs: SentenceSeg[
   });
 
   if (segs.length) segs[segs.length - 1].endRatio = 1;
-
   return { clean, segs };
 }
 
@@ -187,6 +187,49 @@ function fmtTime(sec: number) {
   const m = Math.floor(s / 60);
   const r = s % 60;
   return `${m}:${String(r).padStart(2, "0")}`;
+}
+
+// ---- Small UI helpers ----
+function Pill({
+  text,
+  kind = "neutral",
+}: {
+  text: string;
+  kind?: "neutral" | "good" | "bad";
+}) {
+  // ✅ Correct/Wrong-pillene: grønn/rød bakgrunn + hvit tekst
+  const bg =
+    kind === "good"
+      ? "rgba(46, 204, 113, 0.95)"
+      : kind === "bad"
+      ? "rgba(231, 76, 60, 0.95)"
+      : "rgba(0,0,0,0.05)";
+  const brd =
+    kind === "good"
+      ? "rgba(46, 204, 113, 0.75)"
+      : kind === "bad"
+      ? "rgba(231, 76, 60, 0.75)"
+      : "rgba(0,0,0,0.14)";
+  const col = kind === "good" || kind === "bad" ? "white" : "rgba(0,0,0,0.75)";
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "2px 8px",
+        borderRadius: 999,
+        border: `1px solid ${brd}`,
+        background: bg,
+        color: col,
+        fontSize: 12,
+        lineHeight: 1.2,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {text}
+    </span>
+  );
 }
 
 export default function StudentLessonPage() {
@@ -221,6 +264,22 @@ export default function StudentLessonPage() {
   const [taskTranslationOpen, setTaskTranslationOpen] = useState<Record<string, boolean>>({});
 
   const hasAnswers = useMemo(() => Object.keys(answers).length > 0, [answers]);
+
+  // ---- NEW: feedback translation + answer reveal ----
+  const [translatedFeedback, setTranslatedFeedback] = useState<string | null>(null);
+  const [feedbackTranslating, setFeedbackTranslating] = useState(false);
+  const [feedbackTranslateErr, setFeedbackTranslateErr] = useState<string | null>(null);
+
+  // image placeholder
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // showAnswers: auto-on when feedback exists, but can be toggled
+  const [showAnswers, setShowAnswers] = useState(false);
+
+  useEffect(() => {
+    // if you have feedback, reveal correct answers (if tasks include correctAnswer)
+    setShowAnswers(!!feedback);
+  }, [feedback]);
 
   // ---- TTS state ----
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -272,7 +331,6 @@ export default function StudentLessonPage() {
     setTtsBusy(mode);
 
     try {
-      // stop any current audio
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -308,11 +366,9 @@ export default function StudentLessonPage() {
       a.playbackRate = playbackRate;
       audioRef.current = a;
 
-      // set mode for text-follow
       setActiveTextMode(mode);
       setActiveSentenceIndex(0);
 
-      // Reset player state
       setCurrentTime(0);
       setDuration(0);
 
@@ -331,21 +387,18 @@ export default function StudentLessonPage() {
     }
   }
 
-  // Keep audio speed in sync if slider changes mid-play
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate]);
 
-  // Build sentence segments
   const textFollow = useMemo(() => {
     const original = segmentSentences(lesson?.sourceText || "");
     const translation = segmentSentences(translatedText || "");
     return { original, translation };
   }, [lesson?.sourceText, translatedText]);
 
-  // Audio player events (play/pause/time/meta)
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -365,7 +418,6 @@ export default function StudentLessonPage() {
     a.addEventListener("loadedmetadata", onMeta);
     a.addEventListener("ended", onEnded);
 
-    // init
     setCurrentTime(a.currentTime || 0);
     setDuration(a.duration || 0);
     setIsPlaying(!a.paused);
@@ -379,7 +431,6 @@ export default function StudentLessonPage() {
     };
   }, [ttsBusy]);
 
-  // Text-follow update on timeupdate (Level A)
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -494,6 +545,7 @@ export default function StudentLessonPage() {
 
         const lessonData = lessonSnap.data() as Lesson;
         setLesson(lessonData);
+        setImageUrl(lessonData.coverImageUrl ?? null);
 
         const stableSubId = `${user.uid}_${lessonId}`;
         const subRef = doc(db, "submissions", stableSubId);
@@ -517,6 +569,10 @@ export default function StudentLessonPage() {
         setTranslateErr(null);
         setTaskTranslationOpen({});
 
+        // NEW: reset feedback translation
+        setTranslatedFeedback(null);
+        setFeedbackTranslateErr(null);
+
         // reset tts
         setTtsErr(null);
         setTtsBusy(null);
@@ -539,6 +595,7 @@ export default function StudentLessonPage() {
 
   useEffect(() => {
     setTranslateErr(null);
+    setFeedbackTranslateErr(null);
   }, [targetLang]);
 
   function flash(text: string) {
@@ -689,6 +746,7 @@ export default function StudentLessonPage() {
       const fb = typeof data?.feedback === "string" ? data.feedback : JSON.stringify(data);
 
       setFeedback(fb);
+      setTranslatedFeedback(null); // NEW: reset any old translation
 
       await updateDoc(ref, {
         feedback: fb,
@@ -783,6 +841,25 @@ export default function StudentLessonPage() {
     }
   }
 
+  // NEW: translate feedback
+  async function onTranslateFeedback() {
+    setFeedbackTranslateErr(null);
+    setTranslatedFeedback(null);
+
+    const text = (feedback ?? "").trim();
+    if (!text) return;
+
+    setFeedbackTranslating(true);
+    try {
+      const out = await translateOne(text, targetLang);
+      setTranslatedFeedback(out);
+    } catch (e: any) {
+      setFeedbackTranslateErr(e?.message ?? "Translate feedback failed");
+    } finally {
+      setFeedbackTranslating(false);
+    }
+  }
+
   const tMap = useMemo(() => {
     const m = new Map<string, TranslatedTask>();
     (translatedTasks ?? []).forEach((t) => m.set(t.stableId, t));
@@ -813,15 +890,17 @@ export default function StudentLessonPage() {
     .slice()
     .sort((a: any, b: any) => (a?.order ?? 999) - (b?.order ?? 999));
 
-  const hasTaskTranslations = (translatedTasks ?? []).length > 0;
-
   const originalLangForTTS: TtsLang = toTtsLang(lesson.language || "no");
   const translationLangForTTS: TtsLang = toTtsLang(targetLang);
 
   const originalSegs = textFollow.original.segs;
   const translationSegs = textFollow.translation.segs;
 
-  const renderFollowText = (mode: "original" | "translation", segs: SentenceSeg[], fallbackText: string) => {
+  const renderFollowText = (
+    mode: "original" | "translation",
+    segs: SentenceSeg[],
+    fallbackText: string
+  ) => {
     if (!fallbackText.trim()) return <span style={{ opacity: 0.6 }}>No text</span>;
 
     if (!segs || segs.length === 0) {
@@ -865,15 +944,6 @@ export default function StudentLessonPage() {
             {lesson.topic ? <span> • {lesson.topic}</span> : null}
           </div>
         </div>
-
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Link href="/student" style={{ textDecoration: "none" }}>
-            Dashboard
-          </Link>
-          <Link href="/student/browse" style={{ textDecoration: "none" }}>
-            Browse
-          </Link>
-        </div>
       </header>
 
       {msg ? (
@@ -882,32 +952,68 @@ export default function StudentLessonPage() {
         </div>
       ) : null}
 
+      {/* IMAGE */}
+<section style={{ marginTop: 14 }}>
+  <h2 style={{ marginBottom: 8 }}>Image</h2>
+
+  <div
+    style={{
+      border: "1px solid rgba(0,0,0,0.12)",
+      borderRadius: 12,
+      padding: 12,
+      background: "rgba(0,0,0,0.02)",
+    }}
+  >
+    <div
+      style={{
+        width: "100%",
+        aspectRatio: "16 / 9",
+        borderRadius: 12,
+        border: "1px dashed rgba(0,0,0,0.18)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        background: "white",
+      }}
+    >
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt="Lesson"
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      ) : (
+        <div style={{ textAlign: "center", padding: 16, opacity: 0.7 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>No image yet</div>
+          <div style={{ fontSize: 13 }}>This is reserved space for an uploaded image.</div>
+        </div>
+      )}
+    </div>
+  </div>
+</section>
+
+
       {/* ACTIONS + TRANSLATE */}
-      <section style={{ marginTop: 14, padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12 }}>
+      <section style={{ marginTop: 18, padding: 12, border: "1px solid rgba(0, 0, 0, 0.12)", borderRadius: 12 }}>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
-          <button onClick={saveDraft} disabled={saving || !uid} style={{ ...btnStyle, opacity: saving ? 0.6 : 1 }}>
-            {saving ? "Saving…" : "Save draft"}
-          </button>
-
           <button
-            onClick={submitForFeedback}
-            disabled={submitting || !uid}
-            style={{ ...btnStyle, opacity: submitting ? 0.6 : 1 }}
-          >
-            {submitting ? "Submitting…" : "Submit for feedback"}
-          </button>
-
-          <button
-            onClick={() => {
-              setAnswers({});
-              flash("Cleared answers");
+            onClick={saveDraft}
+            disabled={saving || !uid}
+            style={{
+              ...btnStyle,
+              background: "#afc8fd",
+              borderColor: "#2563eb",
+              color: "black",
+              fontWeight: 600,
+              opacity: saving ? 0.6 : 1,
             }}
-            style={btnStyle}
           >
-            Clear answers
+            {saving ? "Saving…" : "SAVE TO DASHBOARD"}
           </button>
         </div>
 
+        {/* Translate row (now includes Translate feedback button) */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ opacity: 0.75 }}>Translate to</span>
@@ -944,7 +1050,9 @@ export default function StudentLessonPage() {
             onClick={() => {
               setTranslatedText(null);
               setTranslatedTasks(null);
+              setTranslatedFeedback(null);
               setTranslateErr(null);
+              setFeedbackTranslateErr(null);
               setTaskTranslationOpen({});
             }}
             style={btnStyle}
@@ -954,6 +1062,7 @@ export default function StudentLessonPage() {
         </div>
 
         {translateErr ? <p style={{ marginTop: 10, color: "crimson" }}>{translateErr}</p> : null}
+        {feedbackTranslateErr ? <p style={{ marginTop: 10, color: "crimson" }}>{feedbackTranslateErr}</p> : null}
       </section>
 
       {/* TEXT */}
@@ -1078,15 +1187,32 @@ export default function StudentLessonPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
           <h2 style={{ margin: 0 }}>Tasks</h2>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ opacity: 0.75 }}>Submission: {submissionId ?? "—"}</div>
+          <button
+            type="button"
+            onClick={() => setShowAnswers((v) => !v)}
+            style={btnStyle}
+            title="Show correct answers (if tasks have correctAnswer)"
+          >
+            {showAnswers ? "Hide answers" : "Show answers"}
+          </button>
 
-            {(translatedTasks ?? []).length > 0 ? (
-              <button type="button" style={btnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
-                {showTaskTranslations ? "Hide all translations" : "Show all translations"}
-              </button>
-            ) : null}
-          </div>
+          <button
+            onClick={() => {
+              setAnswers({});
+              flash("Cleared answers");
+            }}
+            style={btnStyle}
+          >
+            Clear answers
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          {(translatedTasks ?? []).length > 0 ? (
+            <button type="button" style={btnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
+              {showTaskTranslations ? "Hide all translations" : "Show all translations"}
+            </button>
+          ) : null}
         </div>
 
         {tasksOriginal.length === 0 ? (
@@ -1105,6 +1231,38 @@ export default function StudentLessonPage() {
               const hasThisTranslation = !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
               const showThisTranslation = hasThisTranslation ? isTaskTranslationVisible(stableId) : false;
 
+              const rawCorrect = t?.correctAnswer;
+
+              const mcqCorrectText = (() => {
+                if (!options.length) return null;
+                if (typeof rawCorrect === "number" && rawCorrect >= 0 && rawCorrect < options.length) {
+                  return String(options[rawCorrect]);
+                }
+                if (typeof rawCorrect === "string") return rawCorrect;
+                return null;
+              })();
+
+              const tfCorrectBool = (() => {
+                if (typeof rawCorrect === "boolean") return rawCorrect;
+                if (typeof rawCorrect === "string") {
+                  const s = rawCorrect.trim().toLowerCase();
+                  if (s === "true") return true;
+                  if (s === "false") return false;
+                }
+                return null;
+              })();
+
+              const hasCorrect =
+                (type === "mcq" && mcqCorrectText != null) ||
+                (type === "truefalse" && tfCorrectBool != null);
+
+              const isCorrect =
+                type === "mcq"
+                  ? mcqCorrectText != null && val != null && String(val) === String(mcqCorrectText)
+                  : type === "truefalse"
+                  ? tfCorrectBool != null && typeof val === "boolean" && val === tfCorrectBool
+                  : null;
+
               return (
                 <div key={stableId} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
                   <div
@@ -1117,9 +1275,15 @@ export default function StudentLessonPage() {
                       opacity: 0.85,
                     }}
                   >
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.9 }}>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.9, alignItems: "center" }}>
                       <span>Task {t?.order ?? idx + 1}</span>
                       <span>• {type}</span>
+
+                      {showAnswers && hasCorrect && val != null ? (
+                        <span style={{ marginLeft: 6 }}>
+                          {isCorrect ? <Pill text="Correct" kind="good" /> : <Pill text="Wrong" kind="bad" />}
+                        </span>
+                      ) : null}
                     </div>
 
                     {hasThisTranslation ? (
@@ -1156,6 +1320,22 @@ export default function StudentLessonPage() {
                         const checked = val === opt;
                         const optT = tr?.translatedOptions?.[i] || "";
 
+                        const isOptionCorrect = showAnswers && mcqCorrectText != null && opt === mcqCorrectText;
+                        const isOptionChosenWrong =
+                          showAnswers && checked && mcqCorrectText != null && opt !== mcqCorrectText;
+
+                        const borderColor = isOptionCorrect
+                          ? "rgba(46, 204, 113, 0.85)"
+                          : isOptionChosenWrong
+                          ? "rgba(231, 76, 60, 0.85)"
+                          : "rgba(0,0,0,0.12)";
+
+                        const background = isOptionCorrect
+                          ? "rgba(46, 204, 113, 0.12)"
+                          : isOptionChosenWrong
+                          ? "rgba(231, 76, 60, 0.12)"
+                          : "white";
+
                         return (
                           <label
                             key={i}
@@ -1164,9 +1344,10 @@ export default function StudentLessonPage() {
                               gap: 10,
                               alignItems: "flex-start",
                               padding: "8px 10px",
-                              border: "1px solid rgba(0,0,0,0.12)",
+                              border: `1px solid ${borderColor}`,
                               borderRadius: 10,
                               cursor: "pointer",
+                              background,
                             }}
                           >
                             <input
@@ -1176,8 +1357,13 @@ export default function StudentLessonPage() {
                               onChange={() => setAnswer(stableId, opt)}
                               style={{ marginTop: 3 }}
                             />
-                            <div>
-                              <div>{opt}</div>
+
+                            <div style={{ width: "100%" }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                                <div>{opt}</div>
+                                {checked ? <Pill text="Your answer" /> : null}
+                              </div>
+
                               {showThisTranslation && optT ? (
                                 <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{optT}</div>
                               ) : null}
@@ -1189,38 +1375,40 @@ export default function StudentLessonPage() {
                   ) : null}
 
                   {type === "truefalse" ? (
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        onClick={() => setAnswer(stableId, true)}
-                        aria-pressed={val === true}
-                        style={{
-                          ...btnStyle,
-                          borderColor: val === true ? "rgba(0,0,0,0.25)" : "#ddd",
-                          background: val === true ? "rgba(46, 204, 113, 0.9)" : "white",
-                          color: val === true ? "white" : "black",
-                          fontWeight: val === true ? 700 : 400,
-                          boxShadow: val === true ? "0 6px 14px rgba(0,0,0,0.12)" : "none",
-                        }}
-                      >
-                        True
-                      </button>
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          onClick={() => setAnswer(stableId, true)}
+                          aria-pressed={val === true}
+                          style={{
+                            ...btnStyle,
+                            borderColor: val === true ? "rgba(0,0,0,0.25)" : "#ddd",
+                            background: val === true ? "rgba(0,0,0,0.08)" : "white",
+                            color: "black",
+                            fontWeight: val === true ? 600 : 400,
+                            boxShadow: "none",
+                          }}
+                        >
+                          True
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setAnswer(stableId, false)}
-                        aria-pressed={val === false}
-                        style={{
-                          ...btnStyle,
-                          borderColor: val === false ? "rgba(0,0,0,0.25)" : "#ddd",
-                          background: val === false ? "rgba(231, 76, 60, 0.9)" : "white",
-                          color: val === false ? "white" : "black",
-                          fontWeight: val === false ? 700 : 400,
-                          boxShadow: val === false ? "0 6px 14px rgba(0,0,0,0.12)" : "none",
-                        }}
-                      >
-                        False
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => setAnswer(stableId, false)}
+                          aria-pressed={val === false}
+                          style={{
+                            ...btnStyle,
+                            borderColor: val === false ? "rgba(0,0,0,0.25)" : "#ddd",
+                            background: val === false ? "rgba(0,0,0,0.08)" : "white",
+                            color: "black",
+                            fontWeight: val === false ? 600 : 400,
+                            boxShadow: "none",
+                          }}
+                        >
+                          False
+                        </button>
+                      </div>
                     </div>
                   ) : null}
 
@@ -1246,8 +1434,46 @@ export default function StudentLessonPage() {
         )}
       </section>
 
+      {/* FEEDBACK */}
       <section style={{ marginTop: 16 }}>
-        <h2 style={{ marginBottom: 8 }}>Feedback</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <h2 style={{ marginBottom: 8 }}>Feedback</h2>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              onClick={submitForFeedback}
+              disabled={submitting || !uid}
+              style={{
+                ...btnStyle,
+                background: "#bef7c0",
+                borderColor: "#2563eb",
+                color: "black",
+                fontWeight: 600,
+                opacity: saving ? 0.6 : 1,
+              }}
+              title="Generate feedback again"
+            >
+              {submitting ? "Submitting…" : "GET ANSWER /FEEDBACK"}
+            </button>
+
+            <button
+              onClick={onTranslateFeedback}
+              disabled={feedbackTranslating || !(feedback || "").trim()}
+              style={{
+                ...btnStyle,
+                background: "#eaf3b6",
+                borderColor: "#2563eb",
+                color: "black",
+                fontWeight: 600,
+                opacity: saving ? 0.6 : 1,
+              }}
+              title="Translate feedback"
+            >
+              {feedbackTranslating ? "Translating…" : "TRANSLATE FEEDBACK"}
+            </button>
+          </div>
+        </div>
+
         <div
           style={{
             padding: 12,
@@ -1260,6 +1486,23 @@ export default function StudentLessonPage() {
         >
           {feedback ? feedback : <span style={{ opacity: 0.6 }}>No feedback yet. Submit when ready.</span>}
         </div>
+
+        {translatedFeedback ? (
+          <div
+            style={{
+              marginTop: 10,
+              padding: 12,
+              border: "1px solid rgba(0,0,0,0.12)",
+              borderRadius: 12,
+              whiteSpace: "pre-wrap",
+              lineHeight: 1.55,
+              background: "rgba(0,0,0,0.02)",
+            }}
+          >
+            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Translated feedback</div>
+            {translatedFeedback}
+          </div>
+        ) : null}
       </section>
     </main>
   );

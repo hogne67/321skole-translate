@@ -157,19 +157,31 @@ export default function StudentDashboard() {
 
   return (
     <main style={{ maxWidth: 900, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
+      <h1 style={{ fontSize: 34, fontWeight: 800, marginBottom: 8 }}>
         Student dashboard
       </h1>
 
-      <p style={{ marginTop: 0, opacity: 0.8 }}>
-        Her ser du lessons du har hentet eller arbeider med.
-      </p>
-
       <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-        <Link href="/student/browse" style={{ textDecoration: "none" }}>
-          Browse publiserte lessons →
-        </Link>
+        
       </div>
+       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <Link href="/student" style={{ textDecoration: "none" }}>
+            Dashboard
+          </Link>
+          <Link href="/student/browse" style={{ textDecoration: "none" }}>
+            Library
+          </Link>
+          <Link href="/student/generator" style={{ textDecoration: "none" }}>
+            Textgenerator
+          </Link>
+          <Link href="/student/translate" style={{ textDecoration: "none" }}>
+          Translator
+        </Link>
+        <Link href="/student/vocab" style={{ textDecoration: "none" }}>
+          Glossary
+        </Link>
+          
+        </div>
 
       {err && (
         <div
@@ -194,6 +206,7 @@ export default function StudentDashboard() {
           </Link>
         </div>
       ) : (
+        
         <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
           {items.map((l) => (
             <Link
@@ -207,10 +220,15 @@ export default function StudentDashboard() {
                 textDecoration: "none",
                 color: "inherit",
               }}
+              
             >
               <div style={{ fontWeight: 800 }}>
                 {l.lessonTitle || "Lesson"}
+
+                
               </div>
+
+              
 
               <div style={{ opacity: 0.7, fontSize: 13 }}>
                 {l.lessonLevel ? `Nivå: ${l.lessonLevel}` : null}
