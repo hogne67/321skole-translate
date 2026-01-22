@@ -97,8 +97,8 @@ export default function TeacherDashboardPage() {
         </div>
 
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <Link href="/321lessons" style={{ textDecoration: "none" }}>
-            321lessons
+          <Link href="/producer" style={{ textDecoration: "none" }}>
+            Dashboard
           </Link>
           <Link href="/producer/texts" style={{ textDecoration: "none" }}>
             Lessons

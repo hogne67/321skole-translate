@@ -83,46 +83,24 @@ export default function ProducerTextsPage() {
         }}
       >
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 900, margin: 0 }}>
-            Producer: Texts (Lessons)
+          <h1 style={{ fontSize: 18, fontWeight: 900, margin: 0 }}>
+            My content
           </h1>
           <div style={{ fontSize: 13, opacity: 0.7 }}>
             uid: {uid ?? "—"}
           </div>
         </div>
+        
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <Link
-            href="/producer/texts/new"
-            style={{
-              padding: "10px 14px",
-              border: "1px solid #ddd",
-              borderRadius: 10,
-              textDecoration: "none",
-              color: "inherit",
-              fontWeight: 800,
-            }}
-          >
-            New
+          <Link href="/producer" style={{ textDecoration: "none" }}>
+            Dashboard
           </Link>
-
-          <button onClick={load} style={{ padding: "10px 14px" }}>
-            Refresh
-          </button>
-
-          <Link
-            href="/producer"
-            style={{
-              padding: "10px 14px",
-              border: "1px solid #ddd",
-              borderRadius: 10,
-              textDecoration: "none",
-              color: "inherit",
-              fontWeight: 700,
-              opacity: 0.9,
-            }}
-          >
-            Back
+          <Link href="/producer/texts" style={{ textDecoration: "none" }}>
+            Lessons
+          </Link>
+          <Link href="/producer/texts/new" style={{ textDecoration: "none" }}>
+            New lesson
           </Link>
         </div>
       </div>
