@@ -7,6 +7,8 @@ import Link from "next/link";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, serverTimestamp, updateDoc, setDoc } from "firebase/firestore";
+import { LANGUAGES } from "@/lib/languages";
+
 
 type Lesson = {
   title: string;
@@ -28,44 +30,6 @@ type TranslatedTask = {
   translatedOptions?: string[];
 };
 
-const LANGUAGE_OPTIONS: Array<{ code: string; label: string }> = [
-  { code: "no", label: "Norsk (Bokmål)" },
-  { code: "en", label: "English" },
-  { code: "sv", label: "Svenska" },
-  { code: "da", label: "Dansk" },
-  { code: "de", label: "Deutsch" },
-  { code: "nl", label: "Nederlands" },
-  { code: "fr", label: "Français" },
-  { code: "es", label: "Español" },
-  { code: "it", label: "Italiano" },
-  { code: "pt", label: "Português" },
-  { code: "pl", label: "Polski" },
-  { code: "cs", label: "Čeština" },
-  { code: "sk", label: "Slovenčina" },
-  { code: "hu", label: "Magyar" },
-  { code: "ro", label: "Română" },
-  { code: "bg", label: "Български" },
-  { code: "el", label: "Ελληνικά" },
-  { code: "fi", label: "Suomi" },
-  { code: "uk", label: "Українська" },
-  { code: "ru", label: "Русский" },
-  { code: "sr", label: "Српски" },
-  { code: "ar", label: "العربية" },
-  { code: "fa", label: "فارسی" },
-  { code: "tr", label: "Türkçe" },
-  { code: "ur", label: "اردو" },
-  { code: "hi", label: "हिन्दी" },
-  { code: "bn", label: "বাংলা" },
-  { code: "ta", label: "தமிழ்" },
-  { code: "so", label: "Soomaali" },
-  { code: "ti", label: "ትግርኛ (Tigrinya)" },
-  { code: "am", label: "አማርኛ (Amharic)" },
-  { code: "vi", label: "Tiếng Việt" },
-  { code: "th", label: "ไทย" },
-  { code: "zh", label: "中文" },
-  { code: "ja", label: "日本語" },
-  { code: "ko", label: "한국어" },
-];
 
 async function translateOne(text: string, targetLang: string) {
   const res = await fetch("/api/translate", {
@@ -546,6 +510,7 @@ export default function StudentLessonPage() {
         const lessonData = lessonSnap.data() as Lesson;
         setLesson(lessonData);
         setImageUrl(lessonData.coverImageUrl ?? null);
+        
 
         const stableSubId = `${user.uid}_${lessonId}`;
         const subRef = doc(db, "submissions", stableSubId);
@@ -1018,16 +983,17 @@ export default function StudentLessonPage() {
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ opacity: 0.75 }}>Translate to</span>
             <select
-              value={targetLang}
-              onChange={(e) => setTargetLang(e.target.value)}
-              style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
-            >
-              {LANGUAGE_OPTIONS.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
+  value={targetLang}
+  onChange={(e) => setTargetLang(e.target.value)}
+  style={{ padding: 8, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+>
+  {LANGUAGES.map((l) => (
+    <option key={l.code} value={l.code}>
+      {l.label}
+    </option>
+  ))}
+</select>
+
           </label>
 
           <button
