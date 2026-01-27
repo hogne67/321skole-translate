@@ -38,15 +38,39 @@ export const LANGUAGES: LanguageOption[] = [
   { code: "uk", label: "Ukrainsk – Українська" },
   { code: "sr", label: "Serbisk – Српски" },
 
+  // 🇱🇻🇱🇹 Baltikum
+  { code: "lv", label: "Latvisk – Latviešu" },
+  { code: "lt", label: "Litauisk – Lietuvių" },
+
   // 🌍 Store innvandrerspråk (pedagogisk viktige)
   { code: "ar", label: "Arabisk – العربية" },
   { code: "so", label: "Somali – Soomaali" },
   { code: "ti", label: "Tigrinja – ትግርኛ" },
+  { code: "am", label: "Amharisk – አማርኛ" },
+
+  // 🇪🇹 Etiopia (tillegg)
+  { code: "om", label: "Oromo – Afaan Oromoo" },
+
+  // 🇦🇫 Afghanistan
+  { code: "fa-AF", label: "Dari (Afghanistan) – دری" },
+  { code: "ps", label: "Pashto – پښتو" },
+
+  // 🌍 Persisk / Urdu / India / osv.
   { code: "fa", label: "Persisk – فارسی" },
   { code: "ur", label: "Urdu – اردو" },
   { code: "hi", label: "Hindi – हिन्दी" },
   { code: "bn", label: "Bengali – বাংলা" },
-  { code: "am", label: "Amharisk – አማርኛ" },
+
+  // 🇨🇩🇷🇼 Sentral-Afrika
+  { code: "rw", label: "Kinyarwanda – Ikinyarwanda" },
+  { code: "ln", label: "Lingala – Lingála" },
+
+  // 🌍 Øst-Afrika
+  { code: "sw", label: "Swahili – Kiswahili" },
+
+  // 🇸🇸 Sør-Sudan (valgfritt, men nyttig)
+  { code: "din", label: "Dinka – Thuɔŋjäŋ" },
+  { code: "nus", label: "Nuer – Thok Naath" },
 
   // 🌏 Asia
   { code: "vi", label: "Vietnamesisk – Tiếng Việt" },
@@ -55,4 +79,8 @@ export const LANGUAGES: LanguageOption[] = [
   { code: "zh-TW", label: "Kinesisk (tradisjonell) – 中文（繁體）" },
   { code: "ja", label: "Japansk – 日本語" },
   { code: "ko", label: "Koreansk – 한국어" },
+
+  // 🇵🇭 Filippinene
+  { code: "tl", label: "Filipino / Tagalog – Tagalog" },
+  { code: "ceb", label: "Cebuano – Cebuano" },
 ];

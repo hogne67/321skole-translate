@@ -1,3 +1,4 @@
+// app/api/producer/generate/route.ts
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
@@ -21,33 +22,32 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-function languageLabel(code: string) {
-  const c = (code || "").trim();
+function langName(code: string) {
+  const c = (code || "").toLowerCase();
 
-  // Common ones first
   const map: Record<string, string> = {
-    "pt-BR": "Brazilian Portuguese",
-    pt: "Portuguese",
-    en: "English",
     no: "Norwegian (Bokmål)",
     nb: "Norwegian (Bokmål)",
     nn: "Norwegian (Nynorsk)",
-    es: "Spanish",
-    fr: "French",
-    de: "German",
-    it: "Italian",
-    nl: "Dutch",
-    sv: "Swedish",
-    da: "Danish",
-    fi: "Finnish",
-    pl: "Polish",
+    en: "English",
     uk: "Ukrainian",
-    ru: "Russian",
     ar: "Arabic",
-    tr: "Turkish",
+    pl: "Polish",
+    es: "Spanish",
+    pt: "Portuguese",
+    "pt-br": "Portuguese (Brazil)",
+    so: "Somali",
+    ti: "Tigrinya",
   };
 
   return map[c] || `the selected language (${c})`;
+}
+
+
+function clampInt(n: any, min: number, max: number, fallback: number) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(x)));
 }
 
 export async function POST(req: Request) {
@@ -63,18 +63,23 @@ export async function POST(req: Request) {
 
     const level = (body.level || "A2").trim();
     const language = (body.language || "en").trim();
-    const langName = languageLabel(language);
+    const languageName = langName(language);
 
-    const topic = (body.topic || "Untitled topic").trim(); // now: prompt/instructions
+
+
+    const topic = (body.topic || "Untitled topic").trim(); // prompt/instructions
     const textType = (body.textType || "Everyday story").trim();
-    const textLength = Number(body.textLength || 260);
+    const textLength = clampInt(body.textLength ?? 260, 60, 1200, 260);
 
-    const mcq = Number(body.tasks?.mcq ?? 6);
-    const trueFalse = Number(body.tasks?.trueFalse ?? 10);
-    const facts = Number(body.tasks?.facts ?? 6);
-    const reflection = Number(body.tasks?.reflection ?? 3);
+    const mcq = clampInt(body.tasks?.mcq ?? 6, 0, 30, 6);
+    const trueFalse = clampInt(body.tasks?.trueFalse ?? 10, 0, 40, 10);
+    const facts = clampInt(body.tasks?.facts ?? 6, 0, 30, 6);
+    const reflection = clampInt(body.tasks?.reflection ?? 3, 0, 20, 3);
 
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+    // ✅ This is the exact prompt you want in writeFacts
+    const WRITE_FACT_PROMPT = "Write a fact from the text. Use your own words.";
 
     const resp = await client.responses.create({
       model,
@@ -86,10 +91,16 @@ You are a professional content producer for language learning (CEFR).
 
 HARD REQUIREMENTS (must follow):
 - Output language: ${langName}. (Code: ${language})
-- EVERYTHING must be written in ${langName}: title, text, MCQ questions + options, true/false statements, facts prompts, reflection questions.
+- EVERYTHING must be written in ${langName}: title, text, MCQ questions + options, true/false statements, writeFacts prompts, reflection questions.
 - Do NOT use English or other languages unless the user explicitly asks for bilingual output.
 - Even if the user's instructions are written in another language, you STILL output in ${langName}.
 - Return ONLY valid JSON. No markdown. No explanations.
+
+CRITICAL FOR writeFacts:
+- writeFacts MUST be prompts only (instructions to the student).
+- Do NOT include examples, quotes, copied sentences, or facts from the text inside writeFacts.
+- Each writeFacts item must be EXACTLY this sentence (verbatim):
+  "${WRITE_FACT_PROMPT}"
           `.trim(),
         },
         {
@@ -133,6 +144,10 @@ Counts:
 - trueFalse: ${trueFalse}
 - writeFacts: ${facts}
 - reflectionQuestions: ${reflection}
+
+Reminder (strict):
+- writeFacts MUST be prompts only and MUST equal exactly:
+  "${WRITE_FACT_PROMPT}"
           `.trim(),
         },
       ],
@@ -153,8 +168,14 @@ Counts:
       );
     }
 
-    // Optional safety: enforce language field in JSON to match selection
+    // ✅ Enforce language field in JSON to match selection
     parsed.language = language;
+
+    // ✅ HARD ENFORCE writeFacts EXACTLY as requested (no examples ever)
+    if (!parsed.tasks) parsed.tasks = {};
+    const desiredFactsCount = facts;
+
+    parsed.tasks.writeFacts = Array.from({ length: desiredFactsCount }, () => WRITE_FACT_PROMPT);
 
     return NextResponse.json({ contentPack: parsed });
   } catch (err: any) {

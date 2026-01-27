@@ -12,6 +12,13 @@ function pickString(obj: any, keys: string[]) {
   return "";
 }
 
+function stripExample(prompt: string) {
+  // Removes anything after "Example:" if the model adds it
+  const idx = prompt.toLowerCase().indexOf("example:");
+  if (idx === -1) return prompt;
+  return prompt.slice(0, idx).trim();
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -30,16 +37,16 @@ export async function POST(req: Request) {
     // Adjust task count by level (simple, pragmatic)
     const taskSpec =
       level === "A1"
-        ? "Create 4 tasks total: 2 true/false, 1 mcq (3 options), 1 open (very short)."
+        ? 'Create 4 tasks total: 2 true/false, 1 mcq (3 options), 1 open (very short). Include ONE open task that asks the student to write a fact from the text.'
         : level === "A2"
-        ? "Create 6 tasks total: 2 true/false, 2 mcq (4 options), 2 open (short)."
+        ? 'Create 6 tasks total: 2 true/false, 2 mcq (4 options), 2 open (short). Include ONE open task that asks the student to write a fact from the text.'
         : level === "B1"
-        ? "Create 7 tasks total: 2 true/false, 2 mcq (4 options), 3 open (short/medium)."
+        ? 'Create 7 tasks total: 2 true/false, 2 mcq (4 options), 3 open (short/medium). Include ONE open task that asks the student to write a fact from the text.'
         : level === "B2"
-        ? "Create 8 tasks total: 2 true/false, 2 mcq (4 options), 4 open (medium)."
+        ? 'Create 8 tasks total: 2 true/false, 2 mcq (4 options), 4 open (medium). Include ONE open task that asks the student to write a fact from the text.'
         : level === "C1"
-        ? "Create 8 tasks total: 1 true/false, 2 mcq (4 options), 5 open (medium/long)."
-        : "Create 8 tasks total: 1 true/false, 2 mcq (4 options), 5 open (longer, more advanced).";
+        ? 'Create 8 tasks total: 1 true/false, 2 mcq (4 options), 5 open (medium/long). Include ONE open task that asks the student to write a fact from the text.'
+        : 'Create 8 tasks total: 1 true/false, 2 mcq (4 options), 5 open (longer, more advanced). Include ONE open task that asks the student to write a fact from the text.';
 
     const r = await client.responses.create({
       model: "gpt-4o-mini",
@@ -72,15 +79,19 @@ export async function POST(req: Request) {
             `      "order": 1,\n` +
             `      "prompt": "string",\n` +
             `      "options": ["string"] ,\n` +
-            `      "correctAnswer": "string|boolean"\n` +
+            `      "correctAnswer": "string"\n` +
             `    }\n` +
             `  ]\n` +
             `}\n\n` +
             `Rules:\n` +
             `- sourceText must match the CEFR level\n` +
-            `- For truefalse: correctAnswer must be true or false\n` +
+            `- Do NOT include quotes or example sentences from sourceText inside any task prompt\n` +
+            `- Open tasks must NEVER include examples, quotes, or copied sentences from the sourceText\n` +
+            `- If an open task asks the student to write a fact, the prompt MUST be EXACTLY:\n` +
+            `  "Write a fact from the text. Use your own words."\n` +
+            `- For truefalse: correctAnswer must be "true" or "false" (string)\n` +
             `- For mcq: options must exist and correctAnswer must equal one of the options\n` +
-            `- For open: correctAnswer should be empty string\n` +
+            `- For open: correctAnswer must be empty string\n` +
             `- Use simple, clear language and coherent text\n`,
         },
       ],
@@ -98,14 +109,39 @@ export async function POST(req: Request) {
     // Basic sanitation
     const tasks = Array.isArray(parsed?.tasks) ? parsed.tasks : [];
     parsed.tasks = tasks
-      .map((t: any, i: number) => ({
-        id: String(t?.id ?? `t${i + 1}`),
-        type: t?.type,
-        order: typeof t?.order === "number" ? t.order : i + 1,
-        prompt: String(t?.prompt ?? ""),
-        options: Array.isArray(t?.options) ? t.options.map((x: any) => String(x)) : undefined,
-        correctAnswer: t?.correctAnswer ?? (t?.type === "open" ? "" : undefined),
-      }))
+      .map((t: any, i: number) => {
+        const type = t?.type;
+        const promptRaw = String(t?.prompt ?? "");
+        let prompt = stripExample(promptRaw);
+
+        // Hard-lock the "write a fact" prompt if the model tries to vary it
+        if (type === "open") {
+          const p = prompt.toLowerCase();
+          const looksLikeWriteFact =
+            p.includes("write a fact") || (p.includes("fact") && p.includes("from the text"));
+          if (looksLikeWriteFact) {
+            prompt = "Write a fact from the text. Use your own words.";
+          }
+        }
+
+        return {
+          id: String(t?.id ?? `t${i + 1}`),
+          type,
+          order: typeof t?.order === "number" ? t.order : i + 1,
+          prompt,
+          options: Array.isArray(t?.options) ? t.options.map((x: any) => String(x)) : undefined,
+          correctAnswer:
+            type === "open"
+              ? ""
+              : typeof t?.correctAnswer === "boolean"
+              ? t.correctAnswer
+                ? "true"
+                : "false"
+              : typeof t?.correctAnswer === "string"
+              ? t.correctAnswer
+              : undefined,
+        };
+      })
       .filter((t: any) => ["truefalse", "mcq", "open"].includes(t.type));
 
     return Response.json({
