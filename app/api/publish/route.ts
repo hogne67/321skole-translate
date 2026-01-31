@@ -2,6 +2,8 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
+export const runtime = "nodejs";
+
 
 type Visibility = "public" | "unlisted" | "private";
 

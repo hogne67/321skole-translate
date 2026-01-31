@@ -1,4 +1,5 @@
 // app/api/unpublish/route.ts
+export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
