@@ -8,99 +8,119 @@ function bool(v: any) {
 }
 
 export async function POST(req: Request) {
-  const { auth, db } = getAdmin();
-
-  // --- Auth ---
-  const token = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (!token) return NextResponse.json({ error: "Missing Authorization Bearer token" }, { status: 401 });
-
-  let uid: string;
   try {
-    const decoded = await auth.verifyIdToken(token);
-    uid = decoded.uid;
-  } catch {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-  }
+    const { auth, db } = getAdmin();
 
-  // --- Input ---
-  const body = await req.json().catch(() => ({}));
-  const id = (body?.id || body?.lessonId) as string | undefined;         // published id (or legacy id)
-  const draftId = (body?.draftId || body?.draftLessonId) as string | undefined; // draft id (recommended)
-  if (!id) return NextResponse.json({ error: "Missing id/lessonId" }, { status: 400 });
+    // --- Auth ---
+    const token = req.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return NextResponse.json(
+        { error: "Missing Authorization Bearer token" },
+        { status: 401 }
+      );
+    }
 
-  const now = FieldValue.serverTimestamp();
+    let uid: string;
+    try {
+      const decoded = await auth.verifyIdToken(token);
+      uid = decoded.uid;
+    } catch (e: any) {
+      console.error("unpublish: verifyIdToken failed", e?.message || e);
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
 
-  // --- Load user profile (for admin check + audit info) ---
-  const userRef = db.doc(`users/${uid}`);
-  const userSnap = await userRef.get();
-  const profile: any = userSnap.exists ? userSnap.data() : {};
-  const roles = profile?.roles || {};
-  const isAdmin = bool(roles?.admin);
+    // --- Input ---
+    const body = await req.json().catch(() => ({}));
+    const publishedId = (body?.id || body?.lessonId) as string | undefined; // published doc id (legacy: same as draft)
+    const draftId = (body?.draftId || body?.draftLessonId) as string | undefined; // preferred
+    if (!publishedId) {
+      return NextResponse.json({ error: "Missing id/lessonId" }, { status: 400 });
+    }
 
-  // --- Decide which id to use for draft lookup ---
-  const draftLookupId = draftId || id;
+    const draftLookupId = draftId || publishedId;
+    const now = FieldValue.serverTimestamp();
 
-  // --- Load draft (lessons/{draftLookupId} primary, texts/{draftLookupId} fallback) ---
-  const draftRefA = db.doc(`lessons/${draftLookupId}`);
-  const draftSnapA = await draftRefA.get();
+    // --- Load user profile (admin check) ---
+    const userRef = db.doc(`users/${uid}`);
+    const userSnap = await userRef.get();
+    const profile: any = userSnap.exists ? userSnap.data() : {};
+    const roles = profile?.roles || {};
+    const isAdmin = bool(roles?.admin);
 
-  const draftRefB = db.doc(`texts/${draftLookupId}`);
-  const draftSnapB = draftSnapA.exists ? null : await draftRefB.get();
+    // --- Load draft (lessons/{draftLookupId} primary, texts/{draftLookupId} fallback) ---
+    const draftRefA = db.doc(`lessons/${draftLookupId}`);
+    const draftSnapA = await draftRefA.get();
 
-  const draftSnap = draftSnapA.exists ? draftSnapA : draftSnapB;
-  const draftPath = draftSnapA.exists ? `lessons/${draftLookupId}` : draftSnapB?.exists ? `texts/${draftLookupId}` : null;
+    const draftRefB = db.doc(`texts/${draftLookupId}`);
+    const draftSnapB = draftSnapA.exists ? null : await draftRefB.get();
 
-  if (!draftSnap || !draftSnap.exists) {
+    const draftSnap = draftSnapA.exists ? draftSnapA : draftSnapB;
+    const draftPath = draftSnapA.exists
+      ? `lessons/${draftLookupId}`
+      : draftSnapB?.exists
+      ? `texts/${draftLookupId}`
+      : null;
+
+    // If draft is missing, we still allow unpublish of the published doc
+    // (useful if draft was deleted/archived).
+    let ownerId: string | null = null;
+    if (draftSnap?.exists) {
+      const draft: any = draftSnap.data() || {};
+      ownerId = draft?.ownerId || null;
+
+      if (!isAdmin && ownerId && ownerId !== uid) {
+        await db.collection("auditEvents").add({
+          type: "UNPUBLISH_BLOCKED",
+          uid,
+          lessonId: draftLookupId,
+          ts: now,
+          meta: { reason: "NOT_OWNER", draftPath, ownerId, draftId: draftLookupId, publishedId },
+        });
+
+        return NextResponse.json({ error: "Not owner of draft" }, { status: 403 });
+      }
+    }
+
+    const effectiveOwnerId = ownerId || uid;
+
+    // --- Update published doc ---
+    const pubRef = db.doc(`published_lessons/${publishedId}`);
+    await pubRef.set(
+      {
+        ownerId: effectiveOwnerId,
+        lessonId: draftLookupId,
+        isActive: false,
+        updatedAt: now,
+        unpublishedAt: now,
+        unpublishedBy: { uid, isAdmin },
+      },
+      { merge: true }
+    );
+
+    // --- Audit ---
     await db.collection("auditEvents").add({
-      type: "UNPUBLISH_BLOCKED",
+      type: "UNPUBLISH_SUCCESS",
       uid,
       lessonId: draftLookupId,
+      publishedLessonId: publishedId,
       ts: now,
-      meta: { reason: "DRAFT_NOT_FOUND", draftId: draftLookupId, publishedId: id },
+      meta: {
+        draftPath,
+        isAdminUnpublish: isAdmin,
+        effectiveOwnerId,
+        draftId: draftLookupId,
+        publishedId: publishedId,
+        draftMissing: !draftSnap?.exists,
+      },
     });
-    return NextResponse.json({ error: "Draft not found in lessons/ or texts/" }, { status: 404 });
+
+    return NextResponse.json({ ok: true, publishedId: publishedId, draftId: draftLookupId });
+  } catch (e: any) {
+    // ✅ Always return a helpful error (so client sees reason, not just 500)
+    console.error("unpublish: fatal", e?.stack || e?.message || e);
+    return NextResponse.json(
+      { error: e?.message || "Unpublish failed (server error)" },
+      { status: 500 }
+    );
   }
-
-  const draft: any = draftSnap.data() || {};
-  const ownerId = draft.ownerId;
-
-  // --- Authorization: owner OR admin ---
-  if (!isAdmin && ownerId !== uid) {
-    await db.collection("auditEvents").add({
-      type: "UNPUBLISH_BLOCKED",
-      uid,
-      lessonId: draftLookupId,
-      ts: now,
-      meta: { reason: "NOT_OWNER", draftPath, ownerId, draftId: draftLookupId, publishedId: id },
-    });
-    return NextResponse.json({ error: "Not owner of draft" }, { status: 403 });
-  }
-
-  const effectiveOwnerId = ownerId || uid;
-
-  // --- Update published doc (use *id* as published doc id) ---
-  const pubRef = db.doc(`published_lessons/${id}`);
-  await pubRef.set(
-    {
-      ownerId: effectiveOwnerId,
-      lessonId: draftLookupId, // keep a reference to draft id
-      isActive: false,
-      updatedAt: now,
-      unpublishedAt: now,
-      unpublishedBy: { uid, isAdmin },
-    },
-    { merge: true }
-  );
-
-  // --- Audit ---
-  await db.collection("auditEvents").add({
-    type: "UNPUBLISH_SUCCESS",
-    uid,
-    lessonId: draftLookupId,
-    publishedLessonId: id,
-    ts: now,
-    meta: { draftPath, isAdminUnpublish: isAdmin, effectiveOwnerId, draftId: draftLookupId, publishedId: id },
-  });
-
-  return NextResponse.json({ ok: true, publishedId: id, draftId: draftLookupId });
 }
