@@ -1,7 +1,7 @@
 // lib/firebaseAdmin.ts
 import "server-only";
 
-import { getApps, initializeApp, cert, applicationDefault } from "firebase-admin/app";
+import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import fs from "fs";
@@ -42,25 +42,24 @@ function loadServiceAccountFromEnv(): ServiceAccountJSON | null {
 function initAdmin() {
   if (getApps().length) return;
 
-  // Prioritet:
-  // 1) Env vars (best på Vercel)
-  // 2) Fil via FIREBASE_ADMIN_SA_PATH (ok lokalt)
-  // 3) applicationDefault (hvis du kjører på GCP)
   const fromEnv = loadServiceAccountFromEnv();
   const fromFile = fromEnv ? null : loadServiceAccountFromFile();
 
-  if (fromEnv) {
-    initializeApp({ credential: cert(fromEnv as any) });
-    return;
+  const sa = fromEnv || fromFile;
+
+  if (!sa?.project_id || !sa?.client_email || !sa?.private_key) {
+    // 🚫 Ikke fall tilbake til applicationDefault på Vercel.
+    // Det gir ofte "Invalid token" fordi prosjekt/credentials blir feil.
+    throw new Error(
+      "Missing Firebase Admin credentials. Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY (recommended on Vercel) " +
+        "or FIREBASE_ADMIN_SA_PATH for local file-based credentials."
+    );
   }
 
-  if (fromFile) {
-    initializeApp({ credential: cert(fromFile as any) });
-    return;
-  }
-
-  // Fallback (valgfritt, men nyttig hvis du kjører i GCP-miljø)
-  initializeApp({ credential: applicationDefault() });
+  initializeApp({
+    credential: cert(sa as any),
+    projectId: sa.project_id, // ✅ viktig: binder admin til riktig prosjekt
+  });
 }
 
 initAdmin();
@@ -68,7 +67,6 @@ initAdmin();
 export const adminAuth = getAuth();
 export const adminDb = getFirestore();
 
-// Kompatibilitet med eksisterende kode
 export function getAdmin() {
   return { auth: adminAuth, db: adminDb };
 }

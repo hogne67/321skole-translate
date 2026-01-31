@@ -76,7 +76,7 @@ function coerceTextType(d: any): string {
 async function authedPost(url: string, body: any) {
   const user = getAuth().currentUser;
   if (!user) throw new Error("Not signed in");
-  const token = await user.getIdToken();
+  const token = await user.getIdToken(true);
 
   const res = await fetch(url, {
     method: "POST",
