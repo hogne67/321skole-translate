@@ -26,6 +26,22 @@ function loadServiceAccountFromFile(): ServiceAccountJSON | null {
 }
 
 function loadServiceAccountFromEnv(): ServiceAccountJSON | null {
+  // ✅ Option A: single JSON env (most reliable on Vercel)
+  const json = process.env.FIREBASE_ADMIN_SA_JSON;
+  if (json) {
+    try {
+      const parsed: any = JSON.parse(json);
+      return {
+        project_id: parsed.project_id,
+        client_email: parsed.client_email,
+        private_key: String(parsed.private_key || "").replace(/\\n/g, "\n"),
+      };
+    } catch (e) {
+      // continue to split vars
+    }
+  }
+
+  // Option B: split env vars
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
@@ -46,12 +62,11 @@ function ensureAdminApp(): App {
   const fromFile = fromEnv ? null : loadServiceAccountFromFile();
   const sa = fromEnv || fromFile;
 
-  // ✅ IKKE kast under import/build – dette kalles kun når API faktisk kjøres (runtime)
   if (!sa?.project_id || !sa?.client_email || !sa?.private_key) {
+    // This is the exact error you see:
     throw new Error(
       "Missing Firebase Admin credentials at runtime. " +
-        "Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY " +
-        "(or FIREBASE_ADMIN_SA_PATH locally)."
+        "Set FIREBASE_ADMIN_SA_JSON (recommended), or FIREBASE_ADMIN_PROJECT_ID/FIREBASE_ADMIN_CLIENT_EMAIL/FIREBASE_ADMIN_PRIVATE_KEY."
     );
   }
 
