@@ -157,7 +157,12 @@ export default function ProducerTextsPage() {
     setItems((prev) =>
       prev.map((l) =>
         l.id === lessonId
-          ? { ...l, status: nextPublished ? "published" : "draft", updatedAt: new Date() }
+          ? {
+              ...l,
+              status: nextPublished ? "published" : "draft",
+              activePublishedId: nextPublished ? (l.activePublishedId || lessonId) : null,
+              updatedAt: new Date(),
+            }
           : l
       )
     );
@@ -173,21 +178,27 @@ export default function ProducerTextsPage() {
       if (data?.deletedAt) throw new Error("This lesson is deleted/archived and cannot be published.");
 
       if (nextPublished) {
-        // ✅ publish via server (writes published_lessons with signing/audit)
-        await authedPost("/api/publish", {
+        // ✅ publish via server (writes published_lessons)
+        const resp = await authedPost("/api/publish", {
           id: lessonId,
-          visibility: (data?.publish?.state === "unlisted" ? "unlisted" : "public"),
+          visibility: data?.publish?.state === "unlisted" ? "unlisted" : "public",
         });
 
-        // mark draft as published (client write is OK on lessons)
+        // ✅ IMPORTANT: store the actual published id (if API returns it)
+        const publishedId = resp?.publishedId || resp?.id || lessonId;
+
+        // mark draft as published
         await updateDoc(lessonRef, {
           status: "published",
-          activePublishedId: lessonId,
+          activePublishedId: publishedId,
           updatedAt: serverTimestamp(),
         });
       } else {
-        // ✅ unpublish via server (sets isActive=false)
-        await authedPost("/api/unpublish", { id: lessonId });
+        // ✅ IMPORTANT: unpublish the published snapshot id (not the draft id)
+        const publishedId = data?.activePublishedId || lessonId;
+
+        // server: sets isActive=false on published doc
+        await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
 
         await updateDoc(lessonRef, {
           status: "draft",
@@ -227,7 +238,10 @@ export default function ProducerTextsPage() {
 
       // best-effort unpublish via server (ignore failure)
       try {
-        await authedPost("/api/unpublish", { id: lessonId });
+        // Try to use activePublishedId if present (best effort)
+        const row = before.find((x) => x.id === lessonId);
+        const publishedId = row?.activePublishedId || lessonId;
+        await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
       } catch {}
 
       await updateDoc(doc(db, "lessons", lessonId), {
@@ -254,7 +268,11 @@ export default function ProducerTextsPage() {
     setShareLesson(l);
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/lesson/${l.id}`;
+
+    // ✅ IMPORTANT: share the published snapshot id if we have it
+    const pid = l.activePublishedId || l.id;
+    const url = `${origin}/lesson/${pid}`;
+
     setShareUrl(url);
     setShareOpen(true);
 
@@ -450,7 +468,6 @@ export default function ProducerTextsPage() {
                 </div>
 
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  {/* ✅ Publish / Unpublish buttons (replaces toggle) */}
                   {isPublished ? (
                     <button
                       onClick={() => setPublished(l.id, false)}
@@ -521,7 +538,6 @@ export default function ProducerTextsPage() {
                     Preview
                   </Link>
 
-                  {/* ✅ PDF button */}
                   <Link
                     href={`/producer/${l.id}/print`}
                     style={{
@@ -721,7 +737,8 @@ export default function ProducerTextsPage() {
             </div>
 
             <div style={{ padding: 14, borderTop: "1px solid rgba(0,0,0,0.08)", opacity: 0.7, fontSize: 12 }}>
-              Share URL points to: <code>/lesson/{shareLesson.id}</code>
+              Share URL points to:{" "}
+              <code>/lesson/{shareLesson.activePublishedId || shareLesson.id}</code>
             </div>
           </div>
         </div>

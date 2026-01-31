@@ -190,5 +190,9 @@ export async function POST(req: Request) {
     meta: { draftPath, visibility, isAdminPublish: isAdmin, effectiveOwnerId },
   });
 
-  return NextResponse.json({ ok: true, publishedLessonId: id });
+    return NextResponse.json({
+    ok: true,
+    publishedLessonId: id,
+    publishedId: id, // ✅ alias for klienter som forventer publishedId
+  });
 }
