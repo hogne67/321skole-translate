@@ -80,7 +80,6 @@ export default function TopNav() {
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <span style={{ fontSize: 13, opacity: 0.75 }}>
           {loading ? "Laster profil…" : profile?.email || profile?.displayName || "Innlogget"}
-          {profile?.plan ? ` • ${profile.plan}` : ""}
         </span>
 
         <button

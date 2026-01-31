@@ -1800,5 +1800,5 @@ export const NO_MUNICIPALITIES: NoMunicipality[] = [
   }
 ] as const;
 
-export const NO_MUNICIPALITY_NAMES: string[] =
-  NO_MUNICIPALITIES.map((m) => m.name) as const;
+export const NO_MUNICIPALITY_NAMES: string[] = NO_MUNICIPALITIES.map((m) => m.name);
+
