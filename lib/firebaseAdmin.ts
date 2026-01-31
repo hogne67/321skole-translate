@@ -1,9 +1,9 @@
 // lib/firebaseAdmin.ts
 import "server-only";
 
-import { getApps, initializeApp, cert } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+import { getApps, initializeApp, cert, type App } from "firebase-admin/app";
+import { getAuth, type Auth } from "firebase-admin/auth";
+import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import fs from "fs";
 import path from "path";
 
@@ -39,34 +39,29 @@ function loadServiceAccountFromEnv(): ServiceAccountJSON | null {
   };
 }
 
-function initAdmin() {
-  if (getApps().length) return;
+function ensureAdminApp(): App {
+  if (getApps().length) return getApps()[0]!;
 
   const fromEnv = loadServiceAccountFromEnv();
   const fromFile = fromEnv ? null : loadServiceAccountFromFile();
-
   const sa = fromEnv || fromFile;
 
+  // ✅ IKKE kast under import/build – dette kalles kun når API faktisk kjøres (runtime)
   if (!sa?.project_id || !sa?.client_email || !sa?.private_key) {
-    // 🚫 Ikke fall tilbake til applicationDefault på Vercel.
-    // Det gir ofte "Invalid token" fordi prosjekt/credentials blir feil.
     throw new Error(
-      "Missing Firebase Admin credentials. Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY (recommended on Vercel) " +
-        "or FIREBASE_ADMIN_SA_PATH for local file-based credentials."
+      "Missing Firebase Admin credentials at runtime. " +
+        "Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY " +
+        "(or FIREBASE_ADMIN_SA_PATH locally)."
     );
   }
 
-  initializeApp({
+  return initializeApp({
     credential: cert(sa as any),
-    projectId: sa.project_id, // ✅ viktig: binder admin til riktig prosjekt
+    projectId: sa.project_id,
   });
 }
 
-initAdmin();
-
-export const adminAuth = getAuth();
-export const adminDb = getFirestore();
-
-export function getAdmin() {
-  return { auth: adminAuth, db: adminDb };
+export function getAdmin(): { auth: Auth; db: Firestore } {
+  ensureAdminApp();
+  return { auth: getAuth(), db: getFirestore() };
 }
