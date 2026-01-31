@@ -26,7 +26,7 @@ async function run() {
   await lessonRef.collection("tasks").add({
     order: 1,
     type: "truefalse",
-    prompt: "The text is written in English.",
+    prompt: "The text is written in english",
     correctAnswer: true,
   });
 

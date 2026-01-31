@@ -48,7 +48,6 @@ export default function StudentTranslatorPage() {
 
       {/* ✅ Student navigation (samme som de andre sidene) */}
       
-
       <hr style={{ margin: "10px 0 14px" }} />
       <p style={{ opacity: 0.75, marginTop: 0 }}>
         Paste the text and select the language you want to translate to

@@ -12,7 +12,6 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
   updateDoc,
   where,
 } from "firebase/firestore";
@@ -29,11 +28,9 @@ type LessonRow = {
   status?: "draft" | "published";
   updatedAt?: any;
 
-  // text type
   textType?: string;
   texttype?: string;
 
-  // soft delete
   deletedAt?: any;
 
   sourceText?: string;
@@ -67,33 +64,32 @@ function formatMaybeDate(v: any) {
   }
 }
 
-function coerceTopics(d: any): string[] {
-  const out: string[] = [];
-  if (Array.isArray(d?.topics)) {
-    for (const t of d.topics) {
-      const s = String(t || "").trim();
-      if (s) out.push(s);
-    }
-  }
-  const single = String(d?.topic || "").trim();
-  if (single && !out.includes(single)) out.push(single);
-  return out;
-}
-
-function pickCover(d: any): string | null {
-  const a = String(d?.coverImageUrl || "").trim();
-  if (a) return a;
-  const b = String(d?.imageUrl || "").trim();
-  if (b) return b;
-  return null;
-}
-
 function coerceTextType(d: any): string {
   const a = String(d?.textType ?? "").trim();
   if (a) return a;
   const b = String(d?.texttype ?? "").trim();
   if (b) return b;
   return "";
+}
+
+/** --- API helpers (server writes published_lessons) --- */
+async function authedPost(url: string, body: any) {
+  const user = getAuth().currentUser;
+  if (!user) throw new Error("Not signed in");
+  const token = await user.getIdToken();
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  return data;
 }
 
 export default function ProducerTextsPage() {
@@ -107,7 +103,7 @@ export default function ProducerTextsPage() {
 
   const [busyById, setBusyById] = useState<Record<string, boolean>>({});
 
-  // ✅ Share modal state
+  // Share modal state
   const [shareOpen, setShareOpen] = useState(false);
   const [shareLesson, setShareLesson] = useState<LessonRow | null>(null);
   const [shareUrl, setShareUrl] = useState<string>("");
@@ -125,8 +121,6 @@ export default function ProducerTextsPage() {
     return u.uid;
   }
 
-  // ✅ Robust load: do NOT filter deletedAt in Firestore query (can exclude docs unexpectedly)
-  // We filter deletedAt in JS instead.
   async function load() {
     setErr(null);
     setLoading(true);
@@ -155,7 +149,7 @@ export default function ProducerTextsPage() {
     }
   }
 
-  async function togglePublish(lessonId: string, nextPublished: boolean) {
+  async function setPublished(lessonId: string, nextPublished: boolean) {
     setErr(null);
     setBusy(lessonId, true);
 
@@ -169,89 +163,42 @@ export default function ProducerTextsPage() {
     );
 
     try {
-      const u = await requireUser();
+      await requireUser();
 
+      // ensure draft exists & not deleted
       const lessonRef = doc(db, "lessons", lessonId);
-      const pubRef = doc(db, "published_lessons", lessonId);
-
       const lessonSnap = await getDoc(lessonRef);
       if (!lessonSnap.exists()) throw new Error("Lesson not found");
       const data: any = lessonSnap.data();
-
       if (data?.deletedAt) throw new Error("This lesson is deleted/archived and cannot be published.");
 
-      const topics = coerceTopics(data);
-      const cover = pickCover(data);
-      const sourceText = String(data?.sourceText ?? data?.text ?? "").trim();
-      const tasks = data?.tasks ?? [];
-
-      const textType = coerceTextType(data);
-
       if (nextPublished) {
-        await setDoc(
-          pubRef,
-          {
-            ownerId: u,
-            lessonId,
-            isActive: true,
-            status: "published",
+        // ✅ publish via server (writes published_lessons with signing/audit)
+        await authedPost("/api/publish", {
+          id: lessonId,
+          visibility: (data?.publish?.state === "unlisted" ? "unlisted" : "public"),
+        });
 
-            title: data?.title ?? "Untitled",
-            description: data?.description ?? "",
-            level: data?.level ?? null,
-            language: data?.language ?? null,
-
-            // legacy (kept)
-            topics,
-            topic: topics[0] ?? null,
-
-            // ✅ canonical field
-            textType: textType || null,
-
-            coverImageUrl: cover,
-
-            sourceText,
-            tasks,
-
-            searchText: `${data?.title ?? ""} ${textType ?? ""} ${data?.level ?? ""} ${
-              data?.language ?? ""
-            }`.trim(),
-
-            publishedAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-
+        // mark draft as published (client write is OK on lessons)
         await updateDoc(lessonRef, {
           status: "published",
           activePublishedId: lessonId,
           updatedAt: serverTimestamp(),
-          ownerId: u,
         });
       } else {
-        await setDoc(
-          pubRef,
-          {
-            ownerId: u,
-            lessonId,
-            isActive: false,
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
+        // ✅ unpublish via server (sets isActive=false)
+        await authedPost("/api/unpublish", { id: lessonId });
 
         await updateDoc(lessonRef, {
           status: "draft",
           activePublishedId: null,
           updatedAt: serverTimestamp(),
-          ownerId: u,
         });
       }
 
       await load();
     } catch (e: any) {
-      console.error("togglePublish failed:", e);
+      console.error("setPublished failed:", e);
       setErr(e?.message ?? "Failed to update publish status");
       await load();
     } finally {
@@ -259,13 +206,12 @@ export default function ProducerTextsPage() {
     }
   }
 
-  // ✅ Soft delete (archive): remove from My content + unpublish from 321lessons
+  // Soft delete (archive): only touch lessons/{id} from client
   async function deleteLesson(lessonId: string, title?: string) {
     const ok = confirm(
       `Delete lesson${title ? `: "${title}"` : ""}?\n\n` +
-        `This will archive it (soft delete):\n` +
-        `• Removed from My content\n` +
-        `• Removed from 321lessons (unpublished)\n\n` +
+        `This will archive it (soft delete).\n` +
+        `It will also attempt to unpublish via server.\n\n` +
         `An admin can restore it later.`
     );
     if (!ok) return;
@@ -277,40 +223,31 @@ export default function ProducerTextsPage() {
     setItems((prev) => prev.filter((l) => l.id !== lessonId));
 
     try {
-      const u = await requireUser();
+      await requireUser();
 
-      const lessonRef = doc(db, "lessons", lessonId);
-      const pubRef = doc(db, "published_lessons", lessonId);
-
-      // 1) Force unpublish (remove from 321lessons)
+      // best-effort unpublish via server (ignore failure)
       try {
-        await setDoc(
-          pubRef,
-          { ownerId: u, lessonId, isActive: false, updatedAt: serverTimestamp() },
-          { merge: true }
-        );
+        await authedPost("/api/unpublish", { id: lessonId });
       } catch {}
 
-      // 2) Mark lesson as archived
-      await updateDoc(lessonRef, {
+      await updateDoc(doc(db, "lessons", lessonId), {
         status: "draft",
         activePublishedId: null,
         deletedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        ownerId: u,
       });
 
       await load();
     } catch (e: any) {
       console.error("deleteLesson failed:", e);
-      setItems(before); // rollback UI so it doesn't lie
+      setItems(before);
       setErr(e?.message ?? "Failed to delete (archive) lesson");
     } finally {
       setBusy(lessonId, false);
     }
   }
 
-  // ✅ Share: build URL + generate QR (client-side)
+  // Share: build URL + generate QR (client-side)
   async function openShare(l: LessonRow) {
     setCopied(false);
     setQrDataUrl("");
@@ -329,7 +266,6 @@ export default function ProducerTextsPage() {
       });
       setQrDataUrl(dataUrl);
     } catch {
-      // not fatal; link is still there
       setQrDataUrl("");
     }
   }
@@ -348,7 +284,6 @@ export default function ProducerTextsPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      // fallback: select text in input (user can copy manually)
       setCopied(false);
     }
   }
@@ -369,7 +304,6 @@ export default function ProducerTextsPage() {
     const needle = q.trim().toLowerCase();
 
     return items.filter((l) => {
-      // hide deleted/archived items
       if (l.deletedAt) return false;
 
       const st = (l.status ?? "draft") as "draft" | "published";
@@ -516,64 +450,45 @@ export default function ProducerTextsPage() {
                 </div>
 
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  <label
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "8px 10px",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 10,
-                      opacity: busy ? 0.6 : 1,
-                      userSelect: "none",
-                    }}
-                    title={isPublished ? "Published" : "Draft"}
-                  >
-                    <span style={{ fontSize: 13, fontWeight: 800 }}>
-                      {isPublished ? "Published" : "Draft"}
-                    </span>
-
-                    <span
+                  {/* ✅ Publish / Unpublish buttons (replaces toggle) */}
+                  {isPublished ? (
+                    <button
+                      onClick={() => setPublished(l.id, false)}
+                      disabled={busy}
                       style={{
-                        position: "relative",
-                        width: 44,
-                        height: 26,
-                        borderRadius: 999,
-                        background: isPublished ? "#16a34a" : "#ef4444",
-                        transition: "all 160ms ease",
-                        boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.08)",
+                        padding: "10px 14px",
+                        border: "1px solid #ef4444",
+                        borderRadius: 10,
+                        background: "white",
+                        cursor: busy ? "not-allowed" : "pointer",
+                        fontWeight: 900,
+                        color: "#ef4444",
+                        opacity: busy ? 0.7 : 1,
                       }}
+                      title="Unpublish (will hide from library)"
                     >
-                      <input
-                        type="checkbox"
-                        checked={isPublished}
-                        disabled={busy}
-                        onChange={(e) => togglePublish(l.id, e.target.checked)}
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          opacity: 0,
-                          cursor: busy ? "not-allowed" : "pointer",
-                        }}
-                        aria-label="Publish toggle"
-                      />
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: 3,
-                          left: isPublished ? 22 : 3,
-                          width: 20,
-                          height: 20,
-                          borderRadius: 999,
-                          background: "white",
-                          transition: "all 160ms ease",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
-                        }}
-                      />
-                    </span>
-                  </label>
+                      {busy ? "Working…" : "Unpublish"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setPublished(l.id, true)}
+                      disabled={busy}
+                      style={{
+                        padding: "10px 14px",
+                        border: "1px solid #16a34a",
+                        borderRadius: 10,
+                        background: "white",
+                        cursor: busy ? "not-allowed" : "pointer",
+                        fontWeight: 900,
+                        color: "#16a34a",
+                        opacity: busy ? 0.7 : 1,
+                      }}
+                      title="Publish (adds/updates published snapshot)"
+                    >
+                      {busy ? "Working…" : "Publish"}
+                    </button>
+                  )}
 
-                  {/* ✅ Share */}
                   <button
                     onClick={() => openShare(l)}
                     disabled={!isPublished || busy}
@@ -606,6 +521,23 @@ export default function ProducerTextsPage() {
                     Preview
                   </Link>
 
+                  {/* ✅ PDF button */}
+                  <Link
+                    href={`/producer/${l.id}/print`}
+                    style={{
+                      padding: "10px 14px",
+                      border: "1px solid #ddd",
+                      borderRadius: 10,
+                      textDecoration: "none",
+                      color: "inherit",
+                      fontWeight: 800,
+                      opacity: 0.9,
+                    }}
+                    title="Printable PDF"
+                  >
+                    PDF
+                  </Link>
+
                   <Link
                     href={`/producer/${l.id}`}
                     style={{
@@ -631,6 +563,7 @@ export default function ProducerTextsPage() {
                       cursor: busy ? "not-allowed" : "pointer",
                       fontWeight: 900,
                       color: "#ef4444",
+                      opacity: busy ? 0.7 : 1,
                     }}
                     title="Delete lesson (archive)"
                   >
@@ -643,7 +576,7 @@ export default function ProducerTextsPage() {
         </div>
       )}
 
-      {/* ✅ Share modal */}
+      {/* Share modal */}
       {shareOpen && shareLesson ? (
         <div
           role="dialog"

@@ -324,7 +324,6 @@ export default function NewTextPage() {
       title: title || "New lesson",
       level,
 
-      // keep old field for compatibility + add "prompt" for clarity
       topic: prompt,
       prompt,
 
@@ -336,17 +335,19 @@ export default function NewTextPage() {
       releaseMode: "ALL_AT_ONCE",
       sourceText: sourceText || "",
       tasks: renumberOrders(lessonTasks),
+
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       source: "producer-texts-new",
 
-      // IMPORTANT: make sure it is not deleted
       deletedAt: null,
       activePublishedId: null,
     });
 
     setSavedId(docRef.id);
-    router.push(`/producer/texts/${docRef.id}`);
+
+    // ✅ Gå rett til My content
+    router.push(`/producer/texts?created=${docRef.id}`);
   } catch (e: any) {
     setError(String(e?.message ?? e));
   } finally {

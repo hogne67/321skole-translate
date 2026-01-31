@@ -1,22 +1,31 @@
 // lib/ensureUserProfile.ts
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import type { UserProfile } from "@/lib/userProfile";
+import type { User } from "firebase/auth";
+import { ensureUserProfile as ensureUserProfileFromUser } from "@/lib/userProfile";
 
-export async function ensureUserProfile(uid: string) {
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
+/**
+ * Legacy wrapper.
+ * Bruk heller ensureUserProfile(user) fra "@/lib/userProfile" direkte.
+ *
+ * Merk: Hvis du sender inn kun UID (string), kan vi ikke sette email/displayName.
+ * Da kaller vi likevel ensureUserProfile(...) for å backfylle defaults (roles/caps/teacherStatus/etc).
+ */
+export async function ensureUserProfile(userOrUid: User | string) {
+  if (typeof userOrUid === "string") {
+    // UID-only "best effort": sørg for at userProfile-funksjonen får et objekt
+    // som i praksis har de feltene den typisk trenger (uid, email, displayName).
+    // Firebase User.email/displayName er ofte null, så null er tryggere enn undefined.
+    const fakeUser = {
+      uid: userOrUid,
+      email: null,
+      displayName: null,
+      // resten settes til tomme/ufarlige defaults for å unngå utilsiktet tilgang
+      isAnonymous: true,
+      providerData: [],
+    } as unknown as User;
 
-  if (snap.exists()) return;
+    await ensureUserProfileFromUser(fakeUser);
+    return;
+  }
 
-  const profile: UserProfile = {
-    roles: { student: true },        // MVP: alle nye får student
-    teacherStatus: "none",
-    caps: { pdf: true, tts: true, vocab: true, publish: false, sell: false },
-    parentOf: [],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-
-  await setDoc(ref, profile, { merge: true });
+  await ensureUserProfileFromUser(userOrUid);
 }

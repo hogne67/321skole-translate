@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { doc, getDoc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth } from "firebase/auth";
@@ -88,7 +88,6 @@ export default function ProducerLessonEditorPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [publishing, setPublishing] = useState(false);
 
   const [err, setErr] = useState<string | null>(null);
   const [uid, setUid] = useState<string | null>(null);
@@ -277,84 +276,6 @@ export default function ProducerLessonEditorPage() {
     }
   }
 
-  async function publish() {
-    setErr(null);
-    setPublishing(true);
-
-    try {
-      // 1) lagre først (slik at lessons/{lessonId} har siste coverImageUrl osv)
-      await save();
-
-      await ensureAnonymousUser();
-      const u = uidNow();
-      if (!u) throw new Error("No auth uid.");
-
-      // 2) hent siste lesson-data (etter save)
-      const snap = await getDoc(doc(db, "lessons", lessonId));
-      if (!snap.exists()) throw new Error("Lesson not found after save.");
-
-      const data = snap.data() as Lesson;
-
-      const finalCover = (data.coverImageUrl ?? coverImageUrl.trim()) || "";
-
-      // 3) skriv/overskriv published snapshot med FAST ID = lessonId
-      await setDoc(
-        doc(db, "published_lessons", lessonId),
-        {
-          ownerId: u,
-
-          // content
-          title: data.title ?? title.trim(),
-          level: data.level ?? level.trim(),
-          topic: data.topic ?? topic.trim(),
-          language: data.language ?? language.trim(),
-          sourceText: data.sourceText ?? sourceText,
-          tasks: Array.isArray(data.tasks) ? data.tasks : sortedTasks,
-
-          // branding
-          producerName: data.producerName ?? producerName.trim(),
-          coverImageUrl: finalCover,
-          coverImageFormat: (data.coverImageFormat ?? coverImageFormat) as CoverFormat,
-
-          // ✅ Library image (vi bruker cover som imageUrl i library)
-          imageUrl: finalCover,
-
-          // metadata
-          tags: Array.isArray(data.tags) ? data.tags : parseTags(tagsText),
-          estimatedMinutes:
-            typeof data.estimatedMinutes === "number"
-              ? data.estimatedMinutes
-              : Number.isFinite(estimatedMinutes)
-              ? Number(estimatedMinutes)
-              : 20,
-          releaseMode: (data.releaseMode ?? releaseMode) as ReleaseMode,
-
-          // published flags
-          status: "published",
-          isActive: true,
-
-          // timestamps
-          updatedAt: serverTimestamp(),
-          publishedAt: serverTimestamp(),
-        },
-        { merge: true } // viktig: overskriver samme doc, lager ikke ny
-      );
-
-      // 4) marker draft lesson som published også (valgfritt, men greit)
-      await updateDoc(doc(db, "lessons", lessonId), {
-        status: "published",
-        updatedAt: serverTimestamp(),
-        activePublishedId: lessonId, // optional, men kan være nyttig senere
-      });
-
-      setStatus("published");
-    } catch (e: any) {
-      setErr(e?.message ?? "Publisering feilet.");
-    } finally {
-      setPublishing(false);
-    }
-  }
-
   function addTask(type: TaskType) {
     const id = newId();
     const nextOrder = (sortedTasks[sortedTasks.length - 1]?.order ?? sortedTasks.length) + 1;
@@ -426,39 +347,10 @@ export default function ProducerLessonEditorPage() {
           </div>
         </div>
 
+        {/* ✅ Editor actions (kun Lagre) */}
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <Link
-            href={`/producer/${lessonId}/preview`}
-            style={{
-              padding: "8px 12px",
-              border: "1px solid #ddd",
-              borderRadius: 10,
-              textDecoration: "none",
-              color: "inherit",
-            }}
-          >
-            Preview
-          </Link>
-
-          <Link
-            href={`/producer/${lessonId}/print`}
-            style={{
-              padding: "8px 12px",
-              border: "1px solid #ddd",
-              borderRadius: 10,
-              textDecoration: "none",
-              color: "inherit",
-            }}
-          >
-            Printable PDF
-          </Link>
-
           <button onClick={save} disabled={saving} style={{ padding: "8px 12px" }}>
             {saving ? "Lagrer…" : "Lagre"}
-          </button>
-
-          <button onClick={publish} disabled={publishing} style={{ padding: "8px 12px" }} title="Setter status=published">
-            {publishing ? "Publiserer…" : "Publiser"}
           </button>
         </div>
       </div>
@@ -645,7 +537,11 @@ export default function ProducerLessonEditorPage() {
 
           <label style={{ display: "grid", gap: 6 }}>
             <div style={{ fontWeight: 800 }}>Release mode</div>
-            <select value={releaseMode} onChange={(e) => setReleaseMode(e.target.value as ReleaseMode)} style={{ padding: "10px 12px" }}>
+            <select
+              value={releaseMode}
+              onChange={(e) => setReleaseMode(e.target.value as ReleaseMode)}
+              style={{ padding: "10px 12px" }}
+            >
               <option value="ALL_AT_ONCE">ALL_AT_ONCE</option>
               <option value="TEXT_FIRST">TEXT_FIRST</option>
             </select>
@@ -774,7 +670,11 @@ export default function ProducerLessonEditorPage() {
                   <div style={{ marginTop: 10 }}>
                     <label style={{ display: "grid", gap: 6 }}>
                       <div style={{ fontWeight: 800 }}>Correct answer</div>
-                      <select value={t.correctAnswer ?? "true"} onChange={(e) => updateTask(t.id, { correctAnswer: e.target.value })} style={{ padding: "10px 12px" }}>
+                      <select
+                        value={t.correctAnswer ?? "true"}
+                        onChange={(e) => updateTask(t.id, { correctAnswer: e.target.value })}
+                        style={{ padding: "10px 12px" }}
+                      >
                         <option value="true">true</option>
                         <option value="false">false</option>
                       </select>

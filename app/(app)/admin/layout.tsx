@@ -14,6 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           { href: "/admin", label: "Dashboard" },
           { href: "/admin/submissions", label: "Submissions" },
           { href: "/admin/users", label: "Users" },
+          { href: "/admin/review", label: "Review queue" }
         ]}
       >
         {children}

@@ -1,16 +1,15 @@
+// app/producer/texts/[id]/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase";
+
+type PublishState = "draft" | "unlisted" | "pending" | "published" | "rejected";
+type ModStatus = "pass" | "review" | "blocked" | "unknown";
 
 type LessonDraft = {
   title?: string;
@@ -18,23 +17,36 @@ type LessonDraft = {
   level?: string;
   language?: string;
 
-  // du har brukt topic/prompt litt om hverandre
+  // legacy/new topic fields
   topic?: string;
   prompt?: string;
 
-  // text type (nytt)
+  // text type
   textType?: string;
   texttype?: string; // legacy
 
   sourceText?: string;
   text?: string;
 
-  tasks?: any; // array (LessonTask[]) eller stringified json
+  tasks?: any; // array or stringified json
   coverImageUrl?: string;
   imageUrl?: string;
 
+  // legacy
   status?: "draft" | "review" | "published";
   isActive?: boolean;
+
+  publish?: {
+    state?: PublishState;
+  };
+
+  moderation?: {
+    status?: ModStatus;
+    riskScore?: number;
+    reasons?: string[];
+    notes?: string;
+    checkedAt?: any;
+  };
 };
 
 function safeTasksArray(tasks: any): any[] {
@@ -50,18 +62,49 @@ function safeTasksArray(tasks: any): any[] {
   return [];
 }
 
-function pickImageUrl(l: LessonDraft): string | null {
-  const a = String(l.coverImageUrl || "").trim();
-  if (a) return a;
-  const b = String(l.imageUrl || "").trim();
-  if (b) return b;
-  return null;
-}
-
 function normalizeTextType(l: LessonDraft): string {
-  // tåler at noen har skrevet `"Biography"` med anførselstegn i strengen
   const raw = String(l.textType ?? l.texttype ?? "").trim();
   return raw.replace(/^"+|"+$/g, "").trim();
+}
+
+function publishStateLabel(s?: PublishState) {
+  return s || "draft";
+}
+
+async function moderateLesson(input: { title: string; sourceText: string; tasks: any }) {
+  const res = await fetch("/api/moderate-lesson", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`Moderation failed (${res.status})`);
+  return (await res.json()) as {
+    status: "pass" | "review" | "blocked";
+    riskScore: number;
+    reasons: string[];
+    notes?: string;
+  };
+}
+
+async function publishViaApi(id: string, visibility: "public" | "unlisted" | "private" = "public") {
+  const user = getAuth().currentUser;
+  if (!user) throw new Error("Not signed in");
+
+  const token = await user.getIdToken();
+
+  const res = await fetch("/api/publish", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ id, visibility }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || "Publish failed");
+
+  return data;
 }
 
 export default function ProducerTextDetailPage() {
@@ -71,12 +114,14 @@ export default function ProducerTextDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [serverPublishing, setServerPublishing] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [draft, setDraft] = useState<LessonDraft | null>(null);
 
-  // raw tasks JSON editor (valgfritt)
+  // raw tasks JSON editor (optional)
   const [showRawTasks, setShowRawTasks] = useState(false);
   const [rawTasksDraft, setRawTasksDraft] = useState<string>("");
 
@@ -93,7 +138,6 @@ export default function ProducerTextDetailPage() {
     setError(null);
 
     try {
-      // ✅ RIKTIG: lessons
       const ref = doc(db, "lessons", id);
       const snap = await getDoc(ref);
 
@@ -105,11 +149,20 @@ export default function ProducerTextDetailPage() {
 
       const data = snap.data() as LessonDraft;
 
-      // normaliser sourceText
       const normalized: LessonDraft = {
         ...data,
         sourceText: String(data.sourceText ?? data.text ?? ""),
         textType: normalizeTextType(data) || undefined,
+        publish: { state: (data.publish?.state as PublishState) || "draft" },
+        moderation: data.moderation
+          ? {
+              status: (data.moderation.status as ModStatus) || "unknown",
+              riskScore: data.moderation.riskScore,
+              reasons: Array.isArray(data.moderation.reasons) ? data.moderation.reasons : [],
+              notes: data.moderation.notes,
+              checkedAt: data.moderation.checkedAt,
+            }
+          : undefined,
       };
 
       setDraft(normalized);
@@ -130,8 +183,11 @@ export default function ProducerTextDetailPage() {
 
     try {
       const ref = doc(db, "lessons", id);
-
       const textType = normalizeTextType(draft);
+
+      // manual state can only be draft/unlisted
+      const pState: PublishState = (draft.publish?.state as PublishState) || "draft";
+      const safePublishState: PublishState = pState === "unlisted" ? "unlisted" : "draft";
 
       await updateDoc(ref, {
         title: draft.title ?? "",
@@ -139,11 +195,9 @@ export default function ProducerTextDetailPage() {
         level: draft.level ?? "",
         language: draft.language ?? "",
 
-        // behold begge for kompatibilitet (du rydder senere)
         topic: draft.topic ?? draft.prompt ?? "",
         prompt: draft.prompt ?? draft.topic ?? "",
 
-        // ✅ lagre textType riktig
         textType: textType || "",
         texttype: textType || "",
 
@@ -153,10 +207,13 @@ export default function ProducerTextDetailPage() {
         coverImageUrl: draft.coverImageUrl ?? "",
         imageUrl: draft.imageUrl ?? "",
 
-        status: draft.status ?? "draft",
+        "publish.state": safePublishState,
+        status: "draft",
+
         updatedAt: serverTimestamp(),
       });
 
+      setDraft({ ...draft, publish: { ...(draft.publish || {}), state: safePublishState }, status: "draft" });
       setMsg("Saved ✅");
     } catch (e: any) {
       setError(String(e?.message ?? e));
@@ -165,7 +222,30 @@ export default function ProducerTextDetailPage() {
     }
   }
 
-  async function publish() {
+  async function setUnlisted() {
+    if (!id || !draft) return;
+
+    setSaving(true);
+    setError(null);
+    setMsg(null);
+
+    try {
+      await updateDoc(doc(db, "lessons", id), {
+        "publish.state": "unlisted",
+        status: "draft",
+        updatedAt: serverTimestamp(),
+      });
+
+      setDraft({ ...draft, publish: { ...(draft.publish || {}), state: "unlisted" }, status: "draft" });
+      setMsg("Set to Unlisted ✅ (share-link only, not in library)");
+    } catch (e: any) {
+      setError(String(e?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function submitForLibraryReview() {
     if (!id || !draft) return;
 
     setPublishing(true);
@@ -173,57 +253,88 @@ export default function ProducerTextDetailPage() {
     setMsg(null);
 
     try {
-      const textType = normalizeTextType(draft);
-
+      const title = String(draft.title ?? "").trim();
       const sourceText = String(draft.sourceText ?? draft.text ?? "").trim();
-      if (!String(draft.title ?? "").trim()) throw new Error("Title is required before publish.");
+      const tasks = draft.tasks ?? [];
+
+      if (!title) throw new Error("Title is required before submit.");
       if (!sourceText) throw new Error("Source text is empty.");
 
-      const img = pickImageUrl(draft);
-      const topic = String(draft.topic ?? draft.prompt ?? "").trim();
+      // 1) run moderation
+      const mod = await moderateLesson({ title, sourceText, tasks });
 
-      // ✅ skriv til published_lessons med merge
-      await setDoc(
-        doc(db, "published_lessons", id),
-        {
-          title: String(draft.title ?? "").trim(),
-          description: String(draft.description ?? "").trim() || "",
-          level: String(draft.level ?? "").trim() || "",
-          language: String(draft.language ?? "").trim() || "",
-
-          // topic brukes i published (men IKKE prompt-innhold i søkefeltet ditt fremover)
-          topic: topic || "",
-          topics: topic ? [topic] : [],
-
-          // ✅ NYTT: textType følger med til published
-          textType: textType || "",
-          texttype: textType || "",
-
-          sourceText,
-          tasks: draft.tasks ?? [],
-
-          coverImageUrl: draft.coverImageUrl ?? "",
-          imageUrl: draft.imageUrl ?? "",
-
-          isActive: true,
-          status: "published",
-          publishedAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      // (valgfritt) oppdater også draft-status
+      // 2) write moderation result to draft
       await updateDoc(doc(db, "lessons", id), {
-        status: "published",
+        "moderation.status": mod.status,
+        "moderation.riskScore": mod.riskScore,
+        "moderation.reasons": mod.reasons ?? [],
+        "moderation.notes": mod.notes ?? "",
+        "moderation.checkedAt": serverTimestamp(),
+
+        // decision:
+        "publish.state": mod.status === "blocked" ? "draft" : "pending",
+
+        // legacy
+        status: mod.status === "blocked" ? "draft" : "review",
+
         updatedAt: serverTimestamp(),
       });
 
-      setMsg("Published ✅");
+      setDraft({
+        ...draft,
+        moderation: {
+          status: mod.status,
+          riskScore: mod.riskScore,
+          reasons: mod.reasons ?? [],
+          notes: mod.notes ?? "",
+          checkedAt: new Date(),
+        },
+        publish: { ...(draft.publish || {}), state: mod.status === "blocked" ? "draft" : "pending" },
+        status: mod.status === "blocked" ? "draft" : "review",
+      });
+
+      if (mod.status === "blocked") {
+        throw new Error(`Blocked by auto-check: ${mod.reasons.join(", ") || "unknown reason"}`);
+      }
+
+      setMsg(`Submitted for review ✅ (auto-check: ${mod.status}, score ${mod.riskScore})`);
     } catch (e: any) {
       setError(String(e?.message ?? e));
     } finally {
       setPublishing(false);
+    }
+  }
+
+  async function publishNowServer() {
+    if (!id) return;
+
+    setServerPublishing(true);
+    setError(null);
+    setMsg(null);
+
+    try {
+      // Choose visibility based on your manual draft selection
+      const visibility: "public" | "unlisted" =
+        draft?.publish?.state === "unlisted" ? "unlisted" : "public";
+
+      const result = await publishViaApi(id, visibility);
+
+      // optionally reflect in draft UI
+      setDraft((prev) =>
+        prev
+          ? {
+              ...prev,
+              publish: { ...(prev.publish || {}), state: "published" },
+              status: "published",
+            }
+          : prev
+      );
+
+      setMsg(`Published ✅ (server). id=${result.publishedLessonId}`);
+    } catch (e: any) {
+      setError(String(e?.message ?? e));
+    } finally {
+      setServerPublishing(false);
     }
   }
 
@@ -244,6 +355,10 @@ export default function ProducerTextDetailPage() {
     }
   }
 
+  const publishState = publishStateLabel(draft?.publish?.state);
+  const modStatus = draft?.moderation?.status;
+  const modScore = draft?.moderation?.riskScore;
+
   return (
     <main style={{ maxWidth: 980, paddingBottom: 60 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
@@ -252,6 +367,19 @@ export default function ProducerTextDetailPage() {
       </div>
 
       <h1 style={{ marginBottom: 6 }}>Producer: Edit lesson</h1>
+
+      {!loading && draft ? (
+        <div style={{ marginBottom: 12, opacity: 0.85 }}>
+          Publish state: <b>{publishState}</b>
+          {modStatus ? (
+            <>
+              {" "}
+              • Moderation: <b>{modStatus}</b>
+              {typeof modScore === "number" ? ` (score ${modScore})` : null}
+            </>
+          ) : null}
+        </div>
+      ) : null}
 
       {loading ? <p>Loading…</p> : null}
 
@@ -280,16 +408,23 @@ export default function ProducerTextDetailPage() {
             </label>
 
             <label>
-              Status
+              Publish state (manual)
               <select
-                value={draft.status ?? "draft"}
-                onChange={(e) => setDraft({ ...draft, status: e.target.value as any })}
+                value={(draft.publish?.state === "unlisted" ? "unlisted" : "draft") as any}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    publish: { ...(draft.publish || {}), state: e.target.value as PublishState },
+                  })
+                }
                 style={{ width: "100%", padding: 8, marginTop: 6 }}
               >
                 <option value="draft">draft</option>
-                <option value="review">review</option>
-                <option value="published">published</option>
+                <option value="unlisted">unlisted (share-link)</option>
               </select>
+              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+                “Pending/Published” settes av system/admin.
+              </div>
             </label>
 
             <label>
@@ -362,9 +497,7 @@ export default function ProducerTextDetailPage() {
               </label>
             </div>
 
-            <div style={{ marginTop: 10, opacity: 0.75 }}>
-              Current tasks: {tasksArr.length}
-            </div>
+            <div style={{ marginTop: 10, opacity: 0.75 }}>Current tasks: {tasksArr.length}</div>
 
             {showRawTasks ? (
               <div style={{ marginTop: 12 }}>
@@ -374,13 +507,11 @@ export default function ProducerTextDetailPage() {
                   rows={16}
                   style={{ width: "100%", padding: 8, fontFamily: "monospace" }}
                 />
-                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
                   <button type="button" onClick={applyRawTasks} style={{ padding: "8px 12px" }}>
                     Apply raw JSON
                   </button>
-                  <span style={{ opacity: 0.7 }}>
-                    (Apply = updates state. Remember to Save.)
-                  </span>
+                  <span style={{ opacity: 0.7 }}>(Apply = updates state. Remember to Save.)</span>
                 </div>
               </div>
             ) : null}
@@ -391,11 +522,19 @@ export default function ProducerTextDetailPage() {
               {saving ? "Saving..." : "Save changes"}
             </button>
 
-            <button onClick={publish} disabled={publishing} style={{ padding: "10px 14px" }}>
-              {publishing ? "Publishing..." : "Publish to library"}
+            <button onClick={setUnlisted} disabled={saving || publishing || serverPublishing} style={{ padding: "10px 14px" }}>
+              Set Unlisted (share-link)
             </button>
 
-            <button onClick={load} disabled={loading || saving || publishing} style={{ padding: "10px 14px" }}>
+            <button onClick={submitForLibraryReview} disabled={publishing || saving || serverPublishing} style={{ padding: "10px 14px" }}>
+              {publishing ? "Submitting..." : "Submit for review (draft → pending)"}
+            </button>
+
+            <button onClick={publishNowServer} disabled={serverPublishing || saving || publishing} style={{ padding: "10px 14px" }}>
+              {serverPublishing ? "Publishing..." : "Publish now (server → library)"}
+            </button>
+
+            <button onClick={load} disabled={loading || saving || publishing || serverPublishing} style={{ padding: "10px 14px" }}>
               Reload
             </button>
           </div>

@@ -1,3 +1,4 @@
+// components/TopNav.tsx
 "use client";
 
 import Link from "next/link";
@@ -7,7 +8,7 @@ import { useUserProfile } from "@/lib/useUserProfile";
 export default function TopNav() {
   const { profile, loading } = useUserProfile();
 
-  const isTeacherApproved = profile?.teacherStatus === "approved";
+  const isTeacherApproved = profile?.teacherStatus === "approved" && !!profile?.roles?.teacher;
   const isTeacherPending = profile?.teacherStatus === "pending";
   const isAdmin = !!profile?.roles?.admin;
 
@@ -28,21 +29,10 @@ export default function TopNav() {
           321skole
         </Link>
 
-        <nav style={{ display: "flex", gap: 10, opacity: 0.9, flexWrap: "wrap" }}>
+        <nav style={{ display: "flex", gap: 10, opacity: 0.95, flexWrap: "wrap", alignItems: "center" }}>
           <Link href="/student" style={{ textDecoration: "none" }}>
             Student
           </Link>
-
-          {/* Teacher: bedre tekst */}
-          {isTeacherApproved ? (
-            <Link href="/teacher" style={{ textDecoration: "none" }}>
-              Teacher
-            </Link>
-          ) : (
-            <Link href="/teacher/apply" style={{ textDecoration: "none" }}>
-              {isTeacherPending ? "Teacher ⏳" : "Bli teacher"}
-            </Link>
-          )}
 
           <Link href="/parent" style={{ textDecoration: "none" }}>
             Parent
@@ -52,9 +42,36 @@ export default function TopNav() {
             Library
           </Link>
 
+          {/* Teacher: kun synlig for godkjente teachers */}
+          {isTeacherApproved ? (
+            <Link href="/teacher" style={{ textDecoration: "none" }}>
+              Teacher
+            </Link>
+          ) : null}
+
           {isAdmin ? (
             <Link href="/admin" style={{ textDecoration: "none" }}>
               Admin
+            </Link>
+          ) : null}
+
+          {/* Apply-knapp: alltid sist, kun hvis du IKKE er teacher */}
+          {!isTeacherApproved ? (
+            <Link
+              href="/apply/teacher"
+              style={{
+                textDecoration: "none",
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: "1px solid rgba(0,0,0,0.14)",
+                background: isTeacherPending ? "rgba(0,0,0,0.06)" : "rgba(190,247,192,1)",
+                fontWeight: 900,
+                opacity: isTeacherPending ? 0.75 : 1,
+                pointerEvents: isTeacherPending ? "none" : "auto",
+              }}
+              title={isTeacherPending ? "Søknaden din er sendt" : "Søk om teacher-tilgang"}
+            >
+              {isTeacherPending ? "Application sent ⏳" : "Apply for teacher access"}
             </Link>
           ) : null}
         </nav>
@@ -82,3 +99,5 @@ export default function TopNav() {
     </header>
   );
 }
+
+
