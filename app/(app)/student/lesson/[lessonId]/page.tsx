@@ -1,4 +1,4 @@
-// app/(app)/student/lesson/[lessonId]/page.tsx
+// app/student/lesson/[lessonId]/page.tsx
 "use client";
 
 import { SearchableSelect } from "@/components/SearchableSelect";
@@ -7,18 +7,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  updateDoc,
-  setDoc,
-  collection,
-  getDocs,
-  limit,
-  query,
-  where,
-} from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, updateDoc, setDoc } from "firebase/firestore";
 import { LANGUAGES } from "@/lib/languages";
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
@@ -43,9 +32,6 @@ type Lesson = {
 
   // published_lessons bruker dette i rules
   isActive?: boolean;
-
-  // sometimes present in published docs
-  lessonId?: string;
 };
 
 type AnswersMap = Record<string, any>;
@@ -66,28 +52,6 @@ function isPermissionDenied(e: any) {
     msg.includes("insufficient permissions") ||
     msg.includes("permission-denied")
   );
-}
-
-/**
- * Hent published lesson på to måter:
- * 1) DocId === lessonId (hvis publisering bruker doc(db,"published_lessons", lessonId))
- * 2) Fallback: query where(lessonId == param) hvis publisering har auto-ID
- */
-async function fetchPublishedLessonByEitherIdOrField(lessonId: string) {
-  // 1) DocId == lessonId
-  try {
-    const directSnap = await getDoc(doc(db, "published_lessons", lessonId));
-    if (directSnap.exists()) return { snap: directSnap, via: "docId" as const };
-  } catch (e: any) {
-    if (!isPermissionDenied(e)) throw e;
-    // fallthrough to query
-  }
-
-  // 2) Query on field lessonId
-  const q = query(collection(db, "published_lessons"), where("lessonId", "==", lessonId), limit(1));
-  const qsnap = await getDocs(q);
-  if (qsnap.empty) return { snap: null as any, via: "none" as const };
-  return { snap: qsnap.docs[0], via: "fieldQuery" as const };
 }
 
 async function translateOne(text: string, targetLang: string) {
@@ -281,7 +245,7 @@ export default function StudentLessonPage() {
 
   const hasAnswers = useMemo(() => Object.keys(answers).length > 0, [answers]);
 
-  // ---- NEW: feedback translation + answer reveal ----
+  // feedback translation + answer reveal
   const [translatedFeedback, setTranslatedFeedback] = useState<string | null>(null);
   const [feedbackTranslating, setFeedbackTranslating] = useState(false);
   const [feedbackTranslateErr, setFeedbackTranslateErr] = useState<string | null>(null);
@@ -289,7 +253,6 @@ export default function StudentLessonPage() {
   // image placeholder
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  // showAnswers: auto-on when feedback exists, but can be toggled
   const [showAnswers, setShowAnswers] = useState(false);
 
   useEffect(() => {
@@ -463,7 +426,6 @@ export default function StudentLessonPage() {
       const ratio = Math.max(0, Math.min(1, t / duration));
 
       const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
-
       if (!segs || segs.length === 0) return;
 
       let idx = segs.findIndex((s) => ratio >= s.startRatio && ratio < s.endRatio);
@@ -473,9 +435,7 @@ export default function StudentLessonPage() {
     };
 
     a.addEventListener("timeupdate", onTime);
-    return () => {
-      a.removeEventListener("timeupdate", onTime);
-    };
+    return () => a.removeEventListener("timeupdate", onTime);
   }, [activeTextMode, textFollow.original.segs, textFollow.translation.segs]);
 
   function seekToSentence(mode: "original" | "translation", idx: number) {
@@ -493,9 +453,7 @@ export default function StudentLessonPage() {
     setActiveTextMode(mode);
     setActiveSentenceIndex(idx);
 
-    if (a.paused) {
-      a.play().catch(() => {});
-    }
+    if (a.paused) a.play().catch(() => {});
   }
 
   function replaySentence() {
@@ -514,8 +472,7 @@ export default function StudentLessonPage() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
 
-    const segs =
-      activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
     if (!segs.length) return;
 
     const nextIdx = Math.max(0, (activeSentenceIndex ?? 0) - 1);
@@ -526,8 +483,7 @@ export default function StudentLessonPage() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
 
-    const segs =
-      activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
     if (!segs.length) return;
 
     const nextIdx = Math.min(segs.length - 1, (activeSentenceIndex ?? 0) + 1);
@@ -549,26 +505,43 @@ export default function StudentLessonPage() {
       }
 
       try {
+        // 1) Sørg for anon user
         const user = await ensureAnonymousUser();
+
+        // ✅ Viktig: tving token før Firestore-kall (løser race/permission-denied)
+        await user.getIdToken();
+
         if (!alive) return;
         setUid(user.uid);
 
-        const res = await fetchPublishedLessonByEitherIdOrField(lessonId);
+        // 2) Les published lesson (separat try/catch)
+        let lessonSnap: any = null;
+        try {
+          lessonSnap = await getDoc(doc(db, "published_lessons", lessonId));
+        } catch (e: any) {
+          if (isPermissionDenied(e)) {
+            setLesson(null);
+            setError("Ingen tilgang til publiserte oppgaver (published_lessons).");
+            setLoading(false);
+            return;
+          }
+          throw e;
+        }
+
         if (!alive) return;
 
-        if (!res.snap) {
+        if (!lessonSnap?.exists?.()) {
           setLesson(null);
-          setError("Denne oppgaven er ikke publisert (eller finnes ikke).");
+          setError("Denne oppgaven finnes ikke i published_lessons (ID mismatch eller slettet).");
           setLoading(false);
           return;
         }
 
-        const rawData = res.snap.data() as any;
+        const rawData = lessonSnap.data() as any;
 
-        // Belt + suspenders
         if (rawData?.isActive === false) {
           setLesson(null);
-          setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
+          setError("Denne oppgaven er avpublisert (isActive=false).");
           setLoading(false);
           return;
         }
@@ -581,20 +554,31 @@ export default function StudentLessonPage() {
         setLesson(lessonData);
         setImageUrl(lessonData.coverImageUrl ?? null);
 
+        // 3) Les submissions (separat try/catch)
         const stableSubId = `${user.uid}_${lessonId}`;
         const subRef = doc(db, "submissions", stableSubId);
-        const subDoc = await getDoc(subRef);
-        if (!alive) return;
 
-        if (subDoc.exists()) {
-          const data = subDoc.data() as any;
-          setSubmissionId(subDoc.id);
-          if (data?.answers && typeof data.answers === "object") setAnswers(data.answers);
-          if (typeof data?.feedback === "string") setFeedback(data.feedback);
-        } else {
-          setSubmissionId(null);
-          setAnswers({});
-          setFeedback(null);
+        try {
+          const subDoc = await getDoc(subRef);
+          if (!alive) return;
+
+          if (subDoc.exists()) {
+            const data = subDoc.data() as any;
+            setSubmissionId(subDoc.id);
+            if (data?.answers && typeof data.answers === "object") setAnswers(data.answers);
+            if (typeof data?.feedback === "string") setFeedback(data.feedback);
+          } else {
+            setSubmissionId(null);
+            setAnswers({});
+            setFeedback(null);
+          }
+        } catch (e: any) {
+          if (isPermissionDenied(e)) {
+            setError("Ingen tilgang til submissions for denne brukeren (submissions rules).");
+            setLoading(false);
+            return;
+          }
+          throw e;
         }
 
         // reset translations per lesson load
@@ -613,6 +597,7 @@ export default function StudentLessonPage() {
         stopAudio();
       } catch (e: any) {
         if (!alive) return;
+
         if (isPermissionDenied(e)) {
           setError("Denne oppgaven er ikke publisert (eller du har ikke tilgang).");
         } else {
@@ -786,6 +771,7 @@ export default function StudentLessonPage() {
       setFeedback(fb);
       setTranslatedFeedback(null);
 
+      // NB: krever at submissions update er lov for eier
       await updateDoc(ref, {
         feedback: fb,
         feedbackUpdatedAt: serverTimestamp(),
@@ -828,10 +814,7 @@ export default function StudentLessonPage() {
     setTranslating("tasks");
 
     try {
-      const sorted = tasksArr
-        .slice()
-        .sort((a: any, b: any) => (a?.order ?? 999) - (b?.order ?? 999));
-
+      const sorted = tasksArr.slice().sort((a: any, b: any) => (a?.order ?? 999) - (b?.order ?? 999));
       const out: TranslatedTask[] = [];
 
       for (let i = 0; i < sorted.length; i++) {
@@ -991,14 +974,7 @@ export default function StudentLessonPage() {
       <section style={{ marginTop: 14 }}>
         <h2 style={{ marginBottom: 8 }}>Image</h2>
 
-        <div
-          style={{
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 12,
-            padding: 12,
-            background: "rgba(0,0,0,0.02)",
-          }}
-        >
+        <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12, background: "rgba(0,0,0,0.02)" }}>
           <div
             style={{
               width: "100%",
@@ -1047,13 +1023,7 @@ export default function StudentLessonPage() {
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ opacity: 0.75 }}>Translate to</span>
-            <SearchableSelect
-              label=""
-              value={targetLang}
-              options={LANGUAGE_OPTIONS}
-              onChange={setTargetLang}
-              placeholder="Søk språk…"
-            />
+            <SearchableSelect label="" value={targetLang} options={LANGUAGE_OPTIONS} onChange={setTargetLang} placeholder="Søk språk…" />
           </label>
 
           <button
@@ -1099,14 +1069,7 @@ export default function StudentLessonPage() {
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <span style={{ opacity: 0.75 }}>Speed</span>
-              <input
-                type="range"
-                min="0.75"
-                max="1.5"
-                step="0.05"
-                value={playbackRate}
-                onChange={(e) => setPlaybackRate(Number(e.target.value))}
-              />
+              <input type="range" min="0.75" max="1.5" step="0.05" value={playbackRate} onChange={(e) => setPlaybackRate(Number(e.target.value))} />
               <span style={{ width: 46, textAlign: "right" }}>{playbackRate.toFixed(2)}x</span>
             </label>
 
@@ -1192,16 +1155,7 @@ export default function StudentLessonPage() {
         </div>
 
         {translatedText && showTextTranslation ? (
-          <div
-            style={{
-              marginTop: 10,
-              padding: 12,
-              border: "1px solid rgba(0,0,0,0.12)",
-              borderRadius: 12,
-              lineHeight: 1.55,
-              background: "rgba(0,0,0,0.02)",
-            }}
-          >
+          <div style={{ marginTop: 10, padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55, background: "rgba(0,0,0,0.02)" }}>
             <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Translated</div>
             {renderFollowText("translation", translationSegs, translatedText)}
           </div>
@@ -1213,12 +1167,7 @@ export default function StudentLessonPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
           <h2 style={{ margin: 0 }}>Tasks</h2>
 
-          <button
-            type="button"
-            onClick={() => setShowAnswers((v) => !v)}
-            style={btnStyle}
-            title="Show correct answers (if tasks have correctAnswer)"
-          >
+          <button type="button" onClick={() => setShowAnswers((v) => !v)} style={btnStyle} title="Show correct answers (if tasks have correctAnswer)">
             {showAnswers ? "Hide answers" : "Show answers"}
           </button>
 
@@ -1278,8 +1227,7 @@ export default function StudentLessonPage() {
                 return null;
               })();
 
-              const hasCorrect =
-                (type === "mcq" && mcqCorrectText != null) || (type === "truefalse" && tfCorrectBool != null);
+              const hasCorrect = (type === "mcq" && mcqCorrectText != null) || (type === "truefalse" && tfCorrectBool != null);
 
               const isCorrect =
                 type === "mcq"
@@ -1290,24 +1238,13 @@ export default function StudentLessonPage() {
 
               return (
                 <div key={stableId} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      flexWrap: "wrap",
-                      marginBottom: 8,
-                      opacity: 0.85,
-                    }}
-                  >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8, opacity: 0.85 }}>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.9, alignItems: "center" }}>
                       <span>Task {t?.order ?? idx + 1}</span>
                       <span>• {type}</span>
 
                       {showAnswers && hasCorrect && val != null ? (
-                        <span style={{ marginLeft: 6 }}>
-                          {isCorrect ? <Pill text="Correct" kind="good" /> : <Pill text="Wrong" kind="bad" />}
-                        </span>
+                        <span style={{ marginLeft: 6 }}>{isCorrect ? <Pill text="Correct" kind="good" /> : <Pill text="Wrong" kind="bad" />}</span>
                       ) : null}
                     </div>
 
@@ -1321,18 +1258,7 @@ export default function StudentLessonPage() {
                   <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10 }}>{prompt}</div>
 
                   {showThisTranslation && tr?.translatedPrompt ? (
-                    <div
-                      style={{
-                        marginTop: -4,
-                        marginBottom: 10,
-                        padding: 10,
-                        borderRadius: 10,
-                        border: "1px solid rgba(0,0,0,0.10)",
-                        background: "rgba(0,0,0,0.02)",
-                        whiteSpace: "pre-wrap",
-                        lineHeight: 1.45,
-                      }}
-                    >
+                    <div style={{ marginTop: -4, marginBottom: 10, padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(0,0,0,0.02)", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>
                       <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Translated</div>
                       {tr.translatedPrompt}
                     </div>
@@ -1346,8 +1272,7 @@ export default function StudentLessonPage() {
                         const optT = tr?.translatedOptions?.[i] || "";
 
                         const isOptionCorrect = showAnswers && mcqCorrectText != null && opt === mcqCorrectText;
-                        const isOptionChosenWrong =
-                          showAnswers && checked && mcqCorrectText != null && opt !== mcqCorrectText;
+                        const isOptionChosenWrong = showAnswers && checked && mcqCorrectText != null && opt !== mcqCorrectText;
 
                         const borderColor = isOptionCorrect
                           ? "rgba(46, 204, 113, 0.85)"
@@ -1375,13 +1300,7 @@ export default function StudentLessonPage() {
                               background,
                             }}
                           >
-                            <input
-                              type="radio"
-                              name={stableId}
-                              checked={checked}
-                              onChange={() => setAnswer(stableId, opt)}
-                              style={{ marginTop: 3 }}
-                            />
+                            <input type="radio" name={stableId} checked={checked} onChange={() => setAnswer(stableId, opt)} style={{ marginTop: 3 }} />
 
                             <div style={{ width: "100%" }}>
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -1389,9 +1308,7 @@ export default function StudentLessonPage() {
                                 {checked ? <Pill text="Your answer" /> : null}
                               </div>
 
-                              {showThisTranslation && optT ? (
-                                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{optT}</div>
-                              ) : null}
+                              {showThisTranslation && optT ? <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{optT}</div> : null}
                             </div>
                           </label>
                         );
@@ -1443,13 +1360,7 @@ export default function StudentLessonPage() {
                       onChange={(e) => setAnswer(stableId, e.target.value)}
                       placeholder="Write your answer…"
                       rows={4}
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        borderRadius: 10,
-                        border: "1px solid rgba(0,0,0,0.2)",
-                        resize: "vertical",
-                      }}
+                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", resize: "vertical" }}
                     />
                   ) : null}
                 </div>
@@ -1468,14 +1379,7 @@ export default function StudentLessonPage() {
             <button
               onClick={submitForFeedback}
               disabled={submitting || !uid}
-              style={{
-                ...btnStyle,
-                background: "#bef7c0",
-                borderColor: "#2563eb",
-                color: "black",
-                fontWeight: 600,
-                opacity: submitting ? 0.6 : 1,
-              }}
+              style={{ ...btnStyle, background: "#bef7c0", borderColor: "#2563eb", color: "black", fontWeight: 600, opacity: submitting ? 0.6 : 1 }}
               title="Generate feedback again"
             >
               {submitting ? "Submitting…" : "GET ANSWER /FEEDBACK"}
@@ -1484,14 +1388,7 @@ export default function StudentLessonPage() {
             <button
               onClick={onTranslateFeedback}
               disabled={feedbackTranslating || !(feedback || "").trim()}
-              style={{
-                ...btnStyle,
-                background: "#eaf3b6",
-                borderColor: "#2563eb",
-                color: "black",
-                fontWeight: 600,
-                opacity: feedbackTranslating ? 0.6 : 1,
-              }}
+              style={{ ...btnStyle, background: "#eaf3b6", borderColor: "#2563eb", color: "black", fontWeight: 600, opacity: feedbackTranslating ? 0.6 : 1 }}
               title="Translate feedback"
             >
               {feedbackTranslating ? "Translating…" : "TRANSLATE FEEDBACK"}
@@ -1499,31 +1396,12 @@ export default function StudentLessonPage() {
           </div>
         </div>
 
-        <div
-          style={{
-            padding: 12,
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 12,
-            whiteSpace: "pre-wrap",
-            lineHeight: 1.55,
-            minHeight: 80,
-          }}
-        >
+        <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, whiteSpace: "pre-wrap", lineHeight: 1.55, minHeight: 80 }}>
           {feedback ? feedback : <span style={{ opacity: 0.6 }}>No feedback yet. Submit when ready.</span>}
         </div>
 
         {translatedFeedback ? (
-          <div
-            style={{
-              marginTop: 10,
-              padding: 12,
-              border: "1px solid rgba(0,0,0,0.12)",
-              borderRadius: 12,
-              whiteSpace: "pre-wrap",
-              lineHeight: 1.55,
-              background: "rgba(0,0,0,0.02)",
-            }}
-          >
+          <div style={{ marginTop: 10, padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, whiteSpace: "pre-wrap", lineHeight: 1.55, background: "rgba(0,0,0,0.02)" }}>
             <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Translated feedback</div>
             {translatedFeedback}
           </div>
