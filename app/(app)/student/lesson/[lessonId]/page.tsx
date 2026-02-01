@@ -1,4 +1,4 @@
-// app/student/lesson/[lessonId]/page.tsx
+// app/(app)/student/lesson/[lessonId]/page.tsx
 "use client";
 
 import { SearchableSelect } from "@/components/SearchableSelect";
@@ -9,6 +9,7 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, serverTimestamp, updateDoc, setDoc } from "firebase/firestore";
 import { LANGUAGES } from "@/lib/languages";
+import { auth } from "@/lib/firebase"; // ✅ for å sjekke anon vs innlogget
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   value: l.code,
@@ -20,7 +21,6 @@ type Lesson = {
   level?: string;
   topic?: string;
 
-  // NOTE: producer/published kan være "sourceText" eller "text"
   sourceText?: string;
   text?: string;
 
@@ -30,7 +30,6 @@ type Lesson = {
 
   coverImageUrl?: string;
 
-  // published_lessons bruker dette i rules
   isActive?: boolean;
 };
 
@@ -107,7 +106,6 @@ function getStableTaskId(t: any, idx: number): string {
 
 // ---- TTS helpers ----
 type TtsLang = "no" | "en" | "pt-BR";
-
 function toTtsLang(lang: string): TtsLang {
   const v = (lang || "").toLowerCase().trim();
   if (v === "pt" || v === "pt-br" || v === "pt_br") return "pt-BR";
@@ -115,7 +113,7 @@ function toTtsLang(lang: string): TtsLang {
   return "no";
 }
 
-// ---- Text follow (Level A): sentence segmentation + proportional timing ----
+// ---- Text follow ----
 type SentenceSeg = {
   text: string;
   startChar: number;
@@ -176,7 +174,6 @@ function fmtTime(sec: number) {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-// ---- Small UI helpers ----
 function Pill({ text, kind = "neutral" }: { text: string; kind?: "neutral" | "good" | "bad" }) {
   const bg =
     kind === "good"
@@ -212,6 +209,20 @@ function Pill({ text, kind = "neutral" }: { text: string; kind?: "neutral" | "go
   );
 }
 
+// ---------- LOCAL STORAGE HELPERS ----------
+function lsKey(lessonId: string) {
+  return `321skole:answers:${lessonId}`;
+}
+function safeParseJSON(s: string | null) {
+  if (!s) return null;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
+// ------------------------------------------
+
 export default function StudentLessonPage() {
   const params = useParams<{ lessonId: string }>();
   const lessonId = params?.lessonId;
@@ -221,6 +232,7 @@ export default function StudentLessonPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [uid, setUid] = useState<string | null>(null);
+  const [isAnon, setIsAnon] = useState<boolean>(true);
 
   const [answers, setAnswers] = useState<AnswersMap>({});
   const [submissionId, setSubmissionId] = useState<string | null>(null);
@@ -238,40 +250,32 @@ export default function StudentLessonPage() {
   const [translating, setTranslating] = useState<null | "text" | "tasks">(null);
   const [translateErr, setTranslateErr] = useState<string | null>(null);
 
-  // UI toggles
   const [showTextTranslation, setShowTextTranslation] = useState(true);
   const [showTaskTranslations, setShowTaskTranslations] = useState(true);
   const [taskTranslationOpen, setTaskTranslationOpen] = useState<Record<string, boolean>>({});
 
   const hasAnswers = useMemo(() => Object.keys(answers).length > 0, [answers]);
 
-  // feedback translation + answer reveal
   const [translatedFeedback, setTranslatedFeedback] = useState<string | null>(null);
   const [feedbackTranslating, setFeedbackTranslating] = useState(false);
   const [feedbackTranslateErr, setFeedbackTranslateErr] = useState<string | null>(null);
 
-  // image placeholder
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [showAnswers, setShowAnswers] = useState(false);
-
   useEffect(() => {
     setShowAnswers(!!feedback);
   }, [feedback]);
 
-  // ---- TTS state ----
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [ttsBusy, setTtsBusy] = useState<null | "original" | "translation">(null);
   const [ttsErr, setTtsErr] = useState<string | null>(null);
-
   const [playbackRate, setPlaybackRate] = useState(1.0);
 
-  // ---- player state ----
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // ---- text-follow state ----
   const [activeTextMode, setActiveTextMode] = useState<null | "original" | "translation">(null);
   const [activeSentenceIndex, setActiveSentenceIndex] = useState<number | null>(null);
 
@@ -419,13 +423,15 @@ export default function StudentLessonPage() {
     if (!a) return;
 
     const onTime = () => {
-      const duration = a.duration;
-      if (!duration || !isFinite(duration)) return;
+      const d = a.duration;
+      if (!d || !isFinite(d)) return;
 
       const t = a.currentTime;
-      const ratio = Math.max(0, Math.min(1, t / duration));
+      const ratio = Math.max(0, Math.min(1, t / d));
 
-      const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+      const segs =
+        activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+
       if (!segs || segs.length === 0) return;
 
       let idx = segs.findIndex((s) => ratio >= s.startRatio && ratio < s.endRatio);
@@ -435,7 +441,9 @@ export default function StudentLessonPage() {
     };
 
     a.addEventListener("timeupdate", onTime);
-    return () => a.removeEventListener("timeupdate", onTime);
+    return () => {
+      a.removeEventListener("timeupdate", onTime);
+    };
   }, [activeTextMode, textFollow.original.segs, textFollow.translation.segs]);
 
   function seekToSentence(mode: "original" | "translation", idx: number) {
@@ -445,15 +453,17 @@ export default function StudentLessonPage() {
     const segs = mode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
     if (!segs || !segs[idx]) return;
 
-    const duration = a.duration;
-    if (!duration || !isFinite(duration)) return;
+    const d = a.duration;
+    if (!d || !isFinite(d)) return;
 
-    const target = segs[idx].startRatio * duration;
-    a.currentTime = Math.max(0, Math.min(duration - 0.05, target));
+    const target = segs[idx].startRatio * d;
+    a.currentTime = Math.max(0, Math.min(d - 0.05, target));
     setActiveTextMode(mode);
     setActiveSentenceIndex(idx);
 
-    if (a.paused) a.play().catch(() => {});
+    if (a.paused) {
+      a.play().catch(() => {});
+    }
   }
 
   function replaySentence() {
@@ -472,7 +482,8 @@ export default function StudentLessonPage() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
 
-    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs =
+      activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
     if (!segs.length) return;
 
     const nextIdx = Math.max(0, (activeSentenceIndex ?? 0) - 1);
@@ -483,14 +494,15 @@ export default function StudentLessonPage() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
 
-    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs =
+      activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
     if (!segs.length) return;
 
     const nextIdx = Math.min(segs.length - 1, (activeSentenceIndex ?? 0) + 1);
     seekToSentence(activeTextMode, nextIdx);
   }
 
-  // Load lesson + submission
+  // ---- Load lesson + answers (LOCAL for anon, Firestore for logged in) ----
   useEffect(() => {
     let alive = true;
 
@@ -505,23 +517,20 @@ export default function StudentLessonPage() {
       }
 
       try {
-        // 1) Sørg for anon user
         const user = await ensureAnonymousUser();
-
-        // ✅ Viktig: tving token før Firestore-kall (løser race/permission-denied)
-        await user.getIdToken();
-
         if (!alive) return;
-        setUid(user.uid);
 
-        // 2) Les published lesson (separat try/catch)
+        setUid(user.uid);
+        setIsAnon(!!user.isAnonymous);
+
+        // 1) Load published lesson
         let lessonSnap: any = null;
         try {
           lessonSnap = await getDoc(doc(db, "published_lessons", lessonId));
         } catch (e: any) {
           if (isPermissionDenied(e)) {
             setLesson(null);
-            setError("Ingen tilgang til publiserte oppgaver (published_lessons).");
+            setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
             setLoading(false);
             return;
           }
@@ -532,16 +541,15 @@ export default function StudentLessonPage() {
 
         if (!lessonSnap?.exists?.()) {
           setLesson(null);
-          setError("Denne oppgaven finnes ikke i published_lessons (ID mismatch eller slettet).");
+          setError("Denne oppgaven er ikke publisert (eller finnes ikke).");
           setLoading(false);
           return;
         }
 
         const rawData = lessonSnap.data() as any;
-
         if (rawData?.isActive === false) {
           setLesson(null);
-          setError("Denne oppgaven er avpublisert (isActive=false).");
+          setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
           setLoading(false);
           return;
         }
@@ -554,31 +562,50 @@ export default function StudentLessonPage() {
         setLesson(lessonData);
         setImageUrl(lessonData.coverImageUrl ?? null);
 
-        // 3) Les submissions (separat try/catch)
+        // 2) Load answers
+        // If anon -> localStorage
+        // Else -> Firestore submissions (as before)
         const stableSubId = `${user.uid}_${lessonId}`;
+
+        if (user.isAnonymous) {
+          setSubmissionId(null);
+          setFeedback(null);
+
+          const parsed = safeParseJSON(localStorage.getItem(lsKey(lessonId)));
+          const loadedAnswers = parsed?.answers && typeof parsed.answers === "object" ? parsed.answers : {};
+          setAnswers(loadedAnswers);
+
+          // reset translations per lesson load
+          setTranslatedText(null);
+          setTranslatedTasks(null);
+          setTranslateErr(null);
+          setTaskTranslationOpen({});
+
+          setTranslatedFeedback(null);
+          setFeedbackTranslateErr(null);
+
+          setTtsErr(null);
+          setTtsBusy(null);
+          stopAudio();
+
+          setLoading(false);
+          return;
+        }
+
+        // Logged-in path: Firestore submissions
         const subRef = doc(db, "submissions", stableSubId);
+        const subDoc = await getDoc(subRef);
+        if (!alive) return;
 
-        try {
-          const subDoc = await getDoc(subRef);
-          if (!alive) return;
-
-          if (subDoc.exists()) {
-            const data = subDoc.data() as any;
-            setSubmissionId(subDoc.id);
-            if (data?.answers && typeof data.answers === "object") setAnswers(data.answers);
-            if (typeof data?.feedback === "string") setFeedback(data.feedback);
-          } else {
-            setSubmissionId(null);
-            setAnswers({});
-            setFeedback(null);
-          }
-        } catch (e: any) {
-          if (isPermissionDenied(e)) {
-            setError("Ingen tilgang til submissions for denne brukeren (submissions rules).");
-            setLoading(false);
-            return;
-          }
-          throw e;
+        if (subDoc.exists()) {
+          const data = subDoc.data() as any;
+          setSubmissionId(subDoc.id);
+          if (data?.answers && typeof data.answers === "object") setAnswers(data.answers);
+          if (typeof data?.feedback === "string") setFeedback(data.feedback);
+        } else {
+          setSubmissionId(null);
+          setAnswers({});
+          setFeedback(null);
         }
 
         // reset translations per lesson load
@@ -587,17 +614,14 @@ export default function StudentLessonPage() {
         setTranslateErr(null);
         setTaskTranslationOpen({});
 
-        // reset feedback translation
         setTranslatedFeedback(null);
         setFeedbackTranslateErr(null);
 
-        // reset tts
         setTtsErr(null);
         setTtsBusy(null);
         stopAudio();
       } catch (e: any) {
         if (!alive) return;
-
         if (isPermissionDenied(e)) {
           setError("Denne oppgaven er ikke publisert (eller du har ikke tilgang).");
         } else {
@@ -615,6 +639,17 @@ export default function StudentLessonPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId]);
+
+  // Auto-save to localStorage when anon
+  useEffect(() => {
+    if (!lessonId) return;
+    if (!isAnon) return;
+    try {
+      localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
+    } catch {
+      // ignore
+    }
+  }, [answers, isAnon, lessonId]);
 
   useEffect(() => {
     setTranslateErr(null);
@@ -645,6 +680,12 @@ export default function StudentLessonPage() {
 
   async function saveDraft() {
     if (!lessonId || !uid) return;
+
+    // ✅ Anonymous: local only
+    if (isAnon) {
+      flash("Saved on this device ✅");
+      return;
+    }
 
     setSaving(true);
     setMsg(null);
@@ -723,6 +764,12 @@ export default function StudentLessonPage() {
       return;
     }
 
+    // ✅ Anonymous: no Firestore feedback (since it writes). Keep it simple.
+    if (isAnon) {
+      flash("Log in to get AI feedback");
+      return;
+    }
+
     setSubmitting(true);
     setMsg(null);
 
@@ -771,7 +818,6 @@ export default function StudentLessonPage() {
       setFeedback(fb);
       setTranslatedFeedback(null);
 
-      // NB: krever at submissions update er lov for eier
       await updateDoc(ref, {
         feedback: fb,
         feedbackUpdatedAt: serverTimestamp(),
@@ -961,6 +1007,11 @@ export default function StudentLessonPage() {
             {lesson.language ? <span> • {lesson.language.toUpperCase()}</span> : null}
             {lesson.topic ? <span> • {lesson.topic}</span> : null}
           </div>
+          {isAnon ? (
+            <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
+              Du er anonym: svar lagres på denne enheten (localStorage).
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -1016,29 +1067,27 @@ export default function StudentLessonPage() {
               opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? "Saving…" : "SAVE TO DASHBOARD"}
+            {saving ? "Saving…" : isAnon ? "SAVE ON THIS DEVICE" : "SAVE TO DASHBOARD"}
           </button>
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ opacity: 0.75 }}>Translate to</span>
-            <SearchableSelect label="" value={targetLang} options={LANGUAGE_OPTIONS} onChange={setTargetLang} placeholder="Søk språk…" />
+            <SearchableSelect
+              label=""
+              value={targetLang}
+              options={LANGUAGE_OPTIONS}
+              onChange={setTargetLang}
+              placeholder="Søk språk…"
+            />
           </label>
 
-          <button
-            onClick={onTranslateText}
-            disabled={translating === "text" || !(sourceTextSafe || "").trim()}
-            style={{ ...btnStyle, opacity: translating === "text" ? 0.6 : 1 }}
-          >
+          <button onClick={onTranslateText} disabled={translating === "text" || !(sourceTextSafe || "").trim()} style={{ ...btnStyle, opacity: translating === "text" ? 0.6 : 1 }}>
             {translating === "text" ? "Translating…" : "Translate text"}
           </button>
 
-          <button
-            onClick={onTranslateTasks}
-            disabled={translating === "tasks" || tasksOriginal.length === 0}
-            style={{ ...btnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
-          >
+          <button onClick={onTranslateTasks} disabled={translating === "tasks" || tasksOriginal.length === 0} style={{ ...btnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}>
             {translating === "tasks" ? "Translating…" : "Translate tasks"}
           </button>
 
@@ -1073,17 +1122,11 @@ export default function StudentLessonPage() {
               <span style={{ width: 46, textAlign: "right" }}>{playbackRate.toFixed(2)}x</span>
             </label>
 
-            <button
-              type="button"
-              style={{ ...btnStyle, opacity: ttsBusy === "original" ? 0.6 : 1 }}
-              disabled={ttsBusy !== null || !(sourceTextSafe || "").trim()}
-              onClick={() => playTTS(sourceTextSafe || "", originalLangForTTS, "original")}
-              title={`Play original (${originalLangForTTS})`}
-            >
+            <button type="button" style={{ ...btnStyle, opacity: ttsBusy === "original" ? 0.6 : 1 }} disabled={ttsBusy !== null || !(sourceTextSafe || "").trim()} onClick={() => playTTS(sourceTextSafe || "", originalLangForTTS, "original")}>
               {ttsBusy === "original" ? "Generating…" : "🔊 Play original"}
             </button>
 
-            <button type="button" style={btnStyle} onClick={stopAudio} disabled={!audioRef.current} title="Stop">
+            <button type="button" style={btnStyle} onClick={stopAudio} disabled={!audioRef.current}>
               ⏹ Stop
             </button>
 
@@ -1092,16 +1135,13 @@ export default function StudentLessonPage() {
                 <button type="button" style={btnStyle} onClick={isPlaying ? pauseAudio : resumeAudio}>
                   {isPlaying ? "⏸ Pause" : "▶️ Continue"}
                 </button>
-
-                <button type="button" style={btnStyle} onClick={replaySentence} title="Replay current sentence">
+                <button type="button" style={btnStyle} onClick={replaySentence}>
                   ⟲ Replay sentence
                 </button>
-
-                <button type="button" style={btnStyle} onClick={prevSentence} title="Previous sentence">
+                <button type="button" style={btnStyle} onClick={prevSentence}>
                   ⟵ Prev
                 </button>
-
-                <button type="button" style={btnStyle} onClick={nextSentence} title="Next sentence">
+                <button type="button" style={btnStyle} onClick={nextSentence}>
                   Next ⟶
                 </button>
 
@@ -1121,7 +1161,6 @@ export default function StudentLessonPage() {
                       setCurrentTime(v);
                     }}
                     style={{ width: 240 }}
-                    title="Scrub"
                   />
                   <span style={{ fontSize: 12, opacity: 0.75, width: 48 }}>{fmtTime(duration)}</span>
                 </div>
@@ -1135,13 +1174,7 @@ export default function StudentLessonPage() {
             ) : null}
 
             {translatedText ? (
-              <button
-                type="button"
-                style={{ ...btnStyle, opacity: ttsBusy === "translation" ? 0.6 : 1 }}
-                disabled={ttsBusy !== null || !(translatedText || "").trim()}
-                onClick={() => playTTS(translatedText || "", translationLangForTTS, "translation")}
-                title={`Play translation (${translationLangForTTS})`}
-              >
+              <button type="button" style={{ ...btnStyle, opacity: ttsBusy === "translation" ? 0.6 : 1 }} disabled={ttsBusy !== null || !(translatedText || "").trim()} onClick={() => playTTS(translatedText || "", translationLangForTTS, "translation")}>
                 {ttsBusy === "translation" ? "Generating…" : "🔊 Play translation"}
               </button>
             ) : null}
@@ -1167,13 +1200,18 @@ export default function StudentLessonPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
           <h2 style={{ margin: 0 }}>Tasks</h2>
 
-          <button type="button" onClick={() => setShowAnswers((v) => !v)} style={btnStyle} title="Show correct answers (if tasks have correctAnswer)">
+          <button type="button" onClick={() => setShowAnswers((v) => !v)} style={btnStyle}>
             {showAnswers ? "Hide answers" : "Show answers"}
           </button>
 
           <button
             onClick={() => {
               setAnswers({});
+              if (lessonId && isAnon) {
+                try {
+                  localStorage.removeItem(lsKey(lessonId));
+                } catch {}
+              }
               flash("Cleared answers");
             }}
             style={btnStyle}
@@ -1227,7 +1265,9 @@ export default function StudentLessonPage() {
                 return null;
               })();
 
-              const hasCorrect = (type === "mcq" && mcqCorrectText != null) || (type === "truefalse" && tfCorrectBool != null);
+              const hasCorrect =
+                (type === "mcq" && mcqCorrectText != null) ||
+                (type === "truefalse" && tfCorrectBool != null);
 
               const isCorrect =
                 type === "mcq"
@@ -1244,7 +1284,9 @@ export default function StudentLessonPage() {
                       <span>• {type}</span>
 
                       {showAnswers && hasCorrect && val != null ? (
-                        <span style={{ marginLeft: 6 }}>{isCorrect ? <Pill text="Correct" kind="good" /> : <Pill text="Wrong" kind="bad" />}</span>
+                        <span style={{ marginLeft: 6 }}>
+                          {isCorrect ? <Pill text="Correct" kind="good" /> : <Pill text="Wrong" kind="bad" />}
+                        </span>
                       ) : null}
                     </div>
 
@@ -1300,7 +1342,13 @@ export default function StudentLessonPage() {
                               background,
                             }}
                           >
-                            <input type="radio" name={stableId} checked={checked} onChange={() => setAnswer(stableId, opt)} style={{ marginTop: 3 }} />
+                            <input
+                              type="radio"
+                              name={stableId}
+                              checked={checked}
+                              onChange={() => setAnswer(stableId, opt)}
+                              style={{ marginTop: 3 }}
+                            />
 
                             <div style={{ width: "100%" }}>
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -1360,7 +1408,13 @@ export default function StudentLessonPage() {
                       onChange={(e) => setAnswer(stableId, e.target.value)}
                       placeholder="Write your answer…"
                       rows={4}
-                      style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)", resize: "vertical" }}
+                      style={{
+                        width: "100%",
+                        padding: 10,
+                        borderRadius: 10,
+                        border: "1px solid rgba(0,0,0,0.2)",
+                        resize: "vertical",
+                      }}
                     />
                   ) : null}
                 </div>
@@ -1379,16 +1433,30 @@ export default function StudentLessonPage() {
             <button
               onClick={submitForFeedback}
               disabled={submitting || !uid}
-              style={{ ...btnStyle, background: "#bef7c0", borderColor: "#2563eb", color: "black", fontWeight: 600, opacity: submitting ? 0.6 : 1 }}
-              title="Generate feedback again"
+              style={{
+                ...btnStyle,
+                background: "#bef7c0",
+                borderColor: "#2563eb",
+                color: "black",
+                fontWeight: 600,
+                opacity: submitting ? 0.6 : 1,
+              }}
+              title={isAnon ? "Log in to get AI feedback" : "Generate feedback"}
             >
-              {submitting ? "Submitting…" : "GET ANSWER /FEEDBACK"}
+              {submitting ? "Submitting…" : isAnon ? "LOG IN FOR FEEDBACK" : "GET ANSWER /FEEDBACK"}
             </button>
 
             <button
               onClick={onTranslateFeedback}
               disabled={feedbackTranslating || !(feedback || "").trim()}
-              style={{ ...btnStyle, background: "#eaf3b6", borderColor: "#2563eb", color: "black", fontWeight: 600, opacity: feedbackTranslating ? 0.6 : 1 }}
+              style={{
+                ...btnStyle,
+                background: "#eaf3b6",
+                borderColor: "#2563eb",
+                color: "black",
+                fontWeight: 600,
+                opacity: feedbackTranslating ? 0.6 : 1,
+              }}
               title="Translate feedback"
             >
               {feedbackTranslating ? "Translating…" : "TRANSLATE FEEDBACK"}
@@ -1397,7 +1465,7 @@ export default function StudentLessonPage() {
         </div>
 
         <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, whiteSpace: "pre-wrap", lineHeight: 1.55, minHeight: 80 }}>
-          {feedback ? feedback : <span style={{ opacity: 0.6 }}>No feedback yet. Submit when ready.</span>}
+          {feedback ? feedback : <span style={{ opacity: 0.6 }}>{isAnon ? "Anonymous mode: answers saved locally. Log in for AI feedback." : "No feedback yet. Submit when ready."}</span>}
         </div>
 
         {translatedFeedback ? (
@@ -1406,6 +1474,12 @@ export default function StudentLessonPage() {
             {translatedFeedback}
           </div>
         ) : null}
+      </section>
+
+      <section style={{ marginTop: 18 }}>
+        <Link href={`/lesson/${lessonId}`} style={{ textDecoration: "none" }}>
+          ← Back to preview
+        </Link>
       </section>
     </main>
   );
