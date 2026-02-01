@@ -111,33 +111,49 @@ service cloud.firestore {
        SUBMISSIONS
        /submissions/{id}
     ============================ */
-    match /submissions/{id} {
+    /* ============================
+   SUBMISSIONS
+   /submissions/{id}
+============================ */
+match /submissions/{id} {
 
-      // Vi bruker doc-id-format: "{uid}_{lessonId}"
-      function isOwnSubmissionId() {
-        return signedIn() && id.matches('^' + myUid() + '_');
-      }
+  // doc-id-format: "{uid}_{lessonId}"
+  function isOwnSubmissionId() {
+    return signedIn() && id.matches('^' + myUid() + '_');
+  }
 
-      // Create: må eie uid-feltet
-      allow create: if signedIn()
-        && request.resource.data.uid == myUid();
+  function isOwnerDoc() {
+    return signedIn() && resource != null && resource.data.uid == myUid();
+  }
 
-      // Read:
-      // - Hvis doc finnes: resource.data.uid må matche
-      // - Hvis doc IKKE finnes (resource == null): tillat get når id matcher "{uid}_..."
-      //   Dette gjør at klienten kan sjekke "finnes submission?" uten permission-denied.
-      allow read: if isAdmin()
-        || (
-          signedIn()
-          && (
-            (resource != null && resource.data.uid == myUid())
-            || (resource == null && isOwnSubmissionId())
-          )
-        );
+  // Create: må eie uid-feltet
+  allow create: if signedIn()
+    && request.resource.data.uid == myUid();
 
-      allow update: if false;
-      allow delete: if false;
-    }
+  // Read:
+  // - Hvis doc finnes: resource.data.uid må matche
+  // - Hvis doc ikke finnes: tillat get når id matcher "{uid}_..."
+  allow read: if isAdmin()
+    || (
+      signedIn()
+      && (
+        (resource != null && resource.data.uid == myUid())
+        || (resource == null && isOwnSubmissionId())
+      )
+    );
+
+  // Update: eier kan oppdatere sin submission,
+  // men kan ikke endre uid eller publishedLessonId etter at doc finnes.
+  allow update: if isAdmin()
+    || (
+      isOwnerDoc()
+      && request.resource.data.uid == resource.data.uid
+      && request.resource.data.publishedLessonId == resource.data.publishedLessonId
+    );
+
+  allow delete: if false;
+}
+
 
     /* ============================
        DEFAULT DENY

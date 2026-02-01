@@ -1,7 +1,7 @@
 // components/AuthGate.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
@@ -23,33 +23,20 @@ export default function AuthGate({
   const router = useRouter();
   const pathname = usePathname();
 
-  const [anonBooting, setAnonBooting] = useState(false);
-
-  const nextUrl = useMemo(() => {
-    return `/login?next=${encodeURIComponent(pathname || "/")}`;
-  }, [pathname]);
-
-  // Når vi får en user (anon eller ekte), stopp booting
-  useEffect(() => {
-    if (user) setAnonBooting(false);
-  }, [user]);
+  const nextUrl = useMemo(() => `/login?next=${encodeURIComponent(pathname || "/")}`, [pathname]);
 
   useEffect(() => {
     if (loading) return;
 
     // Ikke innlogget:
+    // - allowAnonymous -> opprett anon session
+    // - ellers -> login
     if (!user) {
       if (allowAnonymous) {
-        // Start anon-login én gang per "tom session"
-        if (!anonBooting) {
-          setAnonBooting(true);
-          ensureAnonymousUser().catch((e) => {
-            console.error("ensureAnonymousUser failed", e);
-            setAnonBooting(false);
-            // fallback: send til login
-            router.replace(nextUrl);
-          });
-        }
+        ensureAnonymousUser().catch((e) => {
+          console.error("ensureAnonymousUser failed", e);
+          router.replace(nextUrl);
+        });
         return;
       }
 
@@ -57,17 +44,18 @@ export default function AuthGate({
       return;
     }
 
-    // Teacher approval sjekk (ikke relevant for anon, men ufarlig)
+    // ✅ Anonym + allowAnonymous: slipp igjennom (ingen roles/profile)
+    if (user.isAnonymous && allowAnonymous) return;
+
+    // Teacher approval (kun for ekte brukere)
     if (requireApprovedTeacher) {
-      const isApproved = profile?.teacherStatus === "approved";
-      if (!isApproved) {
+      if (profile?.teacherStatus !== "approved") {
         router.replace("/unauthorized");
         return;
       }
     }
 
-    // Rollekrav:
-    // OBS: anon har normalt ikke profile/roles -> vil feile
+    // Role check (kun for ekte brukere)
     if (requireRole) {
       const hasRole = !!profile?.roles?.[requireRole];
       if (!hasRole) {
@@ -75,23 +63,12 @@ export default function AuthGate({
         return;
       }
     }
-  }, [
-    allowAnonymous,
-    anonBooting,
-    loading,
-    user,
-    profile,
-    requireApprovedTeacher,
-    requireRole,
-    router,
-    nextUrl,
-  ]);
+  }, [allowAnonymous, loading, user, profile, requireApprovedTeacher, requireRole, router, nextUrl]);
 
-  // Hvis useUserProfile fortsatt laster
   if (loading) return null;
 
-  // Hvis vi forsøker anon-login, vis ingenting (evt. putt inn en liten loader senere)
-  if (allowAnonymous && (!user || anonBooting)) return null;
+  // allowAnonymous + ikke-user: vi er i ferd med å signInAnonymously()
+  if (!user && allowAnonymous) return null;
 
   return <>{children}</>;
 }
