@@ -222,6 +222,18 @@ function safeParseJSON(s: string | null) {
   }
 }
 // ------------------------------------------
+async function resolveAuthUser() {
+  // Hvis du allerede er innlogget (Google/email), bruk den brukeren.
+  if (auth.currentUser) return auth.currentUser;
+
+  // Hvis ikke, opprett/bruk anon.
+  await ensureAnonymousUser();
+
+  if (!auth.currentUser) {
+    throw new Error("Auth user missing after ensureAnonymousUser()");
+  }
+  return auth.currentUser;
+}
 
 export default function StudentLessonPage() {
   const params = useParams<{ lessonId: string }>();
@@ -517,11 +529,13 @@ export default function StudentLessonPage() {
       }
 
       try {
-        const user = await ensureAnonymousUser();
-        if (!alive) return;
+        const user = auth.currentUser ?? (await ensureAnonymousUser());
+if (!alive) return;
 
-        setUid(user.uid);
-        setIsAnon(!!user.isAnonymous);
+setUid(user.uid);
+setIsAnon(!!user.isAnonymous);
+console.log("[student-lesson] uid=", user.uid, "isAnon=", !!user.isAnonymous);
+console.log("[student-lesson] stableSubId=", `${user.uid}_${lessonId}`);
 
         // 1) Load published lesson
         let lessonSnap: any = null;
@@ -592,21 +606,29 @@ export default function StudentLessonPage() {
           return;
         }
 
-        // Logged-in path: Firestore submissions
-        const subRef = doc(db, "submissions", stableSubId);
-        const subDoc = await getDoc(subRef);
-        if (!alive) return;
+       // Logged-in path: Firestore submissions
+try {
+  const subRef = doc(db, "submissions", stableSubId);
+  const subDoc = await getDoc(subRef);
+  if (!alive) return;
 
-        if (subDoc.exists()) {
-          const data = subDoc.data() as any;
-          setSubmissionId(subDoc.id);
-          if (data?.answers && typeof data.answers === "object") setAnswers(data.answers);
-          if (typeof data?.feedback === "string") setFeedback(data.feedback);
-        } else {
-          setSubmissionId(null);
-          setAnswers({});
-          setFeedback(null);
-        }
+  if (subDoc.exists()) {
+    const data = subDoc.data() as any;
+    setSubmissionId(subDoc.id);
+    if (data?.answers && typeof data.answers === "object") setAnswers(data.answers);
+    if (typeof data?.feedback === "string") setFeedback(data.feedback);
+  } else {
+    setSubmissionId(null);
+    setAnswers({});
+    setFeedback(null);
+  }
+} catch (e: any) {
+  // Ikke stopp lesson-visning om submissions feiler
+  if (!isPermissionDenied(e)) throw e;
+  setSubmissionId(null);
+  setAnswers({});
+  setFeedback(null);
+}
 
         // reset translations per lesson load
         setTranslatedText(null);
