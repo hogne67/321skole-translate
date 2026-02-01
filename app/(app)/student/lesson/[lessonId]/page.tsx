@@ -581,30 +581,6 @@ console.log("[student-lesson] stableSubId=", `${user.uid}_${lessonId}`);
         // Else -> Firestore submissions (as before)
         const stableSubId = `${user.uid}_${lessonId}`;
 
-        if (user.isAnonymous) {
-          setSubmissionId(null);
-          setFeedback(null);
-
-          const parsed = safeParseJSON(localStorage.getItem(lsKey(lessonId)));
-          const loadedAnswers = parsed?.answers && typeof parsed.answers === "object" ? parsed.answers : {};
-          setAnswers(loadedAnswers);
-
-          // reset translations per lesson load
-          setTranslatedText(null);
-          setTranslatedTasks(null);
-          setTranslateErr(null);
-          setTaskTranslationOpen({});
-
-          setTranslatedFeedback(null);
-          setFeedbackTranslateErr(null);
-
-          setTtsErr(null);
-          setTtsBusy(null);
-          stopAudio();
-
-          setLoading(false);
-          return;
-        }
 
        // Logged-in path: Firestore submissions
 try {
@@ -704,10 +680,6 @@ try {
     if (!lessonId || !uid) return;
 
     // ✅ Anonymous: local only
-    if (isAnon) {
-      flash("Saved on this device ✅");
-      return;
-    }
 
     setSaving(true);
     setMsg(null);
