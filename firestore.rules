@@ -90,43 +90,42 @@ service cloud.firestore {
     ============================ */
     match /published_lessons/{id} {
 
+      function docExists() {
+        return exists(/databases/$(database)/documents/published_lessons/$(id));
+      }
+
+      // legacy-safe: hvis isActive mangler, behandles som true
       function isActiveOrMissing() {
         return !resource.data.keys().hasAny(["isActive"]) || resource.data.isActive == true;
       }
 
-      allow read: if isActiveOrMissing() || isAdmin();
+      // ✅ Viktig: sjekk exists først for å unngå permission-denied når doc mangler
+      allow read: if !docExists() || isActiveOrMissing() || isAdmin();
       allow write: if false;
     }
 
     /* ============================
        SUBMISSIONS
        /submissions/{id}
+       (for "gjøre oppgave")
     ============================ */
     match /submissions/{id} {
 
       function isOwner() {
-        return signedIn()
-          && resource.data.uid == myUid();
+        return signedIn() && resource.data.uid == myUid();
       }
 
-      // På create finnes ikke resource, så vi sjekker request.resource
       function isOwnerCreate() {
-        return signedIn()
-          && request.resource.data.uid == myUid();
+        return signedIn() && request.resource.data.uid == myUid();
       }
 
-      // CREATE: eier kan opprette sin egen submission
       allow create: if isOwnerCreate();
-
-      // READ: eier + admin
       allow read: if isOwner() || isAdmin();
 
-      // UPDATE: eier kan oppdatere sin egen submission
-      // (krever at uid ikke “byttes”)
+      // ✅ Tillat at eier oppdaterer sin submission (typisk underveis lagring)
       allow update: if isOwner()
         && request.resource.data.uid == myUid();
 
-      // DELETE: valgfritt – jeg lar den være false (tryggest)
       allow delete: if false;
     }
 
