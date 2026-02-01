@@ -1,4 +1,4 @@
-// app/student/lesson/[lessonId]/page.tsx
+// app/(app)/student/lesson/[lessonId]/page.tsx
 "use client";
 
 import { SearchableSelect } from "@/components/SearchableSelect";
@@ -7,7 +7,18 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, serverTimestamp, updateDoc, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+  setDoc,
+  collection,
+  getDocs,
+  limit,
+  query,
+  where,
+} from "firebase/firestore";
 import { LANGUAGES } from "@/lib/languages";
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
@@ -32,6 +43,9 @@ type Lesson = {
 
   // published_lessons bruker dette i rules
   isActive?: boolean;
+
+  // sometimes present in published docs
+  lessonId?: string;
 };
 
 type AnswersMap = Record<string, any>;
@@ -52,6 +66,28 @@ function isPermissionDenied(e: any) {
     msg.includes("insufficient permissions") ||
     msg.includes("permission-denied")
   );
+}
+
+/**
+ * Hent published lesson på to måter:
+ * 1) DocId === lessonId (hvis publisering bruker doc(db,"published_lessons", lessonId))
+ * 2) Fallback: query where(lessonId == param) hvis publisering har auto-ID
+ */
+async function fetchPublishedLessonByEitherIdOrField(lessonId: string) {
+  // 1) DocId == lessonId
+  try {
+    const directSnap = await getDoc(doc(db, "published_lessons", lessonId));
+    if (directSnap.exists()) return { snap: directSnap, via: "docId" as const };
+  } catch (e: any) {
+    if (!isPermissionDenied(e)) throw e;
+    // fallthrough to query
+  }
+
+  // 2) Query on field lessonId
+  const q = query(collection(db, "published_lessons"), where("lessonId", "==", lessonId), limit(1));
+  const qsnap = await getDocs(q);
+  if (qsnap.empty) return { snap: null as any, via: "none" as const };
+  return { snap: qsnap.docs[0], via: "fieldQuery" as const };
 }
 
 async function translateOne(text: string, targetLang: string) {
@@ -426,8 +462,7 @@ export default function StudentLessonPage() {
       const t = a.currentTime;
       const ratio = Math.max(0, Math.min(1, t / duration));
 
-      const segs =
-        activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+      const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
 
       if (!segs || segs.length === 0) return;
 
@@ -518,34 +553,19 @@ export default function StudentLessonPage() {
         if (!alive) return;
         setUid(user.uid);
 
-        let lessonSnap: any = null;
-
-        try {
-          lessonSnap = await getDoc(doc(db, "published_lessons", lessonId));
-        } catch (e: any) {
-          // Når en lesson er avpublisert (isActive=false) blokkerer rules read,
-          // og da vil getDoc kaste permission-denied. Vi viser "ikke publisert" i stedet.
-          if (isPermissionDenied(e)) {
-            setLesson(null);
-            setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
-            setLoading(false);
-            return;
-          }
-          throw e;
-        }
-
+        const res = await fetchPublishedLessonByEitherIdOrField(lessonId);
         if (!alive) return;
 
-        if (!lessonSnap?.exists?.()) {
+        if (!res.snap) {
           setLesson(null);
           setError("Denne oppgaven er ikke publisert (eller finnes ikke).");
           setLoading(false);
           return;
         }
 
-        const rawData = lessonSnap.data() as any;
+        const rawData = res.snap.data() as any;
 
-        // Belt + suspenders: om isActive ligger i doc og er false, vis ikke-publisert.
+        // Belt + suspenders
         if (rawData?.isActive === false) {
           setLesson(null);
           setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
@@ -593,7 +613,6 @@ export default function StudentLessonPage() {
         stopAudio();
       } catch (e: any) {
         if (!alive) return;
-        // Hvis rules blokkerer av andre grunner, vis en penere melding
         if (isPermissionDenied(e)) {
           setError("Denne oppgaven er ikke publisert (eller du har ikke tilgang).");
         } else {
@@ -994,6 +1013,7 @@ export default function StudentLessonPage() {
             }}
           >
             {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={imageUrl} alt="Lesson" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               <div style={{ textAlign: "center", padding: 16, opacity: 0.7 }}>
@@ -1259,8 +1279,7 @@ export default function StudentLessonPage() {
               })();
 
               const hasCorrect =
-                (type === "mcq" && mcqCorrectText != null) ||
-                (type === "truefalse" && tfCorrectBool != null);
+                (type === "mcq" && mcqCorrectText != null) || (type === "truefalse" && tfCorrectBool != null);
 
               const isCorrect =
                 type === "mcq"
