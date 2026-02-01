@@ -5,31 +5,37 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  limit,
+  query,
+  where,
+} from "firebase/firestore";
 
 type Lesson = {
   title: string;
   description?: string;
   level?: string;
 
-  // legacy/new topic fields
   topic?: string;
   topics?: string[];
 
   language?: string;
 
-  // producer/published kan være "sourceText" eller "text"
   sourceText?: string;
   text?: string;
 
   tasks?: any;
 
-  // legacy/new image fields
   coverImageUrl?: string;
   imageUrl?: string;
 
-  // published_lessons rules
   isActive?: boolean;
+  lessonId?: string;
+  visibility?: string;
 };
 
 function isPermissionDenied(e: any) {
@@ -86,6 +92,34 @@ function pickImageUrl(l: Lesson): string | null {
   return null;
 }
 
+/**
+ * Hent published lesson på to måter:
+ * 1) DocId === lessonId (den "perfekte" modellen)
+ * 2) Fallback: query where(lessonId == param) hvis publisering har auto-ID
+ */
+async function fetchPublishedLessonByEitherIdOrField(lessonId: string) {
+  // 1) Forsøk docId == lessonId
+  try {
+    const directSnap = await getDoc(doc(db, "published_lessons", lessonId));
+    if (directSnap.exists()) {
+      return { snap: directSnap, via: "docId" as const };
+    }
+  } catch (e: any) {
+    // Hvis permission-denied, prøv likevel fallback-query (kan være at docId ikke finnes)
+    if (!isPermissionDenied(e)) throw e;
+  }
+
+  // 2) Fallback query på feltet lessonId
+  const q = query(
+    collection(db, "published_lessons"),
+    where("lessonId", "==", lessonId),
+    limit(1)
+  );
+  const qsnap = await getDocs(q);
+  if (qsnap.empty) return { snap: null, via: "none" as const };
+  return { snap: qsnap.docs[0], via: "fieldQuery" as const };
+}
+
 export default function LessonPreviewPage() {
   const params = useParams<{ lessonId: string }>();
   const lessonId = params?.lessonId;
@@ -108,31 +142,20 @@ export default function LessonPreviewPage() {
       }
 
       try {
-        let snap: any = null;
-
-        try {
-          snap = await getDoc(doc(db, "published_lessons", lessonId));
-        } catch (e: any) {
-          if (isPermissionDenied(e)) {
-            setLesson(null);
-            setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
-            setLoading(false);
-            return;
-          }
-          throw e;
-        }
+        const res = await fetchPublishedLessonByEitherIdOrField(lessonId);
 
         if (!alive) return;
 
-        if (!snap?.exists?.()) {
+        if (!res.snap) {
           setLesson(null);
           setError("Denne oppgaven er ikke publisert (eller finnes ikke).");
           setLoading(false);
           return;
         }
 
-        const raw = snap.data() as any;
+        const raw = res.snap.data() as any;
 
+        // Hard filter: må være aktiv
         if (raw?.isActive === false) {
           setLesson(null);
           setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
@@ -162,7 +185,10 @@ export default function LessonPreviewPage() {
     };
   }, [lessonId]);
 
-  const sourceTextSafe = useMemo(() => (lesson?.sourceText ?? lesson?.text ?? "").toString().trim(), [lesson]);
+  const sourceTextSafe = useMemo(
+    () => (lesson?.sourceText ?? lesson?.text ?? "").toString().trim(),
+    [lesson]
+  );
 
   const tasksOriginal = useMemo(() => {
     const arr = safeTasksArray(lesson?.tasks);
@@ -205,7 +231,9 @@ export default function LessonPreviewPage() {
           </div>
 
           {lesson.description ? (
-            <p style={{ marginTop: 10, marginBottom: 0, opacity: 0.85, lineHeight: 1.45 }}>{lesson.description}</p>
+            <p style={{ marginTop: 10, marginBottom: 0, opacity: 0.85, lineHeight: 1.45 }}>
+              {lesson.description}
+            </p>
           ) : null}
         </div>
 
@@ -248,11 +276,7 @@ export default function LessonPreviewPage() {
       <section style={{ marginTop: 16 }}>
         <h2 style={{ marginBottom: 8 }}>Text</h2>
         <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
-          {sourceTextSafe ? (
-            <div style={{ whiteSpace: "pre-wrap" }}>{sourceTextSafe}</div>
-          ) : (
-            <span style={{ opacity: 0.6 }}>No text</span>
-          )}
+          {sourceTextSafe ? <div style={{ whiteSpace: "pre-wrap" }}>{sourceTextSafe}</div> : <span style={{ opacity: 0.6 }}>No text</span>}
         </div>
       </section>
 
@@ -307,7 +331,6 @@ export default function LessonPreviewPage() {
         )}
       </section>
 
-      {/* Bottom CTA */}
       <section style={{ marginTop: 18, display: "flex", justifyContent: "flex-end" }}>
         <Link href={`/student/lesson/${lessonId}`} style={startBtn}>
           START OPPGAVE
