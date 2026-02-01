@@ -13,12 +13,20 @@ import {
 } from "firebase/auth";
 
 /**
+ * Forhindrer at flere komponenter samtidig prøver å signInAnonymously(),
+ * som kan gi rare race conditions / ekstra console-støy.
+ */
+let ensureAnonPromise: Promise<User> | null = null;
+
+/**
  * Sikrer at vi alltid har en bruker i session:
  * - hvis innlogget (anon eller vanlig) -> returner user
  * - hvis ikke -> opprett anonym user
  */
 export function ensureAnonymousUser(): Promise<User> {
-  return new Promise((resolve, reject) => {
+  if (ensureAnonPromise) return ensureAnonPromise;
+
+  ensureAnonPromise = new Promise((resolve, reject) => {
     const unsub = onAuthStateChanged(
       auth,
       async (user) => {
@@ -34,14 +42,20 @@ export function ensureAnonymousUser(): Promise<User> {
         } catch (e) {
           unsub();
           reject(e);
+        } finally {
+          // viktig: nullstill slik at neste call kan prøve igjen ved behov
+          ensureAnonPromise = null;
         }
       },
       (err) => {
         unsub();
+        ensureAnonPromise = null;
         reject(err);
       }
     );
   });
+
+  return ensureAnonPromise;
 }
 
 export function isAnonymous(user: User | null | undefined) {
@@ -84,7 +98,10 @@ export async function linkAnonymousWithGoogle(): Promise<User> {
  * - Hvis email allerede finnes som konto, kan vi ikke "linke" anonym til den uten innlogging først.
  *   Da må brukeren logge inn på den kontoen, og evt. merge data (senere).
  */
-export async function linkAnonymousWithEmailPassword(email: string, password: string): Promise<User> {
+export async function linkAnonymousWithEmailPassword(
+  email: string,
+  password: string
+): Promise<User> {
   const current = auth.currentUser;
 
   // hvis ikke innlogget: normal create user

@@ -27,59 +27,59 @@ service cloud.firestore {
     ============================ */
     match /users/{uid} {
 
-  function isSelf() {
-    return signedIn() && myUid() == uid;
-  }
+      function isSelf() {
+        return signedIn() && myUid() == uid;
+      }
 
-  // changedKeys() kan kun brukes på update (resource finnes).
-  function changedKeys() {
-    return request.resource.data.diff(resource.data).changedKeys();
-  }
+      // changedKeys() kan kun brukes på update (resource finnes).
+      function changedKeys() {
+        return request.resource.data.diff(resource.data).changedKeys();
+      }
 
-  function isChanging(field) {
-    return changedKeys().hasAny([field]);
-  }
+      function isChanging(field) {
+        return changedKeys().hasAny([field]);
+      }
 
-  // Self-update: ikke tillat endring av roles
-  function rolesNotChangedBySelf() {
-    return !isChanging("roles");
-  }
+      // Self-update: ikke tillat endring av roles
+      function rolesNotChangedBySelf() {
+        return !isChanging("roles");
+      }
 
-  // Self-update: teacherStatus OK hvis:
-  // - teacherStatus ikke endres
-  // - ELLER settes til "pending" fra "none" eller "rejected"
-  function teacherStatusSelfOk() {
-    return
-      !isChanging("teacherStatus")
-      || (
-        request.resource.data.teacherStatus == "pending"
-        && (resource.data.teacherStatus == "none" || resource.data.teacherStatus == "rejected")
-      );
-  }
+      // Self-update: teacherStatus OK hvis:
+      // - teacherStatus ikke endres
+      // - ELLER settes til "pending" fra "none" eller "rejected"
+      function teacherStatusSelfOk() {
+        return
+          !isChanging("teacherStatus")
+          || (
+            request.resource.data.teacherStatus == "pending"
+            && (resource.data.teacherStatus == "none" || resource.data.teacherStatus == "rejected")
+          );
+      }
 
-  // Create: ny bruker kan lage sin doc.
-  // Hvis roles finnes ved create, tillat kun student=true (ikke admin/teacher/parent)
-  allow create: if isSelf()
-    && (
-      !request.resource.data.keys().hasAny(["roles"])
-      || (
-        request.resource.data.roles.student == true
-        && request.resource.data.roles.admin != true
-        && request.resource.data.roles.teacher != true
-        && request.resource.data.roles.parent != true
-      )
-    );
+      // Create: ny bruker kan lage sin doc.
+      // Hvis roles finnes ved create, tillat kun student=true (ikke admin/teacher/parent)
+      allow create: if isSelf()
+        && (
+          !request.resource.data.keys().hasAny(["roles"])
+          || (
+            request.resource.data.roles.student == true
+            && request.resource.data.roles.admin != true
+            && request.resource.data.roles.teacher != true
+            && request.resource.data.roles.parent != true
+          )
+        );
 
-  // Read: self + admin
-  allow read: if isSelf() || isAdmin();
+      // Read: self + admin
+      allow read: if isSelf() || isAdmin();
 
-  // Update: self kan oppdatere alt unntatt roles, og teacherStatus iht regel.
-  // admin kan oppdatere alt.
-  allow update: if isAdmin()
-    || (isSelf() && rolesNotChangedBySelf() && teacherStatusSelfOk());
+      // Update: self kan oppdatere alt unntatt roles, og teacherStatus iht regel.
+      // admin kan oppdatere alt.
+      allow update: if isAdmin()
+        || (isSelf() && rolesNotChangedBySelf() && teacherStatusSelfOk());
 
-  allow delete: if false;
-}
+      allow delete: if false;
+    }
 
     /* ============================
        LESSONS (draft)
@@ -103,7 +103,15 @@ service cloud.firestore {
        /published_lessons/{id}
     ============================ */
     match /published_lessons/{id} {
-      allow read: if resource.data.isActive == true || isAdmin();
+
+      // ✅ Legacy-safe: hvis isActive mangler, behandle som "true"
+      function isActiveOrMissing() {
+        return !resource.data.keys().hasAny(["isActive"]) || resource.data.isActive == true;
+      }
+
+      // Alle kan lese aktive (eller legacy uten felt). Admin kan alltid lese.
+      allow read: if isActiveOrMissing() || isAdmin();
+
       allow write: if false;
     }
 

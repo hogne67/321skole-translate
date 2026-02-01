@@ -6,7 +6,7 @@ import AuthGate from "@/components/AuthGate";
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AuthGate requireRole="student">
+    <AuthGate allowAnonymous>
       <SectionShell
         title="Student"
         subtitle=""

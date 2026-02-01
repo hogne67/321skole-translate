@@ -59,7 +59,16 @@ export function useUserProfile() {
       setUser(u);
       setProfile(null);
 
+      // ✅ Ikke innlogget -> ferdig
       if (!u) {
+        setLoading(false);
+        return;
+      }
+
+      // ✅ ANON: ikke prøv å ensure/read users/{uid}
+      // Share/public-sider kan bruke anonymous auth for å få en user,
+      // men de skal ikke kreve tilgang til /users.
+      if (u.isAnonymous) {
         setLoading(false);
         return;
       }

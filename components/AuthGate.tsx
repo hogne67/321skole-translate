@@ -1,7 +1,7 @@
 // components/AuthGate.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
@@ -12,83 +12,86 @@ export default function AuthGate({
   children,
   requireRole,
   requireApprovedTeacher,
+  allowAnonymous = false,
 }: {
   children: React.ReactNode;
   requireRole?: Role;
   requireApprovedTeacher?: boolean;
+  allowAnonymous?: boolean;
 }) {
   const { user, profile, loading } = useUserProfile();
   const router = useRouter();
-  const pathname = usePathname() || "/";
+  const pathname = usePathname();
 
-  // ✅ Public/QR-sider som skal fungere uten manuell innlogging
-  const allowAnon = pathname.startsWith("/lesson");
+  const [anonBooting, setAnonBooting] = useState(false);
+
+  const nextUrl = useMemo(() => {
+    return `/login?next=${encodeURIComponent(pathname || "/")}`;
+  }, [pathname]);
+
+  // Når vi får en user (anon eller ekte), stopp booting
+  useEffect(() => {
+    if (user) setAnonBooting(false);
+  }, [user]);
 
   useEffect(() => {
     if (loading) return;
 
-    // ✅ Whitelist: aldri redirect vekk fra onboarding
-    if (pathname.startsWith("/onboarding")) return;
-
-    // Ikke innlogget
+    // Ikke innlogget:
     if (!user) {
-      // ✅ På public/QR-sider: lag anon-bruker automatisk
-      if (allowAnon) {
-        ensureAnonymousUser().catch(console.error);
+      if (allowAnonymous) {
+        // Start anon-login én gang per "tom session"
+        if (!anonBooting) {
+          setAnonBooting(true);
+          ensureAnonymousUser().catch((e) => {
+            console.error("ensureAnonymousUser failed", e);
+            setAnonBooting(false);
+            // fallback: send til login
+            router.replace(nextUrl);
+          });
+        }
         return;
       }
 
-      // ellers -> login
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(nextUrl);
       return;
     }
 
-    // Profil ikke klar -> vent
-    if (!profile) return;
-
-    // ✅ På public/QR-sider: ikke tving onboarding
-    if (!allowAnon && profile.onboardingComplete !== true) {
-      router.replace(`/onboarding?next=${encodeURIComponent(pathname)}`);
-      return;
+    // Teacher approval sjekk (ikke relevant for anon, men ufarlig)
+    if (requireApprovedTeacher) {
+      const isApproved = profile?.teacherStatus === "approved";
+      if (!isApproved) {
+        router.replace("/unauthorized");
+        return;
+      }
     }
 
-    // Rollekrav
-    if (requireRole && !profile?.roles?.[requireRole]) {
-      router.replace("/unauthorized");
-      return;
-    }
-
-    // Teacher approval
-    if (requireApprovedTeacher && profile?.teacherStatus !== "approved") {
-      router.replace("/unauthorized");
-      return;
+    // Rollekrav:
+    // OBS: anon har normalt ikke profile/roles -> vil feile
+    if (requireRole) {
+      const hasRole = !!profile?.roles?.[requireRole];
+      if (!hasRole) {
+        router.replace("/unauthorized");
+        return;
+      }
     }
   }, [
+    allowAnonymous,
+    anonBooting,
     loading,
     user,
     profile,
-    router,
-    pathname,
-    requireRole,
     requireApprovedTeacher,
-    allowAnon,
+    requireRole,
+    router,
+    nextUrl,
   ]);
 
-  // UI states
-  if (loading) return <p style={{ padding: 16 }}>Loading…</p>;
+  // Hvis useUserProfile fortsatt laster
+  if (loading) return null;
 
-  // Hvis vi er på public/QR-side og ikke har user enda, viser vi “lager anon…”
-  if (!user && allowAnon) return <p style={{ padding: 16 }}>Starter…</p>;
-
-  if (!user) return <p style={{ padding: 16 }}>Redirecting to login…</p>;
-
-  // Viktig: ikke vis children før profile er klart.
-  // Men på public/QR-sider trenger vi ikke vente på onboarding.
-  if (!pathname.startsWith("/onboarding")) {
-    if (!profile) return <p style={{ padding: 16 }}>Loading profile…</p>;
-    if (!allowAnon && profile.onboardingComplete !== true)
-      return <p style={{ padding: 16 }}>Redirecting to onboarding…</p>;
-  }
+  // Hvis vi forsøker anon-login, vis ingenting (evt. putt inn en liten loader senere)
+  if (allowAnonymous && (!user || anonBooting)) return null;
 
   return <>{children}</>;
 }

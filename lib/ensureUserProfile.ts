@@ -6,26 +6,22 @@ import { ensureUserProfile as ensureUserProfileFromUser } from "@/lib/userProfil
  * Legacy wrapper.
  * Bruk heller ensureUserProfile(user) fra "@/lib/userProfile" direkte.
  *
- * Merk: Hvis du sender inn kun UID (string), kan vi ikke sette email/displayName.
- * Da kaller vi likevel ensureUserProfile(...) for å backfylle defaults (roles/caps/teacherStatus/etc).
+ * VIKTIG:
+ * - UID-only (string) kan ikke "ensure" trygt i klienten uten autentisering.
+ *   Derfor gjør vi NO-OP når vi bare har uid.
+ * - Anonyme brukere skal ikke forsøke å ensure/read /users, ellers kan public/share henge.
  */
 export async function ensureUserProfile(userOrUid: User | string) {
+  // ✅ UID-only -> NO-OP (kan ikke sikre profil uten auth)
   if (typeof userOrUid === "string") {
-    // UID-only "best effort": sørg for at userProfile-funksjonen får et objekt
-    // som i praksis har de feltene den typisk trenger (uid, email, displayName).
-    // Firebase User.email/displayName er ofte null, så null er tryggere enn undefined.
-    const fakeUser = {
-      uid: userOrUid,
-      email: null,
-      displayName: null,
-      // resten settes til tomme/ufarlige defaults for å unngå utilsiktet tilgang
-      isAnonymous: true,
-      providerData: [],
-    } as unknown as User;
-
-    await ensureUserProfileFromUser(fakeUser);
     return;
   }
 
+  // ✅ Anonym -> NO-OP (public/share skal ikke kreve /users)
+  if (userOrUid.isAnonymous) {
+    return;
+  }
+
+  // ✅ Vanlig innlogget bruker
   await ensureUserProfileFromUser(userOrUid);
 }

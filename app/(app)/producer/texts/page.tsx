@@ -42,7 +42,6 @@ type LessonRow = {
 
   activePublishedId?: string | null;
 
-  // optional publish meta (if you store it on the draft)
   publish?: {
     state?: string; // pending/published/rejected...
     visibility?: "public" | "unlisted" | "private";
@@ -82,14 +81,11 @@ function pickVisibility(v: any): "public" | "unlisted" | "private" {
   return v === "unlisted" || v === "private" || v === "public" ? v : "public";
 }
 
-/** --- API helpers (server writes published_lessons) ---
- *  IMPORTANT: diagnostics for Vercel — do not hide errors.
- */
+/** Server API helper (published_lessons writes happen on server) */
 async function authedPost(url: string, body: any) {
   const user = getAuth().currentUser;
   if (!user) throw new Error("Not signed in");
 
-  // Avoid forcing refresh every time (can cause extra calls / timing issues)
   const token = await user.getIdToken();
 
   const res = await fetch(url, {
@@ -101,16 +97,14 @@ async function authedPost(url: string, body: any) {
     body: JSON.stringify(body),
   });
 
+  // robust: tolerate non-JSON error pages
   const raw = await res.text();
   let data: any = {};
   try {
     data = raw ? JSON.parse(raw) : {};
   } catch {
-    // raw is not JSON (may be plain text or HTML error)
+    data = {};
   }
-
-  // ✅ Gold in production debugging (Vercel)
-  console.log("API", url, "->", res.status, raw);
 
   if (!res.ok) {
     throw new Error(data?.error || raw || `Request failed (${res.status})`);
@@ -127,7 +121,6 @@ export default function ProducerTextsPage() {
 
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
-
   const [busyById, setBusyById] = useState<Record<string, boolean>>({});
 
   // Share modal state
@@ -144,7 +137,7 @@ export default function ProducerTextsPage() {
   async function requireUser() {
     const u = getAuth().currentUser;
     if (!u) throw new Error("Not signed in");
-    setUid(u.uid);
+    setUid((prev) => prev ?? u.uid);
     return u.uid;
   }
 
@@ -162,11 +155,7 @@ export default function ProducerTextsPage() {
       );
 
       const snap = await getDocs(qy);
-
-      const data = snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as any),
-      })) as LessonRow[];
+      const data = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as LessonRow[];
 
       setItems(data);
     } catch (e: any) {
@@ -180,7 +169,7 @@ export default function ProducerTextsPage() {
     setErr(null);
     setBusy(lessonId, true);
 
-    // Safer optimistic UI: do not invent publishedId
+    // optimistic UI (list only)
     setItems((prev) =>
       prev.map((l) =>
         l.id === lessonId
@@ -197,7 +186,6 @@ export default function ProducerTextsPage() {
     try {
       await requireUser();
 
-      // ensure draft exists & not deleted
       const lessonRef = doc(db, "lessons", lessonId);
       const lessonSnap = await getDoc(lessonRef);
       if (!lessonSnap.exists()) throw new Error("Lesson not found");
@@ -206,33 +194,21 @@ export default function ProducerTextsPage() {
       if (data?.deletedAt) throw new Error("This lesson is deleted/archived and cannot be published.");
 
       if (nextPublished) {
-        // ✅ Correct visibility (NOT publish.state)
         const vis = pickVisibility(data?.publish?.visibility);
 
-        // ✅ publish via server (writes published_lessons)
-        const resp = await authedPost("/api/publish", {
-          id: lessonId,
-          visibility: vis,
-        });
+        const resp = await authedPost("/api/publish", { id: lessonId, visibility: vis });
 
-        // ✅ robust published id extraction
         const publishedId =
-          resp?.publishedId ||
-          resp?.publishedLessonId ||
-          resp?.id ||
-          lessonId;
+          resp?.publishedId || resp?.publishedLessonId || resp?.id || lessonId;
 
-        // mark draft as published
         await updateDoc(lessonRef, {
           status: "published",
           activePublishedId: publishedId,
           updatedAt: serverTimestamp(),
         });
       } else {
-        // ✅ unpublish needs published snapshot id, not draft id
         const publishedId = data?.activePublishedId || lessonId;
 
-        // server: sets isActive=false on published doc
         await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
 
         await updateDoc(lessonRef, {
@@ -244,7 +220,6 @@ export default function ProducerTextsPage() {
 
       await load();
     } catch (e: any) {
-      console.error("setPublished failed:", e);
       setErr(e?.message ?? "Failed to update publish status");
       await load();
     } finally {
@@ -276,8 +251,8 @@ export default function ProducerTextsPage() {
         const row = before.find((x) => x.id === lessonId);
         const publishedId = row?.activePublishedId || lessonId;
         await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
-      } catch (e) {
-        console.warn("best-effort unpublish failed:", e);
+      } catch {
+        // ignore
       }
 
       await updateDoc(doc(db, "lessons", lessonId), {
@@ -289,7 +264,6 @@ export default function ProducerTextsPage() {
 
       await load();
     } catch (e: any) {
-      console.error("deleteLesson failed:", e);
       setItems(before);
       setErr(e?.message ?? "Failed to delete (archive) lesson");
     } finally {
@@ -304,12 +278,7 @@ export default function ProducerTextsPage() {
     setShareLesson(l);
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-
-    // share the published snapshot id if we have it
     const pid = l.activePublishedId || l.id;
-
-    // NOTE: you currently use /lesson/[id] in this page.
-    // Make sure your public lesson route matches this.
     const url = `${origin}/lesson/${pid}`;
 
     setShareUrl(url);
@@ -460,14 +429,7 @@ export default function ProducerTextsPage() {
       {loading ? (
         <p style={{ marginTop: 16 }}>Loading…</p>
       ) : err ? (
-        <div
-          style={{
-            marginTop: 16,
-            border: "1px solid #f3b4b4",
-            borderRadius: 12,
-            padding: 12,
-          }}
-        >
+        <div style={{ marginTop: 16, border: "1px solid #f3b4b4", borderRadius: 12, padding: 12 }}>
           <div style={{ fontWeight: 800 }}>Error</div>
           <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{err}</pre>
         </div>
