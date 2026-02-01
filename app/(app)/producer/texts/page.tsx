@@ -41,6 +41,12 @@ type LessonRow = {
   imageUrl?: string;
 
   activePublishedId?: string | null;
+
+  // optional publish meta (if you store it on the draft)
+  publish?: {
+    state?: string; // pending/published/rejected...
+    visibility?: "public" | "unlisted" | "private";
+  };
 };
 
 function formatMaybeDate(v: any) {
@@ -72,11 +78,19 @@ function coerceTextType(d: any): string {
   return "";
 }
 
-/** --- API helpers (server writes published_lessons) --- */
+function pickVisibility(v: any): "public" | "unlisted" | "private" {
+  return v === "unlisted" || v === "private" || v === "public" ? v : "public";
+}
+
+/** --- API helpers (server writes published_lessons) ---
+ *  IMPORTANT: diagnostics for Vercel — do not hide errors.
+ */
 async function authedPost(url: string, body: any) {
   const user = getAuth().currentUser;
   if (!user) throw new Error("Not signed in");
-  const token = await user.getIdToken(true);
+
+  // Avoid forcing refresh every time (can cause extra calls / timing issues)
+  const token = await user.getIdToken();
 
   const res = await fetch(url, {
     method: "POST",
@@ -87,8 +101,21 @@ async function authedPost(url: string, body: any) {
     body: JSON.stringify(body),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  const raw = await res.text();
+  let data: any = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    // raw is not JSON (may be plain text or HTML error)
+  }
+
+  // ✅ Gold in production debugging (Vercel)
+  console.log("API", url, "->", res.status, raw);
+
+  if (!res.ok) {
+    throw new Error(data?.error || raw || `Request failed (${res.status})`);
+  }
+
   return data;
 }
 
@@ -153,14 +180,14 @@ export default function ProducerTextsPage() {
     setErr(null);
     setBusy(lessonId, true);
 
-    // optimistic UI (list only)
+    // Safer optimistic UI: do not invent publishedId
     setItems((prev) =>
       prev.map((l) =>
         l.id === lessonId
           ? {
               ...l,
               status: nextPublished ? "published" : "draft",
-              activePublishedId: nextPublished ? (l.activePublishedId || lessonId) : null,
+              activePublishedId: nextPublished ? l.activePublishedId ?? null : null,
               updatedAt: new Date(),
             }
           : l
@@ -174,18 +201,26 @@ export default function ProducerTextsPage() {
       const lessonRef = doc(db, "lessons", lessonId);
       const lessonSnap = await getDoc(lessonRef);
       if (!lessonSnap.exists()) throw new Error("Lesson not found");
+
       const data: any = lessonSnap.data();
       if (data?.deletedAt) throw new Error("This lesson is deleted/archived and cannot be published.");
 
       if (nextPublished) {
+        // ✅ Correct visibility (NOT publish.state)
+        const vis = pickVisibility(data?.publish?.visibility);
+
         // ✅ publish via server (writes published_lessons)
         const resp = await authedPost("/api/publish", {
           id: lessonId,
-          visibility: data?.publish?.state === "unlisted" ? "unlisted" : "public",
+          visibility: vis,
         });
 
-        // ✅ IMPORTANT: store the actual published id (if API returns it)
-        const publishedId = resp?.publishedId || resp?.id || lessonId;
+        // ✅ robust published id extraction
+        const publishedId =
+          resp?.publishedId ||
+          resp?.publishedLessonId ||
+          resp?.id ||
+          lessonId;
 
         // mark draft as published
         await updateDoc(lessonRef, {
@@ -194,7 +229,7 @@ export default function ProducerTextsPage() {
           updatedAt: serverTimestamp(),
         });
       } else {
-        // ✅ IMPORTANT: unpublish the published snapshot id (not the draft id)
+        // ✅ unpublish needs published snapshot id, not draft id
         const publishedId = data?.activePublishedId || lessonId;
 
         // server: sets isActive=false on published doc
@@ -238,11 +273,12 @@ export default function ProducerTextsPage() {
 
       // best-effort unpublish via server (ignore failure)
       try {
-        // Try to use activePublishedId if present (best effort)
         const row = before.find((x) => x.id === lessonId);
         const publishedId = row?.activePublishedId || lessonId;
         await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
-      } catch {}
+      } catch (e) {
+        console.warn("best-effort unpublish failed:", e);
+      }
 
       await updateDoc(doc(db, "lessons", lessonId), {
         status: "draft",
@@ -269,8 +305,11 @@ export default function ProducerTextsPage() {
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-    // ✅ IMPORTANT: share the published snapshot id if we have it
+    // share the published snapshot id if we have it
     const pid = l.activePublishedId || l.id;
+
+    // NOTE: you currently use /lesson/[id] in this page.
+    // Make sure your public lesson route matches this.
     const url = `${origin}/lesson/${pid}`;
 
     setShareUrl(url);
