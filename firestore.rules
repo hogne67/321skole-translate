@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /* ============================
-       Helpers
+       Helpers (null-safe)
     ============================ */
     function signedIn() {
       return request.auth != null;
@@ -13,12 +13,51 @@ service cloud.firestore {
       return request.auth.uid;
     }
 
-    // NB: isAdmin() leser users/{myUid}. Det er OK, men må ikke brukes på en måte
-    // som blokkerer onboarding for nye brukere. Vi holder den enkel.
-    function isAdmin() {
+    // Firebase anonymous auth?
+    function isAnonAuth() {
       return signedIn()
-        && exists(/databases/$(database)/documents/users/$(myUid()))
-        && get(/databases/$(database)/documents/users/$(myUid())).data.roles.admin == true;
+        && ("firebase" in request.auth.token)
+        && ("sign_in_provider" in request.auth.token.firebase)
+        && request.auth.token.firebase.sign_in_provider == "anonymous";
+    }
+
+    // --- Null-safe user lookup ---
+    function myUserPath() {
+      return /databases/$(database)/documents/users/$(myUid());
+    }
+
+    function myUserExists() {
+      return signedIn() && exists(myUserPath());
+    }
+
+    // Returnerer {} hvis user-doc ikke finnes (så rules ikke krasjer)
+    function myUser() {
+      return myUserExists() ? get(myUserPath()).data : {};
+    }
+
+    // ---- Safe helpers for maps/keys ----
+    function isMap(x) {
+      return x is map;
+    }
+
+    // true bare hvis m er map, key finnes, og verdien er true
+    function mapHasTrue(m, key) {
+      return isMap(m) && (key in m) && m[key] == true;
+    }
+
+    function hasRole(roleName) {
+      return mapHasTrue(myUser().roles, roleName);
+    }
+
+    function isAdmin() {
+      return signedIn() && hasRole("admin");
+    }
+
+    function isApprovedTeacher() {
+      return signedIn()
+        && hasRole("teacher")
+        && ("teacherStatus" in myUser())
+        && myUser().teacherStatus == "approved";
     }
 
     /* ============================
@@ -31,7 +70,7 @@ service cloud.firestore {
         return signedIn() && myUid() == uid;
       }
 
-      // changedKeys() kan kun brukes på update (resource finnes).
+      // changedKeys() kan bare brukes på update (resource finnes da)
       function changedKeys() {
         return request.resource.data.diff(resource.data).changedKeys();
       }
@@ -45,36 +84,29 @@ service cloud.firestore {
         return !isChanging("roles");
       }
 
+      // Null-safe: hent eksisterende teacherStatus (default "none" hvis mangler)
+      function currentTeacherStatus() {
+        return ("teacherStatus" in resource.data) ? resource.data.teacherStatus : "none";
+      }
+
       // Self-update: teacherStatus OK hvis:
       // - teacherStatus ikke endres
       // - ELLER settes til "pending" fra "none" eller "rejected"
       function teacherStatusSelfOk() {
-        return
-          !isChanging("teacherStatus")
+        return !isChanging("teacherStatus")
           || (
             request.resource.data.teacherStatus == "pending"
-            && (resource.data.teacherStatus == "none" || resource.data.teacherStatus == "rejected")
+            && (currentTeacherStatus() == "none" || currentTeacherStatus() == "rejected")
           );
       }
 
-      // Create: ny bruker kan lage sin doc.
-      // Hvis roles finnes ved create, tillat kun student=true (ikke admin/teacher/parent)
-      allow create: if isSelf()
-        && (
-          !request.resource.data.keys().hasAny(["roles"])
-          || (
-            request.resource.data.roles.student == true
-            && request.resource.data.roles.admin != true
-            && request.resource.data.roles.teacher != true
-            && request.resource.data.roles.parent != true
-          )
-        );
+      // Create: ny bruker kan lage sin doc
+      allow create: if isSelf();
 
       // Read: self + admin
       allow read: if isSelf() || isAdmin();
 
-      // Update: self kan oppdatere alt unntatt roles, og teacherStatus iht regel.
-      // admin kan oppdatere alt.
+      // Update: admin kan alt. Self kan oppdatere alt unntatt roles, og teacherStatus iht regel.
       allow update: if isAdmin()
         || (isSelf() && rolesNotChangedBySelf() && teacherStatusSelfOk());
 
@@ -86,13 +118,12 @@ service cloud.firestore {
        /lessons/{lessonId}
     ============================ */
     match /lessons/{lessonId} {
-      // Viktig med parenteser (operator precedence)
-      allow read: if (signedIn() && resource.data.ownerId == myUid()) || isAdmin();
+      allow read: if (signedIn() && resource != null && resource.data.ownerId == myUid()) || isAdmin();
 
       allow create: if signedIn()
         && request.resource.data.ownerId == myUid();
 
-      allow update: if (signedIn() && resource.data.ownerId == myUid()) || isAdmin();
+      allow update: if (signedIn() && resource != null && resource.data.ownerId == myUid()) || isAdmin();
 
       allow delete: if isAdmin();
     }
@@ -102,58 +133,153 @@ service cloud.firestore {
        /published_lessons/{id}
     ============================ */
     match /published_lessons/{id} {
-      // Alle (inkl. anon) kan lese aktive publiserte lessons
-      allow read: if resource.data.isActive == true || isAdmin();
+      allow read: if (resource != null && resource.data.isActive == true) || isAdmin();
       allow write: if false;
+    }
+
+    /* ============================
+       SPACES (Teacher Space)
+       /spaces/{spaceId}
+    ============================ */
+    match /spaces/{spaceId} {
+
+      // Public read (metadata)
+      allow read: if true;
+
+      // Create: kun godkjent teacher, ownerId må være egen uid
+      allow create: if isApprovedTeacher()
+        && request.resource.data.ownerId == myUid()
+        && request.resource.data.title is string
+        && request.resource.data.code is string
+        && request.resource.data.isOpen is bool;
+
+      // Update/delete: bare eier eller admin
+      allow update, delete: if isAdmin()
+        || (signedIn() && resource != null && resource.data.ownerId == myUid());
+
+      // (Valgfritt) space-level lessons docs:
+      match /lessons/{lessonId} {
+        allow read: if true;
+
+        allow create, update, delete: if isAdmin()
+          || (
+            signedIn()
+            && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == myUid()
+          );
+      }
+
+      // Submissions under space+lesson
+      match /lessons/{lessonId}/submissions/{subId} {
+
+  // ✅ Stabil path helper
+  function spacePath() {
+    return /databases/$(database)/documents/spaces/$(spaceId);
+  }
+
+  // ✅ Stabilt: exists() + get() (ikke .exists() på get-resultat)
+  function spaceIsOpen() {
+    return exists(spacePath()) && get(spacePath()).data.isOpen == true;
+  }
+
+  function isSpaceOwner() {
+    return signedIn()
+      && exists(spacePath())
+      && get(spacePath()).data.ownerId == myUid();
+  }
+
+
+        // ✅ Modell A (bombesikker):
+        // - HELT uinnlogget gjest: krever bare auth.isAnon == true
+        // - Firebase anonymous auth: krever isAnon==true + uid==myUid()
+        // - Vanlig innlogget: krever isAnon==false + uid==myUid()
+        function validAuthOnCreate() {
+          return (
+            // 1) HELT uinnlogget gjest (request.auth == null)
+            (!signedIn()
+              && request.resource.data.auth is map
+              && request.resource.data.auth.isAnon == true
+            )
+            ||
+            // 2) Firebase anonymous auth (signInAnonymously)
+            (isAnonAuth()
+              && request.resource.data.auth is map
+              && request.resource.data.auth.isAnon == true
+              && request.resource.data.auth.uid == myUid()
+            )
+            ||
+            // 3) Vanlig innlogget bruker
+            (!isAnonAuth()
+              && signedIn()
+              && request.resource.data.auth is map
+              && request.resource.data.auth.isAnon == false
+              && request.resource.data.auth.uid == myUid()
+            )
+          );
+        }
+
+        allow create: if spaceIsOpen()
+          && request.resource.data.spaceId == spaceId
+          && request.resource.data.lessonId == lessonId
+          && request.resource.data.status == "new"
+          && !("teacherFeedback" in request.resource.data)
+          && request.resource.data.auth is map
+          && validAuthOnCreate();
+
+        allow read: if isAdmin() || isSpaceOwner() || isOwnSubmission();
+
+        // Update: bare lærer/admin, og de får kun endre feedback/status
+        allow update: if isAdmin()
+          || (
+            isSpaceOwner()
+            && resource != null
+            && request.resource.data.spaceId == resource.data.spaceId
+            && request.resource.data.lessonId == resource.data.lessonId
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.answers == resource.data.answers
+            && request.resource.data.auth == resource.data.auth
+          );
+
+        allow delete: if false;
+      }
     }
 
     /* ============================
        SUBMISSIONS
        /submissions/{id}
+       (brukes for “student submissions” uten space)
     ============================ */
-    /* ============================
-   SUBMISSIONS
-   /submissions/{id}
-============================ */
-match /submissions/{id} {
+    match /submissions/{id} {
 
-  // doc-id-format: "{uid}_{lessonId}"
-  function isOwnSubmissionId() {
-    return signedIn() && id.matches('^' + myUid() + '_');
-  }
+      function isOwnSubmissionId() {
+        return signedIn() && id.matches('^' + myUid() + '_');
+      }
 
-  function isOwnerDoc() {
-    return signedIn() && resource != null && resource.data.uid == myUid();
-  }
+      function isOwnerDoc() {
+        return signedIn() && resource != null && resource.data.uid == myUid();
+      }
 
-  // Create: må eie uid-feltet
-  allow create: if signedIn()
-    && request.resource.data.uid == myUid();
+      allow create: if signedIn()
+        && request.resource.data.uid == myUid();
 
-  // Read:
-  // - Hvis doc finnes: resource.data.uid må matche
-  // - Hvis doc ikke finnes: tillat get når id matcher "{uid}_..."
-  allow read: if isAdmin()
-    || (
-      signedIn()
-      && (
-        (resource != null && resource.data.uid == myUid())
-        || (resource == null && isOwnSubmissionId())
-      )
-    );
+      // read: admin eller eier
+      allow read: if isAdmin()
+        || (
+          signedIn()
+          && (
+            (resource != null && resource.data.uid == myUid())
+            || (resource == null && isOwnSubmissionId())
+          )
+        );
 
-  // Update: eier kan oppdatere sin submission,
-  // men kan ikke endre uid eller publishedLessonId etter at doc finnes.
-  allow update: if isAdmin()
-    || (
-      isOwnerDoc()
-      && request.resource.data.uid == resource.data.uid
-      && request.resource.data.publishedLessonId == resource.data.publishedLessonId
-    );
+      allow update: if isAdmin()
+        || (
+          isOwnerDoc()
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.publishedLessonId == resource.data.publishedLessonId
+        );
 
-  allow delete: if false;
-}
-
+      allow delete: if false;
+    }
 
     /* ============================
        DEFAULT DENY
