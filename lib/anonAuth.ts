@@ -1,7 +1,6 @@
 // lib/anonAuth.ts
 import { auth } from "@/lib/firebase";
 import {
-  onAuthStateChanged,
   signInAnonymously,
   type User,
   GoogleAuthProvider,
@@ -14,7 +13,7 @@ import {
 
 /**
  * Forhindrer at flere komponenter samtidig prøver å signInAnonymously(),
- * som kan gi rare race conditions / ekstra console-støy.
+ * som kan gi race conditions / ekstra console-støy.
  */
 let ensureAnonPromise: Promise<User> | null = null;
 
@@ -22,38 +21,26 @@ let ensureAnonPromise: Promise<User> | null = null;
  * Sikrer at vi alltid har en bruker i session:
  * - hvis innlogget (anon eller vanlig) -> returner user
  * - hvis ikke -> opprett anonym user
+ *
+ * VIKTIG:
+ * Denne funksjonen skal bare kalles på sider som tillater anon (student/public/share).
+ * Ikke kall den i teacher/admin-sider.
  */
-export function ensureAnonymousUser(): Promise<User> {
+export async function ensureAnonymousUser(): Promise<User> {
+  // ✅ Hvis vi allerede har en user (anon eller ekte), bruk den
+  if (auth.currentUser) return auth.currentUser;
+
+  // ✅ Dedup parallelle kall
   if (ensureAnonPromise) return ensureAnonPromise;
 
-  ensureAnonPromise = new Promise((resolve, reject) => {
-    const unsub = onAuthStateChanged(
-      auth,
-      async (user) => {
-        try {
-          if (user) {
-            unsub();
-            resolve(user);
-            return;
-          }
-          const cred = await signInAnonymously(auth);
-          unsub();
-          resolve(cred.user);
-        } catch (e) {
-          unsub();
-          reject(e);
-        } finally {
-          // viktig: nullstill slik at neste call kan prøve igjen ved behov
-          ensureAnonPromise = null;
-        }
-      },
-      (err) => {
-        unsub();
-        ensureAnonPromise = null;
-        reject(err);
-      }
-    );
-  });
+  ensureAnonPromise = (async () => {
+    try {
+      const cred = await signInAnonymously(auth);
+      return cred.user;
+    } finally {
+      ensureAnonPromise = null;
+    }
+  })();
 
   return ensureAnonPromise;
 }

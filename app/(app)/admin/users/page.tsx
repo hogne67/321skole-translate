@@ -14,13 +14,32 @@ import {
 import { db } from "@/lib/firebase";
 import AuthGate from "@/components/AuthGate";
 
+type Status = "none" | "pending" | "approved" | "rejected";
+
 type UserRow = {
   id: string;
   email?: string | null;
   displayName?: string | null;
-  teacherStatus?: "none" | "pending" | "approved" | "rejected";
-  roles?: { teacher?: boolean; admin?: boolean; student?: boolean; parent?: boolean };
-  caps?: { publish?: boolean; sell?: boolean; pdf?: boolean; tts?: boolean; vocab?: boolean };
+
+  teacherStatus?: Status;
+  creatorStatus?: Status;
+
+  roles?: {
+    teacher?: boolean;
+    creator?: boolean;
+    admin?: boolean;
+    student?: boolean;
+    parent?: boolean;
+  };
+
+  caps?: {
+    publish?: boolean;
+    sell?: boolean;
+    pdf?: boolean;
+    tts?: boolean;
+    vocab?: boolean;
+  };
+
   updatedAt?: any;
 };
 
@@ -36,7 +55,9 @@ function UsersInner() {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [onlyPending, setOnlyPending] = useState(true);
+
+  const [onlyPendingTeacher, setOnlyPendingTeacher] = useState(true);
+  const [onlyPendingCreator, setOnlyPendingCreator] = useState(false);
 
   async function load() {
     setErr(null);
@@ -53,38 +74,61 @@ function UsersInner() {
     }
   }
 
-  // ✅ Autoload
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pending = useMemo(
+  const pendingTeachers = useMemo(
     () => rows.filter((u) => u.teacherStatus === "pending"),
     [rows]
   );
 
-  const others = useMemo(() => {
-    const list = rows.filter((u) => u.teacherStatus !== "pending");
-    // sort: approved før none/rejected
-    const score = (u: UserRow) =>
-      u.teacherStatus === "approved" ? 0 : u.teacherStatus === "rejected" ? 2 : 1;
-    return list.slice().sort((a, b) => score(a) - score(b));
-  }, [rows]);
+  const pendingCreators = useMemo(
+    () => rows.filter((u) => u.creatorStatus === "pending"),
+    [rows]
+  );
 
   const visible = useMemo(() => {
-    if (!onlyPending) return [...pending, ...others];
-    return pending;
-  }, [onlyPending, pending, others]);
+    // Filtrering:
+    if (onlyPendingTeacher && !onlyPendingCreator) return pendingTeachers;
+    if (!onlyPendingTeacher && onlyPendingCreator) return pendingCreators;
 
-  async function approve(u: UserRow) {
+    if (onlyPendingTeacher && onlyPendingCreator) {
+      // slå sammen (unik per id)
+      const map = new Map<string, UserRow>();
+      pendingTeachers.forEach((u) => map.set(u.id, u));
+      pendingCreators.forEach((u) => map.set(u.id, u));
+      return Array.from(map.values());
+    }
+
+    // ingen filter: vis alle, med litt sortering
+    const score = (u: UserRow) => {
+      // teacher approved først, deretter creator approved, så pending, etc
+      const t =
+        u.teacherStatus === "approved" ? 0 : u.teacherStatus === "pending" ? 1 : 2;
+      const c =
+        u.creatorStatus === "approved" ? 0 : u.creatorStatus === "pending" ? 1 : 2;
+      return t * 10 + c;
+    };
+    return rows.slice().sort((a, b) => score(a) - score(b));
+  }, [rows, onlyPendingTeacher, onlyPendingCreator, pendingTeachers, pendingCreators]);
+
+  // -------------------------
+  // Teacher actions
+  // -------------------------
+  async function approveTeacher(u: UserRow) {
     setErr(null);
     try {
       await updateDoc(doc(db, "users", u.id), {
         teacherStatus: "approved",
         "roles.teacher": true,
 
-        // ✅ gi teacher publish-rett, men IKKE nullstill alt annet
+        // ✅ Policy: teacher får creator automatisk
+        creatorStatus: "approved",
+        "roles.creator": true,
+
+        // (som før)
         "caps.publish": true,
 
         updatedAt: serverTimestamp(),
@@ -95,7 +139,20 @@ function UsersInner() {
     }
   }
 
-  async function revoke(u: UserRow) {
+  async function setTeacherPending(u: UserRow) {
+    setErr(null);
+    try {
+      await updateDoc(doc(db, "users", u.id), {
+        teacherStatus: "pending",
+        updatedAt: serverTimestamp(),
+      });
+      await load();
+    } catch (e: any) {
+      setErr(String(e?.message ?? e));
+    }
+  }
+
+  async function revokeTeacher(u: UserRow) {
     setErr(null);
     try {
       await updateDoc(doc(db, "users", u.id), {
@@ -110,11 +167,56 @@ function UsersInner() {
     }
   }
 
-  async function setPending(u: UserRow) {
+  // -------------------------
+  // Creator actions (NYTT)
+  // -------------------------
+  async function approveCreator(u: UserRow) {
     setErr(null);
     try {
       await updateDoc(doc(db, "users", u.id), {
-        teacherStatus: "pending",
+        creatorStatus: "approved",
+        "roles.creator": true,
+        updatedAt: serverTimestamp(),
+      });
+      await load();
+    } catch (e: any) {
+      setErr(String(e?.message ?? e));
+    }
+  }
+
+  async function rejectCreator(u: UserRow) {
+    setErr(null);
+    try {
+      await updateDoc(doc(db, "users", u.id), {
+        creatorStatus: "rejected",
+        "roles.creator": false,
+        updatedAt: serverTimestamp(),
+      });
+      await load();
+    } catch (e: any) {
+      setErr(String(e?.message ?? e));
+    }
+  }
+
+  async function revokeCreator(u: UserRow) {
+    setErr(null);
+    try {
+      await updateDoc(doc(db, "users", u.id), {
+        creatorStatus: "none",
+        "roles.creator": false,
+        updatedAt: serverTimestamp(),
+      });
+      await load();
+    } catch (e: any) {
+      setErr(String(e?.message ?? e));
+    }
+  }
+
+  async function setCreatorPending(u: UserRow) {
+    setErr(null);
+    try {
+      await updateDoc(doc(db, "users", u.id), {
+        creatorStatus: "pending",
         updatedAt: serverTimestamp(),
       });
       await load();
@@ -124,23 +226,35 @@ function UsersInner() {
   }
 
   return (
-    <main style={{ maxWidth: 980, margin: "10px auto", padding: 12 }}>
+    <main style={{ maxWidth: 1060, margin: "10px auto", padding: 12 }}>
       <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ margin: 0 }}>Admin • Users</h1>
           <p style={{ opacity: 0.75, marginTop: 6 }}>
-            Pending teacher-søknader vises øverst. Approve setter roles.teacher=true og teacherStatus=approved.
+            Teacher: Approve gir også creator automatisk. Creator for andre brukere må godkjennes her.
           </p>
+          <div style={{ opacity: 0.75, marginTop: 6, fontSize: 13 }}>
+            Pending teacher: <b>{pendingTeachers.length}</b> · Pending creator: <b>{pendingCreators.length}</b>
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, opacity: 0.85 }}>
             <input
               type="checkbox"
-              checked={onlyPending}
-              onChange={(e) => setOnlyPending(e.target.checked)}
+              checked={onlyPendingTeacher}
+              onChange={(e) => setOnlyPendingTeacher(e.target.checked)}
             />
-            Vis kun pending
+            Vis kun pending teacher
+          </label>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, opacity: 0.85 }}>
+            <input
+              type="checkbox"
+              checked={onlyPendingCreator}
+              onChange={(e) => setOnlyPendingCreator(e.target.checked)}
+            />
+            Vis kun pending creator
           </label>
 
           <button
@@ -166,13 +280,9 @@ function UsersInner() {
       ) : null}
 
       <section style={{ marginTop: 14 }}>
-        <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
-          <b>Teacher applications:</b> {pending.length}
-        </div>
-
         {visible.length === 0 ? (
           <p style={{ marginTop: 14, opacity: 0.75 }}>
-            Ingen {onlyPending ? "pending" : ""} brukere å vise.
+            Ingen brukere å vise med dagens filter.
           </p>
         ) : null}
 
@@ -201,6 +311,11 @@ function UsersInner() {
               <div>
                 <span style={{ fontSize: 13, opacity: 0.75 }}>teacherStatus</span>
                 <div style={{ fontWeight: 700 }}>{u.teacherStatus || "—"}</div>
+
+                <div style={{ marginTop: 6 }}>
+                  <span style={{ fontSize: 13, opacity: 0.75 }}>creatorStatus</span>
+                  <div style={{ fontWeight: 700 }}>{u.creatorStatus || "—"}</div>
+                </div>
               </div>
 
               <div>
@@ -208,6 +323,7 @@ function UsersInner() {
                 <div style={{ fontWeight: 700 }}>
                   {u.roles?.admin ? "admin " : ""}
                   {u.roles?.teacher ? "teacher " : ""}
+                  {u.roles?.creator ? "creator " : ""}
                   {u.roles?.student ? "student " : ""}
                   {u.roles?.parent ? "parent " : ""}
                   {!u.roles ? "—" : ""}
@@ -227,40 +343,52 @@ function UsersInner() {
               </div>
 
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                {/* Teacher */}
                 <button
-                  onClick={() => approve(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
+                  onClick={() => approveTeacher(u)}
+                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
                 >
-                  Approve
+                  Approve teacher
+                </button>
+                <button
+                  onClick={() => setTeacherPending(u)}
+                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                >
+                  Teacher pending
+                </button>
+                <button
+                  onClick={() => revokeTeacher(u)}
+                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                >
+                  Revoke teacher
                 </button>
 
-                <button
-                  onClick={() => setPending(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
-                >
-                  Set pending
-                </button>
+                <span style={{ opacity: 0.35 }}>│</span>
 
+                {/* Creator */}
                 <button
-                  onClick={() => revoke(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
+                  onClick={() => approveCreator(u)}
+                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
                 >
-                  Revoke
+                  Approve creator
+                </button>
+                <button
+                  onClick={() => setCreatorPending(u)}
+                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                >
+                  Creator pending
+                </button>
+                <button
+                  onClick={() => rejectCreator(u)}
+                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                >
+                  Reject creator
+                </button>
+                <button
+                  onClick={() => revokeCreator(u)}
+                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                >
+                  Revoke creator
                 </button>
               </div>
             </div>
