@@ -9,11 +9,15 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     <AuthGate requireRole="teacher" requireApprovedTeacher>
       <SectionShell
         title="Teacher"
-        subtitle=""
+        subtitle="Lærerverktøy: spaces, lessons og vurdering."
         items={[
           { href: "/teacher", label: "Dashboard" },
-          { href: "/producer/texts", label: "My content" },
-          { href: "/producer/texts/new", label: "Create new lesson" },
+          { href: "/teacher/spaces", label: "Spaces" },
+          { href: "/teacher/lessons", label: "My lessons" },
+          { href: "/teacher/review", label: "Review" },
+
+          // Snarvei (kan stå selv om /teacher/lessons/new ikke finnes ennå)
+          { href: "/teacher/lessons/new", label: "+ New lesson" },
         ]}
       >
         {children}
