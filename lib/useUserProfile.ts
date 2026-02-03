@@ -5,42 +5,7 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { ensureUserProfile } from "@/lib/userProfile"; // ✅ bruker den nye, permanente
-
-export type UserProfile = {
-  displayName?: string;
-  email?: string;
-  locale?: string;
-  onboardingComplete?: boolean;
-
-  roles?: {
-    student?: boolean;
-    teacher?: boolean;
-    parent?: boolean;
-    admin?: boolean;
-  };
-
-  teacherStatus?: "none" | "pending" | "approved" | "rejected";
-
-  caps?: {
-    publish?: boolean;
-    sell?: boolean;
-    pdf?: boolean;
-    tts?: boolean;
-    vocab?: boolean;
-  };
-
-  org?: {
-    country?: string;
-    municipality?: string;
-    institutionType?: string;
-    institutionName?: string;
-  };
-
-  createdAt?: any;
-  updatedAt?: any;
-  lastLoginAt?: any;
-};
+import { ensureUserProfile, type UserProfile } from "@/lib/userProfile";
 
 async function readUserProfile(uid: string): Promise<UserProfile | null> {
   const ref = doc(db, "users", uid);
@@ -59,26 +24,27 @@ export function useUserProfile() {
       setUser(u);
       setProfile(null);
 
-      // ✅ Ikke innlogget -> ferdig
       if (!u) {
         setLoading(false);
         return;
       }
 
-      // ✅ ANON: ikke prøv å ensure/read users/{uid}
-      // Share/public-sider kan bruke anonymous auth for å få en user,
-      // men de skal ikke kreve tilgang til /users.
+      // Anon: ingen profil i Firestore (MVP)
       if (u.isAnonymous) {
         setLoading(false);
         return;
       }
 
       try {
-        // ✅ Permanent: sørg for at profilen finnes + server-side patch av roles/caps/teacherStatus
-        await ensureUserProfile(u, { locale: "no" });
+        // 1) les først (unngå unødvendig write)
+        let data = await readUserProfile(u.uid);
 
-        // Les profilen etter ensure
-        const data = await readUserProfile(u.uid);
+        // 2) hvis mangler: opprett profilen
+        if (!data) {
+          await ensureUserProfile(u);
+          data = await readUserProfile(u.uid);
+        }
+
         setProfile(data);
       } catch (e) {
         console.error("useUserProfile: ensure/read failed", e);
