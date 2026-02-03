@@ -1,6 +1,7 @@
 // components/AuthGate.tsx
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -14,7 +15,7 @@ export default function AuthGate({
   requireApprovedTeacher,
   allowAnonymous = false,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   requireRole?: Role;
   requireApprovedTeacher?: boolean;
   allowAnonymous?: boolean;
@@ -67,8 +68,7 @@ export default function AuthGate({
 
     // Teacher approval (kun når krevd)
     if (requireApprovedTeacher) {
-      const roles = profile?.roles as any; // "any" for å være kompatibel med deres UserProfile-type
-      const ok = profile?.teacherStatus === "approved" && roles?.teacher === true;
+      const ok = profile.teacherStatus === "approved" && profile.roles?.teacher === true;
       if (!ok) {
         router.replace("/unauthorized");
         return;
@@ -77,8 +77,7 @@ export default function AuthGate({
 
     // Role check
     if (requireRole) {
-      const roles = profile?.roles as any;
-      const hasRole = roles?.[requireRole] === true;
+      const hasRole = profile.roles?.[requireRole] === true;
       if (!hasRole) {
         router.replace("/unauthorized");
         return;
