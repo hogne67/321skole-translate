@@ -1,0 +1,8 @@
+# Arkiv / legacy
+_archive_producer_old/**
+_archive/**
+# Scripts (node/one-off tools)
+scripts/**
+# Debug / midlertidig
+app/_debug/**
+app/debug/**

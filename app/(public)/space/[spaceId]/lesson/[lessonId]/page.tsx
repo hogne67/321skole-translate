@@ -1,10 +1,10 @@
 // app/(public)/space/[spaceId]/lesson/[lessonId]/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { submitToSpace } from "@/lib/spaceSubmissionsClient";
 
@@ -13,69 +13,116 @@ type PublishedLesson = {
   title?: string;
   level?: string;
   text?: string;
-  tasks?: any; // du har dette fra før
+  tasks?: any;
 };
 
 export default function SpaceLessonPage() {
-  const { spaceId, lessonId } = useParams<{ spaceId: string; lessonId: string }>();
+  const params = useParams<{ spaceId: string; lessonId: string }>();
+  const spaceId = params?.spaceId ?? "";
+  const lessonId = params?.lessonId ?? "";
+
   const [lesson, setLesson] = useState<PublishedLesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
 
   const [user, setUser] = useState<ReturnType<typeof getAuth>["currentUser"] | null>(null);
 
+  // Auth: logg hva vi faktisk har (anon / innlogget)
   useEffect(() => {
     const auth = getAuth();
-    return onAuthStateChanged(auth, (u) => setUser(u));
+    return onAuthStateChanged(auth, (u) => {
+      console.log("AUTH:", {
+        hasUser: !!u,
+        uid: u?.uid,
+        isAnonymous: (u as any)?.isAnonymous,
+        providerId: u?.providerData?.[0]?.providerId,
+      });
+      setUser(u);
+    });
   }, []);
 
+  // Last published lesson robust (doc-id uavhengig)
   useEffect(() => {
-  const auth = getAuth();
-  return onAuthStateChanged(auth, (u) => {
-    console.log("AUTH:", {
-      hasUser: !!u,
-      uid: u?.uid,
-      isAnonymous: (u as any)?.isAnonymous,
-      providerId: u?.providerData?.[0]?.providerId,
-    });
-    setUser(u);
-  });
-}, []);
+    if (!lessonId) return;
 
-
-  useEffect(() => {
     (async () => {
       setLoading(true);
+      setLoadErr(null);
       try {
-        const ref = doc(db, "published_lessons", lessonId);
-        const snap = await getDoc(ref);
-        setLesson(snap.exists() ? (snap.data() as PublishedLesson) : null);
+        console.log("LOAD published lesson by lessonId:", { lessonId });
+
+        // ⚠️ Sjekk at collection-navnet matcher Firestore.
+        // Hvis din heter "publishedLessons" el.l. – endre her.
+        const col = collection(db, "published_lessons");
+
+        const q = query(col, where("lessonId", "==", lessonId), limit(1));
+        const qs = await getDocs(q);
+
+        if (qs.empty) {
+          console.warn("No published lesson found for lessonId:", lessonId);
+          setLesson(null);
+        } else {
+          const data = qs.docs[0].data() as PublishedLesson;
+          setLesson(data);
+        }
+      } catch (e: any) {
+        console.error("LOAD PUBLISHED LESSON FAILED:", e);
+        setLesson(null);
+
+        // Gi et brukervennlig hint (ofte rules)
+        const message = e?.message ?? "Ukjent feil ved lasting.";
+        setLoadErr(message);
       } finally {
         setLoading(false);
       }
     })();
   }, [lessonId]);
 
-  // 👇 Dette er bare et eksempel på "answers".
-  // I din faktiske lesson-view har du allerede state for svar.
+  // 👇 MVP state for svar (byttes senere mot din ekte lesson-view)
   const [answers, setAnswers] = useState<any>({});
 
   async function onSubmit() {
     setMsg(null);
     setSaving(true);
     try {
+      if (!spaceId || !lessonId) {
+        setMsg("❌ Mangler spaceId eller lessonId i URL-en.");
+        return;
+      }
+
       await submitToSpace({ spaceId, lessonId, answers, user: user ?? null });
       setMsg("✅ Levert! Du kan lukke siden, eller vente på feedback fra læreren.");
     } catch (e: any) {
+      console.error("SUBMIT FAILED:", e);
       setMsg(`❌ Kunne ikke levere: ${e?.message ?? "ukjent feil"}`);
     } finally {
       setSaving(false);
     }
   }
 
+  if (!spaceId || !lessonId) {
+    return <div style={{ padding: 16 }}>Ugyldig lenke (mangler spaceId/lessonId).</div>;
+  }
+
   if (loading) return <div style={{ padding: 16 }}>Laster…</div>;
-  if (!lesson) return <div style={{ padding: 16 }}>Fant ikke lesson.</div>;
+
+  if (!lesson) {
+    return (
+      <div style={{ padding: 16 }}>
+        <div style={{ marginBottom: 8 }}>Fant ikke lesson.</div>
+        {loadErr && (
+          <div style={{ opacity: 0.8 }}>
+            <div style={{ marginBottom: 6 }}>
+              Teknisk feilmelding (ofte pga. Firestore rules):
+            </div>
+            <code style={{ display: "block", whiteSpace: "pre-wrap" }}>{loadErr}</code>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
