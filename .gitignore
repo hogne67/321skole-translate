@@ -47,3 +47,11 @@ scripts/serviceAccountKey.json
 *.pem
 *.key
 
+.next/
+node_modules/
+_archive_producer_old/
+
+# local debug (do not deploy)
+app/_debug/
+app/debug/
+app/api/env-public-check/
