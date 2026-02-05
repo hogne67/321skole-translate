@@ -1,7 +1,7 @@
-// app/(app)/teacher/spaces/[spaceId]/lessons/[lessonId]/submissions/page.tsx
+// app/(public)/space/[spaceId]/lesson/[lessonId]/submissions/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
@@ -14,33 +14,42 @@ import {
   updateDoc,
   doc,
   serverTimestamp,
+  type DocumentData,
 } from "firebase/firestore";
+
+type SubStatus = "new" | "reviewed" | "needs_work";
+type Filter = "all" | "anon" | "signed";
+
+type SubAuth = {
+  isAnon: boolean;
+  uid?: string;
+  displayName?: string | null;
+  email?: string | null;
+};
+
+type TeacherFeedback = { text?: string; updatedAt?: unknown };
 
 type SubRow = {
   id: string;
-  createdAt?: any;
-  answers?: any;
-  auth?: { isAnon: boolean; uid?: string; displayName?: string | null; email?: string | null };
-  status?: "new" | "reviewed" | "needs_work";
-  teacherFeedback?: { text?: string };
+  createdAt?: unknown;
+  answers?: Record<string, unknown>;
+  auth?: SubAuth;
+  status?: SubStatus;
+  teacherFeedback?: TeacherFeedback;
 };
 
-export default function TeacherSubmissionsPage() {
-  return (
-    <AuthGate requireRole="teacher" requireApprovedTeacher>
-      <Inner />
-    </AuthGate>
-  );
+function isSubStatus(v: unknown): v is SubStatus {
+  return v === "new" || v === "reviewed" || v === "needs_work";
 }
 
 function Inner() {
   const { spaceId, lessonId } = useParams<{ spaceId: string; lessonId: string }>();
 
-  const [filter, setFilter] = useState<"all" | "anon" | "signed">("all");
+  const [filter, setFilter] = useState<Filter>("all");
   const [rows, setRows] = useState<SubRow[]>([]);
   const [selected, setSelected] = useState<SubRow | null>(null);
   const [feedback, setFeedback] = useState("");
-  const [status, setStatus] = useState<"new" | "reviewed" | "needs_work">("reviewed");
+  const [status, setStatus] = useState<SubStatus>("reviewed");
 
   useEffect(() => {
     const base = collection(db, "spaces", spaceId, "lessons", lessonId, "submissions");
@@ -53,7 +62,40 @@ function Inner() {
           : query(base, where("auth.isAnon", "==", false), orderBy("createdAt", "desc"));
 
     return onSnapshot(q, (snap) => {
-      setRows(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
+      setRows(
+        snap.docs.map((d) => {
+          const data = d.data() as DocumentData;
+
+          // Forsiktig parsing (ingen any)
+          const authRaw = (data.auth ?? {}) as Record<string, unknown>;
+          const auth: SubAuth | undefined =
+            typeof authRaw.isAnon === "boolean"
+              ? {
+                  isAnon: authRaw.isAnon,
+                  uid: typeof authRaw.uid === "string" ? authRaw.uid : undefined,
+                  displayName: typeof authRaw.displayName === "string" ? authRaw.displayName : null,
+                  email: typeof authRaw.email === "string" ? authRaw.email : null,
+                }
+              : undefined;
+
+          const row: SubRow = {
+            id: d.id,
+            createdAt: data.createdAt,
+            answers:
+              data.answers && typeof data.answers === "object"
+                ? (data.answers as Record<string, unknown>)
+                : undefined,
+            auth,
+            status: isSubStatus(data.status) ? data.status : undefined,
+            teacherFeedback:
+              data.teacherFeedback && typeof data.teacherFeedback === "object"
+                ? (data.teacherFeedback as TeacherFeedback)
+                : undefined,
+          };
+
+          return row;
+        })
+      );
     });
   }, [spaceId, lessonId, filter]);
 
@@ -78,7 +120,7 @@ function Inner() {
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <label>Filter:</label>
-        <select value={filter} onChange={(e) => setFilter(e.target.value as any)}>
+        <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
           <option value="all">Alle</option>
           <option value="anon">Anon</option>
           <option value="signed">Innlogget</option>
@@ -97,7 +139,7 @@ function Inner() {
                 onClick={() => {
                   setSelected(r);
                   setFeedback(r.teacherFeedback?.text ?? "");
-                  setStatus((r.status as any) ?? "reviewed");
+                  setStatus(r.status ?? "reviewed");
                 }}
                 style={{
                   textAlign: "left",
@@ -135,13 +177,13 @@ function Inner() {
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>Svar (raw)</div>
                 <pre style={{ whiteSpace: "pre-wrap", background: "rgba(0,0,0,0.03)", padding: 10, borderRadius: 10 }}>
-{JSON.stringify(selected.answers ?? {}, null, 2)}
+                  {JSON.stringify(selected.answers ?? {}, null, 2)}
                 </pre>
               </div>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
                 <label>Status:</label>
-                <select value={status} onChange={(e) => setStatus(e.target.value as any)}>
+                <select value={status} onChange={(e) => setStatus(e.target.value as SubStatus)}>
                   <option value="new">new</option>
                   <option value="reviewed">reviewed</option>
                   <option value="needs_work">needs_work</option>
@@ -166,5 +208,13 @@ function Inner() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TeacherSubmissionsPage() {
+  return (
+    <AuthGate requireRole="teacher" requireApprovedTeacher>
+      <Inner />
+    </AuthGate>
   );
 }

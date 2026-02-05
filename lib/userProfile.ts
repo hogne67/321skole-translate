@@ -25,9 +25,15 @@ export type UserProfile = {
   creatorStatus?: Status;
 
   // settes når bruker søker om creator (fra /creator/apply)
-  creatorAppliedAt?: any;
+  creatorAppliedAt?: unknown;
 
-  caps?: { publish?: boolean; sell?: boolean; pdf?: boolean; tts?: boolean; vocab?: boolean };
+  caps?: {
+    publish?: boolean;
+    sell?: boolean;
+    pdf?: boolean;
+    tts?: boolean;
+    vocab?: boolean;
+  };
 
   org?: {
     country?: string;
@@ -36,28 +42,59 @@ export type UserProfile = {
     institutionName?: string;
   };
 
-  createdAt?: any;
-  updatedAt?: any;
-  lastLoginAt?: any;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  lastLoginAt?: unknown;
 };
 
+function requireDb() {
+  if (!db) {
+    throw new Error(
+      "Firestore is not initialized (db is null). Check NEXT_PUBLIC_FIREBASE_* env."
+    );
+  }
+  return db;
+}
+
 function defaultRoles() {
-  return { student: true, teacher: false, parent: false, creator: false, admin: false };
+  return {
+    student: true,
+    teacher: false,
+    parent: false,
+    creator: false,
+    admin: false,
+  };
 }
 
 function defaultCaps() {
-  return { pdf: true, tts: true, vocab: true, publish: false, sell: false };
+  return {
+    pdf: true,
+    tts: true,
+    vocab: true,
+    publish: false,
+    sell: false,
+  };
 }
 
 // Firestore tåler ikke undefined i payload
-function stripUndefined<T extends Record<string, any>>(obj: T): T {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as T;
 }
 
-export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>) {
-  const ref = doc(db, "users", user.uid);
+export async function ensureUserProfile(
+  user: User,
+  patch?: Partial<UserProfile>
+) {
+  const dbx = requireDb();
+
+  const ref = doc(dbx, "users", user.uid);
   const snap = await getDoc(ref);
 
+  // =========================
+  // CREATE
+  // =========================
   if (!snap.exists()) {
     const profile: UserProfile = {
       displayName: user.displayName || patch?.displayName || "",
@@ -65,7 +102,6 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
       locale: patch?.locale || "no",
       onboardingComplete: false,
 
-      // create: vi kan sette defaults + patch
       roles: { ...defaultRoles(), ...(patch?.roles || {}) },
 
       teacherStatus: "none",
@@ -79,15 +115,23 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
       lastLoginAt: serverTimestamp(),
     };
 
-    await setDoc(ref, stripUndefined(profile as any), { merge: false });
+    await setDoc(ref, stripUndefined(profile as Record<string, unknown>), {
+      merge: false,
+    });
     return;
   }
 
+  // =========================
+  // UPDATE
+  // =========================
   const existing = (snap.data() || {}) as UserProfile;
 
-  // ✅ Update: aldri skriv roles fra klient
-  // (rules stopper det, og det skaper røde streker/feil senere)
-  const { roles: _roles, ...patchSafe } = patch || {};
+  // ❗ Viktig: aldri skriv roles fra klient
+  const patchSafe: Partial<UserProfile> = patch
+    ? (Object.fromEntries(
+        Object.entries(patch).filter(([k]) => k !== "roles")
+      ) as Partial<UserProfile>)
+    : {};
 
   const payload: Partial<UserProfile> = {
     ...patchSafe,
@@ -95,18 +139,21 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
     updatedAt: serverTimestamp(),
     lastLoginAt: serverTimestamp(),
 
-    // caps: klient kan oppdatere (om du vil)
     caps: {
       ...defaultCaps(),
       ...(existing.caps || {}),
       ...(patchSafe.caps || {}),
     },
 
-    // teacherStatus: behold eksisterende hvis den finnes
-    teacherStatus: (existing.teacherStatus || patchSafe.teacherStatus || "none") as Status,
+    teacherStatus:
+      (existing.teacherStatus ||
+        patchSafe.teacherStatus ||
+        "none") as Status,
 
-    // creatorStatus: behold eksisterende hvis den finnes
-    creatorStatus: (existing.creatorStatus || patchSafe.creatorStatus || "none") as Status,
+    creatorStatus:
+      (existing.creatorStatus ||
+        patchSafe.creatorStatus ||
+        "none") as Status,
 
     org: {
       ...(existing.org || {}),
@@ -114,5 +161,7 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
     },
   };
 
-  await setDoc(ref, stripUndefined(payload as any), { merge: true });
+  await setDoc(ref, stripUndefined(payload as Record<string, unknown>), {
+    merge: true,
+  });
 }

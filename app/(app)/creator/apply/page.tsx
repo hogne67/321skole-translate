@@ -9,6 +9,25 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 
+function getErrorInfo(err: unknown): { message: string; code?: string } {
+  // Firebase errors often look like: { code: "permission-denied", message: "...", ... }
+  if (err instanceof Error) return { message: err.message };
+
+  if (typeof err === "string") return { message: err };
+
+  if (err && typeof err === "object") {
+    const maybeCode = "code" in err ? (err as { code?: unknown }).code : undefined;
+    const maybeMsg = "message" in err ? (err as { message?: unknown }).message : undefined;
+
+    return {
+      code: typeof maybeCode === "string" ? maybeCode : undefined,
+      message: typeof maybeMsg === "string" ? maybeMsg : JSON.stringify(err),
+    };
+  }
+
+  return { message: String(err) };
+}
+
 export default function CreatorApplyPage() {
   return (
     <AuthGate>
@@ -66,7 +85,8 @@ function Inner() {
         </div>
 
         <p style={{ marginTop: 14, opacity: 0.75, fontSize: 12 }}>
-          (Hvis du ikke kommer inn i Creator: sjekk at admin-approve har satt <code>roles.creator=true</code>.)
+          (Hvis du ikke kommer inn i Creator: sjekk at admin-approve har satt{" "}
+          <code>roles.creator=true</code>.)
         </p>
       </div>
     );
@@ -129,9 +149,10 @@ function Inner() {
                     updatedAt: serverTimestamp(),
                   });
                   setMsg("Søknad sendt ✅");
-                } catch (e: any) {
-                  console.log("[CREATOR APPLY] ERROR =>", e?.code, e?.message, e);
-                  setMsg(`Kunne ikke sende søknad: ${e?.message || "ukjent feil"}`);
+                } catch (e: unknown) {
+                  const info = getErrorInfo(e);
+                  console.log("[CREATOR APPLY] ERROR =>", info.code, info.message, e);
+                  setMsg(`Kunne ikke sende søknad: ${info.message || "ukjent feil"}`);
                 } finally {
                   setSaving(false);
                 }

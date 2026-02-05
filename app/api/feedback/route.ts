@@ -1,11 +1,29 @@
+// app/api/feedback/route.ts
 import OpenAI from "openai";
 
 export const runtime = "nodejs";
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-function pickString(obj: any, keys: string[]) {
+function toErrorString(err: unknown): string {
+  if (!err) return "Feedback failed";
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message;
+
+  if (typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const message = typeof o.message === "string" ? o.message : "";
+    const code = typeof o.code === "string" ? o.code : "";
+    return message || code || "Feedback failed";
+  }
+
+  return "Feedback failed";
+}
+
+function pickString(obj: unknown, keys: string[]) {
+  const rec = (obj && typeof obj === "object") ? (obj as Record<string, unknown>) : null;
+
   for (const k of keys) {
-    const v = obj?.[k];
+    const v = rec?.[k];
     if (typeof v === "string" && v.trim()) return v.trim();
   }
   return "";
@@ -14,7 +32,7 @@ function pickString(obj: any, keys: string[]) {
 export async function POST(req: Request) {
   try {
     // ✅ Les JSON body (fallback til tom)
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => ({}))) as unknown;
 
     // ✅ Støtt flere navn (så frontend/backend ikke må matche 100% mens vi bygger)
     const lesetekst = pickString(body, ["lesetekst", "leseTekst", "sourceText", "text"]);
@@ -47,9 +65,8 @@ export async function POST(req: Request) {
 
     const feedback = r.output_text?.trim() ?? "";
     return Response.json({ feedback });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Feedback route error:", err);
-    return Response.json({ error: err?.message ?? "Feedback failed" }, { status: 500 });
+    return Response.json({ error: toErrorString(err) }, { status: 500 });
   }
 }
-

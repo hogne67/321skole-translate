@@ -1,10 +1,9 @@
-// app/producer/texts/new/page.tsx
+// app/(app)/producer/texts/new/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { LANGUAGES } from "@/lib/languages";
@@ -38,11 +37,29 @@ type LessonTask = {
   type: TaskType;
   prompt: string;
   options?: string[];
-  correctAnswer?: any;
+  correctAnswer?: unknown;
 };
+
+type GenerateApiOk = { contentPack: ContentPack };
+type GenerateApiErr = { error: string; raw?: string };
+type GenerateApiResp = Partial<GenerateApiOk & GenerateApiErr>;
 
 function newId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(2, 6);
+}
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
 }
 
 // ===== Text types =====
@@ -265,9 +282,9 @@ export default function NewTextPage() {
         return;
       }
 
-      let data: any;
+      let data: GenerateApiResp;
       try {
-        data = JSON.parse(raw);
+        data = JSON.parse(raw) as GenerateApiResp;
       } catch {
         setError(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
         setPack(null);
@@ -275,7 +292,7 @@ export default function NewTextPage() {
       }
 
       if (!res.ok) {
-        setError(`HTTP ${res.status}: ${data?.error ?? "Unknown error"}`);
+        setError(`HTTP ${res.status}: ${typeof data?.error === "string" ? data.error : "Unknown error"}`);
         setPack(null);
         return;
       }
@@ -292,8 +309,8 @@ export default function NewTextPage() {
       setTitle(cp.title || "New lesson");
       setSourceText(cp.text || "");
       setLessonTasks(packToLessonTasks(cp));
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
       setPack(null);
     } finally {
       setLoading(false);
@@ -301,60 +318,59 @@ export default function NewTextPage() {
   }
 
   async function saveToFirestore() {
-  setSaving(true);
-  setError(null);
-  setSavedId(null);
+    setSaving(true);
+    setError(null);
+    setSavedId(null);
 
-  try {
-    if (!title.trim()) throw new Error("Title is required.");
-    if (!sourceText.trim()) throw new Error("Source text is empty.");
+    try {
+      if (!title.trim()) throw new Error("Title is required.");
+      if (!sourceText.trim()) throw new Error("Source text is empty.");
 
-    const user = getAuth().currentUser;
-    if (!user) throw new Error("Not signed in. Please log in as teacher/producer.");
-    const uid = user.uid;
+      const user = getAuth().currentUser;
+      if (!user) throw new Error("Not signed in. Please log in as teacher/producer.");
+      const uid = user.uid;
 
-    const cleanTextType = String(textType || "")
-      .trim()
-      .replace(/^"+|"+$/g, "")
-      .trim();
+      const cleanTextType = String(textType || "")
+        .trim()
+        .replace(/^"+|"+$/g, "")
+        .trim();
 
-    const docRef = await addDoc(collection(db, "lessons"), {
-      ownerId: uid,
-      status: "draft",
-      title: title || "New lesson",
-      level,
+      const docRef = await addDoc(collection(db, "lessons"), {
+        ownerId: uid,
+        status: "draft",
+        title: title || "New lesson",
+        level,
 
-      topic: prompt,
-      prompt,
+        topic: prompt,
+        prompt,
 
-      textType: cleanTextType,
-      texttype: cleanTextType,
+        textType: cleanTextType,
+        texttype: cleanTextType,
 
-      language,
-      estimatedMinutes: 20,
-      releaseMode: "ALL_AT_ONCE",
-      sourceText: sourceText || "",
-      tasks: renumberOrders(lessonTasks),
+        language,
+        estimatedMinutes: 20,
+        releaseMode: "ALL_AT_ONCE",
+        sourceText: sourceText || "",
+        tasks: renumberOrders(lessonTasks),
 
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      source: "producer-texts-new",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        source: "producer-texts-new",
 
-      deletedAt: null,
-      activePublishedId: null,
-    });
+        deletedAt: null,
+        activePublishedId: null,
+      });
 
-    setSavedId(docRef.id);
+      setSavedId(docRef.id);
 
-    // ✅ Gå rett til My content
-    router.push(`/producer/texts?created=${docRef.id}`);
-  } catch (e: any) {
-    setError(String(e?.message ?? e));
-  } finally {
-    setSaving(false);
+      // ✅ Gå rett til My content
+      router.push(`/producer/texts?created=${docRef.id}`);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
+    } finally {
+      setSaving(false);
+    }
   }
-}
-
 
   return (
     <main style={{ maxWidth: 980, paddingBottom: 60 }}>
@@ -445,7 +461,7 @@ Include details about:
           Text type
           <select
             value={textTypePreset}
-            onChange={(e) => setTextTypePreset(e.target.value as any)}
+            onChange={(e) => setTextTypePreset(e.target.value as (typeof TEXT_TYPE_PRESETS)[number])}
             style={{ width: "100%", padding: 8, marginTop: 6 }}
           >
             {TEXT_TYPE_PRESETS.map((t) => (
@@ -541,7 +557,7 @@ Include details about:
         </div>
       </section>
 
-      {/* Lesson builder + tasks editor + debug (unchanged) */}
+      {/* Lesson builder + tasks editor + debug */}
       <section style={{ marginTop: 22 }}>
         <h2 style={{ marginBottom: 8 }}>Lesson builder</h2>
 
@@ -663,7 +679,7 @@ Include details about:
                                 opts[oIdx] = v;
 
                                 const correct =
-                                  x.correctAnswer && opts.includes(x.correctAnswer)
+                                  typeof x.correctAnswer === "string" && opts.includes(x.correctAnswer)
                                     ? x.correctAnswer
                                     : opts[0] ?? "";
 
@@ -678,7 +694,7 @@ Include details about:
                       <label style={{ display: "block", marginTop: 10 }}>
                         Correct answer (must match one option)
                         <input
-                          value={String(t.correctAnswer ?? "")}
+                          value={typeof t.correctAnswer === "string" ? t.correctAnswer : ""}
                           onChange={(e) => {
                             const v = e.target.value;
                             setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x)));

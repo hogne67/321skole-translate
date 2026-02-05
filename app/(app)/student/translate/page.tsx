@@ -1,7 +1,6 @@
-// app/student/translate/page.tsx
+// app/(app)/student/translate/page.tsx
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 async function translateOne(text: string, targetLang: string) {
@@ -10,9 +9,18 @@ async function translateOne(text: string, targetLang: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, targetLang }),
   });
+
   if (!res.ok) throw new Error(await res.text());
-  const data = await res.json();
-  return (data?.translatedText ?? data?.translation ?? data?.text ?? "").toString();
+
+  const data: unknown = await res.json();
+  const d = data as { translatedText?: unknown; translation?: unknown; text?: unknown };
+
+  return String(d.translatedText ?? d.translation ?? d.text ?? "");
+}
+
+function getErrMessage(e: unknown) {
+  const msg = (e as { message?: unknown })?.message;
+  return typeof msg === "string" ? msg : "Translate failed";
 }
 
 export default function StudentTranslatorPage() {
@@ -22,21 +30,15 @@ export default function StudentTranslatorPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const navLinkStyle: React.CSSProperties = {
-    textDecoration: "none",
-    fontSize: 16,
-    fontWeight: 600,
-    color: "inherit",
-  };
-
   async function onTranslate() {
     setErr(null);
     setBusy(true);
+
     try {
       const t = await translateOne(source, targetLang);
       setOut(t);
-    } catch (e: any) {
-      setErr(e?.message ?? "Translate failed");
+    } catch (e: unknown) {
+      setErr(getErrMessage(e));
     } finally {
       setBusy(false);
     }
@@ -46,9 +48,8 @@ export default function StudentTranslatorPage() {
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
       <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Translator</h1>
 
-      {/* ✅ Student navigation (samme som de andre sidene) */}
-      
       <hr style={{ margin: "10px 0 14px" }} />
+
       <p style={{ opacity: 0.75, marginTop: 0 }}>
         Paste the text and select the language you want to translate to
       </p>

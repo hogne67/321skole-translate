@@ -4,9 +4,25 @@ import OpenAI from "openai";
 export const runtime = "nodejs";
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-function pickString(obj: any, keys: string[]) {
+function toErrorString(err: unknown): string {
+  if (!err) return "Translate failed";
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message;
+
+  if (typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const message = typeof o.message === "string" ? o.message : "";
+    const code = typeof o.code === "string" ? o.code : "";
+    return message || code || "Translate failed";
+  }
+  return "Translate failed";
+}
+
+function pickString(obj: unknown, keys: string[]) {
+  const rec = obj && typeof obj === "object" ? (obj as Record<string, unknown>) : null;
+
   for (const k of keys) {
-    const v = obj?.[k];
+    const v = rec?.[k];
     if (typeof v === "string" && v.trim()) return v.trim();
   }
   return "";
@@ -53,9 +69,7 @@ function looksLikeEthiopic(text: string) {
   const ethiopic = (s.match(/[\u1200-\u137F]/g) || []).length; // Ethiopic block
   const letters = (s.match(/\p{L}/gu) || []).length;
 
-  // Require some Ethiopic presence
   if (ethiopic < 10) return false;
-  // And not mostly Latin letters
   if (letters > 0 && ethiopic / letters < 0.2) return false;
 
   return true;
@@ -74,8 +88,7 @@ async function translateOnce(text: string, targetLang: string) {
     input: [
       {
         role: "system",
-        content:
-          "You are a precise translator. Output ONLY the translation, no quotes, no explanations.",
+        content: "You are a precise translator. Output ONLY the translation, no quotes, no explanations.",
       },
       {
         role: "user",
@@ -94,7 +107,8 @@ async function translateOnce(text: string, targetLang: string) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => ({}))) as unknown;
+
     const text = pickString(body, ["text", "sourceText", "input"]);
     const targetLang = pickString(body, ["targetLang", "to", "lang"]) || "nb";
 
@@ -109,11 +123,7 @@ export async function POST(req: Request) {
 
     // 2) Handle hard failure
     if (translatedText.includes("__LANGUAGE_ERROR__")) {
-      // One retry with even stricter instruction
-      translatedText = await translateOnce(
-        text,
-        targetLang
-      );
+      translatedText = await translateOnce(text, targetLang);
     }
 
     // 3) Validate Tigrinya script + retry once if it looks wrong
@@ -126,10 +136,9 @@ export async function POST(req: Request) {
       return Response.json({ error: "Tom oversettelse fra modellen." }, { status: 500 });
     }
 
-    // ✅ This is the only shape the frontend expects
     return Response.json({ translatedText });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Translate route error:", err);
-    return Response.json({ error: err?.message ?? "Translate failed" }, { status: 500 });
+    return Response.json({ error: toErrorString(err) }, { status: 500 });
   }
 }

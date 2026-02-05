@@ -1,14 +1,15 @@
+// app/(app)/producer/generate/route.ts
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
 type GenerateBody = {
-  level?: string;          // "A1" | "A2" | "B1" ...
-  language?: string;       // "en" | "no"
-  topic?: string;          // "Moving to a New Country"
-  textType?: string;       // "Everyday story"
-  textLength?: number;     // ca ord
+  level?: string; // "A1" | "A2" | "B1" ...
+  language?: string; // "en" | "no"
+  topic?: string; // "Moving to a New Country"
+  textType?: string; // "Everyday story"
+  textLength?: number; // ca ord
   tasks?: {
     mcq?: number;
     trueFalse?: number;
@@ -17,17 +18,43 @@ type GenerateBody = {
   };
 };
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+type ContentPack = {
+  title: string;
+  level: string;
+  language: string;
+  topic: string;
+  text: string;
+  tasks: {
+    multipleChoice: Array<{ q: string; options: [string, string, string, string]; answerIndex: 0 | 1 | 2 | 3 }>;
+    trueFalse: Array<{ statement: string; answer: boolean }>;
+    writeFacts: string[];
+    reflectionQuestions: string[];
+  };
+};
+
+type OpenAIErrorLike = {
+  message?: string;
+  code?: string | number;
+};
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as OpenAIErrorLike).message;
+    if (typeof m === "string") return m;
+  }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
 
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "OPENAI_API_KEY mangler i .env.local" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "OPENAI_API_KEY mangler i .env.local" }, { status: 500 });
     }
 
     const body = (await req.json()) as GenerateBody;
@@ -90,6 +117,8 @@ Antall:
 - reflectionQuestions: ${reflection}
 `.trim();
 
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
     const resp = await client.responses.create({
       model,
       input: [
@@ -103,9 +132,9 @@ Antall:
       return NextResponse.json({ error: "Tomt svar fra modellen." }, { status: 500 });
     }
 
-    let parsed: any;
+    let parsed: ContentPack;
     try {
-      parsed = JSON.parse(out);
+      parsed = JSON.parse(out) as ContentPack;
     } catch {
       // Hvis modellen likevel ikke returnerte ren JSON, gi debug-hjelp
       return NextResponse.json(
@@ -115,10 +144,7 @@ Antall:
     }
 
     return NextResponse.json({ contentPack: parsed });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || "Ukjent feil" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    return NextResponse.json({ error: getErrorMessage(err) || "Ukjent feil" }, { status: 500 });
   }
 }

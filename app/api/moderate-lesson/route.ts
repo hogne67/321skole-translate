@@ -7,7 +7,7 @@ function scoreContent(text: string) {
   const sexual = ["porn", "sex", "nude", "naked"];
   const hate = ["kill all", "hate", "nazi"];
   const selfharm = ["suicide", "self-harm"];
-  const pii = [/(\+?\d[\d\s\-]{6,}\d)/g, /@/g]; // tlf/email-ish
+  const pii = [/(\+?\d[\d\s-]{6,}\d)/g, /@/g]; // tlf/email-ish
 
   let score = 0;
   const reasons: string[] = [];

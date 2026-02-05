@@ -13,6 +13,16 @@ type ServiceAccountJSON = {
   private_key?: string;
 };
 
+type CertInput = {
+  projectId: string;
+  clientEmail: string;
+  privateKey: string;
+};
+
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
 function loadServiceAccountFromFile(): ServiceAccountJSON | null {
   const saPath = process.env.FIREBASE_ADMIN_SA_PATH;
   if (!saPath) return null;
@@ -22,7 +32,7 @@ function loadServiceAccountFromFile(): ServiceAccountJSON | null {
     throw new Error(`Service account file not found: ${fullPath}`);
   }
 
-  return JSON.parse(fs.readFileSync(fullPath, "utf8"));
+  return JSON.parse(fs.readFileSync(fullPath, "utf8")) as ServiceAccountJSON;
 }
 
 function loadServiceAccountFromEnv(): ServiceAccountJSON | null {
@@ -30,14 +40,26 @@ function loadServiceAccountFromEnv(): ServiceAccountJSON | null {
   const json = process.env.FIREBASE_ADMIN_SA_JSON;
   if (json) {
     try {
-      const parsed: any = JSON.parse(json);
-      return {
-        project_id: parsed.project_id,
-        client_email: parsed.client_email,
-        private_key: String(parsed.private_key || "").replace(/\\n/g, "\n"),
-      };
-    } catch (e) {
-      // continue to split vars
+      const parsed: unknown = JSON.parse(json);
+      if (isObject(parsed)) {
+        const project_id =
+          typeof parsed.project_id === "string" ? parsed.project_id : undefined;
+        const client_email =
+          typeof parsed.client_email === "string" ? parsed.client_email : undefined;
+
+        // private_key kan være string eller noe annet -> tving til string trygt
+        const pkRaw = parsed.private_key;
+        const private_key = typeof pkRaw === "string" ? pkRaw : "";
+
+        return {
+          project_id,
+          client_email,
+          private_key: private_key.replace(/\\n/g, "\n"),
+        };
+      }
+      // fallthrough til split vars
+    } catch {
+      // fallthrough til split vars
     }
   }
 
@@ -63,15 +85,21 @@ function ensureAdminApp(): App {
   const sa = fromEnv || fromFile;
 
   if (!sa?.project_id || !sa?.client_email || !sa?.private_key) {
-    // This is the exact error you see:
     throw new Error(
       "Missing Firebase Admin credentials at runtime. " +
         "Set FIREBASE_ADMIN_SA_JSON (recommended), or FIREBASE_ADMIN_PROJECT_ID/FIREBASE_ADMIN_CLIENT_EMAIL/FIREBASE_ADMIN_PRIVATE_KEY."
     );
   }
 
+  // cert() vil ha projectId/clientEmail/privateKey (camelCase)
+  const certInput: CertInput = {
+    projectId: sa.project_id,
+    clientEmail: sa.client_email,
+    privateKey: sa.private_key,
+  };
+
   return initializeApp({
-    credential: cert(sa as any),
+    credential: cert(certInput),
     projectId: sa.project_id,
   });
 }

@@ -6,10 +6,17 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, serverTimestamp, updateDoc, setDoc } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+  setDoc,
+  type DocumentData,
+  type Timestamp,
+} from "firebase/firestore";
 import { LANGUAGES } from "@/lib/languages";
-import { auth } from "@/lib/firebase"; // ✅ for å sjekke anon vs innlogget
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   value: l.code,
@@ -24,7 +31,7 @@ type Lesson = {
   sourceText?: string;
   text?: string;
 
-  tasks?: any;
+  tasks?: unknown;
   status?: "draft" | "published";
   language?: string;
 
@@ -33,7 +40,7 @@ type Lesson = {
   isActive?: boolean;
 };
 
-type AnswersMap = Record<string, any>;
+type AnswersMap = Record<string, unknown>;
 
 type TranslatedTask = {
   stableId: string;
@@ -41,9 +48,78 @@ type TranslatedTask = {
   translatedOptions?: string[];
 };
 
-function isPermissionDenied(e: any) {
-  const code = String(e?.code || "").toLowerCase();
-  const msg = String(e?.message || "").toLowerCase();
+type SubmissionDoc = {
+  uid?: string;
+  publishedLessonId?: string;
+  answers?: Record<string, unknown>;
+  status?: "draft" | "submitted";
+  feedback?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+  feedbackUpdatedAt?: Timestamp;
+};
+
+type PublishedLessonDoc = {
+  title?: string;
+  level?: string;
+  topic?: string;
+  language?: string;
+  sourceText?: string;
+  text?: string;
+  tasks?: unknown;
+  coverImageUrl?: string;
+  isActive?: boolean;
+};
+
+type TaskType = "mcq" | "truefalse" | "open";
+
+type Task = {
+  id?: string;
+  order?: number;
+  type?: TaskType | string;
+  prompt?: string;
+  options?: unknown[];
+  correctAnswer?: unknown;
+};
+
+function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
+  const d = data as Partial<PublishedLessonDoc>;
+  return {
+    title: typeof d.title === "string" ? d.title : undefined,
+    level: typeof d.level === "string" ? d.level : undefined,
+    topic: typeof d.topic === "string" ? d.topic : undefined,
+    language: typeof d.language === "string" ? d.language : undefined,
+    sourceText: typeof d.sourceText === "string" ? d.sourceText : undefined,
+    text: typeof d.text === "string" ? d.text : undefined,
+    tasks: d.tasks,
+    coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
+    isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
+  };
+}
+
+function asSubmissionDoc(data: DocumentData): SubmissionDoc {
+  const d = data as Partial<SubmissionDoc>;
+  const answers =
+    d.answers && typeof d.answers === "object" && !Array.isArray(d.answers)
+      ? (d.answers as Record<string, unknown>)
+      : undefined;
+
+  return {
+    uid: typeof d.uid === "string" ? d.uid : undefined,
+    publishedLessonId: typeof d.publishedLessonId === "string" ? d.publishedLessonId : undefined,
+    answers,
+    status: d.status === "draft" || d.status === "submitted" ? d.status : undefined,
+    feedback: typeof d.feedback === "string" ? d.feedback : undefined,
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+    feedbackUpdatedAt: d.feedbackUpdatedAt,
+  };
+}
+
+function isPermissionDenied(e: unknown) {
+  const err = e as { code?: unknown; message?: unknown };
+  const code = String(err?.code ?? "").toLowerCase();
+  const msg = String(err?.message ?? "").toLowerCase();
   return (
     code.includes("permission-denied") ||
     code.includes("permission_denied") ||
@@ -62,31 +138,33 @@ async function translateOne(text: string, targetLang: string) {
 
   const raw = await res.text();
 
-  let data: any = {};
+  let data: unknown = {};
   try {
     data = raw ? JSON.parse(raw) : {};
   } catch {
     throw new Error(`Translate API returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 200)}`);
   }
 
-  if (data?.error) throw new Error(`Translate API error (HTTP ${res.status}): ${data.error}`);
+  const d = data as { error?: unknown; translatedText?: unknown; translation?: unknown; text?: unknown };
+
+  if (d?.error) throw new Error(`Translate API error (HTTP ${res.status}): ${String(d.error)}`);
   if (!res.ok) throw new Error(`Translate HTTP ${res.status}: ${raw.slice(0, 200)}`);
 
-  const out = (data?.translatedText ?? data?.translation ?? data?.text ?? "").toString().trim();
+  const out = String(d?.translatedText ?? d?.translation ?? d?.text ?? "").trim();
   if (!out) {
     throw new Error(
-      `Translate returned empty (HTTP ${res.status}). Keys: ${Object.keys(data).join(", ") || "(no keys)"}`
+      `Translate returned empty (HTTP ${res.status}). Keys: ${Object.keys(d as object).join(", ") || "(no keys)"}`
     );
   }
   return out;
 }
 
-function safeTasksArray(tasks: any): any[] {
-  if (Array.isArray(tasks)) return tasks;
+function safeTasksArray(tasks: unknown): Task[] {
+  if (Array.isArray(tasks)) return tasks as Task[];
   if (typeof tasks === "string") {
     try {
-      const parsed = JSON.parse(tasks);
-      return Array.isArray(parsed) ? parsed : [];
+      const parsed: unknown = JSON.parse(tasks);
+      return Array.isArray(parsed) ? (parsed as Task[]) : [];
     } catch {
       return [];
     }
@@ -94,7 +172,7 @@ function safeTasksArray(tasks: any): any[] {
   return [];
 }
 
-function getStableTaskId(t: any, idx: number): string {
+function getStableTaskId(t: Task, idx: number): string {
   if (t?.id != null && String(t.id).trim()) return String(t.id).trim();
 
   const orderPart = t?.order != null ? String(t.order) : "x";
@@ -213,27 +291,7 @@ function Pill({ text, kind = "neutral" }: { text: string; kind?: "neutral" | "go
 function lsKey(lessonId: string) {
   return `321skole:answers:${lessonId}`;
 }
-function safeParseJSON(s: string | null) {
-  if (!s) return null;
-  try {
-    return JSON.parse(s);
-  } catch {
-    return null;
-  }
-}
 // ------------------------------------------
-async function resolveAuthUser() {
-  // Hvis du allerede er innlogget (Google/email), bruk den brukeren.
-  if (auth.currentUser) return auth.currentUser;
-
-  // Hvis ikke, opprett/bruk anon.
-  await ensureAnonymousUser();
-
-  if (!auth.currentUser) {
-    throw new Error("Auth user missing after ensureAnonymousUser()");
-  }
-  return auth.currentUser;
-}
 
 export default function StudentLessonPage() {
   const params = useParams<{ lessonId: string }>();
@@ -247,7 +305,6 @@ export default function StudentLessonPage() {
   const [isAnon, setIsAnon] = useState<boolean>(true);
 
   const [answers, setAnswers] = useState<AnswersMap>({});
-  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -313,7 +370,9 @@ export default function StudentLessonPage() {
   function resumeAudio() {
     const a = audioRef.current;
     if (!a) return;
-    a.play().catch(() => {});
+    a.play().catch(() => {
+      /* ignore */
+    });
   }
 
   async function playTTS(text: string, lang: TtsLang, mode: "original" | "translation") {
@@ -342,18 +401,20 @@ export default function StudentLessonPage() {
       });
 
       const raw = await res.text();
-      let data: any = {};
+      let data: unknown = {};
       try {
         data = raw ? JSON.parse(raw) : {};
       } catch {
         throw new Error(`TTS API returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 200)}`);
       }
 
+      const d = data as { error?: unknown; url?: unknown };
+
       if (!res.ok) {
-        throw new Error(data?.error ? String(data.error) : `TTS error (HTTP ${res.status})`);
+        throw new Error(d?.error ? String(d.error) : `TTS error (HTTP ${res.status})`);
       }
 
-      const url = String(data?.url || "").trim();
+      const url = String(d?.url ?? "").trim();
       if (!url) throw new Error("TTS returned no url");
 
       const a = new Audio(url);
@@ -372,8 +433,9 @@ export default function StudentLessonPage() {
       });
 
       await a.play();
-    } catch (e: any) {
-      setTtsErr(e?.message ?? "TTS failed");
+    } catch (e: unknown) {
+      const msg = (e as { message?: unknown })?.message;
+      setTtsErr(typeof msg === "string" ? msg : "TTS failed");
       setActiveSentenceIndex(null);
       setActiveTextMode(null);
     } finally {
@@ -441,9 +503,7 @@ export default function StudentLessonPage() {
       const t = a.currentTime;
       const ratio = Math.max(0, Math.min(1, t / d));
 
-      const segs =
-        activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
-
+      const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
       if (!segs || segs.length === 0) return;
 
       let idx = segs.findIndex((s) => ratio >= s.startRatio && ratio < s.endRatio);
@@ -474,7 +534,9 @@ export default function StudentLessonPage() {
     setActiveSentenceIndex(idx);
 
     if (a.paused) {
-      a.play().catch(() => {});
+      a.play().catch(() => {
+        /* ignore */
+      });
     }
   }
 
@@ -486,7 +548,9 @@ export default function StudentLessonPage() {
       seekToSentence(activeTextMode, activeSentenceIndex);
     } else {
       a.currentTime = Math.max(0, a.currentTime - 2.0);
-      a.play().catch(() => {});
+      a.play().catch(() => {
+        /* ignore */
+      });
     }
   }
 
@@ -494,8 +558,7 @@ export default function StudentLessonPage() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
 
-    const segs =
-      activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
     if (!segs.length) return;
 
     const nextIdx = Math.max(0, (activeSentenceIndex ?? 0) - 1);
@@ -506,46 +569,43 @@ export default function StudentLessonPage() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
 
-    const segs =
-      activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
     if (!segs.length) return;
 
     const nextIdx = Math.min(segs.length - 1, (activeSentenceIndex ?? 0) + 1);
     seekToSentence(activeTextMode, nextIdx);
   }
 
-  // ---- Load lesson + answers (LOCAL for anon, Firestore for logged in) ----
+  // ---- Load lesson + answers ----
   useEffect(() => {
     let alive = true;
 
-    async function run() {
+    const run = async () => {
       setLoading(true);
       setError(null);
 
       if (!lessonId) {
         setError("Mangler lessonId i URL.");
-        setLoading(false);
+        if (alive) setLoading(false);
         return;
       }
 
       try {
         const user = auth.currentUser ?? (await ensureAnonymousUser());
-if (!alive) return;
+        if (!alive) return;
 
-setUid(user.uid);
-setIsAnon(!!user.isAnonymous);
-console.log("[student-lesson] uid=", user.uid, "isAnon=", !!user.isAnonymous);
-console.log("[student-lesson] stableSubId=", `${user.uid}_${lessonId}`);
+        setUid(user.uid);
+        setIsAnon(!!user.isAnonymous);
 
         // 1) Load published lesson
-        let lessonSnap: any = null;
+        let lessonSnap;
         try {
           lessonSnap = await getDoc(doc(db, "published_lessons", lessonId));
-        } catch (e: any) {
+        } catch (e: unknown) {
           if (isPermissionDenied(e)) {
             setLesson(null);
             setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
-            setLoading(false);
+            if (alive) setLoading(false);
             return;
           }
           throw e;
@@ -553,58 +613,74 @@ console.log("[student-lesson] stableSubId=", `${user.uid}_${lessonId}`);
 
         if (!alive) return;
 
-        if (!lessonSnap?.exists?.()) {
+        if (!lessonSnap.exists()) {
           setLesson(null);
           setError("Denne oppgaven er ikke publisert (eller finnes ikke).");
-          setLoading(false);
+          if (alive) setLoading(false);
           return;
         }
 
-        const rawData = lessonSnap.data() as any;
+        const rawData = asPublishedLessonDoc(lessonSnap.data());
         if (rawData?.isActive === false) {
           setLesson(null);
           setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
-          setLoading(false);
+          if (alive) setLoading(false);
           return;
         }
 
         const lessonData: Lesson = {
-          ...(rawData as Lesson),
-          sourceText: (rawData?.sourceText ?? rawData?.text ?? "") as string,
+          title: rawData.title ?? "Lesson",
+          level: rawData.level,
+          topic: rawData.topic,
+          language: rawData.language,
+          tasks: rawData.tasks,
+          coverImageUrl: rawData.coverImageUrl,
+          isActive: rawData.isActive,
+          sourceText: (rawData.sourceText ?? rawData.text ?? "") as string,
+          text: rawData.text,
+          status: "published",
         };
 
         setLesson(lessonData);
         setImageUrl(lessonData.coverImageUrl ?? null);
 
-        // 2) Load answers
-        // If anon -> localStorage
-        // Else -> Firestore submissions (as before)
-        const stableSubId = `${user.uid}_${lessonId}`;
+        // 2) Load answers: Firestore if logged in, localStorage if anon
+        if (user.isAnonymous) {
+          try {
+            const raw = localStorage.getItem(lsKey(lessonId));
+            const parsed: unknown = raw ? JSON.parse(raw) : null;
+            const p = parsed as { answers?: unknown };
+            if (p?.answers && typeof p.answers === "object" && !Array.isArray(p.answers)) {
+              setAnswers(p.answers as Record<string, unknown>);
+            } else {
+              setAnswers({});
+            }
+          } catch {
+            setAnswers({});
+          }
+          setFeedback(null);
+        } else {
+          const stableSubId = `${user.uid}_${lessonId}`;
+          try {
+            const subRef = doc(db, "submissions", stableSubId);
+            const subDoc = await getDoc(subRef);
+            if (!alive) return;
 
-
-       // Logged-in path: Firestore submissions
-try {
-  const subRef = doc(db, "submissions", stableSubId);
-  const subDoc = await getDoc(subRef);
-  if (!alive) return;
-
-  if (subDoc.exists()) {
-    const data = subDoc.data() as any;
-    setSubmissionId(subDoc.id);
-    if (data?.answers && typeof data.answers === "object") setAnswers(data.answers);
-    if (typeof data?.feedback === "string") setFeedback(data.feedback);
-  } else {
-    setSubmissionId(null);
-    setAnswers({});
-    setFeedback(null);
-  }
-} catch (e: any) {
-  // Ikke stopp lesson-visning om submissions feiler
-  if (!isPermissionDenied(e)) throw e;
-  setSubmissionId(null);
-  setAnswers({});
-  setFeedback(null);
-}
+            if (subDoc.exists()) {
+              const data = asSubmissionDoc(subDoc.data());
+              if (data?.answers) setAnswers(data.answers);
+              if (typeof data?.feedback === "string") setFeedback(data.feedback);
+              else setFeedback(null);
+            } else {
+              setAnswers({});
+              setFeedback(null);
+            }
+          } catch (e: unknown) {
+            if (!isPermissionDenied(e)) throw e;
+            setAnswers({});
+            setFeedback(null);
+          }
+        }
 
         // reset translations per lesson load
         setTranslatedText(null);
@@ -618,34 +694,34 @@ try {
         setTtsErr(null);
         setTtsBusy(null);
         stopAudio();
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!alive) return;
         if (isPermissionDenied(e)) {
           setError("Denne oppgaven er ikke publisert (eller du har ikke tilgang).");
         } else {
-          setError(e?.message ?? "Noe gikk galt");
+          const msg = (e as { message?: unknown })?.message;
+          setError(typeof msg === "string" ? msg : "Noe gikk galt");
         }
-      } finally {
-        if (!alive) return;
-        setLoading(false);
       }
-    }
+
+      if (alive) setLoading(false);
+    };
 
     run();
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId]);
 
   // Auto-save to localStorage when anon
   useEffect(() => {
     if (!lessonId) return;
     if (!isAnon) return;
+
     try {
       localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
     } catch {
-      // ignore
+      /* ignore */
     }
   }, [answers, isAnon, lessonId]);
 
@@ -659,7 +735,7 @@ try {
     setTimeout(() => setMsg(null), 1800);
   }
 
-  function setAnswer(taskId: string, value: any) {
+  function setAnswer(taskId: string, value: unknown) {
     setAnswers((prev) => ({ ...prev, [taskId]: value }));
   }
 
@@ -679,12 +755,21 @@ try {
   async function saveDraft() {
     if (!lessonId || !uid) return;
 
-    // ✅ Anonymous: local only
-
     setSaving(true);
     setMsg(null);
 
     try {
+      // Anon: local only
+      if (isAnon) {
+        try {
+          localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
+        } catch {
+          /* ignore */
+        }
+        flash("Saved ✅");
+        return;
+      }
+
       const stableId = `${uid}_${lessonId}`;
       const ref = doc(db, "submissions", stableId);
 
@@ -701,10 +786,10 @@ try {
         { merge: true }
       );
 
-      setSubmissionId(stableId);
       flash("Saved ✅");
-    } catch (e: any) {
-      setMsg(e?.message ?? "Could not save");
+    } catch (e: unknown) {
+      const msg = (e as { message?: unknown })?.message;
+      setMsg(typeof msg === "string" ? msg : "Could not save");
     } finally {
       setSaving(false);
     }
@@ -738,7 +823,7 @@ try {
 
         if (ans === undefined || ans === null || ans === "") continue;
 
-        lines.push(`Task ${order} (${type}): ${prompt}`);
+        lines.push(`Task ${order} (${String(type)}): ${String(prompt)}`);
         lines.push(`Answer: ${typeof ans === "string" ? ans : JSON.stringify(ans)}`);
         lines.push("");
       }
@@ -758,7 +843,6 @@ try {
       return;
     }
 
-    // ✅ Anonymous: no Firestore feedback (since it writes). Keep it simple.
     if (isAnon) {
       flash("Log in to get AI feedback");
       return;
@@ -784,8 +868,6 @@ try {
         { merge: true }
       );
 
-      setSubmissionId(stableId);
-
       const lesetekst = (lesson.sourceText ?? lesson.text ?? "").trim();
       const oppgave = buildOppgaveString(lesson);
       const svar = buildSvarString(lesson, answers);
@@ -806,8 +888,10 @@ try {
         throw new Error(`Feedback API error (${res.status}): ${t}`);
       }
 
-      const data = await res.json();
-      const fb = typeof data?.feedback === "string" ? data.feedback : JSON.stringify(data);
+      const data: unknown = await res.json();
+      const d = data as { feedback?: unknown };
+
+      const fb = typeof d?.feedback === "string" ? d.feedback : JSON.stringify(d);
 
       setFeedback(fb);
       setTranslatedFeedback(null);
@@ -819,8 +903,9 @@ try {
       });
 
       flash("Submitted ✅");
-    } catch (e: any) {
-      setMsg(e?.message ?? "Could not submit");
+    } catch (e: unknown) {
+      const msg = (e as { message?: unknown })?.message;
+      setMsg(typeof msg === "string" ? msg : "Could not submit");
     } finally {
       setSubmitting(false);
     }
@@ -837,8 +922,9 @@ try {
       const out = await translateOne(base, targetLang);
       setTranslatedText(out);
       setShowTextTranslation(true);
-    } catch (e: any) {
-      setTranslateErr(e?.message ?? "Translate failed");
+    } catch (e: unknown) {
+      const msg = (e as { message?: unknown })?.message;
+      setTranslateErr(typeof msg === "string" ? msg : "Translate failed");
       setTranslatedText(null);
     } finally {
       setTranslating(null);
@@ -854,7 +940,7 @@ try {
     setTranslating("tasks");
 
     try {
-      const sorted = tasksArr.slice().sort((a: any, b: any) => (a?.order ?? 999) - (b?.order ?? 999));
+      const sorted = tasksArr.slice().sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
       const out: TranslatedTask[] = [];
 
       for (let i = 0; i < sorted.length; i++) {
@@ -868,19 +954,21 @@ try {
         if (promptOrig) {
           try {
             translatedPrompt = await translateOne(promptOrig, targetLang);
-          } catch (e: any) {
-            setTranslateErr((prev) => prev ?? e?.message ?? "Translate failed");
+          } catch (e: unknown) {
+            const msg = (e as { message?: unknown })?.message;
+            setTranslateErr((prev) => prev ?? (typeof msg === "string" ? msg : "Translate failed"));
           }
         }
 
         let translatedOptions: string[] = [];
         if (optionsOrig.length > 0) {
           translatedOptions = await Promise.all(
-            optionsOrig.map(async (o: any) => {
+            optionsOrig.map(async (o) => {
               try {
                 return await translateOne(String(o), targetLang);
-              } catch (e: any) {
-                setTranslateErr((prev) => prev ?? e?.message ?? "Translate failed");
+              } catch (e: unknown) {
+                const msg = (e as { message?: unknown })?.message;
+                setTranslateErr((prev) => prev ?? (typeof msg === "string" ? msg : "Translate failed"));
                 return "";
               }
             })
@@ -897,8 +985,9 @@ try {
       setTranslatedTasks(out);
       setShowTaskTranslations(true);
       setTaskTranslationOpen({});
-    } catch (e: any) {
-      setTranslateErr(e?.message ?? "Translate failed");
+    } catch (e: unknown) {
+      const msg = (e as { message?: unknown })?.message;
+      setTranslateErr(typeof msg === "string" ? msg : "Translate failed");
     } finally {
       setTranslating(null);
     }
@@ -915,8 +1004,9 @@ try {
     try {
       const out = await translateOne(text, targetLang);
       setTranslatedFeedback(out);
-    } catch (e: any) {
-      setFeedbackTranslateErr(e?.message ?? "Translate feedback failed");
+    } catch (e: unknown) {
+      const msg = (e as { message?: unknown })?.message;
+      setFeedbackTranslateErr(typeof msg === "string" ? msg : "Translate feedback failed");
     } finally {
       setFeedbackTranslating(false);
     }
@@ -950,7 +1040,7 @@ try {
 
   const tasksOriginal = safeTasksArray(lesson.tasks)
     .slice()
-    .sort((a: any, b: any) => (a?.order ?? 999) - (b?.order ?? 999));
+    .sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
 
   const originalLangForTTS: TtsLang = toTtsLang(lesson.language || "no");
   const translationLangForTTS: TtsLang = toTtsLang(targetLang);
@@ -1019,7 +1109,14 @@ try {
       <section style={{ marginTop: 14 }}>
         <h2 style={{ marginBottom: 8 }}>Image</h2>
 
-        <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12, background: "rgba(0,0,0,0.02)" }}>
+        <div
+          style={{
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 12,
+            padding: 12,
+            background: "rgba(0,0,0,0.02)",
+          }}
+        >
           <div
             style={{
               width: "100%",
@@ -1077,11 +1174,19 @@ try {
             />
           </label>
 
-          <button onClick={onTranslateText} disabled={translating === "text" || !(sourceTextSafe || "").trim()} style={{ ...btnStyle, opacity: translating === "text" ? 0.6 : 1 }}>
+          <button
+            onClick={onTranslateText}
+            disabled={translating === "text" || !(sourceTextSafe || "").trim()}
+            style={{ ...btnStyle, opacity: translating === "text" ? 0.6 : 1 }}
+          >
             {translating === "text" ? "Translating…" : "Translate text"}
           </button>
 
-          <button onClick={onTranslateTasks} disabled={translating === "tasks" || tasksOriginal.length === 0} style={{ ...btnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}>
+          <button
+            onClick={onTranslateTasks}
+            disabled={translating === "tasks" || tasksOriginal.length === 0}
+            style={{ ...btnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
+          >
             {translating === "tasks" ? "Translating…" : "Translate tasks"}
           </button>
 
@@ -1112,11 +1217,23 @@ try {
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <span style={{ opacity: 0.75 }}>Speed</span>
-              <input type="range" min="0.75" max="1.5" step="0.05" value={playbackRate} onChange={(e) => setPlaybackRate(Number(e.target.value))} />
+              <input
+                type="range"
+                min="0.75"
+                max="1.5"
+                step="0.05"
+                value={playbackRate}
+                onChange={(e) => setPlaybackRate(Number(e.target.value))}
+              />
               <span style={{ width: 46, textAlign: "right" }}>{playbackRate.toFixed(2)}x</span>
             </label>
 
-            <button type="button" style={{ ...btnStyle, opacity: ttsBusy === "original" ? 0.6 : 1 }} disabled={ttsBusy !== null || !(sourceTextSafe || "").trim()} onClick={() => playTTS(sourceTextSafe || "", originalLangForTTS, "original")}>
+            <button
+              type="button"
+              style={{ ...btnStyle, opacity: ttsBusy === "original" ? 0.6 : 1 }}
+              disabled={ttsBusy !== null || !(sourceTextSafe || "").trim()}
+              onClick={() => playTTS(sourceTextSafe || "", originalLangForTTS, "original")}
+            >
               {ttsBusy === "original" ? "Generating…" : "🔊 Play original"}
             </button>
 
@@ -1168,7 +1285,12 @@ try {
             ) : null}
 
             {translatedText ? (
-              <button type="button" style={{ ...btnStyle, opacity: ttsBusy === "translation" ? 0.6 : 1 }} disabled={ttsBusy !== null || !(translatedText || "").trim()} onClick={() => playTTS(translatedText || "", translationLangForTTS, "translation")}>
+              <button
+                type="button"
+                style={{ ...btnStyle, opacity: ttsBusy === "translation" ? 0.6 : 1 }}
+                disabled={ttsBusy !== null || !(translatedText || "").trim()}
+                onClick={() => playTTS(translatedText || "", translationLangForTTS, "translation")}
+              >
                 {ttsBusy === "translation" ? "Generating…" : "🔊 Play translation"}
               </button>
             ) : null}
@@ -1182,7 +1304,16 @@ try {
         </div>
 
         {translatedText && showTextTranslation ? (
-          <div style={{ marginTop: 10, padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55, background: "rgba(0,0,0,0.02)" }}>
+          <div
+            style={{
+              marginTop: 10,
+              padding: 12,
+              border: "1px solid rgba(0,0,0,0.12)",
+              borderRadius: 12,
+              lineHeight: 1.55,
+              background: "rgba(0,0,0,0.02)",
+            }}
+          >
             <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Translated</div>
             {renderFollowText("translation", translationSegs, translatedText)}
           </div>
@@ -1204,7 +1335,9 @@ try {
               if (lessonId && isAnon) {
                 try {
                   localStorage.removeItem(lsKey(lessonId));
-                } catch {}
+                } catch {
+                  /* ignore */
+                }
               }
               flash("Cleared answers");
             }}
@@ -1226,16 +1359,17 @@ try {
           <p style={{ opacity: 0.7, marginTop: 8 }}>No tasks in this lesson.</p>
         ) : (
           <div style={{ marginTop: 10, display: "grid", gap: 12 }}>
-            {tasksOriginal.map((t: any, idx: number) => {
+            {tasksOriginal.map((t, idx) => {
               const stableId = getStableTaskId(t, idx);
               const tr = tMap.get(stableId);
 
               const type = String(t?.type ?? "open");
               const prompt = String(t?.prompt ?? "");
-              const options = Array.isArray(t?.options) ? t.options : [];
+              const options = Array.isArray(t?.options) ? (t.options as unknown[]) : [];
               const val = answers[stableId];
 
-              const hasThisTranslation = !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
+              const hasThisTranslation =
+                !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
               const showThisTranslation = hasThisTranslation ? isTaskTranslationVisible(stableId) : false;
 
               const rawCorrect = t?.correctAnswer;
@@ -1260,8 +1394,7 @@ try {
               })();
 
               const hasCorrect =
-                (type === "mcq" && mcqCorrectText != null) ||
-                (type === "truefalse" && tfCorrectBool != null);
+                (type === "mcq" && mcqCorrectText != null) || (type === "truefalse" && tfCorrectBool != null);
 
               const isCorrect =
                 type === "mcq"
@@ -1302,7 +1435,7 @@ try {
 
                   {type === "mcq" && options.length > 0 ? (
                     <div style={{ display: "grid", gap: 8 }}>
-                      {options.map((o: any, i: number) => {
+                      {options.map((o, i) => {
                         const opt = String(o);
                         const checked = val === opt;
                         const optT = tr?.translatedOptions?.[i] || "";
@@ -1398,7 +1531,7 @@ try {
 
                   {type === "open" || !["mcq", "truefalse"].includes(type) ? (
                     <textarea
-                      value={typeof val === "string" ? val : val ?? ""}
+                      value={typeof val === "string" ? val : val == null ? "" : String(val)}
                       onChange={(e) => setAnswer(stableId, e.target.value)}
                       placeholder="Write your answer…"
                       rows={4}

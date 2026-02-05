@@ -8,6 +8,16 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
 export default function ApplyCreatorPage() {
   return (
     <AuthGate>
@@ -65,9 +75,7 @@ function Inner() {
     return (
       <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
         <h1>Creator</h1>
-        <p>
-          Du er godkjent teacher. Teacher får creator-tilgang automatisk.
-        </p>
+        <p>Du er godkjent teacher. Teacher får creator-tilgang automatisk.</p>
         <Link href="/creator">Gå til Creator</Link>
       </div>
     );
@@ -113,9 +121,9 @@ function Inner() {
                   updatedAt: serverTimestamp(),
                 });
                 setMsg("Søknad sendt ✅");
-              } catch (e: any) {
+              } catch (e: unknown) {
                 console.error("apply creator failed", e);
-                setMsg("Kunne ikke sende søknad.");
+                setMsg(`Kunne ikke sende søknad: ${getErrorMessage(e)}`);
               } finally {
                 setSaving(false);
               }

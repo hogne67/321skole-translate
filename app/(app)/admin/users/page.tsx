@@ -2,15 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  collection,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, doc, getDocs, orderBy, query, updateDoc, serverTimestamp, type DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AuthGate from "@/components/AuthGate";
 
@@ -40,8 +32,72 @@ type UserRow = {
     vocab?: boolean;
   };
 
-  updatedAt?: any;
+  updatedAt?: unknown;
 };
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function toStringOrNull(v: unknown): string | null | undefined {
+  if (typeof v === "string") return v;
+  if (v === null) return null;
+  return undefined;
+}
+
+function toBool(v: unknown): boolean | undefined {
+  return typeof v === "boolean" ? v : undefined;
+}
+
+function toStatus(v: unknown): Status | undefined {
+  return v === "none" || v === "pending" || v === "approved" || v === "rejected" ? v : undefined;
+}
+
+function coerceUserRow(id: string, data: DocumentData): UserRow {
+  const obj: Record<string, unknown> = isRecord(data) ? data : {};
+
+  const rolesRaw = obj.roles;
+  const roles = isRecord(rolesRaw)
+    ? {
+        teacher: toBool(rolesRaw.teacher),
+        creator: toBool(rolesRaw.creator),
+        admin: toBool(rolesRaw.admin),
+        student: toBool(rolesRaw.student),
+        parent: toBool(rolesRaw.parent),
+      }
+    : undefined;
+
+  const capsRaw = obj.caps;
+  const caps = isRecord(capsRaw)
+    ? {
+        publish: toBool(capsRaw.publish),
+        sell: toBool(capsRaw.sell),
+        pdf: toBool(capsRaw.pdf),
+        tts: toBool(capsRaw.tts),
+        vocab: toBool(capsRaw.vocab),
+      }
+    : undefined;
+
+  return {
+    id,
+    email: toStringOrNull(obj.email),
+    displayName: toStringOrNull(obj.displayName),
+
+    teacherStatus: toStatus(obj.teacherStatus),
+    creatorStatus: toStatus(obj.creatorStatus),
+
+    roles,
+    caps,
+
+    updatedAt: obj.updatedAt,
+  };
+}
+
+function errorMessage(e: unknown): string {
+  if (isRecord(e) && typeof e.message === "string") return e.message;
+  if (typeof e === "string") return e;
+  return String(e);
+}
 
 export default function AdminUsersPage() {
   return (
@@ -65,10 +121,10 @@ function UsersInner() {
     try {
       const qy = query(collection(db, "users"), orderBy("updatedAt", "desc"));
       const snap = await getDocs(qy);
-      const list: UserRow[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      const list: UserRow[] = snap.docs.map((d) => coerceUserRow(d.id, d.data()));
       setRows(list);
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -76,18 +132,11 @@ function UsersInner() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pendingTeachers = useMemo(
-    () => rows.filter((u) => u.teacherStatus === "pending"),
-    [rows]
-  );
+  const pendingTeachers = useMemo(() => rows.filter((u) => u.teacherStatus === "pending"), [rows]);
 
-  const pendingCreators = useMemo(
-    () => rows.filter((u) => u.creatorStatus === "pending"),
-    [rows]
-  );
+  const pendingCreators = useMemo(() => rows.filter((u) => u.creatorStatus === "pending"), [rows]);
 
   const visible = useMemo(() => {
     // Filtrering:
@@ -105,10 +154,8 @@ function UsersInner() {
     // ingen filter: vis alle, med litt sortering
     const score = (u: UserRow) => {
       // teacher approved først, deretter creator approved, så pending, etc
-      const t =
-        u.teacherStatus === "approved" ? 0 : u.teacherStatus === "pending" ? 1 : 2;
-      const c =
-        u.creatorStatus === "approved" ? 0 : u.creatorStatus === "pending" ? 1 : 2;
+      const t = u.teacherStatus === "approved" ? 0 : u.teacherStatus === "pending" ? 1 : 2;
+      const c = u.creatorStatus === "approved" ? 0 : u.creatorStatus === "pending" ? 1 : 2;
       return t * 10 + c;
     };
     return rows.slice().sort((a, b) => score(a) - score(b));
@@ -134,8 +181,8 @@ function UsersInner() {
         updatedAt: serverTimestamp(),
       });
       await load();
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
     }
   }
 
@@ -147,8 +194,8 @@ function UsersInner() {
         updatedAt: serverTimestamp(),
       });
       await load();
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
     }
   }
 
@@ -162,8 +209,8 @@ function UsersInner() {
         updatedAt: serverTimestamp(),
       });
       await load();
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
     }
   }
 
@@ -179,8 +226,8 @@ function UsersInner() {
         updatedAt: serverTimestamp(),
       });
       await load();
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
     }
   }
 
@@ -193,8 +240,8 @@ function UsersInner() {
         updatedAt: serverTimestamp(),
       });
       await load();
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
     }
   }
 
@@ -207,8 +254,8 @@ function UsersInner() {
         updatedAt: serverTimestamp(),
       });
       await load();
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
     }
   }
 
@@ -220,8 +267,8 @@ function UsersInner() {
         updatedAt: serverTimestamp(),
       });
       await load();
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
     }
   }
 
@@ -274,16 +321,22 @@ function UsersInner() {
       </header>
 
       {err ? (
-        <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(200,0,0,0.06)", border: "1px solid rgba(200,0,0,0.18)" }}>
+        <div
+          style={{
+            marginTop: 10,
+            padding: 10,
+            borderRadius: 10,
+            background: "rgba(200,0,0,0.06)",
+            border: "1px solid rgba(200,0,0,0.18)",
+          }}
+        >
           <b>Feil:</b> {err}
         </div>
       ) : null}
 
       <section style={{ marginTop: 14 }}>
         {visible.length === 0 ? (
-          <p style={{ marginTop: 14, opacity: 0.75 }}>
-            Ingen brukere å vise med dagens filter.
-          </p>
+          <p style={{ marginTop: 14, opacity: 0.75 }}>Ingen brukere å vise med dagens filter.</p>
         ) : null}
 
         <div style={{ marginTop: 8 }}>
@@ -346,19 +399,34 @@ function UsersInner() {
                 {/* Teacher */}
                 <button
                   onClick={() => approveTeacher(u)}
-                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.14)",
+                    background: "white",
+                  }}
                 >
                   Approve teacher
                 </button>
                 <button
                   onClick={() => setTeacherPending(u)}
-                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.14)",
+                    background: "white",
+                  }}
                 >
                   Teacher pending
                 </button>
                 <button
                   onClick={() => revokeTeacher(u)}
-                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.14)",
+                    background: "white",
+                  }}
                 >
                   Revoke teacher
                 </button>
@@ -368,25 +436,45 @@ function UsersInner() {
                 {/* Creator */}
                 <button
                   onClick={() => approveCreator(u)}
-                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.14)",
+                    background: "white",
+                  }}
                 >
                   Approve creator
                 </button>
                 <button
                   onClick={() => setCreatorPending(u)}
-                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.14)",
+                    background: "white",
+                  }}
                 >
                   Creator pending
                 </button>
                 <button
                   onClick={() => rejectCreator(u)}
-                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.14)",
+                    background: "white",
+                  }}
                 >
                   Reject creator
                 </button>
                 <button
                   onClick={() => revokeCreator(u)}
-                  style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.14)", background: "white" }}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,0.14)",
+                    background: "white",
+                  }}
                 >
                   Revoke creator
                 </button>

@@ -14,6 +14,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  type DocumentData,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -30,7 +31,7 @@ type PendingLesson = {
   texttype?: string;
   sourceText?: string;
   text?: string;
-  tasks?: any;
+  tasks?: unknown;
   coverImageUrl?: string;
   imageUrl?: string;
 
@@ -40,16 +41,80 @@ type PendingLesson = {
     riskScore?: number;
     reasons?: string[];
     notes?: string;
-    checkedAt?: any;
+    checkedAt?: unknown;
   };
 
   ownerId?: string;
-  updatedAt?: any;
+  updatedAt?: unknown;
 };
 
-function toNum(v: any, fallback = 0) {
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function toStringSafe(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (typeof v === "number") return String(v);
+  return "";
+}
+
+function toStringArray(v: unknown): string[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out = v.filter((x) => typeof x === "string") as string[];
+  return out.length ? out : [];
+}
+
+function toNum(v: unknown, fallback = 0) {
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function coercePendingLesson(id: string, data: DocumentData): PendingLesson {
+  const obj: Record<string, unknown> = isRecord(data) ? data : {};
+
+  const moderationRaw = obj.moderation;
+  const moderation = isRecord(moderationRaw) ? moderationRaw : undefined;
+
+  const publishRaw = obj.publish;
+  const publish = isRecord(publishRaw) ? publishRaw : undefined;
+
+  return {
+    id,
+    title: toStringSafe(obj.title) || undefined,
+    description: toStringSafe(obj.description) || undefined,
+    level: toStringSafe(obj.level) || undefined,
+    language: toStringSafe(obj.language) || undefined,
+    topic: toStringSafe(obj.topic) || undefined,
+    topics: toStringArray(obj.topics),
+    textType: toStringSafe(obj.textType) || undefined,
+    texttype: toStringSafe(obj.texttype) || undefined,
+    sourceText: toStringSafe(obj.sourceText) || undefined,
+    text: toStringSafe(obj.text) || undefined,
+
+    tasks: obj.tasks,
+
+    coverImageUrl: toStringSafe(obj.coverImageUrl) || undefined,
+    imageUrl: toStringSafe(obj.imageUrl) || undefined,
+
+    publish: publish
+      ? {
+          state: toStringSafe(publish.state) || undefined,
+        }
+      : undefined,
+
+    moderation: moderation
+      ? {
+          status: toStringSafe(moderation.status) || undefined,
+          riskScore: typeof moderation.riskScore === "number" ? moderation.riskScore : undefined,
+          reasons: toStringArray(moderation.reasons),
+          notes: toStringSafe(moderation.notes) || undefined,
+          checkedAt: moderation.checkedAt,
+        }
+      : undefined,
+
+    ownerId: toStringSafe(obj.ownerId) || undefined,
+    updatedAt: obj.updatedAt,
+  };
 }
 
 export default function AdminReviewPage() {
@@ -77,10 +142,12 @@ export default function AdminReviewPage() {
       );
 
       const snap = await getDocs(q);
-      const out: PendingLesson[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      const out: PendingLesson[] = snap.docs.map((d) => coercePendingLesson(d.id, d.data()));
       setItems(out);
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+      const message =
+        isRecord(e) && typeof e.message === "string" ? e.message : typeof e === "string" ? e : String(e);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -114,6 +181,8 @@ export default function AdminReviewPage() {
       if (!title) throw new Error("Cannot approve: missing title.");
       if (!sourceText) throw new Error("Cannot approve: missing sourceText.");
 
+      const tasksArray = Array.isArray(item.tasks) ? item.tasks : [];
+
       // 1) publish copy
       await setDoc(
         doc(db, "published_lessons", id),
@@ -124,27 +193,27 @@ export default function AdminReviewPage() {
           language: String(item.language ?? "").trim() || "",
 
           topic: String(item.topic ?? "").trim() || "",
-          topics: Array.isArray(item.topics) ? item.topics : (item.topic ? [item.topic] : []),
+          topics: Array.isArray(item.topics) ? item.topics : item.topic ? [item.topic] : [],
 
           textType: String(item.textType ?? item.texttype ?? "").trim() || "",
           texttype: String(item.texttype ?? item.textType ?? "").trim() || "",
 
           sourceText,
-          tasks: item.tasks ?? [],
+          tasks: tasksArray,
 
           coverImageUrl: item.coverImageUrl ?? "",
           imageUrl: item.imageUrl ?? "",
 
           isActive: true,
 
-          publish: { state: "published", visibility: "public" },
+          publish: { state: "published", visibility: "public" as const },
           moderation: {
             ...(item.moderation || {}),
             reviewedBy: user?.uid || "",
             reviewedAt: serverTimestamp(),
           },
 
-          status: "published",
+          status: "published" as const,
           publishedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         },
@@ -162,8 +231,10 @@ export default function AdminReviewPage() {
 
       setItems((prev) => prev.filter((x) => x.id !== id));
       setMsg(`Approved ✅ (${id})`);
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+      const message =
+        isRecord(e) && typeof e.message === "string" ? e.message : typeof e === "string" ? e : String(e);
+      setError(message);
     } finally {
       setBusyId(null);
     }
@@ -198,8 +269,10 @@ export default function AdminReviewPage() {
 
       setItems((prev) => prev.filter((x) => x.id !== id));
       setMsg(`Rejected ❌ (${id})`);
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+      const message =
+        isRecord(e) && typeof e.message === "string" ? e.message : typeof e === "string" ? e : String(e);
+      setError(message);
     } finally {
       setBusyId(null);
     }
@@ -217,7 +290,10 @@ export default function AdminReviewPage() {
           <button onClick={load} disabled={loading || !!busyId} style={{ padding: "10px 14px" }}>
             Refresh
           </button>
-          <Link href="/admin" style={{ padding: "10px 14px", border: "1px solid rgba(0,0,0,0.14)", borderRadius: 12 }}>
+          <Link
+            href="/admin"
+            style={{ padding: "10px 14px", border: "1px solid rgba(0,0,0,0.14)", borderRadius: 12 }}
+          >
             Admin dashboard
           </Link>
         </div>
@@ -247,9 +323,7 @@ export default function AdminReviewPage() {
       <section style={{ marginTop: 14 }}>
         {loading ? <p>Loading…</p> : null}
 
-        {!loading && sorted.length === 0 ? (
-          <p style={{ opacity: 0.75 }}>No pending items 🎉</p>
-        ) : null}
+        {!loading && sorted.length === 0 ? <p style={{ opacity: 0.75 }}>No pending items 🎉</p> : null}
 
         <div style={{ display: "grid", gap: 12 }}>
           {sorted.map((x) => {
@@ -343,16 +417,16 @@ export default function AdminReviewPage() {
                 <details style={{ marginTop: 10 }}>
                   <summary style={{ cursor: "pointer", opacity: 0.85 }}>Details</summary>
                   <pre style={{ whiteSpace: "pre-wrap", marginTop: 10, fontSize: 12, opacity: 0.85 }}>
-{JSON.stringify(
-  {
-    id: x.id,
-    publish: x.publish,
-    moderation: x.moderation,
-    ownerId: x.ownerId,
-  },
-  null,
-  2
-)}
+                    {JSON.stringify(
+                      {
+                        id: x.id,
+                        publish: x.publish,
+                        moderation: x.moderation,
+                        ownerId: x.ownerId,
+                      },
+                      null,
+                      2
+                    )}
                   </pre>
                 </details>
               </div>

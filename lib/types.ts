@@ -5,7 +5,10 @@ export type Lesson = {
   level?: string;
   topic?: string;
   sourceText?: string;
-  tasks?: any; // array eller JSON-string
+
+  // kan være array (runtime) eller JSON-string (lagret)
+  tasks?: unknown[] | string;
+
   language?: string;
 
   // published_lessons
@@ -15,15 +18,18 @@ export type Lesson = {
 export type Submission = {
   uid: string;
   publishedLessonId: string;
-  answers?: Record<string, any>;
+
+  // svarstruktur er fri (taskId -> svar)
+  answers?: Record<string, unknown>;
+
   status?: "draft" | "submitted";
 
   lessonTitle?: string;
   lessonLevel?: string;
   lessonLanguage?: string;
 
-  createdAt?: any;
-  updatedAt?: any;
+  createdAt?: unknown;
+  updatedAt?: unknown;
 
   feedback?: string;
 };

@@ -5,15 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import {
-  doc,
-  getDoc,
-  collection,
-  getDocs,
-  limit,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, query, where } from "firebase/firestore";
 
 type Lesson = {
   title: string;
@@ -28,7 +20,7 @@ type Lesson = {
   sourceText?: string;
   text?: string;
 
-  tasks?: any;
+  tasks?: unknown;
 
   coverImageUrl?: string;
   imageUrl?: string;
@@ -38,9 +30,35 @@ type Lesson = {
   visibility?: string;
 };
 
-function isPermissionDenied(e: any) {
-  const code = String(e?.code || "").toLowerCase();
-  const msg = String(e?.message || "").toLowerCase();
+type Task = {
+  id?: string;
+  order?: number;
+  type?: string;
+  prompt?: string;
+  options?: unknown;
+};
+
+function getErrorInfo(err: unknown): { code?: string; message: string } {
+  if (err instanceof Error) return { message: err.message };
+  if (typeof err === "string") return { message: err };
+
+  if (err && typeof err === "object") {
+    const code = "code" in err ? (err as { code?: unknown }).code : undefined;
+    const message = "message" in err ? (err as { message?: unknown }).message : undefined;
+
+    return {
+      code: typeof code === "string" ? code : undefined,
+      message: typeof message === "string" ? message : JSON.stringify(err),
+    };
+  }
+
+  return { message: String(err) };
+}
+
+function isPermissionDenied(e: unknown) {
+  const info = getErrorInfo(e);
+  const code = String(info.code || "").toLowerCase();
+  const msg = String(info.message || "").toLowerCase();
   return (
     code.includes("permission-denied") ||
     code.includes("permission_denied") ||
@@ -50,23 +68,25 @@ function isPermissionDenied(e: any) {
   );
 }
 
-function safeTasksArray(tasks: any): any[] {
-  if (Array.isArray(tasks)) return tasks;
+function safeTasksArray(tasks: unknown): Task[] {
+  if (Array.isArray(tasks)) return tasks as Task[];
+
   if (typeof tasks === "string") {
     try {
-      const parsed = JSON.parse(tasks);
-      return Array.isArray(parsed) ? parsed : [];
+      const parsed: unknown = JSON.parse(tasks);
+      return Array.isArray(parsed) ? (parsed as Task[]) : [];
     } catch {
       return [];
     }
   }
+
   return [];
 }
 
-function getStableTaskId(t: any, idx: number): string {
-  if (t?.id != null && String(t.id).trim()) return String(t.id).trim();
-  const orderPart = t?.order != null ? String(t.order) : "x";
-  const promptPart = typeof t?.prompt === "string" ? t.prompt.trim().slice(0, 80) : "";
+function getStableTaskId(t: Task, idx: number): string {
+  if (t.id != null && String(t.id).trim()) return String(t.id).trim();
+  const orderPart = t.order != null ? String(t.order) : "x";
+  const promptPart = typeof t.prompt === "string" ? t.prompt.trim().slice(0, 80) : "";
   if (promptPart) return `${orderPart}__${promptPart}`;
   return `${orderPart}__idx${idx}`;
 }
@@ -92,32 +112,44 @@ function pickImageUrl(l: Lesson): string | null {
   return null;
 }
 
+function toStringOrEmpty(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function sortTasksByOrder(a: Task, b: Task) {
+  const ao = typeof a.order === "number" ? a.order : 999;
+  const bo = typeof b.order === "number" ? b.order : 999;
+  return ao - bo;
+}
+
+type PublishedLessonResult =
+  | { via: "docId"; data: Record<string, unknown> }
+  | { via: "fieldQuery"; data: Record<string, unknown> }
+  | { via: "none"; data: null };
+
 /**
  * Hent published lesson på to måter:
- * 1) DocId === lessonId (den "perfekte" modellen)
+ * 1) DocId === lessonId
  * 2) Fallback: query where(lessonId == param) hvis publisering har auto-ID
  */
-async function fetchPublishedLessonByEitherIdOrField(lessonId: string) {
-  // 1) Forsøk docId == lessonId
+async function fetchPublishedLessonByEitherIdOrField(lessonId: string): Promise<PublishedLessonResult> {
+  // 1) DocId
   try {
     const directSnap = await getDoc(doc(db, "published_lessons", lessonId));
     if (directSnap.exists()) {
-      return { snap: directSnap, via: "docId" as const };
+      return { via: "docId", data: (directSnap.data() as Record<string, unknown>) ?? {} };
     }
-  } catch (e: any) {
-    // Hvis permission-denied, prøv likevel fallback-query (kan være at docId ikke finnes)
+  } catch (e: unknown) {
+    // Hvis permission-denied, prøv likevel fallback-query
     if (!isPermissionDenied(e)) throw e;
   }
 
   // 2) Fallback query på feltet lessonId
-  const q = query(
-    collection(db, "published_lessons"),
-    where("lessonId", "==", lessonId),
-    limit(1)
-  );
+  const q = query(collection(db, "published_lessons"), where("lessonId", "==", lessonId), limit(1));
   const qsnap = await getDocs(q);
-  if (qsnap.empty) return { snap: null, via: "none" as const };
-  return { snap: qsnap.docs[0], via: "fieldQuery" as const };
+  if (qsnap.empty) return { via: "none", data: null };
+
+  return { via: "fieldQuery", data: (qsnap.docs[0].data() as Record<string, unknown>) ?? {} };
 }
 
 export default function LessonPreviewPage() {
@@ -136,46 +168,61 @@ export default function LessonPreviewPage() {
       setError(null);
 
       if (!lessonId) {
-        setError("Mangler lessonId i URL.");
-        setLoading(false);
+        if (alive) {
+          setError("Mangler lessonId i URL.");
+          setLoading(false);
+        }
         return;
       }
 
       try {
         const res = await fetchPublishedLessonByEitherIdOrField(lessonId);
-
         if (!alive) return;
 
-        if (!res.snap) {
+        if (!res.data) {
           setLesson(null);
           setError("Denne oppgaven er ikke publisert (eller finnes ikke).");
-          setLoading(false);
           return;
         }
 
-        const raw = res.snap.data() as any;
+        const raw = res.data as Partial<Lesson>;
 
         // Hard filter: må være aktiv
         if (raw?.isActive === false) {
           setLesson(null);
           setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
-          setLoading(false);
           return;
         }
 
+        const sourceText = toStringOrEmpty(raw?.sourceText) || toStringOrEmpty(raw?.text) || "";
+
         const data: Lesson = {
-          ...(raw as Lesson),
-          sourceText: (raw?.sourceText ?? raw?.text ?? "") as string,
+          title: toStringOrEmpty(raw?.title) || "(Uten tittel)",
+          description: toStringOrEmpty(raw?.description) || undefined,
+          level: toStringOrEmpty(raw?.level) || undefined,
+          topic: toStringOrEmpty(raw?.topic) || undefined,
+          topics: Array.isArray(raw?.topics) ? (raw?.topics as string[]) : undefined,
+          language: toStringOrEmpty(raw?.language) || undefined,
+          text: toStringOrEmpty(raw?.text) || undefined,
+          sourceText,
+          tasks: raw?.tasks,
+          coverImageUrl: toStringOrEmpty(raw?.coverImageUrl) || undefined,
+          imageUrl: toStringOrEmpty(raw?.imageUrl) || undefined,
+          isActive: raw?.isActive,
+          lessonId: toStringOrEmpty(raw?.lessonId) || undefined,
+          visibility: toStringOrEmpty(raw?.visibility) || undefined,
         };
 
         setLesson(data);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!alive) return;
-        if (isPermissionDenied(e)) setError("Denne oppgaven er ikke publisert (eller du har ikke tilgang).");
-        else setError(e?.message ?? "Noe gikk galt");
+        if (isPermissionDenied(e)) {
+          setError("Denne oppgaven er ikke publisert (eller du har ikke tilgang).");
+        } else {
+          setError(getErrorInfo(e).message || "Noe gikk galt");
+        }
       } finally {
-        if (!alive) return;
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     }
 
@@ -192,7 +239,7 @@ export default function LessonPreviewPage() {
 
   const tasksOriginal = useMemo(() => {
     const arr = safeTasksArray(lesson?.tasks);
-    return arr.slice().sort((a: any, b: any) => (a?.order ?? 999) - (b?.order ?? 999));
+    return arr.slice().sort(sortTasksByOrder);
   }, [lesson?.tasks]);
 
   if (loading) return <p style={{ padding: 16 }}>Loading…</p>;
@@ -265,7 +312,11 @@ export default function LessonPreviewPage() {
         >
           {img ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={img} alt={lesson.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img
+              src={img}
+              alt={lesson.title}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
           ) : (
             <div style={{ opacity: 0.65 }}>Ingen cover</div>
           )}
@@ -276,7 +327,11 @@ export default function LessonPreviewPage() {
       <section style={{ marginTop: 16 }}>
         <h2 style={{ marginBottom: 8 }}>Text</h2>
         <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
-          {sourceTextSafe ? <div style={{ whiteSpace: "pre-wrap" }}>{sourceTextSafe}</div> : <span style={{ opacity: 0.6 }}>No text</span>}
+          {sourceTextSafe ? (
+            <div style={{ whiteSpace: "pre-wrap" }}>{sourceTextSafe}</div>
+          ) : (
+            <span style={{ opacity: 0.6 }}>No text</span>
+          )}
         </div>
       </section>
 
@@ -288,23 +343,29 @@ export default function LessonPreviewPage() {
           <p style={{ opacity: 0.7 }}>No tasks in this lesson.</p>
         ) : (
           <div style={{ display: "grid", gap: 12 }}>
-            {tasksOriginal.map((t: any, idx: number) => {
+            {tasksOriginal.map((t, idx) => {
               const stableId = getStableTaskId(t, idx);
-              const type = String(t?.type ?? "open");
-              const prompt = String(t?.prompt ?? "");
-              const options = Array.isArray(t?.options) ? t.options : [];
+              const type = typeof t.type === "string" ? t.type : "open";
+              const prompt = typeof t.prompt === "string" ? t.prompt : "";
+              const options = Array.isArray(t.options) ? t.options : [];
 
               return (
-                <div key={stableId} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
+                <div
+                  key={stableId}
+                  style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}
+                >
                   <div style={{ opacity: 0.8, marginBottom: 8 }}>
-                    <strong>Oppgave {t?.order ?? idx + 1}</strong> <span style={{ marginLeft: 8 }}>• {type}</span>
+                    <strong>Oppgave {typeof t.order === "number" ? t.order : idx + 1}</strong>{" "}
+                    <span style={{ marginLeft: 8 }}>• {type}</span>
                   </div>
 
-                  <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10 }}>{prompt}</div>
+                  <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10 }}>
+                    {prompt}
+                  </div>
 
                   {type === "mcq" && options.length > 0 ? (
                     <div style={{ display: "grid", gap: 8 }}>
-                      {options.map((o: any, i: number) => (
+                      {options.map((o, i) => (
                         <div key={i} style={optionCard}>
                           {String(o)}
                         </div>

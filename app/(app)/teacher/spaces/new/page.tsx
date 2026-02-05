@@ -7,6 +7,20 @@ import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { createSpaceForTeacher } from "@/lib/spacesClient";
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
 export default function NewSpacePage() {
   return (
     <AuthGate requireRole="teacher" requireApprovedTeacher>
@@ -32,8 +46,8 @@ function NewSpaceInner() {
     try {
       const res = await createSpaceForTeacher({ ownerId: user.uid, title: title.trim(), isOpen });
       router.push(`/teacher/spaces/${res.spaceId}`);
-    } catch (e: any) {
-      setErr(e?.message ?? "Ukjent feil");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e) || "Ukjent feil");
     } finally {
       setSaving(false);
     }
@@ -48,7 +62,12 @@ function NewSpaceInner() {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="F.eks. Norsk A2 – Gruppe 1"
-        style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          borderRadius: 10,
+          border: "1px solid rgba(0,0,0,0.2)",
+        }}
       />
 
       <label style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>

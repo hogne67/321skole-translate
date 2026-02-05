@@ -5,16 +5,33 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, limit, query, where } from "firebase/firestore";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { submitToSpace } from "@/lib/spaceSubmissionsClient";
 
-// 👉 tilpass dette til din published_lesson type
+type Task = Record<string, unknown>;
+type Answers = Record<string, unknown>;
+
 type PublishedLesson = {
   title?: string;
   level?: string;
   text?: string;
-  tasks?: any;
+  tasks?: Task[];
 };
+
+function toErrorString(err: unknown): string {
+  if (!err) return "Ukjent feil";
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message;
+
+  if (typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const code = typeof o.code === "string" ? o.code : "";
+    const message = typeof o.message === "string" ? o.message : "";
+    return code || message || "Ukjent feil";
+  }
+
+  return "Ukjent feil";
+}
 
 export default function SpaceLessonPage() {
   const params = useParams<{ spaceId: string; lessonId: string }>();
@@ -27,7 +44,7 @@ export default function SpaceLessonPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
 
-  const [user, setUser] = useState<ReturnType<typeof getAuth>["currentUser"] | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   // Auth: logg hva vi faktisk har (anon / innlogget)
   useEffect(() => {
@@ -36,7 +53,7 @@ export default function SpaceLessonPage() {
       console.log("AUTH:", {
         hasUser: !!u,
         uid: u?.uid,
-        isAnonymous: (u as any)?.isAnonymous,
+        isAnonymous: u?.isAnonymous ?? false,
         providerId: u?.providerData?.[0]?.providerId,
       });
       setUser(u);
@@ -53,10 +70,7 @@ export default function SpaceLessonPage() {
       try {
         console.log("LOAD published lesson by lessonId:", { lessonId });
 
-        // ⚠️ Sjekk at collection-navnet matcher Firestore.
-        // Hvis din heter "publishedLessons" el.l. – endre her.
         const col = collection(db, "published_lessons");
-
         const q = query(col, where("lessonId", "==", lessonId), limit(1));
         const qs = await getDocs(q);
 
@@ -67,13 +81,10 @@ export default function SpaceLessonPage() {
           const data = qs.docs[0].data() as PublishedLesson;
           setLesson(data);
         }
-      } catch (e: any) {
-        console.error("LOAD PUBLISHED LESSON FAILED:", e);
+      } catch (err: unknown) {
+        console.error("LOAD PUBLISHED LESSON FAILED:", err);
         setLesson(null);
-
-        // Gi et brukervennlig hint (ofte rules)
-        const message = e?.message ?? "Ukjent feil ved lasting.";
-        setLoadErr(message);
+        setLoadErr(toErrorString(err));
       } finally {
         setLoading(false);
       }
@@ -81,7 +92,7 @@ export default function SpaceLessonPage() {
   }, [lessonId]);
 
   // 👇 MVP state for svar (byttes senere mot din ekte lesson-view)
-  const [answers, setAnswers] = useState<any>({});
+  const [answers, setAnswers] = useState<Answers>({});
 
   async function onSubmit() {
     setMsg(null);
@@ -94,9 +105,9 @@ export default function SpaceLessonPage() {
 
       await submitToSpace({ spaceId, lessonId, answers, user: user ?? null });
       setMsg("✅ Levert! Du kan lukke siden, eller vente på feedback fra læreren.");
-    } catch (e: any) {
-      console.error("SUBMIT FAILED:", e);
-      setMsg(`❌ Kunne ikke levere: ${e?.message ?? "ukjent feil"}`);
+    } catch (err: unknown) {
+      console.error("SUBMIT FAILED:", err);
+      setMsg(`❌ Kunne ikke levere: ${toErrorString(err)}`);
     } finally {
       setSaving(false);
     }
@@ -114,9 +125,7 @@ export default function SpaceLessonPage() {
         <div style={{ marginBottom: 8 }}>Fant ikke lesson.</div>
         {loadErr && (
           <div style={{ opacity: 0.8 }}>
-            <div style={{ marginBottom: 6 }}>
-              Teknisk feilmelding (ofte pga. Firestore rules):
-            </div>
+            <div style={{ marginBottom: 6 }}>Teknisk feilmelding (ofte pga. Firestore rules):</div>
             <code style={{ display: "block", whiteSpace: "pre-wrap" }}>{loadErr}</code>
           </div>
         )}
@@ -132,16 +141,12 @@ export default function SpaceLessonPage() {
 
       <h1 style={{ marginBottom: 6 }}>{lesson.title ?? "Lesson"}</h1>
 
-      {/* ✅ HER: bruk din eksisterende lesson-komponent.
-          Det eneste du trenger er å mappe "answers" state + submit-knapp */}
       <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-        <div style={{ opacity: 0.8, marginBottom: 10 }}>
-          (Bytt denne boksen med eksisterende lesson-visning din)
-        </div>
+        <div style={{ opacity: 0.8, marginBottom: 10 }}>(Bytt denne boksen med eksisterende lesson-visning din)</div>
 
         <textarea
           placeholder="MVP: skriv noe her som 'answer' (kun demo)"
-          value={answers?.freeText ?? ""}
+          value={typeof answers.freeText === "string" ? answers.freeText : ""}
           onChange={(e) => setAnswers({ ...answers, freeText: e.target.value })}
           style={{ width: "100%", minHeight: 120, padding: "10px 12px", borderRadius: 10 }}
         />

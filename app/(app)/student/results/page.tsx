@@ -1,3 +1,4 @@
+// app/(app)/student/results/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -13,14 +14,16 @@ import {
   limit,
   doc,
   getDoc,
+  type Timestamp,
+  type DocumentData,
 } from "firebase/firestore";
 
 type SubmissionRow = {
   id: string;
   lessonId: string;
   status?: "draft" | "submitted";
-  updatedAt?: any;
-  createdAt?: any;
+  updatedAt?: Timestamp;
+  createdAt?: Timestamp;
   feedback?: string;
 };
 
@@ -30,12 +33,46 @@ type LessonMeta = {
   topic?: string;
 };
 
-function formatDate(ts: any) {
-  // Firestore Timestamp has toDate()
+type SubmissionDoc = {
+  uid?: string;
+  lessonId?: string;
+  status?: "draft" | "submitted";
+  updatedAt?: Timestamp;
+  createdAt?: Timestamp;
+  feedback?: string;
+};
+
+type LessonDoc = {
+  title?: string;
+  level?: string;
+  topic?: string;
+};
+
+function asSubmissionDoc(data: DocumentData): SubmissionDoc {
+  const d = data as Partial<SubmissionDoc>;
+  return {
+    uid: typeof d.uid === "string" ? d.uid : undefined,
+    lessonId: typeof d.lessonId === "string" ? d.lessonId : undefined,
+    status: d.status === "draft" || d.status === "submitted" ? d.status : undefined,
+    updatedAt: d.updatedAt,
+    createdAt: d.createdAt,
+    feedback: typeof d.feedback === "string" ? d.feedback : undefined,
+  };
+}
+
+function asLessonDoc(data: DocumentData): LessonDoc {
+  const d = data as Partial<LessonDoc>;
+  return {
+    title: typeof d.title === "string" ? d.title : undefined,
+    level: typeof d.level === "string" ? d.level : undefined,
+    topic: typeof d.topic === "string" ? d.topic : undefined,
+  };
+}
+
+function formatDate(ts?: Timestamp) {
+  if (!ts) return "";
   try {
-    const d: Date | undefined = ts?.toDate?.();
-    if (!d) return "";
-    return d.toLocaleString();
+    return ts.toDate().toLocaleString();
   } catch {
     return "";
   }
@@ -49,20 +86,21 @@ export default function StudentResultsPage() {
   const [err, setErr] = useState<string | null>(null);
 
   const lessonIds = useMemo(() => {
-    return Array.from(new Set(rows.map((r) => r.lessonId))).filter(Boolean);
+    return Array.from(new Set(rows.map((r) => r.lessonId))).filter((x) => x && x.trim().length > 0);
   }, [rows]);
 
   // 1) ensure user + load submissions
   useEffect(() => {
     let alive = true;
 
-    async function run() {
+    const run = async () => {
       setLoading(true);
       setErr(null);
 
       try {
         const user = await ensureAnonymousUser();
         if (!alive) return;
+
         setUid(user.uid);
 
         // newest first
@@ -76,7 +114,7 @@ export default function StudentResultsPage() {
         let snap;
         try {
           snap = await getDocs(q1);
-        } catch (e) {
+        } catch {
           // fallback if some docs lack updatedAt or index differs
           const q2 = query(
             collection(db, "submissions"),
@@ -89,27 +127,29 @@ export default function StudentResultsPage() {
 
         if (!alive) return;
 
-        const list: SubmissionRow[] = snap.docs.map((d) => {
-          const data = d.data() as any;
-          return {
-            id: d.id,
-            lessonId: String(data.lessonId || ""),
-            status: data.status,
-            updatedAt: data.updatedAt,
-            createdAt: data.createdAt,
-            feedback: typeof data.feedback === "string" ? data.feedback : undefined,
-          };
-        });
+        const list: SubmissionRow[] = snap.docs
+          .map((d) => {
+            const data = asSubmissionDoc(d.data());
+            return {
+              id: d.id,
+              lessonId: data.lessonId ?? "",
+              status: data.status,
+              updatedAt: data.updatedAt,
+              createdAt: data.createdAt,
+              feedback: data.feedback,
+            };
+          })
+          .filter((r) => r.lessonId.trim().length > 0);
 
         setRows(list);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!alive) return;
-        setErr(e?.message ?? "Could not load results");
-      } finally {
-        if (!alive) return;
-        setLoading(false);
+        const msg = (e as { message?: unknown })?.message;
+        setErr(typeof msg === "string" ? msg : "Could not load results");
       }
-    }
+
+      if (alive) setLoading(false);
+    };
 
     run();
     return () => {
@@ -121,7 +161,7 @@ export default function StudentResultsPage() {
   useEffect(() => {
     let alive = true;
 
-    async function run() {
+    const run = async () => {
       if (lessonIds.length === 0) return;
 
       const missing = lessonIds.filter((id) => !lessonsById[id]);
@@ -131,11 +171,13 @@ export default function StudentResultsPage() {
 
       for (const id of missing) {
         try {
+          // NB: du brukte "lessons" her. Hvis dine metadata ligger i "published_lessons",
+          // bytt til doc(db, "published_lessons", id)
           const snap = await getDoc(doc(db, "lessons", id));
           if (!alive) return;
 
           if (snap.exists()) {
-            const data = snap.data() as any;
+            const data = asLessonDoc(snap.data());
             updates[id] = {
               title: data.title,
               level: data.level,
@@ -151,7 +193,7 @@ export default function StudentResultsPage() {
 
       if (!alive) return;
       setLessonsById((prev) => ({ ...prev, ...updates }));
-    }
+    };
 
     run();
     return () => {
@@ -164,9 +206,7 @@ export default function StudentResultsPage() {
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div>
           <h3 style={{ marginTop: 0 }}>My results</h3>
-          <div style={{ opacity: 0.75, fontSize: 13 }}>
-            {uid ? `User: ${uid.slice(0, 8)}…` : ""}
-          </div>
+          <div style={{ opacity: 0.75, fontSize: 13 }}>{uid ? `User: ${uid.slice(0, 8)}…` : ""}</div>
         </div>
 
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -237,15 +277,15 @@ export default function StudentResultsPage() {
                     {when ? ` • Updated: ${formatDate(when)}` : ""}
                   </div>
 
-                  {hasFeedback && (
+                  {hasFeedback && r.feedback ? (
                     <div style={{ marginTop: 8, opacity: 0.85, fontSize: 13 }}>
                       <div style={{ fontWeight: 600, marginBottom: 4 }}>Latest feedback (preview)</div>
                       <div style={{ whiteSpace: "pre-wrap" }}>
-                        {r.feedback!.slice(0, 220)}
-                        {r.feedback!.length > 220 ? "…" : ""}
+                        {r.feedback.slice(0, 220)}
+                        {r.feedback.length > 220 ? "…" : ""}
                       </div>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>

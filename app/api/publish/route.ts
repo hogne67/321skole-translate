@@ -2,17 +2,21 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
-export const runtime = "nodejs";
 
+export const runtime = "nodejs";
 
 type Visibility = "public" | "unlisted" | "private";
 
-function pickVisibility(v: any): Visibility {
-  return v === "unlisted" || v === "private" || v === "public" ? v : "public";
+function bool(v: unknown) {
+  return v === true;
 }
 
-function bool(v: any) {
-  return v === true;
+function isVisibility(v: unknown): v is Visibility {
+  return v === "public" || v === "unlisted" || v === "private";
+}
+
+function pickVisibility(v: unknown): Visibility {
+  return isVisibility(v) ? v : "public";
 }
 
 export async function POST(req: Request) {
@@ -21,10 +25,7 @@ export async function POST(req: Request) {
   // --- Auth ---
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) {
-    return NextResponse.json(
-      { error: "Missing Authorization Bearer token" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Missing Authorization Bearer token" }, { status: 401 });
   }
 
   let uid: string;
@@ -36,9 +37,11 @@ export async function POST(req: Request) {
   }
 
   // --- Input ---
-  const body = await req.json().catch(() => ({}));
-  const id = (body?.id || body?.lessonId) as string | undefined;
-  const visibility = pickVisibility(body?.visibility);
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const idRaw = body.id ?? body.lessonId;
+  const id = typeof idRaw === "string" ? idRaw : undefined;
+
+  const visibility = pickVisibility(body.visibility);
 
   if (!id) return NextResponse.json({ error: "Missing id/lessonId" }, { status: 400 });
 
@@ -48,28 +51,26 @@ export async function POST(req: Request) {
   const userRef = db.doc(`users/${uid}`);
   const userSnap = await userRef.get();
   if (!userSnap.exists) {
-    return NextResponse.json(
-      { error: `Missing user profile (users/${uid})` },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: `Missing user profile (users/${uid})` }, { status: 400 });
   }
 
-  const profile: any = userSnap.data() || {};
+  const profile = ((userSnap.data() ?? {}) as Record<string, unknown>) || {};
+  const roles = (profile.roles ?? {}) as Record<string, unknown>;
+  const caps = (profile.caps ?? {}) as Record<string, unknown>;
 
-  const roles = profile?.roles || {};
-  const caps = profile?.caps || {};
-
-  const isAdmin = bool(roles?.admin);
-  const isApprovedTeacher = profile?.teacherStatus === "approved";
+  const isAdmin = bool(roles.admin);
+  const isApprovedTeacher = profile.teacherStatus === "approved";
 
   // MVP/Policy:
   // - Admin kan alltid publisere
-  // - "Approved teacher" kan publisere (uavhengig av caps.publish)
-  // - caps.publish beholdes som "feature flag" (valgfritt), men er ikke nødvendig her
-  const canPublish = isAdmin || isApprovedTeacher || bool(caps?.publish);
+  // - Approved teacher kan publisere
+  // - caps.publish kan fungere som feature flag
+  const canPublish = isAdmin || isApprovedTeacher || bool(caps.publish);
 
-  // Optional attestation (NOT required in MVP)
-  const att = profile?.publisherAttestation;
+  const att =
+    profile.publisherAttestation && typeof profile.publisherAttestation === "object"
+      ? (profile.publisherAttestation as Record<string, unknown>)
+      : null;
 
   // --- Authorization rules ---
   if (!canPublish) {
@@ -80,9 +81,9 @@ export async function POST(req: Request) {
       ts: now,
       meta: {
         reason: "NOT_ALLOWED_TO_PUBLISH",
-        rolesAdmin: !!roles?.admin,
-        teacherStatus: profile?.teacherStatus ?? null,
-        capsPublish: !!caps?.publish,
+        rolesAdmin: bool(roles.admin),
+        teacherStatus: profile.teacherStatus ?? null,
+        capsPublish: bool(caps.publish),
       },
     });
 
@@ -90,16 +91,15 @@ export async function POST(req: Request) {
       {
         error:
           "Publishing not allowed (requires teacherStatus=approved, caps.publish=true, or admin). " +
-          `teacherStatus=${String(profile?.teacherStatus)} roles.admin=${String(
-            !!roles?.admin
-          )} caps.publish=${String(!!caps?.publish)}`,
+          `teacherStatus=${String(profile.teacherStatus)} roles.admin=${String(
+            bool(roles.admin)
+          )} caps.publish=${String(bool(caps.publish))}`,
       },
       { status: 403 }
     );
   }
 
   // --- Load draft ---
-  // Primary: lessons/{id}. Fallback: texts/{id}
   const draftRefA = db.doc(`lessons/${id}`);
   const draftSnapA = await draftRefA.get();
 
@@ -110,8 +110,8 @@ export async function POST(req: Request) {
   const draftPath = draftSnapA.exists
     ? `lessons/${id}`
     : draftSnapB?.exists
-    ? `texts/${id}`
-    : null;
+      ? `texts/${id}`
+      : null;
 
   if (!draftSnap || !draftSnap.exists) {
     await db.collection("auditEvents").add({
@@ -121,17 +121,15 @@ export async function POST(req: Request) {
       ts: now,
       meta: { reason: "DRAFT_NOT_FOUND" },
     });
-    return NextResponse.json(
-      { error: "Draft not found in lessons/ or texts/" },
-      { status: 404 }
-    );
+
+    return NextResponse.json({ error: "Draft not found in lessons/ or texts/" }, { status: 404 });
   }
 
-  const draft: any = draftSnap.data() || {};
-  const ownerId = draft.ownerId;
+  const draft = ((draftSnap.data() ?? {}) as Record<string, unknown>) || {};
+  const ownerId = typeof draft.ownerId === "string" ? draft.ownerId : null;
 
-  // MVP: Ikke-admin kan kun publisere egne utkast
-  if (!isAdmin && ownerId !== uid) {
+  // Ikke-admin kan kun publisere egne utkast
+  if (!isAdmin && ownerId && ownerId !== uid) {
     await db.collection("auditEvents").add({
       type: "PUBLISH_BLOCKED",
       uid,
@@ -142,7 +140,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not owner of draft" }, { status: 403 });
   }
 
-  // Hvis admin publiserer andres draft: "effectiveOwnerId" settes til draft.ownerId
   const effectiveOwnerId = ownerId || uid;
 
   // --- Build published doc (signed snapshot) ---
@@ -150,10 +147,12 @@ export async function POST(req: Request) {
 
   const signedBy = {
     uid,
-    nameSnapshot: profile.displayName ?? "",
-    emailSnapshot: profile.email ?? "",
-    orgSnapshot: profile.org ?? {},
-    attestationVersion: typeof att?.version === "number" ? att.version : null,
+    nameSnapshot: typeof profile.displayName === "string" ? profile.displayName : "",
+    emailSnapshot: typeof profile.email === "string" ? profile.email : "",
+    orgSnapshot:
+      profile.org && typeof profile.org === "object" ? (profile.org as Record<string, unknown>) : {},
+    attestationVersion:
+      att && typeof att.version === "number" ? att.version : null,
     signedAt: now,
     viaAdmin: isAdmin && effectiveOwnerId !== uid,
   };
@@ -192,7 +191,7 @@ export async function POST(req: Request) {
     meta: { draftPath, visibility, isAdminPublish: isAdmin, effectiveOwnerId },
   });
 
-    return NextResponse.json({
+  return NextResponse.json({
     ok: true,
     publishedLessonId: id,
     publishedId: id, // ✅ alias for klienter som forventer publishedId

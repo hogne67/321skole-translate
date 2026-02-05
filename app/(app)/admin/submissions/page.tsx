@@ -1,13 +1,14 @@
+// app/(app)/admin/submissions/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Row = {
   id: string;
   lessonId?: string;
   taskId?: string;
   taskType?: string;
-  answer?: any;
+  answer?: unknown;
   isCorrect?: boolean | null;
   feedback?: string | null;
   level?: string | null;
@@ -15,29 +16,98 @@ type Row = {
   createdAt?: string | null;
 };
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function parseJsonUnknown(raw: string): unknown {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return {};
+  }
+}
+
+function asString(v: unknown): string | undefined {
+  return typeof v === "string" ? v : undefined;
+}
+
+function asBoolOrNull(v: unknown): boolean | null | undefined {
+  if (typeof v === "boolean") return v;
+  if (v === null) return null;
+  return undefined;
+}
+
+function coerceRow(v: unknown): Row | null {
+  if (!isRecord(v)) return null;
+  const id = asString(v.id);
+  if (!id) return null;
+
+  const answer = (v as Record<string, unknown>).answer;
+
+  const feedback =
+    typeof v.feedback === "string" ? v.feedback : v.feedback === null ? null : undefined;
+
+  const level = typeof v.level === "string" ? v.level : v.level === null ? null : undefined;
+
+  const targetLang =
+    typeof v.targetLang === "string" ? v.targetLang : v.targetLang === null ? null : undefined;
+
+  const createdAt =
+    typeof v.createdAt === "string" ? v.createdAt : v.createdAt === null ? null : undefined;
+
+  return {
+    id,
+    lessonId: asString(v.lessonId),
+    taskId: asString(v.taskId),
+    taskType: asString(v.taskType),
+    answer,
+    isCorrect: asBoolOrNull(v.isCorrect),
+    feedback,
+    level,
+    targetLang,
+    createdAt,
+  };
+}
+
+function coerceRows(v: unknown): Row[] {
+  if (!Array.isArray(v)) return [];
+  const out: Row[] = [];
+  for (const item of v) {
+    const r = coerceRow(item);
+    if (r) out.push(r);
+  }
+  return out;
+}
+
+function errorMessage(e: unknown): string {
+  if (isRecord(e) && typeof e.message === "string") return e.message;
+  if (typeof e === "string") return e;
+  return String(e);
+}
+
 export default function AdminSubmissionsPage() {
   const [token, setToken] = useState("");
   const [lessonId, setLessonId] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [taskType, setTaskType] = useState("");
-const [onlyIncorrect, setOnlyIncorrect] = useState(false);
-const [qText, setQText] = useState("");
-const [limit, setLimit] = useState("50");
 
+  const [taskType, setTaskType] = useState("");
+  const [onlyIncorrect, setOnlyIncorrect] = useState(false);
+  const [qText, setQText] = useState("");
+  const [limitStr, setLimitStr] = useState("50");
 
   async function load() {
     try {
       setLoading(true);
       setErr(null);
 
-     const qs = new URLSearchParams();
-if (lessonId.trim()) qs.set("lessonId", lessonId.trim());
-if (taskType) qs.set("taskType", taskType);
-if (onlyIncorrect) qs.set("onlyIncorrect", "1");
-qs.set("limit", limit);
-
+      const qs = new URLSearchParams();
+      if (lessonId.trim()) qs.set("lessonId", lessonId.trim());
+      if (taskType) qs.set("taskType", taskType);
+      if (onlyIncorrect) qs.set("onlyIncorrect", "1");
+      qs.set("limit", limitStr);
 
       const res = await fetch(`/api/admin/submissions?${qs.toString()}`, {
         headers: { "x-admin-token": token },
@@ -46,10 +116,11 @@ qs.set("limit", limit);
       const raw = await res.text().catch(() => "");
       if (!res.ok) throw new Error(raw || `HTTP ${res.status}`);
 
-      const data = raw ? JSON.parse(raw) : {};
-      setRows(Array.isArray(data.rows) ? data.rows : []);
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed");
+      const data: unknown = raw ? parseJsonUnknown(raw) : {};
+      const parsedRows = isRecord(data) ? coerceRows(data.rows) : [];
+      setRows(parsedRows);
+    } catch (e: unknown) {
+      setErr(errorMessage(e) || "Failed");
       setRows([]);
     } finally {
       setLoading(false);
@@ -59,75 +130,72 @@ qs.set("limit", limit);
   useEffect(() => {
     // ikke auto-load uten token
   }, []);
-const filtered = rows.filter((r) => {
-  if (!qText.trim()) return true;
-  const hay =
-    (typeof r.answer === "string" ? r.answer : JSON.stringify(r.answer ?? ""))
-      .toLowerCase() +
-    " " +
-    String(r.feedback ?? "").toLowerCase();
-  return hay.includes(qText.toLowerCase());
-});
+
+  const filtered = useMemo(() => {
+    const q = qText.trim().toLowerCase();
+    if (!q) return rows;
+
+    return rows.filter((r) => {
+      const ans =
+        typeof r.answer === "string" ? r.answer : JSON.stringify(r.answer ?? "", null, 0);
+      const hay = `${ans} ${String(r.feedback ?? "")}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [rows, qText]);
 
   return (
     <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
       <h1 style={{ fontSize: 28, fontWeight: 800 }}>Admin: Submissions</h1>
 
- <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-  <input
-    value={token}
-    onChange={(e) => setToken(e.target.value)}
-    placeholder="Admin token"
-    style={{ padding: 8, width: 220 }}
-  />
+      <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder="Admin token"
+          style={{ padding: 8, width: 220 }}
+        />
 
-  <input
-    value={lessonId}
-    onChange={(e) => setLessonId(e.target.value)}
-    placeholder="Filter by lessonId (optional)"
-    style={{ padding: 8, width: 320 }}
-  />
+        <input
+          value={lessonId}
+          onChange={(e) => setLessonId(e.target.value)}
+          placeholder="Filter by lessonId (optional)"
+          style={{ padding: 8, width: 320 }}
+        />
 
-  <select value={taskType} onChange={(e) => setTaskType(e.target.value)} style={{ padding: 8 }}>
-    <option value="">All types</option>
-    <option value="truefalse">truefalse</option>
-    <option value="mcq">mcq</option>
-    <option value="open">open</option>
-  </select>
+        <select value={taskType} onChange={(e) => setTaskType(e.target.value)} style={{ padding: 8 }}>
+          <option value="">All types</option>
+          <option value="truefalse">truefalse</option>
+          <option value="mcq">mcq</option>
+          <option value="open">open</option>
+        </select>
 
-  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, opacity: 0.9 }}>
-    <input
-      type="checkbox"
-      checked={onlyIncorrect}
-      onChange={(e) => setOnlyIncorrect(e.target.checked)}
-    />
-    Only incorrect
-  </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, opacity: 0.9 }}>
+          <input type="checkbox" checked={onlyIncorrect} onChange={(e) => setOnlyIncorrect(e.target.checked)} />
+          Only incorrect
+        </label>
 
-  <select value={limit} onChange={(e) => setLimit(e.target.value)} style={{ padding: 8 }}>
-    <option value="50">Limit 50</option>
-    <option value="100">Limit 100</option>
-    <option value="200">Limit 200</option>
-  </select>
+        <select value={limitStr} onChange={(e) => setLimitStr(e.target.value)} style={{ padding: 8 }}>
+          <option value="50">Limit 50</option>
+          <option value="100">Limit 100</option>
+          <option value="200">Limit 200</option>
+        </select>
 
-  <input
-    value={qText}
-    onChange={(e) => setQText(e.target.value)}
-    placeholder="Search in answer/feedback"
-    style={{ padding: 8, width: 260 }}
-  />
+        <input
+          value={qText}
+          onChange={(e) => setQText(e.target.value)}
+          placeholder="Search in answer/feedback"
+          style={{ padding: 8, width: 260 }}
+        />
 
-  <button onClick={load} disabled={!token || loading}>
-    {loading ? "Loading..." : "Load"}
-  </button>
-</div>
-
+        <button onClick={load} disabled={!token || loading}>
+          {loading ? "Loading..." : "Load"}
+        </button>
+      </div>
 
       {err && <div style={{ marginTop: 12, color: "crimson" }}>{err}</div>}
 
       <div style={{ marginTop: 16, opacity: 0.7, fontSize: 12 }}>
-       Rows: {filtered.length} (loaded {rows.length})
-
+        Rows: {filtered.length} (loaded {rows.length})
       </div>
 
       <div style={{ marginTop: 12, border: "1px solid #ddd", borderRadius: 12, overflow: "hidden" }}>
@@ -144,25 +212,31 @@ const filtered = rows.filter((r) => {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {filtered.map((r) => (
               <tr key={r.id}>
                 <td style={td}>{r.createdAt ?? "-"}</td>
-                <td style={td}><code>{r.lessonId ?? "-"}</code></td>
-                <td style={td}><code>{r.taskId ?? "-"}</code></td>
+                <td style={td}>
+                  <code>{r.lessonId ?? "-"}</code>
+                </td>
+                <td style={td}>
+                  <code>{r.taskId ?? "-"}</code>
+                </td>
                 <td style={td}>{r.taskType ?? "-"}</td>
                 <td style={td}>
                   <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                     {typeof r.answer === "string" ? r.answer : JSON.stringify(r.answer, null, 2)}
                   </pre>
                 </td>
-                <td style={td}>{r.isCorrect === null || r.isCorrect === undefined ? "-" : r.isCorrect ? "✅" : "❌"}</td>
+                <td style={td}>
+                  {r.isCorrect === null || r.isCorrect === undefined ? "-" : r.isCorrect ? "✅" : "❌"}
+                </td>
                 <td style={td}>
                   <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{r.feedback ?? "-"}</pre>
                 </td>
               </tr>
             ))}
 
-            {!rows.length && !loading && (
+            {!filtered.length && !loading && (
               <tr>
                 <td style={td} colSpan={7}>
                   No rows loaded yet.
@@ -173,9 +247,7 @@ const filtered = rows.filter((r) => {
         </table>
       </div>
 
-      <p style={{ marginTop: 12, opacity: 0.7 }}>
-        Tip: Use the lessonId from the learner page header to filter.
-      </p>
+      <p style={{ marginTop: 12, opacity: 0.7 }}>Tip: Use the lessonId from the learner page header to filter.</p>
     </main>
   );
 }

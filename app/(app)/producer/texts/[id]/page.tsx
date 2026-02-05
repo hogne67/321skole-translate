@@ -1,4 +1,4 @@
-// app/producer/texts/[id]/page.tsx
+// app/(app)/producer/texts/[id]/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +10,13 @@ import { db } from "@/lib/firebase";
 
 type PublishState = "draft" | "unlisted" | "pending" | "published" | "rejected";
 type ModStatus = "pass" | "review" | "blocked" | "unknown";
+
+type ModerateResult = {
+  status: "pass" | "review" | "blocked";
+  riskScore: number;
+  reasons: string[];
+  notes?: string;
+};
 
 type LessonDraft = {
   title?: string;
@@ -28,7 +35,7 @@ type LessonDraft = {
   sourceText?: string;
   text?: string;
 
-  tasks?: any; // array or stringified json
+  tasks?: unknown; // array or stringified json
   coverImageUrl?: string;
   imageUrl?: string;
 
@@ -45,16 +52,26 @@ type LessonDraft = {
     riskScore?: number;
     reasons?: string[];
     notes?: string;
-    checkedAt?: any;
+    checkedAt?: unknown;
   };
 };
 
-function safeTasksArray(tasks: any): any[] {
-  if (Array.isArray(tasks)) return tasks;
+type TaskLike = {
+  id?: unknown;
+  order?: unknown;
+  type?: unknown;
+  prompt?: unknown;
+  options?: unknown;
+  correctAnswer?: unknown;
+  answerSpace?: unknown;
+};
+
+function safeTasksArray(tasks: unknown): TaskLike[] {
+  if (Array.isArray(tasks)) return tasks as TaskLike[];
   if (typeof tasks === "string") {
     try {
-      const parsed = JSON.parse(tasks);
-      return Array.isArray(parsed) ? parsed : [];
+      const parsed = JSON.parse(tasks) as unknown;
+      return Array.isArray(parsed) ? (parsed as TaskLike[]) : [];
     } catch {
       return [];
     }
@@ -71,19 +88,30 @@ function publishStateLabel(s?: PublishState) {
   return s || "draft";
 }
 
-async function moderateLesson(input: { title: string; sourceText: string; tasks: any }) {
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
+async function moderateLesson(input: { title: string; sourceText: string; tasks: unknown }) {
   const res = await fetch("/api/moderate-lesson", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error(`Moderation failed (${res.status})`);
-  return (await res.json()) as {
-    status: "pass" | "review" | "blocked";
-    riskScore: number;
-    reasons: string[];
-    notes?: string;
-  };
+
+  const data = (await res.json()) as unknown;
+  return data as ModerateResult;
 }
 
 async function publishViaApi(id: string, visibility: "public" | "unlisted" | "private" = "public") {
@@ -101,10 +129,13 @@ async function publishViaApi(id: string, visibility: "public" | "unlisted" | "pr
     body: JSON.stringify({ id, visibility }),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || "Publish failed");
+  const data: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const d = data as { error?: unknown };
+    throw new Error(typeof d?.error === "string" ? d.error : "Publish failed");
+  }
 
-  return data;
+  return data as { publishedLessonId?: string };
 }
 
 export default function ProducerTextDetailPage() {
@@ -167,8 +198,8 @@ export default function ProducerTextDetailPage() {
 
       setDraft(normalized);
       setRawTasksDraft(JSON.stringify(data.tasks ?? [], null, 2));
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -213,10 +244,14 @@ export default function ProducerTextDetailPage() {
         updatedAt: serverTimestamp(),
       });
 
-      setDraft({ ...draft, publish: { ...(draft.publish || {}), state: safePublishState }, status: "draft" });
+      setDraft({
+        ...draft,
+        publish: { ...(draft.publish || {}), state: safePublishState },
+        status: "draft",
+      });
       setMsg("Saved ✅");
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -236,10 +271,14 @@ export default function ProducerTextDetailPage() {
         updatedAt: serverTimestamp(),
       });
 
-      setDraft({ ...draft, publish: { ...(draft.publish || {}), state: "unlisted" }, status: "draft" });
+      setDraft({
+        ...draft,
+        publish: { ...(draft.publish || {}), state: "unlisted" },
+        status: "draft",
+      });
       setMsg("Set to Unlisted ✅ (share-link only, not in library)");
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -298,8 +337,8 @@ export default function ProducerTextDetailPage() {
       }
 
       setMsg(`Submitted for review ✅ (auto-check: ${mod.status}, score ${mod.riskScore})`);
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setPublishing(false);
     }
@@ -330,9 +369,9 @@ export default function ProducerTextDetailPage() {
           : prev
       );
 
-      setMsg(`Published ✅ (server). id=${result.publishedLessonId}`);
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
+      setMsg(`Published ✅ (server). id=${result.publishedLessonId ?? "—"}`);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setServerPublishing(false);
     }
@@ -346,7 +385,7 @@ export default function ProducerTextDetailPage() {
   function applyRawTasks() {
     if (!draft) return;
     try {
-      const parsed = JSON.parse(rawTasksDraft);
+      const parsed = JSON.parse(rawTasksDraft) as unknown;
       setDraft({ ...draft, tasks: parsed });
       setError(null);
       setMsg("Tasks updated (not saved yet)");
@@ -410,7 +449,7 @@ export default function ProducerTextDetailPage() {
             <label>
               Publish state (manual)
               <select
-                value={(draft.publish?.state === "unlisted" ? "unlisted" : "draft") as any}
+                value={draft.publish?.state === "unlisted" ? "unlisted" : "draft"}
                 onChange={(e) =>
                   setDraft({
                     ...draft,
@@ -522,19 +561,35 @@ export default function ProducerTextDetailPage() {
               {saving ? "Saving..." : "Save changes"}
             </button>
 
-            <button onClick={setUnlisted} disabled={saving || publishing || serverPublishing} style={{ padding: "10px 14px" }}>
+            <button
+              onClick={setUnlisted}
+              disabled={saving || publishing || serverPublishing}
+              style={{ padding: "10px 14px" }}
+            >
               Set Unlisted (share-link)
             </button>
 
-            <button onClick={submitForLibraryReview} disabled={publishing || saving || serverPublishing} style={{ padding: "10px 14px" }}>
+            <button
+              onClick={submitForLibraryReview}
+              disabled={publishing || saving || serverPublishing}
+              style={{ padding: "10px 14px" }}
+            >
               {publishing ? "Submitting..." : "Submit for review (draft → pending)"}
             </button>
 
-            <button onClick={publishNowServer} disabled={serverPublishing || saving || publishing} style={{ padding: "10px 14px" }}>
+            <button
+              onClick={publishNowServer}
+              disabled={serverPublishing || saving || publishing}
+              style={{ padding: "10px 14px" }}
+            >
               {serverPublishing ? "Publishing..." : "Publish now (server → library)"}
             </button>
 
-            <button onClick={load} disabled={loading || saving || publishing || serverPublishing} style={{ padding: "10px 14px" }}>
+            <button
+              onClick={load}
+              disabled={loading || saving || publishing || serverPublishing}
+              style={{ padding: "10px 14px" }}
+            >
               Reload
             </button>
           </div>

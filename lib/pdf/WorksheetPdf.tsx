@@ -1,13 +1,6 @@
 // lib/pdf/WorksheetPdf.tsx
 import React from "react";
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  Image,
-} from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 
 type PdfTaskType = "truefalse" | "mcq" | "open";
 
@@ -15,7 +8,7 @@ type PdfTask = {
   type: PdfTaskType;
   prompt: string;
   options?: string[];
-  correctAnswer?: any;
+  correctAnswer?: unknown; // ✅ was any
   answerSpace?: "short" | "medium" | "long";
 };
 
@@ -94,17 +87,26 @@ function normalizeText(s?: string) {
   return (s ?? "").toString();
 }
 
+function formatAnswer(a: unknown): string {
+  if (a === null || a === undefined) return "";
+  if (typeof a === "string") return a;
+  if (typeof a === "number" || typeof a === "boolean") return String(a);
+  try {
+    return JSON.stringify(a);
+  } catch {
+    return String(a);
+  }
+}
+
 export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
   const metaParts = [
     lesson.level ? `Level: ${lesson.level}` : null,
     lesson.topic ? `Topic: ${lesson.topic}` : null,
     lesson.language ? `Language: ${lesson.language}` : null,
     typeof lesson.estimatedMinutes === "number" ? `Time: ${lesson.estimatedMinutes} min` : null,
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
 
-  const tasks = (lesson.tasks || [])
-    .filter((t) => (t.prompt ?? "").trim().length > 0); // ✅ skjul tomme
-
+  const tasks = (lesson.tasks || []).filter((t) => (t.prompt ?? "").trim().length > 0);
   const showText = (lesson.sourceText ?? "").trim().length > 0;
 
   return (
@@ -135,9 +137,7 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
             </View>
           </View>
 
-          {lesson.logoUrl?.trim() ? (
-            <Image style={styles.logo} src={lesson.logoUrl} />
-          ) : null}
+          {lesson.logoUrl?.trim() ? <Image style={styles.logo} src={lesson.logoUrl} /> : null}
         </View>
 
         {lesson.coverImageUrl?.trim() ? (
@@ -179,9 +179,7 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
                     </View>
                   ))}
                   {lesson.includeAnswerKey ? (
-                    <Text style={styles.answerKey}>
-                      Answer: {typeof t.correctAnswer === "string" ? t.correctAnswer : JSON.stringify(t.correctAnswer)}
-                    </Text>
+                    <Text style={styles.answerKey}>Answer: {formatAnswer(t.correctAnswer)}</Text>
                   ) : null}
                 </View>
               )}
@@ -199,9 +197,7 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
                     </View>
                   </View>
                   {lesson.includeAnswerKey ? (
-                    <Text style={styles.answerKey}>
-                      Answer: {String(t.correctAnswer ?? "")}
-                    </Text>
+                    <Text style={styles.answerKey}>Answer: {formatAnswer(t.correctAnswer)}</Text>
                   ) : null}
                 </View>
               )}

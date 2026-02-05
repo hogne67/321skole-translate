@@ -1,7 +1,6 @@
-// app/student/vocab/page.tsx
+// app/(app)/student/vocab/page.tsx
 "use client";
 
-import Link from "next/link";
 import React, { useMemo, useState } from "react";
 
 type VocabItem = {
@@ -12,6 +11,10 @@ type VocabItem = {
   example: string;
   exampleTranslation: string;
   note?: string;
+};
+
+type VocabResponse = {
+  items?: VocabItem[];
 };
 
 async function findVocab(args: {
@@ -26,13 +29,25 @@ async function findVocab(args: {
     body: JSON.stringify(args),
   });
 
+  const raw = await res.text();
+
   if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Vocab API error (${res.status}): ${t}`);
+    throw new Error(`Vocab API error (${res.status}): ${raw.slice(0, 300)}`);
   }
 
-  const data = await res.json();
-  return Array.isArray(data?.items) ? data.items : [];
+  let data: VocabResponse = {};
+  try {
+    data = raw ? (JSON.parse(raw) as VocabResponse) : {};
+  } catch {
+    throw new Error(`Vocab API returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 300)}`);
+  }
+
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+function getErrMessage(e: unknown) {
+  const msg = (e as { message?: unknown })?.message;
+  return typeof msg === "string" ? msg : "Could not find vocabulary";
 }
 
 export default function StudentVocabPage() {
@@ -47,13 +62,6 @@ export default function StudentVocabPage() {
 
   const hasText = useMemo(() => text.trim().length > 0, [text]);
 
-  const navLinkStyle: React.CSSProperties = {
-    textDecoration: "none",
-    fontSize: 16,
-    fontWeight: 600,
-    color: "inherit",
-  };
-
   async function onRun() {
     setErr(null);
     setBusy(true);
@@ -62,8 +70,8 @@ export default function StudentVocabPage() {
     try {
       const out = await findVocab({ text, targetLang, level, count });
       setItems(out);
-    } catch (e: any) {
-      setErr(e?.message ?? "Could not find vocabulary");
+    } catch (e: unknown) {
+      setErr(getErrMessage(e));
     } finally {
       setBusy(false);
     }
@@ -73,12 +81,10 @@ export default function StudentVocabPage() {
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
       <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Glossary generator</h1>
 
-      {/* Student navigation */}
-      
-<hr style={{ margin: "10px 0 14px" }} />
+      <hr style={{ margin: "10px 0 14px" }} />
+
       <p style={{ opacity: 0.75, marginTop: 0 }}>
         Paste a text, and get glossaries with example sentences + translation.
-
       </p>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -179,7 +185,7 @@ export default function StudentVocabPage() {
             <div style={{ display: "grid", gap: 12 }}>
               {items.map((it, idx) => (
                 <div
-                  key={idx}
+                  key={`${it.term}_${idx}`}
                   style={{
                     border: "1px solid #eee",
                     borderRadius: 12,

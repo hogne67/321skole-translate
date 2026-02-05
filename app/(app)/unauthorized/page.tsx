@@ -5,6 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 
+type Roles = {
+  admin?: boolean;
+  teacher?: boolean;
+  creator?: boolean;
+};
+
 export default function UnauthorizedPage() {
   const { user, profile, loading } = useUserProfile();
   const pathname = usePathname();
@@ -19,7 +25,9 @@ export default function UnauthorizedPage() {
         <p style={{ opacity: 0.85 }}>
           Du må være innlogget for å få tilgang til denne siden.
         </p>
-        <Link href={`/login?next=${encodeURIComponent(pathname || "/")}`}>Gå til login</Link>
+        <Link href={`/login?next=${encodeURIComponent(pathname || "/")}`}>
+          Gå til login
+        </Link>
       </main>
     );
   }
@@ -40,9 +48,24 @@ export default function UnauthorizedPage() {
     );
   }
 
-  const roles = (profile as any)?.roles as any | undefined;
-  const teacherStatus = (profile as any)?.teacherStatus as string | undefined;
-  const creatorStatus = (profile as any)?.creatorStatus as string | undefined;
+  // ---------- Trygg lesing av profile ----------
+  const profileObj =
+    profile && typeof profile === "object" ? profile : undefined;
+
+  const roles: Roles | undefined =
+    profileObj && "roles" in profileObj && typeof profileObj.roles === "object"
+      ? (profileObj.roles as Roles)
+      : undefined;
+
+  const teacherStatus =
+    profileObj && "teacherStatus" in profileObj && typeof profileObj.teacherStatus === "string"
+      ? profileObj.teacherStatus
+      : undefined;
+
+  const creatorStatus =
+    profileObj && "creatorStatus" in profileObj && typeof profileObj.creatorStatus === "string"
+      ? profileObj.creatorStatus
+      : undefined;
 
   const isAdmin = roles?.admin === true;
   const isTeacher = roles?.teacher === true;
@@ -66,20 +89,33 @@ export default function UnauthorizedPage() {
         }}
       >
         <div style={{ fontWeight: 800, marginBottom: 6 }}>Din tilgang</div>
+
         <div style={{ opacity: 0.85, lineHeight: 1.6 }}>
-          <div>admin: <b>{isAdmin ? "ja" : "nei"}</b></div>
-          <div>teacher: <b>{isTeacher ? "ja" : "nei"}</b> {teacherStatus ? <span style={{ opacity: 0.7 }}>(status: {teacherStatus})</span> : null}</div>
-          <div>creator: <b>{isCreator ? "ja" : "nei"}</b> {creatorStatus ? <span style={{ opacity: 0.7 }}>(status: {creatorStatus})</span> : null}</div>
+          <div>
+            admin: <b>{isAdmin ? "ja" : "nei"}</b>
+          </div>
+
+          <div>
+            teacher: <b>{isTeacher ? "ja" : "nei"}</b>{" "}
+            {teacherStatus ? (
+              <span style={{ opacity: 0.7 }}>(status: {teacherStatus})</span>
+            ) : null}
+          </div>
+
+          <div>
+            creator: <b>{isCreator ? "ja" : "nei"}</b>{" "}
+            {creatorStatus ? (
+              <span style={{ opacity: 0.7 }}>(status: {creatorStatus})</span>
+            ) : null}
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}>
           <Link href="/student">Tilbake til Student</Link>
 
-          {/* Søknader */}
           {!isTeacher && <Link href="/teacher/apply">Søk om teacher</Link>}
           {!isCreator && <Link href="/apply/creator">Søk om creator</Link>}
 
-          {/* Nyttig */}
           <Link href="/">Forsiden</Link>
         </div>
 
@@ -90,3 +126,4 @@ export default function UnauthorizedPage() {
     </main>
   );
 }
+

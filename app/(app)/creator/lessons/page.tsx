@@ -14,7 +14,14 @@ import {
   where,
   limit,
   Timestamp,
+  type DocumentData,
+  type QueryDocumentSnapshot,
+  type FirestoreError,
 } from "firebase/firestore";
+
+type FirestoreLikeTimestamp = {
+  toDate?: () => Date;
+};
 
 type LessonRow = {
   id: string;
@@ -26,26 +33,41 @@ type LessonRow = {
   textType?: string;
   texttype?: string; // legacy
   status?: string;
-  updatedAt?: any;
-  createdAt?: any;
+  updatedAt?: Timestamp | Date | FirestoreLikeTimestamp | null;
+  createdAt?: Timestamp | Date | FirestoreLikeTimestamp | null;
   ownerId?: string;
 };
 
-function formatMaybeDate(v: any) {
+function formatMaybeDate(v: LessonRow["updatedAt"] | LessonRow["createdAt"]) {
   try {
     if (!v) return "";
     const d: Date | null =
       v instanceof Date
         ? v
-        : typeof v?.toDate === "function"
+        : v instanceof Timestamp
           ? v.toDate()
-          : v instanceof Timestamp
-            ? v.toDate()
+          : typeof (v as FirestoreLikeTimestamp)?.toDate === "function"
+            ? (v as FirestoreLikeTimestamp).toDate?.() ?? null
             : null;
+
     return d ? d.toLocaleString() : "";
   } catch {
     return "";
   }
+}
+
+function parseLessonRow(snap: QueryDocumentSnapshot<DocumentData>): LessonRow {
+  const data = snap.data() as Partial<LessonRow>;
+  return { id: snap.id, ...data };
+}
+
+function getFirestoreErrorMessage(e: unknown): string {
+  if (e && typeof e === "object" && "message" in e) {
+    const m = (e as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  if (e instanceof Error) return e.message;
+  return "Kunne ikke lese lessons.";
 }
 
 export default function CreatorLessonsPage() {
@@ -76,22 +98,30 @@ function Inner() {
     return onSnapshot(
       q,
       (snap) => {
-        const next = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as LessonRow[];
+        const next = snap.docs.map(parseLessonRow);
         setRows(next);
       },
-      (e: any) => {
-        console.log("[CREATOR] lessons read ERROR =>", e?.code, e?.message, e);
+      (e: FirestoreError) => {
+        console.log("[CREATOR] lessons read ERROR =>", e.code, e.message, e);
 
         // Hvis noen docs mangler updatedAt vil Firestore klage ved orderBy.
         // Da kan vi bytte til createdAt/eller fjerne orderBy senere.
-        setErr(e?.message || "Kunne ikke lese lessons.");
+        setErr(getFirestoreErrorMessage(e));
       }
     );
   }, [user?.uid]);
 
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
         <h1 style={{ margin: 0 }}>My lessons</h1>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <Link href="/creator">← Dashboard</Link>
@@ -100,14 +130,11 @@ function Inner() {
       </div>
 
       <p style={{ opacity: 0.8, marginTop: 8 }}>
-        Dette er dine draft-lessons i <code>lessons</code>. (Vi kobler editor og publish bedre etter hvert.)
+        Dette er dine draft-lessons i <code>lessons</code>. (Vi kobler editor og publish bedre etter
+        hvert.)
       </p>
 
-      {err && (
-        <div style={{ color: "crimson", marginTop: 10 }}>
-          Feil: {err}
-        </div>
-      )}
+      {err && <div style={{ color: "crimson", marginTop: 10 }}>Feil: {err}</div>}
 
       <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
         {rows.map((r) => {
@@ -132,11 +159,31 @@ function Inner() {
                 <div>
                   <div style={{ fontWeight: 700 }}>{title}</div>
                   <div style={{ opacity: 0.75, marginTop: 4 }}>
-                    {r.level ? <>Nivå: <b>{r.level}</b></> : null}
-                    {r.language ? <> · Språk: <b>{r.language}</b></> : null}
-                    {textType ? <> · Type: <b>{textType}</b></> : null}
-                    {updated ? <> · Oppdatert: <b>{updated}</b></> : null}
+                    {r.level ? (
+                      <>
+                        Nivå: <b>{r.level}</b>
+                      </>
+                    ) : null}
+                    {r.language ? (
+                      <>
+                        {" "}
+                        · Språk: <b>{r.language}</b>
+                      </>
+                    ) : null}
+                    {textType ? (
+                      <>
+                        {" "}
+                        · Type: <b>{textType}</b>
+                      </>
+                    ) : null}
+                    {updated ? (
+                      <>
+                        {" "}
+                        · Oppdatert: <b>{updated}</b>
+                      </>
+                    ) : null}
                   </div>
+
                   {topic && (
                     <div style={{ opacity: 0.8, marginTop: 6 }}>
                       Tema: {topic}

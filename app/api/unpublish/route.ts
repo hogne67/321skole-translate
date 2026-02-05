@@ -1,11 +1,25 @@
 // app/api/unpublish/route.ts
 export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
 
-function bool(v: any) {
+function bool(v: unknown) {
   return v === true;
+}
+
+function toErrorString(err: unknown): string {
+  if (!err) return "Unpublish failed";
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const message = typeof o.message === "string" ? o.message : "";
+    const code = typeof o.code === "string" ? o.code : "";
+    return message || code || "Unpublish failed";
+  }
+  return "Unpublish failed";
 }
 
 export async function POST(req: Request) {
@@ -15,25 +29,26 @@ export async function POST(req: Request) {
     // --- Auth ---
     const token = req.headers.get("authorization")?.replace("Bearer ", "");
     if (!token) {
-      return NextResponse.json(
-        { error: "Missing Authorization Bearer token" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Missing Authorization Bearer token" }, { status: 401 });
     }
 
     let uid: string;
     try {
       const decoded = await auth.verifyIdToken(token);
       uid = decoded.uid;
-    } catch (e: any) {
-      console.error("unpublish: verifyIdToken failed", e?.message || e);
+    } catch (err: unknown) {
+      console.error("unpublish: verifyIdToken failed", toErrorString(err));
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     // --- Input ---
-    const body = await req.json().catch(() => ({}));
-    const publishedId = (body?.id || body?.lessonId) as string | undefined; // published doc id (legacy: same as draft)
-    const draftId = (body?.draftId || body?.draftLessonId) as string | undefined; // preferred
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    const publishedIdRaw = body.id ?? body.lessonId;
+    const draftIdRaw = body.draftId ?? body.draftLessonId;
+
+    const publishedId = typeof publishedIdRaw === "string" ? publishedIdRaw : undefined; // published doc id
+    const draftId = typeof draftIdRaw === "string" ? draftIdRaw : undefined; // preferred
+
     if (!publishedId) {
       return NextResponse.json({ error: "Missing id/lessonId" }, { status: 400 });
     }
@@ -44,9 +59,9 @@ export async function POST(req: Request) {
     // --- Load user profile (admin check) ---
     const userRef = db.doc(`users/${uid}`);
     const userSnap = await userRef.get();
-    const profile: any = userSnap.exists ? userSnap.data() : {};
-    const roles = profile?.roles || {};
-    const isAdmin = bool(roles?.admin);
+    const profile = ((userSnap.exists ? userSnap.data() : {}) ?? {}) as Record<string, unknown>;
+    const roles = (profile.roles ?? {}) as Record<string, unknown>;
+    const isAdmin = bool(roles.admin);
 
     // --- Load draft (lessons/{draftLookupId} primary, texts/{draftLookupId} fallback) ---
     const draftRefA = db.doc(`lessons/${draftLookupId}`);
@@ -59,15 +74,16 @@ export async function POST(req: Request) {
     const draftPath = draftSnapA.exists
       ? `lessons/${draftLookupId}`
       : draftSnapB?.exists
-      ? `texts/${draftLookupId}`
-      : null;
+        ? `texts/${draftLookupId}`
+        : null;
 
     // If draft is missing, we still allow unpublish of the published doc
-    // (useful if draft was deleted/archived).
     let ownerId: string | null = null;
+
     if (draftSnap?.exists) {
-      const draft: any = draftSnap.data() || {};
-      ownerId = draft?.ownerId || null;
+      const draft = ((draftSnap.data() ?? {}) as Record<string, unknown>) || {};
+      const owner = draft.ownerId;
+      ownerId = typeof owner === "string" ? owner : null;
 
       if (!isAdmin && ownerId && ownerId !== uid) {
         await db.collection("auditEvents").add({
@@ -110,17 +126,16 @@ export async function POST(req: Request) {
         isAdminUnpublish: isAdmin,
         effectiveOwnerId,
         draftId: draftLookupId,
-        publishedId: publishedId,
+        publishedId,
         draftMissing: !draftSnap?.exists,
       },
     });
 
-    return NextResponse.json({ ok: true, publishedId: publishedId, draftId: draftLookupId });
-  } catch (e: any) {
-    // ✅ Always return a helpful error (so client sees reason, not just 500)
-    console.error("unpublish: fatal", e?.stack || e?.message || e);
+    return NextResponse.json({ ok: true, publishedId, draftId: draftLookupId });
+  } catch (err: unknown) {
+    console.error("unpublish: fatal", err instanceof Error ? err.stack || err.message : String(err));
     return NextResponse.json(
-      { error: e?.message || "Unpublish failed (server error)" },
+      { error: toErrorString(err) },
       { status: 500 }
     );
   }

@@ -1,3 +1,4 @@
+// app/(auth)/onboarding/OnboardingClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -9,8 +10,23 @@ import GeoSearchSelect from "@/components/geo/GeoSearchSelect";
 import { COUNTRIES } from "@/lib/geo/countries";
 import { NO_MUNICIPALITY_NAMES } from "@/lib/geo/noMunicipalities";
 
-function stripUndefined<T extends Record<string, any>>(obj: T): T {
+function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+}
+
+function toErrorString(err: unknown): string {
+  if (!err) return "";
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message;
+
+  if (typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const code = typeof o.code === "string" ? o.code : "";
+    const message = typeof o.message === "string" ? o.message : "";
+    return code || message || JSON.stringify(o);
+  }
+
+  return String(err);
 }
 
 type InstitutionType =
@@ -29,6 +45,17 @@ const INSTITUTIONS: { value: InstitutionType; label: string }[] = [
   { value: "workplace", label: "Bedrift / arbeidsplass" },
   { value: "other", label: "Annet" },
 ];
+
+function isInstitutionType(x: unknown): x is InstitutionType {
+  return (
+    x === "school" ||
+    x === "kindergarten" ||
+    x === "adult_education" ||
+    x === "university" ||
+    x === "workplace" ||
+    x === "other"
+  );
+}
 
 export default function OnboardingClient({ nextUrl }: { nextUrl?: string }) {
   const router = useRouter();
@@ -80,21 +107,31 @@ export default function OnboardingClient({ nextUrl }: { nextUrl?: string }) {
         const authName = (u.displayName || "").trim();
 
         if (snap.exists()) {
-          const p: any = snap.data() || {};
+          const p = (snap.data() ?? {}) as Record<string, unknown>;
 
           if (p.onboardingComplete === true) {
             router.replace(safeNext || "/student");
             return;
           }
 
-          setDisplayName(String(p.displayName ?? authName ?? "").trim());
+          const pDisplayName = typeof p.displayName === "string" ? p.displayName : "";
+          setDisplayName(String(pDisplayName || authName || "").trim());
 
-          const org = p.org || {};
-          setCountry(String(org.country ?? "NO").trim() || "NO");
-          setMunicipality(String(org.municipality ?? "").trim());
+          const org = (p.org ?? {}) as Record<string, unknown>;
 
-          setInstitutionType((org.institutionType as any) ?? "");
-          setInstitutionName(String(org.institutionName ?? "").trim());
+          const orgCountry = typeof org.country === "string" ? org.country : "NO";
+          const orgMunicipality = typeof org.municipality === "string" ? org.municipality : "";
+          const orgInstitutionName =
+            typeof org.institutionName === "string" ? org.institutionName : "";
+
+          const rawInstType = org.institutionType;
+          const instType: InstitutionType | "" = isInstitutionType(rawInstType) ? rawInstType : "";
+
+          setCountry(String(orgCountry).trim() || "NO");
+          setMunicipality(String(orgMunicipality).trim());
+
+          setInstitutionType(instType);
+          setInstitutionName(String(orgInstitutionName).trim());
         } else {
           setDisplayName(authName);
           setCountry("NO");
@@ -102,7 +139,8 @@ export default function OnboardingClient({ nextUrl }: { nextUrl?: string }) {
           setInstitutionType("");
           setInstitutionName("");
         }
-      } catch (e: any) {
+      } catch {
+        // hvis noe feiler under lesing av profil – fall tilbake på auth displayName
         setDisplayName((u.displayName || "").trim());
       } finally {
         setLoading(false);
@@ -146,13 +184,13 @@ export default function OnboardingClient({ nextUrl }: { nextUrl?: string }) {
         lastLoginAt: serverTimestamp(),
       });
 
-      await setDoc(ref, payload as any, { merge: true });
+      await setDoc(ref, payload, { merge: true });
 
       // send videre til "safeNext" (ikke hardkod /student)
       window.location.href = safeNext;
       return;
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (err: unknown) {
+      setErr(toErrorString(err));
     } finally {
       setSaving(false);
     }
@@ -198,7 +236,11 @@ export default function OnboardingClient({ nextUrl }: { nextUrl?: string }) {
       <section style={{ marginTop: 16, display: "grid", gap: 12 }}>
         <label style={{ display: "grid", gap: 6 }}>
           Fullt navn *
-          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={inputStyle} />
+          <input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            style={inputStyle}
+          />
         </label>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -224,7 +266,11 @@ export default function OnboardingClient({ nextUrl }: { nextUrl?: string }) {
           ) : (
             <label style={{ display: "grid", gap: 6 }}>
               By/område *
-              <input value={municipality} onChange={(e) => setMunicipality(e.target.value)} style={inputStyle} />
+              <input
+                value={municipality}
+                onChange={(e) => setMunicipality(e.target.value)}
+                style={inputStyle}
+              />
             </label>
           )}
         </div>
@@ -237,7 +283,10 @@ export default function OnboardingClient({ nextUrl }: { nextUrl?: string }) {
               Type
               <select
                 value={institutionType}
-                onChange={(e) => setInstitutionType(e.target.value as any)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setInstitutionType(isInstitutionType(v) ? v : "");
+                }}
                 style={inputStyle}
               >
                 <option value="">Ingen</option>

@@ -1,3 +1,4 @@
+// app/(app)/admin/trash/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -12,8 +13,14 @@ import {
   serverTimestamp,
   updateDoc,
   where,
+  type DocumentData,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+
+type FirestoreTimestampLike =
+  | { toDate?: () => Date; seconds?: number }
+  | null
+  | undefined;
 
 type TrashRow = {
   id: string;
@@ -24,15 +31,32 @@ type TrashRow = {
   textType?: string;
   texttype?: string;
   status?: string;
-  deletedAt?: any;
-  updatedAt?: any;
+  deletedAt?: FirestoreTimestampLike;
+  updatedAt?: FirestoreTimestampLike;
 };
 
-function formatMaybeDate(v: any) {
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function toStringSafe(v: unknown): string | undefined {
+  if (typeof v === "string") return v;
+  if (typeof v === "number") return String(v);
+  return undefined;
+}
+
+function toTimestampLike(v: unknown): FirestoreTimestampLike {
+  if (isRecord(v)) return v as FirestoreTimestampLike;
+  if (v instanceof Date) return { toDate: () => v };
+  if (typeof v === "number") return { toDate: () => new Date(v) };
+  return undefined;
+}
+
+function formatMaybeDate(v: unknown) {
   try {
     const d: Date | null =
-      v?.toDate?.() instanceof Date
-        ? v.toDate()
+      isRecord(v) && typeof v.toDate === "function" && v.toDate() instanceof Date
+        ? (v.toDate() as Date)
         : v instanceof Date
         ? v
         : typeof v === "number"
@@ -41,20 +65,43 @@ function formatMaybeDate(v: any) {
 
     if (!d) return "—";
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(
-      d.getHours()
-    )}:${pad(d.getMinutes())}`;
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(
+      d.getMinutes()
+    )}`;
   } catch {
     return "—";
   }
 }
 
-function coerceTextType(d: any): string {
-  const a = String(d?.textType ?? "").trim();
+function coerceTextType(d: TrashRow): string {
+  const a = String(d.textType ?? "").trim();
   if (a) return a;
-  const b = String(d?.texttype ?? "").trim();
+  const b = String(d.texttype ?? "").trim();
   if (b) return b;
   return "";
+}
+
+function coerceTrashRow(id: string, data: DocumentData): TrashRow {
+  const obj: Record<string, unknown> = isRecord(data) ? data : {};
+
+  return {
+    id,
+    ownerId: toStringSafe(obj.ownerId),
+    title: toStringSafe(obj.title),
+    level: toStringSafe(obj.level),
+    language: toStringSafe(obj.language),
+    textType: toStringSafe(obj.textType),
+    texttype: toStringSafe(obj.texttype),
+    status: toStringSafe(obj.status),
+    deletedAt: toTimestampLike(obj.deletedAt),
+    updatedAt: toTimestampLike(obj.updatedAt),
+  };
+}
+
+function errorMessage(e: unknown): string {
+  if (isRecord(e) && typeof e.message === "string") return e.message;
+  if (typeof e === "string") return e;
+  return String(e);
 }
 
 export default function AdminTrashPage() {
@@ -90,10 +137,10 @@ export default function AdminTrashPage() {
       );
 
       const snap = await getDocs(qy);
-      const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as TrashRow[];
+      const rows: TrashRow[] = snap.docs.map((d) => coerceTrashRow(d.id, d.data()));
       setItems(rows);
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to load trash");
+    } catch (e: unknown) {
+      setErr(errorMessage(e) || "Failed to load trash");
     } finally {
       setLoading(false);
     }
@@ -110,17 +157,15 @@ export default function AdminTrashPage() {
         updatedAt: serverTimestamp(),
       });
       await load();
-    } catch (e: any) {
-      setErr(e?.message ?? "Restore failed");
+    } catch (e: unknown) {
+      setErr(errorMessage(e) || "Restore failed");
     } finally {
       setBusy(lessonId, false);
     }
   }
 
   async function permanentDelete(lessonId: string, title?: string) {
-    const ok = confirm(
-      `PERMANENT DELETE${title ? `: "${title}"` : ""}?\n\nThis cannot be undone.`
-    );
+    const ok = confirm(`PERMANENT DELETE${title ? `: "${title}"` : ""}?\n\nThis cannot be undone.`);
     if (!ok) return;
 
     setBusy(lessonId, true);
@@ -132,12 +177,15 @@ export default function AdminTrashPage() {
       // If you also want to remove published snapshot, do it here (best effort)
       try {
         await deleteDoc(doc(db, "published_lessons", lessonId));
-      } catch {}
+      } catch (e: unknown) {
+        // best effort: ignore if missing or insufficient permissions
+        void e;
+      }
 
       await deleteDoc(doc(db, "lessons", lessonId));
       await load();
-    } catch (e: any) {
-      setErr(e?.message ?? "Permanent delete failed");
+    } catch (e: unknown) {
+      setErr(errorMessage(e) || "Permanent delete failed");
     } finally {
       setBusy(lessonId, false);
     }

@@ -1,11 +1,20 @@
-// app/student/page.tsx
+// app/(app)/student/page.tsx
 "use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  type Timestamp,
+  type DocumentData,
+} from "firebase/firestore";
 
 type MyLessonRow = {
   id: string; // submissionId (uid_lessonId)
@@ -17,8 +26,8 @@ type MyLessonRow = {
   lessonLevel?: string;
   lessonLanguage?: string;
 
-  createdAt?: any;
-  updatedAt?: any;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 };
 
 type PublishedMeta = {
@@ -27,9 +36,28 @@ type PublishedMeta = {
   language?: string;
 };
 
-function isPermissionDenied(e: any) {
-  const code = String(e?.code || "").toLowerCase();
-  const msg = String(e?.message || "").toLowerCase();
+type SubmissionDoc = {
+  uid?: string;
+  publishedLessonId?: string;
+  status?: "draft" | "submitted";
+  lessonTitle?: string;
+  lessonLevel?: string;
+  lessonLanguage?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+type PublishedLessonDoc = {
+  title?: string;
+  level?: string;
+  language?: string;
+  isActive?: boolean;
+};
+
+function isPermissionDenied(e: unknown) {
+  const err = e as { code?: unknown; message?: unknown };
+  const code = String(err?.code ?? "").toLowerCase();
+  const msg = String(err?.message ?? "").toLowerCase();
   return (
     code.includes("permission-denied") ||
     code.includes("permission_denied") ||
@@ -39,12 +67,34 @@ function isPermissionDenied(e: any) {
   );
 }
 
-function tsToMs(ts: any): number {
+function tsToMs(ts?: Timestamp): number {
   if (!ts) return 0;
-  if (typeof ts?.toMillis === "function") return ts.toMillis();
-  const s = ts?.seconds;
-  if (typeof s === "number") return s * 1000;
-  return 0;
+  return ts.toMillis();
+}
+
+function asSubmissionDoc(data: DocumentData): SubmissionDoc {
+  // lett “type guard-ish” uten any
+  const d = data as Partial<SubmissionDoc>;
+  return {
+    uid: typeof d.uid === "string" ? d.uid : undefined,
+    publishedLessonId: typeof d.publishedLessonId === "string" ? d.publishedLessonId : undefined,
+    status: d.status === "draft" || d.status === "submitted" ? d.status : undefined,
+    lessonTitle: typeof d.lessonTitle === "string" ? d.lessonTitle : undefined,
+    lessonLevel: typeof d.lessonLevel === "string" ? d.lessonLevel : undefined,
+    lessonLanguage: typeof d.lessonLanguage === "string" ? d.lessonLanguage : undefined,
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+  };
+}
+
+function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
+  const d = data as Partial<PublishedLessonDoc>;
+  return {
+    title: typeof d.title === "string" ? d.title : undefined,
+    level: typeof d.level === "string" ? d.level : undefined,
+    language: typeof d.language === "string" ? d.language : undefined,
+    isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
+  };
 }
 
 export default function StudentDashboard() {
@@ -55,7 +105,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     let alive = true;
 
-    (async () => {
+    const run = async () => {
       setLoading(true);
       setErr("");
 
@@ -68,10 +118,19 @@ export default function StudentDashboard() {
         const snap = await getDocs(qMine);
         if (!alive) return;
 
-        let rows: MyLessonRow[] = snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as any),
-        }));
+        let rows: MyLessonRow[] = snap.docs.map((d) => {
+          const data = asSubmissionDoc(d.data());
+          return {
+            id: d.id,
+            publishedLessonId: data.publishedLessonId,
+            status: data.status,
+            lessonTitle: data.lessonTitle,
+            lessonLevel: data.lessonLevel,
+            lessonLanguage: data.lessonLanguage,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+          };
+        });
 
         // 2) Fjern ødelagte submissions (mangler publishedLessonId)
         rows = rows.filter(
@@ -91,27 +150,30 @@ export default function StudentDashboard() {
         if (needMeta.length > 0) {
           const metas = await Promise.all(
             needMeta.map(async (r) => {
+              const id = r.publishedLessonId!;
               try {
-                const ps = await getDoc(doc(db, "published_lessons", r.publishedLessonId!));
+                const ps = await getDoc(doc(db, "published_lessons", id));
                 if (!ps.exists()) return null;
 
-                const data = ps.data() as any;
+                const data = asPublishedLessonDoc(ps.data());
                 const meta: PublishedMeta = {
                   title: data.title ?? "Lesson",
                   level: data.level,
                   language: data.language,
                 };
 
-                return { id: r.publishedLessonId!, meta };
+                return { id, meta };
               } catch {
-                // Hvis lesson er avpublisert kan rules blokkere; da lar vi det bare være tomt.
+                // Avpublisert / rules kan blokkere – ignorer
                 return null;
               }
             })
           );
 
           const metaMap = new Map<string, PublishedMeta>();
-          metas.filter(Boolean).forEach((m: any) => metaMap.set(m.id, m.meta));
+          metas.filter((m): m is { id: string; meta: PublishedMeta } => m !== null).forEach((m) => {
+            metaMap.set(m.id, m.meta);
+          });
 
           rows = rows.map((r) => {
             if (!r.lessonTitle) {
@@ -131,21 +193,23 @@ export default function StudentDashboard() {
 
         if (!alive) return;
         setItems(rows);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!alive) return;
 
         if (isPermissionDenied(e)) {
           setErr("Du har ikke tilgang til å lese submissions (rules).");
         } else {
-          setErr(e?.message || "Noe gikk galt.");
+          const msg = (e as { message?: unknown })?.message;
+          setErr(typeof msg === "string" ? msg : "Noe gikk galt.");
         }
-
         setItems([]);
-      } finally {
-        if (!alive) return;
-        setLoading(false);
       }
-    })();
+
+      // ✅ Ikke finally-return. Sett loading her til slutt.
+      if (alive) setLoading(false);
+    };
+
+    run();
 
     return () => {
       alive = false;

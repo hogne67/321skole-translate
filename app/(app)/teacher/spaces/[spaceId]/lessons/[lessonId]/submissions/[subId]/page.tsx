@@ -6,23 +6,47 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
-import {
-  doc,
-  onSnapshot,
-  updateDoc,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { useUserProfile } from "@/lib/useUserProfile";
 
-function formatMaybeDate(v: any) {
+type ReviewStatus = "reviewed" | "needs_work";
+
+type TeacherFeedback = {
+  text?: string;
+  updatedAt?: unknown;
+  teacherUid?: string | null;
+};
+
+type SubmissionDoc = {
+  createdAt?: unknown;
+  status?: ReviewStatus | string;
+  answers?: unknown;
+  auth?: { isAnon?: boolean; uid?: string | null } | unknown;
+  teacherFeedback?: TeacherFeedback | unknown;
+};
+
+function getErrorInfo(err: unknown): { code?: string; message: string } {
+  if (err instanceof Error) return { message: err.message };
+  if (typeof err === "string") return { message: err };
+  if (err && typeof err === "object") {
+    const code = "code" in err ? (err as { code?: unknown }).code : undefined;
+    const message = "message" in err ? (err as { message?: unknown }).message : undefined;
+    return {
+      code: typeof code === "string" ? code : undefined,
+      message: typeof message === "string" ? message : JSON.stringify(err),
+    };
+  }
+  return { message: String(err) };
+}
+
+function formatMaybeDate(v: unknown) {
   try {
     if (!v) return "";
     const d: Date | null =
       v instanceof Date
         ? v
-        : typeof v?.toDate === "function"
-          ? v.toDate()
+        : typeof (v as { toDate?: unknown })?.toDate === "function"
+          ? (v as { toDate: () => Date }).toDate()
           : v instanceof Timestamp
             ? v.toDate()
             : null;
@@ -30,6 +54,26 @@ function formatMaybeDate(v: any) {
   } catch {
     return "";
   }
+}
+
+function readTeacherFeedbackText(sub: SubmissionDoc): string {
+  const tf = sub.teacherFeedback;
+  if (!tf || typeof tf !== "object") return "";
+  const t = (tf as { text?: unknown }).text;
+  return typeof t === "string" ? t : "";
+}
+
+function readStatus(sub: SubmissionDoc): ReviewStatus {
+  const s = sub.status;
+  return s === "needs_work" || s === "reviewed" ? s : "reviewed";
+}
+
+function readAuth(sub: SubmissionDoc): { isAnon: boolean; uid: string | null } {
+  const a = sub.auth;
+  if (!a || typeof a !== "object") return { isAnon: false, uid: null };
+  const isAnon = (a as { isAnon?: unknown }).isAnon === true;
+  const uidRaw = (a as { uid?: unknown }).uid;
+  return { isAnon, uid: typeof uidRaw === "string" ? uidRaw : null };
 }
 
 export default function TeacherSubmissionPage() {
@@ -41,29 +85,26 @@ export default function TeacherSubmissionPage() {
 }
 
 function Inner() {
-  const params = useParams<{
-    spaceId: string;
-    lessonId: string;
-    subId: string;
-  }>();
-
+  const params = useParams<{ spaceId: string; lessonId: string; subId: string }>();
   const spaceId = params.spaceId;
   const lessonId = params.lessonId;
   const subId = params.subId;
 
   const { user } = useUserProfile();
 
-  const [sub, setSub] = useState<any | null>(null);
+  const [sub, setSub] = useState<SubmissionDoc | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [text, setText] = useState("");
-  const [status, setStatus] = useState<"reviewed" | "needs_work">("reviewed");
+  const [status, setStatus] = useState<ReviewStatus>("reviewed");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
-  const docRef = useMemo(() => {
-    return doc(db, "spaces", spaceId, "lessons", lessonId, "submissions", subId);
-  }, [spaceId, lessonId, subId]);
+  const docRef = useMemo(() => doc(db, "spaces", spaceId, "lessons", lessonId, "submissions", subId), [
+    spaceId,
+    lessonId,
+    subId,
+  ]);
 
   useEffect(() => {
     setLoading(true);
@@ -75,20 +116,18 @@ function Inner() {
           setSub(null);
           return;
         }
-        const data = snap.data();
+
+        const data = snap.data() as SubmissionDoc;
         setSub(data);
 
         // preload feedback if exists
-        const existing = data?.teacherFeedback?.text;
-        setText(typeof existing === "string" ? existing : "");
-        const existingStatus = data?.status;
-        if (existingStatus === "needs_work" || existingStatus === "reviewed") {
-          setStatus(existingStatus);
-        }
+        setText(readTeacherFeedbackText(data));
+        setStatus(readStatus(data));
       },
       (err) => {
         setLoading(false);
-        console.log("[TEACHER] read submission ERROR =>", err?.code, err?.message, err);
+        const info = getErrorInfo(err as unknown);
+        console.log("[TEACHER] read submission ERROR =>", info.code, info.message, err);
         setSub(null);
       }
     );
@@ -103,7 +142,9 @@ function Inner() {
       <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
         <h1 style={{ marginTop: 0 }}>Fant ikke innleveringen</h1>
         <p style={{ opacity: 0.8 }}>
-          <code>spaces/{spaceId}/lessons/{lessonId}/submissions/{subId}</code>
+          <code>
+            spaces/{spaceId}/lessons/{lessonId}/submissions/{subId}
+          </code>
         </p>
         <Link href={backLink}>← Tilbake</Link>
       </div>
@@ -111,7 +152,7 @@ function Inner() {
   }
 
   const createdAt = formatMaybeDate(sub.createdAt);
-  const isAnon = sub?.auth?.isAnon === true;
+  const authInfo = readAuth(sub);
 
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
@@ -119,14 +160,22 @@ function Inner() {
         <div>
           <h1 style={{ margin: 0 }}>Innlevering</h1>
           <div style={{ opacity: 0.8, marginTop: 6 }}>
-            {createdAt ? <>Levert: <b>{createdAt}</b></> : "Levert: (ukjent)"} · Status:{" "}
-            <b>{sub.status}</b>
+            {createdAt ? (
+              <>
+                Levert: <b>{createdAt}</b>
+              </>
+            ) : (
+              "Levert: (ukjent)"
+            )}{" "}
+            · Status: <b>{String(sub.status ?? "—")}</b>
           </div>
           <div style={{ opacity: 0.8, marginTop: 4 }}>
-            {isAnon ? (
+            {authInfo.isAnon ? (
               <>Gjest (uinnlogget)</>
             ) : (
-              <>Innlogget · uid: <code>{sub?.auth?.uid}</code></>
+              <>
+                Innlogget · uid: <code>{authInfo.uid ?? "—"}</code>
+              </>
             )}
           </div>
         </div>
@@ -154,7 +203,7 @@ function Inner() {
               <span style={{ opacity: 0.85 }}>Ny status:</span>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as ReviewStatus)}
                 style={{ padding: "8px 10px", borderRadius: 10 }}
               >
                 <option value="reviewed">reviewed</option>
@@ -193,9 +242,10 @@ function Inner() {
                     },
                   });
                   setSaveMsg("Lagret ✅");
-                } catch (e: any) {
-                  console.log("[TEACHER] save feedback ERROR =>", e?.code, e?.message, e);
-                  setSaveMsg(`Kunne ikke lagre: ${e?.message || "ukjent feil"}`);
+                } catch (e: unknown) {
+                  const info = getErrorInfo(e);
+                  console.log("[TEACHER] save feedback ERROR =>", info.code, info.message, e);
+                  setSaveMsg(`Kunne ikke lagre: ${info.message || "ukjent feil"}`);
                 } finally {
                   setSaving(false);
                   setTimeout(() => setSaveMsg(null), 2000);

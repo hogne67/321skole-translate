@@ -2,14 +2,15 @@
   "name": "321skole-translate",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-  "dev": "next dev",
-  "build": "next build --webpack",
-  "start": "next start",
-  "lint": "eslint app lib components",
-  "geo:no": "node scripts/generate-no-municipalities.mjs",
-  "geo:no:watch": "node scripts/generate-no-municipalities.mjs && next dev"
-},
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint app lib components",
+    "geo:no": "node scripts/generate-no-municipalities.mjs",
+    "geo:no:watch": "node scripts/generate-no-municipalities.mjs && next dev"
+  },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.2",
     "firebase": "^12.7.0",
@@ -27,6 +28,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "typescript": "^5"
   }
 }

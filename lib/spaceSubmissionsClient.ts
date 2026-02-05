@@ -5,12 +5,18 @@ import { db } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import type { User } from "firebase/auth";
 
+// Bruk "unknown" for frie JSON-strukturer
+export type AnswersPayload = Record<string, unknown>;
+
 export type SpaceSubmission = {
   spaceId: string;
   lessonId: string;
-  createdAt: any;
 
-  answers: any;
+  // Firestore serverTimestamp() blir en FieldValue, men ved lesing kan det være Timestamp.
+  // Vi bruker unknown i selve dokumenttypen for å unngå "any".
+  createdAt: unknown;
+
+  answers: AnswersPayload;
 
   auth: {
     // "anon" betyr: enten helt uinnlogget (user=null) ELLER Firebase anonymous auth (user.isAnonymous)
@@ -23,18 +29,34 @@ export type SpaceSubmission = {
   status: "new" | "reviewed" | "needs_work";
   teacherFeedback?: {
     text?: string;
-    updatedAt?: any;
+    updatedAt?: unknown;
     teacherUid?: string;
   };
 };
 
+function getErrorInfo(err: unknown): { code?: string; message?: string } {
+  if (err && typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const code = typeof o.code === "string" ? o.code : undefined;
+    const message = typeof o.message === "string" ? o.message : undefined;
+    return { code, message };
+  }
+  if (typeof err === "string") return { message: err };
+  return {};
+}
+
 export async function submitToSpace(params: {
   spaceId: string;
   lessonId: string;
-  answers: any;
+  answers: AnswersPayload;
   user: User | null;
 }) {
   const { spaceId, lessonId, answers, user } = params;
+
+  if (!db) {
+    throw new Error("Firestore is not initialized (db is null). Check NEXT_PUBLIC_FIREBASE_* env.");
+  }
+  const dbx = db;
 
   const isAnon = !user || user.isAnonymous === true;
 
@@ -53,7 +75,7 @@ export async function submitToSpace(params: {
           email: user.email ?? null,
         };
 
-  const sub: Omit<SpaceSubmission, "createdAt"> & { createdAt: any } = {
+  const sub: Omit<SpaceSubmission, "createdAt"> & { createdAt: unknown } = {
     spaceId,
     lessonId,
     createdAt: serverTimestamp(),
@@ -63,23 +85,23 @@ export async function submitToSpace(params: {
     // ⚠️ Ikke legg teacherFeedback her (heller ikke null)
   };
 
-  // ✅ Debug (midlertidig)
-  const colRef = collection(db, "spaces", spaceId, "lessons", lessonId, "submissions");
+  const colRef = collection(dbx, "spaces", spaceId, "lessons", lessonId, "submissions");
 
+  // ✅ Debug (midlertidig)
   console.log("SUBMIT path =>", { spaceId, lessonId });
   console.log("SUBMIT firestore collection path =>", colRef.path);
 
-  const safeJson = JSON.parse(JSON.stringify(sub));
+  const safeJson = JSON.parse(JSON.stringify(sub)) as Record<string, unknown>;
   console.log("SUBMIT payload JSON =>", safeJson);
 
   console.log("SUBMIT payload keys =>", Object.keys(sub));
-  console.log("SUBMIT payload.status =>", (sub as any).status);
+  console.log("SUBMIT payload.status =>", sub.status);
 
   console.log(
     "SUBMIT has teacherFeedback key =>",
     Object.prototype.hasOwnProperty.call(sub, "teacherFeedback")
   );
-  console.log("SUBMIT teacherFeedback =>", (sub as any).teacherFeedback);
+  console.log("SUBMIT teacherFeedback =>", (sub as Record<string, unknown>).teacherFeedback);
 
   console.log("SUBMIT auth =>", sub.auth);
 
@@ -87,9 +109,10 @@ export async function submitToSpace(params: {
     const ref = await addDoc(colRef, sub);
     console.log("SUBMIT created =>", ref.id);
     return ref.id;
-  } catch (e: any) {
-    console.log("SUBMIT ERROR code =>", e?.code);
-    console.log("SUBMIT ERROR message =>", e?.message);
+  } catch (e: unknown) {
+    const info = getErrorInfo(e);
+    console.log("SUBMIT ERROR code =>", info.code);
+    console.log("SUBMIT ERROR message =>", info.message);
     console.log("SUBMIT ERROR full =>", e);
     throw e;
   }

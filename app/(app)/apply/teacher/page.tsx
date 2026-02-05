@@ -8,6 +8,16 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
 export default function ApplyTeacherPage() {
   const router = useRouter();
   const { user, profile, loading } = useUserProfile();
@@ -42,9 +52,9 @@ export default function ApplyTeacherPage() {
         updatedAt: serverTimestamp(),
       });
       setMsg("Søknaden er sendt ✅ (status: pending)");
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      setMsg(`Kunne ikke sende søknad: ${String(e?.message ?? e)}`);
+      setMsg(`Kunne ikke sende søknad: ${getErrorMessage(e)}`);
     } finally {
       setSaving(false);
     }

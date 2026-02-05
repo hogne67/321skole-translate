@@ -1,4 +1,4 @@
-// app/student/browse/page.tsx
+// app/(app)/student/browse/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
+import type { User } from "firebase/auth";
 
 type LessonRow = {
   id: string; // published lesson id
@@ -17,8 +18,23 @@ type LessonRow = {
 };
 
 type SubmissionRow = {
-  publishedLessonId: string;
+  publishedLessonId?: string;
 };
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (isRecord(e) && typeof e.message === "string") return e.message;
+  try {
+    return JSON.stringify(e);
+  } catch {
+    return String(e);
+  }
+}
 
 export default function StudentBrowsePage() {
   const [loading, setLoading] = useState(true);
@@ -26,13 +42,6 @@ export default function StudentBrowsePage() {
   const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
   const [hideOpened, setHideOpened] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const navLinkStyle: React.CSSProperties = {
-    textDecoration: "none",
-    fontSize: 16,
-    fontWeight: 600,
-    color: "inherit",
-  };
 
   useEffect(() => {
     let alive = true;
@@ -42,7 +51,7 @@ export default function StudentBrowsePage() {
       setError(null);
 
       try {
-        const user = await ensureAnonymousUser();
+        const user: User = await ensureAnonymousUser();
 
         // 1) published library
         const qPub = query(collection(db, "published_lessons"), where("isActive", "==", true));
@@ -55,14 +64,21 @@ export default function StudentBrowsePage() {
         if (!alive) return;
 
         const rows: LessonRow[] = pubSnap.docs.map((d) => {
-          const data = d.data() as any;
+          const dataUnknown = d.data() as unknown;
+          const data = isRecord(dataUnknown) ? dataUnknown : {};
+
           return {
             id: d.id,
-            title: data.title ?? data.searchText ?? "(Untitled)",
-            level: data.level,
-            topic: data.topic,
-            language: data.language,
-            isActive: data.isActive,
+            title:
+              typeof data.title === "string"
+                ? data.title
+                : typeof data.searchText === "string"
+                ? data.searchText
+                : "(Untitled)",
+            level: typeof data.level === "string" ? data.level : undefined,
+            topic: typeof data.topic === "string" ? data.topic : undefined,
+            language: typeof data.language === "string" ? data.language : undefined,
+            isActive: typeof data.isActive === "boolean" ? data.isActive : undefined,
           };
         });
 
@@ -70,20 +86,23 @@ export default function StudentBrowsePage() {
 
         const opened = new Set<string>();
         subSnap.docs.forEach((d) => {
-          const data = d.data() as SubmissionRow;
-          if (data?.publishedLessonId) opened.add(data.publishedLessonId);
+          const dataUnknown = d.data() as unknown;
+          const data = isRecord(dataUnknown) ? (dataUnknown as SubmissionRow) : {};
+          if (typeof data.publishedLessonId === "string" && data.publishedLessonId) {
+            opened.add(data.publishedLessonId);
+          }
         });
 
         setLessons(rows);
         setOpenedIds(opened);
-      } catch (e: any) {
-        setError(e?.message ?? "Kunne ikke hente lessons");
+      } catch (e: unknown) {
+        if (!alive) return;
+        setError(getErrorMessage(e) || "Kunne ikke hente lessons");
         setLessons([]);
         setOpenedIds(new Set());
       } finally {
-        if (!alive) return;
-        setLoading(false);
-      }
+  if (alive) setLoading(false);
+}
     }
 
     run();
@@ -100,9 +119,6 @@ export default function StudentBrowsePage() {
   return (
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
       <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>My library</h1>
-
-      {/* ✅ Student navigation (samme som Dashboard) */}
-      
 
       <hr style={{ margin: "10px 0 14px" }} />
 

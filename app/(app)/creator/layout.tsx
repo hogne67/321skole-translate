@@ -6,9 +6,12 @@ import SectionShell from "@/components/SectionShell";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 
-export default function CreatorLayout({ children }: { children: React.ReactNode }) {
-  // 1) Må være innlogget (ikke anon) for å komme inn i creator-området i det hele tatt
-  //    (AuthGate uten requireRole sørger for login, men tillater ikke anon bootstrap her)
+export default function CreatorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Må være innlogget (ikke anon) for å komme inn i creator-området
   return (
     <AuthGate>
       <Inner>{children}</Inner>
@@ -19,13 +22,13 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
 function Inner({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useUserProfile();
 
-  // Helt basic loader
+  // Enkel loader
   if (loading) return null;
 
-  // Hvis ikke innlogget: AuthGate sender til login, men fallback:
+  // Fallback – AuthGate håndterer normalt redirect
   if (!user) return null;
 
-  // Anon skal aldri inn i creator
+  // Anonyme brukere skal aldri inn i creator
   if (user.isAnonymous) {
     return (
       <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
@@ -38,10 +41,9 @@ function Inner({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const roles = (profile as any)?.roles as any | undefined;
-  const isCreator = roles?.creator === true;
+  const isCreator = profile?.roles?.creator === true;
 
-  // Ikke creator: vis “gate” med CTA til søknad
+  // Ikke creator → vis gate med CTA
   if (!isCreator) {
     return (
       <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
@@ -65,7 +67,7 @@ function Inner({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Creator: normal shell
+  // Creator → normal layout
   return (
     <SectionShell
       title="Creator"

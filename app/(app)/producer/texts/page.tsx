@@ -18,6 +18,16 @@ import {
 import { db } from "@/lib/firebase";
 import QRCode from "qrcode";
 
+type PublishVisibility = "public" | "unlisted" | "private";
+type LessonStatus = "draft" | "published";
+
+type FirestoreTimestampLike =
+  | { toDate?: () => Date }
+  | Date
+  | number
+  | null
+  | undefined;
+
 type LessonRow = {
   id: string;
   title?: string;
@@ -25,17 +35,17 @@ type LessonRow = {
   topic?: string;
   topics?: string[];
   language?: string;
-  status?: "draft" | "published";
-  updatedAt?: any;
+  status?: LessonStatus;
+  updatedAt?: FirestoreTimestampLike;
 
   textType?: string;
   texttype?: string;
 
-  deletedAt?: any;
+  deletedAt?: FirestoreTimestampLike;
 
   sourceText?: string;
   text?: string;
-  tasks?: any;
+  tasks?: unknown;
 
   coverImageUrl?: string;
   imageUrl?: string;
@@ -44,22 +54,31 @@ type LessonRow = {
 
   publish?: {
     state?: string; // pending/published/rejected...
-    visibility?: "public" | "unlisted" | "private";
+    visibility?: PublishVisibility;
   };
 };
 
-function formatMaybeDate(v: any) {
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function asString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function formatMaybeDate(v: FirestoreTimestampLike) {
   try {
     const d: Date | null =
-      v?.toDate?.() instanceof Date
-        ? v.toDate()
+      v && typeof v === "object" && typeof (v as { toDate?: unknown }).toDate === "function"
+        ? (v as { toDate: () => Date }).toDate()
         : v instanceof Date
         ? v
         : typeof v === "number"
         ? new Date(v)
         : null;
 
-    if (!d) return "—";
+    if (!d || Number.isNaN(d.getTime())) return "—";
+
     const pad = (n: number) => String(n).padStart(2, "0");
     return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(
       d.getHours()
@@ -69,20 +88,32 @@ function formatMaybeDate(v: any) {
   }
 }
 
-function coerceTextType(d: any): string {
-  const a = String(d?.textType ?? "").trim();
+function coerceTextType(d: unknown): string {
+  if (!isRecord(d)) return "";
+  const a = asString(d.textType).trim();
   if (a) return a;
-  const b = String(d?.texttype ?? "").trim();
+  const b = asString(d.texttype).trim();
   if (b) return b;
   return "";
 }
 
-function pickVisibility(v: any): "public" | "unlisted" | "private" {
+function pickVisibility(v: unknown): PublishVisibility {
   return v === "unlisted" || v === "private" || v === "public" ? v : "public";
 }
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (isRecord(err) && typeof err.message === "string") return err.message;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
 /** Server API helper (published_lessons writes happen on server) */
-async function authedPost(url: string, body: any) {
+async function authedPost<T = unknown>(url: string, body: unknown): Promise<T> {
   const user = getAuth().currentUser;
   if (!user) throw new Error("Not signed in");
 
@@ -99,18 +130,22 @@ async function authedPost(url: string, body: any) {
 
   // robust: tolerate non-JSON error pages
   const raw = await res.text();
-  let data: any = {};
+  let data: unknown = {};
   try {
-    data = raw ? JSON.parse(raw) : {};
+    data = raw ? (JSON.parse(raw) as unknown) : {};
   } catch {
     data = {};
   }
 
   if (!res.ok) {
-    throw new Error(data?.error || raw || `Request failed (${res.status})`);
+    const msg =
+      isRecord(data) && typeof data.error === "string"
+        ? data.error
+        : raw || `Request failed (${res.status})`;
+    throw new Error(msg);
   }
 
-  return data;
+  return data as T;
 }
 
 export default function ProducerTextsPage() {
@@ -120,7 +155,7 @@ export default function ProducerTextsPage() {
   const [items, setItems] = useState<LessonRow[]>([]);
 
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | LessonStatus>("all");
   const [busyById, setBusyById] = useState<Record<string, boolean>>({});
 
   // Share modal state
@@ -155,11 +190,15 @@ export default function ProducerTextsPage() {
       );
 
       const snap = await getDocs(qy);
-      const data = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as LessonRow[];
+
+      const data: LessonRow[] = snap.docs.map((d) => {
+        const row = d.data() as Partial<LessonRow>;
+        return { id: d.id, ...row };
+      });
 
       setItems(data);
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to load lessons");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e) || "Failed to load lessons");
     } finally {
       setLoading(false);
     }
@@ -190,16 +229,21 @@ export default function ProducerTextsPage() {
       const lessonSnap = await getDoc(lessonRef);
       if (!lessonSnap.exists()) throw new Error("Lesson not found");
 
-      const data: any = lessonSnap.data();
-      if (data?.deletedAt) throw new Error("This lesson is deleted/archived and cannot be published.");
+      const dataUnknown = lessonSnap.data() as unknown;
+      const data = isRecord(dataUnknown) ? dataUnknown : {};
+
+      if (data.deletedAt) throw new Error("This lesson is deleted/archived and cannot be published.");
 
       if (nextPublished) {
-        const vis = pickVisibility(data?.publish?.visibility);
+        const publishObj = isRecord(data.publish) ? data.publish : undefined;
+        const vis = pickVisibility(publishObj?.visibility);
 
-        const resp = await authedPost("/api/publish", { id: lessonId, visibility: vis });
+        const resp = await authedPost<{ publishedId?: string; publishedLessonId?: string; id?: string }>(
+          "/api/publish",
+          { id: lessonId, visibility: vis }
+        );
 
-        const publishedId =
-          resp?.publishedId || resp?.publishedLessonId || resp?.id || lessonId;
+        const publishedId = resp.publishedId || resp.publishedLessonId || resp.id || lessonId;
 
         await updateDoc(lessonRef, {
           status: "published",
@@ -207,7 +251,10 @@ export default function ProducerTextsPage() {
           updatedAt: serverTimestamp(),
         });
       } else {
-        const publishedId = data?.activePublishedId || lessonId;
+        const publishedId =
+          typeof data.activePublishedId === "string" && data.activePublishedId
+            ? data.activePublishedId
+            : lessonId;
 
         await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
 
@@ -219,8 +266,8 @@ export default function ProducerTextsPage() {
       }
 
       await load();
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to update publish status");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e) || "Failed to update publish status");
       await load();
     } finally {
       setBusy(lessonId, false);
@@ -263,9 +310,9 @@ export default function ProducerTextsPage() {
       });
 
       await load();
-    } catch (e: any) {
+    } catch (e: unknown) {
       setItems(before);
-      setErr(e?.message ?? "Failed to delete (archive) lesson");
+      setErr(getErrorMessage(e) || "Failed to delete (archive) lesson");
     } finally {
       setBusy(lessonId, false);
     }
@@ -332,7 +379,7 @@ export default function ProducerTextsPage() {
     return items.filter((l) => {
       if (l.deletedAt) return false;
 
-      const st = (l.status ?? "draft") as "draft" | "published";
+      const st = (l.status ?? "draft") as LessonStatus;
       if (statusFilter !== "all" && st !== statusFilter) return false;
 
       if (!needle) return true;
@@ -378,7 +425,7 @@ export default function ProducerTextsPage() {
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | LessonStatus)}
             style={{
               padding: "10px 12px",
               border: "1px solid #e5e7eb",
@@ -738,8 +785,7 @@ export default function ProducerTextsPage() {
             </div>
 
             <div style={{ padding: 14, borderTop: "1px solid rgba(0,0,0,0.08)", opacity: 0.7, fontSize: 12 }}>
-              Share URL points to:{" "}
-              <code>/lesson/{shareLesson.activePublishedId || shareLesson.id}</code>
+              Share URL points to: <code>/lesson/{shareLesson.activePublishedId || shareLesson.id}</code>
             </div>
           </div>
         </div>

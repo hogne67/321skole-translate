@@ -1,4 +1,4 @@
-// app/student/generator/page.tsx
+// app/(app)/student/generator/page.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -6,15 +6,17 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+
+type TaskType = "truefalse" | "mcq" | "open";
+type LengthKey = "short" | "normal" | "long";
 
 type GenTask = {
   id: string;
-  type: "truefalse" | "mcq" | "open";
+  type: TaskType;
   order: number;
   prompt: string;
   options?: string[];
-  correctAnswer?: any;
+  correctAnswer?: unknown;
 };
 
 type GeneratedLesson = {
@@ -25,7 +27,26 @@ type GeneratedLesson = {
   tasks: GenTask[];
 };
 
-async function generateLesson(args: { topic: string; level: string; length: string }) {
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function getErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (isRecord(e) && typeof e.message === "string") return e.message;
+  try {
+    return JSON.stringify(e);
+  } catch {
+    return String(e);
+  }
+}
+
+function isLengthKey(v: string): v is LengthKey {
+  return v === "short" || v === "normal" || v === "long";
+}
+
+async function generateLesson(args: { topic: string; level: string; length: LengthKey }) {
   const res = await fetch("/api/generate-lesson", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -37,6 +58,7 @@ async function generateLesson(args: { topic: string; level: string; length: stri
     throw new Error(`Generate API error (${res.status}): ${t}`);
   }
 
+  // If you want to be extra strict, validate the shape here too.
   return (await res.json()) as GeneratedLesson;
 }
 
@@ -45,7 +67,7 @@ export default function StudentGeneratorPage() {
 
   const [topic, setTopic] = useState("Daily life");
   const [level, setLevel] = useState("A2");
-  const [length, setLength] = useState<"short" | "normal" | "long">("normal");
+  const [length, setLength] = useState<LengthKey>("normal");
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -55,13 +77,6 @@ export default function StudentGeneratorPage() {
 
   const canGenerate = useMemo(() => topic.trim().length > 0, [topic]);
 
-  const navLinkStyle: React.CSSProperties = {
-    textDecoration: "none",
-    fontSize: 16,
-    fontWeight: 600,
-    color: "inherit",
-  };
-
   async function onGenerate() {
     setErr(null);
     setBusy(true);
@@ -70,8 +85,8 @@ export default function StudentGeneratorPage() {
     try {
       const out = await generateLesson({ topic, level, length });
       setDraft(out);
-    } catch (e: any) {
-      setErr(e?.message ?? "Could not generate");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e) || "Could not generate");
     } finally {
       setBusy(false);
     }
@@ -101,8 +116,8 @@ export default function StudentGeneratorPage() {
       });
 
       router.push(`/student/lesson/${docRef.id}`);
-    } catch (e: any) {
-      setErr(e?.message ?? "Could not save");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e) || "Could not save");
     } finally {
       setSaving(false);
     }
@@ -112,13 +127,8 @@ export default function StudentGeneratorPage() {
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
       <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>My text generator</h1>
 
-      {/* ✅ Student navigation (samme som Dashboard/Browse) */}
-      
-
       <hr style={{ margin: "10px 0 14px" }} />
-      <p style={{ opacity: 0.75, marginTop: 0 }}>
-        Here you can create your own reading assignments
-      </p>
+      <p style={{ opacity: 0.75, marginTop: 0 }}>Here you can create your own reading assignments</p>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -151,7 +161,7 @@ export default function StudentGeneratorPage() {
           <span style={{ opacity: 0.75, fontSize: 13 }}>Length</span>
           <select
             value={length}
-            onChange={(e) => setLength(e.target.value as any)}
+            onChange={(e) => setLength(isLengthKey(e.target.value) ? e.target.value : "normal")}
             style={{ border: "1px solid #ddd", borderRadius: 10, padding: "8px 10px" }}
           >
             <option value="short">Short</option>
@@ -247,4 +257,3 @@ export default function StudentGeneratorPage() {
     </main>
   );
 }
-

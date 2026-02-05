@@ -1,3 +1,4 @@
+// app/(app)/producer/lessons/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,7 +8,31 @@ import { db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth } from "firebase/auth";
 
-type LessonRow = { id: string; title?: string; status?: string };
+type LessonRow = {
+  id: string;
+  title?: string;
+  status?: string;
+};
+
+type LessonDoc = {
+  ownerId?: string;
+  title?: string;
+  status?: string;
+};
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
 
 export default function ProducerLessonsPage() {
   const [loading, setLoading] = useState(true);
@@ -25,10 +50,15 @@ export default function ProducerLessonsPage() {
       // Vis egne lessons (draft + published)
       const q = query(collection(db, "lessons"), where("ownerId", "==", uid));
       const snap = await getDocs(q);
-      const data = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+
+      const data: LessonRow[] = snap.docs.map((d) => {
+        const raw = d.data() as LessonDoc;
+        return { id: d.id, title: raw.title, status: raw.status };
+      });
+
       setLessons(data);
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to load");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e) || "Failed to load");
     } finally {
       setLoading(false);
     }
@@ -57,8 +87,8 @@ export default function ProducerLessonsPage() {
       // gå til edit-side hvis du har den:
       // router.push(`/producer/lessons/${ref.id}`);
       alert(`Created: ${ref.id}`);
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to create lesson");
+    } catch (e: unknown) {
+      setErr(getErrorMessage(e) || "Failed to create lesson");
     }
   }
 

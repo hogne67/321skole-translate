@@ -6,31 +6,44 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  limit,
-  Timestamp,
-} from "firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query, limit, Timestamp } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { setSpaceOpen } from "@/lib/spacesClient";
 
-type SubmissionRow = {
-  id: string;
-  data: any;
+type SubmissionData = {
+  createdAt?: unknown;
+  status?: unknown;
+  auth?: unknown;
+  answers?: unknown;
 };
 
-function formatMaybeDate(v: any) {
+type SubmissionRow = {
+  id: string;
+  data: SubmissionData;
+};
+
+function getErrorInfo(err: unknown): { code?: string; message: string } {
+  if (err instanceof Error) return { message: err.message };
+  if (typeof err === "string") return { message: err };
+  if (err && typeof err === "object") {
+    const code = "code" in err ? (err as { code?: unknown }).code : undefined;
+    const message = "message" in err ? (err as { message?: unknown }).message : undefined;
+    return {
+      code: typeof code === "string" ? code : undefined,
+      message: typeof message === "string" ? message : JSON.stringify(err),
+    };
+  }
+  return { message: String(err) };
+}
+
+function formatMaybeDate(v: unknown) {
   try {
     if (!v) return "";
     const d: Date | null =
       v instanceof Date
         ? v
-        : typeof v?.toDate === "function"
-          ? v.toDate()
+        : typeof (v as { toDate?: unknown })?.toDate === "function"
+          ? (v as { toDate: () => Date }).toDate()
           : v instanceof Timestamp
             ? v.toDate()
             : null;
@@ -38,6 +51,25 @@ function formatMaybeDate(v: any) {
   } catch {
     return "";
   }
+}
+
+function readAuth(data: SubmissionData): { isAnon: boolean; uid: string | null } {
+  const a = data.auth;
+  if (!a || typeof a !== "object") return { isAnon: false, uid: null };
+  const isAnon = (a as { isAnon?: unknown }).isAnon === true;
+  const uidRaw = (a as { uid?: unknown }).uid;
+  return { isAnon, uid: typeof uidRaw === "string" ? uidRaw : null };
+}
+
+function readAnswersKeys(data: SubmissionData): string[] {
+  const ans = data.answers;
+  if (!ans || typeof ans !== "object") return [];
+  return Object.keys(ans as Record<string, unknown>);
+}
+
+function readStatus(data: SubmissionData): string {
+  const s = data.status;
+  return typeof s === "string" ? s : "";
 }
 
 export default function TeacherSpaceDetailPage() {
@@ -88,15 +120,18 @@ function Inner() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const next: SubmissionRow[] = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+        const next: SubmissionRow[] = snap.docs.map((d) => ({
+          id: d.id,
+          data: (d.data() as SubmissionData) ?? {},
+        }));
         setSubs(next);
         setSubsLoading(false);
       },
-      (err: any) => {
+      (err: unknown) => {
         setSubsLoading(false);
-        setSubsError(err?.message || "Kunne ikke lese submissions.");
-        // Nyttig i console hvis det er rules-problem:
-        console.log("[TEACHER] submissions read ERROR =>", err?.code, err?.message, err);
+        const info = getErrorInfo(err);
+        setSubsError(info.message || "Kunne ikke lese submissions.");
+        console.log("[TEACHER] submissions read ERROR =>", info.code, info.message, err);
       }
     );
 
@@ -208,28 +243,20 @@ function Inner() {
             {subsLoading && <div style={{ opacity: 0.75 }}>Laster submissions…</div>}
 
             {subsError && (
-              <div style={{ color: "crimson" }}>
-                Feil ved lesing av submissions: {subsError}
-              </div>
+              <div style={{ color: "crimson" }}>Feil ved lesing av submissions: {subsError}</div>
             )}
 
             {!subsLoading && !subsError && lessonId && subs.length === 0 && (
-              <div style={{ opacity: 0.75 }}>
-                Ingen submissions funnet for denne lessonId-en (enda).
-              </div>
+              <div style={{ opacity: 0.75 }}>Ingen submissions funnet for denne lessonId-en (enda).</div>
             )}
 
             {!subsLoading && !subsError && subs.length > 0 && (
               <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
                 {subs.map((s) => {
-                  const createdAt = formatMaybeDate(s.data?.createdAt);
-                  const status = s.data?.status || "";
-                  const isAnon = s.data?.auth?.isAnon === true;
-                  const uid = s.data?.auth?.uid;
-                  const answersKeys =
-                    s.data?.answers && typeof s.data.answers === "object"
-                      ? Object.keys(s.data.answers)
-                      : [];
+                  const createdAt = formatMaybeDate(s.data.createdAt);
+                  const status = readStatus(s.data);
+                  const auth = readAuth(s.data);
+                  const answersKeys = readAnswersKeys(s.data);
 
                   return (
                     <div
@@ -241,19 +268,19 @@ function Inner() {
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                        <div style={{ fontWeight: 700 }}>
-                          {createdAt ? createdAt : "Ukjent tidspunkt"}
-                        </div>
+                        <div style={{ fontWeight: 700 }}>{createdAt ? createdAt : "Ukjent tidspunkt"}</div>
                         <div style={{ opacity: 0.8 }}>
-                          Status: <b>{status}</b>
+                          Status: <b>{status || "—"}</b>
                         </div>
                       </div>
 
                       <div style={{ marginTop: 6, opacity: 0.85 }}>
-                        {isAnon ? (
+                        {auth.isAnon ? (
                           <span>Gjest (uinnlogget)</span>
                         ) : (
-                          <span>Innlogget · uid: <code>{uid}</code></span>
+                          <span>
+                            Innlogget · uid: <code>{auth.uid ?? "—"}</code>
+                          </span>
                         )}
                       </div>
 
@@ -283,9 +310,7 @@ function Inner() {
             <br />
             <code>/space/{spaceId}/lesson/{`{lessonId}`}</code>
           </p>
-          <p style={{ marginTop: 0, opacity: 0.8 }}>
-            (Senere kan vi lage “Legg til lesson i space”-liste her.)
-          </p>
+          <p style={{ marginTop: 0, opacity: 0.8 }}>(Senere kan vi lage “Legg til lesson i space”-liste her.)</p>
         </div>
       </div>
     </div>

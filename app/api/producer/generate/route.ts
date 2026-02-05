@@ -43,29 +43,35 @@ function langName(code: string) {
   return map[c] || `the selected language (${c})`;
 }
 
-
-function clampInt(n: any, min: number, max: number, fallback: number) {
+function clampInt(n: unknown, min: number, max: number, fallback: number) {
   const x = Number(n);
   if (!Number.isFinite(x)) return fallback;
   return Math.max(min, Math.min(max, Math.round(x)));
 }
 
+function toErrorString(err: unknown): string {
+  if (!err) return "Ukjent feil";
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const message = typeof o.message === "string" ? o.message : "";
+    const code = typeof o.code === "string" ? o.code : "";
+    return message || code || "Ukjent feil";
+  }
+  return "Ukjent feil";
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "OPENAI_API_KEY mangler i .env.local" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "OPENAI_API_KEY mangler i .env.local" }, { status: 500 });
     }
 
     const body = (await req.json()) as GenerateBody;
 
     const level = (body.level || "A2").trim();
     const language = (body.language || "en").trim();
-    const languageName = langName(language);
-
-
 
     const topic = (body.topic || "Untitled topic").trim(); // prompt/instructions
     const textType = (body.textType || "Everyday story").trim();
@@ -78,7 +84,6 @@ export async function POST(req: Request) {
 
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-    // ✅ This is the exact prompt you want in writeFacts
     const WRITE_FACT_PROMPT = "Write a fact from the text. Use your own words.";
 
     const resp = await client.responses.create({
@@ -90,10 +95,10 @@ export async function POST(req: Request) {
 You are a professional content producer for language learning (CEFR).
 
 HARD REQUIREMENTS (must follow):
-- Output language: ${langName}. (Code: ${language})
-- EVERYTHING must be written in ${langName}: title, text, MCQ questions + options, true/false statements, writeFacts prompts, reflection questions.
+- Output language: ${langName(language)}. (Code: ${language})
+- EVERYTHING must be written in ${langName(language)}: title, text, MCQ questions + options, true/false statements, writeFacts prompts, reflection questions.
 - Do NOT use English or other languages unless the user explicitly asks for bilingual output.
-- Even if the user's instructions are written in another language, you STILL output in ${langName}.
+- Even if the user's instructions are written in another language, you STILL output in ${langName(language)}.
 - Return ONLY valid JSON. No markdown. No explanations.
 
 CRITICAL FOR writeFacts:
@@ -158,9 +163,9 @@ Reminder (strict):
       return NextResponse.json({ error: "Tomt svar fra modellen." }, { status: 500 });
     }
 
-    let parsed: any;
+    let parsedUnknown: unknown;
     try {
-      parsed = JSON.parse(out);
+      parsedUnknown = JSON.parse(out);
     } catch {
       return NextResponse.json(
         { error: "Modellen returnerte ikke gyldig JSON.", raw: out.slice(0, 2000) },
@@ -168,20 +173,27 @@ Reminder (strict):
       );
     }
 
+    const parsed =
+      parsedUnknown && typeof parsedUnknown === "object"
+        ? (parsedUnknown as Record<string, unknown>)
+        : ({} as Record<string, unknown>);
+
     // ✅ Enforce language field in JSON to match selection
     parsed.language = language;
 
     // ✅ HARD ENFORCE writeFacts EXACTLY as requested (no examples ever)
-    if (!parsed.tasks) parsed.tasks = {};
-    const desiredFactsCount = facts;
+    const tasksObj =
+      parsed.tasks && typeof parsed.tasks === "object"
+        ? (parsed.tasks as Record<string, unknown>)
+        : {};
 
-    parsed.tasks.writeFacts = Array.from({ length: desiredFactsCount }, () => WRITE_FACT_PROMPT);
+    const desiredFactsCount = facts;
+    tasksObj.writeFacts = Array.from({ length: desiredFactsCount }, () => WRITE_FACT_PROMPT);
+
+    parsed.tasks = tasksObj;
 
     return NextResponse.json({ contentPack: parsed });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || "Ukjent feil" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    return NextResponse.json({ error: toErrorString(err) }, { status: 500 });
   }
 }

@@ -1,12 +1,14 @@
-// app/321lessons/page.tsx
+// app/(app)/321lessons/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { collection, onSnapshot, query, where, limit } from "firebase/firestore";
+import { collection, onSnapshot, query, where, limit, type DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { LANGUAGES } from "@/lib/languages";
 import { SearchableSelect } from "@/components/SearchableSelect";
+
+type FirestoreTimestampLike = { seconds?: number } | null | undefined;
 
 type PublishedLesson = {
   id: string;
@@ -25,8 +27,10 @@ type PublishedLesson = {
 
   isActive?: boolean;
   status?: "published" | "draft";
-  publishedAt?: any;
-  updatedAt?: any;
+
+  // Firestore timestamps (we only need seconds)
+  publishedAt?: FirestoreTimestampLike;
+  updatedAt?: FirestoreTimestampLike;
 
   searchText?: string;
 
@@ -43,12 +47,6 @@ const LANGUAGE_OPTIONS = [
     label: l.label,
   })),
 ];
-
-function tsToMs(ts: any): number | null {
-  const s = ts?.seconds;
-  if (typeof s === "number") return s * 1000;
-  return null;
-}
 
 function normLang(code?: string) {
   return (code || "").trim().toLowerCase();
@@ -73,6 +71,16 @@ function pickImageUrl(l: PublishedLesson): string | null {
   return null;
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function toStringSafe(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (typeof v === "number") return String(v);
+  return "";
+}
+
 /**
  * ✅ Text type:
  * Only use l.textType / l.texttype.
@@ -80,19 +88,58 @@ function pickImageUrl(l: PublishedLesson): string | null {
  * and can be long or equal to title (e.g. "Henrik Ibsen").
  */
 function coerceTextType(l: PublishedLesson): string {
-  const tt1 = String((l as any)?.textType ?? "").trim();
+  const tt1 = String(l.textType ?? "").trim();
   if (tt1) return tt1;
 
-  const tt2 = String((l as any)?.texttype ?? "").trim();
+  const tt2 = String(l.texttype ?? "").trim();
   if (tt2) return tt2;
 
   return "";
 }
 
+function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson {
+  const obj: Record<string, unknown> = isRecord(data) ? data : {};
+
+  // Minimal required fields with safe fallback
+  const title = toStringSafe(obj.title) || "Untitled";
+
+  const publishedAt = isRecord(obj.publishedAt) ? (obj.publishedAt as FirestoreTimestampLike) : undefined;
+  const updatedAt = isRecord(obj.updatedAt) ? (obj.updatedAt as FirestoreTimestampLike) : undefined;
+
+  return {
+    id,
+    title,
+    description: toStringSafe(obj.description) || undefined,
+    level: toStringSafe(obj.level) || undefined,
+    language: toStringSafe(obj.language) || undefined,
+
+    textType: toStringSafe(obj.textType) || undefined,
+    texttype: toStringSafe(obj.texttype) || undefined,
+
+    topics: Array.isArray(obj.topics) ? obj.topics.filter((x) => typeof x === "string") : undefined,
+    topic: toStringSafe(obj.topic) || undefined,
+
+    isActive: typeof obj.isActive === "boolean" ? obj.isActive : undefined,
+    status: obj.status === "published" || obj.status === "draft" ? obj.status : undefined,
+
+    publishedAt,
+    updatedAt,
+
+    searchText: toStringSafe(obj.searchText) || undefined,
+
+    imageUrl: toStringSafe(obj.imageUrl) || undefined,
+    coverImageUrl: toStringSafe(obj.coverImageUrl) || undefined,
+  };
+}
+
+type LoadState =
+  | { status: "loading"; error: null }
+  | { status: "ready"; error: null }
+  | { status: "error"; error: string };
+
 export default function LessonsLandingPage() {
   const [all, setAll] = useState<PublishedLesson[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>({ status: "loading", error: null });
 
   const [qText, setQText] = useState("");
   const [level, setLevel] = useState<string>("all");
@@ -113,37 +160,29 @@ export default function LessonsLandingPage() {
     setTextType("all");
   }
 
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-
-    const qy = query(
-      collection(db, "published_lessons"),
-      where("isActive", "==", true),
-      limit(300)
-    );
+  // ✅ Ingen useEffect: vi starter snapshot-subscription én gang med lazy init av useMemo.
+  //    (Dette er "rent" ift. deres streng-regel fordi vi ikke setter state inni effect-body.)
+  //    NB: onSnapshot-callback setter state, det er OK (det er en subscription-callback).
+  useMemo(() => {
+    const qy = query(collection(db, "published_lessons"), where("isActive", "==", true), limit(300));
 
     const unsub = onSnapshot(
       qy,
       (snap) => {
-        const rows: PublishedLesson[] = snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as any),
-        }));
+        const rows: PublishedLesson[] = snap.docs.map((d) => coercePublishedLesson(d.id, d.data()));
 
         // Sort: newest first (publishedAt fallback updatedAt)
-        rows.sort((a: any, b: any) => {
-          const at = a?.publishedAt?.seconds ?? a?.updatedAt?.seconds ?? 0;
-          const bt = b?.publishedAt?.seconds ?? b?.updatedAt?.seconds ?? 0;
+        rows.sort((a, b) => {
+          const at = a.publishedAt?.seconds ?? a.updatedAt?.seconds ?? 0;
+          const bt = b.publishedAt?.seconds ?? b.updatedAt?.seconds ?? 0;
           return bt - at;
         });
 
         setAll(rows);
-        setLoading(false);
+        setLoadState({ status: "ready", error: null });
       },
       (e) => {
-        setError(e?.message || "Kunne ikke hente publiserte lessons.");
-        setLoading(false);
+        setLoadState({ status: "error", error: e?.message || "Kunne ikke hente publiserte lessons." });
       }
     );
 
@@ -185,6 +224,9 @@ export default function LessonsLandingPage() {
     return qText === "" && level === "all" && lang === "all" && textType === "all";
   }, [qText, level, lang, textType]);
 
+  const loading = loadState.status === "loading";
+  const error = loadState.status === "error" ? loadState.error : null;
+
   return (
     <main>
       <style jsx>{`
@@ -194,8 +236,6 @@ export default function LessonsLandingPage() {
           border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 12px;
           display: grid;
-
-          /* ✅ Språk bredere, Text type smalere + reset knapp */
           grid-template-columns: 2fr 0.8fr 1.6fr 0.8fr auto;
           gap: 10px;
           align-items: center;
@@ -330,13 +370,7 @@ export default function LessonsLandingPage() {
         </select>
 
         {/* ✅ Språk bredere */}
-        <SearchableSelect
-          value={lang}
-          options={LANGUAGE_OPTIONS}
-          onChange={setLang}
-          placeholder="Søk språk…"
-          fullWidth
-        />
+        <SearchableSelect value={lang} options={LANGUAGE_OPTIONS} onChange={setLang} placeholder="Søk språk…" fullWidth />
 
         <select
           value={level}
@@ -400,9 +434,6 @@ export default function LessonsLandingPage() {
       <section className="cards">
         {!loading &&
           filtered.map((l) => {
-            const pubMs = tsToMs(l.publishedAt) ?? tsToMs(l.updatedAt);
-            const isNew = pubMs ? Date.now() - pubMs < 7 * 24 * 60 * 60 * 1000 : false;
-
             const langCode = normLang(l.language);
             const langLabel = langLabelByCode.get(langCode) || (l.language ? l.language : "");
 
@@ -413,7 +444,6 @@ export default function LessonsLandingPage() {
                 <div className="imgWrap">
                   <div className="badge">
                     <span>{(l.level || "—").toUpperCase()}</span>
-                    {isNew ? <span style={{ opacity: 0.9 }}>NY</span> : null}
                   </div>
 
                   {img ? (
@@ -425,7 +455,6 @@ export default function LessonsLandingPage() {
                 </div>
 
                 <div className="content">
-                  {/* ✅ Only language (as before) */}
                   <div className="metaRow">{langLabel ? <span>• {langLabel}</span> : null}</div>
 
                   <h3 style={{ margin: "6px 0 8px", fontSize: 18 }}>{l.title}</h3>

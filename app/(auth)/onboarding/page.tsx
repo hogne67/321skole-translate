@@ -2,9 +2,12 @@ import OnboardingClient from "./OnboardingClient";
 
 export const dynamic = "force-dynamic";
 
-export default function OnboardingPage(props: any) {
-  const sp = props?.searchParams;
-  const nextUrl = typeof sp?.next === "string" ? sp.next : undefined;
+type PageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+export default function OnboardingPage({ searchParams }: PageProps) {
+  const nextUrl = typeof searchParams?.next === "string" ? searchParams.next : undefined;
 
   return <OnboardingClient nextUrl={nextUrl} />;
 }

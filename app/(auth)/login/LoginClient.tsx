@@ -21,6 +21,23 @@ function friendlyAuthError(msg: string) {
   return "Kunne ikke logge inn. Prøv igjen.";
 }
 
+// ✅ Null-safe/unknown-safe error extraction
+function toErrorString(err: unknown): string {
+  if (!err) return "";
+  if (typeof err === "string") return err;
+
+  if (err instanceof Error) return err.message;
+
+  if (typeof err === "object") {
+    const o = err as Record<string, unknown>;
+    const code = typeof o.code === "string" ? o.code : "";
+    const message = typeof o.message === "string" ? o.message : "";
+    return code || message || JSON.stringify(o);
+  }
+
+  return String(err);
+}
+
 export default function LoginClient() {
   const sp = useSearchParams();
   const router = useRouter();
@@ -59,8 +76,8 @@ export default function LoginClient() {
         await signInWithGoogle();
       }
       router.replace(safeNext);
-    } catch (e: any) {
-      setError(friendlyAuthError(String(e?.code || e?.message || e)));
+    } catch (err: unknown) {
+      setError(friendlyAuthError(toErrorString(err)));
     } finally {
       setLoadingGoogle(false);
     }
@@ -85,8 +102,8 @@ export default function LoginClient() {
         }
       }
       router.replace(safeNext);
-    } catch (e: any) {
-      setError(friendlyAuthError(String(e?.code || e?.message || e)));
+    } catch (err: unknown) {
+      setError(friendlyAuthError(toErrorString(err)));
     } finally {
       setLoadingEmail(false);
     }
@@ -163,13 +180,7 @@ export default function LoginClient() {
           disabled={loadingEmail || loadingGoogle}
           style={{ width: "100%", padding: "10px 12px", marginTop: 10 }}
         >
-          {loadingEmail
-            ? "Jobber…"
-            : mode === "signin"
-            ? "Logg inn"
-            : isAnon
-            ? "Oppgrader konto"
-            : "Opprett bruker"}
+          {loadingEmail ? "Jobber…" : mode === "signin" ? "Logg inn" : isAnon ? "Oppgrader konto" : "Opprett bruker"}
         </button>
 
         {mode === "signup" && isAnon ? (
@@ -183,3 +194,4 @@ export default function LoginClient() {
     </main>
   );
 }
+

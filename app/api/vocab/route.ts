@@ -4,19 +4,30 @@ import OpenAI from "openai";
 export const runtime = "nodejs";
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-function pickString(obj: any, keys: string[]) {
+type JsonObject = Record<string, unknown>;
+
+function isObject(v: unknown): v is JsonObject {
+  return typeof v === "object" && v !== null;
+}
+
+function pickString(obj: unknown, keys: string[]) {
+  if (!isObject(obj)) return "";
   for (const k of keys) {
-    const v = obj?.[k];
+    const v = obj[k];
     if (typeof v === "string" && v.trim()) return v.trim();
   }
   return "";
 }
 
-function pickNumber(obj: any, keys: string[], fallback: number) {
+function pickNumber(obj: unknown, keys: string[], fallback: number) {
+  if (!isObject(obj)) return fallback;
   for (const k of keys) {
-    const v = obj?.[k];
+    const v = obj[k];
     if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (typeof v === "string" && v.trim() && !isNaN(Number(v))) return Number(v);
+    if (typeof v === "string" && v.trim()) {
+      const n = Number(v);
+      if (Number.isFinite(n)) return n;
+    }
   }
   return fallback;
 }
@@ -34,9 +45,15 @@ function langName(code: string) {
   return m[code] ?? code;
 }
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return "Vocab failed";
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const body: unknown = await req.json().catch(() => ({} as unknown));
 
     const text = pickString(body, ["text", "lesetekst", "sourceText"]);
     const targetLang = pickString(body, ["targetLang", "lang", "to"]) || "no";
@@ -88,17 +105,18 @@ export async function POST(req: Request) {
 
     const raw = r.output_text?.trim() ?? "{}";
 
-    let parsed: any;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
       return Response.json({ error: "Ugyldig JSON fra modellen.", raw }, { status: 500 });
     }
 
-    const items = Array.isArray(parsed?.items) ? parsed.items : [];
+    const obj = isObject(parsed) ? parsed : {};
+    const items = Array.isArray(obj.items) ? obj.items : [];
     return Response.json({ items });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Vocab route error:", err);
-    return Response.json({ error: err?.message ?? "Vocab failed" }, { status: 500 });
+    return Response.json({ error: getErrorMessage(err) }, { status: 500 });
   }
 }

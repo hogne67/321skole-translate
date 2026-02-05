@@ -1,4 +1,4 @@
-// app/producer/[id]/print/page.tsx
+// app/(app)/producer/[id]/print/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -19,7 +19,7 @@ type Task = {
   type: TaskType;
   prompt: string;
   options?: string[];
-  correctAnswer?: any;
+  correctAnswer?: unknown;
   answerSpace?: AnswerSpace;
 };
 
@@ -53,7 +53,7 @@ function sortTasks(tasks: Task[]) {
   return t;
 }
 
-function safeText(s: any) {
+function safeText(s: unknown) {
   return typeof s === "string" ? s : "";
 }
 
@@ -64,8 +64,26 @@ function lineCountFor(space?: AnswerSpace) {
   return 9; // medium
 }
 
-function isTruthyString(v: any) {
+function isTruthyString(v: unknown) {
   return String(v).toLowerCase() === "true";
+}
+
+function normalizeCoverFormat(v: unknown): CoverFormat {
+  return v === "4:3" ? "4:3" : "16:9";
+}
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
 }
 
 export default function ProducerPrintPage() {
@@ -113,10 +131,10 @@ export default function ProducerPrintPage() {
 
         setLesson(data);
         setLoading(false);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!alive) return;
         console.error("PRINT LOAD FAILED:", e);
-        setErr(e?.message ?? "Kunne ikke laste lesson.");
+        setErr(getErrorMessage(e) || "Kunne ikke laste lesson.");
         setLoading(false);
       }
     })();
@@ -127,12 +145,12 @@ export default function ProducerPrintPage() {
   }, [lessonId]);
 
   const tasks = useMemo(() => {
-    const t = Array.isArray(lesson?.tasks) ? (lesson!.tasks as Task[]) : [];
+    const t = Array.isArray(lesson?.tasks) ? (lesson?.tasks ?? []) : [];
     // skjul tomme tasks i print
     return sortTasks(t).filter((x) => safeText(x.prompt).trim().length > 0);
   }, [lesson]);
 
-  const coverFmt: CoverFormat = (lesson?.coverImageFormat as CoverFormat) ?? "16:9";
+  const coverFmt: CoverFormat = normalizeCoverFormat(lesson?.coverImageFormat);
 
   if (loading) {
     return <main style={{ padding: 20 }}>Laster…</main>;
@@ -208,12 +226,13 @@ export default function ProducerPrintPage() {
 
           {/* 321skole logo (legg filen i /public) */}
           <div className="pdf-logoWrap">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/321skole-logo.png"
               alt="321skole"
               className="pdf-logo"
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
+                e.currentTarget.style.display = "none";
               }}
             />
           </div>
@@ -235,6 +254,7 @@ export default function ProducerPrintPage() {
         {/* Banner image (formatstyrt) */}
         {lesson.coverImageUrl?.trim() ? (
           <div className={`pdf-banner ${coverFmt === "4:3" ? "is-4x3" : "is-16x9"}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={lesson.coverImageUrl.trim()} alt="Banner" />
           </div>
         ) : null}
