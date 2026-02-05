@@ -1,18 +1,10 @@
-import SectionShell from "@/components/SectionShell";
+// app/(app)/parent/layout.tsx
+"use client";
+
+import AuthGate from "@/components/AuthGate";
 
 export default function ParentLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <SectionShell
-      title="Parent"
-      subtitle="Følg progresjon og få oversikt."
-      items={[
-        { href: "/parent", label: "Oversikt" },
-        // Legg til senere:
-        // { href: "/parent/kids", label: "Barn" },
-        // { href: "/parent/progress", label: "Progresjon" },
-      ]}
-    >
-      {children}
-    </SectionShell>
-  );
+  // Hvis du senere vil kreve parent-rolle eksplisitt:
+  // <AuthGate requireRole="parent">
+  return <AuthGate>{children}</AuthGate>;
 }

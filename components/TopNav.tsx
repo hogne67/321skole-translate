@@ -1,17 +1,56 @@
+// components/TopNav.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { useAppMode } from "@/components/ModeProvider";
+import type { AppMode } from "@/lib/mode";
+
+function labelForMode(m: AppMode) {
+  switch (m) {
+    case "student":
+      return "Student";
+    case "parent":
+      return "Parent";
+    case "teacher":
+      return "Teacher";
+    case "creator":
+      return "Creator";
+    case "admin":
+      return "Admin";
+    default:
+      return m;
+  }
+}
+
+function homeForMode(m: AppMode) {
+  // Hold dette enkelt: pek til eksisterende sider du allerede har.
+  switch (m) {
+    case "teacher":
+      return "/teacher";
+    case "creator":
+      return "/producer/texts";
+    case "admin":
+      return "/admin";
+    case "parent":
+      return "/parent";
+    case "student":
+    default:
+      return "/student";
+  }
+}
 
 export default function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
 
   const { profile, loading } = useUserProfile();
+  const { mode, setMode, allowed } = useAppMode();
+
   const [authUser, setAuthUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -21,15 +60,23 @@ export default function TopNav() {
   const isAnon = !!authUser?.isAnonymous;
   const isLoggedIn = !!authUser && !isAnon;
 
-  const isTeacherApproved =
-    profile?.teacherStatus === "approved" && !!profile?.roles?.teacher;
+  const isTeacherApproved = useMemo(() => {
+    return profile?.teacherStatus === "approved" && !!profile?.roles?.teacher;
+  }, [profile]);
 
   const isTeacherPending = profile?.teacherStatus === "pending";
-  const isAdmin = !!profile?.roles?.admin;
 
   async function handleLogout() {
     await signOut(auth);
     router.replace("/");
+  }
+
+  function handleModeChange(next: AppMode) {
+    setMode(next);
+
+    // Valgfritt, men gir en fin UX: når du bytter modus, gå til “hjem” for den modusen.
+    // Hvis du heller vil bli på samme side, fjern denne router.push().
+    router.push(homeForMode(next));
   }
 
   return (
@@ -50,61 +97,49 @@ export default function TopNav() {
           321skole
         </Link>
 
-        <nav style={{ display: "flex", gap: 10, opacity: 0.95, flexWrap: "wrap" }}>
-          <Link href="/student" style={{ textDecoration: "none" }}>
-            Student
-          </Link>
-
-          <Link href="/parent" style={{ textDecoration: "none" }}>
-            Parent
-          </Link>
-
-          <Link href="/321lessons" style={{ textDecoration: "none" }}>
-            Library
-          </Link>
-
-          {isTeacherApproved && (
-            <Link href="/teacher" style={{ textDecoration: "none" }}>
-              Teacher
-            </Link>
-          )}
-
-          {isAdmin && (
-            <Link href="/admin" style={{ textDecoration: "none" }}>
-              Admin
-            </Link>
-          )}
-
-          {/* Apply teacher – kun for innloggede (ikke anon) */}
-          {isLoggedIn && !isTeacherApproved && (
-            <Link
-              href="/apply/teacher"
-              style={{
-                textDecoration: "none",
-                padding: "8px 10px",
-                borderRadius: 10,
-                border: "1px solid rgba(0,0,0,0.14)",
-                background: isTeacherPending
-                  ? "rgba(0,0,0,0.06)"
-                  : "rgba(190,247,192,1)",
-                fontWeight: 900,
-                opacity: isTeacherPending ? 0.75 : 1,
-                pointerEvents: isTeacherPending ? "none" : "auto",
-              }}
-              title={
-                isTeacherPending
-                  ? "Søknaden din er sendt"
-                  : "Søk om teacher-tilgang"
-              }
-            >
-              {isTeacherPending ? "Application sent ⏳" : "Apply for teacher access"}
-            </Link>
-          )}
-        </nav>
+        {/* Mode picker */}
+        <select
+          value={mode}
+          onChange={(e) => handleModeChange(e.target.value as AppMode)}
+          disabled={loading || allowed.length <= 1}
+          style={{
+            padding: "8px 10px",
+            borderRadius: 10,
+            border: "1px solid rgba(0,0,0,0.14)",
+            background: "white",
+          }}
+          title={allowed.length <= 1 ? "Ingen andre moduser tilgjengelig" : "Bytt modus"}
+        >
+          {allowed.map((m) => (
+            <option key={m} value={m}>
+              {labelForMode(m)}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* RIGHT */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        {/* Apply teacher – kun for innloggede (ikke anon) */}
+        {isLoggedIn && !isTeacherApproved && (
+          <Link
+            href="/apply/teacher"
+            style={{
+              textDecoration: "none",
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.14)",
+              background: isTeacherPending ? "rgba(0,0,0,0.06)" : "rgba(190,247,192,1)",
+              fontWeight: 900,
+              opacity: isTeacherPending ? 0.75 : 1,
+              pointerEvents: isTeacherPending ? "none" : "auto",
+            }}
+            title={isTeacherPending ? "Søknaden din er sendt" : "Søk om teacher-tilgang"}
+          >
+            {isTeacherPending ? "Application sent ⏳" : "Apply for teacher access"}
+          </Link>
+        )}
+
         {/* Anon */}
         {isAnon && (
           <>
@@ -122,15 +157,20 @@ export default function TopNav() {
         {isLoggedIn && (
           <>
             <span style={{ fontSize: 13, opacity: 0.75 }}>
-              {loading
-                ? "Laster profil…"
-                : profile?.email || profile?.displayName || "Innlogget"}
+              {loading ? "Laster profil…" : profile?.email || profile?.displayName || "Innlogget"}
             </span>
 
             <button onClick={handleLogout} style={btnStyle}>
               Logg ut
             </button>
           </>
+        )}
+
+        {/* Ikke logget inn (ingen authUser ennå) */}
+        {!authUser && (
+          <Link href={`/login?next=${encodeURIComponent(pathname || "/student")}`} style={btnStyle}>
+            Logg inn
+          </Link>
         )}
       </div>
     </header>

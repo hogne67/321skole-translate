@@ -3,7 +3,7 @@
 
 import { SearchableSelect } from "@/components/SearchableSelect";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db, auth } from "@/lib/firebase";
@@ -296,6 +296,8 @@ function lsKey(lessonId: string) {
 export default function StudentLessonPage() {
   const params = useParams<{ lessonId: string }>();
   const lessonId = params?.lessonId;
+
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -787,6 +789,8 @@ export default function StudentLessonPage() {
       );
 
       flash("Saved ✅");
+      router.push("/content");
+      return;
     } catch (e: unknown) {
       const msg = (e as { message?: unknown })?.message;
       setMsg(typeof msg === "string" ? msg : "Could not save");
@@ -1158,7 +1162,7 @@ export default function StudentLessonPage() {
               opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? "Saving…" : isAnon ? "SAVE ON THIS DEVICE" : "SAVE TO DASHBOARD"}
+            {saving ? "Saving…" : isAnon ? "SAVE ON THIS DEVICE" : "SAVE TO MY CONTENT"}
           </button>
         </div>
 
@@ -1368,8 +1372,7 @@ export default function StudentLessonPage() {
               const options = Array.isArray(t?.options) ? (t.options as unknown[]) : [];
               const val = answers[stableId];
 
-              const hasThisTranslation =
-                !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
+              const hasThisTranslation = !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
               const showThisTranslation = hasThisTranslation ? isTaskTranslationVisible(stableId) : false;
 
               const rawCorrect = t?.correctAnswer;
@@ -1405,7 +1408,16 @@ export default function StudentLessonPage() {
 
               return (
                 <div key={stableId} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8, opacity: 0.85 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      marginBottom: 8,
+                      opacity: 0.85,
+                    }}
+                  >
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.9, alignItems: "center" }}>
                       <span>Task {t?.order ?? idx + 1}</span>
                       <span>• {type}</span>
@@ -1427,7 +1439,18 @@ export default function StudentLessonPage() {
                   <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10 }}>{prompt}</div>
 
                   {showThisTranslation && tr?.translatedPrompt ? (
-                    <div style={{ marginTop: -4, marginBottom: 10, padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(0,0,0,0.02)", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>
+                    <div
+                      style={{
+                        marginTop: -4,
+                        marginBottom: 10,
+                        padding: 10,
+                        borderRadius: 10,
+                        border: "1px solid rgba(0,0,0,0.10)",
+                        background: "rgba(0,0,0,0.02)",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: 1.45,
+                      }}
+                    >
                       <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Translated</div>
                       {tr.translatedPrompt}
                     </div>
@@ -1441,7 +1464,8 @@ export default function StudentLessonPage() {
                         const optT = tr?.translatedOptions?.[i] || "";
 
                         const isOptionCorrect = showAnswers && mcqCorrectText != null && opt === mcqCorrectText;
-                        const isOptionChosenWrong = showAnswers && checked && mcqCorrectText != null && opt !== mcqCorrectText;
+                        const isOptionChosenWrong =
+                          showAnswers && checked && mcqCorrectText != null && opt !== mcqCorrectText;
 
                         const borderColor = isOptionCorrect
                           ? "rgba(46, 204, 113, 0.85)"
@@ -1478,12 +1502,21 @@ export default function StudentLessonPage() {
                             />
 
                             <div style={{ width: "100%" }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: 10,
+                                }}
+                              >
                                 <div>{opt}</div>
                                 {checked ? <Pill text="Your answer" /> : null}
                               </div>
 
-                              {showThisTranslation && optT ? <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{optT}</div> : null}
+                              {showThisTranslation && optT ? (
+                                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{optT}</div>
+                              ) : null}
                             </div>
                           </label>
                         );
@@ -1591,12 +1624,37 @@ export default function StudentLessonPage() {
           </div>
         </div>
 
-        <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, whiteSpace: "pre-wrap", lineHeight: 1.55, minHeight: 80 }}>
-          {feedback ? feedback : <span style={{ opacity: 0.6 }}>{isAnon ? "Anonymous mode: answers saved locally. Log in for AI feedback." : "No feedback yet. Submit when ready."}</span>}
+        <div
+          style={{
+            padding: 12,
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 12,
+            whiteSpace: "pre-wrap",
+            lineHeight: 1.55,
+            minHeight: 80,
+          }}
+        >
+          {feedback ? (
+            feedback
+          ) : (
+            <span style={{ opacity: 0.6 }}>
+              {isAnon ? "Anonymous mode: answers saved locally. Log in for AI feedback." : "No feedback yet. Submit when ready."}
+            </span>
+          )}
         </div>
 
         {translatedFeedback ? (
-          <div style={{ marginTop: 10, padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, whiteSpace: "pre-wrap", lineHeight: 1.55, background: "rgba(0,0,0,0.02)" }}>
+          <div
+            style={{
+              marginTop: 10,
+              padding: 12,
+              border: "1px solid rgba(0,0,0,0.12)",
+              borderRadius: 12,
+              whiteSpace: "pre-wrap",
+              lineHeight: 1.55,
+              background: "rgba(0,0,0,0.02)",
+            }}
+          >
             <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Translated feedback</div>
             {translatedFeedback}
           </div>
