@@ -51,7 +51,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <SectionShell
         title={titleForMode(mode)}
         subtitle={subtitleForMode(mode)}
-        items={navItemsForMode(mode, { isAnon })}
+        items={navItemsForMode(mode)}
       >
         {children}
       </SectionShell>
