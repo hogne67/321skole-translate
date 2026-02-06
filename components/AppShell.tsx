@@ -27,7 +27,7 @@ function titleForMode(mode: AppMode) {
 function subtitleForMode(mode: AppMode) {
   switch (mode) {
     case "teacher":
-      return "Lærerverktøy: spaces, lessons og vurdering.";
+      return "";
     case "creator":
       return "Produksjon: lag og publiser innhold.";
     case "admin":

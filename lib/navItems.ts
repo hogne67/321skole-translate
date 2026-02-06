@@ -8,7 +8,7 @@ function homeForMode(mode: AppMode) {
     case "teacher":
       return "/teacher";
     case "creator":
-      return "/creator"; // UI-home for creator (legacy ligger fortsatt under /producer)
+      return "/creator";
     case "admin":
       return "/admin";
     case "parent":
@@ -19,23 +19,14 @@ function homeForMode(mode: AppMode) {
   }
 }
 
-export function navItemsForMode(mode: AppMode, opts?: { isAnon?: boolean }): NavItem[] {
-  const isAnon = opts?.isAnon === true;
-
-  // Motor + status + verktøy
+export function navItemsForMode(mode: AppMode): NavItem[] {
   const base: NavItem[] = [
     { href: "/content", label: "My content" },
     { href: homeForMode(mode), label: "Dashboard" },
-    { href: "/tools", label: "Tools" },
   ];
 
   if (mode === "student") {
-    return [
-      ...base,
-
-      // My library kun for innlogget student (ikke anon)
-      ...(!isAnon ? [{ href: "/student/browse", label: "My library" }] : []),
-    ];
+    return [...base];
   }
 
   if (mode === "parent") {
@@ -46,16 +37,13 @@ export function navItemsForMode(mode: AppMode, opts?: { isAnon?: boolean }): Nav
     return [
       ...base,
       { href: "/teacher/spaces", label: "Spaces" },
-      { href: "/teacher/lessons", label: "My lessons" },
-      { href: "/teacher/review", label: "Review" },
-      { href: "/teacher/lessons/new", label: "+ New lesson" },
+      { href: "/producer/texts/new", label: "+ Create new lesson" },
     ];
   }
 
   if (mode === "creator") {
     return [
       ...base,
-      // Legacy-ruter (inntil vi har full creator-område)
       { href: "/producer/texts", label: "My lessons" },
       { href: "/producer/texts/new", label: "+ New lesson" },
     ];
