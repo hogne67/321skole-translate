@@ -218,7 +218,6 @@ export default function StudentDashboard() {
 
   return (
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Student</h1>
 
       <hr style={{ margin: "10px 0 14px" }} />
 
@@ -227,20 +226,7 @@ export default function StudentDashboard() {
       </p>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-        <Link
-          href="/321lessons"
-          style={{
-            border: "1px solid #ddd",
-            borderRadius: 10,
-            padding: "8px 12px",
-            textDecoration: "none",
-            color: "inherit",
-            background: "white",
-            fontWeight: 700,
-          }}
-        >
-          Åpne Library
-        </Link>
+        
       </div>
 
       {err && (

@@ -12,12 +12,10 @@ export default function ProducerTextsLayout({
   return (
     <AuthGate requireRole="teacher" requireApprovedTeacher>
       <SectionShell
-        title="My content"
+        title=""
         subtitle=""
         items={[
-          { href: "/teacher", label: "Dashboard" },
-          { href: "/producer/texts", label: "My content" },
-          { href: "/producer/texts/new", label: "Create new lesson" },
+          
         ]}
       >
         {children}

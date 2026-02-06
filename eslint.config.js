@@ -5,7 +5,9 @@ import next from "@next/eslint-plugin-next";
 import reactHooks from "eslint-plugin-react-hooks";
 
 export default [
-  // Global ignores (erstatter .eslintignore)
+  /* =========================
+     Global ignores
+  ========================= */
   {
     ignores: [
       "**/node_modules/**",
@@ -14,11 +16,11 @@ export default [
       "**/dist/**",
       "**/coverage/**",
 
-      // Legacy/arkiv
+      // Legacy / archive
       "_archive_producer_old/**",
       "_archive/**",
 
-      // Scripts/tools
+      // Scripts / tools
       "scripts/**",
 
       // Debug
@@ -29,45 +31,72 @@ export default [
     ],
   },
 
+  /* =========================
+     Base JS + TS rules
+  ========================= */
   js.configs.recommended,
-
   ...tseslint.configs.recommended,
 
-  // Next.js rules for app code only
+  /* =========================
+     Next.js (app directory)
+  ========================= */
   {
     files: ["app/**/*.{js,jsx,ts,tsx}"],
-    plugins: { "@next/next": next },
+    plugins: {
+      "@next/next": next,
+    },
     rules: {
       ...next.configs.recommended.rules,
       ...next.configs["core-web-vitals"].rules,
     },
   },
 
-  // React hooks rules (keep the important ones, disable the too-strict ones)
+  /* =========================
+     React Hooks (app + components)
+  ========================= */
   {
-    files: ["app/**/*.{js,jsx,ts,tsx}"],
-    plugins: { "react-hooks": reactHooks },
+    files: [
+      "app/**/*.{js,jsx,ts,tsx}",
+      "components/**/*.{js,jsx,ts,tsx}",
+    ],
+    plugins: {
+      "react-hooks": reactHooks,
+    },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      // Core hooks rules (these MUST be defined explicitly)
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
 
-      // ✅ These two are the ones spamming you with "purity" + "setState in effect"
-      // They are too strict for typical React + Firebase patterns.
+      // Too strict / noisy for real-world React + Firebase
       "react-hooks/purity": "off",
       "react-hooks/set-state-in-effect": "off",
     },
   },
 
-  // TypeScript tweaks: keep strictness but avoid MVP pain (you can later narrow this per-folder if needed)
+  /* =========================
+     TypeScript project rules
+  ========================= */
   {
-    files: ["app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+    files: [
+      "app/**/*.{ts,tsx}",
+      "lib/**/*.{ts,tsx}",
+      "components/**/*.{ts,tsx}",
+    ],
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
     },
   },
 
-  // Allow require in config-like/server-only files (optional safety)
+  /* =========================
+     Server / config exceptions
+  ========================= */
   {
-    files: ["**/*.cjs", "**/*.config.{js,ts}", "lib/firebaseAdmin.ts", "lib/**/server*.ts"],
+    files: [
+      "**/*.cjs",
+      "**/*.config.{js,ts}",
+      "lib/firebaseAdmin.ts",
+      "lib/**/server*.ts",
+    ],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
     },

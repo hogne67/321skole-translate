@@ -438,7 +438,6 @@ export default function ContentClient() {
     <main style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ margin: 0 }}>My content</h1>
           <p style={{ marginTop: 6, opacity: 0.8 }}>
             Oversikt per bruker – actions varierer med mode (teacher/student/creator).
           </p>
