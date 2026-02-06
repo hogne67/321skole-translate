@@ -28,7 +28,6 @@ function labelForMode(m: AppMode) {
 }
 
 function homeForMode(m: AppMode) {
-  // Hold dette enkelt: pek til eksisterende sider du allerede har.
   switch (m) {
     case "teacher":
       return "/teacher";
@@ -73,15 +72,18 @@ export default function TopNav() {
 
   function handleModeChange(next: AppMode) {
     setMode(next);
-
-    // Valgfritt, men gir en fin UX: når du bytter modus, gå til “hjem” for den modusen.
-    // Hvis du heller vil bli på samme side, fjern denne router.push().
     router.push(homeForMode(next));
   }
 
   return (
     <header
       style={{
+        // ✅ Bakgrunn for hele topbaren (juster her)
+        background: "rgba(0,0,0,0.035)",
+
+        // litt “glass” uten å bli fancy
+        backdropFilter: "saturate(150%) blur(6px)",
+
         borderBottom: "1px solid rgba(0,0,0,0.08)",
         padding: "12px 16px",
         display: "flex",
@@ -93,8 +95,12 @@ export default function TopNav() {
     >
       {/* LEFT */}
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <Link href="/" style={{ textDecoration: "none", fontWeight: 800 }}>
+        <Link href="/" style={{ textDecoration: "none", fontWeight: 900 }}>
           321skole
+        </Link>
+
+        <Link href="/321lessons" style={{ textDecoration: "none", fontWeight: 700, opacity: 0.9 }}>
+          Library
         </Link>
 
         {/* Mode picker */}
@@ -179,7 +185,7 @@ export default function TopNav() {
 
 const btnStyle: React.CSSProperties = {
   border: "1px solid rgba(0,0,0,0.14)",
-  background: "white",
+  background: "rgba(109, 155, 113, 0.23)",
   borderRadius: 10,
   padding: "8px 10px",
   cursor: "pointer",
