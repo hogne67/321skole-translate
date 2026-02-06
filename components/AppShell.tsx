@@ -7,7 +7,6 @@ import SectionShell from "@/components/SectionShell";
 import { useAppMode } from "@/components/ModeProvider";
 import { navItemsForMode } from "@/lib/navItems";
 import type { AppMode } from "@/lib/mode";
-import { useUserProfile } from "@/lib/useUserProfile";
 
 function titleForMode(mode: AppMode) {
   switch (mode) {
@@ -27,7 +26,7 @@ function titleForMode(mode: AppMode) {
 function subtitleForMode(mode: AppMode) {
   switch (mode) {
     case "teacher":
-      return "";
+      return "Lærerverktøy: spaces, lessons og vurdering.";
     case "creator":
       return "Produksjon: lag og publiser innhold.";
     case "admin":
@@ -41,9 +40,6 @@ function subtitleForMode(mode: AppMode) {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { mode } = useAppMode();
-  const { user } = useUserProfile();
-
-  const isAnon = !!user?.isAnonymous;
 
   return (
     <>
