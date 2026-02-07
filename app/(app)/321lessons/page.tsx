@@ -1,9 +1,16 @@
 // app/(app)/321lessons/page.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { collection, onSnapshot, query, where, limit, type DocumentData } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  query,
+  where,
+  limit,
+  type DocumentData,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { LANGUAGES } from "@/lib/languages";
 import { SearchableSelect } from "@/components/SearchableSelect";
@@ -84,8 +91,7 @@ function toStringSafe(v: unknown): string {
 /**
  * ✅ Text type:
  * Only use l.textType / l.texttype.
- * DO NOT fall back to topic/topics, because those are content/topic fields
- * and can be long or equal to title (e.g. "Henrik Ibsen").
+ * DO NOT fall back to topic/topics.
  */
 function coerceTextType(l: PublishedLesson): string {
   const tt1 = String(l.textType ?? "").trim();
@@ -100,11 +106,14 @@ function coerceTextType(l: PublishedLesson): string {
 function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson {
   const obj: Record<string, unknown> = isRecord(data) ? data : {};
 
-  // Minimal required fields with safe fallback
   const title = toStringSafe(obj.title) || "Untitled";
 
-  const publishedAt = isRecord(obj.publishedAt) ? (obj.publishedAt as FirestoreTimestampLike) : undefined;
-  const updatedAt = isRecord(obj.updatedAt) ? (obj.updatedAt as FirestoreTimestampLike) : undefined;
+  const publishedAt = isRecord(obj.publishedAt)
+    ? (obj.publishedAt as FirestoreTimestampLike)
+    : undefined;
+  const updatedAt = isRecord(obj.updatedAt)
+    ? (obj.updatedAt as FirestoreTimestampLike)
+    : undefined;
 
   return {
     id,
@@ -116,11 +125,16 @@ function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson 
     textType: toStringSafe(obj.textType) || undefined,
     texttype: toStringSafe(obj.texttype) || undefined,
 
-    topics: Array.isArray(obj.topics) ? obj.topics.filter((x) => typeof x === "string") : undefined,
+    topics: Array.isArray(obj.topics)
+      ? obj.topics.filter((x) => typeof x === "string")
+      : undefined,
     topic: toStringSafe(obj.topic) || undefined,
 
     isActive: typeof obj.isActive === "boolean" ? obj.isActive : undefined,
-    status: obj.status === "published" || obj.status === "draft" ? obj.status : undefined,
+    status:
+      obj.status === "published" || obj.status === "draft"
+        ? (obj.status as "published" | "draft")
+        : undefined,
 
     publishedAt,
     updatedAt,
@@ -139,7 +153,10 @@ type LoadState =
 
 export default function LessonsLandingPage() {
   const [all, setAll] = useState<PublishedLesson[]>([]);
-  const [loadState, setLoadState] = useState<LoadState>({ status: "loading", error: null });
+  const [loadState, setLoadState] = useState<LoadState>({
+    status: "loading",
+    error: null,
+  });
 
   const [qText, setQText] = useState("");
   const [level, setLevel] = useState<string>("all");
@@ -160,16 +177,22 @@ export default function LessonsLandingPage() {
     setTextType("all");
   }
 
-  // ✅ Ingen useEffect: vi starter snapshot-subscription én gang med lazy init av useMemo.
-  //    (Dette er "rent" ift. deres streng-regel fordi vi ikke setter state inni effect-body.)
-  //    NB: onSnapshot-callback setter state, det er OK (det er en subscription-callback).
-  useMemo(() => {
-    const qy = query(collection(db, "published_lessons"), where("isActive", "==", true), limit(300));
+  // ✅ Riktig: subscription i useEffect (cleanup kjører alltid)
+  useEffect(() => {
+    setLoadState({ status: "loading", error: null });
+
+    const qy = query(
+      collection(db, "published_lessons"),
+      where("isActive", "==", true),
+      limit(300)
+    );
 
     const unsub = onSnapshot(
       qy,
       (snap) => {
-        const rows: PublishedLesson[] = snap.docs.map((d) => coercePublishedLesson(d.id, d.data()));
+        const rows: PublishedLesson[] = snap.docs.map((d) =>
+          coercePublishedLesson(d.id, d.data())
+        );
 
         // Sort: newest first (publishedAt fallback updatedAt)
         rows.sort((a, b) => {
@@ -182,7 +205,10 @@ export default function LessonsLandingPage() {
         setLoadState({ status: "ready", error: null });
       },
       (e) => {
-        setLoadState({ status: "error", error: e?.message || "Kunne ikke hente publiserte lessons." });
+        setLoadState({
+          status: "error",
+          error: e?.message || "Kunne ikke hente publiserte lessons.",
+        });
       }
     );
 
@@ -202,7 +228,9 @@ export default function LessonsLandingPage() {
     const qt = qText.trim().toLowerCase();
 
     return all.filter((l) => {
-      if (level !== "all" && (l.level || "").toUpperCase() !== level) return false;
+      if (level !== "all" && (l.level || "").toUpperCase() !== level)
+        return false;
+
       if (!langMatches(l.language, lang)) return false;
 
       const tt = coerceTextType(l);
@@ -210,10 +238,11 @@ export default function LessonsLandingPage() {
 
       if (!qt) return true;
 
-      // Search text includes title/description/textType + level/lang.
       const hay = (
         l.searchText ||
-        `${l.title ?? ""} ${l.description ?? ""} ${tt} ${(l.level || "").toUpperCase()} ${l.language || ""}`
+        `${l.title ?? ""} ${l.description ?? ""} ${tt} ${(l.level || "").toUpperCase()} ${
+          l.language || ""
+        }`
       ).toLowerCase();
 
       return hay.includes(qt);
@@ -352,14 +381,21 @@ export default function LessonsLandingPage() {
           value={qText}
           onChange={(e) => setQText(e.target.value)}
           placeholder="Søk: tittel, tekst, type…"
-          style={{ padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+          style={{
+            padding: 10,
+            borderRadius: 10,
+            border: "1px solid rgba(0,0,0,0.2)",
+          }}
         />
 
-        {/* ✅ Text type */}
         <select
           value={textType}
           onChange={(e) => setTextType(e.target.value)}
-          style={{ padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+          style={{
+            padding: 10,
+            borderRadius: 10,
+            border: "1px solid rgba(0,0,0,0.2)",
+          }}
         >
           <option value="all">Text type</option>
           {allTextTypes.map((t) => (
@@ -369,13 +405,22 @@ export default function LessonsLandingPage() {
           ))}
         </select>
 
-        {/* ✅ Språk bredere */}
-        <SearchableSelect value={lang} options={LANGUAGE_OPTIONS} onChange={setLang} placeholder="Søk språk…" fullWidth />
+        <SearchableSelect
+          value={lang}
+          options={LANGUAGE_OPTIONS}
+          onChange={setLang}
+          placeholder="Søk språk…"
+          fullWidth
+        />
 
         <select
           value={level}
           onChange={(e) => setLevel(e.target.value)}
-          style={{ padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+          style={{
+            padding: 10,
+            borderRadius: 10,
+            border: "1px solid rgba(0,0,0,0.2)",
+          }}
         >
           <option value="all">Nivå</option>
           {LEVELS.map((lv) => (
@@ -385,7 +430,6 @@ export default function LessonsLandingPage() {
           ))}
         </select>
 
-        {/* ✅ Reset */}
         <button
           type="button"
           className="resetBtn"
@@ -435,7 +479,8 @@ export default function LessonsLandingPage() {
         {!loading &&
           filtered.map((l) => {
             const langCode = normLang(l.language);
-            const langLabel = langLabelByCode.get(langCode) || (l.language ? l.language : "");
+            const langLabel =
+              langLabelByCode.get(langCode) || (l.language ? l.language : "");
 
             const img = pickImageUrl(l);
 
@@ -455,13 +500,17 @@ export default function LessonsLandingPage() {
                 </div>
 
                 <div className="content">
-                  <div className="metaRow">{langLabel ? <span>• {langLabel}</span> : null}</div>
+                  <div className="metaRow">
+                    {langLabel ? <span>• {langLabel}</span> : null}
+                  </div>
 
                   <h3 style={{ margin: "6px 0 8px", fontSize: 18 }}>{l.title}</h3>
 
                   {l.description ? (
                     <p style={{ margin: 0, opacity: 0.8, lineHeight: 1.4 }}>
-                      {l.description.length > 120 ? l.description.slice(0, 120) + "…" : l.description}
+                      {l.description.length > 120
+                        ? l.description.slice(0, 120) + "…"
+                        : l.description}
                     </p>
                   ) : (
                     <p style={{ margin: 0, opacity: 0.6 }}>Åpne for detaljer</p>

@@ -1,11 +1,11 @@
 // components/TopNav.tsx
 "use client";
 
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { useEffect, useMemo, useState } from "react";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useAppMode } from "@/components/ModeProvider";
 import type { AppMode } from "@/lib/mode";
@@ -32,7 +32,7 @@ function homeForMode(m: AppMode) {
     case "teacher":
       return "/teacher";
     case "creator":
-      return "/producer/texts";
+      return "/creator";
     case "admin":
       return "/admin";
     case "parent":
@@ -78,12 +78,8 @@ export default function TopNav() {
   return (
     <header
       style={{
-        // ✅ Bakgrunn for hele topbaren (juster her)
-        background: "rgba(0,0,0,0.035)",
-
-        // litt “glass” uten å bli fancy
+        background: "rgba(69, 57, 97, 0.15)",
         backdropFilter: "saturate(150%) blur(6px)",
-
         borderBottom: "1px solid rgba(0,0,0,0.08)",
         padding: "12px 16px",
         display: "flex",
@@ -94,34 +90,10 @@ export default function TopNav() {
       }}
     >
       {/* LEFT */}
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <Link href="/" style={{ textDecoration: "none", fontWeight: 900 }}>
           321skole
         </Link>
-
-        <Link href="/321lessons" style={{ textDecoration: "none", fontWeight: 700, opacity: 0.9 }}>
-          Library
-        </Link>
-
-        {/* Mode picker */}
-        <select
-          value={mode}
-          onChange={(e) => handleModeChange(e.target.value as AppMode)}
-          disabled={loading || allowed.length <= 1}
-          style={{
-            padding: "8px 10px",
-            borderRadius: 10,
-            border: "1px solid rgba(0,0,0,0.14)",
-            background: "white",
-          }}
-          title={allowed.length <= 1 ? "Ingen andre moduser tilgjengelig" : "Bytt modus"}
-        >
-          {allowed.map((m) => (
-            <option key={m} value={m}>
-              {labelForMode(m)}
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* RIGHT */}
@@ -159,12 +131,27 @@ export default function TopNav() {
           </>
         )}
 
-        {/* Innlogget konto */}
+        {/* Innlogget */}
         {isLoggedIn && (
           <>
-            <span style={{ fontSize: 13, opacity: 0.75 }}>
-              {loading ? "Laster profil…" : profile?.email || profile?.displayName || "Innlogget"}
-            </span>
+            <select
+              value={mode}
+              onChange={(e) => handleModeChange(e.target.value as AppMode)}
+              disabled={loading || allowed.length <= 1}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: "1px solid rgba(0,0,0,0.14)",
+                background: "white",
+              }}
+              title={allowed.length <= 1 ? "Ingen andre moduser tilgjengelig" : "Bytt modus"}
+            >
+              {allowed.map((m) => (
+                <option key={m} value={m}>
+                  {labelForMode(m)}
+                </option>
+              ))}
+            </select>
 
             <button onClick={handleLogout} style={btnStyle}>
               Logg ut
@@ -174,7 +161,10 @@ export default function TopNav() {
 
         {/* Ikke logget inn (ingen authUser ennå) */}
         {!authUser && (
-          <Link href={`/login?next=${encodeURIComponent(pathname || "/student")}`} style={btnStyle}>
+          <Link
+            href={`/login?next=${encodeURIComponent(pathname || "/student")}`}
+            style={btnStyle}
+          >
             Logg inn
           </Link>
         )}
@@ -185,7 +175,7 @@ export default function TopNav() {
 
 const btnStyle: React.CSSProperties = {
   border: "1px solid rgba(0,0,0,0.14)",
-  background: "rgba(109, 155, 113, 0.23)",
+  background: "rgba(89, 131, 93, 0.23)",
   borderRadius: 10,
   padding: "8px 10px",
   cursor: "pointer",

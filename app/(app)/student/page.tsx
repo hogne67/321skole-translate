@@ -16,6 +16,8 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 
+import { DashboardIntro } from "@/components/DashboardIntro";
+
 type MyLessonRow = {
   id: string; // submissionId (uid_lessonId)
   publishedLessonId?: string;
@@ -77,11 +79,13 @@ function asSubmissionDoc(data: DocumentData): SubmissionDoc {
   const d = data as Partial<SubmissionDoc>;
   return {
     uid: typeof d.uid === "string" ? d.uid : undefined,
-    publishedLessonId: typeof d.publishedLessonId === "string" ? d.publishedLessonId : undefined,
+    publishedLessonId:
+      typeof d.publishedLessonId === "string" ? d.publishedLessonId : undefined,
     status: d.status === "draft" || d.status === "submitted" ? d.status : undefined,
     lessonTitle: typeof d.lessonTitle === "string" ? d.lessonTitle : undefined,
     lessonLevel: typeof d.lessonLevel === "string" ? d.lessonLevel : undefined,
-    lessonLanguage: typeof d.lessonLanguage === "string" ? d.lessonLanguage : undefined,
+    lessonLanguage:
+      typeof d.lessonLanguage === "string" ? d.lessonLanguage : undefined,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
   };
@@ -102,6 +106,9 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  // ✅ Trengs for DashboardIntro (gjest vs innlogget)
+  const [isAnon, setIsAnon] = useState(true);
+
   useEffect(() => {
     let alive = true;
 
@@ -112,6 +119,9 @@ export default function StudentDashboard() {
       try {
         const user = await ensureAnonymousUser();
         if (!alive) return;
+
+        // ✅ Lagre anon-status så introen kan vise riktig tekst
+        setIsAnon(Boolean(user.isAnonymous));
 
         // 1) Hent mine submissions
         const qMine = query(collection(db, "submissions"), where("uid", "==", user.uid));
@@ -171,9 +181,11 @@ export default function StudentDashboard() {
           );
 
           const metaMap = new Map<string, PublishedMeta>();
-          metas.filter((m): m is { id: string; meta: PublishedMeta } => m !== null).forEach((m) => {
-            metaMap.set(m.id, m.meta);
-          });
+          metas
+            .filter((m): m is { id: string; meta: PublishedMeta } => m !== null)
+            .forEach((m) => {
+              metaMap.set(m.id, m.meta);
+            });
 
           rows = rows.map((r) => {
             if (!r.lessonTitle) {
@@ -218,16 +230,12 @@ export default function StudentDashboard() {
 
   return (
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
+      {/* ✅ Ny intro øverst (gir “plass” på mobil) */}
+      <DashboardIntro userIsAnon={isAnon} />
 
       <hr style={{ margin: "10px 0 14px" }} />
 
-      <p style={{ opacity: 0.75, marginTop: 0 }}>
-        Her finner du oppgaver du har startet på (utkast) eller sendt inn for feedback.
-      </p>
-
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-        
-      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }} />
 
       {err && (
         <div
