@@ -1,0 +1,146 @@
+import OpenAI from "openai";
+import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+
+type GenerateTasksBody = {
+  level?: string;
+  language?: string;
+  topic?: string;
+  textType?: string;
+  text?: string; // <- viktig: teksten vi skal lage oppgaver fra
+  tasks?: {
+    mcq?: number;
+    trueFalse?: number;
+    facts?: number;
+    reflection?: number;
+  };
+};
+
+type TasksOnly = {
+  multipleChoice: Array<{ q: string; options: [string, string, string, string]; answerIndex: 0 | 1 | 2 | 3 }>;
+  trueFalse: Array<{ statement: string; answer: boolean }>;
+  writeFacts: string[];
+  reflectionQuestions: string[];
+};
+
+type OpenAIErrorLike = { message?: string; code?: string | number };
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err) {
+    const m = (err as OpenAIErrorLike).message;
+    if (typeof m === "string") return m;
+  }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: "OPENAI_API_KEY mangler i .env.local" }, { status: 500 });
+    }
+
+    const body = (await req.json()) as GenerateTasksBody;
+
+    const level = (body.level || "A2").trim();
+    const language = (body.language || "en").trim();
+    const topic = (body.topic || "Untitled topic").trim();
+    const textType = (body.textType || "Everyday story").trim();
+    const text = String(body.text || "").trim();
+
+    if (!text) {
+      return NextResponse.json({ error: "Mangler 'text' i request body." }, { status: 400 });
+    }
+
+    const mcq = Number(body.tasks?.mcq ?? 6);
+    const trueFalse = Number(body.tasks?.trueFalse ?? 10);
+    const facts = Number(body.tasks?.facts ?? 6);
+    const reflection = Number(body.tasks?.reflection ?? 3);
+
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+    const system = `
+Du er en profesjonell innholdsprodusent for språkinnlæring (CEFR) for 321skole.
+Du må returnere ren JSON og ingenting annet.
+`.trim();
+
+    const user = `
+Lag KUN oppgaver basert på teksten under.
+
+Språk: ${language}
+Nivå: ${level}
+Tema: ${topic}
+Teksttype: ${textType}
+
+TEKST (bruk denne som fasit):
+"""
+${text}
+"""
+
+Krav:
+- Oppgavene skal kreve info fra teksten.
+- Språket i oppgavene skal passe nivå ${level}.
+- Ikke finn på fakta som ikke står i teksten.
+- multipleChoice må ha 4 alternativer, og answerIndex må peke på riktig.
+
+RETURNER EKSAKT gyldig JSON (ingen markdown, ingen ekstra tekst) i denne strukturen:
+{
+  "tasks": {
+    "multipleChoice": [
+      { "q": string, "options": [string, string, string, string], "answerIndex": 0-3 }
+    ],
+    "trueFalse": [
+      { "statement": string, "answer": true|false }
+    ],
+    "writeFacts": [ string ],
+    "reflectionQuestions": [ string ]
+  }
+}
+
+Antall:
+- multipleChoice: ${mcq}
+- trueFalse: ${trueFalse}
+- writeFacts: ${facts}
+- reflectionQuestions: ${reflection}
+`.trim();
+
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const resp = await client.responses.create({
+      model,
+      input: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    });
+
+    const out = (resp.output_text || "").trim();
+    if (!out) {
+      return NextResponse.json({ error: "Tomt svar fra modellen." }, { status: 500 });
+    }
+
+    let parsed: { tasks: TasksOnly };
+    try {
+      parsed = JSON.parse(out) as { tasks: TasksOnly };
+    } catch {
+      return NextResponse.json(
+        { error: "Modellen returnerte ikke gyldig JSON.", raw: out.slice(0, 2000) },
+        { status: 500 }
+      );
+    }
+
+    if (!parsed?.tasks) {
+      return NextResponse.json({ error: "Mangler 'tasks' i JSON-respons." }, { status: 500 });
+    }
+
+    return NextResponse.json({ tasks: parsed.tasks });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: getErrorMessage(err) || "Ukjent feil" }, { status: 500 });
+  }
+}

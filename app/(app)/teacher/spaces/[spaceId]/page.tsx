@@ -5,10 +5,22 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
+import { useUserProfile } from "@/lib/useUserProfile";
+import AttestationAndModeCard from "@/components/AttestationAndModeCard";
 import { db } from "@/lib/firebase";
-import { collection, doc, onSnapshot, orderBy, query, limit, Timestamp } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  limit,
+  Timestamp,
+} from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { setSpaceOpen } from "@/lib/spacesClient";
+
+type Mode = "student" | "teacher" | "creator" | "parent";
 
 type SubmissionData = {
   createdAt?: unknown;
@@ -22,12 +34,32 @@ type SubmissionRow = {
   data: SubmissionData;
 };
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function readModeFromProfile(profile: unknown): Mode {
+  if (!isRecord(profile)) return "student";
+  const m = profile["mode"];
+  return m === "teacher" || m === "creator" || m === "parent" || m === "student"
+    ? m
+    : "student";
+}
+
+function readHasAttested(profile: unknown): boolean {
+  if (!isRecord(profile)) return false;
+  const att = profile["attestation"];
+  if (!isRecord(att)) return false;
+  return Boolean(att["acceptedAt"]);
+}
+
 function getErrorInfo(err: unknown): { code?: string; message: string } {
   if (err instanceof Error) return { message: err.message };
   if (typeof err === "string") return { message: err };
   if (err && typeof err === "object") {
     const code = "code" in err ? (err as { code?: unknown }).code : undefined;
-    const message = "message" in err ? (err as { message?: unknown }).message : undefined;
+    const message =
+      "message" in err ? (err as { message?: unknown }).message : undefined;
     return {
       code: typeof code === "string" ? code : undefined,
       message: typeof message === "string" ? message : JSON.stringify(err),
@@ -43,10 +75,10 @@ function formatMaybeDate(v: unknown) {
       v instanceof Date
         ? v
         : typeof (v as { toDate?: unknown })?.toDate === "function"
-          ? (v as { toDate: () => Date }).toDate()
-          : v instanceof Timestamp
-            ? v.toDate()
-            : null;
+        ? (v as { toDate: () => Date }).toDate()
+        : v instanceof Timestamp
+        ? v.toDate()
+        : null;
     return d ? d.toLocaleString() : "";
   } catch {
     return "";
@@ -73,19 +105,27 @@ function readStatus(data: SubmissionData): string {
 }
 
 export default function TeacherSpaceDetailPage() {
+  // ✅ Kun innlogging – ikke approved teacher
   return (
-    <AuthGate requireRole="teacher" requireApprovedTeacher>
+    <AuthGate>
       <Inner />
     </AuthGate>
   );
 }
 
 function Inner() {
+  const { user, profile, loading } = useUserProfile();
   const params = useParams<{ spaceId: string }>();
   const spaceId = params.spaceId;
 
+  const mode: Mode = useMemo(() => readModeFromProfile(profile), [profile]);
+  const hasAttested = useMemo(() => readHasAttested(profile), [profile]);
+  const canOperateSpace =
+    Boolean(user?.uid) && hasAttested && (mode === "teacher" || mode === "creator");
+
   const [space, setSpace] = useState<SpaceDoc | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
 
   // MVP: teacher limer inn lessonId for å se innleveringer
   const [lessonId, setLessonId] = useState("");
@@ -131,7 +171,12 @@ function Inner() {
         setSubsLoading(false);
         const info = getErrorInfo(err);
         setSubsError(info.message || "Kunne ikke lese submissions.");
-        console.log("[TEACHER] submissions read ERROR =>", info.code, info.message, err);
+        console.log(
+          "[TEACHER] submissions read ERROR =>",
+          info.code,
+          info.message,
+          err
+        );
       }
     );
 
@@ -145,11 +190,19 @@ function Inner() {
 
   const lessonLink = lessonId ? `/space/${spaceId}/lesson/${lessonId}` : null;
 
+  if (loading) return <div style={{ padding: 16 }}>Laster…</div>;
   if (!space) return <div style={{ padding: 16 }}>Laster…</div>;
 
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
         <div>
           <h1 style={{ marginBottom: 4 }}>{space.title}</h1>
           <div style={{ opacity: 0.8, marginBottom: 12 }}>
@@ -162,9 +215,37 @@ function Inner() {
         </div>
       </div>
 
+      {/* ✅ B1-hjelp hvis de ikke er “klar” (attestering + mode) */}
+      {!canOperateSpace && (
+        <div style={{ display: "grid", gap: 12, marginBottom: 12 }}>
+          <AttestationAndModeCard
+            attestationVersion="2026-02-09"
+            allowedModes={["student", "teacher", "creator", "parent"]}
+            requireAttestationForProModes={true}
+          />
+          <div
+            style={{
+              border: "1px solid rgba(0,0,0,0.12)",
+              borderRadius: 12,
+              padding: 12,
+              opacity: 0.9,
+            }}
+          >
+            For å administrere Spaces i B1-modellen må du ha <b>attestering</b>{" "}
+            og være i <b>teacher</b> eller <b>creator</b>-mode.
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "grid", gap: 12 }}>
         {/* Deling + open/close */}
-        <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
+        <div
+          style={{
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 12,
+            padding: 12,
+          }}
+        >
           <div style={{ fontWeight: 700, marginBottom: 6 }}>Deling</div>
 
           <div style={{ marginBottom: 8 }}>
@@ -179,25 +260,49 @@ function Inner() {
             </ul>
           </div>
 
+          {saveErr && <div style={{ color: "crimson", marginBottom: 10 }}>{saveErr}</div>}
+
           <button
             onClick={async () => {
+              setSaveErr(null);
+              if (!canOperateSpace) {
+                setSaveErr(
+                  "Du må godta krav og være i teacher/creator-mode for å endre Space."
+                );
+                return;
+              }
               setSaving(true);
               try {
                 await setSpaceOpen(spaceId, !space.isOpen);
+              } catch (e: unknown) {
+                setSaveErr(getErrorInfo(e).message || "Kunne ikke oppdatere Space.");
               } finally {
                 setSaving(false);
               }
             }}
-            disabled={saving}
-            style={{ padding: "8px 12px", borderRadius: 10 }}
+            disabled={saving || !canOperateSpace}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 10,
+              opacity: saving || !canOperateSpace ? 0.6 : 1,
+              cursor: saving || !canOperateSpace ? "not-allowed" : "pointer",
+            }}
           >
             {space.isOpen ? "Steng for anon" : "Åpne for anon"}
           </button>
         </div>
 
         {/* MVP: submissions viewer */}
-        <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Innleveringer (MVP)</div>
+        <div
+          style={{
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 12,
+            padding: 12,
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>
+            Innleveringer (MVP)
+          </div>
 
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <input
@@ -243,11 +348,15 @@ function Inner() {
             {subsLoading && <div style={{ opacity: 0.75 }}>Laster submissions…</div>}
 
             {subsError && (
-              <div style={{ color: "crimson" }}>Feil ved lesing av submissions: {subsError}</div>
+              <div style={{ color: "crimson" }}>
+                Feil ved lesing av submissions: {subsError}
+              </div>
             )}
 
             {!subsLoading && !subsError && lessonId && subs.length === 0 && (
-              <div style={{ opacity: 0.75 }}>Ingen submissions funnet for denne lessonId-en (enda).</div>
+              <div style={{ opacity: 0.75 }}>
+                Ingen submissions funnet for denne lessonId-en (enda).
+              </div>
             )}
 
             {!subsLoading && !subsError && subs.length > 0 && (
@@ -257,6 +366,8 @@ function Inner() {
                   const status = readStatus(s.data);
                   const auth = readAuth(s.data);
                   const answersKeys = readAnswersKeys(s.data);
+
+                  const submissionHref = `/teacher/spaces/${spaceId}/lessons/${lessonId}/submissions/${s.id}`;
 
                   return (
                     <div
@@ -268,7 +379,9 @@ function Inner() {
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                        <div style={{ fontWeight: 700 }}>{createdAt ? createdAt : "Ukjent tidspunkt"}</div>
+                        <div style={{ fontWeight: 700 }}>
+                          {createdAt ? createdAt : "Ukjent tidspunkt"}
+                        </div>
                         <div style={{ opacity: 0.8 }}>
                           Status: <b>{status || "—"}</b>
                         </div>
@@ -286,6 +399,10 @@ function Inner() {
 
                       <div style={{ marginTop: 6, opacity: 0.85 }}>
                         Svarfelt: {answersKeys.length ? answersKeys.join(", ") : "(ingen keys)"}
+                      </div>
+
+                      <div style={{ marginTop: 10 }}>
+                        <Link href={submissionHref}>Åpne innlevering →</Link>
                       </div>
 
                       <details style={{ marginTop: 8 }}>
@@ -310,7 +427,9 @@ function Inner() {
             <br />
             <code>/space/{spaceId}/lesson/{`{lessonId}`}</code>
           </p>
-          <p style={{ marginTop: 0, opacity: 0.8 }}>(Senere kan vi lage “Legg til lesson i space”-liste her.)</p>
+          <p style={{ marginTop: 0, opacity: 0.8 }}>
+            (Senere kan vi lage “Legg til lesson i space”-liste her.)
+          </p>
         </div>
       </div>
     </div>

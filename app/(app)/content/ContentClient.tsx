@@ -4,13 +4,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import QRCode from "qrcode";
 
 import { db } from "@/lib/firebase";
@@ -21,6 +15,7 @@ import ActionMenu, { type ActionItem } from "@/components/ActionMenu";
 import { authedPost } from "@/lib/authedPost";
 
 type LessonStatus = "draft" | "published";
+type FilterType = "all" | "lesson" | "submission" | "space";
 
 function fmtDate(d?: Date | null) {
   if (!d) return "";
@@ -37,12 +32,6 @@ function fmtDate(d?: Date | null) {
   }
 }
 
-function badgeForType(t: ContentItem["type"]) {
-  if (t === "lesson") return "LESSON";
-  if (t === "submission") return "SUBMISSION";
-  return "SPACE";
-}
-
 function getOrigin() {
   return typeof window !== "undefined" ? window.location.origin : "";
 }
@@ -53,6 +42,78 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 function pickVisibility(v: unknown): "public" | "unlisted" | "private" {
   return v === "unlisted" || v === "private" || v === "public" ? v : "public";
+}
+
+function StatusPill({
+  label,
+  variant,
+}: {
+  label: string;
+  variant: "green" | "red" | "gray" | "amber";
+}) {
+  const dot =
+    variant === "green"
+      ? "bg-green-500"
+      : variant === "red"
+        ? "bg-red-500"
+        : variant === "amber"
+          ? "bg-amber-500"
+          : "bg-zinc-400";
+
+  const ring =
+    variant === "green"
+      ? "border-green-200 bg-green-50 text-green-800"
+      : variant === "red"
+        ? "border-red-200 bg-red-50 text-red-800"
+        : variant === "amber"
+          ? "border-amber-200 bg-amber-50 text-amber-900"
+          : "border-zinc-200 bg-zinc-50 text-zinc-800";
+
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold ${ring}`}>
+      <span className={`h-2 w-2 rounded-full ${dot}`} />
+      {label}
+    </span>
+  );
+}
+
+function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...props}
+      className={[
+        "inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-extrabold",
+        "bg-white hover:bg-zinc-50 active:bg-zinc-100",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function GhostLink(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+  return (
+    <a
+      {...props}
+      className={[
+        "inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-extrabold",
+        "bg-white hover:bg-zinc-50 active:bg-zinc-100",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function lastIdBits(id?: string) {
+  if (!id) return "";
+  return id.length > 6 ? id.slice(-4) : id;
+}
+
+// Prøv å hente lesson-title fra meta (vi putter ofte `Lesson: <title>` i meta)
+function lessonTitleFromMeta(meta?: string[]) {
+  if (!meta?.length) return "";
+  const m = meta.find((x) => typeof x === "string" && x.startsWith("Lesson: "));
+  return m ? m.replace("Lesson: ", "").trim() : "";
 }
 
 export default function ContentClient() {
@@ -70,6 +131,10 @@ export default function ContentClient() {
 
   const [busyByKey, setBusyByKey] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState<string | null>(null);
+
+  // UI controls
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<FilterType>("all");
 
   // Share link/QR modal
   const [shareOpen, setShareOpen] = useState(false);
@@ -116,25 +181,23 @@ export default function ContentClient() {
     if (isAnon) {
       return (
         <>
-          <p style={{ opacity: 0.85 }}>
-            Du er i gjestemodus. Foreløpig viser My content ingen lagrede elementer her.
-          </p>
-          <p style={{ opacity: 0.85 }}>
-            Bruk <Link href="/join">Join</Link> for å åpne en oppgave/space med kode,
-            eller <Link href="/login">logg inn</Link> for å synkronisere innhold.
+          <p className="opacity-85">Du er i gjestemodus. Foreløpig viser My content ingen lagrede elementer her.</p>
+          <p className="opacity-85">
+            Bruk <Link href="/join" className="underline">Join</Link> for å åpne en oppgave/space med kode,
+            eller <Link href="/login" className="underline">logg inn</Link> for å synkronisere innhold.
           </p>
         </>
       );
     }
-
     return (
-      <p style={{ opacity: 0.85 }}>
+      <p className="opacity-85">
         Du har ikke noe innhold i feeden ennå. Når du lager/bruker lessons, spaces eller submissions,
         dukker de opp her.
       </p>
     );
   }, [isAnon]);
 
+  // ---------- Share helpers ----------
   async function openShareModal(title: string, url: string) {
     setCopied(false);
     setQrDataUrl("");
@@ -171,7 +234,6 @@ export default function ContentClient() {
   async function openShareForLesson(it: Extract<ContentItem, { type: "lesson" }>) {
     let pid = it.activePublishedId || it.id;
 
-    // fallback: read once if missing
     if (!it.activePublishedId) {
       try {
         const snap = await getDoc(doc(db, "lessons", it.id));
@@ -184,13 +246,13 @@ export default function ContentClient() {
     }
 
     const url = `${getOrigin()}/lesson/${pid}`;
-    await openShareModal(it.title, url);
+    await openShareModal(titleForCard(it), url);
   }
 
   async function openShareForSpace(it: Extract<ContentItem, { type: "space" }>) {
     const code = it.joinCode ? encodeURIComponent(it.joinCode) : "";
     const url = code ? `${getOrigin()}/join?code=${code}` : `${getOrigin()}${it.href}`;
-    await openShareModal(it.title, url);
+    await openShareModal(titleForCard(it), url);
   }
 
   function openPickSpace(lessonId: string, title: string) {
@@ -226,6 +288,7 @@ export default function ContentClient() {
     }
   }
 
+  // ---------- Publish / delete ----------
   async function setPublished(lessonId: string, nextPublished: boolean) {
     const key = `lesson:${lessonId}`;
     setErr(null);
@@ -293,7 +356,6 @@ export default function ContentClient() {
     setBusy(key, true);
 
     try {
-      // best-effort unpublish
       try {
         const snap = await getDoc(doc(db, "lessons", lessonId));
         const dUnknown = snap.data() as unknown;
@@ -328,12 +390,55 @@ export default function ContentClient() {
     }
   }
 
+  // ---------- Routing / titles ----------
+  function submissionOpenHref(submissionId: string) {
+    // ✅ robust: ikke stol på it.href for submission i student-mode
+    // (hvis du fremdeles får 404 her, er det denne ene du endrer)
+    return `/student/submissions/${submissionId}`;
+  }
+
+  function itemOpenHref(it: ContentItem) {
+    if (it.type === "lesson") return `/student/lesson/${it.id}`;
+    if (it.type === "submission") {
+      return mode === "student" ? submissionOpenHref(it.id) : it.href;
+    }
+    return it.href;
+  }
+
+  function titleForCard(it: ContentItem) {
+    const raw = (it.title || "").trim();
+    if (raw && raw.toLowerCase() !== "untitled") return raw;
+
+    if (it.type === "submission") {
+      const s = it as Extract<ContentItem, { type: "submission" }>;
+      const lt = lessonTitleFromMeta(s.meta);
+      if (lt) return `${lt} – Submission`;
+      if (s.lessonId) return `Submission · ${lastIdBits(s.lessonId)}`;
+      return "Submission";
+    }
+
+    if (it.type === "space") return "Space";
+    return "Lesson";
+  }
+
+  function cleanMetaForCard(it: ContentItem): string {
+    const meta = it.meta?.filter(Boolean) ?? [];
+    // Vi vil ikke vise “lesson:xxxxxxxx” hvis vi allerede viser pen lesson-title i meta
+    const hasLessonTitle = meta.some((m) => m.startsWith("Lesson: "));
+    const filtered = meta.filter((m) => {
+      if (hasLessonTitle && m.startsWith("lesson:")) return false;
+      return true;
+    });
+    return filtered.join(" · ");
+  }
+
+  // ---------- Action builder ----------
   function buildActions(it: ContentItem): ActionItem[] {
     const key = `${it.type}:${it.id}`;
     const busy = !!busyByKey[key];
 
     if (isAnon) {
-      return [{ key: "open", label: "Open", disabled: busy, onClick: () => router.push(it.href) }];
+      return [{ key: "open", label: "Open", disabled: busy, onClick: () => router.push(itemOpenHref(it)) }];
     }
 
     // SUBMISSION
@@ -341,11 +446,10 @@ export default function ContentClient() {
       const ss = it as Extract<ContentItem, { type: "submission" }>;
       const status = (ss.status ?? "").toLowerCase();
       const isReviewed = status === "reviewed";
-
       const canEditSubmission = mode === "student" && !isReviewed;
 
       return [
-        { key: "open", label: "Open", disabled: busy, onClick: () => router.push(ss.href) },
+        { key: "open", label: "Open", disabled: busy, onClick: () => router.push(itemOpenHref(ss)) },
         ...(canEditSubmission
           ? [{
               key: "edit",
@@ -355,10 +459,20 @@ export default function ContentClient() {
             }]
           : []),
         ...(ss.lessonId
-          ? [{ key: "openLesson", label: "Open lesson", disabled: busy, onClick: () => router.push(`/lesson/${ss.lessonId}`) }]
+          ? [{
+              key: "openLesson",
+              label: "Open lesson",
+              disabled: busy,
+              onClick: () => router.push(`/student/lesson/${ss.lessonId}`),
+            }]
           : []),
         ...(ss.spaceId && (mode === "teacher" || mode === "creator" || isAdmin)
-          ? [{ key: "openSpace", label: "Open space", disabled: busy, onClick: () => router.push(`/teacher/spaces/${ss.spaceId}`) }]
+          ? [{
+              key: "openSpace",
+              label: "Open space",
+              disabled: busy,
+              onClick: () => router.push(`/teacher/spaces/${ss.spaceId}`),
+            }]
           : []),
       ];
     }
@@ -382,24 +496,17 @@ export default function ContentClient() {
     const status = (ls.status ?? "draft") as LessonStatus;
     const isPublished = status === "published";
 
-    // Teacher/Creator should edit their lessons.
-    const canEditLesson = isAdmin || mode === "teacher" || mode === "creator";
     const canPublish = isAdmin || isTeacherApproved;
     const canDelete = isAdmin || isTeacherApproved;
     const canShareToSpace = mySpaces.length > 0 && (isAdmin || isTeacherApproved);
 
-    const editHref =
-      mode === "creator"
-        ? `/producer/texts/${ls.id}` // creator edit
-        : mode === "teacher"
-          ? `/teacher/lessons/${ls.id}` // teacher edit/view
-          : `/lesson/${ls.id}`; // student
-
-    const pdfHref = `/producer/${ls.id}/print`; // ✅ your actual route
+    // Du sa du endret edit for å komme til siden der bilde kan redigeres:
+    const editHref = `/producer/${ls.id}`;
+    const pdfHref = `/producer/${ls.id}/print`;
 
     return [
-      { key: "open", label: "Open", disabled: busy, onClick: () => router.push(ls.href) },
-      { key: "edit", label: "Edit", disabled: busy || !canEditLesson, onClick: () => router.push(editHref) },
+      { key: "open", label: "Open", disabled: busy, onClick: () => router.push(`/student/lesson/${ls.id}`) },
+      { key: "edit", label: "Edit", disabled: busy, onClick: () => router.push(editHref) },
       {
         key: isPublished ? "unpublish" : "publish",
         label: busy ? "Working…" : isPublished ? "Unpublish" : "Publish",
@@ -408,7 +515,7 @@ export default function ContentClient() {
       },
       {
         key: "share",
-        label: "Share (link + QR)",
+        label: "Share",
         disabled: busy || !isPublished,
         onClick: () => openShareForLesson(ls),
       },
@@ -416,7 +523,7 @@ export default function ContentClient() {
         key: "shareToSpace",
         label: "Share to space",
         disabled: busy || !canShareToSpace,
-        onClick: () => openPickSpace(ls.id, ls.title),
+        onClick: () => openPickSpace(ls.id, titleForCard(ls)),
       },
       {
         key: "pdf",
@@ -429,132 +536,289 @@ export default function ContentClient() {
         label: "Delete",
         danger: true,
         disabled: busy || !canDelete,
-        onClick: () => deleteLessonSoft(ls.id, ls.title),
+        onClick: () => deleteLessonSoft(ls.id, titleForCard(ls)),
       },
     ];
   }
 
+  const filtered = useMemo(() => {
+    const qq = q.trim().toLowerCase();
+    return items
+      .filter((it) => (filter === "all" ? true : it.type === filter))
+      .filter((it) => {
+        if (!qq) return true;
+        const t = titleForCard(it).toLowerCase();
+        const meta = (it.meta || []).join(" ").toLowerCase();
+        const status = (it.status || "").toLowerCase();
+        return t.includes(qq) || meta.includes(qq) || status.includes(qq);
+      })
+      .slice()
+      .sort((a, b) => (b.updatedAt?.getTime?.() ?? 0) - (a.updatedAt?.getTime?.() ?? 0));
+  }, [items, q, filter]);
+
   return (
-    <main style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <p style={{ marginTop: 6, opacity: 0.8 }}>
-            Oversikt per bruker – actions varierer med mode (teacher/student/creator).
-          </p>
+    <main className="mx-auto w-full max-w-5xl px-4 py-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-black tracking-tight">My content</h1>
+          <p className="mt-1 text-sm opacity-75">Her samler vi alt innhold: publiser, del, PDF, rediger og mer.</p>
         </div>
 
-        <button onClick={refresh} disabled={loading} style={btn}>
-          {loading ? "Loading…" : "Refresh"}
-        </button>
+        <div className="flex items-center gap-2">
+          <PrimaryButton onClick={refresh} disabled={loading}>
+            {loading ? "Loading…" : "Refresh"}
+          </PrimaryButton>
+        </div>
+      </div>
+
+      {/* Search + filter */}
+      <div className="mt-4">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Søk i tittel, status, meta…"
+          className="w-full rounded-2xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-2"
+        />
+
+        {/* ✅ midtstilt under søk */}
+        <div className="mt-3 flex justify-center">
+          <div className="flex flex-wrap justify-center gap-2">
+            {(["all", "lesson", "submission", "space"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setFilter(t)}
+                className={[
+                  "rounded-full border px-3 py-2 text-sm font-extrabold",
+                  filter === t ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
+                ].join(" ")}
+              >
+                {t === "all" ? "All" : t === "lesson" ? "Lessons" : t === "submission" ? "Submissions" : "Spaces"}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {err && (
-        <div style={{ marginTop: 12, ...warnBox }}>
-          <div style={{ fontWeight: 900, marginBottom: 6 }}>Error</div>
-          <div style={{ whiteSpace: "pre-wrap" }}>{err}</div>
+        <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+          <div className="mb-1 font-black">Error</div>
+          <div className="whitespace-pre-wrap text-sm">{err}</div>
         </div>
       )}
 
       {notes.length > 0 && (
-        <div style={noteBox}>
+        <div className="mt-4 rounded-2xl border bg-zinc-50 p-4">
           {notes.map((n) => (
-            <div key={n}>• {n}</div>
+            <div key={n} className="text-sm">• {n}</div>
           ))}
         </div>
       )}
 
       {warnings.length > 0 && (
-        <div style={warnBox}>
+        <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
           {warnings.map((w) => (
-            <div key={w}>• {w}</div>
+            <div key={w} className="text-sm">• {w}</div>
           ))}
         </div>
       )}
 
-      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        {loading && <div style={{ opacity: 0.7 }}>Loading content…</div>}
+      <div className="mt-4 grid gap-3">
+        {loading && <div className="opacity-70">Loading content…</div>}
 
-        {!loading && items.length === 0 && <div style={card}>{emptyHint}</div>}
+        {!loading && filtered.length === 0 && (
+          <div className="rounded-2xl border bg-white p-4">{emptyHint}</div>
+        )}
 
         {!loading &&
-          items.map((it) => {
+          filtered.map((it) => {
             const key = `${it.type}:${it.id}`;
             const actions = buildActions(it);
 
+            const openHref = itemOpenHref(it);
+            const title = titleForCard(it);
+
+            // Status pill
+            let pill: React.ReactNode = null;
+            if (it.type === "lesson") {
+              const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
+              pill = s === "published"
+                ? <StatusPill label="published" variant="green" />
+                : <StatusPill label="unpublished" variant="red" />;
+            } else if (it.status) {
+              pill = <StatusPill label={it.status} variant="gray" />;
+            }
+
+            const metaLine = cleanMetaForCard(it);
+
+            // Plukk ut actions for inline-knapper (desktop)
+            const aOpen = actions.find((a) => a.key === "open");
+            const aEdit = actions.find((a) => a.key === "edit");
+            const aOpenLesson = actions.find((a) => a.key === "openLesson");
+            const aOpenSpace = actions.find((a) => a.key === "openSpace");
+            const aPublish = actions.find((a) => a.key === "publish");
+            const aUnpublish = actions.find((a) => a.key === "unpublish");
+            const aShare = actions.find((a) => a.key === "share");
+            const aShareToSpace = actions.find((a) => a.key === "shareToSpace");
+            const aPdf = actions.find((a) => a.key === "pdf");
+
             return (
-              <div key={key} style={card}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                      <span style={chip}>{badgeForType(it.type)}</span>
-
-                      <Link href={it.href} style={{ fontWeight: 900, textDecoration: "none", color: "inherit" }}>
-                        {it.title}
+              <div key={key} className="rounded-2xl border bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={openHref}
+                        className="truncate text-base font-black leading-tight hover:underline"
+                      >
+                        {title}
                       </Link>
-
-                      {it.status ? <span style={miniChip}>{it.status}</span> : null}
-                      {it.meta?.length ? it.meta.map((m) => <span key={m} style={miniChip}>{m}</span>) : null}
+                      {pill}
                     </div>
 
-                    <div style={{ opacity: 0.7, fontSize: 12, marginTop: 6 }}>{fmtDate(it.updatedAt)}</div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs opacity-75">
+                      {!!it.updatedAt && <span>{fmtDate(it.updatedAt)}</span>}
+                      {metaLine ? <span className="opacity-60">•</span> : null}
+                      {metaLine ? <span className="truncate">{metaLine}</span> : null}
+                    </div>
+
+                    {/* ✅ Desktop action row for BOTH lessons and submissions */}
+                    <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
+                      {/* LESSON desktop buttons */}
+                      {it.type === "lesson" ? (
+                        <>
+                          {aOpen ? (
+                            <PrimaryButton onClick={aOpen.onClick} disabled={aOpen.disabled}>
+                              Open
+                            </PrimaryButton>
+                          ) : null}
+
+                          {/* Publish/Unpublish inline */}
+                          {aPublish ? (
+                            <PrimaryButton onClick={aPublish.onClick} disabled={aPublish.disabled}>
+                              Publish
+                            </PrimaryButton>
+                          ) : null}
+                          {aUnpublish ? (
+                            <PrimaryButton onClick={aUnpublish.onClick} disabled={aUnpublish.disabled}>
+                              Unpublish
+                            </PrimaryButton>
+                          ) : null}
+
+                          {aShare ? (
+                            <PrimaryButton onClick={aShare.onClick} disabled={aShare.disabled} title="Share (link + QR)">
+                              Share
+                            </PrimaryButton>
+                          ) : null}
+                          {aShareToSpace ? (
+                            <PrimaryButton onClick={aShareToSpace.onClick} disabled={aShareToSpace.disabled}>
+                              Share to space
+                            </PrimaryButton>
+                          ) : null}
+                          {aEdit ? (
+                            <PrimaryButton onClick={aEdit.onClick} disabled={aEdit.disabled}>
+                              Edit
+                            </PrimaryButton>
+                          ) : null}
+                          {aPdf ? (
+                            <PrimaryButton onClick={aPdf.onClick} disabled={aPdf.disabled}>
+                              PDF
+                            </PrimaryButton>
+                          ) : null}
+                        </>
+                      ) : null}
+
+                      {/* SUBMISSION desktop buttons */}
+                      {it.type === "submission" ? (
+                        <>
+                          {aOpen ? (
+                            <PrimaryButton onClick={aOpen.onClick} disabled={aOpen.disabled}>
+                              Open
+                            </PrimaryButton>
+                          ) : null}
+                          {aEdit ? (
+                            <PrimaryButton onClick={aEdit.onClick} disabled={aEdit.disabled}>
+                              Edit answers
+                            </PrimaryButton>
+                          ) : null}
+                          {aOpenLesson ? (
+                            <PrimaryButton onClick={aOpenLesson.onClick} disabled={aOpenLesson.disabled}>
+                              Open lesson
+                            </PrimaryButton>
+                          ) : null}
+                          {aOpenSpace ? (
+                            <PrimaryButton onClick={aOpenSpace.onClick} disabled={aOpenSpace.disabled}>
+                              Open space
+                            </PrimaryButton>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </div>
                   </div>
 
-                  <ActionMenu items={actions} />
+                  {/* Right side: Mobile hamburgermenu always */}
+                  <div className="shrink-0">
+                    <div className="sm:hidden">
+                      <ActionMenu items={actions} />
+                    </div>
+
+                    {/* Desktop: keep ActionMenu for spaces + extra actions (delete etc) */}
+                    <div className="hidden sm:block">
+                      {it.type === "space" ? <ActionMenu items={actions} /> : null}
+                    </div>
+                  </div>
                 </div>
               </div>
             );
           })}
       </div>
 
-      <div style={{ marginTop: 18, opacity: 0.8, fontSize: 13 }}>
-        <Link href="/join" style={{ marginRight: 12 }}>Join via code</Link>
-        <Link href="/tools">Tools</Link>
+      <div className="mt-6 text-sm opacity-80">
+        <Link href="/join" className="mr-4 underline">Join via code</Link>
+        <Link href="/tools" className="underline">Tools</Link>
       </div>
 
       {/* Share link/QR modal */}
       {shareOpen ? (
-        <div role="dialog" aria-modal="true" onClick={closeShare} style={overlay}>
-          <div onClick={(e) => e.stopPropagation()} style={modal}>
-            <div style={modalHeader}>
-              <div>
-                <div style={{ fontWeight: 900 }}>Share</div>
-                <div style={{ fontSize: 13, opacity: 0.75 }}>{shareTitle}</div>
+        <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b p-4">
+              <div className="min-w-0">
+                <div className="font-black">Share</div>
+                <div className="truncate text-sm opacity-75">{shareTitle}</div>
               </div>
-              <button onClick={closeShare} style={xBtn}>✕</button>
+              <button onClick={closeShare} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">✕</button>
             </div>
 
-            <div style={{ padding: 14, display: "grid", gridTemplateColumns: "1.3fr 0.7fr", gap: 14 }}>
+            <div className="grid gap-4 p-4 sm:grid-cols-[1.3fr_0.7fr]">
               <div>
-                <div style={{ fontWeight: 800, marginBottom: 8 }}>Link</div>
-                <input value={shareUrl} readOnly style={shareInput} />
+                <div className="mb-2 text-sm font-black">Link</div>
+                <input value={shareUrl} readOnly className="w-full rounded-xl border px-3 py-3 font-semibold" />
 
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-                  <button onClick={copyShareUrl} style={shareBtn}>{copied ? "Copied!" : "Copy link"}</button>
-                  <a href={shareUrl} target="_blank" rel="noreferrer" style={shareA}>Open link</a>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <PrimaryButton onClick={copyShareUrl}>{copied ? "Copied!" : "Copy link"}</PrimaryButton>
+                  <GhostLink href={shareUrl} target="_blank" rel="noreferrer">
+                    Open link
+                  </GhostLink>
                 </div>
 
-                <div style={{ marginTop: 12, fontSize: 13, opacity: 0.7 }}>
-                  Tips: Del QR på skjerm eller skriv den ut.
-                </div>
+                <div className="mt-3 text-sm opacity-70">Tips: Del QR på skjerm eller skriv den ut.</div>
               </div>
 
-              <div style={{ display: "grid", placeItems: "center" }}>
-                <div style={{ fontWeight: 800, marginBottom: 8, justifySelf: "start" }}>QR</div>
-                <div style={qrBox}>
+              <div className="grid place-items-center">
+                <div className="mb-2 w-full text-left text-sm font-black">QR</div>
+                <div className="h-56 w-56 overflow-hidden rounded-2xl border bg-white grid place-items-center">
                   {qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={qrDataUrl} alt="QR code" style={{ width: "100%", height: "100%" }} />
                   ) : (
-                    <div style={{ fontSize: 13, opacity: 0.7, padding: 12, textAlign: "center" }}>
-                      QR not ready (link works).
-                    </div>
+                    <div className="p-3 text-center text-sm opacity-70">QR not ready (link works).</div>
                   )}
                 </div>
               </div>
             </div>
 
-            <div style={modalFooter}>
-              Share URL: <code>{shareUrl}</code>
+            <div className="border-t p-4 text-xs opacity-70">
+              Share URL: <code className="break-all">{shareUrl}</code>
             </div>
           </div>
         </div>
@@ -562,32 +826,36 @@ export default function ContentClient() {
 
       {/* Share to space modal */}
       {pickSpaceOpen && pickLesson ? (
-        <div role="dialog" aria-modal="true" onClick={closePickSpace} style={overlay}>
-          <div onClick={(e) => e.stopPropagation()} style={modal}>
-            <div style={modalHeader}>
-              <div>
-                <div style={{ fontWeight: 900 }}>Share to space</div>
-                <div style={{ fontSize: 13, opacity: 0.75 }}>{pickLesson.title}</div>
+        <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b p-4">
+              <div className="min-w-0">
+                <div className="font-black">Share to space</div>
+                <div className="truncate text-sm opacity-75">{pickLesson.title}</div>
               </div>
-              <button onClick={closePickSpace} style={xBtn}>✕</button>
+              <button onClick={closePickSpace} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">✕</button>
             </div>
 
-            <div style={{ padding: 14 }}>
+            <div className="p-4">
               {mySpaces.length === 0 ? (
-                <div style={{ opacity: 0.75 }}>Du har ingen spaces enda.</div>
+                <div className="opacity-75">Du har ingen spaces enda.</div>
               ) : (
-                <div style={{ display: "grid", gap: 10 }}>
+                <div className="grid gap-2">
                   {mySpaces.map((s) => (
-                    <button key={s.id} onClick={() => assignLessonToSpace(s.id)} style={spacePickBtn}>
-                      {s.title}
-                      <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>{s.meta?.join(" · ") ?? ""}</div>
+                    <button
+                      key={s.id}
+                      onClick={() => assignLessonToSpace(s.id)}
+                      className="rounded-2xl border bg-white p-4 text-left font-black hover:bg-zinc-50"
+                    >
+                      {(s.title || "Space").trim() || "Space"}
+                      <div className="mt-1 text-xs font-semibold opacity-70">{(s.meta?.join(" · ") ?? "").trim()}</div>
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            <div style={modalFooter}>
+            <div className="border-t p-4 text-xs opacity-70">
               Creates: <code>spaces/{`{spaceId}`}/assignments/{pickLesson.lessonId}</code>
             </div>
           </div>
@@ -596,148 +864,3 @@ export default function ContentClient() {
     </main>
   );
 }
-
-/* styles */
-const btn: React.CSSProperties = {
-  border: "1px solid rgba(0,0,0,0.14)",
-  background: "white",
-  borderRadius: 10,
-  padding: "8px 10px",
-  cursor: "pointer",
-  fontWeight: 800,
-};
-
-const card: React.CSSProperties = {
-  padding: 12,
-  border: "1px solid rgba(0,0,0,0.1)",
-  borderRadius: 12,
-};
-
-const chip: React.CSSProperties = {
-  fontSize: 11,
-  letterSpacing: 0.5,
-  padding: "3px 8px",
-  borderRadius: 999,
-  border: "1px solid rgba(0,0,0,0.14)",
-  opacity: 0.9,
-};
-
-const miniChip: React.CSSProperties = {
-  fontSize: 12,
-  padding: "2px 8px",
-  borderRadius: 999,
-  border: "1px solid rgba(0,0,0,0.12)",
-  opacity: 0.85,
-};
-
-const noteBox: React.CSSProperties = {
-  marginTop: 12,
-  padding: 12,
-  borderRadius: 12,
-  border: "1px solid rgba(0,0,0,0.12)",
-  background: "rgba(0,0,0,0.03)",
-};
-
-const warnBox: React.CSSProperties = {
-  marginTop: 12,
-  padding: 12,
-  borderRadius: 12,
-  border: "1px solid rgba(255,165,0,0.35)",
-  background: "rgba(255,165,0,0.08)",
-};
-
-const overlay: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.35)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 16,
-  zIndex: 50,
-};
-
-const modal: React.CSSProperties = {
-  width: "min(720px, 100%)",
-  background: "white",
-  borderRadius: 14,
-  border: "1px solid rgba(0,0,0,0.12)",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-  overflow: "hidden",
-};
-
-const modalHeader: React.CSSProperties = {
-  padding: 14,
-  borderBottom: "1px solid rgba(0,0,0,0.08)",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 12,
-};
-
-const modalFooter: React.CSSProperties = {
-  padding: 14,
-  borderTop: "1px solid rgba(0,0,0,0.08)",
-  opacity: 0.7,
-  fontSize: 12,
-};
-
-const xBtn: React.CSSProperties = {
-  border: "1px solid rgba(0,0,0,0.15)",
-  borderRadius: 10,
-  padding: "8px 10px",
-  background: "white",
-  cursor: "pointer",
-  fontWeight: 900,
-};
-
-const shareInput: React.CSSProperties = {
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid rgba(0,0,0,0.18)",
-  fontFamily: "inherit",
-};
-
-const shareBtn: React.CSSProperties = {
-  padding: "10px 14px",
-  borderRadius: 10,
-  border: "1px solid rgba(0,0,0,0.18)",
-  background: "white",
-  cursor: "pointer",
-  fontWeight: 900,
-};
-
-const shareA: React.CSSProperties = {
-  padding: "10px 14px",
-  borderRadius: 10,
-  border: "1px solid rgba(0,0,0,0.18)",
-  background: "white",
-  cursor: "pointer",
-  fontWeight: 900,
-  textDecoration: "none",
-  color: "inherit",
-  display: "inline-flex",
-  alignItems: "center",
-};
-
-const qrBox: React.CSSProperties = {
-  width: 240,
-  height: 240,
-  borderRadius: 12,
-  border: "1px solid rgba(0,0,0,0.12)",
-  background: "white",
-  display: "grid",
-  placeItems: "center",
-  overflow: "hidden",
-};
-
-const spacePickBtn: React.CSSProperties = {
-  textAlign: "left",
-  padding: 12,
-  borderRadius: 12,
-  border: "1px solid rgba(0,0,0,0.12)",
-  background: "white",
-  cursor: "pointer",
-  fontWeight: 800,
-};

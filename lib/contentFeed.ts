@@ -7,6 +7,7 @@ import {
   query,
   where,
   Timestamp,
+  documentId,
 } from "firebase/firestore";
 import type { Firestore } from "firebase/firestore";
 import type { AppMode } from "@/lib/mode";
@@ -69,16 +70,24 @@ function toDateSafe(v: unknown): Date | null {
   return null;
 }
 
+// ✅ Returnerer "" hvis ingenting finnes (ikke "Untitled").
+// Det gjør at vi kan legge bedre fallback i feed/UI.
 function pickTitle(d: unknown): string {
   const x = d as Record<string, unknown> | null;
-  return String(
-    x?.title ||
-      x?.name ||
-      x?.lessonTitle ||
-      x?.spaceName ||
-      x?.topic ||
-      "Untitled"
-  );
+
+  const candidates = [
+    x?.title,
+    x?.name,
+    x?.lessonTitle,
+    x?.spaceName,
+    x?.topic,
+  ];
+
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c.trim();
+  }
+
+  return "";
 }
 
 function pickStatus(d: unknown): string | undefined {
@@ -123,7 +132,8 @@ function pickVisibility(d: unknown): PublishVisibility | undefined {
 function hrefForLesson(mode: AppMode, lessonId: string) {
   if (mode === "teacher") return `/teacher/lessons/${lessonId}`;
   if (mode === "creator") return `/producer/texts/${lessonId}`;
-  return `/lesson/${lessonId}`;
+  // ✅ du ønsker open til student/lesson
+  return `/student/lesson/${lessonId}`;
 }
 
 async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode) {
@@ -142,15 +152,14 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode) {
       results.push({
         type: "lesson",
         id: docSnap.id,
-        title: pickTitle(d),
+        title: pickTitle(d) || "Lesson",
         status: pickStatus(d),
         updatedAt: pickUpdated(d),
         href: hrefForLesson(mode, docSnap.id),
         meta: safeMeta(d),
 
         ownerId: typeof d.ownerId === "string" ? d.ownerId : undefined,
-        activePublishedId:
-          typeof d.activePublishedId === "string" ? d.activePublishedId : null,
+        activePublishedId: typeof d.activePublishedId === "string" ? d.activePublishedId : null,
         visibility: pickVisibility(d),
       });
     });
@@ -158,6 +167,30 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode) {
     // ignore
   }
   return results;
+}
+
+// Hent lesson-titler i batch (documentId in <=10)
+async function fetchLessonTitlesByIds(db: Firestore, ids: string[]) {
+  const map = new Map<string, string>();
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+
+  const chunkSize = 10;
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    try {
+      const qy = query(collection(db, "lessons"), where(documentId(), "in", chunk));
+      const snap = await getDocs(qy);
+      snap.forEach((docSnap) => {
+        const d = docSnap.data() as Record<string, unknown>;
+        const t = pickTitle(d);
+        if (t) map.set(docSnap.id, t);
+      });
+    } catch {
+      // ignore (rules/index/permissions etc)
+    }
+  }
+
+  return map;
 }
 
 async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode) {
@@ -172,6 +205,16 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode) {
     );
     const snap = await getDocs(qy);
 
+    // Først: plukk lessonId’er så vi kan slå opp titler
+    const submissionRows: Array<{
+      id: string;
+      d: Record<string, unknown>;
+      lessonId?: string;
+      spaceId?: string;
+    }> = [];
+
+    const lessonIds: string[] = [];
+
     snap.forEach((docSnap) => {
       const d = docSnap.data() as Record<string, unknown>;
 
@@ -185,25 +228,56 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode) {
 
       const spaceId = typeof d.spaceId === "string" ? d.spaceId : undefined;
 
-      const fallbackHref = lessonId ? `/lesson/${lessonId}` : `/student/results`;
+      if (lessonId) lessonIds.push(lessonId);
+
+      submissionRows.push({ id: docSnap.id, d, lessonId, spaceId });
+    });
+
+    // ✅ slå opp lesson-titler (best effort)
+    const lessonTitleById = await fetchLessonTitlesByIds(db, lessonIds);
+
+    for (const row of submissionRows) {
+      const { id, d, lessonId, spaceId } = row;
+
+      const rawTitle = pickTitle(d);
+      const lessonTitle = lessonId ? lessonTitleById.get(lessonId) : undefined;
+
+      // ✅ Tittel-logikk:
+      // 1) bruk submission sin egen title hvis den finnes
+      // 2) ellers bruk lessonTitle hvis vi fant den
+      // 3) ellers fallback
+      const title =
+        rawTitle && rawTitle.toLowerCase() !== "untitled"
+          ? rawTitle
+          : lessonTitle
+            ? `Submission · ${lessonTitle}`
+            : "Submission";
+
+      const status = pickStatus(d) || (d.reviewedAt ? "reviewed" : "submitted");
+
+      // For “open submission” er dette riktig for student,
+      // ellers fall tilbake til en lesson-lenke hvis vi har den.
+      const fallbackHref = lessonId ? hrefForLesson(mode, lessonId) : `/student/results`;
+
+      const meta: string[] = [];
+      if (lessonTitle) meta.push(`Lesson: ${lessonTitle}`);
+      if (spaceId) meta.push(`space:${spaceId}`);
+      if (lessonId) meta.push(`lesson:${lessonId}`);
 
       results.push({
         type: "submission",
-        id: docSnap.id,
-        title: pickTitle(d) || "Submission",
-        status: pickStatus(d) || (d.reviewedAt ? "reviewed" : "submitted"),
+        id,
+        title,
+        status,
         updatedAt: pickUpdated(d),
-        href: mode === "student" ? `/student/submissions/${docSnap.id}` : fallbackHref,
-        meta: [
-          ...(spaceId ? [`space:${spaceId}`] : []),
-          ...(lessonId ? [`lesson:${lessonId}`] : []),
-        ],
+        href: mode === "student" ? `/student/submissions/${id}` : fallbackHref,
+        meta,
 
         uid: typeof d.uid === "string" ? d.uid : null,
         lessonId,
         spaceId,
       });
-    });
+    }
   } catch {
     // ignore
   }
@@ -218,11 +292,7 @@ async function fetchMySpaces(db: Firestore, uid: string) {
     if (typeof d.joinCode === "string") return d.joinCode;
     if (typeof d.code === "string") return d.code;
     const join = d.join;
-    if (
-      join &&
-      typeof join === "object" &&
-      typeof (join as Record<string, unknown>).code === "string"
-    ) {
+    if (join && typeof join === "object" && typeof (join as Record<string, unknown>).code === "string") {
       return String((join as Record<string, unknown>).code);
     }
     return undefined;
@@ -242,7 +312,7 @@ async function fetchMySpaces(db: Firestore, uid: string) {
       results.push({
         type: "space",
         id: docSnap.id,
-        title: pickTitle(d),
+        title: pickTitle(d) || "Space",
         status: pickStatus(d),
         updatedAt: pickUpdated(d),
         href: `/teacher/spaces/${docSnap.id}`,
@@ -271,7 +341,7 @@ async function fetchMySpaces(db: Firestore, uid: string) {
       results.push({
         type: "space",
         id: docSnap.id,
-        title: pickTitle(d),
+        title: pickTitle(d) || "Space",
         status: pickStatus(d),
         updatedAt: pickUpdated(d),
         href: `/teacher/spaces/${docSnap.id}`,

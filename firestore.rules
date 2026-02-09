@@ -35,7 +35,6 @@ service cloud.firestore {
       return myUserExists() ? get(myUserPath()).data : {};
     }
 
-    // ---- Safe helpers for maps/keys ----
     function isMap(x) {
       return x is map;
     }
@@ -53,16 +52,36 @@ service cloud.firestore {
       return signedIn() && hasRole("admin");
     }
 
-    function isApprovedTeacher() {
+    /* ============================
+       Attestering + mode helpers
+       - B1: Space-sharing krever attestering
+    ============================ */
+    function hasAttested() {
+      // attestation.acceptedAt finnes
       return signedIn()
-        && hasRole("teacher")
-        && ("teacherStatus" in myUser())
-        && myUser().teacherStatus == "approved";
+        && ("attestation" in myUser())
+        && isMap(myUser().attestation)
+        && ("acceptedAt" in myUser().attestation);
+    }
+
+    function myMode() {
+      return ("mode" in myUser()) ? myUser().mode : "student";
+    }
+
+    function isTeacherMode() {
+      return signedIn() && (myMode() == "teacher");
+    }
+
+    function isCreatorMode() {
+      return signedIn() && (myMode() == "creator");
     }
 
     /* ============================
        USERS
        /users/{uid}
+       - Self kan endre "mode"
+       - Self kan IKKE endre roles
+       - teacherStatus-logikk beholdt (valgfri)
     ============================ */
     match /users/{uid} {
 
@@ -82,6 +101,12 @@ service cloud.firestore {
       // Self-update: ikke tillat endring av roles
       function rolesNotChangedBySelf() {
         return !isChanging("roles");
+      }
+
+      // Self-update: tillat endring av mode (student/teacher/creator/parent/admin)
+      function modeOk() {
+        return !isChanging("mode")
+          || (request.resource.data.mode is string);
       }
 
       // Null-safe: hent eksisterende teacherStatus (default "none" hvis mangler)
@@ -106,15 +131,16 @@ service cloud.firestore {
       // Read: self + admin
       allow read: if isSelf() || isAdmin();
 
-      // Update: admin kan alt. Self kan oppdatere alt unntatt roles, og teacherStatus iht regel.
+      // Update: admin kan alt.
+      // Self: kan oppdatere alt unntatt roles, og teacherStatus iht regel + mode ok
       allow update: if isAdmin()
-        || (isSelf() && rolesNotChangedBySelf() && teacherStatusSelfOk());
+        || (isSelf() && rolesNotChangedBySelf() && teacherStatusSelfOk() && modeOk());
 
       allow delete: if false;
     }
 
     /* ============================
-       LESSONS (draft)
+       LESSONS (draft/private/space-prep)
        /lessons/{lessonId}
     ============================ */
     match /lessons/{lessonId} {
@@ -129,7 +155,7 @@ service cloud.firestore {
     }
 
     /* ============================
-       PUBLISHED LESSONS
+       PUBLISHED LESSONS (321skole public)
        /published_lessons/{id}
     ============================ */
     match /published_lessons/{id} {
@@ -140,14 +166,22 @@ service cloud.firestore {
     /* ============================
        SPACES (Teacher Space)
        /spaces/{spaceId}
+       - B1: Create krever attestering + teacher/creator mode (eller admin)
     ============================ */
     match /spaces/{spaceId} {
 
       // Public read (metadata)
       allow read: if true;
 
-      // Create: kun godkjent teacher, ownerId må være egen uid
-      allow create: if isApprovedTeacher()
+      // Create: attestert + teacher/creator mode, ownerId må være egen uid
+      allow create: if (
+          isAdmin()
+          || (
+            signedIn()
+            && hasAttested()
+            && (isTeacherMode() || isCreatorMode())
+          )
+        )
         && request.resource.data.ownerId == myUid()
         && request.resource.data.title is string
         && request.resource.data.code is string
@@ -157,13 +191,15 @@ service cloud.firestore {
       allow update, delete: if isAdmin()
         || (signedIn() && resource != null && resource.data.ownerId == myUid());
 
-      // (Valgfritt) space-level lessons docs:
+      // space-level lessons docs (assignment/attachments)
+      // B1: kun space-owner/admin + attestering
       match /lessons/{lessonId} {
         allow read: if true;
 
         allow create, update, delete: if isAdmin()
           || (
             signedIn()
+            && hasAttested()
             && get(/databases/$(database)/documents/spaces/$(spaceId)).data.ownerId == myUid()
           );
       }
@@ -171,27 +207,42 @@ service cloud.firestore {
       // Submissions under space+lesson
       match /lessons/{lessonId}/submissions/{subId} {
 
-  // ✅ Stabil path helper
-  function spacePath() {
-    return /databases/$(database)/documents/spaces/$(spaceId);
-  }
+        // ✅ Stabil path helper
+        function spacePath() {
+          return /databases/$(database)/documents/spaces/$(spaceId);
+        }
 
-  // ✅ Stabilt: exists() + get() (ikke .exists() på get-resultat)
-  function spaceIsOpen() {
-    return exists(spacePath()) && get(spacePath()).data.isOpen == true;
-  }
+        // ✅ Stabilt: exists() + get()
+        function spaceIsOpen() {
+          return exists(spacePath()) && get(spacePath()).data.isOpen == true;
+        }
 
-  function isSpaceOwner() {
-    return signedIn()
-      && exists(spacePath())
-      && get(spacePath()).data.ownerId == myUid();
-  }
+        function isSpaceOwner() {
+          return signedIn()
+            && exists(spacePath())
+            && get(spacePath()).data.ownerId == myUid();
+        }
 
+        // Egen innlevering hvis auth.uid matcher (for innlogget/anon auth).
+        // Uinnlogget (request.auth == null) kan ikke lese etterpå (kun lærer/admin).
+        function isOwnSubmission() {
+          return signedIn()
+            && (resource != null)
+            && (resource.data.auth is map)
+            && ("uid" in resource.data.auth)
+            && resource.data.auth.uid == myUid();
+        }
 
-        // ✅ Modell A (bombesikker):
-        // - HELT uinnlogget gjest: krever bare auth.isAnon == true
-        // - Firebase anonymous auth: krever isAnon==true + uid==myUid()
-        // - Vanlig innlogget: krever isAnon==false + uid==myUid()
+        // ✅ NY: Lås update til kun status + teacherFeedback
+        function changedKeys() {
+          return request.resource.data.diff(resource.data).changedKeys();
+        }
+
+        function onlyTeacherFieldsChanged() {
+          return changedKeys().hasOnly(["status", "teacherFeedback"]);
+        }
+
+        // ✅ Modell A (bombesikker)
         function validAuthOnCreate() {
           return (
             // 1) HELT uinnlogget gjest (request.auth == null)
@@ -200,7 +251,7 @@ service cloud.firestore {
               && request.resource.data.auth.isAnon == true
             )
             ||
-            // 2) Firebase anonymous auth (signInAnonymously)
+            // 2) Firebase anonymous auth
             (isAnonAuth()
               && request.resource.data.auth is map
               && request.resource.data.auth.isAnon == true
@@ -227,13 +278,18 @@ service cloud.firestore {
 
         allow read: if isAdmin() || isSpaceOwner() || isOwnSubmission();
 
-        // Update: bare lærer/admin, og de får kun endre feedback/status
+        // ✅ Update: bare lærer/admin, og de får kun endre feedback/status
+        // IMPORTANT: vi bruker path-params + request.resource.data (full “after”-state),
+        // så updateDoc(partial) fungerer.
         allow update: if isAdmin()
           || (
             isSpaceOwner()
             && resource != null
-            && request.resource.data.spaceId == resource.data.spaceId
-            && request.resource.data.lessonId == resource.data.lessonId
+            && onlyTeacherFieldsChanged()
+
+            // lås felt mot endring (etter-state må være identisk)
+            && request.resource.data.spaceId == spaceId
+            && request.resource.data.lessonId == lessonId
             && request.resource.data.createdAt == resource.data.createdAt
             && request.resource.data.answers == resource.data.answers
             && request.resource.data.auth == resource.data.auth
@@ -246,7 +302,7 @@ service cloud.firestore {
     /* ============================
        SUBMISSIONS
        /submissions/{id}
-       (brukes for “student submissions” uten space)
+       (uten space)
     ============================ */
     match /submissions/{id} {
 

@@ -6,9 +6,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
-import { doc, onSnapshot, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import {
+  doc,
+  onSnapshot,
+  updateDoc,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
 import { useUserProfile } from "@/lib/useUserProfile";
+import AttestationAndModeCard from "@/components/AttestationAndModeCard";
 
+type Mode = "student" | "teacher" | "creator" | "parent";
 type ReviewStatus = "reviewed" | "needs_work";
 
 type TeacherFeedback = {
@@ -23,17 +31,42 @@ type SubmissionDoc = {
   answers?: unknown;
   auth?: { isAnon?: boolean; uid?: string | null } | unknown;
   teacherFeedback?: TeacherFeedback | unknown;
+
+  // (valgfritt, men vi bruker de hvis de finnes)
+  spaceId?: string;
+  lessonId?: string;
 };
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function readModeFromProfile(profile: unknown): Mode {
+  if (!isRecord(profile)) return "student";
+  const m = profile["mode"];
+  return m === "teacher" || m === "creator" || m === "parent" || m === "student"
+    ? m
+    : "student";
+}
+
+function readHasAttested(profile: unknown): boolean {
+  if (!isRecord(profile)) return false;
+  const att = profile["attestation"];
+  if (!isRecord(att)) return false;
+  return Boolean(att["acceptedAt"]);
+}
 
 function getErrorInfo(err: unknown): { code?: string; message: string } {
   if (err instanceof Error) return { message: err.message };
   if (typeof err === "string") return { message: err };
   if (err && typeof err === "object") {
     const code = "code" in err ? (err as { code?: unknown }).code : undefined;
-    const message = "message" in err ? (err as { message?: unknown }).message : undefined;
+    const message =
+      "message" in err ? (err as { message?: unknown }).message : undefined;
     return {
       code: typeof code === "string" ? code : undefined,
-      message: typeof message === "string" ? message : JSON.stringify(err),
+      message:
+        typeof message === "string" ? message : JSON.stringify(err),
     };
   }
   return { message: String(err) };
@@ -46,10 +79,10 @@ function formatMaybeDate(v: unknown) {
       v instanceof Date
         ? v
         : typeof (v as { toDate?: unknown })?.toDate === "function"
-          ? (v as { toDate: () => Date }).toDate()
-          : v instanceof Timestamp
-            ? v.toDate()
-            : null;
+        ? (v as { toDate: () => Date }).toDate()
+        : v instanceof Timestamp
+        ? v.toDate()
+        : null;
     return d ? d.toLocaleString() : "";
   } catch {
     return "";
@@ -77,20 +110,33 @@ function readAuth(sub: SubmissionDoc): { isAnon: boolean; uid: string | null } {
 }
 
 export default function TeacherSubmissionPage() {
+  // ✅ Kun innlogging – ikke approved teacher
   return (
-    <AuthGate requireRole="teacher" requireApprovedTeacher>
+    <AuthGate>
       <Inner />
     </AuthGate>
   );
 }
 
 function Inner() {
-  const params = useParams<{ spaceId: string; lessonId: string; subId: string }>();
+  const params = useParams<{
+    spaceId: string;
+    lessonId: string;
+    subId: string;
+  }>();
   const spaceId = params.spaceId;
   const lessonId = params.lessonId;
   const subId = params.subId;
 
-  const { user } = useUserProfile();
+  const { user, profile, loading: profileLoading } = useUserProfile();
+
+  const mode: Mode = useMemo(() => readModeFromProfile(profile), [profile]);
+  const hasAttested = useMemo(() => readHasAttested(profile), [profile]);
+
+  const canOperate =
+    Boolean(user?.uid) &&
+    hasAttested &&
+    (mode === "teacher" || mode === "creator");
 
   const [sub, setSub] = useState<SubmissionDoc | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,11 +146,10 @@ function Inner() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
-  const docRef = useMemo(() => doc(db, "spaces", spaceId, "lessons", lessonId, "submissions", subId), [
-    spaceId,
-    lessonId,
-    subId,
-  ]);
+  const docRef = useMemo(
+    () => doc(db, "spaces", spaceId, "lessons", lessonId, "submissions", subId),
+    [spaceId, lessonId, subId]
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -117,17 +162,22 @@ function Inner() {
           return;
         }
 
-        const data = snap.data() as SubmissionDoc;
+        const data = (snap.data() as SubmissionDoc) ?? {};
         setSub(data);
 
-        // preload feedback if exists
+        // preload feedback + status
         setText(readTeacherFeedbackText(data));
         setStatus(readStatus(data));
       },
       (err) => {
         setLoading(false);
         const info = getErrorInfo(err as unknown);
-        console.log("[TEACHER] read submission ERROR =>", info.code, info.message, err);
+        console.log(
+          "[TEACHER] read submission ERROR =>",
+          info.code,
+          info.message,
+          err
+        );
         setSub(null);
       }
     );
@@ -135,7 +185,7 @@ function Inner() {
 
   const backLink = `/teacher/spaces/${spaceId}`;
 
-  if (loading) return <div style={{ padding: 16 }}>Laster…</div>;
+  if (loading || profileLoading) return <div style={{ padding: 16 }}>Laster…</div>;
 
   if (!sub) {
     return (
@@ -156,7 +206,14 @@ function Inner() {
 
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
         <div>
           <h1 style={{ margin: 0 }}>Innlevering</h1>
           <div style={{ opacity: 0.8, marginTop: 6 }}>
@@ -185,9 +242,37 @@ function Inner() {
         </div>
       </div>
 
+      {/* ✅ B1 guard */}
+      {!canOperate && (
+        <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+          <AttestationAndModeCard
+            attestationVersion="2026-02-09"
+            allowedModes={["student", "teacher", "creator", "parent"]}
+            requireAttestationForProModes={true}
+          />
+          <div
+            style={{
+              border: "1px solid rgba(0,0,0,0.12)",
+              borderRadius: 12,
+              padding: 12,
+              opacity: 0.9,
+            }}
+          >
+            For å gi tilbakemelding må du ha <b>attestering</b> og være i{" "}
+            <b>teacher</b> eller <b>creator</b>-mode.
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
         {/* Answers */}
-        <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
+        <div
+          style={{
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 12,
+            padding: 12,
+          }}
+        >
           <div style={{ fontWeight: 700, marginBottom: 8 }}>Svar</div>
           <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontSize: 13 }}>
             {JSON.stringify(sub.answers ?? {}, null, 2)}
@@ -195,7 +280,13 @@ function Inner() {
         </div>
 
         {/* Feedback */}
-        <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
+        <div
+          style={{
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 12,
+            padding: 12,
+          }}
+        >
           <div style={{ fontWeight: 700, marginBottom: 8 }}>Tilbakemelding</div>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -205,6 +296,7 @@ function Inner() {
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ReviewStatus)}
                 style={{ padding: "8px 10px", borderRadius: 10 }}
+                disabled={!canOperate}
               >
                 <option value="reviewed">reviewed</option>
                 <option value="needs_work">needs_work</option>
@@ -217,22 +309,25 @@ function Inner() {
             onChange={(e) => setText(e.target.value)}
             placeholder="Skriv en kort tilbakemelding…"
             rows={5}
+            disabled={!canOperate}
             style={{
               width: "100%",
               marginTop: 10,
               padding: 10,
               borderRadius: 10,
               border: "1px solid rgba(0,0,0,0.2)",
+              opacity: !canOperate ? 0.65 : 1,
             }}
           />
 
           <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
             <button
-              disabled={saving}
+              disabled={saving || !canOperate}
               onClick={async () => {
                 setSaving(true);
                 setSaveMsg(null);
                 try {
+                  // ✅ Rules er nå “partial-update friendly”
                   await updateDoc(docRef, {
                     status,
                     teacherFeedback: {
@@ -241,6 +336,7 @@ function Inner() {
                       teacherUid: user?.uid ?? null,
                     },
                   });
+
                   setSaveMsg("Lagret ✅");
                 } catch (e: unknown) {
                   const info = getErrorInfo(e);
@@ -251,7 +347,12 @@ function Inner() {
                   setTimeout(() => setSaveMsg(null), 2000);
                 }
               }}
-              style={{ padding: "10px 12px", borderRadius: 10 }}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 10,
+                opacity: saving || !canOperate ? 0.6 : 1,
+                cursor: saving || !canOperate ? "not-allowed" : "pointer",
+              }}
             >
               {saving ? "Lagrer…" : "Lagre tilbakemelding"}
             </button>
@@ -260,7 +361,7 @@ function Inner() {
           </div>
 
           <div style={{ marginTop: 10, opacity: 0.75, fontSize: 12 }}>
-            (Rules: teacher/owner kan bare endre feedback/status — answers/auth/createdAt må være uendret.)
+            (Rules: space-owner/admin kan bare endre feedback/status — answers/auth/createdAt må være uendret.)
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 // app/(app)/producer/texts/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getAuth } from "firebase/auth";
 import {
@@ -17,16 +17,12 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import QRCode from "qrcode";
+import type { CSSProperties } from "react";
 
 type PublishVisibility = "public" | "unlisted" | "private";
 type LessonStatus = "draft" | "published";
 
-type FirestoreTimestampLike =
-  | { toDate?: () => Date }
-  | Date
-  | number
-  | null
-  | undefined;
+type FirestoreTimestampLike = { toDate?: () => Date } | Date | number | null | undefined;
 
 type LessonRow = {
   id: string;
@@ -53,7 +49,7 @@ type LessonRow = {
   activePublishedId?: string | null;
 
   publish?: {
-    state?: string; // pending/published/rejected...
+    state?: string;
     visibility?: PublishVisibility;
   };
 };
@@ -128,7 +124,6 @@ async function authedPost<T = unknown>(url: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
 
-  // robust: tolerate non-JSON error pages
   const raw = await res.text();
   let data: unknown = {};
   try {
@@ -149,6 +144,113 @@ async function authedPost<T = unknown>(url: string, body: unknown): Promise<T> {
 }
 
 export default function ProducerTextsPage() {
+  // ===== Inline UI styles (no Tailwind dependency) =====
+  const card: CSSProperties = {
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    background: "#fff",
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
+  };
+
+  const pageWrap: CSSProperties = {
+    padding: 20,
+    maxWidth: 980,
+    margin: "0 auto",
+  };
+
+  const headerRow: CSSProperties = {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    alignItems: "center",
+    flexWrap: "wrap",
+  };
+
+  const controlsRow: CSSProperties = {
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+    flexWrap: "wrap",
+  };
+
+  const inputStyle: CSSProperties = {
+    padding: "10px 12px",
+    border: "1px solid #e5e7eb",
+    borderRadius: 12,
+    minWidth: 220,
+    outline: "none",
+    background: "#fff",
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
+    fontSize: 14,
+  };
+
+  const selectStyle: CSSProperties = {
+    padding: "10px 12px",
+    border: "1px solid #e5e7eb",
+    borderRadius: 12,
+    background: "#fff",
+    outline: "none",
+    fontWeight: 700,
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
+    fontSize: 14,
+  };
+
+  const btnBase: CSSProperties = {
+    padding: "10px 14px",
+    borderRadius: 12,
+    background: "#fff",
+    cursor: "pointer",
+    fontWeight: 900,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
+  };
+
+  const btnPrimary: CSSProperties = {
+    ...btnBase,
+    background: "#111827",
+    color: "#fff",
+    border: "1px solid #111827",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+  };
+
+  const btnDanger: CSSProperties = {
+    ...btnBase,
+    border: "1px solid #ef4444",
+    color: "#ef4444",
+    background: "#fff",
+  };
+
+  const btnSuccess: CSSProperties = {
+    ...btnBase,
+    border: "1px solid #16a34a",
+    color: "#16a34a",
+    background: "#fff",
+  };
+
+  const btnMuted: CSSProperties = {
+    ...btnBase,
+    border: "1px solid #e5e7eb",
+    color: "#111827",
+    background: "#fff",
+    fontWeight: 800,
+    opacity: 0.95,
+  };
+
+  const listCard: CSSProperties = {
+    border: "1px solid #e5e7eb",
+    borderRadius: 14,
+    padding: 14,
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    alignItems: "center",
+    flexWrap: "wrap",
+    background: "#fff",
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
+  };
+
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [uid, setUid] = useState<string | null>(null);
@@ -208,7 +310,7 @@ export default function ProducerTextsPage() {
     setErr(null);
     setBusy(lessonId, true);
 
-    // optimistic UI (list only)
+    // optimistic UI
     setItems((prev) =>
       prev.map((l) =>
         l.id === lessonId
@@ -274,7 +376,6 @@ export default function ProducerTextsPage() {
     }
   }
 
-  // Soft delete (archive): only touch lessons/{id} from client
   async function deleteLesson(lessonId: string, title?: string) {
     const ok = confirm(
       `Delete lesson${title ? `: "${title}"` : ""}?\n\n` +
@@ -293,7 +394,7 @@ export default function ProducerTextsPage() {
     try {
       await requireUser();
 
-      // best-effort unpublish via server (ignore failure)
+      // best-effort unpublish
       try {
         const row = before.find((x) => x.id === lessonId);
         const publishedId = row?.activePublishedId || lessonId;
@@ -318,7 +419,6 @@ export default function ProducerTextsPage() {
     }
   }
 
-  // Share: build URL + generate QR (client-side)
   async function openShare(l: LessonRow) {
     setCopied(false);
     setQrDataUrl("");
@@ -394,251 +494,141 @@ export default function ProducerTextsPage() {
   }, [items, q, statusFilter]);
 
   return (
-    <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: 18, fontWeight: 900, margin: 0 }}>My content</h1>
-          <div style={{ fontSize: 13, opacity: 0.7 }}>uid: {uid ?? "—"}</div>
+    <main style={pageWrap}>
+      <div style={{ ...card, padding: 16 }}>
+        <div style={headerRow}>
+          <div>
+            <h1 style={{ fontSize: 18, fontWeight: 900, margin: 0 }}>My content</h1>
+            <div style={{ fontSize: 13, opacity: 0.7 }}>uid: {uid ?? "—"}</div>
+          </div>
+
+          <div style={controlsRow}>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search title/type/level…"
+              style={inputStyle}
+            />
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "all" | LessonStatus)}
+              style={selectStyle}
+            >
+              <option value="all">All</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+
+            <button onClick={load} disabled={loading} style={{ ...btnMuted, opacity: loading ? 0.7 : 1 }}>
+              Refresh
+            </button>
+
+            <Link href="/producer/texts/new" style={btnPrimary}>
+              Create new lesson
+            </Link>
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search title/type/level…"
-            style={{
-              padding: "10px 12px",
-              border: "1px solid #e5e7eb",
-              borderRadius: 10,
-              minWidth: 220,
-              outline: "none",
-            }}
-          />
+        {loading ? (
+          <p style={{ marginTop: 16 }}>Loading…</p>
+        ) : err ? (
+          <div style={{ marginTop: 16, border: "1px solid #f3b4b4", borderRadius: 12, padding: 12 }}>
+            <div style={{ fontWeight: 900 }}>Error</div>
+            <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{err}</pre>
+          </div>
+        ) : filtered.length === 0 ? (
+          <p style={{ marginTop: 16, opacity: 0.75 }}>No lessons match. Click “Create new lesson”.</p>
+        ) : (
+          <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
+            {filtered.map((l) => {
+              const isPublished = (l.status ?? "draft") === "published";
+              const busy = !!busyById[l.id];
+              const tt = coerceTextType(l);
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | LessonStatus)}
-            style={{
-              padding: "10px 12px",
-              border: "1px solid #e5e7eb",
-              borderRadius: 10,
-              background: "white",
-              outline: "none",
-              fontWeight: 700,
-            }}
-          >
-            <option value="all">All</option>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-          </select>
+              return (
+                <div key={l.id} style={listCard}>
+                  <div style={{ minWidth: 320 }}>
+                    <div style={{ fontWeight: 900 }}>{l.title ?? "Untitled"}</div>
+                    <div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>
+                      {(l.status ?? "—").toUpperCase()}
+                      {l.level ? ` · ${l.level}` : ""}
+                      {tt ? ` · ${tt}` : ""}
+                      {l.language ? ` · ${l.language}` : ""}
+                      {" · "}
+                      Updated: {formatMaybeDate(l.updatedAt)}
+                    </div>
+                  </div>
 
-          <button
-            onClick={load}
-            style={{
-              padding: "10px 14px",
-              border: "1px solid #ddd",
-              borderRadius: 10,
-              background: "white",
-              cursor: "pointer",
-              fontWeight: 800,
-            }}
-            disabled={loading}
-            title="Reload list"
-          >
-            Refresh
-          </button>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    {isPublished ? (
+                      <button
+                        onClick={() => setPublished(l.id, false)}
+                        disabled={busy}
+                        style={{ ...btnDanger, opacity: busy ? 0.7 : 1, cursor: busy ? "not-allowed" : "pointer" }}
+                        title="Unpublish (will hide from library)"
+                      >
+                        {busy ? "Working…" : "Unpublish"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setPublished(l.id, true)}
+                        disabled={busy}
+                        style={{ ...btnSuccess, opacity: busy ? 0.7 : 1, cursor: busy ? "not-allowed" : "pointer" }}
+                        title="Publish (adds/updates published snapshot)"
+                      >
+                        {busy ? "Working…" : "Publish"}
+                      </button>
+                    )}
 
-          <Link
-            href="/producer/texts/new"
-            style={{
-              padding: "10px 14px",
-              border: "1px solid #111827",
-              borderRadius: 10,
-              textDecoration: "none",
-              color: "white",
-              background: "#111827",
-              fontWeight: 900,
-            }}
-          >
-            Create new lesson
-          </Link>
-        </div>
-      </div>
+                    <button
+                      onClick={() => openShare(l)}
+                      disabled={!isPublished || busy}
+                      style={{
+                        ...btnMuted,
+                        opacity: !isPublished || busy ? 0.6 : 1,
+                        cursor: !isPublished || busy ? "not-allowed" : "pointer",
+                        background: !isPublished ? "rgba(0,0,0,0.03)" : "#fff",
+                      }}
+                      title={!isPublished ? "Publish first to share link/QR" : "Share link + QR"}
+                    >
+                      Share
+                    </button>
 
-      {loading ? (
-        <p style={{ marginTop: 16 }}>Loading…</p>
-      ) : err ? (
-        <div style={{ marginTop: 16, border: "1px solid #f3b4b4", borderRadius: 12, padding: 12 }}>
-          <div style={{ fontWeight: 800 }}>Error</div>
-          <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{err}</pre>
-        </div>
-      ) : filtered.length === 0 ? (
-        <p style={{ marginTop: 16, opacity: 0.75 }}>No lessons match. Click “New”.</p>
-      ) : (
-        <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-          {filtered.map((l) => {
-            const isPublished = (l.status ?? "draft") === "published";
-            const busy = !!busyById[l.id];
-            const tt = coerceTextType(l);
+                    <Link
+                      href={`/producer/${l.id}/preview`}
+                      style={{ ...btnMuted, textDecoration: "none", color: "inherit" }}
+                    >
+                      Preview
+                    </Link>
 
-            return (
-              <div
-                key={l.id}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  padding: 14,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ minWidth: 320 }}>
-                  <div style={{ fontWeight: 900 }}>{l.title ?? "Untitled"}</div>
-                  <div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>
-                    {(l.status ?? "—").toUpperCase()}
-                    {l.level ? ` · ${l.level}` : ""}
-                    {tt ? ` · ${tt}` : ""}
-                    {l.language ? ` · ${l.language}` : ""}
-                    {" · "}
-                    Updated: {formatMaybeDate(l.updatedAt)}
+                    <Link
+                      href={`/producer/${l.id}/print`}
+                      style={{ ...btnMuted, textDecoration: "none", color: "inherit" }}
+                      title="Printable PDF"
+                    >
+                      PDF
+                    </Link>
+
+                    <Link href={`/producer/${l.id}`} style={{ ...btnMuted, textDecoration: "none", color: "inherit" }}>
+                      Edit
+                    </Link>
+
+                    <button
+                      onClick={() => deleteLesson(l.id, l.title)}
+                      disabled={busy}
+                      style={{ ...btnDanger, opacity: busy ? 0.7 : 1, cursor: busy ? "not-allowed" : "pointer" }}
+                      title="Delete lesson (archive)"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
-
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  {isPublished ? (
-                    <button
-                      onClick={() => setPublished(l.id, false)}
-                      disabled={busy}
-                      style={{
-                        padding: "10px 14px",
-                        border: "1px solid #ef4444",
-                        borderRadius: 10,
-                        background: "white",
-                        cursor: busy ? "not-allowed" : "pointer",
-                        fontWeight: 900,
-                        color: "#ef4444",
-                        opacity: busy ? 0.7 : 1,
-                      }}
-                      title="Unpublish (will hide from library)"
-                    >
-                      {busy ? "Working…" : "Unpublish"}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setPublished(l.id, true)}
-                      disabled={busy}
-                      style={{
-                        padding: "10px 14px",
-                        border: "1px solid #16a34a",
-                        borderRadius: 10,
-                        background: "white",
-                        cursor: busy ? "not-allowed" : "pointer",
-                        fontWeight: 900,
-                        color: "#16a34a",
-                        opacity: busy ? 0.7 : 1,
-                      }}
-                      title="Publish (adds/updates published snapshot)"
-                    >
-                      {busy ? "Working…" : "Publish"}
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => openShare(l)}
-                    disabled={!isPublished || busy}
-                    style={{
-                      padding: "10px 14px",
-                      border: "1px solid #ddd",
-                      borderRadius: 10,
-                      background: !isPublished ? "rgba(0,0,0,0.03)" : "white",
-                      cursor: !isPublished || busy ? "not-allowed" : "pointer",
-                      fontWeight: 800,
-                      opacity: !isPublished ? 0.6 : 1,
-                    }}
-                    title={!isPublished ? "Publish first to share link/QR" : "Share link + QR"}
-                  >
-                    Share
-                  </button>
-
-                  <Link
-                    href={`/producer/${l.id}/preview`}
-                    style={{
-                      padding: "10px 14px",
-                      border: "1px solid #ddd",
-                      borderRadius: 10,
-                      textDecoration: "none",
-                      color: "inherit",
-                      fontWeight: 700,
-                      opacity: 0.9,
-                    }}
-                  >
-                    Preview
-                  </Link>
-
-                  <Link
-                    href={`/producer/${l.id}/print`}
-                    style={{
-                      padding: "10px 14px",
-                      border: "1px solid #ddd",
-                      borderRadius: 10,
-                      textDecoration: "none",
-                      color: "inherit",
-                      fontWeight: 800,
-                      opacity: 0.9,
-                    }}
-                    title="Printable PDF"
-                  >
-                    PDF
-                  </Link>
-
-                  <Link
-                    href={`/producer/${l.id}`}
-                    style={{
-                      padding: "10px 14px",
-                      border: "1px solid #ddd",
-                      borderRadius: 10,
-                      textDecoration: "none",
-                      color: "inherit",
-                      fontWeight: 800,
-                    }}
-                  >
-                    Edit
-                  </Link>
-
-                  <button
-                    onClick={() => deleteLesson(l.id, l.title)}
-                    disabled={busy}
-                    style={{
-                      padding: "10px 14px",
-                      border: "1px solid #ef4444",
-                      borderRadius: 10,
-                      background: "white",
-                      cursor: busy ? "not-allowed" : "pointer",
-                      fontWeight: 900,
-                      color: "#ef4444",
-                      opacity: busy ? 0.7 : 1,
-                    }}
-                    title="Delete lesson (archive)"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Share modal */}
       {shareOpen && shareLesson ? (
@@ -717,38 +707,12 @@ export default function ProducerTextsPage() {
                 />
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-                  <button
-                    onClick={copyShareUrl}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 10,
-                      border: "1px solid rgba(0,0,0,0.18)",
-                      background: "white",
-                      cursor: "pointer",
-                      fontWeight: 900,
-                    }}
-                  >
+                  <button onClick={copyShareUrl} style={btnMuted}>
                     {copied ? "Copied!" : "Copy link"}
                   </button>
 
-                  <a
-                    href={shareUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 10,
-                      border: "1px solid rgba(0,0,0,0.18)",
-                      background: "white",
-                      cursor: "pointer",
-                      fontWeight: 900,
-                      textDecoration: "none",
-                      color: "inherit",
-                      display: "inline-flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    Open link
+                  <a href={shareUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none", color: "inherit" }}>
+                    <span style={{ ...btnMuted, display: "inline-flex", alignItems: "center" }}>Open link</span>
                   </a>
                 </div>
 

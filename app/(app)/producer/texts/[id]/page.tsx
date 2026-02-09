@@ -399,202 +399,221 @@ export default function ProducerTextDetailPage() {
   const modScore = draft?.moderation?.riskScore;
 
   return (
-    <main style={{ maxWidth: 980, paddingBottom: 60 }}>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
-        <Link href="/producer/texts">← Back to list</Link>
-        <span style={{ opacity: 0.7 }}>ID: {id || "(missing)"}</span>
-      </div>
-
-      <h1 style={{ marginBottom: 6 }}>Producer: Edit lesson</h1>
-
-      {!loading && draft ? (
-        <div style={{ marginBottom: 12, opacity: 0.85 }}>
-          Publish state: <b>{publishState}</b>
-          {modStatus ? (
-            <>
-              {" "}
-              • Moderation: <b>{modStatus}</b>
-              {typeof modScore === "number" ? ` (score ${modScore})` : null}
-            </>
-          ) : null}
+    <main
+      className="plain-scope"
+      style={{ maxWidth: 980, margin: "0 auto", padding: "24px 16px 60px" }}
+    >
+      <div className="plain-card">
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
+          <Link href="/producer/texts">← Back to list</Link>
+          <span style={{ opacity: 0.7 }}>ID: {id || "(missing)"}</span>
         </div>
-      ) : null}
 
-      {loading ? <p>Loading…</p> : null}
+        <h1 style={{ marginBottom: 6 }}>Edit lesson</h1>
 
-      {error ? (
-        <div style={{ padding: 12, background: "#ffe6e6", borderRadius: 8, marginBottom: 12 }}>
-          <b>Feil:</b> {error}
-        </div>
-      ) : null}
-
-      {msg ? (
-        <div style={{ padding: 12, background: "#e9ffe6", borderRadius: 8, marginBottom: 12 }}>
-          {msg}
-        </div>
-      ) : null}
-
-      {!loading && draft && (
-        <>
-          <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label>
-              Title
-              <input
-                value={draft.title ?? ""}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                style={{ width: "100%", padding: 8, marginTop: 6 }}
-              />
-            </label>
-
-            <label>
-              Publish state (manual)
-              <select
-                value={draft.publish?.state === "unlisted" ? "unlisted" : "draft"}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    publish: { ...(draft.publish || {}), state: e.target.value as PublishState },
-                  })
-                }
-                style={{ width: "100%", padding: 8, marginTop: 6 }}
-              >
-                <option value="draft">draft</option>
-                <option value="unlisted">unlisted (share-link)</option>
-              </select>
-              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-                “Pending/Published” settes av system/admin.
-              </div>
-            </label>
-
-            <label>
-              Level
-              <input
-                value={draft.level ?? ""}
-                onChange={(e) => setDraft({ ...draft, level: e.target.value })}
-                style={{ width: "100%", padding: 8, marginTop: 6 }}
-              />
-            </label>
-
-            <label>
-              Language
-              <input
-                value={draft.language ?? ""}
-                onChange={(e) => setDraft({ ...draft, language: e.target.value })}
-                style={{ width: "100%", padding: 8, marginTop: 6 }}
-              />
-            </label>
-
-            <label>
-              Text type (for library filters)
-              <input
-                value={normalizeTextType(draft)}
-                onChange={(e) => setDraft({ ...draft, textType: e.target.value })}
-                placeholder="Everyday story / Biography / Article ..."
-                style={{ width: "100%", padding: 8, marginTop: 6 }}
-              />
-            </label>
-
-            <label>
-              Topic (short label, NOT prompt)
-              <input
-                value={draft.topic ?? ""}
-                onChange={(e) => setDraft({ ...draft, topic: e.target.value })}
-                style={{ width: "100%", padding: 8, marginTop: 6 }}
-              />
-            </label>
-
-            <label style={{ gridColumn: "1 / -1" }}>
-              Description
-              <input
-                value={draft.description ?? ""}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                style={{ width: "100%", padding: 8, marginTop: 6 }}
-              />
-            </label>
-
-            <label style={{ gridColumn: "1 / -1" }}>
-              Text (sourceText)
-              <textarea
-                value={draft.sourceText ?? ""}
-                onChange={(e) => setDraft({ ...draft, sourceText: e.target.value })}
-                rows={10}
-                style={{ width: "100%", padding: 8, marginTop: 6 }}
-              />
-            </label>
-          </section>
-
-          <section style={{ marginTop: 22 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ margin: 0 }}>Tasks</h2>
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={showRawTasks}
-                  onChange={(e) => setShowRawTasks(e.target.checked)}
-                />
-                Show raw JSON
-              </label>
-            </div>
-
-            <div style={{ marginTop: 10, opacity: 0.75 }}>Current tasks: {tasksArr.length}</div>
-
-            {showRawTasks ? (
-              <div style={{ marginTop: 12 }}>
-                <textarea
-                  value={rawTasksDraft}
-                  onChange={(e) => setRawTasksDraft(e.target.value)}
-                  rows={16}
-                  style={{ width: "100%", padding: 8, fontFamily: "monospace" }}
-                />
-                <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
-                  <button type="button" onClick={applyRawTasks} style={{ padding: "8px 12px" }}>
-                    Apply raw JSON
-                  </button>
-                  <span style={{ opacity: 0.7 }}>(Apply = updates state. Remember to Save.)</span>
-                </div>
-              </div>
+        {!loading && draft ? (
+          <div style={{ marginBottom: 12, opacity: 0.85 }}>
+            Publish state: <b>{publishState}</b>
+            {modStatus ? (
+              <>
+                {" "}
+                • Moderation: <b>{modStatus}</b>
+                {typeof modScore === "number" ? ` (score ${modScore})` : null}
+              </>
             ) : null}
-          </section>
-
-          <div style={{ marginTop: 18, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <button onClick={save} disabled={saving} style={{ padding: "10px 14px" }}>
-              {saving ? "Saving..." : "Save changes"}
-            </button>
-
-            <button
-              onClick={setUnlisted}
-              disabled={saving || publishing || serverPublishing}
-              style={{ padding: "10px 14px" }}
-            >
-              Set Unlisted (share-link)
-            </button>
-
-            <button
-              onClick={submitForLibraryReview}
-              disabled={publishing || saving || serverPublishing}
-              style={{ padding: "10px 14px" }}
-            >
-              {publishing ? "Submitting..." : "Submit for review (draft → pending)"}
-            </button>
-
-            <button
-              onClick={publishNowServer}
-              disabled={serverPublishing || saving || publishing}
-              style={{ padding: "10px 14px" }}
-            >
-              {serverPublishing ? "Publishing..." : "Publish now (server → library)"}
-            </button>
-
-            <button
-              onClick={load}
-              disabled={loading || saving || publishing || serverPublishing}
-              style={{ padding: "10px 14px" }}
-            >
-              Reload
-            </button>
           </div>
-        </>
-      )}
+        ) : null}
+
+        {loading ? <p>Loading…</p> : null}
+
+        {error ? (
+          <div style={{ padding: 12, background: "#ffe6e6", borderRadius: 8, marginBottom: 12 }}>
+            <b>Feil:</b> {error}
+          </div>
+        ) : null}
+
+        {msg ? (
+          <div style={{ padding: 12, background: "#e9ffe6", borderRadius: 8, marginBottom: 12 }}>
+            {msg}
+          </div>
+        ) : null}
+
+        {!loading && draft && (
+          <>
+            <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <label>
+                Title
+                <input
+                  value={draft.title ?? ""}
+                  onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+
+              <label>
+                Publish state (manual)
+                <select
+                  value={draft.publish?.state === "unlisted" ? "unlisted" : "draft"}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      publish: { ...(draft.publish || {}), state: e.target.value as PublishState },
+                    })
+                  }
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                >
+                  <option value="draft">draft</option>
+                  <option value="unlisted">unlisted (share-link)</option>
+                </select>
+                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+                  “Pending/Published” settes av system/admin.
+                </div>
+              </label>
+
+              <label>
+                Level
+                <input
+                  value={draft.level ?? ""}
+                  onChange={(e) => setDraft({ ...draft, level: e.target.value })}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+
+              <label>
+                Language
+                <input
+                  value={draft.language ?? ""}
+                  onChange={(e) => setDraft({ ...draft, language: e.target.value })}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+
+              <label>
+                Text type (for library filters)
+                <input
+                  value={normalizeTextType(draft)}
+                  onChange={(e) => setDraft({ ...draft, textType: e.target.value })}
+                  placeholder="Everyday story / Biography / Article ..."
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+
+              <label>
+                Topic (short label, NOT prompt)
+                <input
+                  value={draft.topic ?? ""}
+                  onChange={(e) => setDraft({ ...draft, topic: e.target.value })}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+
+              <label style={{ gridColumn: "1 / -1" }}>
+                Description
+                <input
+                  value={draft.description ?? ""}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+
+              <label style={{ gridColumn: "1 / -1" }}>
+                Text (sourceText)
+                <textarea
+                  value={draft.sourceText ?? ""}
+                  onChange={(e) => setDraft({ ...draft, sourceText: e.target.value })}
+                  rows={10}
+                  style={{ width: "100%", padding: 8, marginTop: 6 }}
+                />
+              </label>
+            </section>
+
+            <section style={{ marginTop: 22 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h2 style={{ margin: 0 }}>Tasks</h2>
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={showRawTasks}
+                    onChange={(e) => setShowRawTasks(e.target.checked)}
+                  />
+                  Show raw JSON
+                </label>
+              </div>
+
+              <div style={{ marginTop: 10, opacity: 0.75 }}>Current tasks: {tasksArr.length}</div>
+
+              {showRawTasks ? (
+                <div style={{ marginTop: 12 }}>
+                  <textarea
+                    value={rawTasksDraft}
+                    onChange={(e) => setRawTasksDraft(e.target.value)}
+                    rows={16}
+                    style={{ width: "100%", padding: 8, fontFamily: "monospace" }}
+                  />
+                  <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={applyRawTasks}
+                      className="plain-btn"
+                      style={{ padding: "8px 12px" }}
+                    >
+                      Apply raw JSON
+                    </button>
+                    <span style={{ opacity: 0.7 }}>(Apply = updates state. Remember to Save.)</span>
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
+            <div style={{ marginTop: 18, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                onClick={save}
+                disabled={saving}
+                className="plain-btn"
+                style={{ padding: "10px 14px" }}
+              >
+                {saving ? "Saving..." : "Save changes"}
+              </button>
+
+              <button
+                onClick={setUnlisted}
+                disabled={saving || publishing || serverPublishing}
+                className="plain-btn"
+                style={{ padding: "10px 14px" }}
+              >
+                Set Unlisted (share-link)
+              </button>
+
+              <button
+                onClick={submitForLibraryReview}
+                disabled={publishing || saving || serverPublishing}
+                className="plain-btn"
+                style={{ padding: "10px 14px" }}
+              >
+                {publishing ? "Submitting..." : "Submit for review (draft → pending)"}
+              </button>
+
+              <button
+                onClick={publishNowServer}
+                disabled={serverPublishing || saving || publishing}
+                className="plain-btn"
+                style={{ padding: "10px 14px" }}
+              >
+                {serverPublishing ? "Publishing..." : "Publish now (server → library)"}
+              </button>
+
+              <button
+                onClick={load}
+                disabled={loading || saving || publishing || serverPublishing}
+                className="plain-btn"
+                style={{ padding: "10px 14px" }}
+              >
+                Reload
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </main>
   );
 }
