@@ -31,12 +31,14 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-4 text-lg text-slate-700">
-              Generer egne undervisningsopplegg på alle språk med oversettelse og lyd, og del med studenter som får umiddelbar, pedagogisk feedback – på riktig nivå.
+              Generer egne undervisningsopplegg på alle språk med oversettelse og
+              lyd, og del med studenter som får umiddelbar, pedagogisk feedback –
+              på riktig nivå.
             </p>
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/registrer"
+                href="/login"
                 className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
               >
                 Registrer deg i dag
@@ -66,7 +68,7 @@ export default function HomePage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl bg-slate-100">
                 <Image
-                  src="/landing/hero.png"
+                  src="/landing/hero1.png"
                   alt="Illustrasjon av lærer og student som bruker 321skole"
                   fill
                   className="object-cover"
@@ -114,7 +116,7 @@ export default function HomePage() {
           "Del med studenter via Spaces – og samle innleveringer.",
           "Eksporter ferdige opplegg som PDF.",
         ]}
-        cta={{ href: "/registrer", label: "Registrer deg i dag" }}
+        cta={{ href: "/login", label: "Registrer deg i dag" }}
         flip={false}
       />
 
@@ -152,18 +154,9 @@ export default function HomePage() {
           </div>
 
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
-            <InfoCard
-              title="Del på sekunder"
-              text="Gi studentene en lenke eller kode. De kommer rett inn i opplegget."
-            />
-            <InfoCard
-              title="Anonym eller innlogget"
-              text="Støtter lav terskel i starten – og trygg innlogging når dere vil."
-            />
-            <InfoCard
-              title="Oversikt og flyt"
-              text="Alt samlet: tekster, oppgaver, svar og feedback – tydelig og ryddig."
-            />
+            <InfoCard title="Del på sekunder" text="Gi studentene en lenke eller kode. De kommer rett inn i opplegget." />
+            <InfoCard title="Anonym eller innlogget" text="Støtter lav terskel i starten – og trygg innlogging når dere vil." />
+            <InfoCard title="Oversikt og flyt" text="Alt samlet: tekster, oppgaver, svar og feedback – tydelig og ryddig." />
           </div>
 
           <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -225,85 +218,57 @@ export default function HomePage() {
       </section>
 
       {/* PRIS / ROLLER */}
-<section className="bg-slate-50">
-  <div className="mx-auto max-w-6xl px-6 py-16">
-    <div className="mx-auto max-w-3xl text-center">
-      <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-        Gratis å starte. Enkelt å oppgradere.
-      </h2>
-      <p className="mt-4 text-lg text-slate-700">
-        Lag din første oppgave med en gang. Registrer deg gratis når du vil publisere og dele.
-      </p>
-    </div>
+      <section className="bg-slate-50">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              Gratis å starte. Enkelt å oppgradere.
+            </h2>
+            <p className="mt-4 text-lg text-slate-700">
+              Lag din første oppgave med en gang. Registrer deg gratis når du vil publisere og dele.
+            </p>
+          </div>
 
-    <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-4">
-      <RoleCard
-        title="Student"
-        free={[
-          "Alt fra lærer (ubegrenset)",
-          "Les, lytt og få feedback",
-          "Library: 4 oppgaver / mnd",
-        ]}
-        paidTitle="Student Full"
-        price="49 kr/mnd"
-        paid={[
-          "Ubegrenset library",
-          "Full lese- og lydtilgang",
-        ]}
-        cta="Start gratis"
-      />
+          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-4">
+            <RoleCard
+              title="Student"
+              free={["Alt fra lærer (ubegrenset)", "Les, lytt og få feedback", "Library: 4 oppgaver / mnd"]}
+              paidTitle="Student Full"
+              price="49 kr/mnd"
+              paid={["Ubegrenset library", "Full lese- og lydtilgang"]}
+              cta="Start gratis"
+            />
 
-      <RoleCard
-        title="Teacher"
-        highlight
-        free={[
-          "Lag og test oppgaver",
-          "2 publiseringer / mnd",
-          "Test Spaces",
-        ]}
-        paidTitle="Teacher Full"
-        price="99 kr/mnd"
-        paid={[
-          "Ubegrenset generering",
-          "Full AI + feedback",
-          "Spaces og PDF-eksport",
-        ]}
-        cta="Lag første oppgave"
-      />
+            <RoleCard
+              title="Teacher"
+              highlight
+              free={["Lag og test oppgaver", "2 publiseringer / mnd", "Test Spaces"]}
+              paidTitle="Teacher Full"
+              price="99 kr/mnd"
+              paid={["Ubegrenset generering", "Full AI + feedback", "Spaces og PDF-eksport"]}
+              cta="Lag første oppgave"
+            />
 
-      <RoleCard
-        title="Parent"
-        free={[
-          "Følg barnets oppgaver",
-          "Les, lytt og oversett",
-        ]}
-        paidTitle="Parent Full"
-        price="89 kr/mnd"
-        paid={[
-          "Full library",
-          "Lag egne oppgaver",
-          "Flere barn",
-        ]}
-        cta="Hjelp barnet i gang"
-      />
+            <RoleCard
+              title="Parent"
+              free={["Følg barnets oppgaver", "Les, lytt og oversett"]}
+              paidTitle="Parent Full"
+              price="89 kr/mnd"
+              paid={["Full library", "Lag egne oppgaver", "Flere barn"]}
+              cta="Hjelp barnet i gang"
+            />
 
-      <RoleCard
-        title="Creator"
-        free={[
-          "Test generering",
-          "Private oppgaver",
-        ]}
-        paidTitle="Creator Full"
-        price="79 kr/mnd"
-        paid={[
-          "Full generering",
-          "Publiser innhold",
-        ]}
-        cta="Utforsk som creator"
-      />
-    </div>
-  </div>
-</section>
+            <RoleCard
+              title="Creator"
+              free={["Test generering", "Private oppgaver"]}
+              paidTitle="Creator Full"
+              price="79 kr/mnd"
+              paid={["Full generering", "Publiser innhold"]}
+              cta="Utforsk som creator"
+            />
+          </div>
+        </div>
+      </section>
 
       {/* PRISING */}
       <section className="bg-slate-900 text-white">
@@ -313,13 +278,11 @@ export default function HomePage() {
               <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
                 Kom i gang – helt uten risiko
               </h2>
-              <p className="mt-4 text-lg text-white/80">
-                Gratis for alle).
-              </p>
+              <p className="mt-4 text-lg text-white/80">Gratis for alle).</p>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/registrer"
+                  href="/login"
                   className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-white/90"
                 >
                   Registrer deg i dag
@@ -414,7 +377,7 @@ function TopBar() {
           </Link>
 
           <Link
-            href="/registrer"
+            href="/login"
             className="inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
           >
             Registrer
@@ -457,8 +420,8 @@ function FeatureSection(props: {
     props.eyebrow === "For lærere"
       ? "for-larere"
       : props.eyebrow === "For studenter"
-        ? "for-studenter"
-        : undefined;
+      ? "for-studenter"
+      : undefined;
 
   return (
     <section id={id} className="bg-white">
@@ -566,9 +529,13 @@ function RoleCard(props: {
         </ul>
       </div>
 
-      <button className="mt-6 w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+      {/* FIX: send alle CTA-knapper til /login */}
+      <Link
+        href="/login"
+        className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+      >
         {props.cta}
-      </button>
+      </Link>
     </div>
   );
 }
