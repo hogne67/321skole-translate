@@ -1,4 +1,4 @@
-// lib/navItems.ts
+  // lib/navItems.ts
 import type { AppMode } from "@/lib/mode";
 
 export type NavItem = { href: string; label: string };
@@ -21,23 +21,30 @@ function homeForMode(mode: AppMode) {
 
 export function navItemsForMode(mode: AppMode): NavItem[] {
   const base: NavItem[] = [
-    { href: "/content", label: "My content" },
     { href: homeForMode(mode), label: "Dashboard" },
+    { href: "/content", label: "My content" },
   ];
 
   if (mode === "student") {
-    return [...base];
+    return [ 
+      ...base,
+      { href: "/student/spaces", label: "My spaces" },
+
+    ];
   }
 
   if (mode === "parent") {
-    return [...base];
+    return [
+      ...base,
+      { href: "/join", label: "Join space" },
+    ];
   }
 
   if (mode === "teacher") {
     return [
       ...base,
       { href: "/teacher/spaces", label: "Spaces" },
-      { href: "/producer/texts/new", label: "+ Create new lesson" },
+      { href: "/producer/texts/new", label: "+ Create lesson" },
     ];
   }
 
@@ -55,6 +62,5 @@ export function navItemsForMode(mode: AppMode): NavItem[] {
     { href: "/admin/users", label: "Users" },
     { href: "/admin/review", label: "Review" },
     { href: "/admin/submissions", label: "Submissions" },
-    { href: "/admin/trash", label: "Trash" },
   ];
 }

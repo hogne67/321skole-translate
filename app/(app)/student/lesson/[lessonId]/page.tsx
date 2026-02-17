@@ -372,9 +372,7 @@ export default function StudentLessonPage() {
   function resumeAudio() {
     const a = audioRef.current;
     if (!a) return;
-    a.play().catch(() => {
-      /* ignore */
-    });
+    a.play().catch(() => {});
   }
 
   async function playTTS(text: string, lang: TtsLang, mode: "original" | "translation") {
@@ -412,9 +410,7 @@ export default function StudentLessonPage() {
 
       const d = data as { error?: unknown; url?: unknown };
 
-      if (!res.ok) {
-        throw new Error(d?.error ? String(d.error) : `TTS error (HTTP ${res.status})`);
-      }
+      if (!res.ok) throw new Error(d?.error ? String(d.error) : `TTS error (HTTP ${res.status})`);
 
       const url = String(d?.url ?? "").trim();
       if (!url) throw new Error("TTS returned no url");
@@ -446,9 +442,7 @@ export default function StudentLessonPage() {
   }
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = playbackRate;
-    }
+    if (audioRef.current) audioRef.current.playbackRate = playbackRate;
   }, [playbackRate]);
 
   const sourceTextSafe = useMemo(() => {
@@ -515,9 +509,7 @@ export default function StudentLessonPage() {
     };
 
     a.addEventListener("timeupdate", onTime);
-    return () => {
-      a.removeEventListener("timeupdate", onTime);
-    };
+    return () => a.removeEventListener("timeupdate", onTime);
   }, [activeTextMode, textFollow.original.segs, textFollow.translation.segs]);
 
   function seekToSentence(mode: "original" | "translation", idx: number) {
@@ -535,11 +527,7 @@ export default function StudentLessonPage() {
     setActiveTextMode(mode);
     setActiveSentenceIndex(idx);
 
-    if (a.paused) {
-      a.play().catch(() => {
-        /* ignore */
-      });
-    }
+    if (a.paused) a.play().catch(() => {});
   }
 
   function replaySentence() {
@@ -550,9 +538,7 @@ export default function StudentLessonPage() {
       seekToSentence(activeTextMode, activeSentenceIndex);
     } else {
       a.currentTime = Math.max(0, a.currentTime - 2.0);
-      a.play().catch(() => {
-        /* ignore */
-      });
+      a.play().catch(() => {});
     }
   }
 
@@ -664,7 +650,7 @@ export default function StudentLessonPage() {
         } else {
           const stableSubId = `${user.uid}_${lessonId}`;
           try {
-            const subRef = doc(db, "submissions", stableSubId);
+            const subRef = doc(db, "practiceSubmissions", stableSubId);
             const subDoc = await getDoc(subRef);
             if (!alive) return;
 
@@ -723,7 +709,7 @@ export default function StudentLessonPage() {
     try {
       localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
     } catch {
-      /* ignore */
+      // ignore
     }
   }, [answers, isAnon, lessonId]);
 
@@ -766,14 +752,14 @@ export default function StudentLessonPage() {
         try {
           localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
         } catch {
-          /* ignore */
+          // ignore
         }
         flash("Saved ✅");
         return;
       }
 
       const stableId = `${uid}_${lessonId}`;
-      const ref = doc(db, "submissions", stableId);
+      const ref = doc(db, "practiceSubmissions", stableId);
 
       await setDoc(
         ref,
@@ -857,7 +843,7 @@ export default function StudentLessonPage() {
 
     try {
       const stableId = `${uid}_${lessonId}`;
-      const ref = doc(db, "submissions", stableId);
+      const ref = doc(db, "practiceSubmissions", stableId);
 
       await setDoc(
         ref,
@@ -894,7 +880,6 @@ export default function StudentLessonPage() {
 
       const data: unknown = await res.json();
       const d = data as { feedback?: unknown };
-
       const fb = typeof d?.feedback === "string" ? d.feedback : JSON.stringify(d);
 
       setFeedback(fb);
@@ -1340,7 +1325,7 @@ export default function StudentLessonPage() {
                 try {
                   localStorage.removeItem(lsKey(lessonId));
                 } catch {
-                  /* ignore */
+                  // ignore
                 }
               }
               flash("Cleared answers");
@@ -1464,8 +1449,7 @@ export default function StudentLessonPage() {
                         const optT = tr?.translatedOptions?.[i] || "";
 
                         const isOptionCorrect = showAnswers && mcqCorrectText != null && opt === mcqCorrectText;
-                        const isOptionChosenWrong =
-                          showAnswers && checked && mcqCorrectText != null && opt !== mcqCorrectText;
+                        const isOptionChosenWrong = showAnswers && checked && mcqCorrectText != null && opt !== mcqCorrectText;
 
                         const borderColor = isOptionCorrect
                           ? "rgba(46, 204, 113, 0.85)"
@@ -1502,14 +1486,7 @@ export default function StudentLessonPage() {
                             />
 
                             <div style={{ width: "100%" }}>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  gap: 10,
-                                }}
-                              >
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                                 <div>{opt}</div>
                                 {checked ? <Pill text="Your answer" /> : null}
                               </div>

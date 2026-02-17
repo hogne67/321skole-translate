@@ -1,19 +1,22 @@
 // app/(public)/join/JoinClient.tsx
 "use client";
 
+import React, { useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, getDocs, limit, query, where, type Firestore } from "firebase/firestore";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { db, auth } from "@/lib/firebase";
+import { ensureAnonymousUser } from "@/lib/anonAuth";
+import { ensureSpaceMember } from "@/lib/spaceMembership";
 
-async function findSpaceByCode(codeRaw: string) {
+async function findSpaceByCode(dbx: Firestore, codeRaw: string) {
   const code = (codeRaw || "").trim().toUpperCase();
   if (!code) return null;
 
   const tries = [
-    query(collection(db, "spaces"), where("code", "==", code), limit(1)),
-    query(collection(db, "spaces"), where("joinCode", "==", code), limit(1)),
-    query(collection(db, "spaces"), where("join.code", "==", code), limit(1)),
+    query(collection(dbx, "spaces"), where("code", "==", code), limit(1)),
+    query(collection(dbx, "spaces"), where("joinCode", "==", code), limit(1)),
+    query(collection(dbx, "spaces"), where("join.code", "==", code), limit(1)),
   ];
 
   for (const qy of tries) {
@@ -23,6 +26,53 @@ async function findSpaceByCode(codeRaw: string) {
   return null;
 }
 
+function requireDb(x: Firestore | null | undefined): Firestore {
+  if (!x) throw new Error("Firestore is not initialized (db is null).");
+  return x;
+}
+
+function errToText(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object") {
+    const maybe = e as { code?: unknown; message?: unknown };
+    const code = typeof maybe.code === "string" ? maybe.code : "";
+    const msg = typeof maybe.message === "string" ? maybe.message : "";
+    return code && msg ? `${code}: ${msg}` : msg || JSON.stringify(e);
+  }
+  return String(e);
+}
+
+function getErrMeta(e: unknown): { code?: string; message?: string } {
+  if (e && typeof e === "object") {
+    const obj = e as { code?: unknown; message?: unknown };
+    return {
+      code: typeof obj.code === "string" ? obj.code : undefined,
+      message: typeof obj.message === "string" ? obj.message : undefined,
+    };
+  }
+  if (e instanceof Error) return { message: e.message };
+  if (typeof e === "string") return { message: e };
+  return { message: String(e) };
+}
+
+async function waitForUser(): Promise<User> {
+  const current = auth.currentUser;
+  if (current) return current;
+
+  return await new Promise<User>((resolve, reject) => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      unsub();
+      if (u) resolve(u);
+      else reject(new Error("Kunne ikke bekrefte innlogging (auth.currentUser er null)."));
+    });
+  });
+}
+
+function cleanName(raw: string): string {
+  return raw.replace(/\s+/g, " ").trim();
+}
+
 export default function JoinClient() {
   const sp = useSearchParams();
   const router = useRouter();
@@ -30,20 +80,31 @@ export default function JoinClient() {
   const initialCode = useMemo(() => (sp.get("code") ?? "").trim(), [sp]);
   const [code, setCode] = useState(initialCode);
 
+  // MVP: ask for name on join
+  const [displayName, setDisplayName] = useState("");
+
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     const c = code.trim().toUpperCase();
+    const name = cleanName(displayName);
+
     if (!c) return;
+    if (!name) {
+      setErr("Skriv navnet ditt før du blir med.");
+      return;
+    }
 
     setBusy(true);
     setErr(null);
 
     try {
-      const spaceDoc = await findSpaceByCode(c);
+      const dbx = requireDb(db);
+
+      const spaceDoc = await findSpaceByCode(dbx, c);
       if (!spaceDoc) {
         setErr("Fant ikke space med denne koden. Sjekk at koden er riktig.");
         return;
@@ -51,38 +112,84 @@ export default function JoinClient() {
 
       const spaceId = spaceDoc.id;
 
-      // MVP: gå til space (landing/overview)
-      router.push(`/space/${spaceId}`);
-    } catch (e: unknown) {
-      const msg = (e as { message?: unknown })?.message;
-      setErr(typeof msg === "string" ? msg : "Join feilet");
+      // 1) sørg for anon auth
+      await ensureAnonymousUser();
+
+      // 2) vent til vi har en faktisk user (uid)
+      const u = await waitForUser();
+
+      console.log("[join] uid:", u.uid, "spaceId:", spaceId, "code:", c, "isAnon:", u.isAnonymous);
+
+      // 3) skriv membership docId = `${spaceId}_${uid}`
+      // VIKTIG: send code inn slik at rules kan validere join i lukkede rom
+      await ensureSpaceMember(dbx, spaceId, u.uid, "student", {
+        code: c,
+        isAnon: Boolean(u.isAnonymous),
+        displayName: name,
+      });
+
+      router.push(`/student/spaces/${spaceId}`);
+    } catch (e2: unknown) {
+      const meta = getErrMeta(e2);
+      console.error("JOIN FAILED", { code: meta.code, message: meta.message, e2 });
+      setErr(errToText(e2));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div style={{ padding: 16 }}>
-      <h1>Join</h1>
+    <div className="mx-auto max-w-md p-4">
+      <h1 className="text-2xl font-semibold">Join</h1>
 
-      <form onSubmit={onSubmit} style={{ marginTop: 12 }}>
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="Space code"
-          style={{ padding: 8, width: 240 }}
+      <p className="mt-2 text-sm text-muted-foreground">
+        Skriv inn kode og navn. Navnet vises til læreren i medlemslista.
+      </p>
+
+      <form onSubmit={onSubmit} className="mt-4 grid gap-3 rounded-2xl border bg-white p-4 shadow-sm">
+        <div>
+          <label htmlFor="space-code" className="text-sm font-medium">
+            Space code
+          </label>
+          <input
+            id="space-code"
+            name="spaceCode"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="F.eks. MUR583"
+            className="mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none"
+            disabled={busy}
+            autoCapitalize="characters"
+            autoCorrect="off"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="displayName" className="text-sm font-medium">
+            Ditt navn
+          </label>
+          <input
+            id="displayName"
+            name="displayName"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="F.eks. Sara Ali"
+            className="mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none"
+            disabled={busy}
+          />
+          <div className="mt-1 text-xs text-muted-foreground">Tips: dette kan være fornavn + etternavn, eller bare fornavn.</div>
+        </div>
+
+        <button
+          type="submit"
+          className="rounded-xl bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
           disabled={busy}
-        />
-        <button type="submit" style={{ marginLeft: 8, padding: "8px 12px" }} disabled={busy}>
+        >
           {busy ? "Joining…" : "Join"}
         </button>
-      </form>
 
-      {err ? (
-        <div style={{ marginTop: 12, color: "crimson", whiteSpace: "pre-wrap" }}>
-          {err}
-        </div>
-      ) : null}
+        {err && <div className="whitespace-pre-wrap text-sm text-red-600">{err}</div>}
+      </form>
     </div>
   );
 }

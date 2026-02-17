@@ -5,93 +5,28 @@ service cloud.firestore {
     /* ============================
        Helpers (null-safe)
     ============================ */
-    function signedIn() {
-      return request.auth != null;
-    }
+    function signedIn() { return request.auth != null; }
+    function myUid() { return request.auth.uid; }
 
-    function myUid() {
-      return request.auth.uid;
-    }
-
-    // Firebase anonymous auth?
-    function isAnonAuth() {
-      return signedIn()
-        && ("firebase" in request.auth.token)
-        && ("sign_in_provider" in request.auth.token.firebase)
-        && request.auth.token.firebase.sign_in_provider == "anonymous";
-    }
-
-    // --- Null-safe user lookup ---
     function myUserPath() {
       return /databases/$(database)/documents/users/$(myUid());
     }
-
     function myUserExists() {
       return signedIn() && exists(myUserPath());
     }
-
-    // Returnerer {} hvis user-doc ikke finnes (så rules ikke krasjer)
     function myUser() {
       return myUserExists() ? get(myUserPath()).data : {};
     }
 
-    function isMap(x) {
-      return x is map;
-    }
-
-    // true bare hvis m er map, key finnes, og verdien er true
-    function mapHasTrue(m, key) {
-      return isMap(m) && (key in m) && m[key] == true;
-    }
-
-    function hasRole(roleName) {
-      return mapHasTrue(myUser().roles, roleName);
-    }
-
-    function isAdmin() {
-      return signedIn() && hasRole("admin");
-    }
-
-    /* ============================
-       Space membership helpers
-       spaceMembers/{spaceId_uid}
-    ============================ */
-    function memberDocId(spaceId, uid) {
-      return spaceId + "_" + uid;
-    }
-
-    function myMemberPath(spaceId) {
-      return /databases/$(database)/documents/spaceMembers/$(memberDocId(spaceId, myUid()));
-    }
-
-    function isSpaceMember(spaceId) {
-      return signedIn() && exists(myMemberPath(spaceId));
-    }
-
-    function spacePath(spaceId) {
-      return /databases/$(database)/documents/spaces/$(spaceId);
-    }
-
-    function spaceExists(spaceId) {
-      return exists(spacePath(spaceId));
-    }
-
-    function isSpaceOwner(spaceId) {
-      return signedIn()
-        && spaceExists(spaceId)
-        && get(spacePath(spaceId)).data.ownerId == myUid();
-    }
-
-    function spaceIsOpen(spaceId) {
-      return spaceExists(spaceId) && get(spacePath(spaceId)).data.isOpen == true;
-    }
+    function isMap(x) { return x is map; }
+    function mapHasTrue(m, key) { return isMap(m) && (key in m) && m[key] == true; }
+    function hasRole(roleName) { return mapHasTrue(myUser().roles, roleName); }
+    function isAdmin() { return signedIn() && hasRole("admin"); }
 
     /* ============================
        Attestering + mode helpers
-       - B1: Space-sharing krever attestering
     ============================ */
     function hasAttested() {
-      // attestation.acceptedAt finnes
       return signedIn()
         && ("attestation" in myUser())
         && isMap(myUser().attestation)
@@ -99,334 +34,453 @@ service cloud.firestore {
     }
 
     function myMode() {
-      return ("mode" in myUser()) ? myUser().mode : "student";
+      return ("mode" in myUser() && (myUser().mode is string)) ? myUser().mode : "student";
+    }
+    function isTeacherMode() { return signedIn() && myMode() == "teacher"; }
+    function isCreatorMode() { return signedIn() && myMode() == "creator"; }
+
+    /* ============================
+       Teacher status (robust)
+    ============================ */
+    function myTeacherStatus() {
+      return ("teacherStatus" in myUser() && (myUser().teacherStatus is string))
+        ? myUser().teacherStatus
+        : (
+            ("roles" in myUser())
+            && (myUser().roles is map)
+            && ("teacherStatus" in myUser().roles)
+            && (myUser().roles.teacherStatus is string)
+          )
+          ? myUser().roles.teacherStatus
+          : "none";
     }
 
-    function isTeacherMode() {
-      return signedIn() && (myMode() == "teacher");
+    function isApprovedTeacher() {
+      return signedIn()
+        && myTeacherStatus() == "approved"
+        && (hasRole("teacher") || isTeacherMode());
     }
 
-    function isCreatorMode() {
-      return signedIn() && (myMode() == "creator");
+    function isAttestedTeacherOrCreator() {
+      return signedIn()
+        && hasAttested()
+        && (isTeacherMode() || isCreatorMode() || hasRole("teacher") || hasRole("creator"));
+    }
+
+    /* ============================
+       Space helpers
+    ============================ */
+    function memberDocId(spaceId, uid) { return spaceId + "_" + uid; }
+
+    function spacePath(spaceId) {
+      return /databases/$(database)/documents/spaces/$(spaceId);
+    }
+    function spaceExists(spaceId) {
+      return (spaceId is string) && exists(spacePath(spaceId));
+    }
+    function spaceData(spaceId) {
+      return spaceExists(spaceId) ? get(spacePath(spaceId)).data : {};
+    }
+
+    function isSpaceOwner(spaceId) {
+      return signedIn()
+        && spaceExists(spaceId)
+        && ("ownerId" in spaceData(spaceId))
+        && (spaceData(spaceId).ownerId is string)
+        && spaceData(spaceId).ownerId == myUid();
+    }
+
+    function spaceIsOpen(spaceId) {
+      return spaceExists(spaceId)
+        && ("isOpen" in spaceData(spaceId))
+        && (spaceData(spaceId).isOpen is bool)
+        && spaceData(spaceId).isOpen == true;
+    }
+
+    // IMPORTANT: collection name MUST match Firestore: "spaceMembers"
+    function myMemberPath(spaceId) {
+      return /databases/$(database)/documents/spaceMembers/$(memberDocId(spaceId, myUid()));
+    }
+    function isSpaceMember(spaceId) {
+      return signedIn() && (spaceId is string) && exists(myMemberPath(spaceId));
+    }
+
+    // join-code helpers (ROBUST)
+    function spaceCode(spaceId) {
+      return spaceExists(spaceId)
+        && ("code" in spaceData(spaceId))
+        && (spaceData(spaceId).code is string)
+        ? spaceData(spaceId).code
+        : null;
+    }
+    function spaceJoinCode(spaceId) {
+      return spaceExists(spaceId)
+        && ("joinCode" in spaceData(spaceId))
+        && (spaceData(spaceId).joinCode is string)
+        ? spaceData(spaceId).joinCode
+        : null;
+    }
+    function spaceJoinDotCode(spaceId) {
+      return spaceExists(spaceId)
+        && ("join" in spaceData(spaceId))
+        && isMap(spaceData(spaceId).join)
+        && ("code" in spaceData(spaceId).join)
+        && (spaceData(spaceId).join.code is string)
+        ? spaceData(spaceId).join.code
+        : null;
+    }
+    function reqJoinCode() {
+      return (request.resource != null
+        && request.resource.data is map
+        && ("code" in request.resource.data)
+        && (request.resource.data.code is string))
+        ? request.resource.data.code
+        : null;
+    }
+    function joinCodeMatches(spaceId) {
+      return reqJoinCode() != null && (
+        (spaceCode(spaceId) != null && reqJoinCode() == spaceCode(spaceId))
+        || (spaceJoinCode(spaceId) != null && reqJoinCode() == spaceJoinCode(spaceId))
+        || (spaceJoinDotCode(spaceId) != null && reqJoinCode() == spaceJoinDotCode(spaceId))
+      );
     }
 
     /* ============================
        USERS
-       /users/{uid}
     ============================ */
     match /users/{uid} {
-
-      function isSelf() {
-        return signedIn() && myUid() == uid;
-      }
-
-      // changedKeys() kan bare brukes på update (resource finnes da)
-      function changedKeys() {
-        return request.resource.data.diff(resource.data).changedKeys();
-      }
-
-      function isChanging(field) {
-        return changedKeys().hasAny([field]);
-      }
-
-      // Self-update: ikke tillat endring av roles
-      function rolesNotChangedBySelf() {
-        return !isChanging("roles");
-      }
-
-      // Self-update: tillat endring av mode
-      function modeOk() {
-        return !isChanging("mode")
-          || (request.resource.data.mode is string);
-      }
+      function isSelf() { return signedIn() && myUid() == uid; }
+      function changedKeys() { return request.resource.data.diff(resource.data).changedKeys(); }
+      function isChanging(field) { return changedKeys().hasAny([field]); }
+      function rolesNotChangedBySelf() { return !isChanging("roles"); }
+      function modeOk() { return !isChanging("mode") || (request.resource.data.mode is string); }
 
       function currentTeacherStatus() {
-        return ("teacherStatus" in resource.data) ? resource.data.teacherStatus : "none";
+        return ("teacherStatus" in resource.data && (resource.data.teacherStatus is string))
+          ? resource.data.teacherStatus
+          : "none";
       }
-
       function teacherStatusSelfOk() {
         return !isChanging("teacherStatus")
           || (
-            request.resource.data.teacherStatus == "pending"
+            (request.resource.data.teacherStatus is string)
+            && request.resource.data.teacherStatus == "pending"
             && (currentTeacherStatus() == "none" || currentTeacherStatus() == "rejected")
           );
       }
 
       allow create: if isSelf();
       allow read: if isSelf() || isAdmin();
-
       allow update: if isAdmin()
         || (isSelf() && rolesNotChangedBySelf() && teacherStatusSelfOk() && modeOk());
-
       allow delete: if false;
     }
 
     /* ============================
-       SPACE MEMBERS
-       /spaceMembers/{docId}
-       docId = "{spaceId}_{uid}"
-       - Self can create/update/read own membership (works for anon too)
-       - Space owner/admin can read membership docs for their space
+       SPACE MEMBERS (root)
+       spaceMembers/{spaceId_uid}
     ============================ */
     match /spaceMembers/{docId} {
 
-      function resSpaceId() {
-        return (resource != null && ("spaceId" in resource.data)) ? resource.data.spaceId : null;
-      }
-
-      // ✅ 1) Null-safe reqSpaceId()
-      function reqSpaceId() {
-        return (request.resource != null
-          && request.resource.data is map
-          && ("spaceId" in request.resource.data))
-          ? request.resource.data.spaceId
+      function resUidAny() {
+        return (resource != null
+          && (
+            (("uid" in resource.data) && (resource.data.uid is string) && resource.data.uid)
+            || (("userId" in resource.data) && (resource.data.userId is string) && resource.data.userId)
+          ))
+          ? (("uid" in resource.data) ? resource.data.uid : resource.data.userId)
           : null;
       }
 
-      function resUid() {
-        return (resource != null && ("uid" in resource.data)) ? resource.data.uid : null;
-      }
-
-      // ✅ 1) Null-safe reqUid()
-      function reqUid() {
+      function reqUidAny() {
         return (request.resource != null
           && request.resource.data is map
-          && ("uid" in request.resource.data))
-          ? request.resource.data.uid
+          && (
+            (("uid" in request.resource.data) && (request.resource.data.uid is string) && request.resource.data.uid)
+            || (("userId" in request.resource.data) && (request.resource.data.userId is string) && request.resource.data.userId)
+          ))
+          ? (("uid" in request.resource.data) ? request.resource.data.uid : request.resource.data.userId)
           : null;
       }
 
-      // ✅ 3) Read-safe selfDoc()
-      function selfDoc() {
+      function isSelfMemberDoc() {
         return signedIn() && (
-          (resource != null && resUid() == myUid())
-          || (reqUid() != null && reqUid() == myUid())
+          (resUidAny() != null && resUidAny() == myUid())
+          || (reqUidAny() != null && reqUidAny() == myUid())
         );
       }
 
-      // ✅ 2) Read-safe ownerOfThisMemberDoc()
-      function ownerOfThisMemberDoc() {
-        // På read/get av doc som ikke finnes: resource == null, og request.resource finnes ikke.
-        // Derfor må owner-check kun gjøres når docen finnes.
-        return signedIn()
-          && resource != null
-          && ("spaceId" in resource.data)
-          && (resource.data.spaceId is string)
-          && isSpaceOwner(resource.data.spaceId);
+      function docUidFromId() {
+        let parts = docId.split("_");
+        return parts.size() > 0 ? parts[parts.size() - 1] : "";
       }
 
-      // Create/update by self: allow merge fields (archived, role, etc.) but must keep uid==myUid and correct docId
+      // NEW: validate displayName if present (backwards compatible)
+      function displayNameOk() {
+        return !(request.resource.data is map) ? true
+          : !("displayName" in request.resource.data) ? true
+          : (
+              (request.resource.data.displayName is string)
+              && request.resource.data.displayName.size() >= 1
+              && request.resource.data.displayName.size() <= 80
+            );
+      }
+
+      allow read: if isAdmin()
+        || (signedIn() && docUidFromId() == myUid())
+        || (resource != null
+            && ("uid" in resource.data)
+            && (resource.data.uid is string)
+            && resource.data.uid == myUid())
+        || (resource != null
+            && ("userId" in resource.data)
+            && (resource.data.userId is string)
+            && resource.data.userId == myUid())
+        || (resource != null
+            && ("spaceId" in resource.data)
+            && (resource.data.spaceId is string)
+            && isSpaceOwner(resource.data.spaceId));
+
       allow create: if signedIn()
-        && (request.resource.data.uid is string)
         && (request.resource.data.spaceId is string)
+        && (request.resource.data.uid is string)
         && request.resource.data.uid == myUid()
-        && docId == (request.resource.data.spaceId + "_" + myUid());
+        && docId == (request.resource.data.spaceId + "_" + request.resource.data.uid)
+        && displayNameOk()
+        && (
+          spaceIsOpen(request.resource.data.spaceId)
+          || joinCodeMatches(request.resource.data.spaceId)
+          || isSpaceOwner(request.resource.data.spaceId)
+          || isAdmin()
+        );
 
       allow update: if signedIn()
         && resource != null
-        && (resource.data.uid is string)
         && (resource.data.spaceId is string)
-        && resource.data.uid == myUid()
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.spaceId == resource.data.spaceId
-        && docId == (resource.data.spaceId + "_" + myUid());
+        && displayNameOk()
+        && (isSelfMemberDoc() || isSpaceOwner(resource.data.spaceId) || isAdmin());
 
-      // Read: self OR space owner OR admin
-      allow read: if isAdmin() || selfDoc() || ownerOfThisMemberDoc();
       allow delete: if false;
     }
 
     /* ============================
        LESSONS
-       /lessons/{lessonId}
-       - Owner/admin full
-       - MVP: students (signed in incl anon) can read IF published/active
-         (Adjust these fields to your real lesson schema)
     ============================ */
     match /lessons/{lessonId} {
-
       function isOwner() {
-        return signedIn() && resource != null && resource.data.ownerId == myUid();
+        return signedIn()
+          && resource != null
+          && ("ownerId" in resource.data)
+          && (resource.data.ownerId is string)
+          && resource.data.ownerId == myUid();
       }
-
       function isPublishedForStudents() {
-        // ✅ MVP rule: allow if lesson is marked published/active.
-        // Adjust if your schema differs.
         return resource != null && (
           (("status" in resource.data) && (resource.data.status == "published" || resource.data.status == "unlisted"))
           || (("isActive" in resource.data) && resource.data.isActive == true)
         );
       }
 
-      allow read: if isAdmin() || isOwner() || (signedIn() && isPublishedForStudents());
+      // ✅ allow fetching a lesson by id (needed for titles in spaces)
+      // but still prevent listing all lessons unless published/privileged
+      allow get: if signedIn()
+        || isAdmin()
+        || isOwner()
+        || isApprovedTeacher()
+        || isAttestedTeacherOrCreator();
+
+      allow list: if isAdmin()
+        || isOwner()
+        || isApprovedTeacher()
+        || isAttestedTeacherOrCreator()
+        || (signedIn() && isPublishedForStudents());
 
       allow create: if signedIn()
+        && (request.resource.data.ownerId is string)
         && request.resource.data.ownerId == myUid();
 
       allow update: if isAdmin() || isOwner();
-
       allow delete: if isAdmin();
     }
 
-    /* ============================
-       PUBLISHED LESSONS
-       /published_lessons/{id}
-    ============================ */
     match /published_lessons/{id} {
-      allow read: if (resource != null && resource.data.isActive == true) || isAdmin();
+      function pubIsActive() {
+        return resource != null
+          && (
+            (("isActive" in resource.data) && resource.data.isActive == true)
+            || (("status" in resource.data) && (resource.data.status == "published" || resource.data.status == "unlisted"))
+            || (("published" in resource.data) && resource.data.published == true)
+          );
+      }
+
+      allow read: if pubIsActive() || isAdmin();
       allow write: if false;
     }
 
     /* ============================
        SPACES
-       /spaces/{spaceId}
-       - Public read OK for MVP (join pages etc.)
-       - Owner/admin can update
-       - Create requires attest + teacher/creator (or admin)
     ============================ */
     match /spaces/{spaceId} {
-
-      // ✅ Keep metadata public (join + landing). If you want to hide later:
-      // allow read: if isSpaceMember(spaceId) || isAdmin() || isSpaceOwner(spaceId);
       allow read: if true;
 
       allow create: if (
           isAdmin()
-          || (
-            signedIn()
-            && hasAttested()
-            && (isTeacherMode() || isCreatorMode())
-          )
+          || (signedIn() && hasAttested() && (isTeacherMode() || isCreatorMode()))
         )
+        && (request.resource.data.ownerId is string)
         && request.resource.data.ownerId == myUid()
-        && request.resource.data.title is string
-        && request.resource.data.code is string
-        && request.resource.data.isOpen is bool;
+        && (request.resource.data.title is string)
+        && (request.resource.data.code is string)
+        && (request.resource.data.isOpen is bool);
 
-      // ✅ Owner/admin can edit space, including activeLessonId fields
       allow update, delete: if isAdmin() || isSpaceOwner(spaceId);
-
-      // Space-level lessons docs (assignment/attachments)
-      match /lessons/{lessonId} {
-        // If you store a copy of lesson content here, students can read it
-        allow read: if true;
-
-        // Only space owner/admin can write
-        allow create, update, delete: if isAdmin()
-          || (
-            signedIn()
-            && hasAttested()
-            && isSpaceOwner(spaceId)
-          );
-      }
-
-      // Submissions under space+lesson
-      match /lessons/{lessonId}/submissions/{subId} {
-
-        // Egen innlevering hvis auth.uid matcher (for innlogget/anon auth).
-        function isOwnSubmission() {
-          return signedIn()
-            && (resource != null)
-            && (resource.data.auth is map)
-            && ("uid" in resource.data.auth)
-            && resource.data.auth.uid == myUid();
-        }
-
-        function changedKeys() {
-          return request.resource.data.diff(resource.data).changedKeys();
-        }
-
-        function onlyTeacherFieldsChanged() {
-          return changedKeys().hasOnly(["status", "teacherFeedback"]);
-        }
-
-        function validAuthOnCreate() {
-          return (
-            // Firebase anonymous auth
-            (isAnonAuth()
-              && request.resource.data.auth is map
-              && request.resource.data.auth.isAnon == true
-              && request.resource.data.auth.uid == myUid()
-            )
-            ||
-            // Vanlig innlogget bruker
-            (!isAnonAuth()
-              && signedIn()
-              && request.resource.data.auth is map
-              && request.resource.data.auth.isAnon == false
-              && request.resource.data.auth.uid == myUid()
-            )
-          );
-        }
-
-        // ✅ Create: only if space is open AND caller is signed in (anon ok)
-        allow create: if signedIn()
-          && spaceIsOpen(spaceId)
-          && request.resource.data.spaceId == spaceId
-          && request.resource.data.lessonId == lessonId
-          && request.resource.data.status == "new"
-          && !("teacherFeedback" in request.resource.data)
-          && request.resource.data.auth is map
-          && validAuthOnCreate();
-
-        // ✅ Read: admin, space owner, or own submission
-        allow read: if isAdmin() || isSpaceOwner(spaceId) || isOwnSubmission();
-
-        // ✅ Update: only teacher/admin, only feedback/status, lock other fields
-        allow update: if isAdmin()
-          || (
-            isSpaceOwner(spaceId)
-            && resource != null
-            && onlyTeacherFieldsChanged()
-            && request.resource.data.spaceId == spaceId
-            && request.resource.data.lessonId == lessonId
-            && request.resource.data.createdAt == resource.data.createdAt
-            && request.resource.data.answers == resource.data.answers
-            && request.resource.data.auth == resource.data.auth
-          );
-
-        allow delete: if false;
-      }
     }
 
     /* ============================
-       SUBMISSIONS (uten space)
-       /submissions/{id}
+       SPACE-LOCAL ASSIGNMENTS
+       spaces/{spaceId}/lessons/{assignmentId}
     ============================ */
-    match /submissions/{id} {
+    match /spaces/{spaceId}/lessons/{assignmentId} {
+      allow read: if isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
+      allow create, update, delete: if isAdmin() || isSpaceOwner(spaceId);
+    }
 
-      function isOwnSubmissionId() {
-        return signedIn() && id.matches('^' + myUid() + '_');
+    /* ============================
+       SPACE-LOCAL SUBMISSIONS
+       spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId}
+       (kept, but not required for collectionGroup)
+    ============================ */
+    match /spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId} {
+
+      function isSubOwner() {
+        return signedIn()
+          && resource != null
+          && ("uid" in resource.data)
+          && (resource.data.uid is string)
+          && (resource.data.uid == myUid());
       }
 
-      function isOwnerDoc() {
-        return signedIn() && resource != null && resource.data.uid == myUid();
+      function canTeacherReadHere() {
+        return signedIn() && (
+          isSpaceOwner(spaceId)
+          || ((isApprovedTeacher() || isAttestedTeacherOrCreator()) && isSpaceMember(spaceId))
+        );
       }
+
+      allow read: if isAdmin() || isSubOwner() || canTeacherReadHere();
 
       allow create: if signedIn()
-        && request.resource.data.uid == myUid();
+        && (request.resource.data.uid is string)
+        && request.resource.data.uid == myUid()
+        && isSpaceMember(spaceId);
 
-      allow read: if isAdmin()
-        || (
-          signedIn()
+      allow update: if isAdmin() || isSpaceOwner(spaceId) || isSubOwner();
+      allow delete: if false;
+    }
+
+    /* ============================
+       SPACE SUBMISSIONS INDEX (root)
+       spaceSubmissions/{spaceId}_{assignmentId}_{uid}
+    ============================ */
+    match /spaceSubmissions/{id} {
+
+      function isOwnerDoc() {
+        return signedIn()
+          && resource != null
+          && ("uid" in resource.data)
+          && (resource.data.uid is string)
+          && (resource.data.uid == myUid());
+      }
+
+      function spaceIdFromDoc() {
+        return (resource != null && ("spaceId" in resource.data) && (resource.data.spaceId is string))
+          ? resource.data.spaceId
+          : null;
+      }
+
+      function canTeacherReadIndex() {
+        return signedIn()
+          && spaceIdFromDoc() != null
           && (
-            (resource != null && resource.data.uid == myUid())
-            || (resource == null && isOwnSubmissionId())
-          )
-        );
+            isSpaceOwner(spaceIdFromDoc())
+            || ((isApprovedTeacher() || isAttestedTeacherOrCreator()) && isSpaceMember(spaceIdFromDoc()))
+          );
+      }
+
+      allow read: if isAdmin() || isOwnerDoc() || canTeacherReadIndex();
+
+      allow create: if signedIn()
+        && (request.resource.data.uid is string)
+        && request.resource.data.uid == myUid()
+        && (request.resource.data.spaceId is string)
+        && isSpaceMember(request.resource.data.spaceId);
 
       allow update: if isAdmin()
+        || isOwnerDoc()
         || (
-          isOwnerDoc()
-          && request.resource.data.uid == resource.data.uid
-          && request.resource.data.publishedLessonId == resource.data.publishedLessonId
+          signedIn()
+          && spaceIdFromDoc() != null
+          && isSpaceOwner(spaceIdFromDoc())
         );
 
       allow delete: if false;
     }
 
     /* ============================
-       DEFAULT DENY
+       PRACTICE SUBMISSIONS (root)
+    ============================ */
+    match /practiceSubmissions/{id} {
+      function isOwnerDoc() {
+        return signedIn()
+          && resource != null
+          && ("uid" in resource.data)
+          && (resource.data.uid is string)
+          && resource.data.uid == myUid();
+      }
+
+      allow create: if signedIn()
+        && (request.resource.data.uid is string)
+        && request.resource.data.uid == myUid();
+
+      allow read: if isAdmin() || isOwnerDoc();
+      allow update: if isAdmin() || isOwnerDoc();
+      allow delete: if false;
+    }
+
+    /* ============================
+       LEGACY SUBMISSIONS (read-only)
+    ============================ */
+    match /submissions/{id} {
+      function isOwnerDoc() {
+        return signedIn()
+          && resource != null
+          && ("uid" in resource.data)
+          && (resource.data.uid is string)
+          && resource.data.uid == myUid();
+      }
+
+      allow read: if isAdmin() || isOwnerDoc();
+      allow create, update, delete: if false;
+    }
+
+    /* ============================
+       ✅ GLOBAL SUBMISSIONS (anywhere)
+       This is REQUIRED for collectionGroup("submissions")
+       Students can read their own submission docs regardless of path.
+    ============================ */
+    match /{document=**}/submissions/{subId} {
+      allow get, list: if signedIn()
+        && (
+          (("uid" in resource.data) && (resource.data.uid is string) && resource.data.uid == myUid())
+          || (("userId" in resource.data) && (resource.data.userId is string) && resource.data.userId == myUid())
+        );
+
+      // locked down by default
+      allow create, update, delete: if false;
+    }
+
+    /* ============================
+       Default deny
     ============================ */
     match /{document=**} {
       allow read, write: if false;

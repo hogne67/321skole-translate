@@ -4,13 +4,28 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { ensureUserProfile, type UserProfile } from "@/lib/userProfile";
 
-async function readUserProfile(uid: string): Promise<UserProfile | null> {
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-  return snap.exists() ? (snap.data() as UserProfile) : null;
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function normalizeProfile(raw: unknown): UserProfile | null {
+  if (!isRecord(raw)) return null;
+
+  // Copy as mutable record
+  const p: Record<string, unknown> = { ...raw };
+
+  // If teacherStatus is missing at top-level but exists under roles, lift it
+  if (typeof p.teacherStatus !== "string") {
+    const roles = p.roles;
+    if (isRecord(roles) && typeof roles.teacherStatus === "string") {
+      p.teacherStatus = roles.teacherStatus;
+    }
+  }
+
+  return p as UserProfile;
 }
 
 export function useUserProfile() {
@@ -19,42 +34,63 @@ export function useUserProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    let unsubProfile: (() => void) | null = null;
+
+    const unsubAuth = onAuthStateChanged(auth, async (u) => {
       setLoading(true);
       setUser(u);
       setProfile(null);
+
+      // rydd gammel snapshot hvis vi bytter bruker
+      if (unsubProfile) {
+        unsubProfile();
+        unsubProfile = null;
+      }
 
       if (!u) {
         setLoading(false);
         return;
       }
 
-      // Anon: ingen profil i Firestore (MVP)
+      // ✅ Even anon users can have a profile later (after linking)
+      // For now: if anon, we simply stop listening to users/{uid}.
       if (u.isAnonymous) {
         setLoading(false);
         return;
       }
 
-      try {
-        // 1) les først (unngå unødvendig write)
-        let data = await readUserProfile(u.uid);
+      const ref = doc(db, "users", u.uid);
 
-        // 2) hvis mangler: opprett profilen
-        if (!data) {
-          await ensureUserProfile(u);
-          data = await readUserProfile(u.uid);
+      unsubProfile = onSnapshot(
+        ref,
+        async (snap) => {
+          try {
+            if (!snap.exists()) {
+              await ensureUserProfile(u);
+              return; // neste snapshot kommer når docen finnes
+            }
+
+            const normalized = normalizeProfile(snap.data());
+            setProfile(normalized);
+          } catch (e) {
+            console.error("useUserProfile: ensure/read failed", e);
+            setProfile(null);
+          } finally {
+            setLoading(false);
+          }
+        },
+        (err) => {
+          console.error("useUserProfile: snapshot error", err);
+          setProfile(null);
+          setLoading(false);
         }
-
-        setProfile(data);
-      } catch (e) {
-        console.error("useUserProfile: ensure/read failed", e);
-        setProfile(null);
-      } finally {
-        setLoading(false);
-      }
+      );
     });
 
-    return () => unsub();
+    return () => {
+      if (unsubProfile) unsubProfile();
+      unsubAuth();
+    };
   }, []);
 
   return { user, profile, loading };

@@ -39,11 +39,11 @@ export async function POST(req: Request) {
   // --- Input ---
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const idRaw = body.id ?? body.lessonId;
-  const id = typeof idRaw === "string" ? idRaw : undefined;
+  const draftId = typeof idRaw === "string" ? idRaw : undefined;
 
   const visibility = pickVisibility(body.visibility);
 
-  if (!id) return NextResponse.json({ error: "Missing id/lessonId" }, { status: 400 });
+  if (!draftId) return NextResponse.json({ error: "Missing id/lessonId" }, { status: 400 });
 
   const now = FieldValue.serverTimestamp();
 
@@ -61,10 +61,6 @@ export async function POST(req: Request) {
   const isAdmin = bool(roles.admin);
   const isApprovedTeacher = profile.teacherStatus === "approved";
 
-  // MVP/Policy:
-  // - Admin kan alltid publisere
-  // - Approved teacher kan publisere
-  // - caps.publish kan fungere som feature flag
   const canPublish = isAdmin || isApprovedTeacher || bool(caps.publish);
 
   const att =
@@ -77,7 +73,7 @@ export async function POST(req: Request) {
     await db.collection("auditEvents").add({
       type: "PUBLISH_BLOCKED",
       uid,
-      lessonId: id,
+      lessonId: draftId,
       ts: now,
       meta: {
         reason: "NOT_ALLOWED_TO_PUBLISH",
@@ -100,24 +96,24 @@ export async function POST(req: Request) {
   }
 
   // --- Load draft ---
-  const draftRefA = db.doc(`lessons/${id}`);
+  const draftRefA = db.doc(`lessons/${draftId}`);
   const draftSnapA = await draftRefA.get();
 
-  const draftRefB = db.doc(`texts/${id}`);
+  const draftRefB = db.doc(`texts/${draftId}`);
   const draftSnapB = draftSnapA.exists ? null : await draftRefB.get();
 
   const draftSnap = draftSnapA.exists ? draftSnapA : draftSnapB;
   const draftPath = draftSnapA.exists
-    ? `lessons/${id}`
+    ? `lessons/${draftId}`
     : draftSnapB?.exists
-      ? `texts/${id}`
+      ? `texts/${draftId}`
       : null;
 
   if (!draftSnap || !draftSnap.exists) {
     await db.collection("auditEvents").add({
       type: "PUBLISH_BLOCKED",
       uid,
-      lessonId: id,
+      lessonId: draftId,
       ts: now,
       meta: { reason: "DRAFT_NOT_FOUND" },
     });
@@ -133,7 +129,7 @@ export async function POST(req: Request) {
     await db.collection("auditEvents").add({
       type: "PUBLISH_BLOCKED",
       uid,
-      lessonId: id,
+      lessonId: draftId,
       ts: now,
       meta: { reason: "NOT_OWNER", draftPath, ownerId },
     });
@@ -143,7 +139,9 @@ export async function POST(req: Request) {
   const effectiveOwnerId = ownerId || uid;
 
   // --- Build published doc (signed snapshot) ---
-  const publishedRef = db.doc(`published_lessons/${id}`);
+  // ✅ NEW: auto id for published doc
+  const publishedRef = db.collection("published_lessons").doc();
+  const publishedId = publishedRef.id;
 
   const signedBy = {
     uid,
@@ -151,8 +149,7 @@ export async function POST(req: Request) {
     emailSnapshot: typeof profile.email === "string" ? profile.email : "",
     orgSnapshot:
       profile.org && typeof profile.org === "object" ? (profile.org as Record<string, unknown>) : {},
-    attestationVersion:
-      att && typeof att.version === "number" ? att.version : null,
+    attestationVersion: att && typeof att.version === "number" ? att.version : null,
     signedAt: now,
     viaAdmin: isAdmin && effectiveOwnerId !== uid,
   };
@@ -160,8 +157,9 @@ export async function POST(req: Request) {
   const publishedDoc = {
     ...draft,
 
-    // Compatibility / library behavior
-    lessonId: id,
+    // ✅ Correct linkage
+    lessonId: draftId,          // points back to original lesson doc
+    publishedId,                // optional but nice
     ownerId: effectiveOwnerId,
     isActive: true,
 
@@ -185,15 +183,16 @@ export async function POST(req: Request) {
   await db.collection("auditEvents").add({
     type: "PUBLISH_SUCCESS",
     uid,
-    lessonId: id,
-    publishedLessonId: id,
+    lessonId: draftId,
+    publishedLessonId: publishedId,
     ts: now,
     meta: { draftPath, visibility, isAdminPublish: isAdmin, effectiveOwnerId },
   });
 
   return NextResponse.json({
     ok: true,
-    publishedLessonId: id,
-    publishedId: id, // ✅ alias for klienter som forventer publishedId
+    publishedLessonId: publishedId,
+    publishedId: publishedId,
+    lessonId: draftId,
   });
 }

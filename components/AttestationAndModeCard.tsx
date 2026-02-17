@@ -1,6 +1,7 @@
+// AttestationAndModeCard
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -18,9 +19,12 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
-  if (err && typeof err === "object" && "message" in err) {
-    const m = (err as { message?: unknown }).message;
-    if (typeof m === "string") return m;
+  if (err && typeof err === "object") {
+    const anyErr = err as { code?: unknown; message?: unknown };
+    const code = typeof anyErr.code === "string" ? anyErr.code : "";
+    const msg = typeof anyErr.message === "string" ? anyErr.message : "";
+    if (code && msg) return `${code}: ${msg}`;
+    if (msg) return msg;
   }
   try {
     return JSON.stringify(err);
@@ -48,15 +52,9 @@ function readAttestation(profile: unknown): { acceptedAt: unknown | null; versio
 }
 
 type Props = {
-  // Versjon du “signerer på” – bruk en dato eller en semver-streng
   attestationVersion?: string;
-
-  // Hvilke modes som skal være tilgjengelige i UI
   allowedModes?: Mode[];
-
-  // Hvis true: krever attestering før de kan bytte til teacher/creator
   requireAttestationForProModes?: boolean;
-
   className?: string;
 };
 
@@ -81,39 +79,64 @@ export default function AttestationAndModeCard({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
+  // ✅ Hold UI-mode i sync når profile oppdateres (f.eks. etter save)
+  useEffect(() => {
+    setMode(currentMode);
+  }, [currentMode]);
+
   const canChooseMode = Boolean(user) && !busy;
   const proMode = mode === "teacher" || mode === "creator";
 
-  const blockedByAttestation =
-    requireAttestationForProModes && proMode && !hasAttested;
+  const blockedByAttestation = requireAttestationForProModes && proMode && !hasAttested;
 
   async function ensureUserDoc() {
     if (!user) return;
-    // Oppretter user-doc om den ikke finnes (uten å overskrive)
-    await setDoc(
-      doc(db, "users", user.uid),
-      {
-        uid: user.uid,
-        createdAt: serverTimestamp(),
-        mode: currentMode,
-      },
-      { merge: true }
-    );
+    const ref = doc(db, "users", user.uid);
+    const payload = {
+      uid: user.uid,
+      createdAt: serverTimestamp(),
+      mode: currentMode,
+    };
+
+    console.log("[attestation/mode] ensureUserDoc setDoc merge", {
+      path: `users/${user.uid}`,
+      payloadKeys: Object.keys(payload),
+    });
+
+    await setDoc(ref, payload, { merge: true });
   }
 
   async function saveAttestation() {
     if (!user) return;
     setBusy(true);
     setMsg(null);
+
+    const ref = doc(db, "users", user.uid);
+    const payload = {
+      attestation: {
+        version: attestationVersion,
+        acceptedAt: serverTimestamp(),
+      },
+      updatedAt: serverTimestamp(),
+    };
+
+    console.log("[attestation] saveAttestation clicked", {
+      uid: user.uid,
+      path: `users/${user.uid}`,
+      payload: { attestationVersion },
+    });
+
     try {
       await ensureUserDoc();
-      await updateDoc(doc(db, "users", user.uid), {
-        attestation: {
-          version: attestationVersion,
-          acceptedAt: serverTimestamp(),
-        },
-        updatedAt: serverTimestamp(),
-      });
+
+      try {
+        await updateDoc(ref, payload);
+        console.log("[attestation] SAVE OK");
+      } catch (e) {
+        console.error("[attestation] SAVE FAILED", e);
+        throw e;
+      }
+
       setAccept(false);
       setMsg("Attestering lagret ✅");
     } catch (e: unknown) {
@@ -127,12 +150,33 @@ export default function AttestationAndModeCard({
     if (!user) return;
     setBusy(true);
     setMsg(null);
+
+    const ref = doc(db, "users", user.uid);
+    const payload = {
+      mode: next,
+      updatedAt: serverTimestamp(),
+    };
+
+    console.log("[mode] saveMode clicked", {
+      uid: user.uid,
+      path: `users/${user.uid}`,
+      next,
+      blockedByAttestation,
+      currentMode,
+    });
+
     try {
       await ensureUserDoc();
-      await updateDoc(doc(db, "users", user.uid), {
-        mode: next,
-        updatedAt: serverTimestamp(),
-      });
+
+      try {
+        await updateDoc(ref, payload);
+        console.log("[mode] SAVE OK");
+      } catch (e) {
+        console.error("[mode] SAVE FAILED", e);
+        throw e;
+      }
+
+      // Optimistisk UI (men useEffect syncer også etter profile update)
       setMode(next);
       setMsg("Rolle oppdatert ✅");
     } catch (e: unknown) {
@@ -167,8 +211,8 @@ export default function AttestationAndModeCard({
         <div>
           <div className="text-lg font-semibold">Rolle og krav</div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Velg hvordan du vil bruke 321skole. Teacher/Creator krever attestering
-            for å kunne dele til Space (B1).
+            Velg hvordan du vil bruke 321skole. Teacher/Creator krever attestering for å kunne dele
+            til Space (B1).
           </p>
         </div>
 
@@ -223,7 +267,6 @@ export default function AttestationAndModeCard({
           })}
         </div>
 
-        {/* Guard message */}
         {blockedByAttestation && (
           <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm">
             For å bruke <b>{mode}</b> og kunne dele til Space (B1), må du først godta krav.
@@ -278,9 +321,7 @@ export default function AttestationAndModeCard({
               </button>
             </>
           ) : (
-            <div className="mt-2 text-sm">
-              ✅ Attestering er lagret. Du kan nå dele til Space (B1).
-            </div>
+            <div className="mt-2 text-sm">✅ Attestering er lagret. Du kan nå dele til Space (B1).</div>
           )}
         </div>
       </div>

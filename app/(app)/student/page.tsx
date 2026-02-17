@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import {
   collection,
   doc,
@@ -14,6 +14,7 @@ import {
   where,
   type Timestamp,
   type DocumentData,
+  updateDoc,
 } from "firebase/firestore";
 
 import { DashboardIntro } from "@/components/DashboardIntro";
@@ -232,6 +233,49 @@ export default function StudentDashboard() {
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
       {/* ✅ Ny intro øverst (gir “plass” på mobil) */}
       <DashboardIntro userIsAnon={isAnon} />
+
+      {/* 🔒 MIDLERIDIG: test at rules stopper selv-eskalering */}
+      <div style={{ marginTop: 10 }}>
+        <button
+          style={{
+            padding: "10px 12px",
+            borderRadius: 10,
+            border: "1px solid rgba(0,0,0,0.15)",
+            background: "#fff5f5",
+            cursor: "pointer",
+            fontWeight: 700,
+          }}
+          onClick={async () => {
+            try {
+              const u = auth.currentUser;
+              if (!u) {
+                console.log("Ingen innlogget bruker.");
+                return;
+              }
+
+              await updateDoc(doc(db, "users", u.uid), {
+                teacherStatus: "approved",
+                "roles.teacher": true,
+                "caps.publish": true,
+              });
+
+              console.log("🚨 ESKALERING LYKTES – RULES ER ÅPNE (dette er feil)");
+            } catch (e) {
+              if (isPermissionDenied(e)) {
+                console.log("✅ Eskalering stoppet av rules");
+              } else {
+                console.log("Feil (ikke permission):", e);
+              }
+            }
+          }}
+        >
+          Test rules-eskalering
+        </button>
+
+        <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+          Skal gi “Missing or insufficient permissions” i Console. Slett knappen etter test.
+        </div>
+      </div>
 
       <hr style={{ margin: "10px 0 14px" }} />
 

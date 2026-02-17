@@ -21,12 +21,22 @@ export type SpaceDoc = {
   title: string;
   code: string;
   isOpen: boolean;
-  createdAt: unknown; // ✅ was any
-  updatedAt: unknown; // ✅ was any
+
+  // ✅ Active lesson (for "student sees automatically")
+  activeLessonId?: string | null;
+  activeLessonTitle?: string | null;
+  activeLessonUpdatedAt?: unknown;
+
+  createdAt: unknown;
+  updatedAt: unknown;
 };
 
 function requireDb() {
-  if (!db) throw new Error("Firestore is not initialized (db is null). Check NEXT_PUBLIC_FIREBASE_* env.");
+  if (!db) {
+    throw new Error(
+      "Firestore is not initialized (db is null). Check NEXT_PUBLIC_FIREBASE_* env."
+    );
+  }
   return db;
 }
 
@@ -39,22 +49,30 @@ export async function createSpaceForTeacher(params: {
 
   const dbx = requireDb();
 
-  // Vi prøver noen ganger å finne en unik kode (godt nok for MVP).
-  // (Hvis du vil 100% unik: lag egen collection spaceCodes/{code} og "reserve" først.)
+  // MVP: try a few times to get a unique code
   for (let attempt = 0; attempt < 10; attempt++) {
     const code = generateSpaceCode();
     const q = query(collection(dbx, "spaces"), where("code", "==", code), limit(1));
     const snap = await getDocs(q);
     if (!snap.empty) continue;
 
-    const ref = await addDoc(collection(dbx, "spaces"), {
-      ownerId,
-      title,
-      code,
-      isOpen,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    } satisfies SpaceDoc);
+    const ref = await addDoc(
+      collection(dbx, "spaces"),
+      {
+        ownerId,
+        title,
+        code,
+        isOpen,
+
+        // Default: no active lesson yet
+        activeLessonId: null,
+        activeLessonTitle: null,
+        activeLessonUpdatedAt: null,
+
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      } satisfies SpaceDoc
+    );
 
     return { spaceId: ref.id, code };
   }

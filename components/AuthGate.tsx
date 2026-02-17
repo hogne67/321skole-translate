@@ -9,6 +9,33 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 
 type Role = "student" | "teacher" | "creator" | "admin" | "parent";
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function pickTeacherStatus(profile: unknown): string {
+  // Robust: støtte både top-level teacherStatus og legacy roles.teacherStatus
+  if (!isRecord(profile)) return "none";
+
+  const top = profile["teacherStatus"];
+  if (typeof top === "string" && top) return top;
+
+  const roles = profile["roles"];
+  if (isRecord(roles)) {
+    const nested = roles["teacherStatus"];
+    if (typeof nested === "string" && nested) return nested;
+  }
+
+  return "none";
+}
+
+function hasRole(profile: unknown, role: Role): boolean {
+  if (!isRecord(profile)) return false;
+  const roles = profile["roles"];
+  if (!isRecord(roles)) return false;
+  return roles[role] === true;
+}
+
 export default function AuthGate({
   children,
   requireRole,
@@ -24,10 +51,7 @@ export default function AuthGate({
   const router = useRouter();
   const pathname = usePathname();
 
-  const nextUrl = useMemo(
-    () => `/login?next=${encodeURIComponent(pathname || "/")}`,
-    [pathname]
-  );
+  const nextUrl = useMemo(() => `/login?next=${encodeURIComponent(pathname || "/")}`, [pathname]);
 
   const [anonBootstrapping, setAnonBootstrapping] = useState(false);
 
@@ -43,15 +67,14 @@ export default function AuthGate({
 
       // allowAnonymous: bootstrap anon (men ikke på auth-ruter)
       const p = pathname || "";
-      const isAuthRoute =
-        p.startsWith("/login") || p.startsWith("/register") || p.startsWith("/onboarding");
+      const isAuthRoute = p.startsWith("/login") || p.startsWith("/register") || p.startsWith("/onboarding");
 
       if (isAuthRoute) return;
 
       if (!anonBootstrapping) {
         setAnonBootstrapping(true);
         ensureAnonymousUser()
-          .catch((e) => {
+          .catch((e: unknown) => {
             console.error("ensureAnonymousUser failed", e);
             router.replace(nextUrl);
           })
@@ -60,25 +83,26 @@ export default function AuthGate({
       return;
     }
 
-    // 2) Anonym + allowAnonymous: slipp gjennom uten profile/roles
-    if (user.isAnonymous && allowAnonymous) return;
+    // 2) Innlogget: hvis siden krever roller/status må vi ha profile
+    const needsProfile = !!requireRole || !!requireApprovedTeacher;
+    if (!needsProfile) return;
 
-    // 3) Innlogget (ikke-anon): vi trenger profile før vi kan sjekke roller/teacherStatus
     if (!profile) return;
 
-    // Teacher approval (kun når krevd)
-    if (requireApprovedTeacher) {
-      const ok = profile.teacherStatus === "approved" && profile.roles?.teacher === true;
+    // 3) Role-check først
+    if (requireRole) {
+      const ok = hasRole(profile, requireRole);
       if (!ok) {
         router.replace("/unauthorized");
         return;
       }
     }
 
-    // Role check
-    if (requireRole) {
-      const hasRole = profile.roles?.[requireRole] === true;
-      if (!hasRole) {
+    // 4) Approved teacher-check (robust teacherStatus)
+    if (requireApprovedTeacher) {
+      const teacherStatus = pickTeacherStatus(profile);
+      const ok = teacherStatus === "approved" && hasRole(profile, "teacher");
+      if (!ok) {
         router.replace("/unauthorized");
         return;
       }
@@ -100,13 +124,18 @@ export default function AuthGate({
   if (loading) return null;
 
   // Ikke innlogget + allowAnonymous: venter på anon sign-in
-  if (!user && allowAnonymous) return null;
+  if (!user && allowAnonymous) {
+    return <div style={{ padding: 16, opacity: 0.7 }}>Laster…</div>;
+  }
 
-  // Innlogget anon + allowAnonymous
-  if (user?.isAnonymous && allowAnonymous) return <>{children}</>;
+  // Ikke innlogget + ikke allowAnonymous: blir redirectet til login
+  if (!user && !allowAnonymous) return null;
 
-  // Innlogget (ikke-anon), men profile ikke lastet ennå
-  if (user && !user.isAnonymous && !profile) return null;
+  // Hvis siden krever profile (rolle/status), men den er ikke lastet ennå, vis loader
+  const needsProfile = !!requireRole || !!requireApprovedTeacher;
+  if (user && needsProfile && !profile) {
+    return <div style={{ padding: 16, opacity: 0.7 }}>Laster…</div>;
+  }
 
   return <>{children}</>;
 }
