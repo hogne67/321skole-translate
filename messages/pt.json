@@ -1,0 +1,1562 @@
+{
+  "nav": {
+    "mySpaces": "Meus espaços",
+    "join": "Entrar",
+    "dashboard": "Painel",
+    "myContent": "Meu conteúdo",
+    "joinSpace": "Entrar no espaço",
+    "spaces": "Espaços",
+    "createLesson": "+ Criar lição",
+    "myLessons": "Minhas lições",
+    "newLesson": "+ Nova lição",
+    "users": "Usuários",
+    "review": "Revisar",
+    "submissions": "Entregas"
+  },
+  "common": {
+    "loading": "Carregando…",
+    "error": "Algo deu errado",
+    "dash": "—",
+    "unknownError": "Erro desconhecido"
+  },
+  "status": {
+    "approved": "Aprovado",
+    "needs_work": "Precisa melhorar"
+  },
+  "actions": {
+    "open": "Abrir",
+    "submit": "Enviar",
+    "update": "Atualizar"
+  },
+  "topnav": {
+    "language": "Idioma",
+    "guestMode": "Modo convidado",
+    "loginOrCreate": "Entrar / Criar conta",
+    "login": "Entrar",
+    "logout": "Sair",
+    "applyTeacherAccess": "Solicitar acesso de professor",
+    "applicationSent": "Solicitação enviada ⏳",
+    "applicationSentTitle": "Sua solicitação foi enviada",
+    "applyTeacherTitle": "Solicitar acesso de professor",
+    "switchModeTitle": "Trocar modo",
+    "noOtherModesTitle": "Nenhum outro modo disponível"
+  },
+  "modes": {
+    "student": "Aluno",
+    "parent": "Responsável",
+    "teacher": "Professor",
+    "creator": "Criador",
+    "admin": "Admin"
+  },
+  "brand": {
+    "school": "Escola"
+  },
+  "library": {
+    "open": "Abrir biblioteca",
+    "close": "Fechar biblioteca"
+  },
+  "auth": {
+    "login": {
+      "title": {
+        "signin": "Entrar",
+        "signup": "Criar conta"
+      },
+      "intro": {
+        "anon": "Você está usando uma conta temporária (anônima). Ao entrar, você atualiza a conta e mantém o que já fez.",
+        "normal": "Entre para salvar o progresso, enviar atividades e solicitar acesso de professor."
+      },
+      "tabs": {
+        "signin": "Entrar",
+        "signup": "Criar conta"
+      },
+      "fields": {
+        "displayNamePlaceholder": "Nome (opcional)",
+        "emailPlaceholder": "E-mail",
+        "passwordPlaceholder": "Senha"
+      },
+      "buttons": {
+        "working": "Processando…",
+        "upgradeGoogle": "Atualizar com Google",
+        "signinGoogle": "Entrar com Google",
+        "signinEmail": "Entrar",
+        "upgradeAccount": "Atualizar conta",
+        "createAccount": "Criar conta"
+      },
+      "hints": {
+        "anonSignup": "Dica: se o e-mail já existir, escolha <b>Entrar</b>."
+      },
+      "errors": {
+        "missingEmail": "Informe seu e-mail.",
+        "missingPassword": "Informe sua senha.",
+        "invalidCredential": "E-mail ou senha incorretos.",
+        "userNotFound": "Nenhum usuário encontrado com esse e-mail.",
+        "emailAlreadyInUse": "Este e-mail já está em uso.",
+        "emailAlreadyInUseLoginInstead": "Este e-mail já está em uso. Entre em vez disso.",
+        "weakPassword": "A senha é fraca (pelo menos 6 caracteres).",
+        "invalidEmail": "Endereço de e-mail inválido.",
+        "popupClosed": "O login foi cancelado.",
+        "generic": "Não foi possível entrar. Tente novamente."
+      }
+    },
+    "onboarding": {
+      "title": "Primeiros passos",
+      "loading": "Carregando…",
+      "subtitle": "Nome é obrigatório. País/município é selecionado em uma lista. Instituição é opcional.",
+      "fields": {
+        "fullName": { "label": "Nome completo *" },
+        "country": { "label": "País *", "placeholder": "Buscar país…" },
+        "municipalityNo": { "label": "Município *", "placeholder": "Buscar município…" },
+        "municipalityOther": { "label": "Cidade/região *" }
+      },
+      "institution": {
+        "title": "Instituição de ensino (opcional)",
+        "typeLabel": "Tipo",
+        "none": "Nenhuma",
+        "nameLabel": "Nome (opcional)",
+        "namePlaceholder": "",
+        "types": {
+          "school": "Escola",
+          "kindergarten": "Jardim de infância",
+          "adult_education": "Educação de adultos",
+          "university": "Universidade / faculdade",
+          "workplace": "Empresa / local de trabalho",
+          "other": "Outro"
+        }
+      },
+      "buttons": {
+        "saving": "Salvando…",
+        "complete": "Concluir"
+      },
+      "errors": {
+        "missingName": "Informe seu nome completo.",
+        "missingCountry": "Escolha um país.",
+        "missingMunicipalityNo": "Escolha um município.",
+        "missingMunicipalityOther": "Informe uma cidade/região."
+      }
+    }
+  },
+  "student": {
+    "spaces": {
+      "title": "Meus espaços",
+      "subtitle": "Aqui você vê os espaços em que entrou por código ou link.",
+      "loading": "Carregando…",
+      "defaultTitle": "Espaço",
+      "meta": { "code": "Código" },
+      "actions": {
+        "joinSpace": "Entrar no espaço",
+        "openSpace": "Abrir espaço"
+      },
+      "empty": "Nenhum espaço ainda. Clique em <b>Entrar no espaço</b> e digite um código/link do seu professor.",
+      "errors": {
+        "loadFailed": "Não foi possível carregar os espaços."
+      }
+    },
+    "spaceDetail": {
+      "loading": "Carregando…",
+      "actions": {
+        "open": "Abrir",
+        "backToMySpaces": "← Voltar para Meus espaços",
+        "backMySpacesShort": "← Meus espaços"
+      },
+      "header": {
+        "classCode": "Código da turma"
+      },
+      "missing": {
+        "title": "Espaço não encontrado",
+        "subtitle": "Este espaço não existe ou você não tem acesso."
+      },
+      "error": {
+        "title": "Não foi possível abrir o espaço"
+      },
+      "active": {
+        "title": "Atividade ativa",
+        "open": "Abrir atividade",
+        "hint": "A atividade aparece aqui quando seu professor define como ativa.",
+        "none": "Nenhuma atividade ativa agora. As atividades já enviadas aparecem em “Minhas entregas”."
+      },
+      "mine": {
+        "title": "Minhas entregas",
+        "subtitle": "Última entrega por atividade neste espaço.",
+        "refresh": "Atualizar",
+        "loginToSee": "Entre para ver as entregas.",
+        "none": "Nenhuma entrega ainda.",
+        "teacherMessage": "✉️ Seu professor enviou uma mensagem",
+        "openForImprovement": "✍️ Abrir para melhoria",
+        "archiveHint": "Mover esta entrega para o seu arquivo",
+        "moveToArchive": "Mover para o arquivo",
+        "archiving": "Movendo…"
+      },
+      "archive": {
+        "title": "Arquivo",
+        "loginToSee": "Entre para ver seu arquivo.",
+        "none": "Nenhuma entrega arquivada ainda.",
+        "message": "✉️ mensagem",
+        "restore": "Restaurar",
+        "restoring": "Restaurando…",
+        "restoreHint": "Voltar para Minhas entregas"
+      },
+      "all": {
+        "title": "Todas as atividades deste espaço",
+        "showArchived": "Mostrar arquivadas",
+        "none": "Nenhuma atividade ainda.",
+        "archivedTag": "(arquivada)",
+        "yourStatus": "Seu status:",
+        "message": "✉️ mensagem",
+        "notSubmitted": "Você ainda não enviou isso."
+      },
+      "status": {
+        "submitted": "Enviado",
+        "needsWork": "Precisa melhorar",
+        "approved": "Aprovado",
+        "draft": "Rascunho",
+        "unknown": "Desconhecido"
+      },
+      "statusHints": {
+        "submitted": "Aguardando feedback",
+        "needsWork": "Professor abriu para melhoria",
+        "approved": "Concluído",
+        "draft": "Não enviado",
+        "unknown": ""
+      },
+      "toast": {
+        "movedToArchive": "Movido para o arquivo ✅",
+        "restored": "Restaurado ✅"
+      },
+      "errors": {
+        "readSpace": "Não foi possível ler o espaço",
+        "listenStart": "Não foi possível iniciar a escuta",
+        "readAssignments": "Não foi possível ler as atividades",
+        "listenAssignmentsStart": "Não foi possível acompanhar as atividades",
+        "readSubmissions": "Não foi possível carregar as entregas",
+        "archiveMove": "Não foi possível mover para o arquivo",
+        "archiveRestore": "Não foi possível restaurar"
+      }
+    },
+    "assignment": {
+      "common": { "loading": "Carregando…" },
+      "fallback": { "lessonTitle": "Lição" },
+      "actions": {
+        "backToSpace": "← Voltar para minha turma",
+        "backToJoin": "← Voltar",
+        "backToClassButton": "← Voltar para a turma",
+        "backPrevButton": "← Página anterior",
+        "backPrevTitle": "Voltar para a página anterior"
+      },
+      "errors": {
+        "missingParams": "Faltando spaceId/assignmentId na URL.",
+        "notMember": "Você não está registrado como membro nesta turma. Volte e clique em Entrar.",
+        "assignmentNotFoundInSpace": "Não foi possível encontrar esta atividade na turma.",
+        "missingSourceId": "Esta atividade está sem conteúdo (sourceId).",
+        "sourceLessonMissing": "Não foi possível encontrar a lição de origem.",
+        "unpublished": "Esta lição está não publicada/arquivada.",
+        "noAccessSubmission": "Você não tem acesso a esta entrega.",
+        "permissionDenied": "Permissões insuficientes.",
+        "generic": "Algo deu errado.",
+        "submitFailed": "Não foi possível enviar.",
+        "noData": "Sem dados."
+      },
+      "messages": {
+        "submissionNotFound": "Não foi possível encontrar a entrega que você tentou abrir.",
+        "submitted": "Obrigado! Sua entrega foi enviada ✅",
+        "resubmitted": "Atualizado e reenviado ✅",
+        "lockedNoChanges": "Esta entrega não pode ser alterada agora (status não é needs_work)."
+      },
+      "status": {
+        "labelPrefix": "Status",
+        "submitted": "Enviado",
+        "needsWork": "Precisa melhorar",
+        "approved": "Aprovado"
+      },
+      "statusDesc": {
+        "submitted": "Enviado e aguardando o professor.",
+        "needsWork": "Seu professor pediu para você melhorar e enviar novamente.",
+        "approved": "Aprovado pelo professor. Não pode ser alterado agora.",
+        "generic": "Status atualizado."
+      },
+      "statusMeta": {
+        "updatedAt": "Atualizado: {v}",
+        "teacherAt": "Comentário do professor: {v}"
+      },
+      "statusToggleTitle": "Isto é definido pelo professor",
+      "teacher": {
+        "commentTitle": "Comentário do professor",
+        "none": "Ainda sem comentário.",
+        "noneWaiting": "Ainda sem comentário (aguardando o professor)."
+      },
+      "auto": {
+        "label": "Auto",
+        "hintMixed": "Múltipla escolha e verdadeiro/falso são corrigidos automaticamente ao enviar. Respostas abertas são revisadas pelo professor.",
+        "hintOpenOnly": "Respostas abertas são revisadas pelo professor."
+      },
+      "image": {
+        "title": "Imagem",
+        "alt": "Lição",
+        "noneTitle": "Sem imagem",
+        "noneDesc": "Esta lição não tem imagem de capa."
+      },
+      "translate": {
+        "to": "Traduzir para",
+        "searchPlaceholder": "Buscar idioma…",
+        "text": "Traduzir texto",
+        "tasks": "Traduzir tarefas",
+        "translating": "Traduzindo…",
+        "reset": "Redefinir tradução",
+        "failed": "Falha na tradução",
+        "translatedLabel": "Traduzido",
+        "showTranslation": "Mostrar tradução",
+        "hideTranslation": "Ocultar tradução"
+      },
+      "submit": {
+        "submit": "ENVIAR PARA O ESPAÇO",
+        "resubmit": "REENVIAR (Precisa melhorar)",
+        "saving": "Enviando…",
+        "submitted": "Enviado ✅",
+        "title": "Enviar",
+        "anonTitle": "Convidados também podem enviar (auth anônima)"
+      },
+      "tts": {
+        "speed": "Velocidade",
+        "playOriginal": "🔊 Ouvir original",
+        "playTranslation": "🔊 Ouvir tradução",
+        "stop": "⏹ Parar",
+        "pause": "⏸ Pausar",
+        "continue": "▶️ Continuar",
+        "replay": "⟲ Repetir frase",
+        "prev": "⟵ Anterior",
+        "next": "Próximo ⟶",
+        "generating": "Gerando…",
+        "failed": "Falha no TTS"
+      },
+      "text": {
+        "title": "Texto",
+        "noText": "Sem texto",
+        "clickToSeek": "Clique para avançar no áudio"
+      },
+      "tasks": {
+        "title": "Tarefas",
+        "none": "Nenhuma tarefa nesta lição.",
+        "showAll": "Mostrar todas as traduções",
+        "hideAll": "Ocultar todas as traduções",
+        "taskN": "Tarefa {n}",
+        "yourAnswer": "Sua resposta",
+        "true": "Verdadeiro",
+        "false": "Falso",
+        "locked": "Bloqueado",
+        "autoCorrect": "Auto: ✅ correto",
+        "autoWrong": "Auto: ❌ incorreto",
+        "autoUnanswered": "Auto: ⏳ não respondido",
+        "writeAnswerPlaceholder": "Escreva sua resposta…"
+      }
+    },
+    "submission": {
+      "title": "Entrega",
+      "submissionIdLabel": "ID",
+      "spaceLabel": "espaço",
+      "assignmentLabel": "atividade",
+      "toAssignment": "Voltar para a atividade",
+      "back": "Voltar",
+      "save": "Salvar",
+      "locked": "Bloqueado",
+      "loading": "Carregando…",
+      "errorTitle": "Erro",
+      "noFeedback": "Ainda sem feedback.",
+      "teacherFeedbackTitle": "Feedback do professor",
+      "answersTitle": "Respostas (JSON)",
+      "helper": "(Editor JSON temporário. Próximo passo pode ser um formulário adequado por tipo de tarefa.)",
+      "lockedNotice": "Esta entrega está marcada como <strong>reviewed</strong> e não pode ser alterada.",
+      "errors": {
+        "notFound": "Entrega não encontrada",
+        "noAccess": "Você não tem acesso a esta entrega.",
+        "loadFailed": "Falha ao carregar a entrega",
+        "locked": "Esta entrega está bloqueada (reviewed).",
+        "invalidJson": "JSON inválido. Corrija a formatação antes de salvar.",
+        "answersMustBeObject": "As respostas devem ser um objeto JSON.",
+        "saveFailed": "Falha ao salvar"
+      }
+    },
+    "dashboard": {
+      "fallback": { "lessonTitle": "Lição" },
+      "meta": { "level": "Nível", "status": "Status" },
+      "empty": {
+        "title": "Você ainda não começou nenhuma lição.",
+        "cta": "Vá para a Biblioteca e escolha uma lição"
+      },
+      "errors": {
+        "permissionDenied": "Você não tem acesso para ler entregas (rules).",
+        "generic": "Algo deu errado."
+      }
+    },
+    "dashboardIntro": {
+      "helloAnon": "Oi! 👋",
+      "helloUser": "Oi, {name} 👋",
+      "guest": "como convidado",
+      "loggedIn": "logado",
+      "roleFallback": "Usuário",
+      "youAre": "Você está {state} como <b>{role}</b>.",
+      "activity": "Aqui você vê sua atividade mais recente. Em <b>Meu conteúdo</b> você encontra tudo o que já trabalhou antes.",
+      "recommendRegister": "Recomendamos criar uma conta para salvar lições iniciadas.",
+      "actions": {
+        "registerLogin": "Cadastrar / entrar",
+        "openLibrary": "Abrir biblioteca"
+      }
+    },
+    "board": {
+      "title": "Quadro",
+      "subtitle": "Este é o quadro ao vivo da sala.",
+      "loading": "Carregando…",
+      "inactive": "Nenhuma sessão ao vivo agora.",
+      "sent": "Resposta enviada!",
+      "fallbackStudentName": "Aluno",
+      "fallbackQuestionTitle": "Pergunta",
+      "errors": {
+        "fetchBoardFailed": "Não foi possível carregar o quadro."
+      },
+      "groupName": {
+        "label": "Nome do grupo (opcional)",
+        "placeholder": "Ex.: Time 3"
+      },
+      "answer": {
+        "label": "Sua resposta",
+        "placeholder": "Escreva brevemente…",
+        "send": "Enviar para o quadro"
+      },
+      "countdown": {
+        "label": "Tempo restante",
+        "seconds": "{seconds}s"
+      }
+    }
+  },
+  "teacher": {
+    "spaces": {
+      "title": "Espaços do professor",
+      "subtitle": "Espaços são salas/grupos onde você compartilha atividades por link ou código. Compartilhar em um espaço exige atestação (modelo B1), mas não nome completo.",
+      "newSpace": "+ Novo espaço",
+      "newSpaceLocked": "+ Novo espaço (bloqueado)",
+      "newSpaceTitle": "Criar um novo espaço",
+      "newSpaceLockedTitle": "Requer atestação + modo Professor/Criador",
+      "controls": {
+        "search": {
+          "label": "Buscar",
+          "placeholder": "Título ou código…"
+        },
+        "sort": {
+          "label": "Ordenar",
+          "options": {
+            "newest": "Mais recentes",
+            "oldest": "Mais antigos",
+            "title_az": "Título (A–Z)",
+            "title_za": "Título (Z–A)"
+          }
+        },
+        "filters": {
+          "label": "Filtros",
+          "openOnly": "Apenas abertos",
+          "showing": "Mostrando: {n}"
+        }
+      },
+      "list": {
+        "untitled": "Espaço sem título",
+        "open": "Abrir",
+        "closed": "Fechado",
+        "openTitle": "Sala aberta",
+        "closedTitle": "Sala fechada",
+        "code": "Código:",
+        "copyCodeTitle": "Copiar código",
+        "copied": "Copiado ✅",
+        "members": "Membros:",
+        "copyJoinLink": "Copiar link de entrada",
+        "copyJoinLinkTitle": "Copiar link de entrada",
+        "joinWithQr": "Entrar com QR code",
+        "joinWithQrTitle": "Mostrar QR code",
+        "seeMembers": "Ver membros",
+        "seeMembersTitle": "Ver membros",
+        "openSpace": "Abrir",
+        "openSpaceTitle": "Abrir espaço"
+      },
+      "empty": {
+        "title": "Nenhum espaço encontrado.",
+        "hint": "Crie um com Novo espaço e depois compartilhe por código ou link."
+      },
+      "qr": {
+        "title": "QR para entrar",
+        "subtitle": "{title} · Código: {code}",
+        "close": "Fechar",
+        "generating": "Gerando…",
+        "error": "Não foi possível gerar o QR. Instale a dependência: npm i qrcode",
+        "pointsTo": "Este QR aponta para",
+        "note": "Obs.: instale a dependência uma vez: npm i qrcode",
+        "imageAlt": "QR code"
+      }
+    },
+    "spaceDetail": {
+      "checking": {
+        "title": "Espaço",
+        "subtitle": "Verificando acesso…"
+      },
+      "actions": {
+        "back": "← Voltar",
+        "submissions": "Entregas",
+        "setActive": "Definir ativa",
+        "archive": "Arquivar",
+        "restore": "Restaurar"
+      },
+      "access": {
+        "mustBeSignedIn": "Você precisa estar logado.",
+        "notMember": "Você não é membro deste espaço.",
+        "verifyFailed": "Não foi possível verificar o acesso."
+      },
+      "denied": {
+        "title": "Sem acesso",
+        "subtitle": "Você não tem acesso a este espaço.",
+        "hint": "Para entrar, use o link/código de entrada ou peça ao dono para adicionar você.",
+        "joinCardTitle": "Entrar neste espaço",
+        "joinLinkLabel": "Link de entrada:"
+      },
+      "overview": {
+        "subtitle": "Aqui você encontra códigos e links para enviar aos membros, para que eles possam entrar no seu espaço.",
+        "code": "Código:",
+        "copyCodeTitle": "Copiar código",
+        "copied": "Copiado ✅",
+        "openLabel": "Aberto:",
+        "yes": "Sim",
+        "no": "Não",
+        "copyJoinLink": "Copiar link de entrada",
+        "qr": "QR",
+        "activeForStudents": "Ativo para alunos:",
+        "clear": "Limpar"
+      },
+      "notice": {
+        "needAttestationHtml": "Para gerenciar espaços (modelo B1), você precisa de <b>atestação</b> e estar no modo <b>professor</b> ou <b>criador</b>."
+      },
+      "assignments": {
+        "title": "Atividades",
+        "subtitle": "Atribua tarefas do Meu Conteúdo ou Biblioteca. Os alunos veem as tarefas atribuídas depois de entrar.",
+        "assignTask": "Atribuir tarefa",
+        "showArchived": "Mostrar arquivadas",
+        "hideArchived": "Ocultar arquivadas",
+        "openSpace": "Abrir espaço",
+        "closeSpace": "Fechar espaço",
+        "emptyHtml": "Nenhuma atividade ainda. Clique em <b>Atribuir tarefa</b>."
+      },
+      "labels": {
+        "myContent": "Meu conteúdo",
+        "library": "Biblioteca"
+      },
+      "badges": {
+        "active": "Ativa",
+        "archived": "Arquivada",
+        "noSubmissions": "Sem entregas",
+        "allReviewed": "Tudo revisado",
+        "newCount": "{n} novas",
+        "submissionsCount": "{n} entregas",
+        "submissionsError": "Entregas: erro"
+      },
+      "assignModal": {
+        "title": "Atribuir tarefa",
+        "subtitle": "Escolha entre Meu Conteúdo ou Biblioteca.",
+        "close": "Fechar",
+        "searchPlaceholder": "Buscar título / nível / idioma…",
+        "noResults": "Sem resultados.",
+        "lessonId": "lessonId",
+        "publishedLessonId": "publishedLessonId",
+        "assign": "Atribuir",
+        "paging": {
+          "prev": "← Anterior",
+          "next": "Próximo →",
+          "showing": "Mostrando",
+          "zero": "0 de 0",
+          "range": "{start}-{end} de {total}"
+        }
+      },
+      "qr": {
+        "title": "QR para entrar",
+        "codeLabel": "Código:",
+        "close": "Fechar",
+        "generating": "Gerando…",
+        "pointsTo": "Aponta para",
+        "note": "Se necessário: npm i qrcode",
+        "imageAlt": "QR code",
+        "error": "Não foi possível gerar o QR. Instale a dependência: npm i qrcode"
+      },
+      "errors": {
+        "needAttestation": "Para gerenciar este espaço, você precisa de atestação e modo Professor/Criador.",
+        "noManageAccess": "Você não tem acesso para gerenciar este espaço.",
+        "setActiveFailed": "Não foi possível definir a tarefa ativa.",
+        "assignFailed": "Não foi possível atribuir a tarefa.",
+        "updateAssignmentFailed": "Não foi possível atualizar a atividade.",
+        "updateSpaceFailed": "Não foi possível atualizar o espaço.",
+        "readSubmissionsFailed": "Não foi possível ler as entregas."
+      },
+      "fallback": {
+        "task": "Tarefa",
+        "untitledTask": "Tarefa sem título",
+        "untitled": "Sem título"
+      }
+    },
+    "assignedTask": {
+      "actions": {
+        "backToSpace": "← Voltar para o espaço"
+      },
+      "header": {
+        "subtitle": "Esta é a visualização da tarefa atribuída. As entregas são listadas abaixo.",
+        "assignmentMissing": "Não foi possível encontrar a atividade em",
+        "sourceMissing": "A atividade existe, mas a lição de origem não pôde ser encontrada/lida."
+      },
+      "meta": {
+        "level": "Nível",
+        "language": "Idioma"
+      },
+      "error": {
+        "title": "Erro"
+      },
+      "submissions": {
+        "title": "Entregas",
+        "loading": "Buscando entregas…",
+        "empty": "Nenhuma entrega ainda."
+      },
+      "status": {
+        "needsWork": "Precisa melhorar",
+        "approved": "Aprovado"
+      },
+      "fallback": {
+        "task": "Tarefa",
+        "student": "Aluno",
+        "unknownStudent": "Aluno desconhecido"
+      }
+    },
+    "submission": {
+      "title": "Entrega",
+      "actions": {
+        "back": "← Voltar"
+      },
+      "errors": {
+        "missingParams": "Faltando spaceId/assignmentId/subId na URL."
+      },
+      "missing": {
+        "title": "Entrega não encontrada"
+      },
+      "meta": {
+        "studentLabel": "Aluno:",
+        "delivered": "Enviado:",
+        "deliveredUnknown": "Enviado: (desconhecido)",
+        "guest": "Convidado (não logado)",
+        "loggedIn": "Logado"
+      },
+      "status": {
+        "approved": "Aprovado",
+        "needsWork": "Precisa melhorar"
+      },
+      "auto": {
+        "main": "Auto: {correct}/{total}{pctText}",
+        "details": "Corretas: {correct} · Erradas: {wrong} · Em branco: {unanswered}",
+        "taskCorrect": "Auto: ✅ correto",
+        "taskWrong": "Auto: ❌ incorreto",
+        "taskUnanswered": "Auto: ⏳ não respondido"
+      },
+      "notice": {
+        "needAttestationHtml": "Para dar feedback, você precisa de <b>atestação</b> e estar no modo <b>professor</b> ou <b>criador</b>."
+      },
+      "studentView": {
+        "title": "Respostas (como o aluno vê)",
+        "loadingLesson": "Buscando tarefa…",
+        "level": "Nível: {v}",
+        "imageAlt": "Lição",
+        "noImageTitle": "Sem imagem",
+        "noImageDesc": "Esta lição não tem imagem de capa.",
+        "textTitle": "Texto",
+        "tasksTitle": "Tarefas",
+        "noTasks": "Nenhuma tarefa nesta lição (ou a lição não pôde ser encontrada).",
+        "noTasksHint": "Geralmente significa que assignment.sourceId está faltando ou lesson.tasks está vazio.",
+        "taskN": "Tarefa {n}",
+        "correctTag": "✓ correto",
+        "selectedTag": "Selecionado",
+        "true": "Verdadeiro",
+        "false": "Falso",
+        "notAnswered": "(não respondido)"
+      },
+      "feedback": {
+        "title": "Feedback",
+        "statusLabel": "Status",
+        "placeholder": "Escreva um feedback curto…",
+        "needTextToChangeStatus": "Para mudar o status, você precisa escrever um comentário curto.",
+        "saveButton": "Salvar feedback",
+        "saving": "Salvando…",
+        "saved": "Salvo ✅",
+        "saveFailed": "Não foi possível salvar: {msg}",
+        "rulesHint": "(Rules: apenas professor/dono/admin pode alterar)"
+      },
+      "fallback": {
+        "guest": "Convidado",
+        "task": "Tarefa",
+        "unknownError": "erro desconhecido"
+      }
+    }
+  },
+  "teacherBoard": {
+    "header": {
+      "title": "Quadro digital",
+      "subtitle": "Ao vivo neste espaço. Você controla o conteúdo — os alunos veem em tempo real."
+    },
+    "common": {
+      "loading": "Carregando…"
+    },
+    "errors": {
+      "fetchState": "Não foi possível carregar o estado do quadro."
+    },
+    "defaults": {
+      "title": "Pergunta de hoje",
+      "prompt": "Escreva com suas palavras: o que significam numerador e denominador?"
+    },
+    "fallbacks": {
+      "question": "Pergunta"
+    },
+    "status": {
+      "label": "Status",
+      "live": "AO VIVO",
+      "notLive": "Não ao vivo",
+      "session": "sessão"
+    },
+    "actions": {
+      "startLive": "Iniciar ao vivo",
+      "stop": "Parar",
+      "updateBoard": "Atualizar quadro",
+      "newRound": "Nova rodada",
+      "clearAnswers": "Limpar respostas",
+      "showAnswers": "Mostrar respostas novamente"
+    },
+    "fields": {
+      "title": {
+        "label": "Título",
+        "placeholder": "Ex.: Pergunta de hoje"
+      },
+      "prompt": {
+        "label": "Texto / enunciado",
+        "placeholder": "Escreva o enunciado que os alunos devem ver…"
+      }
+    },
+    "timer": {
+      "set": "Timer {seconds}s",
+      "clear": "Remover timer"
+    },
+    "preview": {
+      "title": "Prévia"
+    },
+    "countdown": {
+      "label": "Tempo restante"
+    },
+    "responses": {
+      "title": "Respostas dos alunos (ao vivo)",
+      "count": "{count} respostas",
+      "hint": "Inicie ao vivo para coletar respostas",
+      "clearedPrefix": "As respostas foram limpas (ocultas). Pressione",
+      "clearedSuffix": "para ver tudo.",
+      "noSession": "Nenhuma sessão ativa.",
+      "noneYet": "Nenhuma resposta ainda.",
+      "unknown": "Desconhecido"
+    }
+  },
+  "teacherMembers": {
+    "title": "Membros",
+    "subtitle": "{spaceTitle}",
+    "showing": "Mostrando:",
+    "common": {
+      "loading": "Carregando…",
+      "dash": "—"
+    },
+    "errors": {
+      "missingSpaceId": "Faltando spaceId"
+    },
+    "fallbacks": {
+      "spaceTitle": "Espaço"
+    },
+    "labels": {
+      "spaceId": "SpaceId"
+    },
+    "actions": {
+      "backToSpace": "Voltar para o espaço",
+      "allSpaces": "Todos os espaços"
+    },
+    "search": {
+      "placeholder": "Buscar nome / papel / uid…"
+    },
+    "table": {
+      "name": "Nome",
+      "role": "Papel",
+      "joined": "Entrou em",
+      "type": "Tipo",
+      "uid": "UID"
+    },
+    "types": {
+      "anon": "Anônimo",
+      "signedIn": "Logado"
+    },
+    "empty": "Nenhum membro encontrado.",
+    "tip": {
+      "prefix": "Dica: se você ainda não vê nomes, é porque o fluxo de entrada não salvou",
+      "suffix": "nos membros."
+    }
+  },
+  "studentLesson": {
+    "loading": "Carregando…",
+    "noData": "Sem dados.",
+    "fallback": { "lessonTitle": "Lição" },
+    "nav": {
+      "backToDashboard": "Voltar para o painel",
+      "backToPreview": "Voltar para a prévia"
+    },
+    "errors": {
+      "missingLessonId": "Faltando lessonId na URL.",
+      "notPublished": "Esta lição não está publicada (ou foi despublicada).",
+      "notFound": "Esta lição não está publicada (ou não existe).",
+      "noAccess": "Esta lição não está publicada (ou você não tem acesso).",
+      "generic": "Algo deu errado",
+      "couldNotSave": "Não foi possível salvar",
+      "couldNotSubmit": "Não foi possível enviar"
+    },
+    "anon": {
+      "savedLocally": "Você está anônimo: as respostas são salvas neste dispositivo (localStorage)."
+    },
+    "image": {
+      "title": "Imagem",
+      "alt": "Imagem da lição",
+      "noImageTitle": "Sem imagem ainda",
+      "noImageHint": "Este espaço é reservado para uma imagem enviada."
+    },
+    "actions": {
+      "saving": "Salvando…",
+      "saveOnDevice": "SALVAR NESTE DISPOSITIVO",
+      "saveToMyContent": "SALVAR NO MEU CONTEÚDO"
+    },
+    "translate": {
+      "label": "Traduzir para",
+      "searchPlaceholder": "Buscar idioma…",
+      "translating": "Traduzindo…",
+      "translateText": "Traduzir texto",
+      "translateTasks": "Traduzir tarefas",
+      "reset": "Redefinir tradução",
+      "failed": "Falha na tradução",
+      "translatedLabel": "Traduzido"
+    },
+    "text": {
+      "title": "Texto",
+      "speed": "Velocidade",
+      "generating": "Gerando…",
+      "playOriginal": "🔊 Ouvir original",
+      "playTranslation": "🔊 Ouvir tradução",
+      "stop": "⏹ Parar",
+      "pause": "⏸ Pausar",
+      "continue": "▶️ Continuar",
+      "replaySentence": "⟲ Repetir frase",
+      "prev": "⟵ Anterior",
+      "next": "Próximo ⟶",
+      "hideTranslation": "Ocultar tradução",
+      "showTranslation": "Mostrar tradução",
+      "noText": "Sem texto",
+      "clickToSeek": "Clique para pular no áudio"
+    },
+    "tasks": {
+      "title": "Tarefas",
+      "showAnswers": "Mostrar respostas",
+      "hideAnswers": "Ocultar respostas",
+      "clearAnswers": "Limpar respostas",
+      "noTasks": "Nenhuma tarefa nesta lição.",
+      "taskLabel": "Tarefa {n}",
+      "showTranslation": "Mostrar tradução",
+      "hideTranslation": "Ocultar tradução",
+      "showAllTranslations": "Mostrar todas as traduções",
+      "hideAllTranslations": "Ocultar todas as traduções",
+      "correct": "Correto",
+      "wrong": "Incorreto",
+      "yourAnswer": "Sua resposta",
+      "writeAnswerPlaceholder": "Escreva sua resposta…",
+      "true": "Verdadeiro",
+      "false": "Falso"
+    },
+    "feedback": {
+      "title": "Feedback",
+      "submitting": "Enviando…",
+      "loginForFeedback": "ENTRAR PARA FEEDBACK",
+      "getFeedback": "OBTER RESPOSTA / FEEDBACK",
+      "generate": "Gerar feedback",
+      "translateFeedback": "TRADUZIR FEEDBACK",
+      "translateButtonTitle": "Traduzir feedback",
+      "translating": "Traduzindo…",
+      "anonHint": "Modo anônimo: respostas salvas localmente. Entre para feedback de IA.",
+      "noFeedbackYet": "Ainda sem feedback. Envie quando estiver pronto.",
+      "translatedFeedbackLabel": "Feedback traduzido",
+      "translateFailed": "Falha ao traduzir feedback",
+      "loginToGetFeedback": "Entre para obter feedback de IA"
+    },
+    "tts": {
+      "failed": "Falha no TTS"
+    },
+    "flash": {
+      "saved": "Salvo ✅",
+      "submitted": "Enviado ✅",
+      "answerAtLeastOne": "Responda pelo menos uma tarefa primeiro",
+      "loginToGetFeedback": "Entre para obter feedback de IA",
+      "clearedAnswers": "Respostas limpas"
+    }
+  },
+  "lessonsLanding": {
+    "errors": {
+      "label": "Erro",
+      "fetchFailed": "Não foi possível carregar lições publicadas."
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar: título, texto, tipo…",
+      "textTypeAll": "Tipo de texto",
+      "languagePlaceholder": "Buscar idioma…",
+      "levelAll": "Nível",
+      "reset": "Redefinir"
+    },
+    "status": {
+      "loading": "Carregando lições publicadas…",
+      "showingCount": "Mostrando {shown} de {total}"
+    },
+    "empty": {
+      "noResults": "Nenhuma lição publicada encontrada. Tente limpar os filtros ou buscar outra coisa."
+    },
+    "card": {
+      "imageFallback": "Imagem",
+      "openForDetails": "Abrir detalhes"
+    },
+    "languages": {
+      "all": "Todos os idiomas",
+      "norwegianBokmal": "Norueguês (Bokmål)"
+    }
+  },
+  "applyTeacher": {
+    "title": "Tornar-se professor",
+    "intro": "Envie uma solicitação. Quando um admin aprovar, você terá acesso ao Painel do Professor.",
+    "status": {
+      "label": "Status"
+    },
+    "states": {
+      "loading": "Carregando…",
+      "mustBeLoggedIn": "Você precisa estar logado.",
+      "goToTeacher": "Ir para Professor →",
+      "pending": "Sua solicitação está em análise."
+    },
+    "anon": {
+      "explain": "Você está usando uma conta temporária (anônima). Atualize sua conta para enviar uma solicitação.",
+      "upgradeButton": "Entrar / atualizar conta"
+    },
+    "actions": {
+      "apply": "Solicitar acesso de professor",
+      "sending": "Enviando…"
+    },
+    "messages": {
+      "sentPending": "Solicitação enviada ✅ (status: pending)",
+      "sendFailed": "Não foi possível enviar a solicitação: {error}"
+    }
+  },
+  "studentBrowse": {
+    "title": "Minha biblioteca",
+    "intro": "Aqui você encontra lições publicadas. Você pode ocultar ou marcar lições que já abriu.",
+    "filters": {
+      "hideOpened": "Ocultar abertas"
+    },
+    "states": {
+      "loading": "Carregando…"
+    },
+    "empty": {
+      "noneNew": "Nenhuma lição nova (você já abriu todas).",
+      "nonePublished": "Nenhuma lição publicada ainda."
+    },
+    "badge": {
+      "opened": "Aberta"
+    },
+    "meta": {
+      "level": "Nível: {level}",
+      "topic": "Tema: {topic}",
+      "language": "Idioma: {language}"
+    },
+    "fallback": {
+      "untitled": "(Sem título)"
+    },
+    "errors": {
+      "fetchFailed": "Não foi possível carregar as lições."
+    }
+  },
+  "content": {
+    "title": "Meu conteúdo",
+    "subtitle": "Aqui você pode gerenciar tudo: publicar, compartilhar, PDF, editar e mais.",
+    "search": {
+      "placeholder": "Buscar título, status, metadados…"
+    },
+    "filters": {
+      "all": "Tudo",
+      "lessons": "Lições",
+      "submissions": "Entregas",
+      "spaces": "Espaços"
+    },
+    "toggles": {
+      "showDeleted": "Mostrar excluídos"
+    },
+    "labels": {
+      "deleted": "Excluído",
+      "deletedAt": "Excluído em"
+    },
+    "states": {
+      "loadingContent": "Carregando conteúdo…"
+    },
+    "pills": {
+      "published": "publicado",
+      "unpublished": "não publicado"
+    },
+    "actions": {
+      "open": "Abrir",
+      "edit": "Editar",
+      "editAnswers": "Editar respostas",
+      "openLesson": "Abrir lição",
+      "openSpace": "Abrir espaço",
+      "publish": "Publicar",
+      "unpublish": "Despublicar",
+      "working": "Processando…",
+      "share": "Compartilhar",
+      "shareTitle": "Compartilhar (link + QR)",
+      "shareToSpace": "Compartilhar no espaço",
+      "pdf": "PDF",
+      "delete": "Excluir",
+      "restore": "Restaurar",
+      "refresh": "Atualizar",
+      "loading": "Carregando…",
+      "copyJoinCode": "Copiar código de entrada",
+      "copyJoinLink": "Copiar link de entrada",
+      "shareLinkQr": "Compartilhar (link + QR)"
+    },
+    "errors": {
+      "label": "Erro",
+      "loadFailed": "Falha ao carregar conteúdo",
+      "assignFailed": "Falha ao atribuir ao espaço",
+      "lessonNotFound": "Lição não encontrada",
+      "cannotPublishDeleted": "Esta lição está excluída/arquivada e não pode ser publicada.",
+      "publishFailed": "Falha ao atualizar status de publicação",
+      "deleteFailed": "Falha ao excluir (arquivar) lição"
+    },
+    "titles": {
+      "lesson": "Lição",
+      "space": "Espaço",
+      "submission": "Entrega",
+      "submissionWithLesson": "{lessonTitle} – Entrega",
+      "submissionWithId": "Entrega · {id}"
+    },
+    "empty": {
+      "guest": {
+        "line1": "Você está em modo convidado. Meu conteúdo ainda não mostra itens salvos aqui.",
+        "line2": "Use <join>Entrar</join> para abrir uma lição/espaço com código, ou <login>entre</login> para sincronizar seu conteúdo."
+      },
+      "authed": "Você ainda não tem itens no seu feed. Quando você criar/usar lições, espaços ou entregas, eles aparecerão aqui."
+    },
+    "footer": {
+      "joinViaCode": "Entrar por código",
+      "tools": "Ferramentas"
+    },
+    "share": {
+      "title": "Compartilhar",
+      "linkLabel": "Link",
+      "copyLink": "Copiar link",
+      "copied": "Copiado!",
+      "openLink": "Abrir link",
+      "tip": "Dica: compartilhe o QR na tela ou imprima.",
+      "qrLabel": "QR",
+      "qrAlt": "QR code",
+      "qrNotReady": "QR não pronto (o link funciona).",
+      "shareUrlLabel": "URL para compartilhar:"
+    },
+    "shareToSpace": {
+      "title": "Compartilhar no espaço",
+      "noSpaces": "Você ainda não tem espaços.",
+      "createsLabel": "Cria:"
+    },
+    "confirm": {
+      "deleteLesson": "Excluir lição{title}?\n\nIsso irá arquivá-la (exclusão suave).\nTambém tentará despublicar via servidor.\n\nUm admin pode restaurar depois.",
+      "restoreLesson": "Restaurar lição{title}?"
+    }
+  },
+  "producer": {
+    "newText": {
+      "title": "Criar nova lição",
+      "subtitle": "Etapa 1: gerar texto → Etapa 2: gerar tarefas → editar → salvar rascunho.",
+      "defaults": {
+        "title": "Nova lição",
+        "prompt": "Mudando para um novo país"
+      },
+      "fields": {
+        "level": "Nível",
+        "language": "Escolha o idioma da lição",
+        "languageSearchPlaceholder": "Buscar idioma (ex.: Norueguês, Somali, ti, pt-BR...)",
+        "languageCount": "Mostrando {count} idiomas",
+        "prompt": "Prompt / instruções",
+        "promptTip": "Dica: este campo é o principal “prompt” que guia a geração de IA.",
+        "textType": "Tipo de texto",
+        "textTypeOtherPlaceholder": "Descreva o tipo de texto...",
+        "textLength": "Tamanho do texto (palavras)"
+      },
+      "textTypes": {
+        "everydayStory": "História do dia a dia",
+        "factual": "Factual",
+        "fiction": "Ficção",
+        "article": "Artigo",
+        "dialogue": "Diálogo",
+        "news": "Notícia",
+        "biography": "Biografia",
+        "letterEmail": "Carta / E-mail",
+        "opinion": "Opinião",
+        "howto": "Como fazer / Instruções",
+        "other": "Outro"
+      },
+      "tasks": {
+        "generatorTitle": "Tarefas de IA (gerador)",
+        "mcq": "Múltipla escolha",
+        "trueFalse": "Verdadeiro/Falso",
+        "facts": "Fatos",
+        "reflection": "Reflexão",
+        "writeFactPrefix": "Escreva um fato:",
+        "defaults": {
+          "mcqPrompt": "Nova pergunta de múltipla escolha",
+          "tfPrompt": "Nova afirmação de verdadeiro/falso",
+          "openPrompt": "Nova pergunta aberta",
+          "option1": "Opção 1",
+          "option2": "Opção 2",
+          "option3": "Opção 3",
+          "option4": "Opção 4"
+        }
+      },
+      "buttons": {
+        "step1": "Etapa 1) Gerar texto",
+        "step2": "Etapa 2) Gerar tarefas",
+        "saveDraft": "Salvar rascunho da lição",
+        "generatingText": "Gerando texto...",
+        "generatingTasks": "Gerando tarefas...",
+        "saving": "Salvando..."
+      },
+      "hints": {
+        "generateTextFirst": "Gere ou escreva o texto primeiro.",
+        "generateTasks": "Gere tarefas com base no texto atual.",
+        "tasksDirty": "O texto mudou desde que as tarefas foram geradas.",
+        "saveDraft": "Salvar rascunho no Firestore"
+      },
+      "warnings": {
+        "checkTextBeforeTasks": "Por favor, revise o texto antes de gerar tarefas."
+      },
+      "status": {
+        "saved": "Salvo! ID: {id}"
+      },
+      "builder": {
+        "title": "Construtor de lição",
+        "lessonTitle": "Título",
+        "text": "Texto"
+      },
+      "editor": {
+        "title": "Editor de tarefas",
+        "addMcq": "+ Múltipla escolha",
+        "addTf": "+ Verdadeiro/Falso",
+        "addOpen": "+ Aberta",
+        "empty": "Nenhuma tarefa ainda. Gere tarefas ou adicione manualmente.",
+        "taskId": "id: {id}",
+        "delete": "Excluir",
+        "prompt": "Enunciado",
+        "correctAnswer": "Resposta correta",
+        "options": "Opções",
+        "correctAnswerHint": "Resposta correta (deve corresponder a uma opção)",
+        "openHint": "Tarefa aberta: o aluno escreve uma resposta."
+      },
+      "answers": {
+        "true": "Verdadeiro",
+        "false": "Falso"
+      },
+      "debug": {
+        "title": "Debug: último snapshot do pack gerado"
+      },
+      "errors": {
+        "generateOrWriteTextFirst": "Gere ou escreva o texto primeiro.",
+        "missingTextInResponse": "Texto ausente na resposta.",
+        "missingTasksInResponse": "Campo 'tasks' ausente na resposta.",
+        "titleRequired": "Título é obrigatório.",
+        "sourceTextEmpty": "O texto de origem está vazio.",
+        "notSignedIn": "Não logado. Entre como professor/produtor.",
+        "emptyResponseFromServer": "Resposta vazia do servidor.",
+        "notJsonFromServer": "O servidor não retornou JSON."
+      }
+    },
+    "editor": {
+      "pageTitle": "Editor do produtor",
+      "nav": {
+        "back": "← Voltar"
+      },
+      "states": {
+        "loading": "Carregando…"
+      },
+      "buttons": {
+        "save": "Salvar",
+        "saving": "Salvando…"
+      },
+      "metaLine": "id: {id} · uid: {uid} · status: {status}",
+      "errors": {
+        "title": "Erro",
+        "notFound": "Lição não encontrada.",
+        "noAccessOwnerMismatch": "Você não tem acesso a esta lição (ownerId não corresponde).",
+        "loadFailed": "Não foi possível carregar a lição.",
+        "noAuthUidNotReady": "Sem auth uid (auth anônima ainda não pronta).",
+        "noAuthUid": "Sem auth uid.",
+        "chooseImageFile": "Escolha um arquivo de imagem (jpg/png/webp).",
+        "fileTooLarge": "Arquivo muito grande. Máx. 8MB.",
+        "uploadFailed": "Falha no upload.",
+        "saveFailed": "Falha ao salvar."
+      },
+      "defaults": {
+        "language": "Inglês"
+      },
+      "fields": {
+        "title": "Título",
+        "levelOptional": "Nível (opcional)",
+        "producerName": "Produtor (aparece no PDF)",
+        "topic": "Tema / assunto",
+        "tags": "Tags (separadas por vírgula)",
+        "tagsHelp": "Salvas como array no Firestore.",
+        "language": "Idioma",
+        "estimatedMinutes": "Tempo estimado (min)",
+        "releaseMode": "Modo de liberação",
+        "releaseModeHelp": "TEXT_FIRST pode ser usado depois para desbloquear tarefas após o texto.",
+        "status": "Status",
+        "text": "Texto",
+        "cover": {
+          "title": "Imagem de banner (capa)",
+          "upload": "Enviar imagem",
+          "uploading": "Enviando…",
+          "remove": "Remover imagem",
+          "removeTitle": "Limpa a URL (não exclui do Storage neste MVP)",
+          "formatLabel": "Formato",
+          "format16x9": "16:9 (banner)",
+          "format4x3": "4:3 (clássico)",
+          "help": "(Bloqueado) A imagem é enviada ao Firebase Storage. URL + formato são salvos quando você clica",
+          "previewAlt": "Prévia do banner",
+          "previewHint": "Prévia: {format} (cortado com cover)",
+          "noneSelected": "Nenhum banner selecionado ({format})"
+        }
+      },
+      "placeholders": {
+        "title": "Título da lição…",
+        "level": "A1 / A2 / B1 …",
+        "producerName": "ex.: 321skole / Hogne / GuideToGo",
+        "topic": "Trabalho / Saúde / Vida diária …",
+        "tags": "trabalho, segurança, noruega",
+        "language": "Inglês",
+        "sourceText": "Escreva o texto de origem…",
+        "taskPrompt": "Escreva o enunciado da tarefa…",
+        "mcqCorrectAnswer": "ex.: Opção A"
+      },
+      "counts": "{words} palavras · {charsNoSpaces} caracteres (sem espaços) · {charsWithSpaces} caracteres (com espaços)",
+      "releaseModes": {
+        "allAtOnce": "ALL_AT_ONCE",
+        "textFirst": "TEXT_FIRST"
+      },
+      "statuses": {
+        "draft": "draft",
+        "published": "published"
+      },
+      "tasks": {
+        "title": "Tarefas",
+        "add": {
+          "trueFalse": "+ Verdadeiro/Falso",
+          "mcq": "+ Múltipla escolha",
+          "open": "+ Aberta"
+        },
+        "empty": "Nenhuma tarefa ainda.",
+        "headerLine": "#{n} · {type} · id: {id}",
+        "type": "Tipo",
+        "prompt": "Enunciado",
+        "delete": "Excluir",
+        "deleteTitle": "Excluir tarefa",
+        "defaults": {
+          "optionA": "Opção A",
+          "optionB": "Opção B",
+          "optionC": "Opção C",
+          "optionD": "Opção D"
+        }
+      },
+      "taskTypes": {
+        "truefalse": "truefalse",
+        "mcq": "mcq",
+        "open": "open"
+      },
+      "mcq": {
+        "optionsOnePerLine": "Opções (uma por linha)",
+        "correctAnswer": "Resposta correta (deve corresponder a uma opção)"
+      },
+      "tf": {
+        "correctAnswer": "Resposta correta",
+        "tip": "Dica: sua prévia usa as strings \"true\"/\"false\"."
+      },
+      "answers": {
+        "true": "true",
+        "false": "false"
+      },
+      "open": {
+        "answerSpace": "Espaço de escrita no PDF",
+        "answerSpaceHelp": "Salvo por tarefa (usado no PDF imprimível).",
+        "hint": "Tarefas abertas não têm gabarito aqui. Os alunos recebem feedback de IA quando enviam."
+      },
+      "answerSpace": {
+        "short": "Curto",
+        "medium": "Médio",
+        "long": "Longo"
+      },
+      "footerRemember": "Lembre-se de clicar"
+    },
+    "print": {
+      "pageTitle": "Utskriftsvennlig PDF",
+      "states": { "loading": "Laster…" },
+      "nav": { "backToEditor": "← Tilbake" },
+      "actions": {
+        "print": "Last ned PDF / Skriv ut",
+        "teacherVersion": "Lærerversjon (fasit)",
+        "studentVersion": "Elevversjon"
+      },
+      "tips": {
+        "saveAsPdf": "Tips: I utskriftsdialogen → velg «Lagre som PDF»."
+      },
+      "defaults": { "worksheetTitle": "Arbeidsark" },
+      "labels": {
+        "producer": "Produsent",
+        "level": "Nivå",
+        "bannerAlt": "Banner"
+      },
+      "identity": {
+        "name": "Navn",
+        "date": "Dato",
+        "class": "Klasse"
+      },
+      "sections": {
+        "readingText": "Lesetekst",
+        "tasks": "Oppgaver"
+      },
+      "tasksEmpty": "Ingen oppgaver å skrive ut (tomme prompts skjules).",
+      "teacher": {
+        "answerKey": "Fasit",
+        "suggestionNote": "Forslag / notat",
+        "dash": "—"
+      },
+      "answers": {
+        "true": "Sant",
+        "false": "Usant"
+      },
+      "errors": {
+        "title": "Feil",
+        "unknown": "Ukjent feil",
+        "noAuthUid": "Ingen auth uid.",
+        "notFound": "Fant ikke oppgaven.",
+        "noAccessOwnerMismatch": "Du har ikke tilgang til denne oppgaven (ownerId mismatch).",
+        "loadFailed": "Kunne ikke laste oppgaven."
+      }
+    }
+  },
+  "unauthorized": {
+    "common": {
+      "yes": "ja",
+      "no": "nei",
+      "login": "Logg inn",
+      "backToStudent": "Tilbake til Student"
+    },
+    "notLoggedIn": {
+      "title": "Ingen tilgang",
+      "body": "Du må være innlogget for å få tilgang til denne siden.",
+      "ctaLogin": "Gå til login"
+    },
+    "anonymous": {
+      "title": "Du har ikke tilgang ennå",
+      "body": "Du er inne som gjest (anonym). Noen deler krever en innlogget konto."
+    },
+    "noAccess": {
+      "title": "Du har ikke tilgang ennå",
+      "body": "Kontoen din mangler riktig tilgang for denne delen."
+    },
+    "card": {
+      "title": "Din tilgang",
+      "admin": "admin",
+      "teacher": "teacher",
+      "creator": "creator",
+      "status": "(status: {status})"
+    },
+    "actions": {
+      "applyTeacher": "Søk om teacher",
+      "applyCreator": "Søk om creator",
+      "frontpage": "Forsiden"
+    },
+    "tips": {
+      "refresh": "Hvis du nettopp ble godkjent: prøv å refresh siden."
+    }
+  },
+  "join": {
+    "title": "Entrar",
+    "subtitle": "Digite o código e seu nome. Seu nome será mostrado ao professor na lista de membros.",
+    "fields": {
+      "spaceCode": {
+        "label": "Código do espaço",
+        "placeholder": "ex.: MUR583"
+      },
+      "name": {
+        "label": "Seu nome",
+        "placeholder": "ex.: Sara Ali",
+        "tip": "Dica: pode ser nome + sobrenome, ou só o primeiro nome."
+      }
+    },
+    "actions": {
+      "join": "Entrar",
+      "joining": "Entrando…"
+    },
+    "errors": {
+      "nameRequired": "Informe seu nome antes de entrar.",
+      "spaceNotFound": "Nenhum espaço encontrado com este código. Verifique se o código está correto."
+    }
+  },
+  "landing": {
+    "common": {
+      "login": "Entrar",
+      "register": "Criar conta"
+    },
+    "topbar": {
+      "nav": {
+        "teachers": "Para professores",
+        "students": "Para alunos",
+        "spaces": "Espaços"
+      }
+    },
+    "hero": {
+      "badge": "Grátis para alunos, professores e responsáveis!",
+      "title": "Ensino. Potencializado por IA.",
+      "lead": "Crie lições em qualquer idioma com tradução e áudio, compartilhe com alunos e dê feedback instantâneo e acolhedor — no nível certo.",
+      "ctaPrimary": "Cadastre-se hoje",
+      "ctaSecondary": "Entrar",
+      "guestNote": "Convidados entram por links compartilhados para lições/Espaços.",
+      "stats": {
+        "languages": { "title": "Idiomas", "value": "Todos", "hint": "Texto + tarefas + feedback" },
+        "level": { "title": "Nível", "value": "CEFR A1–C1", "hint": "Simplificar, melhorar, variar" },
+        "audio": { "title": "Áudio", "value": "Ajustável", "hint": "Texto + tradução" },
+        "pdf": { "title": "PDF", "value": "Exportar", "hint": "Folhas prontas para usar" }
+      },
+      "imageAlt": "Ilustração de um professor e um aluno usando o 321skole",
+      "cards": {
+        "text": { "title": "Texto", "subtitle": "Ajustar nível" },
+        "tasks": { "title": "Tarefas", "subtitle": "Variar" },
+        "feedback": { "title": "Feedback", "subtitle": "Instantâneo" }
+      },
+      "floating": {
+        "title": "IA pedagógica",
+        "subtitle": "Professor lidera · IA ajuda"
+      }
+    },
+    "trustLine": "Pronto para escolas, cursos e educação de adultos — sem a fricção de um LMS pesado.",
+    "teachers": {
+      "eyebrow": "Para professores",
+      "title": "Crie mais — sem estresse",
+      "description": "Uma ferramenta prática que ajuda você a produzir, adaptar e compartilhar conteúdo — sem perder o controle de qualidade e nível.",
+      "imageAlt": "Professor planejando aulas no laptop",
+      "bullets": [
+        "Crie textos em qualquer idioma (escreva, cole ou gere).",
+        "Ajuste textos para níveis CEFR (A1–C1).",
+        "Gere e edite vários tipos de tarefas (múltipla escolha, respostas abertas, escrita).",
+        "Compartilhe em Espaços — e receba entregas.",
+        "Exporte lições prontas como PDF."
+      ],
+      "cta": "Cadastre-se hoje"
+    },
+    "students": {
+      "eyebrow": "Para alunos",
+      "title": "Entenda mais. Aprenda com confiança.",
+      "description": "Os alunos recebem apoio onde mais importa: compreensão, ritmo e feedback seguro — no idioma de aprendizagem e, opcionalmente, no idioma materno.",
+      "imageAlt": "Aluno aprendendo um idioma com fones",
+      "bullets": [
+        "Traduza texto e tarefas para qualquer idioma.",
+        "Velocidade do áudio ajustável — tanto do texto principal quanto da tradução.",
+        "Feedback instantâneo de escrita (idioma de aprendizagem + opcionalmente um segundo idioma).",
+        "Explicações que ajudam a melhorar — não apenas certo/errado.",
+        "Acesso gratuito para alunos."
+      ],
+      "cta": "Entrar"
+    },
+    "spaces": {
+      "eyebrow": "Espaços",
+      "title": "Uma sala para tudo o que acontece na aprendizagem",
+      "description": "Compartilhe lições, receba entregas e acompanhe o progresso — para turmas, cursos e educação de adultos.",
+      "cards": [
+        { "title": "Compartilhe em segundos", "text": "Dê aos alunos um link ou código. Eles caem direto na lição." },
+        { "title": "Anônimo ou logado", "text": "Baixa barreira no começo — login seguro quando você quiser." },
+        { "title": "Visão geral e fluxo", "text": "Tudo junto: textos, tarefas, respostas e feedback — claro e organizado." }
+      ],
+      "imageAlt": "Mockup de Espaços no 321skole"
+    },
+    "whyAi": {
+      "eyebrow": "Por que IA?",
+      "title": "IA como assistente. Não como gabarito.",
+      "description": "Isto é IA pedagógica: o professor decide o conteúdo e a IA ajuda com idioma, nível e variedade. Os alunos recebem explicações — não atalhos.",
+      "checks": [
+        "O professor continua no controle: tudo pode ser editado e ajustado.",
+        "Apoio seguro: foco em aprender, entender e progredir.",
+        "Multilíngue desde a base: texto, tarefas, áudio e feedback."
+      ],
+      "flowTitle": "Exemplo de fluxo",
+      "flow": {
+        "1": "Professor escolhe tema e nível",
+        "2": "Texto é criado/adaptado em minutos",
+        "3": "Tarefas são geradas e editadas",
+        "4": "Compartilha em um Espaço → alunos fazem",
+        "5": "Feedback instantâneo + exportar como PDF"
+      }
+    },
+    "roles": {
+      "title": "Grátis para começar. Fácil de evoluir.",
+      "description": "Crie sua primeira lição agora. Cadastre-se gratuitamente quando quiser publicar e compartilhar.",
+      "cards": {
+        "student": {
+          "title": "Aluno",
+          "free": ["Tudo do professor (ilimitado)", "Ler, ouvir e receber feedback", "Biblioteca: 4 lições/mês"],
+          "paidTitle": "Aluno Full",
+          "price": "49 NOK/mês",
+          "paid": ["Biblioteca ilimitada", "Acesso completo a leitura + áudio"],
+          "cta": "Começar grátis"
+        },
+        "teacher": {
+          "title": "Professor",
+          "free": ["Criar e testar lições", "2 publicações/mês", "Testar Espaços"],
+          "paidTitle": "Professor Full",
+          "price": "99 NOK/mês",
+          "paid": ["Geração ilimitada", "IA + feedback completos", "Espaços + exportar PDF"],
+          "cta": "Crie sua primeira lição"
+        },
+        "parent": {
+          "title": "Responsável",
+          "free": ["Acompanhar as lições da criança", "Ler, ouvir e traduzir"],
+          "paidTitle": "Responsável Full",
+          "price": "89 NOK/mês",
+          "paid": ["Biblioteca completa", "Criar suas próprias lições", "Várias crianças"],
+          "cta": "Ajude seu filho a começar"
+        }
+      }
+    },
+    "cta": {
+      "title": "Comece — sem risco",
+      "lead": "Grátis para todos.",
+      "primary": "Cadastre-se hoje",
+      "secondary": "Entrar",
+      "note": "Sem compromisso. Teste no ensino real. Cancele quando quiser.",
+      "boxTitle": "O que você recebe desde o dia 1",
+      "checks": [
+        "Textos e tarefas em qualquer idioma",
+        "Ajuste de nível CEFR (A1–C1)",
+        "TTS com velocidade ajustável",
+        "Feedback instantâneo de escrita",
+        "Espaços para compartilhar e receber entregas",
+        "Exportação de PDF das lições"
+      ]
+    },
+    "footer": {
+      "about": "Sobre",
+      "privacy": "Privacidade",
+      "contact": "Contato",
+      "rights": "Todos os direitos reservados."
+    }
+  }
+}

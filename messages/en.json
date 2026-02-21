@@ -29,6 +29,7 @@
     "update": "Update"
   },
   "topnav": {
+    "language": "language",
     "guestMode": "Guest mode",
     "loginOrCreate": "Log in / Create account",
     "login": "Log in",
@@ -38,7 +39,7 @@
     "applicationSentTitle": "Your application has been sent",
     "applyTeacherTitle": "Apply for teacher access",
     "switchModeTitle": "Switch mode",
-    "noOtherModesTitle": "No other modes available"
+    "noOtherModesTitle": "No other modes available"    
   },
   "modes": {
     "student": "Student",
@@ -46,6 +47,9 @@
     "teacher": "Teacher",
     "creator": "Creator",
     "admin": "Admin"
+  },
+  "brand": {
+    "school": "School"
   },
   "library": {
     "open": "Open Library",
@@ -987,6 +991,13 @@
       "submissions": "Submissions",
       "spaces": "Spaces"
     },
+    "toggles": {
+      "showDeleted": "Show deleted"
+    },
+    "labels": {
+      "deleted": "Deleted",
+      "deletedAt": "Deleted at"
+    },
     "states": {
       "loadingContent": "Loading content…"
     },
@@ -1008,6 +1019,7 @@
       "shareToSpace": "Share to space",
       "pdf": "PDF",
       "delete": "Delete",
+      "restore": "Restore",
       "refresh": "Refresh",
       "loading": "Loading…",
       "copyJoinCode": "Copy join code",
@@ -1059,7 +1071,8 @@
       "createsLabel": "Creates:"
     },
     "confirm": {
-      "deleteLesson": "Delete lesson{title}?\n\nThis will archive it (soft delete).\nIt will also attempt to unpublish via server.\n\nAn admin can restore it later."
+      "deleteLesson": "Delete lesson{title}?\n\nThis will archive it (soft delete).\nIt will also attempt to unpublish via server.\n\nAn admin can restore it later.",
+      "restoreLesson": "Restore lesson{title}?"
     }
   },
   "producer": {
@@ -1544,159 +1557,6 @@
       "privacy": "Privacy",
       "contact": "Contact",
       "rights": "All rights reserved."
-    },
-    "landing": {
-    "common": {
-      "login": "Log in",
-      "register": "Sign up"
-    },
-    "topbar": {
-      "nav": {
-        "teachers": "For teachers",
-        "students": "For students",
-        "spaces": "Spaces"
-      }
-    },
-    "hero": {
-      "badge": "Free for students, teachers, and parents!",
-      "title": "Teaching. Enhanced with AI.",
-      "lead": "Create lessons in any language with translation and audio, share them with students, and give instant, supportive feedback—at the right level.",
-      "ctaPrimary": "Sign up today",
-      "ctaSecondary": "Log in",
-      "guestNote": "Guests join via shared links to lessons/Spaces.",
-      "stats": {
-        "languages": { "title": "Languages", "value": "All", "hint": "Text + tasks + feedback" },
-        "level": { "title": "Level", "value": "CEFR A1–C1", "hint": "Simplify, improve, vary" },
-        "audio": { "title": "Audio", "value": "Adjustable", "hint": "Text + translation" },
-        "pdf": { "title": "PDF", "value": "Export", "hint": "Ready-to-use worksheets" }
-      },
-      "imageAlt": "Illustration of a teacher and student using 321skole",
-      "cards": {
-        "text": { "title": "Text", "subtitle": "Level-adjust" },
-        "tasks": { "title": "Tasks", "subtitle": "Vary" },
-        "feedback": { "title": "Feedback", "subtitle": "Instant" }
-      },
-      "floating": {
-        "title": "Pedagogical AI",
-        "subtitle": "Teacher leads · AI assists"
-      }
-    },
-    "trustLine": "Ready for schools, courses, and adult education—without heavy LMS friction.",
-    "teachers": {
-      "eyebrow": "For teachers",
-      "title": "Create more—without the stress",
-      "description": "A practical tool that helps you produce, adapt, and share learning content—without losing control of quality and level.",
-      "imageAlt": "Teacher planning lessons on a laptop",
-      "bullets": [
-        "Create texts in any language (write, paste, or generate).",
-        "Adjust texts to CEFR levels (A1–C1).",
-        "Generate and edit many task types (MCQ, open answers, writing tasks).",
-        "Share via Spaces—and collect submissions.",
-        "Export finished lessons as PDF."
-      ],
-      "cta": "Sign up today"
-    },
-    "students": {
-      "eyebrow": "For students",
-      "title": "Understand more. Learn with confidence.",
-      "description": "Students get support where it matters most: understanding, pace, and safe feedback—both in the learning language and optionally in their first language.",
-      "imageAlt": "Student learning a language with headphones",
-      "bullets": [
-        "Translate text and tasks to any language.",
-        "Adjustable audio speed—both for the main text and translation.",
-        "Instant feedback on writing (learning language + optional second language).",
-        "Explanations that help you improve—not just right/wrong.",
-        "Free access for students."
-      ],
-      "cta": "Log in"
-    },
-    "spaces": {
-      "eyebrow": "Spaces",
-      "title": "One room for everything happening in learning",
-      "description": "Share lessons, collect submissions, and follow progress—for classrooms, courses, and adult education.",
-      "cards": [
-        { "title": "Share in seconds", "text": "Give students a link or code. They land right in the lesson." },
-        { "title": "Anonymous or logged in", "text": "Low barrier at the start—secure login when you're ready." },
-        { "title": "Overview and flow", "text": "Everything together: texts, tasks, answers, and feedback—clear and tidy." }
-      ],
-      "imageAlt": "Mockup of Spaces in 321skole"
-    },
-    "whyAi": {
-      "eyebrow": "Why AI?",
-      "title": "AI as an assistant. Not the answer key.",
-      "description": "This is pedagogical AI: the teacher decides the content, and AI helps with language, level, and variety. Students get explanations—not shortcuts.",
-      "checks": [
-        "Teacher stays in control: everything can be edited and adjusted.",
-        "Safe support: focus on learning, understanding, and progress.",
-        "Multilingual from the ground up: text, tasks, audio, and feedback."
-      ],
-      "flowTitle": "Example flow",
-      "flow": {
-        "1": "Teacher chooses topic and level",
-        "2": "Text is created/adapted in minutes",
-        "3": "Tasks are generated and edited",
-        "4": "Share in a Space → students work",
-        "5": "Instant feedback + export as PDF"
-      }
-    },
-    "roles": {
-      "title": "Free to start. Easy to upgrade.",
-      "description": "Create your first lesson right away. Sign up for free when you want to publish and share.",
-      "cards": {
-        "student": {
-          "title": "Student",
-          "free": ["Everything from the teacher (unlimited)", "Read, listen, and get feedback", "Library: 4 lessons/month"],
-          "paidTitle": "Student Full",
-          "price": "49 NOK/month",
-          "paid": ["Unlimited library", "Full reading + audio access"],
-          "cta": "Start free"
-        },
-        "teacher": {
-          "title": "Teacher",
-          "free": ["Create and test lessons", "2 publications/month", "Test Spaces"],
-          "paidTitle": "Teacher Full",
-          "price": "99 NOK/month",
-          "paid": ["Unlimited generation", "Full AI + feedback", "Spaces + PDF export"],
-          "cta": "Create your first lesson"
-        },
-        "parent": {
-          "title": "Parent",
-          "free": ["Follow your child’s lessons", "Read, listen, and translate"],
-          "paidTitle": "Parent Full",
-          "price": "89 NOK/month",
-          "paid": ["Full library", "Create your own lessons", "Multiple children"],
-          "cta": "Help your child get started"
-        }
-      }
-    },
-    "cta": {
-      "title": "Get started—no risk",
-      "lead": "Free for everyone.",
-      "primary": "Sign up today",
-      "secondary": "Log in",
-      "note": "No commitment. Test in real teaching. Cancel anytime.",
-      "boxTitle": "What you get from day 1",
-      "checks": [
-        "Texts and tasks in any language",
-        "CEFR level adjustment (A1–C1)",
-        "TTS with adjustable speed",
-        "Instant feedback on writing",
-        "Spaces for sharing and submissions",
-        "PDF export of lessons"
-      ]
-    },
-    "footer": {
-      "about": "About",
-      "privacy": "Privacy",
-      "contact": "Contact",
-      "rights": "All rights reserved."
     }
   }
 }
-  }
-
-
-
-
-
-

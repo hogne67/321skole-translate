@@ -29,6 +29,7 @@
     "update": "Oppdater"
   },
   "topnav": {
+    "language": "Språk",
     "guestMode": "Gjestemodus",
     "loginOrCreate": "Logg inn / Opprett konto",
     "login": "Logg inn",
@@ -46,6 +47,9 @@
     "teacher": "Lærer",
     "creator": "Skaper",
     "admin": "Admin"
+  },
+  "brand": {
+    "school": "Skole"
   },
   "library": {
     "open": "Åpne bibliotek",
@@ -976,92 +980,101 @@
     }
   },
   "content": {
-    "title": "Mitt innhold",
-    "subtitle": "Her samler vi alt innhold: publiser, del, PDF, rediger og mer.",
-    "search": {
-      "placeholder": "Søk i tittel, status og metadata…"
-    },
-    "filters": {
-      "all": "Alt",
-      "lessons": "Oppgaver",
-      "submissions": "Innleveringer",
-      "spaces": "Klasserom"
-    },
-    "states": {
-      "loadingContent": "Laster innhold…"
-    },
-    "pills": {
-      "published": "publisert",
-      "unpublished": "ikke publisert"
-    },
-    "actions": {
-      "open": "Åpne",
-      "edit": "Rediger",
-      "editAnswers": "Rediger svar",
-      "openLesson": "Åpne oppgave",
-      "openSpace": "Åpne klasserom",
-      "publish": "Publiser",
-      "unpublish": "Avpubliser",
-      "working": "Jobber…",
-      "share": "Del",
-      "shareTitle": "Del (lenke + QR)",
-      "shareToSpace": "Del til klasserom",
-      "pdf": "PDF",
-      "delete": "Slett",
-      "refresh": "Oppdater",
-      "loading": "Laster…",
-      "copyJoinCode": "Kopier kode",
-      "copyJoinLink": "Kopier lenke",
-      "shareLinkQr": "Del (lenke + QR)"
-    },
-    "errors": {
-      "label": "Feil",
-      "loadFailed": "Kunne ikke laste innhold",
-      "assignFailed": "Kunne ikke dele til klasserom",
-      "lessonNotFound": "Fant ikke oppgaven",
-      "cannotPublishDeleted": "Denne oppgaven er slettet/arkivert og kan ikke publiseres.",
-      "publishFailed": "Kunne ikke oppdatere publiseringsstatus",
-      "deleteFailed": "Kunne ikke slette (arkivere) oppgaven"
-    },
-    "titles": {
-      "lesson": "Oppgave",
-      "space": "Klasserom",
-      "submission": "Innlevering",
-      "submissionWithLesson": "{lessonTitle} – Innlevering",
-      "submissionWithId": "Innlevering · {id}"
-    },
-    "empty": {
-      "guest": {
-        "line1": "Du er i gjestemodus. Foreløpig viser My content ingen lagrede elementer her.",
-        "line2": "Bruk <join>Join</join> for å åpne en oppgave/et klasserom med kode, eller <login>logg inn</login> for å synkronisere innhold."
-      },
-      "authed": "Du har ikke noe innhold i feeden ennå. Når du lager eller bruker oppgaver, klasserom eller innleveringer, dukker de opp her."
-    },
-    "footer": {
-      "joinViaCode": "Bli med med kode",
-      "tools": "Verktøy"
-    },
-    "share": {
-      "title": "Del",
-      "linkLabel": "Lenke",
-      "copyLink": "Kopier lenke",
-      "copied": "Kopiert!",
-      "openLink": "Åpne lenke",
-      "tip": "Tips: Vis QR-koden på skjermen eller skriv den ut.",
-      "qrLabel": "QR",
-      "qrAlt": "QR-kode",
-      "qrNotReady": "QR-koden er ikke klar ennå (lenken fungerer).",
-      "shareUrlLabel": "Delingslenke:"
-    },
-    "shareToSpace": {
-      "title": "Del til klasserom",
-      "noSpaces": "Du har ingen klasserom ennå.",
-      "createsLabel": "Oppretter:"
-    },
-    "confirm": {
-      "deleteLesson": "Slette oppgave{title}?\n\nDette vil arkivere den (myk sletting).\nDet vil også forsøke å avpublisere via server.\n\nEn admin kan gjenopprette den senere."
-    }
+  "title": "Mitt innhold",
+  "subtitle": "Her samler vi alt innhold: publiser, del, PDF, rediger og mer.",
+  "search": {
+    "placeholder": "Søk i tittel, status og metadata…"
   },
+  "filters": {
+    "all": "Alt",
+    "lessons": "Oppgaver",
+    "submissions": "Innleveringer",
+    "spaces": "Klasserom"
+  },
+  "toggles": {
+    "showDeleted": "Vis slettet"
+  },
+  "labels": {
+    "deleted": "Slettet",
+    "deletedAt": "Slettet"
+  },
+  "states": {
+    "loadingContent": "Laster innhold…"
+  },
+  "pills": {
+    "published": "publisert",
+    "unpublished": "ikke publisert"
+  },
+  "actions": {
+    "open": "Åpne",
+    "edit": "Rediger",
+    "editAnswers": "Rediger svar",
+    "openLesson": "Åpne oppgave",
+    "openSpace": "Åpne klasserom",
+    "publish": "Publiser",
+    "unpublish": "Avpubliser",
+    "working": "Jobber…",
+    "share": "Del",
+    "shareTitle": "Del (lenke + QR)",
+    "shareToSpace": "Del til klasserom",
+    "pdf": "PDF",
+    "delete": "Slett",
+    "restore": "Gjenopprett",
+    "refresh": "Oppdater",
+    "loading": "Laster…",
+    "copyJoinCode": "Kopier kode",
+    "copyJoinLink": "Kopier lenke",
+    "shareLinkQr": "Del (lenke + QR)"
+  },
+  "errors": {
+    "label": "Feil",
+    "loadFailed": "Kunne ikke laste innhold",
+    "assignFailed": "Kunne ikke dele til klasserom",
+    "lessonNotFound": "Fant ikke oppgaven",
+    "cannotPublishDeleted": "Denne oppgaven er slettet/arkivert og kan ikke publiseres.",
+    "publishFailed": "Kunne ikke oppdatere publiseringsstatus",
+    "deleteFailed": "Kunne ikke slette (arkivere) oppgaven"
+  },
+  "titles": {
+    "lesson": "Oppgave",
+    "space": "Klasserom",
+    "submission": "Innlevering",
+    "submissionWithLesson": "{lessonTitle} – Innlevering",
+    "submissionWithId": "Innlevering · {id}"
+  },
+  "empty": {
+    "guest": {
+      "line1": "Du er i gjestemodus. Foreløpig viser My content ingen lagrede elementer her.",
+      "line2": "Bruk <join>Bli med</join> for å åpne en oppgave/et klasserom med kode, eller <login>logg inn</login> for å synkronisere innhold."
+    },
+    "authed": "Du har ikke noe innhold i feeden ennå. Når du lager eller bruker oppgaver, klasserom eller innleveringer, dukker de opp her."
+  },
+  "footer": {
+    "joinViaCode": "Bli med med kode",
+    "tools": "Verktøy"
+  },
+  "share": {
+    "title": "Del",
+    "linkLabel": "Lenke",
+    "copyLink": "Kopier lenke",
+    "copied": "Kopiert!",
+    "openLink": "Åpne lenke",
+    "tip": "Tips: Vis QR-koden på skjermen eller skriv den ut.",
+    "qrLabel": "QR",
+    "qrAlt": "QR-kode",
+    "qrNotReady": "QR-koden er ikke klar ennå (lenken fungerer).",
+    "shareUrlLabel": "Delingslenke:"
+  },
+  "shareToSpace": {
+    "title": "Del til klasserom",
+    "noSpaces": "Du har ingen klasserom ennå.",
+    "createsLabel": "Oppretter:"
+  },
+  "confirm": {
+    "deleteLesson": "Slette oppgave{title}?\n\nDette vil arkivere den (myk sletting).\nDet vil også forsøke å avpublisere via server.\n\nEn admin kan gjenopprette den senere.",
+    "restoreLesson": "Gjenopprette oppgave{title}?"
+  }
+},
   "producer": {
     "newText": {
       "title": "Lag ny oppgave",
@@ -1547,4 +1560,3 @@
     }
   }
 }
-
