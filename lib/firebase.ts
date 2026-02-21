@@ -1,7 +1,12 @@
 // lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator, type Firestore } from "firebase/firestore";
+import {
+  getFirestore,
+  connectFirestoreEmulator,
+  initializeFirestore,
+  type Firestore,
+} from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 type FirebaseConfig = {
@@ -37,6 +42,8 @@ if (missing && process.env.NODE_ENV === "development") {
   );
 }
 
+const isBrowser = typeof window !== "undefined";
+
 // Initialiser bare hvis vi har minimum config.
 // Hvis ikke: behold null (for server/build-situasjoner)
 const app: FirebaseApp | null =
@@ -49,7 +56,16 @@ const app: FirebaseApp | null =
 // Nullable exports (trygge å importere hvor som helst)
 export const appMaybe = app;
 export const authMaybe: Auth | null = app ? getAuth(app) : null;
-export const dbMaybe: Firestore | null = app ? getFirestore(app) : null;
+
+// ✅ Firestore: browser = long polling (workaround for ca9), server = standard
+export const dbMaybe: Firestore | null = app
+  ? isBrowser
+    ? initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+      })
+    : getFirestore(app)
+  : null;
+
 export const storageMaybe: FirebaseStorage | null = app ? getStorage(app) : null;
 
 // Strict exports (for klientkode som forventer at Firebase er satt opp)
@@ -96,7 +112,9 @@ const USE_EMULATORS =
 
 // Type-safe global flags (ingen any)
 declare global {
+  // eslint-disable-next-line no-var
   var __FIRESTORE_EMULATOR_CONNECTED__: boolean | undefined;
+  // eslint-disable-next-line no-var
   var __AUTH_EMULATOR_CONNECTED__: boolean | undefined;
 }
 

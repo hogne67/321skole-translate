@@ -9,23 +9,7 @@ import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useAppMode } from "@/components/ModeProvider";
 import type { AppMode } from "@/lib/mode";
-
-function labelForMode(m: AppMode) {
-  switch (m) {
-    case "student":
-      return "Student";
-    case "parent":
-      return "Parent";
-    case "teacher":
-      return "Teacher";
-    case "creator":
-      return "Creator";
-    case "admin":
-      return "Admin";
-    default:
-      return m;
-  }
-}
+import { useTranslations } from "next-intl";
 
 function homeForMode(m: AppMode) {
   switch (m) {
@@ -44,6 +28,7 @@ function homeForMode(m: AppMode) {
 }
 
 export default function TopNav() {
+  const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -65,6 +50,23 @@ export default function TopNav() {
 
   const isTeacherPending = profile?.teacherStatus === "pending";
 
+  function labelForMode(m: AppMode) {
+    switch (m) {
+      case "student":
+        return t("modes.student");
+      case "parent":
+        return t("modes.parent");
+      case "teacher":
+        return t("modes.teacher");
+      case "creator":
+        return t("modes.creator");
+      case "admin":
+        return t("modes.admin");
+      default:
+        return m;
+    }
+  }
+
   async function handleLogout() {
     await signOut(auth);
     router.replace("/");
@@ -74,6 +76,8 @@ export default function TopNav() {
     setMode(next);
     router.push(homeForMode(next));
   }
+
+  const loginNext = encodeURIComponent(pathname || "/student");
 
   return (
     <header
@@ -112,21 +116,18 @@ export default function TopNav() {
               opacity: isTeacherPending ? 0.75 : 1,
               pointerEvents: isTeacherPending ? "none" : "auto",
             }}
-            title={isTeacherPending ? "Søknaden din er sendt" : "Søk om teacher-tilgang"}
+            title={isTeacherPending ? t("topnav.applicationSentTitle") : t("topnav.applyTeacherTitle")}
           >
-            {isTeacherPending ? "Application sent ⏳" : "Apply for teacher access"}
+            {isTeacherPending ? t("topnav.applicationSent") : t("topnav.applyTeacherAccess")}
           </Link>
         )}
 
         {/* Anon */}
         {isAnon && (
           <>
-            <span style={{ fontSize: 13, opacity: 0.7 }}>Gjestemodus</span>
-            <Link
-              href={`/login?next=${encodeURIComponent(pathname || "/student")}`}
-              style={btnStyle}
-            >
-              Logg inn / Opprett konto
+            <span style={{ fontSize: 13, opacity: 0.7 }}>{t("topnav.guestMode")}</span>
+            <Link href={`/login?next=${loginNext}`} style={btnStyle}>
+              {t("topnav.loginOrCreate")}
             </Link>
           </>
         )}
@@ -144,7 +145,7 @@ export default function TopNav() {
                 border: "1px solid rgba(0,0,0,0.14)",
                 background: "white",
               }}
-              title={allowed.length <= 1 ? "Ingen andre moduser tilgjengelig" : "Bytt modus"}
+              title={allowed.length <= 1 ? t("topnav.noOtherModesTitle") : t("topnav.switchModeTitle")}
             >
               {allowed.map((m) => (
                 <option key={m} value={m}>
@@ -154,18 +155,15 @@ export default function TopNav() {
             </select>
 
             <button onClick={handleLogout} style={btnStyle}>
-              Logg ut
+              {t("topnav.logout")}
             </button>
           </>
         )}
 
         {/* Ikke logget inn (ingen authUser ennå) */}
         {!authUser && (
-          <Link
-            href={`/login?next=${encodeURIComponent(pathname || "/student")}`}
-            style={btnStyle}
-          >
-            Logg inn
+          <Link href={`/login?next=${loginNext}`} style={btnStyle}>
+            {t("topnav.login")}
           </Link>
         )}
       </div>

@@ -1,0 +1,1026 @@
+// app/(app)/content/ContentClient.tsx
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import QRCode from "qrcode";
+
+import { db } from "@/lib/firebase";
+import { useUserProfile } from "@/lib/useUserProfile";
+import { useAppMode } from "@/components/ModeProvider";
+import { loadMyContent, type ContentItem } from "@/lib/contentFeed";
+import ActionMenu, { type ActionItem } from "@/components/ActionMenu";
+import { authedPost } from "@/lib/authedPost";
+import { useLocale, useTranslations } from "next-intl";
+
+type LessonStatus = "draft" | "published";
+type FilterType = "all" | "lesson" | "submission" | "space";
+
+function fmtDate(d: Date | null | undefined, locale: string) {
+  if (!d) return "";
+  try {
+    return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "nb-NO", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(d);
+  } catch {
+    return "";
+  }
+}
+
+function getOrigin() {
+  return typeof window !== "undefined" ? window.location.origin : "";
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function pickVisibility(v: unknown): "public" | "unlisted" | "private" {
+  return v === "unlisted" || v === "private" || v === "public" ? v : "public";
+}
+
+function StatusPill({
+  label,
+  variant,
+}: {
+  label: string;
+  variant: "green" | "red" | "gray" | "amber";
+}) {
+  const dot =
+    variant === "green"
+      ? "bg-green-500"
+      : variant === "red"
+        ? "bg-red-500"
+        : variant === "amber"
+          ? "bg-amber-500"
+          : "bg-zinc-400";
+
+  const ring =
+    variant === "green"
+      ? "border-green-200 bg-green-50 text-green-800"
+      : variant === "red"
+        ? "border-red-200 bg-red-50 text-red-800"
+        : variant === "amber"
+          ? "border-amber-200 bg-amber-50 text-amber-900"
+          : "border-zinc-200 bg-zinc-50 text-zinc-800";
+
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold ${ring}`}>
+      <span className={`h-2 w-2 rounded-full ${dot}`} />
+      {label}
+    </span>
+  );
+}
+
+function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...props}
+      className={[
+        "inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-extrabold",
+        "bg-white hover:bg-zinc-50 active:bg-zinc-100",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function DangerButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <PrimaryButton
+      {...props}
+      className={[
+        "border-red-200 text-red-700 hover:bg-red-50 active:bg-red-100",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function SuccessButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <PrimaryButton
+      {...props}
+      className={[
+        "border-green-200 text-green-800 hover:bg-green-50 active:bg-green-100",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function GhostLink(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+  return (
+    <a
+      {...props}
+      className={[
+        "inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-extrabold",
+        "bg-white hover:bg-zinc-50 active:bg-zinc-100",
+        props.className || "",
+      ].join(" ")}
+    />
+  );
+}
+
+function lastIdBits(id?: string) {
+  if (!id) return "";
+  return id.length > 6 ? id.slice(-4) : id;
+}
+
+// Prøv å hente lesson-title fra meta (vi putter ofte `Lesson: <title>` i meta)
+function lessonTitleFromMeta(meta?: string[]) {
+  if (!meta?.length) return "";
+  const m = meta.find((x) => typeof x === "string" && x.startsWith("Lesson: "));
+  return m ? m.replace("Lesson: ", "").trim() : "";
+}
+
+function getDeletedAt(it: ContentItem): Date | null {
+  const anyIt = it as unknown as { deletedAt?: Date | null };
+  return anyIt.deletedAt ?? null;
+}
+
+function isDeletedItem(it: ContentItem): boolean {
+  return !!getDeletedAt(it);
+}
+
+export default function ContentClient() {
+  const router = useRouter();
+  const { user, profile } = useUserProfile();
+  const { mode } = useAppMode();
+
+  const t = useTranslations("content");
+  const locale = useLocale();
+
+  const isAnon = !!user?.isAnonymous;
+  const uid = user?.uid ?? null;
+
+  const [items, setItems] = useState<ContentItem[]>([]);
+  const [notes, setNotes] = useState<string[]>([]);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [busyByKey, setBusyByKey] = useState<Record<string, boolean>>({});
+  const [err, setErr] = useState<string | null>(null);
+
+  // UI controls
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [showDeleted, setShowDeleted] = useState(false);
+
+  // Share link/QR modal
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareTitle, setShareTitle] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  // Share to space modal
+  const [pickSpaceOpen, setPickSpaceOpen] = useState(false);
+  const [pickLesson, setPickLesson] = useState<{ lessonId: string; title: string } | null>(null);
+
+  const mySpaces = useMemo(() => items.filter((x) => x.type === "space"), [items]);
+
+  const isAdmin = !!profile?.roles?.admin;
+  const isTeacherApproved = !!profile?.roles?.teacher && profile?.teacherStatus === "approved";
+
+  function setBusy(key: string, v: boolean) {
+    setBusyByKey((m) => ({ ...m, [key]: v }));
+  }
+
+  async function refresh() {
+    setLoading(true);
+    setWarnings([]);
+    setErr(null);
+    try {
+      const res = await loadMyContent({ db, mode, uid, isAnon });
+      setItems(res.items);
+      setNotes(res.notes);
+      setWarnings(res.warnings);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : t("errors.loadFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, isAnon, mode]);
+
+  const emptyHint = useMemo(() => {
+    if (isAnon) {
+      return (
+        <>
+          <p className="opacity-85">{t("empty.guest.line1")}</p>
+          <p className="opacity-85">
+            {t.rich("empty.guest.line2", {
+              join: (chunks) => (
+                <Link href="/join" className="underline">
+                  {chunks}
+                </Link>
+              ),
+              login: (chunks) => (
+                <Link href="/login" className="underline">
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </p>
+        </>
+      );
+    }
+    return <p className="opacity-85">{t("empty.authed")}</p>;
+  }, [isAnon, t]);
+
+  // ---------- Share helpers ----------
+  async function openShareModal(title: string, url: string) {
+    setCopied(false);
+    setQrDataUrl("");
+    setShareTitle(title);
+    setShareUrl(url);
+    setShareOpen(true);
+
+    try {
+      const dataUrl = await QRCode.toDataURL(url, { margin: 1, scale: 7, errorCorrectionLevel: "M" });
+      setQrDataUrl(dataUrl);
+    } catch {
+      setQrDataUrl("");
+    }
+  }
+
+  function closeShare() {
+    setShareOpen(false);
+    setShareTitle("");
+    setShareUrl("");
+    setQrDataUrl("");
+    setCopied(false);
+  }
+
+  async function copyShareUrl() {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function openShareForLesson(it: Extract<ContentItem, { type: "lesson" }>) {
+    let pid = it.activePublishedId || it.id;
+
+    if (!it.activePublishedId) {
+      try {
+        const snap = await getDoc(doc(db, "lessons", it.id));
+        const dUnknown = snap.data() as unknown;
+        const d = isRecord(dUnknown) ? dUnknown : {};
+        if (typeof d.activePublishedId === "string" && d.activePublishedId) pid = d.activePublishedId;
+      } catch {
+        // ignore
+      }
+    }
+
+    const url = `${getOrigin()}/lesson/${pid}`;
+    await openShareModal(titleForCard(it), url);
+  }
+
+  async function openShareForSpace(it: Extract<ContentItem, { type: "space" }>) {
+    const code = it.joinCode ? encodeURIComponent(it.joinCode) : "";
+    const url = code ? `${getOrigin()}/join?code=${code}` : `${getOrigin()}${it.href}`;
+    await openShareModal(titleForCard(it), url);
+  }
+
+  function openPickSpace(lessonId: string, title: string) {
+    setPickLesson({ lessonId, title });
+    setPickSpaceOpen(true);
+  }
+
+  function closePickSpace() {
+    setPickSpaceOpen(false);
+    setPickLesson(null);
+  }
+
+  async function assignLessonToSpace(spaceId: string) {
+    if (!pickLesson || !uid) return;
+
+    const key = `lesson:${pickLesson.lessonId}`;
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      await setDoc(doc(db, `spaces/${spaceId}/assignments/${pickLesson.lessonId}`), {
+        lessonId: pickLesson.lessonId,
+        createdAt: serverTimestamp(),
+        createdBy: uid,
+        status: "active",
+      });
+
+      closePickSpace();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : t("errors.assignFailed"));
+    } finally {
+      setBusy(key, false);
+    }
+  }
+
+  // ---------- Publish / delete / restore ----------
+  async function setPublished(lessonId: string, nextPublished: boolean) {
+    const key = `lesson:${lessonId}`;
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      const lessonRef = doc(db, "lessons", lessonId);
+      const lessonSnap = await getDoc(lessonRef);
+      if (!lessonSnap.exists()) throw new Error(t("errors.lessonNotFound"));
+
+      const dataUnknown = lessonSnap.data() as unknown;
+      const data = isRecord(dataUnknown) ? dataUnknown : {};
+
+      if ((data as { deletedAt?: unknown }).deletedAt) throw new Error(t("errors.cannotPublishDeleted"));
+
+      if (nextPublished) {
+        const publishObj = isRecord((data as { publish?: unknown }).publish)
+          ? (data as { publish?: Record<string, unknown> }).publish
+          : undefined;
+        const vis = pickVisibility(publishObj?.visibility);
+
+        const resp = await authedPost<{ publishedId?: string; publishedLessonId?: string; id?: string }>(
+          "/api/publish",
+          { id: lessonId, visibility: vis }
+        );
+
+        const publishedId = resp.publishedId || resp.publishedLessonId || resp.id || lessonId;
+
+        await updateDoc(lessonRef, {
+          status: "published",
+          activePublishedId: publishedId,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        const publishedId =
+          typeof (data as { activePublishedId?: unknown }).activePublishedId === "string" &&
+          (data as { activePublishedId?: string }).activePublishedId
+            ? (data as { activePublishedId?: string }).activePublishedId!
+            : lessonId;
+
+        await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
+
+        await updateDoc(lessonRef, {
+          status: "draft",
+          activePublishedId: null,
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      await refresh();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : t("errors.publishFailed"));
+      await refresh();
+    } finally {
+      setBusy(key, false);
+    }
+  }
+
+  async function deleteLessonSoft(lessonId: string, title: string) {
+    const msg = t("confirm.deleteLesson", {
+      title: title ? `: "${title}"` : "",
+    });
+
+    const ok = confirm(msg);
+    if (!ok) return;
+
+    const key = `lesson:${lessonId}`;
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      try {
+        const snap = await getDoc(doc(db, "lessons", lessonId));
+        const dUnknown = snap.data() as unknown;
+        const d = isRecord(dUnknown) ? dUnknown : {};
+        const publishedId =
+          typeof (d as { activePublishedId?: unknown }).activePublishedId === "string" &&
+          (d as { activePublishedId?: string }).activePublishedId
+            ? (d as { activePublishedId?: string }).activePublishedId!
+            : lessonId;
+        await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
+      } catch {
+        // ignore
+      }
+
+      await updateDoc(doc(db, "lessons", lessonId), {
+        status: "draft",
+        activePublishedId: null,
+        deletedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      await refresh();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : t("errors.deleteFailed"));
+    } finally {
+      setBusy(key, false);
+    }
+  }
+
+  async function restoreLesson(lessonId: string, title: string) {
+    const msg =
+      (locale === "en"
+        ? `Restore lesson${title ? `: "${title}"` : ""}?`
+        : `Gjenopprette oppgaven${title ? `: "${title}"` : ""}?`);
+
+    const ok = confirm(msg);
+    if (!ok) return;
+
+    const key = `lesson:${lessonId}`;
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      await updateDoc(doc(db, "lessons", lessonId), {
+        deletedAt: null,
+        updatedAt: serverTimestamp(),
+      });
+      await refresh();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : (locale === "en" ? "Could not restore." : "Kunne ikke gjenopprette."));
+    } finally {
+      setBusy(key, false);
+    }
+  }
+
+  async function copyText(txt: string) {
+    try {
+      await navigator.clipboard.writeText(txt);
+    } catch {
+      // ignore
+    }
+  }
+
+  // ---------- Routing / titles ----------
+  function submissionOpenHref(submissionId: string) {
+    return `/student/submissions/${submissionId}`;
+  }
+
+  function itemOpenHref(it: ContentItem) {
+    if (it.type === "lesson") return `/student/lesson/${it.id}`;
+    if (it.type === "submission") {
+      return mode === "student" ? submissionOpenHref(it.id) : it.href;
+    }
+    return it.href;
+  }
+
+  function titleForCard(it: ContentItem) {
+    const raw = (it.title || "").trim();
+    if (raw && raw.toLowerCase() !== "untitled") return raw;
+
+    if (it.type === "submission") {
+      const s = it as Extract<ContentItem, { type: "submission" }>;
+      const lt = lessonTitleFromMeta(s.meta);
+      if (lt) return t("titles.submissionWithLesson", { lessonTitle: lt });
+      if (s.lessonId) return t("titles.submissionWithId", { id: lastIdBits(s.lessonId) });
+      return t("titles.submission");
+    }
+
+    if (it.type === "space") return t("titles.space");
+    return t("titles.lesson");
+  }
+
+  function cleanMetaForCard(it: ContentItem): string {
+    const meta = it.meta?.filter(Boolean) ?? [];
+    const hasLessonTitle = meta.some((m) => m.startsWith("Lesson: "));
+    const filteredMeta = meta.filter((m) => {
+      if (hasLessonTitle && m.startsWith("lesson:")) return false;
+      return true;
+    });
+    return filteredMeta.join(" · ");
+  }
+
+  // ---------- Action builder ----------
+  function buildActions(it: ContentItem): ActionItem[] {
+    const key = `${it.type}:${it.id}`;
+    const busy = !!busyByKey[key];
+
+    if (isAnon) {
+      return [
+        {
+          key: "open",
+          label: t("actions.open"),
+          disabled: busy,
+          onClick: () => router.push(itemOpenHref(it)),
+        },
+      ];
+    }
+
+    // SUBMISSION
+    if (it.type === "submission") {
+      const ss = it as Extract<ContentItem, { type: "submission" }>;
+      const status = (ss.status ?? "").toLowerCase();
+      const isReviewed = status === "reviewed";
+      const canEditSubmission = mode === "student" && !isReviewed;
+
+      return [
+        { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(ss)) },
+        ...(canEditSubmission
+          ? [
+              {
+                key: "edit",
+                label: t("actions.editAnswers"),
+                disabled: busy,
+                onClick: () => router.push(`/student/submissions/${ss.id}`),
+              },
+            ]
+          : []),
+        ...(ss.lessonId
+          ? [
+              {
+                key: "openLesson",
+                label: t("actions.openLesson"),
+                disabled: busy,
+                onClick: () => router.push(`/student/lesson/${ss.lessonId}`),
+              },
+            ]
+          : []),
+        ...(ss.spaceId && (mode === "teacher" || mode === "creator" || isAdmin)
+          ? [
+              {
+                key: "openSpace",
+                label: t("actions.openSpace"),
+                disabled: busy,
+                onClick: () => router.push(`/teacher/spaces/${ss.spaceId}`),
+              },
+            ]
+          : []),
+      ];
+    }
+
+    // SPACE
+    if (it.type === "space") {
+      const sp = it as Extract<ContentItem, { type: "space" }>;
+      const code = sp.joinCode || "";
+      const joinUrl = code ? `${getOrigin()}/join?code=${encodeURIComponent(code)}` : "";
+
+      return [
+        { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(sp.href) },
+        ...(code ? [{ key: "copyCode", label: t("actions.copyJoinCode"), disabled: busy, onClick: () => copyText(code) }] : []),
+        { key: "share", label: t("actions.shareLinkQr"), disabled: busy, onClick: () => openShareForSpace(sp) },
+        ...(joinUrl
+          ? [{ key: "copyJoinLink", label: t("actions.copyJoinLink"), disabled: busy, onClick: () => copyText(joinUrl) }]
+          : []),
+      ];
+    }
+
+    // LESSON
+    const ls = it as Extract<ContentItem, { type: "lesson" }>;
+    const status = (ls.status ?? "draft") as LessonStatus;
+    const isPublished = status === "published";
+    const isDeleted = isDeletedItem(ls);
+
+    const canPublish = (isAdmin || isTeacherApproved) && !isDeleted;
+    const canDelete = isAdmin || isTeacherApproved;
+
+    const canShareToSpace = mySpaces.length > 0 && (isAdmin || isTeacherApproved) && !isDeleted;
+
+    const editHref = `/producer/${ls.id}`;
+    const pdfHref = `/producer/${ls.id}/print`;
+
+    // "Restore" action (kun når du viser deleted)
+    const restoreAction: ActionItem[] =
+      showDeleted && isDeleted && (isAdmin || isTeacherApproved)
+        ? [
+            {
+              key: "restore",
+              label: locale === "en" ? "Restore" : "Gjenopprett",
+              disabled: busy,
+              onClick: () => restoreLesson(ls.id, titleForCard(ls)),
+            },
+          ]
+        : [];
+
+    return [
+      ...restoreAction,
+      { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(`/student/lesson/${ls.id}`) },
+      {
+        key: "edit",
+        label: t("actions.edit"),
+        disabled: busy || isDeleted,
+        onClick: () => router.push(editHref),
+      },
+      {
+        key: isPublished ? "unpublish" : "publish",
+        label: busy ? t("actions.working") : isPublished ? t("actions.unpublish") : t("actions.publish"),
+        disabled: busy || !canPublish,
+        onClick: () => setPublished(ls.id, !isPublished),
+      },
+      {
+        key: "share",
+        label: t("actions.share"),
+        disabled: busy || !isPublished || isDeleted,
+        onClick: () => openShareForLesson(ls),
+      },
+      {
+        key: "shareToSpace",
+        label: t("actions.shareToSpace"),
+        disabled: busy || !canShareToSpace,
+        onClick: () => openPickSpace(ls.id, titleForCard(ls)),
+      },
+      {
+        key: "pdf",
+        label: t("actions.pdf"),
+        disabled: busy || isDeleted || !(mode === "teacher" || mode === "creator" || isAdmin),
+        onClick: () => router.push(pdfHref),
+      },
+      {
+        key: "delete",
+        label: t("actions.delete"),
+        danger: true,
+        disabled: busy || !canDelete,
+        onClick: () => deleteLessonSoft(ls.id, titleForCard(ls)),
+      },
+    ];
+  }
+
+  const filtered = useMemo(() => {
+    const qq = q.trim().toLowerCase();
+
+    return items
+      .filter((it) => (filter === "all" ? true : it.type === filter))
+      .filter((it) => {
+        if (showDeleted) return true;
+        // skjul slettet som default (for alle typer)
+        return !isDeletedItem(it);
+      })
+      .filter((it) => {
+        if (!qq) return true;
+        const tt = titleForCard(it).toLowerCase();
+        const meta = (it.meta || []).join(" ").toLowerCase();
+        const status = (it.status || "").toLowerCase();
+        return tt.includes(qq) || meta.includes(qq) || status.includes(qq);
+      })
+      .slice()
+      .sort((a, b) => (b.updatedAt?.getTime?.() ?? 0) - (a.updatedAt?.getTime?.() ?? 0));
+  }, [items, q, filter, showDeleted]);
+
+  const filterLabel = (ft: FilterType) =>
+    ft === "all"
+      ? t("filters.all")
+      : ft === "lesson"
+        ? t("filters.lessons")
+        : ft === "submission"
+          ? t("filters.submissions")
+          : t("filters.spaces");
+
+  const deletedLabel = locale === "en" ? "Deleted" : "Slettet";
+  const showDeletedLabel = locale === "en" ? "Show deleted" : "Vis slettet";
+  const deletedAtLabel = locale === "en" ? "Deleted at" : "Slettet";
+
+  return (
+    <main className="mx-auto w-full max-w-5xl px-4 py-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-black tracking-tight">{t("title")}</h1>
+          <p className="mt-1 text-sm opacity-75">{t("subtitle")}</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <PrimaryButton onClick={refresh} disabled={loading}>
+            {loading ? t("actions.loading") : t("actions.refresh")}
+          </PrimaryButton>
+        </div>
+      </div>
+
+      {/* Search + filter */}
+      <div className="mt-4">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t("search.placeholder")}
+          className="w-full rounded-2xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-2"
+        />
+
+        <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+          <div className="flex flex-wrap justify-center gap-2">
+            {(["all", "lesson", "submission", "space"] as const).map((ft) => (
+              <button
+                key={ft}
+                onClick={() => setFilter(ft)}
+                className={[
+                  "rounded-full border px-3 py-2 text-sm font-extrabold",
+                  filter === ft ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
+                ].join(" ")}
+              >
+                {filterLabel(ft)}
+              </button>
+            ))}
+          </div>
+
+          {/* Vis slettet */}
+          <label className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-2 text-sm font-extrabold">
+            <input
+              type="checkbox"
+              checked={showDeleted}
+              onChange={(e) => setShowDeleted(e.target.checked)}
+              className="h-4 w-4"
+            />
+            {showDeletedLabel}
+          </label>
+        </div>
+      </div>
+
+      {err && (
+        <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+          <div className="mb-1 font-black">{t("errors.label")}</div>
+          <div className="whitespace-pre-wrap text-sm">{err}</div>
+        </div>
+      )}
+
+      {notes.length > 0 && (
+        <div className="mt-4 rounded-2xl border bg-zinc-50 p-4">
+          {notes.map((n) => (
+            <div key={n} className="text-sm">
+              • {n}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+          {warnings.map((w) => (
+            <div key={w} className="text-sm">
+              • {w}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 grid gap-3">
+        {loading && <div className="opacity-70">{t("states.loadingContent")}</div>}
+
+        {!loading && filtered.length === 0 && <div className="rounded-2xl border bg-white p-4">{emptyHint}</div>}
+
+        {!loading &&
+          filtered.map((it) => {
+            const key = `${it.type}:${it.id}`;
+            const actions = buildActions(it);
+
+            const title = titleForCard(it);
+            const deletedAt = getDeletedAt(it);
+
+            let pill: React.ReactNode = null;
+            if (isDeletedItem(it)) {
+              pill = <StatusPill label={deletedLabel} variant="amber" />;
+            } else if (it.type === "lesson") {
+              const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
+              pill =
+                s === "published" ? (
+                  <StatusPill label={t("pills.published")} variant="green" />
+                ) : (
+                  <StatusPill label={t("pills.unpublished")} variant="red" />
+                );
+            } else if (it.status) {
+              pill = <StatusPill label={it.status} variant="gray" />;
+            }
+
+            const metaLine = cleanMetaForCard(it);
+
+            const aOpen = actions.find((a) => a.key === "open");
+            const aEdit = actions.find((a) => a.key === "edit");
+            const aOpenLesson = actions.find((a) => a.key === "openLesson");
+            const aOpenSpace = actions.find((a) => a.key === "openSpace");
+            const aPublish = actions.find((a) => a.key === "publish");
+            const aUnpublish = actions.find((a) => a.key === "unpublish");
+            const aShare = actions.find((a) => a.key === "share");
+            const aShareToSpace = actions.find((a) => a.key === "shareToSpace");
+            const aPdf = actions.find((a) => a.key === "pdf");
+            const aDelete = actions.find((a) => a.key === "delete");
+            const aRestore = actions.find((a) => a.key === "restore");
+
+            return (
+              <div key={key} className="rounded-2xl border bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* TITTEL UTEN LENKE */}
+                      <div className="truncate text-base font-black leading-tight">{title}</div>
+                      {pill}
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs opacity-75">
+                      {!!it.updatedAt && <span>{fmtDate(it.updatedAt, locale)}</span>}
+                      {deletedAt ? (
+                        <>
+                          <span className="opacity-60">•</span>
+                          <span>
+                            {deletedAtLabel}: {fmtDate(deletedAt, locale)}
+                          </span>
+                        </>
+                      ) : null}
+                      {metaLine ? <span className="opacity-60">•</span> : null}
+                      {metaLine ? <span className="truncate">{metaLine}</span> : null}
+                    </div>
+
+                    {/* Desktop action row */}
+                    <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
+                      {/* LESSON actions */}
+                      {it.type === "lesson" ? (
+                        <>
+                          {aRestore ? (
+                            <SuccessButton onClick={aRestore.onClick} disabled={aRestore.disabled}>
+                              {locale === "en" ? "Restore" : "Gjenopprett"}
+                            </SuccessButton>
+                          ) : null}
+
+                          {aOpen ? (
+                            <PrimaryButton onClick={aOpen.onClick} disabled={aOpen.disabled}>
+                              {t("actions.open")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aPublish ? (
+                            <PrimaryButton onClick={aPublish.onClick} disabled={aPublish.disabled}>
+                              {t("actions.publish")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aUnpublish ? (
+                            <PrimaryButton onClick={aUnpublish.onClick} disabled={aUnpublish.disabled}>
+                              {t("actions.unpublish")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aShare ? (
+                            <PrimaryButton onClick={aShare.onClick} disabled={aShare.disabled} title={t("actions.shareTitle")}>
+                              {t("actions.share")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aShareToSpace ? (
+                            <PrimaryButton onClick={aShareToSpace.onClick} disabled={aShareToSpace.disabled}>
+                              {t("actions.shareToSpace")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aEdit ? (
+                            <PrimaryButton onClick={aEdit.onClick} disabled={aEdit.disabled}>
+                              {t("actions.edit")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aPdf ? (
+                            <PrimaryButton onClick={aPdf.onClick} disabled={aPdf.disabled}>
+                              {t("actions.pdf")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aDelete ? (
+                            <DangerButton onClick={aDelete.onClick} disabled={aDelete.disabled}>
+                              {t("actions.delete")}
+                            </DangerButton>
+                          ) : null}
+                        </>
+                      ) : null}
+
+                      {/* SUBMISSION actions */}
+                      {it.type === "submission" ? (
+                        <>
+                          {aOpen ? (
+                            <PrimaryButton onClick={aOpen.onClick} disabled={aOpen.disabled}>
+                              {t("actions.open")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aEdit ? (
+                            <PrimaryButton onClick={aEdit.onClick} disabled={aEdit.disabled}>
+                              {t("actions.editAnswers")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aOpenLesson ? (
+                            <PrimaryButton onClick={aOpenLesson.onClick} disabled={aOpenLesson.disabled}>
+                              {t("actions.openLesson")}
+                            </PrimaryButton>
+                          ) : null}
+                          {aOpenSpace ? (
+                            <PrimaryButton onClick={aOpenSpace.onClick} disabled={aOpenSpace.disabled}>
+                              {t("actions.openSpace")}
+                            </PrimaryButton>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0">
+                    <div className="sm:hidden">
+                      <ActionMenu items={actions} />
+                    </div>
+
+                    <div className="hidden sm:block">{it.type === "space" ? <ActionMenu items={actions} /> : null}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+
+      <div className="mt-6 text-sm opacity-80">
+        <Link href="/join" className="mr-4 underline">
+          {t("footer.joinViaCode")}
+        </Link>
+        <Link href="/tools" className="underline">
+          {t("footer.tools")}
+        </Link>
+      </div>
+
+      {/* Share link/QR modal */}
+      {shareOpen ? (
+        <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b p-4">
+              <div className="min-w-0">
+                <div className="font-black">{t("share.title")}</div>
+                <div className="truncate text-sm opacity-75">{shareTitle}</div>
+              </div>
+              <button onClick={closeShare} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">
+                ✕
+              </button>
+            </div>
+
+            <div className="grid gap-4 p-4 sm:grid-cols-[1.3fr_0.7fr]">
+              <div>
+                <div className="mb-2 text-sm font-black">{t("share.linkLabel")}</div>
+                <input value={shareUrl} readOnly className="w-full rounded-xl border px-3 py-3 font-semibold" />
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <PrimaryButton onClick={copyShareUrl}>{copied ? t("share.copied") : t("share.copyLink")}</PrimaryButton>
+                  <GhostLink href={shareUrl} target="_blank" rel="noreferrer">
+                    {t("share.openLink")}
+                  </GhostLink>
+                </div>
+
+                <div className="mt-3 text-sm opacity-70">{t("share.tip")}</div>
+              </div>
+
+              <div className="grid place-items-center">
+                <div className="mb-2 w-full text-left text-sm font-black">{t("share.qrLabel")}</div>
+                <div className="grid h-56 w-56 place-items-center overflow-hidden rounded-2xl border bg-white">
+                  {qrDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={qrDataUrl} alt={t("share.qrAlt")} style={{ width: "100%", height: "100%" }} />
+                  ) : (
+                    <div className="p-3 text-center text-sm opacity-70">{t("share.qrNotReady")}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t p-4 text-xs opacity-70">
+              {t("share.shareUrlLabel")} <code className="break-all">{shareUrl}</code>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Share to space modal */}
+      {pickSpaceOpen && pickLesson ? (
+        <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b p-4">
+              <div className="min-w-0">
+                <div className="font-black">{t("shareToSpace.title")}</div>
+                <div className="truncate text-sm opacity-75">{pickLesson.title}</div>
+              </div>
+              <button onClick={closePickSpace} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4">
+              {mySpaces.length === 0 ? (
+                <div className="opacity-75">{t("shareToSpace.noSpaces")}</div>
+              ) : (
+                <div className="grid gap-2">
+                  {mySpaces.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => assignLessonToSpace(s.id)}
+                      className="rounded-2xl border bg-white p-4 text-left font-black hover:bg-zinc-50"
+                    >
+                      {(s.title || t("titles.space")).trim() || t("titles.space")}
+                      <div className="mt-1 text-xs font-semibold opacity-70">{(s.meta?.join(" · ") ?? "").trim()}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t p-4 text-xs opacity-70">
+              {t("shareToSpace.createsLabel")} <code>spaces/{`{spaceId}`}/assignments/{pickLesson.lessonId}</code>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </main>
+  );
+}

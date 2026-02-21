@@ -1,0 +1,506 @@
+// app/[locale]/(app)/teacher/spaces/page.tsx
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
+import AuthGate from "@/components/AuthGate";
+import { useUserProfile } from "@/lib/useUserProfile";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  getCountFromServer,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import type { SpaceDoc } from "@/lib/spacesClient";
+import AttestationAndModeCard from "@/components/AttestationAndModeCard";
+import { useLocale, useTranslations } from "next-intl";
+
+type SpaceDocSafe = SpaceDoc & { createdAt?: unknown };
+
+type Row = { id: string; data: SpaceDocSafe };
+type Mode = "student" | "teacher" | "creator" | "parent";
+
+type QrFor = { spaceId: string; code: string; title?: string };
+
+type TimestampLike = { toMillis: () => number };
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function isTimestampLike(v: unknown): v is TimestampLike {
+  return isRecord(v) && typeof v["toMillis"] === "function";
+}
+
+function readModeFromProfile(profile: unknown): Mode {
+  if (!isRecord(profile)) return "student";
+  const m = profile["mode"];
+  return m === "teacher" || m === "creator" || m === "parent" || m === "student"
+    ? m
+    : "student";
+}
+
+function readHasAttested(profile: unknown): boolean {
+  if (!isRecord(profile)) return false;
+  const att = profile["attestation"];
+  if (!isRecord(att)) return false;
+  return Boolean(att["acceptedAt"]);
+}
+
+/**
+ * Accepts:
+ * - Firestore Timestamp (or Timestamp-like)
+ * - number (already millis)
+ * - { seconds, nanoseconds } style objects (best-effort)
+ */
+function asMillis(v: unknown): number {
+  if (isTimestampLike(v)) return v.toMillis();
+
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+
+  if (isRecord(v)) {
+    const seconds = v["seconds"];
+    const nanoseconds = v["nanoseconds"];
+    if (typeof seconds === "number" && Number.isFinite(seconds)) {
+      const ns =
+        typeof nanoseconds === "number" && Number.isFinite(nanoseconds)
+          ? nanoseconds
+          : 0;
+      return seconds * 1000 + Math.floor(ns / 1_000_000);
+    }
+  }
+
+  return 0;
+}
+
+type SortKey = "newest" | "oldest" | "title_az" | "title_za";
+
+/**
+ * Locale-safe link helper:
+ * - keeps absolute URLs unchanged
+ * - prefixes "/{locale}" for internal paths that start with "/"
+ * - avoids double-prefix if already "/en/..." or "/no/..."
+ */
+function withLocale(locale: string, href: string): string {
+  if (/^https?:\/\//i.test(href)) return href;
+  if (!href.startsWith("/")) return href;
+
+  const seg = href.split("/")[1];
+  if (seg === "en" || seg === "no") return href;
+
+  // Special-case root
+  if (href === "/") return `/${locale}`;
+
+  return `/${locale}${href}`;
+}
+
+export default function TeacherSpacesPage() {
+  return (
+    <AuthGate>
+      <TeacherSpacesInner />
+    </AuthGate>
+  );
+}
+
+function TeacherSpacesInner() {
+  const t = useTranslations("teacher.spaces");
+  const tCommon = useTranslations("common");
+  const locale = useLocale();
+
+  const { user, profile, loading } = useUserProfile();
+  const [rows, setRows] = useState<Row[]>([]);
+
+  // UI controls
+  const [search, setSearch] = useState("");
+  const [openOnly, setOpenOnly] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("newest");
+
+  // Member counts cache
+  const [memberCount, setMemberCount] = useState<Record<string, number | undefined>>({});
+  const [memberCountBusy, setMemberCountBusy] = useState<Record<string, boolean>>({});
+
+  // Copy toast
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // QR modal
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrFor, setQrFor] = useState<QrFor | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrBusy, setQrBusy] = useState(false);
+  const [qrErr, setQrErr] = useState<string | null>(null);
+
+  const mode: Mode = useMemo(() => readModeFromProfile(profile), [profile]);
+  const hasAttested = useMemo(() => readHasAttested(profile), [profile]);
+  const canCreateSpace = Boolean(user?.uid) && hasAttested && (mode === "teacher" || mode === "creator");
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const q = query(
+      collection(db, "spaces"),
+      where("ownerId", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
+
+    return onSnapshot(q, (snap) => {
+      const next: Row[] = snap.docs.map((d) => ({
+        id: d.id,
+        data: (d.data() as SpaceDocSafe) ?? ({} as SpaceDocSafe),
+      }));
+      setRows(next);
+    });
+  }, [user?.uid]);
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    let list = rows;
+
+    if (s) {
+      list = list.filter((r) => {
+        const title = (r.data.title ?? "").toString().toLowerCase();
+        const code = (r.data.code ?? "").toString().toLowerCase();
+        return title.includes(s) || code.includes(s);
+      });
+    }
+
+    if (openOnly) {
+      list = list.filter((r) => Boolean(r.data.isOpen));
+    }
+
+    const sorted = [...list].sort((a, b) => {
+      if (sortKey === "title_az" || sortKey === "title_za") {
+        const at = (a.data.title ?? "").toString().toLowerCase();
+        const bt = (b.data.title ?? "").toString().toLowerCase();
+        const cmp = at.localeCompare(bt, "en");
+        return sortKey === "title_az" ? cmp : -cmp;
+      }
+
+      const am = asMillis(a.data.createdAt);
+      const bm = asMillis(b.data.createdAt);
+      return sortKey === "newest" ? bm - am : am - bm;
+    });
+
+    return sorted;
+  }, [rows, search, openOnly, sortKey]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const visible = filtered.slice(0, 50);
+    visible.forEach((r) => {
+      if (memberCount[r.id] !== undefined) return;
+      if (memberCountBusy[r.id]) return;
+
+      setMemberCountBusy((m) => ({ ...m, [r.id]: true }));
+
+      const q = query(
+        collection(db, "spaceMembers"),
+        where("spaceId", "==", r.id),
+        where("archived", "==", false)
+      );
+
+      getCountFromServer(q)
+        .then((agg) => setMemberCount((m) => ({ ...m, [r.id]: agg.data().count })))
+        .catch(() => setMemberCount((m) => ({ ...m, [r.id]: undefined })))
+        .finally(() => setMemberCountBusy((m) => ({ ...m, [r.id]: false })));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, user?.uid]);
+
+  async function copyToClipboard(text: string, id: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId((v) => (v === id ? null : v)), 1200);
+    } catch {
+      // no-op
+    }
+  }
+
+  async function openQr(spaceId: string, code: string, title?: string) {
+    setQrErr(null);
+    setQrDataUrl(null);
+    setQrBusy(true);
+    setQrFor({ spaceId, code, title });
+    setQrOpen(true);
+
+    try {
+      const QRCode = (await import("qrcode")).default;
+      const joinPath = withLocale(locale, `/join?code=${encodeURIComponent(code)}`);
+      const url = `${window.location.origin}${joinPath}`;
+      const dataUrl = await QRCode.toDataURL(url, { margin: 1, scale: 6 });
+      setQrDataUrl(dataUrl);
+    } catch {
+      setQrErr(t("qr.error"));
+    } finally {
+      setQrBusy(false);
+    }
+  }
+
+  function closeQr() {
+    setQrOpen(false);
+    setQrFor(null);
+    setQrDataUrl(null);
+    setQrBusy(false);
+    setQrErr(null);
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">
+        {tCommon("loading")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="m-0 text-2xl font-semibold">{t("title")}</h1>
+
+        <Link
+          href={withLocale(locale, "/teacher/spaces/new")}
+          title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
+          className={[
+            "rounded-xl px-3 py-2 text-sm font-medium no-underline",
+            canCreateSpace
+              ? "bg-black text-white"
+              : "border border-black/20 bg-transparent text-slate-900",
+          ].join(" ")}
+        >
+          {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
+        </Link>
+      </div>
+
+      <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
+
+      {!canCreateSpace && (
+        <div className="mt-4 grid gap-3">
+          <AttestationAndModeCard
+            attestationVersion="2026-02-09"
+            allowedModes={["student", "teacher", "creator", "parent"]}
+            requireAttestationForProModes={true}
+          />
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="mt-4 grid gap-3 rounded-2xl border bg-white p-4 shadow-sm md:grid-cols-3">
+        <div className="md:col-span-1">
+          <label className="text-sm font-medium">{t("controls.search.label")}</label>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("controls.search.placeholder")}
+            className="mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none"
+          />
+        </div>
+
+        <div className="md:col-span-1">
+          <label className="text-sm font-medium">{t("controls.sort.label")}</label>
+          <select
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as SortKey)}
+            className="mt-2 w-full rounded-xl border px-3 py-2 text-sm"
+          >
+            <option value="newest">{t("controls.sort.options.newest")}</option>
+            <option value="oldest">{t("controls.sort.options.oldest")}</option>
+            <option value="title_az">{t("controls.sort.options.title_az")}</option>
+            <option value="title_za">{t("controls.sort.options.title_za")}</option>
+          </select>
+        </div>
+
+        <div className="md:col-span-1">
+          <label className="text-sm font-medium">{t("controls.filters.label")}</label>
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              id="openOnly"
+              type="checkbox"
+              checked={openOnly}
+              onChange={(e) => setOpenOnly(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <label htmlFor="openOnly" className="text-sm text-muted-foreground">
+              {t("controls.filters.openOnly")}
+            </label>
+          </div>
+          <div className="mt-2 text-xs text-muted-foreground">
+            {t("controls.filters.showing", { n: filtered.length })}
+          </div>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="mt-4 grid gap-3">
+        {filtered.map((r) => {
+          const code = (r.data.code ?? "").toString();
+          const title = (r.data.title ?? t("list.untitled")).toString();
+          const open = Boolean(r.data.isOpen);
+          const count = memberCount[r.id];
+          const countBusy = Boolean(memberCountBusy[r.id]);
+
+          return (
+            <div
+              key={r.id}
+              className={[
+                "rounded-2xl bg-white p-4 shadow-sm",
+                "border-2",
+                open ? "border-emerald-200" : "border-slate-200",
+                "hover:shadow-md hover:border-slate-300 transition",
+              ].join(" ")}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-[240px]">
+                  <div className="flex items-center gap-2">
+                    <div className="text-base font-semibold">{title}</div>
+                    <span
+                      className={[
+                        "rounded-full px-2 py-0.5 text-xs font-medium",
+                        open ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-700",
+                      ].join(" ")}
+                      title={open ? t("list.openTitle") : t("list.closedTitle")}
+                    >
+                      {open ? t("list.open") : t("list.closed")}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {t("list.code")}{" "}
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(code, r.id)}
+                      className="rounded-lg border px-2 py-0.5 text-sm font-medium hover:shadow-sm"
+                      title={t("list.copyCodeTitle")}
+                    >
+                      {code || "—"}
+                    </button>
+                    {copiedId === r.id && <span className="ml-2 text-xs">{t("list.copied")}</span>}
+                    <span className="mx-2">·</span>
+                    {t("list.members")}{" "}
+                    <b>{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const joinPath = withLocale(locale, `/join?code=${encodeURIComponent(code)}`);
+                        const url = `${window.location.origin}${joinPath}`;
+                        copyToClipboard(url, `url_${r.id}`);
+                      }}
+                      className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm"
+                      title={t("list.copyJoinLinkTitle")}
+                    >
+                      {t("list.copyJoinLink")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openQr(r.id, code, title)}
+                      className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm"
+                      title={t("list.joinWithQrTitle")}
+                    >
+                      {t("list.joinWithQr")}
+                    </button>
+
+                    <Link
+                      href={withLocale(locale, `/teacher/spaces/${r.id}/members`)}
+                      className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm no-underline"
+                      title={t("list.seeMembersTitle")}
+                    >
+                      {t("list.seeMembers")}
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={withLocale(locale, `/teacher/spaces/${r.id}`)}
+                    className="rounded-xl bg-black px-3 py-2 text-sm font-medium text-white no-underline hover:opacity-90"
+                    title={t("list.openSpaceTitle")}
+                  >
+                    {t("list.openSpace")}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {filtered.length === 0 && (
+          <div className="rounded-2xl border bg-white p-6 text-sm text-muted-foreground shadow-sm">
+            {t("empty.title")}
+            <div className="mt-2">{t("empty.hint")}</div>
+          </div>
+        )}
+      </div>
+
+      {/* QR Modal */}
+      {qrOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={closeQr}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-lg font-semibold">{t("qr.title")}</div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  {t("qr.subtitle", { title: qrFor?.title ?? t("list.untitled"), code: qrFor?.code ?? "" })}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeQr}
+                className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm"
+              >
+                {t("qr.close")}
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-xl border p-4">
+              {qrBusy && <div className="text-sm text-muted-foreground">{t("qr.generating")}</div>}
+              {qrErr && <div className="text-sm text-red-600">{qrErr}</div>}
+
+              {qrDataUrl && (
+                <div className="flex flex-col items-center gap-3">
+                  <Image
+                    src={qrDataUrl}
+                    alt={t("qr.imageAlt")}
+                    width={256}
+                    height={256}
+                    unoptimized
+                    className="h-auto w-64 rounded-lg border"
+                  />
+                  <div className="text-center text-xs text-muted-foreground">
+                    {t("qr.pointsTo")}{" "}
+                    <b>
+                      {typeof window !== "undefined"
+                        ? `${window.location.origin}${withLocale(
+                            locale,
+                            `/join?code=${encodeURIComponent(qrFor?.code ?? "")}`
+                          )}`
+                        : withLocale(locale, "/join?code=…")}
+                    </b>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 text-xs text-muted-foreground">{t("qr.note")}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,7 +1,7 @@
-  // lib/navItems.ts
+// lib/navItems.ts
 import type { AppMode } from "@/lib/mode";
 
-export type NavItem = { href: string; label: string };
+export type NavItem = { href: string; labelKey: string };
 
 function homeForMode(mode: AppMode) {
   switch (mode) {
@@ -21,46 +21,45 @@ function homeForMode(mode: AppMode) {
 
 export function navItemsForMode(mode: AppMode): NavItem[] {
   const base: NavItem[] = [
-    { href: homeForMode(mode), label: "Dashboard" },
-    { href: "/content", label: "My content" },
+    { href: homeForMode(mode), labelKey: "nav.dashboard" },
+    { href: "/content", labelKey: "nav.myContent" },
   ];
 
   if (mode === "student") {
-    return [ 
+    return [
       ...base,
-      { href: "/student/spaces", label: "My spaces" },
-
+      { href: "/student/spaces", labelKey: "nav.mySpaces" },
     ];
   }
 
   if (mode === "parent") {
     return [
       ...base,
-      { href: "/join", label: "Join space" },
+      { href: "/join", labelKey: "nav.joinSpace" },
     ];
   }
 
   if (mode === "teacher") {
     return [
       ...base,
-      { href: "/teacher/spaces", label: "Spaces" },
-      { href: "/producer/texts/new", label: "+ Create lesson" },
+      { href: "/teacher/spaces", labelKey: "nav.spaces" },
+      { href: "/producer/texts/new", labelKey: "nav.createLesson" },
     ];
   }
 
   if (mode === "creator") {
     return [
       ...base,
-      { href: "/producer/texts", label: "My lessons" },
-      { href: "/producer/texts/new", label: "+ New lesson" },
+      { href: "/producer/texts", labelKey: "nav.myLessons" },
+      { href: "/producer/texts/new", labelKey: "nav.newLesson" },
     ];
   }
 
   // admin
   return [
     ...base,
-    { href: "/admin/users", label: "Users" },
-    { href: "/admin/review", label: "Review" },
-    { href: "/admin/submissions", label: "Submissions" },
+    { href: "/admin/users", labelKey: "nav.users" },
+    { href: "/admin/review", labelKey: "nav.review" },
+    { href: "/admin/submissions", labelKey: "nav.submissions" },
   ];
 }

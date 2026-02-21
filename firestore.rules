@@ -145,6 +145,37 @@ service cloud.firestore {
       );
     }
 
+   /* =========================
+   SPACE BOARD (per-space)
+========================= */
+
+function canBoardManage(spaceId) {
+  return signedIn() && (
+    isAdmin()
+    || isSpaceOwner(spaceId)
+    || (
+      isSpaceMember(spaceId)
+      && (isTeacherMode() || isCreatorMode() || hasRole("teacher") || hasRole("creator"))
+    )
+  );
+}
+
+match /spaces/{spaceId}/board/{docId} {
+  allow read: if signedIn() && (isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId));
+  allow create, update, delete: if canBoardManage(spaceId);
+}
+
+match /spaces/{spaceId}/boardResponses/{responseId} {
+  allow read: if canBoardManage(spaceId)
+    || (signedIn() && responseId.matches('^.+_' + myUid() + '$'));
+
+  allow create, update: if signedIn()
+    && isSpaceMember(spaceId)
+    && responseId.matches('^.+_' + myUid() + '$');
+
+  allow delete: if canBoardManage(spaceId);
+}
+
     /* ============================
        USERS
     ============================ */
@@ -456,7 +487,7 @@ service cloud.firestore {
           && resource != null
           && ("uid" in resource.data)
           && (resource.data.uid is string)
-          && resource.data.uid == myUid();
+          && (resource.data.uid == myUid());
       }
 
       allow read: if isAdmin() || isOwnerDoc();

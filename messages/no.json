@@ -1,0 +1,1550 @@
+{
+  "nav": {
+    "mySpaces": "Mine klasser",
+    "join": "Bli med",
+    "dashboard": "Oversikt",
+    "myContent": "Mitt innhold",
+    "joinSpace": "Bli med i klasse",
+    "spaces": "Klasser",
+    "createLesson": "+ Lag oppgave",
+    "myLessons": "Mine oppgaver",
+    "newLesson": "+ Ny oppgave",
+    "users": "Brukere",
+    "review": "Vurder",
+    "submissions": "Innleveringer"
+  },
+  "common": {
+    "loading": "Laster…",
+    "error": "Noe gikk galt",
+    "dash": "—",
+    "unknownError": "Ukjent feil"
+  },
+  "status": {
+    "approved": "Godkjent",
+    "needs_work": "Må forbedres"
+  },
+  "actions": {
+    "open": "Åpne",
+    "submit": "Send inn",
+    "update": "Oppdater"
+  },
+  "topnav": {
+    "guestMode": "Gjestemodus",
+    "loginOrCreate": "Logg inn / Opprett konto",
+    "login": "Logg inn",
+    "logout": "Logg ut",
+    "applyTeacherAccess": "Søk om lærertilgang",
+    "applicationSent": "Søknad sendt ⏳",
+    "applicationSentTitle": "Søknaden din er sendt",
+    "applyTeacherTitle": "Søk om lærertilgang",
+    "switchModeTitle": "Bytt modus",
+    "noOtherModesTitle": "Ingen andre moduser tilgjengelig"
+  },
+  "modes": {
+    "student": "Elev",
+    "parent": "Foresatt",
+    "teacher": "Lærer",
+    "creator": "Skaper",
+    "admin": "Admin"
+  },
+  "library": {
+    "open": "Åpne bibliotek",
+    "close": "Lukk bibliotek"
+  },
+  "auth": {
+    "login": {
+      "title": {
+        "signin": "Logg inn",
+        "signup": "Registrer"
+      },
+      "intro": {
+        "anon": "Du bruker en midlertidig (anonym) bruker. Ved å logge inn oppgraderer du kontoen og beholder det du har gjort.",
+        "normal": "Logg inn for å lagre, sende inn og søke om lærertilgang."
+      },
+      "tabs": {
+        "signin": "Logg inn",
+        "signup": "Registrer"
+      },
+      "fields": {
+        "displayNamePlaceholder": "Navn (valgfritt)",
+        "emailPlaceholder": "E-post",
+        "passwordPlaceholder": "Passord"
+      },
+      "buttons": {
+        "working": "Jobber…",
+        "upgradeGoogle": "Oppgrader med Google",
+        "signinGoogle": "Logg inn med Google",
+        "signinEmail": "Logg inn",
+        "upgradeAccount": "Oppgrader konto",
+        "createAccount": "Opprett bruker"
+      },
+      "hints": {
+        "anonSignup": "Tips: Hvis e-posten allerede finnes, velg <b>Logg inn</b> i stedet."
+      },
+      "errors": {
+        "missingEmail": "Skriv inn e-post.",
+        "missingPassword": "Skriv inn passord.",
+        "invalidCredential": "Feil e-post eller passord.",
+        "userNotFound": "Fant ingen bruker med den e-posten.",
+        "emailAlreadyInUse": "E-posten er allerede i bruk.",
+        "emailAlreadyInUseLoginInstead": "E-posten er allerede i bruk. Logg inn i stedet.",
+        "weakPassword": "Passordet er for svakt (minst 6 tegn).",
+        "invalidEmail": "Ugyldig e-postadresse.",
+        "popupClosed": "Innlogging avbrutt.",
+        "generic": "Kunne ikke logge inn. Prøv igjen."
+      }
+    },
+    "onboarding": {
+      "title": "Registrering",
+      "loading": "Laster…",
+      "subtitle": "Navn er påkrevd. Land/kommune velges fra liste. Institusjon er valgfritt.",
+      "fields": {
+        "fullName": { "label": "Fullt navn *" },
+        "country": { "label": "Land *", "placeholder": "Søk land…" },
+        "municipalityNo": { "label": "Kommune *", "placeholder": "Søk kommune…" },
+        "municipalityOther": { "label": "By/område *" }
+      },
+      "institution": {
+        "title": "Læringsinstitusjon (valgfritt)",
+        "typeLabel": "Type",
+        "none": "Ingen",
+        "nameLabel": "Navn (valgfritt)",
+        "namePlaceholder": "",
+        "types": {
+          "school": "Skole",
+          "kindergarten": "Barnehage",
+          "adult_education": "Voksenopplæring",
+          "university": "Universitet / høyskole",
+          "workplace": "Bedrift / arbeidsplass",
+          "other": "Annet"
+        }
+      },
+      "buttons": {
+        "saving": "Lagrer…",
+        "complete": "Fullfør registrering"
+      },
+      "errors": {
+        "missingName": "Skriv inn fullt navn.",
+        "missingCountry": "Velg land.",
+        "missingMunicipalityNo": "Velg kommune.",
+        "missingMunicipalityOther": "Skriv inn by/område."
+      }
+    }
+  },
+  "student": {
+    "spaces": {
+      "title": "Mine klasser",
+      "subtitle": "Her ser du klasser du har blitt med i via kode eller lenke.",
+      "loading": "Laster…",
+      "defaultTitle": "Klasse",
+      "meta": { "code": "Kode" },
+      "actions": {
+        "joinSpace": "Bli med i klasse",
+        "openSpace": "Åpne klasse"
+      },
+      "empty": "Ingen klasser ennå. Trykk <b>Bli med i klasse</b> og skriv inn kode/lenke fra læreren din.",
+      "errors": {
+        "loadFailed": "Kunne ikke laste inn klasser."
+      }
+    },
+    "spaceDetail": {
+      "loading": "Laster…",
+      "actions": {
+        "open": "Åpne",
+        "backToMySpaces": "← Tilbake til Mine klasser",
+        "backMySpacesShort": "← Mine klasser"
+      },
+      "header": {
+        "classCode": "Klassekode"
+      },
+      "missing": {
+        "title": "Klassen ble ikke funnet",
+        "subtitle": "Denne klassen finnes ikke, eller du har ikke tilgang."
+      },
+      "error": {
+        "title": "Kunne ikke åpne klassen"
+      },
+      "active": {
+        "title": "Aktiv oppgave",
+        "open": "Åpne oppgave",
+        "hint": "Oppgaven vises her når læreren setter den som aktiv.",
+        "none": "Ingen aktiv oppgave akkurat nå. Oppgaver du allerede har levert vises under «Mine innleveringer»."
+      },
+      "mine": {
+        "title": "Mine innleveringer",
+        "subtitle": "Siste innlevering per oppgave i denne klassen.",
+        "refresh": "Oppdater",
+        "loginToSee": "Logg inn for å se innleveringer.",
+        "none": "Ingen innleveringer her ennå.",
+        "teacherMessage": "✉️ Læreren din sendte deg en melding",
+        "openForImprovement": "✍️ Åpnet for forbedring",
+        "archiveHint": "Flytt denne innleveringen til arkivet ditt",
+        "moveToArchive": "Flytt til arkiv",
+        "archiving": "Flytter…"
+      },
+      "archive": {
+        "title": "Arkiv",
+        "loginToSee": "Logg inn for å se arkivet ditt.",
+        "none": "Ingen arkiverte innleveringer ennå.",
+        "message": "✉️ melding",
+        "restore": "Gjenopprett",
+        "restoring": "Gjenoppretter…",
+        "restoreHint": "Flytt tilbake til Mine innleveringer"
+      },
+      "all": {
+        "title": "Alle oppgaver i denne klassen",
+        "showArchived": "Vis arkiverte",
+        "none": "Ingen oppgaver her ennå.",
+        "archivedTag": "(arkivert)",
+        "yourStatus": "Din status:",
+        "message": "✉️ melding",
+        "notSubmitted": "Du har ikke levert denne ennå."
+      },
+      "status": {
+        "submitted": "Levert",
+        "needsWork": "Må forbedres",
+        "approved": "Godkjent",
+        "draft": "Utkast",
+        "unknown": "Ukjent"
+      },
+      "statusHints": {
+        "submitted": "Venter på tilbakemelding",
+        "needsWork": "Lærer har åpnet for forbedring",
+        "approved": "Ferdig",
+        "draft": "Ikke levert",
+        "unknown": ""
+      },
+      "toast": {
+        "movedToArchive": "Flyttet til arkiv ✅",
+        "restored": "Gjenopprettet ✅"
+      },
+      "errors": {
+        "readSpace": "Kunne ikke lese klassen",
+        "listenStart": "Kunne ikke starte lytting",
+        "readAssignments": "Kunne ikke lese oppgaver",
+        "listenAssignmentsStart": "Kunne ikke begynne å lytte på oppgaver",
+        "readSubmissions": "Kunne ikke laste inn innleveringer",
+        "archiveMove": "Kunne ikke flytte til arkiv",
+        "archiveRestore": "Kunne ikke gjenopprette"
+      }
+    },
+    "assignment": {
+      "common": { "loading": "Laster…" },
+      "fallback": { "lessonTitle": "Oppgave" },
+      "actions": {
+        "backToSpace": "← Tilbake til min klasse",
+        "backToJoin": "← Bli med",
+        "backToClassButton": "← Tilbake til klasse",
+        "backPrevButton": "← Forrige side",
+        "backPrevTitle": "Gå tilbake til forrige side"
+      },
+      "errors": {
+        "missingParams": "Mangler spaceId/assignmentId i URL.",
+        "notMember": "Du er ikke registrert som medlem i denne klassen. Gå tilbake og trykk Bli med.",
+        "assignmentNotFoundInSpace": "Kunne ikke finne denne oppgaven i klassen.",
+        "missingSourceId": "Denne oppgaven mangler innhold (sourceId).",
+        "sourceLessonMissing": "Kunne ikke finne kilden til oppgaven.",
+        "unpublished": "Denne oppgaven er upublisert/arkivert.",
+        "noAccessSubmission": "Du har ikke tilgang til denne innleveringen.",
+        "permissionDenied": "Mangler eller utilstrekkelige rettigheter.",
+        "generic": "Noe gikk galt.",
+        "submitFailed": "Kunne ikke sende inn.",
+        "noData": "Ingen data."
+      },
+      "messages": {
+        "submissionNotFound": "Kunne ikke finne innleveringen du prøvde å åpne.",
+        "submitted": "Takk! Innleveringen din ble sendt ✅",
+        "resubmitted": "Oppdatert og sendt inn på nytt ✅",
+        "lockedNoChanges": "Denne innleveringen kan ikke endres nå (status er ikke needs_work)."
+      },
+      "status": {
+        "labelPrefix": "Status",
+        "submitted": "Sendt",
+        "needsWork": "Må forbedres",
+        "approved": "Godkjent"
+      },
+      "statusDesc": {
+        "submitted": "Levert og venter på lærer.",
+        "needsWork": "Læreren ba deg forbedre og levere på nytt.",
+        "approved": "Godkjent av lærer. Den kan ikke endres nå.",
+        "generic": "Status oppdatert."
+      },
+      "statusMeta": {
+        "updatedAt": "Oppdatert: {v}",
+        "teacherAt": "Lærerkommentar: {v}"
+      },
+      "statusToggleTitle": "Dette settes av læreren",
+      "teacher": {
+        "commentTitle": "Kommentar fra lærer",
+        "none": "Ingen kommentar ennå.",
+        "noneWaiting": "Ingen kommentar ennå (venter på lærer)."
+      },
+      "auto": {
+        "label": "Auto",
+        "hintMixed": "Flervalg og sant/usant rettes automatisk når du leverer. Åpne svar vurderes av læreren.",
+        "hintOpenOnly": "Åpne svar vurderes av læreren."
+      },
+      "image": {
+        "title": "Bilde",
+        "alt": "Oppgave",
+        "noneTitle": "Ingen bilde",
+        "noneDesc": "Denne oppgaven har ikke et forsidebilde."
+      },
+      "translate": {
+        "to": "Oversett til",
+        "searchPlaceholder": "Søk språk…",
+        "text": "Oversett tekst",
+        "tasks": "Oversett oppgaver",
+        "translating": "Oversetter…",
+        "reset": "Nullstill oversettelse",
+        "failed": "Oversettelse feilet",
+        "translatedLabel": "Oversatt",
+        "showTranslation": "Vis oversettelse",
+        "hideTranslation": "Skjul oversettelse"
+      },
+      "submit": {
+        "submit": "SEND INN TIL KLASSE",
+        "resubmit": "SEND INN PÅ NYTT (Må forbedres)",
+        "saving": "Sender inn…",
+        "submitted": "Levert ✅",
+        "title": "Levering",
+        "anonTitle": "Gjester kan også levere (anonym innlogging)"
+      },
+      "tts": {
+        "speed": "Hastighet",
+        "playOriginal": "🔊 Spill original",
+        "playTranslation": "🔊 Spill oversettelse",
+        "stop": "⏹ Stopp",
+        "pause": "⏸ Pause",
+        "continue": "▶️ Fortsett",
+        "replay": "⟲ Spill setning på nytt",
+        "prev": "⟵ Forrige",
+        "next": "Neste ⟶",
+        "generating": "Lager…",
+        "failed": "TTS feilet"
+      },
+      "text": {
+        "title": "Tekst",
+        "noText": "Ingen tekst",
+        "clickToSeek": "Trykk for å hoppe i lyd"
+      },
+      "tasks": {
+        "title": "Oppgaver",
+        "none": "Ingen oppgaver i denne leksjonen.",
+        "showAll": "Vis alle oversettelser",
+        "hideAll": "Skjul alle oversettelser",
+        "taskN": "Oppgave {n}",
+        "yourAnswer": "Ditt svar",
+        "true": "Sant",
+        "false": "Usant",
+        "locked": "Låst",
+        "autoCorrect": "Auto: ✅ riktig",
+        "autoWrong": "Auto: ❌ feil",
+        "autoUnanswered": "Auto: ⏳ ubesvart",
+        "writeAnswerPlaceholder": "Skriv svaret ditt…"
+      }
+    },
+    "submission": {
+      "title": "Innlevering",
+      "submissionIdLabel": "ID",
+      "spaceLabel": "klasse",
+      "assignmentLabel": "oppgave",
+      "toAssignment": "Til oppgaven",
+      "back": "Tilbake",
+      "save": "Lagre",
+      "locked": "Låst",
+      "loading": "Laster…",
+      "errorTitle": "Feil",
+      "noFeedback": "Ingen tilbakemelding enda.",
+      "teacherFeedbackTitle": "Tilbakemelding fra lærer",
+      "answersTitle": "Svar (JSON)",
+      "helper": "(Foreløpig editor som JSON. Neste steg kan være «ordentlig» skjema basert på task-typen.)",
+      "lockedNotice": "Denne besvarelsen er markert som <strong>reviewed</strong> og kan ikke endres.",
+      "errors": {
+        "notFound": "Fant ikke innleveringen",
+        "noAccess": "Du har ikke tilgang til denne innleveringen.",
+        "loadFailed": "Kunne ikke laste inn innlevering",
+        "locked": "Denne innleveringen er låst (reviewed).",
+        "invalidJson": "Ugyldig JSON. Rett formateringen før du lagrer.",
+        "answersMustBeObject": "Svar må være et JSON-objekt.",
+        "saveFailed": "Kunne ikke lagre"
+      }
+    },
+    "dashboard": {
+      "fallback": { "lessonTitle": "Oppgave" },
+      "meta": { "level": "Nivå", "status": "Status" },
+      "empty": {
+        "title": "Du har ikke startet noen oppgaver ennå.",
+        "cta": "Gå til Bibliotek og velg en oppgave"
+      },
+      "errors": {
+        "permissionDenied": "Du har ikke tilgang til å lese submissions (rules).",
+        "generic": "Noe gikk galt."
+      }
+    },
+    "dashboardIntro": {
+      "helloAnon": "Hei! 👋",
+      "helloUser": "Hei, {name} 👋",
+      "guest": "inne som gjest",
+      "loggedIn": "innlogget",
+      "roleFallback": "Bruker",
+      "youAre": "Du er {state} som <b>{role}</b>.",
+      "activity": "Her ser du din siste aktivitet. På <b>Mitt innhold</b> finner du alt du har jobbet med tidligere.",
+      "recommendRegister": "Vi anbefaler deg å registrere deg for å lagre påbegynte oppgaver.",
+      "actions": {
+        "registerLogin": "Registrer / logg inn",
+        "openLibrary": "Åpne bibliotek"
+      }
+    },
+    "board": {
+      "title": "Tavle",
+      "subtitle": "Dette er live-tavla i klassen din.",
+      "loading": "Laster…",
+      "inactive": "Ingen live økt akkurat nå.",
+      "sent": "Svar sendt!",
+      "fallbackStudentName": "Elev",
+      "fallbackQuestionTitle": "Spørsmål",
+      "errors": {
+        "fetchBoardFailed": "Kunne ikke hente tavla."
+      },
+      "groupName": {
+        "label": "Gruppenavn (valgfritt)",
+        "placeholder": "F.eks: Team 3"
+      },
+      "answer": {
+        "label": "Ditt svar",
+        "placeholder": "Skriv kort…",
+        "send": "Send til tavla"
+      },
+      "countdown": {
+        "label": "Tid igjen",
+        "seconds": "{seconds}s"
+      }
+    }
+  },
+  "teacher": {
+    "spaces": {
+      "title": "Lærerrom",
+      "subtitle": "Rom er klasser/grupper der du deler oppgaver via lenke eller kode. Å dele til et rom krever attestering (B1), men ikke fullt navn.",
+      "newSpace": "+ Nytt rom",
+      "newSpaceLocked": "+ Nytt rom (låst)",
+      "newSpaceTitle": "Opprett et nytt rom",
+      "newSpaceLockedTitle": "Krever attestering + lærer-/produsentmodus",
+      "controls": {
+        "search": {
+          "label": "Søk",
+          "placeholder": "Tittel eller kode…"
+        },
+        "sort": {
+          "label": "Sorter",
+          "options": {
+            "newest": "Nyest",
+            "oldest": "Eldst",
+            "title_az": "Tittel (A–Å)",
+            "title_za": "Tittel (Å–A)"
+          }
+        },
+        "filters": {
+          "label": "Filter",
+          "openOnly": "Kun åpne",
+          "showing": "Viser: {n}"
+        }
+      },
+      "list": {
+        "untitled": "Rom uten tittel",
+        "open": "Åpent",
+        "closed": "Lukket",
+        "openTitle": "Rommet er åpent",
+        "closedTitle": "Rommet er lukket",
+        "code": "Kode:",
+        "copyCodeTitle": "Kopier kode",
+        "copied": "Kopiert ✅",
+        "members": "Medlemmer:",
+        "copyJoinLink": "Kopier bli med-lenke",
+        "copyJoinLinkTitle": "Kopier bli med-lenke",
+        "joinWithQr": "Bli med med QR-kode",
+        "joinWithQrTitle": "Vis QR-kode",
+        "seeMembers": "Se medlemmer",
+        "seeMembersTitle": "Se medlemmer",
+        "openSpace": "Åpne",
+        "openSpaceTitle": "Åpne rom"
+      },
+      "empty": {
+        "title": "Ingen rom funnet.",
+        "hint": "Opprett et rom med Nytt rom, og del deretter via kode eller lenke."
+      },
+      "qr": {
+        "title": "Bli med (QR)",
+        "subtitle": "{title} · Kode: {code}",
+        "close": "Lukk",
+        "generating": "Lager…",
+        "error": "Kunne ikke lage QR. Installer avhengighet: npm i qrcode",
+        "pointsTo": "Denne QR-en peker til",
+        "note": "Merk: Installer QR-avhengighet én gang: npm i qrcode",
+        "imageAlt": "QR-kode"
+      }
+    },
+    "spaceDetail": {
+      "checking": {
+        "title": "Rom",
+        "subtitle": "Sjekker tilgang…"
+      },
+      "actions": {
+        "back": "← Tilbake",
+        "submissions": "Innleveringer",
+        "setActive": "Sett aktiv",
+        "archive": "Arkiver",
+        "restore": "Gjenopprett"
+      },
+      "access": {
+        "mustBeSignedIn": "Du må være logget inn.",
+        "notMember": "Du er ikke medlem av dette rommet.",
+        "verifyFailed": "Kunne ikke verifisere tilgang."
+      },
+      "denied": {
+        "title": "Ingen tilgang",
+        "subtitle": "Du har ikke tilgang til dette rommet.",
+        "hint": "For å bli med: bruk lenke/kode eller be eieren legge deg til.",
+        "joinCardTitle": "Bli med i dette rommet",
+        "joinLinkLabel": "Bli med-lenke:"
+      },
+      "overview": {
+        "subtitle": "Her finner du koder og lenker du kan sende til deltakere, slik at de kan bli med i rommet.",
+        "code": "Kode:",
+        "copyCodeTitle": "Kopier kode",
+        "copied": "Kopiert ✅",
+        "openLabel": "Åpent:",
+        "yes": "Ja",
+        "no": "Nei",
+        "copyJoinLink": "Kopier bli med-lenke",
+        "qr": "QR",
+        "activeForStudents": "Aktiv for studenter:",
+        "clear": "Fjern"
+      },
+      "notice": {
+        "needAttestationHtml": "For å administrere rom (B1-modell) trenger du <b>attestering</b> og <b>lærer</b>- eller <b>produsent</b>-modus."
+      },
+      "assignments": {
+        "title": "Oppgaver",
+        "subtitle": "Tildel oppgaver fra Mitt innhold eller Bibliotek. Studenter ser tildelte oppgaver etter at de har blitt med.",
+        "assignTask": "Tildel oppgave",
+        "showArchived": "Vis arkiverte",
+        "hideArchived": "Skjul arkiverte",
+        "openSpace": "Åpne rom",
+        "closeSpace": "Lukk rom",
+        "emptyHtml": "Ingen oppgaver ennå. Trykk <b>Tildel oppgave</b>."
+      },
+      "labels": {
+        "myContent": "Mitt innhold",
+        "library": "Bibliotek"
+      },
+      "badges": {
+        "active": "Aktiv",
+        "archived": "Arkivert",
+        "noSubmissions": "Ingen innleveringer",
+        "allReviewed": "Alt er vurdert",
+        "newCount": "{n} nye",
+        "submissionsCount": "{n} innleveringer",
+        "submissionsError": "Innleveringer: feil"
+      },
+      "assignModal": {
+        "title": "Tildel oppgave",
+        "subtitle": "Velg fra Mitt innhold eller Bibliotek.",
+        "close": "Lukk",
+        "searchPlaceholder": "Søk tittel / nivå / språk…",
+        "noResults": "Ingen treff.",
+        "lessonId": "lessonId",
+        "publishedLessonId": "publishedLessonId",
+        "assign": "Tildel",
+        "paging": {
+          "prev": "← Forrige",
+          "next": "Neste →",
+          "showing": "Viser",
+          "zero": "0 av 0",
+          "range": "{start}-{end} av {total}"
+        }
+      },
+      "qr": {
+        "title": "Bli med (QR)",
+        "codeLabel": "Kode:",
+        "close": "Lukk",
+        "generating": "Lager…",
+        "pointsTo": "Peker til",
+        "note": "Ved behov: npm i qrcode",
+        "imageAlt": "QR-kode",
+        "error": "Kunne ikke lage QR. Installer avhengighet: npm i qrcode"
+      },
+      "errors": {
+        "needAttestation": "For å administrere dette rommet trenger du attestering og lærer-/produsentmodus.",
+        "noManageAccess": "Du har ikke tilgang til å administrere dette rommet.",
+        "setActiveFailed": "Kunne ikke sette aktiv oppgave.",
+        "assignFailed": "Kunne ikke tildele oppgave.",
+        "updateAssignmentFailed": "Kunne ikke oppdatere oppgaven.",
+        "updateSpaceFailed": "Kunne ikke oppdatere rommet.",
+        "readSubmissionsFailed": "Kunne ikke lese innleveringer."
+      },
+      "fallback": {
+        "task": "Oppgave",
+        "untitledTask": "Oppgave uten tittel",
+        "untitled": "Uten tittel"
+      }
+    },
+    "assignedTask": {
+      "actions": {
+        "backToSpace": "← Tilbake til rommet"
+      },
+      "header": {
+        "subtitle": "Dette er visningen for tildelt oppgave. Innleveringer listes under.",
+        "assignmentMissing": "Fant ikke oppgaven i",
+        "sourceMissing": "Oppgaven finnes, men kilden (leksjonen) kunne ikke finnes/leses."
+      },
+      "meta": {
+        "level": "Nivå",
+        "language": "Språk"
+      },
+      "error": {
+        "title": "Feil"
+      },
+      "submissions": {
+        "title": "Innleveringer",
+        "loading": "Henter innleveringer…",
+        "empty": "Ingen innleveringer ennå."
+      },
+      "status": {
+        "needsWork": "Må forbedres",
+        "approved": "Godkjent"
+      },
+      "fallback": {
+        "task": "Oppgave",
+        "student": "Student",
+        "unknownStudent": "Ukjent student"
+      }
+    },
+    "submission": {
+      "title": "Innlevering",
+      "actions": {
+        "back": "← Tilbake"
+      },
+      "errors": {
+        "missingParams": "Mangler spaceId/assignmentId/subId i URL."
+      },
+      "missing": {
+        "title": "Fant ikke innleveringen"
+      },
+      "meta": {
+        "studentLabel": "Student:",
+        "delivered": "Levert:",
+        "deliveredUnknown": "Levert: (ukjent)",
+        "guest": "Gjest (uinnlogget)",
+        "loggedIn": "Innlogget"
+      },
+      "status": {
+        "approved": "Godkjent",
+        "needsWork": "Må forbedres"
+      },
+      "auto": {
+        "main": "Auto: {correct}/{total}{pctText}",
+        "details": "Riktig: {correct} · Feil: {wrong} · Ikke besvart: {unanswered}",
+        "taskCorrect": "Auto: ✅ riktig",
+        "taskWrong": "Auto: ❌ feil",
+        "taskUnanswered": "Auto: ⏳ ikke besvart"
+      },
+      "notice": {
+        "needAttestationHtml": "For å gi tilbakemelding må du ha <b>attestering</b> og være i <b>teacher</b> eller <b>creator</b>-mode."
+      },
+      "studentView": {
+        "title": "Svar (slik studenten ser det)",
+        "loadingLesson": "Henter oppgave…",
+        "level": "Nivå: {v}",
+        "imageAlt": "Oppgave",
+        "noImageTitle": "Ingen bilde",
+        "noImageDesc": "Denne oppgaven har ikke forsidebilde.",
+        "textTitle": "Tekst",
+        "tasksTitle": "Oppgaver",
+        "noTasks": "Ingen oppgaver i denne leksjonen (eller leksjonen ble ikke funnet).",
+        "noTasksHint": "Dette betyr ofte at assignment.sourceId mangler eller lesson.tasks er tom.",
+        "taskN": "Oppgave {n}",
+        "correctTag": "✓ fasit",
+        "selectedTag": "Valgt",
+        "true": "True",
+        "false": "False",
+        "notAnswered": "(ikke besvart)"
+      },
+      "feedback": {
+        "title": "Tilbakemelding",
+        "statusLabel": "Status",
+        "placeholder": "Skriv en kort tilbakemelding…",
+        "needTextToChangeStatus": "For å endre status må du skrive en kort kommentar.",
+        "saveButton": "Lagre tilbakemelding",
+        "saving": "Lagrer…",
+        "saved": "Lagret ✅",
+        "saveFailed": "Kunne ikke lagre: {msg}",
+        "rulesHint": "(Regler: kun lærer/eier/admin kan endre)"
+      },
+      "fallback": {
+        "guest": "Gjest",
+        "task": "Oppgave",
+        "unknownError": "ukjent feil"
+      }
+    }
+  },
+  "teacherBoard": {
+    "header": {
+      "title": "Digital tavle",
+      "subtitle": "Live i dette space. Du styrer innholdet – studentene ser det i sanntid."
+    },
+    "common": {
+      "loading": "Laster…"
+    },
+    "errors": {
+      "fetchState": "Kunne ikke hente board state."
+    },
+    "defaults": {
+      "title": "Dagens spørsmål",
+      "prompt": "Skriv med egne ord: Hva betyr teller og nevner?"
+    },
+    "fallbacks": {
+      "question": "Spørsmål"
+    },
+    "status": {
+      "label": "Status",
+      "live": "LIVE",
+      "notLive": "Ikke live",
+      "session": "session"
+    },
+    "actions": {
+      "startLive": "Start live",
+      "stop": "Stopp",
+      "updateBoard": "Oppdater tavla",
+      "newRound": "Ny runde",
+      "clearAnswers": "Tøm svar",
+      "showAnswers": "Vis svar igjen"
+    },
+    "fields": {
+      "title": {
+        "label": "Tittel",
+        "placeholder": "F.eks: Dagens spørsmål"
+      },
+      "prompt": {
+        "label": "Tekst / prompt",
+        "placeholder": "Skriv prompten studentene skal se…"
+      }
+    },
+    "timer": {
+      "set": "Timer {seconds}s",
+      "clear": "Fjern timer"
+    },
+    "preview": {
+      "title": "Forhåndsvisning"
+    },
+    "countdown": {
+      "label": "Tid igjen"
+    },
+    "responses": {
+      "title": "Elevsvar (live)",
+      "count": "{count} svar",
+      "hint": "Start live for å samle svar",
+      "clearedPrefix": "Svar er tømt (skjult). Trykk",
+      "clearedSuffix": "for å se alt.",
+      "noSession": "Ingen aktiv session.",
+      "noneYet": "Ingen svar enda.",
+      "unknown": "Ukjent"
+    }
+  },
+  "teacherMembers": {
+    "title": "Medlemmer",
+    "subtitle": "{spaceTitle}",
+    "showing": "Viser:",
+    "common": {
+      "loading": "Laster…",
+      "dash": "—"
+    },
+    "errors": {
+      "missingSpaceId": "Mangler spaceId"
+    },
+    "fallbacks": {
+      "spaceTitle": "Klasse"
+    },
+    "labels": {
+      "spaceId": "SpaceId"
+    },
+    "actions": {
+      "backToSpace": "Tilbake til klassen",
+      "allSpaces": "Alle klasser"
+    },
+    "search": {
+      "placeholder": "Søk navn / rolle / uid…"
+    },
+    "table": {
+      "name": "Navn",
+      "role": "Rolle",
+      "joined": "Ble med",
+      "type": "Type",
+      "uid": "UID"
+    },
+    "types": {
+      "anon": "Anon",
+      "signedIn": "Innlogget"
+    },
+    "empty": "Ingen medlemmer funnet.",
+    "tip": {
+      "prefix": "Tips: Hvis du ikke ser navn ennå, betyr det at join-flyten ikke har lagret",
+      "suffix": "på medlemmer."
+    }
+  },
+  "studentLesson": {
+    "loading": "Laster…",
+    "noData": "Ingen data.",
+    "fallback": { "lessonTitle": "Oppgave" },
+    "nav": {
+      "backToDashboard": "Tilbake til dashboard",
+      "backToPreview": "Tilbake til forhåndsvisning"
+    },
+    "errors": {
+      "missingLessonId": "Mangler lessonId i URL.",
+      "notPublished": "Denne oppgaven er ikke publisert (eller er avpublisert).",
+      "notFound": "Denne oppgaven er ikke publisert (eller finnes ikke).",
+      "noAccess": "Denne oppgaven er ikke publisert (eller du har ikke tilgang).",
+      "generic": "Noe gikk galt",
+      "couldNotSave": "Kunne ikke lagre",
+      "couldNotSubmit": "Kunne ikke sende inn"
+    },
+    "anon": {
+      "savedLocally": "Du er anonym: svar lagres på denne enheten (localStorage)."
+    },
+    "image": {
+      "title": "Bilde",
+      "alt": "Oppgavebilde",
+      "noImageTitle": "Ingen bilde ennå",
+      "noImageHint": "Denne plassen er reservert for et opplastet bilde."
+    },
+    "actions": {
+      "saving": "Lagrer…",
+      "saveOnDevice": "LAGRE PÅ DENNE ENHETEN",
+      "saveToMyContent": "LAGRE TIL MITT INNHOLD"
+    },
+    "translate": {
+      "label": "Oversett til",
+      "searchPlaceholder": "Søk språk…",
+      "translating": "Oversetter…",
+      "translateText": "Oversett tekst",
+      "translateTasks": "Oversett oppgaver",
+      "reset": "Nullstill oversettelse",
+      "failed": "Oversettelse feilet",
+      "translatedLabel": "Oversatt"
+    },
+    "text": {
+      "title": "Tekst",
+      "speed": "Hastighet",
+      "generating": "Genererer…",
+      "playOriginal": "🔊 Spill original",
+      "playTranslation": "🔊 Spill oversettelse",
+      "stop": "⏹ Stopp",
+      "pause": "⏸ Pause",
+      "continue": "▶️ Fortsett",
+      "replaySentence": "⟲ Spill setning på nytt",
+      "prev": "⟵ Forrige",
+      "next": "Neste ⟶",
+      "hideTranslation": "Skjul oversettelse",
+      "showTranslation": "Vis oversettelse",
+      "noText": "Ingen tekst",
+      "clickToSeek": "Klikk for å hoppe i lyden"
+    },
+    "tasks": {
+      "title": "Oppgaver",
+      "showAnswers": "Vis svar",
+      "hideAnswers": "Skjul svar",
+      "clearAnswers": "Tøm svar",
+      "noTasks": "Ingen oppgaver i denne leksjonen.",
+      "taskLabel": "Oppgave {n}",
+      "showTranslation": "Vis oversettelse",
+      "hideTranslation": "Skjul oversettelse",
+      "showAllTranslations": "Vis alle oversettelser",
+      "hideAllTranslations": "Skjul alle oversettelser",
+      "correct": "Riktig",
+      "wrong": "Feil",
+      "yourAnswer": "Ditt svar",
+      "writeAnswerPlaceholder": "Skriv svaret ditt…",
+      "true": "Sant",
+      "false": "Usant"
+    },
+    "feedback": {
+      "title": "Tilbakemelding",
+      "submitting": "Sender inn…",
+      "loginForFeedback": "LOGG INN FOR TILBAKEMELDING",
+      "getFeedback": "FÅ SVAR / TILBAKEMELDING",
+      "generate": "Generer tilbakemelding",
+      "translateFeedback": "OVERSETT TILBAKEMELDING",
+      "translateButtonTitle": "Oversett tilbakemelding",
+      "translating": "Oversetter…",
+      "anonHint": "Anonym modus: svar lagres lokalt. Logg inn for AI-tilbakemelding.",
+      "noFeedbackYet": "Ingen tilbakemelding ennå. Send inn når du er klar.",
+      "translatedFeedbackLabel": "Oversatt tilbakemelding",
+      "translateFailed": "Kunne ikke oversette tilbakemelding",
+      "loginToGetFeedback": "Logg inn for å få AI-tilbakemelding"
+    },
+    "tts": {
+      "failed": "TTS feilet"
+    },
+    "flash": {
+      "saved": "Lagret ✅",
+      "submitted": "Sendt inn ✅",
+      "answerAtLeastOne": "Svar på minst én oppgave først",
+      "loginToGetFeedback": "Logg inn for å få AI-tilbakemelding",
+      "clearedAnswers": "Svar tømt"
+    }
+  },
+  "lessonsLanding": {
+    "errors": {
+      "label": "Feil",
+      "fetchFailed": "Kunne ikke hente publiserte oppgaver."
+    },
+    "filters": {
+      "searchPlaceholder": "Søk: tittel, tekst, type…",
+      "textTypeAll": "Teksttype",
+      "languagePlaceholder": "Søk språk…",
+      "levelAll": "Nivå",
+      "reset": "Nullstill"
+    },
+    "status": {
+      "loading": "Laster publiserte oppgaver…",
+      "showingCount": "Viser {shown} av {total}"
+    },
+    "empty": {
+      "noResults": "Ingen publiserte oppgaver funnet. Prøv å fjerne filtre eller søke på noe annet."
+    },
+    "card": {
+      "imageFallback": "Bilde",
+      "openForDetails": "Åpne for detaljer"
+    },
+    "languages": {
+      "all": "Alle språk",
+      "norwegianBokmal": "Norsk (Bokmål)"
+    }
+  },
+  "applyTeacher": {
+    "title": "Bli teacher",
+    "intro": "Send en søknad. Når admin godkjenner får du tilgang til Teacher-dashbordet.",
+    "status": {
+      "label": "Status"
+    },
+    "states": {
+      "loading": "Laster…",
+      "mustBeLoggedIn": "Du må være innlogget.",
+      "goToTeacher": "Gå til Teacher →",
+      "pending": "Søknaden din ligger til behandling."
+    },
+    "anon": {
+      "explain": "Du bruker en midlertidig (anonym) bruker. Oppgrader kontoen for å sende søknad.",
+      "upgradeButton": "Logg inn / oppgrader konto"
+    },
+    "actions": {
+      "apply": "Søk om teacher-tilgang",
+      "sending": "Sender…"
+    },
+    "messages": {
+      "sentPending": "Søknaden er sendt ✅ (status: pending)",
+      "sendFailed": "Kunne ikke sende søknad: {error}"
+    }
+  },
+  "studentBrowse": {
+    "title": "Mitt bibliotek",
+    "intro": "Her ser du publiserte oppgaver. Du kan skjule eller markere de du allerede har hentet.",
+    "filters": {
+      "hideOpened": "Skjul hentede"
+    },
+    "states": {
+      "loading": "Laster…"
+    },
+    "empty": {
+      "noneNew": "Ingen nye oppgaver (alle er allerede hentet).",
+      "nonePublished": "Ingen publiserte oppgaver enda."
+    },
+    "badge": {
+      "opened": "Hentet"
+    },
+    "meta": {
+      "level": "Nivå: {level}",
+      "topic": "Tema: {topic}",
+      "language": "Språk: {language}"
+    },
+    "fallback": {
+      "untitled": "(Uten tittel)"
+    },
+    "errors": {
+      "fetchFailed": "Kunne ikke hente oppgaver."
+    }
+  },
+  "content": {
+    "title": "Mitt innhold",
+    "subtitle": "Her samler vi alt innhold: publiser, del, PDF, rediger og mer.",
+    "search": {
+      "placeholder": "Søk i tittel, status og metadata…"
+    },
+    "filters": {
+      "all": "Alt",
+      "lessons": "Oppgaver",
+      "submissions": "Innleveringer",
+      "spaces": "Klasserom"
+    },
+    "states": {
+      "loadingContent": "Laster innhold…"
+    },
+    "pills": {
+      "published": "publisert",
+      "unpublished": "ikke publisert"
+    },
+    "actions": {
+      "open": "Åpne",
+      "edit": "Rediger",
+      "editAnswers": "Rediger svar",
+      "openLesson": "Åpne oppgave",
+      "openSpace": "Åpne klasserom",
+      "publish": "Publiser",
+      "unpublish": "Avpubliser",
+      "working": "Jobber…",
+      "share": "Del",
+      "shareTitle": "Del (lenke + QR)",
+      "shareToSpace": "Del til klasserom",
+      "pdf": "PDF",
+      "delete": "Slett",
+      "refresh": "Oppdater",
+      "loading": "Laster…",
+      "copyJoinCode": "Kopier kode",
+      "copyJoinLink": "Kopier lenke",
+      "shareLinkQr": "Del (lenke + QR)"
+    },
+    "errors": {
+      "label": "Feil",
+      "loadFailed": "Kunne ikke laste innhold",
+      "assignFailed": "Kunne ikke dele til klasserom",
+      "lessonNotFound": "Fant ikke oppgaven",
+      "cannotPublishDeleted": "Denne oppgaven er slettet/arkivert og kan ikke publiseres.",
+      "publishFailed": "Kunne ikke oppdatere publiseringsstatus",
+      "deleteFailed": "Kunne ikke slette (arkivere) oppgaven"
+    },
+    "titles": {
+      "lesson": "Oppgave",
+      "space": "Klasserom",
+      "submission": "Innlevering",
+      "submissionWithLesson": "{lessonTitle} – Innlevering",
+      "submissionWithId": "Innlevering · {id}"
+    },
+    "empty": {
+      "guest": {
+        "line1": "Du er i gjestemodus. Foreløpig viser My content ingen lagrede elementer her.",
+        "line2": "Bruk <join>Join</join> for å åpne en oppgave/et klasserom med kode, eller <login>logg inn</login> for å synkronisere innhold."
+      },
+      "authed": "Du har ikke noe innhold i feeden ennå. Når du lager eller bruker oppgaver, klasserom eller innleveringer, dukker de opp her."
+    },
+    "footer": {
+      "joinViaCode": "Bli med med kode",
+      "tools": "Verktøy"
+    },
+    "share": {
+      "title": "Del",
+      "linkLabel": "Lenke",
+      "copyLink": "Kopier lenke",
+      "copied": "Kopiert!",
+      "openLink": "Åpne lenke",
+      "tip": "Tips: Vis QR-koden på skjermen eller skriv den ut.",
+      "qrLabel": "QR",
+      "qrAlt": "QR-kode",
+      "qrNotReady": "QR-koden er ikke klar ennå (lenken fungerer).",
+      "shareUrlLabel": "Delingslenke:"
+    },
+    "shareToSpace": {
+      "title": "Del til klasserom",
+      "noSpaces": "Du har ingen klasserom ennå.",
+      "createsLabel": "Oppretter:"
+    },
+    "confirm": {
+      "deleteLesson": "Slette oppgave{title}?\n\nDette vil arkivere den (myk sletting).\nDet vil også forsøke å avpublisere via server.\n\nEn admin kan gjenopprette den senere."
+    }
+  },
+  "producer": {
+    "newText": {
+      "title": "Lag ny oppgave",
+      "subtitle": "Steg 1: generer tekst → Steg 2: generer oppgaver → rediger → lagre utkast.",
+      "defaults": {
+        "title": "Ny oppgave",
+        "prompt": "Å flytte til et nytt land"
+      },
+      "fields": {
+        "level": "Nivå",
+        "language": "Velg språk for oppgaven",
+        "languageSearchPlaceholder": "Søk språk (f.eks. Norsk, Somali, ti, pt-BR...)",
+        "languageCount": "Viser {count} språk",
+        "prompt": "Prompt / instrukser",
+        "promptTip": "Tips: Dette feltet er hoved-prompten som styrer KI-genereringen.",
+        "textType": "Teksttype",
+        "textTypeOtherPlaceholder": "Beskriv teksttypen...",
+        "textLength": "Tekstlengde (ord)"
+      },
+      "textTypes": {
+        "everydayStory": "Hverdagsfortelling",
+        "factual": "Faktatekst",
+        "fiction": "Skjønnlitteratur",
+        "article": "Artikkel",
+        "dialogue": "Dialog",
+        "news": "Nyheter",
+        "biography": "Biografi",
+        "letterEmail": "Brev / e-post",
+        "opinion": "Mening",
+        "howto": "Hvordan / instruksjon",
+        "other": "Annet"
+      },
+      "tasks": {
+        "generatorTitle": "KI-oppgaver (generator)",
+        "mcq": "Flervalg",
+        "trueFalse": "Sant/usant",
+        "facts": "Fakta",
+        "reflection": "Refleksjon",
+        "writeFactPrefix": "Skriv en fakta:",
+        "defaults": {
+          "mcqPrompt": "Nytt flervalgsspørsmål",
+          "tfPrompt": "Ny sant/usant-påstand",
+          "openPrompt": "Nytt åpent spørsmål",
+          "option1": "Alternativ 1",
+          "option2": "Alternativ 2",
+          "option3": "Alternativ 3",
+          "option4": "Alternativ 4"
+        }
+      },
+      "buttons": {
+        "step1": "Steg 1) Generer tekst",
+        "step2": "Steg 2) Generer oppgaver",
+        "saveDraft": "Lagre utkast",
+        "generatingText": "Genererer tekst…",
+        "generatingTasks": "Genererer oppgaver…",
+        "saving": "Lagrer…"
+      },
+      "hints": {
+        "generateTextFirst": "Generer eller skriv tekst først.",
+        "generateTasks": "Generer oppgaver basert på nåværende tekst.",
+        "tasksDirty": "Teksten er endret etter at oppgaver ble generert.",
+        "saveDraft": "Lagre utkast i Firestore"
+      },
+      "warnings": {
+        "checkTextBeforeTasks": "Sjekk teksten før du genererer oppgaver."
+      },
+      "status": {
+        "saved": "Lagret! ID: {id}"
+      },
+      "builder": {
+        "title": "Bygg opp oppgaven",
+        "lessonTitle": "Tittel",
+        "text": "Tekst"
+      },
+      "editor": {
+        "title": "Oppgave-editor",
+        "addMcq": "+ Flervalg",
+        "addTf": "+ Sant/usant",
+        "addOpen": "+ Åpen",
+        "empty": "Ingen oppgaver ennå. Generer oppgaver eller legg til manuelt.",
+        "taskId": "id: {id}",
+        "delete": "Slett",
+        "prompt": "Oppgavetekst",
+        "correctAnswer": "Riktig svar",
+        "options": "Svaralternativer",
+        "correctAnswerHint": "Riktig svar (må matche et alternativ)",
+        "openHint": "Åpen oppgave: eleven skriver et svar."
+      },
+      "answers": {
+        "true": "Sant",
+        "false": "Usant"
+      },
+      "debug": {
+        "title": "Debug: siste genererte pakke"
+      },
+      "errors": {
+        "generateOrWriteTextFirst": "Generer eller skriv tekst først.",
+        "missingTextInResponse": "Mangler tekst i svaret.",
+        "missingTasksInResponse": "Mangler 'tasks' i svaret.",
+        "titleRequired": "Tittel er påkrevd.",
+        "sourceTextEmpty": "Tekstfeltet er tomt.",
+        "notSignedIn": "Ikke innlogget. Logg inn som lærer/produsent.",
+        "emptyResponseFromServer": "Tomt svar fra server.",
+        "notJsonFromServer": "Serveren returnerte ikke JSON."
+      }
+    },
+    "editor": {
+      "pageTitle": "Produsent-editor",
+      "nav": {
+        "back": "← Tilbake"
+      },
+      "states": {
+        "loading": "Laster…"
+      },
+      "buttons": {
+        "save": "Lagre",
+        "saving": "Lagrer…"
+      },
+      "metaLine": "id: {id} · uid: {uid} · status: {status}",
+      "errors": {
+        "title": "Feil",
+        "notFound": "Fant ikke oppgaven.",
+        "noAccessOwnerMismatch": "Du har ikke tilgang til denne oppgaven (ownerId mismatch).",
+        "loadFailed": "Kunne ikke laste oppgaven.",
+        "noAuthUidNotReady": "Ingen auth uid (anon auth ikke klar).",
+        "noAuthUid": "Ingen auth uid.",
+        "chooseImageFile": "Velg en bildefil (jpg/png/webp).",
+        "fileTooLarge": "Filen er for stor. Maks 8MB.",
+        "uploadFailed": "Upload feilet.",
+        "saveFailed": "Lagring feilet."
+      },
+      "defaults": {
+        "language": "English"
+      },
+      "fields": {
+        "title": "Tittel",
+        "levelOptional": "Nivå (valgfritt)",
+        "producerName": "Produsent (vises i PDF)",
+        "topic": "Tema / topic",
+        "tags": "Tags (komma-separert)",
+        "tagsHelp": "Lagres som array i Firestore.",
+        "language": "Språk",
+        "estimatedMinutes": "Estimert tid (min)",
+        "releaseMode": "Release mode",
+        "releaseModeHelp": "TEXT_FIRST kan brukes senere til å låse opp oppgaver etter tekst.",
+        "status": "Status",
+        "text": "Tekst",
+        "cover": {
+          "title": "Bannerbilde (cover)",
+          "upload": "Last opp bilde",
+          "uploading": "Uploader…",
+          "remove": "Fjern bilde",
+          "removeTitle": "Fjerner URL (sletter ikke fra Storage i denne MVP-en)",
+          "formatLabel": "Format",
+          "format16x9": "16:9 (banner)",
+          "format4x3": "4:3 (klassisk)",
+          "help": "(Låst) Bildet lastes opp til Firebase Storage. URL + format lagres når du trykker",
+          "previewAlt": "Forhåndsvisning av banner",
+          "previewHint": "Preview: {format} (croppes med cover)",
+          "noneSelected": "Ingen banner valgt ({format})"
+        }
+      },
+      "placeholders": {
+        "title": "Oppgavetittel…",
+        "level": "A1 / A2 / B1 …",
+        "producerName": "F.eks. 321skole / Hogne / GuideToGo",
+        "topic": "Arbeid / Helse / Hverdagsliv …",
+        "tags": "arbeid, sikkerhet, norge",
+        "language": "English",
+        "sourceText": "Skriv inn kildetekst…",
+        "taskPrompt": "Skriv oppgavetekst…",
+        "mcqCorrectAnswer": "F.eks. Option A"
+      },
+      "counts": "{words} ord · {charsNoSpaces} tegn (uten mellomrom) · {charsWithSpaces} tegn (med mellomrom)",
+      "releaseModes": {
+        "allAtOnce": "ALL_AT_ONCE",
+        "textFirst": "TEXT_FIRST"
+      },
+      "statuses": {
+        "draft": "draft",
+        "published": "published"
+      },
+      "tasks": {
+        "title": "Oppgaver",
+        "add": {
+          "trueFalse": "+ Sant/usant",
+          "mcq": "+ Flervalg",
+          "open": "+ Åpen"
+        },
+        "empty": "Ingen oppgaver enda.",
+        "headerLine": "#{n} · {type} · id: {id}",
+        "type": "Type",
+        "prompt": "Oppgavetekst",
+        "delete": "Slett",
+        "deleteTitle": "Slett oppgave",
+        "defaults": {
+          "optionA": "Alternativ A",
+          "optionB": "Alternativ B",
+          "optionC": "Alternativ C",
+          "optionD": "Alternativ D"
+        }
+      },
+      "taskTypes": {
+        "truefalse": "truefalse",
+        "mcq": "mcq",
+        "open": "open"
+      },
+      "mcq": {
+        "optionsOnePerLine": "Alternativer (én per linje)",
+        "correctAnswer": "Riktig svar (må matche et alternativ)"
+      },
+      "tf": {
+        "correctAnswer": "Riktig svar",
+        "tip": "Tips: Preview-siden din bruker string \"true\"/\"false\"."
+      },
+      "answers": {
+        "true": "true",
+        "false": "false"
+      },
+      "open": {
+        "answerSpace": "Skriveplass i PDF",
+        "answerSpaceHelp": "Lagres per oppgave (brukes i Printable PDF).",
+        "hint": "Åpne oppgaver har ingen fasit her. Elevene får KI-feedback når de leverer."
+      },
+      "answerSpace": {
+        "short": "Kort",
+        "medium": "Middels",
+        "long": "Lang"
+      },
+      "footerRemember": "Husk å trykke"
+    },
+    "print": {
+      "pageTitle": "Utskriftsvennlig PDF",
+      "states": { "loading": "Laster…" },
+      "nav": { "backToEditor": "← Tilbake" },
+      "actions": {
+        "print": "Last ned PDF / Skriv ut",
+        "teacherVersion": "Lærerversjon (fasit)",
+        "studentVersion": "Elevversjon"
+      },
+      "tips": {
+        "saveAsPdf": "Tips: I utskriftsdialogen → velg «Lagre som PDF»."
+      },
+      "defaults": { "worksheetTitle": "Arbeidsark" },
+      "labels": {
+        "producer": "Produsent",
+        "level": "Nivå",
+        "bannerAlt": "Banner"
+      },
+      "identity": {
+        "name": "Navn",
+        "date": "Dato",
+        "class": "Klasse"
+      },
+      "sections": {
+        "readingText": "Lesetekst",
+        "tasks": "Oppgaver"
+      },
+      "tasksEmpty": "Ingen oppgaver å skrive ut (tomme prompts skjules).",
+      "teacher": {
+        "answerKey": "Fasit",
+        "suggestionNote": "Forslag / notat",
+        "dash": "—"
+      },
+      "answers": {
+        "true": "Sant",
+        "false": "Usant"
+      },
+      "errors": {
+        "title": "Feil",
+        "unknown": "Ukjent feil",
+        "noAuthUid": "Ingen auth uid.",
+        "notFound": "Fant ikke oppgaven.",
+        "noAccessOwnerMismatch": "Du har ikke tilgang til denne oppgaven (ownerId mismatch).",
+        "loadFailed": "Kunne ikke laste oppgaven."
+      }
+    }
+  },
+  "unauthorized": {
+    "common": {
+      "yes": "yes",
+      "no": "no",
+      "login": "Log in",
+      "backToStudent": "Back to Student"
+    },
+    "notLoggedIn": {
+      "title": "Unauthorized",
+      "body": "You must be logged in to access this page.",
+      "ctaLogin": "Go to login"
+    },
+    "anonymous": {
+      "title": "You don’t have access yet",
+      "body": "You are browsing as a guest (anonymous). Some parts require a logged-in account."
+    },
+    "noAccess": {
+      "title": "You don’t have access yet",
+      "body": "Your account is missing the required access for this section."
+    },
+    "card": {
+      "title": "Your access",
+      "admin": "admin",
+      "teacher": "teacher",
+      "creator": "creator",
+      "status": "(status: {status})"
+    },
+    "actions": {
+      "applyTeacher": "Apply for teacher",
+      "applyCreator": "Apply for creator",
+      "frontpage": "Front page"
+    },
+    "tips": {
+      "refresh": "If you were just approved: try refreshing the page."
+    }
+  },
+  "join": {
+    "title": "Bli med",
+    "subtitle": "Skriv inn kode og navn. Navnet vises til læreren i medlemslista.",
+    "fields": {
+      "spaceCode": {
+        "label": "Space code",
+        "placeholder": "F.eks. MUR583"
+      },
+      "name": {
+        "label": "Ditt navn",
+        "placeholder": "F.eks. Sara Ali",
+        "tip": "Tips: dette kan være fornavn + etternavn, eller bare fornavn."
+      }
+    },
+    "actions": {
+      "join": "Bli med",
+      "joining": "Blir med…"
+    },
+    "errors": {
+      "nameRequired": "Skriv navnet ditt før du blir med.",
+      "spaceNotFound": "Fant ikke space med denne koden. Sjekk at koden er riktig."
+    }
+  },
+  "landing": {
+    "common": {
+      "login": "Logg inn",
+      "register": "Registrer"
+    },
+    "topbar": {
+      "nav": {
+        "teachers": "For lærere",
+        "students": "For studenter",
+        "spaces": "Spaces"
+      }
+    },
+    "hero": {
+      "badge": "Gratis for både studenter, lærere og foreldre!",
+      "title": "Undervisning. Forsterket med AI.",
+      "lead": "Generer egne undervisningsopplegg på alle språk med oversettelse og lyd, og del med studenter som får umiddelbar, pedagogisk feedback – på riktig nivå.",
+      "ctaPrimary": "Registrer deg i dag",
+      "ctaSecondary": "Logg inn",
+      "guestNote": "Gjestebrukere kommer inn via delingslenker til oppgaver/Spaces.",
+      "stats": {
+        "languages": { "title": "Språk", "value": "Alle", "hint": "Tekst + oppgaver + feedback" },
+        "level": { "title": "Nivå", "value": "CEFR A1–C1", "hint": "Forenkle, forbedre, variere" },
+        "audio": { "title": "Lyd", "value": "Justerbar", "hint": "Tekst + oversettelse" },
+        "pdf": { "title": "PDF", "value": "Eksport", "hint": "Opplegg klart til bruk" }
+      },
+      "imageAlt": "Illustrasjon av lærer og student som bruker 321skole",
+      "cards": {
+        "text": { "title": "Tekst", "subtitle": "Nivåtilpass" },
+        "tasks": { "title": "Oppgaver", "subtitle": "Varier" },
+        "feedback": { "title": "Feedback", "subtitle": "Umiddelbar" }
+      },
+      "floating": {
+        "title": "Pedagogisk AI",
+        "subtitle": "Læreren styrer · AI hjelper"
+      }
+    },
+    "trustLine": "Klar for skoler, kurs og voksenopplæring – uten tung LMS-friksjon.",
+    "teachers": {
+      "eyebrow": "For lærere",
+      "title": "Lag mer – med mindre stress",
+      "description": "Et arbeidsverktøy som hjelper deg å produsere, tilpasse og dele undervisningsinnhold – uten å miste kontroll over kvalitet og nivå.",
+      "imageAlt": "Lærer som planlegger undervisning på laptop",
+      "bullets": [
+        "Lag tekster på alle språk (skriv, lim inn eller generer).",
+        "Juster tekst automatisk til CEFR-nivå (A1–C1).",
+        "Generer og rediger mange oppgavetyper (flervalg, åpne svar, skriveoppgaver).",
+        "Del med studenter via Spaces – og samle innleveringer.",
+        "Eksporter ferdige opplegg som PDF."
+      ],
+      "cta": "Registrer deg i dag"
+    },
+    "students": {
+      "eyebrow": "For studenter",
+      "title": "Forstå mer. Lær tryggere.",
+      "description": "Studentene får støtte akkurat der det trengs mest: forståelse, tempo og trygg tilbakemelding – på undervisningsspråket og valgfritt på morsmål.",
+      "imageAlt": "Student som lærer språk med hodetelefoner",
+      "bullets": [
+        "Oversett tekst og oppgaver til valgfritt språk.",
+        "Justerbar lydhastighet – både på tekstspråk og oversettelse.",
+        "Umiddelbar feedback på egne tekster (tekstspråk + valgfritt andrespråk).",
+        "Forklaringer som hjelper deg videre – ikke bare riktig/feil.",
+        "Gratis tilgang for studenter."
+      ],
+      "cta": "Logg inn"
+    },
+    "spaces": {
+      "eyebrow": "Spaces",
+      "title": "Ett rom for alt som skjer i undervisningen",
+      "description": "Del opplegg, samle innleveringer, og følg progresjon – for klasserom, kurs og voksenopplæring.",
+      "cards": [
+        { "title": "Del på sekunder", "text": "Gi studentene en lenke eller kode. De kommer rett inn i opplegget." },
+        { "title": "Anonym eller innlogget", "text": "Støtter lav terskel i starten – og trygg innlogging når dere vil." },
+        { "title": "Oversikt og flyt", "text": "Alt samlet: tekster, oppgaver, svar og feedback – tydelig og ryddig." }
+      ],
+      "imageAlt": "Mockup av Spaces i 321skole"
+    },
+    "whyAi": {
+      "eyebrow": "Hvorfor AI?",
+      "title": "AI som assistent. Ikke fasit.",
+      "description": "Dette er pedagogisk AI: læreren bestemmer innholdet, og AI hjelper med språk, nivå og variasjon. Studentene får forklaringer – ikke snarveier.",
+      "checks": [
+        "Læreren har kontroll: alt kan redigeres og justeres.",
+        "Trygg støtte: fokus på læring, forståelse og progresjon.",
+        "Flerspråklig fra bunnen av: tekst, oppgaver, lyd og feedback."
+      ],
+      "flowTitle": "Eksempel på flyt",
+      "flow": {
+        "1": "Lærer velger tema og nivå",
+        "2": "Tekst lages/tilpasses på minutter",
+        "3": "Oppgaver genereres og redigeres",
+        "4": "Del i Space → studenter jobber",
+        "5": "Umiddelbar feedback + eksport som PDF"
+      }
+    },
+    "roles": {
+      "title": "Gratis å starte. Enkelt å oppgradere.",
+      "description": "Lag din første oppgave med en gang. Registrer deg gratis når du vil publisere og dele.",
+      "cards": {
+        "student": {
+          "title": "Student",
+          "free": ["Alt fra lærer (ubegrenset)", "Les, lytt og få feedback", "Library: 4 oppgaver / mnd"],
+          "paidTitle": "Student Full",
+          "price": "49 kr/mnd",
+          "paid": ["Ubegrenset library", "Full lese- og lydtilgang"],
+          "cta": "Start gratis"
+        },
+        "teacher": {
+          "title": "Teacher",
+          "free": ["Lag og test oppgaver", "2 publiseringer / mnd", "Test Spaces"],
+          "paidTitle": "Teacher Full",
+          "price": "99 kr/mnd",
+          "paid": ["Ubegrenset generering", "Full AI + feedback", "Spaces og PDF-eksport"],
+          "cta": "Lag første oppgave"
+        },
+        "parent": {
+          "title": "Parent",
+          "free": ["Følg barnets oppgaver", "Les, lytt og oversett"],
+          "paidTitle": "Parent Full",
+          "price": "89 kr/mnd",
+          "paid": ["Full library", "Lag egne oppgaver", "Flere barn"],
+          "cta": "Hjelp barnet i gang"
+        }
+      }
+    },
+    "cta": {
+      "title": "Kom i gang – helt uten risiko",
+      "lead": "Gratis for alle.",
+      "primary": "Registrer deg i dag",
+      "secondary": "Logg inn",
+      "note": "Ingen binding. Test i ekte undervisning. Avslutt når som helst.",
+      "boxTitle": "Dette får du fra dag 1",
+      "checks": [
+        "Tekster og oppgaver på alle språk",
+        "CEFR-nivåtilpasning (A1–C1)",
+        "TTS med justerbar hastighet",
+        "Umiddelbar feedback på tekst",
+        "Spaces for deling og innlevering",
+        "PDF-eksport av opplegg"
+      ]
+    },
+    "footer": {
+      "about": "Om",
+      "privacy": "Personvern",
+      "contact": "Kontakt",
+      "rights": "Alle rettigheter reservert."
+    }
+  }
+}
+

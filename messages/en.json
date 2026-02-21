@@ -1,0 +1,1702 @@
+{
+  "nav": {
+    "mySpaces": "My spaces",
+    "join": "Join",
+    "dashboard": "Dashboard",
+    "myContent": "My content",
+    "joinSpace": "Join space",
+    "spaces": "Spaces",
+    "createLesson": "+ Create lesson",
+    "myLessons": "My lessons",
+    "newLesson": "+ New lesson",
+    "users": "Users",
+    "review": "Review",
+    "submissions": "Submissions"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "dash": "—",
+    "unknownError": "Unknown error"
+  },
+  "status": {
+    "approved": "Approved",
+    "needs_work": "Needs work"
+  },
+  "actions": {
+    "open": "Open",
+    "submit": "Submit",
+    "update": "Update"
+  },
+  "topnav": {
+    "guestMode": "Guest mode",
+    "loginOrCreate": "Log in / Create account",
+    "login": "Log in",
+    "logout": "Log out",
+    "applyTeacherAccess": "Apply for teacher access",
+    "applicationSent": "Application sent ⏳",
+    "applicationSentTitle": "Your application has been sent",
+    "applyTeacherTitle": "Apply for teacher access",
+    "switchModeTitle": "Switch mode",
+    "noOtherModesTitle": "No other modes available"
+  },
+  "modes": {
+    "student": "Student",
+    "parent": "Parent",
+    "teacher": "Teacher",
+    "creator": "Creator",
+    "admin": "Admin"
+  },
+  "library": {
+    "open": "Open Library",
+    "close": "Close Library"
+  },
+  "auth": {
+    "login": {
+      "title": {
+        "signin": "Log in",
+        "signup": "Sign up"
+      },
+      "intro": {
+        "anon": "You are using a temporary (anonymous) account. By logging in, you upgrade the account and keep what you’ve done.",
+        "normal": "Log in to save progress, submit work, and apply for teacher access."
+      },
+      "tabs": {
+        "signin": "Log in",
+        "signup": "Sign up"
+      },
+      "fields": {
+        "displayNamePlaceholder": "Name (optional)",
+        "emailPlaceholder": "Email",
+        "passwordPlaceholder": "Password"
+      },
+      "buttons": {
+        "working": "Working…",
+        "upgradeGoogle": "Upgrade with Google",
+        "signinGoogle": "Log in with Google",
+        "signinEmail": "Log in",
+        "upgradeAccount": "Upgrade account",
+        "createAccount": "Create account"
+      },
+      "hints": {
+        "anonSignup": "Tip: If the email already exists, choose <b>Log in</b> instead."
+      },
+      "errors": {
+        "missingEmail": "Enter your email.",
+        "missingPassword": "Enter your password.",
+        "invalidCredential": "Wrong email or password.",
+        "userNotFound": "No user found with that email.",
+        "emailAlreadyInUse": "That email is already in use.",
+        "emailAlreadyInUseLoginInstead": "That email is already in use. Log in instead.",
+        "weakPassword": "Password is too weak (at least 6 characters).",
+        "invalidEmail": "Invalid email address.",
+        "popupClosed": "Sign-in was cancelled.",
+        "generic": "Could not log in. Please try again."
+      }
+    },
+    "onboarding": {
+      "title": "Onboarding",
+      "loading": "Loading…",
+      "subtitle": "Name is required. Country/municipality is selected from a list. Institution is optional.",
+      "fields": {
+        "fullName": { "label": "Full name *" },
+        "country": { "label": "Country *", "placeholder": "Search country…" },
+        "municipalityNo": { "label": "Municipality *", "placeholder": "Search municipality…" },
+        "municipalityOther": { "label": "City/area *" }
+      },
+      "institution": {
+        "title": "Learning institution (optional)",
+        "typeLabel": "Type",
+        "none": "None",
+        "nameLabel": "Name (optional)",
+        "namePlaceholder": "",
+        "types": {
+          "school": "School",
+          "kindergarten": "Kindergarten",
+          "adult_education": "Adult education",
+          "university": "University / college",
+          "workplace": "Company / workplace",
+          "other": "Other"
+        }
+      },
+      "buttons": {
+        "saving": "Saving…",
+        "complete": "Complete onboarding"
+      },
+      "errors": {
+        "missingName": "Enter your full name.",
+        "missingCountry": "Choose a country.",
+        "missingMunicipalityNo": "Choose a municipality.",
+        "missingMunicipalityOther": "Enter a city/area."
+      }
+    }
+  },
+  "student": {
+    "spaces": {
+      "title": "My spaces",
+      "subtitle": "Here you see spaces you’ve joined via a code or link.",
+      "loading": "Loading…",
+      "defaultTitle": "Space",
+      "meta": { "code": "Code" },
+      "actions": {
+        "joinSpace": "Join space",
+        "openSpace": "Open space"
+      },
+      "empty": "No spaces yet. Press <b>Join space</b> and enter a code/link from your teacher.",
+      "errors": {
+        "loadFailed": "Could not load spaces."
+      }
+    },
+    "spaceDetail": {
+      "loading": "Loading…",
+      "actions": {
+        "open": "Open",
+        "backToMySpaces": "← Back to My spaces",
+        "backMySpacesShort": "← My spaces"
+      },
+      "header": {
+        "classCode": "Class code"
+      },
+      "missing": {
+        "title": "Space not found",
+        "subtitle": "This space does not exist, or you don’t have access."
+      },
+      "error": {
+        "title": "Could not open space"
+      },
+      "active": {
+        "title": "Active assignment",
+        "open": "Open assignment",
+        "hint": "The assignment appears here when your teacher sets it as active.",
+        "none": "No active assignment right now. Assignments you’ve already submitted are shown under “My submissions”."
+      },
+      "mine": {
+        "title": "My submissions",
+        "subtitle": "Latest submission per assignment in this space.",
+        "refresh": "Refresh",
+        "loginToSee": "Log in to see submissions.",
+        "none": "No submissions here yet.",
+        "teacherMessage": "✉️ Your teacher sent you a message",
+        "openForImprovement": "✍️ Open for improvement",
+        "archiveHint": "Move this submission to your archive",
+        "moveToArchive": "Move to archive",
+        "archiving": "Moving…"
+      },
+      "archive": {
+        "title": "Archive",
+        "loginToSee": "Log in to see your archive.",
+        "none": "No archived submissions yet.",
+        "message": "✉️ message",
+        "restore": "Restore",
+        "restoring": "Restoring…",
+        "restoreHint": "Move back to My submissions"
+      },
+      "all": {
+        "title": "All assignments in this space",
+        "showArchived": "Show archived",
+        "none": "No assignments here yet.",
+        "archivedTag": "(archived)",
+        "yourStatus": "Your status:",
+        "message": "✉️ message",
+        "notSubmitted": "You haven’t submitted this yet."
+      },
+      "status": {
+        "submitted": "Submitted",
+        "needsWork": "Needs work",
+        "approved": "Approved",
+        "draft": "Draft",
+        "unknown": "Unknown"
+      },
+      "statusHints": {
+        "submitted": "Waiting for feedback",
+        "needsWork": "Teacher opened for improvement",
+        "approved": "Done",
+        "draft": "Not submitted",
+        "unknown": ""
+      },
+      "toast": {
+        "movedToArchive": "Moved to archive ✅",
+        "restored": "Restored ✅"
+      },
+      "errors": {
+        "readSpace": "Could not read space",
+        "listenStart": "Could not start listening",
+        "readAssignments": "Could not read assignments",
+        "listenAssignmentsStart": "Could not start listening to assignments",
+        "readSubmissions": "Could not load submissions",
+        "archiveMove": "Could not move to archive",
+        "archiveRestore": "Could not restore"
+      }
+    },
+    "assignment": {
+      "common": { "loading": "Loading…" },
+      "fallback": { "lessonTitle": "Lesson" },
+      "actions": {
+        "backToSpace": "← Back to my class",
+        "backToJoin": "← Join",
+        "backToClassButton": "← Back to class",
+        "backPrevButton": "← Previous page",
+        "backPrevTitle": "Go back to the previous page"
+      },
+      "errors": {
+        "missingParams": "Missing spaceId/assignmentId in URL.",
+        "notMember": "You are not registered as a member in this class. Go back and press Join.",
+        "assignmentNotFoundInSpace": "Could not find this assignment in the class.",
+        "missingSourceId": "This assignment is missing content (sourceId).",
+        "sourceLessonMissing": "Could not find the lesson source.",
+        "unpublished": "This lesson is unpublished/archived.",
+        "noAccessSubmission": "You do not have access to this submission.",
+        "permissionDenied": "Missing or insufficient permissions.",
+        "generic": "Something went wrong.",
+        "submitFailed": "Could not submit.",
+        "noData": "No data."
+      },
+      "messages": {
+        "submissionNotFound": "Could not find the submission you tried to open.",
+        "submitted": "Thanks! Your submission was sent ✅",
+        "resubmitted": "Updated and resubmitted ✅",
+        "lockedNoChanges": "This submission can't be changed now (status is not needs_work)."
+      },
+      "status": {
+        "labelPrefix": "Status",
+        "submitted": "Sent",
+        "needsWork": "Needs work",
+        "approved": "Approved"
+      },
+      "statusDesc": {
+        "submitted": "Submitted and waiting for teacher.",
+        "needsWork": "Your teacher asked you to improve and submit again.",
+        "approved": "Approved by teacher. It can't be changed now.",
+        "generic": "Status updated."
+      },
+      "statusMeta": {
+        "updatedAt": "Updated: {v}",
+        "teacherAt": "Teacher comment: {v}"
+      },
+      "statusToggleTitle": "This is set by the teacher",
+      "teacher": {
+        "commentTitle": "Teacher comment",
+        "none": "No comment yet.",
+        "noneWaiting": "No comment yet (waiting for teacher)."
+      },
+      "auto": {
+        "label": "Auto",
+        "hintMixed": "Multiple choice and true/false are graded automatically when you submit. Open answers are reviewed by the teacher.",
+        "hintOpenOnly": "Open answers are reviewed by the teacher."
+      },
+      "image": {
+        "title": "Image",
+        "alt": "Lesson",
+        "noneTitle": "No image",
+        "noneDesc": "This lesson has no cover image."
+      },
+      "translate": {
+        "to": "Translate to",
+        "searchPlaceholder": "Search language…",
+        "text": "Translate text",
+        "tasks": "Translate tasks",
+        "translating": "Translating…",
+        "reset": "Reset translation",
+        "failed": "Translate failed",
+        "translatedLabel": "Translated",
+        "showTranslation": "Show translation",
+        "hideTranslation": "Hide translation"
+      },
+      "submit": {
+        "submit": "SUBMIT TO SPACE",
+        "resubmit": "RESUBMIT (Needs work)",
+        "saving": "Submitting…",
+        "submitted": "Submitted ✅",
+        "title": "Submit",
+        "anonTitle": "Guests can submit too (anonymous auth)"
+      },
+      "tts": {
+        "speed": "Speed",
+        "playOriginal": "🔊 Play original",
+        "playTranslation": "🔊 Play translation",
+        "stop": "⏹ Stop",
+        "pause": "⏸ Pause",
+        "continue": "▶️ Continue",
+        "replay": "⟲ Replay sentence",
+        "prev": "⟵ Prev",
+        "next": "Next ⟶",
+        "generating": "Generating…",
+        "failed": "TTS failed"
+      },
+      "text": {
+        "title": "Text",
+        "noText": "No text",
+        "clickToSeek": "Click to seek audio"
+      },
+      "tasks": {
+        "title": "Tasks",
+        "none": "No tasks in this lesson.",
+        "showAll": "Show all translations",
+        "hideAll": "Hide all translations",
+        "taskN": "Task {n}",
+        "yourAnswer": "Your answer",
+        "true": "True",
+        "false": "False",
+        "locked": "Locked",
+        "autoCorrect": "Auto: ✅ correct",
+        "autoWrong": "Auto: ❌ wrong",
+        "autoUnanswered": "Auto: ⏳ unanswered",
+        "writeAnswerPlaceholder": "Write your answer…"
+      }
+    },
+    "submission": {
+      "title": "Submission",
+      "submissionIdLabel": "ID",
+      "spaceLabel": "space",
+      "assignmentLabel": "assignment",
+      "toAssignment": "Back to assignment",
+      "back": "Back",
+      "save": "Save",
+      "locked": "Locked",
+      "loading": "Loading…",
+      "errorTitle": "Error",
+      "noFeedback": "No feedback yet.",
+      "teacherFeedbackTitle": "Teacher feedback",
+      "answersTitle": "Answers (JSON)",
+      "helper": "(Temporary JSON editor. Next step could be a proper form based on task type.)",
+      "lockedNotice": "This submission is marked as <strong>reviewed</strong> and cannot be changed.",
+      "errors": {
+        "notFound": "Submission not found",
+        "noAccess": "You do not have access to this submission.",
+        "loadFailed": "Failed to load submission",
+        "locked": "This submission is locked (reviewed).",
+        "invalidJson": "Invalid JSON. Fix formatting before saving.",
+        "answersMustBeObject": "Answers must be a JSON object.",
+        "saveFailed": "Failed to save"
+      }
+    },
+    "dashboard": {
+      "fallback": { "lessonTitle": "Lesson" },
+      "meta": { "level": "Level", "status": "Status" },
+      "empty": {
+        "title": "You haven’t started any lessons yet.",
+        "cta": "Go to the Library and pick a lesson"
+      },
+      "errors": {
+        "permissionDenied": "You do not have access to read submissions (rules).",
+        "generic": "Something went wrong."
+      }
+    },
+    "dashboardIntro": {
+      "helloAnon": "Hi! 👋",
+      "helloUser": "Hi, {name} 👋",
+      "guest": "in as a guest",
+      "loggedIn": "logged in",
+      "roleFallback": "User",
+      "youAre": "You are {state} as <b>{role}</b>.",
+      "activity": "Here you see your latest activity. Under <b>My content</b> you’ll find everything you’ve worked on before.",
+      "recommendRegister": "We recommend creating an account to save started lessons.",
+      "actions": {
+        "registerLogin": "Register / log in",
+        "openLibrary": "Open Library"
+      }
+    },
+    "board": {
+      "title": "Board",
+      "subtitle": "This is the live classroom board.",
+      "loading": "Loading…",
+      "inactive": "No live session right now.",
+      "sent": "Answer sent!",
+      "fallbackStudentName": "Student",
+      "fallbackQuestionTitle": "Question",
+      "errors": {
+        "fetchBoardFailed": "Could not load the board."
+      },
+      "groupName": {
+        "label": "Group name (optional)",
+        "placeholder": "E.g.: Team 3"
+      },
+      "answer": {
+        "label": "Your answer",
+        "placeholder": "Write briefly…",
+        "send": "Send to board"
+      },
+      "countdown": {
+        "label": "Time remaining",
+        "seconds": "{seconds}s"
+      }
+    }
+  },
+  "teacher": {
+    "spaces": {
+      "title": "Teacher spaces",
+      "subtitle": "Spaces are classrooms/groups where you share tasks via link or code. Sharing to a space requires attestation (B1), but not full name.",
+      "newSpace": "+ New space",
+      "newSpaceLocked": "+ New space (locked)",
+      "newSpaceTitle": "Create a new space",
+      "newSpaceLockedTitle": "Requires attestation + Teacher/Creator mode",
+      "controls": {
+        "search": {
+          "label": "Search",
+          "placeholder": "Title or code…"
+        },
+        "sort": {
+          "label": "Sort",
+          "options": {
+            "newest": "Newest",
+            "oldest": "Oldest",
+            "title_az": "Title (A–Z)",
+            "title_za": "Title (Z–A)"
+          }
+        },
+        "filters": {
+          "label": "Filters",
+          "openOnly": "Open only",
+          "showing": "Showing: {n}"
+        }
+      },
+      "list": {
+        "untitled": "Untitled space",
+        "open": "Open",
+        "closed": "Closed",
+        "openTitle": "Room is open",
+        "closedTitle": "Room is closed",
+        "code": "Code:",
+        "copyCodeTitle": "Copy code",
+        "copied": "Copied ✅",
+        "members": "Members:",
+        "copyJoinLink": "Copy join link",
+        "copyJoinLinkTitle": "Copy join link",
+        "joinWithQr": "Join with QR code",
+        "joinWithQrTitle": "Show QR code",
+        "seeMembers": "See members",
+        "seeMembersTitle": "See members",
+        "openSpace": "Open",
+        "openSpaceTitle": "Open space"
+      },
+      "empty": {
+        "title": "No spaces found.",
+        "hint": "Create one with New space, then share via code or link."
+      },
+      "qr": {
+        "title": "Join QR",
+        "subtitle": "{title} · Code: {code}",
+        "close": "Close",
+        "generating": "Generating…",
+        "error": "Could not generate QR. Install dependency: npm i qrcode",
+        "pointsTo": "This QR points to",
+        "note": "Note: install QR dependency once: npm i qrcode",
+        "imageAlt": "QR code"
+      }
+    },
+    "spaceDetail": {
+      "checking": {
+        "title": "Space",
+        "subtitle": "Verifying access…"
+      },
+      "actions": {
+        "back": "← Back",
+        "submissions": "Submissions",
+        "setActive": "Set active",
+        "archive": "Archive",
+        "restore": "Restore"
+      },
+      "access": {
+        "mustBeSignedIn": "You must be signed in.",
+        "notMember": "You are not a member of this space.",
+        "verifyFailed": "Could not verify access."
+      },
+      "denied": {
+        "title": "No access",
+        "subtitle": "You do not have access to this space.",
+        "hint": "To join, use the join link/code or ask the owner to add you.",
+        "joinCardTitle": "Join this space",
+        "joinLinkLabel": "Join link:"
+      },
+      "overview": {
+        "subtitle": "Here you can find codes and links you can send to members, so they can join your space.",
+        "code": "Code:",
+        "copyCodeTitle": "Copy code",
+        "copied": "Copied ✅",
+        "openLabel": "Open:",
+        "yes": "Yes",
+        "no": "No",
+        "copyJoinLink": "Copy join link",
+        "qr": "QR",
+        "activeForStudents": "Active for students:",
+        "clear": "Clear"
+      },
+      "notice": {
+        "needAttestationHtml": "To manage spaces (B1 model), you need <b>attestation</b> and <b>teacher</b> or <b>creator</b> mode."
+      },
+      "assignments": {
+        "title": "Assignments",
+        "subtitle": "Assign tasks from My Content or Library. Students see assigned tasks after they join.",
+        "assignTask": "Assign task",
+        "showArchived": "Show archived",
+        "hideArchived": "Hide archived",
+        "openSpace": "Open space",
+        "closeSpace": "Close space",
+        "emptyHtml": "No assignments yet. Click <b>Assign task</b>."
+      },
+      "labels": {
+        "myContent": "My Content",
+        "library": "Library"
+      },
+      "badges": {
+        "active": "Active",
+        "archived": "Archived",
+        "noSubmissions": "No submissions",
+        "allReviewed": "All reviewed",
+        "newCount": "{n} new",
+        "submissionsCount": "{n} submissions",
+        "submissionsError": "Submissions: error"
+      },
+      "assignModal": {
+        "title": "Assign task",
+        "subtitle": "Choose from My Content or Library.",
+        "close": "Close",
+        "searchPlaceholder": "Search title / level / language…",
+        "noResults": "No results.",
+        "lessonId": "lessonId",
+        "publishedLessonId": "publishedLessonId",
+        "assign": "Assign",
+        "paging": {
+          "prev": "← Previous",
+          "next": "Next →",
+          "showing": "Showing",
+          "zero": "0 of 0",
+          "range": "{start}-{end} of {total}"
+        }
+      },
+      "qr": {
+        "title": "Join QR",
+        "codeLabel": "Code:",
+        "close": "Close",
+        "generating": "Generating…",
+        "pointsTo": "Points to",
+        "note": "If needed: npm i qrcode",
+        "imageAlt": "QR code",
+        "error": "Could not generate QR. Install dependency: npm i qrcode"
+      },
+      "errors": {
+        "needAttestation": "To manage this space, you need attestation and Teacher/Creator mode.",
+        "noManageAccess": "You do not have access to manage this space.",
+        "setActiveFailed": "Could not set active task.",
+        "assignFailed": "Could not assign task.",
+        "updateAssignmentFailed": "Could not update assignment.",
+        "updateSpaceFailed": "Could not update space.",
+        "readSubmissionsFailed": "Could not read submissions."
+      },
+      "fallback": {
+        "task": "Task",
+        "untitledTask": "Untitled task",
+        "untitled": "Untitled"
+      }
+    },
+    "assignedTask": {
+      "actions": {
+        "backToSpace": "← Back to space"
+      },
+      "header": {
+        "subtitle": "This is the assigned task view. Submissions are listed below.",
+        "assignmentMissing": "Could not find assignment in",
+        "sourceMissing": "Assignment exists, but the source lesson could not be found/read."
+      },
+      "meta": {
+        "level": "Level",
+        "language": "Language"
+      },
+      "error": {
+        "title": "Error"
+      },
+      "submissions": {
+        "title": "Submissions",
+        "loading": "Fetching submissions…",
+        "empty": "No submissions yet."
+      },
+      "status": {
+        "needsWork": "Needs work",
+        "approved": "Approved"
+      },
+      "fallback": {
+        "task": "Task",
+        "student": "Student",
+        "unknownStudent": "Unknown student"
+      }
+    },
+    "submission": {
+      "title": "Submission",
+      "actions": {
+        "back": "← Back"
+      },
+      "errors": {
+        "missingParams": "Missing spaceId/assignmentId/subId in URL."
+      },
+      "missing": {
+        "title": "Submission not found"
+      },
+      "meta": {
+        "studentLabel": "Student:",
+        "delivered": "Submitted:",
+        "deliveredUnknown": "Submitted: (unknown)",
+        "guest": "Guest (not logged in)",
+        "loggedIn": "Logged in"
+      },
+      "status": {
+        "approved": "Approved",
+        "needsWork": "Needs work"
+      },
+      "auto": {
+        "main": "Auto: {correct}/{total}{pctText}",
+        "details": "Correct: {correct} · Wrong: {wrong} · Unanswered: {unanswered}",
+        "taskCorrect": "Auto: ✅ correct",
+        "taskWrong": "Auto: ❌ wrong",
+        "taskUnanswered": "Auto: ⏳ unanswered"
+      },
+      "notice": {
+        "needAttestationHtml": "To give feedback you need <b>attestation</b> and be in <b>teacher</b> or <b>creator</b> mode."
+      },
+      "studentView": {
+        "title": "Answers (as the student sees it)",
+        "loadingLesson": "Fetching task…",
+        "level": "Level: {v}",
+        "imageAlt": "Lesson",
+        "noImageTitle": "No image",
+        "noImageDesc": "This lesson has no cover image.",
+        "textTitle": "Text",
+        "tasksTitle": "Tasks",
+        "noTasks": "No tasks in this lesson (or lesson could not be found).",
+        "noTasksHint": "This usually means assignment.sourceId is missing or lesson.tasks is empty.",
+        "taskN": "Task {n}",
+        "correctTag": "✓ correct",
+        "selectedTag": "Selected",
+        "true": "True",
+        "false": "False",
+        "notAnswered": "(not answered)"
+      },
+      "feedback": {
+        "title": "Feedback",
+        "statusLabel": "Status",
+        "placeholder": "Write a short feedback…",
+        "needTextToChangeStatus": "To change status you must write a short comment.",
+        "saveButton": "Save feedback",
+        "saving": "Saving…",
+        "saved": "Saved ✅",
+        "saveFailed": "Could not save: {msg}",
+        "rulesHint": "(Rules: only teacher/owner/admin can change)"
+      },
+      "fallback": {
+        "guest": "Guest",
+        "task": "Task",
+        "unknownError": "unknown error"
+      }
+    }
+  },
+  "teacherBoard": {
+    "header": {
+      "title": "Digital board",
+      "subtitle": "Live in this space. You control the content — students see it in real time."
+    },
+    "common": {
+      "loading": "Loading…"
+    },
+    "errors": {
+      "fetchState": "Could not load board state."
+    },
+    "defaults": {
+      "title": "Today's question",
+      "prompt": "Write in your own words: What do numerator and denominator mean?"
+    },
+    "fallbacks": {
+      "question": "Question"
+    },
+    "status": {
+      "label": "Status",
+      "live": "LIVE",
+      "notLive": "Not live",
+      "session": "session"
+    },
+    "actions": {
+      "startLive": "Start live",
+      "stop": "Stop",
+      "updateBoard": "Update board",
+      "newRound": "New round",
+      "clearAnswers": "Clear answers",
+      "showAnswers": "Show answers again"
+    },
+    "fields": {
+      "title": {
+        "label": "Title",
+        "placeholder": "E.g.: Today's question"
+      },
+      "prompt": {
+        "label": "Text / prompt",
+        "placeholder": "Write the prompt students should see…"
+      }
+    },
+    "timer": {
+      "set": "Timer {seconds}s",
+      "clear": "Remove timer"
+    },
+    "preview": {
+      "title": "Preview"
+    },
+    "countdown": {
+      "label": "Time left"
+    },
+    "responses": {
+      "title": "Student responses (live)",
+      "count": "{count} responses",
+      "hint": "Start live to collect responses",
+      "clearedPrefix": "Responses are cleared (hidden). Press",
+      "clearedSuffix": "to see everything.",
+      "noSession": "No active session.",
+      "noneYet": "No responses yet.",
+      "unknown": "Unknown"
+    }
+  },
+  "teacherMembers": {
+    "title": "Members",
+    "subtitle": "{spaceTitle}",
+    "showing": "Showing:",
+    "common": {
+      "loading": "Loading…",
+      "dash": "—"
+    },
+    "errors": {
+      "missingSpaceId": "Missing spaceId"
+    },
+    "fallbacks": {
+      "spaceTitle": "Space"
+    },
+    "labels": {
+      "spaceId": "SpaceId"
+    },
+    "actions": {
+      "backToSpace": "Back to space",
+      "allSpaces": "All spaces"
+    },
+    "search": {
+      "placeholder": "Search name / role / uid…"
+    },
+    "table": {
+      "name": "Name",
+      "role": "Role",
+      "joined": "Joined",
+      "type": "Type",
+      "uid": "UID"
+    },
+    "types": {
+      "anon": "Anon",
+      "signedIn": "Signed-in"
+    },
+    "empty": "No members found.",
+    "tip": {
+      "prefix": "Tip: If you don’t see names yet, it means join-flow hasn’t stored",
+      "suffix": "on members."
+    }
+  },
+  "studentLesson": {
+    "loading": "Loading…",
+    "noData": "No data.",
+    "fallback": { "lessonTitle": "Lesson" },
+    "nav": {
+      "backToDashboard": "Back to dashboard",
+      "backToPreview": "Back to preview"
+    },
+    "errors": {
+      "missingLessonId": "Missing lessonId in URL.",
+      "notPublished": "This lesson is not published (or has been unpublished).",
+      "notFound": "This lesson is not published (or does not exist).",
+      "noAccess": "This lesson is not published (or you don’t have access).",
+      "generic": "Something went wrong",
+      "couldNotSave": "Could not save",
+      "couldNotSubmit": "Could not submit"
+    },
+    "anon": {
+      "savedLocally": "You are anonymous: answers are saved on this device (localStorage)."
+    },
+    "image": {
+      "title": "Image",
+      "alt": "Lesson image",
+      "noImageTitle": "No image yet",
+      "noImageHint": "This space is reserved for an uploaded image."
+    },
+    "actions": {
+      "saving": "Saving…",
+      "saveOnDevice": "SAVE ON THIS DEVICE",
+      "saveToMyContent": "SAVE TO MY CONTENT"
+    },
+    "translate": {
+      "label": "Translate to",
+      "searchPlaceholder": "Search language…",
+      "translating": "Translating…",
+      "translateText": "Translate text",
+      "translateTasks": "Translate tasks",
+      "reset": "Reset translation",
+      "failed": "Translate failed",
+      "translatedLabel": "Translated"
+    },
+    "text": {
+      "title": "Text",
+      "speed": "Speed",
+      "generating": "Generating…",
+      "playOriginal": "🔊 Play original",
+      "playTranslation": "🔊 Play translation",
+      "stop": "⏹ Stop",
+      "pause": "⏸ Pause",
+      "continue": "▶️ Continue",
+      "replaySentence": "⟲ Replay sentence",
+      "prev": "⟵ Prev",
+      "next": "Next ⟶",
+      "hideTranslation": "Hide translation",
+      "showTranslation": "Show translation",
+      "noText": "No text",
+      "clickToSeek": "Click to jump in audio"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "showAnswers": "Show answers",
+      "hideAnswers": "Hide answers",
+      "clearAnswers": "Clear answers",
+      "noTasks": "No tasks in this lesson.",
+      "taskLabel": "Task {n}",
+      "showTranslation": "Show translation",
+      "hideTranslation": "Hide translation",
+      "showAllTranslations": "Show all translations",
+      "hideAllTranslations": "Hide all translations",
+      "correct": "Correct",
+      "wrong": "Wrong",
+      "yourAnswer": "Your answer",
+      "writeAnswerPlaceholder": "Write your answer…",
+      "true": "True",
+      "false": "False"
+    },
+    "feedback": {
+      "title": "Feedback",
+      "submitting": "Submitting…",
+      "loginForFeedback": "LOG IN FOR FEEDBACK",
+      "getFeedback": "GET ANSWER / FEEDBACK",
+      "generate": "Generate feedback",
+      "translateFeedback": "TRANSLATE FEEDBACK",
+      "translateButtonTitle": "Translate feedback",
+      "translating": "Translating…",
+      "anonHint": "Anonymous mode: answers saved locally. Log in for AI feedback.",
+      "noFeedbackYet": "No feedback yet. Submit when ready.",
+      "translatedFeedbackLabel": "Translated feedback",
+      "translateFailed": "Translate feedback failed",
+      "loginToGetFeedback": "Log in to get AI feedback"
+    },
+    "tts": {
+      "failed": "TTS failed"
+    },
+    "flash": {
+      "saved": "Saved ✅",
+      "submitted": "Submitted ✅",
+      "answerAtLeastOne": "Answer at least one task first",
+      "loginToGetFeedback": "Log in to get AI feedback",
+      "clearedAnswers": "Cleared answers"
+    }
+  },
+  "lessonsLanding": {
+    "errors": {
+      "label": "Error",
+      "fetchFailed": "Could not load published lessons."
+    },
+    "filters": {
+      "searchPlaceholder": "Search: title, text, type…",
+      "textTypeAll": "Text type",
+      "languagePlaceholder": "Search language…",
+      "levelAll": "Level",
+      "reset": "Reset"
+    },
+    "status": {
+      "loading": "Loading published lessons…",
+      "showingCount": "Showing {shown} of {total}"
+    },
+    "empty": {
+      "noResults": "No published lessons found. Try clearing filters or searching for something else."
+    },
+    "card": {
+      "imageFallback": "Image",
+      "openForDetails": "Open for details"
+    },
+    "languages": {
+      "all": "All languages",
+      "norwegianBokmal": "Norwegian (Bokmål)"
+    }
+  },
+  "applyTeacher": {
+    "title": "Become a teacher",
+    "intro": "Submit an application. When an admin approves it, you’ll get access to the Teacher dashboard.",
+    "status": {
+      "label": "Status"
+    },
+    "states": {
+      "loading": "Loading…",
+      "mustBeLoggedIn": "You must be logged in.",
+      "goToTeacher": "Go to Teacher →",
+      "pending": "Your application is being reviewed."
+    },
+    "anon": {
+      "explain": "You’re using a temporary (anonymous) account. Upgrade your account to submit an application.",
+      "upgradeButton": "Log in / upgrade account"
+    },
+    "actions": {
+      "apply": "Apply for teacher access",
+      "sending": "Submitting…"
+    },
+    "messages": {
+      "sentPending": "Application sent ✅ (status: pending)",
+      "sendFailed": "Could not submit application: {error}"
+    }
+  },
+  "studentBrowse": {
+    "title": "My library",
+    "intro": "Here you’ll find published lessons. You can hide or mark lessons you’ve already opened.",
+    "filters": {
+      "hideOpened": "Hide opened"
+    },
+    "states": {
+      "loading": "Loading…"
+    },
+    "empty": {
+      "noneNew": "No new lessons (you’ve already opened all of them).",
+      "nonePublished": "No published lessons yet."
+    },
+    "badge": {
+      "opened": "Opened"
+    },
+    "meta": {
+      "level": "Level: {level}",
+      "topic": "Topic: {topic}",
+      "language": "Language: {language}"
+    },
+    "fallback": {
+      "untitled": "(Untitled)"
+    },
+    "errors": {
+      "fetchFailed": "Could not load lessons."
+    }
+  },
+  "content": {
+    "title": "My content",
+    "subtitle": "Here you can manage everything: publish, share, PDF, edit and more.",
+    "search": {
+      "placeholder": "Search title, status, metadata…"
+    },
+    "filters": {
+      "all": "All",
+      "lessons": "Lessons",
+      "submissions": "Submissions",
+      "spaces": "Spaces"
+    },
+    "states": {
+      "loadingContent": "Loading content…"
+    },
+    "pills": {
+      "published": "published",
+      "unpublished": "unpublished"
+    },
+    "actions": {
+      "open": "Open",
+      "edit": "Edit",
+      "editAnswers": "Edit answers",
+      "openLesson": "Open lesson",
+      "openSpace": "Open space",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "working": "Working…",
+      "share": "Share",
+      "shareTitle": "Share (link + QR)",
+      "shareToSpace": "Share to space",
+      "pdf": "PDF",
+      "delete": "Delete",
+      "refresh": "Refresh",
+      "loading": "Loading…",
+      "copyJoinCode": "Copy join code",
+      "copyJoinLink": "Copy join link",
+      "shareLinkQr": "Share (link + QR)"
+    },
+    "errors": {
+      "label": "Error",
+      "loadFailed": "Failed to load content",
+      "assignFailed": "Failed to assign to space",
+      "lessonNotFound": "Lesson not found",
+      "cannotPublishDeleted": "This lesson is deleted/archived and cannot be published.",
+      "publishFailed": "Failed to update publish status",
+      "deleteFailed": "Failed to delete (archive) lesson"
+    },
+    "titles": {
+      "lesson": "Lesson",
+      "space": "Space",
+      "submission": "Submission",
+      "submissionWithLesson": "{lessonTitle} – Submission",
+      "submissionWithId": "Submission · {id}"
+    },
+    "empty": {
+      "guest": {
+        "line1": "You’re in guest mode. My content does not show saved items here yet.",
+        "line2": "Use <join>Join</join> to open a lesson/space with a code, or <login>log in</login> to sync your content."
+      },
+      "authed": "You don’t have any items in your feed yet. When you create/use lessons, spaces or submissions, they will appear here."
+    },
+    "footer": {
+      "joinViaCode": "Join via code",
+      "tools": "Tools"
+    },
+    "share": {
+      "title": "Share",
+      "linkLabel": "Link",
+      "copyLink": "Copy link",
+      "copied": "Copied!",
+      "openLink": "Open link",
+      "tip": "Tip: Share the QR on screen or print it.",
+      "qrLabel": "QR",
+      "qrAlt": "QR code",
+      "qrNotReady": "QR not ready (link works).",
+      "shareUrlLabel": "Share URL:"
+    },
+    "shareToSpace": {
+      "title": "Share to space",
+      "noSpaces": "You don’t have any spaces yet.",
+      "createsLabel": "Creates:"
+    },
+    "confirm": {
+      "deleteLesson": "Delete lesson{title}?\n\nThis will archive it (soft delete).\nIt will also attempt to unpublish via server.\n\nAn admin can restore it later."
+    }
+  },
+  "producer": {
+    "newText": {
+      "title": "Create new lesson",
+      "subtitle": "Step 1: generate text → Step 2: generate tasks → edit → save draft.",
+      "defaults": {
+        "title": "New lesson",
+        "prompt": "Moving to a New Country"
+      },
+      "fields": {
+        "level": "Level",
+        "language": "Choose lesson language",
+        "languageSearchPlaceholder": "Search language (e.g. Norwegian, Somali, ti, pt-BR...)",
+        "languageCount": "Showing {count} languages",
+        "prompt": "Prompt / instructions",
+        "promptTip": "Tip: This field is the main “prompt” that drives the AI generation.",
+        "textType": "Text type",
+        "textTypeOtherPlaceholder": "Describe the text type...",
+        "textLength": "Text length (words)"
+      },
+      "textTypes": {
+        "everydayStory": "Everyday story",
+        "factual": "Factual",
+        "fiction": "Fiction",
+        "article": "Article",
+        "dialogue": "Dialogue",
+        "news": "News",
+        "biography": "Biography",
+        "letterEmail": "Letter / Email",
+        "opinion": "Opinion",
+        "howto": "How-to / Instructions",
+        "other": "Other"
+      },
+      "tasks": {
+        "generatorTitle": "AI Tasks (generator)",
+        "mcq": "MCQ",
+        "trueFalse": "True/False",
+        "facts": "Facts",
+        "reflection": "Reflection",
+        "writeFactPrefix": "Write a fact:",
+        "defaults": {
+          "mcqPrompt": "New multiple choice question",
+          "tfPrompt": "New true/false statement",
+          "openPrompt": "New open question",
+          "option1": "Option 1",
+          "option2": "Option 2",
+          "option3": "Option 3",
+          "option4": "Option 4"
+        }
+      },
+      "buttons": {
+        "step1": "Step 1) Generate text",
+        "step2": "Step 2) Generate tasks",
+        "saveDraft": "Save draft lesson",
+        "generatingText": "Generating text...",
+        "generatingTasks": "Generating tasks...",
+        "saving": "Saving..."
+      },
+      "hints": {
+        "generateTextFirst": "Generate or write text first.",
+        "generateTasks": "Generate tasks based on current text.",
+        "tasksDirty": "Text has changed since tasks were generated.",
+        "saveDraft": "Save draft to Firestore"
+      },
+      "warnings": {
+        "checkTextBeforeTasks": "Please check text before you generate tasks."
+      },
+      "status": {
+        "saved": "Saved! ID: {id}"
+      },
+      "builder": {
+        "title": "Lesson builder",
+        "lessonTitle": "Title",
+        "text": "Text"
+      },
+      "editor": {
+        "title": "Tasks editor",
+        "addMcq": "+ MCQ",
+        "addTf": "+ True/False",
+        "addOpen": "+ Open",
+        "empty": "No tasks yet. Generate tasks or add them manually.",
+        "taskId": "id: {id}",
+        "delete": "Delete",
+        "prompt": "Prompt",
+        "correctAnswer": "Correct answer",
+        "options": "Options",
+        "correctAnswerHint": "Correct answer (must match one option)",
+        "openHint": "Open task: student writes a response."
+      },
+      "answers": {
+        "true": "True",
+        "false": "False"
+      },
+      "debug": {
+        "title": "Debug: latest generated pack snapshot"
+      },
+      "errors": {
+        "generateOrWriteTextFirst": "Generate or write text first.",
+        "missingTextInResponse": "Missing text in response.",
+        "missingTasksInResponse": "Missing 'tasks' in response.",
+        "titleRequired": "Title is required.",
+        "sourceTextEmpty": "Source text is empty.",
+        "notSignedIn": "Not signed in. Please log in as teacher/producer.",
+        "emptyResponseFromServer": "Empty response from server.",
+        "notJsonFromServer": "The server did not return JSON."
+      }
+    },
+    "editor": {
+      "pageTitle": "Producer editor",
+      "nav": {
+        "back": "← Back"
+      },
+      "states": {
+        "loading": "Loading…"
+      },
+      "buttons": {
+        "save": "Save",
+        "saving": "Saving…"
+      },
+      "metaLine": "id: {id} · uid: {uid} · status: {status}",
+      "errors": {
+        "title": "Error",
+        "notFound": "Lesson not found.",
+        "noAccessOwnerMismatch": "You don’t have access to this lesson (ownerId mismatch).",
+        "loadFailed": "Could not load lesson.",
+        "noAuthUidNotReady": "No auth uid (anonymous auth not ready).",
+        "noAuthUid": "No auth uid.",
+        "chooseImageFile": "Choose an image file (jpg/png/webp).",
+        "fileTooLarge": "File is too large. Max 8MB.",
+        "uploadFailed": "Upload failed.",
+        "saveFailed": "Save failed."
+      },
+      "defaults": {
+        "language": "English"
+      },
+      "fields": {
+        "title": "Title",
+        "levelOptional": "Level (optional)",
+        "producerName": "Producer (shown in PDF)",
+        "topic": "Theme / topic",
+        "tags": "Tags (comma-separated)",
+        "tagsHelp": "Saved as an array in Firestore.",
+        "language": "Language",
+        "estimatedMinutes": "Estimated time (min)",
+        "releaseMode": "Release mode",
+        "releaseModeHelp": "TEXT_FIRST can later be used to unlock tasks after the text.",
+        "status": "Status",
+        "text": "Text",
+        "cover": {
+          "title": "Banner image (cover)",
+          "upload": "Upload image",
+          "uploading": "Uploading…",
+          "remove": "Remove image",
+          "removeTitle": "Clears the URL (does not delete from Storage in this MVP)",
+          "formatLabel": "Format",
+          "format16x9": "16:9 (banner)",
+          "format4x3": "4:3 (classic)",
+          "help": "(Locked) Image is uploaded to Firebase Storage. URL + format are saved when you click",
+          "previewAlt": "Banner preview",
+          "previewHint": "Preview: {format} (cropped with cover)",
+          "noneSelected": "No banner selected ({format})"
+        }
+      },
+      "placeholders": {
+        "title": "Lesson title…",
+        "level": "A1 / A2 / B1 …",
+        "producerName": "e.g. 321skole / Hogne / GuideToGo",
+        "topic": "Work / Health / Daily life …",
+        "tags": "work, safety, norway",
+        "language": "English",
+        "sourceText": "Write source text…",
+        "taskPrompt": "Write task prompt…",
+        "mcqCorrectAnswer": "e.g. Option A"
+      },
+      "counts": "{words} words · {charsNoSpaces} chars (no spaces) · {charsWithSpaces} chars (with spaces)",
+      "releaseModes": {
+        "allAtOnce": "ALL_AT_ONCE",
+        "textFirst": "TEXT_FIRST"
+      },
+      "statuses": {
+        "draft": "draft",
+        "published": "published"
+      },
+      "tasks": {
+        "title": "Tasks",
+        "add": {
+          "trueFalse": "+ True/False",
+          "mcq": "+ MCQ",
+          "open": "+ Open"
+        },
+        "empty": "No tasks yet.",
+        "headerLine": "#{n} · {type} · id: {id}",
+        "type": "Type",
+        "prompt": "Prompt",
+        "delete": "Delete",
+        "deleteTitle": "Delete task",
+        "defaults": {
+          "optionA": "Option A",
+          "optionB": "Option B",
+          "optionC": "Option C",
+          "optionD": "Option D"
+        }
+      },
+      "taskTypes": {
+        "truefalse": "truefalse",
+        "mcq": "mcq",
+        "open": "open"
+      },
+      "mcq": {
+        "optionsOnePerLine": "Options (one per line)",
+        "correctAnswer": "Correct answer (must match an option)"
+      },
+      "tf": {
+        "correctAnswer": "Correct answer",
+        "tip": "Tip: Your preview uses string \"true\"/\"false\"."
+      },
+      "answers": {
+        "true": "true",
+        "false": "false"
+      },
+      "open": {
+        "answerSpace": "Writing space in PDF",
+        "answerSpaceHelp": "Saved per task (used in Printable PDF).",
+        "hint": "Open tasks have no solution key here. Learners get AI feedback when they submit."
+      },
+      "answerSpace": {
+        "short": "Short",
+        "medium": "Medium",
+        "long": "Long"
+      },
+      "footerRemember": "Remember to click"
+    },
+    "print": {
+      "pageTitle": "Utskriftsvennlig PDF",
+      "states": { "loading": "Laster…" },
+      "nav": { "backToEditor": "← Tilbake" },
+      "actions": {
+        "print": "Last ned PDF / Skriv ut",
+        "teacherVersion": "Lærerversjon (fasit)",
+        "studentVersion": "Elevversjon"
+      },
+      "tips": {
+        "saveAsPdf": "Tips: I utskriftsdialogen → velg «Lagre som PDF»."
+      },
+      "defaults": { "worksheetTitle": "Arbeidsark" },
+      "labels": {
+        "producer": "Produsent",
+        "level": "Nivå",
+        "bannerAlt": "Banner"
+      },
+      "identity": {
+        "name": "Navn",
+        "date": "Dato",
+        "class": "Klasse"
+      },
+      "sections": {
+        "readingText": "Lesetekst",
+        "tasks": "Oppgaver"
+      },
+      "tasksEmpty": "Ingen oppgaver å skrive ut (tomme prompts skjules).",
+      "teacher": {
+        "answerKey": "Fasit",
+        "suggestionNote": "Forslag / notat",
+        "dash": "—"
+      },
+      "answers": {
+        "true": "Sant",
+        "false": "Usant"
+      },
+      "errors": {
+        "title": "Feil",
+        "unknown": "Ukjent feil",
+        "noAuthUid": "Ingen auth uid.",
+        "notFound": "Fant ikke oppgaven.",
+        "noAccessOwnerMismatch": "Du har ikke tilgang til denne oppgaven (ownerId mismatch).",
+        "loadFailed": "Kunne ikke laste oppgaven."
+      }
+    }
+  },
+  "unauthorized": {
+    "common": {
+      "yes": "ja",
+      "no": "nei",
+      "login": "Logg inn",
+      "backToStudent": "Tilbake til Student"
+    },
+    "notLoggedIn": {
+      "title": "Ingen tilgang",
+      "body": "Du må være innlogget for å få tilgang til denne siden.",
+      "ctaLogin": "Gå til login"
+    },
+    "anonymous": {
+      "title": "Du har ikke tilgang ennå",
+      "body": "Du er inne som gjest (anonym). Noen deler krever en innlogget konto."
+    },
+    "noAccess": {
+      "title": "Du har ikke tilgang ennå",
+      "body": "Kontoen din mangler riktig tilgang for denne delen."
+    },
+    "card": {
+      "title": "Din tilgang",
+      "admin": "admin",
+      "teacher": "teacher",
+      "creator": "creator",
+      "status": "(status: {status})"
+    },
+    "actions": {
+      "applyTeacher": "Søk om teacher",
+      "applyCreator": "Søk om creator",
+      "frontpage": "Forsiden"
+    },
+    "tips": {
+      "refresh": "Hvis du nettopp ble godkjent: prøv å refresh siden."
+    }
+  },
+  "join": {
+    "title": "Join",
+    "subtitle": "Enter the code and your name. Your name will be shown to the teacher in the member list.",
+    "fields": {
+      "spaceCode": {
+        "label": "Space code",
+        "placeholder": "e.g. MUR583"
+      },
+      "name": {
+        "label": "Your name",
+        "placeholder": "e.g. Sara Ali",
+        "tip": "Tip: this can be first name + last name, or just first name."
+      }
+    },
+    "actions": {
+      "join": "Join",
+      "joining": "Joining…"
+    },
+    "errors": {
+      "nameRequired": "Please enter your name before joining.",
+      "spaceNotFound": "No space found with this code. Check that the code is correct."
+    }
+  },
+  "landing": {
+    "common": {
+      "login": "Log in",
+      "register": "Sign up"
+    },
+    "topbar": {
+      "nav": {
+        "teachers": "For teachers",
+        "students": "For students",
+        "spaces": "Spaces"
+      }
+    },
+    "hero": {
+      "badge": "Free for students, teachers, and parents!",
+      "title": "Teaching. Enhanced with AI.",
+      "lead": "Create lessons in any language with translation and audio, share them with students, and give instant, supportive feedback—at the right level.",
+      "ctaPrimary": "Sign up today",
+      "ctaSecondary": "Log in",
+      "guestNote": "Guests join via shared links to lessons/Spaces.",
+      "stats": {
+        "languages": { "title": "Languages", "value": "All", "hint": "Text + tasks + feedback" },
+        "level": { "title": "Level", "value": "CEFR A1–C1", "hint": "Simplify, improve, vary" },
+        "audio": { "title": "Audio", "value": "Adjustable", "hint": "Text + translation" },
+        "pdf": { "title": "PDF", "value": "Export", "hint": "Ready-to-use worksheets" }
+      },
+      "imageAlt": "Illustration of a teacher and student using 321skole",
+      "cards": {
+        "text": { "title": "Text", "subtitle": "Level-adjust" },
+        "tasks": { "title": "Tasks", "subtitle": "Vary" },
+        "feedback": { "title": "Feedback", "subtitle": "Instant" }
+      },
+      "floating": {
+        "title": "Pedagogical AI",
+        "subtitle": "Teacher leads · AI assists"
+      }
+    },
+    "trustLine": "Ready for schools, courses, and adult education—without heavy LMS friction.",
+    "teachers": {
+      "eyebrow": "For teachers",
+      "title": "Create more—without the stress",
+      "description": "A practical tool that helps you produce, adapt, and share learning content—without losing control of quality and level.",
+      "imageAlt": "Teacher planning lessons on a laptop",
+      "bullets": [
+        "Create texts in any language (write, paste, or generate).",
+        "Adjust texts to CEFR levels (A1–C1).",
+        "Generate and edit many task types (MCQ, open answers, writing tasks).",
+        "Share via Spaces—and collect submissions.",
+        "Export finished lessons as PDF."
+      ],
+      "cta": "Sign up today"
+    },
+    "students": {
+      "eyebrow": "For students",
+      "title": "Understand more. Learn with confidence.",
+      "description": "Students get support where it matters most: understanding, pace, and safe feedback—both in the learning language and optionally in their first language.",
+      "imageAlt": "Student learning a language with headphones",
+      "bullets": [
+        "Translate text and tasks to any language.",
+        "Adjustable audio speed—both for the main text and translation.",
+        "Instant feedback on writing (learning language + optional second language).",
+        "Explanations that help you improve—not just right/wrong.",
+        "Free access for students."
+      ],
+      "cta": "Log in"
+    },
+    "spaces": {
+      "eyebrow": "Spaces",
+      "title": "One room for everything happening in learning",
+      "description": "Share lessons, collect submissions, and follow progress—for classrooms, courses, and adult education.",
+      "cards": [
+        { "title": "Share in seconds", "text": "Give students a link or code. They land right in the lesson." },
+        { "title": "Anonymous or logged in", "text": "Low barrier at the start—secure login when you're ready." },
+        { "title": "Overview and flow", "text": "Everything together: texts, tasks, answers, and feedback—clear and tidy." }
+      ],
+      "imageAlt": "Mockup of Spaces in 321skole"
+    },
+    "whyAi": {
+      "eyebrow": "Why AI?",
+      "title": "AI as an assistant. Not the answer key.",
+      "description": "This is pedagogical AI: the teacher decides the content, and AI helps with language, level, and variety. Students get explanations—not shortcuts.",
+      "checks": [
+        "Teacher stays in control: everything can be edited and adjusted.",
+        "Safe support: focus on learning, understanding, and progress.",
+        "Multilingual from the ground up: text, tasks, audio, and feedback."
+      ],
+      "flowTitle": "Example flow",
+      "flow": {
+        "1": "Teacher chooses topic and level",
+        "2": "Text is created/adapted in minutes",
+        "3": "Tasks are generated and edited",
+        "4": "Share in a Space → students work",
+        "5": "Instant feedback + export as PDF"
+      }
+    },
+    "roles": {
+      "title": "Free to start. Easy to upgrade.",
+      "description": "Create your first lesson right away. Sign up for free when you want to publish and share.",
+      "cards": {
+        "student": {
+          "title": "Student",
+          "free": ["Everything from the teacher (unlimited)", "Read, listen, and get feedback", "Library: 4 lessons/month"],
+          "paidTitle": "Student Full",
+          "price": "49 NOK/month",
+          "paid": ["Unlimited library", "Full reading + audio access"],
+          "cta": "Start free"
+        },
+        "teacher": {
+          "title": "Teacher",
+          "free": ["Create and test lessons", "2 publications/month", "Test Spaces"],
+          "paidTitle": "Teacher Full",
+          "price": "99 NOK/month",
+          "paid": ["Unlimited generation", "Full AI + feedback", "Spaces + PDF export"],
+          "cta": "Create your first lesson"
+        },
+        "parent": {
+          "title": "Parent",
+          "free": ["Follow your child’s lessons", "Read, listen, and translate"],
+          "paidTitle": "Parent Full",
+          "price": "89 NOK/month",
+          "paid": ["Full library", "Create your own lessons", "Multiple children"],
+          "cta": "Help your child get started"
+        }
+      }
+    },
+    "cta": {
+      "title": "Get started—no risk",
+      "lead": "Free for everyone.",
+      "primary": "Sign up today",
+      "secondary": "Log in",
+      "note": "No commitment. Test in real teaching. Cancel anytime.",
+      "boxTitle": "What you get from day 1",
+      "checks": [
+        "Texts and tasks in any language",
+        "CEFR level adjustment (A1–C1)",
+        "TTS with adjustable speed",
+        "Instant feedback on writing",
+        "Spaces for sharing and submissions",
+        "PDF export of lessons"
+      ]
+    },
+    "footer": {
+      "about": "About",
+      "privacy": "Privacy",
+      "contact": "Contact",
+      "rights": "All rights reserved."
+    },
+    "landing": {
+    "common": {
+      "login": "Log in",
+      "register": "Sign up"
+    },
+    "topbar": {
+      "nav": {
+        "teachers": "For teachers",
+        "students": "For students",
+        "spaces": "Spaces"
+      }
+    },
+    "hero": {
+      "badge": "Free for students, teachers, and parents!",
+      "title": "Teaching. Enhanced with AI.",
+      "lead": "Create lessons in any language with translation and audio, share them with students, and give instant, supportive feedback—at the right level.",
+      "ctaPrimary": "Sign up today",
+      "ctaSecondary": "Log in",
+      "guestNote": "Guests join via shared links to lessons/Spaces.",
+      "stats": {
+        "languages": { "title": "Languages", "value": "All", "hint": "Text + tasks + feedback" },
+        "level": { "title": "Level", "value": "CEFR A1–C1", "hint": "Simplify, improve, vary" },
+        "audio": { "title": "Audio", "value": "Adjustable", "hint": "Text + translation" },
+        "pdf": { "title": "PDF", "value": "Export", "hint": "Ready-to-use worksheets" }
+      },
+      "imageAlt": "Illustration of a teacher and student using 321skole",
+      "cards": {
+        "text": { "title": "Text", "subtitle": "Level-adjust" },
+        "tasks": { "title": "Tasks", "subtitle": "Vary" },
+        "feedback": { "title": "Feedback", "subtitle": "Instant" }
+      },
+      "floating": {
+        "title": "Pedagogical AI",
+        "subtitle": "Teacher leads · AI assists"
+      }
+    },
+    "trustLine": "Ready for schools, courses, and adult education—without heavy LMS friction.",
+    "teachers": {
+      "eyebrow": "For teachers",
+      "title": "Create more—without the stress",
+      "description": "A practical tool that helps you produce, adapt, and share learning content—without losing control of quality and level.",
+      "imageAlt": "Teacher planning lessons on a laptop",
+      "bullets": [
+        "Create texts in any language (write, paste, or generate).",
+        "Adjust texts to CEFR levels (A1–C1).",
+        "Generate and edit many task types (MCQ, open answers, writing tasks).",
+        "Share via Spaces—and collect submissions.",
+        "Export finished lessons as PDF."
+      ],
+      "cta": "Sign up today"
+    },
+    "students": {
+      "eyebrow": "For students",
+      "title": "Understand more. Learn with confidence.",
+      "description": "Students get support where it matters most: understanding, pace, and safe feedback—both in the learning language and optionally in their first language.",
+      "imageAlt": "Student learning a language with headphones",
+      "bullets": [
+        "Translate text and tasks to any language.",
+        "Adjustable audio speed—both for the main text and translation.",
+        "Instant feedback on writing (learning language + optional second language).",
+        "Explanations that help you improve—not just right/wrong.",
+        "Free access for students."
+      ],
+      "cta": "Log in"
+    },
+    "spaces": {
+      "eyebrow": "Spaces",
+      "title": "One room for everything happening in learning",
+      "description": "Share lessons, collect submissions, and follow progress—for classrooms, courses, and adult education.",
+      "cards": [
+        { "title": "Share in seconds", "text": "Give students a link or code. They land right in the lesson." },
+        { "title": "Anonymous or logged in", "text": "Low barrier at the start—secure login when you're ready." },
+        { "title": "Overview and flow", "text": "Everything together: texts, tasks, answers, and feedback—clear and tidy." }
+      ],
+      "imageAlt": "Mockup of Spaces in 321skole"
+    },
+    "whyAi": {
+      "eyebrow": "Why AI?",
+      "title": "AI as an assistant. Not the answer key.",
+      "description": "This is pedagogical AI: the teacher decides the content, and AI helps with language, level, and variety. Students get explanations—not shortcuts.",
+      "checks": [
+        "Teacher stays in control: everything can be edited and adjusted.",
+        "Safe support: focus on learning, understanding, and progress.",
+        "Multilingual from the ground up: text, tasks, audio, and feedback."
+      ],
+      "flowTitle": "Example flow",
+      "flow": {
+        "1": "Teacher chooses topic and level",
+        "2": "Text is created/adapted in minutes",
+        "3": "Tasks are generated and edited",
+        "4": "Share in a Space → students work",
+        "5": "Instant feedback + export as PDF"
+      }
+    },
+    "roles": {
+      "title": "Free to start. Easy to upgrade.",
+      "description": "Create your first lesson right away. Sign up for free when you want to publish and share.",
+      "cards": {
+        "student": {
+          "title": "Student",
+          "free": ["Everything from the teacher (unlimited)", "Read, listen, and get feedback", "Library: 4 lessons/month"],
+          "paidTitle": "Student Full",
+          "price": "49 NOK/month",
+          "paid": ["Unlimited library", "Full reading + audio access"],
+          "cta": "Start free"
+        },
+        "teacher": {
+          "title": "Teacher",
+          "free": ["Create and test lessons", "2 publications/month", "Test Spaces"],
+          "paidTitle": "Teacher Full",
+          "price": "99 NOK/month",
+          "paid": ["Unlimited generation", "Full AI + feedback", "Spaces + PDF export"],
+          "cta": "Create your first lesson"
+        },
+        "parent": {
+          "title": "Parent",
+          "free": ["Follow your child’s lessons", "Read, listen, and translate"],
+          "paidTitle": "Parent Full",
+          "price": "89 NOK/month",
+          "paid": ["Full library", "Create your own lessons", "Multiple children"],
+          "cta": "Help your child get started"
+        }
+      }
+    },
+    "cta": {
+      "title": "Get started—no risk",
+      "lead": "Free for everyone.",
+      "primary": "Sign up today",
+      "secondary": "Log in",
+      "note": "No commitment. Test in real teaching. Cancel anytime.",
+      "boxTitle": "What you get from day 1",
+      "checks": [
+        "Texts and tasks in any language",
+        "CEFR level adjustment (A1–C1)",
+        "TTS with adjustable speed",
+        "Instant feedback on writing",
+        "Spaces for sharing and submissions",
+        "PDF export of lessons"
+      ]
+    },
+    "footer": {
+      "about": "About",
+      "privacy": "Privacy",
+      "contact": "Contact",
+      "rights": "All rights reserved."
+    }
+  }
+}
+  }
+
+
+
+
+
+
