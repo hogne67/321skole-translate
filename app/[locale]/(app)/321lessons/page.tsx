@@ -1,4 +1,4 @@
-// app/(app)/321lessons/page.tsx
+// app/[locale]/(app)/321lessons/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -14,7 +14,7 @@ import {
 import { db } from "@/lib/firebase";
 import { LANGUAGES } from "@/lib/languages";
 import { SearchableSelect } from "@/components/SearchableSelect";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type FirestoreTimestampLike = { seconds?: number } | null | undefined;
 
@@ -47,6 +47,8 @@ type PublishedLesson = {
 };
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
+const PAGE_SIZES = [25, 50, 100] as const;
+type PageSize = (typeof PAGE_SIZES)[number];
 
 function normLang(code?: string) {
   return (code || "").trim().toLowerCase();
@@ -146,6 +148,7 @@ type LoadState =
 
 export default function LessonsLandingPage() {
   const t = useTranslations("lessonsLanding");
+  const locale = useLocale();
 
   const [all, setAll] = useState<PublishedLesson[]>([]);
   const [loadState, setLoadState] = useState<LoadState>({
@@ -157,6 +160,15 @@ export default function LessonsLandingPage() {
   const [level, setLevel] = useState<string>("all");
   const [lang, setLang] = useState<string>("all");
   const [textType, setTextType] = useState<string>("all");
+
+  // ✅ pagination state
+  const [pageSize, setPageSize] = useState<PageSize>(25);
+  const [page, setPage] = useState<number>(1); // 1-based
+
+  // Når filter endres → hopp tilbake til side 1
+  useEffect(() => {
+    setPage(1);
+  }, [qText, level, lang, textType, pageSize]);
 
   const langLabelByCode = useMemo(() => {
     const m = new Map<string, string>();
@@ -180,9 +192,9 @@ export default function LessonsLandingPage() {
     setLevel("all");
     setLang("all");
     setTextType("all");
+    setPage(1);
   }
 
-  // ✅ Riktig: subscription i useEffect (cleanup kjører alltid)
   useEffect(() => {
     setLoadState({ status: "loading", error: null });
 
@@ -244,12 +256,30 @@ export default function LessonsLandingPage() {
 
       const hay = (
         l.searchText ||
-        `${l.title ?? ""} ${l.description ?? ""} ${tt} ${(l.level || "").toUpperCase()} ${l.language || ""}`
+        `${l.title ?? ""} ${l.description ?? ""} ${tt} ${(l.level || "").toUpperCase()} ${
+          l.language || ""
+        }`
       ).toLowerCase();
 
       return hay.includes(qt);
     });
   }, [all, qText, level, lang, textType]);
+
+  // ✅ pagination derived
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filtered.length / pageSize));
+  }, [filtered.length, pageSize]);
+
+  // clamp hvis pageSize endrer seg og vi havner utenfor
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+    if (page < 1) setPage(1);
+  }, [page, totalPages]);
+
+  const pageSlice = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   const isResetDisabled = useMemo(() => {
     return qText === "" && level === "all" && lang === "all" && textType === "all";
@@ -257,6 +287,9 @@ export default function LessonsLandingPage() {
 
   const loading = loadState.status === "loading";
   const error = loadState.status === "error" ? loadState.error : null;
+
+  const shownFrom = filtered.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const shownTo = Math.min(page * pageSize, filtered.length);
 
   return (
     <main>
@@ -363,6 +396,40 @@ export default function LessonsLandingPage() {
           margin-bottom: 8px;
           opacity: 0.75;
         }
+
+        .pagerRow {
+          margin-top: 14px;
+          padding: 12px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .pagerBtn {
+          padding: 8px 12px;
+          border-radius: 10px;
+          border: 1px solid rgba(0, 0, 0, 0.2);
+          background: white;
+          font-weight: 800;
+          cursor: pointer;
+        }
+        .pagerBtn:disabled {
+          opacity: 0.55;
+          cursor: default;
+          background: rgba(0, 0, 0, 0.03);
+        }
+
+        .pageSizeSelect {
+          padding: 8px 10px;
+          border-radius: 10px;
+          border: 1px solid rgba(0, 0, 0, 0.2);
+          background: white;
+          font-weight: 700;
+        }
       `}</style>
 
       {error ? (
@@ -458,7 +525,12 @@ export default function LessonsLandingPage() {
           <p>{t("status.loading")}</p>
         ) : (
           <p>
-            {t("status.showingCount", { shown: filtered.length, total: all.length })}
+            {t("status.showingCount", { shown: filtered.length, total: all.length })}{" "}
+            {filtered.length > 0 ? (
+              <span style={{ marginLeft: 8 }}>
+                ({shownFrom}–{shownTo})
+              </span>
+            ) : null}
           </p>
         )}
       </section>
@@ -478,15 +550,17 @@ export default function LessonsLandingPage() {
 
       <section className="cards">
         {!loading &&
-          filtered.map((l) => {
+          pageSlice.map((l) => {
             const langCode = normLang(l.language);
-            const langLabel =
-              langLabelByCode.get(langCode) || (l.language ? l.language : "");
+            const langLabel = langLabelByCode.get(langCode) || (l.language ? l.language : "");
 
             const img = pickImageUrl(l);
 
+            // ✅ Link til lesson innen samme locale
+            const lessonHref = `/${locale}/lesson/${l.id}`;
+
             return (
-              <Link key={l.id} href={`/lesson/${l.id}`} className="card">
+              <Link key={l.id} href={lessonHref} className="card">
                 <div className="imgWrap">
                   <div className="badge">
                     <span>{(l.level || "—").toUpperCase()}</span>
@@ -496,35 +570,73 @@ export default function LessonsLandingPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={img} alt={l.title} className="img" />
                   ) : (
-                    <div style={{ fontSize: 13, opacity: 0.6 }}>
-                      {t("card.imageFallback")}
-                    </div>
+                    <div style={{ fontSize: 13, opacity: 0.6 }}>{t("card.imageFallback")}</div>
                   )}
                 </div>
 
                 <div className="content">
-                  <div className="metaRow">
-                    {langLabel ? <span>• {langLabel}</span> : null}
-                  </div>
+                  <div className="metaRow">{langLabel ? <span>• {langLabel}</span> : null}</div>
 
                   <h3 style={{ margin: "6px 0 8px", fontSize: 18 }}>{l.title}</h3>
 
                   {l.description ? (
                     <p style={{ margin: 0, opacity: 0.8, lineHeight: 1.4 }}>
-                      {l.description.length > 120
-                        ? l.description.slice(0, 120) + "…"
-                        : l.description}
+                      {l.description.length > 120 ? l.description.slice(0, 120) + "…" : l.description}
                     </p>
                   ) : (
-                    <p style={{ margin: 0, opacity: 0.6 }}>
-                      {t("card.openForDetails")}
-                    </p>
+                    <p style={{ margin: 0, opacity: 0.6 }}>{t("card.openForDetails")}</p>
                   )}
                 </div>
               </Link>
             );
           })}
       </section>
+
+      {/* ✅ Pager */}
+      {!loading && filtered.length > 0 ? (
+        <div className="pagerRow">
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="pagerBtn"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              {t("pagination.prev" as any) || "Previous"}
+            </button>
+
+            <div style={{ fontWeight: 800, opacity: 0.85 }}>
+              {(t("pagination.page" as any) as string) || "Page"} {page} / {totalPages}
+            </div>
+
+            <button
+              type="button"
+              className="pagerBtn"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+            >
+              {t("pagination.next" as any) || "Next"}
+            </button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontWeight: 800, opacity: 0.8 }}>
+              {(t("pagination.perPage" as any) as string) || "Per page"}
+            </span>
+            <select
+              className="pageSizeSelect"
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
+            >
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

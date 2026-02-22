@@ -55,6 +55,12 @@
     "open": "Åpne bibliotek",
     "close": "Lukk bibliotek"
   },
+  "pagination": {
+    "prev": "Forrige",
+    "next": "Neste",
+    "page": "Side",
+    "perPage": "Per side"
+  },
   "auth": {
     "login": {
       "title": {

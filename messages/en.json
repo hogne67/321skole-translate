@@ -924,6 +924,12 @@
     "languages": {
       "all": "All languages",
       "norwegianBokmal": "Norwegian (Bokmål)"
+    },
+    "pagination": {
+     "prev": "Previous",
+     "next": "Next",
+     "page": "Page",
+     "perPage": "Per page"
     }
   },
   "applyTeacher": {

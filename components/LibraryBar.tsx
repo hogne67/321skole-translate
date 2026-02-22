@@ -7,31 +7,43 @@ import { useAppMode } from "@/components/ModeProvider";
 import { navItemsForMode } from "@/lib/navItems";
 import { useTranslations } from "next-intl";
 
-function getLocaleFromPathname(pathname: string | null): string | null {
-  if (!pathname) return null;
-  const seg = pathname.split("/")[1];
-  return seg === "en" || seg === "no" ? seg : null;
+/* =========================
+   Locale helpers
+========================= */
+
+const SUPPORTED_LOCALES = ["en", "no", "pt"] as const;
+type Locale = (typeof SUPPORTED_LOCALES)[number];
+
+function isLocale(x: string | undefined | null): x is Locale {
+  return !!x && (SUPPORTED_LOCALES as readonly string[]).includes(x);
 }
 
-function withLocale(locale: string | null, href: string): string {
+function getLocaleFromPathname(pathname: string | null): Locale | null {
+  if (!pathname) return null;
+  const seg = pathname.split("/")[1];
+  return isLocale(seg) ? seg : null;
+}
+
+function withLocale(locale: Locale | null, href: string): string {
   // absolute URLs
   if (/^https?:\/\//i.test(href)) return href;
-
-  // Library er foreløpig OUTSIDE locale (public ikke flyttet)
-  if (href === "/321lessons") return href;
 
   // root / → hold som /
   if (href === "/") return href;
 
-  // Prefix kun hvis vi faktisk er inne i /en eller /no
-  if (locale && href.startsWith("/")) {
-    if (href.startsWith(`/${locale}/`)) return href;
-    if (href === `/${locale}`) return href;
-    return `/${locale}${href}`;
-  }
+  // allerede lokalisert?
+  const seg = href.split("/")[1];
+  if (isLocale(seg)) return href;
+
+  // Prefix kun hvis vi har locale og href er intern
+  if (locale && href.startsWith("/")) return `/${locale}${href}`;
 
   return href;
 }
+
+/* =========================
+   Component
+========================= */
 
 export default function LibraryBar() {
   const t = useTranslations();
@@ -40,28 +52,29 @@ export default function LibraryBar() {
 
   const locale = getLocaleFromPathname(pathname);
 
-  // Robust: funker både på /321lessons og /no/321lessons (hvis du tester sånn)
-  const isLibrary = (pathname || "").endsWith("/321lessons");
+  // true for /en/321lessons, /no/321lessons, /pt/321lessons
+  const isLibrary = (pathname || "").split("?")[0].endsWith("/321lessons");
 
-  // Finn dashboard-lenke fra navItems (robust etter labelKey-endringen)
+  // dashboard-lenke fra navItems
   const dashboardRaw =
     navItemsForMode(mode).find((x) => x.labelKey === "nav.dashboard")?.href || "/";
 
   const dashboardHref = withLocale(locale, dashboardRaw);
 
-  // Library er foreløpig uten locale
-  const href = isLibrary ? dashboardHref : "/321lessons";
+  // Toggle: når du er i library -> tilbake til dashboard (med locale)
+  // ellers -> gå til library (med locale)
+  const href = isLibrary ? dashboardHref : withLocale(locale, "/321lessons");
 
-  // Fallback dersom keys mangler i messages
+  // Label
   const label = isLibrary
-    ? (t("library.close" as any) as string) || "Close Library"
-    : (t("library.open" as any) as string) || "Open Library";
+    ? ((t("library.close" as any) as string) || "Close Library")
+    : ((t("library.open" as any) as string) || "Open Library");
 
   return (
     <div
       style={{
         borderBottom: "1px solid rgba(0,0,0,0.08)",
-        background: "rgba(240, 228, 163, 0.36)",
+        background: "rgba(117, 214, 231, 0.36)",
       }}
     >
       <div
@@ -83,7 +96,7 @@ export default function LibraryBar() {
             padding: "6px 8px",
             borderRadius: 8,
             transition: "color 120ms ease, background-color 120ms ease",
-            color: isLibrary ? "rgba(38, 48, 196, 0.95)" : "rgba(4, 85, 61, 0.65)",
+            color: isLibrary ? "rgba(216, 17, 27, 0.95)" : "rgba(4, 85, 61, 0.65)",
           }}
         >
           {label}

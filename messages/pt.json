@@ -924,7 +924,13 @@
     "languages": {
       "all": "Todos os idiomas",
       "norwegianBokmal": "Norueguês (Bokmål)"
-    }
+    },
+    "pagination": {
+  "prev": "Anterior",
+  "next": "Próxima",
+  "page": "Página",
+  "perPage": "Por página"
+}
   },
   "applyTeacher": {
     "title": "Tornar-se professor",

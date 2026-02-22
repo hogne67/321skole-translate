@@ -7,5 +7,13 @@ export default createMiddleware({
 });
 
 export const config = {
-  matcher: ["/((?!api|_next|.*\\..*|space|321lessons).*)"],
+  matcher: [
+    // Kjør middleware på alt, unntatt:
+    // - /api
+    // - /_next
+    // - filer med extension (.*\..*)
+    // - /space (første segment)
+    // - /321lessons (første segment)
+    "/((?!api|_next|.*\\..*|space(?:/|$)|321lessons(?:/|$)).*)",
+  ],
 };
