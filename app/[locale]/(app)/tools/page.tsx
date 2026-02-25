@@ -1,3 +1,9 @@
+// app/[locale]/(app)/tools/page.tsx
+"use client";
+
+import type React from "react";
+import Link from "next/link";
+
 export default function ToolsPage() {
   return (
     <main style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
@@ -7,15 +13,22 @@ export default function ToolsPage() {
       </p>
 
       <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        <a href="/student/translate" style={card}>Translator</a>
-        <a href="/student/generator" style={card}>Generate tasks</a>
-        <a href="/student/vocab" style={card}>Glossary generator</a>
+        <Link href="/student/translate" style={card}>
+          Translator
+        </Link>
+        <Link href="/student/generator" style={card}>
+          Generate tasks
+        </Link>
+        <Link href="/student/vocab" style={card}>
+          Glossary generator
+        </Link>
       </div>
     </main>
   );
 }
 
 const card: React.CSSProperties = {
+  display: "block",
   padding: 12,
   border: "1px solid rgba(0,0,0,0.1)",
   borderRadius: 12,

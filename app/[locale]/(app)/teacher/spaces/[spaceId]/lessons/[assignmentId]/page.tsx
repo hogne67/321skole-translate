@@ -97,10 +97,6 @@ function errMsg(e: unknown, fallbackUnknown: string): string {
   return fallbackUnknown;
 }
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
 function formatMaybeDate(v: unknown, locale: string): string {
   try {
     if (!v) return "";
@@ -440,7 +436,7 @@ export default function TeacherSpaceAssignedTaskPage() {
   void isOwner; // intentionally unused (Owner chip removed by request)
 
   return (
-    <AuthGate requireRole="teacher" requireApprovedTeacher>
+    <AuthGate requireRole="teacher">
       <main className="mx-auto w-full max-w-6xl px-6 py-6">
         <div className="mb-4 flex items-center justify-between gap-3">
           <Link href={backHref} className="text-sm underline opacity-80">

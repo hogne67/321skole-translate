@@ -112,9 +112,7 @@ const USE_EMULATORS =
 
 // Type-safe global flags (ingen any)
 declare global {
-  // eslint-disable-next-line no-var
   var __FIRESTORE_EMULATOR_CONNECTED__: boolean | undefined;
-  // eslint-disable-next-line no-var
   var __AUTH_EMULATOR_CONNECTED__: boolean | undefined;
 }
 

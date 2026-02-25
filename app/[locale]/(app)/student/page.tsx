@@ -79,8 +79,7 @@ function asSubmissionDoc(data: DocumentData): SubmissionDoc {
   const d = data as Partial<SubmissionDoc>;
   return {
     uid: typeof d.uid === "string" ? d.uid : undefined,
-    publishedLessonId:
-      typeof d.publishedLessonId === "string" ? d.publishedLessonId : undefined,
+    publishedLessonId: typeof d.publishedLessonId === "string" ? d.publishedLessonId : undefined,
     status: d.status === "draft" || d.status === "submitted" ? d.status : undefined,
     lessonTitle: typeof d.lessonTitle === "string" ? d.lessonTitle : undefined,
     lessonLevel: typeof d.lessonLevel === "string" ? d.lessonLevel : undefined,
@@ -146,9 +145,7 @@ export default function StudentDashboard() {
         });
 
         // 2) Fjern ødelagte submissions (mangler publishedLessonId)
-        rows = rows.filter(
-          (r) => typeof r.publishedLessonId === "string" && r.publishedLessonId.trim().length > 0
-        );
+        rows = rows.filter((r) => typeof r.publishedLessonId === "string" && r.publishedLessonId.trim().length > 0);
 
         // 3) Sorter nyeste først
         rows.sort((a, b) => {
@@ -161,6 +158,10 @@ export default function StudentDashboard() {
         const needMeta = rows.filter((r) => r.publishedLessonId && !r.lessonTitle);
 
         if (needMeta.length > 0) {
+          // 🔧 “t” er en function som kan endre referanse → bruk ren fallback-string her,
+          // så slipper vi å ha “t” i dependency-array.
+          const fallbackTitle = "Oppgave";
+
           const metas = await Promise.all(
             needMeta.map(async (r) => {
               const id = r.publishedLessonId!;
@@ -170,7 +171,7 @@ export default function StudentDashboard() {
 
                 const data = asPublishedLessonDoc(ps.data());
                 const meta: PublishedMeta = {
-                  title: data.title ?? t("fallback.lessonTitle"),
+                  title: data.title ?? fallbackTitle,
                   level: data.level,
                   language: data.language,
                 };
@@ -228,8 +229,8 @@ export default function StudentDashboard() {
     return () => {
       alive = false;
     };
-    // ✅ Ikke bruk `t` som dependency (kan endre referanse). Locale er stabil trigger.
-  }, [locale]);
+    // ✅ Ikke inkluder `t` her (den kan endre referanse). Locale er stabil trigger.
+    }, [locale, t]);
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-3">
@@ -249,10 +250,7 @@ export default function StudentDashboard() {
       ) : items.length === 0 ? (
         <div className="mt-4 rounded-2xl border bg-background p-4">
           <p className="text-sm">{t("empty.title")}</p>
-          <Link
-            className="mt-2 inline-block text-sm font-extrabold underline"
-            href={`/${locale}/321lessons`}
-          >
+          <Link className="mt-2 inline-block text-sm font-extrabold underline" href={`/${locale}/321lessons`}>
             {t("empty.cta")}
           </Link>
         </div>
@@ -264,9 +262,7 @@ export default function StudentDashboard() {
               href={`/${locale}/student/lesson/${l.publishedLessonId}`}
               className="block rounded-2xl border bg-background p-4 no-underline"
             >
-              <div className="text-base font-extrabold text-foreground">
-                {l.lessonTitle || t("fallback.lessonTitle")}
-              </div>
+              <div className="text-base font-extrabold text-foreground">{l.lessonTitle || t("fallback.lessonTitle")}</div>
 
               <div className="mt-1 text-xs opacity-70">
                 {l.lessonLevel ? `${t("meta.level")}: ${l.lessonLevel}` : null}

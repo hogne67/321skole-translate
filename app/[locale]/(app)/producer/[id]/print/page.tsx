@@ -1,7 +1,7 @@
-// app/(app)/producer/[id]/print/page.tsx
+// app/[locale]/(app)/producer/[id]/print/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
@@ -100,15 +100,17 @@ export default function ProducerPrintPage() {
   const [err, setErr] = useState<string | null>(null);
   const [lesson, setLesson] = useState<Lesson | null>(null);
 
-  function localizeError(message: string): string {
-    const m = message || "";
-    if (m === "No auth uid.") return t("errors.noAuthUid");
-    if (m === "Fant ikke lesson.") return t("errors.notFound");
-    if (m === "Du har ikke tilgang til denne lesson (ownerId mismatch).")
-      return t("errors.noAccessOwnerMismatch");
-    if (m === "Kunne ikke laste lesson.") return t("errors.loadFailed");
-    return m;
-  }
+  const localizeError = useCallback(
+    (message: string): string => {
+      const m = message || "";
+      if (m === "No auth uid.") return t("errors.noAuthUid");
+      if (m === "Fant ikke lesson.") return t("errors.notFound");
+      if (m === "Du har ikke tilgang til denne lesson (ownerId mismatch).") return t("errors.noAccessOwnerMismatch");
+      if (m === "Kunne ikke laste lesson.") return t("errors.loadFailed");
+      return m;
+    },
+    [t]
+  );
 
   useEffect(() => {
     let alive = true;
@@ -155,7 +157,7 @@ export default function ProducerPrintPage() {
     return () => {
       alive = false;
     };
-  }, [lessonId, t]);
+  }, [lessonId, t, localizeError]);
 
   const tasks = useMemo(() => {
     const t0 = Array.isArray(lesson?.tasks) ? (lesson?.tasks ?? []) : [];
@@ -354,9 +356,7 @@ export default function ProducerPrintPage() {
                         ))}
                       </div>
 
-                      {teacherMode &&
-                      typeof task.correctAnswer === "string" &&
-                      task.correctAnswer.trim() ? (
+                      {teacherMode && typeof task.correctAnswer === "string" && task.correctAnswer.trim() ? (
                         <div className="answer">
                           <b>{t("teacher.suggestionNote")}:</b> {task.correctAnswer}
                         </div>

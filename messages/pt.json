@@ -29,17 +29,12 @@
     "update": "Atualizar"
   },
   "topnav": {
-    "language": "Idioma",
+     "language": "Idioma",
     "guestMode": "Modo convidado",
     "loginOrCreate": "Entrar / Criar conta",
-    "login": "Entrar",
+    "completeProfile": "Completar perfil",
     "logout": "Sair",
-    "applyTeacherAccess": "Solicitar acesso de professor",
-    "applicationSent": "Solicitação enviada ⏳",
-    "applicationSentTitle": "Sua solicitação foi enviada",
-    "applyTeacherTitle": "Solicitar acesso de professor",
-    "switchModeTitle": "Trocar modo",
-    "noOtherModesTitle": "Nenhum outro modo disponível"
+    "login": "Entrar"
   },
   "modes": {
     "student": "Aluno",
@@ -99,41 +94,48 @@
       }
     },
     "onboarding": {
-      "title": "Primeiros passos",
-      "loading": "Carregando…",
-      "subtitle": "Nome é obrigatório. País/município é selecionado em uma lista. Instituição é opcional.",
-      "fields": {
-        "fullName": { "label": "Nome completo *" },
-        "country": { "label": "País *", "placeholder": "Buscar país…" },
-        "municipalityNo": { "label": "Município *", "placeholder": "Buscar município…" },
-        "municipalityOther": { "label": "Cidade/região *" }
-      },
-      "institution": {
-        "title": "Instituição de ensino (opcional)",
-        "typeLabel": "Tipo",
-        "none": "Nenhuma",
-        "nameLabel": "Nome (opcional)",
-        "namePlaceholder": "",
-        "types": {
-          "school": "Escola",
-          "kindergarten": "Jardim de infância",
-          "adult_education": "Educação de adultos",
-          "university": "Universidade / faculdade",
-          "workplace": "Empresa / local de trabalho",
-          "other": "Outro"
-        }
-      },
-      "buttons": {
-        "saving": "Salvando…",
-        "complete": "Concluir"
-      },
-      "errors": {
-        "missingName": "Informe seu nome completo.",
-        "missingCountry": "Escolha um país.",
-        "missingMunicipalityNo": "Escolha um município.",
-        "missingMunicipalityOther": "Informe uma cidade/região."
-      }
+  "title": "Começar",
+  "loading": "Carregando…",
+  "subtitle": "O nome é obrigatório. País/município é selecionado em uma lista. Instituição é opcional.",
+  "fields": {
+    "role": {
+      "label": "Escolha a função *",
+      "student": "Aluno",
+      "teacher": "Professor",
+      "hint": "Escolha uma função para continuar."
+    },
+    "fullName": { "label": "Nome completo *" },
+    "country": { "label": "País *", "placeholder": "Pesquisar país…" },
+    "municipalityNo": { "label": "Município *", "placeholder": "Pesquisar município…" },
+    "municipalityOther": { "label": "Cidade/região *" }
+  },
+  "errors": {
+    "missingRole": "Escolha uma função (Aluno ou Professor).",
+    "missingName": "Digite seu nome completo.",
+    "missingCountry": "Escolha um país.",
+    "missingMunicipalityNo": "Escolha um município.",
+    "missingMunicipalityOther": "Digite a cidade/região."
+  },
+  "buttons": {
+    "saving": "Salvando…",
+    "complete": "Concluir perfil"
+  },
+  "institution": {
+    "title": "Instituição de ensino (opcional)",
+    "typeLabel": "Tipo",
+    "none": "Nenhuma",
+    "nameLabel": "Nome (opcional)",
+    "namePlaceholder": "",
+    "types": {
+      "school": "Escola",
+      "kindergarten": "Jardim de infância",
+      "adult_education": "Educação de adultos",
+      "university": "Universidade / faculdade",
+      "workplace": "Empresa / local de trabalho",
+      "other": "Outro"
     }
+  }
+}
   },
   "student": {
     "spaces": {
@@ -393,7 +395,7 @@
       "loggedIn": "logado",
       "roleFallback": "Usuário",
       "youAre": "Você está {state} como <b>{role}</b>.",
-      "activity": "Aqui você vê sua atividade mais recente. Em <b>Meu conteúdo</b> você encontra tudo o que já trabalhou antes.",
+      "activity": "Aqui você encontrará informações importantes sobre sua atividade. O menu, as ferramentas e a biblioteca estão acessíveis pelos botões acima.",
       "recommendRegister": "Recomendamos criar uma conta para salvar lições iniciadas.",
       "actions": {
         "registerLogin": "Cadastrar / entrar",
@@ -488,109 +490,127 @@
         "imageAlt": "QR code"
       }
     },
-    "spaceDetail": {
-      "checking": {
-        "title": "Espaço",
-        "subtitle": "Verificando acesso…"
-      },
-      "actions": {
-        "back": "← Voltar",
-        "submissions": "Entregas",
-        "setActive": "Definir ativa",
-        "archive": "Arquivar",
-        "restore": "Restaurar"
-      },
-      "access": {
-        "mustBeSignedIn": "Você precisa estar logado.",
-        "notMember": "Você não é membro deste espaço.",
-        "verifyFailed": "Não foi possível verificar o acesso."
-      },
-      "denied": {
-        "title": "Sem acesso",
-        "subtitle": "Você não tem acesso a este espaço.",
-        "hint": "Para entrar, use o link/código de entrada ou peça ao dono para adicionar você.",
-        "joinCardTitle": "Entrar neste espaço",
-        "joinLinkLabel": "Link de entrada:"
-      },
-      "overview": {
-        "subtitle": "Aqui você encontra códigos e links para enviar aos membros, para que eles possam entrar no seu espaço.",
-        "code": "Código:",
-        "copyCodeTitle": "Copiar código",
-        "copied": "Copiado ✅",
-        "openLabel": "Aberto:",
-        "yes": "Sim",
-        "no": "Não",
-        "copyJoinLink": "Copiar link de entrada",
-        "qr": "QR",
-        "activeForStudents": "Ativo para alunos:",
-        "clear": "Limpar"
-      },
-      "notice": {
-        "needAttestationHtml": "Para gerenciar espaços (modelo B1), você precisa de <b>atestação</b> e estar no modo <b>professor</b> ou <b>criador</b>."
-      },
-      "assignments": {
-        "title": "Atividades",
-        "subtitle": "Atribua tarefas do Meu Conteúdo ou Biblioteca. Os alunos veem as tarefas atribuídas depois de entrar.",
-        "assignTask": "Atribuir tarefa",
-        "showArchived": "Mostrar arquivadas",
-        "hideArchived": "Ocultar arquivadas",
-        "openSpace": "Abrir espaço",
-        "closeSpace": "Fechar espaço",
-        "emptyHtml": "Nenhuma atividade ainda. Clique em <b>Atribuir tarefa</b>."
-      },
-      "labels": {
-        "myContent": "Meu conteúdo",
-        "library": "Biblioteca"
-      },
-      "badges": {
-        "active": "Ativa",
-        "archived": "Arquivada",
-        "noSubmissions": "Sem entregas",
-        "allReviewed": "Tudo revisado",
-        "newCount": "{n} novas",
-        "submissionsCount": "{n} entregas",
-        "submissionsError": "Entregas: erro"
-      },
-      "assignModal": {
-        "title": "Atribuir tarefa",
-        "subtitle": "Escolha entre Meu Conteúdo ou Biblioteca.",
-        "close": "Fechar",
-        "searchPlaceholder": "Buscar título / nível / idioma…",
-        "noResults": "Sem resultados.",
-        "lessonId": "lessonId",
-        "publishedLessonId": "publishedLessonId",
-        "assign": "Atribuir",
-        "paging": {
-          "prev": "← Anterior",
-          "next": "Próximo →",
-          "showing": "Mostrando",
-          "zero": "0 de 0",
-          "range": "{start}-{end} de {total}"
+    "spacesNew": {
+      "title": "Nova turma",
+      "fields": {
+        "name": {
+          "label": "Nome",
+          "placeholder": "Ex.: Norueguês A2 – Grupo 1"
+        },
+        "isOpen": {
+          "label": "A turma fica aberta para envios anônimos (recomendado no MVP)"
         }
       },
-      "qr": {
-        "title": "QR para entrar",
-        "codeLabel": "Código:",
-        "close": "Fechar",
-        "generating": "Gerando…",
-        "pointsTo": "Aponta para",
-        "note": "Se necessário: npm i qrcode",
-        "imageAlt": "QR code",
-        "error": "Não foi possível gerar o QR. Instale a dependência: npm i qrcode"
+      "actions": {
+        "create": "Criar",
+        "creating": "Criando…"
       },
       "errors": {
-        "needAttestation": "Para gerenciar este espaço, você precisa de atestação e modo Professor/Criador.",
-        "noManageAccess": "Você não tem acesso para gerenciar este espaço.",
-        "setActiveFailed": "Não foi possível definir a tarefa ativa.",
-        "assignFailed": "Não foi possível atribuir a tarefa.",
-        "updateAssignmentFailed": "Não foi possível atualizar a atividade.",
-        "updateSpaceFailed": "Não foi possível atualizar o espaço.",
-        "readSubmissionsFailed": "Não foi possível ler as entregas."
-      },
-      "fallback": {
-        "task": "Tarefa",
-        "untitledTask": "Tarefa sem título",
-        "untitled": "Sem título"
+        "missingUser": "Usuário ausente.",
+        "cannotCreate": "Você não pode criar uma turma.",
+        "missingTitle": "Dê um nome para a turma.",
+        "unknown": "Erro desconhecido"
+      }
+    },
+    "spaceDetail": {
+      "checking": {
+    "title": "Sala",
+    "subtitle": "Verificando acesso…"
+  },
+  "actions": {
+    "back": "← Voltar",
+    "submissions": "Envios",
+    "setActive": "Definir como ativa",
+    "archive": "Arquivar",
+    "restore": "Restaurar"
+  },
+  "access": {
+    "mustBeSignedIn": "Você precisa estar conectado.",
+    "notMember": "Você não é membro desta sala.",
+    "verifyFailed": "Não foi possível verificar o acesso."
+  },
+  "denied": {
+    "title": "Sem acesso",
+    "subtitle": "Você não tem acesso a esta sala.",
+    "hint": "Para entrar, use o link/código ou peça ao proprietário para adicioná-lo.",
+    "joinCardTitle": "Entrar nesta sala",
+    "joinLinkLabel": "Link para entrar:"
+  },
+  "overview": {
+    "subtitle": "Aqui você encontra códigos e links que pode enviar aos membros para que entrem na sala.",
+    "code": "Código:",
+    "copyCodeTitle": "Copiar código",
+    "copied": "Copiado ✅",
+    "openLabel": "Aberta:",
+    "yes": "Sim",
+    "no": "Não",
+    "copyJoinLink": "Copiar link de entrada",
+    "qr": "QR",
+    "activeForStudents": "Ativa para alunos:",
+    "clear": "Limpar"
+  },
+  "assignments": {
+    "title": "Tarefas",
+    "subtitle": "Atribua tarefas do Meu Conteúdo ou Biblioteca. Os alunos veem as tarefas após entrarem na sala.",
+    "assignTask": "Atribuir tarefa",
+    "showArchived": "Mostrar arquivadas",
+    "hideArchived": "Ocultar arquivadas",
+    "openSpace": "Abrir sala",
+    "closeSpace": "Fechar sala",
+    "emptyHtml": "Nenhuma tarefa ainda. Clique em <b>Atribuir tarefa</b>."
+  },
+  "labels": {
+    "myContent": "Meu Conteúdo",
+    "library": "Biblioteca"
+  },
+  "badges": {
+    "active": "Ativa",
+    "archived": "Arquivada",
+    "noSubmissions": "Sem envios",
+    "allReviewed": "Todas avaliadas",
+    "newCount": "{n} novas",
+    "submissionsCount": "{n} envios",
+    "submissionsError": "Envios: erro"
+  },
+  "assignModal": {
+    "title": "Atribuir tarefa",
+    "subtitle": "Escolha do Meu Conteúdo ou Biblioteca.",
+    "close": "Fechar",
+    "searchPlaceholder": "Buscar por título / nível / idioma…",
+    "noResults": "Nenhum resultado.",
+    "lessonId": "lessonId",
+    "publishedLessonId": "publishedLessonId",
+    "assign": "Atribuir",
+    "paging": {
+      "prev": "← Anterior",
+      "next": "Próxima →",
+      "showing": "Mostrando",
+      "zero": "0 de 0",
+      "range": "{start}-{end} de {total}"
+    }
+  },
+  "qr": {
+    "title": "QR de entrada",
+    "codeLabel": "Código:",
+    "close": "Fechar",
+    "generating": "Gerando…",
+    "pointsTo": "Aponta para",
+    "note": "Se necessário: npm i qrcode",
+    "imageAlt": "Código QR",
+    "error": "Não foi possível gerar o QR. Instale a dependência: npm i qrcode"
+  },
+  "errors": {
+    "noManageAccess": "Você não tem permissão para gerenciar esta sala.",
+    "setActiveFailed": "Não foi possível definir a tarefa ativa.",
+    "assignFailed": "Não foi possível atribuir a tarefa.",
+    "updateAssignmentFailed": "Não foi possível atualizar a tarefa.",
+    "updateSpaceFailed": "Não foi possível atualizar a sala.",
+    "readSubmissionsFailed": "Não foi possível carregar os envios."
+  },
+  "fallback": {
+    "task": "Tarefa",
+    "untitledTask": "Tarefa sem título",
+    "untitled": "Sem título"
       }
     },
     "assignedTask": {

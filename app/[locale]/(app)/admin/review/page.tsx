@@ -126,7 +126,7 @@ export default function AdminReviewPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const isAdmin = !!profile?.roles?.admin;
+  const isAdmin = profile?.role === "admin";
 
   async function load() {
     setLoading(true);

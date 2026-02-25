@@ -6,15 +6,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
-import {
-  doc,
-  getDoc,
-  onSnapshot,
-  serverTimestamp,
-  Timestamp,
-  writeBatch,
-  type Firestore,
-} from "firebase/firestore";
+import { doc, getDoc, onSnapshot, serverTimestamp, Timestamp, writeBatch, type Firestore } from "firebase/firestore";
 import { useUserProfile } from "@/lib/useUserProfile";
 import AttestationAndModeCard from "@/components/AttestationAndModeCard";
 import { useLocale, useTranslations } from "next-intl";
@@ -231,9 +223,7 @@ function readAutoGrade(sub: SubmissionDoc | null): AutoGrade | null {
   const unansweredAuto = typeof r.unansweredAuto === "number" ? r.unansweredAuto : 0;
   const percentAuto = typeof r.percentAuto === "number" ? r.percentAuto : null;
   const byTask =
-    r.byTask && typeof r.byTask === "object" && !Array.isArray(r.byTask)
-      ? (r.byTask as Record<string, AutoGradeEntry>)
-      : {};
+    r.byTask && typeof r.byTask === "object" && !Array.isArray(r.byTask) ? (r.byTask as Record<string, AutoGradeEntry>) : {};
 
   if (totalAuto === 0 && Object.keys(byTask).length === 0) return null;
 
@@ -323,13 +313,7 @@ function Badge({
   );
 }
 
-function AutoGradeBadge({
-  auto,
-  t,
-}: {
-  auto: AutoGrade | null;
-  t: (k: string, v?: Record<string, unknown>) => string;
-}) {
+function AutoGradeBadge({ auto, t }: { auto: AutoGrade | null; t: (k: string, v?: Record<string, unknown>) => string }) {
   if (!auto) return null;
 
   const pct = auto.percentAuto;
@@ -440,6 +424,8 @@ function Inner() {
   const assignmentId = Array.isArray(rawAssignmentId) ? rawAssignmentId[0] : rawAssignmentId;
   const subId = Array.isArray(rawSubId) ? rawSubId[0] : rawSubId;
 
+  const hasParams = Boolean(spaceId && assignmentId && subId);
+
   const { user, profile, loading: profileLoading } = useUserProfile();
 
   const mode: Mode = useMemo(() => readModeFromProfile(profile), [profile]);
@@ -462,27 +448,27 @@ function Inner() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
-  // Guard missing params
-  if (!spaceId || !assignmentId || !subId) {
-    return (
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: 16 }}>
-        <div style={{ opacity: 0.85 }}>{t("errors.missingParams")}</div>
-      </div>
-    );
-  }
-
+  // Build refs safely (ALWAYS call hooks, but refs can be null)
   const nestedRef = useMemo(
-    () => doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId),
-    [spaceId, assignmentId, subId]
+    () => (hasParams ? doc(db, "spaces", spaceId!, "lessons", assignmentId!, "submissions", subId!) : null),
+    [hasParams, spaceId, assignmentId, subId]
   );
 
-  // index doc students read from
-  const indexRef = useMemo(() => doc(db, "spaceSubmissions", subId), [subId]);
+  const indexRef = useMemo(() => (hasParams ? doc(db, "spaceSubmissions", subId!) : null), [hasParams, subId]);
 
-  const assignmentRef = useMemo(() => doc(db, "spaces", spaceId, "lessons", assignmentId), [spaceId, assignmentId]);
+  const assignmentRef = useMemo(
+    () => (hasParams ? doc(db, "spaces", spaceId!, "lessons", assignmentId!) : null),
+    [hasParams, spaceId, assignmentId]
+  );
 
   // Read submission live
   useEffect(() => {
+    if (!nestedRef) {
+      setLoading(false);
+      setSub(null);
+      return;
+    }
+
     setLoading(true);
     return onSnapshot(
       nestedRef,
@@ -513,6 +499,11 @@ function Inner() {
 
   // Read assignment doc (space lesson)
   useEffect(() => {
+    if (!assignmentRef) {
+      setAssignment(null);
+      return;
+    }
+
     let alive = true;
     (async () => {
       try {
@@ -525,6 +516,7 @@ function Inner() {
         if (alive) setAssignment(null);
       }
     })();
+
     return () => {
       alive = false;
     };
@@ -533,8 +525,10 @@ function Inner() {
   // Fetch lesson from same source logic as student page
   useEffect(() => {
     let alive = true;
+
     (async () => {
       setLoadingLesson(true);
+
       try {
         const srcType = (assignment?.sourceType ?? "library") as SourceType;
         const srcId = String(assignment?.sourceId ?? "").trim();
@@ -544,9 +538,7 @@ function Inner() {
         }
 
         const lSnap =
-          srcType === "library"
-            ? await getDoc(doc(db, "published_lessons", srcId))
-            : await getDoc(doc(db, "lessons", srcId));
+          srcType === "library" ? await getDoc(doc(db, "published_lessons", srcId)) : await getDoc(doc(db, "lessons", srcId));
 
         if (!alive) return;
         setLesson(lSnap.exists() ? ((lSnap.data() as Lesson) ?? {}) : null);
@@ -558,6 +550,7 @@ function Inner() {
         if (alive) setLoadingLesson(false);
       }
     })();
+
     return () => {
       alive = false;
     };
@@ -566,14 +559,13 @@ function Inner() {
   // Resolve student name
   useEffect(() => {
     let alive = true;
+
     (async () => {
       if (!sub) return;
 
       const direct =
         (typeof sub.studentName === "string" && sub.studentName.trim() ? sub.studentName.trim() : "") ||
-        (typeof sub.studentDisplayName === "string" && sub.studentDisplayName.trim()
-          ? sub.studentDisplayName.trim()
-          : "");
+        (typeof sub.studentDisplayName === "string" && sub.studentDisplayName.trim() ? sub.studentDisplayName.trim() : "");
 
       const authInfo = readAuth(sub);
       if (direct) {
@@ -583,6 +575,11 @@ function Inner() {
 
       if (!authInfo.uid) {
         if (alive) setStudentName(authInfo.isAnon ? t("fallback.guest") : "");
+        return;
+      }
+
+      if (!spaceId) {
+        if (alive) setStudentName(authInfo.uid);
         return;
       }
 
@@ -609,7 +606,16 @@ function Inner() {
     };
   }, [sub, spaceId, t]);
 
-  const backLink = withLocale(locale, `/teacher/spaces/${spaceId}`);
+  const backLink = withLocale(locale, hasParams ? `/teacher/spaces/${spaceId}` : "/teacher/spaces");
+
+  // ✅ Now it's safe to early-return (ALL hooks above already ran)
+  if (!hasParams) {
+    return (
+      <div style={{ maxWidth: 1060, margin: "0 auto", padding: 16 }}>
+        <div style={{ opacity: 0.85 }}>{t("errors.missingParams")}</div>
+      </div>
+    );
+  }
 
   if (loading || profileLoading) {
     return <div style={{ padding: 16 }}>{tCommon("loading")}</div>;
@@ -634,8 +640,8 @@ function Inner() {
 
   const lessonTitle = lesson?.title ?? assignment?.title ?? t("fallback.task");
   const lessonLevel = lesson?.level ?? assignment?.level ?? "";
-  const sourceText = (lesson?.sourceText ?? lesson?.text ?? "").toString();
-  const cover = (lesson?.coverImageUrl ?? "").toString().trim() || null;
+  const sourceText = String(lesson?.sourceText ?? lesson?.text ?? "");
+  const cover = String(lesson?.coverImageUrl ?? "").trim() || null;
 
   const tasksOriginal = safeTasksArray(lesson?.tasks)
     .slice()
@@ -726,7 +732,9 @@ function Inner() {
           <div style={{ marginTop: 10, display: "grid", gap: 12 }}>
             <div style={{ display: "grid", gap: 4 }}>
               <div style={{ fontWeight: 900, fontSize: 16 }}>{lessonTitle}</div>
-              {lessonLevel ? <div style={{ opacity: 0.75, fontSize: 12 }}>{t("studentView.level", { v: lessonLevel })}</div> : null}
+              {lessonLevel ? (
+                <div style={{ opacity: 0.75, fontSize: 12 }}>{t("studentView.level", { v: lessonLevel })}</div>
+              ) : null}
             </div>
 
             {/* IMAGE */}
@@ -847,7 +855,9 @@ function Inner() {
                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                                       <div>
                                         {opt}
-                                        {isCorrectOption ? <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span> : null}
+                                        {isCorrectOption ? (
+                                          <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
+                                        ) : null}
                                       </div>
                                       {checked ? <Badge text={t("studentView.selectedTag")} /> : null}
                                     </div>
@@ -870,7 +880,9 @@ function Inner() {
                               }}
                             >
                               {t("studentView.true")} {val === true ? "✓" : ""}
-                              {entry?.correctAnswer === true ? <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span> : null}
+                              {entry?.correctAnswer === true ? (
+                                <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
+                              ) : null}
                             </div>
                             <div
                               style={{
@@ -882,7 +894,9 @@ function Inner() {
                               }}
                             >
                               {t("studentView.false")} {val === false ? "✓" : ""}
-                              {entry?.correctAnswer === false ? <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span> : null}
+                              {entry?.correctAnswer === false ? (
+                                <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
+                              ) : null}
                             </div>
                           </div>
                         ) : null}
@@ -969,8 +983,8 @@ function Inner() {
                   };
 
                   const batch = writeBatch(dbx);
-                  batch.set(nestedRef, payload, { merge: true });
-                  batch.set(indexRef, payload, { merge: true });
+                  if (nestedRef) batch.set(nestedRef, payload, { merge: true });
+                  if (indexRef) batch.set(indexRef, payload, { merge: true });
                   await batch.commit();
 
                   setInitialStatus(status);

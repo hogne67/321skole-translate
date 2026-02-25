@@ -146,8 +146,11 @@ type LoadState =
   | { status: "ready"; error: null }
   | { status: "error"; error: string };
 
+type LooseT = (key: string, values?: Record<string, unknown>) => string;
+
 export default function LessonsLandingPage() {
   const t = useTranslations("lessonsLanding");
+  const tLoose = t as unknown as LooseT; // avoids `any`, but lets us safely request optional keys
   const locale = useLocale();
 
   const [all, setAll] = useState<PublishedLesson[]>([]);
@@ -164,6 +167,15 @@ export default function LessonsLandingPage() {
   // ✅ pagination state
   const [pageSize, setPageSize] = useState<PageSize>(25);
   const [page, setPage] = useState<number>(1); // 1-based
+
+  // Safe lookup for optional i18n keys (prevents runtime crash if key missing)
+  function safeMsg(key: string, fallback: string, values?: Record<string, unknown>) {
+    try {
+      return tLoose(key, values);
+    } catch {
+      return fallback;
+    }
+  }
 
   // Når filter endres → hopp tilbake til side 1
   useEffect(() => {
@@ -602,11 +614,11 @@ export default function LessonsLandingPage() {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
             >
-              {t("pagination.prev" as any) || "Previous"}
+              {safeMsg("pagination.prev", "Previous")}
             </button>
 
             <div style={{ fontWeight: 800, opacity: 0.85 }}>
-              {(t("pagination.page" as any) as string) || "Page"} {page} / {totalPages}
+              {safeMsg("pagination.page", "Page")} {page} / {totalPages}
             </div>
 
             <button
@@ -615,13 +627,13 @@ export default function LessonsLandingPage() {
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
             >
-              {t("pagination.next" as any) || "Next"}
+              {safeMsg("pagination.next", "Next")}
             </button>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontWeight: 800, opacity: 0.8 }}>
-              {(t("pagination.perPage" as any) as string) || "Per page"}
+              {safeMsg("pagination.perPage", "Per page")}
             </span>
             <select
               className="pageSizeSelect"

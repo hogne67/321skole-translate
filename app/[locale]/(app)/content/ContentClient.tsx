@@ -1,7 +1,7 @@
-// app/(app)/content/ContentClient.tsx
+// app/[locale]/(app)/content/ContentClient.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
@@ -9,7 +9,6 @@ import QRCode from "qrcode";
 
 import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { useAppMode } from "@/components/ModeProvider";
 import { loadMyContent, type ContentItem } from "@/lib/contentFeed";
 import ActionMenu, { type ActionItem } from "@/components/ActionMenu";
 import { authedPost } from "@/lib/authedPost";
@@ -150,16 +149,34 @@ function isDeletedItem(it: ContentItem): boolean {
   return !!getDeletedAt(it);
 }
 
+type LoadMyContentArgs = {
+  db: typeof db;
+  uid: string | null;
+  isAnon: boolean;
+  mode: "student" | "teacher";
+};
+
 export default function ContentClient() {
   const router = useRouter();
   const { user, profile } = useUserProfile();
-  const { mode } = useAppMode();
+
+  // ✅ V1-profil:
+  // - anon => student
+  // - ellers profile.role bestemmer (teacher|student), fallback student
+  const isAnon = !!user?.isAnonymous;
+  const uid = user?.uid ?? null;
+
+  const role: "student" | "teacher" = isAnon
+    ? "student"
+    : profile?.role === "teacher"
+      ? "teacher"
+      : "student";
+
+  const isTeacher = role === "teacher";
+  const isTeacherApproved = isTeacher;
 
   const t = useTranslations("content");
   const locale = useLocale();
-
-  const isAnon = !!user?.isAnonymous;
-  const uid = user?.uid ?? null;
 
   const [items, setItems] = useState<ContentItem[]>([]);
   const [notes, setNotes] = useState<string[]>([]);
@@ -187,19 +204,50 @@ export default function ContentClient() {
 
   const mySpaces = useMemo(() => items.filter((x) => x.type === "space"), [items]);
 
-  const isAdmin = !!profile?.roles?.admin;
-  const isTeacherApproved = !!profile?.roles?.teacher && profile?.teacherStatus === "approved";
-
   function setBusy(key: string, v: boolean) {
     setBusyByKey((m) => ({ ...m, [key]: v }));
   }
+
+  // ---------- Routing / titles ----------
+  function submissionOpenHref(submissionId: string) {
+    return `/${locale}/student/submissions/${submissionId}`;
+  }
+
+  function itemOpenHref(it: ContentItem) {
+    if (it.type === "lesson") return `/${locale}/student/lesson/${it.id}`;
+    if (it.type === "submission") {
+      return role === "student" ? submissionOpenHref(it.id) : it.href;
+    }
+    return it.href.startsWith(`/${locale}/`) ? it.href : `/${locale}${it.href}`;
+  }
+
+  const titleForCard = useCallback(
+  (it: ContentItem) => {
+    const raw = (it.title || "").trim();
+    if (raw && raw.toLowerCase() !== "untitled") return raw;
+
+    if (it.type === "submission") {
+      const s = it as Extract<ContentItem, { type: "submission" }>;
+      const lt = lessonTitleFromMeta(s.meta);
+      if (lt) return t("titles.submissionWithLesson", { lessonTitle: lt });
+      if (s.lessonId) return t("titles.submissionWithId", { id: lastIdBits(s.lessonId) });
+      return t("titles.submission");
+    }
+
+    if (it.type === "space") return t("titles.space");
+    return t("titles.lesson");
+  },
+  [t]
+);
 
   async function refresh() {
     setLoading(true);
     setWarnings([]);
     setErr(null);
     try {
-      const res = await loadMyContent({ db, mode, uid, isAnon });
+      // ✅ typed adapter (no `any`)
+      const args: LoadMyContentArgs = { db, mode: role, uid, isAnon };
+      const res = await loadMyContent(args as unknown as Parameters<typeof loadMyContent>[0]);
       setItems(res.items);
       setNotes(res.notes);
       setWarnings(res.warnings);
@@ -213,7 +261,7 @@ export default function ContentClient() {
   useEffect(() => {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, isAnon, mode]);
+  }, [uid, isAnon, role]);
 
   const emptyHint = useMemo(() => {
     if (isAnon) {
@@ -223,12 +271,12 @@ export default function ContentClient() {
           <p className="opacity-85">
             {t.rich("empty.guest.line2", {
               join: (chunks) => (
-                <Link href="/join" className="underline">
+                <Link href={`/${locale}/join`} className="underline">
                   {chunks}
                 </Link>
               ),
               login: (chunks) => (
-                <Link href="/login" className="underline">
+                <Link href={`/${locale}/login`} className="underline">
                   {chunks}
                 </Link>
               ),
@@ -238,7 +286,7 @@ export default function ContentClient() {
       );
     }
     return <p className="opacity-85">{t("empty.authed")}</p>;
-  }, [isAnon, t]);
+  }, [isAnon, t, locale]);
 
   // ---------- Share helpers ----------
   async function openShareModal(title: string, url: string) {
@@ -288,13 +336,13 @@ export default function ContentClient() {
       }
     }
 
-    const url = `${getOrigin()}/lesson/${pid}`;
+    const url = `${getOrigin()}/${locale}/lesson/${pid}`;
     await openShareModal(titleForCard(it), url);
   }
 
   async function openShareForSpace(it: Extract<ContentItem, { type: "space" }>) {
     const code = it.joinCode ? encodeURIComponent(it.joinCode) : "";
-    const url = code ? `${getOrigin()}/join?code=${code}` : `${getOrigin()}${it.href}`;
+    const url = code ? `${getOrigin()}/${locale}/join?code=${code}` : `${getOrigin()}${itemOpenHref(it)}`;
     await openShareModal(titleForCard(it), url);
   }
 
@@ -316,6 +364,7 @@ export default function ContentClient() {
     setBusy(key, true);
 
     try {
+      // NB: din sti her var assignments (ikke lessons). Jeg lar den stå slik du hadde.
       await setDoc(doc(db, `spaces/${spaceId}/assignments/${pickLesson.lessonId}`), {
         lessonId: pickLesson.lessonId,
         createdAt: serverTimestamp(),
@@ -434,9 +483,9 @@ export default function ContentClient() {
 
   async function restoreLesson(lessonId: string, title: string) {
     const msg =
-      (locale === "en"
+      locale === "en"
         ? `Restore lesson${title ? `: "${title}"` : ""}?`
-        : `Gjenopprette oppgaven${title ? `: "${title}"` : ""}?`);
+        : `Gjenopprette oppgaven${title ? `: "${title}"` : ""}?`;
 
     const ok = confirm(msg);
     if (!ok) return;
@@ -452,7 +501,7 @@ export default function ContentClient() {
       });
       await refresh();
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : (locale === "en" ? "Could not restore." : "Kunne ikke gjenopprette."));
+      setErr(e instanceof Error ? e.message : locale === "en" ? "Could not restore." : "Kunne ikke gjenopprette.");
     } finally {
       setBusy(key, false);
     }
@@ -466,39 +515,11 @@ export default function ContentClient() {
     }
   }
 
-  // ---------- Routing / titles ----------
-  function submissionOpenHref(submissionId: string) {
-    return `/student/submissions/${submissionId}`;
-  }
-
-  function itemOpenHref(it: ContentItem) {
-    if (it.type === "lesson") return `/student/lesson/${it.id}`;
-    if (it.type === "submission") {
-      return mode === "student" ? submissionOpenHref(it.id) : it.href;
-    }
-    return it.href;
-  }
-
-  function titleForCard(it: ContentItem) {
-    const raw = (it.title || "").trim();
-    if (raw && raw.toLowerCase() !== "untitled") return raw;
-
-    if (it.type === "submission") {
-      const s = it as Extract<ContentItem, { type: "submission" }>;
-      const lt = lessonTitleFromMeta(s.meta);
-      if (lt) return t("titles.submissionWithLesson", { lessonTitle: lt });
-      if (s.lessonId) return t("titles.submissionWithId", { id: lastIdBits(s.lessonId) });
-      return t("titles.submission");
-    }
-
-    if (it.type === "space") return t("titles.space");
-    return t("titles.lesson");
-  }
-
   function cleanMetaForCard(it: ContentItem): string {
     const meta = it.meta?.filter(Boolean) ?? [];
-    const hasLessonTitle = meta.some((m) => m.startsWith("Lesson: "));
+    const hasLessonTitle = meta.some((m) => typeof m === "string" && m.startsWith("Lesson: "));
     const filteredMeta = meta.filter((m) => {
+      if (typeof m !== "string") return false;
       if (hasLessonTitle && m.startsWith("lesson:")) return false;
       return true;
     });
@@ -526,7 +547,7 @@ export default function ContentClient() {
       const ss = it as Extract<ContentItem, { type: "submission" }>;
       const status = (ss.status ?? "").toLowerCase();
       const isReviewed = status === "reviewed";
-      const canEditSubmission = mode === "student" && !isReviewed;
+      const canEditSubmission = role === "student" && !isReviewed;
 
       return [
         { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(ss)) },
@@ -536,7 +557,7 @@ export default function ContentClient() {
                 key: "edit",
                 label: t("actions.editAnswers"),
                 disabled: busy,
-                onClick: () => router.push(`/student/submissions/${ss.id}`),
+                onClick: () => router.push(`/${locale}/student/submissions/${ss.id}`),
               },
             ]
           : []),
@@ -546,17 +567,17 @@ export default function ContentClient() {
                 key: "openLesson",
                 label: t("actions.openLesson"),
                 disabled: busy,
-                onClick: () => router.push(`/student/lesson/${ss.lessonId}`),
+                onClick: () => router.push(`/${locale}/student/lesson/${ss.lessonId}`),
               },
             ]
           : []),
-        ...(ss.spaceId && (mode === "teacher" || mode === "creator" || isAdmin)
+        ...(ss.spaceId && isTeacher
           ? [
               {
                 key: "openSpace",
                 label: t("actions.openSpace"),
                 disabled: busy,
-                onClick: () => router.push(`/teacher/spaces/${ss.spaceId}`),
+                onClick: () => router.push(`/${locale}/teacher/spaces/${ss.spaceId}`),
               },
             ]
           : []),
@@ -567,11 +588,13 @@ export default function ContentClient() {
     if (it.type === "space") {
       const sp = it as Extract<ContentItem, { type: "space" }>;
       const code = sp.joinCode || "";
-      const joinUrl = code ? `${getOrigin()}/join?code=${encodeURIComponent(code)}` : "";
+      const joinUrl = code ? `${getOrigin()}/${locale}/join?code=${encodeURIComponent(code)}` : "";
 
       return [
-        { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(sp.href) },
-        ...(code ? [{ key: "copyCode", label: t("actions.copyJoinCode"), disabled: busy, onClick: () => copyText(code) }] : []),
+        { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(sp)) },
+        ...(code
+          ? [{ key: "copyCode", label: t("actions.copyJoinCode"), disabled: busy, onClick: () => copyText(code) }]
+          : []),
         { key: "share", label: t("actions.shareLinkQr"), disabled: busy, onClick: () => openShareForSpace(sp) },
         ...(joinUrl
           ? [{ key: "copyJoinLink", label: t("actions.copyJoinLink"), disabled: busy, onClick: () => copyText(joinUrl) }]
@@ -585,17 +608,16 @@ export default function ContentClient() {
     const isPublished = status === "published";
     const isDeleted = isDeletedItem(ls);
 
-    const canPublish = (isAdmin || isTeacherApproved) && !isDeleted;
-    const canDelete = isAdmin || isTeacherApproved;
+    // Teacher full access:
+    const canPublish = isTeacherApproved && !isDeleted;
+    const canDelete = isTeacherApproved;
+    const canShareToSpace = mySpaces.length > 0 && isTeacherApproved && !isDeleted;
 
-    const canShareToSpace = mySpaces.length > 0 && (isAdmin || isTeacherApproved) && !isDeleted;
+    const editHref = `/${locale}/producer/${ls.id}`;
+    const pdfHref = `/${locale}/producer/${ls.id}/print`;
 
-    const editHref = `/producer/${ls.id}`;
-    const pdfHref = `/producer/${ls.id}/print`;
-
-    // "Restore" action (kun når du viser deleted)
     const restoreAction: ActionItem[] =
-      showDeleted && isDeleted && (isAdmin || isTeacherApproved)
+      showDeleted && isDeleted && isTeacherApproved
         ? [
             {
               key: "restore",
@@ -608,7 +630,7 @@ export default function ContentClient() {
 
     return [
       ...restoreAction,
-      { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(`/student/lesson/${ls.id}`) },
+      { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(`/${locale}/student/lesson/${ls.id}`) },
       {
         key: "edit",
         label: t("actions.edit"),
@@ -636,7 +658,7 @@ export default function ContentClient() {
       {
         key: "pdf",
         label: t("actions.pdf"),
-        disabled: busy || isDeleted || !(mode === "teacher" || mode === "creator" || isAdmin),
+        disabled: busy || isDeleted || !isTeacher,
         onClick: () => router.push(pdfHref),
       },
       {
@@ -656,19 +678,18 @@ export default function ContentClient() {
       .filter((it) => (filter === "all" ? true : it.type === filter))
       .filter((it) => {
         if (showDeleted) return true;
-        // skjul slettet som default (for alle typer)
         return !isDeletedItem(it);
       })
       .filter((it) => {
         if (!qq) return true;
         const tt = titleForCard(it).toLowerCase();
         const meta = (it.meta || []).join(" ").toLowerCase();
-        const status = (it.status || "").toLowerCase();
-        return tt.includes(qq) || meta.includes(qq) || status.includes(qq);
+        const st = (it.status || "").toLowerCase();
+        return tt.includes(qq) || meta.includes(qq) || st.includes(qq);
       })
       .slice()
       .sort((a, b) => (b.updatedAt?.getTime?.() ?? 0) - (a.updatedAt?.getTime?.() ?? 0));
-  }, [items, q, filter, showDeleted]);
+  }, [items, q, filter, showDeleted, titleForCard]);
 
   const filterLabel = (ft: FilterType) =>
     ft === "all"
@@ -723,7 +744,6 @@ export default function ContentClient() {
             ))}
           </div>
 
-          {/* Vis slettet */}
           <label className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-2 text-sm font-extrabold">
             <input
               type="checkbox"
@@ -810,7 +830,6 @@ export default function ContentClient() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      {/* TITTEL UTEN LENKE */}
                       <div className="truncate text-base font-black leading-tight">{title}</div>
                       {pill}
                     </div>
@@ -829,9 +848,7 @@ export default function ContentClient() {
                       {metaLine ? <span className="truncate">{metaLine}</span> : null}
                     </div>
 
-                    {/* Desktop action row */}
                     <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
-                      {/* LESSON actions */}
                       {it.type === "lesson" ? (
                         <>
                           {aRestore ? (
@@ -856,7 +873,11 @@ export default function ContentClient() {
                             </PrimaryButton>
                           ) : null}
                           {aShare ? (
-                            <PrimaryButton onClick={aShare.onClick} disabled={aShare.disabled} title={t("actions.shareTitle")}>
+                            <PrimaryButton
+                              onClick={aShare.onClick}
+                              disabled={aShare.disabled}
+                              title={t("actions.shareTitle")}
+                            >
                               {t("actions.share")}
                             </PrimaryButton>
                           ) : null}
@@ -883,7 +904,6 @@ export default function ContentClient() {
                         </>
                       ) : null}
 
-                      {/* SUBMISSION actions */}
                       {it.type === "submission" ? (
                         <>
                           {aOpen ? (
@@ -925,18 +945,26 @@ export default function ContentClient() {
       </div>
 
       <div className="mt-6 text-sm opacity-80">
-        <Link href="/join" className="mr-4 underline">
+        <Link href={`/${locale}/join`} className="mr-4 underline">
           {t("footer.joinViaCode")}
         </Link>
-        <Link href="/tools" className="underline">
+        <Link href={`/${locale}/tools`} className="underline">
           {t("footer.tools")}
         </Link>
       </div>
 
       {/* Share link/QR modal */}
       {shareOpen ? (
-        <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closeShare}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl"
+          >
             <div className="flex items-center justify-between gap-3 border-b p-4">
               <div className="min-w-0">
                 <div className="font-black">{t("share.title")}</div>
@@ -984,8 +1012,16 @@ export default function ContentClient() {
 
       {/* Share to space modal */}
       {pickSpaceOpen && pickLesson ? (
-        <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closePickSpace}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl"
+          >
             <div className="flex items-center justify-between gap-3 border-b p-4">
               <div className="min-w-0">
                 <div className="font-black">{t("shareToSpace.title")}</div>

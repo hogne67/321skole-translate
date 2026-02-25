@@ -32,14 +32,9 @@
     "language": "Språk",
     "guestMode": "Gjestemodus",
     "loginOrCreate": "Logg inn / Opprett konto",
-    "login": "Logg inn",
+    "completeProfile": "Fullfør profil",
     "logout": "Logg ut",
-    "applyTeacherAccess": "Søk om lærertilgang",
-    "applicationSent": "Søknad sendt ⏳",
-    "applicationSentTitle": "Søknaden din er sendt",
-    "applyTeacherTitle": "Søk om lærertilgang",
-    "switchModeTitle": "Bytt modus",
-    "noOtherModesTitle": "Ingen andre moduser tilgjengelig"
+    "login": "Logg inn"
   },
   "modes": {
     "student": "Elev",
@@ -54,12 +49,6 @@
   "library": {
     "open": "Åpne bibliotek",
     "close": "Lukk bibliotek"
-  },
-  "pagination": {
-    "prev": "Forrige",
-    "next": "Neste",
-    "page": "Side",
-    "perPage": "Per side"
   },
   "auth": {
     "login": {
@@ -105,41 +94,48 @@
       }
     },
     "onboarding": {
-      "title": "Registrering",
-      "loading": "Laster…",
-      "subtitle": "Navn er påkrevd. Land/kommune velges fra liste. Institusjon er valgfritt.",
-      "fields": {
-        "fullName": { "label": "Fullt navn *" },
-        "country": { "label": "Land *", "placeholder": "Søk land…" },
-        "municipalityNo": { "label": "Kommune *", "placeholder": "Søk kommune…" },
-        "municipalityOther": { "label": "By/område *" }
-      },
-      "institution": {
-        "title": "Læringsinstitusjon (valgfritt)",
-        "typeLabel": "Type",
-        "none": "Ingen",
-        "nameLabel": "Navn (valgfritt)",
-        "namePlaceholder": "",
-        "types": {
-          "school": "Skole",
-          "kindergarten": "Barnehage",
-          "adult_education": "Voksenopplæring",
-          "university": "Universitet / høyskole",
-          "workplace": "Bedrift / arbeidsplass",
-          "other": "Annet"
-        }
-      },
-      "buttons": {
-        "saving": "Lagrer…",
-        "complete": "Fullfør registrering"
-      },
-      "errors": {
-        "missingName": "Skriv inn fullt navn.",
-        "missingCountry": "Velg land.",
-        "missingMunicipalityNo": "Velg kommune.",
-        "missingMunicipalityOther": "Skriv inn by/område."
-      }
+  "title": "Kom i gang",
+  "loading": "Laster…",
+  "subtitle": "Navn er obligatorisk. Land og kommune velges fra liste. Institusjon er valgfritt.",
+  "fields": {
+    "role": {
+      "label": "Velg rolle *",
+      "student": "Student",
+      "teacher": "Lærer",
+      "hint": "Velg rolle for å fortsette."
+    },
+    "fullName": { "label": "Fullt navn *" },
+    "country": { "label": "Land *", "placeholder": "Søk land…" },
+    "municipalityNo": { "label": "Kommune *", "placeholder": "Søk kommune…" },
+    "municipalityOther": { "label": "By/område *" }
+  },
+  "errors": {
+    "missingRole": "Velg rolle (Student eller Lærer).",
+    "missingName": "Skriv inn fullt navn.",
+    "missingCountry": "Velg land.",
+    "missingMunicipalityNo": "Velg kommune.",
+    "missingMunicipalityOther": "Skriv inn by/område."
+  },
+  "buttons": {
+    "saving": "Lagrer…",
+    "complete": "Fullfør profil"
+  },
+  "institution": {
+    "title": "Læringsinstitusjon (valgfritt)",
+    "typeLabel": "Type",
+    "none": "Ingen",
+    "nameLabel": "Navn (valgfritt)",
+    "namePlaceholder": "",
+    "types": {
+      "school": "Skole",
+      "kindergarten": "Barnehage",
+      "adult_education": "Voksenopplæring",
+      "university": "Universitet / høyskole",
+      "workplace": "Bedrift / arbeidsplass",
+      "other": "Annet"
     }
+  }
+}
   },
   "student": {
     "spaces": {
@@ -399,7 +395,7 @@
       "loggedIn": "innlogget",
       "roleFallback": "Bruker",
       "youAre": "Du er {state} som <b>{role}</b>.",
-      "activity": "Her ser du din siste aktivitet. På <b>Mitt innhold</b> finner du alt du har jobbet med tidligere.",
+      "activity": "Her finner du etter hvert viktig informasjon om din aktivitet. Du finner meny, verktøy og bibliotek på knappene over.",
       "recommendRegister": "Vi anbefaler deg å registrere deg for å lagre påbegynte oppgaver.",
       "actions": {
         "registerLogin": "Registrer / logg inn",
@@ -494,109 +490,127 @@
         "imageAlt": "QR-kode"
       }
     },
-    "spaceDetail": {
-      "checking": {
-        "title": "Rom",
-        "subtitle": "Sjekker tilgang…"
-      },
-      "actions": {
-        "back": "← Tilbake",
-        "submissions": "Innleveringer",
-        "setActive": "Sett aktiv",
-        "archive": "Arkiver",
-        "restore": "Gjenopprett"
-      },
-      "access": {
-        "mustBeSignedIn": "Du må være logget inn.",
-        "notMember": "Du er ikke medlem av dette rommet.",
-        "verifyFailed": "Kunne ikke verifisere tilgang."
-      },
-      "denied": {
-        "title": "Ingen tilgang",
-        "subtitle": "Du har ikke tilgang til dette rommet.",
-        "hint": "For å bli med: bruk lenke/kode eller be eieren legge deg til.",
-        "joinCardTitle": "Bli med i dette rommet",
-        "joinLinkLabel": "Bli med-lenke:"
-      },
-      "overview": {
-        "subtitle": "Her finner du koder og lenker du kan sende til deltakere, slik at de kan bli med i rommet.",
-        "code": "Kode:",
-        "copyCodeTitle": "Kopier kode",
-        "copied": "Kopiert ✅",
-        "openLabel": "Åpent:",
-        "yes": "Ja",
-        "no": "Nei",
-        "copyJoinLink": "Kopier bli med-lenke",
-        "qr": "QR",
-        "activeForStudents": "Aktiv for studenter:",
-        "clear": "Fjern"
-      },
-      "notice": {
-        "needAttestationHtml": "For å administrere rom (B1-modell) trenger du <b>attestering</b> og <b>lærer</b>- eller <b>produsent</b>-modus."
-      },
-      "assignments": {
-        "title": "Oppgaver",
-        "subtitle": "Tildel oppgaver fra Mitt innhold eller Bibliotek. Studenter ser tildelte oppgaver etter at de har blitt med.",
-        "assignTask": "Tildel oppgave",
-        "showArchived": "Vis arkiverte",
-        "hideArchived": "Skjul arkiverte",
-        "openSpace": "Åpne rom",
-        "closeSpace": "Lukk rom",
-        "emptyHtml": "Ingen oppgaver ennå. Trykk <b>Tildel oppgave</b>."
-      },
-      "labels": {
-        "myContent": "Mitt innhold",
-        "library": "Bibliotek"
-      },
-      "badges": {
-        "active": "Aktiv",
-        "archived": "Arkivert",
-        "noSubmissions": "Ingen innleveringer",
-        "allReviewed": "Alt er vurdert",
-        "newCount": "{n} nye",
-        "submissionsCount": "{n} innleveringer",
-        "submissionsError": "Innleveringer: feil"
-      },
-      "assignModal": {
-        "title": "Tildel oppgave",
-        "subtitle": "Velg fra Mitt innhold eller Bibliotek.",
-        "close": "Lukk",
-        "searchPlaceholder": "Søk tittel / nivå / språk…",
-        "noResults": "Ingen treff.",
-        "lessonId": "lessonId",
-        "publishedLessonId": "publishedLessonId",
-        "assign": "Tildel",
-        "paging": {
-          "prev": "← Forrige",
-          "next": "Neste →",
-          "showing": "Viser",
-          "zero": "0 av 0",
-          "range": "{start}-{end} av {total}"
+    "spacesNew": {
+      "title": "Nytt klasserom",
+      "fields": {
+        "name": {
+          "label": "Navn",
+          "placeholder": "F.eks. Norsk A2 – Gruppe 1"
+        },
+        "isOpen": {
+          "label": "Klasserommet er åpent for anonyme innleveringer (anbefalt i MVP)"
         }
       },
-      "qr": {
-        "title": "Bli med (QR)",
-        "codeLabel": "Kode:",
-        "close": "Lukk",
-        "generating": "Lager…",
-        "pointsTo": "Peker til",
-        "note": "Ved behov: npm i qrcode",
-        "imageAlt": "QR-kode",
-        "error": "Kunne ikke lage QR. Installer avhengighet: npm i qrcode"
+      "actions": {
+        "create": "Opprett",
+        "creating": "Oppretter…"
       },
       "errors": {
-        "needAttestation": "For å administrere dette rommet trenger du attestering og lærer-/produsentmodus.",
-        "noManageAccess": "Du har ikke tilgang til å administrere dette rommet.",
-        "setActiveFailed": "Kunne ikke sette aktiv oppgave.",
-        "assignFailed": "Kunne ikke tildele oppgave.",
-        "updateAssignmentFailed": "Kunne ikke oppdatere oppgaven.",
-        "updateSpaceFailed": "Kunne ikke oppdatere rommet.",
-        "readSubmissionsFailed": "Kunne ikke lese innleveringer."
-      },
-      "fallback": {
-        "task": "Oppgave",
-        "untitledTask": "Oppgave uten tittel",
-        "untitled": "Uten tittel"
+        "missingUser": "Mangler bruker.",
+        "cannotCreate": "Du kan ikke opprette klasserom.",
+        "missingTitle": "Gi klasserommet et navn.",
+        "unknown": "Ukjent feil"
+      }
+    },
+    "spaceDetail": {
+      "checking": {
+    "title": "Klasserom",
+    "subtitle": "Sjekker tilgang…"
+  },
+  "actions": {
+    "back": "← Tilbake",
+    "submissions": "Besvarelser",
+    "setActive": "Sett aktiv",
+    "archive": "Arkiver",
+    "restore": "Gjenopprett"
+  },
+  "access": {
+    "mustBeSignedIn": "Du må være logget inn.",
+    "notMember": "Du er ikke medlem av dette klasserommet.",
+    "verifyFailed": "Kunne ikke verifisere tilgang."
+  },
+  "denied": {
+    "title": "Ingen tilgang",
+    "subtitle": "Du har ikke tilgang til dette klasserommet.",
+    "hint": "For å bli med, bruk lenken/koden eller be eieren legge deg til.",
+    "joinCardTitle": "Bli med i klasserommet",
+    "joinLinkLabel": "Bli med-lenke:"
+  },
+  "overview": {
+    "subtitle": "Her finner du kode og lenker du kan sende til medlemmer slik at de kan bli med.",
+    "code": "Kode:",
+    "copyCodeTitle": "Kopier kode",
+    "copied": "Kopiert ✅",
+    "openLabel": "Åpent:",
+    "yes": "Ja",
+    "no": "Nei",
+    "copyJoinLink": "Kopier bli med-lenke",
+    "qr": "QR",
+    "activeForStudents": "Aktiv for elever:",
+    "clear": "Fjern"
+  },
+  "assignments": {
+    "title": "Oppgaver",
+    "subtitle": "Tildel oppgaver fra Mitt innhold eller Bibliotek. Elevene ser oppgavene etter at de har blitt med.",
+    "assignTask": "Tildel oppgave",
+    "showArchived": "Vis arkiverte",
+    "hideArchived": "Skjul arkiverte",
+    "openSpace": "Åpne klasserom",
+    "closeSpace": "Lukk klasserom",
+    "emptyHtml": "Ingen oppgaver ennå. Klikk <b>Tildel oppgave</b>."
+  },
+  "labels": {
+    "myContent": "Mitt innhold",
+    "library": "Bibliotek"
+  },
+  "badges": {
+    "active": "Aktiv",
+    "archived": "Arkivert",
+    "noSubmissions": "Ingen besvarelser",
+    "allReviewed": "Alle vurdert",
+    "newCount": "{n} nye",
+    "submissionsCount": "{n} besvarelser",
+    "submissionsError": "Besvarelser: feil"
+  },
+  "assignModal": {
+    "title": "Tildel oppgave",
+    "subtitle": "Velg fra Mitt innhold eller Bibliotek.",
+    "close": "Lukk",
+    "searchPlaceholder": "Søk i tittel / nivå / språk…",
+    "noResults": "Ingen treff.",
+    "lessonId": "lessonId",
+    "publishedLessonId": "publishedLessonId",
+    "assign": "Tildel",
+    "paging": {
+      "prev": "← Forrige",
+      "next": "Neste →",
+      "showing": "Viser",
+      "zero": "0 av 0",
+      "range": "{start}-{end} av {total}"
+    }
+  },
+  "qr": {
+    "title": "Bli med QR",
+    "codeLabel": "Kode:",
+    "close": "Lukk",
+    "generating": "Genererer…",
+    "pointsTo": "Peker til",
+    "note": "Hvis nødvendig: npm i qrcode",
+    "imageAlt": "QR-kode",
+    "error": "Kunne ikke generere QR. Installer avhengighet: npm i qrcode"
+  },
+  "errors": {
+    "noManageAccess": "Du har ikke tilgang til å administrere dette klasserommet.",
+    "setActiveFailed": "Kunne ikke sette aktiv oppgave.",
+    "assignFailed": "Kunne ikke tildele oppgave.",
+    "updateAssignmentFailed": "Kunne ikke oppdatere oppgave.",
+    "updateSpaceFailed": "Kunne ikke oppdatere klasserom.",
+    "readSubmissionsFailed": "Kunne ikke lese besvarelser."
+  },
+  "fallback": {
+    "task": "Oppgave",
+    "untitledTask": "Oppgave uten tittel",
+    "untitled": "Uten tittel"
       }
     },
     "assignedTask": {
@@ -930,7 +944,13 @@
     "languages": {
       "all": "Alle språk",
       "norwegianBokmal": "Norsk (Bokmål)"
-    }
+    },
+    "pagination": {
+  "prev": "Forrige",
+  "next": "Neste",
+  "page": "Side",
+  "perPage": "Per side"
+}
   },
   "applyTeacher": {
     "title": "Bli teacher",

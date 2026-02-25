@@ -5,41 +5,48 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { db } from "@/lib/firebase";
 
-export type Status = "none" | "pending" | "approved" | "rejected";
+/**
+ * Profilmodell
+ * - Primær: role
+ * - teacherStatus er nå strikt union (matcher ModeProvider)
+ */
+
+export type Role =
+  | "student"
+  | "teacher"
+  | "admin"
+  | "parent"
+  | "creator";
+
+export type TeacherStatus =
+  | "none"
+  | "pending"
+  | "approved"
+  | "rejected";
 
 export type UserProfile = {
   displayName?: string;
   email?: string;
   locale?: string;
+
+  role?: Role;
+
   onboardingComplete?: boolean;
 
+  // Status (strikt union)
+  teacherStatus?: TeacherStatus;
+  creatorStatus?: string;
+
+  // Legacy (overgang – for gamle sider som leser profile.roles)
   roles?: {
     student?: boolean;
     teacher?: boolean;
+    admin?: boolean;
     parent?: boolean;
     creator?: boolean;
-    admin?: boolean;
-  };
 
-  teacherStatus?: Status;
-  creatorStatus?: Status;
-
-  // settes når bruker søker om creator (fra /creator/apply)
-  creatorAppliedAt?: unknown;
-
-  caps?: {
-    publish?: boolean;
-    sell?: boolean;
-    pdf?: boolean;
-    tts?: boolean;
-    vocab?: boolean;
-  };
-
-  org?: {
-    country?: string;
-    municipality?: string;
-    institutionType?: string;
-    institutionName?: string;
+    teacherStatus?: TeacherStatus;
+    creatorStatus?: string;
   };
 
   createdAt?: unknown;
@@ -56,27 +63,6 @@ function requireDb() {
   return db;
 }
 
-function defaultRoles() {
-  return {
-    student: true,
-    teacher: false,
-    parent: false,
-    creator: false,
-    admin: false,
-  };
-}
-
-function defaultCaps() {
-  return {
-    pdf: true,
-    tts: true,
-    vocab: true,
-    publish: false,
-    sell: false,
-  };
-}
-
-// Firestore tåler ikke undefined i payload
 function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
   return Object.fromEntries(
     Object.entries(obj).filter(([, v]) => v !== undefined)
@@ -88,27 +74,22 @@ export async function ensureUserProfile(
   patch?: Partial<UserProfile>
 ) {
   const dbx = requireDb();
-
   const ref = doc(dbx, "users", user.uid);
   const snap = await getDoc(ref);
 
-  // =========================
-  // CREATE
-  // =========================
   if (!snap.exists()) {
     const profile: UserProfile = {
       displayName: user.displayName || patch?.displayName || "",
       email: user.email || patch?.email || "",
       locale: patch?.locale || "no",
-      onboardingComplete: false,
 
-      roles: { ...defaultRoles(), ...(patch?.roles || {}) },
+      role: patch?.role,
+      onboardingComplete: patch?.onboardingComplete ?? false,
 
-      teacherStatus: "none",
-      creatorStatus: "none",
+      teacherStatus: patch?.teacherStatus ?? "none",
+      creatorStatus: patch?.creatorStatus,
 
-      caps: { ...defaultCaps(), ...(patch?.caps || {}) },
-      org: { ...(patch?.org || {}) },
+      roles: patch?.roles,
 
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -121,44 +102,10 @@ export async function ensureUserProfile(
     return;
   }
 
-  // =========================
-  // UPDATE
-  // =========================
-  const existing = (snap.data() || {}) as UserProfile;
-
-  // ❗ Viktig: aldri skriv roles fra klient
-  const patchSafe: Partial<UserProfile> = patch
-    ? (Object.fromEntries(
-        Object.entries(patch).filter(([k]) => k !== "roles")
-      ) as Partial<UserProfile>)
-    : {};
-
   const payload: Partial<UserProfile> = {
-    ...patchSafe,
-
+    ...patch,
     updatedAt: serverTimestamp(),
     lastLoginAt: serverTimestamp(),
-
-    caps: {
-      ...defaultCaps(),
-      ...(existing.caps || {}),
-      ...(patchSafe.caps || {}),
-    },
-
-    teacherStatus:
-      (existing.teacherStatus ||
-        patchSafe.teacherStatus ||
-        "none") as Status,
-
-    creatorStatus:
-      (existing.creatorStatus ||
-        patchSafe.creatorStatus ||
-        "none") as Status,
-
-    org: {
-      ...(existing.org || {}),
-      ...(patchSafe.org || {}),
-    },
   };
 
   await setDoc(ref, stripUndefined(payload as Record<string, unknown>), {

@@ -6,40 +6,32 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
+import { useLocale } from "next-intl";
 
-type Role = "student" | "teacher" | "creator" | "admin" | "parent";
+type Role = "student" | "teacher" | "admin" | "parent" | "creator";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
-function pickTeacherStatus(profile: unknown): string {
-  // Robust: støtte både top-level teacherStatus og legacy roles.teacherStatus
-  if (!isRecord(profile)) return "none";
-
-  const top = profile["teacherStatus"];
-  if (typeof top === "string" && top) return top;
-
-  const roles = profile["roles"];
-  if (isRecord(roles)) {
-    const nested = roles["teacherStatus"];
-    if (typeof nested === "string" && nested) return nested;
-  }
-
-  return "none";
+function readRole(profile: unknown): Role | null {
+  if (!isRecord(profile)) return null;
+  const r = profile["role"];
+  return r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator"
+    ? r
+    : null;
 }
 
-function hasRole(profile: unknown, role: Role): boolean {
+function isApprovedTeacher(profile: unknown): boolean {
   if (!isRecord(profile)) return false;
-  const roles = profile["roles"];
-  if (!isRecord(roles)) return false;
-  return roles[role] === true;
+  // Bytt denne hvis dere bruker et annet felt:
+  return profile["teacherApproved"] === true;
 }
 
 export default function AuthGate({
   children,
   requireRole,
-  requireApprovedTeacher,
+  requireApprovedTeacher = false,
   allowAnonymous = false,
 }: {
   children: ReactNode;
@@ -50,24 +42,37 @@ export default function AuthGate({
   const { user, profile, loading } = useUserProfile();
   const router = useRouter();
   const pathname = usePathname();
+  const locale = useLocale();
 
-  const nextUrl = useMemo(() => `/login?next=${encodeURIComponent(pathname || "/")}`, [pathname]);
+  const onboardingUrl = useMemo(() => `/${locale}/onboarding`, [locale]);
+  const unauthorizedUrl = useMemo(() => `/${locale}/unauthorized`, [locale]);
+
+  const nextUrl = useMemo(
+    () => `/${locale}/login?next=${encodeURIComponent(pathname || `/${locale}/`)}`,
+    [pathname, locale]
+  );
 
   const [anonBootstrapping, setAnonBootstrapping] = useState(false);
 
   useEffect(() => {
     if (loading) return;
 
-    // 1) Ikke innlogget
+    const p = pathname || "";
+
+    const isAuthRoute =
+      p === "/login" ||
+      p === "/register" ||
+      p === "/onboarding" ||
+      p.startsWith(`/${locale}/login`) ||
+      p.startsWith(`/${locale}/register`) ||
+      p.startsWith(`/${locale}/onboarding`);
+
+    // 1) Not logged in
     if (!user) {
       if (!allowAnonymous) {
         router.replace(nextUrl);
         return;
       }
-
-      // allowAnonymous: bootstrap anon (men ikke på auth-ruter)
-      const p = pathname || "";
-      const isAuthRoute = p.startsWith("/login") || p.startsWith("/register") || p.startsWith("/onboarding");
 
       if (isAuthRoute) return;
 
@@ -83,57 +88,76 @@ export default function AuthGate({
       return;
     }
 
-    // 2) Innlogget: hvis siden krever roller/status må vi ha profile
-    const needsProfile = !!requireRole || !!requireApprovedTeacher;
-    if (!needsProfile) return;
-
-    if (!profile) return;
-
-    // 3) Role-check først
-    if (requireRole) {
-      const ok = hasRole(profile, requireRole);
-      if (!ok) {
-        router.replace("/unauthorized");
+    // 2) Logged in but anon
+    if (user.isAnonymous) {
+      // Teacher/admin/creator pages can never be anon
+      if (requireRole === "teacher" || requireRole === "admin" || requireRole === "creator") {
+        router.replace(nextUrl);
         return;
       }
+
+      // Student anon is OK. No profile/onboarding required.
+      return;
     }
 
-    // 4) Approved teacher-check (robust teacherStatus)
+    // 3) Logged in (not anon): must have profile
+    if (!profile) return;
+
+    const role = readRole(profile);
+
+    // If role not set -> onboarding (avoid loop)
+    if (!role) {
+      if (!isAuthRoute) router.replace(onboardingUrl);
+      return;
+    }
+
+    // 4) Require a specific role
+    if (requireRole && role !== requireRole) {
+      router.replace(unauthorizedUrl);
+      return;
+    }
+
+    // 5) Require approved teacher (only meaningful if teacher access is requested)
     if (requireApprovedTeacher) {
-      const teacherStatus = pickTeacherStatus(profile);
-      const ok = teacherStatus === "approved" && hasRole(profile, "teacher");
-      if (!ok) {
-        router.replace("/unauthorized");
+      const teacherContext = requireRole === "teacher" || role === "teacher";
+      if (teacherContext && !isApprovedTeacher(profile)) {
+        router.replace(unauthorizedUrl);
         return;
       }
     }
   }, [
-    allowAnonymous,
-    anonBootstrapping,
     loading,
     user,
     profile,
-    requireApprovedTeacher,
     requireRole,
+    requireApprovedTeacher,
+    allowAnonymous,
+    anonBootstrapping,
     router,
     nextUrl,
     pathname,
+    locale,
+    onboardingUrl,
+    unauthorizedUrl,
   ]);
 
   // Render gating
   if (loading) return null;
 
-  // Ikke innlogget + allowAnonymous: venter på anon sign-in
+  // Not logged in + allowAnonymous: waiting for anon sign-in
   if (!user && allowAnonymous) {
     return <div style={{ padding: 16, opacity: 0.7 }}>Laster…</div>;
   }
 
-  // Ikke innlogget + ikke allowAnonymous: blir redirectet til login
+  // Not logged in + not allowAnonymous: redirect in effect
   if (!user && !allowAnonymous) return null;
 
-  // Hvis siden krever profile (rolle/status), men den er ikke lastet ennå, vis loader
-  const needsProfile = !!requireRole || !!requireApprovedTeacher;
-  if (user && needsProfile && !profile) {
+  // Logged in anon + teacher/admin/creator required: redirect in effect
+  if (user?.isAnonymous && (requireRole === "teacher" || requireRole === "admin" || requireRole === "creator"))
+    return null;
+
+  // Logged in (not anon) + requireRole needs profile loaded
+  if (user && !user.isAnonymous && requireRole && !profile) {
     return <div style={{ padding: 16, opacity: 0.7 }}>Laster…</div>;
   }
 

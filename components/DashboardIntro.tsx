@@ -1,16 +1,23 @@
+// components/DashboardIntro.tsx
 "use client";
 
 import Link from "next/link";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { useAppMode } from "@/components/ModeProvider";
 import { useLocale, useTranslations } from "next-intl";
 
 type Props = { userIsAnon: boolean };
 
-function safeMode(mode: unknown): "student" | "parent" | "teacher" | "creator" | "admin" | "user" {
-  const m = String(mode ?? "");
-  if (m === "student" || m === "parent" || m === "teacher" || m === "creator" || m === "admin") return m;
-  return "user";
+type Role = "student" | "teacher";
+
+function safeRole(role: unknown): Role {
+  return role === "teacher" ? "teacher" : "student";
+}
+
+function readStringField(obj: unknown, key: string): string | null {
+  if (!obj || typeof obj !== "object") return null;
+  const rec = obj as Record<string, unknown>;
+  const v = rec[key];
+  return typeof v === "string" ? v : null;
 }
 
 export function DashboardIntro({ userIsAnon }: Props) {
@@ -19,12 +26,13 @@ export function DashboardIntro({ userIsAnon }: Props) {
   const tModes = useTranslations("modes");
 
   const { profile } = useUserProfile();
-  const { mode } = useAppMode();
 
-  const name = (profile?.displayName || "").trim();
-  const m = safeMode(mode);
+  const name = (readStringField(profile, "displayName") ?? "").trim();
 
-  const roleLabel = m === "user" ? t("roleFallback") : tModes(m);
+  // anon => student, ellers role fra profile
+  const role: Role = userIsAnon ? "student" : safeRole(readStringField(profile, "role"));
+
+  const roleLabel = role === "teacher" ? tModes("teacher") : tModes("student");
 
   return (
     <section

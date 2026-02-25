@@ -3,8 +3,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAppMode } from "@/components/ModeProvider";
-import { navItemsForMode } from "@/lib/navItems";
+import { useUserProfile } from "@/lib/useUserProfile";
+import { navItemsForRole } from "@/lib/navItems";
 import { useTranslations } from "next-intl";
 
 /* =========================
@@ -31,14 +31,26 @@ function withLocale(locale: Locale | null, href: string): string {
   // root / → hold som /
   if (href === "/") return href;
 
-  // allerede lokalisert?
+  // already localized?
   const seg = href.split("/")[1];
   if (isLocale(seg)) return href;
 
-  // Prefix kun hvis vi har locale og href er intern
+  // Prefix only if we have locale and href is internal
   if (locale && href.startsWith("/")) return `/${locale}${href}`;
 
   return href;
+}
+
+type Role = "student" | "teacher";
+function safeRole(role: unknown): Role {
+  return role === "teacher" ? "teacher" : "student";
+}
+
+function readStringField(obj: unknown, key: string): string | null {
+  if (!obj || typeof obj !== "object") return null;
+  const rec = obj as Record<string, unknown>;
+  const v = rec[key];
+  return typeof v === "string" ? v : null;
 }
 
 /* =========================
@@ -46,29 +58,29 @@ function withLocale(locale: Locale | null, href: string): string {
 ========================= */
 
 export default function LibraryBar() {
-  const t = useTranslations();
+  const tLib = useTranslations("library");
   const pathname = usePathname();
-  const { mode } = useAppMode();
+  const { user, profile } = useUserProfile();
+
+  // anon -> student
+  const roleStr = readStringField(profile, "role");
+  const role: Role = user?.isAnonymous ? "student" : safeRole(roleStr);
 
   const locale = getLocaleFromPathname(pathname);
 
   // true for /en/321lessons, /no/321lessons, /pt/321lessons
   const isLibrary = (pathname || "").split("?")[0].endsWith("/321lessons");
 
-  // dashboard-lenke fra navItems
-  const dashboardRaw =
-    navItemsForMode(mode).find((x) => x.labelKey === "nav.dashboard")?.href || "/";
+  // dashboard link from nav items
+  const dashboardRaw = navItemsForRole(role).find((x) => x.labelKey === "nav.dashboard")?.href || "/";
 
   const dashboardHref = withLocale(locale, dashboardRaw);
 
-  // Toggle: når du er i library -> tilbake til dashboard (med locale)
-  // ellers -> gå til library (med locale)
+  // Toggle: when in library -> back to dashboard (with locale),
+  // else -> go to library (with locale)
   const href = isLibrary ? dashboardHref : withLocale(locale, "/321lessons");
 
-  // Label
-  const label = isLibrary
-    ? ((t("library.close" as any) as string) || "Close Library")
-    : ((t("library.open" as any) as string) || "Open Library");
+  const label = isLibrary ? tLib("close") : tLib("open");
 
   return (
     <div

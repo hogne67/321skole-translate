@@ -16,13 +16,11 @@ import {
   where,
 } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
-import AttestationAndModeCard from "@/components/AttestationAndModeCard";
 import { useLocale, useTranslations } from "next-intl";
 
 type SpaceDocSafe = SpaceDoc & { createdAt?: unknown };
 
 type Row = { id: string; data: SpaceDocSafe };
-type Mode = "student" | "teacher" | "creator" | "parent";
 
 type QrFor = { spaceId: string; code: string; title?: string };
 
@@ -34,21 +32,6 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 function isTimestampLike(v: unknown): v is TimestampLike {
   return isRecord(v) && typeof v["toMillis"] === "function";
-}
-
-function readModeFromProfile(profile: unknown): Mode {
-  if (!isRecord(profile)) return "student";
-  const m = profile["mode"];
-  return m === "teacher" || m === "creator" || m === "parent" || m === "student"
-    ? m
-    : "student";
-}
-
-function readHasAttested(profile: unknown): boolean {
-  if (!isRecord(profile)) return false;
-  const att = profile["attestation"];
-  if (!isRecord(att)) return false;
-  return Boolean(att["acceptedAt"]);
 }
 
 /**
@@ -83,18 +66,16 @@ type SortKey = "newest" | "oldest" | "title_az" | "title_za";
  * Locale-safe link helper:
  * - keeps absolute URLs unchanged
  * - prefixes "/{locale}" for internal paths that start with "/"
- * - avoids double-prefix if already "/en/..." or "/no/..."
+ * - avoids double-prefix if already "/en/..." or "/no/..." or "/pt/..."
  */
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
   if (!href.startsWith("/")) return href;
 
   const seg = href.split("/")[1];
-  if (seg === "en" || seg === "no") return href;
+  if (seg === "en" || seg === "no" || seg === "pt") return href;
 
-  // Special-case root
   if (href === "/") return `/${locale}`;
-
   return `/${locale}${href}`;
 }
 
@@ -111,7 +92,7 @@ function TeacherSpacesInner() {
   const tCommon = useTranslations("common");
   const locale = useLocale();
 
-  const { user, profile, loading } = useUserProfile();
+  const { user, loading } = useUserProfile();
   const [rows, setRows] = useState<Row[]>([]);
 
   // UI controls
@@ -133,9 +114,7 @@ function TeacherSpacesInner() {
   const [qrBusy, setQrBusy] = useState(false);
   const [qrErr, setQrErr] = useState<string | null>(null);
 
-  const mode: Mode = useMemo(() => readModeFromProfile(profile), [profile]);
-  const hasAttested = useMemo(() => readHasAttested(profile), [profile]);
-  const canCreateSpace = Boolean(user?.uid) && hasAttested && (mode === "teacher" || mode === "creator");
+  const canCreateSpace = Boolean(user?.uid);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -278,16 +257,6 @@ function TeacherSpacesInner() {
 
       <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
 
-      {!canCreateSpace && (
-        <div className="mt-4 grid gap-3">
-          <AttestationAndModeCard
-            attestationVersion="2026-02-09"
-            allowedModes={["student", "teacher", "creator", "parent"]}
-            requireAttestationForProModes={true}
-          />
-        </div>
-      )}
-
       {/* Controls */}
       <div className="mt-4 grid gap-3 rounded-2xl border bg-white p-4 shadow-sm md:grid-cols-3">
         <div className="md:col-span-1">
@@ -380,8 +349,7 @@ function TeacherSpacesInner() {
                     </button>
                     {copiedId === r.id && <span className="ml-2 text-xs">{t("list.copied")}</span>}
                     <span className="mx-2">·</span>
-                    {t("list.members")}{" "}
-                    <b>{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
+                    {t("list.members")} <b>{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -456,7 +424,10 @@ function TeacherSpacesInner() {
               <div>
                 <div className="text-lg font-semibold">{t("qr.title")}</div>
                 <div className="mt-1 text-sm text-muted-foreground">
-                  {t("qr.subtitle", { title: qrFor?.title ?? t("list.untitled"), code: qrFor?.code ?? "" })}
+                  {t("qr.subtitle", {
+                    title: qrFor?.title ?? t("list.untitled"),
+                    code: qrFor?.code ?? "",
+                  })}
                 </div>
               </div>
               <button

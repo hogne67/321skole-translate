@@ -514,7 +514,7 @@ export default function StudentSpaceDetailPage() {
       {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ marginBottom: 6 }}>{(space as any).title}</h1>
+          <h1 style={{ marginBottom: 6 }}>{safeString(space.title) ?? safeString(spaceRec.title) ?? t("header.untitled")}</h1>
           <div style={{ opacity: 0.7 }}>
             {t("header.classCode")}: <b>{spaceCode ?? "—"}</b>
           </div>

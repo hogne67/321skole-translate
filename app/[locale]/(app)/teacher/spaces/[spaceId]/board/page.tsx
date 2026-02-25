@@ -5,14 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  setDoc,
-  serverTimestamp,
-  type Firestore,
-} from "firebase/firestore";
+import { collection, doc, onSnapshot, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
 import { useTranslations } from "next-intl";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
@@ -55,12 +48,16 @@ function newSessionId() {
   return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
+function isTimestampLike(v: unknown): v is { toMillis: () => number } {
+  return !!v && typeof v === "object" && "toMillis" in v && typeof (v as { toMillis?: unknown }).toMillis === "function";
+}
+
 function toMillis(v: unknown): number | null {
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  // Firestore Timestamp has toMillis()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const maybe = v as any;
-  if (maybe && typeof maybe.toMillis === "function") return maybe.toMillis();
+  if (isTimestampLike(v)) {
+    const ms = v.toMillis();
+    return typeof ms === "number" && Number.isFinite(ms) ? ms : null;
+  }
   return null;
 }
 
@@ -80,10 +77,7 @@ export default function TeacherBoardPage() {
   const [responses, setResponses] = useState<Array<{ id: string; data: BoardResponse }>>([]);
 
   const dbx = useMemo(() => requireDb(db), []);
-  const stateRef = useMemo(
-    () => (spaceId ? doc(dbx, "spaces", spaceId, "board", "state") : null),
-    [dbx, spaceId]
-  );
+  const stateRef = useMemo(() => (spaceId ? doc(dbx, "spaces", spaceId, "board", "state") : null), [dbx, spaceId]);
   const responsesCol = useMemo(
     () => (spaceId ? collection(dbx, "spaces", spaceId, "boardResponses") : null),
     [dbx, spaceId]
@@ -96,7 +90,6 @@ export default function TeacherBoardPage() {
   useEffect(() => {
     if (!dirtyRef.current.title) setTitle(t("defaults.title"));
     if (!dirtyRef.current.prompt) setPrompt(t("defaults.prompt"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
   useEffect(() => {
@@ -115,8 +108,10 @@ export default function TeacherBoardPage() {
         if (!dirtyRef.current.title && data?.data?.title) setTitle(data.data.title);
         if (!dirtyRef.current.prompt && data?.data?.prompt) setPrompt(data.data.prompt);
       },
-      (e) => {
-        setErr(e?.message ?? t("errors.fetchState"));
+      (e: unknown) => {
+        const msg =
+          e && typeof e === "object" && "message" in e ? String((e as { message?: unknown }).message ?? "") : "";
+        setErr(msg || t("errors.fetchState"));
         setLoading(false);
       }
     );
@@ -143,19 +138,26 @@ export default function TeacherBoardPage() {
 
   const activeSessionId = safeString(state?.sessionId);
   const active = state?.active === true;
-  const clearedAt = typeof state?.clearedAt === "number" ? state!.clearedAt : null;
+  const clearedAt = typeof state?.clearedAt === "number" ? state.clearedAt : null;
 
   const filteredResponses = useMemo(() => {
     if (!activeSessionId) return [];
 
     const list = responses.filter((r) => r.data?.sessionId === activeSessionId);
 
-    const withTime = list
-      .map((r) => ({ ...r, _ms: toMillis(r.data?.createdAt) ?? 0 }))
-      .filter((r) => (clearedAt ? r._ms >= clearedAt : true))
-      .sort((a, b) => b._ms - a._ms);
+    const filtered = list
+      .filter((r) => {
+        if (!clearedAt) return true;
+        const ms = toMillis(r.data?.createdAt) ?? 0;
+        return ms >= clearedAt;
+      })
+      .sort((a, b) => {
+        const ams = toMillis(a.data?.createdAt) ?? 0;
+        const bms = toMillis(b.data?.createdAt) ?? 0;
+        return bms - ams;
+      });
 
-    return withTime.map(({ _ms, ...rest }) => rest);
+    return filtered;
   }, [responses, activeSessionId, clearedAt]);
 
   async function startLiveNewSession() {
@@ -179,11 +181,7 @@ export default function TeacherBoardPage() {
 
   async function stopLive() {
     if (!stateRef) return;
-    await setDoc(
-      stateRef,
-      { active: false, endsAt: null, updatedAt: serverTimestamp() },
-      { merge: true }
-    );
+    await setDoc(stateRef, { active: false, endsAt: null, updatedAt: serverTimestamp() }, { merge: true });
   }
 
   async function pushTextSameSession() {
@@ -203,12 +201,7 @@ export default function TeacherBoardPage() {
   async function startTimer(seconds: number) {
     if (!stateRef) return;
     const endsAtMs = Date.now() + seconds * 1000;
-
-    await setDoc(
-      stateRef,
-      { endsAt: endsAtMs, updatedAt: serverTimestamp() },
-      { merge: true }
-    );
+    await setDoc(stateRef, { endsAt: endsAtMs, updatedAt: serverTimestamp() }, { merge: true });
   }
 
   async function clearTimer() {
@@ -219,20 +212,12 @@ export default function TeacherBoardPage() {
   async function clearAnswersSoft() {
     if (!stateRef) return;
     // myk tømming: vi setter et tidspunkt; UI filtrerer bort eldre svar
-    await setDoc(
-      stateRef,
-      { clearedAt: Date.now(), updatedAt: serverTimestamp() },
-      { merge: true }
-    );
+    await setDoc(stateRef, { clearedAt: Date.now(), updatedAt: serverTimestamp() }, { merge: true });
   }
 
   async function showAnswersAgain() {
     if (!stateRef) return;
-    await setDoc(
-      stateRef,
-      { clearedAt: null, updatedAt: serverTimestamp() },
-      { merge: true }
-    );
+    await setDoc(stateRef, { clearedAt: null, updatedAt: serverTimestamp() }, { merge: true });
   }
 
   return (
@@ -244,9 +229,7 @@ export default function TeacherBoardPage() {
         </div>
 
         {err && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {err}
-          </div>
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>
         )}
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -263,17 +246,11 @@ export default function TeacherBoardPage() {
 
               <div className="flex gap-2">
                 {!active ? (
-                  <button
-                    onClick={startLiveNewSession}
-                    className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white"
-                  >
+                  <button onClick={startLiveNewSession} className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white">
                     {t("actions.startLive")}
                   </button>
                 ) : (
-                  <button
-                    onClick={stopLive}
-                    className="rounded-lg border px-3 py-2 text-sm font-medium"
-                  >
+                  <button onClick={stopLive} className="rounded-lg border px-3 py-2 text-sm font-medium">
                     {t("actions.stop")}
                   </button>
                 )}
@@ -308,54 +285,33 @@ export default function TeacherBoardPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={pushTextSameSession}
-                  className="rounded-lg border px-3 py-2 text-sm font-medium"
-                >
+                <button onClick={pushTextSameSession} className="rounded-lg border px-3 py-2 text-sm font-medium">
                   {t("actions.updateBoard")}
                 </button>
 
-                <button
-                  onClick={startLiveNewSession}
-                  className="rounded-lg border px-3 py-2 text-sm font-medium"
-                >
+                <button onClick={startLiveNewSession} className="rounded-lg border px-3 py-2 text-sm font-medium">
                   {t("actions.newRound")}
                 </button>
 
-                <button
-                  onClick={clearAnswersSoft}
-                  className="rounded-lg border px-3 py-2 text-sm font-medium"
-                >
+                <button onClick={clearAnswersSoft} className="rounded-lg border px-3 py-2 text-sm font-medium">
                   {t("actions.clearAnswers")}
                 </button>
 
-                <button
-                  onClick={showAnswersAgain}
-                  className="rounded-lg border px-3 py-2 text-sm font-medium"
-                >
+                <button onClick={showAnswersAgain} className="rounded-lg border px-3 py-2 text-sm font-medium">
                   {t("actions.showAnswers")}
                 </button>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => startTimer(60)}
-                  className="rounded-lg border px-3 py-2 text-sm font-medium"
-                >
+                <button onClick={() => startTimer(60)} className="rounded-lg border px-3 py-2 text-sm font-medium">
                   {t("timer.set", { seconds: 60 })}
                 </button>
 
-                <button
-                  onClick={() => startTimer(120)}
-                  className="rounded-lg border px-3 py-2 text-sm font-medium"
-                >
+                <button onClick={() => startTimer(120)} className="rounded-lg border px-3 py-2 text-sm font-medium">
                   {t("timer.set", { seconds: 120 })}
                 </button>
 
-                <button
-                  onClick={clearTimer}
-                  className="rounded-lg border px-3 py-2 text-sm font-medium"
-                >
+                <button onClick={clearTimer} className="rounded-lg border px-3 py-2 text-sm font-medium">
                   {t("timer.clear")}
                 </button>
               </div>
@@ -366,12 +322,8 @@ export default function TeacherBoardPage() {
           <div className="rounded-xl border bg-background p-4 shadow-sm">
             <div className="mb-2 text-sm font-medium">{t("preview.title")}</div>
             <div className="rounded-lg border p-3">
-              <div className="text-base font-semibold">
-                {safeString(state?.data?.title) ?? title}
-              </div>
-              <div className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
-                {safeString(state?.data?.prompt) ?? prompt}
-              </div>
+              <div className="text-base font-semibold">{safeString(state?.data?.title) ?? title}</div>
+              <div className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{safeString(state?.data?.prompt) ?? prompt}</div>
 
               <Countdown endsAt={state?.endsAt} label={t("countdown.label")} />
             </div>
@@ -389,9 +341,7 @@ export default function TeacherBoardPage() {
 
           {activeSessionId && clearedAt ? (
             <div className="mb-3 rounded-lg border bg-muted p-3 text-sm">
-              {t("responses.clearedPrefix")}{" "}
-              <span className="font-medium">{t("actions.showAnswers")}</span>{" "}
-              {t("responses.clearedSuffix")}
+              {t("responses.clearedPrefix")} <span className="font-medium">{t("actions.showAnswers")}</span> {t("responses.clearedSuffix")}
             </div>
           ) : null}
 
@@ -405,15 +355,11 @@ export default function TeacherBoardPage() {
                 <div key={r.id} className="rounded-lg border p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="text-sm font-medium">
-                      {safeString(r.data.displayName) ??
-                        safeString(r.data.groupName) ??
-                        t("responses.unknown")}
+                      {safeString(r.data.displayName) ?? safeString(r.data.groupName) ?? t("responses.unknown")}
                     </div>
                     <div className="text-xs text-muted-foreground">{r.id.slice(-8)}</div>
                   </div>
-                  <div className="mt-1 whitespace-pre-wrap text-sm">
-                    {safeString(r.data.text) ?? ""}
-                  </div>
+                  <div className="mt-1 whitespace-pre-wrap text-sm">{safeString(r.data.text) ?? ""}</div>
                 </div>
               ))}
             </div>
@@ -428,8 +374,8 @@ function Countdown({ endsAt, label }: { endsAt: unknown; label: string }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(t);
+    const tmr = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(tmr);
   }, []);
 
   const endsAtMs = typeof endsAt === "number" ? endsAt : null;

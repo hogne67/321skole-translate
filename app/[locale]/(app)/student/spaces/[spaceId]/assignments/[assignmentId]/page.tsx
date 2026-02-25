@@ -1,16 +1,17 @@
-// app/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
+// app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useTranslations, useLocale } from "next-intl";
+import { useParams, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { doc, getDoc, serverTimestamp, writeBatch, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from "firebase/firestore";
+import { onAuthStateChanged, type User } from "firebase/auth";
+
 import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { SearchableSelect } from "@/components/SearchableSelect";
 import { LANGUAGES } from "@/lib/languages";
-import { onAuthStateChanged, type User } from "firebase/auth";
+import Image from "next/image";
 
 /* =========================
    Types
@@ -66,13 +67,7 @@ type TranslatedTask = {
 
 type TtsLang = "no" | "en" | "pt-BR";
 
-type SubmissionStatus =
-  | "submitted"
-  | "needs_work"
-  | "reviewed"
-  | "approved"
-  | "rejected"
-  | string;
+type SubmissionStatus = "submitted" | "needs_work" | "reviewed" | "approved" | "rejected" | string;
 
 type TeacherFeedback = {
   text?: string;
@@ -267,7 +262,6 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
   });
 
   const percentAuto = totalAuto > 0 ? Math.round((correctAuto / totalAuto) * 100) : null;
-
   return { totalAuto, correctAuto, wrongAuto, unansweredAuto, percentAuto, byTask };
 }
 
@@ -281,12 +275,14 @@ function readAutoGrade(sd: SubmissionDoc | null): AutoGrade | null {
   const unansweredAuto = typeof r.unansweredAuto === "number" ? r.unansweredAuto : 0;
   const percentAuto = typeof r.percentAuto === "number" ? r.percentAuto : null;
   const byTask =
-    r.byTask && typeof r.byTask === "object" && !Array.isArray(r.byTask) ? (r.byTask as Record<string, AutoGradeEntry>) : {};
+    r.byTask && typeof r.byTask === "object" && !Array.isArray(r.byTask)
+      ? (r.byTask as Record<string, AutoGradeEntry>)
+      : {};
   if (totalAuto === 0 && Object.keys(byTask).length === 0) return null;
   return { totalAuto, correctAuto, wrongAuto, unansweredAuto, percentAuto, byTask };
 }
 
-/* ---- Text follow ---- */
+/* ---- Text follow (sentence segments) ---- */
 
 type SentenceSeg = {
   text: string;
@@ -334,14 +330,6 @@ function segmentSentences(fullText: string): { clean: string; segs: SentenceSeg[
   return { clean, segs };
 }
 
-function fmtTime(sec: number) {
-  if (!sec || !isFinite(sec)) return "0:00";
-  const s = Math.floor(sec);
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${m}:${String(r).padStart(2, "0")}`;
-}
-
 function hasToDate(v: unknown): v is { toDate: () => Date } {
   return typeof v === "object" && v !== null && "toDate" in v && typeof (v as { toDate?: unknown }).toDate === "function";
 }
@@ -380,40 +368,9 @@ function statusTheme(s: SubmissionStatus): { border: string; bg: string } {
   return { border: "rgba(0,0,0,0.14)", bg: "rgba(0,0,0,0.02)" };
 }
 
-function Pill({ text, kind = "neutral" }: { text: string; kind?: "neutral" | "good" | "bad" }) {
-  const bg =
-    kind === "good"
-      ? "rgba(46, 204, 113, 0.95)"
-      : kind === "bad"
-      ? "rgba(231, 76, 60, 0.95)"
-      : "rgba(0,0,0,0.05)";
-  const brd =
-    kind === "good"
-      ? "rgba(46, 204, 113, 0.75)"
-      : kind === "bad"
-      ? "rgba(231, 76, 60, 0.75)"
-      : "rgba(0,0,0,0.14)";
-  const col = kind === "good" || kind === "bad" ? "white" : "rgba(0,0,0,0.75)";
-
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "2px 8px",
-        borderRadius: 999,
-        border: `1px solid ${brd}`,
-        background: bg,
-        color: col,
-        fontSize: 12,
-        lineHeight: 1.2,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {text}
-    </span>
-  );
-}
+/* =========================
+   Small UI atoms
+========================= */
 
 function Badge({
   text,
@@ -455,21 +412,43 @@ function Badge({
   );
 }
 
-function AutoGradeBadge({ auto, labelAuto, labelDetails }: { auto: AutoGrade | null; labelAuto: string; labelDetails: (s: string) => string }) {
+function AutoGradeBadge({
+  auto,
+  labelAuto,
+  labelDetails,
+}: {
+  auto: AutoGrade | null;
+  labelAuto: string;
+  labelDetails: (s: string) => string;
+}) {
   if (!auto) return null;
 
   const pct = auto.percentAuto;
   const main = `${labelAuto}: ${auto.correctAuto}/${auto.totalAuto}${pct != null ? ` (${pct}%)` : ""}`;
 
   const kind = pct == null ? "neutral" : pct >= 80 ? "good" : pct >= 50 ? "warn" : "bad";
-
   const detailsRaw = `Riktig: ${auto.correctAuto} · Feil: ${auto.wrongAuto} · Ikke besvart: ${auto.unansweredAuto}`;
+
   return <Badge text={main} kind={kind} title={labelDetails(detailsRaw)} />;
 }
 
-function StatusToggleButton({ active, label, kind, title }: { active: boolean; label: string; kind: "warn" | "good"; title: string }) {
+function StatusToggleButton({
+  active,
+  label,
+  kind,
+  title,
+}: {
+  active: boolean;
+  label: string;
+  kind: "warn" | "good";
+  title: string;
+}) {
   const bg = active ? (kind === "good" ? "rgba(46,204,113,0.18)" : "rgba(245,158,11,0.16)") : "white";
-  const border = active ? (kind === "good" ? "rgba(46,204,113,0.55)" : "rgba(245,158,11,0.55)") : "rgba(0,0,0,0.14)";
+  const border = active
+    ? kind === "good"
+      ? "rgba(46,204,113,0.55)"
+      : "rgba(245,158,11,0.55)"
+    : "rgba(0,0,0,0.14)";
 
   return (
     <button
@@ -490,23 +469,45 @@ function StatusToggleButton({ active, label, kind, title }: { active: boolean; l
     </button>
   );
 }
+function SmartImage({
+  src,
+  alt,
+}: {
+  src: string;
+  alt: string;
+}) {
+  const isInline = src.startsWith("data:") || src.startsWith("blob:");
+  if (isInline) {
+    // Next/Image kan ikke optimalisere data/blob trygt → bruk <img> men lovlig
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
+  }
 
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={1600}
+      height={900}
+      sizes="(max-width: 920px) 100vw, 920px"
+      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+    />
+  );
+}
 /* =========================
    Page
 ========================= */
 
 export default function StudentAssignmentPage() {
   const t = useTranslations("student.assignment");
-  const locale = useLocale();
 
-  const router = useRouter();
   const params = useParams<{ spaceId: string; assignmentId: string }>();
-
   const spaceId = params?.spaceId;
   const assignmentId = params?.assignmentId;
 
   const sp = useSearchParams();
   const sid = useMemo(() => (sp.get("sid") ?? "").trim(), [sp]);
+
   const [editingSubmissionId, setEditingSubmissionId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -528,7 +529,6 @@ export default function StudentAssignmentPage() {
   const [liveTeacherText, setLiveTeacherText] = useState<string | null>(null);
   const [liveTeacherUpdatedAt, setLiveTeacherUpdatedAt] = useState<string | null>(null);
   const [liveUpdatedAt, setLiveUpdatedAt] = useState<string | null>(null);
-
   const [liveAuto, setLiveAuto] = useState<AutoGrade | null>(null);
 
   const [targetLang, setTargetLang] = useState("no");
@@ -829,9 +829,7 @@ export default function StudentAssignmentPage() {
 
         const memberId = `${spaceId}_${user.uid}`;
         const memberSnap = await getDoc(doc(db, "spaceMembers", memberId));
-        if (!memberSnap.exists()) {
-          throw new Error(t("errors.notMember"));
-        }
+        if (!memberSnap.exists()) throw new Error(t("errors.notMember"));
 
         const aSnap = await getDoc(doc(db, "spaces", spaceId, "lessons", assignmentId));
         if (!alive) return;
@@ -856,9 +854,7 @@ export default function StudentAssignmentPage() {
         }
 
         const lSnap =
-          srcType === "library"
-            ? await getDoc(doc(db, "published_lessons", srcId))
-            : await getDoc(doc(db, "lessons", srcId));
+          srcType === "library" ? await getDoc(doc(db, "published_lessons", srcId)) : await getDoc(doc(db, "lessons", srcId));
 
         if (!alive) return;
 
@@ -938,9 +934,8 @@ export default function StudentAssignmentPage() {
       } catch (e: unknown) {
         if (!alive) return;
 
-        if (isPermissionDenied(e)) {
-          setErr(t("errors.permissionDenied"));
-        } else {
+        if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
+        else {
           const m = (e as { message?: unknown })?.message;
           setErr(typeof m === "string" ? m : t("errors.generic"));
         }
@@ -988,11 +983,8 @@ export default function StudentAssignmentPage() {
 
         setLiveAuto(readAutoGrade(sd));
 
-        if (sStatus === "needs_work") {
-          setEditingSubmissionId(activeSubId);
-        } else if (activeSubId === sid) {
-          setEditingSubmissionId(null);
-        }
+        if (sStatus === "needs_work") setEditingSubmissionId(activeSubId);
+        else if (activeSubId === sid) setEditingSubmissionId(null);
       },
       () => {}
     );
@@ -1178,9 +1170,8 @@ export default function StudentAssignmentPage() {
       setLiveStatus("submitted");
       setLiveAuto(auto);
     } catch (e: unknown) {
-      if (isPermissionDenied(e)) {
-        setErr(t("errors.permissionDenied"));
-      } else {
+      if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
+      else {
         const m = (e as { message?: unknown })?.message;
         setErr(typeof m === "string" ? m : t("errors.submitFailed"));
       }
@@ -1192,7 +1183,7 @@ export default function StudentAssignmentPage() {
   }
 
   /* =========================
-     UI
+     UI render helpers
   ========================= */
 
   const renderFollowText = (mode: "original" | "translation", segs: SentenceSeg[], fallbackText: string) => {
@@ -1228,13 +1219,143 @@ export default function StudentAssignmentPage() {
     );
   };
 
+  function renderTask(tk: Task, idx: number) {
+    const stableId = getStableTaskId(tk, idx);
+    const type = String(tk?.type ?? "open").toLowerCase();
+    const promptOrig = String(tk?.prompt ?? "");
+
+    const tr = tMap.get(stableId);
+    const showTr = isTaskTranslationVisible(stableId);
+
+    const promptShown = showTr && tr?.translatedPrompt ? tr.translatedPrompt : promptOrig;
+    const promptOther = showTr ? promptOrig : tr?.translatedPrompt;
+
+    const locked = isLockedByTeacher();
+
+    return (
+      <div
+        key={stableId}
+        style={{
+          border: "1px solid rgba(0,0,0,0.12)",
+          borderRadius: 12,
+          padding: 12,
+          background: "white",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+          <div style={{ fontWeight: 800, lineHeight: 1.4 }}>{promptShown || t("tasks.noPrompt")}</div>
+
+          {!!(tr?.translatedPrompt || tr?.translatedOptions?.length) && (
+            <button
+              type="button"
+              onClick={() => toggleTaskTranslation(stableId)}
+              style={{ ...btnStyle, padding: "6px 10px" }}
+              title={t("translate.toggleTask")}
+            >
+              {showTr ? t("translate.hide") : t("translate.show")}
+            </button>
+          )}
+        </div>
+
+        {promptOther ? (
+          <div style={{ marginTop: 6, opacity: 0.75, fontSize: 13, lineHeight: 1.5 }}>{promptOther}</div>
+        ) : null}
+
+        <div style={{ marginTop: 10 }}>
+          {type === "mcq" && Array.isArray(tk.options) ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {tk.options.map((o, oi) => {
+                const optOrig = String(o);
+                const optTr = tr?.translatedOptions?.[oi];
+                const optShown = showTr && optTr ? optTr : optOrig;
+
+                const checked = normalizeMcq(answers[stableId]) === optOrig;
+
+                return (
+                  <label
+                    key={`${stableId}_opt_${oi}`}
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "center",
+                      border: "1px solid rgba(0,0,0,0.10)",
+                      borderRadius: 10,
+                      padding: "8px 10px",
+                      cursor: locked ? "not-allowed" : "pointer",
+                      opacity: locked ? 0.7 : 1,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name={`mcq_${stableId}`}
+                      checked={checked}
+                      disabled={locked}
+                      onChange={() => setAnswer(stableId, optOrig)}
+                    />
+                    <span>{optShown}</span>
+                  </label>
+                );
+              })}
+            </div>
+          ) : type === "truefalse" ? (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                disabled={locked}
+                onClick={() => setAnswer(stableId, true)}
+                style={{
+                  ...btnStyle,
+                  background: answers[stableId] === true ? "rgba(0,0,0,0.06)" : "white",
+                  opacity: locked ? 0.7 : 1,
+                }}
+              >
+                {t("tasks.true")}
+              </button>
+              <button
+                type="button"
+                disabled={locked}
+                onClick={() => setAnswer(stableId, false)}
+                style={{
+                  ...btnStyle,
+                  background: answers[stableId] === false ? "rgba(0,0,0,0.06)" : "white",
+                  opacity: locked ? 0.7 : 1,
+                }}
+              >
+                {t("tasks.false")}
+              </button>
+            </div>
+          ) : (
+            <textarea
+              value={String(answers[stableId] ?? "")}
+              disabled={locked}
+              onChange={(e) => setAnswer(stableId, e.target.value)}
+              rows={4}
+              style={{
+                width: "100%",
+                border: "1px solid rgba(0,0,0,0.12)",
+                borderRadius: 10,
+                padding: 10,
+                outline: "none",
+                opacity: locked ? 0.7 : 1,
+              }}
+              placeholder={t("tasks.writeAnswer")}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================
+     Early returns
+  ========================= */
+
   if (loading) return <div style={{ padding: 16 }}>{t("common.loading")}</div>;
 
   if (err) {
     return (
       <div style={{ padding: 16 }}>
         <div style={{ color: "crimson", whiteSpace: "pre-wrap" }}>{err}</div>
-
         <div style={{ marginTop: 12, display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link href={`/student/spaces/${spaceId}`} style={{ textDecoration: "none" }}>
             {t("actions.backToSpace")}
@@ -1262,495 +1383,265 @@ export default function StudentAssignmentPage() {
   const translationSegs = textFollow.translation.segs;
 
   const showStatusCard = !!(sid || submissionId || editingSubmissionId || liveStatus);
-  const effectiveStatus = normalizeStatus(liveStatus ?? (editingSubmissionId ? "needs_work" : sid ? "submitted" : "submitted"));
+  const effectiveStatus = normalizeStatus(
+    liveStatus ?? (editingSubmissionId ? "needs_work" : sid ? "submitted" : "submitted")
+  );
   const theme = statusTheme(effectiveStatus);
   const lock = isLockedByTeacher();
+
+  const mainTitle = String(assignment?.title ?? lesson.title ?? t("fallback.title") ?? "Oppgave").trim();
+  const metaLine = [assignment?.level ?? lesson.level, assignment?.language ?? lesson.language, assignment?.topic ?? lesson.topic]
+    .map((x) => String(x ?? "").trim())
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <main style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
       <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ width: "100%" }}>
-          <h1 style={{ margin: "0 0 6px" }}>{lesson.title ?? assignment?.title ?? t("fallback.lessonTitle")}</h1>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>{mainTitle}</h1>
+          {metaLine ? <div style={{ marginTop: 4, opacity: 0.75 }}>{metaLine}</div> : null}
+        </div>
 
-          <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="button" style={btnStyle} onClick={() => router.push(`/student/spaces/${spaceId}`)}>
-              {t("actions.backToClassButton")}
-            </button>
-            <button type="button" style={btnStyle} onClick={() => router.back()} title={t("actions.backPrevTitle")}>
-              {t("actions.backPrevButton")}
-            </button>
-          </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontWeight: 800 }}>{t("translate.targetLang")}</span>
+            <select
+              value={targetLang}
+              onChange={(e) => setTargetLang(e.target.value)}
+              style={{ ...btnStyle, padding: "8px 10px" }}
+            >
+              {LANGUAGE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <button
+            type="button"
+            onClick={onTranslateText}
+            disabled={translating != null || !sourceTextSafe.trim()}
+            style={{ ...btnStyle, opacity: translating != null ? 0.7 : 1 }}
+          >
+            {translating === "text" ? t("translate.working") : t("translate.text")}
+          </button>
+
+          <button
+            type="button"
+            onClick={onTranslateTasks}
+            disabled={translating != null || tasksOriginal.length === 0}
+            style={{ ...btnStyle, opacity: translating != null ? 0.7 : 1 }}
+          >
+            {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
+          </button>
         </div>
       </header>
 
-      {msg ? (
-        <div style={{ marginTop: 10, padding: 10, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
-          {msg}
-        </div>
+      {translateErr ? (
+        <div style={{ marginTop: 10, color: "crimson", whiteSpace: "pre-wrap" }}>{translateErr}</div>
       ) : null}
+
+      {imageUrl ? (
+  <div
+    style={{
+      marginTop: 14,
+      maxHeight: 340,
+      overflow: "hidden",
+      borderRadius: 14,
+      border: "1px solid rgba(0,0,0,0.10)",
+    }}
+  >
+    <SmartImage src={imageUrl} alt={mainTitle || "Cover"} />
+  </div>
+) : null}
 
       {showStatusCard ? (
         <section
           style={{
-            marginTop: 12,
-            padding: 12,
+            marginTop: 16,
             border: `1px solid ${theme.border}`,
-            borderRadius: 12,
             background: theme.bg,
+            borderRadius: 14,
+            padding: 12,
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <Pill
-                    text={`${t("status.labelPrefix")}: ${statusLabel(effectiveStatus)}`}
-                    kind={effectiveStatus === "needs_work" ? "bad" : effectiveStatus === "reviewed" || effectiveStatus === "approved" ? "good" : "neutral"}
-                  />
-                  <span style={{ opacity: 0.8, fontSize: 13 }}>{statusDesc(effectiveStatus)}</span>
-
-                  <AutoGradeBadge
-                    auto={liveAuto}
-                    labelAuto={t("auto.label")}
-                    labelDetails={(s) => s}
-                  />
-                </div>
-
-                {liveAuto?.totalAuto ? (
-                  <div style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.35 }}>{t("auto.hintMixed")}</div>
-                ) : (
-                  <div style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.35 }}>{t("auto.hintOpenOnly")}</div>
-                )}
-              </div>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, opacity: 0.75 }}>
-                {liveUpdatedAt ? <span>{t("statusMeta.updatedAt", { v: liveUpdatedAt })}</span> : null}
-                {liveTeacherUpdatedAt ? <span>• {t("statusMeta.teacherAt", { v: liveTeacherUpdatedAt })}</span> : null}
-              </div>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <strong>{t("status.title")}</strong>
+              <Badge text={statusLabel(effectiveStatus)} kind={effectiveStatus === "needs_work" ? "warn" : "neutral"} />
+              <AutoGradeBadge auto={liveAuto} labelAuto={t("autograde.label")} labelDetails={(s) => t("autograde.details", { s })} />
             </div>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-              <StatusToggleButton active={effectiveStatus === "needs_work"} label={t("status.needsWork")} kind="warn" title={t("statusToggleTitle")} />
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <StatusToggleButton
+                active={effectiveStatus === "needs_work"}
+                label={t("status.needsWork")}
+                kind="warn"
+                title={statusDesc("needs_work")}
+              />
               <StatusToggleButton
                 active={effectiveStatus === "reviewed" || effectiveStatus === "approved"}
                 label={t("status.approved")}
                 kind="good"
-                title={t("statusToggleTitle")}
+                title={statusDesc("approved")}
               />
             </div>
           </div>
 
-          {liveTeacherText ? (
-            <div
-              style={{
-                marginTop: 10,
-                padding: 10,
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.12)",
-                background: "white",
-                whiteSpace: "pre-wrap",
-                lineHeight: 1.45,
-              }}
-            >
-              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("teacher.commentTitle")}</div>
-              {liveTeacherText}
-            </div>
-          ) : (
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-              {effectiveStatus === "submitted" ? t("teacher.noneWaiting") : t("teacher.none")}
-            </div>
-          )}
+          <div style={{ marginTop: 8, opacity: 0.8 }}>{statusDesc(effectiveStatus)}</div>
 
-          {lock ? <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>{t("messages.lockedNoChanges")}</div> : null}
+          {liveTeacherText ? (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontWeight: 900 }}>{t("teacherFeedback.title")}</div>
+              <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{liveTeacherText}</div>
+              {liveTeacherUpdatedAt ? <div style={{ marginTop: 6, opacity: 0.7 }}>{t("teacherFeedback.updatedAt", { at: liveTeacherUpdatedAt })}</div> : null}
+            </div>
+          ) : null}
+
+          {liveUpdatedAt ? <div style={{ marginTop: 10, opacity: 0.7 }}>{t("submission.updatedAt", { at: liveUpdatedAt })}</div> : null}
+
+          {lock ? <div style={{ marginTop: 10, fontWeight: 800 }}>{t("messages.lockedByTeacher")}</div> : null}
         </section>
       ) : null}
 
-      {/* IMAGE */}
-      <section style={{ marginTop: 14 }}>
-        <h2 style={{ marginBottom: 8 }}>{t("image.title")}</h2>
+      <section style={{ marginTop: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <h2 style={{ margin: 0, fontSize: 18 }}>{t("text.title")}</h2>
 
-        <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12, background: "rgba(0,0,0,0.02)" }}>
-          <div
-            style={{
-              width: "100%",
-              aspectRatio: "16 / 9",
-              borderRadius: 12,
-              border: "1px dashed rgba(0,0,0,0.18)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-              background: "white",
-            }}
-          >
-            {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt={t("image.alt")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              <div style={{ textAlign: "center", padding: 16, opacity: 0.7 }}>
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>{t("image.noneTitle")}</div>
-                <div style={{ fontSize: 13 }}>{t("image.noneDesc")}</div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button type="button" onClick={() => setShowTextTranslation((v) => !v)} style={btnStyle}>
+              {showTextTranslation ? t("translate.hide") : t("translate.show")}
+            </button>
 
-      {/* ACTIONS + TRANSLATE */}
-      <section style={{ marginTop: 18, padding: 12, border: "1px solid rgba(0, 0, 0, 0.12)", borderRadius: 12 }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
-          <button
-            onClick={submitToSpace}
-            disabled={saving || !uid || submitted || (lock && !!(sid || editingSubmissionId))}
-            style={{
-              ...btnStyle,
-              background: effectiveStatus === "needs_work" ? "rgba(245,158,11,0.14)" : submitted ? "rgba(46, 204, 113, 0.18)" : "#bef7c0",
-              borderColor: submitted ? "rgba(0,0,0,0.16)" : "#2563eb",
-              color: "black",
-              fontWeight: 800,
-              opacity: saving ? 0.6 : 1,
-              cursor: submitted ? "default" : "pointer",
-            }}
-            title={isAnon ? t("submit.anonTitle") : t("submit.title")}
-          >
-            {saving
-              ? t("submit.saving")
-              : submitted
-              ? t("submit.submitted")
-              : editingSubmissionId || effectiveStatus === "needs_work"
-              ? t("submit.resubmit")
-              : t("submit.submit")}
-          </button>
-        </div>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ opacity: 0.75 }}>{t("translate.to")}</span>
-            <SearchableSelect
-              label=""
-              value={targetLang}
-              options={LANGUAGE_OPTIONS}
-              onChange={setTargetLang}
-              placeholder={t("translate.searchPlaceholder")}
-            />
-          </label>
-
-          <button onClick={onTranslateText} disabled={translating === "text" || !(sourceTextSafe || "").trim()} style={{ ...btnStyle, opacity: translating === "text" ? 0.6 : 1 }}>
-            {translating === "text" ? t("translate.translating") : t("translate.text")}
-          </button>
-
-          <button onClick={onTranslateTasks} disabled={translating === "tasks" || tasksOriginal.length === 0} style={{ ...btnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}>
-            {translating === "tasks" ? t("translate.translating") : t("translate.tasks")}
-          </button>
-
-          <button
-            onClick={() => {
-              setTranslatedText(null);
-              setTranslatedTasks(null);
-              setTranslateErr(null);
-              setTaskTranslationOpen({});
-              stopAudio();
-              setTtsErr(null);
-            }}
-            style={btnStyle}
-          >
-            {t("translate.reset")}
-          </button>
-        </div>
-
-        {translateErr ? <p style={{ marginTop: 10, color: "crimson" }}>{translateErr}</p> : null}
-      </section>
-
-      {/* TEXT */}
-      <section style={{ marginTop: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <h2 style={{ marginBottom: 8 }}>{t("text.title")}</h2>
-
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ opacity: 0.75 }}>{t("tts.speed")}</span>
-              <input type="range" min="0.75" max="1.5" step="0.05" value={playbackRate} onChange={(e) => setPlaybackRate(Number(e.target.value))} />
-              <span style={{ width: 46, textAlign: "right" }}>{playbackRate.toFixed(2)}x</span>
+              <span style={{ fontWeight: 800 }}>{t("tts.speed")}</span>
+              <select
+                value={String(playbackRate)}
+                onChange={(e) => setPlaybackRate(Number(e.target.value))}
+                style={{ ...btnStyle, padding: "8px 10px" }}
+              >
+                {[0.75, 1.0, 1.25, 1.5].map((r) => (
+                  <option key={r} value={String(r)}>
+                    {r}x
+                  </option>
+                ))}
+              </select>
             </label>
 
             <button
               type="button"
-              style={{ ...btnStyle, opacity: ttsBusy === "original" ? 0.6 : 1 }}
-              disabled={ttsBusy !== null || !(sourceTextSafe || "").trim()}
-              onClick={() => playTTS(sourceTextSafe || "", originalLangForTTS, "original")}
+              onClick={() => playTTS(sourceTextSafe, originalLangForTTS, "original")}
+              disabled={!sourceTextSafe.trim() || ttsBusy != null}
+              style={btnStyle}
             >
-              {ttsBusy === "original" ? t("tts.generating") : t("tts.playOriginal")}
+              {ttsBusy === "original" ? t("tts.working") : t("tts.playOriginal")}
             </button>
 
-            <button type="button" style={btnStyle} onClick={stopAudio} disabled={!audioRef.current}>
+            <button
+              type="button"
+              onClick={() => playTTS(String(translatedText ?? ""), translationLangForTTS, "translation")}
+              disabled={!String(translatedText ?? "").trim() || ttsBusy != null}
+              style={btnStyle}
+            >
+              {ttsBusy === "translation" ? t("tts.working") : t("tts.playTranslation")}
+            </button>
+
+            <button type="button" onClick={stopAudio} disabled={!audioRef.current} style={btnStyle}>
               {t("tts.stop")}
             </button>
-
-            {audioRef.current ? (
-              <>
-                <button type="button" style={btnStyle} onClick={isPlaying ? pauseAudio : resumeAudio}>
-                  {isPlaying ? t("tts.pause") : t("tts.continue")}
-                </button>
-                <button type="button" style={btnStyle} onClick={replaySentence}>
-                  {t("tts.replay")}
-                </button>
-                <button type="button" style={btnStyle} onClick={prevSentence}>
-                  {t("tts.prev")}
-                </button>
-                <button type="button" style={btnStyle} onClick={nextSentence}>
-                  {t("tts.next")}
-                </button>
-
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, opacity: 0.75, width: 48 }}>{fmtTime(currentTime)}</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={Math.max(0.01, duration || 0)}
-                    step={0.05}
-                    value={Math.min(currentTime, duration || currentTime)}
-                    onChange={(e) => {
-                      const a = audioRef.current;
-                      if (!a) return;
-                      const v = Number(e.target.value);
-                      a.currentTime = v;
-                      setCurrentTime(v);
-                    }}
-                    style={{ width: 240 }}
-                  />
-                  <span style={{ fontSize: 12, opacity: 0.75, width: 48 }}>{fmtTime(duration)}</span>
-                </div>
-              </>
-            ) : null}
-
-            {translatedText ? (
-              <button type="button" style={btnStyle} onClick={() => setShowTextTranslation((v) => !v)}>
-                {showTextTranslation ? t("translate.hideTranslation") : t("translate.showTranslation")}
-              </button>
-            ) : null}
-
-            {translatedText ? (
-              <button
-                type="button"
-                style={{ ...btnStyle, opacity: ttsBusy === "translation" ? 0.6 : 1 }}
-                disabled={ttsBusy !== null || !(translatedText || "").trim()}
-                onClick={() => playTTS(translatedText || "", translationLangForTTS, "translation")}
-              >
-                {ttsBusy === "translation" ? t("tts.generating") : t("tts.playTranslation")}
-              </button>
-            ) : null}
           </div>
         </div>
 
-        {ttsErr ? <div style={{ marginTop: 8, color: "crimson" }}>{ttsErr}</div> : null}
+        {ttsErr ? <div style={{ marginTop: 8, color: "crimson", whiteSpace: "pre-wrap" }}>{ttsErr}</div> : null}
 
-        <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
-          {renderFollowText("original", originalSegs, (sourceTextSafe ?? "").trim())}
-        </div>
+        {audioRef.current ? (
+          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button type="button" onClick={isPlaying ? pauseAudio : resumeAudio} style={btnStyle}>
+              {isPlaying ? t("tts.pause") : t("tts.resume")}
+            </button>
+            <button type="button" onClick={prevSentence} style={btnStyle}>
+              {t("tts.prev")}
+            </button>
+            <button type="button" onClick={replaySentence} style={btnStyle}>
+              {t("tts.replay")}
+            </button>
+            <button type="button" onClick={nextSentence} style={btnStyle}>
+              {t("tts.next")}
+            </button>
 
-        {translatedText && showTextTranslation ? (
-          <div style={{ marginTop: 10, padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55, background: "rgba(0,0,0,0.02)" }}>
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translate.translatedLabel")}</div>
-            {renderFollowText("translation", translationSegs, translatedText)}
+            <div style={{ opacity: 0.75 }}>
+              {t("tts.time", { cur: Math.round(currentTime), dur: Math.round(duration) })}
+            </div>
           </div>
         ) : null}
+
+        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.original")}</div>
+            <div style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 12, padding: 12, background: "white" }}>
+              {renderFollowText("original", originalSegs, sourceTextSafe)}
+            </div>
+          </div>
+
+          {showTextTranslation ? (
+            <div>
+              <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.translation")}</div>
+              <div style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 12, padding: 12, background: "white" }}>
+                {renderFollowText("translation", translationSegs, String(translatedText ?? ""))}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </section>
 
-      {/* TASKS */}
-      <section style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-          <h2 style={{ margin: 0 }}>{t("tasks.title")}</h2>
+      <section style={{ marginTop: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <h2 style={{ margin: 0, fontSize: 18 }}>{t("tasks.title")}</h2>
 
-          {(translatedTasks ?? []).length > 0 ? (
-            <button type="button" style={btnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
-              {showTaskTranslations ? t("tasks.hideAll") : t("tasks.showAll")}
-            </button>
-          ) : (
-            <span />
-          )}
+          <button type="button" onClick={() => setShowTaskTranslations((v) => !v)} style={btnStyle}>
+            {showTaskTranslations ? t("translate.hide") : t("translate.show")}
+          </button>
         </div>
 
-        {tasksOriginal.length === 0 ? (
-          <p style={{ opacity: 0.7, marginTop: 8 }}>{t("tasks.none")}</p>
-        ) : (
-          <div style={{ marginTop: 10, display: "grid", gap: 12 }}>
-            {tasksOriginal.map((tt, idx) => {
-              const stableId = getStableTaskId(tt, idx);
-              const tr = tMap.get(stableId);
-
-              const type = String(tt?.type ?? "open").toLowerCase();
-              const prompt = String(tt?.prompt ?? "");
-              const options = Array.isArray(tt?.options) ? (tt.options as unknown[]) : [];
-              const val = answers[stableId];
-
-              const hasThisTranslation = !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
-              const showThisTranslation = hasThisTranslation ? isTaskTranslationVisible(stableId) : false;
-
-              const inputsDisabled = submitted || lock;
-
-              const entry = liveAuto?.byTask?.[stableId];
-              const showAutoMark = !!entry && (type === "mcq" || type === "truefalse");
-
-              return (
-                <div key={stableId} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8, opacity: 0.85 }}>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.9, alignItems: "center" }}>
-                      <span>{t("tasks.taskN", { n: tt?.order ?? idx + 1 })}</span>
-                      <span>• {type}</span>
-
-                      {showAutoMark ? (
-                        entry?.isCorrect ? (
-                          <Badge text={t("tasks.autoCorrect")} kind="good" />
-                        ) : (
-                          <Badge text={val == null ? t("tasks.autoUnanswered") : t("tasks.autoWrong")} kind={val == null ? "neutral" : "bad"} />
-                        )
-                      ) : null}
-
-                      {lock ? (
-                        <span style={{ marginLeft: 6 }}>
-                          <Pill text={t("tasks.locked")} />
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {hasThisTranslation ? (
-                      <button type="button" style={btnStyle} onClick={() => toggleTaskTranslation(stableId)}>
-                        {showThisTranslation ? t("translate.hideTranslation") : t("translate.showTranslation")}
-                      </button>
-                    ) : null}
-                  </div>
-
-                  <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10 }}>{prompt}</div>
-
-                  {showThisTranslation && tr?.translatedPrompt ? (
-                    <div style={{ marginTop: -4, marginBottom: 10, padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(0,0,0,0.02)", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>
-                      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translate.translatedLabel")}</div>
-                      {tr.translatedPrompt}
-                    </div>
-                  ) : null}
-
-                  {type === "mcq" && options.length > 0 ? (
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {options.map((o, i) => {
-                        const opt = String(o);
-                        const checked = val === opt;
-                        const optT = tr?.translatedOptions?.[i] || "";
-
-                        return (
-                          <label
-                            key={i}
-                            style={{
-                              display: "flex",
-                              gap: 10,
-                              alignItems: "flex-start",
-                              padding: "8px 10px",
-                              border: "1px solid rgba(0,0,0,0.12)",
-                              borderRadius: 10,
-                              cursor: inputsDisabled ? "default" : "pointer",
-                              background: "white",
-                              opacity: inputsDisabled ? 0.9 : 1,
-                            }}
-                          >
-                            <input
-                              type="radio"
-                              name={stableId}
-                              checked={checked}
-                              disabled={inputsDisabled}
-                              onChange={() => setAnswer(stableId, opt)}
-                              style={{ marginTop: 3 }}
-                            />
-
-                            <div style={{ width: "100%" }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                                <div>{opt}</div>
-                                {checked ? <Pill text={t("tasks.yourAnswer")} /> : null}
-                              </div>
-
-                              {showThisTranslation && optT ? <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{optT}</div> : null}
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-
-                  {type === "truefalse" ? (
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        disabled={inputsDisabled}
-                        onClick={() => setAnswer(stableId, true)}
-                        aria-pressed={val === true}
-                        style={{
-                          ...btnStyle,
-                          borderColor: val === true ? "rgba(0,0,0,0.25)" : "#ddd",
-                          background: val === true ? "rgba(0,0,0,0.08)" : "white",
-                          color: "black",
-                          fontWeight: val === true ? 700 : 500,
-                          boxShadow: "none",
-                          opacity: inputsDisabled ? 0.9 : 1,
-                          cursor: inputsDisabled ? "default" : "pointer",
-                        }}
-                      >
-                        {t("tasks.true")}
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={inputsDisabled}
-                        onClick={() => setAnswer(stableId, false)}
-                        aria-pressed={val === false}
-                        style={{
-                          ...btnStyle,
-                          borderColor: val === false ? "rgba(0,0,0,0.25)" : "#ddd",
-                          background: val === false ? "rgba(0,0,0,0.08)" : "white",
-                          color: "black",
-                          fontWeight: val === false ? 700 : 500,
-                          boxShadow: "none",
-                          opacity: inputsDisabled ? 0.9 : 1,
-                          cursor: inputsDisabled ? "default" : "pointer",
-                        }}
-                      >
-                        {t("tasks.false")}
-                      </button>
-                    </div>
-                  ) : null}
-
-                  {type === "open" || !["mcq", "truefalse"].includes(type) ? (
-                    <textarea
-                      value={typeof val === "string" ? val : val == null ? "" : String(val)}
-                      onChange={(e) => setAnswer(stableId, e.target.value)}
-                      disabled={inputsDisabled}
-                      placeholder={t("tasks.writeAnswerPlaceholder")}
-                      rows={4}
-                      style={{
-                        width: "100%",
-                        padding: 10,
-                        borderRadius: 10,
-                        border: "1px solid rgba(0,0,0,0.2)",
-                        resize: "vertical",
-                        opacity: inputsDisabled ? 0.95 : 1,
-                      }}
-                    />
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
+          {tasksOriginal.length === 0 ? (
+            <div style={{ opacity: 0.75 }}>{t("tasks.none")}</div>
+          ) : (
+            tasksOriginal.map((tk, idx) => renderTask(tk, idx))
+          )}
+        </div>
       </section>
 
-      <section style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <Link href={`/student/spaces/${spaceId}`} style={{ textDecoration: "none" }}>
-          {t("actions.backToSpace")}
-        </Link>
+      <section style={{ marginTop: 18 }}>
+        {msg ? <div style={{ marginBottom: 10, padding: 10, borderRadius: 12, background: "rgba(0,0,0,0.04)" }}>{msg}</div> : null}
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={submitToSpace}
+            disabled={saving || lock || !uid}
+            style={{
+              ...btnStyle,
+              fontWeight: 900,
+              opacity: saving || lock ? 0.7 : 1,
+            }}
+          >
+            {saving ? t("actions.saving") : editingSubmissionId ? t("actions.resubmit") : t("actions.submit")}
+          </button>
+
+          <Link href={`/student/spaces/${spaceId}`} style={{ textDecoration: "none" }}>
+            {t("actions.backToSpace")}
+          </Link>
+        </div>
       </section>
     </main>
   );
 }
 
 const btnStyle: React.CSSProperties = {
-  border: "1px solid #ddd",
+  border: "1px solid rgba(0,0,0,0.16)",
   borderRadius: 10,
   padding: "8px 12px",
   background: "white",

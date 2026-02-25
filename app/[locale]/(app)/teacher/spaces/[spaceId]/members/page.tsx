@@ -7,18 +7,11 @@ import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  getDoc,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { useLocale, useTranslations } from "next-intl";
 
 type MemberData = {
+  spaceId?: string;
   userId?: string;
   uid?: string;
   displayName?: string;
@@ -38,7 +31,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 function hasToDate(v: unknown): v is { toDate: () => Date } {
-  return isRecord(v) && typeof v.toDate === "function";
+  return isRecord(v) && typeof (v as { toDate?: unknown }).toDate === "function";
 }
 
 function asDate(v: unknown): Date | null {
@@ -49,6 +42,23 @@ function asDate(v: unknown): Date | null {
 
 function safeString(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+/**
+ * Locale-safe link helper:
+ * - keeps absolute URLs unchanged
+ * - prefixes "/{locale}" for internal paths that start with "/"
+ * - avoids double-prefix if already "/en/..." or "/no/..." or "/pt/..."
+ */
+function withLocale(locale: string, href: string): string {
+  if (/^https?:\/\//i.test(href)) return href;
+  if (!href.startsWith("/")) return href;
+
+  const seg = href.split("/")[1];
+  if (seg === "en" || seg === "no" || seg === "pt") return href;
+
+  if (href === "/") return `/${locale}`;
+  return `/${locale}${href}`;
 }
 
 export default function TeacherSpaceMembersPage() {
@@ -65,6 +75,7 @@ function Inner() {
 
   const params = useParams<{ spaceId: string }>();
   const spaceId = params?.spaceId;
+
   const { user, loading } = useUserProfile();
 
   const [spaceTitle, setSpaceTitle] = useState<string>(() => t("fallbacks.spaceTitle"));
@@ -85,20 +96,18 @@ function Inner() {
     };
   }, [locale, t]);
 
+  // Keep fallback title in sync if locale changes (only if we still show fallback)
   useEffect(() => {
-    // oppdater fallback hvis locale byttes før vi har hentet tittel
-    setSpaceTitle((prev) => (prev ? prev : t("fallbacks.spaceTitle")));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setSpaceTitle((prev) => (prev === "" || prev === t("fallbacks.spaceTitle") ? t("fallbacks.spaceTitle") : prev));
   }, [t]);
 
   useEffect(() => {
     if (!spaceId) return;
 
-    // optional: show title
     getDoc(doc(db, "spaces", spaceId))
       .then((snap) => {
         const data = snap.data();
-        const title = data && isRecord(data) ? safeString(data.title) : null;
+        const title = data && isRecord(data) ? safeString((data as Record<string, unknown>)["title"]) : null;
         if (title) setSpaceTitle(title);
       })
       .catch(() => {
@@ -139,19 +148,11 @@ function Inner() {
   }, [rows, search]);
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">
-        {t("common.loading")}
-      </div>
-    );
+    return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{t("common.loading")}</div>;
   }
 
   if (!spaceId) {
-    return (
-      <div className="mx-auto max-w-4xl p-4 text-sm text-red-600">
-        {t("errors.missingSpaceId")}
-      </div>
-    );
+    return <div className="mx-auto max-w-4xl p-4 text-sm text-red-600">{t("errors.missingSpaceId")}</div>;
   }
 
   return (
@@ -167,13 +168,13 @@ function Inner() {
 
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href={`/teacher/spaces/${spaceId}`}
+            href={withLocale(locale, `/teacher/spaces/${spaceId}`)}
             className="rounded-xl border px-3 py-2 text-sm no-underline hover:shadow-sm"
           >
             {t("actions.backToSpace")}
           </Link>
           <Link
-            href="/teacher/spaces"
+            href={withLocale(locale, "/teacher/spaces")}
             className="rounded-xl border px-3 py-2 text-sm no-underline hover:shadow-sm"
           >
             {t("actions.allSpaces")}
@@ -221,11 +222,7 @@ function Inner() {
                     <td className="py-2 pr-3">{role}</td>
                     <td className="py-2 pr-3">{joined}</td>
                     <td className="py-2 pr-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs ${
-                          isAnon ? "bg-slate-100" : "bg-emerald-50"
-                        }`}
-                      >
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${isAnon ? "bg-slate-100" : "bg-emerald-50"}`}>
                         {isAnon ? t("types.anon") : t("types.signedIn")}
                       </span>
                     </td>
@@ -236,10 +233,7 @@ function Inner() {
 
               {filtered.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="py-6 text-center text-sm text-muted-foreground"
-                  >
+                  <td colSpan={5} className="py-6 text-center text-sm text-muted-foreground">
                     {t("empty")}
                   </td>
                 </tr>

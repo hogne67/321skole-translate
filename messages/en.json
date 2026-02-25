@@ -29,17 +29,12 @@
     "update": "Update"
   },
   "topnav": {
-    "language": "language",
+    "language": "Language",
     "guestMode": "Guest mode",
     "loginOrCreate": "Log in / Create account",
-    "login": "Log in",
+    "completeProfile": "Complete profile",
     "logout": "Log out",
-    "applyTeacherAccess": "Apply for teacher access",
-    "applicationSent": "Application sent ⏳",
-    "applicationSentTitle": "Your application has been sent",
-    "applyTeacherTitle": "Apply for teacher access",
-    "switchModeTitle": "Switch mode",
-    "noOtherModesTitle": "No other modes available"    
+    "login": "Log in"    
   },
   "modes": {
     "student": "Student",
@@ -99,41 +94,48 @@
       }
     },
     "onboarding": {
-      "title": "Onboarding",
-      "loading": "Loading…",
-      "subtitle": "Name is required. Country/municipality is selected from a list. Institution is optional.",
-      "fields": {
-        "fullName": { "label": "Full name *" },
-        "country": { "label": "Country *", "placeholder": "Search country…" },
-        "municipalityNo": { "label": "Municipality *", "placeholder": "Search municipality…" },
-        "municipalityOther": { "label": "City/area *" }
-      },
-      "institution": {
-        "title": "Learning institution (optional)",
-        "typeLabel": "Type",
-        "none": "None",
-        "nameLabel": "Name (optional)",
-        "namePlaceholder": "",
-        "types": {
-          "school": "School",
-          "kindergarten": "Kindergarten",
-          "adult_education": "Adult education",
-          "university": "University / college",
-          "workplace": "Company / workplace",
-          "other": "Other"
-        }
-      },
-      "buttons": {
-        "saving": "Saving…",
-        "complete": "Complete onboarding"
-      },
-      "errors": {
-        "missingName": "Enter your full name.",
-        "missingCountry": "Choose a country.",
-        "missingMunicipalityNo": "Choose a municipality.",
-        "missingMunicipalityOther": "Enter a city/area."
-      }
+  "title": "Get started",
+  "loading": "Loading…",
+  "subtitle": "Name is required. Country/municipality is selected from a list. Institution is optional.",
+  "fields": {
+    "role": {
+      "label": "Choose role *",
+      "student": "Student",
+      "teacher": "Teacher",
+      "hint": "Choose a role to continue."
+    },
+    "fullName": { "label": "Full name *" },
+    "country": { "label": "Country *", "placeholder": "Search country…" },
+    "municipalityNo": { "label": "Municipality *", "placeholder": "Search municipality…" },
+    "municipalityOther": { "label": "City/area *" }
+  },
+  "errors": {
+    "missingRole": "Choose a role (Student or Teacher).",
+    "missingName": "Enter your full name.",
+    "missingCountry": "Choose a country.",
+    "missingMunicipalityNo": "Choose a municipality.",
+    "missingMunicipalityOther": "Enter a city/area."
+  },
+  "buttons": {
+    "saving": "Saving…",
+    "complete": "Complete profile"
+  },
+  "institution": {
+    "title": "Learning institution (optional)",
+    "typeLabel": "Type",
+    "none": "None",
+    "nameLabel": "Name (optional)",
+    "namePlaceholder": "",
+    "types": {
+      "school": "School",
+      "kindergarten": "Kindergarten",
+      "adult_education": "Adult education",
+      "university": "University / college",
+      "workplace": "Company / workplace",
+      "other": "Other"
     }
+  }
+}
   },
   "student": {
     "spaces": {
@@ -393,7 +395,7 @@
       "loggedIn": "logged in",
       "roleFallback": "User",
       "youAre": "You are {state} as <b>{role}</b>.",
-      "activity": "Here you see your latest activity. Under <b>My content</b> you’ll find everything you’ve worked on before.",
+      "activity": "Here you will eventually find important information about your activity. You will find the menu, tools and library on the buttons above.",
       "recommendRegister": "We recommend creating an account to save started lessons.",
       "actions": {
         "registerLogin": "Register / log in",
@@ -488,109 +490,127 @@
         "imageAlt": "QR code"
       }
     },
-    "spaceDetail": {
-      "checking": {
-        "title": "Space",
-        "subtitle": "Verifying access…"
-      },
-      "actions": {
-        "back": "← Back",
-        "submissions": "Submissions",
-        "setActive": "Set active",
-        "archive": "Archive",
-        "restore": "Restore"
-      },
-      "access": {
-        "mustBeSignedIn": "You must be signed in.",
-        "notMember": "You are not a member of this space.",
-        "verifyFailed": "Could not verify access."
-      },
-      "denied": {
-        "title": "No access",
-        "subtitle": "You do not have access to this space.",
-        "hint": "To join, use the join link/code or ask the owner to add you.",
-        "joinCardTitle": "Join this space",
-        "joinLinkLabel": "Join link:"
-      },
-      "overview": {
-        "subtitle": "Here you can find codes and links you can send to members, so they can join your space.",
-        "code": "Code:",
-        "copyCodeTitle": "Copy code",
-        "copied": "Copied ✅",
-        "openLabel": "Open:",
-        "yes": "Yes",
-        "no": "No",
-        "copyJoinLink": "Copy join link",
-        "qr": "QR",
-        "activeForStudents": "Active for students:",
-        "clear": "Clear"
-      },
-      "notice": {
-        "needAttestationHtml": "To manage spaces (B1 model), you need <b>attestation</b> and <b>teacher</b> or <b>creator</b> mode."
-      },
-      "assignments": {
-        "title": "Assignments",
-        "subtitle": "Assign tasks from My Content or Library. Students see assigned tasks after they join.",
-        "assignTask": "Assign task",
-        "showArchived": "Show archived",
-        "hideArchived": "Hide archived",
-        "openSpace": "Open space",
-        "closeSpace": "Close space",
-        "emptyHtml": "No assignments yet. Click <b>Assign task</b>."
-      },
-      "labels": {
-        "myContent": "My Content",
-        "library": "Library"
-      },
-      "badges": {
-        "active": "Active",
-        "archived": "Archived",
-        "noSubmissions": "No submissions",
-        "allReviewed": "All reviewed",
-        "newCount": "{n} new",
-        "submissionsCount": "{n} submissions",
-        "submissionsError": "Submissions: error"
-      },
-      "assignModal": {
-        "title": "Assign task",
-        "subtitle": "Choose from My Content or Library.",
-        "close": "Close",
-        "searchPlaceholder": "Search title / level / language…",
-        "noResults": "No results.",
-        "lessonId": "lessonId",
-        "publishedLessonId": "publishedLessonId",
-        "assign": "Assign",
-        "paging": {
-          "prev": "← Previous",
-          "next": "Next →",
-          "showing": "Showing",
-          "zero": "0 of 0",
-          "range": "{start}-{end} of {total}"
+    "spacesNew": {
+      "title": "New classroom",
+      "fields": {
+        "name": {
+          "label": "Name",
+          "placeholder": "e.g. Norwegian A2 – Group 1"
+        },
+        "isOpen": {
+          "label": "Classroom is open for anonymous submissions (recommended in MVP)"
         }
       },
-      "qr": {
-        "title": "Join QR",
-        "codeLabel": "Code:",
-        "close": "Close",
-        "generating": "Generating…",
-        "pointsTo": "Points to",
-        "note": "If needed: npm i qrcode",
-        "imageAlt": "QR code",
-        "error": "Could not generate QR. Install dependency: npm i qrcode"
+      "actions": {
+        "create": "Create",
+        "creating": "Creating…"
       },
       "errors": {
-        "needAttestation": "To manage this space, you need attestation and Teacher/Creator mode.",
-        "noManageAccess": "You do not have access to manage this space.",
-        "setActiveFailed": "Could not set active task.",
-        "assignFailed": "Could not assign task.",
-        "updateAssignmentFailed": "Could not update assignment.",
-        "updateSpaceFailed": "Could not update space.",
-        "readSubmissionsFailed": "Could not read submissions."
-      },
-      "fallback": {
-        "task": "Task",
-        "untitledTask": "Untitled task",
-        "untitled": "Untitled"
+        "missingUser": "Missing user.",
+        "cannotCreate": "You can’t create a classroom.",
+        "missingTitle": "Please name the classroom.",
+        "unknown": "Unknown error"
+      }
+    },
+    "spaceDetail": {
+      "checking": {
+    "title": "Space",
+    "subtitle": "Verifying access…"
+  },
+  "actions": {
+    "back": "← Back",
+    "submissions": "Submissions",
+    "setActive": "Set active",
+    "archive": "Archive",
+    "restore": "Restore"
+  },
+  "access": {
+    "mustBeSignedIn": "You must be signed in.",
+    "notMember": "You are not a member of this space.",
+    "verifyFailed": "Could not verify access."
+  },
+  "denied": {
+    "title": "No access",
+    "subtitle": "You do not have access to this space.",
+    "hint": "To join, use the join link/code or ask the owner to add you.",
+    "joinCardTitle": "Join this space",
+    "joinLinkLabel": "Join link:"
+  },
+  "overview": {
+    "subtitle": "Here you can find codes and links you can send to members, so they can join your space.",
+    "code": "Code:",
+    "copyCodeTitle": "Copy code",
+    "copied": "Copied ✅",
+    "openLabel": "Open:",
+    "yes": "Yes",
+    "no": "No",
+    "copyJoinLink": "Copy join link",
+    "qr": "QR",
+    "activeForStudents": "Active for students:",
+    "clear": "Clear"
+  },
+  "assignments": {
+    "title": "Assignments",
+    "subtitle": "Assign tasks from My Content or Library. Students see assigned tasks after they join.",
+    "assignTask": "Assign task",
+    "showArchived": "Show archived",
+    "hideArchived": "Hide archived",
+    "openSpace": "Open space",
+    "closeSpace": "Close space",
+    "emptyHtml": "No assignments yet. Click <b>Assign task</b>."
+  },
+  "labels": {
+    "myContent": "My Content",
+    "library": "Library"
+  },
+  "badges": {
+    "active": "Active",
+    "archived": "Archived",
+    "noSubmissions": "No submissions",
+    "allReviewed": "All reviewed",
+    "newCount": "{n} new",
+    "submissionsCount": "{n} submissions",
+    "submissionsError": "Submissions: error"
+  },
+  "assignModal": {
+    "title": "Assign task",
+    "subtitle": "Choose from My Content or Library.",
+    "close": "Close",
+    "searchPlaceholder": "Search title / level / language…",
+    "noResults": "No results.",
+    "lessonId": "lessonId",
+    "publishedLessonId": "publishedLessonId",
+    "assign": "Assign",
+    "paging": {
+      "prev": "← Previous",
+      "next": "Next →",
+      "showing": "Showing",
+      "zero": "0 of 0",
+      "range": "{start}-{end} of {total}"
+    }
+  },
+  "qr": {
+    "title": "Join QR",
+    "codeLabel": "Code:",
+    "close": "Close",
+    "generating": "Generating…",
+    "pointsTo": "Points to",
+    "note": "If needed: npm i qrcode",
+    "imageAlt": "QR code",
+    "error": "Could not generate QR. Install dependency: npm i qrcode"
+  },
+  "errors": {
+    "noManageAccess": "You do not have access to manage this space.",
+    "setActiveFailed": "Could not set active task.",
+    "assignFailed": "Could not assign task.",
+    "updateAssignmentFailed": "Could not update assignment.",
+    "updateSpaceFailed": "Could not update space.",
+    "readSubmissionsFailed": "Could not read submissions."
+  },
+  "fallback": {
+    "task": "Task",
+    "untitledTask": "Untitled task",
+    "untitled": "Untitled"
       }
     },
     "assignedTask": {

@@ -7,7 +7,6 @@ import Link from "next/link";
 import Image from "next/image";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
-import AttestationAndModeCard from "@/components/AttestationAndModeCard";
 import { db } from "@/lib/firebase";
 import {
   addDoc,
@@ -29,7 +28,6 @@ import type { SpaceDoc } from "@/lib/spacesClient";
 import { setSpaceOpen } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
 
-type Mode = "student" | "teacher" | "creator" | "parent";
 type AccessState = "checking" | "allowed" | "denied";
 
 type SourceType = "myContent" | "library";
@@ -78,6 +76,7 @@ type SpaceDocSafe = SpaceDoc & {
   isOpen?: unknown;
   activeLessonId?: unknown;
   activeLessonTitle?: unknown;
+  title?: unknown;
 };
 
 type QrState = {
@@ -89,19 +88,6 @@ type QrState = {
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
-}
-
-function readModeFromProfile(profile: unknown): Mode {
-  if (!isRecord(profile)) return "student";
-  const m = profile["mode"];
-  return m === "teacher" || m === "creator" || m === "parent" || m === "student" ? m : "student";
-}
-
-function readHasAttested(profile: unknown): boolean {
-  if (!isRecord(profile)) return false;
-  const att = profile["attestation"];
-  if (!isRecord(att)) return false;
-  return Boolean(att["acceptedAt"]);
 }
 
 function readIsAdmin(profile: unknown): boolean {
@@ -159,14 +145,14 @@ function isReviewedStatus(statusRaw: unknown): boolean {
  * Locale-safe link helper:
  * - keeps absolute URLs unchanged
  * - prefixes "/{locale}" for internal paths that start with "/"
- * - avoids double-prefix if already "/en/..." or "/no/..."
+ * - avoids double-prefix if already "/en/..." or "/no/..." or "/pt/..."
  */
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
   if (!href.startsWith("/")) return href;
 
   const seg = href.split("/")[1];
-  if (seg === "en" || seg === "no") return href;
+  if (seg === "en" || seg === "no" || seg === "pt") return href;
 
   if (href === "/") return `/${locale}`;
   return `/${locale}${href}`;
@@ -190,11 +176,11 @@ function Inner() {
   const params = useParams<{ spaceId: string }>();
   const spaceId = params.spaceId;
 
-  const mode: Mode = useMemo(() => readModeFromProfile(profile), [profile]);
-  const hasAttested = useMemo(() => readHasAttested(profile), [profile]);
   const isAdmin = useMemo(() => readIsAdmin(profile), [profile]);
 
-  const canOperateSpace = Boolean(user?.uid) && hasAttested && (mode === "teacher" || mode === "creator");
+  // Nå: ingen attestering/mode-gating.
+  // Operasjoner styres av access (owner/admin/member) + at du er innlogget.
+  const canOperateSpace = accessAllowedGuard(user?.uid);
 
   const [space, setSpace] = useState<SpaceDocSafe | null>(null);
 
@@ -240,7 +226,7 @@ function Inner() {
     return onSnapshot(ref, (snap) => setSpace(snap.exists() ? (snap.data() as SpaceDocSafe) : null));
   }, [spaceId]);
 
-  // Access check
+  // Access check (owner/admin/member)
   useEffect(() => {
     let alive = true;
 
@@ -342,14 +328,12 @@ function Inner() {
 
   async function setActiveForStudents(assignmentId: string | null) {
     setSaveErr(null);
-    if (!canOperateSpace) {
-      setSaveErr(t("errors.needAttestation"));
-      return;
-    }
+
     if (access !== "allowed") {
       setSaveErr(t("errors.noManageAccess"));
       return;
     }
+    if (!user?.uid) return;
 
     const title = assignmentId ? assignments.find((a) => a.id === assignmentId)?.data?.title ?? null : null;
 
@@ -392,7 +376,6 @@ function Inner() {
 
     const visibleIds = new Set(visibleAssignments.map((a) => a.id));
 
-    // Unsubscribe listeners that are no longer visible (avoid empty blocks)
     Object.entries(subSummaryUnsubByAssignment).forEach(([assignmentId, unsub]) => {
       if (!visibleIds.has(assignmentId)) {
         try {
@@ -408,7 +391,6 @@ function Inner() {
       }
     });
 
-    // Subscribe missing
     visibleAssignments.forEach((a) => {
       if (subSummaryUnsubByAssignment[a.id]) return;
 
@@ -529,10 +511,6 @@ function Inner() {
   async function assignTask(src: { type: SourceType; id: string; title?: string; level?: string; language?: string }) {
     setSaveErr(null);
 
-    if (!canOperateSpace) {
-      setSaveErr(t("errors.needAttestation"));
-      return;
-    }
     if (access !== "allowed") {
       setSaveErr(t("errors.noManageAccess"));
       return;
@@ -573,10 +551,6 @@ function Inner() {
   async function setAssignmentStatus(assignmentId: string, status: "active" | "archived") {
     setSaveErr(null);
 
-    if (!canOperateSpace) {
-      setSaveErr(t("errors.needAttestation"));
-      return;
-    }
     if (access !== "allowed") {
       setSaveErr(t("errors.noManageAccess"));
       return;
@@ -609,6 +583,8 @@ function Inner() {
       setSaving(false);
     }
   }
+
+  // --- RENDER ---
 
   if (loading)
     return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{tCommon("loading")}</div>;
@@ -658,13 +634,16 @@ function Inner() {
     );
   }
 
+  // NB: canOperateSpace bruker access=allowed og login, ikke attestering.
+  const canManage = access === "allowed" && Boolean(user?.uid) && canOperateSpace;
+
   return (
     <div className="mx-auto max-w-4xl p-4">
       {/* Top / Overview */}
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-[240px]">
-            <h1 className="m-0 text-2xl font-semibold">{space.title}</h1>
+            <h1 className="m-0 text-2xl font-semibold">{String(space.title ?? "")}</h1>
 
             <div className="mt-1 text-sm text-muted-foreground">{t("overview.subtitle")}</div>
 
@@ -719,7 +698,7 @@ function Inner() {
                 <button
                   type="button"
                   onClick={() => setActiveForStudents(null)}
-                  disabled={saving || !canOperateSpace}
+                  disabled={saving || !canManage}
                   className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm disabled:opacity-50"
                 >
                   {t("overview.clear")}
@@ -733,21 +712,6 @@ function Inner() {
           </div>
         </div>
       </div>
-
-      {!canOperateSpace && (
-        <div className="mt-4 grid gap-3">
-          <AttestationAndModeCard
-            attestationVersion="2026-02-09"
-            allowedModes={["student", "teacher", "creator", "parent"]}
-            requireAttestationForProModes={true}
-          />
-          <div className="rounded-2xl border bg-white p-4 text-sm text-muted-foreground shadow-sm">
-  {t.rich("notice.needAttestationHtml", {
-    b: (chunks) => <b>{chunks}</b>,
-  })}
-</div>
-        </div>
-      )}
 
       {saveErr && (
         <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveErr}</div>
@@ -765,7 +729,7 @@ function Inner() {
             <button
               type="button"
               onClick={() => setAssignOpen(true)}
-              disabled={!canOperateSpace || saving}
+              disabled={!canManage || saving}
               className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
               {t("assignments.assignTask")}
@@ -783,8 +747,8 @@ function Inner() {
               type="button"
               onClick={async () => {
                 setSaveErr(null);
-                if (!canOperateSpace) {
-                  setSaveErr(t("errors.needAttestation"));
+                if (!canManage) {
+                  setSaveErr(t("errors.noManageAccess"));
                   return;
                 }
                 setSaving(true);
@@ -796,7 +760,7 @@ function Inner() {
                   setSaving(false);
                 }
               }}
-              disabled={saving || !canOperateSpace}
+              disabled={saving || !canManage}
               className="rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50"
             >
               {isOpen ? t("assignments.closeSpace") : t("assignments.openSpace")}
@@ -807,8 +771,8 @@ function Inner() {
         <div className="grid gap-2">
           {visibleAssignments.length === 0 ? (
             <div className="rounded-xl border p-4 text-sm text-muted-foreground">
-  {t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}
-</div>
+              {t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}
+            </div>
           ) : (
             visibleAssignments.map((a) => {
               const assignedAt = formatMaybeDate(a.data.assignedAt || a.data.createdAt);
@@ -886,7 +850,7 @@ function Inner() {
                       <button
                         type="button"
                         onClick={() => setActiveForStudents(a.id)}
-                        disabled={saving || !canOperateSpace || status === "archived"}
+                        disabled={saving || !canManage || status === "archived"}
                         className={[
                           "rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50",
                           isActiveForStudents ? "bg-black text-white" : "",
@@ -899,7 +863,7 @@ function Inner() {
                         <button
                           type="button"
                           onClick={() => setAssignmentStatus(a.id, "archived")}
-                          disabled={saving || !canOperateSpace}
+                          disabled={saving || !canManage}
                           className="rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50"
                         >
                           {t("actions.archive")}
@@ -908,7 +872,7 @@ function Inner() {
                         <button
                           type="button"
                           onClick={() => setAssignmentStatus(a.id, "active")}
-                          disabled={saving || !canOperateSpace}
+                          disabled={saving || !canManage}
                           className="rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50"
                         >
                           {t("actions.restore")}
@@ -1011,7 +975,7 @@ function Inner() {
                                 language: x.data.language,
                               })
                             }
-                            disabled={saving || !canOperateSpace}
+                            disabled={saving || !canManage}
                             className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                           >
                             {t("assignModal.assign")}
@@ -1077,7 +1041,7 @@ function Inner() {
                                 language: x.data.language,
                               })
                             }
-                            disabled={saving || !canOperateSpace}
+                            disabled={saving || !canManage}
                             className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                           >
                             {t("assignModal.assign")}
@@ -1145,4 +1109,8 @@ function Inner() {
       )}
     </div>
   );
+}
+// Helper: småting for å være eksplisitt
+function accessAllowedGuard(uid: string | undefined | null): boolean {
+  return !!uid;
 }

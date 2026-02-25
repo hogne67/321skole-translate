@@ -1,7 +1,7 @@
-// app/(app)/producer/[id]/page.tsx
+// app/[locale]/(app)/producer/[id]/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
@@ -161,22 +161,25 @@ export default function ProducerLessonEditorPage() {
       ? Math.round((previewW * 3) / 4)
       : Math.round((previewW * 9) / 16);
 
-  function localizeError(message: string): string {
-    const m = message || "";
+  const localizeError = useCallback(
+    (message: string): string => {
+      const m = message || "";
 
-    if (m === "No auth uid (anonymous auth not ready).") return t("errors.noAuthUidNotReady");
-    if (m === "No auth uid.") return t("errors.noAuthUid");
-    if (m === "Fant ikke lesson.") return t("errors.notFound");
-    if (m === "Du har ikke tilgang til denne lesson (ownerId mismatch).") return t("errors.noAccessOwnerMismatch");
-    if (m === "Kunne ikke laste lesson.") return t("errors.loadFailed");
-    if (m === "Velg en bildefil (jpg/png/webp).") return t("errors.chooseImageFile");
-    if (m === "Filen er for stor. Maks 8MB.") return t("errors.fileTooLarge");
-    if (m === "Upload feilet.") return t("errors.uploadFailed");
-    if (m === "Lagring feilet.") return t("errors.saveFailed");
+      if (m === "No auth uid (anonymous auth not ready).") return t("errors.noAuthUidNotReady");
+      if (m === "No auth uid.") return t("errors.noAuthUid");
+      if (m === "Fant ikke lesson.") return t("errors.notFound");
+      if (m === "Du har ikke tilgang til denne lesson (ownerId mismatch).") return t("errors.noAccessOwnerMismatch");
+      if (m === "Kunne ikke laste lesson.") return t("errors.loadFailed");
+      if (m === "Velg en bildefil (jpg/png/webp).") return t("errors.chooseImageFile");
+      if (m === "Filen er for stor. Maks 8MB.") return t("errors.fileTooLarge");
+      if (m === "Upload feilet.") return t("errors.uploadFailed");
+      if (m === "Lagring feilet.") return t("errors.saveFailed");
 
-    // fall back to raw message (dev-friendly)
-    return m;
-  }
+      // fall back to raw message (dev-friendly)
+      return m;
+    },
+    [t]
+  );
 
   useEffect(() => {
     let alive = true;
@@ -242,7 +245,7 @@ export default function ProducerLessonEditorPage() {
     return () => {
       alive = false;
     };
-  }, [lessonId, t]);
+  }, [lessonId, t, localizeError]);
 
   async function uploadCover(file: File) {
     setErr(null);
@@ -338,7 +341,12 @@ export default function ProducerLessonEditorPage() {
 
     if (type === "truefalse") base.correctAnswer = "true";
     if (type === "mcq") {
-      base.options = [t("tasks.defaults.optionA"), t("tasks.defaults.optionB"), t("tasks.defaults.optionC"), t("tasks.defaults.optionD")];
+      base.options = [
+        t("tasks.defaults.optionA"),
+        t("tasks.defaults.optionB"),
+        t("tasks.defaults.optionC"),
+        t("tasks.defaults.optionD"),
+      ];
       base.correctAnswer = t("tasks.defaults.optionA");
     }
     if (type === "open") base.answerSpace = "medium";

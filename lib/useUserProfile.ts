@@ -5,24 +5,36 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import { ensureUserProfile, type UserProfile } from "@/lib/userProfile";
+import { ensureUserProfile, type UserProfile, type TeacherStatus } from "@/lib/userProfile";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
+function normalizeTeacherStatus(v: unknown): TeacherStatus {
+  return v === "pending" ||
+    v === "approved" ||
+    v === "rejected"
+    ? v
+    : "none";
+}
+
 function normalizeProfile(raw: unknown): UserProfile | null {
   if (!isRecord(raw)) return null;
 
-  // Copy as mutable record
   const p: Record<string, unknown> = { ...raw };
 
-  // If teacherStatus is missing at top-level but exists under roles, lift it
-  if (typeof p.teacherStatus !== "string") {
-    const roles = p.roles;
-    if (isRecord(roles) && typeof roles.teacherStatus === "string") {
-      p.teacherStatus = roles.teacherStatus;
-    }
+  // ---- teacherStatus normalization ----
+  const rawTeacherStatus =
+    p.teacherStatus ??
+    (isRecord(p.roles) ? p.roles.teacherStatus : undefined);
+
+  const normalizedStatus = normalizeTeacherStatus(rawTeacherStatus);
+
+  p.teacherStatus = normalizedStatus;
+
+  if (isRecord(p.roles)) {
+    p.roles.teacherStatus = normalizedStatus;
   }
 
   return p as UserProfile;
@@ -41,7 +53,6 @@ export function useUserProfile() {
       setUser(u);
       setProfile(null);
 
-      // rydd gammel snapshot hvis vi bytter bruker
       if (unsubProfile) {
         unsubProfile();
         unsubProfile = null;
@@ -52,8 +63,6 @@ export function useUserProfile() {
         return;
       }
 
-      // ✅ Even anon users can have a profile later (after linking)
-      // For now: if anon, we simply stop listening to users/{uid}.
       if (u.isAnonymous) {
         setLoading(false);
         return;
@@ -67,7 +76,7 @@ export function useUserProfile() {
           try {
             if (!snap.exists()) {
               await ensureUserProfile(u);
-              return; // neste snapshot kommer når docen finnes
+              return;
             }
 
             const normalized = normalizeProfile(snap.data());
