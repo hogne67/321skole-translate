@@ -266,7 +266,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
       await setDoc(ref, payload, { merge: true });
 
       // Hard redirect (avoids router edge cases)
-      window.location.href = safeNext;
+      window.location.href = `/${locale}/post-login?next=${encodeURIComponent(safeNext)}`;
     } catch (e: unknown) {
       setErr(toErrorString(e));
     } finally {

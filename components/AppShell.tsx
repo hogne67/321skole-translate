@@ -10,17 +10,11 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { navItemsForRole } from "@/lib/navItems";
 import { useTranslations } from "next-intl";
 
-type Role = "student" | "teacher";
+type AppRole = "student" | "teacher";
 
-function safeRole(role: unknown): Role {
+function normalizeRole(role: unknown, isAnonymous: boolean): AppRole {
+  if (isAnonymous) return "student";
   return role === "teacher" ? "teacher" : "student";
-}
-
-function readStringField(obj: unknown, key: string): string | null {
-  if (!obj || typeof obj !== "object") return null;
-  const rec = obj as Record<string, unknown>;
-  const v = rec[key];
-  return typeof v === "string" ? v : null;
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -30,19 +24,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { user, profile } = useUserProfile();
   const pathname = usePathname();
 
-  // If anon -> treat as student
-  const roleStr = readStringField(profile, "role");
-  const role: Role = user?.isAnonymous ? "student" : safeRole(roleStr);
+  const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous);
 
   const isLibrary = (pathname || "").endsWith("/321lessons");
-
   const title = role === "teacher" ? tModes("teacher") : tModes("student");
 
   const items = useMemo(() => {
     return navItemsForRole(role).map((it) => ({
       href: it.href,
-      // navItemsForRole should reference keys like: "mySpaces", "dashboard", ...
-      // (i.e. inside the "nav" namespace)
+      // labelKey MUST be like: "mySpaces", "dashboard", "createLesson" (no "nav." prefix)
       label: tNav(it.labelKey),
     }));
   }, [role, tNav]);

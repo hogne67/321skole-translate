@@ -24,22 +24,6 @@ function toErrorString(err: unknown): string {
   return String(err);
 }
 
-function normalizeNext(raw: string | null | undefined, locale: string): string {
-  const fallback = `/${locale}/student`;
-  const candidate = raw ?? fallback;
-
-  if (!candidate.startsWith("/") || candidate.startsWith("//")) return fallback;
-
-  const normalized = candidate.replace(/\/+$/, "");
-  const blocked = new Set([`/${locale}/login`, `/${locale}/onboarding`, "/login", "/onboarding", "/", `/${locale}`]);
-  if (blocked.has(normalized)) return fallback;
-
-  // already locale-prefixed
-  if (/^\/(en|no)(\/|$)/.test(normalized)) return normalized || fallback;
-
-  return `/${locale}${normalized}`;
-}
-
 function friendlyAuthErrorKey(msg: string): string {
   const m = (msg || "").toLowerCase();
 
@@ -61,9 +45,11 @@ export default function LoginClient() {
   const sp = useSearchParams();
   const router = useRouter();
 
-  const safeNext = useMemo(() => {
+  // We forward raw `next` to post-login, and let that route decide teacher vs student.
+  const postLoginUrl = useMemo(() => {
     const rawNext = sp.get("next");
-    return normalizeNext(rawNext, locale);
+    const q = rawNext ? `?next=${encodeURIComponent(rawNext)}` : "";
+    return `/${locale}/post-login${q}`;
   }, [sp, locale]);
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -93,7 +79,7 @@ export default function LoginClient() {
       } else {
         await signInWithGoogle();
       }
-      router.replace(safeNext);
+      router.replace(postLoginUrl);
     } catch (err: unknown) {
       const key = friendlyAuthErrorKey(toErrorString(err));
       setError(t(`errors.${key}`));
@@ -120,7 +106,7 @@ export default function LoginClient() {
           await signUpWithEmail(e, password, displayName);
         }
       }
-      router.replace(safeNext);
+      router.replace(postLoginUrl);
     } catch (err: unknown) {
       const key = friendlyAuthErrorKey(toErrorString(err));
       setError(t(`errors.${key}`));
@@ -210,7 +196,10 @@ export default function LoginClient() {
         </button>
 
         {mode === "signup" && isAnon ? (
-          <p style={{ marginTop: 8, fontSize: 13, opacity: 0.75 }} dangerouslySetInnerHTML={{ __html: t("hints.anonSignup") }} />
+          <p
+            style={{ marginTop: 8, fontSize: 13, opacity: 0.75 }}
+            dangerouslySetInnerHTML={{ __html: t("hints.anonSignup") }}
+          />
         ) : null}
       </div>
 

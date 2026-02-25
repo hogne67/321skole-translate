@@ -14,18 +14,46 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
+function readLegacyRole(profile: Record<string, unknown>): Role | null {
+  const roles = profile["roles"];
+  if (!isRecord(roles)) return null;
+
+  // priority order
+  if (roles["admin"] === true) return "admin";
+  if (roles["teacher"] === true) return "teacher";
+  if (roles["creator"] === true) return "creator";
+  if (roles["parent"] === true) return "parent";
+  if (roles["student"] === true) return "student";
+  return null;
+}
+
 function readRole(profile: unknown): Role | null {
   if (!isRecord(profile)) return null;
+
   const r = profile["role"];
-  return r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator"
-    ? r
-    : null;
+  if (r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator") return r;
+
+  // fallback to legacy
+  return readLegacyRole(profile);
 }
 
 function isApprovedTeacher(profile: unknown): boolean {
   if (!isRecord(profile)) return false;
-  // Bytt denne hvis dere bruker et annet felt:
-  return profile["teacherApproved"] === true;
+
+  // New boolean (if you ever use it)
+  if (profile["teacherApproved"] === true) return true;
+
+  // Status on top-level (your debug page shows status: approved)
+  if (profile["teacherStatus"] === "approved") return true;
+
+  // Legacy status inside roles
+  const roles = profile["roles"];
+  if (isRecord(roles) && roles["teacherStatus"] === "approved") return true;
+
+  // Legacy role flag
+  if (isRecord(roles) && roles["teacher"] === true) return true;
+
+  return false;
 }
 
 export default function AuthGate({
@@ -95,8 +123,6 @@ export default function AuthGate({
         router.replace(nextUrl);
         return;
       }
-
-      // Student anon is OK. No profile/onboarding required.
       return;
     }
 
@@ -113,11 +139,14 @@ export default function AuthGate({
 
     // 4) Require a specific role
     if (requireRole && role !== requireRole) {
+      // Special-case: teacher pages should also allow approved-teacher legacy users
+      if (requireRole === "teacher" && isApprovedTeacher(profile)) return;
+
       router.replace(unauthorizedUrl);
       return;
     }
 
-    // 5) Require approved teacher (only meaningful if teacher access is requested)
+    // 5) Require approved teacher
     if (requireApprovedTeacher) {
       const teacherContext = requireRole === "teacher" || role === "teacher";
       if (teacherContext && !isApprovedTeacher(profile)) {
@@ -141,22 +170,17 @@ export default function AuthGate({
     unauthorizedUrl,
   ]);
 
-  // Render gating
   if (loading) return null;
 
-  // Not logged in + allowAnonymous: waiting for anon sign-in
   if (!user && allowAnonymous) {
     return <div style={{ padding: 16, opacity: 0.7 }}>Laster…</div>;
   }
 
-  // Not logged in + not allowAnonymous: redirect in effect
   if (!user && !allowAnonymous) return null;
 
-  // Logged in anon + teacher/admin/creator required: redirect in effect
   if (user?.isAnonymous && (requireRole === "teacher" || requireRole === "admin" || requireRole === "creator"))
     return null;
 
-  // Logged in (not anon) + requireRole needs profile loaded
   if (user && !user.isAnonymous && requireRole && !profile) {
     return <div style={{ padding: 16, opacity: 0.7 }}>Laster…</div>;
   }

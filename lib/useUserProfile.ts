@@ -12,11 +12,45 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 function normalizeTeacherStatus(v: unknown): TeacherStatus {
-  return v === "pending" ||
-    v === "approved" ||
-    v === "rejected"
-    ? v
-    : "none";
+  return v === "pending" || v === "approved" || v === "rejected" ? v : "none";
+}
+
+type Role2 = "student" | "teacher";
+
+function normalizeRole(raw: unknown): Role2 | null {
+  const r = String(raw ?? "").toLowerCase();
+
+  if (r === "teacher") return "teacher";
+  if (r === "student") return "student";
+
+  // gamle “produsent/ansatt”-roller -> teacher
+  if (r === "admin" || r === "creator" || r === "content" || r === "review" || r === "reviewer") return "teacher";
+
+  if (r === "parent") return "student";
+
+  return null;
+}
+
+function roleFromRolesMap(p: Record<string, unknown>): Role2 | null {
+  const roles = isRecord(p.roles) ? (p.roles as Record<string, unknown>) : null;
+  if (!roles) return null;
+
+  if (roles.teacher === true) return "teacher";
+  if (roles.student === true) return "student";
+
+  // fallbacks om dere har hatt andre flagg
+  if (roles.admin === true || roles.creator === true) return "teacher";
+
+  return null;
+}
+
+function hasMinimumOnboardingData(p: Record<string, unknown>): boolean {
+  const displayName = String(p.displayName ?? "").trim();
+  const org = isRecord(p.org) ? (p.org as Record<string, unknown>) : {};
+  const country = String(org.country ?? "").trim();
+  const municipality = String(org.municipality ?? "").trim();
+
+  return displayName.length > 0 && country.length > 0 && municipality.length > 0;
 }
 
 function normalizeProfile(raw: unknown): UserProfile | null {
@@ -26,15 +60,29 @@ function normalizeProfile(raw: unknown): UserProfile | null {
 
   // ---- teacherStatus normalization ----
   const rawTeacherStatus =
-    p.teacherStatus ??
-    (isRecord(p.roles) ? p.roles.teacherStatus : undefined);
+    p.teacherStatus ?? (isRecord(p.roles) ? (p.roles as any).teacherStatus : undefined);
 
   const normalizedStatus = normalizeTeacherStatus(rawTeacherStatus);
 
   p.teacherStatus = normalizedStatus;
-
   if (isRecord(p.roles)) {
-    p.roles.teacherStatus = normalizedStatus;
+    (p.roles as any).teacherStatus = normalizedStatus;
+  }
+
+  // ---- role normalization (2-role model) ----
+  const role =
+    normalizeRole(p.role) ??
+    roleFromRolesMap(p);
+
+  if (role) {
+    p.role = role;
+  }
+
+  // ---- onboardingComplete normalization (soft) ----
+  // Hvis dere vil være strenge: behold original.
+  // Hvis dere vil redusere “kast hit og dit”: sett true når profilen ser ferdig ut.
+  if (p.onboardingComplete !== true && hasMinimumOnboardingData(p)) {
+    p.onboardingComplete = true;
   }
 
   return p as UserProfile;
