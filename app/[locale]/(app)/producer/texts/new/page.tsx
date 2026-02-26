@@ -514,11 +514,13 @@ export default function NewTextPage() {
 
   return (
     <main
-  className="pageWrap"
-  style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 16px 60px" }}
->
-  <div className="pageCard" style={{ ...cardStyle, padding: 20 }}>
-        <h1 style={{ marginBottom: 6, fontSize: 26, fontWeight: 800 }}>{t("title")}</h1>
+      className="pageWrap"
+      // ✅ Full-bredde wrapper (mobil får "edge-to-edge")
+      style={{ width: "100%", maxWidth: "100%", margin: 0, padding: "8px 0 60px" }}
+    >
+      <div className="pageCard" style={{ ...cardStyle, padding: 20 }}>
+        {/* ✅ Fjern default topp-margin som kan se ut som "tom section" */}
+        <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 26, fontWeight: 800 }}>{t("title")}</h1>
         <p style={{ marginTop: 0, opacity: 0.8 }}>{t("subtitle")}</p>
 
         <section
@@ -948,30 +950,38 @@ export default function NewTextPage() {
           )}
         </section>
 
-        {/* ✅ Mobile stacking for action buttons */}
+        {/* ✅ Mobile stacking + edge-to-edge */}
         <style jsx>{`
-  @media (max-width: 560px) {
-    .actionRow {
-      flex-direction: column !important;
-      align-items: stretch !important;
-      flex-wrap: nowrap !important;
-    }
+          @media (max-width: 560px) {
+            .actionRow {
+              flex-direction: column !important;
+              align-items: stretch !important;
+              flex-wrap: nowrap !important;
+              margin-top: 0 !important;
+            }
 
-    .actionBtn {
-      width: 100% !important;
-    }
+            .actionBtn {
+              width: 100% !important;
+            }
 
-    .pageWrap {
-      max-width: 100% !important;
-      padding: 10px 8px 60px !important;
-    }
+            /* ✅ helt ut i siden (ingen sidepadding på wrapper) */
+            .pageWrap {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 0 60px !important;
+            }
 
-    .pageCard {
-      padding: 14px !important;
-      border-radius: 14px !important;
-    }
-  }
-`}</style>
+            /* ✅ kortet blir "edge-to-edge" og litt mindre topprom */
+            .pageCard {
+              width: 100% !important;
+              padding: 12px 10px !important;
+              border-radius: 0 !important;
+              border-left: 0 !important;
+              border-right: 0 !important;
+            }
+          }
+        `}</style>
       </div>
     </main>
   );
