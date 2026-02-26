@@ -513,8 +513,11 @@ export default function NewTextPage() {
   }
 
   return (
-    <main style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 16px 60px" }}>
-      <div style={{ ...cardStyle, padding: 20 }}>
+    <main
+  className="pageWrap"
+  style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 16px 60px" }}
+>
+  <div className="pageCard" style={{ ...cardStyle, padding: 20 }}>
         <h1 style={{ marginBottom: 6, fontSize: 26, fontWeight: 800 }}>{t("title")}</h1>
         <p style={{ marginTop: 0, opacity: 0.8 }}>{t("subtitle")}</p>
 
@@ -947,17 +950,28 @@ export default function NewTextPage() {
 
         {/* ✅ Mobile stacking for action buttons */}
         <style jsx>{`
-          @media (max-width: 560px) {
-            .actionRow {
-              flex-direction: column !important;
-              align-items: stretch !important;
-              flex-wrap: nowrap !important;
-            }
-            .actionBtn {
-              width: 100% !important;
-            }
-          }
-        `}</style>
+  @media (max-width: 560px) {
+    .actionRow {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      flex-wrap: nowrap !important;
+    }
+
+    .actionBtn {
+      width: 100% !important;
+    }
+
+    .pageWrap {
+      max-width: 100% !important;
+      padding: 10px 8px 60px !important;
+    }
+
+    .pageCard {
+      padding: 14px !important;
+      border-radius: 14px !important;
+    }
+  }
+`}</style>
       </div>
     </main>
   );
