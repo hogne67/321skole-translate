@@ -27,13 +27,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous);
 
   const isLibrary = (pathname || "").endsWith("/321lessons");
-  const isProducer = (pathname || "").includes("/producer"); // ✅ bypass SectionShell for producer
+  const isProducer = (pathname || "").includes("/producer");
+
   const title = role === "teacher" ? tModes("teacher") : tModes("student");
 
   const items = useMemo(() => {
     return navItemsForRole(role).map((it) => ({
       href: it.href,
-      // labelKey MUST be like: "mySpaces", "dashboard", "createLesson" (no "nav." prefix)
       label: tNav(it.labelKey),
     }));
   }, [role, tNav]);
@@ -45,14 +45,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {isLibrary ? (
         <div style={{ maxWidth: 1200, margin: "10px auto", padding: 10 }}>{children}</div>
-      ) : isProducer ? (
-        // ✅ Full width, minimal top-gap under bars
-        <div style={{ width: "100%", maxWidth: "100vw", margin: 0, padding: 0, overflowX: "hidden" }}>
-          {children}
-        </div>
       ) : (
         <SectionShell title={title} items={items}>
-          {children}
+          {/* ✅ Producer: full bredde i selve innholdet, men beholder menyen */}
+          {isProducer ? (
+            <div
+              className="producerFullWidth"
+              style={{
+                width: "100%",
+                maxWidth: "100vw",
+                margin: 0,
+                padding: 0,
+                overflowX: "hidden",
+                boxSizing: "border-box",
+              }}
+            >
+              {children}
+            </div>
+          ) : (
+            children
+          )}
+
+          {/* ✅ Små globale overrides for producer for å fjerne “plass til venstre” og høyre overflow */}
+          <style jsx>{`
+            /* Hindrer at noe drar sideveis på mobil */
+            :global(body) {
+              overflow-x: hidden;
+            }
+          `}</style>
         </SectionShell>
       )}
     </div>

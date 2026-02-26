@@ -100,6 +100,7 @@ export default function NewTextPage() {
 
   // ===== Inline UI styles (SAFE: no Tailwind dependency) =====
   const fieldStyle: CSSProperties = {
+    boxSizing: "border-box", // ✅ prevents 100% + padding overflow
     width: "100%",
     padding: 10,
     marginTop: 6,
@@ -279,7 +280,7 @@ export default function NewTextPage() {
         id: newId(),
         order: order++,
         type: "open",
-        prompt: rq,
+       prompt: rq,
       });
     }
 
@@ -515,13 +516,11 @@ export default function NewTextPage() {
   return (
     <main
       className="pageWrap"
-      // ✅ Full-bredde wrapper (mobil får "edge-to-edge")
       style={{ width: "100%", maxWidth: "100%", margin: 0, padding: "8px 0 60px" }}
     >
       <div className="pageCard" style={{ ...cardStyle, padding: 20 }}>
-        {/* ✅ Fjern default topp-margin som kan se ut som "tom section" */}
         <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 26, fontWeight: 800 }}>{t("title")}</h1>
-        <p style={{ marginTop: 0, opacity: 0.8 }}>{t("subtitle")}</p>
+        <p style={{ marginTop: 0, marginBottom: 10, opacity: 0.8 }}>{t("subtitle")}</p>
 
         <section
           style={{
@@ -679,7 +678,6 @@ export default function NewTextPage() {
             </div>
           </div>
 
-          {/* ✅ ACTION BUTTONS: stack on mobile via CSS */}
           <div
             className="actionRow"
             style={{
@@ -755,7 +753,6 @@ export default function NewTextPage() {
               value={sourceText}
               onChange={(e) => {
                 setSourceText(e.target.value);
-                // if tasks already exist, editing text should mark them potentially outdated
                 if (lessonTasks.length > 0) setTasksDirty(true);
               }}
               rows={10}
@@ -950,7 +947,6 @@ export default function NewTextPage() {
           )}
         </section>
 
-        {/* ✅ Mobile stacking + edge-to-edge */}
         <style jsx>{`
           @media (max-width: 560px) {
             .actionRow {
@@ -964,21 +960,23 @@ export default function NewTextPage() {
               width: 100% !important;
             }
 
-            /* ✅ helt ut i siden (ingen sidepadding på wrapper) */
+            /* ✅ edge-to-edge + prevent horizontal overflow */
             .pageWrap {
               width: 100% !important;
-              max-width: 100% !important;
+              max-width: 100vw !important;
               margin: 0 !important;
               padding: 0 0 60px !important;
+              overflow-x: hidden !important;
+              box-sizing: border-box !important;
             }
 
-            /* ✅ kortet blir "edge-to-edge" og litt mindre topprom */
             .pageCard {
               width: 100% !important;
               padding: 12px 10px !important;
               border-radius: 0 !important;
               border-left: 0 !important;
               border-right: 0 !important;
+              box-sizing: border-box !important;
             }
           }
         `}</style>
