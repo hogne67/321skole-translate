@@ -27,6 +27,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous);
 
   const isLibrary = (pathname || "").endsWith("/321lessons");
+  const isProducer = (pathname || "").includes("/producer"); // ✅ bypass SectionShell for producer
   const title = role === "teacher" ? tModes("teacher") : tModes("student");
 
   const items = useMemo(() => {
@@ -44,6 +45,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {isLibrary ? (
         <div style={{ maxWidth: 1200, margin: "10px auto", padding: 10 }}>{children}</div>
+      ) : isProducer ? (
+        // ✅ Full width, minimal top-gap under bars
+        <div style={{ width: "100%", maxWidth: "100vw", margin: 0, padding: 0, overflowX: "hidden" }}>
+          {children}
+        </div>
       ) : (
         <SectionShell title={title} items={items}>
           {children}
