@@ -186,7 +186,8 @@ export default function NewTextPage() {
 
   // Hva vi faktisk sender til API (tekstverdi):
   const textTypeLabel = useMemo(() => {
-    if (textTypePreset === "other") return (textTypeOther || t("textTypes.other")).trim() || t("textTypes.other");
+    if (textTypePreset === "other")
+      return (textTypeOther || t("textTypes.other")).trim() || t("textTypes.other");
     return t(`textTypes.${textTypePreset}`);
   }, [textTypePreset, textTypeOther, t]);
 
@@ -673,7 +674,9 @@ export default function NewTextPage() {
             </div>
           </div>
 
+          {/* ✅ ACTION BUTTONS: stack on mobile via CSS */}
           <div
+            className="actionRow"
             style={{
               gridColumn: "1 / -1",
               display: "flex",
@@ -684,6 +687,7 @@ export default function NewTextPage() {
             }}
           >
             <button
+              className="actionBtn"
               onClick={generateTextOnly}
               disabled={busy}
               style={{
@@ -696,6 +700,7 @@ export default function NewTextPage() {
             </button>
 
             <button
+              className="actionBtn"
               onClick={generateTasksOnly}
               disabled={busy || !sourceText.trim()}
               style={{
@@ -709,6 +714,7 @@ export default function NewTextPage() {
             </button>
 
             <button
+              className="actionBtn"
               onClick={saveToFirestore}
               disabled={busy}
               style={{
@@ -938,6 +944,20 @@ export default function NewTextPage() {
             </details>
           )}
         </section>
+
+        {/* ✅ Mobile stacking for action buttons */}
+        <style jsx>{`
+          @media (max-width: 560px) {
+            .actionRow {
+              flex-direction: column !important;
+              align-items: stretch !important;
+              flex-wrap: nowrap !important;
+            }
+            .actionBtn {
+              width: 100% !important;
+            }
+          }
+        `}</style>
       </div>
     </main>
   );

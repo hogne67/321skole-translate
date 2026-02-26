@@ -28,8 +28,8 @@ function withLocale(locale: Locale | null, href: string): string {
   // absolute URLs
   if (/^https?:\/\//i.test(href)) return href;
 
-  // root / → hold som /
-  if (href === "/") return href;
+  // root / → prefer localized root if we know locale
+  if (href === "/") return locale ? `/${locale}` : "/";
 
   // already localized?
   const seg = href.split("/")[1];
@@ -71,22 +71,29 @@ export default function LibraryBar() {
   // true for /en/321lessons, /no/321lessons, /pt/321lessons
   const isLibrary = (pathname || "").split("?")[0].endsWith("/321lessons");
 
-  // dashboard link from nav items
-  const dashboardRaw = navItemsForRole(role).find((x) => x.labelKey === "nav.dashboard")?.href || "/";
+  // dashboard link from nav items (avoid fallback "/")
+  const dashboardFromNav =
+    navItemsForRole(role).find((x) => x.labelKey === "nav.dashboard")?.href ?? null;
 
+  // ✅ Safe fallback if nav item isn't found (prevents going to "/")
+  // Adjust these if your real routes differ.
+  const dashboardFallback = role === "teacher" ? "/teacher" : "/student";
+
+  const dashboardRaw = dashboardFromNav ?? dashboardFallback;
   const dashboardHref = withLocale(locale, dashboardRaw);
 
   // Toggle: when in library -> back to dashboard (with locale),
   // else -> go to library (with locale)
   const href = isLibrary ? dashboardHref : withLocale(locale, "/321lessons");
-
   const label = isLibrary ? tLib("close") : tLib("open");
 
   return (
     <div
       style={{
-        borderBottom: "1px solid rgba(0,0,0,0.08)",
-        background: "rgba(117, 214, 231, 0.36)",
+        borderBottom: "1px solid rgba(15, 23, 42, 0.12)",
+        background:
+          "linear-gradient(180deg, rgba(56,189,248,0.22) 0%, rgba(16,185,129,0.10) 100%)",
+        backdropFilter: "blur(6px)",
       }}
     >
       <div
@@ -100,16 +107,23 @@ export default function LibraryBar() {
       >
         <Link
           href={href}
-          className="libraryToggle"
+          className={`libraryToggle ${isLibrary ? "isActive" : "isIdle"}`}
           style={{
             textDecoration: "none",
-            fontWeight: 800,
-            fontSize: 18,
-            padding: "6px 8px",
-            borderRadius: 8,
-            transition: "color 120ms ease, background-color 120ms ease",
-            color: isLibrary ? "rgba(216, 17, 27, 0.95)" : "rgba(4, 85, 61, 0.65)",
+            fontWeight: 900,
+            fontSize: 14,
+            padding: "8px 12px",
+            borderRadius: 999,
+            border: "1px solid rgba(15, 23, 42, 0.14)",
+            boxShadow: isLibrary
+              ? "0 10px 22px rgba(2,6,23,0.14)"
+              : "0 8px 18px rgba(2,6,23,0.10)",
+            transition:
+              "transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease, color 140ms ease, border-color 140ms ease",
+            color: isLibrary ? "rgba(220, 38, 38, 0.95)" : "rgba(15, 23, 42, 0.85)",
+            background: isLibrary ? "rgba(221, 208, 208, 0.92)" : "rgba(197, 212, 221, 0.78)",
           }}
+          aria-label={label}
         >
           {label}
         </Link>
@@ -117,7 +131,41 @@ export default function LibraryBar() {
 
       <style jsx>{`
         .libraryToggle:hover {
-          background: rgba(48, 202, 58, 0.53);
+          transform: translateY(-1px);
+          box-shadow: 0 14px 28px rgba(2, 6, 23, 0.16);
+          background: rgba(255, 255, 255, 0.94);
+          border-color: rgba(15, 23, 42, 0.22);
+        }
+
+        /* Subtil "kom hit"-puls når du IKKE er i library */
+        .isIdle {
+          animation: softPulse 2.6s ease-in-out infinite;
+        }
+
+        /* Aktiv-state: litt roligere */
+        .isActive {
+          animation: none;
+        }
+
+        @keyframes softPulse {
+          0% {
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.10), 0 0 0 0 rgba(34, 211, 238, 0);
+          }
+          55% {
+            box-shadow: 0 10px 22px rgba(2, 6, 23, 0.12), 0 0 0 10px rgba(34, 211, 238, 0.12);
+          }
+          100% {
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.10), 0 0 0 0 rgba(34, 211, 238, 0);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .isIdle {
+            animation: none;
+          }
+          .libraryToggle:hover {
+            transform: none;
+          }
         }
       `}</style>
     </div>
