@@ -46,34 +46,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {isLibrary ? (
         <div style={{ maxWidth: 1200, margin: "10px auto", padding: 10 }}>{children}</div>
       ) : (
-        <SectionShell title={title} items={items}>
-          {/* ✅ Producer: full bredde i selve innholdet, men beholder menyen */}
-          {isProducer ? (
-            <div
-              className="producerFullWidth"
-              style={{
-                width: "100%",
-                maxWidth: "100vw",
-                margin: 0,
-                padding: 0,
-                overflowX: "hidden",
-                boxSizing: "border-box",
-              }}
-            >
-              {children}
-            </div>
-          ) : (
-            children
-          )}
+        <>
+          <SectionShell title={title} items={items} fullWidth={isProducer}>
+            {children}
+          </SectionShell>
 
-          {/* ✅ Små globale overrides for producer for å fjerne “plass til venstre” og høyre overflow */}
+          {/* Hindrer horisontal scroll hvis noe prøver å stikke utenfor */}
           <style jsx>{`
-            /* Hindrer at noe drar sideveis på mobil */
             :global(body) {
               overflow-x: hidden;
             }
           `}</style>
-        </SectionShell>
+        </>
       )}
     </div>
   );

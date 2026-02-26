@@ -7,29 +7,18 @@ import { useEffect, useMemo, useState } from "react";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
-import {
-  collection,
-  getCountFromServer,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, getCountFromServer, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
 
 type SpaceDocSafe = SpaceDoc & { createdAt?: unknown };
-
 type Row = { id: string; data: SpaceDocSafe };
-
 type QrFor = { spaceId: string; code: string; title?: string };
-
 type TimestampLike = { toMillis: () => number };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
-
 function isTimestampLike(v: unknown): v is TimestampLike {
   return isRecord(v) && typeof v["toMillis"] === "function";
 }
@@ -49,10 +38,7 @@ function asMillis(v: unknown): number {
     const seconds = v["seconds"];
     const nanoseconds = v["nanoseconds"];
     if (typeof seconds === "number" && Number.isFinite(seconds)) {
-      const ns =
-        typeof nanoseconds === "number" && Number.isFinite(nanoseconds)
-          ? nanoseconds
-          : 0;
+      const ns = typeof nanoseconds === "number" && Number.isFinite(nanoseconds) ? nanoseconds : 0;
       return seconds * 1000 + Math.floor(ns / 1_000_000);
     }
   }
@@ -119,11 +105,7 @@ function TeacherSpacesInner() {
   useEffect(() => {
     if (!user?.uid) return;
 
-    const q = query(
-      collection(db, "spaces"),
-      where("ownerId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, "spaces"), where("ownerId", "==", user.uid), orderBy("createdAt", "desc"));
 
     return onSnapshot(q, (snap) => {
       const next: Row[] = snap.docs.map((d) => ({
@@ -176,11 +158,7 @@ function TeacherSpacesInner() {
 
       setMemberCountBusy((m) => ({ ...m, [r.id]: true }));
 
-      const q = query(
-        collection(db, "spaceMembers"),
-        where("spaceId", "==", r.id),
-        where("archived", "==", false)
-      );
+      const q = query(collection(db, "spaceMembers"), where("spaceId", "==", r.id), where("archived", "==", false));
 
       getCountFromServer(q)
         .then((agg) => setMemberCount((m) => ({ ...m, [r.id]: agg.data().count })))
@@ -229,11 +207,7 @@ function TeacherSpacesInner() {
   }
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">
-        {tCommon("loading")}
-      </div>
-    );
+    return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{tCommon("loading")}</div>;
   }
 
   return (
@@ -246,9 +220,7 @@ function TeacherSpacesInner() {
           title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
           className={[
             "rounded-xl px-3 py-2 text-sm font-medium no-underline",
-            canCreateSpace
-              ? "bg-black text-white"
-              : "border border-black/20 bg-transparent text-slate-900",
+            canCreateSpace ? "bg-black text-white" : "border border-black/20 bg-transparent text-slate-900",
           ].join(" ")}
         >
           {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
@@ -297,9 +269,7 @@ function TeacherSpacesInner() {
               {t("controls.filters.openOnly")}
             </label>
           </div>
-          <div className="mt-2 text-xs text-muted-foreground">
-            {t("controls.filters.showing", { n: filtered.length })}
-          </div>
+          <div className="mt-2 text-xs text-muted-foreground">{t("controls.filters.showing", { n: filtered.length })}</div>
         </div>
       </div>
 
@@ -316,19 +286,20 @@ function TeacherSpacesInner() {
             <div
               key={r.id}
               className={[
-                "rounded-2xl bg-white p-4 shadow-sm",
+                "rounded-2xl bg-white p-4 shadow-sm overflow-hidden", // ✅ prevents accidental overflow
                 "border-2",
                 open ? "border-emerald-200" : "border-slate-200",
                 "hover:shadow-md hover:border-slate-300 transition",
               ].join(" ")}
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-[240px]">
-                  <div className="flex items-center gap-2">
-                    <div className="text-base font-semibold">{title}</div>
+              <div className="flex flex-wrap items-start justify-between gap-3 min-w-0">
+                {/* ✅ min-w-0 lets text wrap instead of forcing overflow */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="text-base font-semibold break-words">{title}</div>
                     <span
                       className={[
-                        "rounded-full px-2 py-0.5 text-xs font-medium",
+                        "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
                         open ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-700",
                       ].join(" ")}
                       title={open ? t("list.openTitle") : t("list.closedTitle")}
@@ -337,15 +308,15 @@ function TeacherSpacesInner() {
                     </span>
                   </div>
 
-                  <div className="mt-1 text-sm text-muted-foreground">
+                  <div className="mt-1 text-sm text-muted-foreground min-w-0">
                     {t("list.code")}{" "}
                     <button
                       type="button"
                       onClick={() => copyToClipboard(code, r.id)}
-                      className="rounded-lg border px-2 py-0.5 text-sm font-medium hover:shadow-sm"
+                      className="rounded-lg border px-2 py-0.5 text-sm font-medium hover:shadow-sm max-w-full"
                       title={t("list.copyCodeTitle")}
                     >
-                      {code || "—"}
+                      <span className="break-all">{code || "—"}</span>
                     </button>
                     {copiedId === r.id && <span className="ml-2 text-xs">{t("list.copied")}</span>}
                     <span className="mx-2">·</span>
@@ -386,7 +357,7 @@ function TeacherSpacesInner() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <Link
                     href={withLocale(locale, `/teacher/spaces/${r.id}`)}
                     className="rounded-xl bg-black px-3 py-2 text-sm font-medium text-white no-underline hover:opacity-90"
@@ -416,30 +387,23 @@ function TeacherSpacesInner() {
           role="dialog"
           aria-modal="true"
         >
-          <div
-            className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
+          <div className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 min-w-0">
+              <div className="min-w-0">
                 <div className="text-lg font-semibold">{t("qr.title")}</div>
-                <div className="mt-1 text-sm text-muted-foreground">
+                <div className="mt-1 text-sm text-muted-foreground break-words">
                   {t("qr.subtitle", {
                     title: qrFor?.title ?? t("list.untitled"),
                     code: qrFor?.code ?? "",
                   })}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={closeQr}
-                className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm"
-              >
+              <button type="button" onClick={closeQr} className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm shrink-0">
                 {t("qr.close")}
               </button>
             </div>
 
-            <div className="mt-4 rounded-xl border p-4">
+            <div className="mt-4 rounded-xl border p-4 overflow-x-auto">
               {qrBusy && <div className="text-sm text-muted-foreground">{t("qr.generating")}</div>}
               {qrErr && <div className="text-sm text-red-600">{qrErr}</div>}
 
@@ -453,7 +417,7 @@ function TeacherSpacesInner() {
                     unoptimized
                     className="h-auto w-64 rounded-lg border"
                   />
-                  <div className="text-center text-xs text-muted-foreground">
+                  <div className="text-center text-xs text-muted-foreground break-all">
                     {t("qr.pointsTo")}{" "}
                     <b>
                       {typeof window !== "undefined"
