@@ -1451,9 +1451,9 @@
       }
     },
     "hero": {
-      "badge": "Gratis for både studenter, lærere og foreldre!",
-      "title": "Undervisning. Forsterket med AI.",
-      "lead": "Generer egne undervisningsopplegg på alle språk med oversettelse og lyd, og del med studenter som får umiddelbar, pedagogisk feedback – på riktig nivå.",
+      "badge": "Bli med i et verdensomspennende læringsnettverk!",
+      "title": "Fremtidens læring starter her",
+      "lead": "En ny, revolusjonerende plattform for å skape, dele og mestre kunnskap – tilpasset studenter, lærere og foreldre. Og det beste av alt: Det er gratis.",
       "ctaPrimary": "Registrer deg i dag",
       "ctaSecondary": "Logg inn",
       "guestNote": "Gjestebrukere kommer inn via delingslenker til oppgaver/Spaces.",
@@ -1533,56 +1533,81 @@
       }
     },
     "roles": {
-      "title": "Gratis å starte. Enkelt å oppgradere.",
-      "description": "Lag din første oppgave med en gang. Registrer deg gratis når du vil publisere og dele.",
-      "cards": {
-        "student": {
-          "title": "Student",
-          "free": ["Alt fra lærer (ubegrenset)", "Les, lytt og få feedback", "Library: 4 oppgaver / mnd"],
-          "paidTitle": "Student Full",
-          "price": "49 kr/mnd",
-          "paid": ["Ubegrenset library", "Full lese- og lydtilgang"],
-          "cta": "Start gratis"
-        },
-        "teacher": {
-          "title": "Teacher",
-          "free": ["Lag og test oppgaver", "2 publiseringer / mnd", "Test Spaces"],
-          "paidTitle": "Teacher Full",
-          "price": "99 kr/mnd",
-          "paid": ["Ubegrenset generering", "Full AI + feedback", "Spaces og PDF-eksport"],
-          "cta": "Lag første oppgave"
-        },
-        "parent": {
-          "title": "Parent",
-          "free": ["Følg barnets oppgaver", "Les, lytt og oversett"],
-          "paidTitle": "Parent Full",
-          "price": "89 kr/mnd",
-          "paid": ["Full library", "Lag egne oppgaver", "Flere barn"],
-          "cta": "Hjelp barnet i gang"
-        }
+  "title": "Gratis å starte. Enkelt å oppgradere.",
+  "description": "Bruk biblioteket og oversetteren gratis. Oppgrader når du trenger mer kapasitet, flere oppgaver og avanserte AI-verktøy.",
+  "seeAll": "Se alle planer",
+  "teaser": "Planer for Student, Teacher og Parent — fra 59 kr/mnd. Se full oversikt på prissiden.",
+  "cards": {
+    "student": {
+      "title": "Student",
+      "freeTitle": "Gratis",
+      "free": {
+        "0": "Les i biblioteket og bruk oversetter",
+        "1": "Start oppgaver: 2 / måned",
+        "2": "Delta i klasserom og samarbeid"
+      },
+      "paidTitle": "Planer fra",
+      "price": "59 kr/mnd",
+      "paid": {
+        "0": "Flere oppgaver per måned",
+        "1": "Kollokviegrupper + samarbeidstavle",
+        "2": "Pro-verktøy (språk + lyd) i Plus/Pro"
       }
     },
-    "cta": {
-      "title": "Kom i gang – helt uten risiko",
-      "lead": "Gratis for alle.",
-      "primary": "Registrer deg i dag",
-      "secondary": "Logg inn",
-      "note": "Ingen binding. Test i ekte undervisning. Avslutt når som helst.",
-      "boxTitle": "Dette får du fra dag 1",
-      "checks": [
-        "Tekster og oppgaver på alle språk",
-        "CEFR-nivåtilpasning (A1–C1)",
-        "TTS med justerbar hastighet",
-        "Umiddelbar feedback på tekst",
-        "Spaces for deling og innlevering",
-        "PDF-eksport av opplegg"
-      ]
+    "teacher": {
+      "title": "Teacher",
+      "freeTitle": "Gratis",
+      "free": {
+        "0": "Lag og test oppgaver (Light)",
+        "1": "1 rom / 15 elever",
+        "2": "2 Pro-oppgaver (språk + lyd) / måned"
+      },
+      "paidTitle": "Planer fra",
+      "price": "59 kr/mnd",
+      "paid": {
+        "0": "Flere rom og flere elever",
+        "1": "PDF + privat deling (unlisted)",
+        "2": "Publisering og analyse i Plus/Pro"
+      }
     },
-    "footer": {
-      "about": "Om",
-      "privacy": "Personvern",
-      "contact": "Kontakt",
-      "rights": "Alle rettigheter reservert."
+    "parent": {
+      "title": "Parent",
+      "freeTitle": "Gratis",
+      "free": {
+        "0": "Hjelp barnet ditt hjemme",
+        "1": "Start oppgaver: 2 / måned"
+      },
+      "paidTitle": "Planer fra",
+      "price": "59 kr/mnd",
+      "paid": {
+        "0": "Flere barn + mer øving",
+        "1": "Progresjonsoversikt i Plus/Pro",
+        "2": "Mer AI (Light/Pro) og bildekreditter"
+      }
     }
+  }
+},
+
+"ctaLite": {
+  "title": "Klar for å teste i praksis?",
+  "lead": "Start gratis, og oppgrader når du trenger mer kapasitet og flere verktøy.",
+  "primary": "Opprett konto",
+  "secondary": "Se priser",
+  "note": "Du kan bruke 321skole gratis. Planer og grenser kan endres før lansering.",
+  "boxTitle": "Dette får du med en gang",
+  "checks": [
+    "Bibliotek + oversetter",
+    "Oppgaver med nivåtilpasning",
+    "Klasserom (Spaces) for deling",
+    "AI-verktøy (Light) inkludert"
+  ]
+},
+
+"footer": {
+  "about": "Om",
+  "privacy": "Personvern",
+  "contact": "Kontakt",
+  "rights": "Alle rettigheter reservert."
+}
   }
 }

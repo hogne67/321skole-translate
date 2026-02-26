@@ -17,6 +17,14 @@ function normalizeTeacherStatus(v: unknown): TeacherStatus {
 
 type Role2 = "student" | "teacher";
 
+type RolesMap = {
+  teacher?: boolean;
+  student?: boolean;
+  admin?: boolean;
+  creator?: boolean;
+  teacherStatus?: unknown;
+};
+
 function normalizeRole(raw: unknown): Role2 | null {
   const r = String(raw ?? "").toLowerCase();
 
@@ -32,7 +40,7 @@ function normalizeRole(raw: unknown): Role2 | null {
 }
 
 function roleFromRolesMap(p: Record<string, unknown>): Role2 | null {
-  const roles = isRecord(p.roles) ? (p.roles as Record<string, unknown>) : null;
+  const roles = isRecord(p.roles) ? (p.roles as RolesMap) : null;
   if (!roles) return null;
 
   if (roles.teacher === true) return "teacher";
@@ -59,28 +67,23 @@ function normalizeProfile(raw: unknown): UserProfile | null {
   const p: Record<string, unknown> = { ...raw };
 
   // ---- teacherStatus normalization ----
-  const rawTeacherStatus =
-    p.teacherStatus ?? (isRecord(p.roles) ? (p.roles as any).teacherStatus : undefined);
+  const roles = isRecord(p.roles) ? (p.roles as RolesMap) : null;
 
+  const rawTeacherStatus = p.teacherStatus ?? (roles ? roles.teacherStatus : undefined);
   const normalizedStatus = normalizeTeacherStatus(rawTeacherStatus);
 
   p.teacherStatus = normalizedStatus;
-  if (isRecord(p.roles)) {
-    (p.roles as any).teacherStatus = normalizedStatus;
+
+  if (roles) {
+    roles.teacherStatus = normalizedStatus;
+    p.roles = roles;
   }
 
   // ---- role normalization (2-role model) ----
-  const role =
-    normalizeRole(p.role) ??
-    roleFromRolesMap(p);
-
-  if (role) {
-    p.role = role;
-  }
+  const role = normalizeRole(p.role) ?? roleFromRolesMap(p);
+  if (role) p.role = role;
 
   // ---- onboardingComplete normalization (soft) ----
-  // Hvis dere vil være strenge: behold original.
-  // Hvis dere vil redusere “kast hit og dit”: sett true når profilen ser ferdig ut.
   if (p.onboardingComplete !== true && hasMinimumOnboardingData(p)) {
     p.onboardingComplete = true;
   }

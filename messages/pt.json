@@ -1451,9 +1451,9 @@
       }
     },
     "hero": {
-      "badge": "Grátis para alunos, professores e responsáveis!",
-      "title": "Ensino. Potencializado por IA.",
-      "lead": "Crie lições em qualquer idioma com tradução e áudio, compartilhe com alunos e dê feedback instantâneo e acolhedor — no nível certo.",
+      "badge": "Faça parte de uma rede global de aprendizagem!",
+      "title": "O futuro da aprendizagem começa aqui.",
+      "lead": "Uma nova plataforma revolucionária para criar, compartilhar e dominar o conhecimento – adaptada para estudantes, professores e pais. E o melhor de tudo: É gratuita.",
       "ctaPrimary": "Cadastre-se hoje",
       "ctaSecondary": "Entrar",
       "guestNote": "Convidados entram por links compartilhados para lições/Espaços.",
@@ -1533,56 +1533,81 @@
       }
     },
     "roles": {
-      "title": "Grátis para começar. Fácil de evoluir.",
-      "description": "Crie sua primeira lição agora. Cadastre-se gratuitamente quando quiser publicar e compartilhar.",
-      "cards": {
-        "student": {
-          "title": "Aluno",
-          "free": ["Tudo do professor (ilimitado)", "Ler, ouvir e receber feedback", "Biblioteca: 4 lições/mês"],
-          "paidTitle": "Aluno Full",
-          "price": "49 NOK/mês",
-          "paid": ["Biblioteca ilimitada", "Acesso completo a leitura + áudio"],
-          "cta": "Começar grátis"
-        },
-        "teacher": {
-          "title": "Professor",
-          "free": ["Criar e testar lições", "2 publicações/mês", "Testar Espaços"],
-          "paidTitle": "Professor Full",
-          "price": "99 NOK/mês",
-          "paid": ["Geração ilimitada", "IA + feedback completos", "Espaços + exportar PDF"],
-          "cta": "Crie sua primeira lição"
-        },
-        "parent": {
-          "title": "Responsável",
-          "free": ["Acompanhar as lições da criança", "Ler, ouvir e traduzir"],
-          "paidTitle": "Responsável Full",
-          "price": "89 NOK/mês",
-          "paid": ["Biblioteca completa", "Criar suas próprias lições", "Várias crianças"],
-          "cta": "Ajude seu filho a começar"
-        }
+  "title": "Grátis para começar. Fácil para fazer upgrade.",
+  "description": "Use a biblioteca e o tradutor gratuitamente. Faça upgrade quando precisar de mais capacidade, mais atividades e ferramentas avançadas de IA.",
+  "seeAll": "Ver todos os planos",
+  "teaser": "Planos para Student, Teacher e Parent — a partir de 59 NOK/mês. Veja todos os detalhes na página de preços.",
+  "cards": {
+    "student": {
+      "title": "Student",
+      "freeTitle": "Grátis",
+      "free": {
+        "0": "Leia na biblioteca e use o tradutor",
+        "1": "Iniciar atividades: 2 / mês",
+        "2": "Participar de salas e colaborar"
+      },
+      "paidTitle": "Planos a partir de",
+      "price": "59 NOK/mês",
+      "paid": {
+        "0": "Mais atividades por mês",
+        "1": "Grupos de estudo + quadro colaborativo",
+        "2": "Ferramentas Pro (idioma + áudio) no Plus/Pro"
       }
     },
-    "cta": {
-      "title": "Comece — sem risco",
-      "lead": "Grátis para todos.",
-      "primary": "Cadastre-se hoje",
-      "secondary": "Entrar",
-      "note": "Sem compromisso. Teste no ensino real. Cancele quando quiser.",
-      "boxTitle": "O que você recebe desde o dia 1",
-      "checks": [
-        "Textos e tarefas em qualquer idioma",
-        "Ajuste de nível CEFR (A1–C1)",
-        "TTS com velocidade ajustável",
-        "Feedback instantâneo de escrita",
-        "Espaços para compartilhar e receber entregas",
-        "Exportação de PDF das lições"
-      ]
+    "teacher": {
+      "title": "Teacher",
+      "freeTitle": "Grátis",
+      "free": {
+        "0": "Criar e testar atividades (Light)",
+        "1": "1 sala / 15 alunos",
+        "2": "2 atividades Pro (idioma + áudio) / mês"
+      },
+      "paidTitle": "Planos a partir de",
+      "price": "59 NOK/mês",
+      "paid": {
+        "0": "Mais salas e mais alunos",
+        "1": "PDF + compartilhamento privado (unlisted)",
+        "2": "Publicação e análises no Plus/Pro"
+      }
     },
-    "footer": {
-      "about": "Sobre",
-      "privacy": "Privacidade",
-      "contact": "Contato",
-      "rights": "Todos os direitos reservados."
+    "parent": {
+      "title": "Parent",
+      "freeTitle": "Grátis",
+      "free": {
+        "0": "Apoie seu filho em casa",
+        "1": "Iniciar atividades: 2 / mês"
+      },
+      "paidTitle": "Planos a partir de",
+      "price": "59 NOK/mês",
+      "paid": {
+        "0": "Mais filhos + mais prática",
+        "1": "Visão de progresso no Plus/Pro",
+        "2": "Mais IA (Light/Pro) e créditos de imagem"
+      }
     }
+  }
+},
+
+"ctaLite": {
+  "title": "Pronto para testar na prática?",
+  "lead": "Comece grátis e faça upgrade quando precisar de mais capacidade e ferramentas avançadas.",
+  "primary": "Criar conta",
+  "secondary": "Ver preços",
+  "note": "Você pode usar o 321skole gratuitamente. Planos e limites podem mudar antes do lançamento.",
+  "boxTitle": "O que você recebe imediatamente",
+  "checks": [
+    "Biblioteca + tradutor",
+    "Atividades com ajuste de nível CEFR",
+    "Spaces para compartilhamento e envios",
+    "Ferramentas de IA (Light) incluídas"
+  ]
+},
+
+"footer": {
+  "about": "Sobre",
+  "privacy": "Privacidade",
+  "contact": "Contato",
+  "rights": "Todos os direitos reservados."
+}
   }
 }

@@ -1451,9 +1451,9 @@
       }
     },
     "hero": {
-      "badge": "Free for students, teachers, and parents!",
-      "title": "Teaching. Enhanced with AI.",
-      "lead": "Create lessons in any language with translation and audio, share them with students, and give instant, supportive feedback—at the right level.",
+      "badge": "Join a global learning network!",
+      "title": "The future of learning starts here",
+      "lead": "A new, revolutionary platform to create, share, and master knowledge – tailored for students, teachers, and parents. And best of all: It’s free.",
       "ctaPrimary": "Sign up today",
       "ctaSecondary": "Log in",
       "guestNote": "Guests join via shared links to lessons/Spaces.",
@@ -1533,56 +1533,81 @@
       }
     },
     "roles": {
-      "title": "Free to start. Easy to upgrade.",
-      "description": "Create your first lesson right away. Sign up for free when you want to publish and share.",
-      "cards": {
-        "student": {
-          "title": "Student",
-          "free": ["Everything from the teacher (unlimited)", "Read, listen, and get feedback", "Library: 4 lessons/month"],
-          "paidTitle": "Student Full",
-          "price": "49 NOK/month",
-          "paid": ["Unlimited library", "Full reading + audio access"],
-          "cta": "Start free"
-        },
-        "teacher": {
-          "title": "Teacher",
-          "free": ["Create and test lessons", "2 publications/month", "Test Spaces"],
-          "paidTitle": "Teacher Full",
-          "price": "99 NOK/month",
-          "paid": ["Unlimited generation", "Full AI + feedback", "Spaces + PDF export"],
-          "cta": "Create your first lesson"
-        },
-        "parent": {
-          "title": "Parent",
-          "free": ["Follow your child’s lessons", "Read, listen, and translate"],
-          "paidTitle": "Parent Full",
-          "price": "89 NOK/month",
-          "paid": ["Full library", "Create your own lessons", "Multiple children"],
-          "cta": "Help your child get started"
-        }
+  "title": "Free to start. Easy to upgrade.",
+  "description": "Use the library and translator for free. Upgrade when you need more capacity, more tasks, and advanced AI tools.",
+  "seeAll": "See all plans",
+  "teaser": "Plans for Student, Teacher and Parent — from 59 NOK/mo. See full details on the pricing page.",
+  "cards": {
+    "student": {
+      "title": "Student",
+      "freeTitle": "Free",
+      "free": {
+        "0": "Read the library and use the translator",
+        "1": "Start tasks: 2 / month",
+        "2": "Join classrooms and collaborate"
+      },
+      "paidTitle": "Plans from",
+      "price": "59 NOK/mo",
+      "paid": {
+        "0": "More tasks per month",
+        "1": "Study groups + collaboration board",
+        "2": "Pro tools (language + audio) in Plus/Pro"
       }
     },
-    "cta": {
-      "title": "Get started—no risk",
-      "lead": "Free for everyone.",
-      "primary": "Sign up today",
-      "secondary": "Log in",
-      "note": "No commitment. Test in real teaching. Cancel anytime.",
-      "boxTitle": "What you get from day 1",
-      "checks": [
-        "Texts and tasks in any language",
-        "CEFR level adjustment (A1–C1)",
-        "TTS with adjustable speed",
-        "Instant feedback on writing",
-        "Spaces for sharing and submissions",
-        "PDF export of lessons"
-      ]
+    "teacher": {
+      "title": "Teacher",
+      "freeTitle": "Free",
+      "free": {
+        "0": "Create and test tasks (Light)",
+        "1": "1 space / 15 students",
+        "2": "2 Pro tasks (language + audio) / month"
+      },
+      "paidTitle": "Plans from",
+      "price": "59 NOK/mo",
+      "paid": {
+        "0": "More spaces and more students",
+        "1": "PDF + private sharing (unlisted)",
+        "2": "Publishing and analytics in Plus/Pro"
+      }
     },
-    "footer": {
-      "about": "About",
-      "privacy": "Privacy",
-      "contact": "Contact",
-      "rights": "All rights reserved."
+    "parent": {
+      "title": "Parent",
+      "freeTitle": "Free",
+      "free": {
+        "0": "Support your child at home",
+        "1": "Start tasks: 2 / month"
+      },
+      "paidTitle": "Plans from",
+      "price": "59 NOK/mo",
+      "paid": {
+        "0": "More kids + more practice",
+        "1": "Progress overview in Plus/Pro",
+        "2": "More AI (Light/Pro) and image credits"
+      }
     }
+  }
+},
+
+"ctaLite": {
+  "title": "Ready to try it in practice?",
+  "lead": "Start free, and upgrade when you need more capacity and advanced tools.",
+  "primary": "Create account",
+  "secondary": "See pricing",
+  "note": "You can use 321school for free. Plans and limits may change before launch.",
+  "boxTitle": "What you get right away",
+  "checks": [
+    "Library + translator",
+    "Tasks with CEFR level adjustment",
+    "Spaces for sharing and submissions",
+    "AI tools (Light) included"
+  ]
+},
+
+"footer": {
+  "about": "About",
+  "privacy": "Privacy",
+  "contact": "Contact",
+  "rights": "All rights reserved."
+}
   }
 }
