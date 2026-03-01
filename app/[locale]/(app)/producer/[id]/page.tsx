@@ -3,13 +3,13 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type TaskType = "truefalse" | "mcq" | "open";
 type ReleaseMode = "ALL_AT_ONCE" | "TEXT_FIRST";
@@ -40,10 +40,13 @@ type Lesson = {
 
   // ✅ METADATA v1
   tags?: string[];
-  topic?: string;
+  topic?: string; // vi fyller IKKE denne automatisk i UI
   language?: string;
   estimatedMinutes?: number;
   releaseMode?: ReleaseMode;
+
+  // ✅ "Text type" (nytt felt – valgfritt i DB, men nyttig i UI)
+  textType?: string;
 
   // ✅ PDF/branding
   producerName?: string;
@@ -110,8 +113,25 @@ function getErrorMessage(err: unknown): string {
   }
 }
 
+function readString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function readUserDisplayName(d: unknown): string {
+  if (!d || typeof d !== "object") return "";
+  const x = d as Record<string, unknown>;
+  return (
+    readString(x.displayName).trim() ||
+    readString(x.fullName).trim() ||
+    readString(x.name).trim() ||
+    ""
+  );
+}
+
 export default function ProducerLessonEditorPage() {
   const t = useTranslations("producer.editor");
+  const locale = useLocale();
+  const router = useRouter();
 
   const params = useParams<{ id: string }>();
   const lessonId = params.id;
@@ -131,7 +151,8 @@ export default function ProducerLessonEditorPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   // ✅ METADATA state
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(""); // starter tom (ikke auto-fill fra DB)
+  const [textType, setTextType] = useState(""); // nytt: kan fylles fra DB eller skjema
   const [tagsText, setTagsText] = useState("");
   const [language, setLanguage] = useState(t("defaults.language"));
   const [estimatedMinutes, setEstimatedMinutes] = useState<number>(20);
@@ -175,12 +196,15 @@ export default function ProducerLessonEditorPage() {
       if (m === "Upload feilet.") return t("errors.uploadFailed");
       if (m === "Lagring feilet.") return t("errors.saveFailed");
 
-      // fall back to raw message (dev-friendly)
       return m;
     },
     [t]
   );
 
+  const backHref = `/${locale}/producer`;
+  const myContentHref = `/${locale}/content`;
+
+  // Load lesson + ensure owner + hydrate UI
   useEffect(() => {
     let alive = true;
 
@@ -222,15 +246,18 @@ export default function ProducerLessonEditorPage() {
         // tasks
         setTasks(Array.isArray(data.tasks) ? (data.tasks as Task[]) : []);
 
-        // ✅ fyll metadata
-        setTopic(typeof data.topic === "string" ? data.topic : "");
+        // ✅ metadata
+        // TOPIC: IKKE auto-fill fra DB (forhindrer at prompt/AI-spørsmål vises)
+        setTopic("");
+        setTextType(typeof data.textType === "string" ? data.textType : "");
+
         setTagsText(Array.isArray(data.tags) ? data.tags.join(", ") : "");
         setLanguage(typeof data.language === "string" ? data.language : t("defaults.language"));
         setEstimatedMinutes(typeof data.estimatedMinutes === "number" ? data.estimatedMinutes : 20);
         setReleaseMode(normalizeReleaseMode(data.releaseMode));
 
         // ✅ PDF/branding
-        setProducerName(typeof data.producerName === "string" ? data.producerName : "");
+        // Vi setter producerName fra user-profil senere (og låser feltet)
         setCoverImageUrl(typeof data.coverImageUrl === "string" ? data.coverImageUrl : "");
         setCoverImageFormat(normalizeCoverFormat(data.coverImageFormat));
 
@@ -246,6 +273,28 @@ export default function ProducerLessonEditorPage() {
       alive = false;
     };
   }, [lessonId, t, localizeError]);
+
+  // Load producer displayName from users/{uid} and lock it into producerName
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      if (!uid) return;
+
+      try {
+        const snap = await getDoc(doc(db, "users", uid));
+        if (!alive) return;
+        const name = snap.exists() ? readUserDisplayName(snap.data()) : "";
+        if (name) setProducerName(name);
+      } catch {
+        // ignore (vi lar feltet bli tomt hvis users-doc ikke finnes)
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [uid]);
 
   async function uploadCover(file: File) {
     setErr(null);
@@ -283,7 +332,7 @@ export default function ProducerLessonEditorPage() {
     }
   }
 
-  async function save() {
+  async function saveAndGoToMyContent() {
     setErr(null);
     setSaving(true);
     try {
@@ -299,6 +348,8 @@ export default function ProducerLessonEditorPage() {
       }));
 
       await updateDoc(doc(db, "lessons", lessonId), {
+        ownerId: u,
+
         title: title.trim(),
         level: level.trim(),
         sourceText,
@@ -306,14 +357,18 @@ export default function ProducerLessonEditorPage() {
         tasks: normalized,
 
         // ✅ METADATA
+        // Topic: brukerstyrt (starter tom)
         topic: topic.trim(),
+        // Text type: valgfritt felt (kommer fra skjema, eller tomt)
+        textType: textType.trim(),
+
         tags,
         language: language.trim(),
         estimatedMinutes: Number.isFinite(estimatedMinutes) ? Number(estimatedMinutes) : 20,
         releaseMode,
 
         // ✅ PDF/branding
-        producerName: producerName.trim(),
+        producerName: producerName.trim(), // kommer fra users/{uid}
         coverImageUrl: coverImageUrl.trim(),
         coverImageFormat,
 
@@ -321,6 +376,9 @@ export default function ProducerLessonEditorPage() {
       });
 
       setTasks(normalized);
+
+      // ✅ Etter lagring: kast brukeren til My Content
+      router.push(myContentHref);
     } catch (e: unknown) {
       setErr(localizeError(getErrorMessage(e) || t("errors.saveFailed")));
     } finally {
@@ -388,7 +446,7 @@ export default function ProducerLessonEditorPage() {
           <pre style={{ whiteSpace: "pre-wrap" }}>{err}</pre>
         </div>
         <div style={{ marginTop: 12 }}>
-          <Link href="/producer">{t("nav.back")}</Link>
+          <Link href={backHref}>{t("nav.back")}</Link>
         </div>
       </main>
     );
@@ -398,17 +456,31 @@ export default function ProducerLessonEditorPage() {
     <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <div>
-          <Link href="/producer">{t("nav.back")}</Link>
+          <Link href={backHref}>{t("nav.back")}</Link>
           <h1 style={{ fontSize: 24, fontWeight: 900, marginTop: 10 }}>{t("pageTitle")}</h1>
           <div style={{ fontSize: 13, opacity: 0.7 }}>
             {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
           </div>
         </div>
 
-        {/* ✅ Editor actions (kun Lagre) */}
+        {/* ✅ Grønn lagre-knapp som sender til My Content */}
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <button onClick={save} disabled={saving} style={{ padding: "8px 12px" }}>
-            {saving ? t("buttons.saving") : t("buttons.save")}
+          <button
+            onClick={saveAndGoToMyContent}
+            disabled={saving}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 12,
+              border: "1px solid #86efac",
+              background: "#16a34a",
+              color: "white",
+              fontWeight: 900,
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.7 : 1,
+            }}
+            title={locale === "en" ? "Save and go to My content" : "Lagre og gå til My content"}
+          >
+            {saving ? t("buttons.saving") : (locale === "en" ? "Save → My content" : "Lagre → My content")}
           </button>
         </div>
       </div>
@@ -417,7 +489,7 @@ export default function ProducerLessonEditorPage() {
       <section style={{ marginTop: 16, border: "1px solid #e5e7eb", borderRadius: 12, padding: 14 }}>
         <div style={{ display: "grid", gap: 10 }}>
           <label style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 800 }}>{t("fields.title")}</div>
+            <div style={{ fontWeight: 800 }}>{t("fields.title")} *</div>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -426,8 +498,9 @@ export default function ProducerLessonEditorPage() {
             />
           </label>
 
+          {/* ✅ Level: ikke optional */}
           <label style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 800 }}>{t("fields.levelOptional")}</div>
+            <div style={{ fontWeight: 800 }}>{t("fields.levelOptional")} *</div>
             <input
               value={level}
               onChange={(e) => setLevel(e.target.value)}
@@ -436,14 +509,27 @@ export default function ProducerLessonEditorPage() {
             />
           </label>
 
+          {/* ✅ ProducerName: fast (hentes fra users/{uid}) */}
           <label style={{ display: "grid", gap: 6 }}>
             <div style={{ fontWeight: 800 }}>{t("fields.producerName")}</div>
             <input
               value={producerName}
-              onChange={(e) => setProducerName(e.target.value)}
-              style={{ padding: "10px 12px" }}
-              placeholder={t("placeholders.producerName")}
+              disabled
+              readOnly
+              style={{
+                padding: "10px 12px",
+                background: "#f4f4f5",
+                border: "1px solid #e5e7eb",
+                color: "#111827",
+              }}
+              placeholder={locale === "en" ? "Your name (from profile)" : "Ditt navn (fra profil)"}
+              title={locale === "en" ? "Pulled from your user profile" : "Hentes fra brukerprofil"}
             />
+            <div style={{ fontSize: 12, opacity: 0.7 }}>
+              {locale === "en"
+                ? "This is taken from your profile (users/{uid})."
+                : "Dette hentes fra profilen din (users/{uid})."}
+            </div>
           </label>
 
           {/* Banner */}
@@ -549,12 +635,34 @@ export default function ProducerLessonEditorPage() {
 
           {/* Metadata */}
           <label style={{ display: "grid", gap: 6 }}>
+            <div style={{ fontWeight: 800 }}>
+              {locale === "en" ? "Text type" : "Teksttype"}
+            </div>
+            <input
+              value={textType}
+              onChange={(e) => setTextType(e.target.value)}
+              style={{ padding: "10px 12px" }}
+              placeholder={locale === "en" ? "e.g. article, email, dialogue…" : "f.eks. artikkel, e-post, dialog…"}
+            />
+            <div style={{ fontSize: 12, opacity: 0.7 }}>
+              {locale === "en"
+                ? "Used for metadata and library filtering. Keep topic separate."
+                : "Brukes som metadata (filtrering i bibliotek). Hold topic separat."}
+            </div>
+          </label>
+
+          {/* ✅ Topic: starter tom, og er brukerstyrt */}
+          <label style={{ display: "grid", gap: 6 }}>
             <div style={{ fontWeight: 800 }}>{t("fields.topic")}</div>
             <input
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               style={{ padding: "10px 12px" }}
-              placeholder={t("placeholders.topic")}
+              placeholder={
+                locale === "en"
+                  ? "Optional. Leave empty to avoid showing the AI prompt."
+                  : "Valgfritt. La stå tomt for å unngå at KI-prompt vises."
+              }
             />
           </label>
 

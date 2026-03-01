@@ -1,10 +1,8 @@
-// app/(app)/student/generator/page.tsx
+// app/[locale]/(app)/student/generator/page.tsx
 "use client";
 
 import { useMemo, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { db } from "@/lib/firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 type TaskType = "truefalse" | "mcq" | "open";
@@ -25,6 +23,14 @@ type GeneratedLesson = {
   topic: string;
   sourceText: string;
   tasks: GenTask[];
+};
+
+type QuotaInfo = {
+  feature: string;
+  limit: number;
+  used: number;
+  remaining: number;
+  period: string; // YYYY-MM
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -58,8 +64,39 @@ async function generateLesson(args: { topic: string; level: string; length: Leng
     throw new Error(`Generate API error (${res.status}): ${t}`);
   }
 
-  // If you want to be extra strict, validate the shape here too.
   return (await res.json()) as GeneratedLesson;
+}
+
+async function authedPostJson<T = unknown>(url: string, token: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const raw = await res.text();
+  let data: unknown = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = {};
+  }
+
+  if (!res.ok) {
+    const msg = isRecord(data) && typeof data.error === "string" ? data.error : raw || `Request failed (${res.status})`;
+    // Keep quota payload if present
+    if (isRecord(data) && isRecord(data.quota) && typeof msg === "string") {
+      const err = new Error(msg) as Error & { quota?: unknown };
+      err.quota = data.quota;
+      throw err;
+    }
+    throw new Error(msg);
+  }
+
+  return data as T;
 }
 
 export default function StudentGeneratorPage() {
@@ -75,12 +112,15 @@ export default function StudentGeneratorPage() {
   const [draft, setDraft] = useState<GeneratedLesson | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const [saveQuota, setSaveQuota] = useState<QuotaInfo | null>(null);
+
   const canGenerate = useMemo(() => topic.trim().length > 0, [topic]);
 
   async function onGenerate() {
     setErr(null);
     setBusy(true);
     setDraft(null);
+    setSaveQuota(null);
 
     try {
       const out = await generateLesson({ topic, level, length });
@@ -97,27 +137,32 @@ export default function StudentGeneratorPage() {
 
     setErr(null);
     setSaving(true);
+    setSaveQuota(null);
 
     try {
       const user = await ensureAnonymousUser();
+      const token = await user.getIdToken();
 
-      // Save as a private draft lesson for this student
-      const docRef = await addDoc(collection(db, "lessons"), {
-        ownerId: user.uid,
-        status: "draft",
-        title: draft.title,
-        level: draft.level,
-        topic: draft.topic,
-        sourceText: draft.sourceText,
-        tasks: draft.tasks,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        generator: "student-guided-v1",
-      });
+      // ✅ Save draft via server (Admin SDK) so quota + rules are enforced
+      const resp = await authedPostJson<{ id: string; quota?: QuotaInfo }>(
+        "/api/student/create-lesson",
+        token,
+        {
+          title: draft.title,
+          level: draft.level,
+          topic: draft.topic,
+          sourceText: draft.sourceText,
+          tasks: draft.tasks,
+          generator: "student-guided-v1",
+        }
+      );
 
-      router.push(`/student/lesson/${docRef.id}`);
+      if (resp?.quota) setSaveQuota(resp.quota);
+
+      router.push(`/student/lesson/${resp.id}`);
     } catch (e: unknown) {
-      setErr(getErrorMessage(e) || "Could not save");
+      const msg = getErrorMessage(e) || "Could not save";
+      setErr(msg);
     } finally {
       setSaving(false);
     }
@@ -212,6 +257,12 @@ export default function StudentGeneratorPage() {
             </button>
 
             <span style={{ opacity: 0.75, fontSize: 13 }}>Saves as a private draft (not published).</span>
+
+            {saveQuota && (
+              <span style={{ opacity: 0.85, fontSize: 13 }}>
+                • This month: {saveQuota.used} / {saveQuota.limit} used (remaining {saveQuota.remaining})
+              </span>
+            )}
           </div>
 
           <div style={{ height: 12 }} />

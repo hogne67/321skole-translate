@@ -1,9 +1,7 @@
-// app/(app)/producer/texts/new/page.tsx
+// app/[locale]/(app)/producer/texts/new/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { LANGUAGES } from "@/lib/languages";
@@ -49,6 +47,10 @@ function newId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(2, 6);
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
@@ -92,6 +94,14 @@ const LEVEL_DEFAULTS: Record<
   B2: { textLength: 260, trueFalse: 10, mcq: 6, facts: 6, reflection: 2 },
   C1: { textLength: 300, trueFalse: 10, mcq: 8, facts: 6, reflection: 3 },
   C2: { textLength: 300, trueFalse: 10, mcq: 8, facts: 6, reflection: 3 },
+};
+
+type QuotaInfo = {
+  feature: string;
+  limit: number;
+  used: number;
+  remaining: number;
+  period: string; // YYYY-MM (Europe/Oslo)
 };
 
 export default function NewTextPage() {
@@ -217,6 +227,10 @@ export default function NewTextPage() {
   // Track if text has changed after tasks were generated
   const [tasksDirty, setTasksDirty] = useState(false);
 
+  // ✅ Quota UI state
+  const [quotaInfo, setQuotaInfo] = useState<QuotaInfo | null>(null);
+  const [quotaLoading, setQuotaLoading] = useState(false);
+
   const busy = loadingText || loadingTasks || saving;
 
   // Apply defaults when level changes
@@ -238,6 +252,38 @@ export default function NewTextPage() {
       return hay.includes(q);
     });
   }, [languageSearch]);
+
+  async function fetchQuotaForCreateLesson() {
+    try {
+      setQuotaLoading(true);
+      const user = getAuth().currentUser;
+      if (!user) {
+        setQuotaInfo(null);
+        return;
+      }
+
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/quota?feature=producer_create_lesson`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      const raw = await res.text();
+      const data = raw ? (JSON.parse(raw) as QuotaInfo) : null;
+
+      if (res.ok && data && typeof data.used === "number") setQuotaInfo(data);
+    } catch {
+      // silent
+    } finally {
+      setQuotaLoading(false);
+    }
+  }
+
+  // ✅ fetch quota on mount (and once more shortly after, to catch late auth init)
+  useEffect(() => {
+    fetchQuotaForCreateLesson();
+    const tt = setTimeout(() => fetchQuotaForCreateLesson(), 600);
+    return () => clearTimeout(tt);
+  }, []);
 
   function packToLessonTasks(p: ContentPack): LessonTask[] {
     const tasks: LessonTask[] = [];
@@ -280,7 +326,7 @@ export default function NewTextPage() {
         id: newId(),
         order: order++,
         type: "open",
-       prompt: rq,
+        prompt: rq,
       });
     }
 
@@ -288,7 +334,7 @@ export default function NewTextPage() {
   }
 
   function renumberOrders(tasks: LessonTask[]) {
-    return tasks.map((t, idx) => ({ ...t, order: idx + 1 }));
+    return tasks.map((ttt, idx) => ({ ...ttt, order: idx + 1 }));
   }
 
   function addTask(type: TaskType) {
@@ -350,8 +396,10 @@ export default function NewTextPage() {
     if (m === "Title is required.") return t("errors.titleRequired");
     if (m === "Source text is empty.") return t("errors.sourceTextEmpty");
     if (m === "Not signed in. Please log in as teacher/producer.") return t("errors.notSignedIn");
+    if (m === "Not signed in.") return t("errors.notSignedIn");
     if (m.startsWith("Empty response from server.")) return t("errors.emptyResponseFromServer", { status: "" });
     if (m.startsWith("Not JSON.")) return t("errors.notJsonFromServer");
+    if (m.startsWith("Limit reached:")) return m; // ok å vise direkte
     return m;
   }
 
@@ -461,6 +509,7 @@ export default function NewTextPage() {
     }
   }
 
+  // ✅ Server-en lager lesson + quota-sjekk
   async function saveToFirestore() {
     setSaving(true);
     setError(null);
@@ -472,40 +521,67 @@ export default function NewTextPage() {
 
       const user = getAuth().currentUser;
       if (!user) throw new Error("Not signed in. Please log in as teacher/producer.");
-      const uid = user.uid;
 
-      const cleanTextType = String(textTypeLabel || "").trim().replace(/^"+|"+$/g, "").trim();
+      const token = await user.getIdToken();
 
-      const docRef = await addDoc(collection(db, "lessons"), {
-        ownerId: uid,
-        status: "draft",
-        title: title || t("defaults.title"),
-        level,
-
-        topic: prompt,
-        prompt,
-
-        textType: cleanTextType,
-        texttype: cleanTextType,
-
-        language,
-        estimatedMinutes: 20,
-        releaseMode: "ALL_AT_ONCE",
-        sourceText: sourceText || "",
-        tasks: renumberOrders(lessonTasks),
-
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        source: "producer-texts-new",
-
-        deletedAt: null,
-        activePublishedId: null,
+      const res = await fetch("/api/producer/create-lesson", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: title || t("defaults.title"),
+          level,
+          language,
+          prompt,
+          topic: prompt,
+          textType: textTypeLabel,
+          sourceText: sourceText || "",
+          tasks: renumberOrders(lessonTasks),
+        }),
       });
 
-      setSavedId(docRef.id);
+      const raw = await res.text();
+
+      let data: unknown = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        // ignore invalid JSON (fallback to {})
+      }
+
+      const anyData: Record<string, unknown> = isRecord(data) ? data : {};
+
+      if (!res.ok) {
+        // 429 from server gives { error, quota }
+        const quotaUnknown = anyData["quota"];
+        if (res.status === 429 && quotaUnknown && typeof quotaUnknown === "object") {
+          const q = quotaUnknown as Partial<QuotaInfo>;
+          const used = typeof q.used === "number" ? q.used : 15;
+          const limit = typeof q.limit === "number" ? q.limit : 15;
+          throw new Error(`Du har brukt ${used} av ${limit} denne måneden. Du kan ikke lage flere nå.`);
+        }
+
+        const msg = typeof anyData["error"] === "string" ? anyData["error"] : `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+
+      const id = typeof anyData["id"] === "string" ? anyData["id"].trim() : "";
+      if (!id) throw new Error("Missing id from server.");
+
+      setSavedId(id);
+
+      // ✅ Update quota in UI (server returns quota)
+      const quota2 = anyData["quota"];
+      if (quota2 && typeof quota2 === "object") {
+        setQuotaInfo(quota2 as QuotaInfo);
+      } else {
+        fetchQuotaForCreateLesson();
+      }
 
       // ✅ Redirect directly to Producer editor
-      router.push(`/producer/${docRef.id}`);
+      router.push(`/producer/${id}`);
     } catch (e: unknown) {
       setError(localizeError(getErrorMessage(e)));
     } finally {
@@ -513,10 +589,19 @@ export default function NewTextPage() {
     }
   }
 
+  const quotaBlocked = quotaInfo ? quotaInfo.remaining <= 0 : false;
+
   return (
     <main
       className="pageWrap"
-      style={{ width: "100%", maxWidth: "100%", margin: 0, padding: "8px 0 60px" }}
+      // ✅ Desktop: senter + maks bredde. Mobil overstyres i media query.
+      style={{
+        width: "100%",
+        maxWidth: 980,
+        margin: "0 auto",
+        padding: "8px 12px 60px",
+        boxSizing: "border-box",
+      }}
     >
       <div className="pageCard" style={{ ...cardStyle, padding: 20 }}>
         <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 26, fontWeight: 800 }}>{t("title")}</h1>
@@ -719,19 +804,46 @@ export default function NewTextPage() {
             <button
               className="actionBtn"
               onClick={saveToFirestore}
-              disabled={busy}
+              disabled={busy || quotaBlocked}
               style={{
                 ...buttonSecondary,
-                opacity: busy ? 0.7 : 1,
-                cursor: busy ? "not-allowed" : "pointer",
+                opacity: busy || quotaBlocked ? 0.55 : 1,
+                cursor: busy || quotaBlocked ? "not-allowed" : "pointer",
               }}
-              title={tasksDirty ? t("hints.tasksDirty") : t("hints.saveDraft")}
+              title={
+                quotaBlocked && quotaInfo
+                  ? `Du har brukt ${quotaInfo.used} av ${quotaInfo.limit} denne måneden.`
+                  : tasksDirty
+                  ? t("hints.tasksDirty")
+                  : t("hints.saveDraft")
+              }
             >
               {saving ? t("buttons.saving") : t("buttons.saveDraft")}
             </button>
 
             {tasksDirty && sourceText.trim() && (
               <span style={{ color: "#b45309", fontWeight: 700 }}>{t("warnings.checkTextBeforeTasks")}</span>
+            )}
+
+            {/* ✅ Quota badge */}
+            {quotaLoading && <span style={{ opacity: 0.75 }}>Laster kvote…</span>}
+
+            {quotaInfo && (
+              <span
+                style={{
+                  fontSize: 13,
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  border: "1px solid #e2e8f0",
+                  background: quotaInfo.remaining <= 0 ? "#fff1f2" : quotaInfo.remaining <= 2 ? "#fffbeb" : "#f0fdf4",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                }}
+                title={`Periode: ${quotaInfo.period}`}
+              >
+                {`Du har brukt ${quotaInfo.used} av ${quotaInfo.limit} denne måneden`}
+                {quotaInfo.remaining <= 2 ? " (snart tomt)" : ""}
+              </span>
             )}
 
             {savedId && <span style={{ color: "green" }}>{t("status.saved", { id: savedId })}</span>}
@@ -963,7 +1075,7 @@ export default function NewTextPage() {
             /* ✅ edge-to-edge + prevent horizontal overflow */
             .pageWrap {
               width: 100% !important;
-              max-width: 100vw !important;
+              max-width: none !important;
               margin: 0 !important;
               padding: 0 0 60px !important;
               overflow-x: hidden !important;

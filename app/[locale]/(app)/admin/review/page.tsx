@@ -3,21 +3,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  collection,
-  doc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
-  type DocumentData,
-} from "firebase/firestore";
+import { collection, getDocs, limit, orderBy, query, where, type DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { getAuth } from "firebase/auth";
 
 type PendingLesson = {
   id: string;
@@ -117,6 +106,37 @@ function coercePendingLesson(id: string, data: DocumentData): PendingLesson {
   };
 }
 
+async function authedPost<T = unknown>(url: string, body: unknown): Promise<T> {
+  const user = getAuth().currentUser;
+  if (!user) throw new Error("Not signed in");
+
+  const token = await user.getIdToken();
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const raw = await res.text();
+  let data: unknown = null;
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    const msg = isRecord(data) && typeof data.error === "string" ? data.error : raw || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return (data ?? {}) as T;
+}
+
 export default function AdminReviewPage() {
   const { user, profile, loading: profileLoading } = useUserProfile();
 
@@ -134,14 +154,14 @@ export default function AdminReviewPage() {
     setMsg(null);
 
     try {
-      const q = query(
+      const qy = query(
         collection(db, "lessons"),
         where("publish.state", "==", "pending"),
         orderBy("moderation.riskScore", "desc"),
         limit(50)
       );
 
-      const snap = await getDocs(q);
+      const snap = await getDocs(qy);
       const out: PendingLesson[] = snap.docs.map((d) => coercePendingLesson(d.id, d.data()));
       setItems(out);
     } catch (e: unknown) {
@@ -155,17 +175,13 @@ export default function AdminReviewPage() {
 
   useEffect(() => {
     if (profileLoading) return;
-    // AuthGate på admin-layout skal allerede ha stoppet ikke-admin,
-    // men vi dobbeltsjekker her for å unngå rare states.
     if (!user || !isAdmin) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileLoading, user?.uid, isAdmin]);
 
   const sorted = useMemo(() => {
-    return items
-      .slice()
-      .sort((a, b) => toNum(b.moderation?.riskScore, 0) - toNum(a.moderation?.riskScore, 0));
+    return items.slice().sort((a, b) => toNum(b.moderation?.riskScore, 0) - toNum(a.moderation?.riskScore, 0));
   }, [items]);
 
   async function approve(item: PendingLesson) {
@@ -174,63 +190,10 @@ export default function AdminReviewPage() {
     setMsg(null);
 
     try {
-      const id = item.id;
+      await authedPost("/api/admin/review/approve", { id: item.id });
 
-      const title = String(item.title ?? "").trim();
-      const sourceText = String(item.sourceText ?? item.text ?? "").trim();
-      if (!title) throw new Error("Cannot approve: missing title.");
-      if (!sourceText) throw new Error("Cannot approve: missing sourceText.");
-
-      const tasksArray = Array.isArray(item.tasks) ? item.tasks : [];
-
-      // 1) publish copy
-      await setDoc(
-        doc(db, "published_lessons", id),
-        {
-          title,
-          description: String(item.description ?? "").trim() || "",
-          level: String(item.level ?? "").trim() || "",
-          language: String(item.language ?? "").trim() || "",
-
-          topic: String(item.topic ?? "").trim() || "",
-          topics: Array.isArray(item.topics) ? item.topics : item.topic ? [item.topic] : [],
-
-          textType: String(item.textType ?? item.texttype ?? "").trim() || "",
-          texttype: String(item.texttype ?? item.textType ?? "").trim() || "",
-
-          sourceText,
-          tasks: tasksArray,
-
-          coverImageUrl: item.coverImageUrl ?? "",
-          imageUrl: item.imageUrl ?? "",
-
-          isActive: true,
-
-          publish: { state: "published", visibility: "public" as const },
-          moderation: {
-            ...(item.moderation || {}),
-            reviewedBy: user?.uid || "",
-            reviewedAt: serverTimestamp(),
-          },
-
-          status: "published" as const,
-          publishedAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      // 2) mark draft
-      await updateDoc(doc(db, "lessons", id), {
-        "publish.state": "published",
-        status: "published",
-        "publish.reviewedBy": user?.uid || "",
-        "publish.reviewedAt": serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      setItems((prev) => prev.filter((x) => x.id !== id));
-      setMsg(`Approved ✅ (${id})`);
+      setItems((prev) => prev.filter((x) => x.id !== item.id));
+      setMsg(`Approved ✅ (${item.id})`);
     } catch (e: unknown) {
       const message =
         isRecord(e) && typeof e.message === "string" ? e.message : typeof e === "string" ? e : String(e);
@@ -246,29 +209,10 @@ export default function AdminReviewPage() {
     setMsg(null);
 
     try {
-      const id = item.id;
+      await authedPost("/api/admin/review/reject", { id: item.id });
 
-      // mark draft rejected
-      await updateDoc(doc(db, "lessons", id), {
-        "publish.state": "rejected",
-        status: "draft",
-        "publish.reviewedBy": user?.uid || "",
-        "publish.reviewedAt": serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      // (valgfritt) hvis den noen gang har vært publisert før, kan vi deaktivere kopien:
-      await setDoc(
-        doc(db, "published_lessons", id),
-        {
-          isActive: false,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      setItems((prev) => prev.filter((x) => x.id !== id));
-      setMsg(`Rejected ❌ (${id})`);
+      setItems((prev) => prev.filter((x) => x.id !== item.id));
+      setMsg(`Rejected ❌ (${item.id})`);
     } catch (e: unknown) {
       const message =
         isRecord(e) && typeof e.message === "string" ? e.message : typeof e === "string" ? e : String(e);
@@ -290,10 +234,7 @@ export default function AdminReviewPage() {
           <button onClick={load} disabled={loading || !!busyId} style={{ padding: "10px 14px" }}>
             Refresh
           </button>
-          <Link
-            href="/admin"
-            style={{ padding: "10px 14px", border: "1px solid rgba(0,0,0,0.14)", borderRadius: 12 }}
-          >
+          <Link href="/admin" style={{ padding: "10px 14px", border: "1px solid rgba(0,0,0,0.14)", borderRadius: 12 }}>
             Admin dashboard
           </Link>
         </div>

@@ -235,120 +235,154 @@
       }
     },
     "assignment": {
-      "common": { "loading": "Laster…" },
-      "fallback": { "lessonTitle": "Oppgave" },
-      "actions": {
-        "backToSpace": "← Tilbake til min klasse",
-        "backToJoin": "← Bli med",
-        "backToClassButton": "← Tilbake til klasse",
-        "backPrevButton": "← Forrige side",
-        "backPrevTitle": "Gå tilbake til forrige side"
-      },
-      "errors": {
-        "missingParams": "Mangler spaceId/assignmentId i URL.",
-        "notMember": "Du er ikke registrert som medlem i denne klassen. Gå tilbake og trykk Bli med.",
-        "assignmentNotFoundInSpace": "Kunne ikke finne denne oppgaven i klassen.",
-        "missingSourceId": "Denne oppgaven mangler innhold (sourceId).",
-        "sourceLessonMissing": "Kunne ikke finne kilden til oppgaven.",
-        "unpublished": "Denne oppgaven er upublisert/arkivert.",
-        "noAccessSubmission": "Du har ikke tilgang til denne innleveringen.",
-        "permissionDenied": "Mangler eller utilstrekkelige rettigheter.",
-        "generic": "Noe gikk galt.",
-        "submitFailed": "Kunne ikke sende inn.",
-        "noData": "Ingen data."
-      },
-      "messages": {
-        "submissionNotFound": "Kunne ikke finne innleveringen du prøvde å åpne.",
-        "submitted": "Takk! Innleveringen din ble sendt ✅",
-        "resubmitted": "Oppdatert og sendt inn på nytt ✅",
-        "lockedNoChanges": "Denne innleveringen kan ikke endres nå (status er ikke needs_work)."
-      },
-      "status": {
-        "labelPrefix": "Status",
-        "submitted": "Sendt",
-        "needsWork": "Må forbedres",
-        "approved": "Godkjent"
-      },
-      "statusDesc": {
-        "submitted": "Levert og venter på lærer.",
-        "needsWork": "Læreren ba deg forbedre og levere på nytt.",
-        "approved": "Godkjent av lærer. Den kan ikke endres nå.",
-        "generic": "Status oppdatert."
-      },
-      "statusMeta": {
-        "updatedAt": "Oppdatert: {v}",
-        "teacherAt": "Lærerkommentar: {v}"
-      },
-      "statusToggleTitle": "Dette settes av læreren",
-      "teacher": {
-        "commentTitle": "Kommentar fra lærer",
-        "none": "Ingen kommentar ennå.",
-        "noneWaiting": "Ingen kommentar ennå (venter på lærer)."
-      },
-      "auto": {
-        "label": "Auto",
-        "hintMixed": "Flervalg og sant/usant rettes automatisk når du leverer. Åpne svar vurderes av læreren.",
-        "hintOpenOnly": "Åpne svar vurderes av læreren."
-      },
-      "image": {
-        "title": "Bilde",
-        "alt": "Oppgave",
-        "noneTitle": "Ingen bilde",
-        "noneDesc": "Denne oppgaven har ikke et forsidebilde."
-      },
-      "translate": {
-        "to": "Oversett til",
-        "searchPlaceholder": "Søk språk…",
-        "text": "Oversett tekst",
-        "tasks": "Oversett oppgaver",
-        "translating": "Oversetter…",
-        "reset": "Nullstill oversettelse",
-        "failed": "Oversettelse feilet",
-        "translatedLabel": "Oversatt",
-        "showTranslation": "Vis oversettelse",
-        "hideTranslation": "Skjul oversettelse"
-      },
-      "submit": {
-        "submit": "SEND INN TIL KLASSE",
-        "resubmit": "SEND INN PÅ NYTT (Må forbedres)",
-        "saving": "Sender inn…",
-        "submitted": "Levert ✅",
-        "title": "Levering",
-        "anonTitle": "Gjester kan også levere (anonym innlogging)"
-      },
-      "tts": {
-        "speed": "Hastighet",
-        "playOriginal": "🔊 Spill original",
-        "playTranslation": "🔊 Spill oversettelse",
-        "stop": "⏹ Stopp",
-        "pause": "⏸ Pause",
-        "continue": "▶️ Fortsett",
-        "replay": "⟲ Spill setning på nytt",
-        "prev": "⟵ Forrige",
-        "next": "Neste ⟶",
-        "generating": "Lager…",
-        "failed": "TTS feilet"
-      },
-      "text": {
-        "title": "Tekst",
-        "noText": "Ingen tekst",
-        "clickToSeek": "Trykk for å hoppe i lyd"
-      },
-      "tasks": {
-        "title": "Oppgaver",
-        "none": "Ingen oppgaver i denne leksjonen.",
-        "showAll": "Vis alle oversettelser",
-        "hideAll": "Skjul alle oversettelser",
-        "taskN": "Oppgave {n}",
-        "yourAnswer": "Ditt svar",
-        "true": "Sant",
-        "false": "Usant",
-        "locked": "Låst",
-        "autoCorrect": "Auto: ✅ riktig",
-        "autoWrong": "Auto: ❌ feil",
-        "autoUnanswered": "Auto: ⏳ ubesvart",
-        "writeAnswerPlaceholder": "Skriv svaret ditt…"
-      }
+  "common": { "loading": "Laster…" },
+  "fallback": {
+    "lessonTitle": "Oppgave",
+    "title": "Oppgave"
+  },
+  "actions": {
+    "backToSpace": "← Tilbake til min klasse",
+    "backToJoin": "← Bli med",
+    "backToClassButton": "← Tilbake til klasse",
+    "backPrevButton": "← Forrige side",
+    "backPrevTitle": "Gå tilbake til forrige side",
+    "saving": "Lagrer…",
+    "submit": "Send inn til lærer",
+    "resubmit": "Send inn på nytt"
+  },
+  "errors": {
+    "missingParams": "Mangler spaceId/assignmentId i URL.",
+    "notMember": "Du er ikke registrert som medlem i denne klassen. Gå tilbake og trykk Bli med.",
+    "assignmentNotFoundInSpace": "Kunne ikke finne denne oppgaven i klassen.",
+    "missingSourceId": "Denne oppgaven mangler innhold (sourceId).",
+    "sourceLessonMissing": "Kunne ikke finne kilden til oppgaven.",
+    "unpublished": "Denne oppgaven er upublisert/arkivert.",
+    "noAccessSubmission": "Du har ikke tilgang til denne innleveringen.",
+    "permissionDenied": "Mangler eller utilstrekkelige rettigheter.",
+    "generic": "Noe gikk galt.",
+    "submitFailed": "Kunne ikke sende inn.",
+    "noData": "Ingen data."
+  },
+  "messages": {
+    "submissionNotFound": "Kunne ikke finne innleveringen du prøvde å åpne.",
+    "submitted": "Takk! Innleveringen din ble sendt ✅",
+    "resubmitted": "Oppdatert og sendt inn på nytt ✅",
+    "lockedNoChanges": "Denne innleveringen kan ikke endres nå (status er ikke needs_work).",
+    "lockedByTeacher": "Låst av lærer (reviewed/approved)."
+  },
+  "status": {
+    "labelPrefix": "Status",
+    "submitted": "Sendt",
+    "needsWork": "Må forbedres",
+    "approved": "Godkjent",
+    "title": "Status"
+  },
+  "statusDesc": {
+    "submitted": "Levert og venter på lærer.",
+    "needsWork": "Læreren ba deg forbedre og levere på nytt.",
+    "approved": "Godkjent av lærer. Den kan ikke endres nå.",
+    "generic": "Status oppdatert."
+  },
+  "statusMeta": {
+    "updatedAt": "Oppdatert: {v}",
+    "teacherAt": "Melding fra lærer: {v}"
+  },
+  "statusToggleTitle": "Dette settes av læreren",
+  "teacher": {
+    "commentTitle": "Kommentar fra lærer",
+    "none": "Ingen kommentar ennå.",
+    "noneWaiting": "Ingen kommentar ennå (venter på lærer)."
+  },
+  "auto": {
+    "label": "Auto",
+    "hintMixed": "Flervalg og sant/usant rettes automatisk når du leverer. Åpne svar vurderes av læreren.",
+    "hintOpenOnly": "Åpne svar vurderes av læreren."
+  },
+  "image": {
+    "title": "Bilde",
+    "alt": "Oppgave",
+    "noneTitle": "Ingen bilde",
+    "noneDesc": "Denne oppgaven har ikke et forsidebilde."
+  },
+  "translate": {
+    "to": "Oversett til",
+    "searchPlaceholder": "Søk språk…",
+    "text": "Oversett tekst",
+    "tasks": "Oversett oppgaver",
+    "translating": "Oversetter…",
+    "reset": "Nullstill oversettelse",
+    "failed": "Oversettelse feilet",
+    "translatedLabel": "Oversatt",
+    "showTranslation": "Vis oversettelse",
+    "hideTranslation": "Skjul oversettelse",
+
+    "targetLang": "Oversett til",
+    "working": "Jobber…",
+    "toggleTask": "Vis/skjul oversettelse",
+    "hide": "Skjul",
+    "show": "Vis"
+  },
+  "submit": {
+    "submit": "SEND INN TIL KLASSE",
+    "resubmit": "SEND INN PÅ NYTT (Må forbedres)",
+    "saving": "Sender inn…",
+    "submitted": "Levert ✅",
+    "title": "Levering",
+    "anonTitle": "Gjester kan også levere (anonym innlogging)"
+  },
+  "tts": {
+    "speed": "Hastighet",
+    "playOriginal": "🔊 Spill original",
+    "playTranslation": "🔊 Spill oversettelse",
+    "stop": "⏹ Stopp",
+    "pause": "⏸ Pause",
+    "continue": "▶️ Fortsett",
+    "replay": "⟲ Spill setning på nytt",
+    "prev": "⟵ Forrige",
+    "next": "Neste ⟶",
+    "generating": "Lager…",
+    "failed": "TTS feilet",
+
+    "working": "Jobber…",
+    "resume": "Fortsett",
+    "time": "{cur}s / {dur}s"
+  },
+  "text": {
+    "title": "Tekst",
+    "noText": "Ingen tekst",
+    "clickToSeek": "Trykk for å hoppe i lyd",
+    "original": "Original",
+    "translation": "Oversettelse"
+  },
+  "tasks": {
+    "title": "Oppgaver",
+    "none": "Ingen oppgaver i denne leksjonen.",
+    "showAll": "Vis alle oversettelser",
+    "hideAll": "Skjul alle oversettelser",
+    "taskN": "Oppgave {n}",
+    "yourAnswer": "Ditt svar",
+    "true": "Sant",
+    "false": "Usant",
+    "locked": "Låst",
+    "autoCorrect": "Auto: ✅ riktig",
+    "autoWrong": "Auto: ❌ feil",
+    "autoUnanswered": "Auto: ⏳ ubesvart",
+    "writeAnswerPlaceholder": "Skriv svaret ditt…",
+
+    "noPrompt": "Oppgave",
+    "writeAnswer": "Skriv svaret ditt…"
+  },
+  "teacherFeedback": {
+    "title": "Tilbakemelding fra lærer",
+    "updatedAt": "Oppdatert: {at}"
+  },
+  "submission": {
+    "updatedAt": "Sist oppdatert: {at}"
+  },
+  "autograde": {
+    "label": "AUTO-SCORE/ RESULTAT",
+    "details": "{s}"
+  }
     },
     "submission": {
       "title": "Innlevering",
@@ -430,9 +464,9 @@
   },
   "teacher": {
     "spaces": {
-      "title": "Lærerrom",
-      "subtitle": "Rom er klasser/grupper der du deler oppgaver via lenke eller kode. Å dele til et rom krever attestering (B1), men ikke fullt navn.",
-      "newSpace": "+ Nytt rom",
+      "title": "Klasse/ grupperom",
+      "subtitle": "Her kan du dele oppgaver til elever/ studenter, enten hel klasse eller en gruppe i klassen",
+      "newSpace": "+ Lag nytt rom",
       "newSpaceLocked": "+ Nytt rom (låst)",
       "newSpaceTitle": "Opprett et nytt rom",
       "newSpaceLockedTitle": "Krever attestering + lærer-/produsentmodus",
@@ -472,7 +506,7 @@
         "joinWithQrTitle": "Vis QR-kode",
         "seeMembers": "Se medlemmer",
         "seeMembersTitle": "Se medlemmer",
-        "openSpace": "Åpne",
+        "openSpace": "Åpne rommet",
         "openSpaceTitle": "Åpne rom"
       },
       "empty": {
@@ -491,14 +525,14 @@
       }
     },
     "spacesNew": {
-      "title": "Nytt klasserom",
+      "title": "Lag nytt rom",
       "fields": {
         "name": {
           "label": "Navn",
           "placeholder": "F.eks. Norsk A2 – Gruppe 1"
         },
         "isOpen": {
-          "label": "Klasserommet er åpent for anonyme innleveringer (anbefalt i MVP)"
+          "label": "Gi rommet et passende navn. Invitere medlemmer etterpå"
         }
       },
       "actions": {
@@ -667,10 +701,10 @@
         "needsWork": "Må forbedres"
       },
       "auto": {
-        "main": "Auto: {correct}/{total}{pctText}",
+        "main": "RESULTAT AUTO RETTING: {correct}/{total}{pctText}",
         "details": "Riktig: {correct} · Feil: {wrong} · Ikke besvart: {unanswered}",
-        "taskCorrect": "Auto: ✅ riktig",
-        "taskWrong": "Auto: ❌ feil",
+        "taskCorrect": "Autoretting: ✅ riktig",
+        "taskWrong": "Autoretting: ❌ feil",
         "taskUnanswered": "Auto: ⏳ ikke besvart"
       },
       "notice": {
@@ -704,6 +738,20 @@
         "saved": "Lagret ✅",
         "saveFailed": "Kunne ikke lagre: {msg}",
         "rulesHint": "(Regler: kun lærer/eier/admin kan endre)"
+      },
+      "ai": {
+        "title": "AI-vurdering",
+        "generateButton": "Generer AI-vurdering",
+        "generating": "Genererer…",
+        "copyButton": "Kopier",
+        "insertButton": "Sett inn i lærervurdering",
+        "placeholder": "AI-vurdering lagres her…",
+        "generated": "AI-vurdering oppdatert.",
+        "generateFailed": "Kunne ikke generere AI-vurdering: {msg}",
+        "copied": "Kopiert!",
+        "copyFailed": "Kunne ikke kopiere.",
+        "inserted": "Satt inn i lærervurdering.",
+        "rulesHint": "Lagres i"
       },
       "fallback": {
         "guest": "Gjest",
@@ -826,7 +874,7 @@
     },
     "errors": {
       "missingLessonId": "Mangler lessonId i URL.",
-      "notPublished": "Denne oppgaven er ikke publisert (eller er avpublisert).",
+      "notPublished": "Denne oppgaven er ikke publisert (eller er avpublisert). PUBLISERE FOR Å ÅPNE",
       "notFound": "Denne oppgaven er ikke publisert (eller finnes ikke).",
       "noAccess": "Denne oppgaven er ikke publisert (eller du har ikke tilgang).",
       "generic": "Noe gikk galt",
@@ -1210,13 +1258,13 @@
     "editor": {
       "pageTitle": "Produsent-editor",
       "nav": {
-        "back": "← Tilbake"
+        "back": "← Tilbake til min side"
       },
       "states": {
         "loading": "Laster…"
       },
       "buttons": {
-        "save": "Lagre",
+        "save": "Lagre til mitt innhod",
         "saving": "Lagrer…"
       },
       "metaLine": "id: {id} · uid: {uid} · status: {status}",

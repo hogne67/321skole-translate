@@ -744,49 +744,70 @@ export default function StudentLessonPage() {
   }
 
   async function saveDraft() {
-    if (!lessonId || !uid) return;
+  if (!lessonId || !uid) return;
 
-    setSaving(true);
-    setMsg(null);
+  setSaving(true);
+  setMsg(null);
 
-    try {
-      // Anon: local only
-      if (isAnon) {
-        try {
-          localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
-        } catch {
-          // ignore
-        }
-        flash(t("flash.saved"));
-        return;
+  try {
+    // Anon: local only
+    if (isAnon) {
+      try {
+        localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
+      } catch {
+        // ignore
       }
-
-      const stableId = `${uid}_${lessonId}`;
-      const ref = doc(db, "practiceSubmissions", stableId);
-
-      await setDoc(
-        ref,
-        {
-          uid,
-          publishedLessonId: lessonId,
-          answers,
-          status: "draft",
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
       flash(t("flash.saved"));
-      router.push("/content");
       return;
-    } catch (e: unknown) {
-      const m = (e as { message?: unknown })?.message;
-      setMsg(typeof m === "string" ? m : t("errors.couldNotSave"));
-    } finally {
-      setSaving(false);
     }
+
+    const stableId = `${uid}_${lessonId}`;
+
+    // 1) behold eksisterende praksis-lagring
+    const practiceRef = doc(db, "practiceSubmissions", stableId);
+    await setDoc(
+      practiceRef,
+      {
+        uid,
+        publishedLessonId: lessonId,
+        answers,
+        status: "draft",
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // 2) NYTT: skriv også til submissions slik at My content-feed ser den
+    //    (feed henter submissions der uid==uid)
+    const subRef = doc(db, "submissions", stableId);
+    await setDoc(
+      subRef,
+      {
+        uid,
+        lessonId, // ✅ gjør det lett å linke senere
+        publishedLessonId: lessonId, // behold kompat
+        answers,
+        status: "draft",
+        kind: "practice", // valgfritt, men nyttig for filtrering senere
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    flash(t("flash.saved"));
+
+    // ✅ viktig: behold locale i redirect
+    router.push("/content");
+    return;
+  } catch (e: unknown) {
+    const m = (e as { message?: unknown })?.message;
+    setMsg(typeof m === "string" ? m : t("errors.couldNotSave"));
+  } finally {
+    setSaving(false);
   }
+}
 
   function buildOppgaveString(lessonObj: Lesson) {
     const parts = [

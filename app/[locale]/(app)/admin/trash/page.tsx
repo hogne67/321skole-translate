@@ -3,24 +3,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getAuth } from "firebase/auth";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-  type DocumentData,
-} from "firebase/firestore";
+import { collection, getDocs, orderBy, query, where, type DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-type FirestoreTimestampLike =
-  | { toDate?: () => Date; seconds?: number }
-  | null
-  | undefined;
+type FirestoreTimestampLike = { toDate?: () => Date; seconds?: number } | null | undefined;
 
 type TrashRow = {
   id: string;
@@ -83,7 +69,6 @@ function coerceTextType(d: TrashRow): string {
 
 function coerceTrashRow(id: string, data: DocumentData): TrashRow {
   const obj: Record<string, unknown> = isRecord(data) ? data : {};
-
   return {
     id,
     ownerId: toStringSafe(obj.ownerId),
@@ -104,12 +89,42 @@ function errorMessage(e: unknown): string {
   return String(e);
 }
 
+async function authedPost<T = unknown>(url: string, body: unknown): Promise<T> {
+  const user = getAuth().currentUser;
+  if (!user) throw new Error("Not signed in");
+
+  const token = await user.getIdToken();
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const raw = await res.text();
+  let data: unknown = null;
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    const msg = isRecord(data) && typeof data.error === "string" ? data.error : raw || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return (data ?? {}) as T;
+}
+
 export default function AdminTrashPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [items, setItems] = useState<TrashRow[]>([]);
   const [qText, setQText] = useState("");
-
   const [busyById, setBusyById] = useState<Record<string, boolean>>({});
 
   function setBusy(id: string, v: boolean) {
@@ -130,13 +145,9 @@ export default function AdminTrashPage() {
       await requireUser();
 
       // only deleted lessons
-      const qy = query(
-        collection(db, "lessons"),
-        where("deletedAt", "!=", null),
-        orderBy("deletedAt", "desc")
-      );
-
+      const qy = query(collection(db, "lessons"), where("deletedAt", "!=", null), orderBy("deletedAt", "desc"));
       const snap = await getDocs(qy);
+
       const rows: TrashRow[] = snap.docs.map((d) => coerceTrashRow(d.id, d.data()));
       setItems(rows);
     } catch (e: unknown) {
@@ -152,10 +163,7 @@ export default function AdminTrashPage() {
 
     try {
       await requireUser();
-      await updateDoc(doc(db, "lessons", lessonId), {
-        deletedAt: null,
-        updatedAt: serverTimestamp(),
-      });
+      await authedPost("/api/admin/trash/restore", { id: lessonId });
       await load();
     } catch (e: unknown) {
       setErr(errorMessage(e) || "Restore failed");
@@ -173,16 +181,7 @@ export default function AdminTrashPage() {
 
     try {
       await requireUser();
-
-      // If you also want to remove published snapshot, do it here (best effort)
-      try {
-        await deleteDoc(doc(db, "published_lessons", lessonId));
-      } catch (e: unknown) {
-        // best effort: ignore if missing or insufficient permissions
-        void e;
-      }
-
-      await deleteDoc(doc(db, "lessons", lessonId));
+      await authedPost("/api/admin/trash/permanent-delete", { id: lessonId });
       await load();
     } catch (e: unknown) {
       setErr(errorMessage(e) || "Permanent delete failed");
@@ -202,9 +201,7 @@ export default function AdminTrashPage() {
 
     return items.filter((x) => {
       const tt = coerceTextType(x);
-      const hay = `${x.title ?? ""} ${tt} ${x.level ?? ""} ${x.language ?? ""} ${x.ownerId ?? ""}`
-        .toLowerCase()
-        .trim();
+      const hay = `${x.title ?? ""} ${tt} ${x.level ?? ""} ${x.language ?? ""} ${x.ownerId ?? ""}`.toLowerCase().trim();
       return hay.includes(n);
     });
   }, [items, qText]);
@@ -251,14 +248,7 @@ export default function AdminTrashPage() {
       {loading ? (
         <p style={{ marginTop: 16 }}>Loading…</p>
       ) : err ? (
-        <div
-          style={{
-            marginTop: 16,
-            border: "1px solid #f3b4b4",
-            borderRadius: 12,
-            padding: 12,
-          }}
-        >
+        <div style={{ marginTop: 16, border: "1px solid #f3b4b4", borderRadius: 12, padding: 12 }}>
           <div style={{ fontWeight: 800 }}>Error</div>
           <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{err}</pre>
         </div>
@@ -310,9 +300,10 @@ export default function AdminTrashPage() {
                       color: "white",
                       cursor: busy ? "not-allowed" : "pointer",
                       fontWeight: 900,
+                      opacity: busy ? 0.7 : 1,
                     }}
                   >
-                    Restore
+                    {busy ? "Working…" : "Restore"}
                   </button>
 
                   <button
@@ -326,9 +317,10 @@ export default function AdminTrashPage() {
                       color: "#ef4444",
                       cursor: busy ? "not-allowed" : "pointer",
                       fontWeight: 900,
+                      opacity: busy ? 0.7 : 1,
                     }}
                   >
-                    Permanent delete
+                    {busy ? "Working…" : "Permanent delete"}
                   </button>
                 </div>
               </div>

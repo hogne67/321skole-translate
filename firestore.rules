@@ -20,18 +20,25 @@ service cloud.firestore {
 
     function isMap(x) { return x is map; }
 
-    // Optional admin (legacy): If you later reintroduce admin, this won't break.
+    // roles-map helper (legacy + future)
     function mapHasTrue(m, key) { return isMap(m) && (key in m) && m[key] == true; }
     function hasRole(roleName) { return mapHasTrue(myUser().roles, roleName); }
-    function isAdmin() { return signedIn() && hasRole("admin"); }
 
     /* =========================
-       New: role helpers (student/teacher)
+       Role helpers (string role)
+       NOTE: role lives in users/{uid}.role
     ========================= */
     function myRole() {
       return ("role" in myUser() && (myUser().role is string)) ? myUser().role : "student";
     }
+
     function isTeacher() { return signedIn() && myRole() == "teacher"; }
+
+    // ✅ FIX: admin can be either users/{uid}.role == "admin"
+    // or users/{uid}.roles.admin == true
+    function isAdmin() {
+      return signedIn() && (myRole() == "admin" || hasRole("admin"));
+    }
 
     /* =========================
        Space helpers
@@ -146,7 +153,8 @@ service cloud.firestore {
       function changedKeys() { return request.resource.data.diff(resource.data).changedKeys(); }
       function isChanging(field) { return changedKeys().hasAny([field]); }
 
-      // Only allow valid role values if role is being changed
+      // Only allow valid role values if role is being changed (SELF update only)
+      // ✅ keep strict so self cannot set "admin"
       function roleOk() {
         return !isChanging("role")
           || (
@@ -273,17 +281,17 @@ service cloud.firestore {
       }
 
       // Test-friendly:
-      // - signedIn can GET a lesson by id (needed for titles in spaces)
-      // - LIST remains owner/admin or published items
       allow get: if signedIn() || isAdmin() || isOwner();
       allow list: if isAdmin() || isOwner() || (signedIn() && isPublishedForStudents());
 
-      allow create: if signedIn()
-        && (request.resource.data.ownerId is string)
-        && request.resource.data.ownerId == myUid();
+      // Client must NOT create lessons directly. Must go via server.
+      allow create: if false;
 
-      allow update: if isAdmin() || isOwner();
-      allow delete: if isAdmin();
+      // ✅ Make client updates owner-only (admin actions should go via API/Admin SDK)
+      allow update: if isOwner();
+
+      // ✅ Never allow client hard delete (even admin). Do it via API/Admin SDK.
+      allow delete: if false;
     }
 
     /* =========================
@@ -345,7 +353,6 @@ service cloud.firestore {
       }
 
       function canTeacherReadHere() {
-        // Simple: space owner can read all submissions in their space
         return signedIn() && (isSpaceOwner(spaceId) || isAdmin());
       }
 

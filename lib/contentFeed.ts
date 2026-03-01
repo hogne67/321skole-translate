@@ -28,7 +28,6 @@ export type ContentItem =
       activePublishedId?: string | null;
       visibility?: PublishVisibility;
 
-      // ✅ for "Vis slettet"
       deletedAt?: Date | null;
     }
   | {
@@ -44,7 +43,9 @@ export type ContentItem =
       lessonId?: string;
       spaceId?: string;
 
-      // ✅ best effort (hvis du senere bruker soft delete på submissions)
+      // For space-submissions index
+      assignmentId?: string;
+
       deletedAt?: Date | null;
     }
   | {
@@ -59,7 +60,6 @@ export type ContentItem =
       ownerUid?: string;
       joinCode?: string;
 
-      // ✅ best effort (hvis du senere bruker soft delete på spaces)
       deletedAt?: Date | null;
     };
 
@@ -81,7 +81,6 @@ function toDateSafe(v: unknown): Date | null {
 
 function pickTitle(d: unknown): string {
   const x = d as Record<string, unknown> | null;
-
   const candidates = [x?.title, x?.name, x?.lessonTitle, x?.spaceName, x?.topic];
 
   for (const c of candidates) {
@@ -89,6 +88,12 @@ function pickTitle(d: unknown): string {
   }
 
   return "";
+}
+
+function pickLevel(d: unknown): string {
+  const x = d as Record<string, unknown> | null;
+  const v = x?.level ?? x?.cefr ?? x?.difficulty;
+  return typeof v === "string" ? v.trim() : v != null ? String(v) : "";
 }
 
 function pickStatus(d: unknown): string | undefined {
@@ -130,13 +135,23 @@ function pickVisibility(d: unknown): PublishVisibility | undefined {
   return v === "public" || v === "unlisted" || v === "private" ? v : undefined;
 }
 
-function hrefForLesson(mode: AppMode, lessonId: string) {
-  if (mode === "teacher") return `/teacher/lessons/${lessonId}`;
-  if (mode === "creator") return `/producer/texts/${lessonId}`;
-  return `/student/lesson/${lessonId}`;
+function withLocale(locale: string, path: string) {
+  const loc = (locale || "no").replace(/^\//, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `/${loc}${p}`;
 }
 
-async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode) {
+function hrefForLesson(locale: string, mode: AppMode, lessonId: string) {
+  if (mode === "teacher" || mode === "creator") return withLocale(locale, `/producer/${lessonId}`);
+  return withLocale(locale, `/student/lesson/${lessonId}`);
+}
+
+function hrefForSpace(locale: string, mode: AppMode, spaceId: string) {
+  if (mode === "student") return withLocale(locale, `/student/spaces/${spaceId}`);
+  return withLocale(locale, `/teacher/spaces/${spaceId}`);
+}
+
+async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode, locale: string) {
   const results: ContentItem[] = [];
   try {
     const qy = query(
@@ -155,7 +170,7 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode) {
         title: pickTitle(d) || "Lesson",
         status: pickStatus(d),
         updatedAt: pickUpdated(d),
-        href: hrefForLesson(mode, docSnap.id),
+        href: hrefForLesson(locale, mode, docSnap.id),
         meta: safeMeta(d),
 
         ownerId: typeof d.ownerId === "string" ? d.ownerId : undefined,
@@ -171,31 +186,51 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode) {
   return results;
 }
 
-// Hent lesson-titler i batch (documentId in <=10)
-async function fetchLessonTitlesByIds(db: Firestore, ids: string[]) {
-  const map = new Map<string, string>();
+/**
+ * Hent lesson-meta (tittel + level) i batch.
+ * ✅ Viktig: bibliotekoppgaver lever i `published_lessons`, mens egne oppgaver lever i `lessons`.
+ * Vi prøver `lessons` først, og slår deretter opp manglende IDs i `published_lessons`.
+ */
+type LessonMeta = { title: string; level?: string };
+
+async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
+  const metaById = new Map<string, LessonMeta>();
   const unique = Array.from(new Set(ids.filter(Boolean)));
 
   const chunkSize = 10;
-  for (let i = 0; i < unique.length; i += chunkSize) {
-    const chunk = unique.slice(i, i + chunkSize);
+  const fetchFrom = async (colName: "lessons" | "published_lessons", chunk: string[]) => {
     try {
-      const qy = query(collection(db, "lessons"), where(documentId(), "in", chunk));
+      const qy = query(collection(db, colName), where(documentId(), "in", chunk));
       const snap = await getDocs(qy);
       snap.forEach((docSnap) => {
         const d = docSnap.data() as Record<string, unknown>;
-        const t = pickTitle(d);
-        if (t) map.set(docSnap.id, t);
+        const title = pickTitle(d);
+        const level = pickLevel(d) || undefined;
+        if (title) metaById.set(docSnap.id, { title, level });
+        else if (level) metaById.set(docSnap.id, { title: "", level }); // sjeldent, men ok
       });
     } catch {
       // ignore
     }
+  };
+
+  // 1) lessons
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    await fetchFrom("lessons", chunk);
   }
 
-  return map;
+  // 2) published_lessons for de som mangler
+  const missing = unique.filter((id) => !metaById.has(id));
+  for (let i = 0; i < missing.length; i += chunkSize) {
+    const chunk = missing.slice(i, i + chunkSize);
+    await fetchFrom("published_lessons", chunk);
+  }
+
+  return metaById;
 }
 
-async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode) {
+async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, locale: string) {
   const results: ContentItem[] = [];
 
   try {
@@ -233,27 +268,28 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode) {
       submissionRows.push({ id: docSnap.id, d, lessonId, spaceId });
     });
 
-    const lessonTitleById = await fetchLessonTitlesByIds(db, lessonIds);
+    const lessonMetaById = await fetchLessonMetaByIds(db, lessonIds);
 
     for (const row of submissionRows) {
       const { id, d, lessonId, spaceId } = row;
 
       const rawTitle = pickTitle(d);
-      const lessonTitle = lessonId ? lessonTitleById.get(lessonId) : undefined;
+      const lessonMeta = lessonId ? lessonMetaById.get(lessonId) : undefined;
 
       const title =
         rawTitle && rawTitle.toLowerCase() !== "untitled"
           ? rawTitle
-          : lessonTitle
-            ? `Submission · ${lessonTitle}`
+          : lessonMeta?.title
+            ? `Submission · ${lessonMeta.title}`
             : "Submission";
 
       const status = pickStatus(d) || ((d as { reviewedAt?: unknown }).reviewedAt ? "reviewed" : "submitted");
 
-      const fallbackHref = lessonId ? hrefForLesson(mode, lessonId) : `/student/results`;
+      const fallbackHref = lessonId ? hrefForLesson(locale, mode, lessonId) : withLocale(locale, `/student/results`);
 
       const meta: string[] = [];
-      if (lessonTitle) meta.push(`Lesson: ${lessonTitle}`);
+      if (lessonMeta?.level) meta.push(String(lessonMeta.level));
+      if (lessonMeta?.title) meta.push(`Lesson: ${lessonMeta.title}`);
       if (spaceId) meta.push(`space:${spaceId}`);
       if (lessonId) meta.push(`lesson:${lessonId}`);
 
@@ -263,7 +299,7 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode) {
         title,
         status,
         updatedAt: pickUpdated(d),
-        href: mode === "student" ? `/student/submissions/${id}` : fallbackHref,
+        href: mode === "student" ? withLocale(locale, `/student/submissions/${id}`) : fallbackHref,
         meta,
 
         uid: typeof d.uid === "string" ? d.uid : null,
@@ -280,7 +316,142 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode) {
   return results;
 }
 
-async function fetchSpacesByIds(db: Firestore, spaceIds: string[]) {
+/**
+ * ✅ practiceSubmissions for student (draft/submitted feedback-flow).
+ * FIX: Tittel/level ligger ofte i `published_lessons`, ikke i `lessons`.
+ * Nå slår vi opp i begge og viser riktig tittel på kortet (ikke bare "Draft").
+ */
+async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: string) {
+  const results: ContentItem[] = [];
+
+  try {
+    const qy = query(
+      collection(db, "practiceSubmissions"),
+      where("uid", "==", uid),
+      orderBy("updatedAt", "desc"),
+      limit(80)
+    );
+    const snap = await getDocs(qy);
+
+    const rows: Array<{ id: string; d: Record<string, unknown>; lessonId?: string }> = [];
+    const lessonIds: string[] = [];
+
+    snap.forEach((docSnap) => {
+      const d = docSnap.data() as Record<string, unknown>;
+      const lessonId =
+        typeof d.publishedLessonId === "string"
+          ? d.publishedLessonId
+          : typeof d.lessonId === "string"
+            ? d.lessonId
+            : undefined;
+
+      if (lessonId) lessonIds.push(lessonId);
+      rows.push({ id: docSnap.id, d, lessonId });
+    });
+
+    const metaByLessonId = await fetchLessonMetaByIds(db, lessonIds);
+
+    for (const row of rows) {
+      const { id, d, lessonId } = row;
+
+      const lessonMeta = lessonId ? metaByLessonId.get(lessonId) : undefined;
+
+      // ✅ Vis oppgavetittel som korttittel (bibliotek), ikke "Draft"
+      const title = lessonMeta?.title ? lessonMeta.title : "Draft";
+
+      const status = typeof d.status === "string" ? d.status : "draft";
+
+      // NB: her åpner vi selve lesson-siden (published lessonId)
+      const href = lessonId ? withLocale(locale, `/student/lesson/${lessonId}`) : withLocale(locale, `/content`);
+
+      const meta: string[] = ["practice"];
+      if (lessonMeta?.level) meta.push(String(lessonMeta.level));
+      if (lessonMeta?.title) meta.push(`Lesson: ${lessonMeta.title}`);
+      if (lessonId) meta.push(`lesson:${lessonId}`);
+
+      results.push({
+        type: "submission",
+        id,
+        title,
+        status,
+        updatedAt: pickUpdated(d),
+        href,
+        meta,
+        uid,
+        lessonId,
+        spaceId: undefined,
+        deletedAt: toDateSafe(d.deletedAt),
+      });
+    }
+  } catch {
+    // ignore
+  }
+
+  return results;
+}
+
+/**
+ * ✅ NYTT: Space submissions (index collection `spaceSubmissions`)
+ */
+async function fetchMySpaceSubmissions(db: Firestore, uid: string, locale: string, warnings: string[]) {
+  const results: ContentItem[] = [];
+
+  try {
+    const qy = query(
+      collection(db, "spaceSubmissions"),
+      where("uid", "==", uid),
+      orderBy("updatedAt", "desc"),
+      limit(80)
+    );
+
+    const snap = await getDocs(qy);
+
+    snap.forEach((docSnap) => {
+      const d = docSnap.data() as Record<string, unknown>;
+
+      const spaceId = typeof d.spaceId === "string" ? d.spaceId : "";
+      const assignmentId = typeof d.assignmentId === "string" ? d.assignmentId : "";
+      const title = pickTitle(d) || "Submission";
+      const status = pickStatus(d) || "submitted";
+
+      if (!spaceId || !assignmentId) return;
+
+      const href = withLocale(
+        locale,
+        `/student/spaces/${spaceId}/assignments/${assignmentId}?sid=${encodeURIComponent(docSnap.id)}`
+      );
+
+      const meta: string[] = ["space"];
+      meta.push(`space:${spaceId}`);
+      meta.push(`lesson:${assignmentId}`);
+
+      results.push({
+        type: "submission",
+        id: docSnap.id,
+        title,
+        status,
+        updatedAt: pickUpdated(d),
+        href,
+        meta,
+        uid,
+        lessonId: assignmentId,
+        assignmentId,
+        spaceId,
+        deletedAt: toDateSafe(d.deletedAt),
+      });
+    });
+  } catch (e: unknown) {
+    const msg =
+      e instanceof Error
+        ? e.message
+        : "Query mot spaceSubmissions feilet (mulig manglende indeks).";
+    warnings.push(msg);
+  }
+
+  return results;
+}
+
+async function fetchSpacesByIds(db: Firestore, spaceIds: string[], mode: AppMode, locale: string) {
   const results: ContentItem[] = [];
   const unique = Array.from(new Set(spaceIds.filter(Boolean)));
 
@@ -291,6 +462,16 @@ async function fetchSpacesByIds(db: Firestore, spaceIds: string[]) {
     if (join && typeof join === "object" && typeof (join as Record<string, unknown>).code === "string") {
       return String((join as Record<string, unknown>).code);
     }
+    return undefined;
+  };
+
+  const pickOwnerUidLoose = (d: Record<string, unknown>): string | undefined => {
+    const a = d.ownerUid;
+    const b = d.ownerId;
+    const c = d.createdBy;
+    if (typeof a === "string" && a) return a;
+    if (typeof b === "string" && b) return b;
+    if (typeof c === "string" && c) return c;
     return undefined;
   };
 
@@ -309,10 +490,10 @@ async function fetchSpacesByIds(db: Firestore, spaceIds: string[]) {
           title: pickTitle(d) || "Space",
           status: pickStatus(d),
           updatedAt: pickUpdated(d),
-          href: `/teacher/spaces/${docSnap.id}`,
+          href: hrefForSpace(locale, mode, docSnap.id),
           meta: [],
 
-          ownerUid: typeof d.ownerUid === "string" ? d.ownerUid : undefined,
+          ownerUid: pickOwnerUidLoose(d),
           joinCode: readJoinCode(d),
 
           deletedAt: toDateSafe(d.deletedAt),
@@ -326,7 +507,15 @@ async function fetchSpacesByIds(db: Firestore, spaceIds: string[]) {
   return results;
 }
 
-async function fetchMySpaces(db: Firestore, uid: string) {
+/**
+ * ✅ FIX: Nye rom vises ikke i My Content.
+ * Årsak: rom kan være lagret med ownerId (ikke ownerUid) + updatedAt kan mangle.
+ * Løsning:
+ * - prøv flere feltvarianter (ownerUid/ownerId/createdBy/createdAtBy)
+ * - fall back uten orderBy hvis query feiler (f.eks. manglende updatedAt)
+ * - dedupe og sortér i JS til slutt
+ */
+async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: string) {
   const results: ContentItem[] = [];
 
   const readJoinCode = (d: Record<string, unknown>) => {
@@ -339,71 +528,75 @@ async function fetchMySpaces(db: Firestore, uid: string) {
     return undefined;
   };
 
-  // ownerUid
-  try {
-    const qy = query(
-      collection(db, "spaces"),
-      where("ownerUid", "==", uid),
-      orderBy("updatedAt", "desc"),
-      limit(50)
-    );
-    const snap = await getDocs(qy);
+  const pickOwnerUidLoose = (d: Record<string, unknown>): string | undefined => {
+    const a = d.ownerUid;
+    const b = d.ownerId;
+    const c = d.createdBy;
+    const c2 = d.createdAtBy;
+    if (typeof a === "string" && a) return a;
+    if (typeof b === "string" && b) return b;
+    if (typeof c === "string" && c) return c;
+    if (typeof c2 === "string" && c2) return c2;
+    return undefined;
+  };
 
-    snap.forEach((docSnap) => {
-      const d = docSnap.data() as Record<string, unknown>;
-      results.push({
-        type: "space",
-        id: docSnap.id,
-        title: pickTitle(d) || "Space",
-        status: pickStatus(d),
-        updatedAt: pickUpdated(d),
-        href: `/teacher/spaces/${docSnap.id}`,
-        meta: [],
+  const pushDoc = (docSnap: { id: string; data: () => Record<string, unknown> }) => {
+    const d = docSnap.data() as Record<string, unknown>;
+    results.push({
+      type: "space",
+      id: docSnap.id,
+      title: pickTitle(d) || "Space",
+      status: pickStatus(d),
+      updatedAt: pickUpdated(d),
+      href: hrefForSpace(locale, mode, docSnap.id),
+      meta: [],
 
-        ownerUid: typeof d.ownerUid === "string" ? d.ownerUid : undefined,
-        joinCode: readJoinCode(d),
+      ownerUid: pickOwnerUidLoose(d),
+      joinCode: readJoinCode(d),
 
-        deletedAt: toDateSafe(d.deletedAt),
-      });
+      deletedAt: toDateSafe(d.deletedAt),
     });
-  } catch {
-    // ignore
+  };
+
+  async function runSpaceQuery(field: string) {
+    // 1) prøv med orderBy(updatedAt)
+    try {
+      const qy = query(
+        collection(db, "spaces"),
+        where(field, "==", uid),
+        orderBy("updatedAt", "desc"),
+        limit(80)
+      );
+      const snap = await getDocs(qy);
+      snap.forEach((s) => pushDoc(s as unknown as { id: string; data: () => Record<string, unknown> }));
+      return;
+    } catch {
+      // ignore -> fall back
+    }
+
+    // 2) fallback: uten orderBy (robust når updatedAt mangler)
+    try {
+      const qy2 = query(
+        collection(db, "spaces"),
+        where(field, "==", uid),
+        limit(200)
+      );
+      const snap2 = await getDocs(qy2);
+      snap2.forEach((s) => pushDoc(s as unknown as { id: string; data: () => Record<string, unknown> }));
+    } catch {
+      // ignore
+    }
   }
 
-  // createdBy fallback
-  try {
-    const qy = query(
-      collection(db, "spaces"),
-      where("createdBy", "==", uid),
-      orderBy("updatedAt", "desc"),
-      limit(50)
-    );
-    const snap = await getDocs(qy);
-
-    snap.forEach((docSnap) => {
-      const d = docSnap.data() as Record<string, unknown>;
-      results.push({
-        type: "space",
-        id: docSnap.id,
-        title: pickTitle(d) || "Space",
-        status: pickStatus(d),
-        updatedAt: pickUpdated(d),
-        href: `/teacher/spaces/${docSnap.id}`,
-        meta: [],
-
-        ownerUid: typeof d.createdBy === "string" ? d.createdBy : undefined,
-        joinCode: readJoinCode(d),
-
-        deletedAt: toDateSafe(d.deletedAt),
-      });
-    });
-  } catch {
-    // ignore
-  }
+  // ✅ prøv flere feltvarianter
+  await runSpaceQuery("ownerUid");
+  await runSpaceQuery("ownerId");
+  await runSpaceQuery("createdBy");
+  await runSpaceQuery("createdAtBy");
 
   // medlemskap via spaceMembers (toppkolleksjon)
   try {
-    const qy = query(collection(db, "spaceMembers"), where("uid", "==", uid), limit(200));
+    const qy = query(collection(db, "spaceMembers"), where("uid", "==", uid), limit(400));
     const snap = await getDocs(qy);
 
     const spaceIds: string[] = [];
@@ -413,13 +606,28 @@ async function fetchMySpaces(db: Firestore, uid: string) {
       if (sid) spaceIds.push(sid);
     });
 
-    const memberSpaces = await fetchSpacesByIds(db, spaceIds);
+    const memberSpaces = await fetchSpacesByIds(db, spaceIds, mode, locale);
     results.push(...memberSpaces);
   } catch {
     // ignore
   }
 
-  return results;
+  // ✅ dedupe på space-id (samme rom kan komme fra flere queries)
+  const seen = new Set<string>();
+  const deduped = results.filter((s) => {
+    if (seen.has(s.id)) return false;
+    seen.add(s.id);
+    return true;
+  });
+
+  // sort i JS (robust)
+  deduped.sort((a, b) => {
+    const ta = a.updatedAt ? a.updatedAt.getTime() : 0;
+    const tb = b.updatedAt ? b.updatedAt.getTime() : 0;
+    return tb - ta;
+  });
+
+  return deduped;
 }
 
 export async function loadMyContent(opts: {
@@ -427,8 +635,9 @@ export async function loadMyContent(opts: {
   mode: AppMode;
   uid?: string | null;
   isAnon?: boolean;
+  locale?: string;
 }) {
-  const { db, mode, uid, isAnon } = opts;
+  const { db, mode, uid, isAnon, locale = "no" } = opts;
 
   if (!uid || isAnon) {
     return {
@@ -440,14 +649,16 @@ export async function loadMyContent(opts: {
 
   const warnings: string[] = [];
 
-  const [lessons, submissions, spaces] = await Promise.all([
-    fetchMyLessons(db, uid, mode),
-    fetchMySubmissions(db, uid, mode),
-    fetchMySpaces(db, uid),
+  const [lessons, submissions, practiceSubs, spaceSubs, spaces] = await Promise.all([
+    fetchMyLessons(db, uid, mode, locale),
+    fetchMySubmissions(db, uid, mode, locale),
+    mode === "student" ? fetchMyPracticeSubmissions(db, uid, locale) : Promise.resolve([] as ContentItem[]),
+    mode === "student" ? fetchMySpaceSubmissions(db, uid, locale, warnings) : Promise.resolve([] as ContentItem[]),
+    fetchMySpaces(db, uid, mode, locale),
   ]);
 
   const seen = new Set<string>();
-  const merged = [...lessons, ...submissions, ...spaces].filter((it) => {
+  const merged = [...lessons, ...submissions, ...practiceSubs, ...spaceSubs, ...spaces].filter((it) => {
     const k = `${it.type}:${it.id}`;
     if (seen.has(k)) return false;
     seen.add(k);
@@ -462,7 +673,7 @@ export async function loadMyContent(opts: {
 
   if (items.length === 0) {
     warnings.push(
-      "Fant ingen dokumenter i feeden ennå. Hvis dette er uventet, kan vi justere mapping (feltnavn for ownerId/updatedAt/status)."
+      "Fant ingen dokumenter i feeden ennå. Hvis dette er uventet: sjekk at du er innlogget (ikke anon), og at spaceSubmissions finnes."
     );
   }
 

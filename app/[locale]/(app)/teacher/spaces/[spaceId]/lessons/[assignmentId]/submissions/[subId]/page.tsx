@@ -10,6 +10,7 @@ import { doc, getDoc, onSnapshot, serverTimestamp, Timestamp, writeBatch, type F
 import { useUserProfile } from "@/lib/useUserProfile";
 import AttestationAndModeCard from "@/components/AttestationAndModeCard";
 import { useLocale, useTranslations } from "next-intl";
+import { authedPost } from "@/lib/authedPost";
 
 type Mode = "student" | "teacher" | "creator" | "parent";
 type ReviewStatus = "reviewed" | "needs_work";
@@ -33,6 +34,14 @@ type TeacherFeedback = {
   text?: string;
   updatedAt?: unknown;
   teacherUid?: string | null;
+};
+
+type AiFeedback = {
+  text?: string;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  teacherUid?: string | null;
+  // vi kan legge til model/promptVersion senere
 };
 
 type AutoGradeEntry = {
@@ -62,6 +71,9 @@ type SubmissionDoc = {
   studentDisplayName?: string;
 
   teacherFeedback?: TeacherFeedback | null;
+
+  // ✅ ny: AI feedback lagres her
+  aiFeedback?: AiFeedback | null;
 
   auto?: AutoGrade | unknown;
 
@@ -105,6 +117,9 @@ type SpaceMemberDoc = {
   uid?: string;
   role?: string;
 };
+
+// ✅ API response type (only once)
+type AiResp = { text: string; skipped?: boolean };
 
 /* =========================
    Helpers
@@ -162,6 +177,13 @@ function readTeacherFeedbackText(sub: SubmissionDoc): string {
   const tf = sub.teacherFeedback;
   if (!tf || typeof tf !== "object") return "";
   const t = (tf as { text?: unknown }).text;
+  return typeof t === "string" ? t : "";
+}
+
+function readAiFeedbackText(sub: SubmissionDoc): string {
+  const af = sub.aiFeedback;
+  if (!af || typeof af !== "object") return "";
+  const t = (af as { text?: unknown }).text;
   return typeof t === "string" ? t : "";
 }
 
@@ -242,6 +264,44 @@ function withLocale(locale: string, href: string): string {
 
   if (href === "/") return `/${locale}`;
   return `/${locale}${href}`;
+}
+
+function renderValue(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return String(v);
+  }
+}
+
+async function safeCopyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
 }
 
 /* =========================
@@ -389,17 +449,6 @@ function StatusToggle({
   );
 }
 
-function renderValue(v: unknown): string {
-  if (v == null) return "";
-  if (typeof v === "string") return v;
-  if (typeof v === "number" || typeof v === "boolean") return String(v);
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
-    return String(v);
-  }
-}
-
 export default function TeacherSubmissionPage() {
   return (
     <AuthGate>
@@ -445,6 +494,11 @@ function Inner() {
   const [status, setStatus] = useState<ReviewStatus>("needs_work");
   const [initialStatus, setInitialStatus] = useState<ReviewStatus>("needs_work");
 
+  // ✅ AI box state
+  const [aiText, setAiText] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiMsg, setAiMsg] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
@@ -487,6 +541,10 @@ function Inner() {
         setText(seededText);
         setStatus(seededStatus);
         setInitialStatus(seededStatus);
+
+        // ✅ seed AI text from firestore
+        const seededAi = readAiFeedbackText(data);
+        setAiText(seededAi);
       },
       (err) => {
         setLoading(false);
@@ -655,6 +713,8 @@ function Inner() {
   const needsTextToChangeStatus = statusChanged && text.trim().length === 0;
   const canSave = canOperate && !saving && !needsTextToChangeStatus;
 
+  const canGenerateAi = canOperate && !aiGenerating;
+
   return (
     <div style={{ maxWidth: 1060, margin: "0 auto", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -732,9 +792,7 @@ function Inner() {
           <div style={{ marginTop: 10, display: "grid", gap: 12 }}>
             <div style={{ display: "grid", gap: 4 }}>
               <div style={{ fontWeight: 900, fontSize: 16 }}>{lessonTitle}</div>
-              {lessonLevel ? (
-                <div style={{ opacity: 0.75, fontSize: 12 }}>{t("studentView.level", { v: lessonLevel })}</div>
-              ) : null}
+              {lessonLevel ? <div style={{ opacity: 0.75, fontSize: 12 }}>{t("studentView.level", { v: lessonLevel })}</div> : null}
             </div>
 
             {/* IMAGE */}
@@ -804,12 +862,7 @@ function Inner() {
                       showAutoMark && entry
                         ? entry.isCorrect
                           ? <Badge text={t("auto.taskCorrect")} kind="good" />
-                          : (
-                            <Badge
-                              text={val == null ? t("auto.taskUnanswered") : t("auto.taskWrong")}
-                              kind={val == null ? "neutral" : "bad"}
-                            />
-                          )
+                          : <Badge text={val == null ? t("auto.taskUnanswered") : t("auto.taskWrong")} kind={val == null ? "neutral" : "bad"} />
                         : null;
 
                     const orderLabel = task?.order ?? idx + 1;
@@ -824,9 +877,7 @@ function Inner() {
                           </div>
                         </div>
 
-                        <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10, fontWeight: 700 }}>
-                          {prompt}
-                        </div>
+                        <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10, fontWeight: 700 }}>{prompt}</div>
 
                         {type === "mcq" && options.length > 0 ? (
                           <div style={{ display: "grid", gap: 8 }}>
@@ -855,9 +906,7 @@ function Inner() {
                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                                       <div>
                                         {opt}
-                                        {isCorrectOption ? (
-                                          <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
-                                        ) : null}
+                                        {isCorrectOption ? <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span> : null}
                                       </div>
                                       {checked ? <Badge text={t("studentView.selectedTag")} /> : null}
                                     </div>
@@ -880,9 +929,7 @@ function Inner() {
                               }}
                             >
                               {t("studentView.true")} {val === true ? "✓" : ""}
-                              {entry?.correctAnswer === true ? (
-                                <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
-                              ) : null}
+                              {entry?.correctAnswer === true ? <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span> : null}
                             </div>
                             <div
                               style={{
@@ -894,9 +941,7 @@ function Inner() {
                               }}
                             >
                               {t("studentView.false")} {val === false ? "✓" : ""}
-                              {entry?.correctAnswer === false ? (
-                                <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
-                              ) : null}
+                              {entry?.correctAnswer === false ? <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span> : null}
                             </div>
                           </div>
                         ) : null}
@@ -924,98 +969,217 @@ function Inner() {
           </div>
         </div>
 
-        {/* FEEDBACK */}
-        <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12, height: "fit-content" }}>
-          <div style={{ fontWeight: 900, marginBottom: 10 }}>{t("feedback.title")}</div>
+        {/* RIGHT COLUMN: AI + FEEDBACK */}
+        <div style={{ display: "grid", gap: 12, height: "fit-content" }}>
+          {/* ✅ AI FEEDBACK */}
+          <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
+              <div style={{ fontWeight: 900 }}>{t("ai.title")}</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  disabled={!canGenerateAi}
+                  onClick={async () => {
+                    setAiGenerating(true);
+                    setAiMsg(null);
 
-          <StatusToggle value={status} onChange={setStatus} disabled={!canOperate} t={(k) => t(k)} />
+                    try {
+                      const data = await authedPost<AiResp>("/api/teacher/ai-feedback", {
+                        spaceId,
+                        assignmentId,
+                        subId,
+                      });
 
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={t("feedback.placeholder")}
-            rows={10}
-            disabled={!canOperate}
-            style={{
-              width: "100%",
-              marginTop: 12,
-              padding: 10,
-              borderRadius: 12,
-              border: "1px solid rgba(0,0,0,0.18)",
-              opacity: !canOperate ? 0.65 : 1,
-              resize: "vertical",
-            }}
-          />
+                      setAiText(data.text);
+                      setAiMsg(data.skipped ? data.text : t("ai.generated"));
+                    } catch (e: unknown) {
+                      const info = getErrorInfo(e);
+                      console.log("[TEACHER] generate ai feedback ERROR =>", info.code, info.message, e);
+                      setAiMsg(t("ai.generateFailed", { msg: info.message || t("fallback.unknownError") }));
+                    } finally {
+                      setAiGenerating(false);
+                      setTimeout(() => setAiMsg(null), 2500);
+                    }
+                  }}
+                  style={{
+                    padding: "9px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.15)",
+                    background: "white",
+                    opacity: !canGenerateAi ? 0.6 : 1,
+                    cursor: !canGenerateAi ? "not-allowed" : "pointer",
+                    fontWeight: 900,
+                  }}
+                >
+                  {aiGenerating ? t("ai.generating") : t("ai.generateButton")}
+                </button>
 
-          {needsTextToChangeStatus && (
-            <div
+                <button
+                  disabled={!canOperate || !aiText.trim()}
+                  onClick={async () => {
+                    const ok = await safeCopyToClipboard(aiText);
+                    setAiMsg(ok ? t("ai.copied") : t("ai.copyFailed"));
+                    setTimeout(() => setAiMsg(null), 1500);
+                  }}
+                  style={{
+                    padding: "9px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.15)",
+                    background: "white",
+                    opacity: !canOperate || !aiText.trim() ? 0.55 : 1,
+                    cursor: !canOperate || !aiText.trim() ? "not-allowed" : "pointer",
+                    fontWeight: 900,
+                  }}
+                >
+                  {t("ai.copyButton")}
+                </button>
+
+                <button
+                  disabled={!canOperate || !aiText.trim()}
+                  onClick={() => {
+                    const chunk = aiText.trim();
+                    if (!chunk) return;
+                    setText((prev) => {
+                      const p = prev.trim();
+                      if (!p) return chunk;
+                      // legg med blank linje mellom
+                      return `${p}\n\n${chunk}`;
+                    });
+                    setAiMsg(t("ai.inserted"));
+                    setTimeout(() => setAiMsg(null), 1500);
+                  }}
+                  style={{
+                    padding: "9px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.15)",
+                    background: "white",
+                    opacity: !canOperate || !aiText.trim() ? 0.55 : 1,
+                    cursor: !canOperate || !aiText.trim() ? "not-allowed" : "pointer",
+                    fontWeight: 900,
+                  }}
+                >
+                  {t("ai.insertButton")}
+                </button>
+              </div>
+            </div>
+
+            <textarea
+              value={aiText}
+              onChange={(e) => setAiText(e.target.value)}
+              placeholder={t("ai.placeholder")}
+              rows={9}
+              disabled={!canOperate}
               style={{
-                marginTop: 10,
+                width: "100%",
+                marginTop: 12,
                 padding: 10,
                 borderRadius: 12,
-                border: "1px solid rgba(245,158,11,0.55)",
-                background: "rgba(245,158,11,0.12)",
-                fontSize: 13,
-                fontWeight: 800,
+                border: "1px solid rgba(0,0,0,0.18)",
+                opacity: !canOperate ? 0.65 : 1,
+                resize: "vertical",
+                background: "rgba(0,0,0,0.01)",
               }}
-            >
-              {t("feedback.needTextToChangeStatus")}
+            />
+
+            {aiMsg && <div style={{ marginTop: 10, opacity: 0.85, fontSize: 13, fontWeight: 800 }}>{aiMsg}</div>}
+
+            <div style={{ marginTop: 10, opacity: 0.75, fontSize: 12 }}>
+              {t("ai.rulesHint")} <code>aiFeedback</code>.
             </div>
-          )}
-
-          <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
-            <button
-              disabled={!canSave}
-              onClick={async () => {
-                setSaving(true);
-                setSaveMsg(null);
-                try {
-                  const dbx = requireDb(db);
-
-                  const payload = {
-                    status,
-                    teacherFeedback: {
-                      text,
-                      updatedAt: serverTimestamp(),
-                      teacherUid: user?.uid ?? null,
-                    },
-                    updatedAt: serverTimestamp(),
-                  };
-
-                  const batch = writeBatch(dbx);
-                  if (nestedRef) batch.set(nestedRef, payload, { merge: true });
-                  if (indexRef) batch.set(indexRef, payload, { merge: true });
-                  await batch.commit();
-
-                  setInitialStatus(status);
-                  setSaveMsg(t("feedback.saved"));
-                } catch (e: unknown) {
-                  const info = getErrorInfo(e);
-                  console.log("[TEACHER] save feedback ERROR =>", info.code, info.message, e);
-                  setSaveMsg(t("feedback.saveFailed", { msg: info.message || t("fallback.unknownError") }));
-                } finally {
-                  setSaving(false);
-                  setTimeout(() => setSaveMsg(null), 2000);
-                }
-              }}
-              style={{
-                padding: "10px 12px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.15)",
-                background: "white",
-                opacity: !canSave ? 0.6 : 1,
-                cursor: !canSave ? "not-allowed" : "pointer",
-                fontWeight: 900,
-              }}
-            >
-              {saving ? t("feedback.saving") : t("feedback.saveButton")}
-            </button>
-
-            {saveMsg && <div style={{ opacity: 0.85, alignSelf: "center" }}>{saveMsg}</div>}
           </div>
 
-          <div style={{ marginTop: 10, opacity: 0.75, fontSize: 12 }}>
-            {t("feedback.rulesHint")} <code>status</code> <code>teacherFeedback</code>.
+          {/* FEEDBACK */}
+          <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
+            <div style={{ fontWeight: 900, marginBottom: 10 }}>{t("feedback.title")}</div>
+
+            <StatusToggle value={status} onChange={setStatus} disabled={!canOperate} t={(k) => t(k)} />
+
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={t("feedback.placeholder")}
+              rows={10}
+              disabled={!canOperate}
+              style={{
+                width: "100%",
+                marginTop: 12,
+                padding: 10,
+                borderRadius: 12,
+                border: "1px solid rgba(0,0,0,0.18)",
+                opacity: !canOperate ? 0.65 : 1,
+                resize: "vertical",
+              }}
+            />
+
+            {needsTextToChangeStatus && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: 10,
+                  borderRadius: 12,
+                  border: "1px solid rgba(245,158,11,0.55)",
+                  background: "rgba(245,158,11,0.12)",
+                  fontSize: 13,
+                  fontWeight: 800,
+                }}
+              >
+                {t("feedback.needTextToChangeStatus")}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+              <button
+                disabled={!canSave}
+                onClick={async () => {
+                  setSaving(true);
+                  setSaveMsg(null);
+                  try {
+                    const dbx = requireDb(db);
+
+                    const payload = {
+                      status,
+                      teacherFeedback: {
+                        text,
+                        updatedAt: serverTimestamp(),
+                        teacherUid: user?.uid ?? null,
+                      },
+                      updatedAt: serverTimestamp(),
+                    };
+
+                    const batch = writeBatch(dbx);
+                    if (nestedRef) batch.set(nestedRef, payload, { merge: true });
+                    if (indexRef) batch.set(indexRef, payload, { merge: true });
+                    await batch.commit();
+
+                    setInitialStatus(status);
+                    setSaveMsg(t("feedback.saved"));
+                  } catch (e: unknown) {
+                    const info = getErrorInfo(e);
+                    console.log("[TEACHER] save feedback ERROR =>", info.code, info.message, e);
+                    setSaveMsg(t("feedback.saveFailed", { msg: info.message || t("fallback.unknownError") }));
+                  } finally {
+                    setSaving(false);
+                    setTimeout(() => setSaveMsg(null), 2000);
+                  }
+                }}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(0,0,0,0.15)",
+                  background: "white",
+                  opacity: !canSave ? 0.6 : 1,
+                  cursor: !canSave ? "not-allowed" : "pointer",
+                  fontWeight: 900,
+                }}
+              >
+                {saving ? t("feedback.saving") : t("feedback.saveButton")}
+              </button>
+
+              {saveMsg && <div style={{ opacity: 0.85, alignSelf: "center" }}>{saveMsg}</div>}
+            </div>
+
+            <div style={{ marginTop: 10, opacity: 0.75, fontSize: 12 }}>
+              {t("feedback.rulesHint")} <code>status</code> <code>teacherFeedback</code>.
+            </div>
           </div>
         </div>
       </div>

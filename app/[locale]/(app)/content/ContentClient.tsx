@@ -15,7 +15,9 @@ import { authedPost } from "@/lib/authedPost";
 import { useLocale, useTranslations } from "next-intl";
 
 type LessonStatus = "draft" | "published";
-type FilterType = "all" | "lesson" | "submission" | "space";
+
+// UI-only filters (skiller praksis/bibliotek og innleveringer fra lærer/space)
+type FilterType = "all" | "library" | "teacher" | "lesson" | "submission" | "space";
 
 function fmtDate(d: Date | null | undefined, locale: string) {
   if (!d) return "";
@@ -95,10 +97,7 @@ function DangerButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <PrimaryButton
       {...props}
-      className={[
-        "border-red-200 text-red-700 hover:bg-red-50 active:bg-red-100",
-        props.className || "",
-      ].join(" ")}
+      className={["border-red-200 text-red-700 hover:bg-red-50 active:bg-red-100", props.className || ""].join(" ")}
     />
   );
 }
@@ -160,20 +159,15 @@ export default function ContentClient() {
   const router = useRouter();
   const { user, profile } = useUserProfile();
 
-  // ✅ V1-profil:
-  // - anon => student
-  // - ellers profile.role bestemmer (teacher|student), fallback student
   const isAnon = !!user?.isAnonymous;
   const uid = user?.uid ?? null;
 
-  const role: "student" | "teacher" = isAnon
-    ? "student"
-    : profile?.role === "teacher"
-      ? "teacher"
-      : "student";
-
+  // ✅ V1-profil:
+  // - anon => student
+  // - ellers profile.role bestemmer (teacher|student), fallback student
+  const role: "student" | "teacher" = isAnon ? "student" : profile?.role === "teacher" ? "teacher" : "student";
   const isTeacher = role === "teacher";
-  const isTeacherApproved = isTeacher;
+  const isTeacherApproved = isTeacher; // (V1: lærer er "approved" hvis rolle=teacher)
 
   const t = useTranslations("content");
   const locale = useLocale();
@@ -208,44 +202,85 @@ export default function ContentClient() {
     setBusyByKey((m) => ({ ...m, [key]: v }));
   }
 
-  // ---------- Routing / titles ----------
-  function submissionOpenHref(submissionId: string) {
-    return `/${locale}/student/submissions/${submissionId}`;
+  // ---------------------------
+  // Routing helpers (ONE truth)
+  // ---------------------------
+  function stripLeadingLocale(path: string) {
+    const m = path.match(/^\/([a-z]{2})(\/|$)/i);
+    if (!m) return path;
+    return path.replace(/^\/[a-z]{2}(?=\/|$)/i, "");
   }
 
+  function normalizeInternalHref(href: string) {
+    if (/^https?:\/\//i.test(href)) return href;
+    if (!href.startsWith("/")) href = `/${href}`;
+    const noLocale = stripLeadingLocale(href);
+    return `/${locale}${noLocale}`;
+  }
+
+  function lessonOpenHref(it: Extract<ContentItem, { type: "lesson" }>) {
+    // If published, open active published version when possible
+    const pid = it.activePublishedId || it.id;
+    return `/${locale}/student/lesson/${pid}`;
+  }
+
+  // ✅ EN eneste itemOpenHref (ingen nested funksjoner!)
   function itemOpenHref(it: ContentItem) {
-    if (it.type === "lesson") return `/${locale}/student/lesson/${it.id}`;
-    if (it.type === "submission") {
-      return role === "student" ? submissionOpenHref(it.id) : it.href;
+    switch (it.type) {
+      case "lesson": {
+        return lessonOpenHref(it);
+      }
+      case "submission": {
+        return normalizeInternalHref(it.href);
+      }
+      case "space": {
+        return normalizeInternalHref(it.href);
+      }
+      default: {
+        const anyIt = it as unknown as { href?: string };
+        return normalizeInternalHref(anyIt.href || `/${locale}/content`);
+      }
     }
-    return it.href.startsWith(`/${locale}/`) ? it.href : `/${locale}${it.href}`;
+  }
+
+  // ---------------------------
+  // Submission category helpers
+  // ---------------------------
+  function isLibraryPractice(it: ContentItem) {
+    return it.type === "submission" && (it.meta ?? []).includes("practice");
+  }
+
+  function isTeacherSpaceSubmission(it: ContentItem) {
+    if (it.type !== "submission") return false;
+    const s = it as Extract<ContentItem, { type: "submission" }>;
+    return !!s.spaceId || (s.meta ?? []).some((m) => typeof m === "string" && m.startsWith("space:"));
   }
 
   const titleForCard = useCallback(
-  (it: ContentItem) => {
-    const raw = (it.title || "").trim();
-    if (raw && raw.toLowerCase() !== "untitled") return raw;
+    (it: ContentItem) => {
+      const raw = (it.title || "").trim();
+      if (raw && raw.toLowerCase() !== "untitled") return raw;
 
-    if (it.type === "submission") {
-      const s = it as Extract<ContentItem, { type: "submission" }>;
-      const lt = lessonTitleFromMeta(s.meta);
-      if (lt) return t("titles.submissionWithLesson", { lessonTitle: lt });
-      if (s.lessonId) return t("titles.submissionWithId", { id: lastIdBits(s.lessonId) });
-      return t("titles.submission");
-    }
+      if (it.type === "submission") {
+        const s = it as Extract<ContentItem, { type: "submission" }>;
+        const lt = lessonTitleFromMeta(s.meta);
+        if (lt) return t("titles.submissionWithLesson", { lessonTitle: lt });
+        if (s.lessonId) return t("titles.submissionWithId", { id: lastIdBits(s.lessonId) });
+        return t("titles.submission");
+      }
 
-    if (it.type === "space") return t("titles.space");
-    return t("titles.lesson");
-  },
-  [t]
-);
+      if (it.type === "space") return t("titles.space");
+      return t("titles.lesson");
+    },
+    [t]
+  );
 
   async function refresh() {
     setLoading(true);
     setWarnings([]);
     setErr(null);
+
     try {
-      // ✅ typed adapter (no `any`)
       const args: LoadMyContentArgs = { db, mode: role, uid, isAnon };
       const res = await loadMyContent(args as unknown as Parameters<typeof loadMyContent>[0]);
       setItems(res.items);
@@ -364,7 +399,7 @@ export default function ContentClient() {
     setBusy(key, true);
 
     try {
-      // NB: din sti her var assignments (ikke lessons). Jeg lar den stå slik du hadde.
+      // NB: behold ditt eksisterende assign-endepunkt / modell senere.
       await setDoc(doc(db, `spaces/${spaceId}/assignments/${pickLesson.lessonId}`), {
         lessonId: pickLesson.lessonId,
         createdAt: serverTimestamp(),
@@ -440,10 +475,7 @@ export default function ContentClient() {
   }
 
   async function deleteLessonSoft(lessonId: string, title: string) {
-    const msg = t("confirm.deleteLesson", {
-      title: title ? `: "${title}"` : "",
-    });
-
+    const msg = t("confirm.deleteLesson", { title: title ? `: "${title}"` : "" });
     const ok = confirm(msg);
     if (!ok) return;
 
@@ -461,6 +493,7 @@ export default function ContentClient() {
           (d as { activePublishedId?: string }).activePublishedId
             ? (d as { activePublishedId?: string }).activePublishedId!
             : lessonId;
+
         await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
       } catch {
         // ignore
@@ -483,9 +516,7 @@ export default function ContentClient() {
 
   async function restoreLesson(lessonId: string, title: string) {
     const msg =
-      locale === "en"
-        ? `Restore lesson${title ? `: "${title}"` : ""}?`
-        : `Gjenopprette oppgaven${title ? `: "${title}"` : ""}?`;
+      locale === "en" ? `Restore lesson${title ? `: "${title}"` : ""}?` : `Gjenopprette oppgaven${title ? `: "${title}"` : ""}?`;
 
     const ok = confirm(msg);
     if (!ok) return;
@@ -532,22 +563,16 @@ export default function ContentClient() {
     const busy = !!busyByKey[key];
 
     if (isAnon) {
-      return [
-        {
-          key: "open",
-          label: t("actions.open"),
-          disabled: busy,
-          onClick: () => router.push(itemOpenHref(it)),
-        },
-      ];
+      return [{ key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(it)) }];
     }
 
     // SUBMISSION
     if (it.type === "submission") {
       const ss = it as Extract<ContentItem, { type: "submission" }>;
       const status = (ss.status ?? "").toLowerCase();
-      const isReviewed = status === "reviewed";
-      const canEditSubmission = role === "student" && !isReviewed;
+      const isReviewed = status === "reviewed" || status === "approved";
+
+      const canEditSubmission = role === "student" && !isReviewed && !isTeacherSpaceSubmission(ss);
 
       return [
         { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(ss)) },
@@ -557,27 +582,7 @@ export default function ContentClient() {
                 key: "edit",
                 label: t("actions.editAnswers"),
                 disabled: busy,
-                onClick: () => router.push(`/${locale}/student/submissions/${ss.id}`),
-              },
-            ]
-          : []),
-        ...(ss.lessonId
-          ? [
-              {
-                key: "openLesson",
-                label: t("actions.openLesson"),
-                disabled: busy,
-                onClick: () => router.push(`/${locale}/student/lesson/${ss.lessonId}`),
-              },
-            ]
-          : []),
-        ...(ss.spaceId && isTeacher
-          ? [
-              {
-                key: "openSpace",
-                label: t("actions.openSpace"),
-                disabled: busy,
-                onClick: () => router.push(`/${locale}/teacher/spaces/${ss.spaceId}`),
+                onClick: () => router.push(itemOpenHref(ss)),
               },
             ]
           : []),
@@ -585,22 +590,30 @@ export default function ContentClient() {
     }
 
     // SPACE
-    if (it.type === "space") {
-      const sp = it as Extract<ContentItem, { type: "space" }>;
-      const code = sp.joinCode || "";
-      const joinUrl = code ? `${getOrigin()}/${locale}/join?code=${encodeURIComponent(code)}` : "";
+if (it.type === "space") {
+  const sp = it as Extract<ContentItem, { type: "space" }>;
+  const code = sp.joinCode || "";
+  const joinUrl = code ? `${getOrigin()}/${locale}/join?code=${encodeURIComponent(code)}` : "";
 
-      return [
-        { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(sp)) },
-        ...(code
-          ? [{ key: "copyCode", label: t("actions.copyJoinCode"), disabled: busy, onClick: () => copyText(code) }]
-          : []),
-        { key: "share", label: t("actions.shareLinkQr"), disabled: busy, onClick: () => openShareForSpace(sp) },
-        ...(joinUrl
-          ? [{ key: "copyJoinLink", label: t("actions.copyJoinLink"), disabled: busy, onClick: () => copyText(joinUrl) }]
-          : []),
-      ];
-    }
+  // ✅ Kun lærer skal kunne dele rom med lenke/QR fra My Content
+  const canShareSpace = role === "teacher"; // evt strammere: role==="teacher" && sp.ownerUid===uid
+
+  return [
+    { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(sp)) },
+
+    ...(canShareSpace && code
+      ? [{ key: "copyCode", label: t("actions.copyJoinCode"), disabled: busy, onClick: () => copyText(code) }]
+      : []),
+
+    ...(canShareSpace
+      ? [{ key: "share", label: t("actions.shareLinkQr"), disabled: busy, onClick: () => openShareForSpace(sp) }]
+      : []),
+
+    ...(canShareSpace && joinUrl
+      ? [{ key: "copyJoinLink", label: t("actions.copyJoinLink"), disabled: busy, onClick: () => copyText(joinUrl) }]
+      : []),
+  ];
+}
 
     // LESSON
     const ls = it as Extract<ContentItem, { type: "lesson" }>;
@@ -608,7 +621,6 @@ export default function ContentClient() {
     const isPublished = status === "published";
     const isDeleted = isDeletedItem(ls);
 
-    // Teacher full access:
     const canPublish = isTeacherApproved && !isDeleted;
     const canDelete = isTeacherApproved;
     const canShareToSpace = mySpaces.length > 0 && isTeacherApproved && !isDeleted;
@@ -630,55 +642,50 @@ export default function ContentClient() {
 
     return [
       ...restoreAction,
-      { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(`/${locale}/student/lesson/${ls.id}`) },
-      {
-        key: "edit",
-        label: t("actions.edit"),
-        disabled: busy || isDeleted,
-        onClick: () => router.push(editHref),
-      },
+      { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(ls)) },
+      { key: "edit", label: t("actions.edit"), disabled: busy || isDeleted, onClick: () => router.push(editHref) },
       {
         key: isPublished ? "unpublish" : "publish",
         label: busy ? t("actions.working") : isPublished ? t("actions.unpublish") : t("actions.publish"),
         disabled: busy || !canPublish,
         onClick: () => setPublished(ls.id, !isPublished),
       },
-      {
-        key: "share",
-        label: t("actions.share"),
-        disabled: busy || !isPublished || isDeleted,
-        onClick: () => openShareForLesson(ls),
-      },
-      {
-        key: "shareToSpace",
-        label: t("actions.shareToSpace"),
-        disabled: busy || !canShareToSpace,
-        onClick: () => openPickSpace(ls.id, titleForCard(ls)),
-      },
-      {
-        key: "pdf",
-        label: t("actions.pdf"),
-        disabled: busy || isDeleted || !isTeacher,
-        onClick: () => router.push(pdfHref),
-      },
-      {
-        key: "delete",
-        label: t("actions.delete"),
-        danger: true,
-        disabled: busy || !canDelete,
-        onClick: () => deleteLessonSoft(ls.id, titleForCard(ls)),
-      },
+      { key: "share", label: t("actions.share"), disabled: busy || !isPublished || isDeleted, onClick: () => openShareForLesson(ls) },
+      { key: "shareToSpace", label: t("actions.shareToSpace"), disabled: busy || !canShareToSpace, onClick: () => openPickSpace(ls.id, titleForCard(ls)) },
+      { key: "pdf", label: t("actions.pdf"), disabled: busy || isDeleted || !isTeacher, onClick: () => router.push(pdfHref) },
+      { key: "delete", label: t("actions.delete"), danger: true, disabled: busy || !canDelete, onClick: () => deleteLessonSoft(ls.id, titleForCard(ls)) },
     ];
   }
+
+  const counts = useMemo(() => {
+    const c = { lesson: 0, submission: 0, space: 0, library: 0, teacher: 0 };
+    for (const it of items) {
+      if (it.type === "lesson") c.lesson += 1;
+      else if (it.type === "submission") {
+        c.submission += 1;
+        if (isLibraryPractice(it)) c.library += 1;
+        if (isTeacherSpaceSubmission(it)) c.teacher += 1;
+      } else if (it.type === "space") c.space += 1;
+    }
+    return c;
+  }, [items]);
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
 
     return items
-      .filter((it) => (filter === "all" ? true : it.type === filter))
+      .filter((it) => (showDeleted ? true : !isDeletedItem(it)))
       .filter((it) => {
-        if (showDeleted) return true;
-        return !isDeletedItem(it);
+        if (filter === "all") return true;
+
+        if (filter === "library") return isLibraryPractice(it);
+        if (filter === "teacher") return isTeacherSpaceSubmission(it);
+
+        if (filter === "lesson") return it.type === "lesson";
+        if (filter === "submission") return it.type === "submission";
+        if (filter === "space") return it.type === "space";
+
+        return true;
       })
       .filter((it) => {
         if (!qq) return true;
@@ -688,21 +695,39 @@ export default function ContentClient() {
         return tt.includes(qq) || meta.includes(qq) || st.includes(qq);
       })
       .slice()
-      .sort((a, b) => (b.updatedAt?.getTime?.() ?? 0) - (a.updatedAt?.getTime?.() ?? 0));
+      .sort((a, b) => {
+        const aa = (a.updatedAt?.getTime?.() ?? 0) || 0;
+        const bb = (b.updatedAt?.getTime?.() ?? 0) || 0;
+        return bb - aa;
+      });
   }, [items, q, filter, showDeleted, titleForCard]);
-
-  const filterLabel = (ft: FilterType) =>
-    ft === "all"
-      ? t("filters.all")
-      : ft === "lesson"
-        ? t("filters.lessons")
-        : ft === "submission"
-          ? t("filters.submissions")
-          : t("filters.spaces");
 
   const deletedLabel = locale === "en" ? "Deleted" : "Slettet";
   const showDeletedLabel = locale === "en" ? "Show deleted" : "Vis slettet";
   const deletedAtLabel = locale === "en" ? "Deleted at" : "Slettet";
+
+  function labelWithCount(ft: FilterType) {
+    const label =
+      ft === "all"
+        ? (t("filters.all") as string)
+        : ft === "library"
+          ? (locale === "en" ? "Library" : "Bibliotek")
+          : ft === "teacher"
+            ? (locale === "en" ? "Teacher" : "Innlevering")
+            : ft === "lesson"
+              ? (t("filters.lessons") as string)
+              : ft === "submission"
+                ? (t("filters.submissions") as string)
+                : (t("filters.spaces") as string);
+
+    if (ft === "lesson") return `${label} (${counts.lesson})`;
+    if (ft === "submission") return `${label} (${counts.submission})`;
+    if (ft === "space") return `${label} (${counts.space})`;
+    if (ft === "library") return `${label} (${counts.library})`;
+    if (ft === "teacher") return `${label} (${counts.teacher})`;
+
+    return `${label} (${counts.lesson + counts.submission + counts.space})`;
+  }
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-4">
@@ -719,7 +744,7 @@ export default function ContentClient() {
         </div>
       </div>
 
-      {/* Search + filter */}
+      {/* Search + filters */}
       <div className="mt-4">
         <input
           value={q}
@@ -730,7 +755,7 @@ export default function ContentClient() {
 
         <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
           <div className="flex flex-wrap justify-center gap-2">
-            {(["all", "lesson", "submission", "space"] as const).map((ft) => (
+            {(["all", "library", "teacher", "lesson", "submission", "space"] as const).map((ft) => (
               <button
                 key={ft}
                 onClick={() => setFilter(ft)}
@@ -738,8 +763,19 @@ export default function ContentClient() {
                   "rounded-full border px-3 py-2 text-sm font-extrabold",
                   filter === ft ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
                 ].join(" ")}
+                title={
+                  ft === "library"
+                    ? locale === "en"
+                      ? "Your own tasks from the library (practice)"
+                      : "Dine egne oppgaver hentet fra biblioteket (practice)"
+                    : ft === "teacher"
+                      ? locale === "en"
+                        ? "Assignments submitted in a class/space"
+                        : "Oppgaver levert i rom/klasse"
+                      : undefined
+                }
               >
-                {filterLabel(ft)}
+                {labelWithCount(ft)}
               </button>
             ))}
           </div>
@@ -756,14 +792,14 @@ export default function ContentClient() {
         </div>
       </div>
 
-      {err && (
+      {err ? (
         <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
           <div className="mb-1 font-black">{t("errors.label")}</div>
           <div className="whitespace-pre-wrap text-sm">{err}</div>
         </div>
-      )}
+      ) : null}
 
-      {notes.length > 0 && (
+      {notes.length > 0 ? (
         <div className="mt-4 rounded-2xl border bg-zinc-50 p-4">
           {notes.map((n) => (
             <div key={n} className="text-sm">
@@ -771,9 +807,9 @@ export default function ContentClient() {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
-      {warnings.length > 0 && (
+      {warnings.length > 0 ? (
         <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
           {warnings.map((w) => (
             <div key={w} className="text-sm">
@@ -781,167 +817,109 @@ export default function ContentClient() {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
       <div className="mt-4 grid gap-3">
-        {loading && <div className="opacity-70">{t("states.loadingContent")}</div>}
+        {loading ? <div className="opacity-70">{t("states.loadingContent")}</div> : null}
 
-        {!loading && filtered.length === 0 && <div className="rounded-2xl border bg-white p-4">{emptyHint}</div>}
+        {!loading && filtered.length === 0 ? (
+          <div className="rounded-2xl border bg-white p-4">{emptyHint}</div>
+        ) : null}
 
-        {!loading &&
-          filtered.map((it) => {
-            const key = `${it.type}:${it.id}`;
-            const actions = buildActions(it);
+        {!loading
+          ? filtered.map((it) => {
+              const key = `${it.type}:${it.id}`;
+              const actions = buildActions(it);
 
-            const title = titleForCard(it);
-            const deletedAt = getDeletedAt(it);
+              const title = titleForCard(it);
+              const deletedAt = getDeletedAt(it);
 
-            let pill: React.ReactNode = null;
-            if (isDeletedItem(it)) {
-              pill = <StatusPill label={deletedLabel} variant="amber" />;
-            } else if (it.type === "lesson") {
-              const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
-              pill =
-                s === "published" ? (
-                  <StatusPill label={t("pills.published")} variant="green" />
-                ) : (
-                  <StatusPill label={t("pills.unpublished")} variant="red" />
-                );
-            } else if (it.status) {
-              pill = <StatusPill label={it.status} variant="gray" />;
-            }
+              let pill: React.ReactNode = null;
 
-            const metaLine = cleanMetaForCard(it);
+              // Ekstra pill for bibliotek/innlevering for submissions
+              const extraPill =
+                it.type === "submission"
+                  ? isLibraryPractice(it)
+                    ? (locale === "en" ? <StatusPill label="Library" variant="gray" /> : <StatusPill label="Bibliotek" variant="gray" />)
+                    : isTeacherSpaceSubmission(it)
+                      ? (locale === "en" ? <StatusPill label="Teacher" variant="gray" /> : <StatusPill label="Innlevering" variant="gray" />)
+                      : null
+                  : null;
 
-            const aOpen = actions.find((a) => a.key === "open");
-            const aEdit = actions.find((a) => a.key === "edit");
-            const aOpenLesson = actions.find((a) => a.key === "openLesson");
-            const aOpenSpace = actions.find((a) => a.key === "openSpace");
-            const aPublish = actions.find((a) => a.key === "publish");
-            const aUnpublish = actions.find((a) => a.key === "unpublish");
-            const aShare = actions.find((a) => a.key === "share");
-            const aShareToSpace = actions.find((a) => a.key === "shareToSpace");
-            const aPdf = actions.find((a) => a.key === "pdf");
-            const aDelete = actions.find((a) => a.key === "delete");
-            const aRestore = actions.find((a) => a.key === "restore");
+              if (isDeletedItem(it)) {
+                pill = <StatusPill label={deletedLabel} variant="amber" />;
+              } else if (it.type === "lesson") {
+                const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
+                pill = s === "published" ? <StatusPill label={t("pills.published")} variant="green" /> : <StatusPill label={t("pills.unpublished")} variant="red" />;
+              } else if (it.status) {
+                pill = <StatusPill label={it.status} variant="gray" />;
+              }
 
-            return (
-              <div key={key} className="rounded-2xl border bg-white p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="truncate text-base font-black leading-tight">{title}</div>
-                      {pill}
+              const metaLine = cleanMetaForCard(it);
+
+              return (
+                <div key={key} className="rounded-2xl border bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="truncate text-base font-black leading-tight">{title}</div>
+                        {extraPill}
+                        {pill}
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs opacity-75">
+                        {it.updatedAt ? <span>{fmtDate(it.updatedAt, locale)}</span> : null}
+
+                        {deletedAt ? (
+                          <>
+                            <span className="opacity-60">•</span>
+                            <span>
+                              {deletedAtLabel}: {fmtDate(deletedAt, locale)}
+                            </span>
+                          </>
+                        ) : null}
+
+                        {metaLine ? <span className="opacity-60">•</span> : null}
+                        {metaLine ? <span className="truncate">{metaLine}</span> : null}
+                      </div>
+
+                      {/* quick actions on desktop */}
+                      <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
+                        {actions
+                          .filter((a) => ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "pdf", "delete", "restore"].includes(a.key))
+                          .slice(0, 6)
+                          .map((a) => {
+                            if (a.key === "delete") {
+                              return (
+                                <DangerButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                  {a.label}
+                                </DangerButton>
+                              );
+                            }
+                            if (a.key === "restore") {
+                              return (
+                                <SuccessButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                  {a.label}
+                                </SuccessButton>
+                              );
+                            }
+                            return (
+                              <PrimaryButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                {a.label}
+                              </PrimaryButton>
+                            );
+                          })}
+                      </div>
                     </div>
 
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs opacity-75">
-                      {!!it.updatedAt && <span>{fmtDate(it.updatedAt, locale)}</span>}
-                      {deletedAt ? (
-                        <>
-                          <span className="opacity-60">•</span>
-                          <span>
-                            {deletedAtLabel}: {fmtDate(deletedAt, locale)}
-                          </span>
-                        </>
-                      ) : null}
-                      {metaLine ? <span className="opacity-60">•</span> : null}
-                      {metaLine ? <span className="truncate">{metaLine}</span> : null}
-                    </div>
-
-                    <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
-                      {it.type === "lesson" ? (
-                        <>
-                          {aRestore ? (
-                            <SuccessButton onClick={aRestore.onClick} disabled={aRestore.disabled}>
-                              {locale === "en" ? "Restore" : "Gjenopprett"}
-                            </SuccessButton>
-                          ) : null}
-
-                          {aOpen ? (
-                            <PrimaryButton onClick={aOpen.onClick} disabled={aOpen.disabled}>
-                              {t("actions.open")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aPublish ? (
-                            <PrimaryButton onClick={aPublish.onClick} disabled={aPublish.disabled}>
-                              {t("actions.publish")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aUnpublish ? (
-                            <PrimaryButton onClick={aUnpublish.onClick} disabled={aUnpublish.disabled}>
-                              {t("actions.unpublish")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aShare ? (
-                            <PrimaryButton
-                              onClick={aShare.onClick}
-                              disabled={aShare.disabled}
-                              title={t("actions.shareTitle")}
-                            >
-                              {t("actions.share")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aShareToSpace ? (
-                            <PrimaryButton onClick={aShareToSpace.onClick} disabled={aShareToSpace.disabled}>
-                              {t("actions.shareToSpace")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aEdit ? (
-                            <PrimaryButton onClick={aEdit.onClick} disabled={aEdit.disabled}>
-                              {t("actions.edit")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aPdf ? (
-                            <PrimaryButton onClick={aPdf.onClick} disabled={aPdf.disabled}>
-                              {t("actions.pdf")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aDelete ? (
-                            <DangerButton onClick={aDelete.onClick} disabled={aDelete.disabled}>
-                              {t("actions.delete")}
-                            </DangerButton>
-                          ) : null}
-                        </>
-                      ) : null}
-
-                      {it.type === "submission" ? (
-                        <>
-                          {aOpen ? (
-                            <PrimaryButton onClick={aOpen.onClick} disabled={aOpen.disabled}>
-                              {t("actions.open")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aEdit ? (
-                            <PrimaryButton onClick={aEdit.onClick} disabled={aEdit.disabled}>
-                              {t("actions.editAnswers")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aOpenLesson ? (
-                            <PrimaryButton onClick={aOpenLesson.onClick} disabled={aOpenLesson.disabled}>
-                              {t("actions.openLesson")}
-                            </PrimaryButton>
-                          ) : null}
-                          {aOpenSpace ? (
-                            <PrimaryButton onClick={aOpenSpace.onClick} disabled={aOpenSpace.disabled}>
-                              {t("actions.openSpace")}
-                            </PrimaryButton>
-                          ) : null}
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="shrink-0">
-                    <div className="sm:hidden">
+                    <div className="shrink-0">
                       <ActionMenu items={actions} />
                     </div>
-
-                    <div className="hidden sm:block">{it.type === "space" ? <ActionMenu items={actions} /> : null}</div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          : null}
       </div>
 
       <div className="mt-6 text-sm opacity-80">
@@ -955,16 +933,8 @@ export default function ContentClient() {
 
       {/* Share link/QR modal */}
       {shareOpen ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={closeShare}
-          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl"
-          >
+        <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b p-4">
               <div className="min-w-0">
                 <div className="font-black">{t("share.title")}</div>
@@ -1012,16 +982,8 @@ export default function ContentClient() {
 
       {/* Share to space modal */}
       {pickSpaceOpen && pickLesson ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={closePickSpace}
-          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl"
-          >
+        <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b p-4">
               <div className="min-w-0">
                 <div className="font-black">{t("shareToSpace.title")}</div>
@@ -1052,7 +1014,7 @@ export default function ContentClient() {
             </div>
 
             <div className="border-t p-4 text-xs opacity-70">
-              {t("shareToSpace.createsLabel")} <code>spaces/{`{spaceId}`}/assignments/{pickLesson.lessonId}</code>
+              {t("shareToSpace.createsLabel")} <code>{`spaces/{spaceId}/assignments/${pickLesson.lessonId}`}</code>
             </div>
           </div>
         </div>

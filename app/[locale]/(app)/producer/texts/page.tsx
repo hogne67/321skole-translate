@@ -1,4 +1,4 @@
-// app/(app)/producer/texts/page.tsx
+// app/[locale]/(app)/producer/texts/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -18,6 +18,7 @@ import {
 import { db } from "@/lib/firebase";
 import QRCode from "qrcode";
 import type { CSSProperties } from "react";
+import { useLocale } from "next-intl";
 
 type PublishVisibility = "public" | "unlisted" | "private";
 type LessonStatus = "draft" | "published";
@@ -76,9 +77,9 @@ function formatMaybeDate(v: FirestoreTimestampLike) {
     if (!d || Number.isNaN(d.getTime())) return "—";
 
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(
-      d.getHours()
-    )}:${pad(d.getMinutes())}`;
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(
+      d.getMinutes()
+    )}`;
   } catch {
     return "—";
   }
@@ -134,9 +135,7 @@ async function authedPost<T = unknown>(url: string, body: unknown): Promise<T> {
 
   if (!res.ok) {
     const msg =
-      isRecord(data) && typeof data.error === "string"
-        ? data.error
-        : raw || `Request failed (${res.status})`;
+      isRecord(data) && typeof data.error === "string" ? data.error : raw || `Request failed (${res.status})`;
     throw new Error(msg);
   }
 
@@ -144,6 +143,9 @@ async function authedPost<T = unknown>(url: string, body: unknown): Promise<T> {
 }
 
 export default function ProducerTextsPage() {
+  const locale = useLocale();
+  const href = (p: string) => `/${locale}${p.startsWith("/") ? p : `/${p}`}`;
+
   // ===== Inline UI styles (no Tailwind dependency) =====
   const card: CSSProperties = {
     border: "1px solid #e5e7eb",
@@ -285,11 +287,7 @@ export default function ProducerTextsPage() {
     try {
       const u = await requireUser();
 
-      const qy = query(
-        collection(db, "lessons"),
-        where("ownerId", "==", u),
-        orderBy("updatedAt", "desc")
-      );
+      const qy = query(collection(db, "lessons"), where("ownerId", "==", u), orderBy("updatedAt", "desc"));
 
       const snap = await getDocs(qy);
 
@@ -354,9 +352,7 @@ export default function ProducerTextsPage() {
         });
       } else {
         const publishedId =
-          typeof data.activePublishedId === "string" && data.activePublishedId
-            ? data.activePublishedId
-            : lessonId;
+          typeof data.activePublishedId === "string" && data.activePublishedId ? data.activePublishedId : lessonId;
 
         await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
 
@@ -426,7 +422,9 @@ export default function ProducerTextsPage() {
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const pid = l.activePublishedId || l.id;
-    const url = `${origin}/lesson/${pid}`;
+
+    // ✅ locale-aware share link
+    const url = `${origin}/${locale}/lesson/${pid}`;
 
     setShareUrl(url);
     setShareOpen(true);
@@ -524,7 +522,8 @@ export default function ProducerTextsPage() {
               Refresh
             </button>
 
-            <Link href="/producer/texts/new" style={btnPrimary}>
+            {/* ✅ locale-aware */}
+            <Link href={href("/producer/texts/new")} style={btnPrimary}>
               Create new lesson
             </Link>
           </div>
@@ -595,22 +594,23 @@ export default function ProducerTextsPage() {
                       Share
                     </button>
 
-                    <Link
-                      href={`/producer/${l.id}/preview`}
-                      style={{ ...btnMuted, textDecoration: "none", color: "inherit" }}
-                    >
+                    {/* ✅ locale-aware */}
+                    <Link href={href(`/producer/${l.id}/preview`)} style={{ ...btnMuted, textDecoration: "none", color: "inherit" }}>
                       Preview
                     </Link>
 
                     <Link
-                      href={`/producer/${l.id}/print`}
+                      href={href(`/producer/${l.id}/print`)}
                       style={{ ...btnMuted, textDecoration: "none", color: "inherit" }}
                       title="Printable PDF"
                     >
                       PDF
                     </Link>
 
-                    <Link href={`/producer/${l.id}`} style={{ ...btnMuted, textDecoration: "none", color: "inherit" }}>
+                    <Link
+                      href={href(`/producer/${l.id}`)}
+                      style={{ ...btnMuted, textDecoration: "none", color: "inherit" }}
+                    >
                       Edit
                     </Link>
 
@@ -749,7 +749,7 @@ export default function ProducerTextsPage() {
             </div>
 
             <div style={{ padding: 14, borderTop: "1px solid rgba(0,0,0,0.08)", opacity: 0.7, fontSize: 12 }}>
-              Share URL points to: <code>/lesson/{shareLesson.activePublishedId || shareLesson.id}</code>
+              Share URL points to: <code>/{locale}/lesson/{shareLesson.activePublishedId || shareLesson.id}</code>
             </div>
           </div>
         </div>

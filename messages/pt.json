@@ -235,120 +235,154 @@
       }
     },
     "assignment": {
-      "common": { "loading": "Carregando…" },
-      "fallback": { "lessonTitle": "Lição" },
-      "actions": {
-        "backToSpace": "← Voltar para minha turma",
-        "backToJoin": "← Voltar",
-        "backToClassButton": "← Voltar para a turma",
-        "backPrevButton": "← Página anterior",
-        "backPrevTitle": "Voltar para a página anterior"
-      },
-      "errors": {
-        "missingParams": "Faltando spaceId/assignmentId na URL.",
-        "notMember": "Você não está registrado como membro nesta turma. Volte e clique em Entrar.",
-        "assignmentNotFoundInSpace": "Não foi possível encontrar esta atividade na turma.",
-        "missingSourceId": "Esta atividade está sem conteúdo (sourceId).",
-        "sourceLessonMissing": "Não foi possível encontrar a lição de origem.",
-        "unpublished": "Esta lição está não publicada/arquivada.",
-        "noAccessSubmission": "Você não tem acesso a esta entrega.",
-        "permissionDenied": "Permissões insuficientes.",
-        "generic": "Algo deu errado.",
-        "submitFailed": "Não foi possível enviar.",
-        "noData": "Sem dados."
-      },
-      "messages": {
-        "submissionNotFound": "Não foi possível encontrar a entrega que você tentou abrir.",
-        "submitted": "Obrigado! Sua entrega foi enviada ✅",
-        "resubmitted": "Atualizado e reenviado ✅",
-        "lockedNoChanges": "Esta entrega não pode ser alterada agora (status não é needs_work)."
-      },
-      "status": {
-        "labelPrefix": "Status",
-        "submitted": "Enviado",
-        "needsWork": "Precisa melhorar",
-        "approved": "Aprovado"
-      },
-      "statusDesc": {
-        "submitted": "Enviado e aguardando o professor.",
-        "needsWork": "Seu professor pediu para você melhorar e enviar novamente.",
-        "approved": "Aprovado pelo professor. Não pode ser alterado agora.",
-        "generic": "Status atualizado."
-      },
-      "statusMeta": {
-        "updatedAt": "Atualizado: {v}",
-        "teacherAt": "Comentário do professor: {v}"
-      },
-      "statusToggleTitle": "Isto é definido pelo professor",
-      "teacher": {
-        "commentTitle": "Comentário do professor",
-        "none": "Ainda sem comentário.",
-        "noneWaiting": "Ainda sem comentário (aguardando o professor)."
-      },
-      "auto": {
-        "label": "Auto",
-        "hintMixed": "Múltipla escolha e verdadeiro/falso são corrigidos automaticamente ao enviar. Respostas abertas são revisadas pelo professor.",
-        "hintOpenOnly": "Respostas abertas são revisadas pelo professor."
-      },
-      "image": {
-        "title": "Imagem",
-        "alt": "Lição",
-        "noneTitle": "Sem imagem",
-        "noneDesc": "Esta lição não tem imagem de capa."
-      },
-      "translate": {
-        "to": "Traduzir para",
-        "searchPlaceholder": "Buscar idioma…",
-        "text": "Traduzir texto",
-        "tasks": "Traduzir tarefas",
-        "translating": "Traduzindo…",
-        "reset": "Redefinir tradução",
-        "failed": "Falha na tradução",
-        "translatedLabel": "Traduzido",
-        "showTranslation": "Mostrar tradução",
-        "hideTranslation": "Ocultar tradução"
-      },
-      "submit": {
-        "submit": "ENVIAR PARA O ESPAÇO",
-        "resubmit": "REENVIAR (Precisa melhorar)",
-        "saving": "Enviando…",
-        "submitted": "Enviado ✅",
-        "title": "Enviar",
-        "anonTitle": "Convidados também podem enviar (auth anônima)"
-      },
-      "tts": {
-        "speed": "Velocidade",
-        "playOriginal": "🔊 Ouvir original",
-        "playTranslation": "🔊 Ouvir tradução",
-        "stop": "⏹ Parar",
-        "pause": "⏸ Pausar",
-        "continue": "▶️ Continuar",
-        "replay": "⟲ Repetir frase",
-        "prev": "⟵ Anterior",
-        "next": "Próximo ⟶",
-        "generating": "Gerando…",
-        "failed": "Falha no TTS"
-      },
-      "text": {
-        "title": "Texto",
-        "noText": "Sem texto",
-        "clickToSeek": "Clique para avançar no áudio"
-      },
-      "tasks": {
-        "title": "Tarefas",
-        "none": "Nenhuma tarefa nesta lição.",
-        "showAll": "Mostrar todas as traduções",
-        "hideAll": "Ocultar todas as traduções",
-        "taskN": "Tarefa {n}",
-        "yourAnswer": "Sua resposta",
-        "true": "Verdadeiro",
-        "false": "Falso",
-        "locked": "Bloqueado",
-        "autoCorrect": "Auto: ✅ correto",
-        "autoWrong": "Auto: ❌ incorreto",
-        "autoUnanswered": "Auto: ⏳ não respondido",
-        "writeAnswerPlaceholder": "Escreva sua resposta…"
-      }
+  "common": { "loading": "Carregando…" },
+  "fallback": {
+    "lessonTitle": "Lição",
+    "title": "Atividade"
+  },
+  "actions": {
+    "backToSpace": "← Voltar para minha turma",
+    "backToJoin": "← Entrar",
+    "backToClassButton": "← Voltar para a turma",
+    "backPrevButton": "← Página anterior",
+    "backPrevTitle": "Voltar para a página anterior",
+    "saving": "Salvando…",
+    "submit": "Enviar para o professor",
+    "resubmit": "Reenviar"
+  },
+  "errors": {
+    "missingParams": "Faltando spaceId/assignmentId na URL.",
+    "notMember": "Você não está registrado como membro nesta turma. Volte e clique em Entrar.",
+    "assignmentNotFoundInSpace": "Não foi possível encontrar esta atividade na turma.",
+    "missingSourceId": "Esta atividade está sem conteúdo (sourceId).",
+    "sourceLessonMissing": "Não foi possível encontrar a lição de origem.",
+    "unpublished": "Esta lição está não publicada/arquivada.",
+    "noAccessSubmission": "Você não tem acesso a esta entrega.",
+    "permissionDenied": "Permissões ausentes ou insuficientes.",
+    "generic": "Algo deu errado.",
+    "submitFailed": "Não foi possível enviar.",
+    "noData": "Sem dados."
+  },
+  "messages": {
+    "submissionNotFound": "Não foi possível encontrar a entrega que você tentou abrir.",
+    "submitted": "Obrigado! Sua entrega foi enviada ✅",
+    "resubmitted": "Atualizado e reenviado ✅",
+    "lockedNoChanges": "Esta entrega não pode ser alterada agora (status não é needs_work).",
+    "lockedByTeacher": "Bloqueado pelo professor (reviewed/approved)."
+  },
+  "status": {
+    "labelPrefix": "Status",
+    "submitted": "Enviado",
+    "needsWork": "Precisa melhorar",
+    "approved": "Aprovado",
+    "title": "Status"
+  },
+  "statusDesc": {
+    "submitted": "Enviado e aguardando o professor.",
+    "needsWork": "Seu professor pediu para você melhorar e enviar novamente.",
+    "approved": "Aprovado pelo professor. Não pode ser alterado agora.",
+    "generic": "Status atualizado."
+  },
+  "statusMeta": {
+    "updatedAt": "Atualizado: {v}",
+    "teacherAt": "Mensagem do professor: {v}"
+  },
+  "statusToggleTitle": "Isto é definido pelo professor",
+  "teacher": {
+    "commentTitle": "Comentário do professor",
+    "none": "Ainda sem comentário.",
+    "noneWaiting": "Ainda sem comentário (aguardando o professor)."
+  },
+  "auto": {
+    "label": "Auto",
+    "hintMixed": "Múltipla escolha e verdadeiro/falso são corrigidos automaticamente ao enviar. Respostas abertas são revisadas pelo professor.",
+    "hintOpenOnly": "Respostas abertas são revisadas pelo professor."
+  },
+  "image": {
+    "title": "Imagem",
+    "alt": "Lição",
+    "noneTitle": "Sem imagem",
+    "noneDesc": "Esta lição não tem imagem de capa."
+  },
+  "translate": {
+    "to": "Traduzir para",
+    "searchPlaceholder": "Buscar idioma…",
+    "text": "Traduzir texto",
+    "tasks": "Traduzir tarefas",
+    "translating": "Traduzindo…",
+    "reset": "Redefinir tradução",
+    "failed": "Falha na tradução",
+    "translatedLabel": "Traduzido",
+    "showTranslation": "Mostrar tradução",
+    "hideTranslation": "Ocultar tradução",
+
+    "targetLang": "Traduzir para",
+    "working": "Processando…",
+    "toggleTask": "Alternar tradução",
+    "hide": "Ocultar",
+    "show": "Mostrar"
+  },
+  "submit": {
+    "submit": "ENVIAR PARA O ESPAÇO",
+    "resubmit": "REENVIAR (Precisa melhorar)",
+    "saving": "Enviando…",
+    "submitted": "Enviado ✅",
+    "title": "Enviar",
+    "anonTitle": "Convidados também podem enviar (auth anônima)"
+  },
+  "tts": {
+    "speed": "Velocidade",
+    "playOriginal": "🔊 Ouvir original",
+    "playTranslation": "🔊 Ouvir tradução",
+    "stop": "⏹ Parar",
+    "pause": "⏸ Pausar",
+    "continue": "▶️ Continuar",
+    "replay": "⟲ Repetir frase",
+    "prev": "⟵ Anterior",
+    "next": "Próximo ⟶",
+    "generating": "Gerando…",
+    "failed": "Falha no TTS",
+
+    "working": "Processando…",
+    "resume": "Retomar",
+    "time": "{cur}s / {dur}s"
+  },
+  "text": {
+    "title": "Texto",
+    "noText": "Sem texto",
+    "clickToSeek": "Clique para avançar no áudio",
+    "original": "Original",
+    "translation": "Tradução"
+  },
+  "tasks": {
+    "title": "Tarefas",
+    "none": "Nenhuma tarefa nesta lição.",
+    "showAll": "Mostrar todas as traduções",
+    "hideAll": "Ocultar todas as traduções",
+    "taskN": "Tarefa {n}",
+    "yourAnswer": "Sua resposta",
+    "true": "Verdadeiro",
+    "false": "Falso",
+    "locked": "Bloqueado",
+    "autoCorrect": "Auto: ✅ correto",
+    "autoWrong": "Auto: ❌ incorreto",
+    "autoUnanswered": "Auto: ⏳ não respondido",
+    "writeAnswerPlaceholder": "Escreva sua resposta…",
+
+    "noPrompt": "Tarefa",
+    "writeAnswer": "Escreva sua resposta…"
+  },
+  "teacherFeedback": {
+    "title": "Feedback do professor",
+    "updatedAt": "Atualizado: {at}"
+  },
+  "submission": {
+    "updatedAt": "Última atualização: {at}"
+  },
+  "autograde": {
+    "label": "PONTUAÇÃO AUTOMÁTICA/RESULTADO",
+    "details": "{s}"
+  }
     },
     "submission": {
       "title": "Entrega",
@@ -430,9 +464,9 @@
   },
   "teacher": {
     "spaces": {
-      "title": "Espaços do professor",
-      "subtitle": "Espaços são salas/grupos onde você compartilha atividades por link ou código. Compartilhar em um espaço exige atestação (modelo B1), mas não nome completo.",
-      "newSpace": "+ Novo espaço",
+      "title": "Sala de aula/grupo",
+      "subtitle": "Aqui você pode compartilhar tarefas com os alunos, seja com a turma toda ou com um grupo específico dentro da turma.",
+      "newSpace": "+ Criar novo espaço",
       "newSpaceLocked": "+ Novo espaço (bloqueado)",
       "newSpaceTitle": "Criar um novo espaço",
       "newSpaceLockedTitle": "Requer atestação + modo Professor/Criador",
@@ -472,7 +506,7 @@
         "joinWithQrTitle": "Mostrar QR code",
         "seeMembers": "Ver membros",
         "seeMembersTitle": "Ver membros",
-        "openSpace": "Abrir",
+        "openSpace": "Abrir espaço",
         "openSpaceTitle": "Abrir espaço"
       },
       "empty": {
@@ -491,14 +525,14 @@
       }
     },
     "spacesNew": {
-      "title": "Nova turma",
+      "title": "Criar nova turma",
       "fields": {
         "name": {
           "label": "Nome",
           "placeholder": "Ex.: Norueguês A2 – Grupo 1"
         },
         "isOpen": {
-          "label": "A turma fica aberta para envios anônimos (recomendado no MVP)"
+          "label": "Dê um nome adequado à sala. Em seguida, convide os membros."
         }
       },
       "actions": {
@@ -667,7 +701,7 @@
         "needsWork": "Precisa melhorar"
       },
       "auto": {
-        "main": "Auto: {correct}/{total}{pctText}",
+        "main": "PONTUAÇÃO AUTOMÁTICA/RESULTADO: {correct}/{total}{pctText}",
         "details": "Corretas: {correct} · Erradas: {wrong} · Em branco: {unanswered}",
         "taskCorrect": "Auto: ✅ correto",
         "taskWrong": "Auto: ❌ incorreto",
@@ -704,6 +738,20 @@
         "saved": "Salvo ✅",
         "saveFailed": "Não foi possível salvar: {msg}",
         "rulesHint": "(Rules: apenas professor/dono/admin pode alterar)"
+      },
+      "ai": {
+        "title": "Avaliação da IA",
+        "generateButton": "Gerar avaliação da IA",
+        "generating": "Gerando…",
+        "copyButton": "Copiar",
+        "insertButton": "Inserir na avaliação do professor",
+        "placeholder": "A avaliação da IA será salva aqui…",
+        "generated": "Avaliação da IA atualizada.",
+        "generateFailed": "Não foi possível gerar a avaliação da IA: {msg}",
+        "copied": "Copiado!",
+        "copyFailed": "Não foi possível copiar.",
+        "inserted": "Inserido na avaliação do professor.",
+        "rulesHint": "Salvo em"
       },
       "fallback": {
         "guest": "Convidado",
@@ -1216,7 +1264,7 @@
         "loading": "Carregando…"
       },
       "buttons": {
-        "save": "Salvar",
+        "save": "Salvar no meu conteúdo",
         "saving": "Salvando…"
       },
       "metaLine": "id: {id} · uid: {uid} · status: {status}",

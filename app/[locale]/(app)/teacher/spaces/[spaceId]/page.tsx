@@ -1,15 +1,15 @@
 // app/[locale]/(app)/teacher/spaces/[spaceId]/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
+import { getAuth } from "firebase/auth";
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
@@ -29,7 +29,6 @@ import { setSpaceOpen } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
 
 type AccessState = "checking" | "allowed" | "denied";
-
 type SourceType = "myContent" | "library";
 
 type AssignmentDoc = {
@@ -45,30 +44,12 @@ type AssignmentDoc = {
   updatedAt?: unknown;
 };
 
-type AssignmentRow = {
-  id: string;
-  data: AssignmentDoc;
-};
+type AssignmentRow = { id: string; data: AssignmentDoc };
 
-type SubmissionData = {
-  createdAt?: unknown;
-  status?: unknown;
-};
+type SubmissionData = { createdAt?: unknown; status?: unknown };
 
-type MyLesson = {
-  title?: string;
-  level?: string;
-  language?: string;
-  ownerId?: string;
-  status?: string;
-};
-
-type LibraryLesson = {
-  title?: string;
-  level?: string;
-  language?: string;
-  isActive?: boolean;
-};
+type MyLesson = { title?: string; level?: string; language?: string; ownerId?: string; status?: string };
+type LibraryLesson = { title?: string; level?: string; language?: string; isActive?: boolean };
 
 type SpaceDocSafe = SpaceDoc & {
   ownerId?: unknown;
@@ -79,11 +60,14 @@ type SpaceDocSafe = SpaceDoc & {
   title?: unknown;
 };
 
-type QrState = {
-  open: boolean;
-  dataUrl: string | null;
-  busy: boolean;
-  err: string | null;
+type QrState = { open: boolean; dataUrl: string | null; busy: boolean; err: string | null };
+
+type QuotaState = {
+  feature: string;
+  periodKey: string;
+  limit: number;
+  used: number;
+  remaining: number;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -132,21 +116,11 @@ function snapTo<T>(d: QueryDocumentSnapshot<DocumentData>): T {
   return (d.data() as T) ?? ({} as T);
 }
 
-/**
- * "New" = ikke reviewet ennå.
- * Ferdig: reviewed / approved / needs_work
- */
 function isReviewedStatus(statusRaw: unknown): boolean {
   const s = typeof statusRaw === "string" ? statusRaw.toLowerCase().trim() : "";
   return s === "reviewed" || s === "approved" || s === "needs_work" || s === "needswork";
 }
 
-/**
- * Locale-safe link helper:
- * - keeps absolute URLs unchanged
- * - prefixes "/{locale}" for internal paths that start with "/"
- * - avoids double-prefix if already "/en/..." or "/no/..." or "/pt/..."
- */
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
   if (!href.startsWith("/")) return href;
@@ -156,6 +130,15 @@ function withLocale(locale: string, href: string): string {
 
   if (href === "/") return `/${locale}`;
   return `/${locale}${href}`;
+}
+
+function parseJsonUnknown(raw: string): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
 }
 
 export default function TeacherSpaceDetailPage() {
@@ -178,8 +161,6 @@ function Inner() {
 
   const isAdmin = useMemo(() => readIsAdmin(profile), [profile]);
 
-  // Nå: ingen attestering/mode-gating.
-  // Operasjoner styres av access (owner/admin/member) + at du er innlogget.
   const canOperateSpace = accessAllowedGuard(user?.uid);
 
   const [space, setSpace] = useState<SpaceDocSafe | null>(null);
@@ -202,23 +183,75 @@ function Inner() {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [showArchived, setShowArchived] = useState(false);
 
-  // Per-assignment submission summary (counts + new)
-  const [subSummaryByAssignment, setSubSummaryByAssignment] = useState<
-    Record<string, { total: number; newCount: number }>
-  >({});
+  const [subSummaryByAssignment, setSubSummaryByAssignment] = useState<Record<string, { total: number; newCount: number }>>({});
   const [subSummaryErrByAssignment, setSubSummaryErrByAssignment] = useState<Record<string, string | null>>({});
   const [subSummaryUnsubByAssignment, setSubSummaryUnsubByAssignment] = useState<Record<string, Unsubscribe>>({});
 
-  // Assign modal
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignTab, setAssignTab] = useState<SourceType>("myContent");
   const [assignSearch, setAssignSearch] = useState("");
 
-  // Pagination (My Content only)
   const PAGE_SIZE = 5;
   const [pageMy, setPageMy] = useState(0);
   const [myContent, setMyContent] = useState<Array<{ id: string; data: MyLesson }>>([]);
   const [library, setLibrary] = useState<Array<{ id: string; data: LibraryLesson }>>([]);
+
+  // ✅ QUOTA UI
+  const FEATURE_ASSIGN = "teacher_assign_task";
+  const [quota, setQuota] = useState<QuotaState | null>(null);
+  const [quotaErr, setQuotaErr] = useState<string | null>(null);
+  const [quotaLoading, setQuotaLoading] = useState(false);
+
+  const loadQuota = useCallback(async () => {
+    setQuotaErr(null);
+    setQuotaLoading(true);
+    try {
+      const u = getAuth().currentUser;
+      if (!u) {
+        setQuota(null);
+        return;
+      }
+
+      const token = await u.getIdToken();
+      const res = await fetch(`/api/quota?feature=${encodeURIComponent(FEATURE_ASSIGN)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const raw = await res.text();
+      const data: unknown = parseJsonUnknown(raw) ?? {};
+
+      if (!res.ok) {
+        const msg =
+          isRecord(data) && typeof data["error"] === "string"
+            ? String(data["error"])
+            : raw || `Quota request failed (${res.status})`;
+        throw new Error(msg);
+      }
+
+      if (
+        isRecord(data) &&
+        typeof data["limit"] === "number" &&
+        typeof data["used"] === "number" &&
+        typeof data["remaining"] === "number" &&
+        typeof data["periodKey"] === "string"
+      ) {
+        setQuota({
+          feature: FEATURE_ASSIGN,
+          periodKey: String(data["periodKey"]),
+          limit: Number(data["limit"]),
+          used: Number(data["used"]),
+          remaining: Number(data["remaining"]),
+        });
+      } else {
+        setQuota(null);
+      }
+    } catch (e: unknown) {
+      setQuota(null);
+      setQuotaErr(getErrorInfo(e).message || "Failed to load quota");
+    } finally {
+      setQuotaLoading(false);
+    }
+  }, [FEATURE_ASSIGN]);
 
   // Space doc
   useEffect(() => {
@@ -226,7 +259,7 @@ function Inner() {
     return onSnapshot(ref, (snap) => setSpace(snap.exists() ? (snap.data() as SpaceDocSafe) : null));
   }, [spaceId]);
 
-  // Access check (owner/admin/member)
+  // Access check
   useEffect(() => {
     let alive = true;
 
@@ -281,11 +314,21 @@ function Inner() {
     };
   }, [loading, user?.uid, isAdmin, spaceId, space, t]);
 
+  // ✅ Load quota when allowed + when modal opens
+  useEffect(() => {
+    if (access !== "allowed") return;
+    if (!user?.uid) return;
+    void loadQuota();
+  }, [access, user?.uid, loadQuota]);
+
+  useEffect(() => {
+    if (!assignOpen) return;
+    if (access !== "allowed") return;
+    void loadQuota();
+  }, [assignOpen, access, loadQuota]);
+
   const joinCode = useMemo(() => (space?.code ?? "").toString(), [space]);
-  const joinLink = useMemo(
-    () => withLocale(locale, `/join?code=${encodeURIComponent(joinCode || "")}`),
-    [locale, joinCode]
-  );
+  const joinLink = useMemo(() => withLocale(locale, `/join?code=${encodeURIComponent(joinCode || "")}`), [locale, joinCode]);
 
   const activeForStudentsId = useMemo(() => {
     const v = space?.activeLessonId;
@@ -356,7 +399,6 @@ function Inner() {
     if (access !== "allowed") return;
 
     const qy = query(collection(db, "spaces", spaceId, "lessons"), orderBy("assignedAt", "desc"));
-
     return onSnapshot(qy, (snap) => {
       const next: AssignmentRow[] = snap.docs.map((d) => ({
         id: d.id,
@@ -370,7 +412,7 @@ function Inner() {
     return showArchived ? assignments : assignments.filter((a) => a.data.status !== "archived");
   }, [assignments, showArchived]);
 
-  // Ensure submission-summary listeners for visible assignments
+  // Submission summary listeners
   useEffect(() => {
     if (access !== "allowed") return;
 
@@ -380,8 +422,8 @@ function Inner() {
       if (!visibleIds.has(assignmentId)) {
         try {
           unsub();
-        } catch (e: unknown) {
-          void e;
+        } catch {
+          // ignore
         }
         setSubSummaryUnsubByAssignment((m) => {
           const copy = { ...m };
@@ -411,10 +453,7 @@ function Inner() {
             if (!isReviewedStatus(data.status)) newCount += 1;
           });
 
-          setSubSummaryByAssignment((m) => ({
-            ...m,
-            [a.id]: { total: snap.size, newCount },
-          }));
+          setSubSummaryByAssignment((m) => ({ ...m, [a.id]: { total: snap.size, newCount } }));
         },
         (err: unknown) => {
           const info = getErrorInfo(err);
@@ -424,24 +463,21 @@ function Inner() {
 
       setSubSummaryUnsubByAssignment((m) => ({ ...m, [a.id]: unsub }));
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [access, spaceId, visibleAssignments]);
+  }, [access, spaceId, visibleAssignments, subSummaryUnsubByAssignment, t]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       Object.values(subSummaryUnsubByAssignment).forEach((u) => {
         try {
           u();
-        } catch (e: unknown) {
-          void e;
+        } catch {
+          // ignore
         }
       });
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [subSummaryUnsubByAssignment]);
 
-  // Load My Content (published + unlisted only)
+  // My Content (published + unlisted)
   useEffect(() => {
     if (access !== "allowed") return;
     if (!user?.uid) return;
@@ -457,7 +493,7 @@ function Inner() {
     return onSnapshot(qy, (snap) => setMyContent(snap.docs.map((d) => ({ id: d.id, data: snapTo<MyLesson>(d) }))));
   }, [access, user?.uid]);
 
-  // Load Library (unpaged)
+  // Library
   useEffect(() => {
     if (access !== "allowed") return;
 
@@ -508,6 +544,7 @@ function Inner() {
     return t("assignModal.paging.range", { start, end, total });
   }, [filteredMyContent.length, pageMy, t]);
 
+  // ✅ ASSIGN VIA SERVER (quota enforced)
   async function assignTask(src: { type: SourceType; id: string; title?: string; level?: string; language?: string }) {
     setSaveErr(null);
 
@@ -517,30 +554,46 @@ function Inner() {
     }
     if (!user?.uid) return;
 
-    const payload: AssignmentDoc = {
-      status: "active",
-      sourceType: src.type,
-      sourceId: src.id,
-      title: (src.title ?? t("fallback.untitledTask")).toString(),
-      level: src.level,
-      language: src.language,
-      assignedAt: Timestamp.now(),
-      createdAt: Timestamp.now(),
-      assignedByUid: user.uid,
-    };
-
     setSaving(true);
     try {
-      const ref = await addDoc(collection(db, "spaces", spaceId, "lessons"), payload);
+      const u = getAuth().currentUser;
+      if (!u) throw new Error("Not signed in");
+      const token = await u.getIdToken();
 
-      await updateDoc(doc(db, "spaces", spaceId), {
-        activeLessonId: ref.id,
-        activeLessonTitle: payload.title ?? null,
-        activeUpdatedAt: Timestamp.now(),
+      const res = await fetch(`/api/teacher/spaces/${spaceId}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          sourceType: src.type,
+          sourceId: src.id,
+          title: (src.title ?? t("fallback.untitledTask")).toString(),
+          level: src.level,
+          language: src.language,
+        }),
       });
+
+      const raw = await res.text();
+      const data: unknown = parseJsonUnknown(raw) ?? {};
+
+      if (res.status === 429) {
+        setSaveErr("Du har nå nådd grensen for denne måneden (0 igjen).");
+        void loadQuota();
+        return;
+      }
+
+      if (!res.ok) {
+        const msg =
+          isRecord(data) && typeof data["error"] === "string"
+            ? String(data["error"])
+            : raw || `Request failed (${res.status})`;
+        throw new Error(msg);
+      }
 
       setAssignOpen(false);
       setAssignSearch("");
+
+      // ✅ refresh quota after success
+      void loadQuota();
     } catch (e: unknown) {
       setSaveErr(getErrorInfo(e).message || t("errors.assignFailed"));
     } finally {
@@ -584,12 +637,8 @@ function Inner() {
     }
   }
 
-  // --- RENDER ---
-
-  if (loading)
-    return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{tCommon("loading")}</div>;
-  if (!space)
-    return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{tCommon("loading")}</div>;
+  if (loading) return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{tCommon("loading")}</div>;
+  if (!space) return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{tCommon("loading")}</div>;
 
   if (access === "checking") {
     return (
@@ -634,8 +683,23 @@ function Inner() {
     );
   }
 
-  // NB: canOperateSpace bruker access=allowed og login, ikke attestering.
   const canManage = access === "allowed" && Boolean(user?.uid) && canOperateSpace;
+
+  const quotaBadge = (
+    <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-muted-foreground">
+      {quotaLoading ? (
+        <>Quota: …</>
+      ) : quota ? (
+        <>
+          Quota: <b className="text-foreground">{quota.remaining}</b> / {quota.limit} igjen ({quota.periodKey})
+        </>
+      ) : quotaErr ? (
+        <>Quota: feilet</>
+      ) : (
+        <>Quota: —</>
+      )}
+    </span>
+  );
 
   return (
     <div className="mx-auto max-w-4xl p-4">
@@ -690,6 +754,8 @@ function Inner() {
           </button>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            {quotaBadge}
+
             {activeForStudentsId ? (
               <>
                 <span className="text-sm text-muted-foreground">
@@ -713,9 +779,7 @@ function Inner() {
         </div>
       </div>
 
-      {saveErr && (
-        <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveErr}</div>
-      )}
+      {saveErr && <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveErr}</div>}
 
       {/* Assignments */}
       <div className="mt-4 grid gap-3 rounded-2xl border bg-white p-4 shadow-sm">
@@ -793,22 +857,16 @@ function Inner() {
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="font-semibold">{a.data.title || t("fallback.untitledTask")}</div>
 
-                        {isActiveForStudents && (
-                          <span className="rounded-full border px-2 py-0.5 text-xs">{t("badges.active")}</span>
-                        )}
+                        {isActiveForStudents && <span className="rounded-full border px-2 py-0.5 text-xs">{t("badges.active")}</span>}
 
                         {status === "archived" && (
-                          <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-                            {t("badges.archived")}
-                          </span>
+                          <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{t("badges.archived")}</span>
                         )}
 
                         {!sumErr ? (
                           <>
                             {summary.total === 0 ? (
-                              <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-                                {t("badges.noSubmissions")}
-                              </span>
+                              <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{t("badges.noSubmissions")}</span>
                             ) : allReviewed ? (
                               <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-800">
                                 {t("badges.allReviewed")}
@@ -895,15 +953,18 @@ function Inner() {
           role="dialog"
           aria-modal="true"
         >
-          <div
-            className="w-full max-w-2xl rounded-2xl border bg-white p-5 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="w-full max-w-2xl rounded-2xl border bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-lg font-semibold">{t("assignModal.title")}</div>
                 <div className="mt-1 text-sm text-muted-foreground">{t("assignModal.subtitle")}</div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {quotaBadge}
+                  {quotaErr && <span className="text-xs text-muted-foreground">{quotaErr}</span>}
+                </div>
               </div>
+
               <button
                 type="button"
                 onClick={() => setAssignOpen(false)}
@@ -917,20 +978,14 @@ function Inner() {
               <button
                 type="button"
                 onClick={() => setAssignTab("myContent")}
-                className={[
-                  "rounded-xl border px-3 py-2 text-sm",
-                  assignTab === "myContent" ? "bg-black text-white" : "bg-white",
-                ].join(" ")}
+                className={["rounded-xl border px-3 py-2 text-sm", assignTab === "myContent" ? "bg-black text-white" : "bg-white"].join(" ")}
               >
                 {t("labels.myContent")}
               </button>
               <button
                 type="button"
                 onClick={() => setAssignTab("library")}
-                className={[
-                  "rounded-xl border px-3 py-2 text-sm",
-                  assignTab === "library" ? "bg-black text-white" : "bg-white",
-                ].join(" ")}
+                className={["rounded-xl border px-3 py-2 text-sm", assignTab === "library" ? "bg-black text-white" : "bg-white"].join(" ")}
               >
                 {t("labels.library")}
               </button>
@@ -944,6 +999,7 @@ function Inner() {
             </div>
 
             <div className="mt-4 grid gap-2">
+              {/* My content */}
               {assignTab === "myContent" && (
                 <>
                   {pagedMy.length === 0 ? (
@@ -975,8 +1031,9 @@ function Inner() {
                                 language: x.data.language,
                               })
                             }
-                            disabled={saving || !canManage}
+                            disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
                             className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                            title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
                           >
                             {t("assignModal.assign")}
                           </button>
@@ -1011,6 +1068,7 @@ function Inner() {
                 </>
               )}
 
+              {/* Library */}
               {assignTab === "library" && (
                 <>
                   {filteredLibrary.length === 0 ? (
@@ -1041,8 +1099,9 @@ function Inner() {
                                 language: x.data.language,
                               })
                             }
-                            disabled={saving || !canManage}
+                            disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
                             className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                            title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
                           >
                             {t("assignModal.assign")}
                           </button>
@@ -1065,10 +1124,7 @@ function Inner() {
           role="dialog"
           aria-modal="true"
         >
-          <div
-            className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-lg font-semibold">{t("qr.title")}</div>
@@ -1096,8 +1152,7 @@ function Inner() {
                     className="h-auto w-64 rounded-lg border"
                   />
                   <div className="text-center text-xs text-muted-foreground">
-                    {t("qr.pointsTo")}{" "}
-                    <b>{typeof window !== "undefined" ? `${window.location.origin}${joinLink}` : joinLink}</b>
+                    {t("qr.pointsTo")} <b>{typeof window !== "undefined" ? `${window.location.origin}${joinLink}` : joinLink}</b>
                   </div>
                 </div>
               )}
@@ -1110,7 +1165,7 @@ function Inner() {
     </div>
   );
 }
-// Helper: småting for å være eksplisitt
+
 function accessAllowedGuard(uid: string | undefined | null): boolean {
   return !!uid;
 }

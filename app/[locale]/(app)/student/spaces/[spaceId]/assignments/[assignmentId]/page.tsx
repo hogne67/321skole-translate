@@ -215,6 +215,8 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
 
   const byTask: Record<string, AutoGradeEntry> = {};
 
+  const u2n = (v: unknown) => (v === undefined ? null : v); // ✅ Firestore-sikkert
+
   tasks.forEach((t, idx) => {
     const stableId = getStableTaskId(t, idx);
     const type = String(t?.type ?? "open").toLowerCase();
@@ -227,12 +229,35 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
     const correct = t?.correctAnswer;
 
     if (type === "mcq") {
-      const s = normalizeMcq(student);
-      const c = normalizeMcq(correct);
+      const studentRaw = answersMap[stableId];
+
+      // Student kan være string (gammelt) eller number (nytt: index)
+      let s: string | null = null;
+      if (typeof studentRaw === "number" && Array.isArray(t?.options)) {
+        const opt = (t.options as unknown[])[studentRaw];
+        s = normalizeMcq(opt);
+      } else {
+        s = normalizeMcq(studentRaw);
+      }
+
+      // Correct kan være string eller number (index)
+      const correctRaw = t?.correctAnswer;
+      let c: string | null = null;
+      if (typeof correctRaw === "number" && Array.isArray(t?.options)) {
+        const opt = (t.options as unknown[])[correctRaw];
+        c = normalizeMcq(opt);
+      } else {
+        c = normalizeMcq(correctRaw);
+      }
 
       if (s == null) {
         unansweredAuto += 1;
-        byTask[stableId] = { type: "mcq", isCorrect: false, studentAnswer: student, correctAnswer: correct };
+        byTask[stableId] = {
+          type: "mcq",
+          isCorrect: false,
+          studentAnswer: u2n(studentRaw),   // ✅ aldri undefined
+          correctAnswer: u2n(correctRaw),   // ✅ aldri undefined
+        };
         return;
       }
 
@@ -240,7 +265,12 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
       if (isCorrect) correctAuto += 1;
       else wrongAuto += 1;
 
-      byTask[stableId] = { type: "mcq", isCorrect, studentAnswer: student, correctAnswer: correct };
+      byTask[stableId] = {
+        type: "mcq",
+        isCorrect,
+        studentAnswer: u2n(studentRaw),     // ✅
+        correctAnswer: u2n(correctRaw),     // ✅
+      };
       return;
     }
 
@@ -250,7 +280,12 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
 
     if (sB == null) {
       unansweredAuto += 1;
-      byTask[stableId] = { type: "truefalse", isCorrect: false, studentAnswer: student, correctAnswer: correct };
+      byTask[stableId] = {
+        type: "truefalse",
+        isCorrect: false,
+        studentAnswer: u2n(student),        // ✅ aldri undefined
+        correctAnswer: u2n(correct),        // ✅ aldri undefined
+      };
       return;
     }
 
@@ -258,7 +293,12 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
     if (isCorrect) correctAuto += 1;
     else wrongAuto += 1;
 
-    byTask[stableId] = { type: "truefalse", isCorrect, studentAnswer: student, correctAnswer: correct };
+    byTask[stableId] = {
+      type: "truefalse",
+      isCorrect,
+      studentAnswer: u2n(student),          // ✅
+      correctAnswer: u2n(correct),          // ✅
+    };
   });
 
   const percentAuto = totalAuto > 0 ? Math.round((correctAuto / totalAuto) * 100) : null;
@@ -469,13 +509,8 @@ function StatusToggleButton({
     </button>
   );
 }
-function SmartImage({
-  src,
-  alt,
-}: {
-  src: string;
-  alt: string;
-}) {
+
+function SmartImage({ src, alt }: { src: string; alt: string }) {
   const isInline = src.startsWith("data:") || src.startsWith("blob:");
   if (isInline) {
     // Next/Image kan ikke optimalisere data/blob trygt → bruk <img> men lovlig
@@ -494,6 +529,7 @@ function SmartImage({
     />
   );
 }
+
 /* =========================
    Page
 ========================= */
@@ -1111,7 +1147,22 @@ export default function StudentAssignmentPage() {
     if (v === "submitted") return t("statusDesc.submitted");
     return t("statusDesc.generic");
   }
+function stripUndefinedDeep<T>(value: T): T {
+  if (value === null) return value;
+  if (value === undefined) return value;
 
+  if (Array.isArray(value)) return value.map((v) => stripUndefinedDeep(v)) as unknown as T;
+
+  if (typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v === undefined) continue; // 🔥 dropp undefined-felt
+      out[k] = stripUndefinedDeep(v);
+    }
+    return out as T;
+  }
+  return value;
+}
   async function submitToSpace() {
     if (!spaceId || !assignmentId || !uid) return;
     if (submitted) return;
@@ -1134,22 +1185,22 @@ export default function StudentAssignmentPage() {
 
       const auto = computeAutoGrade(tasksOriginal, answers);
 
-      const basePayload: Record<string, unknown> = {
-        spaceId,
-        assignmentId,
-        sourceType: assignment?.sourceType ?? null,
-        sourceId: assignment?.sourceId ?? null,
-        title: assignment?.title ?? lesson?.title ?? null,
-        level: assignment?.level ?? lesson?.level ?? null,
-        language: assignment?.language ?? lesson?.language ?? null,
-        uid,
-        isAnon,
-        status: "submitted",
-        answers,
-        auto,
-        updatedAt: serverTimestamp(),
-        auth: { isAnon, uid },
-      };
+      const basePayload: Record<string, unknown> = stripUndefinedDeep({
+  spaceId,
+  assignmentId,
+  sourceType: assignment?.sourceType ?? null,
+  sourceId: assignment?.sourceId ?? null,
+  title: assignment?.title ?? lesson?.title ?? null,
+  level: assignment?.level ?? lesson?.level ?? null,
+  language: assignment?.language ?? lesson?.language ?? null,
+  uid,
+  isAnon,
+  status: "submitted",
+  answers,
+  auto,
+  updatedAt: serverTimestamp(),
+  auth: { isAnon, uid },
+});
 
       const batch = writeBatch(db);
 
@@ -1219,6 +1270,27 @@ export default function StudentAssignmentPage() {
     );
   };
 
+  // ✅ robust selection helpers (MCQ index + TF string/bool)
+  function getMcqSelectedIndex(stableId: string, options: unknown[]): number | null {
+    const a = answers[stableId];
+
+    if (typeof a === "number" && Number.isFinite(a)) {
+      const idx = Math.floor(a);
+      return idx >= 0 && idx < options.length ? idx : null;
+    }
+
+    const s = normalizeMcq(a);
+    if (!s) return null;
+
+    const idx = options.findIndex((o) => normalizeMcq(o) === s);
+    return idx >= 0 ? idx : null;
+  }
+
+  function isTrueSelected(stableId: string, v: boolean): boolean {
+    const b = normalizeBool(answers[stableId]);
+    return b === v;
+  }
+
   function renderTask(tk: Task, idx: number) {
     const stableId = getStableTaskId(tk, idx);
     const type = String(tk?.type ?? "open").toLowerCase();
@@ -1264,38 +1336,46 @@ export default function StudentAssignmentPage() {
         <div style={{ marginTop: 10 }}>
           {type === "mcq" && Array.isArray(tk.options) ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {tk.options.map((o, oi) => {
-                const optOrig = String(o);
-                const optTr = tr?.translatedOptions?.[oi];
-                const optShown = showTr && optTr ? optTr : optOrig;
+              {(() => {
+                const opts = tk.options as unknown[];
+                const selectedIdx = getMcqSelectedIndex(stableId, opts);
 
-                const checked = normalizeMcq(answers[stableId]) === optOrig;
+                return opts.map((o, oi) => {
+                  const optOrig = String(o);
+                  const optTr = tr?.translatedOptions?.[oi];
+                  const optShown = showTr && optTr ? optTr : optOrig;
 
-                return (
-                  <label
-                    key={`${stableId}_opt_${oi}`}
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "center",
-                      border: "1px solid rgba(0,0,0,0.10)",
-                      borderRadius: 10,
-                      padding: "8px 10px",
-                      cursor: locked ? "not-allowed" : "pointer",
-                      opacity: locked ? 0.7 : 1,
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name={`mcq_${stableId}`}
-                      checked={checked}
-                      disabled={locked}
-                      onChange={() => setAnswer(stableId, optOrig)}
-                    />
-                    <span>{optShown}</span>
-                  </label>
-                );
-              })}
+                  const checked = selectedIdx === oi;
+
+                  return (
+                    <label
+                      key={`${stableId}_opt_${oi}`}
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "center",
+                        border: checked ? "2px solid rgba(16,185,129,0.70)" : "1px solid rgba(0,0,0,0.10)",
+                        borderRadius: 12,
+                        padding: checked ? "9px 11px" : "10px 12px",
+                        cursor: locked ? "not-allowed" : "pointer",
+                        opacity: locked ? 0.7 : 1,
+                        background: checked ? "rgba(16,185,129,0.10)" : "white",
+                        transition: "all 120ms ease",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name={`mcq_${stableId}`}
+                        checked={checked}
+                        disabled={locked}
+                        onChange={() => setAnswer(stableId, oi)} // ✅ lagrer index (stabilt)
+                        style={{ transform: "scale(1.05)" }}
+                      />
+                      <span style={{ fontWeight: checked ? 800 : 600 }}>{optShown}</span>
+                    </label>
+                  );
+                });
+              })()}
             </div>
           ) : type === "truefalse" ? (
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -1305,7 +1385,9 @@ export default function StudentAssignmentPage() {
                 onClick={() => setAnswer(stableId, true)}
                 style={{
                   ...btnStyle,
-                  background: answers[stableId] === true ? "rgba(0,0,0,0.06)" : "white",
+                  background: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.14)" : "white",
+                  borderColor: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
+                  fontWeight: isTrueSelected(stableId, true) ? 900 : 700,
                   opacity: locked ? 0.7 : 1,
                 }}
               >
@@ -1317,7 +1399,9 @@ export default function StudentAssignmentPage() {
                 onClick={() => setAnswer(stableId, false)}
                 style={{
                   ...btnStyle,
-                  background: answers[stableId] === false ? "rgba(0,0,0,0.06)" : "white",
+                  background: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.14)" : "white",
+                  borderColor: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
+                  fontWeight: isTrueSelected(stableId, false) ? 900 : 700,
                   opacity: locked ? 0.7 : 1,
                 }}
               >
@@ -1395,6 +1479,26 @@ export default function StudentAssignmentPage() {
     .filter(Boolean)
     .join(" · ");
 
+  // ✅ shared submit button (big green) – duplicated top + bottom
+  const submitLabel = saving ? t("actions.saving") : editingSubmissionId ? t("actions.resubmit") : t("actions.submit");
+  const submitDisabled = saving || lock || !uid;
+
+  function SubmitButton({ fullWidth }: { fullWidth?: boolean }) {
+    return (
+      <button
+        type="button"
+        onClick={submitToSpace}
+        disabled={submitDisabled}
+        style={{
+          ...(submitDisabled ? primarySubmitStyleDisabled : primarySubmitStyle),
+          width: fullWidth ? "100%" : undefined,
+        }}
+      >
+        {submitLabel}
+      </button>
+    );
+  }
+
   return (
     <main style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
       <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -1436,6 +1540,9 @@ export default function StudentAssignmentPage() {
           >
             {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
           </button>
+
+          {/* ✅ Lever oppgave (duplisert øverst) */}
+          <SubmitButton />
         </div>
       </header>
 
@@ -1444,18 +1551,18 @@ export default function StudentAssignmentPage() {
       ) : null}
 
       {imageUrl ? (
-  <div
-    style={{
-      marginTop: 14,
-      maxHeight: 340,
-      overflow: "hidden",
-      borderRadius: 14,
-      border: "1px solid rgba(0,0,0,0.10)",
-    }}
-  >
-    <SmartImage src={imageUrl} alt={mainTitle || "Cover"} />
-  </div>
-) : null}
+        <div
+          style={{
+            marginTop: 14,
+            maxHeight: 340,
+            overflow: "hidden",
+            borderRadius: 14,
+            border: "1px solid rgba(0,0,0,0.10)",
+          }}
+        >
+          <SmartImage src={imageUrl} alt={mainTitle || "Cover"} />
+        </div>
+      ) : null}
 
       {showStatusCard ? (
         <section
@@ -1496,7 +1603,9 @@ export default function StudentAssignmentPage() {
             <div style={{ marginTop: 10 }}>
               <div style={{ fontWeight: 900 }}>{t("teacherFeedback.title")}</div>
               <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{liveTeacherText}</div>
-              {liveTeacherUpdatedAt ? <div style={{ marginTop: 6, opacity: 0.7 }}>{t("teacherFeedback.updatedAt", { at: liveTeacherUpdatedAt })}</div> : null}
+              {liveTeacherUpdatedAt ? (
+                <div style={{ marginTop: 6, opacity: 0.7 }}>{t("teacherFeedback.updatedAt", { at: liveTeacherUpdatedAt })}</div>
+              ) : null}
             </div>
           ) : null}
 
@@ -1618,18 +1727,8 @@ export default function StudentAssignmentPage() {
         {msg ? <div style={{ marginBottom: 10, padding: 10, borderRadius: 12, background: "rgba(0,0,0,0.04)" }}>{msg}</div> : null}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <button
-            type="button"
-            onClick={submitToSpace}
-            disabled={saving || lock || !uid}
-            style={{
-              ...btnStyle,
-              fontWeight: 900,
-              opacity: saving || lock ? 0.7 : 1,
-            }}
-          >
-            {saving ? t("actions.saving") : editingSubmissionId ? t("actions.resubmit") : t("actions.submit")}
-          </button>
+          {/* ✅ Lever oppgave (større + grønn) */}
+          <SubmitButton />
 
           <Link href={`/student/spaces/${spaceId}`} style={{ textDecoration: "none" }}>
             {t("actions.backToSpace")}
@@ -1646,4 +1745,21 @@ const btnStyle: React.CSSProperties = {
   padding: "8px 12px",
   background: "white",
   cursor: "pointer",
+};
+
+const primarySubmitStyle: React.CSSProperties = {
+  ...btnStyle,
+  background: "rgba(16,185,129,1)",
+  border: "1px solid rgba(16,185,129,1)",
+  color: "white",
+  padding: "12px 16px",
+  borderRadius: 12,
+  fontWeight: 900,
+  fontSize: 15,
+};
+
+const primarySubmitStyleDisabled: React.CSSProperties = {
+  ...primarySubmitStyle,
+  opacity: 0.65,
+  cursor: "not-allowed",
 };
