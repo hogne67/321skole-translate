@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import QRCode from "qrcode";
 
 import { db } from "@/lib/firebase";
@@ -224,6 +224,12 @@ export default function ContentClient() {
     return `/${locale}/student/lesson/${pid}`;
   }
 
+  function spaceBoardHref(spaceId: string) {
+    return role === "teacher"
+      ? `/${locale}/teacher/spaces/${spaceId}/board`
+      : `/${locale}/student/spaces/${spaceId}/board`;
+  }
+
   // ✅ EN eneste itemOpenHref (ingen nested funksjoner!)
   function itemOpenHref(it: ContentItem) {
     switch (it.type) {
@@ -392,22 +398,24 @@ export default function ContentClient() {
   }
 
   async function assignLessonToSpace(spaceId: string) {
-    if (!pickLesson || !uid) return;
+    if (!pickLesson) return;
 
-    const key = `lesson:${pickLesson.lessonId}`;
+    const lessonId = pickLesson.lessonId;
+    const key = `shareToSpace:${spaceId}:${lessonId}`;
     setErr(null);
     setBusy(key, true);
 
     try {
-      // NB: behold ditt eksisterende assign-endepunkt / modell senere.
-      await setDoc(doc(db, `spaces/${spaceId}/assignments/${pickLesson.lessonId}`), {
-        lessonId: pickLesson.lessonId,
-        createdAt: serverTimestamp(),
-        createdBy: uid,
-        status: "active",
+      await authedPost(`/api/teacher/spaces/${spaceId}/assign`, {
+        sourceType: "myContent",
+        sourceId: lessonId,
+        title: pickLesson.title || t("fallback.untitledTask"),
       });
 
       closePickSpace();
+
+      // ✅ Send læreren rett inn i rommet
+      router.push(`/${locale}/teacher/spaces/${spaceId}`);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : t("errors.assignFailed"));
     } finally {
@@ -516,7 +524,9 @@ export default function ContentClient() {
 
   async function restoreLesson(lessonId: string, title: string) {
     const msg =
-      locale === "en" ? `Restore lesson${title ? `: "${title}"` : ""}?` : `Gjenopprette oppgaven${title ? `: "${title}"` : ""}?`;
+      locale === "en"
+        ? `Restore lesson${title ? `: "${title}"` : ""}?`
+        : `Gjenopprette oppgaven${title ? `: "${title}"` : ""}?`;
 
     const ok = confirm(msg);
     if (!ok) return;
@@ -590,30 +600,38 @@ export default function ContentClient() {
     }
 
     // SPACE
-if (it.type === "space") {
-  const sp = it as Extract<ContentItem, { type: "space" }>;
-  const code = sp.joinCode || "";
-  const joinUrl = code ? `${getOrigin()}/${locale}/join?code=${encodeURIComponent(code)}` : "";
+    if (it.type === "space") {
+      const sp = it as Extract<ContentItem, { type: "space" }>;
+      const code = sp.joinCode || "";
+      const joinUrl = code ? `${getOrigin()}/${locale}/join?code=${encodeURIComponent(code)}` : "";
 
-  // ✅ Kun lærer skal kunne dele rom med lenke/QR fra My Content
-  const canShareSpace = role === "teacher"; // evt strammere: role==="teacher" && sp.ownerUid===uid
+      // ✅ Kun lærer skal kunne dele rom med lenke/QR fra My Content
+      const canShareSpace = role === "teacher";
 
-  return [
-    { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(sp)) },
+      return [
+        { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(sp)) },
 
-    ...(canShareSpace && code
-      ? [{ key: "copyCode", label: t("actions.copyJoinCode"), disabled: busy, onClick: () => copyText(code) }]
-      : []),
+        // ✅ Tavle for både student og teacher (riktig route)
+        {
+          key: "board",
+          label: t("actions.board"),
+          disabled: busy,
+          onClick: () => router.push(spaceBoardHref(sp.id)),
+        },
 
-    ...(canShareSpace
-      ? [{ key: "share", label: t("actions.shareLinkQr"), disabled: busy, onClick: () => openShareForSpace(sp) }]
-      : []),
+        ...(canShareSpace && code
+          ? [{ key: "copyCode", label: t("actions.copyJoinCode"), disabled: busy, onClick: () => copyText(code) }]
+          : []),
 
-    ...(canShareSpace && joinUrl
-      ? [{ key: "copyJoinLink", label: t("actions.copyJoinLink"), disabled: busy, onClick: () => copyText(joinUrl) }]
-      : []),
-  ];
-}
+        ...(canShareSpace
+          ? [{ key: "share", label: t("actions.shareLinkQr"), disabled: busy, onClick: () => openShareForSpace(sp) }]
+          : []),
+
+        ...(canShareSpace && joinUrl
+          ? [{ key: "copyJoinLink", label: t("actions.copyJoinLink"), disabled: busy, onClick: () => copyText(joinUrl) }]
+          : []),
+      ];
+    }
 
     // LESSON
     const ls = it as Extract<ContentItem, { type: "lesson" }>;
@@ -850,7 +868,12 @@ if (it.type === "space") {
                 pill = <StatusPill label={deletedLabel} variant="amber" />;
               } else if (it.type === "lesson") {
                 const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
-                pill = s === "published" ? <StatusPill label={t("pills.published")} variant="green" /> : <StatusPill label={t("pills.unpublished")} variant="red" />;
+                pill =
+                  s === "published" ? (
+                    <StatusPill label={t("pills.published")} variant="green" />
+                  ) : (
+                    <StatusPill label={t("pills.unpublished")} variant="red" />
+                  );
               } else if (it.status) {
                 pill = <StatusPill label={it.status} variant="gray" />;
               }
@@ -886,7 +909,23 @@ if (it.type === "space") {
                       {/* quick actions on desktop */}
                       <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
                         {actions
-                          .filter((a) => ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "pdf", "delete", "restore"].includes(a.key))
+                          .filter((a) =>
+                            [
+                              "open",
+                              "board",
+                              "edit",
+                              "publish",
+                              "unpublish",
+                              "share",
+                              "shareToSpace",
+                              "pdf",
+                              "delete",
+                              "restore",
+                              "copyJoinLink",
+                              "copyCode",
+                              "shareLinkQr",
+                            ].includes(a.key)
+                          )
                           .slice(0, 6)
                           .map((a) => {
                             if (a.key === "delete") {
@@ -912,9 +951,10 @@ if (it.type === "space") {
                       </div>
                     </div>
 
-                    <div className="shrink-0">
-                      <ActionMenu items={actions} />
-                    </div>
+                    {/* ✅ Høyre: Åpne + Tavle ved siden av hverandre for space, så ⋮ */}
+                    <div className="shrink-0 flex items-center gap-2">
+  <ActionMenu items={actions} />
+</div>
                   </div>
                 </div>
               );
@@ -1014,7 +1054,7 @@ if (it.type === "space") {
             </div>
 
             <div className="border-t p-4 text-xs opacity-70">
-              {t("shareToSpace.createsLabel")} <code>{`spaces/{spaceId}/assignments/${pickLesson.lessonId}`}</code>
+              {t("shareToSpace.createsLabel")} <code>{`spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
             </div>
           </div>
         </div>

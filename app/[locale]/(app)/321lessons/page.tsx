@@ -282,7 +282,6 @@ export default function LessonsLandingPage() {
     return Math.max(1, Math.ceil(filtered.length / pageSize));
   }, [filtered.length, pageSize]);
 
-  // clamp hvis pageSize endrer seg og vi havner utenfor
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
     if (page < 1) setPage(1);
@@ -354,9 +353,21 @@ export default function LessonsLandingPage() {
           }
         }
 
+        /* ✅ Make the whole card clickable, but NEVER look like a link */
+        .cardLink,
+        .cardLink:link,
+        .cardLink:visited,
+        .cardLink:hover,
+        .cardLink:active {
+          text-decoration: none !important;
+          color: inherit !important;
+        }
+        .cardLink * {
+          text-decoration: none !important;
+          color: inherit !important;
+        }
+
         .card {
-          text-decoration: none;
-          color: inherit;
           border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 14px;
           overflow: hidden;
@@ -364,6 +375,20 @@ export default function LessonsLandingPage() {
           display: flex;
           flex-direction: column;
           min-height: 100%;
+          transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease,
+            background 140ms ease;
+        }
+
+        /* subtle life */
+        .cardLink:hover .card {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
+          border-color: rgba(0, 0, 0, 0.18);
+          background: rgba(0, 0, 0, 0.01);
+        }
+        .cardLink:focus-visible .card {
+          outline: 3px solid rgba(0, 0, 0, 0.25);
+          outline-offset: 3px;
         }
 
         .imgWrap {
@@ -400,13 +425,67 @@ export default function LessonsLandingPage() {
 
         .content {
           padding: 14px;
-        }
-        .metaRow {
           display: flex;
-          gap: 8px;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        /* Title first */
+        .title {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 800;
+          line-height: 1.2;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        /* Meta smaller + calmer */
+        .meta {
+          font-size: 13px;
+          opacity: 0.72;
+          display: flex;
+          gap: 6px;
+          align-items: center;
           flex-wrap: wrap;
-          margin-bottom: 8px;
-          opacity: 0.75;
+        }
+        .dot {
+          opacity: 0.55;
+        }
+
+        .desc {
+          margin: 4px 0 0;
+          opacity: 0.82;
+          line-height: 1.4;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .footer {
+          margin-top: 12px;
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        /* visual “open” hint — not a real button */
+        .openPill {
+          display: inline-flex;
+          align-items: center;
+          padding: 7px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(0, 0, 0, 0.16);
+          background: rgba(0, 0, 0, 0.03);
+          font-weight: 800;
+          font-size: 13px;
+          opacity: 0.92;
+        }
+        .cardLink:hover .openPill {
+          background: rgba(0, 0, 0, 0.06);
+          border-color: rgba(0, 0, 0, 0.22);
         }
 
         .pagerRow {
@@ -565,46 +644,49 @@ export default function LessonsLandingPage() {
           pageSlice.map((l) => {
             const langCode = normLang(l.language);
             const langLabel = langLabelByCode.get(langCode) || (l.language ? l.language : "");
-
+            const tt = coerceTextType(l);
             const img = pickImageUrl(l);
 
             // ✅ Link til lesson innen samme locale
             const lessonHref = `/${locale}/lesson/${l.id}`;
 
             return (
-              <Link key={l.id} href={lessonHref} className="card">
-                <div className="imgWrap">
-                  <div className="badge">
-                    <span>{(l.level || "—").toUpperCase()}</span>
+              <Link key={l.id} href={lessonHref} className="cardLink" aria-label={l.title}>
+                <div className="card">
+                  <div className="imgWrap">
+                    <div className="badge">
+                      <span>{(l.level || "—").toUpperCase()}</span>
+                    </div>
+
+                    {img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={img} alt={l.title} className="img" />
+                    ) : (
+                      <div style={{ fontSize: 13, opacity: 0.6 }}>{t("card.imageFallback")}</div>
+                    )}
                   </div>
 
-                  {img ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={img} alt={l.title} className="img" />
-                  ) : (
-                    <div style={{ fontSize: 13, opacity: 0.6 }}>{t("card.imageFallback")}</div>
-                  )}
-                </div>
+                  <div className="content">
+                    <h3 className="title">{l.title}</h3>
 
-                <div className="content">
-                  <div className="metaRow">{langLabel ? <span>• {langLabel}</span> : null}</div>
+                    <div className="meta">
+                      {langLabel ? <span>{langLabel}</span> : null}
+                      {langLabel && tt ? <span className="dot">•</span> : null}
+                      {tt ? <span>{tt}</span> : null}
+                    </div>
 
-                  <h3 style={{ margin: "6px 0 8px", fontSize: 18 }}>{l.title}</h3>
+                    {l.description ? <p className="desc">{l.description}</p> : null}
 
-                  {l.description ? (
-                    <p style={{ margin: 0, opacity: 0.8, lineHeight: 1.4 }}>
-                      {l.description.length > 120 ? l.description.slice(0, 120) + "…" : l.description}
-                    </p>
-                  ) : (
-                    <p style={{ margin: 0, opacity: 0.6 }}>{t("card.openForDetails")}</p>
-                  )}
+                    <div className="footer">
+                      <span className="openPill">{safeMsg("card.open", "Åpne")}</span>
+                    </div>
+                  </div>
                 </div>
               </Link>
             );
           })}
       </section>
 
-      {/* ✅ Pager */}
       {!loading && filtered.length > 0 ? (
         <div className="pagerRow">
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>

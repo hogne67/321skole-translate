@@ -358,13 +358,21 @@ function TeacherSpacesInner() {
 
                 {/* Actions */}
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <Link
-                    href={withLocale(locale, `/teacher/spaces/${r.id}`)}
-                    className="rounded-xl bg-black px-3 py-2 text-sm font-medium text-white no-underline hover:opacity-90"
-                    title={t("list.openSpaceTitle")}
-                  >
-                    {t("list.openSpace")}
-                  </Link>
+  <Link
+    href={withLocale(locale, `/teacher/spaces/${r.id}/board`)}
+    className="rounded-xl border px-3 py-2 text-sm font-medium hover:shadow-sm no-underline"
+    title={t("list.boardTitle")}
+  >
+    {t("list.board")}
+  </Link>
+
+  <Link
+    href={withLocale(locale, `/teacher/spaces/${r.id}`)}
+    className="rounded-xl bg-black px-3 py-2 text-sm font-medium text-white no-underline hover:opacity-90"
+    title={t("list.openSpaceTitle")}
+  >
+    {t("list.openSpace")}
+  </Link>
                 </div>
               </div>
             </div>

@@ -491,24 +491,26 @@
         }
       },
       "list": {
-        "untitled": "Espaço sem título",
-        "open": "Abrir",
-        "closed": "Fechado",
-        "openTitle": "Sala aberta",
-        "closedTitle": "Sala fechada",
-        "code": "Código:",
-        "copyCodeTitle": "Copiar código",
-        "copied": "Copiado ✅",
-        "members": "Membros:",
-        "copyJoinLink": "Copiar link de entrada",
-        "copyJoinLinkTitle": "Copiar link de entrada",
-        "joinWithQr": "Entrar com QR code",
-        "joinWithQrTitle": "Mostrar QR code",
-        "seeMembers": "Ver membros",
-        "seeMembersTitle": "Ver membros",
-        "openSpace": "Abrir espaço",
-        "openSpaceTitle": "Abrir espaço"
-      },
+  "untitled": "Espaço sem título",
+  "open": "Aberto",
+  "closed": "Fechado",
+  "openTitle": "Sala aberta",
+  "closedTitle": "Sala fechada",
+  "code": "Código:",
+  "copyCodeTitle": "Copiar código",
+  "copied": "Copiado ✅",
+  "members": "Membros:",
+  "copyJoinLink": "Copiar link de entrada",
+  "copyJoinLinkTitle": "Copiar link de entrada",
+  "joinWithQr": "Entrar com QR code",
+  "joinWithQrTitle": "Mostrar QR code",
+  "seeMembers": "Ver membros",
+  "seeMembersTitle": "Ver membros",
+  "openSpace": "Abrir espaço",
+  "openSpaceTitle": "Abrir espaço",
+  "board": "Quadro",
+  "boardTitle": "Abrir o quadro deste espaço"
+},
       "empty": {
         "title": "Nenhum espaço encontrado.",
         "hint": "Crie um com Novo espaço e depois compartilhe por código ou link."
@@ -610,7 +612,7 @@
     "title": "Atribuir tarefa",
     "subtitle": "Escolha do Meu Conteúdo ou Biblioteca.",
     "close": "Fechar",
-    "searchPlaceholder": "Buscar por título / nível / idioma…",
+    "searchPlaceholder": "Buscar por título/ ou nível, A1, A2 etc.",
     "noResults": "Nenhum resultado.",
     "lessonId": "lessonId",
     "publishedLessonId": "publishedLessonId",
@@ -987,7 +989,8 @@
     },
     "card": {
       "imageFallback": "Imagem",
-      "openForDetails": "Abrir detalhes"
+      "openForDetails": "Abrir detalhes",
+      "open": "Abrir"
     },
     "languages": {
       "all": "Todos os idiomas",
@@ -1098,7 +1101,8 @@
       "loading": "Carregando…",
       "copyJoinCode": "Copiar código de entrada",
       "copyJoinLink": "Copiar link de entrada",
-      "shareLinkQr": "Compartilhar (link + QR)"
+      "shareLinkQr": "Compartilhar (link + QR)",
+      "board": "Quadro"
     },
     "errors": {
       "label": "Erro",

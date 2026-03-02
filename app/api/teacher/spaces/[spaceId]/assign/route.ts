@@ -64,7 +64,7 @@ function readUsed(doc: UsageDoc | null | undefined, feature: string): number {
 async function isAdminUser(db: FirebaseFirestore.Firestore, uid: string): Promise<boolean> {
   const snap = await db.collection("users").doc(uid).get();
   if (!snap.exists) return false;
-  const d = snap.data() as Record<string, unknown>;
+  const d = (snap.data() ?? {}) as Record<string, unknown>;
 
   // new role string
   if (typeof d.role === "string" && d.role === "admin") return true;
@@ -79,7 +79,7 @@ async function isAdminUser(db: FirebaseFirestore.Firestore, uid: string): Promis
 async function isSpaceOwner(db: FirebaseFirestore.Firestore, spaceId: string, uid: string): Promise<boolean> {
   const snap = await db.collection("spaces").doc(spaceId).get();
   if (!snap.exists) return false;
-  const d = snap.data() as Record<string, unknown>;
+  const d = (snap.data() ?? {}) as Record<string, unknown>;
   return typeof d.ownerId === "string" && d.ownerId === uid;
 }
 
@@ -93,7 +93,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
 
     const body = (await req.json().catch(() => ({}))) as AssignBody;
 
-    const sourceType = body.sourceType === "library" ? "library" : "myContent";
+    const sourceType: SourceType = body.sourceType === "library" ? "library" : "myContent";
     const sourceId = safeString(body.sourceId).trim();
     const title = safeString(body.title).trim();
     const level = safeString(body.level).trim();
@@ -117,6 +117,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
 
     const assignmentRef = db.collection("spaces").doc(spaceId).collection("lessons").doc();
     const spaceRef = db.collection("spaces").doc(spaceId);
+
+    const now = new Date();
 
     const result = await db.runTransaction(async (tx) => {
       const usageSnap = await tx.get(usageRef);
@@ -146,23 +148,25 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
             ...(usage?.features ?? {}),
             [feature]: { used: usedAfter },
           },
-          updatedAt: new Date(),
+          updatedAt: now,
         } satisfies UsageDoc,
         { merge: true }
       );
 
-      const payload = {
+      // ✅ Bygg payload uten undefined-felter
+      const payload: Record<string, unknown> = {
         status: "active",
         sourceType,
         sourceId,
         title: title || "Untitled task",
-        level: level || undefined,
-        language: language || undefined,
-        assignedAt: new Date(),
-        createdAt: new Date(),
+        assignedAt: now,
+        createdAt: now,
         assignedByUid: uid,
-        updatedAt: new Date(),
+        updatedAt: now,
       };
+
+      if (level) payload.level = level;
+      if (language) payload.language = language;
 
       tx.set(assignmentRef, payload, { merge: false });
 
@@ -171,7 +175,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
         {
           activeLessonId: assignmentRef.id,
           activeLessonTitle: payload.title ?? null,
-          activeUpdatedAt: new Date(),
+          activeUpdatedAt: now,
         },
         { merge: true }
       );

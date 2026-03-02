@@ -482,7 +482,7 @@
             "oldest": "Eldst",
             "title_az": "Tittel (A–Å)",
             "title_za": "Tittel (Å–A)"
-          }
+          }  
         },
         "filters": {
           "label": "Filter",
@@ -491,24 +491,26 @@
         }
       },
       "list": {
-        "untitled": "Rom uten tittel",
-        "open": "Åpent",
-        "closed": "Lukket",
-        "openTitle": "Rommet er åpent",
-        "closedTitle": "Rommet er lukket",
-        "code": "Kode:",
-        "copyCodeTitle": "Kopier kode",
-        "copied": "Kopiert ✅",
-        "members": "Medlemmer:",
-        "copyJoinLink": "Kopier bli med-lenke",
-        "copyJoinLinkTitle": "Kopier bli med-lenke",
-        "joinWithQr": "Bli med med QR-kode",
-        "joinWithQrTitle": "Vis QR-kode",
-        "seeMembers": "Se medlemmer",
-        "seeMembersTitle": "Se medlemmer",
-        "openSpace": "Åpne rommet",
-        "openSpaceTitle": "Åpne rom"
-      },
+  "untitled": "Rom uten tittel",
+  "open": "Åpent",
+  "closed": "Lukket",
+  "openTitle": "Rommet er åpent",
+  "closedTitle": "Rommet er lukket",
+  "code": "Kode:",
+  "copyCodeTitle": "Kopier kode",
+  "copied": "Kopiert ✅",
+  "members": "Medlemmer:",
+  "copyJoinLink": "Kopier bli med-lenke",
+  "copyJoinLinkTitle": "Kopier bli med-lenke",
+  "joinWithQr": "Bli med med QR-kode",
+  "joinWithQrTitle": "Vis QR-kode",
+  "seeMembers": "Se medlemmer",
+  "seeMembersTitle": "Se medlemmer",
+  "openSpace": "Åpne rommet",
+  "openSpaceTitle": "Åpne rom",
+  "board": "Tavle",
+  "boardTitle": "Åpne tavla for dette rommet"
+},
       "empty": {
         "title": "Ingen rom funnet.",
         "hint": "Opprett et rom med Nytt rom, og del deretter via kode eller lenke."
@@ -610,7 +612,7 @@
     "title": "Tildel oppgave",
     "subtitle": "Velg fra Mitt innhold eller Bibliotek.",
     "close": "Lukk",
-    "searchPlaceholder": "Søk i tittel / nivå / språk…",
+    "searchPlaceholder": "Søk på tittel / eller nivå, A1, A2 osv ",
     "noResults": "Ingen treff.",
     "lessonId": "lessonId",
     "publishedLessonId": "publishedLessonId",
@@ -986,9 +988,10 @@
       "noResults": "Ingen publiserte oppgaver funnet. Prøv å fjerne filtre eller søke på noe annet."
     },
     "card": {
-      "imageFallback": "Bilde",
-      "openForDetails": "Åpne for detaljer"
-    },
+  "imageFallback": "Bilde",
+  "openForDetails": "Åpne for detaljer",
+  "open": "Åpne"
+},
     "languages": {
       "all": "Alle språk",
       "norwegianBokmal": "Norsk (Bokmål)"
@@ -1098,7 +1101,8 @@
     "loading": "Laster…",
     "copyJoinCode": "Kopier kode",
     "copyJoinLink": "Kopier lenke",
-    "shareLinkQr": "Del (lenke + QR)"
+    "shareLinkQr": "Del (lenke + QR)",
+    "board": "Tavle"
   },
   "errors": {
     "label": "Feil",

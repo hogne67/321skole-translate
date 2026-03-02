@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
+import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -54,6 +55,7 @@ function errMessage(e: unknown, fallback: string) {
 export default function StudentSpacesPage() {
   const t = useTranslations("student.spaces");
   const locale = useLocale(); // brukes bare til sort locale, ikke URL
+  const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
 
@@ -115,9 +117,7 @@ export default function StudentSpacesPage() {
         const items = docs.filter((x): x is { id: string; data: SpaceDoc } => x !== null);
 
         // 3) sorter litt pent: alfabetisk på tittel
-        items.sort((a, b) =>
-          titleOfSpace(a.data).localeCompare(titleOfSpace(b.data), collatorLocale)
-        );
+        items.sort((a, b) => titleOfSpace(a.data).localeCompare(titleOfSpace(b.data), collatorLocale));
 
         if (alive) setSpaces(items);
       } catch (e: unknown) {
@@ -171,9 +171,7 @@ export default function StudentSpacesPage() {
         </Link>
       </div>
 
-      {err ? (
-        <div style={{ color: "crimson", marginTop: 12, whiteSpace: "pre-wrap" }}>{err}</div>
-      ) : null}
+      {err ? <div style={{ color: "crimson", marginTop: 12, whiteSpace: "pre-wrap" }}>{err}</div> : null}
 
       <div style={{ marginTop: 14 }}>
         {spaces.length === 0 ? (
@@ -188,10 +186,18 @@ export default function StudentSpacesPage() {
               const title = titleOfSpace(s.data);
               const code = codeOfSpace(s.data);
 
+              const openHref = `/student/spaces/${s.id}`;
+              const boardHref = `/student/spaces/${s.id}/board`;
+
               return (
-                <Link
+                <div
                   key={s.id}
-                  href={`/student/spaces/${s.id}`}
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => router.push(openHref)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") router.push(openHref);
+                  }}
                   style={{
                     display: "block",
                     border: "1px solid rgba(0,0,0,0.12)",
@@ -199,6 +205,7 @@ export default function StudentSpacesPage() {
                     padding: 12,
                     textDecoration: "none",
                     color: "inherit",
+                    cursor: "pointer",
                   }}
                 >
                   <div
@@ -207,18 +214,64 @@ export default function StudentSpacesPage() {
                       justifyContent: "space-between",
                       gap: 10,
                       flexWrap: "wrap",
+                      alignItems: "center",
                     }}
                   >
-                    <div style={{ fontWeight: 700 }}>{title}</div>
-                    {code ? (
-                      <div style={{ opacity: 0.75 }}>
-                        {t("meta.code")}: <b>{code}</b>
-                      </div>
-                    ) : null}
+                    <div style={{ minWidth: 220 }}>
+                      <div style={{ fontWeight: 700 }}>{title}</div>
+                      {code ? (
+                        <div style={{ opacity: 0.75, marginTop: 4 }}>
+                          {t("meta.code")}: <b>{code}</b>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Actions on card */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <Link
+                        href={boardHref}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          border: "1px solid rgba(0,0,0,0.15)",
+                          textDecoration: "none",
+                          fontWeight: 800,
+                          color: "inherit",
+                          whiteSpace: "nowrap",
+                        }}
+                        title="Åpne tavle"
+                      >
+                        Tavle
+                      </Link>
+
+                      <Link
+                        href={openHref}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          border: "1px solid rgba(0,0,0,0.15)",
+                          textDecoration: "none",
+                          fontWeight: 800,
+                          color: "inherit",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={t("actions.openSpace")}
+                      >
+                        {t("actions.openSpace")}
+                      </Link>
+                    </div>
                   </div>
 
-                  <div style={{ opacity: 0.7, marginTop: 6 }}>{t("actions.openSpace")}</div>
-                </Link>
+                  <div style={{ opacity: 0.7, marginTop: 8 }}>{t("actions.openSpace")}</div>
+                </div>
               );
             })}
           </div>

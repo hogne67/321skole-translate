@@ -48,8 +48,29 @@ type AssignmentRow = { id: string; data: AssignmentDoc };
 
 type SubmissionData = { createdAt?: unknown; status?: unknown };
 
-type MyLesson = { title?: string; level?: string; language?: string; ownerId?: string; status?: string };
-type LibraryLesson = { title?: string; level?: string; language?: string; isActive?: boolean };
+// NOTE: vi lar oss være fleksible — hvis dere senere lagrer taskType/type, så matcher søket på det også
+type MyLesson = {
+  title?: string;
+  level?: string;
+  language?: string;
+  ownerId?: string;
+  status?: string;
+  type?: string;
+  taskType?: string;
+  contentType?: string;
+  kind?: string;
+};
+
+type LibraryLesson = {
+  title?: string;
+  level?: string;
+  language?: string;
+  isActive?: boolean;
+  type?: string;
+  taskType?: string;
+  contentType?: string;
+  kind?: string;
+};
 
 type SpaceDocSafe = SpaceDoc & {
   ownerId?: unknown;
@@ -102,10 +123,10 @@ function formatMaybeDate(v: unknown) {
       v instanceof Date
         ? v
         : isRecord(v) && typeof v["toDate"] === "function"
-        ? (v as { toDate: () => Date }).toDate()
-        : v instanceof Timestamp
-        ? v.toDate()
-        : null;
+          ? (v as { toDate: () => Date }).toDate()
+          : v instanceof Timestamp
+            ? v.toDate()
+            : null;
     return d ? d.toLocaleString() : "";
   } catch {
     return "";
@@ -141,6 +162,80 @@ function parseJsonUnknown(raw: string): unknown {
   }
 }
 
+// -------- Language helpers (for søk) --------
+function normalizeLang(s: unknown): string {
+  const v = typeof s === "string" ? s.trim().toLowerCase() : "";
+  if (!v) return "";
+  if (v === "nb-no" || v === "nb_no") return "nb";
+  if (v === "nn-no" || v === "nn_no") return "nn";
+  if (v === "no-no" || v === "no_no") return "no";
+  return v;
+}
+
+function queryImpliesLang(q: string): string[] {
+  const s = q.trim().toLowerCase();
+  if (!s) return [];
+
+  if (["norsk", "norwegian", "nor", "no", "nb", "bokmål", "bokmal"].includes(s)) return ["no", "nb"];
+  if (["nynorsk", "nn"].includes(s)) return ["nn"];
+  if (["engelsk", "english", "en"].includes(s)) return ["en"];
+  if (["portugisisk", "portuguese", "pt", "brasil", "brazil", "br"].includes(s)) return ["pt", "pt-br", "pt_br"];
+  if (["spansk", "spanish", "es"].includes(s)) return ["es"];
+
+  return [];
+}
+
+function matchesLanguage(docLangRaw: unknown, searchRaw: string): boolean {
+  const q = searchRaw.trim().toLowerCase();
+  if (!q) return true;
+
+  const implied = queryImpliesLang(q);
+  if (implied.length === 0) return false;
+
+  const docLang = normalizeLang(docLangRaw);
+  return implied.some((code) => {
+    const c = normalizeLang(code);
+    return docLang === c || docLang.startsWith(c);
+  });
+}
+
+// -------- "type" helpers (valgfritt) --------
+function normalizeType(s: unknown): string {
+  return typeof s === "string" ? s.trim().toLowerCase() : "";
+}
+
+function queryImpliesType(q: string): string[] {
+  const s = q.trim().toLowerCase();
+  if (!s) return [];
+
+  // super-enkel: bruk ord folk faktisk skriver
+  if (["text", "tekst", "writing", "skriving", "free", "fritekst"].includes(s)) return ["text", "writing", "free", "free_text"];
+  if (["mcq", "multiple", "multiple choice", "flervalg"].includes(s)) return ["mcq", "multiple", "multiple_choice"];
+  if (["truefalse", "true/false", "sant", "usant", "sant/usant"].includes(s)) return ["truefalse", "true_false", "tf"];
+  if (["quiz", "test"].includes(s)) return ["quiz", "test"];
+
+  return [];
+}
+
+function matchesType(doc: { type?: unknown; taskType?: unknown; contentType?: unknown; kind?: unknown }, searchRaw: string): boolean {
+  const q = searchRaw.trim().toLowerCase();
+  if (!q) return true;
+
+  const implied = queryImpliesType(q);
+  if (implied.length === 0) return false;
+
+  const candidates = [
+    normalizeType(doc.type),
+    normalizeType(doc.taskType),
+    normalizeType(doc.contentType),
+    normalizeType(doc.kind),
+  ].filter(Boolean);
+
+  if (candidates.length === 0) return false;
+
+  return implied.some((t) => candidates.some((c) => c === t || c.includes(t)));
+}
+
 export default function TeacherSpaceDetailPage() {
   return (
     <AuthGate>
@@ -160,7 +255,6 @@ function Inner() {
   const spaceId = params.spaceId;
 
   const isAdmin = useMemo(() => readIsAdmin(profile), [profile]);
-
   const canOperateSpace = accessAllowedGuard(user?.uid);
 
   const [space, setSpace] = useState<SpaceDocSafe | null>(null);
@@ -173,12 +267,7 @@ function Inner() {
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const [qr, setQr] = useState<QrState>({
-    open: false,
-    dataUrl: null,
-    busy: false,
-    err: null,
-  });
+  const [qr, setQr] = useState<QrState>({ open: false, dataUrl: null, busy: false, err: null });
 
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [showArchived, setShowArchived] = useState(false);
@@ -192,7 +281,11 @@ function Inner() {
   const [assignSearch, setAssignSearch] = useState("");
 
   const PAGE_SIZE = 5;
+  const PAGE_LIB_SIZE = 25;
+
   const [pageMy, setPageMy] = useState(0);
+  const [pageLib, setPageLib] = useState(0);
+
   const [myContent, setMyContent] = useState<Array<{ id: string; data: MyLesson }>>([]);
   const [library, setLibrary] = useState<Array<{ id: string; data: LibraryLesson }>>([]);
 
@@ -221,10 +314,7 @@ function Inner() {
       const data: unknown = parseJsonUnknown(raw) ?? {};
 
       if (!res.ok) {
-        const msg =
-          isRecord(data) && typeof data["error"] === "string"
-            ? String(data["error"])
-            : raw || `Quota request failed (${res.status})`;
+        const msg = isRecord(data) && typeof data["error"] === "string" ? String(data["error"]) : raw || `Quota request failed (${res.status})`;
         throw new Error(msg);
       }
 
@@ -314,7 +404,7 @@ function Inner() {
     };
   }, [loading, user?.uid, isAdmin, spaceId, space, t]);
 
-  // ✅ Load quota when allowed + when modal opens
+  // Load quota when allowed + when modal opens
   useEffect(() => {
     if (access !== "allowed") return;
     if (!user?.uid) return;
@@ -408,9 +498,7 @@ function Inner() {
     });
   }, [access, spaceId]);
 
-  const visibleAssignments = useMemo(() => {
-    return showArchived ? assignments : assignments.filter((a) => a.data.status !== "archived");
-  }, [assignments, showArchived]);
+  const visibleAssignments = useMemo(() => (showArchived ? assignments : assignments.filter((a) => a.data.status !== "archived")), [assignments, showArchived]);
 
   // Submission summary listeners
   useEffect(() => {
@@ -438,11 +526,7 @@ function Inner() {
 
       setSubSummaryErrByAssignment((m) => ({ ...m, [a.id]: null }));
 
-      const qy = query(
-        collection(db, "spaces", spaceId, "lessons", a.id, "submissions"),
-        orderBy("createdAt", "desc"),
-        limit(200)
-      );
+      const qy = query(collection(db, "spaces", spaceId, "lessons", a.id, "submissions"), orderBy("createdAt", "desc"), limit(200));
 
       const unsub = onSnapshot(
         qy,
@@ -497,37 +581,51 @@ function Inner() {
   useEffect(() => {
     if (access !== "allowed") return;
 
-    const qy = query(
-      collection(db, "published_lessons"),
-      where("isActive", "==", true),
-      orderBy("createdAt", "desc"),
-      limit(50)
-    );
+    const qy = query(collection(db, "published_lessons"), where("isActive", "==", true), orderBy("createdAt", "desc"), limit(50));
 
     return onSnapshot(qy, (snap) => setLibrary(snap.docs.map((d) => ({ id: d.id, data: snapTo<LibraryLesson>(d) }))));
   }, [access]);
 
-  useEffect(() => setPageMy(0), [assignTab, assignSearch]);
+  // Reset paging when switching tab or search
+  useEffect(() => {
+    setPageMy(0);
+    setPageLib(0);
+  }, [assignTab, assignSearch]);
 
+  // Better filtering (title + level + lang + id + language synonyms + optional type synonyms)
   const filteredMyContent = useMemo(() => {
     const s = assignSearch.trim().toLowerCase();
     if (!s) return myContent;
+
     return myContent.filter((x) => {
       const tt = (x.data.title ?? "").toString().toLowerCase();
       const lvl = (x.data.level ?? "").toString().toLowerCase();
       const lang = (x.data.language ?? "").toString().toLowerCase();
-      return tt.includes(s) || lvl.includes(s) || lang.includes(s) || x.id.toLowerCase().includes(s);
+      const id = x.id.toLowerCase();
+
+      if (tt.includes(s) || lvl.includes(s) || lang.includes(s) || id.includes(s)) return true;
+      if (matchesLanguage(x.data.language, s)) return true;
+      if (matchesType(x.data, s)) return true;
+
+      return false;
     });
   }, [myContent, assignSearch]);
 
   const filteredLibrary = useMemo(() => {
     const s = assignSearch.trim().toLowerCase();
     if (!s) return library;
+
     return library.filter((x) => {
       const tt = (x.data.title ?? "").toString().toLowerCase();
       const lvl = (x.data.level ?? "").toString().toLowerCase();
       const lang = (x.data.language ?? "").toString().toLowerCase();
-      return tt.includes(s) || lvl.includes(s) || lang.includes(s) || x.id.toLowerCase().includes(s);
+      const id = x.id.toLowerCase();
+
+      if (tt.includes(s) || lvl.includes(s) || lang.includes(s) || id.includes(s)) return true;
+      if (matchesLanguage(x.data.language, s)) return true;
+      if (matchesType(x.data, s)) return true;
+
+      return false;
     });
   }, [library, assignSearch]);
 
@@ -535,6 +633,11 @@ function Inner() {
     const start = pageMy * PAGE_SIZE;
     return filteredMyContent.slice(start, start + PAGE_SIZE);
   }, [filteredMyContent, pageMy]);
+
+  const pagedLibrary = useMemo(() => {
+    const start = pageLib * PAGE_LIB_SIZE;
+    return filteredLibrary.slice(start, start + PAGE_LIB_SIZE);
+  }, [filteredLibrary, pageLib]);
 
   const myRangeText = useMemo(() => {
     const total = filteredMyContent.length;
@@ -544,7 +647,15 @@ function Inner() {
     return t("assignModal.paging.range", { start, end, total });
   }, [filteredMyContent.length, pageMy, t]);
 
-  // ✅ ASSIGN VIA SERVER (quota enforced)
+  const libRangeText = useMemo(() => {
+    const total = filteredLibrary.length;
+    if (total === 0) return "0";
+    const start = pageLib * PAGE_LIB_SIZE + 1;
+    const end = Math.min((pageLib + 1) * PAGE_LIB_SIZE, total);
+    return `${start}–${end} / ${total}`;
+  }, [filteredLibrary.length, pageLib]);
+
+  // Assign via server (quota enforced)
   async function assignTask(src: { type: SourceType; id: string; title?: string; level?: string; language?: string }) {
     setSaveErr(null);
 
@@ -582,17 +693,14 @@ function Inner() {
       }
 
       if (!res.ok) {
-        const msg =
-          isRecord(data) && typeof data["error"] === "string"
-            ? String(data["error"])
-            : raw || `Request failed (${res.status})`;
+        const msg = isRecord(data) && typeof data["error"] === "string" ? String(data["error"]) : raw || `Request failed (${res.status})`;
         throw new Error(msg);
       }
 
+      // close modal
       setAssignOpen(false);
       setAssignSearch("");
 
-      // ✅ refresh quota after success
       void loadQuota();
     } catch (e: unknown) {
       setSaveErr(getErrorInfo(e).message || t("errors.assignFailed"));
@@ -834,9 +942,7 @@ function Inner() {
 
         <div className="grid gap-2">
           {visibleAssignments.length === 0 ? (
-            <div className="rounded-xl border p-4 text-sm text-muted-foreground">
-              {t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}
-            </div>
+            <div className="rounded-xl border p-4 text-sm text-muted-foreground">{t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}</div>
           ) : (
             visibleAssignments.map((a) => {
               const assignedAt = formatMaybeDate(a.data.assignedAt || a.data.createdAt);
@@ -882,9 +988,7 @@ function Inner() {
                             )}
                           </>
                         ) : (
-                          <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700">
-                            {t("badges.submissionsError")}
-                          </span>
+                          <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700">{t("badges.submissionsError")}</span>
                         )}
                       </div>
 
@@ -909,10 +1013,7 @@ function Inner() {
                         type="button"
                         onClick={() => setActiveForStudents(a.id)}
                         disabled={saving || !canManage || status === "archived"}
-                        className={[
-                          "rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50",
-                          isActiveForStudents ? "bg-black text-white" : "",
-                        ].join(" ")}
+                        className={["rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50", isActiveForStudents ? "bg-black text-white" : ""].join(" ")}
                       >
                         {t("actions.setActive")}
                       </button>
@@ -947,170 +1048,199 @@ function Inner() {
 
       {/* Assign modal */}
       {assignOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setAssignOpen(false)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-2xl rounded-2xl border bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-lg font-semibold">{t("assignModal.title")}</div>
-                <div className="mt-1 text-sm text-muted-foreground">{t("assignModal.subtitle")}</div>
+        <div className="fixed inset-0 z-50 bg-black/40 p-4" onClick={() => setAssignOpen(false)} role="dialog" aria-modal="true">
+          <div className="mx-auto w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="max-h-[85vh] overflow-hidden rounded-2xl border bg-white shadow-lg">
+              {/* Header (fixed) */}
+              <div className="border-b p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-lg font-semibold">{t("assignModal.title")}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">{t("assignModal.subtitle")}</div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {quotaBadge}
-                  {quotaErr && <span className="text-xs text-muted-foreground">{quotaErr}</span>}
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {quotaBadge}
+                      {quotaErr && <span className="text-xs text-muted-foreground">{quotaErr}</span>}
+                    </div>
+                  </div>
+
+                  <button type="button" onClick={() => setAssignOpen(false)} className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm">
+                    {t("assignModal.close")}
+                  </button>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAssignTab("myContent")}
+                    className={["rounded-xl border px-3 py-2 text-sm", assignTab === "myContent" ? "bg-black text-white" : "bg-white"].join(" ")}
+                  >
+                    {t("labels.myContent")}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAssignTab("library")}
+                    className={["rounded-xl border px-3 py-2 text-sm", assignTab === "library" ? "bg-black text-white" : "bg-white"].join(" ")}
+                  >
+                    {t("labels.library")}
+                  </button>
+
+                  <input
+                    value={assignSearch}
+                    onChange={(e) => setAssignSearch(e.target.value)}
+                    placeholder={t("assignModal.searchPlaceholder")}
+                    className="ml-auto w-full rounded-xl border px-3 py-2 text-sm md:w-[360px]"
+                  />
+                </div>
+
+                {/* paging header: vis relevant paging for tab */}
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  {assignTab === "myContent" ? (
+                    <>
+                      <button
+                        type="button"
+                        className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
+                        disabled={pageMy === 0}
+                        onClick={() => setPageMy((p) => Math.max(0, p - 1))}
+                      >
+                        {t("assignModal.paging.prev")}
+                      </button>
+
+                      <div className="text-xs text-muted-foreground">
+                        {t("assignModal.paging.showing")} <b>{myRangeText}</b>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
+                        disabled={(pageMy + 1) * PAGE_SIZE >= filteredMyContent.length}
+                        onClick={() => setPageMy((p) => p + 1)}
+                      >
+                        {t("assignModal.paging.next")}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
+                        disabled={pageLib === 0}
+                        onClick={() => setPageLib((p) => Math.max(0, p - 1))}
+                      >
+                        {t("assignModal.paging.prev")}
+                      </button>
+
+                      <div className="text-xs text-muted-foreground">
+                        {t("assignModal.paging.showing")} <b>{libRangeText}</b>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
+                        disabled={(pageLib + 1) * PAGE_LIB_SIZE >= filteredLibrary.length}
+                        onClick={() => setPageLib((p) => p + 1)}
+                      >
+                        {t("assignModal.paging.next")}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setAssignOpen(false)}
-                className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm"
-              >
-                {t("assignModal.close")}
-              </button>
-            </div>
+              {/* Body (scrollable) */}
+              <div className="max-h-[calc(85vh-260px)] overflow-y-auto p-5">
+                <div className="grid gap-2">
+                  {/* My content */}
+                  {assignTab === "myContent" && (
+                    <>
+                      {pagedMy.length === 0 ? (
+                        <div className="rounded-xl border p-4 text-sm text-muted-foreground">{t("assignModal.noResults")}</div>
+                      ) : (
+                        pagedMy.map((x) => (
+                          <div key={x.id} className="rounded-xl border p-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <div className="font-semibold">{x.data.title || t("fallback.untitled")}</div>
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                  {x.data.level ? x.data.level : "—"}
+                                  {x.data.language ? ` · ${x.data.language}` : ""}
+                                  {x.data.status ? ` · ${x.data.status}` : ""}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {t("assignModal.lessonId")}: <code>{x.id}</code>
+                                </div>
+                              </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setAssignTab("myContent")}
-                className={["rounded-xl border px-3 py-2 text-sm", assignTab === "myContent" ? "bg-black text-white" : "bg-white"].join(" ")}
-              >
-                {t("labels.myContent")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setAssignTab("library")}
-                className={["rounded-xl border px-3 py-2 text-sm", assignTab === "library" ? "bg-black text-white" : "bg-white"].join(" ")}
-              >
-                {t("labels.library")}
-              </button>
-
-              <input
-                value={assignSearch}
-                onChange={(e) => setAssignSearch(e.target.value)}
-                placeholder={t("assignModal.searchPlaceholder")}
-                className="ml-auto w-full rounded-xl border px-3 py-2 text-sm md:w-[360px]"
-              />
-            </div>
-
-            <div className="mt-4 grid gap-2">
-              {/* My content */}
-              {assignTab === "myContent" && (
-                <>
-                  {pagedMy.length === 0 ? (
-                    <div className="rounded-xl border p-4 text-sm text-muted-foreground">{t("assignModal.noResults")}</div>
-                  ) : (
-                    pagedMy.map((x) => (
-                      <div key={x.id} className="rounded-xl border p-3">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <div className="font-semibold">{x.data.title || t("fallback.untitled")}</div>
-                            <div className="mt-1 text-sm text-muted-foreground">
-                              {x.data.level ? x.data.level : "—"}
-                              {x.data.language ? ` · ${x.data.language}` : ""}
-                              {x.data.status ? ` · ${x.data.status}` : ""}
-                            </div>
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {t("assignModal.lessonId")}: <code>{x.id}</code>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  assignTask({
+                                    type: "myContent",
+                                    id: x.id,
+                                    title: x.data.title,
+                                    level: x.data.level,
+                                    language: x.data.language,
+                                  })
+                                }
+                                disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
+                                className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                                title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
+                              >
+                                {t("assignModal.assign")}
+                              </button>
                             </div>
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              assignTask({
-                                type: "myContent",
-                                id: x.id,
-                                title: x.data.title,
-                                level: x.data.level,
-                                language: x.data.language,
-                              })
-                            }
-                            disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
-                            className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                            title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
-                          >
-                            {t("assignModal.assign")}
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                        ))
+                      )}
+                    </>
                   )}
 
-                  <div className="mt-2 flex items-center justify-between">
-                    <button
-                      type="button"
-                      className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
-                      disabled={pageMy === 0}
-                      onClick={() => setPageMy((p) => Math.max(0, p - 1))}
-                    >
-                      {t("assignModal.paging.prev")}
-                    </button>
+                  {/* Library */}
+                  {assignTab === "library" && (
+                    <>
+                      {filteredLibrary.length === 0 ? (
+                        <div className="rounded-xl border p-4 text-sm text-muted-foreground">{t("assignModal.noResults")}</div>
+                      ) : (
+                        pagedLibrary.map((x) => (
+                          <div key={x.id} className="rounded-xl border p-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <div className="font-semibold">{x.data.title || t("fallback.untitled")}</div>
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                  {x.data.level ? x.data.level : "—"}
+                                  {x.data.language ? ` · ${x.data.language}` : ""}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {t("assignModal.publishedLessonId")}: <code>{x.id}</code>
+                                </div>
+                              </div>
 
-                    <div className="text-xs text-muted-foreground">
-                      {t("assignModal.paging.showing")} <b>{myRangeText}</b>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
-                      disabled={(pageMy + 1) * PAGE_SIZE >= filteredMyContent.length}
-                      onClick={() => setPageMy((p) => p + 1)}
-                    >
-                      {t("assignModal.paging.next")}
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* Library */}
-              {assignTab === "library" && (
-                <>
-                  {filteredLibrary.length === 0 ? (
-                    <div className="rounded-xl border p-4 text-sm text-muted-foreground">{t("assignModal.noResults")}</div>
-                  ) : (
-                    filteredLibrary.map((x) => (
-                      <div key={x.id} className="rounded-xl border p-3">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <div className="font-semibold">{x.data.title || t("fallback.untitled")}</div>
-                            <div className="mt-1 text-sm text-muted-foreground">
-                              {x.data.level ? x.data.level : "—"}
-                              {x.data.language ? ` · ${x.data.language}` : ""}
-                            </div>
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {t("assignModal.publishedLessonId")}: <code>{x.id}</code>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  assignTask({
+                                    type: "library",
+                                    id: x.id,
+                                    title: x.data.title,
+                                    level: x.data.level,
+                                    language: x.data.language,
+                                  })
+                                }
+                                disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
+                                className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                                title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
+                              >
+                                {t("assignModal.assign")}
+                              </button>
                             </div>
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              assignTask({
-                                type: "library",
-                                id: x.id,
-                                title: x.data.title,
-                                level: x.data.level,
-                                language: x.data.language,
-                              })
-                            }
-                            disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
-                            className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                            title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
-                          >
-                            {t("assignModal.assign")}
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                        ))
+                      )}
+                    </>
                   )}
-                </>
-              )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1118,12 +1248,7 @@ function Inner() {
 
       {/* QR Modal */}
       {qr.open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={closeQr}
-          role="dialog"
-          aria-modal="true"
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeQr} role="dialog" aria-modal="true">
           <div className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1143,14 +1268,7 @@ function Inner() {
 
               {qr.dataUrl && (
                 <div className="flex flex-col items-center gap-3">
-                  <Image
-                    src={qr.dataUrl}
-                    alt={t("qr.imageAlt")}
-                    width={256}
-                    height={256}
-                    unoptimized
-                    className="h-auto w-64 rounded-lg border"
-                  />
+                  <Image src={qr.dataUrl} alt={t("qr.imageAlt")} width={256} height={256} unoptimized className="h-auto w-64 rounded-lg border" />
                   <div className="text-center text-xs text-muted-foreground">
                     {t("qr.pointsTo")} <b>{typeof window !== "undefined" ? `${window.location.origin}${joinLink}` : joinLink}</b>
                   </div>
