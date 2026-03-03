@@ -118,33 +118,124 @@ service cloud.firestore {
       );
     }
 
-    /* =========================
-       SPACE BOARD (per-space)
-    ========================= */
-    function canBoardManage(spaceId) {
-      return signedIn() && (
-        isAdmin()
-        || isSpaceOwner(spaceId)
-        || (isTeacher() && isSpaceMember(spaceId))
-      );
-    }
+/* =========================
+   SPACE BOARD (per-space)
+========================= */
+function canBoardManage(spaceId) {
+  return signedIn() && (
+    isAdmin()
+    || isSpaceOwner(spaceId)
+    || (isTeacher() && isSpaceMember(spaceId))
+  );
+}
 
-    match /spaces/{spaceId}/board/{docId} {
-      allow read: if signedIn() && (isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId));
-      allow create, update, delete: if canBoardManage(spaceId);
-    }
+// Board state helpers (for gating responses)
+function boardStatePath(spaceId) {
+  return /databases/$(database)/documents/spaces/$(spaceId)/board/state;
+}
+function boardStateExists(spaceId) {
+  return (spaceId is string) && exists(boardStatePath(spaceId));
+}
+function boardState(spaceId) {
+  return boardStateExists(spaceId) ? get(boardStatePath(spaceId)).data : {};
+}
+function boardActive(spaceId) {
+  return boardStateExists(spaceId)
+    && ("active" in boardState(spaceId))
+    && (boardState(spaceId).active is bool)
+    && boardState(spaceId).active == true;
+}
+function boardSessionId(spaceId) {
+  return boardStateExists(spaceId)
+    && ("sessionId" in boardState(spaceId))
+    && (boardState(spaceId).sessionId is string)
+    ? boardState(spaceId).sessionId
+    : null;
+}
 
-    match /spaces/{spaceId}/boardResponses/{responseId} {
-      allow read: if canBoardManage(spaceId)
-        || (signedIn() && responseId.matches('^.+_' + myUid() + '$'));
+function isString(x) { return x is string; }
+function nonEmptyString(x) { return isString(x) && x.size() > 0; }
 
-      allow create, update: if signedIn()
-        && isSpaceMember(spaceId)
-        && responseId.matches('^.+_' + myUid() + '$');
+match /spaces/{spaceId}/board/{docId} {
+  allow read: if signedIn() && (isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId));
+  allow create, update, delete: if canBoardManage(spaceId);
+}
 
-      allow delete: if canBoardManage(spaceId);
-    }
+match /spaces/{spaceId}/boardResponses/{responseId} {
+  // Read: managers can read everything.
+  // Students can read only their own "text" response docs (suffix _uid).
+  allow read: if canBoardManage(spaceId)
+    || (signedIn() && responseId.matches('^.+_' + myUid() + '$'));
 
+  // TEXT response (sticky note): id must end with _uid
+  function isTextResponseId() {
+    return responseId.matches('^.+_' + myUid() + '$');
+  }
+  function textKeysOk() {
+    return request.resource.data.keys().hasOnly([
+      "sessionId",
+      "uid",
+      "displayName",
+      "groupName",
+      "text",
+      "noteColor",
+      "createdAt"
+    ]);
+  }
+  function textPayloadOk() {
+    return nonEmptyString(request.resource.data.sessionId)
+      && boardSessionId(spaceId) != null
+      && request.resource.data.sessionId == boardSessionId(spaceId)
+      && boardActive(spaceId)
+      && nonEmptyString(request.resource.data.uid)
+      && request.resource.data.uid == myUid()
+      && nonEmptyString(request.resource.data.text);
+  }
+
+  // POLL response (anonymous): id must contain _anon_
+  function isPollResponseId() {
+    return responseId.matches('^.+_anon_.+$');
+  }
+  function pollKeysOk() {
+    return request.resource.data.keys().hasOnly([
+      "sessionId",
+      "pollChoice",
+      "createdAt"
+    ]);
+  }
+  function pollPayloadOk() {
+    return nonEmptyString(request.resource.data.sessionId)
+      && boardSessionId(spaceId) != null
+      && request.resource.data.sessionId == boardSessionId(spaceId)
+      && boardActive(spaceId)
+      && nonEmptyString(request.resource.data.pollChoice);
+  }
+
+  allow create: if signedIn()
+    && isSpaceMember(spaceId)
+    && (
+      canBoardManage(spaceId)
+      || (isTextResponseId() && textKeysOk() && textPayloadOk())
+      || (isPollResponseId() && pollKeysOk() && pollPayloadOk())
+    );
+
+  allow update: if signedIn()
+    && isSpaceMember(spaceId)
+    && (
+      canBoardManage(spaceId)
+      || (
+        isTextResponseId()
+        && textKeysOk()
+        && textPayloadOk()
+        && request.resource.data.sessionId == resource.data.sessionId
+        && ("uid" in resource.data)
+        && (resource.data.uid is string)
+        && resource.data.uid == myUid()
+      )
+    );
+
+  allow delete: if canBoardManage(spaceId);
+}
     /* =========================
        USERS
     ========================= */
