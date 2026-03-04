@@ -1292,143 +1292,149 @@ function stripUndefinedDeep<T>(value: T): T {
   }
 
   function renderTask(tk: Task, idx: number) {
-    const stableId = getStableTaskId(tk, idx);
-    const type = String(tk?.type ?? "open").toLowerCase();
-    const promptOrig = String(tk?.prompt ?? "");
+  const stableId = getStableTaskId(tk, idx);
+  const type = String(tk?.type ?? "open").toLowerCase();
+  const promptOrig = String(tk?.prompt ?? "");
 
-    const tr = tMap.get(stableId);
-    const showTr = isTaskTranslationVisible(stableId);
+  const tr = tMap.get(stableId);
+  const showTr = isTaskTranslationVisible(stableId);
 
-    const promptShown = showTr && tr?.translatedPrompt ? tr.translatedPrompt : promptOrig;
-    const promptOther = showTr ? promptOrig : tr?.translatedPrompt;
+  const promptShown = showTr && tr?.translatedPrompt ? tr.translatedPrompt : promptOrig;
+  const promptOther = showTr ? promptOrig : tr?.translatedPrompt;
 
-    const locked = isLockedByTeacher();
+  const promptShownClean = String(promptShown ?? "").trim();
+  const promptOtherClean = String(promptOther ?? "").trim();
 
-    return (
-      <div
-        key={stableId}
-        style={{
-          border: "1px solid rgba(0,0,0,0.12)",
-          borderRadius: 12,
-          padding: 12,
-          background: "white",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-          <div style={{ fontWeight: 800, lineHeight: 1.4 }}>{promptShown || t("tasks.noPrompt")}</div>
+  // ✅ Vis “other” bare hvis den faktisk er annerledes enn den som vises øverst
+  const showPromptOther = promptOtherClean.length > 0 && promptOtherClean !== promptShownClean;
 
-          {!!(tr?.translatedPrompt || tr?.translatedOptions?.length) && (
+  const locked = isLockedByTeacher();
+
+  return (
+    <div
+      key={stableId}
+      style={{
+        border: "1px solid rgba(0,0,0,0.12)",
+        borderRadius: 12,
+        padding: 12,
+        background: "white",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+        <div style={{ fontWeight: 800, lineHeight: 1.4 }}>{promptShownClean || t("tasks.noPrompt")}</div>
+
+        {!!(tr?.translatedPrompt || tr?.translatedOptions?.length) && (
+          <button
+            type="button"
+            onClick={() => toggleTaskTranslation(stableId)}
+            style={{ ...btnStyle, padding: "6px 10px" }}
+            title={t("translate.toggleTask")}
+          >
+            {showTr ? t("translate.hide") : t("translate.show")}
+          </button>
+        )}
+      </div>
+
+      {showPromptOther ? (
+        <div style={{ marginTop: 6, opacity: 0.75, fontSize: 13, lineHeight: 1.5 }}>{promptOtherClean}</div>
+      ) : null}
+
+      <div style={{ marginTop: 10 }}>
+        {type === "mcq" && Array.isArray(tk.options) ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(() => {
+              const opts = tk.options as unknown[];
+              const selectedIdx = getMcqSelectedIndex(stableId, opts);
+
+              return opts.map((o, oi) => {
+                const optOrig = String(o);
+                const optTr = tr?.translatedOptions?.[oi];
+                const optShown = showTr && optTr ? optTr : optOrig;
+
+                const checked = selectedIdx === oi;
+
+                return (
+                  <label
+                    key={`${stableId}_opt_${oi}`}
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "center",
+                      border: checked ? "2px solid rgba(16,185,129,0.70)" : "1px solid rgba(0,0,0,0.10)",
+                      borderRadius: 12,
+                      padding: checked ? "9px 11px" : "10px 12px",
+                      cursor: locked ? "not-allowed" : "pointer",
+                      opacity: locked ? 0.7 : 1,
+                      background: checked ? "rgba(16,185,129,0.10)" : "white",
+                      transition: "all 120ms ease",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name={`mcq_${stableId}`}
+                      checked={checked}
+                      disabled={locked}
+                      onChange={() => setAnswer(stableId, oi)} // ✅ lagrer index (stabilt)
+                      style={{ transform: "scale(1.05)" }}
+                    />
+                    <span style={{ fontWeight: checked ? 800 : 600 }}>{optShown}</span>
+                  </label>
+                );
+              });
+            })()}
+          </div>
+        ) : type === "truefalse" ? (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
               type="button"
-              onClick={() => toggleTaskTranslation(stableId)}
-              style={{ ...btnStyle, padding: "6px 10px" }}
-              title={t("translate.toggleTask")}
-            >
-              {showTr ? t("translate.hide") : t("translate.show")}
-            </button>
-          )}
-        </div>
-
-        {promptOther ? (
-          <div style={{ marginTop: 6, opacity: 0.75, fontSize: 13, lineHeight: 1.5 }}>{promptOther}</div>
-        ) : null}
-
-        <div style={{ marginTop: 10 }}>
-          {type === "mcq" && Array.isArray(tk.options) ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {(() => {
-                const opts = tk.options as unknown[];
-                const selectedIdx = getMcqSelectedIndex(stableId, opts);
-
-                return opts.map((o, oi) => {
-                  const optOrig = String(o);
-                  const optTr = tr?.translatedOptions?.[oi];
-                  const optShown = showTr && optTr ? optTr : optOrig;
-
-                  const checked = selectedIdx === oi;
-
-                  return (
-                    <label
-                      key={`${stableId}_opt_${oi}`}
-                      style={{
-                        display: "flex",
-                        gap: 10,
-                        alignItems: "center",
-                        border: checked ? "2px solid rgba(16,185,129,0.70)" : "1px solid rgba(0,0,0,0.10)",
-                        borderRadius: 12,
-                        padding: checked ? "9px 11px" : "10px 12px",
-                        cursor: locked ? "not-allowed" : "pointer",
-                        opacity: locked ? 0.7 : 1,
-                        background: checked ? "rgba(16,185,129,0.10)" : "white",
-                        transition: "all 120ms ease",
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name={`mcq_${stableId}`}
-                        checked={checked}
-                        disabled={locked}
-                        onChange={() => setAnswer(stableId, oi)} // ✅ lagrer index (stabilt)
-                        style={{ transform: "scale(1.05)" }}
-                      />
-                      <span style={{ fontWeight: checked ? 800 : 600 }}>{optShown}</span>
-                    </label>
-                  );
-                });
-              })()}
-            </div>
-          ) : type === "truefalse" ? (
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button
-                type="button"
-                disabled={locked}
-                onClick={() => setAnswer(stableId, true)}
-                style={{
-                  ...btnStyle,
-                  background: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.14)" : "white",
-                  borderColor: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
-                  fontWeight: isTrueSelected(stableId, true) ? 900 : 700,
-                  opacity: locked ? 0.7 : 1,
-                }}
-              >
-                {t("tasks.true")}
-              </button>
-              <button
-                type="button"
-                disabled={locked}
-                onClick={() => setAnswer(stableId, false)}
-                style={{
-                  ...btnStyle,
-                  background: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.14)" : "white",
-                  borderColor: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
-                  fontWeight: isTrueSelected(stableId, false) ? 900 : 700,
-                  opacity: locked ? 0.7 : 1,
-                }}
-              >
-                {t("tasks.false")}
-              </button>
-            </div>
-          ) : (
-            <textarea
-              value={String(answers[stableId] ?? "")}
               disabled={locked}
-              onChange={(e) => setAnswer(stableId, e.target.value)}
-              rows={4}
+              onClick={() => setAnswer(stableId, true)}
               style={{
-                width: "100%",
-                border: "1px solid rgba(0,0,0,0.12)",
-                borderRadius: 10,
-                padding: 10,
-                outline: "none",
+                ...btnStyle,
+                background: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.14)" : "white",
+                borderColor: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
+                fontWeight: isTrueSelected(stableId, true) ? 900 : 700,
                 opacity: locked ? 0.7 : 1,
               }}
-              placeholder={t("tasks.writeAnswer")}
-            />
-          )}
-        </div>
+            >
+              {t("tasks.true")}
+            </button>
+            <button
+              type="button"
+              disabled={locked}
+              onClick={() => setAnswer(stableId, false)}
+              style={{
+                ...btnStyle,
+                background: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.14)" : "white",
+                borderColor: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
+                fontWeight: isTrueSelected(stableId, false) ? 900 : 700,
+                opacity: locked ? 0.7 : 1,
+              }}
+            >
+              {t("tasks.false")}
+            </button>
+          </div>
+        ) : (
+          <textarea
+            value={String(answers[stableId] ?? "")}
+            disabled={locked}
+            onChange={(e) => setAnswer(stableId, e.target.value)}
+            rows={4}
+            style={{
+              width: "100%",
+              border: "1px solid rgba(0,0,0,0.12)",
+              borderRadius: 10,
+              padding: 10,
+              outline: "none",
+              opacity: locked ? 0.7 : 1,
+            }}
+            placeholder={t("tasks.writeAnswer")}
+          />
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   /* =========================
      Early returns

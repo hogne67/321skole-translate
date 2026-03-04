@@ -119,7 +119,7 @@ type SpaceMemberDoc = {
 };
 
 // ✅ API response type (only once)
-type AiResp = { text: string; skipped?: boolean };
+type AiResp = { text: string; skipped?: boolean; locale?: string };
 
 /* =========================
    Helpers
@@ -252,6 +252,19 @@ function readAutoGrade(sub: SubmissionDoc | null): AutoGrade | null {
   return { totalAuto, correctAuto, wrongAuto, unansweredAuto, percentAuto, byTask };
 }
 
+function getAutoEntry(auto: AutoGrade | null, stableId: string): AutoGradeEntry | undefined {
+  const byTask = auto?.byTask;
+  if (!byTask || typeof byTask !== "object") return undefined;
+
+  const v = (byTask as Record<string, unknown>)[stableId];
+  if (!v || typeof v !== "object") return undefined;
+
+  const e = v as Partial<AutoGradeEntry>;
+  if (e.type !== "mcq" && e.type !== "truefalse") return undefined;
+  if (typeof e.isCorrect !== "boolean") return undefined;
+
+  return e as AutoGradeEntry;
+}
 /**
  * Locale-safe link helper
  */
@@ -287,7 +300,6 @@ async function safeCopyToClipboard(text: string): Promise<boolean> {
     // ignore
   }
   try {
-    // fallback
     const ta = document.createElement("textarea");
     ta.value = text;
     ta.style.position = "fixed";
@@ -463,7 +475,6 @@ function Inner() {
   const tAny = t as unknown as (key: string, values?: Record<string, unknown>) => string;
   const tCommon = useTranslations("common");
 
-  // robust params (avoid red squiggles)
   const params = useParams();
   const rawSpaceId = (params as Record<string, string | string[] | undefined>)["spaceId"];
   const rawAssignmentId = (params as Record<string, string | string[] | undefined>)["assignmentId"];
@@ -502,7 +513,6 @@ function Inner() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
-  // Build refs safely (ALWAYS call hooks, but refs can be null)
   const nestedRef = useMemo(
     () => (hasParams ? doc(db, "spaces", spaceId!, "lessons", assignmentId!, "submissions", subId!) : null),
     [hasParams, spaceId, assignmentId, subId]
@@ -515,7 +525,6 @@ function Inner() {
     [hasParams, spaceId, assignmentId]
   );
 
-  // Read submission live
   useEffect(() => {
     if (!nestedRef) {
       setLoading(false);
@@ -542,7 +551,6 @@ function Inner() {
         setStatus(seededStatus);
         setInitialStatus(seededStatus);
 
-        // ✅ seed AI text from firestore
         const seededAi = readAiFeedbackText(data);
         setAiText(seededAi);
       },
@@ -555,7 +563,6 @@ function Inner() {
     );
   }, [nestedRef]);
 
-  // Read assignment doc (space lesson)
   useEffect(() => {
     if (!assignmentRef) {
       setAssignment(null);
@@ -580,7 +587,6 @@ function Inner() {
     };
   }, [assignmentRef]);
 
-  // Fetch lesson from same source logic as student page
   useEffect(() => {
     let alive = true;
 
@@ -614,7 +620,6 @@ function Inner() {
     };
   }, [assignment?.sourceId, assignment?.sourceType]);
 
-  // Resolve student name
   useEffect(() => {
     let alive = true;
 
@@ -666,7 +671,6 @@ function Inner() {
 
   const backLink = withLocale(locale, hasParams ? `/teacher/spaces/${spaceId}` : "/teacher/spaces");
 
-  // ✅ Now it's safe to early-return (ALL hooks above already ran)
   if (!hasParams) {
     return (
       <div style={{ maxWidth: 1060, margin: "0 auto", padding: 16 }}>
@@ -708,7 +712,6 @@ function Inner() {
   const answersMap = readAnswerMap(sub.answers);
   const auto = readAutoGrade(sub);
 
-  // Require text only when status changed
   const statusChanged = status !== initialStatus;
   const needsTextToChangeStatus = statusChanged && text.trim().length === 0;
   const canSave = canOperate && !saving && !needsTextToChangeStatus;
@@ -856,7 +859,7 @@ function Inner() {
                     const options = Array.isArray(task?.options) ? (task.options as unknown[]) : [];
                     const val = answersMap[stableId];
 
-                    const entry = auto?.byTask?.[stableId];
+                    const entry = getAutoEntry(auto, stableId);
                     const showAutoMark = !!entry && (type === "mcq" || type === "truefalse");
                     const autoBadge =
                       showAutoMark && entry
@@ -983,10 +986,12 @@ function Inner() {
                     setAiMsg(null);
 
                     try {
+                      // ✅ send locale so route can answer in same language style as /api/feedback
                       const data = await authedPost<AiResp>("/api/teacher/ai-feedback", {
                         spaceId,
                         assignmentId,
                         subId,
+                        locale,
                       });
 
                       setAiText(data.text);
@@ -1041,7 +1046,6 @@ function Inner() {
                     setText((prev) => {
                       const p = prev.trim();
                       if (!p) return chunk;
-                      // legg med blank linje mellom
                       return `${p}\n\n${chunk}`;
                     });
                     setAiMsg(t("ai.inserted"));

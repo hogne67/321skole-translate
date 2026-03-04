@@ -1,4 +1,4 @@
-// app/(app)/student/lesson/[lessonId]/page.tsx
+// app/[locale]/(app)/student/lesson/[lessonId]/page.tsx
 "use client";
 
 import { SearchableSelect } from "@/components/SearchableSelect";
@@ -17,7 +17,7 @@ import {
   type Timestamp,
 } from "firebase/firestore";
 import { LANGUAGES } from "@/lib/languages";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   value: l.code,
@@ -107,7 +107,8 @@ function asSubmissionDoc(data: DocumentData): SubmissionDoc {
 
   return {
     uid: typeof d.uid === "string" ? d.uid : undefined,
-    publishedLessonId: typeof d.publishedLessonId === "string" ? d.publishedLessonId : undefined,
+    publishedLessonId:
+      typeof d.publishedLessonId === "string" ? d.publishedLessonId : undefined,
     answers,
     status: d.status === "draft" || d.status === "submitted" ? d.status : undefined,
     feedback: typeof d.feedback === "string" ? d.feedback : undefined,
@@ -143,10 +144,17 @@ async function translateOne(text: string, targetLang: string) {
   try {
     data = raw ? JSON.parse(raw) : {};
   } catch {
-    throw new Error(`Translate API returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 200)}`);
+    throw new Error(
+      `Translate API returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 200)}`
+    );
   }
 
-  const d = data as { error?: unknown; translatedText?: unknown; translation?: unknown; text?: unknown };
+  const d = data as {
+    error?: unknown;
+    translatedText?: unknown;
+    translation?: unknown;
+    text?: unknown;
+  };
 
   if (d?.error) throw new Error(`Translate API error (HTTP ${res.status}): ${String(d.error)}`);
   if (!res.ok) throw new Error(`Translate HTTP ${res.status}: ${raw.slice(0, 200)}`);
@@ -154,7 +162,9 @@ async function translateOne(text: string, targetLang: string) {
   const out = String(d?.translatedText ?? d?.translation ?? d?.text ?? "").trim();
   if (!out) {
     throw new Error(
-      `Translate returned empty (HTTP ${res.status}). Keys: ${Object.keys(d as object).join(", ") || "(no keys)"}`
+      `Translate returned empty (HTTP ${res.status}). Keys: ${
+        Object.keys(d as object).join(", ") || "(no keys)"
+      }`
     );
   }
   return out;
@@ -294,8 +304,168 @@ function lsKey(lessonId: string) {
 }
 // ------------------------------------------
 
+/**
+ * Build a readable auto-result summary from MCQ/TrueFalse tasks.
+ * This is sent to /api/feedback as "autoResultat".
+ */
+function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
+  const tasksArr = safeTasksArray(lessonObj.tasks);
+  const sorted = [...tasksArr].sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
+
+  let total = 0;
+  let correct = 0;
+  const lines: string[] = [];
+  const wrongLines: string[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    const tt = sorted[i];
+    const stableId = getStableTaskId(tt, i);
+    const type = String(tt?.type ?? "open");
+    if (type !== "mcq" && type !== "truefalse") continue;
+
+    const val = answersObj[stableId];
+    if (val === undefined || val === null || val === "") continue; // unanswered -> ignore
+
+    const options = Array.isArray(tt?.options) ? (tt.options as unknown[]) : [];
+    const rawCorrect = tt?.correctAnswer;
+
+    const mcqCorrectText = (() => {
+      if (!options.length) return null;
+      if (typeof rawCorrect === "number" && rawCorrect >= 0 && rawCorrect < options.length) {
+        return String(options[rawCorrect]);
+      }
+      if (typeof rawCorrect === "string") return rawCorrect;
+      return null;
+    })();
+
+    const tfCorrectBool = (() => {
+      if (typeof rawCorrect === "boolean") return rawCorrect;
+      if (typeof rawCorrect === "string") {
+        const s = rawCorrect.trim().toLowerCase();
+        if (s === "true") return true;
+        if (s === "false") return false;
+      }
+      return null;
+    })();
+
+    const hasCorrect =
+      (type === "mcq" && mcqCorrectText != null) || (type === "truefalse" && tfCorrectBool != null);
+
+    if (!hasCorrect) continue;
+
+    total += 1;
+
+    const isCorrect =
+      type === "mcq"
+        ? mcqCorrectText != null && val != null && String(val) === String(mcqCorrectText)
+        : type === "truefalse"
+        ? tfCorrectBool != null && typeof val === "boolean" && val === tfCorrectBool
+        : false;
+
+    if (isCorrect) correct += 1;
+
+    const order = tt?.order ?? i + 1;
+    const prompt = String(tt?.prompt ?? "").trim();
+
+    if (!isCorrect) {
+      if (type === "mcq") {
+        wrongLines.push(
+          `- Oppgave ${order} (MCQ): "${prompt}" | Elev: "${String(val)}" | Fasit: "${String(mcqCorrectText)}"`
+        );
+      } else {
+        wrongLines.push(
+          `- Oppgave ${order} (True/False): "${prompt}" | Elev: ${String(val)} | Fasit: ${String(tfCorrectBool)}`
+        );
+      }
+    }
+  }
+
+  if (total === 0) return "";
+
+  lines.push(`Lukkede oppgaver (MCQ/True-False): ${correct}/${total} riktige.`);
+  if (wrongLines.length) {
+    lines.push("");
+    lines.push("Feil/misforståelser (kort oversikt):");
+    lines.push(...wrongLines.slice(0, 8));
+  }
+
+  return lines.join("\n").trim();
+}
+
+/**
+ * Build a "task string" describing what the student should be assessed on.
+ * Keep it short—API system prompt does most of the work.
+ */
+function buildOppgaveString(lessonObj: Lesson): string {
+  const tasksArr = safeTasksArray(lessonObj.tasks);
+  const sorted = [...tasksArr].sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
+  const openPrompts: string[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    const tt = sorted[i];
+    const type = String(tt?.type ?? "open");
+    if (type !== "open" && type !== "") continue;
+    const order = tt?.order ?? i + 1;
+    const prompt = String(tt?.prompt ?? "").trim();
+    if (!prompt) continue;
+    openPrompts.push(`- Oppgave ${order}: ${prompt}`);
+  }
+
+  const level = (lessonObj.level ?? "A2").toString();
+  const target = "C1";
+
+  return (
+    `Vurder elevens åpne svar i forhold til CEFR ${level}, og gi råd for progresjon mot ${target}.\n` +
+    (openPrompts.length ? `Åpne oppgaver:\n${openPrompts.join("\n")}\n` : "")
+  ).trim();
+}
+
+/**
+ * Build answer string containing ONLY open answers (free text).
+ */
+function buildSvarString(lessonObj: Lesson, answersObj: AnswersMap): string {
+  const tasksArr = safeTasksArray(lessonObj.tasks);
+  const sorted = [...tasksArr].sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
+  const lines: string[] = [];
+
+  if (sorted.length > 0) {
+    for (let i = 0; i < sorted.length; i++) {
+      const tt = sorted[i];
+      const stableId = getStableTaskId(tt, i);
+
+      const order = tt?.order ?? i + 1;
+      const prompt = String(tt?.prompt ?? "").trim();
+      const type = String(tt?.type ?? "open");
+      const ans = answersObj[stableId];
+
+      // We only send open answers to the AI.
+      const isOpen = type === "open" || (type !== "mcq" && type !== "truefalse");
+      if (!isOpen) continue;
+
+      const ansText =
+        typeof ans === "string" ? ans.trim() : ans == null ? "" : String(ans).trim();
+
+      if (!ansText) continue;
+
+      lines.push(`Oppgave ${order} (åpen): ${prompt}`);
+      lines.push(`Svar: ${ansText}`);
+      lines.push("");
+    }
+  } else {
+    // Fallback: if tasks missing, send everything as text (but still try to keep it readable)
+    for (const [k, v] of Object.entries(answersObj)) {
+      const ansText = typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim();
+      if (!ansText) continue;
+      lines.push(`${k}: ${ansText}`);
+    }
+  }
+
+  return lines.join("\n").trim();
+}
+
 export default function StudentLessonPage() {
   const t = useTranslations("studentLesson");
+  const locale = useLocale(); // ✅ must be top-level in component
 
   const params = useParams<{ lessonId: string }>();
   const lessonId = params?.lessonId;
@@ -744,110 +914,67 @@ export default function StudentLessonPage() {
   }
 
   async function saveDraft() {
-  if (!lessonId || !uid) return;
+    if (!lessonId || !uid) return;
 
-  setSaving(true);
-  setMsg(null);
+    setSaving(true);
+    setMsg(null);
 
-  try {
-    // Anon: local only
-    if (isAnon) {
-      try {
-        localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
-      } catch {
-        // ignore
+    try {
+      // Anon: local only
+      if (isAnon) {
+        try {
+          localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
+        } catch {
+          // ignore
+        }
+        flash(t("flash.saved"));
+        return;
       }
+
+      const stableId = `${uid}_${lessonId}`;
+
+      // 1) behold eksisterende praksis-lagring
+      const practiceRef = doc(db, "practiceSubmissions", stableId);
+      await setDoc(
+        practiceRef,
+        {
+          uid,
+          publishedLessonId: lessonId,
+          answers,
+          status: "draft",
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // 2) NYTT: skriv også til submissions slik at My content-feed ser den
+      const subRef = doc(db, "submissions", stableId);
+      await setDoc(
+        subRef,
+        {
+          uid,
+          lessonId,
+          publishedLessonId: lessonId,
+          answers,
+          status: "draft",
+          kind: "practice",
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
       flash(t("flash.saved"));
+
+      router.push("/content");
       return;
+    } catch (e: unknown) {
+      const m = (e as { message?: unknown })?.message;
+      setMsg(typeof m === "string" ? m : t("errors.couldNotSave"));
+    } finally {
+      setSaving(false);
     }
-
-    const stableId = `${uid}_${lessonId}`;
-
-    // 1) behold eksisterende praksis-lagring
-    const practiceRef = doc(db, "practiceSubmissions", stableId);
-    await setDoc(
-      practiceRef,
-      {
-        uid,
-        publishedLessonId: lessonId,
-        answers,
-        status: "draft",
-        updatedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    // 2) NYTT: skriv også til submissions slik at My content-feed ser den
-    //    (feed henter submissions der uid==uid)
-    const subRef = doc(db, "submissions", stableId);
-    await setDoc(
-      subRef,
-      {
-        uid,
-        lessonId, // ✅ gjør det lett å linke senere
-        publishedLessonId: lessonId, // behold kompat
-        answers,
-        status: "draft",
-        kind: "practice", // valgfritt, men nyttig for filtrering senere
-        updatedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    flash(t("flash.saved"));
-
-    // ✅ viktig: behold locale i redirect
-    router.push("/content");
-    return;
-  } catch (e: unknown) {
-    const m = (e as { message?: unknown })?.message;
-    setMsg(typeof m === "string" ? m : t("errors.couldNotSave"));
-  } finally {
-    setSaving(false);
-  }
-}
-
-  function buildOppgaveString(lessonObj: Lesson) {
-    const parts = [
-      "You are a language teacher. Give short, helpful feedback adapted to the learner's CEFR level.",
-      "Use simple language.",
-      "Provide: (1) overall feedback, (2) 3 concrete improvements, (3) a corrected version.",
-      "Keep it concise.",
-    ];
-    if (lessonObj.level) parts.push(`CEFR: ${lessonObj.level}.`);
-    return parts.join(" ");
-  }
-
-  function buildSvarString(lessonObj: Lesson, answersObj: AnswersMap) {
-    const tasksArr = safeTasksArray(lessonObj.tasks);
-    const sorted = [...tasksArr].sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
-    const lines: string[] = [];
-
-    if (sorted.length > 0) {
-      for (let i = 0; i < sorted.length; i++) {
-        const tt = sorted[i];
-        const stableId = getStableTaskId(tt, i);
-
-        const order = tt?.order ?? "";
-        const prompt = tt?.prompt ?? "";
-        const type = tt?.type ?? "";
-        const ans = answersObj[stableId];
-
-        if (ans === undefined || ans === null || ans === "") continue;
-
-        lines.push(`Task ${order} (${String(type)}): ${String(prompt)}`);
-        lines.push(`Answer: ${typeof ans === "string" ? ans : JSON.stringify(ans)}`);
-        lines.push("");
-      }
-    } else {
-      for (const [k, v] of Object.entries(answersObj)) {
-        lines.push(`${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`);
-      }
-    }
-
-    return lines.join("\n").trim();
   }
 
   async function submitForFeedback() {
@@ -864,6 +991,10 @@ export default function StudentLessonPage() {
 
     setSubmitting(true);
     setMsg(null);
+
+    // Make it clear we're generating a new one
+    setFeedback("⏳ Genererer ny tilbakemelding…");
+    setTranslatedFeedback(null);
 
     try {
       const stableId = `${uid}_${lessonId}`;
@@ -886,10 +1017,25 @@ export default function StudentLessonPage() {
       const oppgave = buildOppgaveString(lesson);
       const svar = buildSvarString(lesson, answers);
 
-      if (!svar) throw new Error("Svar-teksten ble tom. Sjekk at task.id matcher key i answers.");
+      // auto result summary from closed tasks:
+      const autoResultat = buildAutoResultat(lesson, answers);
 
-      const nivå = (lesson.level ?? "A2").toString();
-      const payload = { lesetekst, oppgave, svar, nivå };
+      if (!svar && !autoResultat) {
+        throw new Error("Du må svare på minst én oppgave før du ber om tilbakemelding.");
+      }
+
+      const baseLevel = (lesson.level ?? "A2").toString();
+      const targetLevel = "C1";
+      const nivå = `${baseLevel} (mål: ${targetLevel})`;
+
+      const payload = {
+        lesetekst,
+        oppgave,
+        svar,
+        nivå,
+        autoResultat,
+        locale, // ✅ so API can choose language later if you implement that
+      };
 
       const res = await fetch("/api/feedback", {
         method: "POST",
@@ -919,6 +1065,8 @@ export default function StudentLessonPage() {
     } catch (e: unknown) {
       const m = (e as { message?: unknown })?.message;
       setMsg(typeof m === "string" ? m : t("errors.couldNotSubmit"));
+      // if failed, don't leave "generating..." forever
+      setFeedback(null);
     } finally {
       setSubmitting(false);
     }
@@ -1382,7 +1530,8 @@ export default function StudentLessonPage() {
               const options = Array.isArray(tt?.options) ? (tt.options as unknown[]) : [];
               const val = answers[stableId];
 
-              const hasThisTranslation = !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
+              const hasThisTranslation =
+                !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
               const showThisTranslation = hasThisTranslation ? isTaskTranslationVisible(stableId) : false;
 
               const rawCorrect = tt?.correctAnswer;
@@ -1407,7 +1556,8 @@ export default function StudentLessonPage() {
               })();
 
               const hasCorrect =
-                (type === "mcq" && mcqCorrectText != null) || (type === "truefalse" && tfCorrectBool != null);
+                (type === "mcq" && mcqCorrectText != null) ||
+                (type === "truefalse" && tfCorrectBool != null);
 
               const isCorrect =
                 type === "mcq"

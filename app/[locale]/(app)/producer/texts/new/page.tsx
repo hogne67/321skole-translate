@@ -206,7 +206,10 @@ export default function NewTextPage() {
 
   const [mcqCount, setMcqCount] = useState<number>(LEVEL_DEFAULTS.A2.mcq);
   const [trueFalseCount, setTrueFalseCount] = useState<number>(LEVEL_DEFAULTS.A2.trueFalse);
+
+  // ✅ Faktasetninger (0–10)
   const [factsCount, setFactsCount] = useState<number>(LEVEL_DEFAULTS.A2.facts);
+
   const [reflectionCount, setReflectionCount] = useState<number>(LEVEL_DEFAULTS.A2.reflection);
 
   // ===== Lesson Builder state (truth) =====
@@ -239,7 +242,11 @@ export default function NewTextPage() {
     setTextLength(d.textLength);
     setTrueFalseCount(d.trueFalse);
     setMcqCount(d.mcq);
-    setFactsCount(d.facts);
+
+    // clamp facts to 0–10
+    const nextFacts = Math.max(0, Math.min(10, d.facts));
+    setFactsCount(nextFacts);
+
     setReflectionCount(d.reflection);
   }, [level]);
 
@@ -285,6 +292,28 @@ export default function NewTextPage() {
     return () => clearTimeout(tt);
   }, []);
 
+  function buildFactsPrompt(count: number, suggestions: string[]) {
+    // 0 -> ingen oppgave
+    if (count <= 0) return "";
+
+    // korte tips + litt inspirasjon uten å bli for langt (prompt-feltet er input)
+    const tips = [
+      "Bruk egne ord.",
+      "Hold deg til fakta (ingen meninger).",
+      "Du kan bruke fakta fra teksten – og gjerne legge til relevante fakta om temaet.",
+    ];
+
+    // ta maks 5 korte inspirasjonspunkter
+    const insp = (suggestions || [])
+      .map((s) => String(s || "").trim())
+      .filter(Boolean)
+      .slice(0, 5);
+
+    const inspPart = insp.length ? ` Inspirasjon: ${insp.join(" • ")}` : "";
+
+    return `Faktasetninger (${count}): Skriv ${count} faktasetninger til teksten.${" "}${tips.join(" ")}${inspPart}`;
+  }
+
   function packToLessonTasks(p: ContentPack): LessonTask[] {
     const tasks: LessonTask[] = [];
     let order = 1;
@@ -312,12 +341,15 @@ export default function NewTextPage() {
       });
     }
 
-    for (const f of p.tasks?.writeFacts ?? []) {
+    // ✅ NYTT: “faktasetninger” skal være ÉN oppgave (én boks), ikke én per setning
+    const factsSuggestions = p.tasks?.writeFacts ?? [];
+    const factsN = Math.max(0, Math.min(10, factsSuggestions.length));
+    if (factsN > 0) {
       tasks.push({
         id: newId(),
         order: order++,
         type: "open",
-        prompt: `${t("tasks.writeFactPrefix")} ${f}`,
+        prompt: buildFactsPrompt(factsN, factsSuggestions),
       });
     }
 
@@ -471,7 +503,7 @@ export default function NewTextPage() {
           tasks: {
             mcq: mcqCount,
             trueFalse: trueFalseCount,
-            facts: factsCount,
+            facts: Math.max(0, Math.min(10, factsCount)), // ✅ clamp 0–10
             reflection: reflectionCount,
           },
         }),
@@ -743,11 +775,14 @@ export default function NewTextPage() {
                 <input
                   type="number"
                   value={factsCount}
-                  onChange={(e) => setFactsCount(Number(e.target.value))}
+                  onChange={(e) => setFactsCount(Math.max(0, Math.min(10, Number(e.target.value))))}
                   style={fieldStyle}
                   min={0}
-                  max={20}
+                  max={10} // ✅ 0–10
                 />
+                <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+                  Faktasetninger skrives i én boks (ikke én oppgave per setning).
+                </div>
               </label>
               <label>
                 {t("tasks.reflection")}
