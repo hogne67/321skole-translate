@@ -2,20 +2,33 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, getDocs, orderBy, query, updateDoc, serverTimestamp, type DocumentData } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  updateDoc,
+  serverTimestamp,
+  type DocumentData,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AuthGate from "@/components/AuthGate";
 
 type Status = "none" | "pending" | "approved" | "rejected";
+type Role2 = "student" | "teacher" | "admin" | "parent" | "creator" | string;
 
 type UserRow = {
   id: string;
   email?: string | null;
   displayName?: string | null;
 
-  teacherStatus?: Status;
+  role?: Role2 | null;
+
+  // Creator kan fortsatt være godkjent/pending hvis dere vil
   creatorStatus?: Status;
 
+  // Legacy roles-map (kan fortsatt ligge i gamle docs)
   roles?: {
     teacher?: boolean;
     creator?: boolean;
@@ -53,6 +66,12 @@ function toStatus(v: unknown): Status | undefined {
   return v === "none" || v === "pending" || v === "approved" || v === "rejected" ? v : undefined;
 }
 
+function toRole(v: unknown): Role2 | null | undefined {
+  if (typeof v === "string") return v;
+  if (v === null) return null;
+  return undefined;
+}
+
 function coerceUserRow(id: string, data: DocumentData): UserRow {
   const obj: Record<string, unknown> = isRecord(data) ? data : {};
 
@@ -83,7 +102,8 @@ function coerceUserRow(id: string, data: DocumentData): UserRow {
     email: toStringOrNull(obj.email),
     displayName: toStringOrNull(obj.displayName),
 
-    teacherStatus: toStatus(obj.teacherStatus),
+    role: toRole(obj.role),
+
     creatorStatus: toStatus(obj.creatorStatus),
 
     roles,
@@ -112,7 +132,6 @@ function UsersInner() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const [onlyPendingTeacher, setOnlyPendingTeacher] = useState(true);
   const [onlyPendingCreator, setOnlyPendingCreator] = useState(false);
 
   async function load() {
@@ -134,78 +153,33 @@ function UsersInner() {
     load();
   }, []);
 
-  const pendingTeachers = useMemo(() => rows.filter((u) => u.teacherStatus === "pending"), [rows]);
-
   const pendingCreators = useMemo(() => rows.filter((u) => u.creatorStatus === "pending"), [rows]);
 
   const visible = useMemo(() => {
-    // Filtrering:
-    if (onlyPendingTeacher && !onlyPendingCreator) return pendingTeachers;
-    if (!onlyPendingTeacher && onlyPendingCreator) return pendingCreators;
+    if (onlyPendingCreator) return pendingCreators;
 
-    if (onlyPendingTeacher && onlyPendingCreator) {
-      // slå sammen (unik per id)
-      const map = new Map<string, UserRow>();
-      pendingTeachers.forEach((u) => map.set(u.id, u));
-      pendingCreators.forEach((u) => map.set(u.id, u));
-      return Array.from(map.values());
-    }
-
-    // ingen filter: vis alle, med litt sortering
-    const score = (u: UserRow) => {
-      // teacher approved først, deretter creator approved, så pending, etc
-      const t = u.teacherStatus === "approved" ? 0 : u.teacherStatus === "pending" ? 1 : 2;
-      const c = u.creatorStatus === "approved" ? 0 : u.creatorStatus === "pending" ? 1 : 2;
-      return t * 10 + c;
+    // Litt sortering: admin øverst, teacher, creator, student
+    const rank = (u: UserRow) => {
+      const r = String(u.role ?? "").toLowerCase();
+      if (r === "admin" || u.roles?.admin) return 0;
+      if (r === "teacher" || u.roles?.teacher) return 1;
+      if (r === "creator" || u.roles?.creator) return 2;
+      if (r === "parent" || u.roles?.parent) return 3;
+      return 4;
     };
-    return rows.slice().sort((a, b) => score(a) - score(b));
-  }, [rows, onlyPendingTeacher, onlyPendingCreator, pendingTeachers, pendingCreators]);
+
+    return rows.slice().sort((a, b) => rank(a) - rank(b));
+  }, [rows, onlyPendingCreator, pendingCreators]);
 
   // -------------------------
-  // Teacher actions
+  // Role actions
   // -------------------------
-  async function approveTeacher(u: UserRow) {
+  async function setRole(u: UserRow, role: "student" | "teacher") {
     setErr(null);
     try {
       await updateDoc(doc(db, "users", u.id), {
-        teacherStatus: "approved",
-        "roles.teacher": true,
-
-        // ✅ Policy: teacher får creator automatisk
-        creatorStatus: "approved",
-        "roles.creator": true,
-
-        // (som før)
-        "caps.publish": true,
-
-        updatedAt: serverTimestamp(),
-      });
-      await load();
-    } catch (e: unknown) {
-      setErr(errorMessage(e));
-    }
-  }
-
-  async function setTeacherPending(u: UserRow) {
-    setErr(null);
-    try {
-      await updateDoc(doc(db, "users", u.id), {
-        teacherStatus: "pending",
-        updatedAt: serverTimestamp(),
-      });
-      await load();
-    } catch (e: unknown) {
-      setErr(errorMessage(e));
-    }
-  }
-
-  async function revokeTeacher(u: UserRow) {
-    setErr(null);
-    try {
-      await updateDoc(doc(db, "users", u.id), {
-        teacherStatus: "none",
-        "roles.teacher": false,
-        "caps.publish": false,
+        role,
+        onboardingComplete: true,
         updatedAt: serverTimestamp(),
       });
       await load();
@@ -215,7 +189,24 @@ function UsersInner() {
   }
 
   // -------------------------
-  // Creator actions (NYTT)
+  // Caps actions (optional)
+  // -------------------------
+  async function toggleCap(u: UserRow, capKey: keyof NonNullable<UserRow["caps"]>) {
+    setErr(null);
+    try {
+      const current = Boolean(u.caps?.[capKey]);
+      await updateDoc(doc(db, "users", u.id), {
+        [`caps.${capKey}`]: !current,
+        updatedAt: serverTimestamp(),
+      });
+      await load();
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
+    }
+  }
+
+  // -------------------------
+  // Creator actions (hvis dere fortsatt vil godkjenne creator)
   // -------------------------
   async function approveCreator(u: UserRow) {
     setErr(null);
@@ -278,23 +269,14 @@ function UsersInner() {
         <div>
           <h1 style={{ margin: 0 }}>Admin • Users</h1>
           <p style={{ opacity: 0.75, marginTop: 6 }}>
-            Teacher: Approve gir også creator automatisk. Creator for andre brukere må godkjennes her.
+            Teacher har tilgang med en gang via <code>role=teacher</code>. Creator kan fortsatt godkjennes her (valgfritt).
           </p>
           <div style={{ opacity: 0.75, marginTop: 6, fontSize: 13 }}>
-            Pending teacher: <b>{pendingTeachers.length}</b> · Pending creator: <b>{pendingCreators.length}</b>
+            Pending creator: <b>{pendingCreators.length}</b> · Total users: <b>{rows.length}</b>
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, opacity: 0.85 }}>
-            <input
-              type="checkbox"
-              checked={onlyPendingTeacher}
-              onChange={(e) => setOnlyPendingTeacher(e.target.checked)}
-            />
-            Vis kun pending teacher
-          </label>
-
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, opacity: 0.85 }}>
             <input
               type="checkbox"
@@ -340,147 +322,154 @@ function UsersInner() {
         ) : null}
 
         <div style={{ marginTop: 8 }}>
-          {visible.map((u) => (
-            <div
-              key={u.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1.6fr 1fr 1fr 1fr auto",
-                gap: 10,
-                padding: "10px 0",
-                borderBottom: "1px solid rgba(0,0,0,0.06)",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {u.displayName || u.email || u.id}
+          {visible.map((u) => {
+            const roleStr = String(u.role ?? "—");
+            return (
+              <div
+                key={u.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.6fr 1fr 1fr 1fr auto",
+                  gap: 10,
+                  padding: "10px 0",
+                  borderBottom: "1px solid rgba(0,0,0,0.06)",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {u.displayName || u.email || u.id}
+                  </div>
+                  <div style={{ fontSize: 13, opacity: 0.75, overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {u.email || "—"} • {u.id}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, opacity: 0.75, overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {u.email || "—"} • {u.id}
+
+                <div>
+                  <span style={{ fontSize: 13, opacity: 0.75 }}>role</span>
+                  <div style={{ fontWeight: 700 }}>{roleStr}</div>
+
+                  <div style={{ marginTop: 6 }}>
+                    <span style={{ fontSize: 13, opacity: 0.75 }}>creatorStatus</span>
+                    <div style={{ fontWeight: 700 }}>{u.creatorStatus || "—"}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: 13, opacity: 0.75 }}>legacy roles</span>
+                  <div style={{ fontWeight: 700 }}>
+                    {u.roles?.admin ? "admin " : ""}
+                    {u.roles?.teacher ? "teacher " : ""}
+                    {u.roles?.creator ? "creator " : ""}
+                    {u.roles?.student ? "student " : ""}
+                    {u.roles?.parent ? "parent " : ""}
+                    {!u.roles ? "—" : ""}
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: 13, opacity: 0.75 }}>caps</span>
+                  <div style={{ fontWeight: 700 }}>
+                    {u.caps?.publish ? "publish " : ""}
+                    {u.caps?.sell ? "sell " : ""}
+                    {u.caps?.pdf ? "pdf " : ""}
+                    {u.caps?.tts ? "tts " : ""}
+                    {u.caps?.vocab ? "vocab " : ""}
+                    {!u.caps ? "—" : ""}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  {/* Role */}
+                  <button
+                    onClick={() => setRole(u, "teacher")}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "white",
+                    }}
+                  >
+                    Set role: teacher
+                  </button>
+                  <button
+                    onClick={() => setRole(u, "student")}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "white",
+                    }}
+                  >
+                    Set role: student
+                  </button>
+
+                  <span style={{ opacity: 0.35 }}>│</span>
+
+                  {/* Caps */}
+                  <button
+                    onClick={() => toggleCap(u, "publish")}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "white",
+                    }}
+                  >
+                    Toggle publish
+                  </button>
+
+                  <span style={{ opacity: 0.35 }}>│</span>
+
+                  {/* Creator (valgfritt) */}
+                  <button
+                    onClick={() => approveCreator(u)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "white",
+                    }}
+                  >
+                    Approve creator
+                  </button>
+                  <button
+                    onClick={() => setCreatorPending(u)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "white",
+                    }}
+                  >
+                    Creator pending
+                  </button>
+                  <button
+                    onClick={() => rejectCreator(u)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "white",
+                    }}
+                  >
+                    Reject creator
+                  </button>
+                  <button
+                    onClick={() => revokeCreator(u)}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "white",
+                    }}
+                  >
+                    Revoke creator
+                  </button>
                 </div>
               </div>
-
-              <div>
-                <span style={{ fontSize: 13, opacity: 0.75 }}>teacherStatus</span>
-                <div style={{ fontWeight: 700 }}>{u.teacherStatus || "—"}</div>
-
-                <div style={{ marginTop: 6 }}>
-                  <span style={{ fontSize: 13, opacity: 0.75 }}>creatorStatus</span>
-                  <div style={{ fontWeight: 700 }}>{u.creatorStatus || "—"}</div>
-                </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: 13, opacity: 0.75 }}>roles</span>
-                <div style={{ fontWeight: 700 }}>
-                  {u.roles?.admin ? "admin " : ""}
-                  {u.roles?.teacher ? "teacher " : ""}
-                  {u.roles?.creator ? "creator " : ""}
-                  {u.roles?.student ? "student " : ""}
-                  {u.roles?.parent ? "parent " : ""}
-                  {!u.roles ? "—" : ""}
-                </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: 13, opacity: 0.75 }}>caps</span>
-                <div style={{ fontWeight: 700 }}>
-                  {u.caps?.publish ? "publish " : ""}
-                  {u.caps?.sell ? "sell " : ""}
-                  {u.caps?.pdf ? "pdf " : ""}
-                  {u.caps?.tts ? "tts " : ""}
-                  {u.caps?.vocab ? "vocab " : ""}
-                  {!u.caps ? "—" : ""}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                {/* Teacher */}
-                <button
-                  onClick={() => approveTeacher(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
-                >
-                  Approve teacher
-                </button>
-                <button
-                  onClick={() => setTeacherPending(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
-                >
-                  Teacher pending
-                </button>
-                <button
-                  onClick={() => revokeTeacher(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
-                >
-                  Revoke teacher
-                </button>
-
-                <span style={{ opacity: 0.35 }}>│</span>
-
-                {/* Creator */}
-                <button
-                  onClick={() => approveCreator(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
-                >
-                  Approve creator
-                </button>
-                <button
-                  onClick={() => setCreatorPending(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
-                >
-                  Creator pending
-                </button>
-                <button
-                  onClick={() => rejectCreator(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
-                >
-                  Reject creator
-                </button>
-                <button
-                  onClick={() => revokeCreator(u)}
-                  style={{
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.14)",
-                    background: "white",
-                  }}
-                >
-                  Revoke creator
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </main>

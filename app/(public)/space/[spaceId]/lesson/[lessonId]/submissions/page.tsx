@@ -213,8 +213,8 @@ function Inner() {
 
 export default function TeacherSubmissionsPage() {
   return (
-    <AuthGate requireRole="teacher" requireApprovedTeacher>
-      <Inner />
-    </AuthGate>
+    <AuthGate requireRole="teacher">
+  <Inner />
+</AuthGate>
   );
 }

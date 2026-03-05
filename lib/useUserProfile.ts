@@ -5,14 +5,10 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import { ensureUserProfile, type UserProfile, type TeacherStatus } from "@/lib/userProfile";
+import { ensureUserProfile, type UserProfile } from "@/lib/userProfile";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
-}
-
-function normalizeTeacherStatus(v: unknown): TeacherStatus {
-  return v === "pending" || v === "approved" || v === "rejected" ? v : "none";
 }
 
 type Role2 = "student" | "teacher";
@@ -22,7 +18,7 @@ type RolesMap = {
   student?: boolean;
   admin?: boolean;
   creator?: boolean;
-  teacherStatus?: unknown;
+  parent?: boolean;
 };
 
 function normalizeRole(raw: unknown): Role2 | null {
@@ -34,6 +30,7 @@ function normalizeRole(raw: unknown): Role2 | null {
   // gamle “produsent/ansatt”-roller -> teacher
   if (r === "admin" || r === "creator" || r === "content" || r === "review" || r === "reviewer") return "teacher";
 
+  // parent -> student
   if (r === "parent") return "student";
 
   return null;
@@ -46,8 +43,9 @@ function roleFromRolesMap(p: Record<string, unknown>): Role2 | null {
   if (roles.teacher === true) return "teacher";
   if (roles.student === true) return "student";
 
-  // fallbacks om dere har hatt andre flagg
+  // legacy fallbacks: admin/creator => teacher, parent => student
   if (roles.admin === true || roles.creator === true) return "teacher";
+  if (roles.parent === true) return "student";
 
   return null;
 }
@@ -66,22 +64,9 @@ function normalizeProfile(raw: unknown): UserProfile | null {
 
   const p: Record<string, unknown> = { ...raw };
 
-  // ---- teacherStatus normalization ----
-  const roles = isRecord(p.roles) ? (p.roles as RolesMap) : null;
-
-  const rawTeacherStatus = p.teacherStatus ?? (roles ? roles.teacherStatus : undefined);
-  const normalizedStatus = normalizeTeacherStatus(rawTeacherStatus);
-
-  p.teacherStatus = normalizedStatus;
-
-  if (roles) {
-    roles.teacherStatus = normalizedStatus;
-    p.roles = roles;
-  }
-
   // ---- role normalization (2-role model) ----
-  const role = normalizeRole(p.role) ?? roleFromRolesMap(p);
-  if (role) p.role = role;
+  const role2 = normalizeRole(p.role) ?? roleFromRolesMap(p);
+  if (role2) p.role = role2;
 
   // ---- onboardingComplete normalization (soft) ----
   if (p.onboardingComplete !== true && hasMinimumOnboardingData(p)) {
@@ -115,6 +100,13 @@ export function useUserProfile() {
       }
 
       if (u.isAnonymous) {
+        setLoading(false);
+        return;
+      }
+
+      if (!db) {
+        console.error("useUserProfile: Firestore db is null (firebase init missing?)");
+        setProfile(null);
         setLoading(false);
         return;
       }

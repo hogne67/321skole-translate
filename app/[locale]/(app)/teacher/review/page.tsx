@@ -5,7 +5,7 @@ import AuthGate from "@/components/AuthGate";
 
 export default function TeacherReviewPage() {
   return (
-    <AuthGate requireRole="teacher" requireApprovedTeacher>
+    <AuthGate requireRole="teacher">
       <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
         <h1 style={{ margin: 0 }}>Review</h1>
         <p style={{ opacity: 0.8, marginTop: 8 }}>

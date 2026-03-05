@@ -22,6 +22,7 @@
   "status": {
     "approved": "Approved",
     "needs_work": "Needs work"
+    
   },
   "actions": {
     "open": "Open",
@@ -671,9 +672,26 @@
         "empty": "No submissions yet."
       },
       "status": {
+        "submitted": "Submitted",
         "needsWork": "Needs work",
         "approved": "Approved"
       },
+      "ai": {
+  "title": "AI feedback",
+  "generateButton": "Generate AI feedback",
+  "generating": "Generating…",
+  "saveButton": "Save",
+  "saving": "Saving…",
+  "copyButton": "Copy",
+  "insertButton": "Insert into teacher feedback",
+  "placeholder": "AI feedback is stored here…",
+  "generated": "AI feedback updated.",
+  "generateFailed": "Could not generate AI feedback: {msg}",
+  "copied": "Copied!",
+  "copyFailed": "Could not copy.",
+  "inserted": "Inserted into teacher feedback.",
+  "rulesHint": "Saved in"
+},
       "fallback": {
         "task": "Task",
         "student": "Student",
@@ -699,8 +717,10 @@
         "loggedIn": "Logged in"
       },
       "status": {
+        "submitted": "Submitted",
         "approved": "Approved",
-        "needsWork": "Needs work"
+        "needsWork": "Needs work",
+        "draft": "Draft"
       },
       "auto": {
         "main": "RESULT AUTO CORRECTION: {correct}/{total}{pctText}",
@@ -753,7 +773,9 @@
         "copied": "Copied!",
         "copyFailed": "Could not copy.",
         "inserted": "Inserted into teacher feedback.",
-        "rulesHint": "Saved in"
+        "rulesHint": "Saved in",
+        "saveButton": "Save",
+        "saving": "Saving.…"
       },
       "fallback": {
         "guest": "Guest",

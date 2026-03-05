@@ -8,7 +8,7 @@ export default function ProducerDocLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthGate requireRole="teacher" requireApprovedTeacher>
+    <AuthGate requireRole="teacher">
       <main className="mx-auto w-full max-w-none px-6 py-6">
         <div className="mx-auto w-full max-w-6xl">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

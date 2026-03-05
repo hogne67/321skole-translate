@@ -8,11 +8,10 @@ import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useLocale } from "next-intl";
 
 function getErrorInfo(err: unknown): { message: string; code?: string } {
-  // Firebase errors often look like: { code: "permission-denied", message: "...", ... }
   if (err instanceof Error) return { message: err.message };
-
   if (typeof err === "string") return { message: err };
 
   if (err && typeof err === "object") {
@@ -28,6 +27,16 @@ function getErrorInfo(err: unknown): { message: string; code?: string } {
   return { message: String(err) };
 }
 
+function isTeacherProfile(profile: unknown): boolean {
+  if (!profile || typeof profile !== "object") return false;
+  const p = profile as { role?: unknown; roles?: { teacher?: unknown } };
+
+  const r = String(p.role ?? "").toLowerCase();
+  if (r === "teacher") return true;
+
+  return p.roles?.teacher === true;
+}
+
 export default function CreatorApplyPage() {
   return (
     <AuthGate>
@@ -38,6 +47,7 @@ export default function CreatorApplyPage() {
 
 function Inner() {
   const router = useRouter();
+  const locale = useLocale();
   const { user, profile, loading } = useUserProfile();
 
   const [saving, setSaving] = useState(false);
@@ -46,16 +56,16 @@ function Inner() {
   const uid = user?.uid;
   const userRef = useMemo(() => (uid ? doc(db, "users", uid) : null), [uid]);
 
-  const isCreator = !!profile?.roles?.creator;
-  const isTeacherApproved = profile?.teacherStatus === "approved" && !!profile?.roles?.teacher;
+  const isCreator = profile?.roles?.creator === true || String(profile?.role ?? "").toLowerCase() === "creator";
+  const isTeacher = isTeacherProfile(profile);
 
   const creatorStatus = profile?.creatorStatus || "none";
 
-  // Hvis du allerede er creator, gå til creator-dashboard
+  // Hvis du allerede er creator (eller teacher via policy), gå til creator-dashboard
   useEffect(() => {
     if (loading) return;
-    if (isCreator) router.replace("/creator");
-  }, [isCreator, loading, router]);
+    if (isCreator || isTeacher) router.replace(`/${locale}/creator`);
+  }, [isCreator, isTeacher, loading, router, locale]);
 
   if (loading) return <div style={{ padding: 16 }}>Laster…</div>;
 
@@ -65,28 +75,38 @@ function Inner() {
       <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
         <h1 style={{ marginTop: 0 }}>Creator</h1>
         <p style={{ opacity: 0.8 }}>Du må være innlogget for å søke om creator.</p>
-        <Link href="/login">Gå til login</Link>
+        <Link href={`/${locale}/login`}>Gå til login</Link>
       </div>
     );
   }
 
-  // Teacher trenger ikke søke (policy)
-  if (isTeacherApproved) {
+  // Anon kan ikke søke
+  if (user.isAnonymous) {
+    return (
+      <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
+        <h1 style={{ marginTop: 0 }}>Creator</h1>
+        <p style={{ opacity: 0.8 }}>Anonyme brukere kan ikke søke om creator.</p>
+        <Link href={`/${locale}/login`}>Gå til login</Link>
+      </div>
+    );
+  }
+
+  // Teacher trenger ikke søke (policy: teacher får creator automatisk)
+  if (isTeacher) {
     return (
       <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
         <h1 style={{ marginTop: 0 }}>Creator</h1>
         <p style={{ opacity: 0.85 }}>
-          Du er godkjent teacher. Teacher får creator-tilgang automatisk.
+          Du er teacher. Teacher får creator-tilgang automatisk.
         </p>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
-          <Link href="/creator">Gå til Creator</Link>
-          <Link href="/teacher">Tilbake til Teacher</Link>
+          <Link href={`/${locale}/creator`}>Gå til Creator</Link>
+          <Link href={`/${locale}/teacher`}>Tilbake til Teacher</Link>
         </div>
 
         <p style={{ marginTop: 14, opacity: 0.75, fontSize: 12 }}>
-          (Hvis du ikke kommer inn i Creator: sjekk at admin-approve har satt{" "}
-          <code>roles.creator=true</code>.)
+          (Hvis du ikke kommer inn i Creator, sjekk at du faktisk har <code>role="teacher"</code> på profilen.)
         </p>
       </div>
     );
@@ -162,7 +182,7 @@ function Inner() {
               {saving ? "Sender…" : "Søk om creator"}
             </button>
 
-            <Link href="/teacher/spaces">Tilbake</Link>
+            <Link href={`/${locale}/student`}>Tilbake</Link>
           </div>
         )}
 

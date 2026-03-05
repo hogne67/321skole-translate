@@ -67,7 +67,7 @@ type TranslatedTask = {
 
 type TtsLang = "no" | "en" | "pt-BR";
 
-type SubmissionStatus = "submitted" | "needs_work" | "reviewed" | "approved" | "rejected" | string;
+type SubmissionStatus = "draft" | "submitted" | "needs_work" | "reviewed" | "approved" | "rejected" | string;
 
 type TeacherFeedback = {
   text?: string;
@@ -255,8 +255,8 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
         byTask[stableId] = {
           type: "mcq",
           isCorrect: false,
-          studentAnswer: u2n(studentRaw),   // ✅ aldri undefined
-          correctAnswer: u2n(correctRaw),   // ✅ aldri undefined
+          studentAnswer: u2n(studentRaw),
+          correctAnswer: u2n(correctRaw),
         };
         return;
       }
@@ -268,8 +268,8 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
       byTask[stableId] = {
         type: "mcq",
         isCorrect,
-        studentAnswer: u2n(studentRaw),     // ✅
-        correctAnswer: u2n(correctRaw),     // ✅
+        studentAnswer: u2n(studentRaw),
+        correctAnswer: u2n(correctRaw),
       };
       return;
     }
@@ -283,8 +283,8 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
       byTask[stableId] = {
         type: "truefalse",
         isCorrect: false,
-        studentAnswer: u2n(student),        // ✅ aldri undefined
-        correctAnswer: u2n(correct),        // ✅ aldri undefined
+        studentAnswer: u2n(student),
+        correctAnswer: u2n(correct),
       };
       return;
     }
@@ -296,8 +296,8 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
     byTask[stableId] = {
       type: "truefalse",
       isCorrect,
-      studentAnswer: u2n(student),          // ✅
-      correctAnswer: u2n(correct),          // ✅
+      studentAnswer: u2n(student),
+      correctAnswer: u2n(correct),
     };
   });
 
@@ -405,6 +405,7 @@ function statusTheme(s: SubmissionStatus): { border: string; bg: string } {
   const v = normalizeStatus(s);
   if (v === "needs_work") return { border: "rgba(245,158,11,0.45)", bg: "rgba(245,158,11,0.10)" };
   if (v === "reviewed" || v === "approved") return { border: "rgba(46,204,113,0.45)", bg: "rgba(46,204,113,0.10)" };
+  if (v === "draft") return { border: "rgba(99,102,241,0.45)", bg: "rgba(99,102,241,0.08)" }; // indigo-ish
   return { border: "rgba(0,0,0,0.14)", bg: "rgba(0,0,0,0.02)" };
 }
 
@@ -513,7 +514,6 @@ function StatusToggleButton({
 function SmartImage({ src, alt }: { src: string; alt: string }) {
   const isInline = src.startsWith("data:") || src.startsWith("blob:");
   if (isInline) {
-    // Next/Image kan ikke optimalisere data/blob trygt → bruk <img> men lovlig
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
   }
@@ -952,7 +952,7 @@ export default function StudentAssignmentPage() {
             setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
             setLiveAuto(readAutoGrade(sd));
 
-            if (sStatus === "needs_work") {
+            if (sStatus === "needs_work" || sStatus === "draft") {
               const a = sd.answers as unknown;
               const nextAnswers = a && typeof a === "object" && !Array.isArray(a) ? (a as AnswersMap) : {};
               setAnswers(nextAnswers);
@@ -965,7 +965,34 @@ export default function StudentAssignmentPage() {
             setEditingSubmissionId(null);
           }
         } else {
-          setEditingSubmissionId(null);
+          // ✅ ingen sid: prøv å laste kladd automatisk (default-id)
+          const autoId = `${spaceId}_${assignmentId}_${user.uid}`;
+          const sRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", autoId);
+          const sSnap = await getDoc(sRef);
+
+          if (sSnap.exists()) {
+            const sd = (sSnap.data() as SubmissionDoc) ?? {};
+            const owner = typeof sd.uid === "string" ? sd.uid : null;
+            if (owner && owner !== user.uid) throw new Error(t("errors.noAccessSubmission"));
+
+            const sStatus = normalizeStatus(sd.status);
+            setLiveStatus(sStatus);
+            setLiveTeacherText(sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : null);
+            setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
+            setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
+            setLiveAuto(readAutoGrade(sd));
+
+            if (sStatus === "draft" || sStatus === "needs_work") {
+              const a = sd.answers as unknown;
+              const nextAnswers = a && typeof a === "object" && !Array.isArray(a) ? (a as AnswersMap) : {};
+              setAnswers(nextAnswers);
+              setEditingSubmissionId(autoId);
+            } else {
+              setEditingSubmissionId(null);
+            }
+          } else {
+            setEditingSubmissionId(null);
+          }
         }
       } catch (e: unknown) {
         if (!alive) return;
@@ -1019,7 +1046,7 @@ export default function StudentAssignmentPage() {
 
         setLiveAuto(readAutoGrade(sd));
 
-        if (sStatus === "needs_work") setEditingSubmissionId(activeSubId);
+        if (sStatus === "needs_work" || sStatus === "draft") setEditingSubmissionId(activeSubId);
         else if (activeSubId === sid) setEditingSubmissionId(null);
       },
       () => {}
@@ -1119,7 +1146,7 @@ export default function StudentAssignmentPage() {
   }
 
   /* =========================
-     Submit
+     Submit + Draft
   ========================= */
 
   function buildSubmissionId(currentUid: string) {
@@ -1134,6 +1161,7 @@ export default function StudentAssignmentPage() {
 
   function statusLabel(s: SubmissionStatus) {
     const v = normalizeStatus(s);
+    if (v === "draft") return "Kladd";
     if (v === "needs_work") return t("status.needsWork");
     if (v === "reviewed" || v === "approved") return t("status.approved");
     if (v === "submitted") return t("status.submitted");
@@ -1142,32 +1170,126 @@ export default function StudentAssignmentPage() {
 
   function statusDesc(s: SubmissionStatus) {
     const v = normalizeStatus(s);
+    if (v === "draft") return "Kladd er lagret. Du kan fortsette senere og levere når du er klar.";
     if (v === "needs_work") return t("statusDesc.needsWork");
     if (v === "reviewed" || v === "approved") return t("statusDesc.approved");
     if (v === "submitted") return t("statusDesc.submitted");
     return t("statusDesc.generic");
   }
-function stripUndefinedDeep<T>(value: T): T {
-  if (value === null) return value;
-  if (value === undefined) return value;
 
-  if (Array.isArray(value)) return value.map((v) => stripUndefinedDeep(v)) as unknown as T;
+  function stripUndefinedDeep<T>(value: T): T {
+    if (value === null) return value;
+    if (value === undefined) return value;
 
-  if (typeof value === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (v === undefined) continue; // 🔥 dropp undefined-felt
-      out[k] = stripUndefinedDeep(v);
+    if (Array.isArray(value)) return value.map((v) => stripUndefinedDeep(v)) as unknown as T;
+
+    if (typeof value === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        if (v === undefined) continue;
+        out[k] = stripUndefinedDeep(v);
+      }
+      return out as T;
     }
-    return out as T;
+    return value;
   }
-  return value;
-}
+
+  async function saveDraft(manual = false) {
+    if (!spaceId || !assignmentId || !uid) return;
+    if (submitted) return;
+    if (isLockedByTeacher()) return;
+
+    setSaving(true);
+    setErr(null);
+    if (manual) setMsg(null);
+
+    try {
+      const subId = buildSubmissionId(uid);
+
+      const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
+      const indexRef = doc(db, "spaceSubmissions", subId);
+
+      const auto = computeAutoGrade(tasksOriginal, answers);
+
+      const basePayload: Record<string, unknown> = stripUndefinedDeep({
+        spaceId,
+        assignmentId,
+        sourceType: assignment?.sourceType ?? null,
+        sourceId: assignment?.sourceId ?? null,
+        title: assignment?.title ?? lesson?.title ?? null,
+        level: assignment?.level ?? lesson?.level ?? null,
+        language: assignment?.language ?? lesson?.language ?? null,
+        uid,
+        isAnon,
+        status: "draft",
+        answers,
+        auto,
+        updatedAt: serverTimestamp(),
+        auth: { isAnon, uid },
+      });
+
+      const batch = writeBatch(db);
+
+      if (editingSubmissionId) {
+        batch.set(nestedRef, basePayload, { merge: true });
+        batch.set(indexRef, basePayload, { merge: true });
+      } else {
+        const firstPayload = { ...basePayload, createdAt: serverTimestamp() };
+        batch.set(nestedRef, firstPayload, { merge: true });
+        batch.set(indexRef, firstPayload, { merge: true });
+      }
+
+      await batch.commit();
+
+      setSubmissionId(subId);
+      setLiveStatus("draft");
+      setLiveAuto(auto);
+
+      if (manual) setMsg("Kladd lagret.");
+    } catch (e: unknown) {
+      if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
+      else {
+        const m = (e as { message?: unknown })?.message;
+        setErr(typeof m === "string" ? m : t("errors.submitFailed"));
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ✅ Autosave (debounce) på endringer
+  const lastAutoSaveRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!uid || !spaceId || !assignmentId) return;
+    if (submitted) return;
+    if (isLockedByTeacher()) return;
+
+    if (!answers || Object.keys(answers).length === 0) return;
+
+    const now = Date.now();
+    if (now - lastAutoSaveRef.current < 1200) return;
+
+    const timer = window.setTimeout(() => {
+      lastAutoSaveRef.current = Date.now();
+      void saveDraft(false);
+    }, 900);
+
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, uid, spaceId, assignmentId, submitted, liveStatus]);
+
   async function submitToSpace() {
     if (!spaceId || !assignmentId || !uid) return;
     if (submitted) return;
 
     if ((sid || editingSubmissionId) && editingSubmissionId == null) {
+      setErr(null);
+      setMsg(t("messages.lockedNoChanges"));
+      return;
+    }
+
+    if (isLockedByTeacher()) {
       setErr(null);
       setMsg(t("messages.lockedNoChanges"));
       return;
@@ -1186,21 +1308,21 @@ function stripUndefinedDeep<T>(value: T): T {
       const auto = computeAutoGrade(tasksOriginal, answers);
 
       const basePayload: Record<string, unknown> = stripUndefinedDeep({
-  spaceId,
-  assignmentId,
-  sourceType: assignment?.sourceType ?? null,
-  sourceId: assignment?.sourceId ?? null,
-  title: assignment?.title ?? lesson?.title ?? null,
-  level: assignment?.level ?? lesson?.level ?? null,
-  language: assignment?.language ?? lesson?.language ?? null,
-  uid,
-  isAnon,
-  status: "submitted",
-  answers,
-  auto,
-  updatedAt: serverTimestamp(),
-  auth: { isAnon, uid },
-});
+        spaceId,
+        assignmentId,
+        sourceType: assignment?.sourceType ?? null,
+        sourceId: assignment?.sourceId ?? null,
+        title: assignment?.title ?? lesson?.title ?? null,
+        level: assignment?.level ?? lesson?.level ?? null,
+        language: assignment?.language ?? lesson?.language ?? null,
+        uid,
+        isAnon,
+        status: "submitted",
+        answers,
+        auto,
+        updatedAt: serverTimestamp(),
+        auth: { isAnon, uid },
+      });
 
       const batch = writeBatch(db);
 
@@ -1292,149 +1414,149 @@ function stripUndefinedDeep<T>(value: T): T {
   }
 
   function renderTask(tk: Task, idx: number) {
-  const stableId = getStableTaskId(tk, idx);
-  const type = String(tk?.type ?? "open").toLowerCase();
-  const promptOrig = String(tk?.prompt ?? "");
+    const stableId = getStableTaskId(tk, idx);
+    const type = String(tk?.type ?? "open").toLowerCase();
+    const promptOrig = String(tk?.prompt ?? "");
 
-  const tr = tMap.get(stableId);
-  const showTr = isTaskTranslationVisible(stableId);
+    const tr = tMap.get(stableId);
+    const showTr = isTaskTranslationVisible(stableId);
 
-  const promptShown = showTr && tr?.translatedPrompt ? tr.translatedPrompt : promptOrig;
-  const promptOther = showTr ? promptOrig : tr?.translatedPrompt;
+    const promptShown = showTr && tr?.translatedPrompt ? tr.translatedPrompt : promptOrig;
+    const promptOther = showTr ? promptOrig : tr?.translatedPrompt;
 
-  const promptShownClean = String(promptShown ?? "").trim();
-  const promptOtherClean = String(promptOther ?? "").trim();
+    const promptShownClean = String(promptShown ?? "").trim();
+    const promptOtherClean = String(promptOther ?? "").trim();
 
-  // ✅ Vis “other” bare hvis den faktisk er annerledes enn den som vises øverst
-  const showPromptOther = promptOtherClean.length > 0 && promptOtherClean !== promptShownClean;
+    // ✅ Vis “other” bare hvis den faktisk er annerledes enn den som vises øverst
+    const showPromptOther = promptOtherClean.length > 0 && promptOtherClean !== promptShownClean;
 
-  const locked = isLockedByTeacher();
+    const locked = isLockedByTeacher();
 
-  return (
-    <div
-      key={stableId}
-      style={{
-        border: "1px solid rgba(0,0,0,0.12)",
-        borderRadius: 12,
-        padding: 12,
-        background: "white",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-        <div style={{ fontWeight: 800, lineHeight: 1.4 }}>{promptShownClean || t("tasks.noPrompt")}</div>
+    return (
+      <div
+        key={stableId}
+        style={{
+          border: "1px solid rgba(0,0,0,0.12)",
+          borderRadius: 12,
+          padding: 12,
+          background: "white",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+          <div style={{ fontWeight: 800, lineHeight: 1.4 }}>{promptShownClean || t("tasks.noPrompt")}</div>
 
-        {!!(tr?.translatedPrompt || tr?.translatedOptions?.length) && (
-          <button
-            type="button"
-            onClick={() => toggleTaskTranslation(stableId)}
-            style={{ ...btnStyle, padding: "6px 10px" }}
-            title={t("translate.toggleTask")}
-          >
-            {showTr ? t("translate.hide") : t("translate.show")}
-          </button>
-        )}
-      </div>
-
-      {showPromptOther ? (
-        <div style={{ marginTop: 6, opacity: 0.75, fontSize: 13, lineHeight: 1.5 }}>{promptOtherClean}</div>
-      ) : null}
-
-      <div style={{ marginTop: 10 }}>
-        {type === "mcq" && Array.isArray(tk.options) ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(() => {
-              const opts = tk.options as unknown[];
-              const selectedIdx = getMcqSelectedIndex(stableId, opts);
-
-              return opts.map((o, oi) => {
-                const optOrig = String(o);
-                const optTr = tr?.translatedOptions?.[oi];
-                const optShown = showTr && optTr ? optTr : optOrig;
-
-                const checked = selectedIdx === oi;
-
-                return (
-                  <label
-                    key={`${stableId}_opt_${oi}`}
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "center",
-                      border: checked ? "2px solid rgba(16,185,129,0.70)" : "1px solid rgba(0,0,0,0.10)",
-                      borderRadius: 12,
-                      padding: checked ? "9px 11px" : "10px 12px",
-                      cursor: locked ? "not-allowed" : "pointer",
-                      opacity: locked ? 0.7 : 1,
-                      background: checked ? "rgba(16,185,129,0.10)" : "white",
-                      transition: "all 120ms ease",
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name={`mcq_${stableId}`}
-                      checked={checked}
-                      disabled={locked}
-                      onChange={() => setAnswer(stableId, oi)} // ✅ lagrer index (stabilt)
-                      style={{ transform: "scale(1.05)" }}
-                    />
-                    <span style={{ fontWeight: checked ? 800 : 600 }}>{optShown}</span>
-                  </label>
-                );
-              });
-            })()}
-          </div>
-        ) : type === "truefalse" ? (
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {!!(tr?.translatedPrompt || tr?.translatedOptions?.length) && (
             <button
               type="button"
+              onClick={() => toggleTaskTranslation(stableId)}
+              style={{ ...btnStyle, padding: "6px 10px" }}
+              title={t("translate.toggleTask")}
+            >
+              {showTr ? t("translate.hide") : t("translate.show")}
+            </button>
+          )}
+        </div>
+
+        {showPromptOther ? (
+          <div style={{ marginTop: 6, opacity: 0.75, fontSize: 13, lineHeight: 1.5 }}>{promptOtherClean}</div>
+        ) : null}
+
+        <div style={{ marginTop: 10 }}>
+          {type === "mcq" && Array.isArray(tk.options) ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {(() => {
+                const opts = tk.options as unknown[];
+                const selectedIdx = getMcqSelectedIndex(stableId, opts);
+
+                return opts.map((o, oi) => {
+                  const optOrig = String(o);
+                  const optTr = tr?.translatedOptions?.[oi];
+                  const optShown = showTr && optTr ? optTr : optOrig;
+
+                  const checked = selectedIdx === oi;
+
+                  return (
+                    <label
+                      key={`${stableId}_opt_${oi}`}
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "center",
+                        border: checked ? "2px solid rgba(16,185,129,0.70)" : "1px solid rgba(0,0,0,0.10)",
+                        borderRadius: 12,
+                        padding: checked ? "9px 11px" : "10px 12px",
+                        cursor: locked ? "not-allowed" : "pointer",
+                        opacity: locked ? 0.7 : 1,
+                        background: checked ? "rgba(16,185,129,0.10)" : "white",
+                        transition: "all 120ms ease",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name={`mcq_${stableId}`}
+                        checked={checked}
+                        disabled={locked}
+                        onChange={() => setAnswer(stableId, oi)} // ✅ lagrer index (stabilt)
+                        style={{ transform: "scale(1.05)" }}
+                      />
+                      <span style={{ fontWeight: checked ? 800 : 600 }}>{optShown}</span>
+                    </label>
+                  );
+                });
+              })()}
+            </div>
+          ) : type === "truefalse" ? (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                disabled={locked}
+                onClick={() => setAnswer(stableId, true)}
+                style={{
+                  ...btnStyle,
+                  background: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.14)" : "white",
+                  borderColor: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
+                  fontWeight: isTrueSelected(stableId, true) ? 900 : 700,
+                  opacity: locked ? 0.7 : 1,
+                }}
+              >
+                {t("tasks.true")}
+              </button>
+              <button
+                type="button"
+                disabled={locked}
+                onClick={() => setAnswer(stableId, false)}
+                style={{
+                  ...btnStyle,
+                  background: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.14)" : "white",
+                  borderColor: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
+                  fontWeight: isTrueSelected(stableId, false) ? 900 : 700,
+                  opacity: locked ? 0.7 : 1,
+                }}
+              >
+                {t("tasks.false")}
+              </button>
+            </div>
+          ) : (
+            <textarea
+              value={String(answers[stableId] ?? "")}
               disabled={locked}
-              onClick={() => setAnswer(stableId, true)}
+              onChange={(e) => setAnswer(stableId, e.target.value)}
+              rows={4}
               style={{
-                ...btnStyle,
-                background: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.14)" : "white",
-                borderColor: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
-                fontWeight: isTrueSelected(stableId, true) ? 900 : 700,
+                width: "100%",
+                border: "1px solid rgba(0,0,0,0.12)",
+                borderRadius: 10,
+                padding: 10,
+                outline: "none",
                 opacity: locked ? 0.7 : 1,
               }}
-            >
-              {t("tasks.true")}
-            </button>
-            <button
-              type="button"
-              disabled={locked}
-              onClick={() => setAnswer(stableId, false)}
-              style={{
-                ...btnStyle,
-                background: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.14)" : "white",
-                borderColor: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
-                fontWeight: isTrueSelected(stableId, false) ? 900 : 700,
-                opacity: locked ? 0.7 : 1,
-              }}
-            >
-              {t("tasks.false")}
-            </button>
-          </div>
-        ) : (
-          <textarea
-            value={String(answers[stableId] ?? "")}
-            disabled={locked}
-            onChange={(e) => setAnswer(stableId, e.target.value)}
-            rows={4}
-            style={{
-              width: "100%",
-              border: "1px solid rgba(0,0,0,0.12)",
-              borderRadius: 10,
-              padding: 10,
-              outline: "none",
-              opacity: locked ? 0.7 : 1,
-            }}
-            placeholder={t("tasks.writeAnswer")}
-          />
-        )}
+              placeholder={t("tasks.writeAnswer")}
+            />
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   /* =========================
      Early returns
@@ -1474,7 +1596,7 @@ function stripUndefinedDeep<T>(value: T): T {
 
   const showStatusCard = !!(sid || submissionId || editingSubmissionId || liveStatus);
   const effectiveStatus = normalizeStatus(
-    liveStatus ?? (editingSubmissionId ? "needs_work" : sid ? "submitted" : "submitted")
+    liveStatus ?? (editingSubmissionId ? "draft" : sid ? "submitted" : "submitted")
   );
   const theme = statusTheme(effectiveStatus);
   const lock = isLockedByTeacher();
@@ -1505,6 +1627,25 @@ function stripUndefinedDeep<T>(value: T): T {
     );
   }
 
+  function DraftButton() {
+    const disabled = saving || lock || !uid;
+    return (
+      <button
+        type="button"
+        onClick={() => saveDraft(true)}
+        disabled={disabled}
+        style={{
+          ...btnStyle,
+          background: disabled ? "rgba(255,255,255,0.85)" : "white",
+          fontWeight: 900,
+        }}
+        title="Lagrer uten å sende til lærer"
+      >
+        Lagre kladd
+      </button>
+    );
+  }
+
   return (
     <main style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
       <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -1516,11 +1657,7 @@ function stripUndefinedDeep<T>(value: T): T {
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span style={{ fontWeight: 800 }}>{t("translate.targetLang")}</span>
-            <select
-              value={targetLang}
-              onChange={(e) => setTargetLang(e.target.value)}
-              style={{ ...btnStyle, padding: "8px 10px" }}
-            >
+            <select value={targetLang} onChange={(e) => setTargetLang(e.target.value)} style={{ ...btnStyle, padding: "8px 10px" }}>
               {LANGUAGE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
@@ -1547,14 +1684,13 @@ function stripUndefinedDeep<T>(value: T): T {
             {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
           </button>
 
-          {/* ✅ Lever oppgave (duplisert øverst) */}
+          {/* ✅ Kladd + Lever (øverst) */}
+          <DraftButton />
           <SubmitButton />
         </div>
       </header>
 
-      {translateErr ? (
-        <div style={{ marginTop: 10, color: "crimson", whiteSpace: "pre-wrap" }}>{translateErr}</div>
-      ) : null}
+      {translateErr ? <div style={{ marginTop: 10, color: "crimson", whiteSpace: "pre-wrap" }}>{translateErr}</div> : null}
 
       {imageUrl ? (
         <div
@@ -1632,11 +1768,7 @@ function stripUndefinedDeep<T>(value: T): T {
 
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <span style={{ fontWeight: 800 }}>{t("tts.speed")}</span>
-              <select
-                value={String(playbackRate)}
-                onChange={(e) => setPlaybackRate(Number(e.target.value))}
-                style={{ ...btnStyle, padding: "8px 10px" }}
-              >
+              <select value={String(playbackRate)} onChange={(e) => setPlaybackRate(Number(e.target.value))} style={{ ...btnStyle, padding: "8px 10px" }}>
                 {[0.75, 1.0, 1.25, 1.5].map((r) => (
                   <option key={r} value={String(r)}>
                     {r}x
@@ -1686,9 +1818,7 @@ function stripUndefinedDeep<T>(value: T): T {
               {t("tts.next")}
             </button>
 
-            <div style={{ opacity: 0.75 }}>
-              {t("tts.time", { cur: Math.round(currentTime), dur: Math.round(duration) })}
-            </div>
+            <div style={{ opacity: 0.75 }}>{t("tts.time", { cur: Math.round(currentTime), dur: Math.round(duration) })}</div>
           </div>
         ) : null}
 
@@ -1721,11 +1851,7 @@ function stripUndefinedDeep<T>(value: T): T {
         </div>
 
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
-          {tasksOriginal.length === 0 ? (
-            <div style={{ opacity: 0.75 }}>{t("tasks.none")}</div>
-          ) : (
-            tasksOriginal.map((tk, idx) => renderTask(tk, idx))
-          )}
+          {tasksOriginal.length === 0 ? <div style={{ opacity: 0.75 }}>{t("tasks.none")}</div> : tasksOriginal.map((tk, idx) => renderTask(tk, idx))}
         </div>
       </section>
 
@@ -1733,7 +1859,8 @@ function stripUndefinedDeep<T>(value: T): T {
         {msg ? <div style={{ marginBottom: 10, padding: 10, borderRadius: 12, background: "rgba(0,0,0,0.04)" }}>{msg}</div> : null}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          {/* ✅ Lever oppgave (større + grønn) */}
+          {/* ✅ Kladd + Lever (nederst) */}
+          <DraftButton />
           <SubmitButton />
 
           <Link href={`/student/spaces/${spaceId}`} style={{ textDecoration: "none" }}>

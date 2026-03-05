@@ -1,3 +1,4 @@
+// \app\[locale]\(auth)\login\LoginClient.tsx
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";

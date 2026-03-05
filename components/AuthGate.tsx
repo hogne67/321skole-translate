@@ -18,7 +18,6 @@ function readLegacyRole(profile: Record<string, unknown>): Role | null {
   const roles = profile["roles"];
   if (!isRecord(roles)) return null;
 
-  // priority order
   if (roles["admin"] === true) return "admin";
   if (roles["teacher"] === true) return "teacher";
   if (roles["creator"] === true) return "creator";
@@ -33,38 +32,16 @@ function readRole(profile: unknown): Role | null {
   const r = profile["role"];
   if (r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator") return r;
 
-  // fallback to legacy
   return readLegacyRole(profile);
-}
-
-function isApprovedTeacher(profile: unknown): boolean {
-  if (!isRecord(profile)) return false;
-
-  // New boolean (if you ever use it)
-  if (profile["teacherApproved"] === true) return true;
-
-  // Status on top-level (your debug page shows status: approved)
-  if (profile["teacherStatus"] === "approved") return true;
-
-  // Legacy status inside roles
-  const roles = profile["roles"];
-  if (isRecord(roles) && roles["teacherStatus"] === "approved") return true;
-
-  // Legacy role flag
-  if (isRecord(roles) && roles["teacher"] === true) return true;
-
-  return false;
 }
 
 export default function AuthGate({
   children,
   requireRole,
-  requireApprovedTeacher = false,
   allowAnonymous = false,
 }: {
   children: ReactNode;
   requireRole?: Role;
-  requireApprovedTeacher?: boolean;
   allowAnonymous?: boolean;
 }) {
   const { user, profile, loading } = useUserProfile();
@@ -91,9 +68,11 @@ export default function AuthGate({
       p === "/login" ||
       p === "/register" ||
       p === "/onboarding" ||
+      p === "/post-login" ||
       p.startsWith(`/${locale}/login`) ||
       p.startsWith(`/${locale}/register`) ||
-      p.startsWith(`/${locale}/onboarding`);
+      p.startsWith(`/${locale}/onboarding`) ||
+      p.startsWith(`/${locale}/post-login`);
 
     // 1) Not logged in
     if (!user) {
@@ -118,7 +97,6 @@ export default function AuthGate({
 
     // 2) Logged in but anon
     if (user.isAnonymous) {
-      // Teacher/admin/creator pages can never be anon
       if (requireRole === "teacher" || requireRole === "admin" || requireRole === "creator") {
         router.replace(nextUrl);
         return;
@@ -139,27 +117,16 @@ export default function AuthGate({
 
     // 4) Require a specific role
     if (requireRole && role !== requireRole) {
-      // Special-case: teacher pages should also allow approved-teacher legacy users
-      if (requireRole === "teacher" && isApprovedTeacher(profile)) return;
-
       router.replace(unauthorizedUrl);
       return;
     }
 
-    // 5) Require approved teacher
-    if (requireApprovedTeacher) {
-      const teacherContext = requireRole === "teacher" || role === "teacher";
-      if (teacherContext && !isApprovedTeacher(profile)) {
-        router.replace(unauthorizedUrl);
-        return;
-      }
-    }
+    // ✅ IMPORTANT: No teacher approval gating.
   }, [
     loading,
     user,
     profile,
     requireRole,
-    requireApprovedTeacher,
     allowAnonymous,
     anonBootstrapping,
     router,

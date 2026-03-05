@@ -63,7 +63,6 @@ function normalizeNext(raw: string | null, locale: string): string | null {
 
   const withLocale = /^\/(en|no|pt)(\/|$)/.test(path) ? rebuilt : `/${locale}${rebuilt}`;
 
-  // map legacy -> teacher (juster etter behov)
   const mapped =
     withLocale.startsWith(`/${locale}/content`) ? `/${locale}/teacher` :
     withLocale.startsWith(`/${locale}/review`) ? `/${locale}/teacher` :
@@ -113,7 +112,7 @@ export default function PostLoginPage() {
       return;
     }
 
-    // auto-migrate gammel rolle -> ny 2-rolle
+    // auto-migrate gammel rolle -> ny 2-rolle (uten teacherStatus!)
     if (profile.role !== role2 || profile.onboardingComplete !== true) {
       (async () => {
         try {
@@ -129,8 +128,7 @@ export default function PostLoginPage() {
       })();
     }
 
-    // ✅ ROLE-AWARE NEXT:
-    // kun bruk next hvis den matcher rollen, ellers ignorer
+    // kun bruk next hvis den matcher rollen
     if (next && nextMatchesRole(next, role2, locale)) {
       router.replace(next);
       return;

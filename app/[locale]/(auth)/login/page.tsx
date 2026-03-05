@@ -1,3 +1,4 @@
+// C:\app\[locale]\(auth)\login\page.tsx
 import { Suspense } from "react";
 import { useTranslations } from "next-intl";
 import LoginClient from "./LoginClient";

@@ -6,7 +6,7 @@ import AuthGate from "@/components/AuthGate";
 
 export default function TeacherNewLessonRedirect() {
   return (
-    <AuthGate requireRole="teacher" requireApprovedTeacher>
+    <AuthGate requireRole="teacher">
       <Inner />
     </AuthGate>
   );

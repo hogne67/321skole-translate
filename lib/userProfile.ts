@@ -7,22 +7,14 @@ import { db } from "@/lib/firebase";
 
 /**
  * Profilmodell
- * - Primær: role
- * - teacherStatus er nå strikt union (matcher ModeProvider)
+ * - Primær: role ("student" | "teacher")
+ * - Ingen godkjenning: teacherStatus fjernes fra ny modell
  */
 
-export type Role =
-  | "student"
-  | "teacher"
-  | "admin"
-  | "parent"
-  | "creator";
+export type Role = "student" | "teacher" | "admin" | "parent" | "creator";
 
-export type TeacherStatus =
-  | "none"
-  | "pending"
-  | "approved"
-  | "rejected";
+/** Legacy-only (ikke bruk til gating) */
+export type TeacherStatus = "none" | "pending" | "approved" | "rejected";
 
 export type UserProfile = {
   displayName?: string;
@@ -30,14 +22,14 @@ export type UserProfile = {
   locale?: string;
 
   role?: Role;
-
   onboardingComplete?: boolean;
 
-  // Status (strikt union)
+  // ✅ behold som optional legacy-felt om gamle docs har det,
+  // men ikke sett default og ikke bruk til gating
   teacherStatus?: TeacherStatus;
   creatorStatus?: string;
 
-  // Legacy (overgang – for gamle sider som leser profile.roles)
+  // Legacy (overgang)
   roles?: {
     student?: boolean;
     teacher?: boolean;
@@ -47,6 +39,11 @@ export type UserProfile = {
 
     teacherStatus?: TeacherStatus;
     creatorStatus?: string;
+  };
+
+  org?: {
+    country?: string;
+    municipality?: string;
   };
 
   createdAt?: unknown;
@@ -64,15 +61,10 @@ function requireDb() {
 }
 
 function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, v]) => v !== undefined)
-  ) as T;
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
 }
 
-export async function ensureUserProfile(
-  user: User,
-  patch?: Partial<UserProfile>
-) {
+export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>) {
   const dbx = requireDb();
   const ref = doc(dbx, "users", user.uid);
   const snap = await getDoc(ref);
@@ -86,19 +78,18 @@ export async function ensureUserProfile(
       role: patch?.role,
       onboardingComplete: patch?.onboardingComplete ?? false,
 
-      teacherStatus: patch?.teacherStatus ?? "none",
-      creatorStatus: patch?.creatorStatus,
+      // ❌ ingen teacherStatus default lenger
 
+      creatorStatus: patch?.creatorStatus,
       roles: patch?.roles,
+      org: patch?.org,
 
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
     };
 
-    await setDoc(ref, stripUndefined(profile as Record<string, unknown>), {
-      merge: false,
-    });
+    await setDoc(ref, stripUndefined(profile as Record<string, unknown>), { merge: false });
     return;
   }
 
@@ -108,7 +99,7 @@ export async function ensureUserProfile(
     lastLoginAt: serverTimestamp(),
   };
 
-  await setDoc(ref, stripUndefined(payload as Record<string, unknown>), {
-    merge: true,
-  });
+  // ❌ ikke tving teacherStatus inn i payload
+
+  await setDoc(ref, stripUndefined(payload as Record<string, unknown>), { merge: true });
 }

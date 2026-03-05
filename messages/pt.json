@@ -671,9 +671,26 @@
         "empty": "Nenhuma entrega ainda."
       },
       "status": {
+        "submitted": "Enviado",
         "needsWork": "Precisa melhorar",
         "approved": "Aprovado"
       },
+      "ai": {
+  "title": "Feedback de IA",
+  "generateButton": "Gerar feedback de IA",
+  "generating": "Gerando…",
+  "saveButton": "Salvar",
+  "saving": "Salvando…",
+  "copyButton": "Copiar",
+  "insertButton": "Inserir no feedback do professor",
+  "placeholder": "O feedback de IA é salvo aqui…",
+  "generated": "Feedback de IA atualizado.",
+  "generateFailed": "Não foi possível gerar o feedback de IA: {msg}",
+  "copied": "Copiado!",
+  "copyFailed": "Não foi possível copiar.",
+  "inserted": "Inserido no feedback do professor.",
+  "rulesHint": "Salvo em"
+},
       "fallback": {
         "task": "Tarefa",
         "student": "Aluno",
@@ -699,8 +716,10 @@
         "loggedIn": "Logado"
       },
       "status": {
+        "submitted": "Enviado",
         "approved": "Aprovado",
-        "needsWork": "Precisa melhorar"
+        "needsWork": "Precisa melhorar",
+        "draft": "Rascunho"
       },
       "auto": {
         "main": "PONTUAÇÃO AUTOMÁTICA/RESULTADO: {correct}/{total}{pctText}",
@@ -753,7 +772,9 @@
         "copied": "Copiado!",
         "copyFailed": "Não foi possível copiar.",
         "inserted": "Inserido na avaliação do professor.",
-        "rulesHint": "Salvo em"
+        "rulesHint": "Salvo em",
+        "saveButton": "Salvar",
+        "saving": "Salva…"
       },
       "fallback": {
         "guest": "Convidado",

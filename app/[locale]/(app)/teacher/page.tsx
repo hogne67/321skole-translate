@@ -1,34 +1,17 @@
 // app/(app)/teacher/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { DashboardIntro } from "@/components/DashboardIntro";
-import type { User } from "firebase/auth";
+import { useUserProfile } from "@/lib/useUserProfile";
 
 export default function TeacherPage() {
-  const [isAnon, setIsAnon] = useState(true);
+  const { user, loading } = useUserProfile();
 
-  useEffect(() => {
-    let alive = true;
+  // TeacherLayout/AuthGate håndterer redirect hvis ikke innlogget / feil rolle.
+  // Her trenger vi bare å gi DashboardIntro et korrekt flagg.
+  const isAnon = Boolean(user?.isAnonymous);
 
-    const run = async () => {
-      try {
-        const user = (await ensureAnonymousUser()) as User;
-        if (!alive) return;
-        setIsAnon(Boolean(user.isAnonymous));
-      } catch {
-        // Hvis noe feiler, behold default (anon)
-        if (!alive) return;
-        setIsAnon(true);
-      }
-    };
-
-    run();
-    return () => {
-      alive = false;
-    };
-  }, []);
+  if (loading) return null;
 
   return (
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>

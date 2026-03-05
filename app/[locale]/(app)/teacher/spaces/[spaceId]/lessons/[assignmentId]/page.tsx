@@ -97,6 +97,10 @@ function errMsg(e: unknown, fallbackUnknown: string): string {
   return fallbackUnknown;
 }
 
+function normalizeStatus(v: unknown): string {
+  return typeof v === "string" ? v.toLowerCase().trim() : "";
+}
+
 function formatMaybeDate(v: unknown, locale: string): string {
   try {
     if (!v) return "";
@@ -155,7 +159,8 @@ function statusBadge(
   t: (k: string) => string,
   dash: string
 ): { label: string; cls: string } {
-  const s = typeof statusRaw === "string" ? statusRaw.toLowerCase().trim() : "";
+  const s = normalizeStatus(statusRaw);
+
   if (s === "needs_work" || s === "needswork" || s === "need_work") {
     return {
       label: t("status.needsWork"),
@@ -168,6 +173,16 @@ function statusBadge(
       cls: "border-green-200 bg-green-50 text-green-900",
     };
   }
+
+  // Draft should normally be filtered out before rendering,
+  // but keep a safe fallback style if something slips through:
+  if (s === "draft") {
+    return {
+      label: t("status.draft"),
+      cls: "border-indigo-200 bg-indigo-50 text-indigo-900",
+    };
+  }
+
   return {
     label: typeof statusRaw === "string" && statusRaw ? statusRaw : dash,
     cls: "border-muted bg-background text-muted-foreground",
@@ -334,7 +349,7 @@ export default function TeacherSpaceAssignedTaskPage() {
     };
   }, [spaceId, assignmentId, unknownErr]);
 
-  // Load submissions list
+  // Load submissions list (✅ filter out drafts)
   useEffect(() => {
     setLoadingSubs(true);
     setSubmissions([]);
@@ -353,7 +368,11 @@ export default function TeacherSpaceAssignedTaskPage() {
     const unsub = onSnapshot(
       qy,
       (snap) => {
-        const rows = snap.docs.map((d) => ({ id: d.id, data: (d.data() as SubmissionDoc) ?? {} }));
+        const rows = snap.docs
+          .map((d) => ({ id: d.id, data: (d.data() as SubmissionDoc) ?? {} }))
+          // ✅ hide drafts completely
+          .filter((row) => normalizeStatus(row.data.status) !== "draft");
+
         setSubmissions(rows);
         setLoadingSubs(false);
       },
@@ -558,7 +577,6 @@ export default function TeacherSpaceAssignedTaskPage() {
                           {badge.label}
                         </span>
 
-                        {/* Open -> button */}
                         <button
                           type="button"
                           onClick={() => router.push(openHref)}

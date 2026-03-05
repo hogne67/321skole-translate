@@ -13,10 +13,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { authedPost } from "@/lib/authedPost";
 
 type Mode = "student" | "teacher" | "creator" | "parent";
+
+// Teacher review statuses (your “grading system”)
 type ReviewStatus = "reviewed" | "needs_work";
 
-type SourceType = "myContent" | "library";
+// Submission status can also be draft/submitted etc.
+type SubmissionStatus = ReviewStatus | "draft" | "submitted" | "approved" | string;
 
+type SourceType = "myContent" | "library";
 type TaskType = "mcq" | "truefalse" | "open";
 
 type Task = {
@@ -41,7 +45,7 @@ type AiFeedback = {
   createdAt?: unknown;
   updatedAt?: unknown;
   teacherUid?: string | null;
-  // vi kan legge til model/promptVersion senere
+  // later: model, promptVersion, etc.
 };
 
 type AutoGradeEntry = {
@@ -63,7 +67,7 @@ type AutoGrade = {
 type SubmissionDoc = {
   createdAt?: unknown;
   updatedAt?: unknown;
-  status?: ReviewStatus | string;
+  status?: SubmissionStatus;
   answers?: AnswersMap | unknown;
   auth?: { isAnon?: boolean; uid?: string | null } | unknown;
 
@@ -72,7 +76,7 @@ type SubmissionDoc = {
 
   teacherFeedback?: TeacherFeedback | null;
 
-  // ✅ ny: AI feedback lagres her
+  // ✅ AI feedback stored here
   aiFeedback?: AiFeedback | null;
 
   auto?: AutoGrade | unknown;
@@ -187,7 +191,14 @@ function readAiFeedbackText(sub: SubmissionDoc): string {
   return typeof t === "string" ? t : "";
 }
 
-/** Default needs_work (yellow) */
+function readStatus(sub: SubmissionDoc): SubmissionStatus {
+  const s = sub.status;
+  if (typeof s === "string" && s.trim()) return s as SubmissionStatus;
+  // default (legacy): needs_work
+  return "needs_work";
+}
+
+/** Default needs_work (yellow) for toggle */
 function readStatusDefaultNeedsWork(sub: SubmissionDoc): ReviewStatus {
   const s = sub.status;
   return s === "needs_work" || s === "reviewed" ? s : "needs_work";
@@ -265,6 +276,7 @@ function getAutoEntry(auto: AutoGrade | null, stableId: string): AutoGradeEntry 
 
   return e as AutoGradeEntry;
 }
+
 /**
  * Locale-safe link helper
  */
@@ -320,12 +332,56 @@ async function safeCopyToClipboard(text: string): Promise<boolean> {
    UI bits
 ========================= */
 
-function StatusPill({ status, t }: { status: ReviewStatus; t: (k: string) => string }) {
-  const isApproved = status === "reviewed";
-  const bg = isApproved ? "rgba(16,185,129,0.16)" : "rgba(245,158,11,0.18)";
-  const bd = isApproved ? "rgba(16,185,129,0.45)" : "rgba(245,158,11,0.55)";
-  const tx = isApproved ? "rgba(5,150,105,1)" : "rgba(180,83,9,1)";
-  const label = isApproved ? t("status.approved") : t("status.needsWork");
+function StatusPill({
+  status,
+  t,
+}: {
+  status: SubmissionStatus;
+  t: (k: string) => string;
+}) {
+  const s = String(status || "").toLowerCase();
+
+  const isDraft = s === "draft";
+  const isApproved = s === "reviewed" || s === "approved";
+  const isNeeds = s === "needs_work";
+  const isSubmitted = s === "submitted";
+
+  const bg = isDraft
+    ? "rgba(99,102,241,0.12)"
+    : isApproved
+    ? "rgba(16,185,129,0.16)"
+    : isNeeds
+    ? "rgba(245,158,11,0.18)"
+    : isSubmitted
+    ? "rgba(0,0,0,0.06)"
+    : "rgba(0,0,0,0.06)";
+
+  const bd = isDraft
+    ? "rgba(99,102,241,0.40)"
+    : isApproved
+    ? "rgba(16,185,129,0.45)"
+    : isNeeds
+    ? "rgba(245,158,11,0.55)"
+    : "rgba(0,0,0,0.16)";
+
+  const tx = isDraft
+    ? "rgba(67,56,202,1)"
+    : isApproved
+    ? "rgba(5,150,105,1)"
+    : isNeeds
+    ? "rgba(180,83,9,1)"
+    : "rgba(0,0,0,0.70)";
+
+  const label = isDraft
+    ? t("status.draft")
+    : isApproved
+    ? t("status.approved")
+    : isNeeds
+    ? t("status.needsWork")
+    : isSubmitted
+    ? t("status.submitted")
+    : t("status.submitted");
+
   return (
     <span
       style={{
@@ -385,7 +441,13 @@ function Badge({
   );
 }
 
-function AutoGradeBadge({ auto, t }: { auto: AutoGrade | null; t: (k: string, v?: Record<string, unknown>) => string }) {
+function AutoGradeBadge({
+  auto,
+  t,
+}: {
+  auto: AutoGrade | null;
+  t: (k: string, v?: Record<string, unknown>) => string;
+}) {
   if (!auto) return null;
 
   const pct = auto.percentAuto;
@@ -508,6 +570,7 @@ function Inner() {
   // ✅ AI box state
   const [aiText, setAiText] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
   const [aiMsg, setAiMsg] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
@@ -669,6 +732,42 @@ function Inner() {
     };
   }, [sub, spaceId, t]);
 
+  async function saveAiFeedbackToFirestore(textValue: string) {
+    if (!canOperate) return;
+    if (!nestedRef && !indexRef) return;
+
+    setAiSaving(true);
+    setAiMsg(null);
+
+    try {
+      const dbx = requireDb(db);
+
+      const payload = {
+        aiFeedback: {
+          text: textValue,
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+          teacherUid: user?.uid ?? null,
+        },
+        updatedAt: serverTimestamp(),
+      };
+
+      const batch = writeBatch(dbx);
+      if (nestedRef) batch.set(nestedRef, payload, { merge: true });
+      if (indexRef) batch.set(indexRef, payload, { merge: true });
+      await batch.commit();
+
+      setAiMsg(t("ai.saved"));
+    } catch (e: unknown) {
+      const info = getErrorInfo(e);
+      console.log("[TEACHER] save ai feedback ERROR =>", info.code, info.message, e);
+      setAiMsg(t("ai.saveFailed", { msg: info.message || t("fallback.unknownError") }));
+    } finally {
+      setAiSaving(false);
+      setTimeout(() => setAiMsg(null), 2200);
+    }
+  }
+
   const backLink = withLocale(locale, hasParams ? `/teacher/spaces/${spaceId}` : "/teacher/spaces");
 
   if (!hasParams) {
@@ -700,6 +799,9 @@ function Inner() {
   const createdAt = formatMaybeDate(sub.createdAt);
   const authInfo = readAuth(sub);
 
+  const rawStatus = readStatus(sub);
+  const isDraft = String(rawStatus).toLowerCase() === "draft";
+
   const lessonTitle = lesson?.title ?? assignment?.title ?? t("fallback.task");
   const lessonLevel = lesson?.level ?? assignment?.level ?? "";
   const sourceText = String(lesson?.sourceText ?? lesson?.text ?? "");
@@ -716,7 +818,7 @@ function Inner() {
   const needsTextToChangeStatus = statusChanged && text.trim().length === 0;
   const canSave = canOperate && !saving && !needsTextToChangeStatus;
 
-  const canGenerateAi = canOperate && !aiGenerating;
+  const canGenerateAi = canOperate && !aiGenerating && !aiSaving;
 
   return (
     <div style={{ maxWidth: 1060, margin: "0 auto", padding: 16 }}>
@@ -742,11 +844,27 @@ function Inner() {
               ) : (
                 t("meta.deliveredUnknown")
               )}{" "}
-              · <StatusPill status={readStatusDefaultNeedsWork(sub)} t={(k) => t(k)} />
+              · <StatusPill status={rawStatus} t={(k) => t(k)} />
             </div>
 
             <AutoGradeBadge auto={auto} t={tAny} />
           </div>
+
+          {isDraft ? (
+            <div
+              style={{
+                marginTop: 10,
+                padding: 10,
+                borderRadius: 12,
+                border: "1px solid rgba(99,102,241,0.40)",
+                background: "rgba(99,102,241,0.10)",
+                fontSize: 13,
+                fontWeight: 800,
+              }}
+            >
+              {t("draft.notice")}
+            </div>
+          ) : null}
 
           <div style={{ opacity: 0.75, marginTop: 4, fontSize: 12 }}>
             {authInfo.isAnon ? (
@@ -870,6 +988,16 @@ function Inner() {
 
                     const orderLabel = task?.order ?? idx + 1;
 
+                    // ✅ MCQ: support both stored index (number) and stored option text (string)
+                    const selectedIndex =
+                      typeof val === "number" && Number.isFinite(val) ? Math.floor(val) : null;
+                    const selectedText =
+                      selectedIndex != null && selectedIndex >= 0 && selectedIndex < options.length
+                        ? String(options[selectedIndex])
+                        : typeof val === "string"
+                        ? val
+                        : "";
+
                     return (
                       <div key={stableId} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8, opacity: 0.92 }}>
@@ -886,7 +1014,7 @@ function Inner() {
                           <div style={{ display: "grid", gap: 8 }}>
                             {options.map((o, i) => {
                               const opt = String(o);
-                              const checked = val === opt;
+                              const checked = opt === selectedText;
 
                               const correctOpt = entry?.correctAnswer != null ? String(entry.correctAnswer) : null;
                               const isCorrectOption = correctOpt != null && opt === correctOpt;
@@ -986,7 +1114,6 @@ function Inner() {
                     setAiMsg(null);
 
                     try {
-                      // ✅ send locale so route can answer in same language style as /api/feedback
                       const data = await authedPost<AiResp>("/api/teacher/ai-feedback", {
                         spaceId,
                         assignmentId,
@@ -994,8 +1121,16 @@ function Inner() {
                         locale,
                       });
 
-                      setAiText(data.text);
-                      setAiMsg(data.skipped ? data.text : t("ai.generated"));
+                      const newText = data.text || "";
+                      setAiText(newText);
+
+                      // ✅ Persist immediately to Firestore as aiFeedback
+                      if (!data.skipped) {
+                        await saveAiFeedbackToFirestore(newText);
+                        setAiMsg(t("ai.generated"));
+                      } else {
+                        setAiMsg(newText);
+                      }
                     } catch (e: unknown) {
                       const info = getErrorInfo(e);
                       console.log("[TEACHER] generate ai feedback ERROR =>", info.code, info.message, e);
@@ -1016,6 +1151,22 @@ function Inner() {
                   }}
                 >
                   {aiGenerating ? t("ai.generating") : t("ai.generateButton")}
+                </button>
+
+                <button
+                  disabled={!canOperate || !aiText.trim() || aiSaving}
+                  onClick={() => void saveAiFeedbackToFirestore(aiText)}
+                  style={{
+                    padding: "9px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.15)",
+                    background: "white",
+                    opacity: !canOperate || !aiText.trim() || aiSaving ? 0.55 : 1,
+                    cursor: !canOperate || !aiText.trim() || aiSaving ? "not-allowed" : "pointer",
+                    fontWeight: 900,
+                  }}
+                >
+                  {aiSaving ? t("ai.saving") : t("ai.saveButton")}
                 </button>
 
                 <button

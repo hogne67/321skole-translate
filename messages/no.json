@@ -671,9 +671,26 @@
         "empty": "Ingen innleveringer ennå."
       },
       "status": {
+        "submitted": "Levert",
         "needsWork": "Må forbedres",
         "approved": "Godkjent"
       },
+      "ai": {
+  "title": "KI-vurdering",
+  "generateButton": "Generer KI-vurdering",
+  "generating": "Genererer…",
+  "saveButton": "Lagre",
+  "saving": "Lagrer…",
+  "copyButton": "Kopier",
+  "insertButton": "Sett inn i lærertilbakemelding",
+  "placeholder": "KI-vurdering lagres her…",
+  "generated": "KI-vurdering oppdatert.",
+  "generateFailed": "Kunne ikke generere KI-vurdering: {msg}",
+  "copied": "Kopiert!",
+  "copyFailed": "Kunne ikke kopiere.",
+  "inserted": "Satt inn i lærertilbakemelding.",
+  "rulesHint": "Lagres i"
+},
       "fallback": {
         "task": "Oppgave",
         "student": "Student",
@@ -699,8 +716,10 @@
         "loggedIn": "Innlogget"
       },
       "status": {
+        "submitted": "Levert",
         "approved": "Godkjent",
-        "needsWork": "Må forbedres"
+        "needsWork": "Må forbedres",
+        "draft": "Kladd"
       },
       "auto": {
         "main": "RESULTAT AUTO RETTING: {correct}/{total}{pctText}",
@@ -753,7 +772,9 @@
         "copied": "Kopiert!",
         "copyFailed": "Kunne ikke kopiere.",
         "inserted": "Satt inn i lærervurdering.",
-        "rulesHint": "Lagres i"
+        "rulesHint": "Lagres i",
+        "saveButton": "Lagre",
+        "saving": "Lagrer…"
       },
       "fallback": {
         "guest": "Gjest",

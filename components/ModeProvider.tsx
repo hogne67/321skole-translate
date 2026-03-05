@@ -17,30 +17,46 @@ const Ctx = createContext<ModeCtx | null>(null);
 
 /**
  * Adapter: mode.ts trenger typisk bare et lite utdrag av profilen.
- * Dette gjør ModeProvider robust mot type-endringer i UserProfile.
+ * Viktig: teacher skal ikke godkjennes, så vi sender ikke teacherStatus.
  */
 type ProfileForMode = {
   role?: string;
-  teacherStatus?: "none" | "pending" | "approved" | "rejected";
-  roles?: Record<string, unknown>;
+  roles?: {
+    student?: boolean;
+    teacher?: boolean;
+    parent?: boolean;
+    creator?: boolean;
+    admin?: boolean;
+  };
+  // creatorStatus kan beholdes hvis dere senere vil gate creator
+  creatorStatus?: "none" | "pending" | "approved" | "rejected";
 };
 
 function toProfileForMode(p: UserProfile | null): ProfileForMode | null {
   if (!p) return null;
 
-  const teacherStatus =
-    p.teacherStatus === "none" ||
-    p.teacherStatus === "pending" ||
-    p.teacherStatus === "approved" ||
-    p.teacherStatus === "rejected"
-      ? p.teacherStatus
+  const roles = p.roles
+    ? {
+        student: p.roles.student === true,
+        teacher: p.roles.teacher === true,
+        parent: p.roles.parent === true,
+        creator: p.roles.creator === true,
+        admin: p.roles.admin === true,
+      }
+    : undefined;
+
+  const creatorStatus =
+    p.creatorStatus === "none" ||
+    p.creatorStatus === "pending" ||
+    p.creatorStatus === "approved" ||
+    p.creatorStatus === "rejected"
+      ? p.creatorStatus
       : undefined;
 
   return {
     role: p.role,
-    teacherStatus,
-    // behold legacy roles-map hvis mode.ts fortsatt sjekker den
-    roles: (p.roles as Record<string, unknown> | undefined) ?? undefined,
+    roles,
+    creatorStatus,
   };
 }
 

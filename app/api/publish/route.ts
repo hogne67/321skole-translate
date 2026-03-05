@@ -19,6 +19,26 @@ function pickVisibility(v: unknown): Visibility {
   return isVisibility(v) ? v : "public";
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function isTeacherProfile(profile: Record<string, unknown>): boolean {
+  const role = String(profile.role ?? "").toLowerCase();
+  if (role === "teacher") return true;
+
+  const roles = isRecord(profile.roles) ? (profile.roles as Record<string, unknown>) : null;
+  return roles ? bool(roles.teacher) : false;
+}
+
+function isAdminProfile(profile: Record<string, unknown>): boolean {
+  const role = String(profile.role ?? "").toLowerCase();
+  if (role === "admin") return true;
+
+  const roles = isRecord(profile.roles) ? (profile.roles as Record<string, unknown>) : null;
+  return roles ? bool(roles.admin) : false;
+}
+
 export async function POST(req: Request) {
   const { auth, db } = getAdmin();
 
@@ -55,20 +75,15 @@ export async function POST(req: Request) {
   }
 
   const profile = ((userSnap.data() ?? {}) as Record<string, unknown>) || {};
-  const roles = (profile.roles ?? {}) as Record<string, unknown>;
-  const caps = (profile.caps ?? {}) as Record<string, unknown>;
+  const caps = isRecord(profile.caps) ? (profile.caps as Record<string, unknown>) : {};
+  const canPublishByCaps = bool(caps.publish);
 
-  const isAdmin = bool(roles.admin);
-  const isApprovedTeacher = profile.teacherStatus === "approved";
+  const isAdmin = isAdminProfile(profile);
+  const isTeacher = isTeacherProfile(profile);
 
-  const canPublish = isAdmin || isApprovedTeacher || bool(caps.publish);
+  // ✅ Authorization: admin OR teacher OR caps.publish
+  const canPublish = isAdmin || isTeacher || canPublishByCaps;
 
-  const att =
-    profile.publisherAttestation && typeof profile.publisherAttestation === "object"
-      ? (profile.publisherAttestation as Record<string, unknown>)
-      : null;
-
-  // --- Authorization rules ---
   if (!canPublish) {
     await db.collection("auditEvents").add({
       type: "PUBLISH_BLOCKED",
@@ -77,19 +92,20 @@ export async function POST(req: Request) {
       ts: now,
       meta: {
         reason: "NOT_ALLOWED_TO_PUBLISH",
-        rolesAdmin: bool(roles.admin),
-        teacherStatus: profile.teacherStatus ?? null,
-        capsPublish: bool(caps.publish),
+        role: profile.role ?? null,
+        rolesAdmin: isRecord(profile.roles) ? bool((profile.roles as Record<string, unknown>).admin) : false,
+        rolesTeacher: isRecord(profile.roles) ? bool((profile.roles as Record<string, unknown>).teacher) : false,
+        capsPublish: canPublishByCaps,
       },
     });
 
     return NextResponse.json(
       {
         error:
-          "Publishing not allowed (requires teacherStatus=approved, caps.publish=true, or admin). " +
-          `teacherStatus=${String(profile.teacherStatus)} roles.admin=${String(
-            bool(roles.admin)
-          )} caps.publish=${String(bool(caps.publish))}`,
+          "Publishing not allowed (requires role=teacher, roles.teacher=true, caps.publish=true, or admin). " +
+          `role=${String(profile.role)} admin=${String(isAdmin)} teacher=${String(isTeacher)} caps.publish=${String(
+            canPublishByCaps
+          )}`,
       },
       { status: 403 }
     );
@@ -139,9 +155,13 @@ export async function POST(req: Request) {
   const effectiveOwnerId = ownerId || uid;
 
   // --- Build published doc (signed snapshot) ---
-  // ✅ NEW: auto id for published doc
   const publishedRef = db.collection("published_lessons").doc();
   const publishedId = publishedRef.id;
+
+  const att =
+    profile.publisherAttestation && typeof profile.publisherAttestation === "object"
+      ? (profile.publisherAttestation as Record<string, unknown>)
+      : null;
 
   const signedBy = {
     uid,
@@ -157,9 +177,9 @@ export async function POST(req: Request) {
   const publishedDoc = {
     ...draft,
 
-    // ✅ Correct linkage
-    lessonId: draftId,          // points back to original lesson doc
-    publishedId,                // optional but nice
+    // Correct linkage
+    lessonId: draftId,
+    publishedId,
     ownerId: effectiveOwnerId,
     isActive: true,
 
@@ -177,7 +197,6 @@ export async function POST(req: Request) {
     },
   };
 
-  // --- Write published + audit ---
   await publishedRef.set(publishedDoc, { merge: true });
 
   await db.collection("auditEvents").add({
@@ -192,7 +211,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: true,
     publishedLessonId: publishedId,
-    publishedId: publishedId,
+    publishedId,
     lessonId: draftId,
   });
 }
