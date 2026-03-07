@@ -1,4 +1,3 @@
-// lib/userProfile.ts
 "use client";
 
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -7,11 +6,14 @@ import { db } from "@/lib/firebase";
 
 /**
  * Profilmodell
- * - Primær: role ("student" | "teacher")
- * - Ingen godkjenning: teacherStatus fjernes fra ny modell
+ * - Arbeidsroller: student | teacher
+ * - Systemrolle: admin
+ * - parent kommer senere
+ * - creator beholdes kun som legacy-kompatibilitet foreløpig
  */
 
 export type Role = "student" | "teacher" | "admin" | "parent" | "creator";
+export type AdminLevel = "moderator" | "admin" | "superadmin";
 
 /** Legacy-only (ikke bruk til gating) */
 export type TeacherStatus = "none" | "pending" | "approved" | "rejected";
@@ -22,10 +24,12 @@ export type UserProfile = {
   locale?: string;
 
   role?: Role;
-  onboardingComplete?: boolean;
+  adminLevel?: AdminLevel;
 
-  // ✅ behold som optional legacy-felt om gamle docs har det,
-  // men ikke sett default og ikke bruk til gating
+  onboardingComplete?: boolean;
+  disabled?: boolean;
+
+  // ✅ legacy-felt beholdes som optional for gamle docs
   teacherStatus?: TeacherStatus;
   creatorStatus?: string;
 
@@ -61,7 +65,9 @@ function requireDb() {
 }
 
 function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as T;
 }
 
 export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>) {
@@ -76,10 +82,12 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
       locale: patch?.locale || "no",
 
       role: patch?.role,
+      adminLevel: patch?.adminLevel,
+
       onboardingComplete: patch?.onboardingComplete ?? false,
+      disabled: patch?.disabled ?? false,
 
-      // ❌ ingen teacherStatus default lenger
-
+      // legacy optional
       creatorStatus: patch?.creatorStatus,
       roles: patch?.roles,
       org: patch?.org,
@@ -98,8 +106,6 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
     updatedAt: serverTimestamp(),
     lastLoginAt: serverTimestamp(),
   };
-
-  // ❌ ikke tving teacherStatus inn i payload
 
   await setDoc(ref, stripUndefined(payload as Record<string, unknown>), { merge: true });
 }

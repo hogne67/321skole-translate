@@ -11,7 +11,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
-type Role2 = "student" | "teacher";
+type AppRole = "student" | "teacher" | "admin" | "parent" | "creator";
 
 type RolesMap = {
   teacher?: boolean;
@@ -21,31 +21,30 @@ type RolesMap = {
   parent?: boolean;
 };
 
-function normalizeRole(raw: unknown): Role2 | null {
+function normalizeRole(raw: unknown): AppRole | null {
   const r = String(raw ?? "").toLowerCase();
 
-  if (r === "teacher") return "teacher";
   if (r === "student") return "student";
+  if (r === "teacher") return "teacher";
+  if (r === "admin") return "admin";
+  if (r === "parent") return "parent";
+  if (r === "creator") return "creator";
 
-  // gamle “produsent/ansatt”-roller -> teacher
-  if (r === "admin" || r === "creator" || r === "content" || r === "review" || r === "reviewer") return "teacher";
-
-  // parent -> student
-  if (r === "parent") return "student";
+  // gamle aliaser hvis de finnes i eldre docs
+  if (r === "content" || r === "review" || r === "reviewer") return "admin";
 
   return null;
 }
 
-function roleFromRolesMap(p: Record<string, unknown>): Role2 | null {
+function roleFromRolesMap(p: Record<string, unknown>): AppRole | null {
   const roles = isRecord(p.roles) ? (p.roles as RolesMap) : null;
   if (!roles) return null;
 
+  if (roles.admin === true) return "admin";
   if (roles.teacher === true) return "teacher";
+  if (roles.creator === true) return "creator";
+  if (roles.parent === true) return "parent";
   if (roles.student === true) return "student";
-
-  // legacy fallbacks: admin/creator => teacher, parent => student
-  if (roles.admin === true || roles.creator === true) return "teacher";
-  if (roles.parent === true) return "student";
 
   return null;
 }
@@ -64,11 +63,11 @@ function normalizeProfile(raw: unknown): UserProfile | null {
 
   const p: Record<string, unknown> = { ...raw };
 
-  // ---- role normalization (2-role model) ----
-  const role2 = normalizeRole(p.role) ?? roleFromRolesMap(p);
-  if (role2) p.role = role2;
+  // full rollemodell
+  const role = normalizeRole(p.role) ?? roleFromRolesMap(p);
+  if (role) p.role = role;
 
-  // ---- onboardingComplete normalization (soft) ----
+  // onboarding soft-normalisering
   if (p.onboardingComplete !== true && hasMinimumOnboardingData(p)) {
     p.onboardingComplete = true;
   }

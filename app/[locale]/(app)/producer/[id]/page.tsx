@@ -14,8 +14,12 @@ import { useLocale, useTranslations } from "next-intl";
 type TaskType = "truefalse" | "mcq" | "open";
 type ReleaseMode = "ALL_AT_ONCE" | "TEXT_FIRST";
 type AnswerSpace = "short" | "medium" | "long";
-type CoverFormat = "16:9" | "4:3";
+type CoverFormat = "16:9";
 type LessonStatus = "draft" | "published";
+
+type CoverImageSource = "upload" | "ai";
+type CoverImageStyle = "illustration" | "realistic";
+type CoverImagePromptMode = "custom" | "fromText";
 
 type Task = {
   id: string;
@@ -24,8 +28,6 @@ type Task = {
   prompt: string;
   options?: string[];
   correctAnswer?: string;
-
-  // ✅ PDF: per open task
   answerSpace?: AnswerSpace;
 };
 
@@ -38,22 +40,23 @@ type Lesson = {
   tasks?: Task[];
   updatedAt?: Timestamp | Date | null;
 
-  // ✅ METADATA v1
   tags?: string[];
-  topic?: string; // vi fyller IKKE denne automatisk i UI
+  topic?: string;
   language?: string;
   estimatedMinutes?: number;
   releaseMode?: ReleaseMode;
-
-  // ✅ "Text type" (nytt felt – valgfritt i DB, men nyttig i UI)
   textType?: string;
 
-  // ✅ PDF/branding
   producerName?: string;
   coverImageUrl?: string;
   coverImageFormat?: CoverFormat;
 
-  // ✅ pointer (nyttig + fjerner TS-støy)
+  // new image config
+  coverImageSource?: CoverImageSource;
+  aiCoverStyle?: CoverImageStyle;
+  aiCoverPromptMode?: CoverImagePromptMode;
+  aiCoverPrompt?: string;
+
   activePublishedId?: string | null;
 };
 
@@ -96,7 +99,20 @@ function normalizeReleaseMode(v: unknown): ReleaseMode {
 }
 
 function normalizeCoverFormat(v: unknown): CoverFormat {
-  return v === "4:3" ? "4:3" : "16:9";
+  void v;
+  return "16:9";
+}
+
+function normalizeCoverImageSource(v: unknown): CoverImageSource {
+  return v === "ai" ? "ai" : "upload";
+}
+
+function normalizeCoverImageStyle(v: unknown): CoverImageStyle {
+  return v === "realistic" ? "realistic" : "illustration";
+}
+
+function normalizeCoverImagePromptMode(v: unknown): CoverImagePromptMode {
+  return v === "fromText" ? "fromText" : "custom";
 }
 
 function getErrorMessage(err: unknown): string {
@@ -128,6 +144,12 @@ function readUserDisplayName(d: unknown): string {
   );
 }
 
+type GenerateCoverResponse = {
+  imageUrl?: string;
+  url?: string;
+  error?: string;
+};
+
 export default function ProducerLessonEditorPage() {
   const t = useTranslations("producer.editor");
   const locale = useLocale();
@@ -150,37 +172,39 @@ export default function ProducerLessonEditorPage() {
   const [status, setStatus] = useState<LessonStatus>("draft");
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // ✅ METADATA state
-  const [topic, setTopic] = useState(""); // starter tom (ikke auto-fill fra DB)
-  const [textType, setTextType] = useState(""); // nytt: kan fylles fra DB eller skjema
+  // metadata
+  const [topic, setTopic] = useState("");
+  const [textType, setTextType] = useState("");
   const [tagsText, setTagsText] = useState("");
   const [language, setLanguage] = useState(t("defaults.language"));
   const [estimatedMinutes, setEstimatedMinutes] = useState<number>(20);
   const [releaseMode, setReleaseMode] = useState<ReleaseMode>("ALL_AT_ONCE");
 
-  // ✅ PDF/branding state
+  // cover / branding
   const [producerName, setProducerName] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [coverImageFormat, setCoverImageFormat] = useState<CoverFormat>("16:9");
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [generatingCover, setGeneratingCover] = useState(false);
+
+  // new image controls
+  const [coverImageSource, setCoverImageSource] = useState<CoverImageSource>("upload");
+  const [aiCoverStyle, setAiCoverStyle] = useState<CoverImageStyle>("illustration");
+  const [aiCoverPromptMode, setAiCoverPromptMode] = useState<CoverImagePromptMode>("custom");
+  const [aiCoverPrompt, setAiCoverPrompt] = useState("");
 
   const sortedTasks = useMemo(() => {
-    const t = [...tasks];
-    t.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    return t;
+    const next = [...tasks];
+    next.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    return next;
   }, [tasks]);
 
-  // ✅ Word/char counts
   const wordCount = useMemo(() => countWords(sourceText), [sourceText]);
   const charCountWithSpaces = useMemo(() => countCharsWithSpaces(sourceText), [sourceText]);
   const charCountNoSpaces = useMemo(() => countCharsNoSpaces(sourceText), [sourceText]);
 
-  // ✅ Preview sizing
   const previewW = 560;
-  const previewH =
-    coverImageFormat === "4:3"
-      ? Math.round((previewW * 3) / 4)
-      : Math.round((previewW * 9) / 16);
+  const previewH = Math.round((previewW * 9) / 16);
 
   const localizeError = useCallback(
     (message: string): string => {
@@ -195,16 +219,26 @@ export default function ProducerLessonEditorPage() {
       if (m === "Filen er for stor. Maks 8MB.") return t("errors.fileTooLarge");
       if (m === "Upload feilet.") return t("errors.uploadFailed");
       if (m === "Lagring feilet.") return t("errors.saveFailed");
+      if (m === "Skriv et prompt for AI-bildet.") {
+        return locale === "en" ? "Write a prompt for the AI image." : "Skriv et prompt for AI-bildet.";
+      }
+      if (m === "Teksten er tom. Kan ikke bruke teksten som inspirasjon.") {
+        return locale === "en"
+          ? "The text is empty. Cannot use the text as inspiration."
+          : "Teksten er tom. Kan ikke bruke teksten som inspirasjon.";
+      }
+      if (m === "Bildegenerering feilet.") {
+        return locale === "en" ? "Image generation failed." : "Bildegenerering feilet.";
+      }
 
       return m;
     },
-    [t]
+    [t, locale]
   );
 
   const backHref = `/${locale}/producer`;
   const myContentHref = `/${locale}/content`;
 
-  // Load lesson + ensure owner + hydrate UI
   useEffect(() => {
     let alive = true;
 
@@ -231,7 +265,6 @@ export default function ProducerLessonEditorPage() {
 
         const data = (snap.data() as Lesson) ?? {};
 
-        // Owner-sjekk
         if (data.ownerId && data.ownerId !== u) {
           setErr(t("errors.noAccessOwnerMismatch"));
           setLoading(false);
@@ -242,24 +275,22 @@ export default function ProducerLessonEditorPage() {
         setLevel(typeof data.level === "string" ? data.level : "");
         setSourceText(typeof data.sourceText === "string" ? data.sourceText : "");
         setStatus(normalizeStatus(data.status));
-
-        // tasks
         setTasks(Array.isArray(data.tasks) ? (data.tasks as Task[]) : []);
 
-        // ✅ metadata
-        // TOPIC: IKKE auto-fill fra DB (forhindrer at prompt/AI-spørsmål vises)
         setTopic("");
         setTextType(typeof data.textType === "string" ? data.textType : "");
-
         setTagsText(Array.isArray(data.tags) ? data.tags.join(", ") : "");
         setLanguage(typeof data.language === "string" ? data.language : t("defaults.language"));
         setEstimatedMinutes(typeof data.estimatedMinutes === "number" ? data.estimatedMinutes : 20);
         setReleaseMode(normalizeReleaseMode(data.releaseMode));
 
-        // ✅ PDF/branding
-        // Vi setter producerName fra user-profil senere (og låser feltet)
         setCoverImageUrl(typeof data.coverImageUrl === "string" ? data.coverImageUrl : "");
         setCoverImageFormat(normalizeCoverFormat(data.coverImageFormat));
+
+        setCoverImageSource(normalizeCoverImageSource(data.coverImageSource));
+        setAiCoverStyle(normalizeCoverImageStyle(data.aiCoverStyle));
+        setAiCoverPromptMode(normalizeCoverImagePromptMode(data.aiCoverPromptMode));
+        setAiCoverPrompt(typeof data.aiCoverPrompt === "string" ? data.aiCoverPrompt : "");
 
         setLoading(false);
       } catch (e: unknown) {
@@ -274,7 +305,6 @@ export default function ProducerLessonEditorPage() {
     };
   }, [lessonId, t, localizeError]);
 
-  // Load producer displayName from users/{uid} and lock it into producerName
   useEffect(() => {
     let alive = true;
 
@@ -287,7 +317,7 @@ export default function ProducerLessonEditorPage() {
         const name = snap.exists() ? readUserDisplayName(snap.data()) : "";
         if (name) setProducerName(name);
       } catch {
-        // ignore (vi lar feltet bli tomt hvis users-doc ikke finnes)
+        // ignore
       }
     })();
 
@@ -325,6 +355,7 @@ export default function ProducerLessonEditorPage() {
 
       const url = await getDownloadURL(r);
       setCoverImageUrl(url);
+      setCoverImageSource("upload");
     } catch (e: unknown) {
       setErr(localizeError(getErrorMessage(e) || t("errors.uploadFailed")));
     } finally {
@@ -332,9 +363,64 @@ export default function ProducerLessonEditorPage() {
     }
   }
 
+  async function generateAiCover() {
+    setErr(null);
+    setGeneratingCover(true);
+
+    try {
+      await ensureAnonymousUser();
+      const u = uidNow();
+      if (!u) throw new Error("No auth uid.");
+
+      if (aiCoverPromptMode === "custom" && !aiCoverPrompt.trim()) {
+        throw new Error("Skriv et prompt for AI-bildet.");
+      }
+
+      if (aiCoverPromptMode === "fromText" && !sourceText.trim()) {
+        throw new Error("Teksten er tom. Kan ikke bruke teksten som inspirasjon.");
+      }
+
+      const res = await fetch("/api/images/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          lessonId,
+          uid: u,
+          format: "16:9",
+          style: aiCoverStyle,
+          promptMode: aiCoverPromptMode,
+          customPrompt: aiCoverPrompt.trim(),
+          sourceText,
+          title: title.trim(),
+          level: level.trim(),
+          language: language.trim(),
+        }),
+      });
+
+      const data = (await res.json().catch(() => ({}))) as GenerateCoverResponse;
+
+      if (!res.ok) {
+        throw new Error(data.error || "Bildegenerering feilet.");
+      }
+
+      const url = typeof data.imageUrl === "string" ? data.imageUrl : typeof data.url === "string" ? data.url : "";
+      if (!url) throw new Error("Bildegenerering feilet.");
+
+      setCoverImageUrl(url);
+      setCoverImageSource("ai");
+    } catch (e: unknown) {
+      setErr(localizeError(getErrorMessage(e) || "Bildegenerering feilet."));
+    } finally {
+      setGeneratingCover(false);
+    }
+  }
+
   async function saveAndGoToMyContent() {
     setErr(null);
     setSaving(true);
+
     try {
       await ensureAnonymousUser();
       const u = uidNow();
@@ -342,8 +428,8 @@ export default function ProducerLessonEditorPage() {
 
       const tags = parseTags(tagsText);
 
-      const normalized = sortedTasks.map((t, idx) => ({
-        ...t,
+      const normalized = sortedTasks.map((task, idx) => ({
+        ...task,
         order: idx + 1,
       }));
 
@@ -356,28 +442,26 @@ export default function ProducerLessonEditorPage() {
         status,
         tasks: normalized,
 
-        // ✅ METADATA
-        // Topic: brukerstyrt (starter tom)
         topic: topic.trim(),
-        // Text type: valgfritt felt (kommer fra skjema, eller tomt)
         textType: textType.trim(),
-
         tags,
         language: language.trim(),
         estimatedMinutes: Number.isFinite(estimatedMinutes) ? Number(estimatedMinutes) : 20,
         releaseMode,
 
-        // ✅ PDF/branding
-        producerName: producerName.trim(), // kommer fra users/{uid}
+        producerName: producerName.trim(),
         coverImageUrl: coverImageUrl.trim(),
         coverImageFormat,
+
+        coverImageSource,
+        aiCoverStyle,
+        aiCoverPromptMode,
+        aiCoverPrompt: aiCoverPrompt.trim(),
 
         updatedAt: serverTimestamp(),
       });
 
       setTasks(normalized);
-
-      // ✅ Etter lagring: kast brukeren til My Content
       router.push(myContentHref);
     } catch (e: unknown) {
       setErr(localizeError(getErrorMessage(e) || t("errors.saveFailed")));
@@ -413,26 +497,27 @@ export default function ProducerLessonEditorPage() {
   }
 
   function removeTask(taskId: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
   }
 
   function moveTask(taskId: string, dir: -1 | 1) {
-    const t = [...sortedTasks];
-    const idx = t.findIndex((x) => x.id === taskId);
+    const next = [...sortedTasks];
+    const idx = next.findIndex((x) => x.id === taskId);
     if (idx === -1) return;
+
     const j = idx + dir;
-    if (j < 0 || j >= t.length) return;
+    if (j < 0 || j >= next.length) return;
 
-    const tmp = t[idx];
-    t[idx] = t[j];
-    t[j] = tmp;
+    const tmp = next[idx];
+    next[idx] = next[j];
+    next[j] = tmp;
 
-    const re = t.map((x, i) => ({ ...x, order: i + 1 }));
-    setTasks(re);
+    const reordered = next.map((x, i) => ({ ...x, order: i + 1 }));
+    setTasks(reordered);
   }
 
   function updateTask(taskId: string, patch: Partial<Task>) {
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)));
+    setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, ...patch } : task)));
   }
 
   if (loading) return <main style={{ padding: 20 }}>{t("states.loading")}</main>;
@@ -454,7 +539,7 @@ export default function ProducerLessonEditorPage() {
 
   return (
     <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div>
           <Link href={backHref}>{t("nav.back")}</Link>
           <h1 style={{ fontSize: 24, fontWeight: 900, marginTop: 10 }}>{t("pageTitle")}</h1>
@@ -463,7 +548,6 @@ export default function ProducerLessonEditorPage() {
           </div>
         </div>
 
-        {/* ✅ Grønn lagre-knapp som sender til My Content */}
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <button
             onClick={saveAndGoToMyContent}
@@ -480,12 +564,11 @@ export default function ProducerLessonEditorPage() {
             }}
             title={locale === "en" ? "Save and go to My content" : "Lagre og gå til My content"}
           >
-            {saving ? t("buttons.saving") : (locale === "en" ? "Save → My content" : "Lagre → My content")}
+            {saving ? t("buttons.saving") : locale === "en" ? "Save → My content" : "Lagre → My content"}
           </button>
         </div>
       </div>
 
-      {/* Lesson meta */}
       <section style={{ marginTop: 16, border: "1px solid #e5e7eb", borderRadius: 12, padding: 14 }}>
         <div style={{ display: "grid", gap: 10 }}>
           <label style={{ display: "grid", gap: 6 }}>
@@ -498,7 +581,6 @@ export default function ProducerLessonEditorPage() {
             />
           </label>
 
-          {/* ✅ Level: ikke optional */}
           <label style={{ display: "grid", gap: 6 }}>
             <div style={{ fontWeight: 800 }}>{t("fields.levelOptional")} *</div>
             <input
@@ -509,7 +591,6 @@ export default function ProducerLessonEditorPage() {
             />
           </label>
 
-          {/* ✅ ProducerName: fast (hentes fra users/{uid}) */}
           <label style={{ display: "grid", gap: 6 }}>
             <div style={{ fontWeight: 800 }}>{t("fields.producerName")}</div>
             <input
@@ -532,108 +613,331 @@ export default function ProducerLessonEditorPage() {
             </div>
           </label>
 
-          {/* Banner */}
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 800 }}>{t("fields.cover.title")}</div>
+            <div style={{ fontWeight: 800 }}>
+              {locale === "en" ? "Cover image" : "Forsidebilde"}
+            </div>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-              <label
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid #ddd",
-                  borderRadius: 10,
-                  cursor: uploadingCover ? "not-allowed" : "pointer",
-                  opacity: uploadingCover ? 0.6 : 1,
-                  display: "inline-block",
-                }}
-              >
-                {uploadingCover ? t("fields.cover.uploading") : t("fields.cover.upload")}
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  disabled={uploadingCover}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) uploadCover(f);
-                    e.currentTarget.value = "";
-                  }}
-                />
-              </label>
+            <div
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 12,
+                padding: 12,
+                display: "grid",
+                gap: 12,
+                background: "#fafafa",
+              }}
+            >
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  {locale === "en" ? "Choose image source" : "Velg bildekilde"}
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => setCoverImageSource("upload")}
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: coverImageSource === "upload" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                      background: "#fff",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {locale === "en" ? "Upload image" : "Last opp bilde"}
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setCoverImageUrl("")}
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid #ddd",
-                  borderRadius: 10,
-                  background: "#fff",
-                }}
-                disabled={uploadingCover || !coverImageUrl}
-                title={t("fields.cover.removeTitle")}
-              >
-                {t("fields.cover.remove")}
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setCoverImageSource("ai")}
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: coverImageSource === "ai" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                      background: "#fff",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {locale === "en" ? "Generate AI image" : "Generer AI-bilde"}
+                  </button>
+                </div>
+              </div>
 
-              <label style={{ display: "grid", gap: 6, maxWidth: 240 }}>
-                <div style={{ fontSize: 12, opacity: 0.7 }}>{t("fields.cover.formatLabel")}</div>
+              <div style={{ display: "grid", gap: 6, maxWidth: 240 }}>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  {locale === "en" ? "Format" : "Format"}
+                </div>
                 <select
                   value={coverImageFormat}
                   onChange={(e) => setCoverImageFormat(normalizeCoverFormat(e.target.value))}
-                  style={{ padding: "10px 12px" }}
+                  style={{ padding: "10px 12px", background: "#f4f4f5" }}
+                  disabled
                 >
-                  <option value="16:9">{t("fields.cover.format16x9")}</option>
-                  <option value="4:3">{t("fields.cover.format4x3")}</option>
+                  <option value="16:9">16:9</option>
                 </select>
-              </label>
-            </div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  {locale === "en" ? "Only 16:9 is allowed." : "Kun 16:9 er tillatt."}
+                </div>
+              </div>
 
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              {t("fields.cover.help")} <b>{t("buttons.save")}</b>.
-            </div>
+              {coverImageSource === "upload" ? (
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    <label
+                      style={{
+                        padding: "8px 12px",
+                        border: "1px solid #ddd",
+                        borderRadius: 10,
+                        cursor: uploadingCover ? "not-allowed" : "pointer",
+                        opacity: uploadingCover ? 0.6 : 1,
+                        display: "inline-block",
+                        background: "#fff",
+                      }}
+                    >
+                      {uploadingCover
+                        ? locale === "en"
+                          ? "Uploading..."
+                          : "Laster opp..."
+                        : locale === "en"
+                          ? "Upload image"
+                          : "Last opp bilde"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        disabled={uploadingCover}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) uploadCover(f);
+                          e.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
 
-            {coverImageUrl?.trim() ? (
-              <div style={{ marginTop: 10 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={coverImageUrl}
-                  alt={t("fields.cover.previewAlt")}
+                    <button
+                      type="button"
+                      onClick={() => setCoverImageUrl("")}
+                      style={{
+                        padding: "8px 12px",
+                        border: "1px solid #ddd",
+                        borderRadius: 10,
+                        background: "#fff",
+                      }}
+                      disabled={uploadingCover || !coverImageUrl}
+                    >
+                      {locale === "en" ? "Remove image" : "Fjern bilde"}
+                    </button>
+                  </div>
+
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    {locale === "en"
+                      ? "Upload jpg, png or webp. Image will be used in 16:9 format."
+                      : "Last opp jpg, png eller webp. Bildet brukes i 16:9-format."}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>
+                      {locale === "en" ? "Image style" : "Bildestil"}
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => setAiCoverStyle("illustration")}
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border: aiCoverStyle === "illustration" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                          background: "#fff",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {locale === "en" ? "Illustration" : "Illustrasjon"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAiCoverStyle("realistic")}
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border: aiCoverStyle === "realistic" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                          background: "#fff",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {locale === "en" ? "Realistic" : "Realistisk"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>
+                      {locale === "en" ? "Prompt source" : "Prompt-kilde"}
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => setAiCoverPromptMode("custom")}
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border: aiCoverPromptMode === "custom" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                          background: "#fff",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {locale === "en" ? "Write prompt" : "Skriv prompt"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAiCoverPromptMode("fromText")}
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border: aiCoverPromptMode === "fromText" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                          background: "#fff",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {locale === "en" ? "Use text as inspiration" : "Bruk teksten som inspirasjon"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {aiCoverPromptMode === "custom" ? (
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <div style={{ fontWeight: 800 }}>
+                        {locale === "en" ? "Prompt" : "Prompt"}
+                      </div>
+                      <textarea
+                        value={aiCoverPrompt}
+                        onChange={(e) => setAiCoverPrompt(e.target.value)}
+                        rows={4}
+                        style={{ padding: "10px 12px", width: "100%" }}
+                        placeholder={
+                          locale === "en"
+                            ? "Example: A calm classroom scene with students reading, warm light, detailed, clean composition"
+                            : "Eksempel: Et rolig klasserom med elever som leser, varmt lys, detaljer, ren komposisjon"
+                        }
+                      />
+                    </label>
+                  ) : (
+                    <div
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 10,
+                        padding: 12,
+                        background: "#fff",
+                        fontSize: 14,
+                      }}
+                    >
+                      {locale === "en"
+                        ? "The system will use the lesson title and text as inspiration for the image."
+                        : "Systemet vil bruke tittel og tekst som inspirasjon for bildet."}
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={generateAiCover}
+                      disabled={generatingCover}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        border: "1px solid #c7d2fe",
+                        background: "#2563eb",
+                        color: "#fff",
+                        fontWeight: 800,
+                        cursor: generatingCover ? "not-allowed" : "pointer",
+                        opacity: generatingCover ? 0.7 : 1,
+                      }}
+                    >
+                      {generatingCover
+                        ? locale === "en"
+                          ? "Generating..."
+                          : "Genererer..."
+                        : locale === "en"
+                          ? "Generate image"
+                          : "Generer bilde"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCoverImageUrl("")}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        border: "1px solid #ddd",
+                        background: "#fff",
+                      }}
+                      disabled={generatingCover || !coverImageUrl}
+                    >
+                      {locale === "en" ? "Remove image" : "Fjern bilde"}
+                    </button>
+                  </div>
+
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    {locale === "en"
+                      ? "The generated image should be landscape in 16:9."
+                      : "Det genererte bildet skal være liggende i 16:9."}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {locale === "en"
+                  ? "Remember to save the lesson after selecting or generating an image."
+                  : "Husk å lagre oppgaven etter at du har valgt eller generert bilde."}
+              </div>
+
+              {coverImageUrl?.trim() ? (
+                <div style={{ marginTop: 10 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={coverImageUrl}
+                    alt={locale === "en" ? "Cover preview" : "Forhåndsvisning av forside"}
+                    style={{
+                      width: "100%",
+                      maxWidth: previewW,
+                      height: previewH,
+                      objectFit: "cover",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 10,
+                      display: "block",
+                    }}
+                  />
+                  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+                    {locale === "en"
+                      ? `Preview in ${coverImageFormat}. Source: ${coverImageSource === "ai" ? "AI" : "upload"}.`
+                      : `Forhåndsvisning i ${coverImageFormat}. Kilde: ${coverImageSource === "ai" ? "AI" : "opplasting"}.`}
+                  </div>
+                </div>
+              ) : (
+                <div
                   style={{
+                    marginTop: 10,
                     width: "100%",
                     maxWidth: previewW,
                     height: previewH,
-                    objectFit: "cover",
-                    border: "1px solid #e5e7eb",
+                    border: "1px dashed #bbb",
                     borderRadius: 10,
-                    display: "block",
+                    display: "grid",
+                    placeItems: "center",
+                    color: "#777",
+                    fontSize: 12,
+                    background: "#fff",
                   }}
-                />
-                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-                  {t("fields.cover.previewHint", { format: coverImageFormat })}
+                >
+                  {locale === "en" ? "No image selected yet (16:9)." : "Ingen bilde valgt ennå (16:9)."}
                 </div>
-              </div>
-            ) : (
-              <div
-                style={{
-                  marginTop: 10,
-                  width: "100%",
-                  maxWidth: previewW,
-                  height: previewH,
-                  border: "1px dashed #bbb",
-                  borderRadius: 10,
-                  display: "grid",
-                  placeItems: "center",
-                  color: "#777",
-                  fontSize: 12,
-                }}
-              >
-                {t("fields.cover.noneSelected", { format: coverImageFormat })}
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Metadata */}
           <label style={{ display: "grid", gap: 6 }}>
             <div style={{ fontWeight: 800 }}>
               {locale === "en" ? "Text type" : "Teksttype"}
@@ -651,7 +955,6 @@ export default function ProducerLessonEditorPage() {
             </div>
           </label>
 
-          {/* ✅ Topic: starter tom, og er brukerstyrt */}
           <label style={{ display: "grid", gap: 6 }}>
             <div style={{ fontWeight: 800 }}>{t("fields.topic")}</div>
             <input
@@ -745,7 +1048,6 @@ export default function ProducerLessonEditorPage() {
         </div>
       </section>
 
-      {/* Tasks */}
       <section style={{ marginTop: 16 }}>
         <div
           style={{
@@ -783,6 +1085,7 @@ export default function ProducerLessonEditorPage() {
                     justifyContent: "space-between",
                     gap: 12,
                     alignItems: "flex-start",
+                    flexWrap: "wrap",
                   }}
                 >
                   <div>

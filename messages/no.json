@@ -1281,130 +1281,165 @@
       }
     },
     "editor": {
-      "pageTitle": "Produsent-editor",
-      "nav": {
-        "back": "← Tilbake til min side"
-      },
-      "states": {
-        "loading": "Laster…"
-      },
-      "buttons": {
-        "save": "Lagre til mitt innhod",
-        "saving": "Lagrer…"
-      },
-      "metaLine": "id: {id} · uid: {uid} · status: {status}",
-      "errors": {
-        "title": "Feil",
-        "notFound": "Fant ikke oppgaven.",
-        "noAccessOwnerMismatch": "Du har ikke tilgang til denne oppgaven (ownerId mismatch).",
-        "loadFailed": "Kunne ikke laste oppgaven.",
-        "noAuthUidNotReady": "Ingen auth uid (anon auth ikke klar).",
-        "noAuthUid": "Ingen auth uid.",
-        "chooseImageFile": "Velg en bildefil (jpg/png/webp).",
-        "fileTooLarge": "Filen er for stor. Maks 8MB.",
-        "uploadFailed": "Upload feilet.",
-        "saveFailed": "Lagring feilet."
-      },
-      "defaults": {
-        "language": "English"
-      },
-      "fields": {
-        "title": "Tittel",
-        "levelOptional": "Nivå (valgfritt)",
-        "producerName": "Produsent (vises i PDF)",
-        "topic": "Tema / topic",
-        "tags": "Tags (komma-separert)",
-        "tagsHelp": "Lagres som array i Firestore.",
-        "language": "Språk",
-        "estimatedMinutes": "Estimert tid (min)",
-        "releaseMode": "Release mode",
-        "releaseModeHelp": "TEXT_FIRST kan brukes senere til å låse opp oppgaver etter tekst.",
-        "status": "Status",
-        "text": "Tekst",
-        "cover": {
-          "title": "Bannerbilde (cover)",
-          "upload": "Last opp bilde",
-          "uploading": "Uploader…",
-          "remove": "Fjern bilde",
-          "removeTitle": "Fjerner URL (sletter ikke fra Storage i denne MVP-en)",
-          "formatLabel": "Format",
-          "format16x9": "16:9 (banner)",
-          "format4x3": "4:3 (klassisk)",
-          "help": "(Låst) Bildet lastes opp til Firebase Storage. URL + format lagres når du trykker",
-          "previewAlt": "Forhåndsvisning av banner",
-          "previewHint": "Preview: {format} (croppes med cover)",
-          "noneSelected": "Ingen banner valgt ({format})"
-        }
-      },
-      "placeholders": {
-        "title": "Oppgavetittel…",
-        "level": "A1 / A2 / B1 …",
-        "producerName": "F.eks. 321skole / Hogne / GuideToGo",
-        "topic": "Arbeid / Helse / Hverdagsliv …",
-        "tags": "arbeid, sikkerhet, norge",
-        "language": "English",
-        "sourceText": "Skriv inn kildetekst…",
-        "taskPrompt": "Skriv oppgavetekst…",
-        "mcqCorrectAnswer": "F.eks. Option A"
-      },
-      "counts": "{words} ord · {charsNoSpaces} tegn (uten mellomrom) · {charsWithSpaces} tegn (med mellomrom)",
-      "releaseModes": {
-        "allAtOnce": "ALL_AT_ONCE",
-        "textFirst": "TEXT_FIRST"
-      },
-      "statuses": {
-        "draft": "draft",
-        "published": "published"
-      },
-      "tasks": {
-        "title": "Oppgaver",
-        "add": {
-          "trueFalse": "+ Sant/usant",
-          "mcq": "+ Flervalg",
-          "open": "+ Åpen"
+  "pageTitle": "Redigering av oppgave",
+  "nav": {
+    "back": "← Tilbake"
+  },
+  "states": {
+    "loading": "Laster…"
+  },
+  "buttons": {
+    "save": "Lagre til Mitt innhold",
+    "saving": "Lagrer…",
+    "saveAndGo": "Lagre → Mitt innhold",
+    "saveAndGoTitle": "Lagre og gå til Mitt innhold"
+  },
+  "metaLine": "id: {id} · uid: {uid} · status: {status}",
+  "errors": {
+    "title": "Feil",
+    "notFound": "Fant ikke oppgaven.",
+    "noAccessOwnerMismatch": "Du har ikke tilgang til denne oppgaven (ownerId mismatch).",
+    "loadFailed": "Kunne ikke laste oppgaven.",
+    "noAuthUidNotReady": "Ingen auth uid ennå (anonym auth ikke klar).",
+    "noAuthUid": "Ingen auth uid.",
+    "chooseImageFile": "Velg en bildefil (jpg/png/webp).",
+    "fileTooLarge": "Filen er for stor. Maks 8MB.",
+    "uploadFailed": "Opplasting feilet.",
+    "saveFailed": "Lagring feilet.",
+    "aiPromptRequired": "Skriv et prompt for AI-bildet.",
+    "aiSourceTextEmpty": "Teksten er tom. Kan ikke bruke teksten som inspirasjon.",
+    "aiGenerateFailed": "Bildegenerering feilet.",
+    "missingAuthToken": "Mangler auth-token."
+  },
+  "defaults": {
+    "language": "Norsk"
+  },
+  "fields": {
+    "title": "Tittel",
+    "levelOptional": "Nivå (valgfritt)",
+    "producerName": "Produsent (vises i PDF)",
+    "producerNameHelp": "Dette hentes fra profilen din (users/{uid}).",
+    "producerNameProfileTitle": "Hentes fra brukerprofilen din",
+    "textType": "Teksttype",
+    "textTypeHelp": "Brukes som metadata og filtrering i biblioteket. Hold tema separat.",
+    "topic": "Tema / emne",
+    "tags": "Tagger (kommaseparert)",
+    "tagsHelp": "Lagres som et array i Firestore.",
+    "language": "Språk",
+    "estimatedMinutes": "Estimert tid (min)",
+    "releaseMode": "Frislippsmodus",
+    "releaseModeHelp": "TEXT_FIRST kan senere brukes for å låse opp oppgaver etter teksten.",
+    "status": "Status",
+    "text": "Tekst",
+    "coverImage": {
+      "title": "Forsidebilde",
+      "sourceLabel": "Velg bildekilde",
+      "sourceUpload": "Last opp bilde",
+      "sourceAi": "Generer AI-bilde",
+      "formatLabel": "Format",
+      "formatHelp": "Kun 16:9 er tillatt.",
+      "uploadButton": "Last opp bilde",
+      "uploading": "Laster opp…",
+      "removeButton": "Fjern bilde",
+      "removeTitle": "Tømmer valgt bilde",
+      "uploadHelp": "Last opp jpg, png eller webp. Bildet brukes i 16:9-format.",
+      "rememberSaveHelp": "Husk å lagre oppgaven etter at du har valgt eller generert bilde.",
+      "previewAlt": "Forhåndsvisning av forside",
+      "previewMeta": "Forhåndsvisning i {format}. Kilde: {source}.",
+      "previewSourceAi": "AI",
+      "previewSourceUpload": "opplasting",
+      "noneSelected": "Ingen bilde valgt ennå ({format}).",
+      "ai": {
+        "styleLabel": "Bildestil",
+        "promptSourceLabel": "Prompt-kilde",
+        "promptLabel": "Prompt",
+        "promptPlaceholder": "Eksempel: Et rolig klasserom med elever som leser, varmt lys, detaljer, ren komposisjon",
+        "fromTextHelp": "Systemet vil bruke tittel og tekst som inspirasjon for bildet.",
+        "generateButton": "Generer bilde",
+        "generatingButton": "Genererer…",
+        "generateHelp": "Det genererte bildet skal være liggende i 16:9.",
+        "styles": {
+          "illustration": "Illustrasjon",
+          "realistic": "Realistisk"
         },
-        "empty": "Ingen oppgaver enda.",
-        "headerLine": "#{n} · {type} · id: {id}",
-        "type": "Type",
-        "prompt": "Oppgavetekst",
-        "delete": "Slett",
-        "deleteTitle": "Slett oppgave",
-        "defaults": {
-          "optionA": "Alternativ A",
-          "optionB": "Alternativ B",
-          "optionC": "Alternativ C",
-          "optionD": "Alternativ D"
+        "promptModes": {
+          "custom": "Skriv prompt",
+          "fromText": "Bruk teksten som inspirasjon"
         }
-      },
-      "taskTypes": {
-        "truefalse": "truefalse",
-        "mcq": "mcq",
-        "open": "open"
-      },
-      "mcq": {
-        "optionsOnePerLine": "Alternativer (én per linje)",
-        "correctAnswer": "Riktig svar (må matche et alternativ)"
-      },
-      "tf": {
-        "correctAnswer": "Riktig svar",
-        "tip": "Tips: Preview-siden din bruker string \"true\"/\"false\"."
-      },
-      "answers": {
-        "true": "true",
-        "false": "false"
-      },
-      "open": {
-        "answerSpace": "Skriveplass i PDF",
-        "answerSpaceHelp": "Lagres per oppgave (brukes i Printable PDF).",
-        "hint": "Åpne oppgaver har ingen fasit her. Elevene får KI-feedback når de leverer."
-      },
-      "answerSpace": {
-        "short": "Kort",
-        "medium": "Middels",
-        "long": "Lang"
-      },
-      "footerRemember": "Husk å trykke"
+      }
+    }
+  },
+  "placeholders": {
+    "title": "Oppgavetittel…",
+    "level": "A1 / A2 / B1 …",
+    "producerName": "f.eks. 321skole / Hogne / GuideToGo",
+    "producerNameFromProfile": "Ditt navn (fra profil)",
+    "textType": "f.eks. artikkel, e-post, dialog…",
+    "topic": "Valgfritt. La stå tomt for å unngå at KI-prompt vises.",
+    "tags": "arbeid, sikkerhet, norge",
+    "language": "Norsk",
+    "sourceText": "Skriv kildetekst…",
+    "taskPrompt": "Skriv oppgavetekst…",
+    "mcqCorrectAnswer": "f.eks. Alternativ A"
+  },
+  "counts": "{words} ord · {charsNoSpaces} tegn (uten mellomrom) · {charsWithSpaces} tegn (med mellomrom)",
+  "releaseModes": {
+    "allAtOnce": "ALL_AT_ONCE",
+    "textFirst": "TEXT_FIRST"
+  },
+  "statuses": {
+    "draft": "kladd",
+    "published": "publisert"
+  },
+  "tasks": {
+    "title": "Oppgaver",
+    "add": {
+      "trueFalse": "+ Sant/Usant",
+      "mcq": "+ Flervalg",
+      "open": "+ Åpen"
     },
+    "empty": "Ingen oppgaver ennå.",
+    "headerLine": "#{n} · {type} · id: {id}",
+    "type": "Type",
+    "prompt": "Oppgavetekst",
+    "delete": "Slett",
+    "deleteTitle": "Slett oppgave",
+    "defaults": {
+      "optionA": "Alternativ A",
+      "optionB": "Alternativ B",
+      "optionC": "Alternativ C",
+      "optionD": "Alternativ D"
+    }
+  },
+  "taskTypes": {
+    "truefalse": "sant/usant",
+    "mcq": "flervalg",
+    "open": "åpen"
+  },
+  "mcq": {
+    "optionsOnePerLine": "Alternativer (ett per linje)",
+    "correctAnswer": "Riktig svar (må matche et alternativ)"
+  },
+  "tf": {
+    "correctAnswer": "Riktig svar",
+    "tip": "Tips: Forhåndsvisningen bruker strengene \"true\"/\"false\"."
+  },
+  "answers": {
+    "true": "true",
+    "false": "false"
+  },
+  "open": {
+    "answerSpace": "Skriveplass i PDF",
+    "answerSpaceHelp": "Lagres per oppgave (brukes i utskriftsvennlig PDF).",
+    "hint": "Åpne oppgaver har ikke fasit her. Elever får AI-tilbakemelding når de leverer."
+  },
+  "answerSpace": {
+    "short": "Kort",
+    "medium": "Middels",
+    "long": "Lang"
+  },
+  "footerRemember": "Husk å klikke"
+},
     "print": {
       "pageTitle": "Utskriftsvennlig PDF",
       "states": { "loading": "Laster…" },

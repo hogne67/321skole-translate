@@ -1,4 +1,3 @@
-// components/AuthGate.tsx
 "use client";
 
 import type { ReactNode } from "react";
@@ -30,7 +29,9 @@ function readRole(profile: unknown): Role | null {
   if (!isRecord(profile)) return null;
 
   const r = profile["role"];
-  if (r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator") return r;
+  if (r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator") {
+    return r;
+  }
 
   return readLegacyRole(profile);
 }
@@ -60,6 +61,17 @@ export default function AuthGate({
   const [anonBootstrapping, setAnonBootstrapping] = useState(false);
 
   useEffect(() => {
+    console.log("AuthGate debug", {
+      userUid: user?.uid ?? null,
+      isAnonymous: user?.isAnonymous ?? null,
+      profile,
+      profileRole: isRecord(profile) ? profile["role"] : null,
+      requireRole,
+      pathname,
+    });
+  }, [user, profile, requireRole, pathname]);
+
+  useEffect(() => {
     if (loading) return;
 
     const p = pathname || "";
@@ -74,7 +86,6 @@ export default function AuthGate({
       p.startsWith(`/${locale}/onboarding`) ||
       p.startsWith(`/${locale}/post-login`);
 
-    // 1) Not logged in
     if (!user) {
       if (!allowAnonymous) {
         router.replace(nextUrl);
@@ -95,7 +106,6 @@ export default function AuthGate({
       return;
     }
 
-    // 2) Logged in but anon
     if (user.isAnonymous) {
       if (requireRole === "teacher" || requireRole === "admin" || requireRole === "creator") {
         router.replace(nextUrl);
@@ -104,24 +114,19 @@ export default function AuthGate({
       return;
     }
 
-    // 3) Logged in (not anon): must have profile
     if (!profile) return;
 
     const role = readRole(profile);
 
-    // If role not set -> onboarding (avoid loop)
     if (!role) {
       if (!isAuthRoute) router.replace(onboardingUrl);
       return;
     }
 
-    // 4) Require a specific role
     if (requireRole && role !== requireRole) {
       router.replace(unauthorizedUrl);
       return;
     }
-
-    // ✅ IMPORTANT: No teacher approval gating.
   }, [
     loading,
     user,
@@ -145,8 +150,9 @@ export default function AuthGate({
 
   if (!user && !allowAnonymous) return null;
 
-  if (user?.isAnonymous && (requireRole === "teacher" || requireRole === "admin" || requireRole === "creator"))
+  if (user?.isAnonymous && (requireRole === "teacher" || requireRole === "admin" || requireRole === "creator")) {
     return null;
+  }
 
   if (user && !user.isAnonymous && requireRole && !profile) {
     return <div style={{ padding: 16, opacity: 0.7 }}>Laster…</div>;

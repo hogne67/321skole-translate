@@ -44,6 +44,12 @@ type AssignmentDoc = {
   createdAt?: unknown;
   assignedAt?: unknown;
   assignedByUid?: string;
+
+  // snapshot fields stored inside the room assignment
+  sourceText?: string;
+  text?: string;
+  tasks?: unknown;
+  coverImageUrl?: string;
 };
 
 type TaskType = "mcq" | "truefalse" | "open";
@@ -150,6 +156,28 @@ function toTtsLang(lang: string): TtsLang {
   return "no";
 }
 
+function hasSnapshotContent(a: AssignmentDoc | null): boolean {
+  if (!a) return false;
+  const hasText = String(a.sourceText ?? a.text ?? "").trim().length > 0;
+  const hasTasks = safeTasksArray(a.tasks).length > 0;
+  const hasImage = String(a.coverImageUrl ?? "").trim().length > 0;
+  return hasText || hasTasks || hasImage;
+}
+
+function assignmentToLesson(a: AssignmentDoc): Lesson {
+  return {
+    title: a.title,
+    level: a.level,
+    topic: a.topic,
+    language: a.language,
+    sourceText: a.sourceText,
+    text: a.text,
+    tasks: a.tasks,
+    coverImageUrl: a.coverImageUrl,
+    status: a.status,
+  };
+}
+
 async function translateOne(text: string, targetLang: string) {
   const res = await fetch("/api/translate", {
     method: "POST",
@@ -176,17 +204,35 @@ async function translateOne(text: string, targetLang: string) {
 
 /* ---- Auth helpers ---- */
 
-async function waitForUser(): Promise<User> {
-  const current = auth.currentUser;
-  if (current) return current;
+async function resolveUserForStudentPage(): Promise<User> {
+  if (auth.currentUser) return auth.currentUser;
 
-  return await new Promise<User>((resolve, reject) => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      unsub();
-      if (u) resolve(u);
-      else reject(new Error("Could not confirm login (auth.currentUser is null)."));
-    });
+  const existingUser = await new Promise<User | null>((resolve) => {
+    let done = false;
+    let unsub: (() => void) | null = null;
+
+    const finish = (u: User | null) => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timer);
+      if (unsub) unsub();
+      resolve(u);
+    };
+
+    unsub = onAuthStateChanged(
+      auth,
+      (u) => finish(u ?? null),
+      () => finish(null)
+    );
+
+    const timer = window.setTimeout(() => {
+      finish(auth.currentUser ?? null);
+    }, 1500);
   });
+
+  if (existingUser) return existingUser;
+
+  return await ensureAnonymousUser();
 }
 
 /* ---- Auto grade helpers ---- */
@@ -215,7 +261,7 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
 
   const byTask: Record<string, AutoGradeEntry> = {};
 
-  const u2n = (v: unknown) => (v === undefined ? null : v); // ✅ Firestore-sikkert
+  const u2n = (v: unknown) => (v === undefined ? null : v);
 
   tasks.forEach((t, idx) => {
     const stableId = getStableTaskId(t, idx);
@@ -231,7 +277,6 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
     if (type === "mcq") {
       const studentRaw = answersMap[stableId];
 
-      // Student kan være string (gammelt) eller number (nytt: index)
       let s: string | null = null;
       if (typeof studentRaw === "number" && Array.isArray(t?.options)) {
         const opt = (t.options as unknown[])[studentRaw];
@@ -240,7 +285,6 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
         s = normalizeMcq(studentRaw);
       }
 
-      // Correct kan være string eller number (index)
       const correctRaw = t?.correctAnswer;
       let c: string | null = null;
       if (typeof correctRaw === "number" && Array.isArray(t?.options)) {
@@ -274,7 +318,6 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
       return;
     }
 
-    // truefalse
     const sB = normalizeBool(student);
     const cB = normalizeBool(correct);
 
@@ -405,7 +448,7 @@ function statusTheme(s: SubmissionStatus): { border: string; bg: string } {
   const v = normalizeStatus(s);
   if (v === "needs_work") return { border: "rgba(245,158,11,0.45)", bg: "rgba(245,158,11,0.10)" };
   if (v === "reviewed" || v === "approved") return { border: "rgba(46,204,113,0.45)", bg: "rgba(46,204,113,0.10)" };
-  if (v === "draft") return { border: "rgba(99,102,241,0.45)", bg: "rgba(99,102,241,0.08)" }; // indigo-ish
+  if (v === "draft") return { border: "rgba(99,102,241,0.45)", bg: "rgba(99,102,241,0.08)" };
   return { border: "rgba(0,0,0,0.14)", bg: "rgba(0,0,0,0.02)" };
 }
 
@@ -466,7 +509,6 @@ function AutoGradeBadge({
 
   const pct = auto.percentAuto;
   const main = `${labelAuto}: ${auto.correctAuto}/${auto.totalAuto}${pct != null ? ` (${pct}%)` : ""}`;
-
   const kind = pct == null ? "neutral" : pct >= 80 ? "good" : pct >= 50 ? "warn" : "bad";
   const detailsRaw = `Riktig: ${auto.correctAuto} · Feil: ${auto.wrongAuto} · Ikke besvart: ${auto.unansweredAuto}`;
 
@@ -738,7 +780,6 @@ export default function StudentAssignmentPage() {
 
       setActiveTextMode(mode);
       setActiveSentenceIndex(0);
-
       setCurrentTime(0);
       setDuration(0);
 
@@ -835,10 +876,6 @@ export default function StudentAssignmentPage() {
     return v;
   }
 
-  /* =========================
-     Load assignment + lesson
-  ========================= */
-
   useEffect(() => {
     let alive = true;
 
@@ -852,12 +889,7 @@ export default function StudentAssignmentPage() {
           return;
         }
 
-        let user: User;
-        try {
-          user = await waitForUser();
-        } catch {
-          user = await ensureAnonymousUser();
-        }
+        const user = await resolveUserForStudentPage();
         if (!alive) return;
 
         setUid(user.uid);
@@ -880,41 +912,61 @@ export default function StudentAssignmentPage() {
         const aDoc = (aSnap.data() as AssignmentDoc) ?? {};
         setAssignment(aDoc);
 
-        const srcType = (aDoc.sourceType ?? "library") as SourceType;
-        const srcId = String(aDoc.sourceId ?? "").trim();
+        let resolvedLesson: Lesson | null = null;
 
-        if (!srcId) {
-          setErr(t("errors.missingSourceId"));
-          setLesson(null);
-          return;
-        }
+        if (hasSnapshotContent(aDoc)) {
+          resolvedLesson = assignmentToLesson(aDoc);
+        } else {
+          const srcType = (aDoc.sourceType ?? "library") as SourceType;
+          const srcId = String(aDoc.sourceId ?? "").trim();
 
-        const lSnap =
-          srcType === "library" ? await getDoc(doc(db, "published_lessons", srcId)) : await getDoc(doc(db, "lessons", srcId));
-
-        if (!alive) return;
-
-        if (!lSnap.exists()) {
-          setErr(t("errors.sourceLessonMissing"));
-          setLesson(null);
-          return;
-        }
-
-        const d = lSnap.data() as Lesson;
-
-        if (srcType === "library") {
-          const isInactive = d?.isActive === false;
-          const isArchived = typeof d?.status === "string" && d.status.toLowerCase() === "archived";
-          if (isInactive || isArchived) {
-            setErr(t("errors.unpublished"));
+          if (!srcId) {
+            setErr(t("errors.missingSourceId"));
             setLesson(null);
             return;
           }
+
+          const lSnap =
+            srcType === "library"
+              ? await getDoc(doc(db, "published_lessons", srcId))
+              : await getDoc(doc(db, "lessons", srcId));
+
+          if (!alive) return;
+
+          if (!lSnap.exists()) {
+            setErr(t("errors.sourceLessonMissing"));
+            setLesson(null);
+            return;
+          }
+
+          const d = lSnap.data() as Lesson;
+
+          if (srcType === "library") {
+            const isInactive = d?.isActive === false;
+            const isArchived = typeof d?.status === "string" && d.status.toLowerCase() === "archived";
+            if (isInactive || isArchived) {
+              setErr(t("errors.unpublished"));
+              setLesson(null);
+              return;
+            }
+          }
+
+          resolvedLesson = {
+            title: aDoc.title ?? d.title,
+            level: aDoc.level ?? d.level,
+            topic: aDoc.topic ?? d.topic,
+            language: aDoc.language ?? d.language,
+            sourceText: d.sourceText,
+            text: d.text,
+            tasks: d.tasks,
+            coverImageUrl: aDoc.coverImageUrl ?? d.coverImageUrl,
+            status: d.status,
+            isActive: d.isActive,
+          };
         }
 
-        setLesson(d);
+        setLesson(resolvedLesson);
 
-        // reset translation / audio
         setTranslatedText(null);
         setTranslatedTasks(null);
         setTranslateErr(null);
@@ -923,20 +975,17 @@ export default function StudentAssignmentPage() {
         setTtsBusy(null);
         stopAudio();
 
-        // reset submit state
         setSubmitted(false);
         setSubmissionId(null);
         setMsg(null);
         setAnswers({});
 
-        // reset live feedback
         setLiveStatus(null);
         setLiveTeacherText(null);
         setLiveTeacherUpdatedAt(null);
         setLiveUpdatedAt(null);
         setLiveAuto(null);
 
-        // sid preload (optional)
         if (sid) {
           const sRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", sid);
           const sSnap = await getDoc(sRef);
@@ -965,35 +1014,45 @@ export default function StudentAssignmentPage() {
             setEditingSubmissionId(null);
           }
         } else {
-          // ✅ ingen sid: prøv å laste kladd automatisk (default-id)
-          const autoId = `${spaceId}_${assignmentId}_${user.uid}`;
-          const sRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", autoId);
-          const sSnap = await getDoc(sRef);
+  const autoId = `${spaceId}_${assignmentId}_${user.uid}`;
 
-          if (sSnap.exists()) {
-            const sd = (sSnap.data() as SubmissionDoc) ?? {};
-            const owner = typeof sd.uid === "string" ? sd.uid : null;
-            if (owner && owner !== user.uid) throw new Error(t("errors.noAccessSubmission"));
+  let sSnap: Awaited<ReturnType<typeof getDoc>> | null = null;
 
-            const sStatus = normalizeStatus(sd.status);
-            setLiveStatus(sStatus);
-            setLiveTeacherText(sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : null);
-            setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
-            setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
-            setLiveAuto(readAutoGrade(sd));
+  try {
+    const sRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", autoId);
+    sSnap = await getDoc(sRef);
+  } catch (e: unknown) {
+    if (!isPermissionDenied(e)) throw e;
 
-            if (sStatus === "draft" || sStatus === "needs_work") {
-              const a = sd.answers as unknown;
-              const nextAnswers = a && typeof a === "object" && !Array.isArray(a) ? (a as AnswersMap) : {};
-              setAnswers(nextAnswers);
-              setEditingSubmissionId(autoId);
-            } else {
-              setEditingSubmissionId(null);
-            }
-          } else {
-            setEditingSubmissionId(null);
-          }
-        }
+    // Helt normalt for ny oppgave:
+    // det finnes ingen lagret kladd ennå.
+    sSnap = null;
+  }
+
+  if (sSnap && sSnap.exists()) {
+    const sd = (sSnap.data() as SubmissionDoc) ?? {};
+    const owner = typeof sd.uid === "string" ? sd.uid : null;
+    if (owner && owner !== user.uid) throw new Error(t("errors.noAccessSubmission"));
+
+    const sStatus = normalizeStatus(sd.status);
+    setLiveStatus(sStatus);
+    setLiveTeacherText(sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : null);
+    setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
+    setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
+    setLiveAuto(readAutoGrade(sd));
+
+    if (sStatus === "draft" || sStatus === "needs_work") {
+      const a = sd.answers as unknown;
+      const nextAnswers = a && typeof a === "object" && !Array.isArray(a) ? (a as AnswersMap) : {};
+      setAnswers(nextAnswers);
+      setEditingSubmissionId(autoId);
+    } else {
+      setEditingSubmissionId(null);
+    }
+  } else {
+    setEditingSubmissionId(null);
+  }
+}
       } catch (e: unknown) {
         if (!alive) return;
 
@@ -1012,10 +1071,6 @@ export default function StudentAssignmentPage() {
       alive = false;
     };
   }, [spaceId, assignmentId, sid, t]);
-
-  /* =========================
-     Live listener for status/teacherFeedback/auto
-  ========================= */
 
   useEffect(() => {
     if (!spaceId || !assignmentId) return;
@@ -1054,10 +1109,6 @@ export default function StudentAssignmentPage() {
 
     return () => unsub();
   }, [spaceId, assignmentId, uid, sid, submissionId, editingSubmissionId]);
-
-  /* =========================
-     Translate
-  ========================= */
 
   useEffect(() => {
     setTranslateErr(null);
@@ -1145,10 +1196,6 @@ export default function StudentAssignmentPage() {
     }
   }
 
-  /* =========================
-     Submit + Draft
-  ========================= */
-
   function buildSubmissionId(currentUid: string) {
     if (editingSubmissionId) return editingSubmissionId;
     return `${spaceId}_${assignmentId}_${currentUid}`;
@@ -1209,24 +1256,22 @@ export default function StudentAssignmentPage() {
       const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
       const indexRef = doc(db, "spaceSubmissions", subId);
 
-      const auto = computeAutoGrade(tasksOriginal, answers);
-
       const basePayload: Record<string, unknown> = stripUndefinedDeep({
-        spaceId,
-        assignmentId,
-        sourceType: assignment?.sourceType ?? null,
-        sourceId: assignment?.sourceId ?? null,
-        title: assignment?.title ?? lesson?.title ?? null,
-        level: assignment?.level ?? lesson?.level ?? null,
-        language: assignment?.language ?? lesson?.language ?? null,
-        uid,
-        isAnon,
-        status: "draft",
-        answers,
-        auto,
-        updatedAt: serverTimestamp(),
-        auth: { isAnon, uid },
-      });
+  spaceId,
+  assignmentId,
+  sourceType: assignment?.sourceType ?? null,
+  sourceId: assignment?.sourceId ?? null,
+  title: assignment?.title ?? lesson?.title ?? null,
+  level: assignment?.level ?? lesson?.level ?? null,
+  language: assignment?.language ?? lesson?.language ?? null,
+  uid,
+  isAnon,
+  status: "draft",
+  answers,
+  auto: null,
+  updatedAt: serverTimestamp(),
+  auth: { isAnon, uid },
+});
 
       const batch = writeBatch(db);
 
@@ -1242,10 +1287,10 @@ export default function StudentAssignmentPage() {
       await batch.commit();
 
       setSubmissionId(subId);
-      setLiveStatus("draft");
-      setLiveAuto(auto);
+setLiveStatus("draft");
+setLiveAuto(null);
 
-      if (manual) setMsg("Kladd lagret.");
+if (manual) setMsg("Kladd lagret.");
     } catch (e: unknown) {
       if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
       else {
@@ -1257,7 +1302,6 @@ export default function StudentAssignmentPage() {
     }
   }
 
-  // ✅ Autosave (debounce) på endringer
   const lastAutoSaveRef = useRef<number>(0);
 
   useEffect(() => {
@@ -1276,7 +1320,6 @@ export default function StudentAssignmentPage() {
     }, 900);
 
     return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, uid, spaceId, assignmentId, submitted, liveStatus]);
 
   async function submitToSpace() {
@@ -1355,10 +1398,6 @@ export default function StudentAssignmentPage() {
     }
   }
 
-  /* =========================
-     UI render helpers
-  ========================= */
-
   const renderFollowText = (mode: "original" | "translation", segs: SentenceSeg[], fallbackText: string) => {
     if (!fallbackText.trim()) return <span style={{ opacity: 0.6 }}>{t("text.noText")}</span>;
 
@@ -1392,7 +1431,6 @@ export default function StudentAssignmentPage() {
     );
   };
 
-  // ✅ robust selection helpers (MCQ index + TF string/bool)
   function getMcqSelectedIndex(stableId: string, options: unknown[]): number | null {
     const a = answers[stableId];
 
@@ -1426,8 +1464,6 @@ export default function StudentAssignmentPage() {
 
     const promptShownClean = String(promptShown ?? "").trim();
     const promptOtherClean = String(promptOther ?? "").trim();
-
-    // ✅ Vis “other” bare hvis den faktisk er annerledes enn den som vises øverst
     const showPromptOther = promptOtherClean.length > 0 && promptOtherClean !== promptShownClean;
 
     const locked = isLockedByTeacher();
@@ -1472,7 +1508,6 @@ export default function StudentAssignmentPage() {
                   const optOrig = String(o);
                   const optTr = tr?.translatedOptions?.[oi];
                   const optShown = showTr && optTr ? optTr : optOrig;
-
                   const checked = selectedIdx === oi;
 
                   return (
@@ -1496,7 +1531,7 @@ export default function StudentAssignmentPage() {
                         name={`mcq_${stableId}`}
                         checked={checked}
                         disabled={locked}
-                        onChange={() => setAnswer(stableId, oi)} // ✅ lagrer index (stabilt)
+                        onChange={() => setAnswer(stableId, oi)}
                         style={{ transform: "scale(1.05)" }}
                       />
                       <span style={{ fontWeight: checked ? 800 : 600 }}>{optShown}</span>
@@ -1558,10 +1593,6 @@ export default function StudentAssignmentPage() {
     );
   }
 
-  /* =========================
-     Early returns
-  ========================= */
-
   if (loading) return <div style={{ padding: 16 }}>{t("common.loading")}</div>;
 
   if (err) {
@@ -1607,8 +1638,14 @@ export default function StudentAssignmentPage() {
     .filter(Boolean)
     .join(" · ");
 
-  // ✅ shared submit button (big green) – duplicated top + bottom
-  const submitLabel = saving ? t("actions.saving") : editingSubmissionId ? t("actions.resubmit") : t("actions.submit");
+  const currentStatus = normalizeStatus(liveStatus ?? "");
+const isRealResubmit = currentStatus === "needs_work" || currentStatus === "submitted";
+
+const submitLabel = saving
+  ? t("actions.saving")
+  : isRealResubmit
+    ? t("actions.resubmit")
+    : t("actions.submit");
   const submitDisabled = saving || lock || !uid;
 
   function SubmitButton({ fullWidth }: { fullWidth?: boolean }) {
@@ -1684,7 +1721,6 @@ export default function StudentAssignmentPage() {
             {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
           </button>
 
-          {/* ✅ Kladd + Lever (øverst) */}
           <DraftButton />
           <SubmitButton />
         </div>
@@ -1859,7 +1895,6 @@ export default function StudentAssignmentPage() {
         {msg ? <div style={{ marginBottom: 10, padding: 10, borderRadius: 12, background: "rgba(0,0,0,0.04)" }}>{msg}</div> : null}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          {/* ✅ Kladd + Lever (nederst) */}
           <DraftButton />
           <SubmitButton />
 

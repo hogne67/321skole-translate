@@ -1281,130 +1281,165 @@
       }
     },
     "editor": {
-      "pageTitle": "Editor do produtor",
-      "nav": {
-        "back": "← Voltar"
-      },
-      "states": {
-        "loading": "Carregando…"
-      },
-      "buttons": {
-        "save": "Salvar no meu conteúdo",
-        "saving": "Salvando…"
-      },
-      "metaLine": "id: {id} · uid: {uid} · status: {status}",
-      "errors": {
-        "title": "Erro",
-        "notFound": "Lição não encontrada.",
-        "noAccessOwnerMismatch": "Você não tem acesso a esta lição (ownerId não corresponde).",
-        "loadFailed": "Não foi possível carregar a lição.",
-        "noAuthUidNotReady": "Sem auth uid (auth anônima ainda não pronta).",
-        "noAuthUid": "Sem auth uid.",
-        "chooseImageFile": "Escolha um arquivo de imagem (jpg/png/webp).",
-        "fileTooLarge": "Arquivo muito grande. Máx. 8MB.",
-        "uploadFailed": "Falha no upload.",
-        "saveFailed": "Falha ao salvar."
-      },
-      "defaults": {
-        "language": "Inglês"
-      },
-      "fields": {
-        "title": "Título",
-        "levelOptional": "Nível (opcional)",
-        "producerName": "Produtor (aparece no PDF)",
-        "topic": "Tema / assunto",
-        "tags": "Tags (separadas por vírgula)",
-        "tagsHelp": "Salvas como array no Firestore.",
-        "language": "Idioma",
-        "estimatedMinutes": "Tempo estimado (min)",
-        "releaseMode": "Modo de liberação",
-        "releaseModeHelp": "TEXT_FIRST pode ser usado depois para desbloquear tarefas após o texto.",
-        "status": "Status",
-        "text": "Texto",
-        "cover": {
-          "title": "Imagem de banner (capa)",
-          "upload": "Enviar imagem",
-          "uploading": "Enviando…",
-          "remove": "Remover imagem",
-          "removeTitle": "Limpa a URL (não exclui do Storage neste MVP)",
-          "formatLabel": "Formato",
-          "format16x9": "16:9 (banner)",
-          "format4x3": "4:3 (clássico)",
-          "help": "(Bloqueado) A imagem é enviada ao Firebase Storage. URL + formato são salvos quando você clica",
-          "previewAlt": "Prévia do banner",
-          "previewHint": "Prévia: {format} (cortado com cover)",
-          "noneSelected": "Nenhum banner selecionado ({format})"
-        }
-      },
-      "placeholders": {
-        "title": "Título da lição…",
-        "level": "A1 / A2 / B1 …",
-        "producerName": "ex.: 321skole / Hogne / GuideToGo",
-        "topic": "Trabalho / Saúde / Vida diária …",
-        "tags": "trabalho, segurança, noruega",
-        "language": "Inglês",
-        "sourceText": "Escreva o texto de origem…",
-        "taskPrompt": "Escreva o enunciado da tarefa…",
-        "mcqCorrectAnswer": "ex.: Opção A"
-      },
-      "counts": "{words} palavras · {charsNoSpaces} caracteres (sem espaços) · {charsWithSpaces} caracteres (com espaços)",
-      "releaseModes": {
-        "allAtOnce": "ALL_AT_ONCE",
-        "textFirst": "TEXT_FIRST"
-      },
-      "statuses": {
-        "draft": "draft",
-        "published": "published"
-      },
-      "tasks": {
-        "title": "Tarefas",
-        "add": {
-          "trueFalse": "+ Verdadeiro/Falso",
-          "mcq": "+ Múltipla escolha",
-          "open": "+ Aberta"
+  "pageTitle": "Editor do produtor",
+  "nav": {
+    "back": "← Voltar"
+  },
+  "states": {
+    "loading": "Carregando…"
+  },
+  "buttons": {
+    "save": "Salvar em Meu conteúdo",
+    "saving": "Salvando…",
+    "saveAndGo": "Salvar → Meu conteúdo",
+    "saveAndGoTitle": "Salvar e ir para Meu conteúdo"
+  },
+  "metaLine": "id: {id} · uid: {uid} · status: {status}",
+  "errors": {
+    "title": "Erro",
+    "notFound": "Lição não encontrada.",
+    "noAccessOwnerMismatch": "Você não tem acesso a esta lição (ownerId mismatch).",
+    "loadFailed": "Não foi possível carregar a lição.",
+    "noAuthUidNotReady": "Sem auth uid ainda (auth anônima não pronta).",
+    "noAuthUid": "Sem auth uid.",
+    "chooseImageFile": "Escolha um arquivo de imagem (jpg/png/webp).",
+    "fileTooLarge": "O arquivo é muito grande. Máx. 8MB.",
+    "uploadFailed": "Falha no envio.",
+    "saveFailed": "Falha ao salvar.",
+    "aiPromptRequired": "Escreva um prompt para a imagem com IA.",
+    "aiSourceTextEmpty": "O texto está vazio. Não é possível usar o texto como inspiração.",
+    "aiGenerateFailed": "Falha ao gerar imagem.",
+    "missingAuthToken": "Token de autenticação ausente."
+  },
+  "defaults": {
+    "language": "Português"
+  },
+  "fields": {
+    "title": "Título",
+    "levelOptional": "Nível (opcional)",
+    "producerName": "Produtor (mostrado no PDF)",
+    "producerNameHelp": "Isto é obtido do seu perfil (users/{uid}).",
+    "producerNameProfileTitle": "Obtido do seu perfil de usuário",
+    "textType": "Tipo de texto",
+    "textTypeHelp": "Usado para metadados e filtragem na biblioteca. Mantenha o tema separado.",
+    "topic": "Tema / assunto",
+    "tags": "Tags (separadas por vírgula)",
+    "tagsHelp": "Salvo como um array no Firestore.",
+    "language": "Idioma",
+    "estimatedMinutes": "Tempo estimado (min)",
+    "releaseMode": "Modo de liberação",
+    "releaseModeHelp": "TEXT_FIRST pode ser usado depois para liberar tarefas após o texto.",
+    "status": "Status",
+    "text": "Texto",
+    "coverImage": {
+      "title": "Imagem de capa",
+      "sourceLabel": "Escolha a fonte da imagem",
+      "sourceUpload": "Enviar imagem",
+      "sourceAi": "Gerar imagem com IA",
+      "formatLabel": "Formato",
+      "formatHelp": "Apenas 16:9 é permitido.",
+      "uploadButton": "Enviar imagem",
+      "uploading": "Enviando…",
+      "removeButton": "Remover imagem",
+      "removeTitle": "Limpa a imagem selecionada",
+      "uploadHelp": "Envie jpg, png ou webp. A imagem será usada no formato 16:9.",
+      "rememberSaveHelp": "Lembre-se de salvar a atividade depois de escolher ou gerar uma imagem.",
+      "previewAlt": "Pré-visualização da capa",
+      "previewMeta": "Pré-visualização em {format}. Fonte: {source}.",
+      "previewSourceAi": "IA",
+      "previewSourceUpload": "upload",
+      "noneSelected": "Nenhuma imagem selecionada ainda ({format}).",
+      "ai": {
+        "styleLabel": "Estilo da imagem",
+        "promptSourceLabel": "Fonte do prompt",
+        "promptLabel": "Prompt",
+        "promptPlaceholder": "Exemplo: Uma sala de aula calma com alunos lendo, luz quente, detalhes, composição limpa",
+        "fromTextHelp": "O sistema usará o título e o texto da lição como inspiração para a imagem.",
+        "generateButton": "Gerar imagem",
+        "generatingButton": "Gerando…",
+        "generateHelp": "A imagem gerada deve ser horizontal em 16:9.",
+        "styles": {
+          "illustration": "Ilustração",
+          "realistic": "Realista"
         },
-        "empty": "Nenhuma tarefa ainda.",
-        "headerLine": "#{n} · {type} · id: {id}",
-        "type": "Tipo",
-        "prompt": "Enunciado",
-        "delete": "Excluir",
-        "deleteTitle": "Excluir tarefa",
-        "defaults": {
-          "optionA": "Opção A",
-          "optionB": "Opção B",
-          "optionC": "Opção C",
-          "optionD": "Opção D"
+        "promptModes": {
+          "custom": "Escrever prompt",
+          "fromText": "Usar o texto como inspiração"
         }
-      },
-      "taskTypes": {
-        "truefalse": "truefalse",
-        "mcq": "mcq",
-        "open": "open"
-      },
-      "mcq": {
-        "optionsOnePerLine": "Opções (uma por linha)",
-        "correctAnswer": "Resposta correta (deve corresponder a uma opção)"
-      },
-      "tf": {
-        "correctAnswer": "Resposta correta",
-        "tip": "Dica: sua prévia usa as strings \"true\"/\"false\"."
-      },
-      "answers": {
-        "true": "true",
-        "false": "false"
-      },
-      "open": {
-        "answerSpace": "Espaço de escrita no PDF",
-        "answerSpaceHelp": "Salvo por tarefa (usado no PDF imprimível).",
-        "hint": "Tarefas abertas não têm gabarito aqui. Os alunos recebem feedback de IA quando enviam."
-      },
-      "answerSpace": {
-        "short": "Curto",
-        "medium": "Médio",
-        "long": "Longo"
-      },
-      "footerRemember": "Lembre-se de clicar"
+      }
+    }
+  },
+  "placeholders": {
+    "title": "Título da lição…",
+    "level": "A1 / A2 / B1 …",
+    "producerName": "ex.: 321skole / Hogne / GuideToGo",
+    "producerNameFromProfile": "Seu nome (do perfil)",
+    "textType": "ex.: artigo, e-mail, diálogo…",
+    "topic": "Opcional. Deixe em branco para evitar mostrar o prompt da IA.",
+    "tags": "trabalho, segurança, noruega",
+    "language": "Português",
+    "sourceText": "Escreva o texto-base…",
+    "taskPrompt": "Escreva o enunciado da tarefa…",
+    "mcqCorrectAnswer": "ex.: Opção A"
+  },
+  "counts": "{words} palavras · {charsNoSpaces} caracteres (sem espaços) · {charsWithSpaces} caracteres (com espaços)",
+  "releaseModes": {
+    "allAtOnce": "ALL_AT_ONCE",
+    "textFirst": "TEXT_FIRST"
+  },
+  "statuses": {
+    "draft": "rascunho",
+    "published": "publicado"
+  },
+  "tasks": {
+    "title": "Tarefas",
+    "add": {
+      "trueFalse": "+ Verdadeiro/Falso",
+      "mcq": "+ Múltipla escolha",
+      "open": "+ Aberta"
     },
+    "empty": "Ainda não há tarefas.",
+    "headerLine": "#{n} · {type} · id: {id}",
+    "type": "Tipo",
+    "prompt": "Enunciado",
+    "delete": "Excluir",
+    "deleteTitle": "Excluir tarefa",
+    "defaults": {
+      "optionA": "Opção A",
+      "optionB": "Opção B",
+      "optionC": "Opção C",
+      "optionD": "Opção D"
+    }
+  },
+  "taskTypes": {
+    "truefalse": "verdadeiro/falso",
+    "mcq": "múltipla escolha",
+    "open": "aberta"
+  },
+  "mcq": {
+    "optionsOnePerLine": "Opções (uma por linha)",
+    "correctAnswer": "Resposta correta (deve corresponder a uma opção)"
+  },
+  "tf": {
+    "correctAnswer": "Resposta correta",
+    "tip": "Dica: A pré-visualização usa as strings \"true\"/\"false\"."
+  },
+  "answers": {
+    "true": "true",
+    "false": "false"
+  },
+  "open": {
+    "answerSpace": "Espaço de escrita no PDF",
+    "answerSpaceHelp": "Salvo por tarefa (usado no PDF imprimível).",
+    "hint": "Tarefas abertas não têm gabarito aqui. Os alunos recebem feedback de IA ao enviar."
+  },
+  "answerSpace": {
+    "short": "Curto",
+    "medium": "Médio",
+    "long": "Longo"
+  },
+  "footerRemember": "Lembre-se de clicar em"
+},
     "print": {
       "pageTitle": "Utskriftsvennlig PDF",
       "states": { "loading": "Laster…" },

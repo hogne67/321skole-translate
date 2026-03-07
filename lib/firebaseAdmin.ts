@@ -4,6 +4,7 @@ import "server-only";
 import { getApps, initializeApp, cert, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { getStorage, type Storage } from "firebase-admin/storage";
 import fs from "fs";
 import path from "path";
 
@@ -36,7 +37,7 @@ function loadServiceAccountFromFile(): ServiceAccountJSON | null {
 }
 
 function loadServiceAccountFromEnv(): ServiceAccountJSON | null {
-  // ✅ Option A: single JSON env (most reliable on Vercel)
+  // Option A: single JSON env (most reliable on Vercel)
   const json = process.env.FIREBASE_ADMIN_SA_JSON;
   if (json) {
     try {
@@ -47,7 +48,6 @@ function loadServiceAccountFromEnv(): ServiceAccountJSON | null {
         const client_email =
           typeof parsed.client_email === "string" ? parsed.client_email : undefined;
 
-        // private_key kan være string eller noe annet -> tving til string trygt
         const pkRaw = parsed.private_key;
         const private_key = typeof pkRaw === "string" ? pkRaw : "";
 
@@ -57,9 +57,8 @@ function loadServiceAccountFromEnv(): ServiceAccountJSON | null {
           private_key: private_key.replace(/\\n/g, "\n"),
         };
       }
-      // fallthrough til split vars
     } catch {
-      // fallthrough til split vars
+      // fall through to split vars
     }
   }
 
@@ -91,7 +90,6 @@ function ensureAdminApp(): App {
     );
   }
 
-  // cert() vil ha projectId/clientEmail/privateKey (camelCase)
   const certInput: CertInput = {
     projectId: sa.project_id,
     clientEmail: sa.client_email,
@@ -104,7 +102,16 @@ function ensureAdminApp(): App {
   });
 }
 
-export function getAdmin(): { auth: Auth; db: Firestore } {
-  ensureAdminApp();
-  return { auth: getAuth(), db: getFirestore() };
+export function getAdmin(): { auth: Auth; db: Firestore; storage: Storage } {
+  const app = ensureAdminApp();
+
+  return {
+    auth: getAuth(app),
+    db: getFirestore(app),
+    storage: getStorage(app),
+  };
+}
+
+export function getAdminApp(): App {
+  return ensureAdminApp();
 }
