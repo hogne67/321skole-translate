@@ -7,6 +7,7 @@
     "joinSpace": "Join space",
     "spaces": "Spaces",
     "createLesson": "+ Create lesson",
+    "createtest": "+ Create Reading Test",
     "myLessons": "My lessons",
     "newLesson": "+ New lesson",
     "users": "Users",
@@ -699,90 +700,92 @@
       }
     },
     "submission": {
-      "title": "Submission",
-      "actions": {
-        "back": "← Back"
-      },
-      "errors": {
-        "missingParams": "Missing spaceId/assignmentId/subId in URL."
-      },
-      "missing": {
-        "title": "Submission not found"
-      },
-      "meta": {
-        "studentLabel": "Student:",
-        "delivered": "Submitted:",
-        "deliveredUnknown": "Submitted: (unknown)",
-        "guest": "Guest (not logged in)",
-        "loggedIn": "Logged in"
-      },
-      "status": {
-        "submitted": "Submitted",
-        "approved": "Approved",
-        "needsWork": "Needs work",
-        "draft": "Draft"
-      },
-      "auto": {
-        "main": "RESULT AUTO CORRECTION: {correct}/{total}{pctText}",
-        "details": "Correct: {correct} · Wrong: {wrong} · Unanswered: {unanswered}",
-        "taskCorrect": "Auto correction: ✅ correct",
-        "taskWrong": "Auto correction: ❌ wrong",
-        "taskUnanswered": "Auto: ⏳ unanswered"
-      },
-      "notice": {
-        "needAttestationHtml": "To give feedback you need <b>attestation</b> and be in <b>teacher</b> or <b>creator</b> mode."
-      },
-      "studentView": {
-        "title": "Answers (as the student sees it)",
-        "loadingLesson": "Fetching task…",
-        "level": "Level: {v}",
-        "imageAlt": "Lesson",
-        "noImageTitle": "No image",
-        "noImageDesc": "This lesson has no cover image.",
-        "textTitle": "Text",
-        "tasksTitle": "Tasks",
-        "noTasks": "No tasks in this lesson (or lesson could not be found).",
-        "noTasksHint": "This usually means assignment.sourceId is missing or lesson.tasks is empty.",
-        "taskN": "Task {n}",
-        "correctTag": "✓ correct",
-        "selectedTag": "Selected",
-        "true": "True",
-        "false": "False",
-        "notAnswered": "(not answered)"
-      },
-      "feedback": {
-        "title": "Feedback",
-        "statusLabel": "Status",
-        "placeholder": "Write a short feedback…",
-        "needTextToChangeStatus": "To change status you must write a short comment.",
-        "saveButton": "Save feedback",
-        "saving": "Saving…",
-        "saved": "Saved ✅",
-        "saveFailed": "Could not save: {msg}",
-        "rulesHint": "(Rules: only teacher/owner/admin can change)"
-      },
-      "ai": {
-        "title": "AI feedback",
-        "generateButton": "Generate AI feedback",
-        "generating": "Generating…",
-        "copyButton": "Copy",
-        "insertButton": "Insert into teacher feedback",
-        "placeholder": "AI feedback is saved here…",
-        "generated": "AI feedback updated.",
-        "generateFailed": "Could not generate AI feedback: {msg}",
-        "copied": "Copied!",
-        "copyFailed": "Could not copy.",
-        "inserted": "Inserted into teacher feedback.",
-        "rulesHint": "Saved in",
-        "saveButton": "Save",
-        "saving": "Saving.…"
-      },
-      "fallback": {
-        "guest": "Guest",
-        "task": "Task",
-        "unknownError": "unknown error"
-      }
-    }
+  "title": "Submission",
+  "actions": {
+    "back": "← Back"
+  },
+  "errors": {
+    "missingParams": "Missing spaceId/assignmentId/subId in URL."
+  },
+  "missing": {
+    "title": "Submission not found"
+  },
+  "meta": {
+    "studentLabel": "Student:",
+    "delivered": "Submitted:",
+    "deliveredUnknown": "Submitted: (unknown)",
+    "guest": "Guest (not logged in)",
+    "loggedIn": "Logged in"
+  },
+  "status": {
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "needsWork": "Needs work",
+    "draft": "Draft"
+  },
+  "auto": {
+    "main": "AUTO RESULT: {correct}/{total}{pctText}",
+    "details": "Correct: {correct} · Wrong: {wrong} · Unanswered: {unanswered}",
+    "taskCorrect": "Auto correction: ✅ correct",
+    "taskWrong": "Auto correction: ❌ wrong",
+    "taskUnanswered": "Auto: ⏳ unanswered"
+  },
+  "notice": {
+    "needAttestationHtml": "To give feedback, you need <b>attestation</b> and must be in <b>teacher</b> or <b>creator</b> mode."
+  },
+  "studentView": {
+    "title": "Answers (as the student sees them)",
+    "loadingLesson": "Fetching lesson…",
+    "level": "Level: {v}",
+    "imageAlt": "Lesson",
+    "noImageTitle": "No image",
+    "noImageDesc": "This lesson has no cover image.",
+    "textTitle": "Text",
+    "tasksTitle": "Tasks",
+    "noTasks": "No tasks in this lesson (or the lesson could not be found).",
+    "noTasksHint": "This usually means assignment.sourceId is missing or lesson.tasks is empty.",
+    "taskN": "Task {n}",
+    "correctTag": "✓ correct",
+    "selectedTag": "Selected",
+    "true": "True",
+    "false": "False",
+    "notAnswered": "(not answered)"
+  },
+  "feedback": {
+    "title": "Feedback",
+    "statusLabel": "Status",
+    "placeholder": "Write a short feedback…",
+    "needTextToChangeStatus": "To change status, you must write a short comment.",
+    "saveButton": "Save feedback",
+    "saving": "Saving…",
+    "saved": "Saved ✅",
+    "saveFailed": "Could not save: {msg}",
+    "rulesHint": "(Rules: only teacher/owner/admin can change)"
+  },
+  "ai": {
+    "title": "AI feedback",
+    "generateButton": "Generate AI feedback",
+    "generating": "Generating…",
+    "copyButton": "Copy",
+    "insertButton": "Insert into teacher feedback",
+    "placeholder": "AI feedback is shown here…",
+    "generated": "AI feedback generated.",
+    "saved": "AI feedback saved.",
+    "generateFailed": "Could not generate AI feedback: {msg}",
+    "saveFailed": "Could not save AI feedback: {msg}",
+    "copied": "Copied!",
+    "copyFailed": "Could not copy.",
+    "inserted": "Inserted into teacher feedback.",
+    "rulesHint": "Saved in",
+    "saveButton": "Save",
+    "saving": "Saving…"
+  },
+  "fallback": {
+    "guest": "Guest",
+    "task": "Task",
+    "unknownError": "unknown error"
+  }
+}
   },
   "teacherBoard": {
     "header": {
@@ -1282,130 +1285,165 @@
       }
     },
     "editor": {
-      "pageTitle": "Producer editor",
-      "nav": {
-        "back": "← Back"
-      },
-      "states": {
-        "loading": "Loading…"
-      },
-      "buttons": {
-        "save": "Save to my content",
-        "saving": "Saving…"
-      },
-      "metaLine": "id: {id} · uid: {uid} · status: {status}",
-      "errors": {
-        "title": "Error",
-        "notFound": "Lesson not found.",
-        "noAccessOwnerMismatch": "You don’t have access to this lesson (ownerId mismatch).",
-        "loadFailed": "Could not load lesson.",
-        "noAuthUidNotReady": "No auth uid (anonymous auth not ready).",
-        "noAuthUid": "No auth uid.",
-        "chooseImageFile": "Choose an image file (jpg/png/webp).",
-        "fileTooLarge": "File is too large. Max 8MB.",
-        "uploadFailed": "Upload failed.",
-        "saveFailed": "Save failed."
-      },
-      "defaults": {
-        "language": "English"
-      },
-      "fields": {
-        "title": "Title",
-        "levelOptional": "Level (optional)",
-        "producerName": "Producer (shown in PDF)",
-        "topic": "Theme / topic",
-        "tags": "Tags (comma-separated)",
-        "tagsHelp": "Saved as an array in Firestore.",
-        "language": "Language",
-        "estimatedMinutes": "Estimated time (min)",
-        "releaseMode": "Release mode",
-        "releaseModeHelp": "TEXT_FIRST can later be used to unlock tasks after the text.",
-        "status": "Status",
-        "text": "Text",
-        "cover": {
-          "title": "Banner image (cover)",
-          "upload": "Upload image",
-          "uploading": "Uploading…",
-          "remove": "Remove image",
-          "removeTitle": "Clears the URL (does not delete from Storage in this MVP)",
-          "formatLabel": "Format",
-          "format16x9": "16:9 (banner)",
-          "format4x3": "4:3 (classic)",
-          "help": "(Locked) Image is uploaded to Firebase Storage. URL + format are saved when you click",
-          "previewAlt": "Banner preview",
-          "previewHint": "Preview: {format} (cropped with cover)",
-          "noneSelected": "No banner selected ({format})"
-        }
-      },
-      "placeholders": {
-        "title": "Lesson title…",
-        "level": "A1 / A2 / B1 …",
-        "producerName": "e.g. 321skole / Hogne / GuideToGo",
-        "topic": "Work / Health / Daily life …",
-        "tags": "work, safety, norway",
-        "language": "English",
-        "sourceText": "Write source text…",
-        "taskPrompt": "Write task prompt…",
-        "mcqCorrectAnswer": "e.g. Option A"
-      },
-      "counts": "{words} words · {charsNoSpaces} chars (no spaces) · {charsWithSpaces} chars (with spaces)",
-      "releaseModes": {
-        "allAtOnce": "ALL_AT_ONCE",
-        "textFirst": "TEXT_FIRST"
-      },
-      "statuses": {
-        "draft": "draft",
-        "published": "published"
-      },
-      "tasks": {
-        "title": "Tasks",
-        "add": {
-          "trueFalse": "+ True/False",
-          "mcq": "+ MCQ",
-          "open": "+ Open"
+  "pageTitle": "Producer editor",
+  "nav": {
+    "back": "← Back"
+  },
+  "states": {
+    "loading": "Loading…"
+  },
+  "buttons": {
+    "save": "Save to my content",
+    "saving": "Saving…",
+    "saveAndGo": "Save → My content",
+    "saveAndGoTitle": "Save and go to My content"
+  },
+  "metaLine": "id: {id} · uid: {uid} · status: {status}",
+  "errors": {
+    "title": "Error",
+    "notFound": "Lesson not found.",
+    "noAccessOwnerMismatch": "You don’t have access to this lesson (ownerId mismatch).",
+    "loadFailed": "Could not load lesson.",
+    "noAuthUidNotReady": "No auth uid (anonymous auth not ready).",
+    "noAuthUid": "No auth uid.",
+    "chooseImageFile": "Choose an image file (jpg/png/webp).",
+    "fileTooLarge": "File is too large. Max 8MB.",
+    "uploadFailed": "Upload failed.",
+    "saveFailed": "Save failed.",
+    "aiPromptRequired": "Write a prompt for the AI image.",
+    "aiSourceTextEmpty": "The text is empty. Cannot use the text as inspiration.",
+    "aiGenerateFailed": "Image generation failed.",
+    "missingAuthToken": "Missing auth token."
+  },
+  "defaults": {
+    "language": "English"
+  },
+  "fields": {
+    "title": "Title",
+    "levelOptional": "Level (optional)",
+    "producerName": "Producer (shown in PDF)",
+    "producerNameHelp": "This is taken from your profile (users/{uid}).",
+    "producerNameProfileTitle": "Pulled from your user profile",
+    "textType": "Text type",
+    "textTypeHelp": "Used for metadata and library filtering. Keep topic separate.",
+    "topic": "Theme / topic",
+    "tags": "Tags (comma-separated)",
+    "tagsHelp": "Saved as an array in Firestore.",
+    "language": "Language",
+    "estimatedMinutes": "Estimated time (min)",
+    "releaseMode": "Release mode",
+    "releaseModeHelp": "TEXT_FIRST can later be used to unlock tasks after the text.",
+    "status": "Status",
+    "text": "Text",
+    "coverImage": {
+      "title": "Cover image",
+      "sourceLabel": "Choose image source",
+      "sourceUpload": "Upload image",
+      "sourceAi": "Generate AI image",
+      "formatLabel": "Format",
+      "formatHelp": "Only 16:9 is allowed.",
+      "uploadButton": "Upload image",
+      "uploading": "Uploading…",
+      "removeButton": "Remove image",
+      "removeTitle": "Clears the selected image",
+      "uploadHelp": "Upload jpg, png or webp. The image will be used in 16:9 format.",
+      "rememberSaveHelp": "Remember to save the lesson after selecting or generating an image.",
+      "previewAlt": "Cover preview",
+      "previewMeta": "Preview in {format}. Source: {source}.",
+      "previewSourceAi": "AI",
+      "previewSourceUpload": "upload",
+      "noneSelected": "No image selected yet ({format}).",
+      "ai": {
+        "styleLabel": "Image style",
+        "promptSourceLabel": "Prompt source",
+        "promptLabel": "Prompt",
+        "promptPlaceholder": "Example: A calm classroom scene with students reading, warm light, detailed, clean composition",
+        "fromTextHelp": "The system will use the lesson title and text as inspiration for the image.",
+        "generateButton": "Generate image",
+        "generatingButton": "Generating…",
+        "generateHelp": "The generated image should be landscape in 16:9.",
+        "styles": {
+          "illustration": "Illustration",
+          "realistic": "Realistic"
         },
-        "empty": "No tasks yet.",
-        "headerLine": "#{n} · {type} · id: {id}",
-        "type": "Type",
-        "prompt": "Prompt",
-        "delete": "Delete",
-        "deleteTitle": "Delete task",
-        "defaults": {
-          "optionA": "Option A",
-          "optionB": "Option B",
-          "optionC": "Option C",
-          "optionD": "Option D"
+        "promptModes": {
+          "custom": "Write prompt",
+          "fromText": "Use text as inspiration"
         }
-      },
-      "taskTypes": {
-        "truefalse": "truefalse",
-        "mcq": "mcq",
-        "open": "open"
-      },
-      "mcq": {
-        "optionsOnePerLine": "Options (one per line)",
-        "correctAnswer": "Correct answer (must match an option)"
-      },
-      "tf": {
-        "correctAnswer": "Correct answer",
-        "tip": "Tip: Your preview uses string \"true\"/\"false\"."
-      },
-      "answers": {
-        "true": "true",
-        "false": "false"
-      },
-      "open": {
-        "answerSpace": "Writing space in PDF",
-        "answerSpaceHelp": "Saved per task (used in Printable PDF).",
-        "hint": "Open tasks have no solution key here. Learners get AI feedback when they submit."
-      },
-      "answerSpace": {
-        "short": "Short",
-        "medium": "Medium",
-        "long": "Long"
-      },
-      "footerRemember": "Remember to click"
+      }
+    }
+  },
+  "placeholders": {
+    "title": "Lesson title…",
+    "level": "A1 / A2 / B1 …",
+    "producerName": "e.g. 321skole / Hogne / GuideToGo",
+    "producerNameFromProfile": "Your name (from profile)",
+    "textType": "e.g. article, email, dialogue…",
+    "topic": "Optional. Leave empty to avoid showing the AI prompt.",
+    "tags": "work, safety, norway",
+    "language": "English",
+    "sourceText": "Write source text…",
+    "taskPrompt": "Write task prompt…",
+    "mcqCorrectAnswer": "e.g. Option A"
+  },
+  "counts": "{words} words · {charsNoSpaces} chars (no spaces) · {charsWithSpaces} chars (with spaces)",
+  "releaseModes": {
+    "allAtOnce": "ALL_AT_ONCE",
+    "textFirst": "TEXT_FIRST"
+  },
+  "statuses": {
+    "draft": "draft",
+    "published": "published"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "add": {
+      "trueFalse": "+ True/False",
+      "mcq": "+ MCQ",
+      "open": "+ Open"
     },
+    "empty": "No tasks yet.",
+    "headerLine": "#{n} · {type} · id: {id}",
+    "type": "Type",
+    "prompt": "Prompt",
+    "delete": "Delete",
+    "deleteTitle": "Delete task",
+    "defaults": {
+      "optionA": "Option A",
+      "optionB": "Option B",
+      "optionC": "Option C",
+      "optionD": "Option D"
+    }
+  },
+  "taskTypes": {
+    "truefalse": "truefalse",
+    "mcq": "mcq",
+    "open": "open"
+  },
+  "mcq": {
+    "optionsOnePerLine": "Options (one per line)",
+    "correctAnswer": "Correct answer (must match an option)"
+  },
+  "tf": {
+    "correctAnswer": "Correct answer",
+    "tip": "Tip: Your preview uses string \"true\"/\"false\"."
+  },
+  "answers": {
+    "true": "true",
+    "false": "false"
+  },
+  "open": {
+    "answerSpace": "Writing space in PDF",
+    "answerSpaceHelp": "Saved per task (used in Printable PDF).",
+    "hint": "Open tasks have no solution key here. Learners get AI feedback when they submit."
+  },
+  "answerSpace": {
+    "short": "Short",
+    "medium": "Medium",
+    "long": "Long"
+  },
+  "footerRemember": "Remember to click"
+},
     "print": {
       "pageTitle": "Utskriftsvennlig PDF",
       "states": { "loading": "Laster…" },

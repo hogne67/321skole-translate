@@ -13,11 +13,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { authedPost } from "@/lib/authedPost";
 
 type Mode = "student" | "teacher" | "creator" | "parent";
-
-// Teacher review statuses (your “grading system”)
 type ReviewStatus = "reviewed" | "needs_work";
-
-// Submission status can also be draft/submitted etc.
 type SubmissionStatus = ReviewStatus | "draft" | "submitted" | "approved" | string;
 
 type SourceType = "myContent" | "library";
@@ -30,6 +26,8 @@ type Task = {
   prompt?: string;
   options?: unknown[];
   correctAnswer?: unknown;
+  sentence?: string;
+  textWithGap?: string;
 };
 
 type AnswersMap = Record<string, unknown>;
@@ -45,7 +43,6 @@ type AiFeedback = {
   createdAt?: unknown;
   updatedAt?: unknown;
   teacherUid?: string | null;
-  // later: model, promptVersion, etc.
 };
 
 type AutoGradeEntry = {
@@ -75,14 +72,20 @@ type SubmissionDoc = {
   studentDisplayName?: string;
 
   teacherFeedback?: TeacherFeedback | null;
-
-  // ✅ AI feedback stored here
   aiFeedback?: AiFeedback | null;
-
   auto?: AutoGrade | unknown;
 
   spaceId?: string;
   assignmentId?: string;
+
+  startedAt?: unknown;
+  submittedAt?: unknown;
+  timeSpentSeconds?: unknown;
+
+  readingTestTimeLimitSeconds?: unknown;
+  readingTestTimeUsedSeconds?: unknown;
+  readingTestTimedOut?: unknown;
+  readingTestSubmittedManually?: unknown;
 };
 
 type AssignmentDoc = {
@@ -99,6 +102,7 @@ type AssignmentDoc = {
   createdAt?: unknown;
   assignedAt?: unknown;
   assignedByUid?: string;
+  lessonType?: string;
 };
 
 type Lesson = {
@@ -112,6 +116,7 @@ type Lesson = {
   coverImageUrl?: string;
   isActive?: boolean;
   status?: string;
+  lessonType?: string;
 };
 
 type SpaceMemberDoc = {
@@ -122,7 +127,6 @@ type SpaceMemberDoc = {
   role?: string;
 };
 
-// ✅ API response type (only once)
 type AiResp = { text: string; skipped?: boolean; locale?: string };
 
 /* =========================
@@ -177,6 +181,28 @@ function formatMaybeDate(v: unknown) {
   }
 }
 
+function safeNumber(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+function safeBoolean(v: unknown): boolean | null {
+  return typeof v === "boolean" ? v : null;
+}
+
+function formatDuration(totalSeconds: number | null | undefined): string {
+  if (typeof totalSeconds !== "number" || !Number.isFinite(totalSeconds)) return "—";
+  const secs = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(secs / 3600);
+  const minutes = Math.floor((secs % 3600) / 60);
+  const seconds = secs % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 function readTeacherFeedbackText(sub: SubmissionDoc): string {
   const tf = sub.teacherFeedback;
   if (!tf || typeof tf !== "object") return "";
@@ -194,11 +220,9 @@ function readAiFeedbackText(sub: SubmissionDoc): string {
 function readStatus(sub: SubmissionDoc): SubmissionStatus {
   const s = sub.status;
   if (typeof s === "string" && s.trim()) return s as SubmissionStatus;
-  // default (legacy): needs_work
   return "needs_work";
 }
 
-/** Default needs_work (yellow) for toggle */
 function readStatusDefaultNeedsWork(sub: SubmissionDoc): ReviewStatus {
   const s = sub.status;
   return s === "needs_work" || s === "reviewed" ? s : "needs_work";
@@ -277,9 +301,6 @@ function getAutoEntry(auto: AutoGrade | null, stableId: string): AutoGradeEntry 
   return e as AutoGradeEntry;
 }
 
-/**
- * Locale-safe link helper
- */
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
   if (!href.startsWith("/")) return href;
@@ -309,7 +330,7 @@ async function safeCopyToClipboard(text: string): Promise<boolean> {
       return true;
     }
   } catch {
-    // ignore
+    //
   }
   try {
     const ta = document.createElement("textarea");
@@ -326,6 +347,35 @@ async function safeCopyToClipboard(text: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function isReadingTestLesson(assignment: AssignmentDoc | null, lesson: Lesson | null, tasks: Task[]): boolean {
+  const lessonType = String(lesson?.lessonType ?? assignment?.lessonType ?? "").trim().toLowerCase();
+  if (lessonType === "reading_test") return true;
+
+  return tasks.some((task) => {
+    const type = String(task?.type ?? "").trim().toLowerCase();
+    return (
+      type === "word_choice" ||
+      type === "sentence_placement" ||
+      type === "best_summary" ||
+      type === "fill_in_word"
+    );
+  });
+}
+
+function readReadingTestMeta(sub: SubmissionDoc | null) {
+  const limitSeconds = safeNumber(sub?.readingTestTimeLimitSeconds);
+  const usedSeconds = safeNumber(sub?.readingTestTimeUsedSeconds) ?? safeNumber(sub?.timeSpentSeconds);
+  const timedOut = safeBoolean(sub?.readingTestTimedOut);
+  const submittedManually = safeBoolean(sub?.readingTestSubmittedManually);
+
+  return {
+    limitSeconds,
+    usedSeconds,
+    timedOut,
+    submittedManually,
+  };
 }
 
 /* =========================
@@ -567,7 +617,6 @@ function Inner() {
   const [status, setStatus] = useState<ReviewStatus>("needs_work");
   const [initialStatus, setInitialStatus] = useState<ReviewStatus>("needs_work");
 
-  // ✅ AI box state
   const [aiText, setAiText] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
@@ -814,6 +863,24 @@ function Inner() {
   const answersMap = readAnswerMap(sub.answers);
   const auto = readAutoGrade(sub);
 
+  const isReadingTest = isReadingTestLesson(assignment, lesson, tasksOriginal);
+  const readingMeta = readReadingTestMeta(sub);
+  const readingSummaryText = isReadingTest
+  ? readingMeta.timedOut === true
+    ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
+        readingMeta.limitSeconds
+      )}. Besvarelsen ble sendt automatisk da tiden gikk ut.`
+    : readingMeta.submittedManually === true
+    ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
+        readingMeta.limitSeconds
+      )} og leverte manuelt før tiden var ute.`
+    : readingMeta.usedSeconds != null || readingMeta.limitSeconds != null
+    ? `Lesetest: Tidsbruk ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
+        readingMeta.limitSeconds
+      )}.`
+    : ""
+  : "";
+
   const statusChanged = status !== initialStatus;
   const needsTextToChangeStatus = statusChanged && text.trim().length === 0;
   const canSave = canOperate && !saving && !needsTextToChangeStatus;
@@ -849,6 +916,42 @@ function Inner() {
 
             <AutoGradeBadge auto={auto} t={tAny} />
           </div>
+
+          {isReadingTest ? (
+            <div
+              style={{
+                marginTop: 12,
+                border: "1px solid rgba(59,130,246,0.25)",
+                background: "rgba(239,246,255,1)",
+                borderRadius: 14,
+                padding: 12,
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontWeight: 900 }}>Lesetest-data</div>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <Badge text={`Tidsgrense: ${formatDuration(readingMeta.limitSeconds)}`} />
+                <Badge text={`Brukt tid: ${formatDuration(readingMeta.usedSeconds)}`} kind="good" />
+                {readingMeta.timedOut === true ? (
+                  <Badge text="Sendt ved timeout" kind="warn" />
+                ) : readingMeta.submittedManually === true ? (
+                  <Badge text="Levert manuelt" kind="good" />
+                ) : (
+                  <Badge text="Leveringsmåte ukjent" />
+                )}
+              </div>
+
+              <div style={{ fontSize: 13, opacity: 0.8 }}>
+                {readingMeta.timedOut === true
+                  ? "Eleven rakk ikke å levere selv. Systemet sendte testen automatisk da tiden gikk ut."
+                  : readingMeta.submittedManually === true
+                  ? "Eleven leverte testen selv før tiden var ute."
+                  : "Denne innleveringen har ikke full lesetest-metadata ennå."}
+              </div>
+            </div>
+          ) : null}
 
           {isDraft ? (
             <div
@@ -903,7 +1006,6 @@ function Inner() {
           marginTop: 12,
         }}
       >
-        {/* STUDENT VIEW */}
         <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
             <div style={{ fontWeight: 900 }}>{t("studentView.title")}</div>
@@ -916,7 +1018,6 @@ function Inner() {
               {lessonLevel ? <div style={{ opacity: 0.75, fontSize: 12 }}>{t("studentView.level", { v: lessonLevel })}</div> : null}
             </div>
 
-            {/* IMAGE */}
             <div
               style={{
                 border: "1px solid rgba(0,0,0,0.12)",
@@ -950,7 +1051,6 @@ function Inner() {
               </div>
             </div>
 
-            {/* TEXT */}
             {sourceText.trim() ? (
               <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
                 <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("studentView.textTitle")}</div>
@@ -958,7 +1058,6 @@ function Inner() {
               </div>
             ) : null}
 
-            {/* TASKS */}
             <div style={{ marginTop: 2 }}>
               <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("studentView.tasksTitle")}</div>
 
@@ -978,7 +1077,16 @@ function Inner() {
                     const val = answersMap[stableId];
 
                     const entry = getAutoEntry(auto, stableId);
-                    const showAutoMark = !!entry && (type === "mcq" || type === "truefalse");
+                    const showAutoMark =
+                      !!entry &&
+                      (type === "mcq" ||
+                        type === "truefalse" ||
+                        type === "true_false" ||
+                        type === "word_choice" ||
+                        type === "sentence_placement" ||
+                        type === "best_summary" ||
+                        type === "fill_in_word");
+
                     const autoBadge =
                       showAutoMark && entry
                         ? entry.isCorrect
@@ -988,7 +1096,6 @@ function Inner() {
 
                     const orderLabel = task?.order ?? idx + 1;
 
-                    // ✅ MCQ: support both stored index (number) and stored option text (string)
                     const selectedIndex =
                       typeof val === "number" && Number.isFinite(val) ? Math.floor(val) : null;
                     const selectedText =
@@ -1010,7 +1117,42 @@ function Inner() {
 
                         <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10, fontWeight: 700 }}>{prompt}</div>
 
-                        {type === "mcq" && options.length > 0 ? (
+                        {(type === "word_choice" || type === "fill_in_word") && task?.sentence ? (
+                          <div
+                            style={{
+                              marginBottom: 10,
+                              padding: 10,
+                              borderRadius: 10,
+                              border: "1px solid rgba(0,0,0,0.12)",
+                              background: "rgba(0,0,0,0.03)",
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            {String(task.sentence)}
+                          </div>
+                        ) : null}
+
+                        {type === "sentence_placement" && task?.textWithGap ? (
+                          <div
+                            style={{
+                              marginBottom: 10,
+                              padding: 10,
+                              borderRadius: 10,
+                              border: "1px solid rgba(0,0,0,0.12)",
+                              background: "rgba(0,0,0,0.03)",
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            {String(task.textWithGap)}
+                          </div>
+                        ) : null}
+
+                        {(type === "mcq" ||
+                          type === "word_choice" ||
+                          type === "sentence_placement" ||
+                          type === "best_summary" ||
+                          type === "fill_in_word") &&
+                        options.length > 0 ? (
                           <div style={{ display: "grid", gap: 8 }}>
                             {options.map((o, i) => {
                               const opt = String(o);
@@ -1048,36 +1190,48 @@ function Inner() {
                           </div>
                         ) : null}
 
-                        {type === "truefalse" ? (
+                        {(type === "truefalse" || type === "true_false") ? (
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             <div
                               style={{
                                 border: "1px solid rgba(0,0,0,0.14)",
                                 borderRadius: 10,
                                 padding: "8px 12px",
-                                background: val === true ? "rgba(46, 204, 113, 0.12)" : "white",
-                                fontWeight: val === true ? 800 : 600,
+                                background: val === true || val === "true" ? "rgba(46, 204, 113, 0.12)" : "white",
+                                fontWeight: val === true || val === "true" ? 800 : 600,
                               }}
                             >
-                              {t("studentView.true")} {val === true ? "✓" : ""}
-                              {entry?.correctAnswer === true ? <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span> : null}
+                              {t("studentView.true")} {val === true || val === "true" ? "✓" : ""}
+                              {entry?.correctAnswer === true || entry?.correctAnswer === "true" ? (
+                                <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
+                              ) : null}
                             </div>
                             <div
                               style={{
                                 border: "1px solid rgba(0,0,0,0.14)",
                                 borderRadius: 10,
                                 padding: "8px 12px",
-                                background: val === false ? "rgba(46, 204, 113, 0.12)" : "white",
-                                fontWeight: val === false ? 800 : 600,
+                                background: val === false || val === "false" ? "rgba(46, 204, 113, 0.12)" : "white",
+                                fontWeight: val === false || val === "false" ? 800 : 600,
                               }}
                             >
-                              {t("studentView.false")} {val === false ? "✓" : ""}
-                              {entry?.correctAnswer === false ? <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span> : null}
+                              {t("studentView.false")} {val === false || val === "false" ? "✓" : ""}
+                              {entry?.correctAnswer === false || entry?.correctAnswer === "false" ? (
+                                <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
+                              ) : null}
                             </div>
                           </div>
                         ) : null}
 
-                        {type === "open" || !["mcq", "truefalse"].includes(type) ? (
+                        {type === "open" || type === "short_answer" || ![
+                          "mcq",
+                          "truefalse",
+                          "true_false",
+                          "word_choice",
+                          "sentence_placement",
+                          "best_summary",
+                          "fill_in_word",
+                        ].includes(type) ? (
                           <div
                             style={{
                               width: "100%",
@@ -1100,9 +1254,7 @@ function Inner() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: AI + FEEDBACK */}
         <div style={{ display: "grid", gap: 12, height: "fit-content" }}>
-          {/* ✅ AI FEEDBACK */}
           <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
               <div style={{ fontWeight: 900 }}>{t("ai.title")}</div>
@@ -1124,7 +1276,6 @@ function Inner() {
                       const newText = data.text || "";
                       setAiText(newText);
 
-                      // ✅ Persist immediately to Firestore as aiFeedback
                       if (!data.skipped) {
                         await saveAiFeedbackToFirestore(newText);
                         setAiMsg(t("ai.generated"));
@@ -1242,9 +1393,25 @@ function Inner() {
             </div>
           </div>
 
-          {/* FEEDBACK */}
           <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-            <div style={{ fontWeight: 900, marginBottom: 10 }}>{t("feedback.title")}</div>
+  <div style={{ fontWeight: 900, marginBottom: 10 }}>{t("feedback.title")}</div>
+
+  {readingSummaryText ? (
+    <div
+      style={{
+        marginBottom: 12,
+        padding: 10,
+        borderRadius: 12,
+        border: "1px solid rgba(59,130,246,0.25)",
+        background: "rgba(239,246,255,1)",
+        fontSize: 13,
+        lineHeight: 1.5,
+        fontWeight: 700,
+      }}
+    >
+      {readingSummaryText}
+    </div>
+  ) : null}
 
             <StatusToggle value={status} onChange={setStatus} disabled={!canOperate} t={(k) => t(k)} />
 
@@ -1282,6 +1449,31 @@ function Inner() {
             )}
 
             <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+              {readingSummaryText ? (
+  <button
+    type="button"
+    disabled={!canOperate}
+    onClick={() => {
+      setText((prev) => {
+        const p = prev.trim();
+        if (!p) return readingSummaryText;
+        if (p.includes(readingSummaryText)) return prev;
+        return `${readingSummaryText}\n\n${prev}`;
+      });
+    }}
+    style={{
+      padding: "10px 12px",
+      borderRadius: 12,
+      border: "1px solid rgba(0,0,0,0.15)",
+      background: "white",
+      opacity: !canOperate ? 0.6 : 1,
+      cursor: !canOperate ? "not-allowed" : "pointer",
+      fontWeight: 900,
+    }}
+  >
+    Sett inn tidsdata
+  </button>
+) : null}
               <button
                 disabled={!canSave}
                 onClick={async () => {

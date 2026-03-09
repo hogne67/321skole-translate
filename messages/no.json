@@ -9,6 +9,7 @@
     "createLesson": "+ Lag oppgave",
     "myLessons": "Mine oppgaver",
     "newLesson": "+ Ny oppgave",
+    "createtest": "+ Ny lesetest",
     "users": "Brukere",
     "review": "Vurder",
     "submissions": "Innleveringer"
@@ -698,90 +699,92 @@
       }
     },
     "submission": {
-      "title": "Innlevering",
-      "actions": {
-        "back": "← Tilbake"
-      },
-      "errors": {
-        "missingParams": "Mangler spaceId/assignmentId/subId i URL."
-      },
-      "missing": {
-        "title": "Fant ikke innleveringen"
-      },
-      "meta": {
-        "studentLabel": "Student:",
-        "delivered": "Levert:",
-        "deliveredUnknown": "Levert: (ukjent)",
-        "guest": "Gjest (uinnlogget)",
-        "loggedIn": "Innlogget"
-      },
-      "status": {
-        "submitted": "Levert",
-        "approved": "Godkjent",
-        "needsWork": "Må forbedres",
-        "draft": "Kladd"
-      },
-      "auto": {
-        "main": "RESULTAT AUTO RETTING: {correct}/{total}{pctText}",
-        "details": "Riktig: {correct} · Feil: {wrong} · Ikke besvart: {unanswered}",
-        "taskCorrect": "Autoretting: ✅ riktig",
-        "taskWrong": "Autoretting: ❌ feil",
-        "taskUnanswered": "Auto: ⏳ ikke besvart"
-      },
-      "notice": {
-        "needAttestationHtml": "For å gi tilbakemelding må du ha <b>attestering</b> og være i <b>teacher</b> eller <b>creator</b>-mode."
-      },
-      "studentView": {
-        "title": "Svar (slik studenten ser det)",
-        "loadingLesson": "Henter oppgave…",
-        "level": "Nivå: {v}",
-        "imageAlt": "Oppgave",
-        "noImageTitle": "Ingen bilde",
-        "noImageDesc": "Denne oppgaven har ikke forsidebilde.",
-        "textTitle": "Tekst",
-        "tasksTitle": "Oppgaver",
-        "noTasks": "Ingen oppgaver i denne leksjonen (eller leksjonen ble ikke funnet).",
-        "noTasksHint": "Dette betyr ofte at assignment.sourceId mangler eller lesson.tasks er tom.",
-        "taskN": "Oppgave {n}",
-        "correctTag": "✓ fasit",
-        "selectedTag": "Valgt",
-        "true": "True",
-        "false": "False",
-        "notAnswered": "(ikke besvart)"
-      },
-      "feedback": {
-        "title": "Tilbakemelding",
-        "statusLabel": "Status",
-        "placeholder": "Skriv en kort tilbakemelding…",
-        "needTextToChangeStatus": "For å endre status må du skrive en kort kommentar.",
-        "saveButton": "Lagre tilbakemelding",
-        "saving": "Lagrer…",
-        "saved": "Lagret ✅",
-        "saveFailed": "Kunne ikke lagre: {msg}",
-        "rulesHint": "(Regler: kun lærer/eier/admin kan endre)"
-      },
-      "ai": {
-        "title": "AI-vurdering",
-        "generateButton": "Generer AI-vurdering",
-        "generating": "Genererer…",
-        "copyButton": "Kopier",
-        "insertButton": "Sett inn i lærervurdering",
-        "placeholder": "AI-vurdering lagres her…",
-        "generated": "AI-vurdering oppdatert.",
-        "generateFailed": "Kunne ikke generere AI-vurdering: {msg}",
-        "copied": "Kopiert!",
-        "copyFailed": "Kunne ikke kopiere.",
-        "inserted": "Satt inn i lærervurdering.",
-        "rulesHint": "Lagres i",
-        "saveButton": "Lagre",
-        "saving": "Lagrer…"
-      },
-      "fallback": {
-        "guest": "Gjest",
-        "task": "Oppgave",
-        "unknownError": "ukjent feil"
-      }
-    }
+  "title": "Innlevering",
+  "actions": {
+    "back": "← Tilbake"
+  },
+  "errors": {
+    "missingParams": "Mangler spaceId/assignmentId/subId i URL."
+  },
+  "missing": {
+    "title": "Innlevering ikke funnet"
+  },
+  "meta": {
+    "studentLabel": "Student:",
+    "delivered": "Levert:",
+    "deliveredUnknown": "Levert: (ukjent)",
+    "guest": "Gjest (ikke logget inn)",
+    "loggedIn": "Logget inn"
+  },
+  "status": {
+    "submitted": "Levert",
+    "approved": "Godkjent",
+    "needsWork": "Må forbedres",
+    "draft": "Kladd"
+  },
+  "auto": {
+    "main": "AUTORESULTAT: {correct}/{total}{pctText}",
+    "details": "Riktig: {correct} · Feil: {wrong} · Ikke besvart: {unanswered}",
+    "taskCorrect": "Autoretting: ✅ riktig",
+    "taskWrong": "Autoretting: ❌ feil",
+    "taskUnanswered": "Auto: ⏳ ikke besvart"
+  },
+  "notice": {
+    "needAttestationHtml": "For å gi tilbakemelding må du ha <b>attestering</b> og være i <b>lærer</b>- eller <b>produsent</b>-modus."
+  },
+  "studentView": {
+    "title": "Svar (slik studenten ser dem)",
+    "loadingLesson": "Henter oppgave…",
+    "level": "Nivå: {v}",
+    "imageAlt": "Oppgave",
+    "noImageTitle": "Ingen bilde",
+    "noImageDesc": "Denne oppgaven har ikke forsidebilde.",
+    "textTitle": "Tekst",
+    "tasksTitle": "Oppgaver",
+    "noTasks": "Ingen oppgaver i denne oppgaven (eller oppgaven ble ikke funnet).",
+    "noTasksHint": "Dette betyr som regel at assignment.sourceId mangler eller at lesson.tasks er tom.",
+    "taskN": "Oppgave {n}",
+    "correctTag": "✓ riktig",
+    "selectedTag": "Valgt",
+    "true": "Sant",
+    "false": "Usant",
+    "notAnswered": "(ikke besvart)"
+  },
+  "feedback": {
+    "title": "Tilbakemelding",
+    "statusLabel": "Status",
+    "placeholder": "Skriv en kort tilbakemelding…",
+    "needTextToChangeStatus": "For å endre status må du skrive en kort kommentar.",
+    "saveButton": "Lagre tilbakemelding",
+    "saving": "Lagrer…",
+    "saved": "Lagret ✅",
+    "saveFailed": "Kunne ikke lagre: {msg}",
+    "rulesHint": "(Regler: bare lærer/eier/admin kan endre)"
+  },
+  "ai": {
+    "title": "AI-tilbakemelding",
+    "generateButton": "Lag AI-tilbakemelding",
+    "generating": "Lager…",
+    "copyButton": "Kopier",
+    "insertButton": "Sett inn i lærerfelt",
+    "placeholder": "AI-tilbakemelding vises her…",
+    "generated": "AI-tilbakemelding generert.",
+    "saved": "AI-tilbakemelding lagret.",
+    "generateFailed": "Kunne ikke lage AI-tilbakemelding: {msg}",
+    "saveFailed": "Kunne ikke lagre AI-tilbakemeldingen: {msg}",
+    "copied": "Kopiert!",
+    "copyFailed": "Kunne ikke kopiere.",
+    "inserted": "Satt inn i lærerfeltet.",
+    "rulesHint": "Lagring skjer i",
+    "saveButton": "Lagre",
+    "saving": "Lagrer…"
+  },
+  "fallback": {
+    "guest": "Gjest",
+    "task": "Oppgave",
+    "unknownError": "ukjent feil"
+  }
+}
   },
   "teacherBoard": {
     "header": {

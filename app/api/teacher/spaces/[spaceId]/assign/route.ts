@@ -33,6 +33,8 @@ type SourceLessonData = {
   status?: string;
   isActive?: boolean;
   ownerId?: string;
+  lessonType?: string;
+  readingTestConfig?: unknown;
 };
 
 function json(data: unknown, status = 200) {
@@ -93,6 +95,8 @@ function pickSourceLessonData(raw: FirebaseFirestore.DocumentData | undefined): 
     status: nonEmptyOrUndefined(d.status),
     isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
     ownerId: nonEmptyOrUndefined(d.ownerId),
+    lessonType: nonEmptyOrUndefined(d.lessonType),
+    readingTestConfig: d.readingTestConfig ?? null,
   };
 }
 
@@ -252,6 +256,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
         text: source.text ?? null,
         tasks: source.tasks ?? [],
         coverImageUrl: source.coverImageUrl ?? null,
+
+        // ✅ important for reading tests
+        lessonType: source.lessonType ?? null,
+        readingTestConfig: source.readingTestConfig ?? null,
 
         assignedAt: now,
         createdAt: now,

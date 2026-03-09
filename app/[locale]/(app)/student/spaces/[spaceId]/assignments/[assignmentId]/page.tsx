@@ -1,4 +1,3 @@
-// app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -12,6 +11,10 @@ import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { LANGUAGES } from "@/lib/languages";
 import Image from "next/image";
+import ReadingTestPlayer, {
+  type ReadingLessonTask,
+  type ReadingTestConfig,
+} from "@/components/student/ReadingTestPlayer";
 
 /* =========================
    Types
@@ -28,6 +31,8 @@ type Lesson = {
   coverImageUrl?: string;
   isActive?: boolean;
   status?: string;
+  lessonType?: string;
+  readingTestConfig?: ReadingTestConfig | null;
 };
 
 type SourceType = "myContent" | "library";
@@ -45,11 +50,12 @@ type AssignmentDoc = {
   assignedAt?: unknown;
   assignedByUid?: string;
 
-  // snapshot fields stored inside the room assignment
   sourceText?: string;
   text?: string;
   tasks?: unknown;
   coverImageUrl?: string;
+  lessonType?: string;
+  readingTestConfig?: ReadingTestConfig | null;
 };
 
 type TaskType = "mcq" | "truefalse" | "open";
@@ -175,6 +181,8 @@ function assignmentToLesson(a: AssignmentDoc): Lesson {
     tasks: a.tasks,
     coverImageUrl: a.coverImageUrl,
     status: a.status,
+    lessonType: a.lessonType,
+    readingTestConfig: a.readingTestConfig ?? null,
   };
 }
 
@@ -201,8 +209,6 @@ async function translateOne(text: string, targetLang: string) {
   if (!out) throw new Error("Translate returned empty");
   return out;
 }
-
-/* ---- Auth helpers ---- */
 
 async function resolveUserForStudentPage(): Promise<User> {
   if (auth.currentUser) return auth.currentUser;
@@ -235,8 +241,6 @@ async function resolveUserForStudentPage(): Promise<User> {
   return await ensureAnonymousUser();
 }
 
-/* ---- Auto grade helpers ---- */
-
 function normalizeBool(v: unknown): boolean | null {
   if (typeof v === "boolean") return v;
   if (typeof v === "string") {
@@ -267,14 +271,29 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
     const stableId = getStableTaskId(t, idx);
     const type = String(t?.type ?? "open").toLowerCase();
 
-    if (type !== "mcq" && type !== "truefalse") return;
+    const isAutoGradedType =
+      type === "mcq" ||
+      type === "truefalse" ||
+      type === "true_false" ||
+      type === "word_choice" ||
+      type === "sentence_placement" ||
+      type === "best_summary" ||
+      type === "fill_in_word";
+
+    if (!isAutoGradedType) return;
 
     totalAuto += 1;
 
     const student = answersMap[stableId];
     const correct = t?.correctAnswer;
 
-    if (type === "mcq") {
+    if (
+      type === "mcq" ||
+      type === "word_choice" ||
+      type === "sentence_placement" ||
+      type === "best_summary" ||
+      type === "fill_in_word"
+    ) {
       const studentRaw = answersMap[stableId];
 
       let s: string | null = null;
@@ -306,6 +325,7 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
       }
 
       const isCorrect = c != null && s === c;
+
       if (isCorrect) correctAuto += 1;
       else wrongAuto += 1;
 
@@ -333,6 +353,7 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
     }
 
     const isCorrect = cB != null && sB === cB;
+
     if (isCorrect) correctAuto += 1;
     else wrongAuto += 1;
 
@@ -345,7 +366,15 @@ function computeAutoGrade(tasks: Task[], answersMap: AnswersMap): AutoGrade {
   });
 
   const percentAuto = totalAuto > 0 ? Math.round((correctAuto / totalAuto) * 100) : null;
-  return { totalAuto, correctAuto, wrongAuto, unansweredAuto, percentAuto, byTask };
+
+  return {
+    totalAuto,
+    correctAuto,
+    wrongAuto,
+    unansweredAuto,
+    percentAuto,
+    byTask,
+  };
 }
 
 function readAutoGrade(sd: SubmissionDoc | null): AutoGrade | null {
@@ -364,8 +393,6 @@ function readAutoGrade(sd: SubmissionDoc | null): AutoGrade | null {
   if (totalAuto === 0 && Object.keys(byTask).length === 0) return null;
   return { totalAuto, correctAuto, wrongAuto, unansweredAuto, percentAuto, byTask };
 }
-
-/* ---- Text follow (sentence segments) ---- */
 
 type SentenceSeg = {
   text: string;
@@ -440,7 +467,7 @@ function toDateString(v: unknown) {
 
 function normalizeStatus(s: unknown): SubmissionStatus {
   const v = String(s ?? "").trim().toLowerCase();
-  if (!v) return "submitted";
+  if (!v) return "";
   return v as SubmissionStatus;
 }
 
@@ -450,6 +477,13 @@ function statusTheme(s: SubmissionStatus): { border: string; bg: string } {
   if (v === "reviewed" || v === "approved") return { border: "rgba(46,204,113,0.45)", bg: "rgba(46,204,113,0.10)" };
   if (v === "draft") return { border: "rgba(99,102,241,0.45)", bg: "rgba(99,102,241,0.08)" };
   return { border: "rgba(0,0,0,0.14)", bg: "rgba(0,0,0,0.02)" };
+}
+
+function formatSeconds(totalSeconds: number): string {
+  const secs = Math.max(0, Math.floor(totalSeconds));
+  const mins = Math.floor(secs / 60);
+  const rest = secs % 60;
+  return `${String(mins).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
 }
 
 /* =========================
@@ -597,6 +631,7 @@ export default function StudentAssignmentPage() {
   const [isAnon, setIsAnon] = useState(true);
 
   const [answers, setAnswers] = useState<AnswersMap>({});
+  const answersRef = useRef<AnswersMap>({});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -613,6 +648,7 @@ export default function StudentAssignmentPage() {
   const [translatedText, setTranslatedText] = useState<string | null>(null);
   const [translatedTasks, setTranslatedTasks] = useState<TranslatedTask[] | null>(null);
   const [translating, setTranslating] = useState<null | "text" | "tasks">(null);
+  const [startedAt] = useState<number>(() => Date.now());
   const [translateErr, setTranslateErr] = useState<string | null>(null);
   const [showTextTranslation, setShowTextTranslation] = useState(true);
   const [showTaskTranslations, setShowTaskTranslations] = useState(true);
@@ -628,6 +664,12 @@ export default function StudentAssignmentPage() {
   const [activeTextMode, setActiveTextMode] = useState<null | "original" | "translation">(null);
   const [activeSentenceIndex, setActiveSentenceIndex] = useState<number | null>(null);
 
+  const [readingTestStarted, setReadingTestStarted] = useState(false);
+  const [readingTestFinished, setReadingTestFinished] = useState(false);
+  const [readingTestSecondsLeft, setReadingTestSecondsLeft] = useState<number | null>(null);
+  const [readingTestRuntimeActive, setReadingTestRuntimeActive] = useState(false);
+  const timeoutHandledRef = useRef(false);
+
   const tasksOriginal = useMemo(
     () =>
       safeTasksArray(lesson?.tasks)
@@ -636,13 +678,30 @@ export default function StudentAssignmentPage() {
     [lesson?.tasks]
   );
 
+  const isReadingTest = useMemo(() => {
+    const lt = String(lesson?.lessonType ?? "").trim().toLowerCase();
+    if (lt === "reading_test") return true;
+
+    return tasksOriginal.some((task) => {
+      const type = String(task?.type ?? "").trim().toLowerCase();
+      return (
+        type === "word_choice" ||
+        type === "sentence_placement" ||
+        type === "best_summary"
+      );
+    });
+  }, [lesson?.lessonType, tasksOriginal]);
+
   const tMap = useMemo(() => {
     const m = new Map<string, TranslatedTask>();
     (translatedTasks ?? []).forEach((x) => m.set(x.stableId, x));
     return m;
   }, [translatedTasks]);
 
-  const sourceTextSafe = useMemo(() => String(lesson?.sourceText ?? lesson?.text ?? ""), [lesson?.sourceText, lesson?.text]);
+  const sourceTextSafe = useMemo(
+    () => String(lesson?.sourceText ?? lesson?.text ?? ""),
+    [lesson?.sourceText, lesson?.text]
+  );
 
   const imageUrl = useMemo(() => {
     const u = String(lesson?.coverImageUrl ?? "").trim();
@@ -657,6 +716,37 @@ export default function StudentAssignmentPage() {
 
   const originalLangForTTS: TtsLang = toTtsLang(lesson?.language || assignment?.language || "no");
   const translationLangForTTS: TtsLang = toTtsLang(targetLang);
+
+  const readingTestTotalSeconds = useMemo(() => {
+    const cfg = lesson?.readingTestConfig;
+    if (!cfg?.timerEnabled) return null;
+
+    const raw = typeof cfg.timerSeconds === "number" && Number.isFinite(cfg.timerSeconds)
+      ? Math.floor(cfg.timerSeconds)
+      : 300;
+
+    return Math.max(10, raw);
+  }, [lesson?.readingTestConfig]);
+
+  const readingProgressPercent = useMemo(() => {
+    if (!readingTestTotalSeconds || readingTestSecondsLeft == null) return 100;
+    return Math.max(0, Math.min(100, (readingTestSecondsLeft / readingTestTotalSeconds) * 100));
+  }, [readingTestSecondsLeft, readingTestTotalSeconds]);
+
+  const readingTimerIsRed = useMemo(
+    () => readingTestStarted && readingTestSecondsLeft != null && readingTestSecondsLeft <= 15,
+    [readingTestStarted, readingTestSecondsLeft]
+  );
+
+  const readingPlayerConfig = useMemo<ReadingTestConfig | null>(() => {
+    const cfg = lesson?.readingTestConfig ?? null;
+    if (!cfg) return null;
+    return {
+      ...cfg,
+      timerEnabled: false,
+      timerSeconds: null,
+    };
+  }, [lesson?.readingTestConfig]);
 
   function stopAudio() {
     if (audioRef.current) {
@@ -798,6 +888,10 @@ export default function StudentAssignmentPage() {
       setTtsBusy(null);
     }
   }
+
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = playbackRate;
@@ -962,6 +1056,8 @@ export default function StudentAssignmentPage() {
             coverImageUrl: aDoc.coverImageUrl ?? d.coverImageUrl,
             status: d.status,
             isActive: d.isActive,
+            lessonType: aDoc.lessonType ?? d.lessonType,
+            readingTestConfig: aDoc.readingTestConfig ?? d.readingTestConfig ?? null,
           };
         }
 
@@ -979,6 +1075,12 @@ export default function StudentAssignmentPage() {
         setSubmissionId(null);
         setMsg(null);
         setAnswers({});
+
+        setReadingTestStarted(false);
+        setReadingTestFinished(false);
+        setReadingTestSecondsLeft(readingTestTotalSeconds);
+        setReadingTestRuntimeActive(false);
+        timeoutHandledRef.current = false;
 
         setLiveStatus(null);
         setLiveTeacherText(null);
@@ -1008,51 +1110,56 @@ export default function StudentAssignmentPage() {
               setEditingSubmissionId(sid);
             } else {
               setEditingSubmissionId(null);
+              if (sStatus === "submitted" || sStatus === "reviewed" || sStatus === "approved") {
+                setReadingTestStarted(true);
+                setReadingTestFinished(true);
+              }
             }
           } else {
             setMsg(t("messages.submissionNotFound"));
             setEditingSubmissionId(null);
           }
         } else {
-  const autoId = `${spaceId}_${assignmentId}_${user.uid}`;
+          const autoId = `${spaceId}_${assignmentId}_${user.uid}`;
 
-  let sSnap: Awaited<ReturnType<typeof getDoc>> | null = null;
+          let sSnap: Awaited<ReturnType<typeof getDoc>> | null = null;
 
-  try {
-    const sRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", autoId);
-    sSnap = await getDoc(sRef);
-  } catch (e: unknown) {
-    if (!isPermissionDenied(e)) throw e;
+          try {
+            const sRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", autoId);
+            sSnap = await getDoc(sRef);
+          } catch (e: unknown) {
+            if (!isPermissionDenied(e)) throw e;
+            sSnap = null;
+          }
 
-    // Helt normalt for ny oppgave:
-    // det finnes ingen lagret kladd ennå.
-    sSnap = null;
-  }
+          if (sSnap && sSnap.exists()) {
+            const sd = (sSnap.data() as SubmissionDoc) ?? {};
+            const owner = typeof sd.uid === "string" ? sd.uid : null;
+            if (owner && owner !== user.uid) throw new Error(t("errors.noAccessSubmission"));
 
-  if (sSnap && sSnap.exists()) {
-    const sd = (sSnap.data() as SubmissionDoc) ?? {};
-    const owner = typeof sd.uid === "string" ? sd.uid : null;
-    if (owner && owner !== user.uid) throw new Error(t("errors.noAccessSubmission"));
+            const sStatus = normalizeStatus(sd.status);
+            setLiveStatus(sStatus);
+            setLiveTeacherText(sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : null);
+            setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
+            setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
+            setLiveAuto(readAutoGrade(sd));
 
-    const sStatus = normalizeStatus(sd.status);
-    setLiveStatus(sStatus);
-    setLiveTeacherText(sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : null);
-    setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
-    setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
-    setLiveAuto(readAutoGrade(sd));
-
-    if (sStatus === "draft" || sStatus === "needs_work") {
-      const a = sd.answers as unknown;
-      const nextAnswers = a && typeof a === "object" && !Array.isArray(a) ? (a as AnswersMap) : {};
-      setAnswers(nextAnswers);
-      setEditingSubmissionId(autoId);
-    } else {
-      setEditingSubmissionId(null);
-    }
-  } else {
-    setEditingSubmissionId(null);
-  }
-}
+            if (sStatus === "draft" || sStatus === "needs_work") {
+              const a = sd.answers as unknown;
+              const nextAnswers = a && typeof a === "object" && !Array.isArray(a) ? (a as AnswersMap) : {};
+              setAnswers(nextAnswers);
+              setEditingSubmissionId(autoId);
+            } else {
+              setEditingSubmissionId(null);
+              if (sStatus === "submitted" || sStatus === "reviewed" || sStatus === "approved") {
+                setReadingTestStarted(true);
+                setReadingTestFinished(true);
+              }
+            }
+          } else {
+            setEditingSubmissionId(null);
+          }
+        }
       } catch (e: unknown) {
         if (!alive) return;
 
@@ -1070,7 +1177,7 @@ export default function StudentAssignmentPage() {
     return () => {
       alive = false;
     };
-  }, [spaceId, assignmentId, sid, t]);
+  }, [spaceId, assignmentId, sid, t, readingTestTotalSeconds]);
 
   useEffect(() => {
     if (!spaceId || !assignmentId) return;
@@ -1103,6 +1210,12 @@ export default function StudentAssignmentPage() {
 
         if (sStatus === "needs_work" || sStatus === "draft") setEditingSubmissionId(activeSubId);
         else if (activeSubId === sid) setEditingSubmissionId(null);
+
+        if (sStatus === "submitted" || sStatus === "reviewed" || sStatus === "approved") {
+          setReadingTestStarted(true);
+          setReadingTestFinished(true);
+          setReadingTestRuntimeActive(false);
+        }
       },
       () => {}
     );
@@ -1113,6 +1226,48 @@ export default function StudentAssignmentPage() {
   useEffect(() => {
     setTranslateErr(null);
   }, [targetLang]);
+
+  useEffect(() => {
+    if (!isReadingTest) return;
+    if (!readingTestStarted) return;
+    if (!readingTestRuntimeActive) return;
+    if (submitted) return;
+    if (saving) return;
+
+    if (readingTestSecondsLeft == null) return;
+    if (readingTestSecondsLeft <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setReadingTestSecondsLeft((prev) => {
+        if (prev == null) return prev;
+        return Math.max(0, prev - 1);
+      });
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [isReadingTest, readingTestStarted, readingTestRuntimeActive, submitted, saving, readingTestSecondsLeft]);
+
+  function setReadingTestCountdownFromConfig() {
+    if (readingTestTotalSeconds != null) {
+      setReadingTestSecondsLeft(readingTestTotalSeconds);
+      setReadingTestRuntimeActive(true);
+    } else {
+      setReadingTestSecondsLeft(null);
+      setReadingTestRuntimeActive(false);
+    }
+  }
+
+  function startReadingTest() {
+    if (submitted) return;
+    if (saving) return;
+    if (isLockedByTeacher()) return;
+
+    timeoutHandledRef.current = false;
+    setMsg(null);
+    setReadingTestFinished(false);
+    setReadingTestStarted(true);
+    setReadingTestCountdownFromConfig();
+  }
 
   async function onTranslateText() {
     const base = String(lesson?.sourceText ?? lesson?.text ?? "");
@@ -1245,6 +1400,7 @@ export default function StudentAssignmentPage() {
     if (!spaceId || !assignmentId || !uid) return;
     if (submitted) return;
     if (isLockedByTeacher()) return;
+    if (isReadingTest) return;
 
     setSaving(true);
     setErr(null);
@@ -1257,21 +1413,23 @@ export default function StudentAssignmentPage() {
       const indexRef = doc(db, "spaceSubmissions", subId);
 
       const basePayload: Record<string, unknown> = stripUndefinedDeep({
-  spaceId,
-  assignmentId,
-  sourceType: assignment?.sourceType ?? null,
-  sourceId: assignment?.sourceId ?? null,
-  title: assignment?.title ?? lesson?.title ?? null,
-  level: assignment?.level ?? lesson?.level ?? null,
-  language: assignment?.language ?? lesson?.language ?? null,
-  uid,
-  isAnon,
-  status: "draft",
-  answers,
-  auto: null,
-  updatedAt: serverTimestamp(),
-  auth: { isAnon, uid },
-});
+        spaceId,
+        assignmentId,
+        sourceType: assignment?.sourceType ?? null,
+        sourceId: assignment?.sourceId ?? null,
+        title: assignment?.title ?? lesson?.title ?? null,
+        level: assignment?.level ?? lesson?.level ?? null,
+        language: assignment?.language ?? lesson?.language ?? null,
+        uid,
+        isAnon,
+        status: "draft",
+        answers,
+        auto: null,
+        startedAt,
+        timeSpentSeconds: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
+        updatedAt: serverTimestamp(),
+        auth: { isAnon, uid },
+      });
 
       const batch = writeBatch(db);
 
@@ -1287,10 +1445,10 @@ export default function StudentAssignmentPage() {
       await batch.commit();
 
       setSubmissionId(subId);
-setLiveStatus("draft");
-setLiveAuto(null);
+      setLiveStatus("draft");
+      setLiveAuto(null);
 
-if (manual) setMsg("Kladd lagret.");
+      if (manual) setMsg("Kladd lagret.");
     } catch (e: unknown) {
       if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
       else {
@@ -1308,7 +1466,7 @@ if (manual) setMsg("Kladd lagret.");
     if (!uid || !spaceId || !assignmentId) return;
     if (submitted) return;
     if (isLockedByTeacher()) return;
-
+    if (isReadingTest) return;
     if (!answers || Object.keys(answers).length === 0) return;
 
     const now = Date.now();
@@ -1320,9 +1478,9 @@ if (manual) setMsg("Kladd lagret.");
     }, 900);
 
     return () => window.clearTimeout(timer);
-  }, [answers, uid, spaceId, assignmentId, submitted, liveStatus]);
+  }, [answers, uid, spaceId, assignmentId, submitted, liveStatus, isReadingTest]);
 
-  async function submitToSpace() {
+  async function submitToSpace(mode: "manual" | "timeout" = "manual", explicitAnswers?: AnswersMap) {
     if (!spaceId || !assignmentId || !uid) return;
     if (submitted) return;
 
@@ -1343,29 +1501,41 @@ if (manual) setMsg("Kladd lagret.");
     setMsg(null);
 
     try {
-      const subId = buildSubmissionId(uid);
+      const finalAnswers = explicitAnswers ?? answersRef.current;
+const subId = buildSubmissionId(uid);
 
-      const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
-      const indexRef = doc(db, "spaceSubmissions", subId);
+const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
+const indexRef = doc(db, "spaceSubmissions", subId);
 
-      const auto = computeAutoGrade(tasksOriginal, answers);
+const auto = computeAutoGrade(tasksOriginal, finalAnswers);
+const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
 
-      const basePayload: Record<string, unknown> = stripUndefinedDeep({
-        spaceId,
-        assignmentId,
-        sourceType: assignment?.sourceType ?? null,
-        sourceId: assignment?.sourceId ?? null,
-        title: assignment?.title ?? lesson?.title ?? null,
-        level: assignment?.level ?? lesson?.level ?? null,
-        language: assignment?.language ?? lesson?.language ?? null,
-        uid,
-        isAnon,
-        status: "submitted",
-        answers,
-        auto,
-        updatedAt: serverTimestamp(),
-        auth: { isAnon, uid },
-      });
+const basePayload: Record<string, unknown> = stripUndefinedDeep({
+  spaceId,
+  assignmentId,
+  sourceType: assignment?.sourceType ?? null,
+  sourceId: assignment?.sourceId ?? null,
+  title: assignment?.title ?? lesson?.title ?? null,
+  level: assignment?.level ?? lesson?.level ?? null,
+  language: assignment?.language ?? lesson?.language ?? null,
+  uid,
+  isAnon,
+  status: "submitted",
+  answers: finalAnswers,
+  auto,
+
+  startedAt,
+  submittedAt: Date.now(),
+  timeSpentSeconds: elapsedSeconds,
+
+  readingTestTimeLimitSeconds: isReadingTest ? readingTestTotalSeconds : null,
+  readingTestTimeUsedSeconds: isReadingTest ? elapsedSeconds : null,
+  readingTestTimedOut: isReadingTest ? mode === "timeout" : false,
+  readingTestSubmittedManually: isReadingTest ? mode === "manual" : false,
+
+  updatedAt: serverTimestamp(),
+  auth: { isAnon, uid },
+});
 
       const batch = writeBatch(db);
 
@@ -1382,9 +1552,17 @@ if (manual) setMsg("Kladd lagret.");
 
       setSubmissionId(subId);
       setSubmitted(true);
-      setMsg(editingSubmissionId ? t("messages.resubmitted") : t("messages.submitted"));
+      setReadingTestFinished(true);
+      setReadingTestRuntimeActive(false);
+      setReadingTestSecondsLeft((prev) => (mode === "timeout" ? 0 : prev));
       setLiveStatus("submitted");
       setLiveAuto(auto);
+
+      if (mode === "timeout") {
+        setMsg("Takk for innsatsen. Tiden er ute, og læreren har mottatt svaret ditt.");
+      } else {
+        setMsg(editingSubmissionId ? t("messages.resubmitted") : t("messages.submitted"));
+      }
     } catch (e: unknown) {
       if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
       else {
@@ -1397,6 +1575,20 @@ if (manual) setMsg("Kladd lagret.");
       setSaving(false);
     }
   }
+
+  useEffect(() => {
+    if (!isReadingTest) return;
+    if (!readingTestStarted) return;
+    if (!readingTestRuntimeActive) return;
+    if (submitted) return;
+    if (readingTestSecondsLeft !== 0) return;
+    if (timeoutHandledRef.current) return;
+
+    timeoutHandledRef.current = true;
+    setReadingTestRuntimeActive(false);
+    setReadingTestFinished(true);
+    void submitToSpace("timeout", answersRef.current);
+  }, [isReadingTest, readingTestStarted, readingTestRuntimeActive, submitted, readingTestSecondsLeft]);
 
   const renderFollowText = (mode: "original" | "translation", segs: SentenceSeg[], fallbackText: string) => {
     if (!fallbackText.trim()) return <span style={{ opacity: 0.6 }}>{t("text.noText")}</span>;
@@ -1627,8 +1819,8 @@ if (manual) setMsg("Kladd lagret.");
 
   const showStatusCard = !!(sid || submissionId || editingSubmissionId || liveStatus);
   const effectiveStatus = normalizeStatus(
-    liveStatus ?? (editingSubmissionId ? "draft" : sid ? "submitted" : "submitted")
-  );
+  liveStatus ?? (editingSubmissionId ? "draft" : sid ? "submitted" : "")
+);
   const theme = statusTheme(effectiveStatus);
   const lock = isLockedByTeacher();
 
@@ -1639,20 +1831,46 @@ if (manual) setMsg("Kladd lagret.");
     .join(" · ");
 
   const currentStatus = normalizeStatus(liveStatus ?? "");
-const isRealResubmit = currentStatus === "needs_work" || currentStatus === "submitted";
 
-const submitLabel = saving
-  ? t("actions.saving")
-  : isRealResubmit
-    ? t("actions.resubmit")
-    : t("actions.submit");
-  const submitDisabled = saving || lock || !uid;
+const canResubmit = currentStatus === "needs_work";
+
+const isAlreadyFinal =
+  currentStatus === "submitted" ||
+  currentStatus === "reviewed" ||
+  currentStatus === "approved";
+
+const showDraftButton =
+  !isReadingTest &&
+  !submitted &&
+  !isAlreadyFinal;
+
+const showSubmitButton =
+  !submitted &&
+  !isAlreadyFinal &&
+  (!isReadingTest || readingTestStarted);
+
+  const submitLabel = saving
+    ? t("actions.saving")
+    : canResubmit
+      ? t("actions.resubmit")
+      : isReadingTest
+        ? "Lever test"
+        : t("actions.submit");
+
+  const submitDisabled =
+    saving ||
+    lock ||
+    !uid ||
+    (isReadingTest && !readingTestStarted) ||
+    readingTestFinished;
 
   function SubmitButton({ fullWidth }: { fullWidth?: boolean }) {
+    if (!showSubmitButton) return null;
+
     return (
       <button
         type="button"
-        onClick={submitToSpace}
+        onClick={() => submitToSpace("manual")}
         disabled={submitDisabled}
         style={{
           ...(submitDisabled ? primarySubmitStyleDisabled : primarySubmitStyle),
@@ -1665,7 +1883,10 @@ const submitLabel = saving
   }
 
   function DraftButton() {
+    if (!showDraftButton) return null;
+
     const disabled = saving || lock || !uid;
+
     return (
       <button
         type="button"
@@ -1692,37 +1913,45 @@ const submitLabel = saving
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ fontWeight: 800 }}>{t("translate.targetLang")}</span>
-            <select value={targetLang} onChange={(e) => setTargetLang(e.target.value)} style={{ ...btnStyle, padding: "8px 10px" }}>
-              {LANGUAGE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!isReadingTest && (
+            <>
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ fontWeight: 800 }}>{t("translate.targetLang")}</span>
+                <select
+                  value={targetLang}
+                  onChange={(e) => setTargetLang(e.target.value)}
+                  style={{ ...btnStyle, padding: "8px 10px" }}
+                >
+                  {LANGUAGE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <button
-            type="button"
-            onClick={onTranslateText}
-            disabled={translating != null || !sourceTextSafe.trim()}
-            style={{ ...btnStyle, opacity: translating != null ? 0.7 : 1 }}
-          >
-            {translating === "text" ? t("translate.working") : t("translate.text")}
-          </button>
+              <button
+                type="button"
+                onClick={onTranslateText}
+                disabled={translating != null || !sourceTextSafe.trim()}
+                style={{ ...btnStyle, opacity: translating != null ? 0.7 : 1 }}
+              >
+                {translating === "text" ? t("translate.working") : t("translate.text")}
+              </button>
 
-          <button
-            type="button"
-            onClick={onTranslateTasks}
-            disabled={translating != null || tasksOriginal.length === 0}
-            style={{ ...btnStyle, opacity: translating != null ? 0.7 : 1 }}
-          >
-            {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
-          </button>
+              <button
+                type="button"
+                onClick={onTranslateTasks}
+                disabled={translating != null || tasksOriginal.length === 0}
+                style={{ ...btnStyle, opacity: translating != null ? 0.7 : 1 }}
+              >
+                {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
+              </button>
+            </>
+          )}
 
           <DraftButton />
-          <SubmitButton />
+          {!isReadingTest ? <SubmitButton /> : null}
         </div>
       </header>
 
@@ -1793,102 +2022,249 @@ const submitLabel = saving
         </section>
       ) : null}
 
-      <section style={{ marginTop: 18 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>{t("text.title")}</h2>
+      {!isReadingTest && (
+        <section style={{ marginTop: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <h2 style={{ margin: 0, fontSize: 18 }}>{t("text.title")}</h2>
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <button type="button" onClick={() => setShowTextTranslation((v) => !v)} style={btnStyle}>
-              {showTextTranslation ? t("translate.hide") : t("translate.show")}
-            </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button type="button" onClick={() => setShowTextTranslation((v) => !v)} style={btnStyle}>
+                {showTextTranslation ? t("translate.hide") : t("translate.show")}
+              </button>
 
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontWeight: 800 }}>{t("tts.speed")}</span>
-              <select value={String(playbackRate)} onChange={(e) => setPlaybackRate(Number(e.target.value))} style={{ ...btnStyle, padding: "8px 10px" }}>
-                {[0.75, 1.0, 1.25, 1.5].map((r) => (
-                  <option key={r} value={String(r)}>
-                    {r}x
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ fontWeight: 800 }}>{t("tts.speed")}</span>
+                <select value={String(playbackRate)} onChange={(e) => setPlaybackRate(Number(e.target.value))} style={{ ...btnStyle, padding: "8px 10px" }}>
+                  {[0.75, 1.0, 1.25, 1.5].map((r) => (
+                    <option key={r} value={String(r)}>
+                      {r}x
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <button
-              type="button"
-              onClick={() => playTTS(sourceTextSafe, originalLangForTTS, "original")}
-              disabled={!sourceTextSafe.trim() || ttsBusy != null}
-              style={btnStyle}
-            >
-              {ttsBusy === "original" ? t("tts.working") : t("tts.playOriginal")}
-            </button>
+              <button
+                type="button"
+                onClick={() => playTTS(sourceTextSafe, originalLangForTTS, "original")}
+                disabled={!sourceTextSafe.trim() || ttsBusy != null}
+                style={btnStyle}
+              >
+                {ttsBusy === "original" ? t("tts.working") : t("tts.playOriginal")}
+              </button>
 
-            <button
-              type="button"
-              onClick={() => playTTS(String(translatedText ?? ""), translationLangForTTS, "translation")}
-              disabled={!String(translatedText ?? "").trim() || ttsBusy != null}
-              style={btnStyle}
-            >
-              {ttsBusy === "translation" ? t("tts.working") : t("tts.playTranslation")}
-            </button>
+              <button
+                type="button"
+                onClick={() => playTTS(String(translatedText ?? ""), translationLangForTTS, "translation")}
+                disabled={!String(translatedText ?? "").trim() || ttsBusy != null}
+                style={btnStyle}
+              >
+                {ttsBusy === "translation" ? t("tts.working") : t("tts.playTranslation")}
+              </button>
 
-            <button type="button" onClick={stopAudio} disabled={!audioRef.current} style={btnStyle}>
-              {t("tts.stop")}
-            </button>
-          </div>
-        </div>
-
-        {ttsErr ? <div style={{ marginTop: 8, color: "crimson", whiteSpace: "pre-wrap" }}>{ttsErr}</div> : null}
-
-        {audioRef.current ? (
-          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <button type="button" onClick={isPlaying ? pauseAudio : resumeAudio} style={btnStyle}>
-              {isPlaying ? t("tts.pause") : t("tts.resume")}
-            </button>
-            <button type="button" onClick={prevSentence} style={btnStyle}>
-              {t("tts.prev")}
-            </button>
-            <button type="button" onClick={replaySentence} style={btnStyle}>
-              {t("tts.replay")}
-            </button>
-            <button type="button" onClick={nextSentence} style={btnStyle}>
-              {t("tts.next")}
-            </button>
-
-            <div style={{ opacity: 0.75 }}>{t("tts.time", { cur: Math.round(currentTime), dur: Math.round(duration) })}</div>
-          </div>
-        ) : null}
-
-        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
-          <div>
-            <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.original")}</div>
-            <div style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 12, padding: 12, background: "white" }}>
-              {renderFollowText("original", originalSegs, sourceTextSafe)}
+              <button type="button" onClick={stopAudio} disabled={!audioRef.current} style={btnStyle}>
+                {t("tts.stop")}
+              </button>
             </div>
           </div>
 
-          {showTextTranslation ? (
-            <div>
-              <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.translation")}</div>
-              <div style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 12, padding: 12, background: "white" }}>
-                {renderFollowText("translation", translationSegs, String(translatedText ?? ""))}
-              </div>
+          {ttsErr ? <div style={{ marginTop: 8, color: "crimson", whiteSpace: "pre-wrap" }}>{ttsErr}</div> : null}
+
+          {audioRef.current ? (
+            <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button type="button" onClick={isPlaying ? pauseAudio : resumeAudio} style={btnStyle}>
+                {isPlaying ? t("tts.pause") : t("tts.resume")}
+              </button>
+              <button type="button" onClick={prevSentence} style={btnStyle}>
+                {t("tts.prev")}
+              </button>
+              <button type="button" onClick={replaySentence} style={btnStyle}>
+                {t("tts.replay")}
+              </button>
+              <button type="button" onClick={nextSentence} style={btnStyle}>
+                {t("tts.next")}
+              </button>
+
+              <div style={{ opacity: 0.75 }}>{t("tts.time", { cur: Math.round(currentTime), dur: Math.round(duration) })}</div>
             </div>
           ) : null}
-        </div>
-      </section>
+
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.original")}</div>
+              <div style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 12, padding: 12, background: "white" }}>
+                {renderFollowText("original", originalSegs, sourceTextSafe)}
+              </div>
+            </div>
+
+            {showTextTranslation ? (
+              <div>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.translation")}</div>
+                <div style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 12, padding: 12, background: "white" }}>
+                  {renderFollowText("translation", translationSegs, String(translatedText ?? ""))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      )}
 
       <section style={{ marginTop: 18 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>{t("tasks.title")}</h2>
+        {isReadingTest ? (
+          <>
+            {!readingTestStarted && !submitted && !lock ? (
+              <div
+                style={{
+                  border: "1px solid rgba(0,0,0,0.10)",
+                  borderRadius: 16,
+                  background: "white",
+                  padding: 18,
+                  display: "grid",
+                  gap: 12,
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 900 }}>Lesetest</div>
+                <div style={{ lineHeight: 1.6, opacity: 0.85 }}>
+                  Teksten blir synlig når du starter testen. Når tiden er ute, blir svaret sendt automatisk til læreren.
+                </div>
 
-          <button type="button" onClick={() => setShowTaskTranslations((v) => !v)} style={btnStyle}>
-            {showTaskTranslations ? t("translate.hide") : t("translate.show")}
-          </button>
-        </div>
+                {readingTestTotalSeconds != null ? (
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    <Badge text={`Tid: ${formatSeconds(readingTestTotalSeconds)}`} kind="neutral" />
+                    <Badge text="Tekst vises etter start" kind="neutral" />
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    <Badge text="Ingen tidtaker" kind="neutral" />
+                    <Badge text="Tekst vises etter start" kind="neutral" />
+                  </div>
+                )}
 
-        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
-          {tasksOriginal.length === 0 ? <div style={{ opacity: 0.75 }}>{t("tasks.none")}</div> : tasksOriginal.map((tk, idx) => renderTask(tk, idx))}
-        </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={startReadingTest}
+                    disabled={saving || !uid}
+                    style={saving || !uid ? primarySubmitStyleDisabled : primarySubmitStyle}
+                  >
+                    Start test
+                  </button>
+
+                  <Link href={`/student/spaces/${spaceId}`} style={{ textDecoration: "none", alignSelf: "center" }}>
+                    {t("actions.backToSpace")}
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                {readingTestStarted && !readingTestFinished && (
+                  <div
+                    style={{
+                      marginBottom: 12,
+                      border: `1px solid ${readingTimerIsRed ? "rgba(220,38,38,0.35)" : "rgba(37,99,235,0.25)"}`,
+                      background: readingTimerIsRed ? "rgba(254,242,242,1)" : "rgba(239,246,255,1)",
+                      borderRadius: 16,
+                      padding: 14,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        marginBottom: 10,
+                      }}
+                    >
+                      <div style={{ fontWeight: 900 }}>
+                        {readingTestRuntimeActive ? "Testen er i gang" : "Testen er startet"}
+                      </div>
+                      <div
+                        style={{
+                          fontWeight: 900,
+                          fontSize: 18,
+                          color: readingTimerIsRed ? "rgba(220,38,38,1)" : "rgba(30,64,175,1)",
+                        }}
+                      >
+                        {readingTestSecondsLeft != null ? formatSeconds(readingTestSecondsLeft) : "Fri tid"}
+                      </div>
+                    </div>
+
+                    {readingTestSecondsLeft != null && (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: 12,
+                          borderRadius: 999,
+                          background: "rgba(255,255,255,0.9)",
+                          overflow: "hidden",
+                          border: "1px solid rgba(0,0,0,0.08)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${readingProgressPercent}%`,
+                            height: "100%",
+                            borderRadius: 999,
+                            background: readingTimerIsRed ? "rgba(220,38,38,1)" : "rgba(37,99,235,1)",
+                            transition: "width 1s linear, background 120ms ease",
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: 8, opacity: 0.8, lineHeight: 1.45 }}>
+                      Når tiden er ute, blir testen sendt automatisk til læreren.
+                    </div>
+                  </div>
+                )}
+
+                <ReadingTestPlayer
+                  title={mainTitle}
+                  sourceText={sourceTextSafe}
+                  tasks={tasksOriginal as ReadingLessonTask[]}
+                  readingTestConfig={readingPlayerConfig}
+                  initialAnswers={answers}
+                  onAnswersChange={setAnswers}
+                  disabled={lock || submitted || readingTestFinished}
+                />
+
+                <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  {!readingTestFinished ? <SubmitButton /> : null}
+                  <Link href={`/student/spaces/${spaceId}`} style={{ textDecoration: "none" }}>
+                    {t("actions.backToSpace")}
+                  </Link>
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 10,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <h2 style={{ margin: 0, fontSize: 18 }}>{t("tasks.title")}</h2>
+
+              <button type="button" onClick={() => setShowTaskTranslations((v) => !v)} style={btnStyle}>
+                {showTaskTranslations ? t("translate.hide") : t("translate.show")}
+              </button>
+            </div>
+
+            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
+              {tasksOriginal.length === 0 ? (
+                <div style={{ opacity: 0.75 }}>{t("tasks.none")}</div>
+              ) : (
+                tasksOriginal.map((tk, idx) => renderTask(tk, idx))
+              )}
+            </div>
+          </>
+        )}
       </section>
 
       <section style={{ marginTop: 18 }}>
@@ -1896,7 +2272,7 @@ const submitLabel = saving
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <DraftButton />
-          <SubmitButton />
+          {!isReadingTest ? <SubmitButton /> : null}
 
           <Link href={`/student/spaces/${spaceId}`} style={{ textDecoration: "none" }}>
             {t("actions.backToSpace")}

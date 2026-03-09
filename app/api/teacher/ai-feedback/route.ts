@@ -16,6 +16,8 @@ type Task = {
   prompt?: string;
   options?: unknown[];
   correctAnswer?: unknown;
+  sentence?: string;
+  textWithGap?: string;
 };
 
 type AnswersMap = Record<string, unknown>;
@@ -37,6 +39,14 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 function safeString(v: unknown): string {
   return typeof v === "string" ? v : "";
+}
+
+function safeNumber(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+function safeBoolean(v: unknown): boolean | null {
+  return typeof v === "boolean" ? v : null;
 }
 
 function safeTasksArray(tasks: unknown): Task[] {
@@ -80,11 +90,20 @@ function asText(v: unknown): string {
 
 function isOpenLike(type: string): boolean {
   const t = type.toLowerCase();
-  return t === "open" || t === "text" || t === "writing";
+  return t === "open" || t === "text" || t === "writing" || t === "short_answer";
+}
+
+function isReadingTestType(type: string): boolean {
+  const t = type.toLowerCase();
+  return (
+    t === "word_choice" ||
+    t === "sentence_placement" ||
+    t === "best_summary" ||
+    t === "fill_in_word"
+  );
 }
 
 function pickModel(): string {
-  // hvis du vil låse den til samme som /api/feedback, sett f.eks OPENAI_MODEL=gpt-4o-mini
   return process.env.OPENAI_MODEL || "gpt-4o-mini";
 }
 
@@ -106,7 +125,6 @@ function readMode(profile: unknown): string {
   return safeString(profile["mode"]);
 }
 
-/** Try to stringify unknown structured objects (e.g., autograde maps) into readable text. */
 function pickAnyAsText(obj: unknown, keys: string[]): string {
   const rec = obj && typeof obj === "object" ? (obj as Record<string, unknown>) : null;
   for (const k of keys) {
@@ -131,7 +149,52 @@ function normalizeLocale(raw: string): "no" | "en" | "pt" {
   return "no";
 }
 
-/** Samme struktur/overskrifter som /api/feedback */
+function countWords(text: string): number {
+  const t = (text || "").trim();
+  if (!t) return 0;
+  return t.split(/\s+/).filter(Boolean).length;
+}
+
+function formatDuration(totalSeconds: number | null): string {
+  if (typeof totalSeconds !== "number" || !Number.isFinite(totalSeconds)) return "unknown";
+  const secs = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(secs / 3600);
+  const minutes = Math.floor((secs % 3600) / 60);
+  const seconds = secs % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function buildTimeSignal(wordCount: number, usedSeconds: number | null): {
+  wordsPerMinute: number | null;
+  summary: string;
+} {
+  if (!wordCount || typeof usedSeconds !== "number" || !Number.isFinite(usedSeconds) || usedSeconds <= 0) {
+    return {
+      wordsPerMinute: null,
+      summary: "No reliable timing data available.",
+    };
+  }
+
+  const minutes = usedSeconds / 60;
+  const wpm = Math.round(wordCount / minutes);
+
+  let band = "";
+  if (wpm < 60) band = "slow";
+  else if (wpm <= 140) band = "normal";
+  else if (wpm <= 180) band = "fast";
+  else band = "very fast";
+
+  return {
+    wordsPerMinute: wpm,
+    summary: `Estimated reading pace: about ${wpm} words per minute (${band}). Treat this as a supportive signal only, not as proof by itself.`,
+  };
+}
+
 function buildSystemPrompt(lang: "no" | "en" | "pt") {
   if (lang === "en") {
     return [
@@ -142,22 +205,29 @@ function buildSystemPrompt(lang: "no" | "en" | "pt") {
       "",
       "IMPORTANT:",
       "- Do NOT write a full corrected version of the entire text.",
-      "- Do NOT explain or correct multiple-choice / true-false; those are auto-graded.",
-      "- Focus on open/free-text answers (the student's writing).",
+      "- You MAY comment briefly on automatically graded reading tasks, but do not spend much space explaining each item.",
+      "- Focus first on reading result/understanding, then on any open/free-text answers if present.",
       "- Use: LOW / MEDIUM / HIGH achievement (relative to the CEFR level).",
+      "",
+      "ABOUT TIME / READING SPEED:",
+      "- Time is only a SUPPORTIVE signal.",
+      "- Never conclude quality from time alone.",
+      "- A high score + slow time may mean careful reading.",
+      "- A low score + very fast time may mean the student read too quickly.",
+      "- A high score + normal/fast time may suggest secure reading fluency.",
+      "- Be cautious and phrase time observations as indications, not facts.",
       "",
       "Answer using EXACT headings:",
       "1) AUTO RESULT, READING COMPREHENSION AND CEFR",
-      "- Summarize the auto result (if present).",
-      "- Link the result to CEFR reading skills at the given level:",
-      '  • A1–A2: understands very simple information and key words/short sentences.',
-      '  • B1: understands main points and important details in clear, simple texts.',
-      '  • B2: understands most details, implicit meaning and connections in more complex texts.',
-      '  • C1–C2: understands nuanced meaning, tone, and complex/long texts with high precision.',
-      "- Give a short judgement (1–2 sentences) about reading comprehension based on the auto result.",
+      "- Summarize the auto result.",
+      "- If timing data exists, comment briefly on what the time may indicate about reading pace and strategy.",
+      "- Link the result to CEFR reading skills at the given level.",
+      "- Give a short judgement (1–3 sentences) about reading comprehension based mainly on the auto result, and secondarily on time.",
       "",
       "2) OPEN ANSWERS – ACADEMIC ASSESSMENT",
-      "a) Does the student answer the question?",
+      "- If open answers exist, evaluate them.",
+      "- If there are no open answers, say that the assessment is mainly based on reading result and automatic scoring.",
+      "a) Does the student answer the task?",
       "- 1–2 sentences.",
       "b) Grammar and spelling (show error -> correction)",
       '- List the most important issues as: "error" -> "correct" (max 6 bullets).',
@@ -166,15 +236,10 @@ function buildSystemPrompt(lang: "no" | "en" | "pt") {
       "",
       "3) LEVEL AND NEXT-STEP PROGRESSION (CEFR)",
       "- Choose one: LOW / MEDIUM / HIGH (relative to the stated CEFR level).",
-      "- Justify briefly with 2–3 bullets (content, language/grammar, coherence).",
+      "- Justify briefly with 2–3 bullets (reading result, language if relevant, pace/strategy if relevant).",
       "",
       "NEXT STEP:",
-      "- Give 1–2 realistic tips for the NEXT natural step above the student's current level:",
-      "  • A1 → A2: simple full sentences, correct present tense, basic word order.",
-      "  • A2 → B1: more varied vocabulary, correct verb tenses, better linking words.",
-      "  • B1 → B2: more precise grammar, varied sentence structure, clearer structure.",
-      "  • B2 → C1: nuance, more complex sentences, precise punctuation and tense use.",
-      "  • C1: precision, idiomatic usage, stylistic control and natural flow.",
+      "- Give 1–2 realistic tips for the next natural step.",
       "- Keep tips concrete, short, and doable.",
       "",
       "Keep it concise. No long theory explanations.",
@@ -189,95 +254,93 @@ function buildSystemPrompt(lang: "no" | "en" | "pt") {
       "Adapte sua linguagem e exigências ao nível CEFR informado.",
       "",
       "IMPORTANTE:",
-      "- NÃO faça uma versão completa “corrigida” do texto inteiro.",
-      "- NÃO explique nem corrija múltipla escolha / verdadeiro-falso; isso é corrigido automaticamente.",
-      "- Foque nas respostas abertas (texto livre).",
-      "- Use: BAIXO / MÉDIO / ALTO desempenho (em relação ao CEFR).",
+      "- NÃO faça uma versão completa corrigida do texto inteiro.",
+      "- Você PODE comentar brevemente o resultado automático das tarefas de leitura, mas sem explicar item por item.",
+      "- Foque primeiro no resultado de leitura/compreensão e depois nas respostas abertas, se existirem.",
+      "- Use: BAIXO / MÉDIO / ALTO desempenho (em relação ao nível CEFR).",
+      "",
+      "SOBRE TEMPO / VELOCIDADE DE LEITURA:",
+      "- O tempo é apenas um sinal de apoio.",
+      "- Nunca conclua a qualidade apenas pelo tempo.",
+      "- Pontuação alta + tempo lento pode indicar leitura cuidadosa.",
+      "- Pontuação baixa + tempo muito rápido pode indicar leitura rápida demais.",
+      "- Pontuação alta + tempo normal/rápido pode indicar fluência de leitura mais segura.",
+      "- Seja cauteloso e formule observações sobre tempo como indícios, não como fatos absolutos.",
       "",
       "Responda com estes títulos EXATOS:",
       "1) RESULTADO AUTOMÁTICO, COMPREENSÃO DE LEITURA E CEFR",
-      "- Resuma o resultado automático (se existir).",
-      "- Relacione o resultado às habilidades de leitura no CEFR do nível informado:",
-      "  • A1–A2: entende informação muito simples, palavras-chave e frases curtas.",
-      "  • B1: entende ideias principais e detalhes importantes em textos claros e simples.",
-      "  • B2: entende a maioria dos detalhes, sentidos implícitos e conexões em textos mais complexos.",
-      "  • C1–C2: entende nuances, tom e textos longos/complexos com alta precisão.",
-      "- Dê um julgamento curto (1–2 frases) sobre a compreensão de leitura com base no resultado.",
+      "- Resuma o resultado automático.",
+      "- Se houver dados de tempo, comente brevemente o que o tempo pode indicar sobre ritmo e estratégia de leitura.",
+      "- Relacione o resultado ao nível CEFR.",
+      "- Dê uma avaliação curta (1–3 frases) baseada principalmente no resultado automático e, em segundo lugar, no tempo.",
       "",
       "2) RESPOSTAS ABERTAS – AVALIAÇÃO",
+      "- Se houver respostas abertas, avalie-as.",
+      "- Se não houver respostas abertas, diga que a avaliação se baseia principalmente no resultado de leitura e na correção automática.",
       "a) O aluno responde à tarefa?",
-      "- 1–2 frases.",
-      "b) Gramática e ortografia (mostrar erro -> correto)",
-      '- Liste os pontos principais como: "erro" -> "correto" (máx. 6 itens).',
+      "b) Gramática e ortografia (erro -> correto)",
       "c) Pontuação",
-      "- Mostre onde falta/erra pontuação e dê 2–4 dicas concretas.",
       "",
       "3) NÍVEL E PRÓXIMO PASSO (CEFR)",
-      "- Escolha um: BAIXO / MÉDIO / ALTO (em relação ao nível informado).",
-      "- Justifique com 2–3 itens (conteúdo, linguagem/gramática, coesão).",
+      "- Escolha BAIXO / MÉDIO / ALTO.",
+      "- Justifique com 2–3 itens (resultado de leitura, linguagem se relevante, ritmo/estratégia se relevante).",
       "",
       "PRÓXIMO PASSO:",
-      "- Dê 1–2 dicas realistas para o PRÓXIMO passo natural acima do nível atual:",
-      "  • A1 → A2: frases simples completas, presente correto, ordem básica das palavras.",
-      "  • A2 → B1: vocabulário mais variado, tempos verbais corretos, conectores melhores.",
-      "  • B1 → B2: gramática mais precisa, variedade de estruturas, texto mais bem organizado.",
-      "  • B2 → C1: nuances, frases mais complexas, pontuação e tempos mais precisos.",
-      "  • C1: precisão, expressões idiomáticas, controle estilístico e fluidez natural.",
-      "- Dicas devem ser concretas, curtas e realizáveis.",
+      "- Dê 1–2 dicas realistas e curtas.",
       "",
-      "Seja conciso. Sem explicações longas de teoria.",
+      "Seja conciso.",
     ].join("\n");
   }
 
-  // no (default)
   return [
     "Du er en erfaren norsklærer/språklærer. Gi kort, presis og nyttig tilbakemelding på elevens arbeid.",
     "Bruk dus-form og skriv direkte til eleven (bruk 'du'). Vær støttende, konkret og motiverende.",
     "Tilpass språk og krav til CEFR-nivået som er oppgitt.",
     "",
     "VIKTIG:",
-    "- IKKE lag en 'korrigert versjon' av hele teksten.",
-    "- IKKE forklar eller rett flervalg/true-false; de rettes automatisk.",
-    "- Fokuser på åpne oppgaver (elevens fritekstsvar).",
+    "- IKKE lag en korrigert versjon av hele teksten.",
+    "- Du KAN kommentere kort på automatisk rettede leseoppgaver, men ikke bruk mye plass på å forklare hvert enkelt spørsmål.",
+    "- Fokuser først på leseresultat/leseforståelse, deretter på åpne svar hvis de finnes.",
     "- Bruk begrepene: LAV / MIDDELS / HØY målopnåelse (i forhold til CEFR-nivå).",
+    "",
+    "OM TID / LESEFART:",
+    "- Tid er bare et STØTTESIGNAL.",
+    "- Du skal aldri konkludere kun ut fra tid.",
+    "- Høy score + lang tid kan tyde på grundig og strategisk lesing.",
+    "- Lav score + svært kort tid kan tyde på at eleven leste for raskt eller overflatisk.",
+    "- Høy score + normal/rask tid kan tyde på trygg leseflyt.",
+    "- Formuler alltid tidsvurderinger forsiktig som tegn/indikasjoner, ikke som sikre fakta.",
     "",
     "Svar i denne strukturen (bruk nøyaktige overskrifter):",
     "1) AUTORESULTAT, LESEFORSTÅELSE OG CEFR",
-    "- Oppsummer autoresultatet (hvis det finnes).",
-    "- Knytt resultatet til CEFR-leseforståelse for oppgitt nivå:",
-    "  • A1–A2: forstår svært enkel informasjon, nøkkelord og korte setninger.",
-    "  • B1: forstår hovedpoeng og viktige detaljer i klare, enkle tekster.",
-    "  • B2: forstår de fleste detaljer, antydninger og sammenhenger i mer komplekse tekster.",
-    "  • C1–C2: forstår nyanser, tone og komplekse/lange tekster med høy presisjon.",
-    "- Gi en kort vurdering (1–2 setninger) av leseforståelsen basert på autoresultatet.",
+    "- Oppsummer autoresultatet.",
+    "- Hvis tidsdata finnes, kommenter kort hva tiden kan si om lesehastighet og strategi.",
+    "- Knytt resultatet til CEFR-leseforståelse for oppgitt nivå.",
+    "- Gi en kort vurdering (1–3 setninger) av leseforståelsen basert først og fremst på autoresultatet, og deretter på tid.",
     "",
     "2) ÅPNE OPPGAVER – FAGLIG VURDERING",
+    "- Hvis det finnes åpne svar, vurder dem.",
+    "- Hvis det ikke finnes åpne svar, si tydelig at vurderingen hovedsakelig bygger på leseoppgavene og autoresultatet.",
     "a) Svarer eleven på oppgaven?",
     "- Gi 1–2 setninger.",
     "b) Grammatikk og stavefeil (vis feil -> riktig)",
     '- List opp de viktigste feilene som: "feil" -> "riktig" (maks 6 punkt).',
     "c) Tegnsetting",
-    "- Pek på hvor det mangler punktum/komma/spørsmålstegn, og gi 2–4 konkrete råd.",
+    "- Pek på mangler i punktum/komma/spørsmålstegn, og gi 2–4 konkrete råd.",
     "",
     "3) NIVÅ OG VIDERE PROGRESJON (CEFR)",
     "- Sett én: LAV / MIDDELS / HØY (i forhold til oppgitt CEFR-nivå).",
-    "- Begrunn kort med 2–3 punkter (innhold, språk/grammatikk, sammenheng).",
+    "- Begrunn kort med 2–3 punkter (leseresultat, språk hvis relevant, tempo/strategi hvis relevant).",
     "",
     "VIDERE PROGRESJON:",
-    "- Gi 1–2 konkrete og realistiske råd for neste naturlige nivå over elevens nåværende nivå:",
-    "  • A1 → fokus på enkle hele setninger, riktig verb i presens, grunnleggende ordstilling.",
-    "  • A2 → mer variert ordforråd, riktig bøying av verb i ulike tider, bedre setningsbinding.",
-    "  • B1 → mer presis grammatikk, variert setningsstruktur, sammenhengende tekst med tydelig struktur.",
-    "  • B2 → nyansering, mer komplekse setninger, korrekt tegnsetting og presis bruk av tider.",
-    "  • C1 → presist og variert språk, idiomatiske uttrykk, stilistisk kontroll og naturlig flyt.",
-    "- Rådene skal være konkrete, korte og gjennomførbare.",
+    "- Gi 1–2 konkrete og realistiske råd for neste naturlige steg.",
+    "- Rådene skal være korte, konkrete og gjennomførbare.",
     "",
     "Hold det konsist. Ikke bruk lange teoriforklaringer.",
   ].join("\n");
 }
 
 function readAutoGradeSummaryFromSubmission(subDoc: Record<string, unknown>): string {
-  // Støtt både gamle/nye navn – og objektet "auto" som du allerede lagrer.
   const autoResultat = pickAnyAsText(subDoc, [
     "autoResultat",
     "autoResult",
@@ -300,7 +363,7 @@ type Body = {
   spaceId: string;
   assignmentId: string;
   subId: string;
-  locale?: string; // ✅ ny: for å styre språket som /api/feedback
+  locale?: string;
 };
 
 export async function POST(req: Request) {
@@ -326,7 +389,6 @@ export async function POST(req: Request) {
     const uid = decoded.uid;
     if (!uid) return json({ error: "Unauthorized" }, 401);
 
-    // ✅ Role check via user profile doc
     const profileSnap = await db.collection("users").doc(uid).get();
     const profile = profileSnap.exists ? profileSnap.data() : null;
 
@@ -338,7 +400,6 @@ export async function POST(req: Request) {
       return json({ error: "Not allowed (mode/attestation)" }, 403);
     }
 
-    // ✅ Read submission
     const subRef = db
       .collection("spaces")
       .doc(spaceId)
@@ -352,7 +413,6 @@ export async function POST(req: Request) {
     const subDoc = (subSnap.data() || {}) as Record<string, unknown>;
     const answers = readAnswerMap(subDoc.answers);
 
-    // ✅ Read assignment
     const aRef = db.collection("spaces").doc(spaceId).collection("lessons").doc(assignmentId);
     const aSnap = await aRef.get();
     const assignment = (aSnap.exists ? aSnap.data() || {} : {}) as Record<string, unknown>;
@@ -361,7 +421,6 @@ export async function POST(req: Request) {
     const sourceId = safeString(assignment.sourceId).trim();
     if (!sourceId) return json({ error: "Assignment missing sourceId" }, 400);
 
-    // ✅ Read lesson (library vs myContent)
     const lessonRef =
       sourceType === "library"
         ? db.collection("published_lessons").doc(sourceId)
@@ -371,7 +430,6 @@ export async function POST(req: Request) {
     const lesson = (lessonSnap.exists ? lessonSnap.data() || {} : {}) as Record<string, unknown>;
     const tasks = safeTasksArray(lesson.tasks);
 
-    // ✅ Filter open tasks + gather student answers
     const openItems = tasks
       .slice()
       .sort((x, y) => Number(x?.order ?? 999) - Number(y?.order ?? 999))
@@ -391,41 +449,86 @@ export async function POST(req: Request) {
       })
       .filter(Boolean) as Array<{ n: number; prompt: string; answer: string }>;
 
-    if (openItems.length === 0) {
-      const msg = "Ingen åpne oppgaver ble funnet i denne innleveringen (eller oppgavene mangler).";
-      return json({ text: msg, skipped: true }, 200);
-    }
+    const readingTasks = tasks
+      .slice()
+      .sort((x, y) => Number(x?.order ?? 999) - Number(y?.order ?? 999))
+      .filter((task) => isReadingTestType(safeString(task?.type)));
 
-    // ✅ Build prompt in SAME STYLE as /api/feedback
     const lessonTitle = safeString(lesson.title) || safeString(assignment.title) || "Oppgave";
     const level = safeString(lesson.level) || safeString(assignment.level) || "A2";
     const languageHint = safeString(lesson.language) || safeString(assignment.language) || "";
     const sourceText = safeString(lesson.sourceText) || safeString(lesson.text) || "";
+    const sourceWordCount = countWords(sourceText);
 
-    // auto result (autosvar/autograde) fra submission (viktig!)
     const autoResultat = readAutoGradeSummaryFromSubmission(subDoc);
+
+    const readingTimeLimitSeconds = safeNumber(subDoc.readingTestTimeLimitSeconds);
+    const readingTimeUsedSeconds =
+      safeNumber(subDoc.readingTestTimeUsedSeconds) ?? safeNumber(subDoc.timeSpentSeconds);
+    const readingTimedOut = safeBoolean(subDoc.readingTestTimedOut);
+    const readingSubmittedManually = safeBoolean(subDoc.readingTestSubmittedManually);
+
+    const timeSignal = buildTimeSignal(sourceWordCount, readingTimeUsedSeconds);
+    const isReadingTest =
+      safeString(lesson.lessonType).toLowerCase() === "reading_test" || readingTasks.length > 0;
 
     const systemPrompt = buildSystemPrompt(locale);
 
-    // Vi gir AI én "oppgave-tekst" (samler alle åpne spørsmål/svar)
-    const oppgaveTekst =
-      `Oppgave: ${lessonTitle}\n` +
-      (languageHint ? `Språk (hint): ${languageHint}\n` : "") +
-      `Åpne deloppgaver:\n` +
-      openItems
-        .map(
-          (x) =>
-            `#${x.n}\n` +
-            `OPPGAVE: ${x.prompt || "(ingen prompt)"}\n` +
-            `SVAR: ${x.answer || "(ikke besvart)"}`
-        )
-        .join("\n\n");
+    const openTasksBlock =
+      openItems.length > 0
+        ? openItems
+            .map(
+              (x) =>
+                `#${x.n}\n` +
+                `OPPGAVE: ${x.prompt || "(ingen prompt)"}\n` +
+                `SVAR: ${x.answer || "(ikke besvart)"}`
+            )
+            .join("\n\n")
+        : "(Ingen åpne svar i denne innleveringen.)";
+
+    const readingModeBlock = isReadingTest
+      ? [
+          "Reading test metadata:",
+          `- Reading text word count: ${sourceWordCount || "unknown"}`,
+          `- Time limit: ${readingTimeLimitSeconds != null ? `${readingTimeLimitSeconds} seconds (${formatDuration(readingTimeLimitSeconds)})` : "unknown"}`,
+          `- Time used: ${readingTimeUsedSeconds != null ? `${readingTimeUsedSeconds} seconds (${formatDuration(readingTimeUsedSeconds)})` : "unknown"}`,
+          `- Submitted manually: ${readingSubmittedManually === true ? "yes" : readingSubmittedManually === false ? "no" : "unknown"}`,
+          `- Timed out: ${readingTimedOut === true ? "yes" : readingTimedOut === false ? "no" : "unknown"}`,
+          `- ${timeSignal.summary}`,
+        ].join("\n")
+      : "Reading test metadata: not a reading test or no timing data.";
+
+    const taskOverviewBlock =
+      tasks.length > 0
+        ? tasks
+            .slice()
+            .sort((x, y) => Number(x?.order ?? 999) - Number(y?.order ?? 999))
+            .map((task, idx) => {
+              const type = safeString(task.type || "open");
+              const stableId = getStableTaskId(task, idx);
+              const prompt = safeString(task.prompt);
+              const answer = asText(answers[stableId]).trim() || "(ikke besvart)";
+              return `#${task.order ?? idx + 1} [${type}] ${prompt || "(ingen prompt)"}\nSVAR: ${answer}`;
+            })
+            .join("\n\n")
+        : "(Ingen oppgaver funnet.)";
 
     const userContent =
       `CEFR level: ${level}\n` +
-      (autoResultat ? `\nAuto result (from automatic grading):\n${autoResultat}\n` : "\nAuto result: (not provided)\n") +
-      (sourceText.trim() ? `\nReading text (context):\n${sourceText}\n\n` : "\nReading text (context): (not provided)\n\n") +
-      `Task:\n${oppgaveTekst}\n`;
+      (languageHint ? `Language hint: ${languageHint}\n` : "") +
+      `Lesson title: ${lessonTitle}\n` +
+      `Is reading test: ${isReadingTest ? "yes" : "no"}\n\n` +
+      `Auto result (from automatic grading):\n${autoResultat || "(not provided)"}\n\n` +
+      `Reading text (context):\n${sourceText.trim() || "(not provided)"}\n\n` +
+      `${readingModeBlock}\n\n` +
+      `All tasks and student answers:\n${taskOverviewBlock}\n\n` +
+      `Open tasks and answers:\n${openTasksBlock}\n\n` +
+      `Instruction:\n` +
+      `Write teacher feedback in the required structure. ` +
+      `Base the reading assessment mainly on the auto result. ` +
+      `Use time only as a cautious supporting signal. ` +
+      `If there are open answers, assess them too. ` +
+      `If there are no open answers, still give a useful reading-test evaluation based on auto result, CEFR and timing.\n`;
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const model = pickModel();
@@ -442,7 +545,6 @@ export async function POST(req: Request) {
     const textOut = (resp.output_text || "").trim();
     if (!textOut) return json({ error: "Empty AI response" }, 502);
 
-    // ✅ Save to Firestore (nested + index)
     const payload = {
       aiFeedback: {
         text: textOut,
