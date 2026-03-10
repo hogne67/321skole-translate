@@ -9,7 +9,7 @@ type CoverImagePromptMode = "custom" | "fromText";
 
 type GenerateImageBody = {
   lessonId?: string;
-  uid?: string;
+  uid?: string; // legacy, no longer required
   format?: "16:9";
   style?: CoverImageStyle;
   promptMode?: CoverImagePromptMode;
@@ -21,9 +21,9 @@ type GenerateImageBody = {
 };
 
 function readBearerToken(req: NextRequest): string | null {
-  const authHeader = req.headers.get("authorization") || "";
-  if (!authHeader.startsWith("Bearer ")) return null;
-  return authHeader.slice("Bearer ".length).trim() || null;
+  const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || null;
 }
 
 function safeSlug(input: string) {
@@ -111,22 +111,17 @@ export async function POST(req: NextRequest) {
 
     const { auth, storage } = getAdmin();
     const decoded = await auth.verifyIdToken(authToken);
+    const uid = decoded.uid;
+
+    if (!uid) {
+      return NextResponse.json({ error: "Invalid auth token." }, { status: 401 });
+    }
 
     const body = (await req.json()) as GenerateImageBody;
 
     const lessonId = typeof body.lessonId === "string" ? body.lessonId.trim() : "";
-    const uid = typeof body.uid === "string" ? body.uid.trim() : "";
-
     if (!lessonId) {
       return NextResponse.json({ error: "Missing lessonId." }, { status: 400 });
-    }
-
-    if (!uid) {
-      return NextResponse.json({ error: "Missing uid." }, { status: 400 });
-    }
-
-    if (decoded.uid !== uid) {
-      return NextResponse.json({ error: "UID mismatch." }, { status: 403 });
     }
 
     const style: CoverImageStyle =

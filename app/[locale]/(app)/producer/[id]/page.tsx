@@ -364,58 +364,75 @@ export default function ProducerLessonEditorPage() {
   }
 
   async function generateAiCover() {
-    setErr(null);
-    setGeneratingCover(true);
+  setErr(null);
+  setGeneratingCover(true);
 
-    try {
-      await ensureAnonymousUser();
-      const u = uidNow();
-      if (!u) throw new Error("No auth uid.");
+  try {
+    await ensureAnonymousUser();
 
-      if (aiCoverPromptMode === "custom" && !aiCoverPrompt.trim()) {
-        throw new Error("Skriv et prompt for AI-bildet.");
-      }
+    const auth = getAuth();
+    const user = auth.currentUser;
+    const u = user?.uid ?? null;
 
-      if (aiCoverPromptMode === "fromText" && !sourceText.trim()) {
-        throw new Error("Teksten er tom. Kan ikke bruke teksten som inspirasjon.");
-      }
-
-      const res = await fetch("/api/images/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          lessonId,
-          uid: u,
-          format: "16:9",
-          style: aiCoverStyle,
-          promptMode: aiCoverPromptMode,
-          customPrompt: aiCoverPrompt.trim(),
-          sourceText,
-          title: title.trim(),
-          level: level.trim(),
-          language: language.trim(),
-        }),
-      });
-
-      const data = (await res.json().catch(() => ({}))) as GenerateCoverResponse;
-
-      if (!res.ok) {
-        throw new Error(data.error || "Bildegenerering feilet.");
-      }
-
-      const url = typeof data.imageUrl === "string" ? data.imageUrl : typeof data.url === "string" ? data.url : "";
-      if (!url) throw new Error("Bildegenerering feilet.");
-
-      setCoverImageUrl(url);
-      setCoverImageSource("ai");
-    } catch (e: unknown) {
-      setErr(localizeError(getErrorMessage(e) || "Bildegenerering feilet."));
-    } finally {
-      setGeneratingCover(false);
+    if (!user || !u) {
+      throw new Error("No auth uid.");
     }
+
+    const token = await user.getIdToken();
+    if (!token) {
+      throw new Error("Missing auth token.");
+    }
+
+    if (aiCoverPromptMode === "custom" && !aiCoverPrompt.trim()) {
+      throw new Error("Skriv et prompt for AI-bildet.");
+    }
+
+    if (aiCoverPromptMode === "fromText" && !sourceText.trim()) {
+      throw new Error("Teksten er tom. Kan ikke bruke teksten som inspirasjon.");
+    }
+
+    const res = await fetch("/api/images/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        lessonId,
+        format: "16:9",
+        style: aiCoverStyle,
+        promptMode: aiCoverPromptMode,
+        customPrompt: aiCoverPrompt.trim(),
+        sourceText,
+        title: title.trim(),
+        level: level.trim(),
+        language: language.trim(),
+      }),
+    });
+
+    const data = (await res.json().catch(() => ({}))) as GenerateCoverResponse;
+
+    if (!res.ok) {
+      throw new Error(data.error || "Bildegenerering feilet.");
+    }
+
+    const url =
+      typeof data.imageUrl === "string"
+        ? data.imageUrl
+        : typeof data.url === "string"
+        ? data.url
+        : "";
+
+    if (!url) throw new Error("Bildegenerering feilet.");
+
+    setCoverImageUrl(url);
+    setCoverImageSource("ai");
+  } catch (e: unknown) {
+    setErr(localizeError(getErrorMessage(e) || "Bildegenerering feilet."));
+  } finally {
+    setGeneratingCover(false);
   }
+}
 
   async function saveAndGoToMyContent() {
     setErr(null);
