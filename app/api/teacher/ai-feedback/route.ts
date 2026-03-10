@@ -9,6 +9,8 @@ import { FieldValue } from "firebase-admin/firestore";
 type SourceType = "myContent" | "library";
 type TaskType = "mcq" | "truefalse" | "open";
 
+type Role = "student" | "teacher" | "admin" | "parent" | "creator";
+
 type Task = {
   id?: string;
   order?: number;
@@ -113,16 +115,27 @@ function requireEnv() {
   }
 }
 
-function hasAcceptedAttestation(profile: unknown): boolean {
-  if (!isRecord(profile)) return false;
-  const att = profile["attestation"];
-  if (!isRecord(att)) return false;
-  return Boolean(att["acceptedAt"]);
+function readLegacyRole(profile: Record<string, unknown>): Role | null {
+  const roles = profile["roles"];
+  if (!isRecord(roles)) return null;
+
+  if (roles["admin"] === true) return "admin";
+  if (roles["teacher"] === true) return "teacher";
+  if (roles["creator"] === true) return "creator";
+  if (roles["parent"] === true) return "parent";
+  if (roles["student"] === true) return "student";
+  return null;
 }
 
-function readMode(profile: unknown): string {
-  if (!isRecord(profile)) return "";
-  return safeString(profile["mode"]);
+function readRole(profile: unknown): Role | null {
+  if (!isRecord(profile)) return null;
+
+  const r = profile["role"];
+  if (r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator") {
+    return r;
+  }
+
+  return readLegacyRole(profile);
 }
 
 function pickAnyAsText(obj: unknown, keys: string[]): string {
@@ -392,12 +405,11 @@ export async function POST(req: Request) {
     const profileSnap = await db.collection("users").doc(uid).get();
     const profile = profileSnap.exists ? profileSnap.data() : null;
 
-    const mode = readMode(profile);
-    const attOk = hasAcceptedAttestation(profile);
+    const role = readRole(profile);
+    const isTeacherish = role === "teacher" || role === "creator" || role === "admin";
 
-    const isTeacherish = mode === "teacher" || mode === "creator" || mode === "admin";
-    if (!isTeacherish || !attOk) {
-      return json({ error: "Not allowed (mode/attestation)" }, 403);
+    if (!isTeacherish) {
+      return json({ error: "Not allowed (role)" }, 403);
     }
 
     const subRef = db

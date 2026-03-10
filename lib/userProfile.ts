@@ -1,3 +1,4 @@
+// lib\userProfile.ts
 "use client";
 
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";

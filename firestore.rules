@@ -20,13 +20,11 @@ service cloud.firestore {
 
     function isMap(x) { return x is map; }
 
-    // roles-map helper (legacy + future)
     function mapHasTrue(m, key) { return isMap(m) && (key in m) && m[key] == true; }
     function hasRole(roleName) { return mapHasTrue(myUser().roles, roleName); }
 
     /* =========================
-       Role helpers (string role)
-       NOTE: role lives in users/{uid}.role
+       Role helpers
     ========================= */
     function myRole() {
       return ("role" in myUser() && (myUser().role is string)) ? myUser().role : "student";
@@ -34,8 +32,6 @@ service cloud.firestore {
 
     function isTeacher() { return signedIn() && myRole() == "teacher"; }
 
-    // ✅ FIX: admin can be either users/{uid}.role == "admin"
-    // or users/{uid}.roles.admin == true
     function isAdmin() {
       return signedIn() && (myRole() == "admin" || hasRole("admin"));
     }
@@ -70,7 +66,6 @@ service cloud.firestore {
         && spaceData(spaceId).isOpen == true;
     }
 
-    // IMPORTANT: collection name MUST match Firestore: "spaceMembers"
     function myMemberPath(spaceId) {
       return /databases/$(database)/documents/spaceMembers/$(memberDocId(spaceId, myUid()));
     }
@@ -78,7 +73,6 @@ service cloud.firestore {
       return signedIn() && (spaceId is string) && exists(myMemberPath(spaceId));
     }
 
-    // join-code helpers (ROBUST)
     function spaceCode(spaceId) {
       return spaceExists(spaceId)
         && ("code" in spaceData(spaceId))
@@ -118,124 +112,120 @@ service cloud.firestore {
       );
     }
 
-/* =========================
-   SPACE BOARD (per-space)
-========================= */
-function canBoardManage(spaceId) {
-  return signedIn() && (
-    isAdmin()
-    || isSpaceOwner(spaceId)
-    || (isTeacher() && isSpaceMember(spaceId))
-  );
-}
+    /* =========================
+       SPACE BOARD (per-space)
+    ========================= */
+    function canBoardManage(spaceId) {
+      return signedIn() && (
+        isAdmin()
+        || isSpaceOwner(spaceId)
+        || (isTeacher() && isSpaceMember(spaceId))
+      );
+    }
 
-// Board state helpers (for gating responses)
-function boardStatePath(spaceId) {
-  return /databases/$(database)/documents/spaces/$(spaceId)/board/state;
-}
-function boardStateExists(spaceId) {
-  return (spaceId is string) && exists(boardStatePath(spaceId));
-}
-function boardState(spaceId) {
-  return boardStateExists(spaceId) ? get(boardStatePath(spaceId)).data : {};
-}
-function boardActive(spaceId) {
-  return boardStateExists(spaceId)
-    && ("active" in boardState(spaceId))
-    && (boardState(spaceId).active is bool)
-    && boardState(spaceId).active == true;
-}
-function boardSessionId(spaceId) {
-  return boardStateExists(spaceId)
-    && ("sessionId" in boardState(spaceId))
-    && (boardState(spaceId).sessionId is string)
-    ? boardState(spaceId).sessionId
-    : null;
-}
+    function boardStatePath(spaceId) {
+      return /databases/$(database)/documents/spaces/$(spaceId)/board/state;
+    }
+    function boardStateExists(spaceId) {
+      return (spaceId is string) && exists(boardStatePath(spaceId));
+    }
+    function boardState(spaceId) {
+      return boardStateExists(spaceId) ? get(boardStatePath(spaceId)).data : {};
+    }
+    function boardActive(spaceId) {
+      return boardStateExists(spaceId)
+        && ("active" in boardState(spaceId))
+        && (boardState(spaceId).active is bool)
+        && boardState(spaceId).active == true;
+    }
+    function boardSessionId(spaceId) {
+      return boardStateExists(spaceId)
+        && ("sessionId" in boardState(spaceId))
+        && (boardState(spaceId).sessionId is string)
+        ? boardState(spaceId).sessionId
+        : null;
+    }
 
-function isString(x) { return x is string; }
-function nonEmptyString(x) { return isString(x) && x.size() > 0; }
+    function isString(x) { return x is string; }
+    function nonEmptyString(x) { return isString(x) && x.size() > 0; }
 
-match /spaces/{spaceId}/board/{docId} {
-  allow read: if signedIn() && (isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId));
-  allow create, update, delete: if canBoardManage(spaceId);
-}
+    match /spaces/{spaceId}/board/{docId} {
+      allow read: if signedIn() && (isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId));
+      allow create, update, delete: if canBoardManage(spaceId);
+    }
 
-match /spaces/{spaceId}/boardResponses/{responseId} {
-  // Read: managers can read everything.
-  // Students can read only their own "text" response docs (suffix _uid).
-  allow read: if canBoardManage(spaceId)
-    || (signedIn() && responseId.matches('^.+_' + myUid() + '$'));
+    match /spaces/{spaceId}/boardResponses/{responseId} {
+      allow read: if canBoardManage(spaceId)
+        || (signedIn() && responseId.matches('^.+_' + myUid() + '$'));
 
-  // TEXT response (sticky note): id must end with _uid
-  function isTextResponseId() {
-    return responseId.matches('^.+_' + myUid() + '$');
-  }
-  function textKeysOk() {
-    return request.resource.data.keys().hasOnly([
-      "sessionId",
-      "uid",
-      "displayName",
-      "groupName",
-      "text",
-      "noteColor",
-      "createdAt"
-    ]);
-  }
-  function textPayloadOk() {
-    return nonEmptyString(request.resource.data.sessionId)
-      && boardSessionId(spaceId) != null
-      && request.resource.data.sessionId == boardSessionId(spaceId)
-      && boardActive(spaceId)
-      && nonEmptyString(request.resource.data.uid)
-      && request.resource.data.uid == myUid()
-      && nonEmptyString(request.resource.data.text);
-  }
+      function isTextResponseId() {
+        return responseId.matches('^.+_' + myUid() + '$');
+      }
+      function textKeysOk() {
+        return request.resource.data.keys().hasOnly([
+          "sessionId",
+          "uid",
+          "displayName",
+          "groupName",
+          "text",
+          "noteColor",
+          "createdAt"
+        ]);
+      }
+      function textPayloadOk() {
+        return nonEmptyString(request.resource.data.sessionId)
+          && boardSessionId(spaceId) != null
+          && request.resource.data.sessionId == boardSessionId(spaceId)
+          && boardActive(spaceId)
+          && nonEmptyString(request.resource.data.uid)
+          && request.resource.data.uid == myUid()
+          && nonEmptyString(request.resource.data.text);
+      }
 
-  // POLL response (anonymous): id must contain _anon_
-  function isPollResponseId() {
-    return responseId.matches('^.+_anon_.+$');
-  }
-  function pollKeysOk() {
-    return request.resource.data.keys().hasOnly([
-      "sessionId",
-      "pollChoice",
-      "createdAt"
-    ]);
-  }
-  function pollPayloadOk() {
-    return nonEmptyString(request.resource.data.sessionId)
-      && boardSessionId(spaceId) != null
-      && request.resource.data.sessionId == boardSessionId(spaceId)
-      && boardActive(spaceId)
-      && nonEmptyString(request.resource.data.pollChoice);
-  }
+      function isPollResponseId() {
+        return responseId.matches('^.+_anon_.+$');
+      }
+      function pollKeysOk() {
+        return request.resource.data.keys().hasOnly([
+          "sessionId",
+          "pollChoice",
+          "createdAt"
+        ]);
+      }
+      function pollPayloadOk() {
+        return nonEmptyString(request.resource.data.sessionId)
+          && boardSessionId(spaceId) != null
+          && request.resource.data.sessionId == boardSessionId(spaceId)
+          && boardActive(spaceId)
+          && nonEmptyString(request.resource.data.pollChoice);
+      }
 
-  allow create: if signedIn()
-    && isSpaceMember(spaceId)
-    && (
-      canBoardManage(spaceId)
-      || (isTextResponseId() && textKeysOk() && textPayloadOk())
-      || (isPollResponseId() && pollKeysOk() && pollPayloadOk())
-    );
+      allow create: if signedIn()
+        && isSpaceMember(spaceId)
+        && (
+          canBoardManage(spaceId)
+          || (isTextResponseId() && textKeysOk() && textPayloadOk())
+          || (isPollResponseId() && pollKeysOk() && pollPayloadOk())
+        );
 
-  allow update: if signedIn()
-    && isSpaceMember(spaceId)
-    && (
-      canBoardManage(spaceId)
-      || (
-        isTextResponseId()
-        && textKeysOk()
-        && textPayloadOk()
-        && request.resource.data.sessionId == resource.data.sessionId
-        && ("uid" in resource.data)
-        && (resource.data.uid is string)
-        && resource.data.uid == myUid()
-      )
-    );
+      allow update: if signedIn()
+        && isSpaceMember(spaceId)
+        && (
+          canBoardManage(spaceId)
+          || (
+            isTextResponseId()
+            && textKeysOk()
+            && textPayloadOk()
+            && request.resource.data.sessionId == resource.data.sessionId
+            && ("uid" in resource.data)
+            && (resource.data.uid is string)
+            && resource.data.uid == myUid()
+          )
+        );
 
-  allow delete: if canBoardManage(spaceId);
-}
+      allow delete: if canBoardManage(spaceId);
+    }
+
     /* =========================
        USERS
     ========================= */
@@ -244,8 +234,6 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
       function changedKeys() { return request.resource.data.diff(resource.data).changedKeys(); }
       function isChanging(field) { return changedKeys().hasAny([field]); }
 
-      // Only allow valid role values if role is being changed (SELF update only)
-      // ✅ keep strict so self cannot set "admin"
       function roleOk() {
         return !isChanging("role")
           || (
@@ -257,7 +245,6 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
           );
       }
 
-      // Keep legacy safety: normal users shouldn't rewrite roles-map if it exists
       function rolesNotChangedBySelf() { return !isChanging("roles"); }
 
       allow create: if isSelf();
@@ -267,8 +254,7 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
     }
 
     /* =========================
-       SPACE MEMBERS (root)
-       spaceMembers/{spaceId_uid}
+       SPACE MEMBERS
     ========================= */
     match /spaceMembers/{docId} {
 
@@ -353,7 +339,7 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
     }
 
     /* =========================
-       LESSONS (drafts / my content)
+       LESSONS
     ========================= */
     match /lessons/{lessonId} {
       function isOwner() {
@@ -371,22 +357,15 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
         );
       }
 
-      // Test-friendly:
       allow get: if signedIn() || isAdmin() || isOwner();
       allow list: if isAdmin() || isOwner() || (signedIn() && isPublishedForStudents());
-
-      // Client must NOT create lessons directly. Must go via server.
       allow create: if false;
-
-      // ✅ Make client updates owner-only (admin actions should go via API/Admin SDK)
       allow update: if isOwner();
-
-      // ✅ Never allow client hard delete (even admin). Do it via API/Admin SDK.
       allow delete: if false;
     }
 
     /* =========================
-       PUBLISHED LESSONS (library)
+       PUBLISHED LESSONS
     ========================= */
     match /published_lessons/{id} {
       function pubIsActive() {
@@ -398,7 +377,6 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
           );
       }
 
-      // Library readable for all (even not signed in), if active
       allow read: if pubIsActive() || isAdmin();
       allow write: if false;
     }
@@ -409,7 +387,6 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
     match /spaces/{spaceId} {
       allow read: if true;
 
-      // Create space: teacher only (no attestation)
       allow create: if (isAdmin() || isTeacher())
         && (request.resource.data.ownerId is string)
         && request.resource.data.ownerId == myUid()
@@ -422,7 +399,6 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
 
     /* =========================
        SPACE-LOCAL ASSIGNMENTS
-       spaces/{spaceId}/lessons/{assignmentId}
     ========================= */
     match /spaces/{spaceId}/lessons/{assignmentId} {
       allow read: if isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
@@ -431,7 +407,6 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
 
     /* =========================
        SPACE-LOCAL SUBMISSIONS
-       spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId}
     ========================= */
     match /spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId} {
 
@@ -444,7 +419,11 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
       }
 
       function canTeacherReadHere() {
-        return signedIn() && (isSpaceOwner(spaceId) || isAdmin());
+        return signedIn() && (
+          isSpaceOwner(spaceId)
+          || isAdmin()
+          || (isTeacher() && isSpaceMember(spaceId))
+        );
       }
 
       allow read: if isAdmin() || isSubOwner() || canTeacherReadHere();
@@ -459,8 +438,7 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
     }
 
     /* =========================
-       SPACE SUBMISSIONS INDEX (root)
-       spaceSubmissions/{spaceId}_{assignmentId}_{uid}
+       SPACE SUBMISSIONS INDEX
     ========================= */
     match /spaceSubmissions/{id} {
 
@@ -481,7 +459,11 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
       function canTeacherReadIndex() {
         return signedIn()
           && spaceIdFromDoc() != null
-          && (isSpaceOwner(spaceIdFromDoc()) || isAdmin());
+          && (
+            isSpaceOwner(spaceIdFromDoc())
+            || isAdmin()
+            || (isTeacher() && isSpaceMember(spaceIdFromDoc()))
+          );
       }
 
       allow read: if isAdmin() || isOwnerDoc() || canTeacherReadIndex();
@@ -500,7 +482,7 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
     }
 
     /* =========================
-       PRACTICE SUBMISSIONS (root)
+       PRACTICE SUBMISSIONS
     ========================= */
     match /practiceSubmissions/{id} {
       function isOwnerDoc() {
@@ -521,7 +503,7 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
     }
 
     /* =========================
-       LEGACY SUBMISSIONS (read-only)
+       LEGACY SUBMISSIONS
     ========================= */
     match /submissions/{id} {
       function isOwnerDoc() {
@@ -537,8 +519,7 @@ match /spaces/{spaceId}/boardResponses/{responseId} {
     }
 
     /* =========================
-       ✅ GLOBAL SUBMISSIONS (anywhere)
-       Required for collectionGroup("submissions")
+       GLOBAL SUBMISSIONS
     ========================= */
     match /{document=**}/submissions/{subId} {
       allow get, list: if signedIn()

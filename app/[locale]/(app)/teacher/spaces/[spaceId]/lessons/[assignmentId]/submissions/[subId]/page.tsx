@@ -8,11 +8,10 @@ import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, onSnapshot, serverTimestamp, Timestamp, writeBatch, type Firestore } from "firebase/firestore";
 import { useUserProfile } from "@/lib/useUserProfile";
-import AttestationAndModeCard from "@/components/AttestationAndModeCard";
 import { useLocale, useTranslations } from "next-intl";
 import { authedPost } from "@/lib/authedPost";
 
-type Mode = "student" | "teacher" | "creator" | "parent";
+type Role = "student" | "teacher" | "admin" | "parent" | "creator";
 type ReviewStatus = "reviewed" | "needs_work";
 type SubmissionStatus = ReviewStatus | "draft" | "submitted" | "approved" | string;
 
@@ -137,17 +136,27 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
-function readModeFromProfile(profile: unknown): Mode {
-  if (!isRecord(profile)) return "student";
-  const m = profile["mode"];
-  return m === "teacher" || m === "creator" || m === "parent" || m === "student" ? m : "student";
+function readLegacyRole(profile: Record<string, unknown>): Role | null {
+  const roles = profile["roles"];
+  if (!isRecord(roles)) return null;
+
+  if (roles["admin"] === true) return "admin";
+  if (roles["teacher"] === true) return "teacher";
+  if (roles["creator"] === true) return "creator";
+  if (roles["parent"] === true) return "parent";
+  if (roles["student"] === true) return "student";
+  return null;
 }
 
-function readHasAttested(profile: unknown): boolean {
-  if (!isRecord(profile)) return false;
-  const att = profile["attestation"];
-  if (!isRecord(att)) return false;
-  return Boolean(att["acceptedAt"]);
+function readRole(profile: unknown): Role | null {
+  if (!isRecord(profile)) return null;
+
+  const r = profile["role"];
+  if (r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator") {
+    return r;
+  }
+
+  return readLegacyRole(profile);
 }
 
 function getErrorInfo(err: unknown): { code?: string; message: string } {
@@ -600,9 +609,8 @@ function Inner() {
 
   const { user, profile, loading: profileLoading } = useUserProfile();
 
-  const mode: Mode = useMemo(() => readModeFromProfile(profile), [profile]);
-  const hasAttested = useMemo(() => readHasAttested(profile), [profile]);
-  const canOperate = Boolean(user?.uid) && hasAttested && (mode === "teacher" || mode === "creator");
+  const role = useMemo(() => readRole(profile), [profile]);
+  const canOperate = Boolean(user?.uid) && (role === "teacher" || role === "creator" || role === "admin");
 
   const [sub, setSub] = useState<SubmissionDoc | null>(null);
   const [assignment, setAssignment] = useState<AssignmentDoc | null>(null);
@@ -866,20 +874,20 @@ function Inner() {
   const isReadingTest = isReadingTestLesson(assignment, lesson, tasksOriginal);
   const readingMeta = readReadingTestMeta(sub);
   const readingSummaryText = isReadingTest
-  ? readingMeta.timedOut === true
-    ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
-        readingMeta.limitSeconds
-      )}. Besvarelsen ble sendt automatisk da tiden gikk ut.`
-    : readingMeta.submittedManually === true
-    ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
-        readingMeta.limitSeconds
-      )} og leverte manuelt før tiden var ute.`
-    : readingMeta.usedSeconds != null || readingMeta.limitSeconds != null
-    ? `Lesetest: Tidsbruk ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
-        readingMeta.limitSeconds
-      )}.`
-    : ""
-  : "";
+    ? readingMeta.timedOut === true
+      ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
+          readingMeta.limitSeconds
+        )}. Besvarelsen ble sendt automatisk da tiden gikk ut.`
+      : readingMeta.submittedManually === true
+      ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
+          readingMeta.limitSeconds
+        )} og leverte manuelt før tiden var ute.`
+      : readingMeta.usedSeconds != null || readingMeta.limitSeconds != null
+      ? `Lesetest: Tidsbruk ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
+          readingMeta.limitSeconds
+        )}.`
+      : ""
+    : "";
 
   const statusChanged = status !== initialStatus;
   const needsTextToChangeStatus = statusChanged && text.trim().length === 0;
@@ -986,15 +994,16 @@ function Inner() {
       </div>
 
       {!canOperate && (
-        <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
-          <AttestationAndModeCard
-            attestationVersion="2026-02-09"
-            allowedModes={["student", "teacher", "creator", "parent"]}
-            requireAttestationForProModes={true}
-          />
-          <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12, opacity: 0.9 }}>
-            {t.rich("notice.needAttestationHtml", { b: (chunks) => <b>{chunks}</b> })}
-          </div>
+        <div
+          style={{
+            marginTop: 12,
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 12,
+            padding: 12,
+            opacity: 0.9,
+          }}
+        >
+          Du har ikke lærerrettigheter til å gi tilbakemelding på denne siden.
         </div>
       )}
 
@@ -1394,24 +1403,24 @@ function Inner() {
           </div>
 
           <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-  <div style={{ fontWeight: 900, marginBottom: 10 }}>{t("feedback.title")}</div>
+            <div style={{ fontWeight: 900, marginBottom: 10 }}>{t("feedback.title")}</div>
 
-  {readingSummaryText ? (
-    <div
-      style={{
-        marginBottom: 12,
-        padding: 10,
-        borderRadius: 12,
-        border: "1px solid rgba(59,130,246,0.25)",
-        background: "rgba(239,246,255,1)",
-        fontSize: 13,
-        lineHeight: 1.5,
-        fontWeight: 700,
-      }}
-    >
-      {readingSummaryText}
-    </div>
-  ) : null}
+            {readingSummaryText ? (
+              <div
+                style={{
+                  marginBottom: 12,
+                  padding: 10,
+                  borderRadius: 12,
+                  border: "1px solid rgba(59,130,246,0.25)",
+                  background: "rgba(239,246,255,1)",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  fontWeight: 700,
+                }}
+              >
+                {readingSummaryText}
+              </div>
+            ) : null}
 
             <StatusToggle value={status} onChange={setStatus} disabled={!canOperate} t={(k) => t(k)} />
 
@@ -1450,30 +1459,31 @@ function Inner() {
 
             <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
               {readingSummaryText ? (
-  <button
-    type="button"
-    disabled={!canOperate}
-    onClick={() => {
-      setText((prev) => {
-        const p = prev.trim();
-        if (!p) return readingSummaryText;
-        if (p.includes(readingSummaryText)) return prev;
-        return `${readingSummaryText}\n\n${prev}`;
-      });
-    }}
-    style={{
-      padding: "10px 12px",
-      borderRadius: 12,
-      border: "1px solid rgba(0,0,0,0.15)",
-      background: "white",
-      opacity: !canOperate ? 0.6 : 1,
-      cursor: !canOperate ? "not-allowed" : "pointer",
-      fontWeight: 900,
-    }}
-  >
-    Sett inn tidsdata
-  </button>
-) : null}
+                <button
+                  type="button"
+                  disabled={!canOperate}
+                  onClick={() => {
+                    setText((prev) => {
+                      const p = prev.trim();
+                      if (!p) return readingSummaryText;
+                      if (p.includes(readingSummaryText)) return prev;
+                      return `${readingSummaryText}\n\n${prev}`;
+                    });
+                  }}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.15)",
+                    background: "white",
+                    opacity: !canOperate ? 0.6 : 1,
+                    cursor: !canOperate ? "not-allowed" : "pointer",
+                    fontWeight: 900,
+                  }}
+                >
+                  Sett inn tidsdata
+                </button>
+              ) : null}
+
               <button
                 disabled={!canSave}
                 onClick={async () => {
