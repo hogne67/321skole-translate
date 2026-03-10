@@ -8,7 +8,6 @@ import { FieldValue } from "firebase-admin/firestore";
 
 type SourceType = "myContent" | "library";
 type TaskType = "mcq" | "truefalse" | "open";
-
 type Role = "student" | "teacher" | "admin" | "parent" | "creator";
 
 type Task = {
@@ -145,8 +144,8 @@ function pickAnyAsText(obj: unknown, keys: string[]): string {
     if (typeof v === "string" && v.trim()) return v.trim();
     if (v && typeof v === "object") {
       try {
-        const json = JSON.stringify(v, null, 2);
-        if (json && json !== "{}") return json;
+        const jsonText = JSON.stringify(v, null, 2);
+        if (jsonText && jsonText !== "{}") return jsonText;
       } catch {
         // ignore
       }
@@ -208,7 +207,7 @@ function buildTimeSignal(wordCount: number, usedSeconds: number | null): {
   };
 }
 
-function buildSystemPrompt(lang: "no" | "en" | "pt") {
+function buildReadingSystemPrompt(lang: "no" | "en" | "pt") {
   if (lang === "en") {
     return [
       "You are an experienced Norwegian language teacher.",
@@ -353,6 +352,97 @@ function buildSystemPrompt(lang: "no" | "en" | "pt") {
   ].join("\n");
 }
 
+function buildGeneralSystemPrompt(lang: "no" | "en" | "pt") {
+  if (lang === "en") {
+    return [
+      "You are an experienced language teacher.",
+      "Address the student directly using 'you'. Be supportive, clear, and motivating.",
+      "Give short, precise, and useful feedback on the student's answers.",
+      "Adapt your language and expectations to the provided CEFR level.",
+      "",
+      "IMPORTANT:",
+      "- This is NOT necessarily a reading test.",
+      "- Do NOT mention reading speed, timing, or reading pace unless timing data is clearly relevant.",
+      "- Do NOT pretend there is a reading comprehension score if there is none.",
+      "- Do NOT write a full corrected version of the entire text.",
+      "- Use: LOW / MEDIUM / HIGH achievement (relative to the CEFR level).",
+      "",
+      "If automatic scoring exists, you may mention it briefly, but do not turn the response into a reading-test evaluation.",
+      "",
+      "Answer using EXACT headings:",
+      "1) TASK RESPONSE AND CONTENT",
+      "- Does the student answer the task? What is good? What is missing?",
+      "",
+      "2) LANGUAGE",
+      "a) Grammar and spelling (show error -> correction)",
+      "b) Vocabulary",
+      "c) Punctuation",
+      "",
+      "3) LEVEL AND NEXT STEP (CEFR)",
+      "- Choose one: LOW / MEDIUM / HIGH.",
+      "- Justify briefly.",
+      "- Give 1–2 short next-step tips.",
+      "",
+      "Keep it concise.",
+    ].join("\n");
+  }
+
+  if (lang === "pt") {
+    return [
+      "Você é um professor experiente de língua.",
+      "Fale diretamente com o aluno usando 'você'. Seja claro, encorajador e específico.",
+      "Dê um feedback curto, preciso e útil sobre as respostas do aluno.",
+      "Adapte sua linguagem e exigências ao nível CEFR informado.",
+      "",
+      "IMPORTANTE:",
+      "- Isto não é necessariamente um teste de leitura.",
+      "- NÃO mencione velocidade de leitura ou tempo, a menos que isso seja claramente relevante.",
+      "- NÃO finja que existe pontuação de compreensão de leitura se ela não existir.",
+      "- NÃO escreva uma versão completa corrigida do texto inteiro.",
+      "",
+      "Se houver correção automática, você pode mencioná-la brevemente, mas sem transformar a resposta em avaliação de teste de leitura.",
+      "",
+      "Responda com estes títulos EXATOS:",
+      "1) RESPOSTA À TAREFA E CONTEÚDO",
+      "2) LINGUAGEM",
+      "3) NÍVEL E PRÓXIMO PASSO (CEFR)",
+      "",
+      "Seja conciso.",
+    ].join("\n");
+  }
+
+  return [
+    "Du er en erfaren språk- og norsklærer. Gi kort, presis og nyttig tilbakemelding på elevens svar.",
+    "Bruk dus-form og skriv direkte til eleven. Vær støttende, konkret og motiverende.",
+    "Tilpass språk og krav til oppgitt CEFR-nivå.",
+    "",
+    "VIKTIG:",
+    "- Dette er ikke nødvendigvis en lesetest.",
+    "- Ikke nevn lesehastighet, tidsbruk eller leseflyt med mindre det er tydelig relevant.",
+    "- Ikke lat som om det finnes et autoresultat i leseforståelse hvis det ikke gjør det.",
+    "- IKKE lag en korrigert versjon av hele teksten.",
+    "- Bruk begrepene: LAV / MIDDELS / HØY målopnåelse.",
+    "",
+    "Hvis det finnes automatisk retting, kan du nevne det kort, men ikke gjør svaret om til en lesetestvurdering.",
+    "",
+    "Svar i denne strukturen (bruk nøyaktige overskrifter):",
+    "1) OPPGAVELØSNING OG INNHOLD",
+    "- Svarer eleven på oppgaven? Hva fungerer godt? Hva mangler eventuelt?",
+    "",
+    "2) SPRÅK",
+    "a) Grammatikk og stavefeil (vis feil -> riktig)",
+    "b) Ordforråd",
+    "c) Tegnsetting",
+    "",
+    "3) NIVÅ OG NESTE STEG (CEFR)",
+    "- Sett én: LAV / MIDDELS / HØY.",
+    "- Begrunn kort.",
+    "- Gi 1–2 korte råd for neste steg.",
+    "",
+    "Hold det konsist.",
+  ].join("\n");
+}
+
 function readAutoGradeSummaryFromSubmission(subDoc: Record<string, unknown>): string {
   const autoResultat = pickAnyAsText(subDoc, [
     "autoResultat",
@@ -484,7 +574,9 @@ export async function POST(req: Request) {
     const isReadingTest =
       safeString(lesson.lessonType).toLowerCase() === "reading_test" || readingTasks.length > 0;
 
-    const systemPrompt = buildSystemPrompt(locale);
+    const systemPrompt = isReadingTest
+      ? buildReadingSystemPrompt(locale)
+      : buildGeneralSystemPrompt(locale);
 
     const openTasksBlock =
       openItems.length > 0
@@ -508,7 +600,7 @@ export async function POST(req: Request) {
           `- Timed out: ${readingTimedOut === true ? "yes" : readingTimedOut === false ? "no" : "unknown"}`,
           `- ${timeSignal.summary}`,
         ].join("\n")
-      : "Reading test metadata: not a reading test or no timing data.";
+      : "";
 
     const taskOverviewBlock =
       tasks.length > 0
@@ -525,22 +617,35 @@ export async function POST(req: Request) {
             .join("\n\n")
         : "(Ingen oppgaver funnet.)";
 
-    const userContent =
-      `CEFR level: ${level}\n` +
-      (languageHint ? `Language hint: ${languageHint}\n` : "") +
-      `Lesson title: ${lessonTitle}\n` +
-      `Is reading test: ${isReadingTest ? "yes" : "no"}\n\n` +
-      `Auto result (from automatic grading):\n${autoResultat || "(not provided)"}\n\n` +
-      `Reading text (context):\n${sourceText.trim() || "(not provided)"}\n\n` +
-      `${readingModeBlock}\n\n` +
-      `All tasks and student answers:\n${taskOverviewBlock}\n\n` +
-      `Open tasks and answers:\n${openTasksBlock}\n\n` +
-      `Instruction:\n` +
-      `Write teacher feedback in the required structure. ` +
-      `Base the reading assessment mainly on the auto result. ` +
-      `Use time only as a cautious supporting signal. ` +
-      `If there are open answers, assess them too. ` +
-      `If there are no open answers, still give a useful reading-test evaluation based on auto result, CEFR and timing.\n`;
+    const userContent = isReadingTest
+      ? `CEFR level: ${level}\n` +
+        (languageHint ? `Language hint: ${languageHint}\n` : "") +
+        `Lesson title: ${lessonTitle}\n` +
+        `Is reading test: yes\n\n` +
+        `Auto result (from automatic grading):\n${autoResultat || "(not provided)"}\n\n` +
+        `Reading text (context):\n${sourceText.trim() || "(not provided)"}\n\n` +
+        `${readingModeBlock}\n\n` +
+        `All tasks and student answers:\n${taskOverviewBlock}\n\n` +
+        `Open tasks and answers:\n${openTasksBlock}\n\n` +
+        `Instruction:\n` +
+        `Write teacher feedback in the required structure. ` +
+        `Base the reading assessment mainly on the auto result. ` +
+        `Use time only as a cautious supporting signal. ` +
+        `If there are open answers, assess them too. ` +
+        `If there are no open answers, still give a useful reading-test evaluation based on auto result, CEFR and timing.\n`
+      : `CEFR level: ${level}\n` +
+        (languageHint ? `Language hint: ${languageHint}\n` : "") +
+        `Lesson title: ${lessonTitle}\n` +
+        `Is reading test: no\n\n` +
+        `Automatic result data:\n${autoResultat || "(not provided)"}\n\n` +
+        `Source text / task context:\n${sourceText.trim() || "(not provided)"}\n\n` +
+        `All tasks and student answers:\n${taskOverviewBlock}\n\n` +
+        `Open tasks and answers:\n${openTasksBlock}\n\n` +
+        `Instruction:\n` +
+        `Write teacher feedback in the required structure for a normal task. ` +
+        `Do not talk about reading speed, time use, or reading comprehension unless it is clearly relevant. ` +
+        `Focus on task response, language, accuracy, vocabulary, and next steps. ` +
+        `If automatic scoring exists, you may mention it briefly, but do not turn the response into a reading-test evaluation.\n`;
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const model = pickModel();
