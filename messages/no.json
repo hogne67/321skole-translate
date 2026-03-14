@@ -12,7 +12,8 @@
     "createtest": "+ Ny lesetest",
     "users": "Brukere",
     "review": "Vurder",
-    "submissions": "Innleveringer"
+    "submissions": "Innleveringer",
+    "tools": "Verktøy"
   },
   "common": {
     "loading": "Laster…",
@@ -103,6 +104,7 @@
       "label": "Velg rolle *",
       "student": "Student",
       "teacher": "Lærer",
+      "parent": "Foreldre",
       "hint": "Velg rolle for å fortsette."
     },
     "fullName": { "label": "Fullt navn *" },
@@ -111,7 +113,7 @@
     "municipalityOther": { "label": "By/område *" }
   },
   "errors": {
-    "missingRole": "Velg rolle (Student eller Lærer).",
+    "missingRole": "Velg rolle (Student, lærer eller foreldre).",
     "missingName": "Skriv inn fullt navn.",
     "missingCountry": "Velg land.",
     "missingMunicipalityNo": "Velg kommune.",
@@ -463,6 +465,156 @@
       }
     }
   },
+  "parent": {
+  "spaces": {
+    "title": "Mine rom",
+    "subtitle": "Her finner du familierom og foreldrerom for aktiviteter hjemme.",
+    "defaultTitle": "Rom uten navn",
+    "actions": {
+      "open": "Åpne",
+      "openSpace": "Åpne rom",
+      "newSpace": "Opprett rom",
+      "parentGroups": "+ Lag nytt rom"
+    },
+    "meta": {
+      "code": "Kode"
+    },
+    "kinds": {
+      "family": "Familierom",
+      "parentGroup": "Foreldregruppe",
+      "other": "Rom"
+    },
+    "empty": "Du har ingen foreldrerom ennå.",
+    "loading": "Laster…",
+    "errors": {
+      "loadFailed": "Kunne ikke laste rom."
+    }
+  },
+  "spaceDetail": {
+    "loading": "Laster…",
+    "header": {
+      "untitled": "Rom uten navn",
+      "kind": "Type",
+      "code": "Kode"
+    },
+    "kinds": {
+      "family": "Familierom",
+      "parentGroup": "Foreldregruppe",
+      "other": "Rom"
+    },
+    "actions": {
+      "backToMySpaces": "Tilbake til mine rom",
+      "backMySpacesShort": "Mine rom",
+      "open": "Åpne",
+      "openSpace": "Åpne rom"
+    },
+    "missing": {
+      "title": "Rommet ble ikke funnet",
+      "subtitle": "Det kan være slettet, eller du har ikke tilgang."
+    },
+    "error": {
+      "title": "Noe gikk galt"
+    },
+    "errors": {
+      "readSpace": "Kunne ikke lese rommet.",
+      "listenStart": "Kunne ikke starte lytting på rommet.",
+      "readAssignments": "Kunne ikke lese aktiviteter.",
+      "listenAssignmentsStart": "Kunne ikke starte lytting på aktiviteter."
+    },
+    "active": {
+      "title": "Aktiv aktivitet",
+      "defaultTitle": "Oppgave",
+      "open": "Åpne aktivitet",
+      "hint": "Denne aktiviteten kan brukes som utgangspunkt for noe dere gjør sammen hjemme.",
+      "none": "Ingen aktiv aktivitet akkurat nå."
+    },
+    "purpose": {
+      "title": "Dette rommet kan brukes til",
+      "family": "Et familierom kan brukes til korte læringsøkter, lesing, aktiviteter og samtaler hjemme.",
+      "parentGroup": "En foreldregruppe kan brukes til å dele ressurser, aktiviteter og felles fokusområder."
+    },
+    "all": {
+      "title": "Alle aktiviteter i dette rommet",
+      "showArchived": "Vis arkiverte",
+      "none": "Ingen aktiviteter i dette rommet.",
+      "archivedTag": "(arkivert)"
+    }
+  },
+  "assignmentDetail": {
+    "loading": "Laster…",
+    "header": {
+      "defaultSpaceTitle": "Rom uten navn",
+      "defaultAssignmentTitle": "Oppgave"
+    },
+    "kinds": {
+      "family": "Familierom",
+      "parentGroup": "Foreldregruppe",
+      "other": "Rom"
+    },
+    "actions": {
+      "backToSpace": "Tilbake til rommet",
+      "open": "Åpne"
+    },
+    "missing": {
+      "title": "Oppgaven ble ikke funnet",
+      "subtitle": "Den kan være slettet, eller du har ikke tilgang."
+    },
+    "error": {
+      "title": "Noe gikk galt"
+    },
+    "errors": {
+      "readSpace": "Kunne ikke lese rommet.",
+      "listenSpaceStart": "Kunne ikke starte lytting på rommet.",
+      "readAssignment": "Kunne ikke lese oppgaven.",
+      "listenAssignmentStart": "Kunne ikke starte lytting på oppgaven."
+    },
+    "about": {
+      "title": "Om denne aktiviteten",
+      "level": "Nivå",
+      "language": "Språk",
+      "tasks": "Oppgaver",
+      "archived": "Arkivert",
+      "sourceType": "Kildetype",
+      "sourceId": "Kilde-ID"
+    },
+    "together": {
+      "title": "Hjemme",
+      "text": "Bruk denne aktiviteten som utgangspunkt for lesing, samtale, forklaring og små oppgaver hjemme."
+    },
+    "content": {
+      "title": "Innhold",
+      "none": "Ingen tekst eller beskrivelse er lagt til ennå."
+    }
+  },
+  "newSpace": {
+    "title": "Opprett nytt familierom",
+    "subtitle": "Gi rommet et navn som passer hjemme hos dere. Du kan for eksempel lage ett rom per barn eller per tema.",
+    "loading": "Laster…",
+    "fields": {
+      "title": "Navn på rommet",
+      "placeholder": "For eksempel: Knut sitt rom",
+      "help": "Du kan endre og bygge videre på rommet senere."
+    },
+    "suggestions": {
+      "title": "Forslag",
+      "room1": "Knut sitt rom",
+      "room2": "Knut engelsk",
+      "room3": "Emma lesing",
+      "room4": "Familie matte"
+    },
+    "actions": {
+      "back": "Tilbake til mine rom",
+      "create": "Opprett rom",
+      "creating": "Oppretter…",
+      "cancel": "Avbryt"
+    },
+    "errors": {
+      "mustBeLoggedIn": "Du må være logget inn som forelder for å opprette et rom.",
+      "missingTitle": "Skriv inn et navn på rommet.",
+      "createFailed": "Kunne ikke opprette rommet."
+    }
+  }
+},
   "teacher": {
     "spaces": {
       "title": "Klasse/ grupperom",

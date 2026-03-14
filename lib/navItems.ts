@@ -1,19 +1,22 @@
 // lib/navItems.ts
-export type Role = "student" | "teacher";
+export type Role = "student" | "teacher" | "parent" | "admin" | "creator";
 
 export type NavItem = { href: string; labelKey: string };
 
 function homeForRole(role: Role) {
-  return role === "teacher" ? "/teacher" : "/student";
+  if (role === "teacher") return "/teacher";
+  if (role === "parent") return "/parent";
+  if (role === "admin") return "/admin";
+  if (role === "creator") return "/creator";
+  return "/student";
 }
 
 /**
  * navItemsForRole
- * V1: student + teacher only (no modes, no apply/approval bureaucracy).
  *
  * Notes:
- * - hrefs are "internal, no locale prefix" (AppShell/TopNav handles locale)
- * - labelKey MUST be inside the "nav" namespace (no "nav." prefix)
+ * - hrefs are internal and WITHOUT locale prefix
+ * - labelKey must exist inside the "nav" namespace
  */
 export function navItemsForRole(role: Role): NavItem[] {
   const base: NavItem[] = [
@@ -25,11 +28,42 @@ export function navItemsForRole(role: Role): NavItem[] {
     return [
       ...base,
       { href: "/teacher/spaces", labelKey: "spaces" },
+      { href: "/tools", labelKey: "tools" },
       { href: "/producer/texts/new", labelKey: "createLesson" },
       { href: "/producer/reading-tests/new", labelKey: "createtest" },
     ];
   }
 
+  if (role === "parent") {
+    return [
+      ...base,
+      { href: "/parent/spaces", labelKey: "spaces" },
+      { href: "/tools", labelKey: "tools" },
+    ];
+  }
+
+  if (role === "admin") {
+    return [
+      ...base,
+      { href: "/spaces", labelKey: "spaces" },
+      { href: "/tools", labelKey: "tools" },
+      { href: "/admin/users", labelKey: "users" },
+      { href: "/admin/review", labelKey: "review" },
+    ];
+  }
+
+  if (role === "creator") {
+    return [
+      ...base,
+      { href: "/spaces", labelKey: "spaces" },
+      { href: "/tools", labelKey: "tools" },
+    ];
+  }
+
   // student
-  return [...base, { href: "/student/spaces", labelKey: "mySpaces" }];
+  return [
+    ...base,
+    { href: "/student/spaces", labelKey: "mySpaces" },
+    { href: "/tools", labelKey: "tools" },
+  ];
 }

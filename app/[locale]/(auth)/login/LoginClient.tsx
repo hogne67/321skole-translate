@@ -9,7 +9,6 @@ import { signInWithGoogle, signInWithEmail, signUpWithEmail } from "@/lib/auth";
 import { linkAnonymousWithGoogle, linkAnonymousWithEmailPassword } from "@/lib/anonAuth";
 import { useLocale, useTranslations } from "next-intl";
 
-// ✅ Null-safe/unknown-safe error extraction
 function toErrorString(err: unknown): string {
   if (!err) return "";
   if (typeof err === "string") return err;
@@ -46,7 +45,6 @@ export default function LoginClient() {
   const sp = useSearchParams();
   const router = useRouter();
 
-  // We forward raw `next` to post-login, and let that route decide teacher vs student.
   const postLoginUrl = useMemo(() => {
     const rawNext = sp.get("next");
     const q = rawNext ? `?next=${encodeURIComponent(rawNext)}` : "";
@@ -76,7 +74,7 @@ export default function LoginClient() {
     setLoadingGoogle(true);
     try {
       if (isAnon) {
-        await linkAnonymousWithGoogle(); // keeps uid
+        await linkAnonymousWithGoogle();
       } else {
         await signInWithGoogle();
       }

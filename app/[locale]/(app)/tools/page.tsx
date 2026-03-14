@@ -13,13 +13,13 @@ export default function ToolsPage() {
       </p>
 
       <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        <Link href="/student/translate" style={card}>
+        <Link href="/tools/translate" style={card}>
           Translator
         </Link>
-        <Link href="/student/generator" style={card}>
+        <Link href="/tools/generator" style={card}>
           Generate tasks
         </Link>
-        <Link href="/student/vocab" style={card}>
+        <Link href="/tools/vocab" style={card}>
           Glossary generator
         </Link>
       </div>

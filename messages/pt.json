@@ -12,7 +12,8 @@
     "createtest": "+ Novo teste",
     "users": "Usuários",
     "review": "Revisar",
-    "submissions": "Entregas"
+    "submissions": "Entregas",
+    "tools": "Ferramentas"
   },
   "common": {
     "loading": "Carregando…",
@@ -103,6 +104,7 @@
       "label": "Escolha a função *",
       "student": "Aluno",
       "teacher": "Professor",
+      "parent": "Responsável",
       "hint": "Escolha uma função para continuar."
     },
     "fullName": { "label": "Nome completo *" },
@@ -111,7 +113,7 @@
     "municipalityOther": { "label": "Cidade/região *" }
   },
   "errors": {
-    "missingRole": "Escolha uma função (Aluno ou Professor).",
+    "missingRole": "Escolha uma função (Aluno, Professor ou Responsável).",
     "missingName": "Digite seu nome completo.",
     "missingCountry": "Escolha um país.",
     "missingMunicipalityNo": "Escolha um município.",
@@ -463,6 +465,156 @@
       }
     }
   },
+  "parent": {
+  "spaces": {
+    "title": "Meus espaços",
+    "subtitle": "Aqui você encontra salas da família e espaços para atividades em casa.",
+    "defaultTitle": "Espaço sem nome",
+    "actions": {
+      "open": "Abrir",
+      "openSpace": "Abrir espaço",
+      "newSpace": "Criar espaço",
+      "parentGroups": "+ Criar espaço"
+    },
+    "meta": {
+      "code": "Código"
+    },
+    "kinds": {
+      "family": "Sala da família",
+      "parentGroup": "Grupo de pais",
+      "other": "Espaço"
+    },
+    "empty": "Você ainda não tem espaços de pais.",
+    "loading": "Carregando…",
+    "errors": {
+      "loadFailed": "Não foi possível carregar os espaços."
+    }
+  },
+  "spaceDetail": {
+    "loading": "Carregando…",
+    "header": {
+      "untitled": "Espaço sem nome",
+      "kind": "Tipo",
+      "code": "Código"
+    },
+    "kinds": {
+      "family": "Sala da família",
+      "parentGroup": "Grupo de pais",
+      "other": "Espaço"
+    },
+    "actions": {
+      "backToMySpaces": "Voltar para meus espaços",
+      "backMySpacesShort": "Meus espaços",
+      "open": "Abrir",
+      "openSpace": "Abrir espaço"
+    },
+    "missing": {
+      "title": "Espaço não encontrado",
+      "subtitle": "Ele pode ter sido excluído ou você não tem acesso."
+    },
+    "error": {
+      "title": "Algo deu errado"
+    },
+    "errors": {
+      "readSpace": "Não foi possível ler o espaço.",
+      "listenStart": "Não foi possível iniciar a leitura em tempo real do espaço.",
+      "readAssignments": "Não foi possível ler as atividades.",
+      "listenAssignmentsStart": "Não foi possível iniciar a leitura em tempo real das atividades."
+    },
+    "active": {
+      "title": "Atividade ativa",
+      "defaultTitle": "Tarefa",
+      "open": "Abrir atividade",
+      "hint": "Esta atividade pode ser usada como ponto de partida para algo que vocês façam juntos em casa.",
+      "none": "Nenhuma atividade ativa no momento."
+    },
+    "purpose": {
+      "title": "Este espaço pode ser usado para",
+      "family": "Uma sala da família pode ser usada para pequenas sessões de aprendizagem, leitura, atividades e conversas em casa.",
+      "parentGroup": "Um grupo de pais pode ser usado para compartilhar recursos, atividades e focos em comum."
+    },
+    "all": {
+      "title": "Todas as atividades neste espaço",
+      "showArchived": "Mostrar arquivadas",
+      "none": "Nenhuma atividade neste espaço.",
+      "archivedTag": "(arquivada)"
+    }
+  },
+  "assignmentDetail": {
+    "loading": "Carregando…",
+    "header": {
+      "defaultSpaceTitle": "Espaço sem nome",
+      "defaultAssignmentTitle": "Tarefa"
+    },
+    "kinds": {
+      "family": "Sala da família",
+      "parentGroup": "Grupo de pais",
+      "other": "Espaço"
+    },
+    "actions": {
+      "backToSpace": "Voltar ao espaço",
+      "open": "Abrir"
+    },
+    "missing": {
+      "title": "Tarefa não encontrada",
+      "subtitle": "Ela pode ter sido excluída ou você não tem acesso."
+    },
+    "error": {
+      "title": "Algo deu errado"
+    },
+    "errors": {
+      "readSpace": "Não foi possível ler o espaço.",
+      "listenSpaceStart": "Não foi possível iniciar a leitura em tempo real do espaço.",
+      "readAssignment": "Não foi possível ler a tarefa.",
+      "listenAssignmentStart": "Não foi possível iniciar a leitura em tempo real da tarefa."
+    },
+    "about": {
+      "title": "Sobre esta atividade",
+      "level": "Nível",
+      "language": "Idioma",
+      "tasks": "Tarefas",
+      "archived": "Arquivada",
+      "sourceType": "Tipo de fonte",
+      "sourceId": "ID da fonte"
+    },
+    "together": {
+      "title": "Em casa",
+      "text": "Use esta atividade como ponto de partida para leitura, conversa, explicação e pequenas tarefas em casa."
+    },
+    "content": {
+      "title": "Conteúdo",
+      "none": "Nenhum texto ou descrição foi adicionado ainda."
+    }
+  },
+  "newSpace": {
+    "title": "Criar nova sala da família",
+    "subtitle": "Dê ao espaço um nome que combine com a sua casa. Por exemplo, você pode criar um espaço para cada criança ou para cada tema.",
+    "loading": "Carregando…",
+    "fields": {
+      "title": "Nome do espaço",
+      "placeholder": "Por exemplo: Quarto do Knut",
+      "help": "Você pode mudar e desenvolver o espaço depois."
+    },
+    "suggestions": {
+      "title": "Sugestões",
+      "room1": "Quarto do Knut",
+      "room2": "Knut inglês",
+      "room3": "Emma leitura",
+      "room4": "Matemática em família"
+    },
+    "actions": {
+      "back": "Voltar para meus espaços",
+      "create": "Criar espaço",
+      "creating": "Criando…",
+      "cancel": "Cancelar"
+    },
+    "errors": {
+      "mustBeLoggedIn": "Você precisa estar conectado como responsável para criar um espaço.",
+      "missingTitle": "Digite um nome para o espaço.",
+      "createFailed": "Não foi possível criar o espaço."
+    }
+  }
+},
   "teacher": {
     "spaces": {
       "title": "Sala de aula/grupo",

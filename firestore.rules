@@ -19,6 +19,8 @@ service cloud.firestore {
     }
 
     function isMap(x) { return x is map; }
+    function isString(x) { return x is string; }
+    function nonEmptyString(x) { return isString(x) && x.size() > 0; }
 
     function mapHasTrue(m, key) { return isMap(m) && (key in m) && m[key] == true; }
     function hasRole(roleName) { return mapHasTrue(myUser().roles, roleName); }
@@ -31,6 +33,7 @@ service cloud.firestore {
     }
 
     function isTeacher() { return signedIn() && myRole() == "teacher"; }
+    function isParent() { return signedIn() && myRole() == "parent"; }
 
     function isAdmin() {
       return signedIn() && (myRole() == "admin" || hasRole("admin"));
@@ -112,6 +115,39 @@ service cloud.firestore {
       );
     }
 
+    function reqSpaceKind() {
+      return (request.resource != null
+        && request.resource.data is map
+        && ("kind" in request.resource.data)
+        && (request.resource.data.kind is string))
+        ? request.resource.data.kind
+        : null;
+    }
+
+    function spaceKind(spaceId) {
+      return spaceExists(spaceId)
+        && ("kind" in spaceData(spaceId))
+        && (spaceData(spaceId).kind is string)
+        ? spaceData(spaceId).kind
+        : null;
+    }
+
+    function teacherSpaceCreateOk() {
+      return (isTeacher() || isAdmin())
+        && (
+          reqSpaceKind() == null
+          || reqSpaceKind() == "class"
+        );
+    }
+
+    function parentSpaceCreateOk() {
+      return isParent()
+        && (
+          reqSpaceKind() == "family"
+          || reqSpaceKind() == "parent_group"
+        );
+    }
+
     /* =========================
        SPACE BOARD (per-space)
     ========================= */
@@ -145,9 +181,6 @@ service cloud.firestore {
         ? boardState(spaceId).sessionId
         : null;
     }
-
-    function isString(x) { return x is string; }
-    function nonEmptyString(x) { return isString(x) && x.size() > 0; }
 
     match /spaces/{spaceId}/board/{docId} {
       allow read: if signedIn() && (isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId));
@@ -241,6 +274,7 @@ service cloud.firestore {
             && (
               request.resource.data.role == "student"
               || request.resource.data.role == "teacher"
+              || request.resource.data.role == "parent"
             )
           );
       }
@@ -317,17 +351,22 @@ service cloud.firestore {
             && isSpaceOwner(resource.data.spaceId));
 
       allow create: if signedIn()
-        && (request.resource.data.spaceId is string)
-        && (request.resource.data.uid is string)
-        && request.resource.data.uid == myUid()
-        && docId == (request.resource.data.spaceId + "_" + request.resource.data.uid)
-        && displayNameOk()
-        && (
-          spaceIsOpen(request.resource.data.spaceId)
-          || joinCodeMatches(request.resource.data.spaceId)
-          || isSpaceOwner(request.resource.data.spaceId)
-          || isAdmin()
-        );
+  && (request.resource.data.spaceId is string)
+  && (request.resource.data.uid is string)
+  && request.resource.data.uid == myUid()
+  && docId == (request.resource.data.spaceId + "_" + request.resource.data.uid)
+  && displayNameOk()
+  && (
+    isAdmin()
+    || isSpaceOwner(request.resource.data.spaceId)
+    || (
+      spaceKind(request.resource.data.spaceId) == "class"
+      && (
+        spaceIsOpen(request.resource.data.spaceId)
+        || joinCodeMatches(request.resource.data.spaceId)
+      )
+    )
+  );
 
       allow update: if signedIn()
         && resource != null
@@ -385,17 +424,35 @@ service cloud.firestore {
        SPACES
     ========================= */
     match /spaces/{spaceId} {
-      allow read: if true;
+  allow read: if true;
 
-      allow create: if (isAdmin() || isTeacher())
-        && (request.resource.data.ownerId is string)
-        && request.resource.data.ownerId == myUid()
-        && (request.resource.data.title is string)
-        && (request.resource.data.code is string)
-        && (request.resource.data.isOpen is bool);
+  allow create: if signedIn()
+    && (request.resource.data.ownerId is string)
+    && request.resource.data.ownerId == myUid()
+    && (request.resource.data.title is string)
+    && request.resource.data.title.size() > 0
+    && (request.resource.data.isOpen is bool)
+    && (
+      isAdmin()
+      || (
+        isTeacher()
+        && (
+          !("kind" in request.resource.data)
+          || request.resource.data.kind == "class"
+        )
+      )
+      || (
+        isParent()
+        && ("kind" in request.resource.data)
+        && (
+          request.resource.data.kind == "family"
+          || request.resource.data.kind == "parent_group"
+        )
+      )
+    );
 
-      allow update, delete: if isAdmin() || isSpaceOwner(spaceId);
-    }
+  allow update, delete: if isAdmin() || isSpaceOwner(spaceId);
+}
 
     /* =========================
        SPACE-LOCAL ASSIGNMENTS
@@ -410,32 +467,72 @@ service cloud.firestore {
     ========================= */
     match /spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId} {
 
-      function isSubOwner() {
-        return signedIn()
-          && resource != null
-          && ("uid" in resource.data)
-          && (resource.data.uid is string)
-          && (resource.data.uid == myUid());
-      }
+  function isSubOwner() {
+    return signedIn()
+      && resource != null
+      && ("uid" in resource.data)
+      && (resource.data.uid is string)
+      && (resource.data.uid == myUid());
+  }
 
-      function canTeacherReadHere() {
-        return signedIn() && (
-          isSpaceOwner(spaceId)
-          || isAdmin()
-          || (isTeacher() && isSpaceMember(spaceId))
-        );
-      }
+  function isOwnSubmissionId() {
+    return signedIn()
+      && subId == (spaceId + "_" + assignmentId + "_" + myUid());
+  }
 
-      allow read: if isAdmin() || isSubOwner() || canTeacherReadHere();
+  function canTeacherReadHere() {
+    return signedIn() && (
+      isSpaceOwner(spaceId)
+      || isAdmin()
+      || (isTeacher() && isSpaceMember(spaceId))
+    );
+  }
 
-      allow create: if signedIn()
-        && (request.resource.data.uid is string)
-        && request.resource.data.uid == myUid()
-        && isSpaceMember(spaceId);
+  function canParentReadOwnHere() {
+    return signedIn()
+      && isParent()
+      && isSpaceMember(spaceId)
+      && isOwnSubmissionId();
+  }
 
-      allow update: if isAdmin() || isSpaceOwner(spaceId) || isSubOwner();
-      allow delete: if false;
-    }
+  allow read: if
+    isAdmin()
+    || isSubOwner()
+    || canTeacherReadHere()
+    || canParentReadOwnHere();
+
+  allow create: if signedIn()
+    && (request.resource.data.uid is string)
+    && request.resource.data.uid == myUid()
+    && isSpaceMember(spaceId);
+
+  allow update: if
+    isAdmin()
+    || isSpaceOwner(spaceId)
+    || isSubOwner()
+    || canParentReadOwnHere();
+
+  allow delete: if false;
+}
+match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
+
+  function isOwnParentReview() {
+    return signedIn() && uid == myUid();
+  }
+
+  allow read: if
+    isAdmin()
+    || isSpaceOwner(spaceId)
+    || isOwnParentReview();
+
+  allow create, update: if
+    signedIn()
+    && isParent()
+    && isSpaceMember(spaceId)
+    && isOwnParentReview();
+
+  allow delete: if false;
+}
 
     /* =========================
        SPACE SUBMISSIONS INDEX

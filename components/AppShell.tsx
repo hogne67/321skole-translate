@@ -10,11 +10,15 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { navItemsForRole } from "@/lib/navItems";
 import { useTranslations } from "next-intl";
 
-type AppRole = "student" | "teacher";
+type AppRole = "student" | "teacher" | "parent" | "admin" | "creator";
 
 function normalizeRole(role: unknown, isAnonymous: boolean): AppRole {
   if (isAnonymous) return "student";
-  return role === "teacher" ? "teacher" : "student";
+  if (role === "teacher") return "teacher";
+  if (role === "parent") return "parent";
+  if (role === "admin") return "admin";
+  if (role === "creator") return "creator";
+  return "student";
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -29,7 +33,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isLibrary = (pathname || "").endsWith("/321lessons");
   const isProducer = (pathname || "").includes("/producer");
 
-  const title = role === "teacher" ? tModes("teacher") : tModes("student");
+  const title =
+    role === "teacher"
+      ? tModes("teacher")
+      : role === "parent"
+        ? tModes("parent")
+        : role === "admin" || role === "creator"
+          ? tModes("teacher")
+          : tModes("student");
 
   const items = useMemo(() => {
     return navItemsForRole(role).map((it) => ({
@@ -51,7 +62,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {children}
           </SectionShell>
 
-          {/* Hindrer horisontal scroll hvis noe prøver å stikke utenfor */}
           <style jsx>{`
             :global(body) {
               overflow-x: hidden;

@@ -13,22 +13,28 @@ function requireDb(x: Firestore | null | undefined): Firestore {
   return x;
 }
 
-type Role2 = "student" | "teacher";
+type AppRole = "student" | "teacher" | "parent";
 
-function normalizeRole(raw: unknown): Role2 | null {
+function normalizeRole(raw: unknown): AppRole | null {
   const r = String(raw ?? "").toLowerCase();
 
   if (r === "teacher") return "teacher";
   if (r === "student") return "student";
+  if (r === "parent") return "parent";
 
-  // gamle roller -> teacher
-  if (r === "admin" || r === "creator" || r === "content" || r === "review" || r === "reviewer")
+  // gamle/utvidede roller:
+  // admin + creator behandles fortsatt som teacher-flyt i appen
+  if (r === "admin" || r === "creator" || r === "content" || r === "review" || r === "reviewer") {
     return "teacher";
-
-  // parent -> student
-  if (r === "parent") return "student";
+  }
 
   return null;
+}
+
+function homeForRole(role: AppRole, locale: string): string {
+  if (role === "teacher") return `/${locale}/teacher`;
+  if (role === "parent") return `/${locale}/parent`;
+  return `/${locale}/student`;
 }
 
 function normalizeNext(raw: string | null, locale: string): string | null {
@@ -38,7 +44,7 @@ function normalizeNext(raw: string | null, locale: string): string | null {
   try {
     next = decodeURIComponent(raw);
   } catch {
-    // ignore
+    // ignore bad encoding
   }
 
   if (!next.startsWith("/") || next.startsWith("//")) return null;
@@ -63,19 +69,30 @@ function normalizeNext(raw: string | null, locale: string): string | null {
 
   const withLocale = /^\/(en|no|pt)(\/|$)/.test(path) ? rebuilt : `/${locale}${rebuilt}`;
 
+  // Legacy remapping:
+  // gamle "globale" områder sendes til teacher-flyt
   const mapped =
-    withLocale.startsWith(`/${locale}/content`) ? `/${locale}/teacher` :
-    withLocale.startsWith(`/${locale}/review`) ? `/${locale}/teacher` :
-    withLocale.startsWith(`/${locale}/users`) ? `/${locale}/teacher` :
-    withLocale.startsWith(`/${locale}/321lessons`) ? `/${locale}/teacher` :
-    withLocale;
+    withLocale.startsWith(`/${locale}/content`)
+      ? `/${locale}/teacher`
+      : withLocale.startsWith(`/${locale}/review`)
+        ? `/${locale}/teacher`
+        : withLocale.startsWith(`/${locale}/users`)
+          ? `/${locale}/teacher`
+          : withLocale.startsWith(`/${locale}/321lessons`)
+            ? `/${locale}/teacher`
+            : withLocale;
 
-  const allowed = mapped.startsWith(`/${locale}/teacher`) || mapped.startsWith(`/${locale}/student`);
+  const allowed =
+    mapped.startsWith(`/${locale}/teacher`) ||
+    mapped.startsWith(`/${locale}/student`) ||
+    mapped.startsWith(`/${locale}/parent`);
+
   return allowed ? mapped : null;
 }
 
-function nextMatchesRole(next: string, role: Role2, locale: string): boolean {
+function nextMatchesRole(next: string, role: AppRole, locale: string): boolean {
   if (role === "teacher") return next.startsWith(`/${locale}/teacher`);
+  if (role === "parent") return next.startsWith(`/${locale}/parent`);
   return next.startsWith(`/${locale}/student`);
 }
 
@@ -104,22 +121,26 @@ export default function PostLoginPage() {
     if (!profile) return;
 
     const onboardingComplete = profile.onboardingComplete === true;
-    const role2 = normalizeRole(profile.role);
+    const role = normalizeRole(profile.role);
 
-    if (!role2 || !onboardingComplete) {
+    if (!role || !onboardingComplete) {
       const url = `/${locale}/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`;
       router.replace(url);
       return;
     }
 
-    // auto-migrate gammel rolle -> ny 2-rolle (uten teacherStatus!)
-    if (profile.role !== role2 || profile.onboardingComplete !== true) {
+    // auto-migrate eldre roller til ren rollemodell
+    if (profile.role !== role || profile.onboardingComplete !== true) {
       (async () => {
         try {
           const ref = doc(requireDb(db), "users", user.uid);
           await setDoc(
             ref,
-            { role: role2, onboardingComplete: true, updatedAt: serverTimestamp() },
+            {
+              role,
+              onboardingComplete: true,
+              updatedAt: serverTimestamp(),
+            },
             { merge: true }
           );
         } catch {
@@ -128,14 +149,12 @@ export default function PostLoginPage() {
       })();
     }
 
-    // kun bruk next hvis den matcher rollen
-    if (next && nextMatchesRole(next, role2, locale)) {
+    if (next && nextMatchesRole(next, role, locale)) {
       router.replace(next);
       return;
     }
 
-    const home = role2 === "teacher" ? `/${locale}/teacher` : `/${locale}/student`;
-    router.replace(home);
+    router.replace(homeForRole(role, locale));
   }, [loading, user, profile, router, locale, next]);
 
   return (

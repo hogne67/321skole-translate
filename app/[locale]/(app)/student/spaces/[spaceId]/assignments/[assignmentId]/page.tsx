@@ -1,3 +1,4 @@
+// app\[locale]\(app)\student\spaces\[spaceId]\assignments\[assignmentId]\page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";

@@ -30,9 +30,10 @@ function toErrorString(err: unknown): string {
   return String(err);
 }
 
-type Role = "student" | "teacher";
+type Role = "student" | "teacher" | "parent";
+
 function isRole(x: unknown): x is Role {
-  return x === "student" || x === "teacher";
+  return x === "student" || x === "teacher" || x === "parent";
 }
 
 type InstitutionType =
@@ -54,17 +55,29 @@ function isInstitutionType(x: unknown): x is InstitutionType {
   );
 }
 
-function normalizeNext(raw: string | null | undefined, locale: string): string {
-  const fallback = `/${locale}/student`;
+function homeForRole(role: Role, locale: string): string {
+  if (role === "teacher") return `/${locale}/teacher`;
+  if (role === "parent") return `/${locale}/parent`;
+  return `/${locale}/student`;
+}
+
+function normalizeNext(raw: string | null | undefined, locale: string, chosenRole?: Role | ""): string {
+  const fallback = homeForRole(chosenRole === "teacher" || chosenRole === "parent" ? chosenRole : "student", locale);
   const candidate = raw ?? fallback;
 
   if (!candidate.startsWith("/") || candidate.startsWith("//")) return fallback;
 
   const normalized = candidate.replace(/\/+$/, "");
-  const blocked = new Set([`/${locale}/login`, `/${locale}/onboarding`, "/login", "/onboarding", "/", `/${locale}`]);
+  const blocked = new Set([
+    `/${locale}/login`,
+    `/${locale}/onboarding`,
+    "/login",
+    "/onboarding",
+    "/",
+    `/${locale}`,
+  ]);
   if (blocked.has(normalized)) return fallback;
 
-  // already locale-prefixed
   if (/^\/(en|no|pt)(\/|$)/.test(normalized)) return normalized || fallback;
 
   return `/${locale}${normalized}`;
@@ -77,26 +90,20 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const locale = useLocale();
   const router = useRouter();
 
-  // Safe translation helper: never throws (prevents “spinner” from missing keys)
   function safeT(key: string, fallback = ""): string {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (t as any)(key) as string;
+      return t(key);
     } catch {
       return fallback;
     }
   }
 
-  const safeNext = useMemo(() => normalizeNext(nextUrl, locale), [nextUrl, locale]);
-
   const [uid, setUid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // “Hard errors” only for save failures etc.
   const [err, setErr] = useState<string | null>(null);
 
-  // Form
   const [role, setRole] = useState<Role | "">("");
   const [roleTouched, setRoleTouched] = useState(false);
 
@@ -136,7 +143,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
     [t]
   );
 
-  // Validation (disable submit)
+  const safeNext = useMemo(() => normalizeNext(nextUrl, locale, role), [nextUrl, locale, role]);
+
   const chosenRole = role;
   const nameOk = !!displayName.trim();
   const countryOk = !!country.trim();
@@ -144,8 +152,6 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const roleOk = !!chosenRole;
 
   const canSubmit = roleOk && nameOk && countryOk && municipalityOk;
-
-  // Friendly hint box (instead of “error”)
   const showRoleHint = roleTouched && !roleOk;
 
   useEffect(() => {
@@ -155,7 +161,6 @@ export default function OnboardingClient({ nextUrl }: Props) {
         return;
       }
 
-      // Onboarding requires a non-anon account
       if (u.isAnonymous) {
         router.replace(`/${locale}/login?next=${encodeURIComponent(`/${locale}/onboarding`)}`);
         return;
@@ -173,7 +178,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
           const p = (snap.data() ?? {}) as Record<string, unknown>;
 
           if (p.onboardingComplete === true) {
-            router.replace(safeNext);
+            router.replace(normalizeNext(nextUrl, locale, isRole(p.role) ? p.role : ""));
             return;
           }
 
@@ -214,14 +219,13 @@ export default function OnboardingClient({ nextUrl }: Props) {
     });
 
     return () => unsub();
-  }, [router, safeNext, locale]);
+  }, [router, safeNext, locale, nextUrl]);
 
   async function saveProfile() {
     if (!uid) return;
 
     setErr(null);
 
-    // Mark touched to show hint if missing
     if (!roleTouched) setRoleTouched(true);
 
     const chosen = role;
@@ -230,18 +234,17 @@ export default function OnboardingClient({ nextUrl }: Props) {
     const m = municipality.trim();
     const instName = institutionName.trim();
 
-    // Friendly: we don’t set “missingRole” as error anymore. Hint handles it.
     if (!chosen) return;
 
-    // These can still be “errors” if user somehow bypasses disabled state
     if (!name) return setErr(safeT("errors.missingName", "Skriv inn fullt navn."));
     if (!c) return setErr(safeT("errors.missingCountry", "Velg land."));
-    if (!m)
+    if (!m) {
       return setErr(
         isNorway
           ? safeT("errors.missingMunicipalityNo", "Velg kommune.")
           : safeT("errors.missingMunicipalityOther", "Skriv inn by/område.")
       );
+    }
 
     setSaving(true);
     try {
@@ -249,7 +252,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
       const payload = stripUndefined({
         displayName: name,
-        locale, // active locale
+        locale,
         role: chosen,
 
         org: stripUndefined({
@@ -266,8 +269,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
       await setDoc(ref, payload, { merge: true });
 
-      // Hard redirect (avoids router edge cases)
-      window.location.href = `/${locale}/post-login?next=${encodeURIComponent(safeNext)}`;
+      const finalNext = normalizeNext(nextUrl, locale, chosen);
+      window.location.href = `/${locale}/post-login?next=${encodeURIComponent(finalNext)}`;
     } catch (e: unknown) {
       setErr(toErrorString(e));
     } finally {
@@ -275,7 +278,6 @@ export default function OnboardingClient({ nextUrl }: Props) {
     }
   }
 
-  // ===== UI styles =====
   const pageBg: React.CSSProperties = {
     minHeight: "100vh",
     padding: 16,
@@ -308,7 +310,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
   const roleGrid: React.CSSProperties = {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
     gap: 10,
   };
 
@@ -372,14 +374,16 @@ export default function OnboardingClient({ nextUrl }: Props) {
           <div style={smallTop}>{safeT("title", "Kom i gang")} · 1/1</div>
           <h1 style={{ margin: 0 }}>{safeT("title", "Kom i gang")}</h1>
           <p style={{ opacity: 0.75, margin: 0 }}>
-            {safeT("subtitle", "Navn er obligatorisk. Land og kommune velges fra liste. Institusjon er valgfritt.")}
+            {safeT(
+              "subtitle",
+              "Navn er obligatorisk. Land og kommune velges fra liste. Institusjon er valgfritt."
+            )}
           </p>
         </div>
 
         {err ? <div style={errorBox}>{err}</div> : null}
 
         <section style={{ marginTop: 14, display: "grid", gap: 12 }}>
-          {/* ROLE PICKER */}
           <div style={{ display: "grid", gap: 8 }}>
             <div style={{ fontWeight: 900 }}>{safeT("fields.role.label", "Velg rolle *")}</div>
 
@@ -417,11 +421,28 @@ export default function OnboardingClient({ nextUrl }: Props) {
                   {safeT("fields.role.hint", "Velg rolle for å fortsette.")}
                 </div>
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRoleTouched(true);
+                  setRole("parent");
+                  setErr(null);
+                }}
+                style={roleCard(role === "parent")}
+              >
+                <div style={{ fontWeight: 900, fontSize: 14 }}>
+                  👨‍👩‍👧 {safeT("fields.role.parent", "Forelder")}
+                </div>
+                <div style={{ fontSize: 12, opacity: role === "parent" ? 0.85 : 0.7 }}>
+                  {safeT("fields.role.hint", "Velg rolle for å fortsette.")}
+                </div>
+              </button>
             </div>
 
             {showRoleHint ? (
               <div style={hintBox}>
-                {safeT("errors.missingRole", "Velg rolle (Student eller Lærer).")}
+                {safeT("errors.missingRole", "Velg rolle (Student, Lærer eller Forelder).")}
               </div>
             ) : null}
           </div>
@@ -459,7 +480,6 @@ export default function OnboardingClient({ nextUrl }: Props) {
             )}
           </div>
 
-          {/* Institution only for teacher */}
           {role === "teacher" ? (
             <div style={{ marginTop: 6, paddingTop: 10, borderTop: "1px solid rgba(0,0,0,0.08)" }}>
               <div style={{ fontWeight: 900, marginBottom: 8 }}>
@@ -514,10 +534,9 @@ export default function OnboardingClient({ nextUrl }: Props) {
             {saving ? safeT("buttons.saving", "Lagrer…") : safeT("buttons.complete", "Fullfør profil")}
           </button>
 
-          {/* Small “what’s missing” hint */}
           {!canSubmit ? (
             <div style={{ fontSize: 12, opacity: 0.7 }}>
-              {!roleOk ? `• ${safeT("errors.missingRole", "Velg rolle (Student eller Lærer).")}` : null}
+              {!roleOk ? `• ${safeT("errors.missingRole", "Velg rolle (Student, Lærer eller Forelder).")}` : null}
               {!nameOk ? `${roleOk ? "" : " "}• ${safeT("errors.missingName", "Skriv inn fullt navn.")}` : null}
               {!countryOk ? ` • ${safeT("errors.missingCountry", "Velg land.")}` : null}
               {!municipalityOk
@@ -531,6 +550,20 @@ export default function OnboardingClient({ nextUrl }: Props) {
           ) : null}
         </section>
       </div>
+
+      <style jsx>{`
+        @media (max-width: 720px) {
+          main :global(button) {
+            min-height: 44px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          div[style*="repeat(3, minmax(0, 1fr))"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }

@@ -1,4 +1,3 @@
-// components/TopNav.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -31,9 +30,9 @@ function getLocaleFromPathname(pathname: string | null): Locale | null {
  * Remove any leading locale segment(s) from a pathname.
  * Handles paths like:
  *   /en/student            -> /student
- *   /en/pt/student         -> /student   (cleans double locale)
- *   /pt/en/teacher/spaces  -> /teacher/spaces (cleans double locale)
- *   /space/ABC             -> /space/ABC (untouched)
+ *   /en/pt/student         -> /student
+ *   /pt/en/teacher/spaces  -> /teacher/spaces
+ *   /space/ABC             -> /space/ABC
  */
 function stripLeadingLocales(pathname: string): string {
   const parts = pathname.split("/").filter(Boolean);
@@ -50,11 +49,10 @@ function stripLeadingLocales(pathname: string): string {
 function withLocale(locale: Locale | null, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
 
-  // Share/public routes without locale should stay stable
   if (href.startsWith("/space/")) return href;
 
   const cleaned = stripLeadingLocales(href);
-  if (cleaned === "/") return "/";
+  if (cleaned === "/") return locale ? `/${locale}` : "/";
 
   if (locale) return `/${locale}${cleaned}`;
   return cleaned;
@@ -62,14 +60,10 @@ function withLocale(locale: Locale | null, href: string): string {
 
 /**
  * Swap locale in the current pathname (keeps rest of path).
- * - If current path has a locale, replace it.
- * - If path has NO locale (e.g. /space/...), keep unchanged.
- * - If path has DOUBLE locale, clean it (so you end up with single locale).
  */
 function setLocaleInPathname(pathname: string, nextLocale: Locale): string {
   if (!pathname) return `/${nextLocale}`;
 
-  // Share links should remain non-localized
   if (pathname.startsWith("/space/")) return pathname;
 
   const current = getLocaleFromPathname(pathname);
@@ -77,22 +71,20 @@ function setLocaleInPathname(pathname: string, nextLocale: Locale): string {
     const parts = pathname.split("/");
     parts[1] = nextLocale;
 
-    // Remove accidental double locale like /en/pt/...
     if (isLocale(parts[2])) parts.splice(2, 1);
 
     const joined = parts.join("/");
     return joined || `/${nextLocale}`;
   }
 
-  // If no locale in path, keep unchanged
   return pathname;
 }
 
 /* =========================
-   Role helpers (kun for onboarding)
+   Role helpers
 ========================= */
 
-type Role = "student" | "teacher";
+type AppRole = "student" | "teacher" | "parent" | "admin" | "creator";
 
 function readStringField(obj: unknown, key: string): string | null {
   if (!obj || typeof obj !== "object") return null;
@@ -101,8 +93,21 @@ function readStringField(obj: unknown, key: string): string | null {
   return typeof v === "string" ? v : null;
 }
 
-function safeRole(role: unknown): Role | null {
-  return role === "teacher" || role === "student" ? role : null;
+function safeRole(role: unknown): AppRole | null {
+  if (role === "student") return "student";
+  if (role === "teacher") return "teacher";
+  if (role === "parent") return "parent";
+  if (role === "admin") return "admin";
+  if (role === "creator") return "creator";
+  return null;
+}
+
+function defaultHomeForRole(role: AppRole | null): string {
+  if (role === "teacher") return "/teacher";
+  if (role === "parent") return "/parent";
+  if (role === "admin") return "/admin";
+  if (role === "creator") return "/creator";
+  return "/student";
 }
 
 export default function TopNav() {
@@ -127,10 +132,9 @@ export default function TopNav() {
   const isAnon = !!authUser?.isAnonymous;
   const isLoggedIn = !!authUser && !isAnon;
 
-  // Determine role:
-  // - anon => student
-  // - logged in => profile.role if set, otherwise null (onboarding needed)
-  const role = useMemo<Role | null>(() => {
+  // anon => student
+  // logged in => read real role if present
+  const role = useMemo<AppRole | null>(() => {
     if (isAnon) return "student";
     const roleStr = readStringField(profile, "role");
     return safeRole(roleStr);
@@ -143,7 +147,12 @@ export default function TopNav() {
     router.replace(withLocale(locale, "/"));
   }
 
-  const loginNext = encodeURIComponent(pathname || withLocale(locale, "/student"));
+  const nextAfterLogin = useMemo(() => {
+    if (pathname) return pathname;
+    return withLocale(locale, defaultHomeForRole(role));
+  }, [pathname, locale, role]);
+
+  const loginNext = encodeURIComponent(nextAfterLogin);
 
   function switchLocale(next: Locale) {
     if (next === currentLocale) return;
@@ -175,19 +184,22 @@ export default function TopNav() {
           style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}
           aria-label="321"
         >
-          <Image src="/logo 321_2.png" alt="321 logo" width={34} height={34} priority style={{ display: "block" }} />
+          <Image
+            src="/logo 321_2.png"
+            alt="321 logo"
+            width={34}
+            height={34}
+            priority
+            style={{ display: "block" }}
+          />
           <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.2 }}>
-            321{" "}
-            <span style={{ color: "#7cc7ff" }}>
-              {tBrand("school")}
-            </span>
+            321 <span style={{ color: "#7cc7ff" }}>{tBrand("school")}</span>
           </span>
         </Link>
       </div>
 
       {/* RIGHT */}
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        {/* Language dropdown (kompakt på mobil) */}
         <label className="langWrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span className="langIcon" aria-hidden="true" style={{ fontSize: 18, opacity: 0.85 }}>
             🌐
@@ -212,7 +224,6 @@ export default function TopNav() {
           </select>
         </label>
 
-        {/* Anon */}
         {isAnon && (
           <>
             <span style={{ fontSize: 13, opacity: 0.7 }}>{tTop("guestMode")}</span>
@@ -222,7 +233,6 @@ export default function TopNav() {
           </>
         )}
 
-        {/* Logged in */}
         {isLoggedIn && (
           <>
             {needsOnboarding && (
@@ -237,7 +247,6 @@ export default function TopNav() {
           </>
         )}
 
-        {/* Not determined yet (no authUser yet) */}
         {!authUser && (
           <Link href={withLocale(locale, `/login?next=${loginNext}`)} style={btnStyle}>
             {tTop("login")}

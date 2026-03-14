@@ -7,10 +7,12 @@ import { useLocale, useTranslations } from "next-intl";
 
 type Props = { userIsAnon: boolean };
 
-type Role = "student" | "teacher";
+type Role = "student" | "teacher" | "parent";
 
 function safeRole(role: unknown): Role {
-  return role === "teacher" ? "teacher" : "student";
+  if (role === "teacher") return "teacher";
+  if (role === "parent") return "parent";
+  return "student";
 }
 
 function readStringField(obj: unknown, key: string): string | null {
@@ -32,7 +34,12 @@ export function DashboardIntro({ userIsAnon }: Props) {
   // anon => student, ellers role fra profile
   const role: Role = userIsAnon ? "student" : safeRole(readStringField(profile, "role"));
 
-  const roleLabel = role === "teacher" ? tModes("teacher") : tModes("student");
+  const roleLabel =
+    role === "teacher"
+      ? tModes("teacher")
+      : role === "parent"
+        ? tModes("parent")
+        : tModes("student");
 
   return (
     <section

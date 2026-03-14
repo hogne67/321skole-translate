@@ -4,7 +4,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 import QRCode from "qrcode";
 
 import { db } from "@/lib/firebase";
@@ -15,9 +24,40 @@ import { authedPost } from "@/lib/authedPost";
 import { useLocale, useTranslations } from "next-intl";
 
 type LessonStatus = "draft" | "published";
-
-// UI-only filters (skiller praksis/bibliotek og innleveringer fra lærer/space)
 type FilterType = "all" | "library" | "teacher" | "lesson" | "submission" | "space";
+
+type AssignmentDoc = {
+  title?: string;
+  status?: string;
+  archived?: boolean;
+  updatedAt?: unknown;
+  level?: string;
+  language?: string;
+  [k: string]: unknown;
+};
+
+type ParentSpaceSubmissionDoc = {
+  uid?: string;
+  status?: string;
+  aiFeedback?: string | null;
+  auto?: {
+    score?: number;
+    maxScore?: number;
+    correctCount?: number;
+    totalAutoGraded?: number;
+  };
+  [k: string]: unknown;
+};
+
+type ParentSpaceMeta = {
+  lessonCount: number;
+  submittedCount: number;
+  draftCount: number;
+  aiFeedbackCount: number;
+  reviewCount: number;
+  activeLessonTitle: string | null;
+  activeSubmissionStatus: string | null;
+};
 
 function fmtDate(d: Date | null | undefined, locale: string) {
   if (!d) return "";
@@ -42,8 +82,38 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
+function safeString(v: unknown): string | null {
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+function buildParentSubmissionId(spaceId: string, assignmentId: string, uid: string) {
+  return `${spaceId}_${assignmentId}_${uid}`;
+}
+
 function pickVisibility(v: unknown): "public" | "unlisted" | "private" {
   return v === "unlisted" || v === "private" || v === "public" ? v : "public";
+}
+
+function parentChildProgressLabel(status: string | null, locale: string) {
+  const s = String(status ?? "").trim().toLowerCase();
+
+  if (s === "submitted" || s === "reviewed" || s === "approved") {
+    return locale === "en" ? "🟢 Completed by child" : "🟢 Fullført av barn";
+  }
+
+  if (s === "draft" || s === "needs_work") {
+    return locale === "en" ? "🟡 Started" : "🟡 Påbegynt";
+  }
+
+  return locale === "en" ? "⚪ Not started" : "⚪ Ikke startet";
+}
+
+function parentChildProgressVariant(status: string | null): "green" | "amber" | "gray" {
+  const s = String(status ?? "").trim().toLowerCase();
+
+  if (s === "submitted" || s === "reviewed" || s === "approved") return "green";
+  if (s === "draft" || s === "needs_work") return "amber";
+  return "gray";
 }
 
 function StatusPill({
@@ -132,7 +202,6 @@ function lastIdBits(id?: string) {
   return id.length > 6 ? id.slice(-4) : id;
 }
 
-// Prøv å hente lesson-title fra meta (vi putter ofte `Lesson: <title>` i meta)
 function lessonTitleFromMeta(meta?: string[]) {
   if (!meta?.length) return "";
   const m = meta.find((x) => typeof x === "string" && x.startsWith("Lesson: "));
@@ -162,12 +231,13 @@ export default function ContentClient() {
   const isAnon = !!user?.isAnonymous;
   const uid = user?.uid ?? null;
 
-  // ✅ V1-profil:
-  // - anon => student
-  // - ellers profile.role bestemmer (teacher|student), fallback student
-  const role: "student" | "teacher" = isAnon ? "student" : profile?.role === "teacher" ? "teacher" : "student";
+  type AppRole = "student" | "teacher" | "parent" | "admin" | "creator";
+  const role: AppRole = isAnon ? "student" : (profile?.role as AppRole) || "student";
   const isTeacher = role === "teacher";
-  const isTeacherApproved = isTeacher; // (V1: lærer er "approved" hvis rolle=teacher)
+  const isParent = role === "parent";
+
+  const contentMode: "student" | "teacher" = isTeacher ? "teacher" : "student";
+  const isTeacherApproved = isTeacher;
 
   const t = useTranslations("content");
   const locale = useLocale();
@@ -180,21 +250,20 @@ export default function ContentClient() {
   const [busyByKey, setBusyByKey] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState<string | null>(null);
 
-  // UI controls
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [showDeleted, setShowDeleted] = useState(false);
 
-  // Share link/QR modal
   const [shareOpen, setShareOpen] = useState(false);
   const [shareTitle, setShareTitle] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // Share to space modal
   const [pickSpaceOpen, setPickSpaceOpen] = useState(false);
   const [pickLesson, setPickLesson] = useState<{ lessonId: string; title: string } | null>(null);
+
+  const [parentSpaceMeta, setParentSpaceMeta] = useState<Record<string, ParentSpaceMeta>>({});
 
   const mySpaces = useMemo(() => items.filter((x) => x.type === "space"), [items]);
 
@@ -202,9 +271,6 @@ export default function ContentClient() {
     setBusyByKey((m) => ({ ...m, [key]: v }));
   }
 
-  // ---------------------------
-  // Routing helpers (ONE truth)
-  // ---------------------------
   function stripLeadingLocale(path: string) {
     const m = path.match(/^\/([a-z]{2})(\/|$)/i);
     if (!m) return path;
@@ -219,29 +285,25 @@ export default function ContentClient() {
   }
 
   function lessonOpenHref(it: Extract<ContentItem, { type: "lesson" }>) {
-    // If published, open active published version when possible
     const pid = it.activePublishedId || it.id;
     return `/${locale}/student/lesson/${pid}`;
   }
 
   function spaceBoardHref(spaceId: string) {
-    return role === "teacher"
-      ? `/${locale}/teacher/spaces/${spaceId}/board`
-      : `/${locale}/student/spaces/${spaceId}/board`;
+    if (role === "teacher") return `/${locale}/teacher/spaces/${spaceId}/board`;
+    return `/${locale}/student/spaces/${spaceId}/board`;
   }
 
-  // ✅ EN eneste itemOpenHref (ingen nested funksjoner!)
   function itemOpenHref(it: ContentItem) {
     switch (it.type) {
-      case "lesson": {
+      case "lesson":
         return lessonOpenHref(it);
-      }
-      case "submission": {
+      case "submission":
         return normalizeInternalHref(it.href);
-      }
-      case "space": {
-        return normalizeInternalHref(it.href);
-      }
+      case "space":
+        if (role === "teacher") return `/${locale}/teacher/spaces/${it.id}`;
+        if (role === "parent") return `/${locale}/parent/spaces/${it.id}`;
+        return `/${locale}/student/spaces/${it.id}`;
       default: {
         const anyIt = it as unknown as { href?: string };
         return normalizeInternalHref(anyIt.href || `/${locale}/content`);
@@ -249,9 +311,6 @@ export default function ContentClient() {
     }
   }
 
-  // ---------------------------
-  // Submission category helpers
-  // ---------------------------
   function isLibraryPractice(it: ContentItem) {
     return it.type === "submission" && (it.meta ?? []).includes("practice");
   }
@@ -287,7 +346,7 @@ export default function ContentClient() {
     setErr(null);
 
     try {
-      const args: LoadMyContentArgs = { db, mode: role, uid, isAnon };
+      const args: LoadMyContentArgs = { db, mode: contentMode, uid, isAnon };
       const res = await loadMyContent(args as unknown as Parameters<typeof loadMyContent>[0]);
       setItems(res.items);
       setNotes(res.notes);
@@ -303,6 +362,126 @@ export default function ContentClient() {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, isAnon, role]);
+
+  useEffect(() => {
+    if (!isParent || !uid || mySpaces.length === 0) {
+      setParentSpaceMeta({});
+      return;
+    }
+
+    const allUnsubs: Array<() => void> = [];
+
+    for (const s of mySpaces) {
+      const spaceId = s.id;
+      const lessonState: Record<string, { status: string | null; hasAi: boolean }> = {};
+      const reviewState: Record<string, boolean> = {};
+      const innerUnsubs: Array<() => void> = [];
+
+      const push = (
+        lessonCount: number,
+        activeLessonTitle: string | null,
+        activeLessonId: string | null
+      ) => {
+        const submittedCount = Object.values(lessonState).filter((x) => {
+          const st = String(x.status ?? "").toLowerCase();
+          return st === "submitted" || st === "reviewed" || st === "approved";
+        }).length;
+
+        const draftCount = Object.values(lessonState).filter((x) => {
+          const st = String(x.status ?? "").toLowerCase();
+          return st === "draft" || st === "needs_work";
+        }).length;
+
+        const aiFeedbackCount = Object.values(lessonState).filter((x) => x.hasAi).length;
+        const reviewCount = Object.values(reviewState).filter(Boolean).length;
+        const activeSubmissionStatus = activeLessonId ? lessonState[activeLessonId]?.status ?? null : null;
+
+        setParentSpaceMeta((old) => ({
+          ...old,
+          [spaceId]: {
+            lessonCount,
+            submittedCount,
+            draftCount,
+            aiFeedbackCount,
+            reviewCount,
+            activeLessonTitle,
+            activeSubmissionStatus,
+          },
+        }));
+      };
+
+      const lessonsQuery = query(
+        collection(db, "spaces", spaceId, "lessons"),
+        orderBy("updatedAt", "desc")
+      );
+
+      const unsubLessons = onSnapshot(
+        lessonsQuery,
+        (snap) => {
+          innerUnsubs.forEach((u) => u());
+          innerUnsubs.length = 0;
+
+          Object.keys(lessonState).forEach((k) => delete lessonState[k]);
+          Object.keys(reviewState).forEach((k) => delete reviewState[k]);
+
+          const lessons: Array<{ id: string; data: AssignmentDoc }> = [];
+          snap.forEach((d) => {
+            lessons.push({ id: d.id, data: d.data() as AssignmentDoc });
+          });
+
+          const activeLessonId =
+            ((s as unknown as { activeLessonId?: string }).activeLessonId ?? null) || null;
+
+          const activeLessonTitle =
+            ((s as unknown as { activeLessonTitle?: string }).activeLessonTitle ?? null) ||
+            (activeLessonId ? lessons.find((x) => x.id === activeLessonId)?.data.title ?? null : null);
+
+          push(lessons.length, activeLessonTitle, activeLessonId);
+
+          for (const lesson of lessons) {
+            const submissionId = buildParentSubmissionId(spaceId, lesson.id, uid);
+
+            const unsubSubmission = onSnapshot(
+              doc(db, "spaces", spaceId, "lessons", lesson.id, "submissions", submissionId),
+              (submissionSnap) => {
+                if (!submissionSnap.exists()) {
+                  lessonState[lesson.id] = { status: null, hasAi: false };
+                } else {
+                  const data = submissionSnap.data() as ParentSpaceSubmissionDoc;
+                  lessonState[lesson.id] = {
+                    status: safeString(data.status),
+                    hasAi: !!safeString(data.aiFeedback),
+                  };
+                }
+
+                push(lessons.length, activeLessonTitle, activeLessonId);
+              },
+              () => {}
+            );
+
+            const unsubReview = onSnapshot(
+              doc(db, "spaces", spaceId, "lessons", lesson.id, "parentReviews", uid),
+              (reviewSnap) => {
+                reviewState[lesson.id] = reviewSnap.exists();
+                push(lessons.length, activeLessonTitle, activeLessonId);
+              },
+              () => {}
+            );
+
+            innerUnsubs.push(unsubSubmission, unsubReview);
+          }
+        },
+        () => {}
+      );
+
+      allUnsubs.push(unsubLessons);
+      allUnsubs.push(() => innerUnsubs.forEach((u) => u()));
+    }
+
+    return () => {
+      allUnsubs.forEach((u) => u());
+    };
+  }, [isParent, uid, mySpaces]);
 
   const emptyHint = useMemo(() => {
     if (isAnon) {
@@ -329,7 +508,6 @@ export default function ContentClient() {
     return <p className="opacity-85">{t("empty.authed")}</p>;
   }, [isAnon, t, locale]);
 
-  // ---------- Share helpers ----------
   async function openShareModal(title: string, url: string) {
     setCopied(false);
     setQrDataUrl("");
@@ -406,7 +584,12 @@ export default function ContentClient() {
     setBusy(key, true);
 
     try {
-      await authedPost(`/api/teacher/spaces/${spaceId}/assign`, {
+      const apiPath =
+        role === "parent"
+          ? `/api/parent/spaces/${spaceId}/assign`
+          : `/api/teacher/spaces/${spaceId}/assign`;
+
+      await authedPost(apiPath, {
         sourceType: "myContent",
         sourceId: lessonId,
         title: pickLesson.title || t("fallback.untitledTask"),
@@ -414,8 +597,11 @@ export default function ContentClient() {
 
       closePickSpace();
 
-      // ✅ Send læreren rett inn i rommet
-      router.push(`/${locale}/teacher/spaces/${spaceId}`);
+      if (role === "parent") {
+        router.push(`/${locale}/parent/spaces/${spaceId}`);
+      } else {
+        router.push(`/${locale}/teacher/spaces/${spaceId}`);
+      }
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : t("errors.assignFailed"));
     } finally {
@@ -423,7 +609,6 @@ export default function ContentClient() {
     }
   }
 
-  // ---------- Publish / delete / restore ----------
   async function setPublished(lessonId: string, nextPublished: boolean) {
     const key = `lesson:${lessonId}`;
     setErr(null);
@@ -567,7 +752,6 @@ export default function ContentClient() {
     return filteredMeta.join(" · ");
   }
 
-  // ---------- Action builder ----------
   function buildActions(it: ContentItem): ActionItem[] {
     const key = `${it.type}:${it.id}`;
     const busy = !!busyByKey[key];
@@ -576,7 +760,6 @@ export default function ContentClient() {
       return [{ key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(it)) }];
     }
 
-    // SUBMISSION
     if (it.type === "submission") {
       const ss = it as Extract<ContentItem, { type: "submission" }>;
       const status = (ss.status ?? "").toLowerCase();
@@ -584,8 +767,19 @@ export default function ContentClient() {
 
       const canEditSubmission = role === "student" && !isReviewed && !isTeacherSpaceSubmission(ss);
 
+      const canShareSubmissionToSpace =
+        (isTeacher || isParent) &&
+        mySpaces.length > 0 &&
+        !!ss.lessonId &&
+        !isTeacherSpaceSubmission(ss);
+
       return [
-        { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(ss)) },
+        {
+          key: "open",
+          label: t("actions.open"),
+          disabled: busy,
+          onClick: () => router.push(itemOpenHref(ss)),
+        },
         ...(canEditSubmission
           ? [
               {
@@ -596,58 +790,67 @@ export default function ContentClient() {
               },
             ]
           : []),
+        ...(canShareSubmissionToSpace
+          ? [
+              {
+                key: "shareToSpace",
+                label: t("actions.shareToSpace"),
+                disabled: busy,
+                onClick: () => openPickSpace(ss.lessonId!, titleForCard(ss)),
+              },
+            ]
+          : []),
       ];
     }
 
-    // SPACE
     if (it.type === "space") {
       const sp = it as Extract<ContentItem, { type: "space" }>;
       const code = sp.joinCode || "";
       const joinUrl = code ? `${getOrigin()}/${locale}/join?code=${encodeURIComponent(code)}` : "";
 
-      // ✅ Kun lærer skal kunne dele rom med lenke/QR fra My Content
       const canShareSpace = role === "teacher";
 
       return [
         { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(sp)) },
-
-        // ✅ Tavle for både student og teacher (riktig route)
-        {
-          key: "board",
-          label: t("actions.board"),
-          disabled: busy,
-          onClick: () => router.push(spaceBoardHref(sp.id)),
-        },
-
+        ...(!isParent
+          ? [
+              {
+                key: "board",
+                label: t("actions.board"),
+                disabled: busy,
+                onClick: () => router.push(spaceBoardHref(sp.id)),
+              },
+            ]
+          : []),
         ...(canShareSpace && code
           ? [{ key: "copyCode", label: t("actions.copyJoinCode"), disabled: busy, onClick: () => copyText(code) }]
           : []),
-
         ...(canShareSpace
           ? [{ key: "share", label: t("actions.shareLinkQr"), disabled: busy, onClick: () => openShareForSpace(sp) }]
           : []),
-
         ...(canShareSpace && joinUrl
           ? [{ key: "copyJoinLink", label: t("actions.copyJoinLink"), disabled: busy, onClick: () => copyText(joinUrl) }]
           : []),
       ];
     }
 
-    // LESSON
     const ls = it as Extract<ContentItem, { type: "lesson" }>;
     const status = (ls.status ?? "draft") as LessonStatus;
     const isPublished = status === "published";
     const isDeleted = isDeletedItem(ls);
 
     const canPublish = isTeacherApproved && !isDeleted;
-    const canDelete = isTeacherApproved;
-    const canShareToSpace = mySpaces.length > 0 && isTeacherApproved && !isDeleted;
+    const canDelete = (isTeacher || isParent) && !busy;
+    const canShareToSpace = mySpaces.length > 0 && (isTeacher || isParent) && !isDeleted;
+    const canEdit = isTeacher && !isDeleted;
+    const canSharePublic = isTeacher && isPublished && !isDeleted;
+    const canPdf = isTeacher && !isDeleted;
 
     const editHref = `/${locale}/producer/${ls.id}`;
     const pdfHref = `/${locale}/producer/${ls.id}/print`;
 
     const restoreAction: ActionItem[] =
-      showDeleted && isDeleted && isTeacherApproved
+      showDeleted && isDeleted && (isTeacher || isParent)
         ? [
             {
               key: "restore",
@@ -661,17 +864,51 @@ export default function ContentClient() {
     return [
       ...restoreAction,
       { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(ls)) },
-      { key: "edit", label: t("actions.edit"), disabled: busy || isDeleted, onClick: () => router.push(editHref) },
+      ...(isTeacher
+        ? [
+            {
+              key: "edit",
+              label: t("actions.edit"),
+              disabled: busy || !canEdit,
+              onClick: () => router.push(editHref),
+            },
+            {
+              key: isPublished ? "unpublish" : "publish",
+              label: busy ? t("actions.working") : isPublished ? t("actions.unpublish") : t("actions.publish"),
+              disabled: busy || !canPublish,
+              onClick: () => setPublished(ls.id, !isPublished),
+            },
+            {
+              key: "share",
+              label: t("actions.share"),
+              disabled: busy || !canSharePublic,
+              onClick: () => openShareForLesson(ls),
+            },
+          ]
+        : []),
       {
-        key: isPublished ? "unpublish" : "publish",
-        label: busy ? t("actions.working") : isPublished ? t("actions.unpublish") : t("actions.publish"),
-        disabled: busy || !canPublish,
-        onClick: () => setPublished(ls.id, !isPublished),
+        key: "shareToSpace",
+        label: t("actions.shareToSpace"),
+        disabled: busy || !canShareToSpace,
+        onClick: () => openPickSpace(ls.id, titleForCard(ls)),
       },
-      { key: "share", label: t("actions.share"), disabled: busy || !isPublished || isDeleted, onClick: () => openShareForLesson(ls) },
-      { key: "shareToSpace", label: t("actions.shareToSpace"), disabled: busy || !canShareToSpace, onClick: () => openPickSpace(ls.id, titleForCard(ls)) },
-      { key: "pdf", label: t("actions.pdf"), disabled: busy || isDeleted || !isTeacher, onClick: () => router.push(pdfHref) },
-      { key: "delete", label: t("actions.delete"), danger: true, disabled: busy || !canDelete, onClick: () => deleteLessonSoft(ls.id, titleForCard(ls)) },
+      ...(isTeacher
+        ? [
+            {
+              key: "pdf",
+              label: t("actions.pdf"),
+              disabled: busy || !canPdf,
+              onClick: () => router.push(pdfHref),
+            },
+          ]
+        : []),
+      {
+        key: "delete",
+        label: t("actions.delete"),
+        danger: true,
+        disabled: busy || !canDelete,
+        onClick: () => deleteLessonSoft(ls.id, titleForCard(ls)),
+      },
     ];
   }
 
@@ -695,14 +932,11 @@ export default function ContentClient() {
       .filter((it) => (showDeleted ? true : !isDeletedItem(it)))
       .filter((it) => {
         if (filter === "all") return true;
-
         if (filter === "library") return isLibraryPractice(it);
         if (filter === "teacher") return isTeacherSpaceSubmission(it);
-
         if (filter === "lesson") return it.type === "lesson";
         if (filter === "submission") return it.type === "submission";
         if (filter === "space") return it.type === "space";
-
         return true;
       })
       .filter((it) => {
@@ -751,8 +985,14 @@ export default function ContentClient() {
     <main className="mx-auto w-full max-w-5xl px-4 py-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl font-black tracking-tight">{t("title")}</h1>
-          <p className="mt-1 text-sm opacity-75">{t("subtitle")}</p>
+          <h1 className="text-xl font-black tracking-tight">
+            {isParent ? "Mitt innhold for familien" : t("title")}
+          </h1>
+          <p className="mt-1 text-sm opacity-75">
+            {isParent
+              ? "Her finner du oppgaver du kan åpne, organisere og dele videre til barnas rom."
+              : t("subtitle")}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -762,12 +1002,11 @@ export default function ContentClient() {
         </div>
       </div>
 
-      {/* Search + filters */}
       <div className="mt-4">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={t("search.placeholder")}
+          placeholder={isParent ? "Søk i oppgaver, rom og innleveringer …" : t("search.placeholder")}
           className="w-full rounded-2xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-2"
         />
 
@@ -785,11 +1024,11 @@ export default function ContentClient() {
                   ft === "library"
                     ? locale === "en"
                       ? "Your own tasks from the library (practice)"
-                      : "Dine egne oppgaver hentet fra biblioteket (practice)"
+                      : "Dine egne oppgaver hentet fra biblioteket"
                     : ft === "teacher"
                       ? locale === "en"
                         ? "Assignments submitted in a class/space"
-                        : "Oppgaver levert i rom/klasse"
+                        : "Oppgaver levert i rom"
                       : undefined
                 }
               >
@@ -854,31 +1093,39 @@ export default function ContentClient() {
 
               let pill: React.ReactNode = null;
 
-              // Ekstra pill for bibliotek/innlevering for submissions
               const extraPill =
                 it.type === "submission"
                   ? isLibraryPractice(it)
-                    ? (locale === "en" ? <StatusPill label="Library" variant="gray" /> : <StatusPill label="Bibliotek" variant="gray" />)
+                    ? locale === "en"
+                      ? <StatusPill label="Library" variant="gray" />
+                      : <StatusPill label="Bibliotek" variant="gray" />
                     : isTeacherSpaceSubmission(it)
-                      ? (locale === "en" ? <StatusPill label="Teacher" variant="gray" /> : <StatusPill label="Innlevering" variant="gray" />)
+                      ? locale === "en"
+                        ? <StatusPill label="Teacher" variant="gray" />
+                        : <StatusPill label="Innlevering" variant="gray" />
                       : null
                   : null;
 
               if (isDeletedItem(it)) {
                 pill = <StatusPill label={deletedLabel} variant="amber" />;
               } else if (it.type === "lesson") {
-                const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
-                pill =
-                  s === "published" ? (
-                    <StatusPill label={t("pills.published")} variant="green" />
-                  ) : (
-                    <StatusPill label={t("pills.unpublished")} variant="red" />
-                  );
+                if (isParent) {
+                  pill = <StatusPill label="Klar til å dele" variant="green" />;
+                } else {
+                  const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
+                  pill =
+                    s === "published" ? (
+                      <StatusPill label={t("pills.published")} variant="green" />
+                    ) : (
+                      <StatusPill label={t("pills.unpublished")} variant="red" />
+                    );
+                }
               } else if (it.status) {
                 pill = <StatusPill label={it.status} variant="gray" />;
               }
 
               const metaLine = cleanMetaForCard(it);
+              const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
 
               return (
                 <div key={key} className="rounded-2xl border bg-white p-4">
@@ -906,13 +1153,42 @@ export default function ContentClient() {
                         {metaLine ? <span className="truncate">{metaLine}</span> : null}
                       </div>
 
-                      {/* quick actions on desktop */}
+                      {isParent && it.type === "lesson" ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <StatusPill label="Kan deles til barnas rom" variant="gray" />
+                        </div>
+                      ) : null}
+
+                      {parentMeta ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <StatusPill label={`${parentMeta.lessonCount} oppgaver`} variant="gray" />
+                          {parentMeta.activeLessonTitle ? (
+                            <StatusPill label={`Aktiv: ${parentMeta.activeLessonTitle}`} variant="gray" />
+                          ) : null}
+                          <StatusPill
+                            label={parentChildProgressLabel(parentMeta.activeSubmissionStatus, locale)}
+                            variant={parentChildProgressVariant(parentMeta.activeSubmissionStatus)}
+                          />
+                          {parentMeta.submittedCount > 0 ? (
+                            <StatusPill label={`${parentMeta.submittedCount} sendt inn`} variant="green" />
+                          ) : null}
+                          {parentMeta.draftCount > 0 ? (
+                            <StatusPill label={`${parentMeta.draftCount} påbegynt`} variant="amber" />
+                          ) : null}
+                          {parentMeta.aiFeedbackCount > 0 ? (
+                            <StatusPill label={`${parentMeta.aiFeedbackCount} med AI-feedback`} variant="green" />
+                          ) : null}
+                          {parentMeta.reviewCount > 0 ? (
+                            <StatusPill label={`${parentMeta.reviewCount} foreldrevurdert`} variant="green" />
+                          ) : null}
+                        </div>
+                      ) : null}
+
                       <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
                         {actions
                           .filter((a) =>
                             [
                               "open",
-                              "board",
                               "edit",
                               "publish",
                               "unpublish",
@@ -951,10 +1227,9 @@ export default function ContentClient() {
                       </div>
                     </div>
 
-                    {/* ✅ Høyre: Åpne + Tavle ved siden av hverandre for space, så ⋮ */}
                     <div className="shrink-0 flex items-center gap-2">
-  <ActionMenu items={actions} />
-</div>
+                      <ActionMenu items={actions} />
+                    </div>
                   </div>
                 </div>
               );
@@ -971,7 +1246,6 @@ export default function ContentClient() {
         </Link>
       </div>
 
-      {/* Share link/QR modal */}
       {shareOpen ? (
         <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
@@ -1020,7 +1294,6 @@ export default function ContentClient() {
         </div>
       ) : null}
 
-      {/* Share to space modal */}
       {pickSpaceOpen && pickLesson ? (
         <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">

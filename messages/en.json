@@ -12,7 +12,8 @@
     "newLesson": "+ New lesson",
     "users": "Users",
     "review": "Review",
-    "submissions": "Submissions"
+    "submissions": "Submissions",
+    "tools": "Tools"
   },
   "common": {
     "loading": "Loading…",
@@ -104,6 +105,7 @@
       "label": "Choose role *",
       "student": "Student",
       "teacher": "Teacher",
+      "parent": "Parent",
       "hint": "Choose a role to continue."
     },
     "fullName": { "label": "Full name *" },
@@ -112,7 +114,7 @@
     "municipalityOther": { "label": "City/area *" }
   },
   "errors": {
-    "missingRole": "Choose a role (Student or Teacher).",
+    "missingRole": "Choose a role (Student, Teacher or Parent).",
     "missingName": "Enter your full name.",
     "missingCountry": "Choose a country.",
     "missingMunicipalityNo": "Choose a municipality.",
@@ -464,6 +466,156 @@
       }
     }
   },
+  "parent": {
+  "spaces": {
+    "title": "My spaces",
+    "subtitle": "Here you will find family rooms and parent spaces for activities at home.",
+    "defaultTitle": "Untitled space",
+    "actions": {
+      "open": "Open",
+      "openSpace": "Open space",
+      "newSpace": "Create space",
+      "parentGroups": "+ Create new room"
+    },
+    "meta": {
+      "code": "Code"
+    },
+    "kinds": {
+      "family": "Family room",
+      "parentGroup": "Parent group",
+      "other": "Space"
+    },
+    "empty": "You do not have any parent spaces yet.",
+    "loading": "Loading…",
+    "errors": {
+      "loadFailed": "Could not load spaces."
+    }
+  },
+  "spaceDetail": {
+    "loading": "Loading…",
+    "header": {
+      "untitled": "Untitled space",
+      "kind": "Type",
+      "code": "Code"
+    },
+    "kinds": {
+      "family": "Family room",
+      "parentGroup": "Parent group",
+      "other": "Space"
+    },
+    "actions": {
+      "backToMySpaces": "Back to my spaces",
+      "backMySpacesShort": "My spaces",
+      "open": "Open",
+      "openSpace": "Open space"
+    },
+    "missing": {
+      "title": "Space not found",
+      "subtitle": "It may have been deleted or you may not have access."
+    },
+    "error": {
+      "title": "Something went wrong"
+    },
+    "errors": {
+      "readSpace": "Could not read the space.",
+      "listenStart": "Could not start listening to the space.",
+      "readAssignments": "Could not read assignments.",
+      "listenAssignmentsStart": "Could not start listening to assignments."
+    },
+    "active": {
+      "title": "Active activity",
+      "defaultTitle": "Assignment",
+      "open": "Open activity",
+      "hint": "This activity can be used as a starting point for something you do together at home.",
+      "none": "No active activity right now."
+    },
+    "purpose": {
+      "title": "This space can be used for",
+      "family": "A family room can be used for short learning sessions, reading, activities and conversations at home.",
+      "parentGroup": "A parent group can be used for sharing resources, activities and common focus areas."
+    },
+    "all": {
+      "title": "All activities in this space",
+      "showArchived": "Show archived",
+      "none": "No activities in this space.",
+      "archivedTag": "(archived)"
+    }
+  },
+  "assignmentDetail": {
+    "loading": "Loading…",
+    "header": {
+      "defaultSpaceTitle": "Untitled space",
+      "defaultAssignmentTitle": "Assignment"
+    },
+    "kinds": {
+      "family": "Family room",
+      "parentGroup": "Parent group",
+      "other": "Space"
+    },
+    "actions": {
+      "backToSpace": "Back to space",
+      "open": "Open"
+    },
+    "missing": {
+      "title": "Assignment not found",
+      "subtitle": "It may have been deleted or you may not have access."
+    },
+    "error": {
+      "title": "Something went wrong"
+    },
+    "errors": {
+      "readSpace": "Could not read the space.",
+      "listenSpaceStart": "Could not start listening to the space.",
+      "readAssignment": "Could not read the assignment.",
+      "listenAssignmentStart": "Could not start listening to the assignment."
+    },
+    "about": {
+      "title": "About this activity",
+      "level": "Level",
+      "language": "Language",
+      "tasks": "Tasks",
+      "archived": "Archived",
+      "sourceType": "Source type",
+      "sourceId": "Source ID"
+    },
+    "together": {
+      "title": "At home",
+      "text": "Use this activity as a starting point for reading, discussion, explanation and small tasks at home."
+    },
+    "content": {
+      "title": "Content",
+      "none": "No text or description has been added yet."
+    }
+  },
+  "newSpace": {
+    "title": "Create new family room",
+    "subtitle": "Give the room a name that fits your home. For example, you can create one room per child or per topic.",
+    "loading": "Loading…",
+    "fields": {
+      "title": "Room name",
+      "placeholder": "For example: Knut's room",
+      "help": "You can change and build on the room later."
+    },
+    "suggestions": {
+      "title": "Suggestions",
+      "room1": "Knut's room",
+      "room2": "Knut English",
+      "room3": "Emma reading",
+      "room4": "Family math"
+    },
+    "actions": {
+      "back": "Back to my spaces",
+      "create": "Create room",
+      "creating": "Creating…",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "mustBeLoggedIn": "You must be logged in as a parent to create a room.",
+      "missingTitle": "Enter a room name.",
+      "createFailed": "Could not create the room."
+    }
+  }
+},
   "teacher": {
     "spaces": {
       "title": "Spaces",

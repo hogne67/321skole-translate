@@ -1,9 +1,9 @@
-// app/(app)/parent/page.tsx
+// app\[locale]\(app)\parent\page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import {DashboardIntro} from "@/components/DashboardIntro";
+import { DashboardIntro } from "@/components/DashboardIntro";
 
 export default function ParentPage() {
   const [isAnon, setIsAnon] = useState(true);
@@ -23,19 +23,15 @@ export default function ParentPage() {
     };
 
     run();
+
     return () => {
       alive = false;
     };
   }, []);
 
   return (
-    <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
+    <main style={{ maxWidth: 1100, margin: "14px auto", padding: 12 }}>
       <DashboardIntro userIsAnon={isAnon} />
-
-      <h2 style={{ marginTop: 0 }}>Kommer snart</h2>
-      <p style={{ opacity: 0.8 }}>
-        Parent-delen bygger vi når vi har koblet barn ↔ forelder.
-      </p>
     </main>
   );
 }
