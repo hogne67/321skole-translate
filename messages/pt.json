@@ -194,6 +194,52 @@
 }
 },
   "tools": {
+    "page": {
+      "premium": {
+  "title": "Geradores premium",
+  "items": {
+    "assignmentGenerator": {
+      "title": "Gerador de tarefas",
+      "description": "Crie atividades estruturadas com apoio de IA."
+    },
+    "readingTestGenerator": {
+      "title": "Gerador de teste de leitura",
+      "description": "Crie testes de leitura com perguntas e avaliação automática."
+    }
+  }
+},
+  "title": "Ferramentas",
+  "subtitle": "Recursos de aprendizagem para escola e casa.",
+  "open": "Abrir ferramenta",
+  "badges": {
+    "NEW": "Novo",
+    "POPULAR": "Popular",
+    "BETA": "Beta",
+    "PREMIUM": "Premium"
+  },
+  "items": {
+    "translate": {
+      "title": "Tradutor",
+      "description": "Traduza palavras, frases e textos curtos entre idiomas."
+    },
+    "generator": {
+      "title": "Gerador de leitura",
+      "description": "Crie um pequeno texto de leitura com perguntas de múltipla escolha e verdadeiro/falso."
+    },
+    "vocab": {
+      "title": "Gerador de vocabulário",
+      "description": "Crie listas de vocabulário a partir de um tema ou texto."
+    },
+    "sentenceFixer": {
+      "title": "Corretor de frases",
+      "description": "Corrija a gramática e torne as frases mais claras."
+    },
+    "speakingTopic": {
+      "title": "Tópicos de conversa",
+      "description": "Gere um tema e perguntas de acompanhamento para prática de conversação."
+    }
+  }
+},
     "generator": {
       "title": "Gerador simples de tarefas",
       "subtitle": "Crie um texto curto com questões de múltipla escolha e verdadeiro/falso.",

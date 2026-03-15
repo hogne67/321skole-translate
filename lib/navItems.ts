@@ -29,8 +29,6 @@ export function navItemsForRole(role: Role): NavItem[] {
       ...base,
       { href: "/teacher/spaces", labelKey: "spaces" },
       { href: "/tools", labelKey: "tools" },
-      { href: "/producer/texts/new", labelKey: "createLesson" },
-      { href: "/producer/reading-tests/new", labelKey: "createtest" },
     ];
   }
 

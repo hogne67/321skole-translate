@@ -36,7 +36,7 @@
     "loginOrCreate": "Log in / Create account",
     "completeProfile": "Complete profile",
     "logout": "Log out",
-    "login": "Log in"    
+    "login": "Log in"
   },
   "modes": {
     "student": "Student",
@@ -54,258 +54,304 @@
   },
   "auth": {
     "login": {
-  "title": {
-    "signin": "Log in",
-    "signup": "Create account"
-  },
-  "intro": {
-    "anon": "You are using a temporary account. Sign in or create an account to keep your work.",
-    "normal": "Log in to continue.",
-    "signup": "Create an account to get started as a student, teacher or parent."
-  },
-  "tabs": {
-    "signin": "Log in",
-    "signup": "Create account"
-  },
-  "separator": "or",
-  "fields": {
-    "displayNameLabel": "Full name",
-    "displayNamePlaceholder": "Full name",
-    "emailLabel": "Email",
-    "emailPlaceholder": "Email",
-    "passwordLabel": "Password",
-    "passwordPlaceholder": "Password",
-    "rememberMe": "Remember me on this device"
-  },
-  "buttons": {
-    "working": "Working…",
-    "sending": "Sending…",
-    "upgradeGoogle": "Upgrade with Google",
-    "signinGoogle": "Continue with Google",
-    "signinEmail": "Log in with email",
-    "upgradeAccount": "Save anonymous account",
-    "createAccount": "Create account",
-    "forgotPassword": "Forgot password?",
-    "sendReset": "Send reset email"
-  },
-  "forgot": {
-    "title": "Reset password",
-    "text": "Enter your email and we will send you a link to create a new password."
-  },
-  "messages": {
-    "resetSent": "We sent you an email with a link to reset your password."
-  },
-  "hints": {
-    "anonSignup": "Tip: If this email already exists, choose <b>Log in</b> instead."
-  },
-  "footer": {
-    "noAccount": "Don’t have an account?",
-    "signupLink": "Create one here",
-    "hasAccount": "Already registered?",
-    "signinLink": "Log in here"
-  },
-  "errors": {
-    "missingEmail": "Enter your email.",
-    "missingPassword": "Enter your password.",
-    "missingName": "Enter your name.",
-    "invalidCredential": "Wrong email or password.",
-    "userNotFound": "No user found with that email.",
-    "emailAlreadyInUse": "That email is already in use.",
-    "emailAlreadyInUseLoginInstead": "That email is already in use. Log in instead.",
-    "weakPassword": "Password is too weak (minimum 6 characters).",
-    "invalidEmail": "Invalid email address.",
-    "tooManyRequests": "Too many attempts. Please try again later.",
-    "popupClosed": "Sign-in was cancelled.",
-    "generic": "Could not continue. Please try again."
-  }
-},
+      "title": {
+        "signin": "Log in",
+        "signup": "Create account"
+      },
+      "intro": {
+        "anon": "You are using a temporary account. Sign in or create an account to keep your work.",
+        "normal": "Log in to continue.",
+        "signup": "Create an account to get started as a student, teacher or parent."
+      },
+      "tabs": {
+        "signin": "Log in",
+        "signup": "Create account"
+      },
+      "separator": "or",
+      "fields": {
+        "displayNameLabel": "Full name",
+        "displayNamePlaceholder": "Full name",
+        "emailLabel": "Email",
+        "emailPlaceholder": "Email",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "Password",
+        "rememberMe": "Remember me on this device"
+      },
+      "buttons": {
+        "working": "Working…",
+        "sending": "Sending…",
+        "upgradeGoogle": "Upgrade with Google",
+        "signinGoogle": "Continue with Google",
+        "signinEmail": "Log in with email",
+        "upgradeAccount": "Save anonymous account",
+        "createAccount": "Create account",
+        "forgotPassword": "Forgot password?",
+        "sendReset": "Send reset email"
+      },
+      "forgot": {
+        "title": "Reset password",
+        "text": "Enter your email and we will send you a link to create a new password."
+      },
+      "messages": {
+        "resetSent": "We sent you an email with a link to reset your password."
+      },
+      "hints": {
+        "anonSignup": "Tip: If this email already exists, choose <b>Log in</b> instead."
+      },
+      "footer": {
+        "noAccount": "Don’t have an account?",
+        "signupLink": "Create one here",
+        "hasAccount": "Already registered?",
+        "signinLink": "Log in here"
+      },
+      "errors": {
+        "missingEmail": "Enter your email.",
+        "missingPassword": "Enter your password.",
+        "missingName": "Enter your name.",
+        "invalidCredential": "Wrong email or password.",
+        "userNotFound": "No user found with that email.",
+        "emailAlreadyInUse": "That email is already in use.",
+        "emailAlreadyInUseLoginInstead": "That email is already in use. Log in instead.",
+        "weakPassword": "Password is too weak (minimum 6 characters).",
+        "invalidEmail": "Invalid email address.",
+        "tooManyRequests": "Too many attempts. Please try again later.",
+        "popupClosed": "Sign-in was cancelled.",
+        "generic": "Could not continue. Please try again."
+      }
+    },
     "onboarding": {
-  "title": "Get started",
-  "loading": "Loading…",
-  "subtitle": "Choose your role and fill in basic information to continue.",
-  "steps": {
-    "role": {
-      "title": "Choose your role",
-      "text": "Choose the role that fits you best. You can add or change your role later."
-    },
-    "profile": {
-      "title": "Basic profile",
-      "text": "Tell us a little about yourself so we can tailor the experience."
-    },
-    "institution": {
-      "title": "Learning institution",
-      "text": "This step is optional, but it helps us tailor the teacher experience."
+      "title": "Get started",
+      "loading": "Loading…",
+      "subtitle": "Choose your role and fill in basic information to continue.",
+      "steps": {
+        "role": {
+          "title": "Choose your role",
+          "text": "Choose the role that fits you best. You can add or change your role later."
+        },
+        "profile": {
+          "title": "Basic profile",
+          "text": "Tell us a little about yourself so we can tailor the experience."
+        },
+        "institution": {
+          "title": "Learning institution",
+          "text": "This step is optional, but it helps us tailor the teacher experience."
+        }
+      },
+      "fields": {
+        "role": {
+          "label": "Choose role *",
+          "student": "Student",
+          "teacher": "Teacher",
+          "parent": "Parent",
+          "hint": "Choose one role to continue.",
+          "studentHint": "For pupils and students who want to learn more on their own or together with others.",
+          "teacherHint": "Learning platform for teaching staff with classes, classrooms and digital whiteboard.",
+          "parentHint": "For guardians who want to help their children learn more. Create your own study spaces and give them adapted tasks."
+        },
+        "fullName": {
+          "label": "Full name *"
+        },
+        "country": {
+          "label": "Country *",
+          "placeholder": "Search country…"
+        },
+        "municipalityNo": {
+          "label": "Municipality *",
+          "placeholder": "Search municipality…"
+        },
+        "municipalityOther": {
+          "label": "City / area *"
+        }
+      },
+      "errors": {
+        "missingRole": "Choose a role (Student, Teacher or Parent).",
+        "missingName": "Enter your full name.",
+        "missingCountry": "Choose a country.",
+        "missingMunicipalityNo": "Choose a municipality.",
+        "missingMunicipalityOther": "Enter a city or area."
+      },
+      "buttons": {
+        "back": "Back",
+        "continue": "Continue",
+        "saving": "Saving…",
+        "complete": "Complete profile"
+      },
+      "institution": {
+        "title": "Learning institution (optional)",
+        "typeLabel": "Type",
+        "none": "None",
+        "nameLabel": "Name (optional)",
+        "namePlaceholder": "",
+        "types": {
+          "school": "School",
+          "kindergarten": "Kindergarten",
+          "adult_education": "Adult education",
+          "university": "University / college",
+          "workplace": "Company / workplace",
+          "other": "Other"
+        }
+      }
     }
-  },
-  "fields": {
-    "role": {
-      "label": "Choose role *",
-      "student": "Student",
-      "teacher": "Teacher",
-      "parent": "Parent",
-      "hint": "Choose one role to continue.",
-      "studentHint": "For pupils and students who want to learn more on their own or together with others.",
-      "teacherHint": "Learning platform for teaching staff with classes, classrooms and digital whiteboard.",
-      "parentHint": "For guardians who want to help their children learn more. Create your own study spaces and give them adapted tasks."
-    },
-    "fullName": {
-      "label": "Full name *"
-    },
-    "country": {
-      "label": "Country *",
-      "placeholder": "Search country…"
-    },
-    "municipalityNo": {
-      "label": "Municipality *",
-      "placeholder": "Search municipality…"
-    },
-    "municipalityOther": {
-      "label": "City / area *"
-    }
-  },
-  "errors": {
-    "missingRole": "Choose a role (Student, Teacher or Parent).",
-    "missingName": "Enter your full name.",
-    "missingCountry": "Choose a country.",
-    "missingMunicipalityNo": "Choose a municipality.",
-    "missingMunicipalityOther": "Enter a city or area."
-  },
-  "buttons": {
-    "back": "Back",
-    "continue": "Continue",
-    "saving": "Saving…",
-    "complete": "Complete profile"
-  },
-  "institution": {
-    "title": "Learning institution (optional)",
-    "typeLabel": "Type",
-    "none": "None",
-    "nameLabel": "Name (optional)",
-    "namePlaceholder": "",
-    "types": {
-      "school": "School",
-      "kindergarten": "Kindergarten",
-      "adult_education": "Adult education",
-      "university": "University / college",
-      "workplace": "Company / workplace",
-      "other": "Other"
-    }
-  }
-}
   },
   "tools": {
-  "generator": {
-    "title": "Simple task generator",
-    "subtitle": "Generate a short text with multiple choice and true/false tasks.",
-    "fields": {
-      "topic": "Topic",
-      "level": "CEFR",
-      "length": "Length",
-      "language": "Language"
+    "page": {
+      "title": "Tools",
+      "subtitle": "Learning resources for school and home.",
+      "open": "Open tool",
+      "badges": {
+  "NEW": "New",
+  "POPULAR": "Popular",
+  "BETA": "Beta",
+  "PREMIUM": "Premium"
+},
+      "premium": {
+  "title": "Premium generators",
+  "items": {
+    "assignmentGenerator": {
+      "title": "Assignment generator",
+      "description": "Create structured assignments with AI support."
     },
-    "placeholders": {
-      "topic": "e.g. Food, Winter, Work..."
+    "readingTestGenerator": {
+      "title": "Reading test generator",
+      "description": "Generate reading tests with questions and automatic evaluation."
+    }
+  }
+},
+      "items": {
+        "translate": {
+          "title": "Translator",
+          "description": "Translate words, sentences and short texts between languages."
+        },
+        "generator": {
+          "title": "Reading generator",
+          "description": "Create a short reading text with auto-corrected questions."
+        },
+        "vocab": {
+          "title": "Glossary generator",
+          "description": "Build vocabulary lists from a topic or text."
+        },
+        "sentenceFixer": {
+          "title": "Sentence fixer",
+          "description": "Fix grammar and make sentences clearer."
+        },
+        "speakingTopic": {
+          "title": "Speaking topics",
+          "description": "Generate a topic and follow-up questions for speaking practice."
+        }
+      }
     },
-    "length": {
-      "short": "Short",
-      "normal": "Normal",
-      "long": "Long"
+    "generator": {
+      "title": "Simple task generator",
+      "subtitle": "Generate a short text with multiple choice and true/false tasks.",
+      "fields": {
+        "topic": "Topic",
+        "level": "CEFR",
+        "length": "Length",
+        "language": "Language"
+      },
+      "placeholders": {
+        "topic": "e.g. Food, Winter, Work..."
+      },
+      "length": {
+        "short": "Short",
+        "normal": "Normal",
+        "long": "Long"
+      },
+      "languages": {
+        "en": "English",
+        "no": "Norwegian",
+        "pt": "Portuguese"
+      },
+      "actions": {
+        "generate": "Generate",
+        "generating": "Generating...",
+        "checkAnswers": "Check answers"
+      },
+      "sections": {
+        "text": "Text",
+        "tasks": "Tasks"
+      },
+      "meta": {
+        "level": "Level",
+        "topic": "Topic",
+        "language": "Language"
+      },
+      "taskLabel": "Task {number}",
+      "taskTypes": {
+        "mcq": "multiple choice",
+        "truefalse": "true/false"
+      },
+      "answers": {
+        "true": "True",
+        "false": "False"
+      },
+      "results": {
+        "correct": "Correct",
+        "incorrect": "Not correct",
+        "correctAnswer": "Correct answer",
+        "score": "Score: {score} / {total}"
+      },
+      "errors": {
+        "generateFailed": "Could not generate"
+      }
     },
-    "languages": {
-      "en": "English",
-      "no": "Norwegian",
-      "pt": "Portuguese"
+    "sentenceFixer": {
+      "title": "Sentence fixer",
+      "subtitle": "Fix grammar, get a short explanation, and see a better version.",
+      "fields": {
+        "language": "Language",
+        "level": "CEFR",
+        "mode": "Mode",
+        "text": "Text"
+      },
+      "modes": {
+        "sentence": "One sentence",
+        "short": "Short text"
+      },
+      "placeholders": {
+        "text": "Write a sentence or a short text here..."
+      },
+      "actions": {
+        "fix": "Fix sentence",
+        "fixing": "Fixing..."
+      },
+      "sections": {
+        "corrected": "Corrected",
+        "explanation": "Explanation",
+        "betterVersion": "Better version"
+      },
+      "hint": "Best for one sentence or a very short text."
     },
-    "actions": {
-      "generate": "Generate",
-      "generating": "Generating...",
-      "checkAnswers": "Check answers"
-    },
-    "sections": {
-      "text": "Text",
-      "tasks": "Tasks"
-    },
-    "meta": {
-      "level": "Level",
-      "topic": "Topic",
-      "language": "Language"
-    },
-    "taskLabel": "Task {number}",
-    "taskTypes": {
-      "mcq": "multiple choice",
-      "truefalse": "true/false"
-    },
-    "answers": {
-      "true": "True",
-      "false": "False"
-    },
-    "results": {
-      "correct": "Correct",
-      "incorrect": "Not correct",
-      "correctAnswer": "Correct answer",
-      "score": "Score: {score} / {total}"
-    },
-    "errors": {
-      "generateFailed": "Could not generate"
+    "speakingTopic": {
+      "title": "Speaking topic generator",
+      "subtitle": "Generate a topic, a main question and follow-up questions for speaking practice.",
+      "fields": {
+        "language": "Language",
+        "level": "CEFR",
+        "category": "Category"
+      },
+      "categories": {
+        "everyday": "Everyday life",
+        "school": "School",
+        "work": "Work",
+        "travel": "Travel",
+        "food": "Food",
+        "friends": "Friends and family",
+        "culture": "Culture",
+        "free": "Free topic"
+      },
+      "actions": {
+        "generate": "Generate topic",
+        "generating": "Generating..."
+      },
+      "sections": {
+        "topic": "Topic",
+        "mainQuestion": "Main question",
+        "followups": "Follow-up questions"
+      },
+      "hint": "Great for pair work, speaking practice and language cafés."
     }
   },
-  "sentenceFixer": {
-    "title": "Sentence fixer",
-    "subtitle": "Fix grammar, get a short explanation, and see a better version.",
-    "fields": {
-      "language": "Language",
-      "level": "CEFR",
-      "mode": "Mode",
-      "text": "Text"
-    },
-    "modes": {
-      "sentence": "One sentence",
-      "short": "Short text"
-    },
-    "placeholders": {
-      "text": "Write a sentence or a short text here..."
-    },
-    "actions": {
-      "fix": "Fix sentence",
-      "fixing": "Fixing..."
-    },
-    "sections": {
-      "corrected": "Corrected",
-      "explanation": "Explanation",
-      "betterVersion": "Better version"
-    },
-    "hint": "Best for one sentence or a very short text."
-  },
-  "speakingTopic": {
-  "title": "Speaking topic generator",
-  "subtitle": "Generate a topic, a main question and follow-up questions for speaking practice.",
-  "fields": {
-    "language": "Language",
-    "level": "CEFR",
-    "category": "Category"
-  },
-  "categories": {
-    "everyday": "Everyday life",
-    "school": "School",
-    "work": "Work",
-    "travel": "Travel",
-    "food": "Food",
-    "friends": "Friends and family",
-    "culture": "Culture",
-    "free": "Free topic"
-  },
-  "actions": {
-    "generate": "Generate topic",
-    "generating": "Generating..."
-  },
-  "sections": {
-    "topic": "Topic",
-    "mainQuestion": "Main question",
-    "followups": "Follow-up questions"
-  },
-  "hint": "Great for pair work, speaking practice and language cafés."
-}
-},
   "student": {
     "spaces": {
       "title": "My spaces",

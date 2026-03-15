@@ -1,143 +1,133 @@
-// app/[locale]/(app)/tools/page.tsx
+// app/[locale]/(app)/tools/page.tsx"use client";
 "use client";
 
 import Link from "next/link";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
-type ToolBadge = "NEW" | "POPULAR" | "BETA";
+type ToolBadge = "NEW" | "POPULAR" | "BETA" | "PREMIUM";
 
 type Tool = {
+  id: string;
   href: string;
-  title: string;
-  description: string;
-  icon: string;
   badge?: ToolBadge;
-  gradient: string;
 };
 
+const premiumTools: Tool[] = [
+  {
+    id: "assignmentGenerator",
+    href: "/producer/texts/new",
+    badge: "PREMIUM",
+  },
+  {
+    id: "readingTestGenerator",
+    href: "/producer/reading-tests/new",
+    badge: "PREMIUM",
+  },
+];
+
 const tools: Tool[] = [
-  {
-    href: "/tools/translate",
-    title: "Translator",
-    description: "Translate words, sentences and short texts between languages.",
-    icon: "🌍",
-    badge: "POPULAR",
-    gradient: "from-sky-50 to-white",
-  },
-  {
-    href: "/tools/generator",
-    title: "Reading generator",
-    description: "Create a short reading text with auto-corrected questions.",
-    icon: "📖",
-    badge: "NEW",
-    gradient: "from-violet-50 to-white",
-  },
-  {
-    href: "/tools/vocab",
-    title: "Glossary generator",
-    description: "Build vocabulary lists from a topic or text.",
-    icon: "🧠",
-    badge: "BETA",
-    gradient: "from-emerald-50 to-white",
-  },
-  {
-  href: "/tools/sentence-fixer",
-  title: "Sentence fixer",
-  description: "Fix grammar and make sentences clearer.",
-  icon: "✏️",
-  badge: "NEW",
-  gradient: "from-rose-50 to-white",
-},
-{
-  href: "/tools/speaking-topic",
-  title: "Speaking topics",
-  description: "Generate a topic and follow-up questions for speaking practice.",
-  icon: "🎲",
-  badge: "NEW",
-  gradient: "from-amber-50 to-white",
-},
+  { id: "translate", href: "/tools/translate", badge: "POPULAR" },
+  { id: "generator", href: "/tools/generator", badge: "NEW" },
+  { id: "vocab", href: "/tools/vocab", badge: "BETA" },
+  { id: "sentenceFixer", href: "/tools/sentence-fixer", badge: "NEW" },
+  { id: "speakingTopic", href: "/tools/speaking-topic", badge: "NEW" },
 ];
 
 function badgeClass(badge?: ToolBadge) {
+  if (badge === "PREMIUM") return "bg-sky-600 text-white";
   if (badge === "NEW") return "bg-slate-900 text-white";
-  if (badge === "POPULAR") return "bg-amber-100 text-amber-800 border border-amber-200";
-  if (badge === "BETA") return "bg-indigo-100 text-indigo-700 border border-indigo-200";
+  if (badge === "POPULAR") return "border border-amber-200 bg-amber-50 text-amber-800";
+  if (badge === "BETA") return "border border-indigo-200 bg-indigo-50 text-indigo-700";
   return "bg-slate-100 text-slate-700";
 }
 
 export default function ToolsPage() {
   const locale = useLocale();
+  const t = useTranslations("tools.page");
 
   return (
-    <main className="relative mx-auto max-w-6xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10">
+      <section className="mb-10">
+        <h1 className="text-3xl font-black tracking-tight text-slate-900">
+          {t("title")}
+        </h1>
 
-      {/* background glow */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-[-200px] top-[-120px] h-[420px] w-[420px] rounded-full bg-sky-200/30 blur-3xl" />
-        <div className="absolute right-[-200px] top-[120px] h-[420px] w-[420px] rounded-full bg-violet-200/30 blur-3xl" />
-      </div>
+        <p className="mt-2 text-sm text-slate-600">{t("subtitle")}</p>
+      </section>
 
-      {/* hero */}
-      <section className="rounded-3xl border border-slate-200 bg-white/70 backdrop-blur p-8 shadow-sm">
-        <div className="max-w-2xl">
-          <div className="mb-2 text-xs font-extrabold uppercase tracking-widest text-slate-500">
-            321 Tools
-          </div>
+      <section className="mb-12">
+        <h2 className="mb-4 text-xl font-bold text-slate-900">
+          {t("premium.title")}
+        </h2>
 
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">
-            Small tools for learning, practice and play
-          </h1>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {premiumTools.map((tool) => (
+            <Link
+              key={tool.id}
+              href={`/${locale}${tool.href}`}
+              className="group relative flex min-h-[190px] flex-col justify-between rounded-2xl border border-sky-300 bg-sky-100 p-6 no-underline hover:no-underline shadow-sm transition-all duration-200 hover:border-sky-400 hover:bg-sky-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-300"
+            >
+              <div className="absolute left-0 top-0 h-1 w-full rounded-t-2xl bg-sky-500" />
 
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            Quick helpers for language learning. Some tools are simple, others
-            may grow into full learning apps.
-          </p>
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-lg font-bold text-slate-900 no-underline">
+                  {t(`premium.items.${tool.id}.title`)}
+                </h3>
+
+                {tool.badge && (
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide ${badgeClass(
+                      tool.badge
+                    )}`}
+                  >
+                    {t(`badges.${tool.badge}`)}
+                  </span>
+                )}
+              </div>
+
+              <p className="mt-3 text-base text-slate-600">
+                {t(`premium.items.${tool.id}.description`)}
+              </p>
+
+              <div className="mt-6 text-sm font-semibold text-slate-900 no-underline">
+                {t("open")}
+              </div>
+            </Link>
+          ))}
         </div>
       </section>
 
-      {/* cards */}
-      <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {tools.map((tool) => (
           <Link
-            key={tool.href}
+            key={tool.id}
             href={`/${locale}${tool.href}`}
-            className={`group relative flex min-h-[230px] flex-col justify-between overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br ${tool.gradient} p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl`}
+            className="group relative flex min-h-[180px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 no-underline hover:no-underline shadow-sm transition-all duration-100 hover:border-sky-200 hover:bg-sky-100 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-200"
           >
-
-            {/* glow hover */}
-            <div className="absolute inset-0 opacity-0 transition group-hover:opacity-100">
-              <div className="absolute -top-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
-            </div>
+            <div className="absolute left-0 top-0 h-1 w-full rounded-t-2xl bg-transparent transition group-hover:bg-sky-400" />
 
             <div className="flex items-start justify-between gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-white/80 text-3xl shadow-sm">
-                {tool.icon}
-              </div>
+              <h2 className="text-lg font-bold text-slate-900 no-underline">
+                {t(`items.${tool.id}.title`)}
+              </h2>
 
               {tool.badge && (
                 <span
-                  className={`inline-flex h-7 items-center rounded-full px-3 text-[11px] font-extrabold tracking-wide ${badgeClass(
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide ${badgeClass(
                     tool.badge
                   )}`}
                 >
-                  {tool.badge}
+                  {t(`badges.${tool.badge}`)}
                 </span>
               )}
             </div>
 
-            <div className="mt-5">
-              <h2 className="text-lg font-extrabold text-slate-900">
-                {tool.title}
-              </h2>
+            <p className="mt-3 text-base text-slate-600">
+              {t(`items.${tool.id}.description`)}
+            </p>
 
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {tool.description}
-              </p>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between text-sm font-bold text-slate-800">
-              <span>Open tool</span>
-              <span className="transition group-hover:translate-x-1">→</span>
+            <div className="mt-6 text-sm font-semibold text-slate-800 no-underline">
+              {t("open")}
             </div>
           </Link>
         ))}

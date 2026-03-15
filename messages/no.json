@@ -194,6 +194,52 @@
 }
 },
   "tools": {
+    "page": {
+      "premium": {
+  "title": "Premiumgeneratorer",
+  "items": {
+    "assignmentGenerator": {
+      "title": "Oppgavegenerator",
+      "description": "Lag strukturerte oppgaver med støtte fra AI."
+    },
+    "readingTestGenerator": {
+      "title": "Lesetestgenerator",
+      "description": "Lag lesetester med spørsmål og automatisk vurdering."
+    }
+  }
+},
+  "title": "Verktøy",
+  "subtitle": "Læringsressurser for skole og hjem.",
+  "open": "Åpne verktøy",
+  "badges": {
+    "NEW": "Ny",
+    "POPULAR": "Populær",
+    "BETA": "Beta",
+    "PREMIUM": "Premium"
+  },
+  "items": {
+    "translate": {
+      "title": "Oversetter",
+      "description": "Oversett ord, setninger og korte tekster mellom språk."
+    },
+    "generator": {
+      "title": "Lesetekstgenerator",
+      "description": "Lag en kort lesetekst med flervalgsoppgaver og sant/usant."
+    },
+    "vocab": {
+      "title": "Ordlistegenerator",
+      "description": "Lag ordlister fra et tema eller en tekst."
+    },
+    "sentenceFixer": {
+      "title": "Setningsretter",
+      "description": "Rett grammatikk og gjør setninger tydeligere."
+    },
+    "speakingTopic": {
+      "title": "Samtaletema",
+      "description": "Generer et tema og oppfølgingsspørsmål for muntlig øving."
+    }
+  }
+},
     "generator": {
       "title": "Simple task generator",
       "subtitle": "Generate a short text with multiple choice and true/false tasks.",
