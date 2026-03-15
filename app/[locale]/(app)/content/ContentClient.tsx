@@ -142,9 +142,16 @@ function StatusPill({
           : "border-zinc-200 bg-zinc-50 text-zinc-800";
 
   return (
-    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold ${ring}`}>
+    <span
+      className={[
+        "inline-flex min-w-0 max-w-full items-center gap-2 rounded-full border px-3 py-1",
+        "text-xs font-extrabold",
+        "whitespace-normal break-words",
+        ring,
+      ].join(" ")}
+    >
       <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
-      <span className="truncate">{label}</span>
+      <span className="min-w-0 break-words">{label}</span>
     </span>
   );
 }
@@ -912,6 +919,22 @@ export default function ContentClient() {
     ];
   }
 
+  function visibleDesktopActionKeys(it: ContentItem): string[] {
+    if (it.type === "submission") return ["open", "edit", "shareToSpace"];
+    if (it.type === "space") return ["open", "board", "copyCode", "shareLinkQr", "copyJoinLink"];
+    return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "pdf", "delete", "restore"];
+  }
+
+  function desktopActions(it: ContentItem, actions: ActionItem[]) {
+    const visible = visibleDesktopActionKeys(it);
+    return actions.filter((a) => visible.includes(a.key)).slice(0, 6);
+  }
+
+  function desktopOverflowActions(it: ContentItem, actions: ActionItem[]) {
+    const visible = new Set(desktopActions(it, actions).map((a) => a.key));
+    return actions.filter((a) => !visible.has(a.key));
+  }
+
   const counts = useMemo(() => {
     const c = { lesson: 0, submission: 0, space: 0, library: 0, teacher: 0 };
     for (const it of items) {
@@ -999,370 +1022,367 @@ export default function ContentClient() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-3 py-4 sm:px-4">
-      <div className="flex flex-col gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-black tracking-tight">
-            {isParent ? "Mitt innhold for familien" : t("title")}
-          </h1>
-          <p className="mt-1 text-sm opacity-75">
-            {isParent
-              ? "Her finner du oppgaver du kan åpne, organisere og dele videre til barnas rom."
-              : t("subtitle")}
-          </p>
+    <main className="mx-auto w-full max-w-5xl min-w-0 px-2 py-4 sm:px-4">
+      <div className="mx-auto w-full min-w-0 max-w-full overflow-x-clip">
+        <div className="flex flex-col gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-black tracking-tight">
+              {isParent ? "Mitt innhold for familien" : t("title")}
+            </h1>
+            <p className="mt-1 text-sm opacity-75">
+              {isParent
+                ? "Her finner du oppgaver du kan åpne, organisere og dele videre til barnas rom."
+                : t("subtitle")}
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-4">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={isParent ? "Søk i oppgaver, rom og innleveringer …" : t("search.placeholder")}
-          className="w-full rounded-2xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-2"
-        />
+        <div className="mt-4 min-w-0 max-w-full overflow-x-clip">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={isParent ? "Søk i oppgaver, rom og innleveringer …" : t("search.placeholder")}
+            className="block w-full max-w-full box-border rounded-2xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-2"
+          />
 
-        <div className="mt-3 hidden flex-wrap items-center justify-between gap-2 sm:flex">
-          <div className="flex flex-wrap gap-2">
-            {(["all", "library", "teacher", "lesson", "submission", "space"] as const).map((ft) => (
-              <button
-                key={ft}
-                onClick={() => setFilter(ft)}
-                className={[
-                  "rounded-full border px-3 py-2 text-sm font-extrabold",
-                  filter === ft ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
-                ].join(" ")}
-                title={
-                  ft === "library"
-                    ? locale === "en"
-                      ? "Your own tasks from the library (practice)"
-                      : "Dine egne oppgaver hentet fra biblioteket"
-                    : ft === "teacher"
+          <div className="mt-3 hidden flex-wrap items-center justify-between gap-2 sm:flex">
+            <div className="flex flex-wrap gap-2">
+              {(["all", "library", "teacher", "lesson", "submission", "space"] as const).map((ft) => (
+                <button
+                  key={ft}
+                  onClick={() => setFilter(ft)}
+                  className={[
+                    "rounded-full border px-3 py-2 text-sm font-extrabold",
+                    filter === ft ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
+                  ].join(" ")}
+                  title={
+                    ft === "library"
                       ? locale === "en"
-                        ? "Assignments submitted in a class/space"
-                        : "Oppgaver levert i rom"
-                      : undefined
-                }
-              >
-                {labelWithCount(ft)}
-              </button>
-            ))}
+                        ? "Your own tasks from the library (practice)"
+                        : "Dine egne oppgaver hentet fra biblioteket"
+                      : ft === "teacher"
+                        ? locale === "en"
+                          ? "Assignments submitted in a class/space"
+                          : "Oppgaver levert i rom"
+                        : undefined
+                  }
+                >
+                  {labelWithCount(ft)}
+                </button>
+              ))}
+            </div>
+
+            <label className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-2 text-sm font-extrabold">
+              <input
+                type="checkbox"
+                checked={showDeleted}
+                onChange={(e) => setShowDeleted(e.target.checked)}
+                className="h-4 w-4"
+              />
+              {showDeletedLabel}
+            </label>
           </div>
 
-          <label className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-2 text-sm font-extrabold">
-            <input
-              type="checkbox"
-              checked={showDeleted}
-              onChange={(e) => setShowDeleted(e.target.checked)}
-              className="h-4 w-4"
-            />
-            {showDeletedLabel}
-          </label>
-        </div>
+          <div className="mt-3 flex min-w-0 max-w-full items-center gap-2 sm:hidden">
+            <button
+              onClick={() => setFilter("all")}
+              className={[
+                "min-w-0 max-w-full flex-1 rounded-2xl border px-4 py-3 text-sm font-extrabold transition-colors",
+                filter === "all" ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
+              ].join(" ")}
+            >
+              <span className="truncate">{labelWithCount("all")}</span>
+            </button>
 
-        <div className="mt-3 flex items-center gap-2 sm:hidden">
-          <button
-            onClick={() => setFilter("all")}
-            className={[
-              "min-w-0 flex-1 rounded-2xl border px-4 py-3 text-sm font-extrabold transition-colors",
-              filter === "all" ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
-            ].join(" ")}
-          >
-            <span className="truncate">{labelWithCount("all")}</span>
-          </button>
-
-          <div className="shrink-0">
-            <ActionMenu items={mobileFilterActions} />
+            <div className="shrink-0">
+              <ActionMenu items={mobileFilterActions} />
+            </div>
           </div>
         </div>
-      </div>
 
-      {err ? (
-        <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
-          <div className="mb-1 font-black">{t("errors.label")}</div>
-          <div className="whitespace-pre-wrap text-sm">{err}</div>
-        </div>
-      ) : null}
-
-      {notes.length > 0 ? (
-        <div className="mt-4 rounded-2xl border bg-zinc-50 p-4">
-          {notes.map((n) => (
-            <div key={n} className="text-sm">
-              • {n}
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {warnings.length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
-          {warnings.map((w) => (
-            <div key={w} className="text-sm">
-              • {w}
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="mt-4 grid gap-3">
-        {loading ? <div className="opacity-70">{t("states.loadingContent")}</div> : null}
-
-        {!loading && filtered.length === 0 ? (
-          <div className="rounded-2xl border bg-white p-4">{emptyHint}</div>
+        {err ? (
+          <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+            <div className="mb-1 font-black">{t("errors.label")}</div>
+            <div className="whitespace-pre-wrap text-sm">{err}</div>
+          </div>
         ) : null}
 
-        {!loading
-          ? filtered.map((it) => {
-              const key = `${it.type}:${it.id}`;
-              const actions = buildActions(it);
+        {notes.length > 0 ? (
+          <div className="mt-4 rounded-2xl border bg-zinc-50 p-4">
+            {notes.map((n) => (
+              <div key={n} className="text-sm">
+                • {n}
+              </div>
+            ))}
+          </div>
+        ) : null}
 
-              const title = titleForCard(it);
-              const deletedAt = getDeletedAt(it);
+        {warnings.length > 0 ? (
+          <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+            {warnings.map((w) => (
+              <div key={w} className="text-sm">
+                • {w}
+              </div>
+            ))}
+          </div>
+        ) : null}
 
-              let pill: React.ReactNode = null;
+        <div className="mt-4 min-w-0 max-w-full overflow-x-clip">
+          <div className="grid min-w-0 max-w-full gap-3">
+            {loading ? <div className="opacity-70">{t("states.loadingContent")}</div> : null}
 
-              const extraPill =
-                it.type === "submission"
-                  ? isLibraryPractice(it)
-                    ? locale === "en"
-                      ? <StatusPill label="Library" variant="gray" />
-                      : <StatusPill label="Bibliotek" variant="gray" />
-                    : isTeacherSpaceSubmission(it)
-                      ? locale === "en"
-                        ? <StatusPill label="Teacher" variant="gray" />
-                        : <StatusPill label="Innlevering" variant="gray" />
-                      : null
-                  : null;
+            {!loading && filtered.length === 0 ? (
+              <div className="rounded-2xl border bg-white p-4">{emptyHint}</div>
+            ) : null}
 
-              if (isDeletedItem(it)) {
-                pill = <StatusPill label={deletedLabel} variant="amber" />;
-              } else if (it.type === "lesson") {
-                if (isParent) {
-                  pill = <StatusPill label="Klar til å dele" variant="green" />;
-                } else {
-                  const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
-                  pill =
-                    s === "published" ? (
-                      <StatusPill label={t("pills.published")} variant="green" />
+            {!loading
+              ? filtered.map((it) => {
+                  const key = `${it.type}:${it.id}`;
+                  const actions = buildActions(it);
+                  const desktopMainActions = desktopActions(it, actions);
+                  const desktopExtraActions = desktopOverflowActions(it, actions);
+
+                  const title = titleForCard(it);
+                  const deletedAt = getDeletedAt(it);
+
+                  let pill: React.ReactNode = null;
+
+                  const extraPill =
+                    it.type === "submission"
+                      ? isLibraryPractice(it)
+                        ? locale === "en"
+                          ? <StatusPill label="Library" variant="gray" />
+                          : <StatusPill label="Bibliotek" variant="gray" />
+                        : isTeacherSpaceSubmission(it)
+                          ? locale === "en"
+                            ? <StatusPill label="Teacher" variant="gray" />
+                            : <StatusPill label="Innlevering" variant="gray" />
+                          : null
+                      : null;
+
+                  if (isDeletedItem(it)) {
+                    pill = <StatusPill label={deletedLabel} variant="amber" />;
+                  } else if (it.type === "lesson") {
+                    if (isParent) {
+                      pill = <StatusPill label="Klar til å dele" variant="green" />;
+                    } else {
+                      const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
+                      pill =
+                        s === "published" ? (
+                          <StatusPill label={t("pills.published")} variant="green" />
+                        ) : (
+                          <StatusPill label={t("pills.unpublished")} variant="red" />
+                        );
+                    }
+                  } else if (it.status) {
+                    pill = <StatusPill label={it.status} variant="gray" />;
+                  }
+
+                  const metaLine = cleanMetaForCard(it);
+                  const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
+
+                  return (
+                    <div
+                      key={key}
+                      className="block w-full max-w-full min-w-0 box-border rounded-2xl border bg-white p-4"
+                    >
+                      <div className="flex min-w-0 max-w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 max-w-full flex-1">
+                          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+  <div className="min-w-0 max-w-full break-words text-base font-black leading-tight">
+    {title}
+  </div>
+
+  {pill}
+
+  {extraPill}
+</div>
+
+                          <div className="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs opacity-75">
+                            {it.updatedAt ? <span>{fmtDate(it.updatedAt, locale)}</span> : null}
+
+                            {deletedAt ? (
+                              <>
+                                <span className="opacity-60">•</span>
+                                <span>
+                                  {deletedAtLabel}: {fmtDate(deletedAt, locale)}
+                                </span>
+                              </>
+                            ) : null}
+
+                            {metaLine ? <span className="opacity-60">•</span> : null}
+                            {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
+                          </div>
+
+                          {isParent && it.type === "lesson" ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <StatusPill label="Kan deles til barnas rom" variant="gray" />
+                            </div>
+                          ) : null}
+
+                          {parentMeta ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <StatusPill label={`${parentMeta.lessonCount} oppgaver`} variant="gray" />
+                              {parentMeta.activeLessonTitle ? (
+                                <StatusPill label={`Aktiv: ${parentMeta.activeLessonTitle}`} variant="gray" />
+                              ) : null}
+                              <StatusPill
+                                label={parentChildProgressLabel(parentMeta.activeSubmissionStatus, locale)}
+                                variant={parentChildProgressVariant(parentMeta.activeSubmissionStatus)}
+                              />
+                              {parentMeta.submittedCount > 0 ? (
+                                <StatusPill label={`${parentMeta.submittedCount} sendt inn`} variant="green" />
+                              ) : null}
+                              {parentMeta.draftCount > 0 ? (
+                                <StatusPill label={`${parentMeta.draftCount} påbegynt`} variant="amber" />
+                              ) : null}
+                              {parentMeta.aiFeedbackCount > 0 ? (
+                                <StatusPill label={`${parentMeta.aiFeedbackCount} med AI-feedback`} variant="green" />
+                              ) : null}
+                              {parentMeta.reviewCount > 0 ? (
+                                <StatusPill label={`${parentMeta.reviewCount} foreldrevurdert`} variant="green" />
+                              ) : null}
+                            </div>
+                          ) : null}
+
+                          <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
+                            {desktopMainActions.map((a) => {
+                              if (a.key === "delete") {
+                                return (
+                                  <DangerButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                    {a.label}
+                                  </DangerButton>
+                                );
+                              }
+                              if (a.key === "restore") {
+                                return (
+                                  <SuccessButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                    {a.label}
+                                  </SuccessButton>
+                                );
+                              }
+                              return (
+                                <PrimaryButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                  {a.label}
+                                </PrimaryButton>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex min-w-0 w-full justify-end sm:w-auto">
+                          <div className="ml-2 shrink-0 sm:hidden">
+                            <ActionMenu items={actions} />
+                          </div>
+
+                          <div className="ml-2 hidden shrink-0 sm:block">
+                            {desktopExtraActions.length > 0 ? <ActionMenu items={desktopExtraActions} /> : null}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              : null}
+          </div>
+        </div>
+
+        <div className="mt-6 text-sm opacity-80">
+          <Link href={`/${locale}/join`} className="mr-4 underline">
+            {t("footer.joinViaCode")}
+          </Link>
+          <Link href={`/${locale}/tools`} className="underline">
+            {t("footer.tools")}
+          </Link>
+        </div>
+
+        {shareOpen ? (
+          <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+              <div className="flex items-center justify-between gap-3 border-b p-4">
+                <div className="min-w-0">
+                  <div className="font-black">{t("share.title")}</div>
+                  <div className="truncate text-sm opacity-75">{shareTitle}</div>
+                </div>
+                <button onClick={closeShare} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid gap-4 p-4 sm:grid-cols-[1.3fr_0.7fr]">
+                <div>
+                  <div className="mb-2 text-sm font-black">{t("share.linkLabel")}</div>
+                  <input value={shareUrl} readOnly className="w-full rounded-xl border px-3 py-3 font-semibold" />
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <PrimaryButton onClick={copyShareUrl}>{copied ? t("share.copied") : t("share.copyLink")}</PrimaryButton>
+                    <GhostLink href={shareUrl} target="_blank" rel="noreferrer">
+                      {t("share.openLink")}
+                    </GhostLink>
+                  </div>
+
+                  <div className="mt-3 text-sm opacity-70">{t("share.tip")}</div>
+                </div>
+
+                <div className="grid place-items-center">
+                  <div className="mb-2 w-full text-left text-sm font-black">{t("share.qrLabel")}</div>
+                  <div className="grid h-56 w-56 place-items-center overflow-hidden rounded-2xl border bg-white">
+                    {qrDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={qrDataUrl} alt={t("share.qrAlt")} style={{ width: "100%", height: "100%" }} />
                     ) : (
-                      <StatusPill label={t("pills.unpublished")} variant="red" />
-                    );
-                }
-              } else if (it.status) {
-                pill = <StatusPill label={it.status} variant="gray" />;
-              }
-
-              const metaLine = cleanMetaForCard(it);
-              const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
-
-              return (
-                <div key={key} className="w-full rounded-2xl border bg-white p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 flex-wrap items-start gap-2">
-                        <div className="min-w-0 flex-1 break-words text-base font-black leading-tight">
-                          {title}
-                        </div>
-                        {extraPill}
-                        {pill}
-                      </div>
-
-                      <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-xs opacity-75">
-                        {it.updatedAt ? <span>{fmtDate(it.updatedAt, locale)}</span> : null}
-
-                        {deletedAt ? (
-                          <>
-                            <span className="opacity-60">•</span>
-                            <span>
-                              {deletedAtLabel}: {fmtDate(deletedAt, locale)}
-                            </span>
-                          </>
-                        ) : null}
-
-                        {metaLine ? <span className="opacity-60">•</span> : null}
-                        {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
-                      </div>
-
-                      {isParent && it.type === "lesson" ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <StatusPill label="Kan deles til barnas rom" variant="gray" />
-                        </div>
-                      ) : null}
-
-                      {parentMeta ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <StatusPill label={`${parentMeta.lessonCount} oppgaver`} variant="gray" />
-                          {parentMeta.activeLessonTitle ? (
-                            <StatusPill label={`Aktiv: ${parentMeta.activeLessonTitle}`} variant="gray" />
-                          ) : null}
-                          <StatusPill
-                            label={parentChildProgressLabel(parentMeta.activeSubmissionStatus, locale)}
-                            variant={parentChildProgressVariant(parentMeta.activeSubmissionStatus)}
-                          />
-                          {parentMeta.submittedCount > 0 ? (
-                            <StatusPill label={`${parentMeta.submittedCount} sendt inn`} variant="green" />
-                          ) : null}
-                          {parentMeta.draftCount > 0 ? (
-                            <StatusPill label={`${parentMeta.draftCount} påbegynt`} variant="amber" />
-                          ) : null}
-                          {parentMeta.aiFeedbackCount > 0 ? (
-                            <StatusPill label={`${parentMeta.aiFeedbackCount} med AI-feedback`} variant="green" />
-                          ) : null}
-                          {parentMeta.reviewCount > 0 ? (
-                            <StatusPill label={`${parentMeta.reviewCount} foreldrevurdert`} variant="green" />
-                          ) : null}
-                        </div>
-                      ) : null}
-
-                      <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
-                        {actions
-                          .filter((a) =>
-                            [
-                              "open",
-                              "edit",
-                              "publish",
-                              "unpublish",
-                              "share",
-                              "shareToSpace",
-                              "pdf",
-                              "delete",
-                              "restore",
-                              "copyJoinLink",
-                              "copyCode",
-                              "shareLinkQr",
-                            ].includes(a.key)
-                          )
-                          .slice(0, 6)
-                          .map((a) => {
-                            if (a.key === "delete") {
-                              return (
-                                <DangerButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
-                                  {a.label}
-                                </DangerButton>
-                              );
-                            }
-                            if (a.key === "restore") {
-                              return (
-                                <SuccessButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
-                                  {a.label}
-                                </SuccessButton>
-                              );
-                            }
-                            return (
-                              <PrimaryButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
-                                {a.label}
-                              </PrimaryButton>
-                            );
-                          })}
-                      </div>
-                    </div>
-
-                    <div className="flex w-full justify-end sm:w-auto">
-                      <div className="shrink-0">
-                        <ActionMenu items={actions} />
-                      </div>
-                    </div>
+                      <div className="p-3 text-center text-sm opacity-70">{t("share.qrNotReady")}</div>
+                    )}
                   </div>
                 </div>
-              );
-            })
-          : null}
-      </div>
-
-      <div className="mt-6 text-sm opacity-80">
-        <Link href={`/${locale}/join`} className="mr-4 underline">
-          {t("footer.joinViaCode")}
-        </Link>
-        <Link href={`/${locale}/tools`} className="underline">
-          {t("footer.tools")}
-        </Link>
-      </div>
-
-      {shareOpen ? (
-        <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
-            <div className="flex items-center justify-between gap-3 border-b p-4">
-              <div className="min-w-0">
-                <div className="font-black">{t("share.title")}</div>
-                <div className="truncate text-sm opacity-75">{shareTitle}</div>
-              </div>
-              <button onClick={closeShare} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">
-                ✕
-              </button>
-            </div>
-
-            <div className="grid gap-4 p-4 sm:grid-cols-[1.3fr_0.7fr]">
-              <div>
-                <div className="mb-2 text-sm font-black">{t("share.linkLabel")}</div>
-                <input value={shareUrl} readOnly className="w-full rounded-xl border px-3 py-3 font-semibold" />
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <PrimaryButton onClick={copyShareUrl}>{copied ? t("share.copied") : t("share.copyLink")}</PrimaryButton>
-                  <GhostLink href={shareUrl} target="_blank" rel="noreferrer">
-                    {t("share.openLink")}
-                  </GhostLink>
-                </div>
-
-                <div className="mt-3 text-sm opacity-70">{t("share.tip")}</div>
               </div>
 
-              <div className="grid place-items-center">
-                <div className="mb-2 w-full text-left text-sm font-black">{t("share.qrLabel")}</div>
-                <div className="grid h-56 w-56 place-items-center overflow-hidden rounded-2xl border bg-white">
-                  {qrDataUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={qrDataUrl} alt={t("share.qrAlt")} style={{ width: "100%", height: "100%" }} />
-                  ) : (
-                    <div className="p-3 text-center text-sm opacity-70">{t("share.qrNotReady")}</div>
-                  )}
-                </div>
+              <div className="border-t p-4 text-xs opacity-70">
+                {t("share.shareUrlLabel")} <code className="break-all">{shareUrl}</code>
               </div>
-            </div>
-
-            <div className="border-t p-4 text-xs opacity-70">
-              {t("share.shareUrlLabel")} <code className="break-all">{shareUrl}</code>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {pickSpaceOpen && pickLesson ? (
-        <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
-            <div className="flex items-center justify-between gap-3 border-b p-4">
-              <div className="min-w-0">
-                <div className="font-black">{t("shareToSpace.title")}</div>
-                <div className="truncate text-sm opacity-75">{pickLesson.title}</div>
-              </div>
-              <button onClick={closePickSpace} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">
-                ✕
-              </button>
-            </div>
-
-            <div className="p-4">
-              {mySpaces.length === 0 ? (
-                <div className="opacity-75">{t("shareToSpace.noSpaces")}</div>
-              ) : (
-                <div className="grid gap-2">
-                  {mySpaces.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => assignLessonToSpace(s.id)}
-                      className="rounded-2xl border bg-white p-4 text-left font-black hover:bg-zinc-50"
-                    >
-                      {(s.title || t("titles.space")).trim() || t("titles.space")}
-                      <div className="mt-1 text-xs font-semibold opacity-70">{(s.meta?.join(" · ") ?? "").trim()}</div>
-                    </button>
-                  ))}
+        {pickSpaceOpen && pickLesson ? (
+          <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+              <div className="flex items-center justify-between gap-3 border-b p-4">
+                <div className="min-w-0">
+                  <div className="font-black">{t("shareToSpace.title")}</div>
+                  <div className="truncate text-sm opacity-75">{pickLesson.title}</div>
                 </div>
-              )}
-            </div>
+                <button onClick={closePickSpace} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">
+                  ✕
+                </button>
+              </div>
 
-            <div className="border-t p-4 text-xs opacity-70">
-              {t("shareToSpace.createsLabel")} <code>{`spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
+              <div className="p-4">
+                {mySpaces.length === 0 ? (
+                  <div className="opacity-75">{t("shareToSpace.noSpaces")}</div>
+                ) : (
+                  <div className="grid gap-2">
+                    {mySpaces.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => assignLessonToSpace(s.id)}
+                        className="rounded-2xl border bg-white p-4 text-left font-black hover:bg-zinc-50"
+                      >
+                        {(s.title || t("titles.space")).trim() || t("titles.space")}
+                        <div className="mt-1 text-xs font-semibold opacity-70">{(s.meta?.join(" · ") ?? "").trim()}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t p-4 text-xs opacity-70">
+                {t("shareToSpace.createsLabel")} <code>{`spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
+              </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </main>
   );
 }
