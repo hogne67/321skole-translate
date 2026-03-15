@@ -142,9 +142,7 @@ function StatusPill({
           : "border-zinc-200 bg-zinc-50 text-zinc-800";
 
   return (
-    <span
-      className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold ${ring}`}
-    >
+    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold ${ring}`}>
       <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
       <span className="truncate">{label}</span>
     </span>
@@ -1072,10 +1070,8 @@ export default function ContentClient() {
             <span className="truncate">{labelWithCount("all")}</span>
           </button>
 
-          <div className="relative z-50 shrink-0 overflow-visible">
-            <div className="rounded-2xl border-2 border-zinc-900 bg-zinc-900 text-white shadow-lg [&_button]:flex [&_button]:h-14 [&_button]:w-14 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-2xl [&_button]:border-0 [&_button]:bg-zinc-900 [&_button]:text-white [&_button]:shadow-none [&_button_svg]:h-7 [&_button_svg]:w-7">
-              <ActionMenu items={mobileFilterActions} />
-            </div>
+          <div className="shrink-0">
+            <ActionMenu items={mobileFilterActions} />
           </div>
         </div>
       </div>
@@ -1159,11 +1155,13 @@ export default function ContentClient() {
               const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
 
               return (
-                <div key={key} className="relative isolate w-full overflow-visible rounded-2xl border bg-white p-4">
+                <div key={key} className="w-full rounded-2xl border bg-white p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 flex-wrap items-start gap-2">
-                        <div className="min-w-0 flex-1 break-words text-base font-black leading-tight">{title}</div>
+                        <div className="min-w-0 flex-1 break-words text-base font-black leading-tight">
+                          {title}
+                        </div>
                         {extraPill}
                         {pill}
                       </div>
@@ -1259,10 +1257,8 @@ export default function ContentClient() {
                     </div>
 
                     <div className="flex w-full justify-end sm:w-auto">
-                      <div className="relative z-40 shrink-0 overflow-visible">
-                        <div className="rounded-2xl border-2 border-zinc-900 bg-zinc-900 text-white shadow-lg [&_button]:flex [&_button]:h-14 [&_button]:w-14 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-2xl [&_button]:border-0 [&_button]:bg-zinc-900 [&_button]:text-white [&_button]:shadow-none [&_button_svg]:h-7 [&_button_svg]:w-7">
-                          <ActionMenu items={actions} />
-                        </div>
+                      <div className="shrink-0">
+                        <ActionMenu items={actions} />
                       </div>
                     </div>
                   </div>
@@ -1282,16 +1278,8 @@ export default function ContentClient() {
       </div>
 
       {shareOpen ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={closeShare}
-          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl"
-          >
+        <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b p-4">
               <div className="min-w-0">
                 <div className="font-black">{t("share.title")}</div>
@@ -1338,16 +1326,8 @@ export default function ContentClient() {
       ) : null}
 
       {pickSpaceOpen && pickLesson ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={closePickSpace}
-          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl"
-          >
+        <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b p-4">
               <div className="min-w-0">
                 <div className="font-black">{t("shareToSpace.title")}</div>
