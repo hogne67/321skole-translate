@@ -142,7 +142,9 @@ function StatusPill({
           : "border-zinc-200 bg-zinc-50 text-zinc-800";
 
   return (
-    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold ${ring}`}>
+    <span
+      className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold ${ring}`}
+    >
       <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
       <span className="truncate">{label}</span>
     </span>
@@ -981,23 +983,25 @@ export default function ContentClient() {
     return `${label} (${counts.lesson + counts.submission + counts.space})`;
   }
 
-    function mobileDeletedLabel() {
-    if (showDeleted) {
-      return locale === "en" ? "Deleted: On" : "Slettet: På";
-    }
-    return locale === "en" ? "Deleted: Off" : "Slettet: Av";
-  }
-
-    const mobileFilterActions: ActionItem[] = [
+  const mobileFilterActions: ActionItem[] = [
     ...(["library", "teacher", "lesson", "submission", "space"] as const).map((ft) => ({
       key: `mobile-filter-${ft}`,
       label: labelWithCount(ft),
       onClick: () => setFilter(ft),
     })),
+    {
+      key: "toggle-deleted",
+      label: showDeleted
+        ? locale === "en"
+          ? "Hide deleted"
+          : "Skjul slettet"
+        : showDeletedLabel,
+      onClick: () => setShowDeleted((v) => !v),
+    },
   ];
 
   return (
-    <main className="mx-auto w-full max-w-5xl overflow-x-hidden px-3 py-4 sm:px-4">
+    <main className="mx-auto w-full max-w-5xl px-3 py-4 sm:px-4">
       <div className="flex flex-col gap-3">
         <div className="min-w-0">
           <h1 className="text-xl font-black tracking-tight">
@@ -1057,30 +1061,21 @@ export default function ContentClient() {
           </label>
         </div>
 
-                <div className="mt-3 grid grid-cols-[1fr_auto_auto] items-center gap-2 sm:hidden">
+        <div className="mt-3 flex items-center gap-2 sm:hidden">
           <button
             onClick={() => setFilter("all")}
             className={[
-              "min-w-0 rounded-2xl border px-4 py-3 text-sm font-extrabold",
-              "transition-colors",
+              "min-w-0 flex-1 rounded-2xl border px-4 py-3 text-sm font-extrabold transition-colors",
               filter === "all" ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
             ].join(" ")}
           >
             <span className="truncate">{labelWithCount("all")}</span>
           </button>
 
-          <button
-            onClick={() => setShowDeleted((v) => !v)}
-            className={[
-              "rounded-2xl border px-3 py-3 text-sm font-extrabold whitespace-nowrap transition-colors",
-              showDeleted ? "bg-amber-100 border-amber-300 text-amber-900" : "bg-white hover:bg-zinc-50",
-            ].join(" ")}
-          >
-            {mobileDeletedLabel()}
-          </button>
-
-          <div className="shrink-0 rounded-2xl border bg-white shadow-sm [&_button]:h-12 [&_button]:w-12 [&_button]:rounded-2xl [&_button]:border-0 [&_button]:bg-transparent [&_button]:text-base [&_button_svg]:h-6 [&_button_svg]:w-6">
-            <ActionMenu items={mobileFilterActions} />
+          <div className="relative z-50 shrink-0 overflow-visible">
+            <div className="rounded-2xl border-2 border-zinc-900 bg-zinc-900 text-white shadow-lg [&_button]:flex [&_button]:h-14 [&_button]:w-14 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-2xl [&_button]:border-0 [&_button]:bg-zinc-900 [&_button]:text-white [&_button]:shadow-none [&_button_svg]:h-7 [&_button_svg]:w-7">
+              <ActionMenu items={mobileFilterActions} />
+            </div>
           </div>
         </div>
       </div>
@@ -1164,18 +1159,16 @@ export default function ContentClient() {
               const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
 
               return (
-                                <div key={key} className="w-full overflow-hidden rounded-2xl border bg-white p-4">
+                <div key={key} className="relative isolate w-full overflow-visible rounded-2xl border bg-white p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-start gap-2">
-                                                <div className="min-w-0 max-w-full break-words text-base font-black leading-tight">
-                          {title}
-                        </div>
+                      <div className="flex min-w-0 flex-wrap items-start gap-2">
+                        <div className="min-w-0 flex-1 break-words text-base font-black leading-tight">{title}</div>
                         {extraPill}
                         {pill}
                       </div>
 
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs opacity-75">
+                      <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-xs opacity-75">
                         {it.updatedAt ? <span>{fmtDate(it.updatedAt, locale)}</span> : null}
 
                         {deletedAt ? (
@@ -1188,7 +1181,7 @@ export default function ContentClient() {
                         ) : null}
 
                         {metaLine ? <span className="opacity-60">•</span> : null}
-                                                {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
+                        {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
                       </div>
 
                       {isParent && it.type === "lesson" ? (
@@ -1266,8 +1259,10 @@ export default function ContentClient() {
                     </div>
 
                     <div className="flex w-full justify-end sm:w-auto">
-                      <div className="shrink-0 rounded-2xl border bg-white shadow-sm [&_button]:h-12 [&_button]:w-12 [&_button]:rounded-2xl [&_button]:border-0 [&_button]:bg-transparent [&_button]:text-base [&_button_svg]:h-6 [&_button_svg]:w-6">
-                        <ActionMenu items={actions} />
+                      <div className="relative z-40 shrink-0 overflow-visible">
+                        <div className="rounded-2xl border-2 border-zinc-900 bg-zinc-900 text-white shadow-lg [&_button]:flex [&_button]:h-14 [&_button]:w-14 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-2xl [&_button]:border-0 [&_button]:bg-zinc-900 [&_button]:text-white [&_button]:shadow-none [&_button_svg]:h-7 [&_button_svg]:w-7">
+                          <ActionMenu items={actions} />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1287,8 +1282,16 @@ export default function ContentClient() {
       </div>
 
       {shareOpen ? (
-        <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closeShare}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl"
+          >
             <div className="flex items-center justify-between gap-3 border-b p-4">
               <div className="min-w-0">
                 <div className="font-black">{t("share.title")}</div>
@@ -1335,8 +1338,16 @@ export default function ContentClient() {
       ) : null}
 
       {pickSpaceOpen && pickLesson ? (
-        <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closePickSpace}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl"
+          >
             <div className="flex items-center justify-between gap-3 border-b p-4">
               <div className="min-w-0">
                 <div className="font-black">{t("shareToSpace.title")}</div>
