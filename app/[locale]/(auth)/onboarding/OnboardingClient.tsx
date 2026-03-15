@@ -1,7 +1,8 @@
-// \app\[locale]\(auth)\onboarding\OnboardingClient.tsx
+// app/[locale]/(auth)/onboarding/OnboardingClient.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -62,7 +63,10 @@ function homeForRole(role: Role, locale: string): string {
 }
 
 function normalizeNext(raw: string | null | undefined, locale: string, chosenRole?: Role | ""): string {
-  const fallback = homeForRole(chosenRole === "teacher" || chosenRole === "parent" ? chosenRole : "student", locale);
+  const fallback = homeForRole(
+    chosenRole === "teacher" || chosenRole === "parent" ? chosenRole : "student",
+    locale
+  );
   const candidate = raw ?? fallback;
 
   if (!candidate.startsWith("/") || candidate.startsWith("//")) return fallback;
@@ -76,14 +80,15 @@ function normalizeNext(raw: string | null | undefined, locale: string, chosenRol
     "/",
     `/${locale}`,
   ]);
-  if (blocked.has(normalized)) return fallback;
 
+  if (blocked.has(normalized)) return fallback;
   if (/^\/(en|no|pt)(\/|$)/.test(normalized)) return normalized || fallback;
 
   return `/${locale}${normalized}`;
 }
 
 type Props = { nextUrl?: string };
+type Step = 1 | 2 | 3;
 
 export default function OnboardingClient({ nextUrl }: Props) {
   const t = useTranslations("auth.onboarding");
@@ -101,7 +106,6 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const [uid, setUid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
   const [err, setErr] = useState<string | null>(null);
 
   const [role, setRole] = useState<Role | "">("");
@@ -114,7 +118,10 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const [institutionType, setInstitutionType] = useState<InstitutionType | "">("");
   const [institutionName, setInstitutionName] = useState("");
 
+  const [step, setStep] = useState<Step>(1);
+
   const isNorway = country === "NO";
+  const isTeacher = role === "teacher";
 
   const countryOptions = useMemo(
     () => COUNTRIES.map((c) => ({ value: c.code, label: c.label })),
@@ -143,16 +150,22 @@ export default function OnboardingClient({ nextUrl }: Props) {
     [t]
   );
 
-  const safeNext = useMemo(() => normalizeNext(nextUrl, locale, role), [nextUrl, locale, role]);
+  // Viktig: denne må IKKE avhenge av valgt rolle,
+  // ellers resettes rolle når brukeren klikker student/teacher/parent.
+  const safeNext = useMemo(() => normalizeNext(nextUrl, locale), [nextUrl, locale]);
 
-  const chosenRole = role;
   const nameOk = !!displayName.trim();
   const countryOk = !!country.trim();
   const municipalityOk = !!municipality.trim();
-  const roleOk = !!chosenRole;
-
+  const roleOk = !!role;
   const canSubmit = roleOk && nameOk && countryOk && municipalityOk;
   const showRoleHint = roleTouched && !roleOk;
+
+  function totalStepsForRole(currentRole: Role | "") {
+    return currentRole === "teacher" ? 3 : 2;
+  }
+
+  const totalSteps = totalStepsForRole(role);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -193,15 +206,19 @@ export default function OnboardingClient({ nextUrl }: Props) {
           const org = (p.org ?? {}) as Record<string, unknown>;
           const orgCountry = typeof org.country === "string" ? org.country : "NO";
           const orgMunicipality = typeof org.municipality === "string" ? org.municipality : "";
-          const orgInstitutionName = typeof org.institutionName === "string" ? org.institutionName : "";
+          const orgInstitutionName =
+            typeof org.institutionName === "string" ? org.institutionName : "";
 
           const rawInstType = org.institutionType;
-          const instType: InstitutionType | "" = isInstitutionType(rawInstType) ? rawInstType : "";
+          const instType: InstitutionType | "" = isInstitutionType(rawInstType)
+            ? rawInstType
+            : "";
 
           setCountry(String(orgCountry).trim() || "NO");
           setMunicipality(String(orgMunicipality).trim());
           setInstitutionType(instType);
           setInstitutionName(String(orgInstitutionName).trim());
+          setStep(1);
         } else {
           setDisplayName(authName);
           setRole("");
@@ -210,6 +227,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
           setMunicipality("");
           setInstitutionType("");
           setInstitutionName("");
+          setStep(1);
         }
       } catch {
         setDisplayName((u.displayName || "").trim());
@@ -219,31 +237,108 @@ export default function OnboardingClient({ nextUrl }: Props) {
     });
 
     return () => unsub();
-  }, [router, safeNext, locale, nextUrl]);
+  }, [router, locale, nextUrl, safeNext]);
+
+  function validateStep(currentStep: Step): boolean {
+    setErr(null);
+
+    if (currentStep === 1) {
+      setRoleTouched(true);
+      if (!role) {
+        setErr(safeT("errors.missingRole", "Choose a role (Student, Teacher or Parent)."));
+        return false;
+      }
+      return true;
+    }
+
+    if (currentStep === 2) {
+      if (!displayName.trim()) {
+        setErr(safeT("errors.missingName", "Enter your full name."));
+        return false;
+      }
+
+      if (!country.trim()) {
+        setErr(safeT("errors.missingCountry", "Choose a country."));
+        return false;
+      }
+
+      if (!municipality.trim()) {
+        setErr(
+          isNorway
+            ? safeT("errors.missingMunicipalityNo", "Choose a municipality.")
+            : safeT("errors.missingMunicipalityOther", "Enter a city or area.")
+        );
+        return false;
+      }
+
+      return true;
+    }
+
+    return true;
+  }
+
+  function goNext() {
+    if (!validateStep(step)) return;
+
+    if (step === 1) {
+      setStep(2);
+      return;
+    }
+
+    if (step === 2 && isTeacher) {
+      setStep(3);
+    }
+  }
+
+  function goBack() {
+    setErr(null);
+
+    if (step === 3) {
+      setStep(2);
+      return;
+    }
+
+    if (step === 2) {
+      setStep(1);
+    }
+  }
 
   async function saveProfile() {
     if (!uid) return;
 
     setErr(null);
+    setRoleTouched(true);
 
-    if (!roleTouched) setRoleTouched(true);
+    if (!role) {
+      setErr(safeT("errors.missingRole", "Choose a role (Student, Teacher or Parent)."));
+      return;
+    }
 
-    const chosen = role;
     const name = displayName.trim();
     const c = country.trim();
     const m = municipality.trim();
     const instName = institutionName.trim();
 
-    if (!chosen) return;
+    if (!name) {
+      setStep(2);
+      setErr(safeT("errors.missingName", "Enter your full name."));
+      return;
+    }
 
-    if (!name) return setErr(safeT("errors.missingName", "Skriv inn fullt navn."));
-    if (!c) return setErr(safeT("errors.missingCountry", "Velg land."));
+    if (!c) {
+      setStep(2);
+      setErr(safeT("errors.missingCountry", "Choose a country."));
+      return;
+    }
+
     if (!m) {
-      return setErr(
+      setStep(2);
+      setErr(
         isNorway
-          ? safeT("errors.missingMunicipalityNo", "Velg kommune.")
-          : safeT("errors.missingMunicipalityOther", "Skriv inn by/område.")
+          ? safeT("errors.missingMunicipalityNo", "Choose a municipality.")
+          : safeT("errors.missingMunicipalityOther", "Enter a city or area.")
       );
+      return;
     }
 
     setSaving(true);
@@ -253,15 +348,13 @@ export default function OnboardingClient({ nextUrl }: Props) {
       const payload = stripUndefined({
         displayName: name,
         locale,
-        role: chosen,
-
+        role,
         org: stripUndefined({
           country: c,
           municipality: m,
-          institutionType: chosen === "teacher" ? (institutionType || undefined) : undefined,
-          institutionName: chosen === "teacher" ? (instName || undefined) : undefined,
+          institutionType: role === "teacher" ? institutionType || undefined : undefined,
+          institutionName: role === "teacher" ? instName || undefined : undefined,
         }),
-
         onboardingComplete: true,
         updatedAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
@@ -269,7 +362,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
       await setDoc(ref, payload, { merge: true });
 
-      const finalNext = normalizeNext(nextUrl, locale, chosen);
+      const finalNext = normalizeNext(nextUrl, locale, role);
       window.location.href = `/${locale}/post-login?next=${encodeURIComponent(finalNext)}`;
     } catch (e: unknown) {
       setErr(toErrorString(e));
@@ -281,86 +374,250 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const pageBg: React.CSSProperties = {
     minHeight: "100vh",
     padding: 16,
-    background: "linear-gradient(180deg, rgba(124,199,255,0.18), rgba(255,255,255,1) 320px)",
+    background: "linear-gradient(180deg, rgba(124,199,255,0.16), rgba(255,255,255,1) 340px)",
+  };
+
+  const wrap: React.CSSProperties = {
+    maxWidth: 820,
+    margin: "32px auto",
   };
 
   const card: React.CSSProperties = {
-    maxWidth: 760,
-    margin: "40px auto",
     background: "white",
-    border: "1px solid rgba(0,0,0,0.08)",
-    borderRadius: 18,
-    boxShadow: "0 12px 34px rgba(0,0,0,0.10)",
-    padding: 18,
+    border: "1px solid rgba(15,23,42,0.08)",
+    borderRadius: 24,
+    boxShadow: "0 18px 50px rgba(15,23,42,0.10)",
+    padding: 22,
   };
 
-  const titleRow: React.CSSProperties = { display: "grid", gap: 6, marginBottom: 10 };
-
-  const smallTop: React.CSSProperties = { fontSize: 12, opacity: 0.65, fontWeight: 900 };
-
-  const inputStyle: React.CSSProperties = {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(0,0,0,0.14)",
-    outline: "none",
-    background: "white",
+  const logoWrap: React.CSSProperties = {
+    display: "flex",
+    justifyContent: "center",
+    marginBottom: 12,
   };
 
-  const labelStyle: React.CSSProperties = { display: "grid", gap: 6 };
+  const header: React.CSSProperties = {
+    display: "grid",
+    gap: 8,
+    textAlign: "center",
+    marginBottom: 18,
+  };
+
+  const eyebrow: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 900,
+    letterSpacing: 0.3,
+    color: "rgba(15,23,42,0.55)",
+    textTransform: "uppercase",
+  };
+
+  const title: React.CSSProperties = {
+    margin: 0,
+    fontSize: 30,
+    lineHeight: 1.1,
+    fontWeight: 900,
+    color: "#0f172a",
+  };
+
+  const subtitle: React.CSSProperties = {
+    margin: 0,
+    color: "rgba(15,23,42,0.72)",
+    fontSize: 15,
+    lineHeight: 1.55,
+  };
+
+  const progressOuter: React.CSSProperties = {
+    height: 10,
+    borderRadius: 999,
+    background: "rgba(148,163,184,0.18)",
+    overflow: "hidden",
+    marginTop: 8,
+    marginBottom: 20,
+  };
+
+  const progressInner: React.CSSProperties = {
+    height: "100%",
+    width: `${(step / totalSteps) * 100}%`,
+    background: "linear-gradient(90deg, #2563eb, #06b6d4)",
+    borderRadius: 999,
+    transition: "width 180ms ease",
+  };
+
+  const section: React.CSSProperties = {
+    display: "grid",
+    gap: 14,
+  };
+
+  const sectionTitle: React.CSSProperties = {
+    fontSize: 20,
+    fontWeight: 900,
+    color: "#0f172a",
+    margin: 0,
+  };
+
+  const sectionText: React.CSSProperties = {
+    margin: 0,
+    color: "rgba(15,23,42,0.72)",
+    fontSize: 14,
+    lineHeight: 1.5,
+  };
 
   const roleGrid: React.CSSProperties = {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 10,
+    gap: 14,
   };
 
   const roleCard = (active: boolean): React.CSSProperties => ({
-    border: "1px solid rgba(0,0,0,0.14)",
-    borderRadius: 14,
-    padding: 12,
+    border: active ? "2px solid #2563eb" : "1px solid rgba(15,23,42,0.10)",
+    borderRadius: 18,
+    padding: 16,
     cursor: "pointer",
-    background: active ? "rgba(17,24,39,0.95)" : "white",
-    color: active ? "white" : "black",
-    boxShadow: active ? "0 10px 26px rgba(0,0,0,0.18)" : "0 1px 2px rgba(0,0,0,0.06)",
+    background: active
+      ? "linear-gradient(180deg, rgba(37,99,235,0.16), rgba(6,182,212,0.12))"
+      : "white",
+    color: "#0f172a",
+    boxShadow: active
+      ? "0 14px 30px rgba(37,99,235,0.18)"
+      : "0 2px 8px rgba(15,23,42,0.04)",
     display: "grid",
-    gap: 4,
+    gap: 8,
+    textAlign: "left",
+    minHeight: 158,
+    position: "relative",
+    transition: "all 160ms ease",
   });
 
+  const selectedBadge = (active: boolean): React.CSSProperties => ({
+    position: "absolute",
+    top: 10,
+    right: 10,
+    minWidth: 28,
+    height: 28,
+    borderRadius: 999,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 14,
+    fontWeight: 900,
+    color: active ? "white" : "transparent",
+    background: active ? "#2563eb" : "transparent",
+    border: active ? "none" : "1px solid transparent",
+  });
+
+  const roleEmoji: React.CSSProperties = {
+    fontSize: 28,
+    lineHeight: 1,
+    marginTop: 6,
+  };
+
+  const roleTitle: React.CSSProperties = {
+    fontWeight: 900,
+    fontSize: 16,
+    color: "#0f172a",
+  };
+
+  const roleHint: React.CSSProperties = {
+    fontSize: 14,
+    lineHeight: 1.45,
+    color: "#475569",
+  };
+
   const hintBox: React.CSSProperties = {
-    padding: 10,
-    borderRadius: 12,
-    border: "1px solid rgba(245,158,11,0.35)",
+    padding: 12,
+    borderRadius: 14,
+    border: "1px solid rgba(245,158,11,0.30)",
     background: "rgba(245,158,11,0.10)",
     fontSize: 13,
+    color: "#78350f",
   };
 
   const errorBox: React.CSSProperties = {
-    marginTop: 12,
+    marginBottom: 14,
     padding: 12,
-    border: "1px solid rgba(200,0,0,0.35)",
-    borderRadius: 12,
-    background: "rgba(200,0,0,0.06)",
+    borderRadius: 14,
+    border: "1px solid rgba(220,38,38,0.25)",
+    background: "rgba(220,38,38,0.06)",
+    color: "#991b1b",
+    fontSize: 14,
+  };
+
+  const labelStyle: React.CSSProperties = { display: "grid", gap: 6 };
+  const labelTextStyle: React.CSSProperties = {
     fontSize: 13,
+    fontWeight: 800,
+    color: "#0f172a",
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    minHeight: 50,
+    padding: "12px 14px",
+    borderRadius: 14,
+    border: "1px solid rgba(15,23,42,0.14)",
+    outline: "none",
+    fontSize: 15,
+    background: "#fff",
+  };
+
+  const twoCol: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 12,
+  };
+
+  const footerRow: React.CSSProperties = {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 18,
+    flexWrap: "wrap",
+  };
+
+  const secondaryBtn: React.CSSProperties = {
+    minHeight: 50,
+    padding: "12px 16px",
+    borderRadius: 14,
+    border: "1px solid rgba(15,23,42,0.12)",
+    background: "#fff",
+    color: "#0f172a",
+    fontWeight: 800,
+    fontSize: 15,
   };
 
   const primaryBtn: React.CSSProperties = {
-    marginTop: 8,
-    padding: "12px 14px",
-    borderRadius: 12,
-    border: "1px solid rgba(0,0,0,0.14)",
-    background: "black",
-    color: "white",
+    minHeight: 50,
+    padding: "12px 18px",
+    borderRadius: 14,
+    border: "1px solid rgba(37,99,235,0.35)",
+    background: "linear-gradient(180deg, #2563eb, #1d4ed8)",
+    color: "#fff",
     fontWeight: 900,
+    fontSize: 15,
+    boxShadow: "0 12px 28px rgba(37,99,235,0.24)",
   };
 
   if (loading) {
     return (
       <main style={pageBg}>
-        <div style={card}>
-          <div style={titleRow}>
-            <div style={smallTop}>{safeT("title", "Kom i gang")} · 1/1</div>
-            <h1 style={{ margin: 0 }}>{safeT("title", "Kom i gang")}</h1>
-            <p style={{ opacity: 0.75, margin: 0 }}>{safeT("loading", "Laster…")}</p>
+        <div style={wrap}>
+          <div style={card}>
+            <div style={logoWrap}>
+              <Image
+                src="/logo 321_2.png"
+                alt="321skole"
+                width={220}
+                height={72}
+                priority
+                style={{ width: "auto", height: "58px", objectFit: "contain" }}
+              />
+            </div>
+
+            <div style={header}>
+              <div style={eyebrow}>{safeT("title", "Get started")} · 1/2</div>
+              <h1 style={title}>{safeT("title", "Get started")}</h1>
+              <p style={subtitle}>{safeT("loading", "Loading…")}</p>
+            </div>
           </div>
         </div>
       </main>
@@ -369,126 +626,252 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
   return (
     <main style={pageBg}>
-      <div style={card}>
-        <div style={titleRow}>
-          <div style={smallTop}>{safeT("title", "Kom i gang")} · 1/1</div>
-          <h1 style={{ margin: 0 }}>{safeT("title", "Kom i gang")}</h1>
-          <p style={{ opacity: 0.75, margin: 0 }}>
-            {safeT(
-              "subtitle",
-              "Navn er obligatorisk. Land og kommune velges fra liste. Institusjon er valgfritt."
-            )}
-          </p>
-        </div>
-
-        {err ? <div style={errorBox}>{err}</div> : null}
-
-        <section style={{ marginTop: 14, display: "grid", gap: 12 }}>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ fontWeight: 900 }}>{safeT("fields.role.label", "Velg rolle *")}</div>
-
-            <div style={roleGrid}>
-              <button
-                type="button"
-                onClick={() => {
-                  setRoleTouched(true);
-                  setRole("student");
-                  setErr(null);
-                }}
-                style={roleCard(role === "student")}
-              >
-                <div style={{ fontWeight: 900, fontSize: 14 }}>
-                  👩‍🎓 {safeT("fields.role.student", "Student")}
-                </div>
-                <div style={{ fontSize: 12, opacity: role === "student" ? 0.85 : 0.7 }}>
-                  {safeT("fields.role.hint", "Velg rolle for å fortsette.")}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setRoleTouched(true);
-                  setRole("teacher");
-                  setErr(null);
-                }}
-                style={roleCard(role === "teacher")}
-              >
-                <div style={{ fontWeight: 900, fontSize: 14 }}>
-                  👩‍🏫 {safeT("fields.role.teacher", "Lærer")}
-                </div>
-                <div style={{ fontSize: 12, opacity: role === "teacher" ? 0.85 : 0.7 }}>
-                  {safeT("fields.role.hint", "Velg rolle for å fortsette.")}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setRoleTouched(true);
-                  setRole("parent");
-                  setErr(null);
-                }}
-                style={roleCard(role === "parent")}
-              >
-                <div style={{ fontWeight: 900, fontSize: 14 }}>
-                  👨‍👩‍👧 {safeT("fields.role.parent", "Forelder")}
-                </div>
-                <div style={{ fontSize: 12, opacity: role === "parent" ? 0.85 : 0.7 }}>
-                  {safeT("fields.role.hint", "Velg rolle for å fortsette.")}
-                </div>
-              </button>
-            </div>
-
-            {showRoleHint ? (
-              <div style={hintBox}>
-                {safeT("errors.missingRole", "Velg rolle (Student, Lærer eller Forelder).")}
-              </div>
-            ) : null}
-          </div>
-
-          <label style={labelStyle}>
-            {safeT("fields.fullName.label", "Fullt navn *")}
-            <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={inputStyle} />
-          </label>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <GeoSearchSelect
-              label={safeT("fields.country.label", "Land *")}
-              value={country}
-              options={countryOptions}
-              placeholder={safeT("fields.country.placeholder", "Søk land…")}
-              onChange={(v) => {
-                setCountry(v);
-                setMunicipality("");
-              }}
+      <div style={wrap}>
+        <div style={card}>
+          <div style={logoWrap}>
+            <Image
+              src="/logo 321_2.png"
+              alt="321skole"
+              width={220}
+              height={72}
+              priority
+              style={{ width: "auto", height: "58px", objectFit: "contain" }}
             />
-
-            {isNorway ? (
-              <GeoSearchSelect
-                label={safeT("fields.municipalityNo.label", "Kommune *")}
-                value={municipality}
-                options={municipalityOptions}
-                placeholder={safeT("fields.municipalityNo.placeholder", "Søk kommune…")}
-                onChange={setMunicipality}
-              />
-            ) : (
-              <label style={labelStyle}>
-                {safeT("fields.municipalityOther.label", "By/område *")}
-                <input value={municipality} onChange={(e) => setMunicipality(e.target.value)} style={inputStyle} />
-              </label>
-            )}
           </div>
 
-          {role === "teacher" ? (
-            <div style={{ marginTop: 6, paddingTop: 10, borderTop: "1px solid rgba(0,0,0,0.08)" }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>
-                {safeT("institution.title", "Læringsinstitusjon (valgfritt)")}
+          <div style={header}>
+            <div style={eyebrow}>
+              {safeT("title", "Get started")} · {step}/{totalSteps}
+            </div>
+            <h1 style={title}>{safeT("title", "Get started")}</h1>
+            <p style={subtitle}>
+              {safeT(
+                "subtitle",
+                "Choose your role and fill in basic information to continue."
+              )}
+            </p>
+          </div>
+
+          <div style={progressOuter}>
+            <div style={progressInner} />
+          </div>
+
+          {err ? <div style={errorBox}>{err}</div> : null}
+
+          {step === 1 ? (
+            <section style={section}>
+              <h2 style={sectionTitle}>
+                {safeT("steps.role.title", "Choose your role")}
+              </h2>
+              <p style={sectionText}>
+                {safeT(
+                  "steps.role.text",
+                  "Choose the role that fits you best. You can add or change your role later."
+                )}
+              </p>
+
+              <div style={roleGrid}>
+                <button
+                  type="button"
+                  className="role-card"
+                  aria-pressed={role === "student"}
+                  onClick={() => {
+                    setRoleTouched(true);
+                    setRole("student");
+                    setErr(null);
+                  }}
+                  style={roleCard(role === "student")}
+                >
+                  <span style={selectedBadge(role === "student")}>✓</span>
+                  <div style={roleEmoji}>👩‍🎓</div>
+                  <div style={roleTitle}>{safeT("fields.role.student", "Student")}</div>
+                  <div style={roleHint}>
+                    {safeT(
+                      "fields.role.studentHint",
+                      "For pupils and students who want to learn more on their own or together with others."
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="role-card"
+                  aria-pressed={role === "teacher"}
+                  onClick={() => {
+                    setRoleTouched(true);
+                    setRole("teacher");
+                    setErr(null);
+                  }}
+                  style={roleCard(role === "teacher")}
+                >
+                  <span style={selectedBadge(role === "teacher")}>✓</span>
+                  <div style={roleEmoji}>👩‍🏫</div>
+                  <div style={roleTitle}>{safeT("fields.role.teacher", "Teacher")}</div>
+                  <div style={roleHint}>
+                    {safeT(
+                      "fields.role.teacherHint",
+                      "Learning platform for teaching staff with classes, classrooms and digital whiteboard."
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className="role-card"
+                  aria-pressed={role === "parent"}
+                  onClick={() => {
+                    setRoleTouched(true);
+                    setRole("parent");
+                    setErr(null);
+                  }}
+                  style={roleCard(role === "parent")}
+                >
+                  <span style={selectedBadge(role === "parent")}>✓</span>
+                  <div style={roleEmoji}>👨‍👩‍👧</div>
+                  <div style={roleTitle}>{safeT("fields.role.parent", "Parent")}</div>
+                  <div style={roleHint}>
+                    {safeT(
+                      "fields.role.parentHint",
+                      "For guardians who want to help their children learn more. Create your own study spaces and give them adapted tasks."
+                    )}
+                  </div>
+                </button>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {showRoleHint ? (
+                <div style={hintBox}>
+                  {safeT("errors.missingRole", "Choose a role (Student, Teacher or Parent).")}
+                </div>
+              ) : null}
+
+              <div style={footerRow}>
+                <div />
+                <button
+                  type="button"
+                  onClick={goNext}
+                  style={{ ...primaryBtn, cursor: "pointer" }}
+                >
+                  {safeT("buttons.continue", "Continue")}
+                </button>
+              </div>
+            </section>
+          ) : null}
+
+          {step === 2 ? (
+            <section style={section}>
+              <h2 style={sectionTitle}>
+                {safeT("steps.profile.title", "Basic profile")}
+              </h2>
+              <p style={sectionText}>
+                {safeT(
+                  "steps.profile.text",
+                  "Tell us a little about yourself so we can tailor the experience."
+                )}
+              </p>
+
+              <label style={labelStyle}>
+                <span style={labelTextStyle}>
+                  {safeT("fields.fullName.label", "Full name *")}
+                </span>
+                <input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  style={inputStyle}
+                  autoComplete="name"
+                />
+              </label>
+
+              <div style={twoCol}>
+                <GeoSearchSelect
+                  label={safeT("fields.country.label", "Country *")}
+                  value={country}
+                  options={countryOptions}
+                  placeholder={safeT("fields.country.placeholder", "Search country…")}
+                  onChange={(v) => {
+                    setCountry(v);
+                    setMunicipality("");
+                  }}
+                />
+
+                {isNorway ? (
+                  <GeoSearchSelect
+                    label={safeT("fields.municipalityNo.label", "Municipality *")}
+                    value={municipality}
+                    options={municipalityOptions}
+                    placeholder={safeT(
+                      "fields.municipalityNo.placeholder",
+                      "Search municipality…"
+                    )}
+                    onChange={setMunicipality}
+                  />
+                ) : (
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>
+                      {safeT("fields.municipalityOther.label", "City / area *")}
+                    </span>
+                    <input
+                      value={municipality}
+                      onChange={(e) => setMunicipality(e.target.value)}
+                      style={inputStyle}
+                    />
+                  </label>
+                )}
+              </div>
+
+              <div style={footerRow}>
+                <button
+                  type="button"
+                  onClick={goBack}
+                  style={{ ...secondaryBtn, cursor: "pointer" }}
+                >
+                  {safeT("buttons.back", "Back")}
+                </button>
+
+                {isTeacher ? (
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    style={{ ...primaryBtn, cursor: "pointer" }}
+                  >
+                    {safeT("buttons.continue", "Continue")}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={saveProfile}
+                    disabled={saving || !canSubmit}
+                    style={{
+                      ...primaryBtn,
+                      cursor: saving || !canSubmit ? "not-allowed" : "pointer",
+                      opacity: saving || !canSubmit ? 0.6 : 1,
+                    }}
+                  >
+                    {saving
+                      ? safeT("buttons.saving", "Saving…")
+                      : safeT("buttons.complete", "Complete profile")}
+                  </button>
+                )}
+              </div>
+            </section>
+          ) : null}
+
+          {step === 3 && isTeacher ? (
+            <section style={section}>
+              <h2 style={sectionTitle}>
+                {safeT("steps.institution.title", "Learning institution")}
+              </h2>
+              <p style={sectionText}>
+                {safeT(
+                  "steps.institution.text",
+                  "This step is optional, but it helps us tailor the teacher experience."
+                )}
+              </p>
+
+              <div style={twoCol}>
                 <label style={labelStyle}>
-                  {safeT("institution.typeLabel", "Type")}
+                  <span style={labelTextStyle}>
+                    {safeT("institution.typeLabel", "Type")}
+                  </span>
                   <select
                     value={institutionType}
                     onChange={(e) => {
@@ -497,7 +880,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
                     }}
                     style={inputStyle}
                   >
-                    <option value="">{safeT("institution.none", "Ingen")}</option>
+                    <option value="">{safeT("institution.none", "None")}</option>
                     {institutionOptions.map((x) => (
                       <option key={x.value} value={x.value}>
                         {x.label}
@@ -507,7 +890,9 @@ export default function OnboardingClient({ nextUrl }: Props) {
                 </label>
 
                 <label style={labelStyle}>
-                  {safeT("institution.nameLabel", "Navn (valgfritt)")}
+                  <span style={labelTextStyle}>
+                    {safeT("institution.nameLabel", "Name (optional)")}
+                  </span>
                   <input
                     value={institutionName}
                     onChange={(e) => setInstitutionName(e.target.value)}
@@ -516,51 +901,57 @@ export default function OnboardingClient({ nextUrl }: Props) {
                   />
                 </label>
               </div>
-            </div>
-          ) : null}
 
-          <button
-            onClick={() => {
-              if (!roleTouched) setRoleTouched(true);
-              saveProfile();
-            }}
-            disabled={saving || !canSubmit}
-            style={{
-              ...primaryBtn,
-              cursor: saving || !canSubmit ? "not-allowed" : "pointer",
-              opacity: saving || !canSubmit ? 0.55 : 1,
-            }}
-          >
-            {saving ? safeT("buttons.saving", "Lagrer…") : safeT("buttons.complete", "Fullfør profil")}
-          </button>
+              <div style={footerRow}>
+                <button
+                  type="button"
+                  onClick={goBack}
+                  style={{ ...secondaryBtn, cursor: "pointer" }}
+                >
+                  {safeT("buttons.back", "Back")}
+                </button>
 
-          {!canSubmit ? (
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              {!roleOk ? `• ${safeT("errors.missingRole", "Velg rolle (Student, Lærer eller Forelder).")}` : null}
-              {!nameOk ? `${roleOk ? "" : " "}• ${safeT("errors.missingName", "Skriv inn fullt navn.")}` : null}
-              {!countryOk ? ` • ${safeT("errors.missingCountry", "Velg land.")}` : null}
-              {!municipalityOk
-                ? ` • ${
-                    isNorway
-                      ? safeT("errors.missingMunicipalityNo", "Velg kommune.")
-                      : safeT("errors.missingMunicipalityOther", "Skriv inn by/område.")
-                  }`
-                : null}
-            </div>
+                <button
+                  type="button"
+                  onClick={saveProfile}
+                  disabled={saving}
+                  style={{
+                    ...primaryBtn,
+                    cursor: saving ? "not-allowed" : "pointer",
+                    opacity: saving ? 0.6 : 1,
+                  }}
+                >
+                  {saving
+                    ? safeT("buttons.saving", "Saving…")
+                    : safeT("buttons.complete", "Complete profile")}
+                </button>
+              </div>
+            </section>
           ) : null}
-        </section>
+        </div>
       </div>
 
       <style jsx>{`
-        @media (max-width: 720px) {
-          main :global(button) {
-            min-height: 44px;
+        .role-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        @media (max-width: 860px) {
+          div[style*="repeat(3, minmax(0, 1fr))"] {
+            grid-template-columns: 1fr !important;
           }
         }
 
-        @media (max-width: 640px) {
-          div[style*="repeat(3, minmax(0, 1fr))"] {
+        @media (max-width: 720px) {
+          div[style*="grid-template-columns: 1fr 1fr"] {
             grid-template-columns: 1fr !important;
+          }
+
+          main :global(button),
+          main :global(input),
+          main :global(select) {
+            min-height: 46px;
           }
         }
       `}</style>

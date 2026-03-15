@@ -53,73 +53,126 @@
     "close": "Fechar biblioteca"
   },
   "auth": {
-    "login": {
-      "title": {
-        "signin": "Entrar",
-        "signup": "Criar conta"
-      },
-      "intro": {
-        "anon": "Você está usando uma conta temporária (anônima). Ao entrar, você atualiza a conta e mantém o que já fez.",
-        "normal": "Entre para salvar o progresso, enviar atividades e solicitar acesso de professor."
-      },
-      "tabs": {
-        "signin": "Entrar",
-        "signup": "Criar conta"
-      },
-      "fields": {
-        "displayNamePlaceholder": "Nome (opcional)",
-        "emailPlaceholder": "E-mail",
-        "passwordPlaceholder": "Senha"
-      },
-      "buttons": {
-        "working": "Processando…",
-        "upgradeGoogle": "Atualizar com Google",
-        "signinGoogle": "Entrar com Google",
-        "signinEmail": "Entrar",
-        "upgradeAccount": "Atualizar conta",
-        "createAccount": "Criar conta"
-      },
-      "hints": {
-        "anonSignup": "Dica: se o e-mail já existir, escolha <b>Entrar</b>."
-      },
-      "errors": {
-        "missingEmail": "Informe seu e-mail.",
-        "missingPassword": "Informe sua senha.",
-        "invalidCredential": "E-mail ou senha incorretos.",
-        "userNotFound": "Nenhum usuário encontrado com esse e-mail.",
-        "emailAlreadyInUse": "Este e-mail já está em uso.",
-        "emailAlreadyInUseLoginInstead": "Este e-mail já está em uso. Entre em vez disso.",
-        "weakPassword": "A senha é fraca (pelo menos 6 caracteres).",
-        "invalidEmail": "Endereço de e-mail inválido.",
-        "popupClosed": "O login foi cancelado.",
-        "generic": "Não foi possível entrar. Tente novamente."
-      }
+  "login": {
+    "title": {
+      "signin": "Entrar",
+      "signup": "Criar conta"
     },
-    "onboarding": {
+    "intro": {
+      "anon": "Você está usando uma conta temporária. Entre ou crie uma conta para manter seu trabalho.",
+      "normal": "Entre para continuar.",
+      "signup": "Crie uma conta para começar como aluno, professor ou responsável."
+    },
+    "tabs": {
+      "signin": "Entrar",
+      "signup": "Criar conta"
+    },
+    "separator": "ou",
+    "fields": {
+      "displayNameLabel": "Nome completo",
+      "displayNamePlaceholder": "Nome completo",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "E-mail",
+      "passwordLabel": "Senha",
+      "passwordPlaceholder": "Senha",
+      "rememberMe": "Lembrar de mim neste dispositivo"
+    },
+    "buttons": {
+      "working": "Trabalhando…",
+      "sending": "Enviando…",
+      "upgradeGoogle": "Atualizar com Google",
+      "signinGoogle": "Continuar com Google",
+      "signinEmail": "Entrar com e-mail",
+      "upgradeAccount": "Salvar conta anônima",
+      "createAccount": "Criar conta",
+      "forgotPassword": "Esqueceu a senha?",
+      "sendReset": "Enviar e-mail de redefinição"
+    },
+    "forgot": {
+      "title": "Redefinir senha",
+      "text": "Digite seu e-mail e enviaremos um link para criar uma nova senha."
+    },
+    "messages": {
+      "resetSent": "Enviamos um e-mail com um link para redefinir sua senha."
+    },
+    "hints": {
+      "anonSignup": "Dica: se este e-mail já existir, escolha <b>Entrar</b>."
+    },
+    "footer": {
+      "noAccount": "Ainda não tem conta?",
+      "signupLink": "Crie uma aqui",
+      "hasAccount": "Já é cadastrado?",
+      "signinLink": "Entre aqui"
+    },
+    "errors": {
+      "missingEmail": "Digite seu e-mail.",
+      "missingPassword": "Digite sua senha.",
+      "missingName": "Digite seu nome.",
+      "invalidCredential": "E-mail ou senha incorretos.",
+      "userNotFound": "Nenhum usuário encontrado com esse e-mail.",
+      "emailAlreadyInUse": "Este e-mail já está em uso.",
+      "emailAlreadyInUseLoginInstead": "Este e-mail já está em uso. Entre em vez disso.",
+      "weakPassword": "A senha é muito fraca (mínimo de 6 caracteres).",
+      "invalidEmail": "Endereço de e-mail inválido.",
+      "tooManyRequests": "Muitas tentativas. Tente novamente mais tarde.",
+      "popupClosed": "A entrada foi cancelada.",
+      "generic": "Não foi possível continuar. Tente novamente."
+    }
+  },
+  "onboarding": {
   "title": "Começar",
   "loading": "Carregando…",
-  "subtitle": "O nome é obrigatório. País/município é selecionado em uma lista. Instituição é opcional.",
+  "subtitle": "Escolha sua função e preencha as informações básicas para continuar.",
+  "steps": {
+    "role": {
+      "title": "Escolha sua função",
+      "text": "Escolha a função que combina melhor com você. Você poderá adicionar ou alterar a função depois."
+    },
+    "profile": {
+      "title": "Perfil básico",
+      "text": "Conte um pouco sobre você para que possamos adaptar melhor a experiência."
+    },
+    "institution": {
+      "title": "Instituição de ensino",
+      "text": "Esta etapa é opcional, mas nos ajuda a adaptar melhor a experiência do professor."
+    }
+  },
   "fields": {
     "role": {
       "label": "Escolha a função *",
       "student": "Aluno",
       "teacher": "Professor",
       "parent": "Responsável",
-      "hint": "Escolha uma função para continuar."
+      "hint": "Escolha uma função para continuar.",
+      "studentHint": "Para alunos e estudantes que querem aprender mais sozinhos ou junto com outras pessoas.",
+      "teacherHint": "Plataforma de aprendizagem para profissionais da educação com turmas, salas de aula e quadro digital.",
+      "parentHint": "Para responsáveis que querem ajudar seus filhos a aprender mais. Crie seus próprios espaços de estudo e ofereça atividades adaptadas."
     },
-    "fullName": { "label": "Nome completo *" },
-    "country": { "label": "País *", "placeholder": "Pesquisar país…" },
-    "municipalityNo": { "label": "Município *", "placeholder": "Pesquisar município…" },
-    "municipalityOther": { "label": "Cidade/região *" }
+    "fullName": {
+      "label": "Nome completo *"
+    },
+    "country": {
+      "label": "País *",
+      "placeholder": "Pesquisar país…"
+    },
+    "municipalityNo": {
+      "label": "Município *",
+      "placeholder": "Pesquisar município…"
+    },
+    "municipalityOther": {
+      "label": "Cidade / região *"
+    }
   },
   "errors": {
     "missingRole": "Escolha uma função (Aluno, Professor ou Responsável).",
     "missingName": "Digite seu nome completo.",
     "missingCountry": "Escolha um país.",
     "missingMunicipalityNo": "Escolha um município.",
-    "missingMunicipalityOther": "Digite a cidade/região."
+    "missingMunicipalityOther": "Digite uma cidade ou região."
   },
   "buttons": {
+    "back": "Voltar",
+    "continue": "Continuar",
     "saving": "Salvando…",
     "complete": "Concluir perfil"
   },
@@ -139,7 +192,91 @@
     }
   }
 }
-  },
+},
+  "tools": {
+    "generator": {
+      "title": "Gerador simples de tarefas",
+      "subtitle": "Crie um texto curto com questões de múltipla escolha e verdadeiro/falso.",
+      "fields": {
+        "topic": "Tema",
+        "level": "CEFR",
+        "length": "Tamanho",
+        "language": "Idioma"
+      },
+      "placeholders": {
+        "topic": "ex.: Comida, inverno, trabalho..."
+      },
+      "length": {
+        "short": "Curto",
+        "normal": "Normal",
+        "long": "Longo"
+      },
+      "languages": {
+        "en": "Inglês",
+        "no": "Norueguês",
+        "pt": "Português"
+      },
+      "actions": {
+        "generate": "Gerar",
+        "generating": "Gerando...",
+        "checkAnswers": "Verificar respostas"
+      },
+      "sections": {
+        "text": "Texto",
+        "tasks": "Tarefas"
+      },
+      "meta": {
+        "level": "Nível",
+        "topic": "Tema",
+        "language": "Idioma"
+      },
+      "taskLabel": "Tarefa {number}",
+      "taskTypes": {
+        "mcq": "múltipla escolha",
+        "truefalse": "verdadeiro/falso"
+      },
+      "answers": {
+        "true": "Verdadeiro",
+        "false": "Falso"
+      },
+      "results": {
+        "correct": "Correto",
+        "incorrect": "Incorreto",
+        "correctAnswer": "Resposta correta",
+        "score": "Pontuação: {score} / {total}"
+      },
+      "errors": {
+        "generateFailed": "Não foi possível gerar"
+      }
+    },
+    "sentenceFixer": {
+    "title": "Corretor de frases",
+    "subtitle": "Corrija a gramática, receba uma explicação curta e veja uma versão melhor.",
+    "fields": {
+      "language": "Idioma",
+      "level": "CEFR",
+      "mode": "Modo",
+      "text": "Texto"
+    },
+    "modes": {
+      "sentence": "Uma frase",
+      "short": "Texto curto"
+    },
+    "placeholders": {
+      "text": "Escreva uma frase ou um texto curto aqui..."
+    },
+    "actions": {
+      "fix": "Corrigir frase",
+      "fixing": "Corrigindo..."
+    },
+    "sections": {
+      "corrected": "Corrigido",
+      "explanation": "Explicação",
+      "betterVersion": "Versão melhor"
+    },
+    "hint": "Melhor para uma frase ou um texto bem curto."
+  }
+},
   "student": {
     "spaces": {
       "title": "Meus espaços",

@@ -53,73 +53,126 @@
     "close": "Lukk bibliotek"
   },
   "auth": {
-    "login": {
-      "title": {
-        "signin": "Logg inn",
-        "signup": "Registrer"
-      },
-      "intro": {
-        "anon": "Du bruker en midlertidig (anonym) bruker. Ved å logge inn oppgraderer du kontoen og beholder det du har gjort.",
-        "normal": "Logg inn for å lagre, sende inn og søke om lærertilgang."
-      },
-      "tabs": {
-        "signin": "Logg inn",
-        "signup": "Registrer"
-      },
-      "fields": {
-        "displayNamePlaceholder": "Navn (valgfritt)",
-        "emailPlaceholder": "E-post",
-        "passwordPlaceholder": "Passord"
-      },
-      "buttons": {
-        "working": "Jobber…",
-        "upgradeGoogle": "Oppgrader med Google",
-        "signinGoogle": "Logg inn med Google",
-        "signinEmail": "Logg inn",
-        "upgradeAccount": "Oppgrader konto",
-        "createAccount": "Opprett bruker"
-      },
-      "hints": {
-        "anonSignup": "Tips: Hvis e-posten allerede finnes, velg <b>Logg inn</b> i stedet."
-      },
-      "errors": {
-        "missingEmail": "Skriv inn e-post.",
-        "missingPassword": "Skriv inn passord.",
-        "invalidCredential": "Feil e-post eller passord.",
-        "userNotFound": "Fant ingen bruker med den e-posten.",
-        "emailAlreadyInUse": "E-posten er allerede i bruk.",
-        "emailAlreadyInUseLoginInstead": "E-posten er allerede i bruk. Logg inn i stedet.",
-        "weakPassword": "Passordet er for svakt (minst 6 tegn).",
-        "invalidEmail": "Ugyldig e-postadresse.",
-        "popupClosed": "Innlogging avbrutt.",
-        "generic": "Kunne ikke logge inn. Prøv igjen."
-      }
+  "login": {
+    "title": {
+      "signin": "Logg inn",
+      "signup": "Opprett konto"
     },
-    "onboarding": {
+    "intro": {
+      "anon": "Du bruker en midlertidig konto. Logg inn eller opprett konto for å beholde arbeidet ditt.",
+      "normal": "Logg inn for å fortsette.",
+      "signup": "Opprett konto for å komme i gang som elev, lærer eller forelder."
+    },
+    "tabs": {
+      "signin": "Logg inn",
+      "signup": "Opprett konto"
+    },
+    "separator": "eller",
+    "fields": {
+      "displayNameLabel": "Fullt navn",
+      "displayNamePlaceholder": "Fullt navn",
+      "emailLabel": "E-post",
+      "emailPlaceholder": "E-post",
+      "passwordLabel": "Passord",
+      "passwordPlaceholder": "Passord",
+      "rememberMe": "Husk meg på denne enheten"
+    },
+    "buttons": {
+      "working": "Jobber…",
+      "sending": "Sender…",
+      "upgradeGoogle": "Oppgrader med Google",
+      "signinGoogle": "Fortsett med Google",
+      "signinEmail": "Logg inn med e-post",
+      "upgradeAccount": "Lagre anonym konto",
+      "createAccount": "Opprett konto",
+      "forgotPassword": "Glemt passord?",
+      "sendReset": "Send e-post for nytt passord"
+    },
+    "forgot": {
+      "title": "Lag nytt passord",
+      "text": "Skriv inn e-posten din, så sender vi deg en lenke for å lage nytt passord."
+    },
+    "messages": {
+      "resetSent": "Vi har sendt deg en e-post med en lenke for å lage nytt passord."
+    },
+    "hints": {
+      "anonSignup": "Tips: Hvis denne e-posten allerede finnes, velg <b>Logg inn</b> i stedet."
+    },
+    "footer": {
+      "noAccount": "Har du ikke konto?",
+      "signupLink": "Opprett en her",
+      "hasAccount": "Har du allerede registrert deg?",
+      "signinLink": "Logg inn her"
+    },
+    "errors": {
+      "missingEmail": "Skriv inn e-post.",
+      "missingPassword": "Skriv inn passord.",
+      "missingName": "Skriv inn navnet ditt.",
+      "invalidCredential": "Feil e-post eller passord.",
+      "userNotFound": "Fant ingen bruker med denne e-posten.",
+      "emailAlreadyInUse": "Denne e-posten er allerede i bruk.",
+      "emailAlreadyInUseLoginInstead": "Denne e-posten er allerede i bruk. Logg inn i stedet.",
+      "weakPassword": "Passordet er for svakt (minst 6 tegn).",
+      "invalidEmail": "Ugyldig e-postadresse.",
+      "tooManyRequests": "For mange forsøk. Prøv igjen senere.",
+      "popupClosed": "Innloggingen ble avbrutt.",
+      "generic": "Kunne ikke fortsette. Prøv igjen."
+    }
+  },
+  "onboarding": {
   "title": "Kom i gang",
   "loading": "Laster…",
-  "subtitle": "Navn er obligatorisk. Land og kommune velges fra liste. Institusjon er valgfritt.",
+  "subtitle": "Velg rolle og fyll ut grunnleggende informasjon for å fortsette.",
+  "steps": {
+    "role": {
+      "title": "Velg rolle",
+      "text": "Velg rollen som passer best for deg. Du kan legge til eller endre rolle senere."
+    },
+    "profile": {
+      "title": "Grunnleggende profil",
+      "text": "Fortell litt om deg selv, så kan vi tilpasse opplevelsen bedre."
+    },
+    "institution": {
+      "title": "Læringsinstitusjon",
+      "text": "Dette steget er valgfritt, men hjelper oss å tilpasse læreropplevelsen bedre."
+    }
+  },
   "fields": {
     "role": {
       "label": "Velg rolle *",
       "student": "Student",
       "teacher": "Lærer",
-      "parent": "Foreldre",
-      "hint": "Velg rolle for å fortsette."
+      "parent": "Forelder",
+      "hint": "Velg én rolle for å fortsette.",
+      "studentHint": "For elever og studenter som vil lære mer på egenhånd eller sammen med andre.",
+      "teacherHint": "Læringsplattform for undervisningspersonell med klasser, klasserom og digital tavle.",
+      "parentHint": "For foresatte som vil lære barna sine mer. Lag egne studierom for barna og gi dem tilpassede oppgaver."
     },
-    "fullName": { "label": "Fullt navn *" },
-    "country": { "label": "Land *", "placeholder": "Søk land…" },
-    "municipalityNo": { "label": "Kommune *", "placeholder": "Søk kommune…" },
-    "municipalityOther": { "label": "By/område *" }
+    "fullName": {
+      "label": "Fullt navn *"
+    },
+    "country": {
+      "label": "Land *",
+      "placeholder": "Søk land…"
+    },
+    "municipalityNo": {
+      "label": "Kommune *",
+      "placeholder": "Søk kommune…"
+    },
+    "municipalityOther": {
+      "label": "By / område *"
+    }
   },
   "errors": {
-    "missingRole": "Velg rolle (Student, lærer eller foreldre).",
+    "missingRole": "Velg rolle (Student, Lærer eller Forelder).",
     "missingName": "Skriv inn fullt navn.",
     "missingCountry": "Velg land.",
     "missingMunicipalityNo": "Velg kommune.",
-    "missingMunicipalityOther": "Skriv inn by/område."
+    "missingMunicipalityOther": "Skriv inn by eller område."
   },
   "buttons": {
+    "back": "Tilbake",
+    "continue": "Fortsett",
     "saving": "Lagrer…",
     "complete": "Fullfør profil"
   },
@@ -139,6 +192,90 @@
     }
   }
 }
+},
+  "tools": {
+    "generator": {
+      "title": "Simple task generator",
+      "subtitle": "Generate a short text with multiple choice and true/false tasks.",
+      "fields": {
+        "topic": "Topic",
+        "level": "CEFR",
+        "length": "Length",
+        "language": "Language"
+      },
+      "placeholders": {
+        "topic": "e.g. Food, Winter, Work..."
+      },
+      "length": {
+        "short": "Short",
+        "normal": "Normal",
+        "long": "Long"
+      },
+      "languages": {
+        "en": "English",
+        "no": "Norwegian",
+        "pt": "Portuguese"
+      },
+      "actions": {
+        "generate": "Generate",
+        "generating": "Generating...",
+        "checkAnswers": "Check answers"
+      },
+      "sections": {
+        "text": "Text",
+        "tasks": "Tasks"
+      },
+      "meta": {
+        "level": "Level",
+        "topic": "Topic",
+        "language": "Language"
+      },
+      "taskLabel": "Task {number}",
+      "taskTypes": {
+        "mcq": "multiple choice",
+        "truefalse": "true/false"
+      },
+      "answers": {
+        "true": "True",
+        "false": "False"
+      },
+      "results": {
+        "correct": "Correct",
+        "incorrect": "Not correct",
+        "correctAnswer": "Correct answer",
+        "score": "Score: {score} / {total}"
+      },
+      "errors": {
+        "generateFailed": "Could not generate"
+      }
+    },
+    "sentenceFixer": {
+    "title": "Setningsfikser",
+    "subtitle": "Rett grammatikk, få en kort forklaring og se en bedre versjon.",
+    "fields": {
+      "language": "Språk",
+      "level": "CEFR",
+      "mode": "Modus",
+      "text": "Tekst"
+    },
+    "modes": {
+      "sentence": "Én setning",
+      "short": "Kort tekst"
+    },
+    "placeholders": {
+      "text": "Skriv en setning eller en kort tekst her..."
+    },
+    "actions": {
+      "fix": "Rett setning",
+      "fixing": "Retter..."
+    },
+    "sections": {
+      "corrected": "Rettet",
+      "explanation": "Forklaring",
+      "betterVersion": "Bedre versjon"
+    },
+    "hint": "Best for én setning eller en veldig kort tekst."
+  }
   },
   "student": {
     "spaces": {
