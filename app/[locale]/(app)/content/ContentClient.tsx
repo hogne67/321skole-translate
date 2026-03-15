@@ -142,9 +142,9 @@ function StatusPill({
           : "border-zinc-200 bg-zinc-50 text-zinc-800";
 
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold ${ring}`}>
-      <span className={`h-2 w-2 rounded-full ${dot}`} />
-      {label}
+    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold ${ring}`}>
+      <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+      <span className="truncate">{label}</span>
     </span>
   );
 }
@@ -156,7 +156,7 @@ function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
       className={[
         "inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-extrabold",
         "bg-white hover:bg-zinc-50 active:bg-zinc-100",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
+        "disabled:cursor-not-allowed disabled:opacity-50",
         props.className || "",
       ].join(" ")}
     />
@@ -981,9 +981,24 @@ export default function ContentClient() {
     return `${label} (${counts.lesson + counts.submission + counts.space})`;
   }
 
+    function mobileDeletedLabel() {
+    if (showDeleted) {
+      return locale === "en" ? "Deleted: On" : "Slettet: På";
+    }
+    return locale === "en" ? "Deleted: Off" : "Slettet: Av";
+  }
+
+    const mobileFilterActions: ActionItem[] = [
+    ...(["library", "teacher", "lesson", "submission", "space"] as const).map((ft) => ({
+      key: `mobile-filter-${ft}`,
+      label: labelWithCount(ft),
+      onClick: () => setFilter(ft),
+    })),
+  ];
+
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <main className="mx-auto w-full max-w-5xl overflow-x-hidden px-3 py-4 sm:px-4">
+      <div className="flex flex-col gap-3">
         <div className="min-w-0">
           <h1 className="text-xl font-black tracking-tight">
             {isParent ? "Mitt innhold for familien" : t("title")}
@@ -993,12 +1008,6 @@ export default function ContentClient() {
               ? "Her finner du oppgaver du kan åpne, organisere og dele videre til barnas rom."
               : t("subtitle")}
           </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <PrimaryButton onClick={refresh} disabled={loading}>
-            {loading ? t("actions.loading") : t("actions.refresh")}
-          </PrimaryButton>
         </div>
       </div>
 
@@ -1010,8 +1019,8 @@ export default function ContentClient() {
           className="w-full rounded-2xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-2"
         />
 
-        <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-          <div className="flex flex-wrap justify-center gap-2">
+        <div className="mt-3 hidden flex-wrap items-center justify-between gap-2 sm:flex">
+          <div className="flex flex-wrap gap-2">
             {(["all", "library", "teacher", "lesson", "submission", "space"] as const).map((ft) => (
               <button
                 key={ft}
@@ -1046,6 +1055,33 @@ export default function ContentClient() {
             />
             {showDeletedLabel}
           </label>
+        </div>
+
+                <div className="mt-3 grid grid-cols-[1fr_auto_auto] items-center gap-2 sm:hidden">
+          <button
+            onClick={() => setFilter("all")}
+            className={[
+              "min-w-0 rounded-2xl border px-4 py-3 text-sm font-extrabold",
+              "transition-colors",
+              filter === "all" ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
+            ].join(" ")}
+          >
+            <span className="truncate">{labelWithCount("all")}</span>
+          </button>
+
+          <button
+            onClick={() => setShowDeleted((v) => !v)}
+            className={[
+              "rounded-2xl border px-3 py-3 text-sm font-extrabold whitespace-nowrap transition-colors",
+              showDeleted ? "bg-amber-100 border-amber-300 text-amber-900" : "bg-white hover:bg-zinc-50",
+            ].join(" ")}
+          >
+            {mobileDeletedLabel()}
+          </button>
+
+          <div className="shrink-0 rounded-2xl border bg-white shadow-sm [&_button]:h-12 [&_button]:w-12 [&_button]:rounded-2xl [&_button]:border-0 [&_button]:bg-transparent [&_button]:text-base [&_button_svg]:h-6 [&_button_svg]:w-6">
+            <ActionMenu items={mobileFilterActions} />
+          </div>
         </div>
       </div>
 
@@ -1128,11 +1164,13 @@ export default function ContentClient() {
               const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
 
               return (
-                <div key={key} className="rounded-2xl border bg-white p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="truncate text-base font-black leading-tight">{title}</div>
+                                <div key={key} className="w-full overflow-hidden rounded-2xl border bg-white p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start gap-2">
+                                                <div className="min-w-0 max-w-full break-words text-base font-black leading-tight">
+                          {title}
+                        </div>
                         {extraPill}
                         {pill}
                       </div>
@@ -1150,7 +1188,7 @@ export default function ContentClient() {
                         ) : null}
 
                         {metaLine ? <span className="opacity-60">•</span> : null}
-                        {metaLine ? <span className="truncate">{metaLine}</span> : null}
+                                                {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
                       </div>
 
                       {isParent && it.type === "lesson" ? (
@@ -1227,8 +1265,10 @@ export default function ContentClient() {
                       </div>
                     </div>
 
-                    <div className="shrink-0 flex items-center gap-2">
-                      <ActionMenu items={actions} />
+                    <div className="flex w-full justify-end sm:w-auto">
+                      <div className="shrink-0 rounded-2xl border bg-white shadow-sm [&_button]:h-12 [&_button]:w-12 [&_button]:rounded-2xl [&_button]:border-0 [&_button]:bg-transparent [&_button]:text-base [&_button_svg]:h-6 [&_button_svg]:w-6">
+                        <ActionMenu items={actions} />
+                      </div>
                     </div>
                   </div>
                 </div>
