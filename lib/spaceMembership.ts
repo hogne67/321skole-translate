@@ -57,7 +57,6 @@ export async function ensureSpaceMember(
     payload.isAnon = opts.isAnon;
   }
 
-  console.log("[spaceMembership] create", docId, payload);
   await setDoc(ref, payload);
 
   return { id: docId };

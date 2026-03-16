@@ -271,17 +271,17 @@ export default function LoginClient() {
   });
 
   const socialButtonStyle: React.CSSProperties = {
-    width: "100%",
-    minHeight: 52,
-    borderRadius: 14,
-    border: "1px solid rgba(15,23,42,0.12)",
-    background: "#fff",
-    color: "#0f172a",
-    fontWeight: 800,
-    fontSize: 15,
-    cursor: busy ? "not-allowed" : "pointer",
-    boxShadow: "0 2px 8px rgba(15,23,42,0.04)",
-  };
+  width: "100%",
+  minHeight: 52,
+  borderRadius: 14,
+  border: "1px solid rgba(15,23,42,0.10)",
+  background: "#ccd2d9bd",
+  color: "#0f172a",
+  fontWeight: 800,
+  fontSize: 15,
+  cursor: busy ? "not-allowed" : "pointer",
+  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+};
 
   const separatorRowStyle: React.CSSProperties = {
     display: "grid",
@@ -357,7 +357,7 @@ export default function LoginClient() {
     minHeight: 52,
     borderRadius: 14,
     border: "1px solid rgba(37,99,235,0.35)",
-    background: "linear-gradient(180deg, #2563eb, #1d4ed8)",
+    background: "linear-gradient(180deg, #169125, #2c8d64)",
     color: "white",
     fontWeight: 900,
     fontSize: 15,
@@ -589,11 +589,21 @@ export default function LoginClient() {
             ) : null}
 
             <button
-              type="button"
-              onClick={handleEmail}
-              disabled={busy}
-              style={primaryButtonStyle}
-            >
+  type="button"
+  onClick={handleEmail}
+  disabled={busy}
+  style={primaryButtonStyle}
+  onMouseEnter={(e) => {
+    if (!busy) {
+      e.currentTarget.style.transform = "translateY(-1px)";
+      e.currentTarget.style.boxShadow = "0 16px 32px rgba(16,185,129,0.30)";
+    }
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform = "none";
+    e.currentTarget.style.boxShadow = "0 12px 28px rgba(16,185,129,0.25)";
+  }}
+>
               {loadingEmail
                 ? safeT("buttons.working", "Working…")
                 : mode === "signin"

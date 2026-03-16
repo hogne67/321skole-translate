@@ -24,6 +24,7 @@ async function findSpaceByCode(dbx: Firestore, codeRaw: string) {
     const snap = await getDocs(qy);
     if (!snap.empty) return snap.docs[0];
   }
+
   return null;
 }
 
@@ -44,19 +45,6 @@ function errToText(e: unknown): string {
   return String(e);
 }
 
-function getErrMeta(e: unknown): { code?: string; message?: string } {
-  if (e && typeof e === "object") {
-    const obj = e as { code?: unknown; message?: unknown };
-    return {
-      code: typeof obj.code === "string" ? obj.code : undefined,
-      message: typeof obj.message === "string" ? obj.message : undefined,
-    };
-  }
-  if (e instanceof Error) return { message: e.message };
-  if (typeof e === "string") return { message: e };
-  return { message: String(e) };
-}
-
 async function waitForUser(): Promise<User> {
   const current = auth.currentUser;
   if (current) return current;
@@ -66,17 +54,21 @@ async function waitForUser(): Promise<User> {
       reject(new Error("Timed out while waiting for auth user."));
     }, 10000);
 
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) {
+    const unsub = onAuthStateChanged(
+      auth,
+      (u) => {
+        if (u) {
+          clearTimeout(timeout);
+          unsub();
+          resolve(u);
+        }
+      },
+      (err) => {
         clearTimeout(timeout);
         unsub();
-        resolve(u);
+        reject(err);
       }
-    }, (err) => {
-      clearTimeout(timeout);
-      unsub();
-      reject(err);
-    });
+    );
   });
 }
 
@@ -126,8 +118,6 @@ export default function JoinClient() {
       await ensureAnonymousUser();
       const u = await waitForUser();
 
-      console.log("[join] uid:", u.uid, "spaceId:", spaceId, "code:", c, "isAnon:", u.isAnonymous);
-
       await ensureSpaceMember(dbx, spaceId, u.uid, "student", {
         code: c,
         isAnon: Boolean(u.isAnonymous),
@@ -136,17 +126,11 @@ export default function JoinClient() {
 
       router.push(`/${locale}/student/spaces/${spaceId}`);
     } catch (e2: unknown) {
-  const meta = getErrMeta(e2);
-
-  console.error("JOIN FAILED");
-  console.error("code:", meta.code);
-  console.error("message:", meta.message);
-  console.error("error object:", e2);
-
-  setErr(errToText(e2));
-} finally {
-  setBusy(false);
-}
+      console.error("JOIN FAILED", e2);
+      setErr(errToText(e2));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
