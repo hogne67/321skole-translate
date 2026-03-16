@@ -3,13 +3,39 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import {
+  getQuotaBucket,
+  getBucketLimit,
+  type AppRole,
+  type PlanKey,
+  type FeatureKey,
+  type QuotaBucket,
+} from "@/lib/featureAccess";
 
 type QuotaInfo = {
   feature: string;
+  bucket: QuotaBucket;
+  role: AppRole;
+  plan: PlanKey;
   limit: number;
   used: number;
   remaining: number;
   period: string; // YYYY-MM (Europe/Oslo)
+};
+
+type UsageBucketEntry = {
+  used?: number;
+};
+
+type UsageDoc = {
+  buckets?: Partial<Record<QuotaBucket, UsageBucketEntry>>;
+  updatedAt?: unknown;
+};
+
+type UserProfileDoc = {
+  role?: unknown;
+  plan?: unknown;
+  roles?: unknown;
 };
 
 function json(data: unknown, status = 200) {
@@ -31,6 +57,34 @@ function safeNumber(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function isAppRole(v: unknown): v is AppRole {
+  return (
+    v === "teacher" ||
+    v === "student" ||
+    v === "parent" ||
+    v === "creator" ||
+    v === "admin"
+  );
+}
+
+function isPlanKey(v: unknown): v is PlanKey {
+  return v === "free" || v === "basic" || v === "plus" || v === "pro";
+}
+
+function isFeatureKey(v: unknown): v is FeatureKey {
+  return (
+    v === "producer_create_lesson" ||
+    v === "producer_create_reading_test" ||
+    v === "producer_create_quiz" ||
+    v === "producer_create_writing_task" ||
+    v === "ai_image_generate"
+  );
+}
+
 /** YYYY-MM in Europe/Oslo */
 function currentPeriodOslo(d = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -44,23 +98,69 @@ function currentPeriodOslo(d = new Date()): string {
   return `${year}-${month}`;
 }
 
-function limitForFeature(feature: string): number {
-  if (feature === "teacher_assign_task") return 15;
-
-  // ✅ NY: producer create lesson (Save draft)
-  if (feature === "producer_create_lesson") return 15;
-
-  return 999999;
+function readUsed(doc: UsageDoc | null | undefined, bucket: QuotaBucket): number {
+  const used = doc?.buckets?.[bucket]?.used;
+  return safeNumber(used);
 }
 
-type UsageDoc = {
-  features?: Record<string, { used?: number }>;
-  updatedAt?: unknown;
-};
+function pickRoleFromRolesObject(roles: unknown): AppRole | null {
+  if (!isRecord(roles)) return null;
 
-function readUsed(doc: UsageDoc | null | undefined, feature: string): number {
-  const used = doc?.features?.[feature]?.used;
-  return safeNumber(used);
+  if (roles.admin === true) return "admin";
+  if (roles.teacher === true) return "teacher";
+  if (roles.creator === true) return "creator";
+  if (roles.parent === true) return "parent";
+  if (roles.student === true) return "student";
+
+  return null;
+}
+
+async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>) {
+  const { db } = getAdmin();
+
+  let role: AppRole = "student";
+  let plan: PlanKey = "free";
+
+  // 1) Try custom claims first
+  if (isAppRole(decoded.role)) {
+    role = decoded.role;
+  }
+
+  if (isPlanKey(decoded.plan)) {
+    plan = decoded.plan;
+  }
+
+  const claimRoles = pickRoleFromRolesObject(decoded.roles);
+  if (!isAppRole(decoded.role) && claimRoles) {
+    role = claimRoles;
+  }
+
+  // 2) Fallback to Firestore users/{uid}
+  try {
+    const userRef = db.collection("users").doc(uid);
+    const userSnap = await userRef.get();
+
+    if (userSnap.exists) {
+      const userData = (userSnap.data() as UserProfileDoc) ?? {};
+
+      if (!isAppRole(decoded.role)) {
+        if (isAppRole(userData.role)) {
+          role = userData.role;
+        } else {
+          const roleFromRoles = pickRoleFromRolesObject(userData.roles);
+          if (roleFromRoles) role = roleFromRoles;
+        }
+      }
+
+      if (!isPlanKey(decoded.plan) && isPlanKey(userData.plan)) {
+        plan = userData.plan;
+      }
+    }
+  } catch {
+    // keep fallbacks
+  }
+
+  return { role, plan };
 }
 
 export async function GET(req: Request) {
@@ -69,24 +169,43 @@ export async function GET(req: Request) {
     if (!token) return json({ error: "Missing Authorization Bearer token" }, 401);
 
     const url = new URL(req.url);
-    const feature = safeString(url.searchParams.get("feature"));
-    if (!feature) return json({ error: "Missing ?feature=" }, 400);
+    const featureRaw = safeString(url.searchParams.get("feature"));
+    if (!featureRaw) return json({ error: "Missing ?feature=" }, 400);
+    if (!isFeatureKey(featureRaw)) {
+      return json({ error: `Unknown feature: ${featureRaw}` }, 400);
+    }
+
+    const feature: FeatureKey = featureRaw;
+    const bucket = getQuotaBucket(feature);
 
     const { auth, db } = getAdmin();
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = (await auth.verifyIdToken(token)) as Record<string, unknown>;
 
-    const uid = decoded.uid;
+    const uid = safeString(decoded.uid);
+    if (!uid) return json({ error: "Invalid token uid" }, 401);
+
+    const { role, plan } = await resolveRoleAndPlan(uid, decoded);
     const period = currentPeriodOslo();
-    const limit = limitForFeature(feature);
+    const limit = getBucketLimit(role, plan, bucket);
 
     const ref = db.collection("usage").doc(uid).collection("months").doc(period);
     const snap = await ref.get();
     const data = (snap.exists ? (snap.data() as UsageDoc) : null) ?? null;
 
-    const used = readUsed(data, feature);
+    const used = readUsed(data, bucket);
     const remaining = Math.max(0, limit - used);
 
-    const out: QuotaInfo = { feature, limit, used, remaining, period };
+    const out: QuotaInfo = {
+      feature,
+      bucket,
+      role,
+      plan,
+      limit,
+      used,
+      remaining,
+      period,
+    };
+
     return json(out, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -99,19 +218,32 @@ export async function POST(req: Request) {
     const token = getBearerToken(req);
     if (!token) return json({ error: "Missing Authorization Bearer token" }, 401);
 
-    const body = (await req.json().catch(() => ({}))) as { feature?: unknown; amount?: unknown };
-    const feature = safeString(body.feature);
+    const body = (await req.json().catch(() => ({}))) as {
+      feature?: unknown;
+      amount?: unknown;
+    };
+
+    const featureRaw = safeString(body.feature);
+    if (!featureRaw) return json({ error: "Missing body.feature" }, 400);
+    if (!isFeatureKey(featureRaw)) {
+      return json({ error: `Unknown feature: ${featureRaw}` }, 400);
+    }
+
+    const feature: FeatureKey = featureRaw;
+    const bucket = getQuotaBucket(feature);
+
     const amountRaw = typeof body.amount === "number" ? body.amount : Number(body.amount);
     const amount = Number.isFinite(amountRaw) && amountRaw > 0 ? Math.floor(amountRaw) : 1;
 
-    if (!feature) return json({ error: "Missing body.feature" }, 400);
-
     const { auth, db } = getAdmin();
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = (await auth.verifyIdToken(token)) as Record<string, unknown>;
 
-    const uid = decoded.uid;
+    const uid = safeString(decoded.uid);
+    if (!uid) return json({ error: "Invalid token uid" }, 401);
+
+    const { role, plan } = await resolveRoleAndPlan(uid, decoded);
     const period = currentPeriodOslo();
-    const limit = limitForFeature(feature);
+    const limit = getBucketLimit(role, plan, bucket);
 
     const ref = db.collection("usage").doc(uid).collection("months").doc(period);
 
@@ -119,7 +251,7 @@ export async function POST(req: Request) {
       const snap = await tx.get(ref);
       const data = (snap.exists ? (snap.data() as UsageDoc) : null) ?? null;
 
-      const usedBefore = readUsed(data, feature);
+      const usedBefore = readUsed(data, bucket);
       const usedAfter = usedBefore + amount;
 
       if (usedAfter > limit) {
@@ -127,6 +259,9 @@ export async function POST(req: Request) {
           ok: false as const,
           info: {
             feature,
+            bucket,
+            role,
+            plan,
             limit,
             used: usedBefore,
             remaining: Math.max(0, limit - usedBefore),
@@ -137,9 +272,9 @@ export async function POST(req: Request) {
 
       const next: UsageDoc = {
         ...(data ?? {}),
-        features: {
-          ...(data?.features ?? {}),
-          [feature]: { used: usedAfter },
+        buckets: {
+          ...(data?.buckets ?? {}),
+          [bucket]: { used: usedAfter },
         },
         updatedAt: new Date(),
       };
@@ -150,6 +285,9 @@ export async function POST(req: Request) {
         ok: true as const,
         info: {
           feature,
+          bucket,
+          role,
+          plan,
           limit,
           used: usedAfter,
           remaining: Math.max(0, limit - usedAfter),

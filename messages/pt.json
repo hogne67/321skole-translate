@@ -321,7 +321,36 @@
       "betterVersion": "Versão melhor"
     },
     "hint": "Melhor para uma frase ou um texto bem curto."
-  }
+  },
+  "speakingTopic": {
+  "title": "Gerador de tema de fala",
+  "subtitle": "Gere um tema, uma pergunta principal e perguntas de seguimento para prática oral.",
+  "fields": {
+    "language": "Idioma",
+    "level": "CEFR",
+    "category": "Categoria"
+  },
+  "categories": {
+    "everyday": "Vida quotidiana",
+    "school": "Escola",
+    "work": "Trabalho",
+    "travel": "Viagem",
+    "food": "Comida",
+    "friends": "Amigos e família",
+    "culture": "Cultura",
+    "free": "Tema livre"
+  },
+  "actions": {
+    "generate": "Gerar tema",
+    "generating": "A gerar..."
+  },
+  "sections": {
+    "topic": "Tema",
+    "mainQuestion": "Pergunta principal",
+    "followups": "Perguntas de seguimento"
+  },
+  "hint": "Ótimo para trabalho em pares, prática oral e cafés linguísticos."
+}
 },
   "student": {
     "spaces": {
@@ -1513,6 +1542,261 @@
     }
   },
   "producer": {
+  "readingTestsNew": {
+    "page": {
+      "title": "Gerador de teste de leitura",
+      "subtitle": "Crie um teste de leitura com um texto e tipos de tarefas que correspondam ao nível e ao tema selecionados."
+    },
+    "fields": {
+      "cefrLevel": "Nível CEFR",
+      "language": "Idioma",
+      "searchLanguage": "Idioma de pesquisa",
+      "languagesCount": "{count} idiomas",
+      "audience": "Público-alvo",
+      "minimumWords": "Número mínimo de palavras",
+      "maximumWords": "Número máximo de palavras",
+      "topic": "Tema / prompt",
+      "topicHelp": "Exemplo: Um pequeno texto sobre escola, futebol, natureza, vida familiar ou atividades diárias.",
+      "feedbackMode": "Modo de feedback",
+      "feedbackModeHelp": "Isto controla qual orientação gerada é mostrada aqui no gerador. Neste momento, o professor ainda recebe a resposta completa de qualquer forma."
+    },
+    "audience": {
+      "children": "Crianças",
+      "teenagers": "Adolescentes",
+      "adultLearners": "Aprendizes adultos",
+      "learners": "Aprendizes"
+    },
+    "flow": {
+      "title": "Fluxo de leitura e tempo",
+      "description": "Estas definições são guardadas na configuração do teste de leitura. Elas descrevem o fluxo pretendido do aluno, mas ainda não substituem totalmente o fluxo completo de submissão do professor em toda a aplicação.",
+      "showQuestionsAfterReading": "Mostrar perguntas após a leitura",
+      "showQuestionsAfterReadingHelp": "O aluno lê primeiro e depois recebe as tarefas."
+    },
+    "timer": {
+      "noTimer": "Sem temporizador",
+      "enable": "Ativar temporizador",
+      "quickPresets": "Predefinições rápidas",
+      "minutes": "Minutos",
+      "extraSeconds": "Segundos extra",
+      "help": "Na maioria dos casos, defina o temporizador em minutos e ajuste os segundos apenas quando necessário.",
+      "minutesOnly": "{minutes} min",
+      "minutesAndSeconds": "{minutes} min {seconds} seg"
+    },
+    "feedbackMode": {
+      "learner": "Apenas aluno",
+      "adult": "Apenas professor / responsável",
+      "both": "Ambos"
+    },
+    "feedback": {
+      "previewTitle": "Pré-visualização da orientação gerada",
+      "forLearner": "Para o aluno:",
+      "forAdult": "Para o professor / responsável:",
+      "nextStep": "Próximo passo:"
+    },
+    "taskTypes": {
+      "title": "Tipos de tarefas",
+      "description": "O gerador cria primeiro as tarefas clássicas de testes de leitura. Também pode incluir",
+      "descriptionAfter": "imediatamente e adicionar mais tipos de tarefas manualmente abaixo.",
+      "word_choice": "Escolha de palavras",
+      "sentence_placement": "Posicionamento de frases",
+      "best_summary": "Melhor resumo",
+      "mcq": "Escolha múltipla",
+      "true_false": "Verdadeiro / falso",
+      "fill_in_word": "Preencher palavra",
+      "short_answer": "Resposta curta",
+      "open": "Pergunta aberta"
+    },
+    "actions": {
+      "generate": "Gerar teste de leitura",
+      "generating": "A gerar teste de leitura...",
+      "saveDraft": "Guardar rascunho",
+      "saving": "A guardar...",
+      "addFillInWord": "Adicionar preencher palavra",
+      "addMcq": "Adicionar escolha múltipla",
+      "addTrueFalse": "Adicionar verdadeiro/falso",
+      "addShortAnswer": "Adicionar resposta curta",
+      "addOpen": "Adicionar pergunta aberta",
+      "delete": "Eliminar"
+    },
+    "messages": {
+      "tasksDirty": "O texto foi alterado. Verifique as tarefas antes de guardar.",
+      "saved": "Guardado: {id}",
+      "noTasks": "Ainda não existem tarefas. Gere primeiro um teste de leitura."
+    },
+    "quota": {
+      "loading": "A carregar quota…",
+      "usedOfLimit": "Você utilizou {used} de {limit} este mês",
+      "runningLow": "(quase no limite)",
+      "periodTitle": "Período: {period}"
+    },
+    "builder": {
+      "title": "Construtor de teste de leitura",
+      "lessonTitle": "Título",
+      "readingText": "Texto de leitura",
+      "tasks": "Tarefas",
+      "id": "ID: {id}",
+      "prompt": "Instrução",
+      "sentence": "Frase",
+      "sentenceWithBlank": "Frase com espaço em branco",
+      "fillInWordExample": "Exemplo: As crianças viram um _____ preto que disse miau.",
+      "textWithGap": "Texto com lacuna",
+      "options": "Opções",
+      "correctAnswer": "Resposta correta",
+      "shortAnswerHelp": "Resposta escrita curta do aluno.",
+      "openHelp": "Pergunta aberta / campo de resposta."
+    },
+    "debug": {
+      "title": "Debug / teste de leitura bruto"
+    },
+    "common": {
+      "true": "Verdadeiro",
+      "false": "Falso"
+    },
+    "defaults": {
+      "title": "Teste de leitura",
+      "topic": "Um pequeno texto do dia a dia sobre família, escola, natureza ou vida diária.",
+      "fillInWordPrompt": "Escolha a palavra correta para o espaço em branco.",
+      "fillInWordSentence": "As crianças viram um _____ preto que disse miau.",
+      "fillInWordOption1": "gato",
+      "fillInWordOption2": "cavalo",
+      "fillInWordOption3": "cão",
+      "newMcqPrompt": "Nova pergunta de escolha múltipla",
+      "trueFalsePrompt": "Escreva verdadeiro ou falso.",
+      "shortAnswerPrompt": "Escreva uma resposta curta.",
+      "openPrompt": "Nova pergunta aberta",
+      "option1": "Opção 1",
+      "option2": "Opção 2",
+      "option3": "Opção 3"
+    },
+    "errors": {
+      "emptyResponse": "Resposta vazia do servidor. HTTP {status}",
+      "notJson": "A resposta não era um JSON válido. HTTP {status}. Primeiros caracteres: {preview}",
+      "missingReadingText": "Falta o texto de leitura na resposta.",
+      "titleRequired": "O título é obrigatório.",
+      "sourceTextEmpty": "O texto de origem está vazio.",
+      "timerTooShort": "O temporizador deve ter pelo menos 10 segundos.",
+      "notSignedIn": "Não tem sessão iniciada. Inicie sessão como professor ou produtor.",
+      "quotaExceeded": "Você utilizou {used} de {limit} este mês. Não pode criar mais neste momento.",
+      "missingId": "Falta o id do servidor."
+    }
+  },
+  "readingTestsEditor": {
+    "loading": "A carregar teste de leitura…",
+    "page": {
+      "title": "Editor de teste de leitura",
+      "statusLabel": "Editor personalizado para testes de leitura. Estado:"
+    },
+    "fields": {
+      "title": "Título",
+      "cefrLevel": "Nível CEFR",
+      "language": "Idioma",
+      "searchLanguage": "Idioma de pesquisa",
+      "audience": "Público-alvo",
+      "topic": "Tema",
+      "minimumWords": "Número mínimo de palavras",
+      "maximumWords": "Número máximo de palavras",
+      "feedbackMode": "Modo de feedback",
+      "feedbackModeHelp": "Isto é uma configuração para orientação gerada e modo de exibição pretendido. Ainda não altera totalmente, por si só, o fluxo de submissão do professor."
+    },
+    "audience": {
+      "children": "Crianças",
+      "teenagers": "Adolescentes",
+      "adultLearners": "Aprendizes adultos",
+      "learners": "Aprendizes"
+    },
+    "flow": {
+      "title": "Fluxo de leitura e tempo",
+      "description": "Estas definições são armazenadas na configuração do teste de leitura. Elas descrevem como o fluxo do aluno deve funcionar, mas algumas partes da experiência real do aluno ainda precisam de ser ligadas na página do aluno.",
+      "showQuestionsAfterReading": "Mostrar perguntas após a leitura",
+      "showQuestionsAfterReadingHelp": "O aluno lê primeiro e depois recebe as tarefas."
+    },
+    "timer": {
+      "noTimer": "Sem temporizador",
+      "enable": "Ativar temporizador",
+      "quickPresets": "Predefinições rápidas",
+      "minutes": "Minutos",
+      "extraSeconds": "Segundos extra",
+      "minutesOnly": "{minutes} min",
+      "minutesAndSeconds": "{minutes} min {seconds} seg"
+    },
+    "feedbackMode": {
+      "learner": "Apenas aluno",
+      "adult": "Apenas professor / responsável",
+      "both": "Ambos"
+    },
+    "taskTypes": {
+      "enabledTitle": "Tipos de tarefas ativados",
+      "enabledDescription": "Estes são os tipos de tarefas que este teste de leitura deve utilizar. A página do aluno poderá depois decidir como cada tipo é mostrado.",
+      "word_choice": "Escolha de palavras",
+      "sentence_placement": "Posicionamento de frases",
+      "best_summary": "Melhor resumo",
+      "mcq": "Escolha múltipla",
+      "true_false": "Verdadeiro / falso",
+      "fill_in_word": "Preencher palavra",
+      "short_answer": "Resposta curta",
+      "open": "Pergunta aberta"
+    },
+    "text": {
+      "title": "Texto de leitura",
+      "wordCount": "Número de palavras: {count}"
+    },
+    "tasks": {
+      "title": "Tarefas",
+      "id": "ID: {id}",
+      "prompt": "Instrução",
+      "sentence": "Frase",
+      "sentenceWithBlank": "Frase com espaço em branco",
+      "textWithGap": "Texto com lacuna",
+      "options": "Opções",
+      "correctAnswer": "Resposta correta",
+      "shortAnswerHelp": "Resposta escrita curta do aluno.",
+      "openHelp": "Pergunta aberta / campo de resposta."
+    },
+    "actions": {
+      "save": "Guardar",
+      "saving": "A guardar...",
+      "newReadingTest": "Novo teste de leitura",
+      "addFillInWord": "Adicionar preencher palavra",
+      "addMcq": "Adicionar escolha múltipla",
+      "addTrueFalse": "Adicionar verdadeiro/falso",
+      "addShortAnswer": "Adicionar resposta curta",
+      "addOpen": "Adicionar pergunta aberta",
+      "delete": "Eliminar"
+    },
+    "messages": {
+      "saved": "Guardado.",
+      "noTasks": "Ainda não existem tarefas."
+    },
+    "common": {
+      "true": "Verdadeiro",
+      "false": "Falso"
+    },
+    "defaults": {
+      "title": "Teste de leitura",
+      "fillInWordPrompt": "Escolha a palavra correta para o espaço em branco.",
+      "fillInWordSentence": "As crianças viram um _____ preto que disse miau.",
+      "fillInWordOption1": "gato",
+      "fillInWordOption2": "cavalo",
+      "fillInWordOption3": "cão",
+      "newMcqPrompt": "Nova pergunta de escolha múltipla",
+      "trueFalsePrompt": "Escreva verdadeiro ou falso.",
+      "shortAnswerPrompt": "Escreva uma resposta curta.",
+      "openPrompt": "Nova pergunta aberta",
+      "option1": "Opção 1",
+      "option2": "Opção 2",
+      "option3": "Opção 3"
+    },
+    "errors": {
+      "missingLessonId": "Falta o id da lição.",
+      "notSignedIn": "Não tem sessão iniciada.",
+      "notFound": "Teste de leitura não encontrado.",
+      "noAccess": "Você não tem acesso a este teste de leitura.",
+      "notReadingTest": "Esta lição não é um teste de leitura.",
+      "titleRequired": "O título é obrigatório.",
+      "sourceTextEmpty": "O texto de leitura está vazio.",
+      "timerTooShort": "O temporizador deve ter pelo menos 10 segundos."
+    }
+  },
     "newText": {
       "title": "Criar nova lição",
       "subtitle": "Etapa 1: gerar texto → Etapa 2: gerar tarefas → editar → salvar rascunho.",
@@ -1830,7 +2114,8 @@
       "yes": "ja",
       "no": "nei",
       "login": "Logg inn",
-      "backToStudent": "Tilbake til Student"
+      "backToStudent": "Tilbake til Student",
+      "backToTeacher": "Tilbake til lærer"
     },
     "notLoggedIn": {
       "title": "Ingen tilgang",
@@ -2033,7 +2318,6 @@
     }
   }
 },
-
 "ctaLite": {
   "title": "Pronto para testar na prática?",
   "lead": "Comece grátis e faça upgrade quando precisar de mais capacidade e ferramentas avançadas.",
@@ -2048,7 +2332,6 @@
     "Ferramentas de IA (Light) incluídas"
   ]
 },
-
 "footer": {
   "about": "Sobre",
   "privacy": "Privacidade",

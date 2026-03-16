@@ -24,13 +24,6 @@ function normCode(v: unknown): string | undefined {
   return s ? s : undefined;
 }
 
-/**
- * Ensure a membership document exists:
- * spaceMembers/{spaceId}_{uid}
- *
- * IMPORTANT:
- * Do NOT `getDoc()` first – reads on non-existing docs can be permission-denied.
- */
 export async function ensureSpaceMember(
   db: Firestore,
   spaceId: string,
@@ -59,10 +52,13 @@ export async function ensureSpaceMember(
   if (typeof opts?.displayName === "string" && opts.displayName.trim()) {
     payload.displayName = opts.displayName.trim();
   }
-  if (typeof opts?.isAnon === "boolean") payload.isAnon = opts.isAnon;
 
-  // This will be CREATE if doc doesn't exist, UPDATE if it does.
-  await setDoc(ref, payload, { merge: true });
+  if (typeof opts?.isAnon === "boolean") {
+    payload.isAnon = opts.isAnon;
+  }
+
+  console.log("[spaceMembership] create", docId, payload);
+  await setDoc(ref, payload);
 
   return { id: docId };
 }

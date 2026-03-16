@@ -292,90 +292,86 @@ service cloud.firestore {
     ========================= */
     match /spaceMembers/{docId} {
 
-      function resUidAny() {
-        return (resource != null
-          && (
-            (("uid" in resource.data) && (resource.data.uid is string) && resource.data.uid)
-            || (("userId" in resource.data) && (resource.data.userId is string) && resource.data.userId)
-          ))
-          ? (("uid" in resource.data) ? resource.data.uid : resource.data.userId)
-          : null;
-      }
+  function resUidAny() {
+    return (resource != null
+      && (
+        (("uid" in resource.data) && (resource.data.uid is string) && resource.data.uid)
+        || (("userId" in resource.data) && (resource.data.userId is string) && resource.data.userId)
+      ))
+      ? (("uid" in resource.data) ? resource.data.uid : resource.data.userId)
+      : null;
+  }
 
-      function reqUidAny() {
-        return (request.resource != null
-          && request.resource.data is map
-          && (
-            (("uid" in request.resource.data) && (request.resource.data.uid is string) && request.resource.data.uid)
-            || (("userId" in request.resource.data) && (request.resource.data.userId is string) && request.resource.data.userId)
-          ))
-          ? (("uid" in request.resource.data) ? request.resource.data.uid : request.resource.data.userId)
-          : null;
-      }
+  function reqUidAny() {
+    return (request.resource != null
+      && request.resource.data is map
+      && (
+        (("uid" in request.resource.data) && (request.resource.data.uid is string) && request.resource.data.uid)
+        || (("userId" in request.resource.data) && (request.resource.data.userId is string) && request.resource.data.userId)
+      ))
+      ? (("uid" in request.resource.data) ? request.resource.data.uid : request.resource.data.userId)
+      : null;
+  }
 
-      function isSelfMemberDoc() {
-        return signedIn() && (
-          (resUidAny() != null && resUidAny() == myUid())
-          || (reqUidAny() != null && reqUidAny() == myUid())
+  function isSelfMemberDoc() {
+    return signedIn() && (
+      (resUidAny() != null && resUidAny() == myUid())
+      || (reqUidAny() != null && reqUidAny() == myUid())
+    );
+  }
+
+  function docUidFromId() {
+    let parts = docId.split("_");
+    return parts.size() > 0 ? parts[parts.size() - 1] : "";
+  }
+
+  function displayNameOk() {
+    return !(request.resource.data is map) ? true
+      : !("displayName" in request.resource.data) ? true
+      : (
+          (request.resource.data.displayName is string)
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
         );
-      }
+  }
 
-      function docUidFromId() {
-        let parts = docId.split("_");
-        return parts.size() > 0 ? parts[parts.size() - 1] : "";
-      }
+  allow read: if isAdmin()
+    || (signedIn() && docUidFromId() == myUid())
+    || (resource != null
+        && ("uid" in resource.data)
+        && (resource.data.uid is string)
+        && resource.data.uid == myUid())
+    || (resource != null
+        && ("userId" in resource.data)
+        && (resource.data.userId is string)
+        && resource.data.userId == myUid())
+    || (resource != null
+        && ("spaceId" in resource.data)
+        && (resource.data.spaceId is string)
+        && isSpaceOwner(resource.data.spaceId));
 
-      function displayNameOk() {
-        return !(request.resource.data is map) ? true
-          : !("displayName" in request.resource.data) ? true
-          : (
-              (request.resource.data.displayName is string)
-              && request.resource.data.displayName.size() >= 1
-              && request.resource.data.displayName.size() <= 80
-            );
-      }
-
-      allow read: if isAdmin()
-        || (signedIn() && docUidFromId() == myUid())
-        || (resource != null
-            && ("uid" in resource.data)
-            && (resource.data.uid is string)
-            && resource.data.uid == myUid())
-        || (resource != null
-            && ("userId" in resource.data)
-            && (resource.data.userId is string)
-            && resource.data.userId == myUid())
-        || (resource != null
-            && ("spaceId" in resource.data)
-            && (resource.data.spaceId is string)
-            && isSpaceOwner(resource.data.spaceId));
-
-      allow create: if signedIn()
+  allow create: if signedIn()
   && (request.resource.data.spaceId is string)
   && (request.resource.data.uid is string)
   && request.resource.data.uid == myUid()
-  && docId == (request.resource.data.spaceId + "_" + request.resource.data.uid)
-  && displayNameOk()
+  && docId == (request.resource.data.spaceId + "_" + request.resource.data.uid);
+
+allow update: if signedIn()
+  && resource != null
   && (
-    isAdmin()
-    || isSpaceOwner(request.resource.data.spaceId)
-    || (
-      spaceKind(request.resource.data.spaceId) == "class"
-      && (
-        spaceIsOpen(request.resource.data.spaceId)
-        || joinCodeMatches(request.resource.data.spaceId)
-      )
-    )
+    (("uid" in resource.data) && resource.data.uid == myUid())
+    || (("spaceId" in resource.data) && isSpaceOwner(resource.data.spaceId))
+    || isAdmin()
   );
 
-      allow update: if signedIn()
-        && resource != null
-        && (resource.data.spaceId is string)
-        && displayNameOk()
-        && (isSelfMemberDoc() || isSpaceOwner(resource.data.spaceId) || isAdmin());
+  allow update: if signedIn()
+    && resource != null
+    && (resource.data.spaceId is string)
+    && displayNameOk()
+    && (isSelfMemberDoc() || isSpaceOwner(resource.data.spaceId) || isAdmin());
 
-      allow delete: if false;
-    }
+  allow delete: if false;
+}
 
     /* =========================
        LESSONS

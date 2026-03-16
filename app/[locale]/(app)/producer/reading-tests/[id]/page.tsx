@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "@/lib/firebase";
@@ -158,7 +158,9 @@ function normalizeEnabledTaskTypes(v: unknown): ReadingTestTaskType[] {
       x === "open"
   );
 
-  return valid.length ? Array.from(new Set(valid)) : ["word_choice", "sentence_placement", "best_summary"];
+  return valid.length
+    ? Array.from(new Set(valid))
+    : ["word_choice", "sentence_placement", "best_summary"];
 }
 
 function normalizeFeedbackMode(v: unknown): FeedbackMode {
@@ -204,21 +206,11 @@ function stripUndefinedDeep<T>(value: T): T {
   return value;
 }
 
-const TASK_TYPE_LABELS: Record<ReadingTestTaskType, string> = {
-  word_choice: "Word choice",
-  sentence_placement: "Sentence placement",
-  best_summary: "Best summary",
-  mcq: "MCQ",
-  true_false: "True / false",
-  fill_in_word: "Fill in word",
-  short_answer: "Short answer",
-  open: "Open",
-};
-
 export default function ReadingTestEditorPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations("producer.readingTestsEditor");
   const lessonId = typeof params?.id === "string" ? params.id : "";
 
   const fieldStyle: CSSProperties = {
@@ -292,7 +284,7 @@ export default function ReadingTestEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
-  const [title, setTitle] = useState("Lesetest");
+  const [title, setTitle] = useState(t("defaults.title"));
   const [language, setLanguage] = useState("nb");
   const [languageSearch, setLanguageSearch] = useState("");
   const [level, setLevel] = useState<LevelKey>("A2");
@@ -317,6 +309,20 @@ export default function ReadingTestEditorPage() {
 
   const [tasks, setTasks] = useState<LessonTask[]>([]);
 
+  const taskTypeLabels: Record<ReadingTestTaskType, string> = useMemo(
+    () => ({
+      word_choice: t("taskTypes.word_choice"),
+      sentence_placement: t("taskTypes.sentence_placement"),
+      best_summary: t("taskTypes.best_summary"),
+      mcq: t("taskTypes.mcq"),
+      true_false: t("taskTypes.true_false"),
+      fill_in_word: t("taskTypes.fill_in_word"),
+      short_answer: t("taskTypes.short_answer"),
+      open: t("taskTypes.open"),
+    }),
+    [t]
+  );
+
   useEffect(() => {
     const onResize = () => setIsNarrow(window.innerWidth < 900);
     onResize();
@@ -325,11 +331,11 @@ export default function ReadingTestEditorPage() {
   }, []);
 
   useEffect(() => {
-  const unsub = onAuthStateChanged(getAuth(), () => {
-    setAuthResolved(true);
-  });
-  return () => unsub();
-}, []);
+    const unsub = onAuthStateChanged(getAuth(), () => {
+      setAuthResolved(true);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -338,37 +344,37 @@ export default function ReadingTestEditorPage() {
         setError(null);
 
         if (!lessonId) {
-          setError("Missing lesson id.");
+          setError(t("errors.missingLessonId"));
           return;
         }
 
         const currentUid = getAuth().currentUser?.uid;
         if (!currentUid) {
-          setError("Not signed in.");
+          setError(t("errors.notSignedIn"));
           return;
         }
 
         const snap = await getDoc(doc(db, "lessons", lessonId));
         if (!snap.exists()) {
-          setError("Reading test not found.");
+          setError(t("errors.notFound"));
           return;
         }
 
         const data = snap.data() as LessonDoc;
 
         if (data.ownerId !== currentUid) {
-          setError("You do not have access to this reading test.");
+          setError(t("errors.noAccess"));
           return;
         }
 
         if (data.lessonType !== "reading_test") {
-          setError("This lesson is not a reading test.");
+          setError(t("errors.notReadingTest"));
           return;
         }
 
         const cfg = normalizeReadingTestConfig(data.readingTestConfig, safeString(data.level, "A2"));
 
-        setTitle(safeString(data.title, "Lesetest"));
+        setTitle(safeString(data.title, t("defaults.title")));
         setLanguage(safeString(data.language, "nb"));
         setLevel((safeString(data.level, "A2") as LevelKey) || "A2");
         setStatus(safeString(data.status, "draft"));
@@ -398,7 +404,7 @@ export default function ReadingTestEditorPage() {
 
     if (!authResolved) return;
     void load();
-  }, [lessonId, authResolved]);
+  }, [lessonId, authResolved, t]);
 
   const filteredLanguages = useMemo(() => {
     const q = languageSearch.trim().toLowerCase();
@@ -415,12 +421,12 @@ export default function ReadingTestEditorPage() {
   }, [timerMinutes, timerExtraSeconds]);
 
   const timerPreview = useMemo(() => {
-    if (!timerEnabled) return "No timer";
+    if (!timerEnabled) return t("timer.noTimer");
     const mins = Math.floor(timerSeconds / 60);
     const secs = timerSeconds % 60;
-    if (secs === 0) return `${mins} min`;
-    return `${mins} min ${secs} sec`;
-  }, [timerEnabled, timerSeconds]);
+    if (secs === 0) return t("timer.minutesOnly", { minutes: mins });
+    return t("timer.minutesAndSeconds", { minutes: mins, seconds: secs });
+  }, [timerEnabled, timerSeconds, t]);
 
   async function save() {
     try {
@@ -428,10 +434,10 @@ export default function ReadingTestEditorPage() {
       setSavedMsg(null);
       setError(null);
 
-      if (!lessonId) throw new Error("Missing lesson id.");
-      if (!title.trim()) throw new Error("Title is required.");
-      if (!sourceText.trim()) throw new Error("Reading text is empty.");
-      if (timerEnabled && timerSeconds < 10) throw new Error("Timer must be at least 10 seconds.");
+      if (!lessonId) throw new Error(t("errors.missingLessonId"));
+      if (!title.trim()) throw new Error(t("errors.titleRequired"));
+      if (!sourceText.trim()) throw new Error(t("errors.sourceTextEmpty"));
+      if (timerEnabled && timerSeconds < 10) throw new Error(t("errors.timerTooShort"));
 
       const readingTestConfig: ReadingTestConfig = {
         cefrLevel: level,
@@ -461,7 +467,7 @@ export default function ReadingTestEditorPage() {
 
       await updateDoc(doc(db, "lessons", lessonId), payload);
 
-      setSavedMsg("Saved.");
+      setSavedMsg(t("messages.saved"));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -491,41 +497,49 @@ export default function ReadingTestEditorPage() {
         ? {
             id: newId(),
             type: "mcq",
-            prompt: "New multiple choice question",
-            options: ["Option 1", "Option 2", "Option 3"],
-            correctAnswer: "Option 1",
+            prompt: t("defaults.newMcqPrompt"),
+            options: [
+              t("defaults.option1"),
+              t("defaults.option2"),
+              t("defaults.option3"),
+            ],
+            correctAnswer: t("defaults.option1"),
             enabled: true,
           }
         : type === "true_false"
         ? {
             id: newId(),
             type: "true_false",
-            prompt: "Write true or false",
-            options: ["True", "False"],
-            correctAnswer: "True",
+            prompt: t("defaults.trueFalsePrompt"),
+            options: [t("common.true"), t("common.false")],
+            correctAnswer: t("common.true"),
             enabled: true,
           }
         : type === "fill_in_word"
         ? {
             id: newId(),
             type: "fill_in_word",
-            prompt: "Choose the correct word for the blank.",
-            sentence: "Barna så en svart _____ som sa mjau.",
-            options: ["katt", "hest", "hund"],
-            correctAnswer: "katt",
+            prompt: t("defaults.fillInWordPrompt"),
+            sentence: t("defaults.fillInWordSentence"),
+            options: [
+              t("defaults.fillInWordOption1"),
+              t("defaults.fillInWordOption2"),
+              t("defaults.fillInWordOption3"),
+            ],
+            correctAnswer: t("defaults.fillInWordOption1"),
             enabled: true,
           }
         : type === "short_answer"
         ? {
             id: newId(),
             type: "short_answer",
-            prompt: "Write a short answer.",
+            prompt: t("defaults.shortAnswerPrompt"),
             enabled: true,
           }
         : {
             id: newId(),
             type: "open",
-            prompt: "New open question",
+            prompt: t("defaults.openPrompt"),
             enabled: true,
           };
 
@@ -535,7 +549,7 @@ export default function ReadingTestEditorPage() {
   if (loading) {
     return (
       <main style={{ maxWidth: 980, margin: "0 auto", padding: "16px 12px 60px" }}>
-        Laster lesetest…
+        {t("loading")}
       </main>
     );
   }
@@ -562,18 +576,21 @@ export default function ReadingTestEditorPage() {
           }}
         >
           <div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>Reading test editor</h1>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>{t("page.title")}</h1>
             <p style={{ marginTop: 6, opacity: 0.8 }}>
-              Egen editor for lesetest. Status: <strong>{status}</strong>
+              {t("page.statusLabel")} <strong>{status}</strong>
             </p>
           </div>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={save} disabled={saving} style={{ ...buttonPrimary, opacity: saving ? 0.7 : 1 }}>
-              {saving ? "Saving..." : "Save"}
+              {saving ? t("actions.saving") : t("actions.save")}
             </button>
-            <button onClick={() => router.push(`/${locale}/producer/reading-tests/new`)} style={buttonSecondary}>
-              New reading test
+            <button
+              onClick={() => router.push(`/${locale}/producer/reading-tests/new`)}
+              style={buttonSecondary}
+            >
+              {t("actions.newReadingTest")}
             </button>
           </div>
         </div>
@@ -590,12 +607,12 @@ export default function ReadingTestEditorPage() {
           }}
         >
           <label>
-            Title
+            {t("fields.title")}
             <input value={title} onChange={(e) => setTitle(e.target.value)} style={fieldStyle} />
           </label>
 
           <label>
-            CEFR level
+            {t("fields.cefrLevel")}
             <select value={level} onChange={(e) => setLevel(e.target.value as LevelKey)} style={fieldStyle}>
               <option value="A1">A1</option>
               <option value="A2">A2</option>
@@ -607,12 +624,12 @@ export default function ReadingTestEditorPage() {
           </label>
 
           <label>
-            Language
+            {t("fields.language")}
             <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
               <input
                 value={languageSearch}
                 onChange={(e) => setLanguageSearch(e.target.value)}
-                placeholder="Search language"
+                placeholder={t("fields.searchLanguage")}
                 style={fieldStyleCompact}
               />
               <select value={language} onChange={(e) => setLanguage(e.target.value)} style={fieldStyle}>
@@ -626,17 +643,17 @@ export default function ReadingTestEditorPage() {
           </label>
 
           <label>
-            Audience
+            {t("fields.audience")}
             <select value={audience} onChange={(e) => setAudience(e.target.value as AudienceKey)} style={fieldStyle}>
-              <option value="children">children</option>
-              <option value="teenagers">teenagers</option>
-              <option value="adult learners">adult learners</option>
-              <option value="learners">learners</option>
+              <option value="children">{t("audience.children")}</option>
+              <option value="teenagers">{t("audience.teenagers")}</option>
+              <option value="adult learners">{t("audience.adultLearners")}</option>
+              <option value="learners">{t("audience.learners")}</option>
             </select>
           </label>
 
           <label style={{ gridColumn: "1 / -1" }}>
-            Topic
+            {t("fields.topic")}
             <textarea
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
@@ -646,7 +663,7 @@ export default function ReadingTestEditorPage() {
           </label>
 
           <label>
-            Minimum words
+            {t("fields.minimumWords")}
             <input
               type="number"
               value={minWords}
@@ -658,7 +675,7 @@ export default function ReadingTestEditorPage() {
           </label>
 
           <label>
-            Maximum words
+            {t("fields.maximumWords")}
             <input
               type="number"
               value={maxWords}
@@ -672,7 +689,7 @@ export default function ReadingTestEditorPage() {
 
         <section style={{ marginTop: 18, ...cardStyle }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-            <strong>Reading flow and timing</strong>
+            <strong>{t("flow.title")}</strong>
             <span
               style={{
                 fontSize: 13,
@@ -688,9 +705,7 @@ export default function ReadingTestEditorPage() {
           </div>
 
           <div style={{ fontSize: 12, opacity: 0.78, marginTop: 8, lineHeight: 1.45 }}>
-            These settings are stored in the reading test config. They describe how the student flow
-            should work, but some parts of the actual student runtime still need to be wired in the
-            student page.
+            {t("flow.description")}
           </div>
 
           <div
@@ -715,11 +730,13 @@ export default function ReadingTestEditorPage() {
                   checked={timerEnabled}
                   onChange={(e) => setTimerEnabled(e.target.checked)}
                 />
-                Enable timer
+                {t("timer.enable")}
               </label>
 
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Quick presets</div>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                  {t("timer.quickPresets")}
+                </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {[2, 3, 5, 10, 15, 20].map((m) => (
                     <button
@@ -735,7 +752,7 @@ export default function ReadingTestEditorPage() {
                         background: timerMinutes === m && timerExtraSeconds === 0 ? "#dbeafe" : "#fff",
                       }}
                     >
-                      {m} min
+                      {t("timer.minutesOnly", { minutes: m })}
                     </button>
                   ))}
                 </div>
@@ -750,7 +767,7 @@ export default function ReadingTestEditorPage() {
                 }}
               >
                 <label>
-                  Minutes
+                  {t("timer.minutes")}
                   <input
                     type="number"
                     value={timerMinutes}
@@ -763,7 +780,7 @@ export default function ReadingTestEditorPage() {
                 </label>
 
                 <label>
-                  Extra seconds
+                  {t("timer.extraSeconds")}
                   <input
                     type="number"
                     value={timerExtraSeconds}
@@ -792,27 +809,26 @@ export default function ReadingTestEditorPage() {
                   onChange={(e) => setShowQuestionsAfterReading(e.target.checked)}
                 />
                 <span>
-                  <strong>Show questions after reading</strong>
+                  <strong>{t("flow.showQuestionsAfterReading")}</strong>
                   <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
-                    Student reads first, then gets the tasks.
+                    {t("flow.showQuestionsAfterReadingHelp")}
                   </div>
                 </span>
               </label>
 
               <label style={{ display: "block", marginTop: 14 }}>
-                Feedback mode
+                {t("fields.feedbackMode")}
                 <select
                   value={feedbackMode}
                   onChange={(e) => setFeedbackMode(e.target.value as FeedbackMode)}
                   style={fieldStyle}
                 >
-                  <option value="learner">Learner only</option>
-                  <option value="adult">Teacher / parent only</option>
-                  <option value="both">Both</option>
+                  <option value="learner">{t("feedbackMode.learner")}</option>
+                  <option value="adult">{t("feedbackMode.adult")}</option>
+                  <option value="both">{t("feedbackMode.both")}</option>
                 </select>
                 <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                  This is config for generated guidance and intended display mode. It does not yet fully
-                  change the teacher submission flow by itself.
+                  {t("fields.feedbackModeHelp")}
                 </div>
               </label>
             </div>
@@ -820,11 +836,10 @@ export default function ReadingTestEditorPage() {
         </section>
 
         <section style={{ marginTop: 18, ...cardStyle }}>
-          <strong>Enabled task types</strong>
+          <strong>{t("taskTypes.enabledTitle")}</strong>
 
           <div style={{ fontSize: 12, opacity: 0.78, marginTop: 8, lineHeight: 1.45 }}>
-            These are the task types the reading test is meant to use. The student page can later decide
-            how each type is shown.
+            {t("taskTypes.enabledDescription")}
           </div>
 
           <div
@@ -859,15 +874,17 @@ export default function ReadingTestEditorPage() {
                     );
                   }}
                 />
-                {TASK_TYPE_LABELS[type]}
+                {taskTypeLabels[type]}
               </label>
             ))}
           </div>
         </section>
 
         <section style={{ marginTop: 18 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Reading text</h2>
-          <div style={{ fontSize: 13, opacity: 0.75, marginTop: 6 }}>Word count: {wordCount}</div>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t("text.title")}</h2>
+          <div style={{ fontSize: 13, opacity: 0.75, marginTop: 6 }}>
+            {t("text.wordCount", { count: wordCount })}
+          </div>
 
           <textarea
             value={sourceText}
@@ -887,29 +904,29 @@ export default function ReadingTestEditorPage() {
               flexWrap: "wrap",
             }}
           >
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Tasks</h2>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t("tasks.title")}</h2>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button type="button" onClick={() => addTask("fill_in_word")} style={buttonSmall}>
-                Add fill in word
+                {t("actions.addFillInWord")}
               </button>
               <button type="button" onClick={() => addTask("mcq")} style={buttonSmall}>
-                Add MCQ
+                {t("actions.addMcq")}
               </button>
               <button type="button" onClick={() => addTask("true_false")} style={buttonSmall}>
-                Add true/false
+                {t("actions.addTrueFalse")}
               </button>
               <button type="button" onClick={() => addTask("short_answer")} style={buttonSmall}>
-                Add short answer
+                {t("actions.addShortAnswer")}
               </button>
               <button type="button" onClick={() => addTask("open")} style={buttonSmall}>
-                Add open
+                {t("actions.addOpen")}
               </button>
             </div>
           </div>
 
           {tasks.length === 0 ? (
-            <p style={{ opacity: 0.75, marginTop: 10 }}>No tasks yet.</p>
+            <p style={{ opacity: 0.75, marginTop: 10 }}>{t("messages.noTasks")}</p>
           ) : (
             <div style={{ marginTop: 12 }}>
               {tasks.map((task, idx) => (
@@ -935,9 +952,9 @@ export default function ReadingTestEditorPage() {
                   >
                     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                       <strong style={{ minWidth: 110 }}>
-                        {idx + 1}. {TASK_TYPE_LABELS[task.type]}
+                        {idx + 1}. {taskTypeLabels[task.type]}
                       </strong>
-                      <span style={{ opacity: 0.7, fontSize: 13 }}>ID: {task.id}</span>
+                      <span style={{ opacity: 0.7, fontSize: 13 }}>{t("tasks.id", { id: task.id })}</span>
                     </div>
 
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -966,13 +983,13 @@ export default function ReadingTestEditorPage() {
                         ↓
                       </button>
                       <button type="button" onClick={() => deleteTask(idx)} style={buttonSmall}>
-                        Delete
+                        {t("actions.delete")}
                       </button>
                     </div>
                   </div>
 
                   <label style={{ display: "block", marginTop: 10 }}>
-                    Prompt
+                    {t("tasks.prompt")}
                     <input
                       value={task.prompt}
                       onChange={(e) => {
@@ -985,7 +1002,7 @@ export default function ReadingTestEditorPage() {
 
                   {(task.type === "word_choice" || task.type === "fill_in_word") && (
                     <label style={{ display: "block", marginTop: 10 }}>
-                      {task.type === "fill_in_word" ? "Sentence with blank" : "Sentence"}
+                      {task.type === "fill_in_word" ? t("tasks.sentenceWithBlank") : t("tasks.sentence")}
                       <textarea
                         value={task.sentence ?? ""}
                         onChange={(e) => {
@@ -1000,7 +1017,7 @@ export default function ReadingTestEditorPage() {
 
                   {task.type === "sentence_placement" && (
                     <label style={{ display: "block", marginTop: 10 }}>
-                      Text with gap
+                      {t("tasks.textWithGap")}
                       <textarea
                         value={task.textWithGap ?? ""}
                         onChange={(e) => {
@@ -1020,7 +1037,7 @@ export default function ReadingTestEditorPage() {
                     task.type === "best_summary" ||
                     task.type === "true_false") && (
                     <div style={{ marginTop: 10 }}>
-                      <div style={{ fontWeight: 800, marginBottom: 6 }}>Options</div>
+                      <div style={{ fontWeight: 800, marginBottom: 6 }}>{t("tasks.options")}</div>
 
                       {(task.options ?? []).map((opt, oIdx) => (
                         <input
@@ -1049,7 +1066,7 @@ export default function ReadingTestEditorPage() {
                       ))}
 
                       <label style={{ display: "block", marginTop: 10 }}>
-                        Correct answer
+                        {t("tasks.correctAnswer")}
                         {(task.options ?? []).length > 0 ? (
                           <select
                             value={typeof task.correctAnswer === "string" ? task.correctAnswer : ""}
@@ -1082,8 +1099,8 @@ export default function ReadingTestEditorPage() {
                   {(task.type === "short_answer" || task.type === "open") && (
                     <p style={{ marginTop: 10, opacity: 0.75, marginBottom: 0 }}>
                       {task.type === "short_answer"
-                        ? "Short written response from the student."
-                        : "Open task / notes field."}
+                        ? t("tasks.shortAnswerHelp")
+                        : t("tasks.openHelp")}
                     </p>
                   )}
                 </div>

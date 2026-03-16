@@ -321,7 +321,36 @@
       "betterVersion": "Bedre versjon"
     },
     "hint": "Best for én setning eller en veldig kort tekst."
-  }
+  },
+  "speakingTopic": {
+  "title": "Generator for samtaletema",
+  "subtitle": "Generer et tema, et hovedspørsmål og oppfølgingsspørsmål til muntlig øving.",
+  "fields": {
+    "language": "Språk",
+    "level": "CEFR",
+    "category": "Kategori"
+  },
+  "categories": {
+    "everyday": "Hverdagsliv",
+    "school": "Skole",
+    "work": "Arbeid",
+    "travel": "Reise",
+    "food": "Mat",
+    "friends": "Venner og familie",
+    "culture": "Kultur",
+    "free": "Fritt tema"
+  },
+  "actions": {
+    "generate": "Generer tema",
+    "generating": "Genererer..."
+  },
+  "sections": {
+    "topic": "Tema",
+    "mainQuestion": "Hovedspørsmål",
+    "followups": "Oppfølgingsspørsmål"
+  },
+  "hint": "Passer godt til pararbeid, muntlig trening og språkkaféer."
+}
   },
   "student": {
     "spaces": {
@@ -1513,6 +1542,261 @@
   }
 },
   "producer": {
+  "readingTestsNew": {
+    "page": {
+      "title": "Generator for lesetest",
+      "subtitle": "Lag en lesetest med en tekst og oppgavetyper som passer til valgt nivå og tema."
+    },
+    "fields": {
+      "cefrLevel": "CEFR-nivå",
+      "language": "Språk",
+      "searchLanguage": "Søkespråk",
+      "languagesCount": "{count} språk",
+      "audience": "Målgruppe",
+      "minimumWords": "Minimum antall ord",
+      "maximumWords": "Maksimum antall ord",
+      "topic": "Tema / prompt",
+      "topicHelp": "Eksempel: En kort tekst om skole, fotball, natur, familieliv eller daglige aktiviteter.",
+      "feedbackMode": "Tilbakemeldingsmodus",
+      "feedbackModeHelp": "Dette styrer hvilken generert veiledning som vises her i generatoren. Foreløpig mottar læreren fortsatt hele besvarelsen uansett."
+    },
+    "audience": {
+      "children": "Barn",
+      "teenagers": "Ungdom",
+      "adultLearners": "Voksne deltakere",
+      "learners": "Lærende"
+    },
+    "flow": {
+      "title": "Leseflyt og tid",
+      "description": "Disse innstillingene lagres i konfigurasjonen for lesetesten. De beskriver ønsket elevflyt, men de overstyrer ennå ikke hele innleveringsflyten for læreren overalt i appen.",
+      "showQuestionsAfterReading": "Vis spørsmål etter lesing",
+      "showQuestionsAfterReadingHelp": "Eleven leser først og får deretter oppgavene."
+    },
+    "timer": {
+      "noTimer": "Ingen tidsbegrensning",
+      "enable": "Aktiver tidsbegrensning",
+      "quickPresets": "Hurtigvalg",
+      "minutes": "Minutter",
+      "extraSeconds": "Ekstra sekunder",
+      "help": "I de fleste tilfeller holder det å sette tidsbegrensningen i minutter og bare justere sekunder ved behov.",
+      "minutesOnly": "{minutes} min",
+      "minutesAndSeconds": "{minutes} min {seconds} sek"
+    },
+    "feedbackMode": {
+      "learner": "Kun elev",
+      "adult": "Kun lærer / foresatt",
+      "both": "Begge"
+    },
+    "feedback": {
+      "previewTitle": "Forhåndsvisning av generert veiledning",
+      "forLearner": "For elev:",
+      "forAdult": "For lærer / foresatt:",
+      "nextStep": "Neste steg:"
+    },
+    "taskTypes": {
+      "title": "Oppgavetyper",
+      "description": "Generatoren lager foreløpig først de klassiske oppgavene i lesetester. Du kan også inkludere",
+      "descriptionAfter": "med en gang, og legge til flere oppgavetyper manuelt nedenfor.",
+      "word_choice": "Ordvalg",
+      "sentence_placement": "Setningsplassering",
+      "best_summary": "Beste sammendrag",
+      "mcq": "Flervalg",
+      "true_false": "Sant / usant",
+      "fill_in_word": "Fyll inn ord",
+      "short_answer": "Kort svar",
+      "open": "Åpen oppgave"
+    },
+    "actions": {
+      "generate": "Generer lesetest",
+      "generating": "Genererer lesetest...",
+      "saveDraft": "Lagre utkast",
+      "saving": "Lagrer...",
+      "addFillInWord": "Legg til fyll inn ord",
+      "addMcq": "Legg til flervalg",
+      "addTrueFalse": "Legg til sant/usant",
+      "addShortAnswer": "Legg til kort svar",
+      "addOpen": "Legg til åpen oppgave",
+      "delete": "Slett"
+    },
+    "messages": {
+      "tasksDirty": "Teksten er endret. Kontroller oppgavene før du lagrer.",
+      "saved": "Lagret: {id}",
+      "noTasks": "Ingen oppgaver ennå. Generer en lesetest først."
+    },
+    "quota": {
+      "loading": "Laster kvote…",
+      "usedOfLimit": "Du har brukt {used} av {limit} denne måneden",
+      "runningLow": "(nær grensen)",
+      "periodTitle": "Periode: {period}"
+    },
+    "builder": {
+      "title": "Lesetest-bygger",
+      "lessonTitle": "Tittel",
+      "readingText": "Lesetekst",
+      "tasks": "Oppgaver",
+      "id": "ID: {id}",
+      "prompt": "Instruksjon",
+      "sentence": "Setning",
+      "sentenceWithBlank": "Setning med tomrom",
+      "fillInWordExample": "Eksempel: Barna så en svart _____ som sa mjau.",
+      "textWithGap": "Tekst med tomrom",
+      "options": "Alternativer",
+      "correctAnswer": "Riktig svar",
+      "shortAnswerHelp": "Kort skriftlig svar fra eleven.",
+      "openHelp": "Åpen oppgave / svarfelt."
+    },
+    "debug": {
+      "title": "Debug / rå lesetest"
+    },
+    "common": {
+      "true": "Sant",
+      "false": "Usant"
+    },
+    "defaults": {
+      "title": "Lesetest",
+      "topic": "En kort hverdagstekst om familie, skole, natur eller dagligliv.",
+      "fillInWordPrompt": "Velg riktig ord for tomrommet.",
+      "fillInWordSentence": "Barna så en svart _____ som sa mjau.",
+      "fillInWordOption1": "katt",
+      "fillInWordOption2": "hest",
+      "fillInWordOption3": "hund",
+      "newMcqPrompt": "Nytt flervalgsspørsmål",
+      "trueFalsePrompt": "Skriv sant eller usant.",
+      "shortAnswerPrompt": "Skriv et kort svar.",
+      "openPrompt": "Nytt åpent spørsmål",
+      "option1": "Alternativ 1",
+      "option2": "Alternativ 2",
+      "option3": "Alternativ 3"
+    },
+    "errors": {
+      "emptyResponse": "Tomt svar fra serveren. HTTP {status}",
+      "notJson": "Svaret var ikke gyldig JSON. HTTP {status}. Første tegn: {preview}",
+      "missingReadingText": "Mangler lesetekst i svaret.",
+      "titleRequired": "Tittel er påkrevd.",
+      "sourceTextEmpty": "Kildeteksten er tom.",
+      "timerTooShort": "Tidsbegrensningen må være minst 10 sekunder.",
+      "notSignedIn": "Ikke logget inn. Logg inn som lærer eller produsent.",
+      "quotaExceeded": "Du har brukt {used} av {limit} denne måneden. Du kan ikke opprette flere akkurat nå.",
+      "missingId": "Mangler id fra serveren."
+    }
+  },
+  "readingTestsEditor": {
+    "loading": "Laster lesetest…",
+    "page": {
+      "title": "Redigering av lesetest",
+      "statusLabel": "Tilpasset redigering for lesetester. Status:"
+    },
+    "fields": {
+      "title": "Tittel",
+      "cefrLevel": "CEFR-nivå",
+      "language": "Språk",
+      "searchLanguage": "Søkespråk",
+      "audience": "Målgruppe",
+      "topic": "Tema",
+      "minimumWords": "Minimum antall ord",
+      "maximumWords": "Maksimum antall ord",
+      "feedbackMode": "Tilbakemeldingsmodus",
+      "feedbackModeHelp": "Dette er konfigurasjon for generert veiledning og ønsket visningsmodus. Det endrer ennå ikke hele innleveringsflyten for læreren alene."
+    },
+    "audience": {
+      "children": "Barn",
+      "teenagers": "Ungdom",
+      "adultLearners": "Voksne deltakere",
+      "learners": "Lærende"
+    },
+    "flow": {
+      "title": "Leseflyt og tid",
+      "description": "Disse innstillingene lagres i konfigurasjonen for lesetesten. De beskriver hvordan elevflyten skal fungere, men noen deler av den faktiske elevvisningen må fortsatt kobles på elevsiden.",
+      "showQuestionsAfterReading": "Vis spørsmål etter lesing",
+      "showQuestionsAfterReadingHelp": "Eleven leser først og får deretter oppgavene."
+    },
+    "timer": {
+      "noTimer": "Ingen tidsbegrensning",
+      "enable": "Aktiver tidsbegrensning",
+      "quickPresets": "Hurtigvalg",
+      "minutes": "Minutter",
+      "extraSeconds": "Ekstra sekunder",
+      "minutesOnly": "{minutes} min",
+      "minutesAndSeconds": "{minutes} min {seconds} sek"
+    },
+    "feedbackMode": {
+      "learner": "Kun elev",
+      "adult": "Kun lærer / foresatt",
+      "both": "Begge"
+    },
+    "taskTypes": {
+      "enabledTitle": "Aktiverte oppgavetyper",
+      "enabledDescription": "Dette er oppgavetypene denne lesetesten er ment å bruke. Elevsiden kan senere bestemme hvordan hver type skal vises.",
+      "word_choice": "Ordvalg",
+      "sentence_placement": "Setningsplassering",
+      "best_summary": "Beste sammendrag",
+      "mcq": "Flervalg",
+      "true_false": "Sant / usant",
+      "fill_in_word": "Fyll inn ord",
+      "short_answer": "Kort svar",
+      "open": "Åpen oppgave"
+    },
+    "text": {
+      "title": "Lesetekst",
+      "wordCount": "Antall ord: {count}"
+    },
+    "tasks": {
+      "title": "Oppgaver",
+      "id": "ID: {id}",
+      "prompt": "Instruksjon",
+      "sentence": "Setning",
+      "sentenceWithBlank": "Setning med tomrom",
+      "textWithGap": "Tekst med tomrom",
+      "options": "Alternativer",
+      "correctAnswer": "Riktig svar",
+      "shortAnswerHelp": "Kort skriftlig svar fra eleven.",
+      "openHelp": "Åpen oppgave / svarfelt."
+    },
+    "actions": {
+      "save": "Lagre",
+      "saving": "Lagrer...",
+      "newReadingTest": "Ny lesetest",
+      "addFillInWord": "Legg til fyll inn ord",
+      "addMcq": "Legg til flervalg",
+      "addTrueFalse": "Legg til sant/usant",
+      "addShortAnswer": "Legg til kort svar",
+      "addOpen": "Legg til åpen oppgave",
+      "delete": "Slett"
+    },
+    "messages": {
+      "saved": "Lagret.",
+      "noTasks": "Ingen oppgaver ennå."
+    },
+    "common": {
+      "true": "Sant",
+      "false": "Usant"
+    },
+    "defaults": {
+      "title": "Lesetest",
+      "fillInWordPrompt": "Velg riktig ord for tomrommet.",
+      "fillInWordSentence": "Barna så en svart _____ som sa mjau.",
+      "fillInWordOption1": "katt",
+      "fillInWordOption2": "hest",
+      "fillInWordOption3": "hund",
+      "newMcqPrompt": "Nytt flervalgsspørsmål",
+      "trueFalsePrompt": "Skriv sant eller usant.",
+      "shortAnswerPrompt": "Skriv et kort svar.",
+      "openPrompt": "Nytt åpent spørsmål",
+      "option1": "Alternativ 1",
+      "option2": "Alternativ 2",
+      "option3": "Alternativ 3"
+    },
+    "errors": {
+      "missingLessonId": "Mangler leksjons-id.",
+      "notSignedIn": "Ikke logget inn.",
+      "notFound": "Lesetest ikke funnet.",
+      "noAccess": "Du har ikke tilgang til denne lesetesten.",
+      "notReadingTest": "Denne leksjonen er ikke en lesetest.",
+      "titleRequired": "Tittel er påkrevd.",
+      "sourceTextEmpty": "Leseteksten er tom.",
+      "timerTooShort": "Tidsbegrensningen må være minst 10 sekunder."
+    }
+  },
     "newText": {
       "title": "Lag ny oppgave",
       "subtitle": "Steg 1: generer tekst → Steg 2: generer oppgaver → rediger → lagre utkast.",
@@ -1830,7 +2114,8 @@
       "yes": "yes",
       "no": "no",
       "login": "Log in",
-      "backToStudent": "Back to Student"
+      "backToStudent": "Back to Student",
+      "backToTeacher": "Tilbake til lærer"
     },
     "notLoggedIn": {
       "title": "Unauthorized",
@@ -2033,7 +2318,6 @@
     }
   }
 },
-
 "ctaLite": {
   "title": "Klar for å teste i praksis?",
   "lead": "Start gratis, og oppgrader når du trenger mer kapasitet og flere verktøy.",
@@ -2048,7 +2332,6 @@
     "AI-verktøy (Light) inkludert"
   ]
 },
-
 "footer": {
   "about": "Om",
   "privacy": "Personvern",

@@ -1,4 +1,4 @@
-// app/(public)/join/JoinClient.tsx
+// app/[locale]/(public)/join/JoinClient.tsx
 "use client";
 
 import React, { useMemo, useState } from "react";
@@ -8,7 +8,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { ensureSpaceMember } from "@/lib/spaceMembership";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 async function findSpaceByCode(dbx: Firestore, codeRaw: string) {
   const code = (codeRaw || "").trim().toUpperCase();
@@ -62,10 +62,20 @@ async function waitForUser(): Promise<User> {
   if (current) return current;
 
   return await new Promise<User>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Timed out while waiting for auth user."));
+    }, 10000);
+
     const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        clearTimeout(timeout);
+        unsub();
+        resolve(u);
+      }
+    }, (err) => {
+      clearTimeout(timeout);
       unsub();
-      if (u) resolve(u);
-      else reject(new Error("Could not confirm sign-in (auth.currentUser is null)."));
+      reject(err);
     });
   });
 }
@@ -76,16 +86,14 @@ function cleanName(raw: string): string {
 
 export default function JoinClient() {
   const t = useTranslations("join");
+  const locale = useLocale();
 
   const sp = useSearchParams();
   const router = useRouter();
 
   const initialCode = useMemo(() => (sp.get("code") ?? "").trim(), [sp]);
   const [code, setCode] = useState(initialCode);
-
-  // MVP: ask for name on join
   const [displayName, setDisplayName] = useState("");
-
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -115,30 +123,30 @@ export default function JoinClient() {
 
       const spaceId = spaceDoc.id;
 
-      // 1) sørg for anon auth
       await ensureAnonymousUser();
-
-      // 2) vent til vi har en faktisk user (uid)
       const u = await waitForUser();
 
       console.log("[join] uid:", u.uid, "spaceId:", spaceId, "code:", c, "isAnon:", u.isAnonymous);
 
-      // 3) skriv membership docId = `${spaceId}_${uid}`
-      // VIKTIG: send code inn slik at rules kan validere join i lukkede rom
       await ensureSpaceMember(dbx, spaceId, u.uid, "student", {
         code: c,
         isAnon: Boolean(u.isAnonymous),
         displayName: name,
       });
 
-      router.push(`/student/spaces/${spaceId}`);
+      router.push(`/${locale}/student/spaces/${spaceId}`);
     } catch (e2: unknown) {
-      const meta = getErrMeta(e2);
-      console.error("JOIN FAILED", { code: meta.code, message: meta.message, e2 });
-      setErr(errToText(e2));
-    } finally {
-      setBusy(false);
-    }
+  const meta = getErrMeta(e2);
+
+  console.error("JOIN FAILED");
+  console.error("code:", meta.code);
+  console.error("message:", meta.message);
+  console.error("error object:", e2);
+
+  setErr(errToText(e2));
+} finally {
+  setBusy(false);
+}
   }
 
   return (

@@ -98,7 +98,9 @@ function clampNumber(v: unknown, fallback: number, min: number, max: number): nu
 }
 
 function normalizeLevel(v: unknown): CefrLevel {
-  return v === "A1" || v === "A2" || v === "B1" || v === "B2" || v === "C1" || v === "C2" ? v : "A2";
+  return v === "A1" || v === "A2" || v === "B1" || v === "B2" || v === "C1" || v === "C2"
+    ? v
+    : "A2";
 }
 
 function safeString(v: unknown, fallback: string): string {
@@ -149,8 +151,85 @@ function normalizeTaskTypes(v: unknown): ReadingTestTaskType[] {
     return ["word_choice", "sentence_placement", "best_summary"];
   }
 
-  const picked = v.filter((x): x is ReadingTestTaskType => valid.includes(x as ReadingTestTaskType));
-  return picked.length > 0 ? Array.from(new Set(picked)) : ["word_choice", "sentence_placement", "best_summary"];
+  const picked = v.filter((x): x is ReadingTestTaskType =>
+    valid.includes(x as ReadingTestTaskType)
+  );
+
+  return picked.length > 0
+    ? Array.from(new Set(picked))
+    : ["word_choice", "sentence_placement", "best_summary"];
+}
+
+function normalizeLanguageCode(v: unknown): string {
+  const raw = safeString(v, "nb").toLowerCase();
+
+  if (raw === "no") return "nb";
+  if (raw === "pt-br") return "pt-BR";
+  if (raw === "pt-pt") return "pt-PT";
+  if (raw === "nb" || raw === "nn" || raw === "en" || raw === "es" || raw === "de" || raw === "fr" || raw === "it" || raw === "pt") {
+    return raw;
+  }
+
+  if (/^[a-z]{2}(-[a-z]{2})?$/i.test(raw)) {
+    return raw;
+  }
+
+  return "nb";
+}
+
+function getLanguageInstruction(language: string): string {
+  switch (language) {
+    case "nb":
+      return 'Use Norwegian Bokmål for the entire response. All fields inside the JSON that contain human-readable text must be written in Norwegian Bokmål.';
+    case "nn":
+      return 'Use Norwegian Nynorsk for the entire response. All fields inside the JSON that contain human-readable text must be written in Norwegian Nynorsk.';
+    case "en":
+      return 'Use English for the entire response. All fields inside the JSON that contain human-readable text must be written in English.';
+    case "pt":
+      return 'Use Portuguese for the entire response. All fields inside the JSON that contain human-readable text must be written in Portuguese.';
+    case "pt-BR":
+      return 'Use Brazilian Portuguese for the entire response. All fields inside the JSON that contain human-readable text must be written in Brazilian Portuguese.';
+    case "pt-PT":
+      return 'Use European Portuguese for the entire response. All fields inside the JSON that contain human-readable text must be written in European Portuguese.';
+    case "es":
+      return 'Use Spanish for the entire response. All fields inside the JSON that contain human-readable text must be written in Spanish.';
+    case "de":
+      return 'Use German for the entire response. All fields inside the JSON that contain human-readable text must be written in German.';
+    case "fr":
+      return 'Use French for the entire response. All fields inside the JSON that contain human-readable text must be written in French.';
+    case "it":
+      return 'Use Italian for the entire response. All fields inside the JSON that contain human-readable text must be written in Italian.';
+    default:
+      return `Use the language with code "${language}" for the entire response. All fields inside the JSON that contain human-readable text must be written in that language.`;
+  }
+}
+
+function getAudienceInstruction(audience: string, language: string): string {
+  const normalizedAudience = audience.trim().toLowerCase();
+
+  if (language === "nb" || language === "nn") {
+    switch (normalizedAudience) {
+      case "children":
+        return "Målgruppe: barn.";
+      case "teenagers":
+        return "Målgruppe: ungdom.";
+      case "adult learners":
+        return "Målgruppe: voksne språkinnlærere.";
+      default:
+        return "Målgruppe: språkinnlærere.";
+    }
+  }
+
+  switch (normalizedAudience) {
+    case "children":
+      return "Audience: children.";
+    case "teenagers":
+      return "Audience: teenagers.";
+    case "adult learners":
+      return "Audience: adult language learners.";
+    default:
+      return "Audience: language learners.";
+  }
 }
 
 function isReadingTestResponse(v: unknown): v is ReadingTestResponse {
@@ -249,7 +328,12 @@ function buildTaskInstructions(enabledTaskTypes: ReadingTestTaskType[]) {
   return blocks.join("\n\n");
 }
 
-function buildOutputShape(level: CefrLevel, language: string, topic: string, wantsFillInWord: boolean) {
+function buildOutputShape(
+  level: CefrLevel,
+  language: string,
+  topic: string,
+  wantsFillInWord: boolean
+) {
   return `Return valid JSON in exactly this structure:
 {
   "title": "",
@@ -298,14 +382,17 @@ function buildOutputShape(level: CefrLevel, language: string, topic: string, wan
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json({ error: "OPENAI_API_KEY mangler i .env.local" }, { status: 500 });
+      return NextResponse.json(
+        { error: "OPENAI_API_KEY is missing in environment variables." },
+        { status: 500 }
+      );
     }
 
     const body = (await req.json()) as GenerateReadingTestBody;
 
     const level = normalizeLevel(body.level);
-    const language = safeString(body.language, "nb");
-    const topic = safeString(body.topic, "everyday life");
+    const language = normalizeLanguageCode(body.language);
+    const topic = safeString(body.topic, language === "nb" ? "dagligliv" : "everyday life");
     const audience = safeString(body.audience, "learners");
     const enabledTaskTypes = normalizeTaskTypes(body.enabledTaskTypes);
     const wantsFillInWord = enabledTaskTypes.includes("fill_in_word");
@@ -318,22 +405,33 @@ export async function POST(req: Request) {
 You are an expert language teacher and reading test writer for 321skole.
 You must return valid JSON only and nothing else.
 Do not use markdown fences.
+Do not add commentary before or after the JSON.
 Keep all output internally consistent.
 Make distractors plausible, not silly.
 Make sure the correct answer can be justified from the text.
 Do not return explanations outside the JSON.
+The reading text, title, prompts, options, summaries and feedback must all be written in the requested target language.
 `.trim();
 
     const user = `
-Create one reading test in language code "${language}" for CEFR level "${level}".
+Create one reading test.
+
+Target language:
+- Language code: "${language}"
+- ${getLanguageInstruction(language)}
 
 Requirements:
 - Write one coherent reading text.
 - The text must be between ${min} and ${max} words.
 - Topic: ${topic}
-- Audience: ${audience}
+- CEFR level: ${level}
+- ${getAudienceInstruction(audience, language)}
 - Use vocabulary and sentence structure appropriate for CEFR ${level}.
 - Keep the text natural, clear, engaging, and age-appropriate.
+- The title must also be written in the target language.
+- All task prompts must be written in the target language.
+- All answer options must be written in the target language.
+- All feedback fields must be written in the target language.
 
 Enabled task types selected by the teacher:
 ${enabledTaskTypes.join(", ")}
@@ -350,6 +448,8 @@ Important:
 - fillInWord is only required when "fill_in_word" is selected
 - do not invent extra top-level fields
 - set "wordCount" to the text word count if possible
+- do not translate the language code itself
+- the output must be a single valid JSON object
 
 ${buildOutputShape(level, language, topic, wantsFillInWord)}
 `.trim();
@@ -365,8 +465,9 @@ ${buildOutputShape(level, language, topic, wantsFillInWord)}
     });
 
     const out = (resp.output_text || "").trim();
+
     if (!out) {
-      return NextResponse.json({ error: "Tomt svar fra modellen." }, { status: 500 });
+      return NextResponse.json({ error: "Empty response from model." }, { status: 500 });
     }
 
     let parsed: unknown;
@@ -374,7 +475,10 @@ ${buildOutputShape(level, language, topic, wantsFillInWord)}
       parsed = JSON.parse(out);
     } catch {
       return NextResponse.json(
-        { error: "Modellen returnerte ikke gyldig JSON.", raw: out.slice(0, 3000) },
+        {
+          error: "Model did not return valid JSON.",
+          raw: out.slice(0, 3000),
+        },
         { status: 500 }
       );
     }
@@ -382,7 +486,7 @@ ${buildOutputShape(level, language, topic, wantsFillInWord)}
     if (!isReadingTestResponse(parsed)) {
       return NextResponse.json(
         {
-          error: "JSON-respons mangler felter eller har feil struktur.",
+          error: "JSON response is missing fields or has an invalid structure.",
           raw: JSON.stringify(parsed).slice(0, 3000),
         },
         { status: 500 }
@@ -391,15 +495,23 @@ ${buildOutputShape(level, language, topic, wantsFillInWord)}
 
     const normalized: ReadingTestResponse = {
       ...parsed,
+      language,
+      cefrLevel: level,
+      topic,
       wordCount: countWords(parsed.text),
       tasks: {
         ...parsed.tasks,
-        ...(wantsFillInWord && parsed.tasks.fillInWord ? { fillInWord: parsed.tasks.fillInWord } : {}),
+        ...(wantsFillInWord && parsed.tasks.fillInWord
+          ? { fillInWord: parsed.tasks.fillInWord }
+          : {}),
       },
     };
 
     return NextResponse.json(normalized);
   } catch (err: unknown) {
-    return NextResponse.json({ error: getErrorMessage(err) || "Ukjent feil" }, { status: 500 });
+    return NextResponse.json(
+      { error: getErrorMessage(err) || "Unknown error" },
+      { status: 500 }
+    );
   }
 }
