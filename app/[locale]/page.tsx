@@ -102,6 +102,7 @@ export default async function HomePage() {
           t("teachers.bullets.2"),
           t("teachers.bullets.3"),
           t("teachers.bullets.4"),
+          t("teachers.bullets.5"),
         ]}
         cta={{ href: "/login", label: t("teachers.cta") }}
         flip={false}
@@ -113,16 +114,36 @@ export default async function HomePage() {
         eyebrow={t("students.eyebrow")}
         title={t("students.title")}
         description={t("students.description")}
-        image={{ src: "/landing/student.png", alt: t("students.imageAlt") }}
+        image={{ src: "/landing/studentstudy.jpg", alt: t("students.imageAlt") }}
         bullets={[
           t("students.bullets.0"),
           t("students.bullets.1"),
           t("students.bullets.2"),
           t("students.bullets.3"),
           t("students.bullets.4"),
+          t("students.bullets.5"),
         ]}
         cta={{ href: "/login", label: t("students.cta") }}
         flip={true}
+      />
+
+      {/* FOR FORELDRE */}
+      <FeatureSection
+        id="for-parents"
+        eyebrow={t("parents.eyebrow")}
+        title={t("parents.title")}
+        description={t("parents.description")}
+        image={{ src: "/landing/parents_study.jpg", alt: t("parents.imageAlt") }}
+        bullets={[
+          t("parents.bullets.0"),
+          t("parents.bullets.1"),
+          t("parents.bullets.2"),
+          t("parents.bullets.3"),
+          t("parents.bullets.4"),
+          t("parents.bullets.5"),
+        ]}
+        cta={{ href: "/login", label: t("parents.cta") }}
+        flip={false}
       />
 
       {/* SPACES */}
@@ -306,7 +327,6 @@ function PublicHeader(props: { locale: string; schoolLabel: string; loginLabel: 
 
         {/* Brand block: centered. Logo on top, 321skole under (same sizes) */}
         <div className="mt-3 flex flex-col items-center justify-center pb-2 pt-4">
-          {/* 3:1 logo */}
           <Image
             src="/logo 321_2.png"
             alt="321"

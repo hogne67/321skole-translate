@@ -2181,88 +2181,105 @@
         "spaces": "Spaces"
       }
     },
-    "hero": {
-      "badge": "Bli med i et verdensomspennende læringsnettverk!",
-      "title": "Fremtidens læring starter her",
-      "lead": "En ny, revolusjonerende plattform for å skape, dele og mestre kunnskap – tilpasset studenter, lærere og foreldre. Og det beste av alt: Det er gratis.",
-      "ctaPrimary": "Registrer deg i dag",
-      "ctaSecondary": "Logg inn",
-      "guestNote": "Gjestebrukere kommer inn via delingslenker til oppgaver/Spaces.",
-      "stats": {
-        "languages": { "title": "Språk", "value": "Alle", "hint": "Tekst + oppgaver + feedback" },
-        "level": { "title": "Nivå", "value": "CEFR A1–C1", "hint": "Forenkle, forbedre, variere" },
-        "audio": { "title": "Lyd", "value": "Justerbar", "hint": "Tekst + oversettelse" },
-        "pdf": { "title": "PDF", "value": "Eksport", "hint": "Opplegg klart til bruk" }
-      },
-      "imageAlt": "Illustrasjon av lærer og student som bruker 321skole",
-      "cards": {
-        "text": { "title": "Tekst", "subtitle": "Nivåtilpass" },
-        "tasks": { "title": "Oppgaver", "subtitle": "Varier" },
-        "feedback": { "title": "Feedback", "subtitle": "Umiddelbar" }
-      },
-      "floating": {
-        "title": "Pedagogisk AI",
-        "subtitle": "Læreren styrer · AI hjelper"
-      }
+  "hero": {
+    "badge": "Bli med i et globalt læringsnettverk!",
+    "title": "Fremtidens læring starter her",
+    "lead": "En ny, revolusjonerende plattform for å skape, dele og mestre kunnskap – tilpasset elever, lærere og foreldre. Og best av alt: Den er gratis.",
+    "ctaPrimary": "Registrer deg i dag",
+    "ctaSecondary": "Logg inn",
+    "guestNote": "Gjester blir med via delte lenker til oppgaver/Spaces.",
+    "stats": {
+      "languages": { "title": "Språk", "value": "Alle", "hint": "Tekst + oppgaver + tilbakemelding" },
+      "level": { "title": "Nivå", "value": "CEFR A1–C1", "hint": "Forenkle, forbedre, variere" },
+      "audio": { "title": "Lyd", "value": "Justerbar", "hint": "Tekst + oversettelse" },
+      "pdf": { "title": "PDF", "value": "Eksporter", "hint": "Klare arbeidsark" }
     },
-    "trustLine": "Klar for skoler, kurs og voksenopplæring – uten tung LMS-friksjon.",
-    "teachers": {
-      "eyebrow": "For lærere",
-      "title": "Lag mer – med mindre stress",
-      "description": "Et arbeidsverktøy som hjelper deg å produsere, tilpasse og dele undervisningsinnhold – uten å miste kontroll over kvalitet og nivå.",
-      "imageAlt": "Lærer som planlegger undervisning på laptop",
-      "bullets": [
-        "Lag tekster på alle språk (skriv, lim inn eller generer).",
-        "Juster tekst automatisk til CEFR-nivå (A1–C1).",
-        "Generer og rediger mange oppgavetyper (flervalg, åpne svar, skriveoppgaver).",
-        "Del med studenter via Spaces – og samle innleveringer.",
-        "Eksporter ferdige opplegg som PDF."
-      ],
-      "cta": "Registrer deg i dag"
+    "imageAlt": "Illustrasjon av en lærer og elev som bruker 321skole",
+    "cards": {
+      "text": { "title": "Tekst", "subtitle": "Tilpass nivå" },
+      "tasks": { "title": "Oppgaver", "subtitle": "Varier" },
+      "feedback": { "title": "Tilbakemelding", "subtitle": "Umiddelbar" }
     },
-    "students": {
-      "eyebrow": "For studenter",
-      "title": "Forstå mer. Lær tryggere.",
-      "description": "Studentene får støtte akkurat der det trengs mest: forståelse, tempo og trygg tilbakemelding – på undervisningsspråket og valgfritt på morsmål.",
-      "imageAlt": "Student som lærer språk med hodetelefoner",
-      "bullets": [
-        "Oversett tekst og oppgaver til valgfritt språk.",
-        "Justerbar lydhastighet – både på tekstspråk og oversettelse.",
-        "Umiddelbar feedback på egne tekster (tekstspråk + valgfritt andrespråk).",
-        "Forklaringer som hjelper deg videre – ikke bare riktig/feil.",
-        "Gratis tilgang for studenter."
-      ],
-      "cta": "Logg inn"
-    },
+    "floating": {
+      "title": "Pedagogisk AI",
+      "subtitle": "Læreren styrer · AI støtter"
+    }
+  },
+  "trustLine": "Klar for skoler, kurs og voksenopplæring—uten tung LMS-friksjon.",
+  "teachers": {
+    "eyebrow": "For lærere",
+    "title": "Skap mer, raskere og bedre",
+    "description": "Et praktisk læringssystem som hjelper deg å produsere, tilpasse og dele læringsinnhold—uten å miste kontroll på kvalitet og nivå.",
+    "imageAlt": "Lærer som planlegger undervisning på en laptop",
+    "bullets": [
+      "Lag tekster på alle språk og nivå (skriv, lim inn eller generer).",
+      "Generer og rediger mange oppgavetyper (flervalg, åpne svar, skriving).",
+      "Lag egne Spaces—og samle inn besvarelser.",
+      "Få automatisk retting og AI-støttet tilbakemelding.",
+      "Eksporter ferdige opplegg som digitale leksjoner og PDF.",
+      "Lag lesetester med umiddelbar tilbakemelding."
+    ],
+    "cta": "Registrer deg i dag"
+  },
+  "students": {
+    "eyebrow": "For studenter",
+    "title": "Lær raskere, bedre og smartere",
+    "description": "Lag egne leksjoner, sjekk nivået ditt og øv med AI-verktøy som oversettelse, lyd og umiddelbar tilbakemelding på flere språk.",
+    "imageAlt": "Elev som lærer språk med hodetelefoner",
+    "bullets": [
+      "Lag egne leksjoner på alle nivå.",
+      "Leksjoner med justerbar lydhastighet—både for tekst og oversettelse.",
+      "Umiddelbar tilbakemelding på skriving (læringsspråk + valgfritt støttespråk).",
+      "Forklaringer som hjelper deg å forbedre deg—ikke bare riktig/feil.",
+      "Delta i globale læringsnettverk.",
+      "Finn nivået ditt og lag lesetester med umiddelbar tilbakemelding."
+    ],
+    "cta": "Logg inn"
+  },
+  "parents": {
+    "eyebrow": "For foreldre",
+    "title": "Støtt læring smartere og bedre",
+    "description": "Støtt, øv og følg progresjon med enkle verktøy tilpasset hverdagen hjemme.",
+    "imageAlt": "Barn og forelder som lærer sammen",
+    "bullets": [
+      "Lag egne oppgaver, leksjoner og studierom for barna.",
+      "Sjekk nivå og følg utvikling over tid.",
+      "Les og øv sammen med lyd, oversettelse og lesetester.",
+      "Få forklaringer som gir forståelse—ikke bare riktig/feil.",
+      "Gi egne tilbakemeldinger med enkle stjerner.",
+      "Finn nivå og lag lesetester med umiddelbar tilbakemelding."
+    ],
+    "cta": "Logg inn"
+  },
     "spaces": {
-      "eyebrow": "Spaces",
-      "title": "Ett rom for alt som skjer i undervisningen",
-      "description": "Del opplegg, samle innleveringer, og følg progresjon – for klasserom, kurs og voksenopplæring.",
-      "cards": [
-        { "title": "Del på sekunder", "text": "Gi studentene en lenke eller kode. De kommer rett inn i opplegget." },
-        { "title": "Anonym eller innlogget", "text": "Støtter lav terskel i starten – og trygg innlogging når dere vil." },
-        { "title": "Oversikt og flyt", "text": "Alt samlet: tekster, oppgaver, svar og feedback – tydelig og ryddig." }
-      ],
-      "imageAlt": "Mockup av Spaces i 321skole"
+  "eyebrow": "Studierom",
+  "title": "Del oppgaver med studentene",
+  "description": "Del leksjoner, samle inn besvarelser og gi tilbakemelding. ",
+  "cards": [
+    {"title": "Del på sekunder", "text": "Gi elever en lenke eller kode. De åpner direkte i leksjonen."},
+    {"title": "Anonymt eller innlogget", "text": "Lav terskel i starten—trygg innlogging når du er klar."},
+    {"title": "Oversikt og flyt", "text": "Alt samlet: tekster, oppgaver, svar og tilbakemeldinger—ryddig og oversiktlig."}
+  ],
+  "imageAlt": "Mockup av Spaces i 321skole"
     },
     "whyAi": {
-      "eyebrow": "Hvorfor AI?",
-      "title": "AI som assistent. Ikke fasit.",
-      "description": "Dette er pedagogisk AI: læreren bestemmer innholdet, og AI hjelper med språk, nivå og variasjon. Studentene får forklaringer – ikke snarveier.",
-      "checks": [
-        "Læreren har kontroll: alt kan redigeres og justeres.",
-        "Trygg støtte: fokus på læring, forståelse og progresjon.",
-        "Flerspråklig fra bunnen av: tekst, oppgaver, lyd og feedback."
-      ],
-      "flowTitle": "Eksempel på flyt",
-      "flow": {
-        "1": "Lærer velger tema og nivå",
-        "2": "Tekst lages/tilpasses på minutter",
-        "3": "Oppgaver genereres og redigeres",
-        "4": "Del i Space → studenter jobber",
-        "5": "Umiddelbar feedback + eksport som PDF"
-      }
-    },
+  "eyebrow": "Hvorfor AI-støttede verktøy?",
+  "title": "AI som assistent. Ikke fasit.",
+  "description": "Dette er pedagogisk AI: Du styrer innholdet, og AI hjelper med språk, nivå og variasjon. Elevene får forklaringer—ikke snarveier.",
+  "checks": [
+    "Full kontroll: alt kan redigeres og tilpasses.",
+    "Trygg støtte: fokus på læring, forståelse og progresjon.",
+    "Flerspråklig fra start: tekst, oppgaver, lyd og tilbakemelding."
+  ],
+  "flowTitle": "Eksempel på flyt",
+  "flow": {
+    "1": "Lærer velger tema og nivå",
+    "2": "Tekst lages eller tilpasses på minutter",
+    "3": "Oppgaver genereres og redigeres",
+    "4": "Deles i et Space → elever jobber",
+    "5": "Umiddelbar tilbakemelding + eksport til PDF"
+  }
+},
     "roles": {
   "title": "Gratis å starte. Enkelt å oppgradere.",
   "description": "Bruk biblioteket og oversetteren gratis. Oppgrader når du trenger mer kapasitet, flere oppgaver og avanserte AI-verktøy.",

@@ -2181,88 +2181,105 @@
         "spaces": "Espaços"
       }
     },
-    "hero": {
-      "badge": "Faça parte de uma rede global de aprendizagem!",
-      "title": "O futuro da aprendizagem começa aqui.",
-      "lead": "Uma nova plataforma revolucionária para criar, compartilhar e dominar o conhecimento – adaptada para estudantes, professores e pais. E o melhor de tudo: É gratuita.",
-      "ctaPrimary": "Cadastre-se hoje",
-      "ctaSecondary": "Entrar",
-      "guestNote": "Convidados entram por links compartilhados para lições/Espaços.",
-      "stats": {
-        "languages": { "title": "Idiomas", "value": "Todos", "hint": "Texto + tarefas + feedback" },
-        "level": { "title": "Nível", "value": "CEFR A1–C1", "hint": "Simplificar, melhorar, variar" },
-        "audio": { "title": "Áudio", "value": "Ajustável", "hint": "Texto + tradução" },
-        "pdf": { "title": "PDF", "value": "Exportar", "hint": "Folhas prontas para usar" }
-      },
-      "imageAlt": "Ilustração de um professor e um aluno usando o 321skole",
-      "cards": {
-        "text": { "title": "Texto", "subtitle": "Ajustar nível" },
-        "tasks": { "title": "Tarefas", "subtitle": "Variar" },
-        "feedback": { "title": "Feedback", "subtitle": "Instantâneo" }
-      },
-      "floating": {
-        "title": "IA pedagógica",
-        "subtitle": "Professor lidera · IA ajuda"
-      }
+  "hero": {
+    "badge": "Junte-se a uma rede global de aprendizagem!",
+    "title": "O futuro da aprendizagem começa aqui",
+    "lead": "Uma nova plataforma revolucionária para criar, partilhar e dominar o conhecimento – pensada para alunos, professores e pais. E o melhor de tudo: é gratuita.",
+    "ctaPrimary": "Registe-se hoje",
+    "ctaSecondary": "Entrar",
+    "guestNote": "Os convidados entram através de links partilhados para lições/Spaces.",
+    "stats": {
+      "languages": { "title": "Idiomas", "value": "Todos", "hint": "Texto + tarefas + feedback" },
+      "level": { "title": "Nível", "value": "CEFR A1–C1", "hint": "Simplificar, melhorar, variar" },
+      "audio": { "title": "Áudio", "value": "Ajustável", "hint": "Texto + tradução" },
+      "pdf": { "title": "PDF", "value": "Exportar", "hint": "Folhas prontas a usar" }
     },
-    "trustLine": "Pronto para escolas, cursos e educação de adultos — sem a fricção de um LMS pesado.",
-    "teachers": {
-      "eyebrow": "Para professores",
-      "title": "Crie mais — sem estresse",
-      "description": "Uma ferramenta prática que ajuda você a produzir, adaptar e compartilhar conteúdo — sem perder o controle de qualidade e nível.",
-      "imageAlt": "Professor planejando aulas no laptop",
-      "bullets": [
-        "Crie textos em qualquer idioma (escreva, cole ou gere).",
-        "Ajuste textos para níveis CEFR (A1–C1).",
-        "Gere e edite vários tipos de tarefas (múltipla escolha, respostas abertas, escrita).",
-        "Compartilhe em Espaços — e receba entregas.",
-        "Exporte lições prontas como PDF."
-      ],
-      "cta": "Cadastre-se hoje"
+    "imageAlt": "Ilustração de um professor e aluno a usar 321skole",
+    "cards": {
+      "text": { "title": "Texto", "subtitle": "Ajustar nível" },
+      "tasks": { "title": "Tarefas", "subtitle": "Variar" },
+      "feedback": { "title": "Feedback", "subtitle": "Imediato" }
     },
-    "students": {
-      "eyebrow": "Para alunos",
-      "title": "Entenda mais. Aprenda com confiança.",
-      "description": "Os alunos recebem apoio onde mais importa: compreensão, ritmo e feedback seguro — no idioma de aprendizagem e, opcionalmente, no idioma materno.",
-      "imageAlt": "Aluno aprendendo um idioma com fones",
-      "bullets": [
-        "Traduza texto e tarefas para qualquer idioma.",
-        "Velocidade do áudio ajustável — tanto do texto principal quanto da tradução.",
-        "Feedback instantâneo de escrita (idioma de aprendizagem + opcionalmente um segundo idioma).",
-        "Explicações que ajudam a melhorar — não apenas certo/errado.",
-        "Acesso gratuito para alunos."
-      ],
-      "cta": "Entrar"
-    },
+    "floating": {
+      "title": "IA pedagógica",
+      "subtitle": "O professor lidera · a IA apoia"
+    }
+  },
+  "trustLine": "Pronto para escolas, cursos e educação de adultos—sem a complexidade de um LMS pesado.",
+  "teachers": {
+    "eyebrow": "Para professores",
+    "title": "Crie mais, mais rápido e melhor",
+    "description": "Um sistema prático que ajuda a criar, adaptar e partilhar conteúdos—sem perder o controlo da qualidade e do nível.",
+    "imageAlt": "Professor a planear aulas num portátil",
+    "bullets": [
+      "Crie textos em qualquer idioma e nível (escrever, colar ou gerar).",
+      "Gere e edite vários tipos de tarefas (escolha múltipla, respostas abertas, escrita).",
+      "Crie os seus próprios Spaces—e recolha respostas.",
+      "Obtenha correção automática e feedback com apoio de IA.",
+      "Exporte lições como conteúdos digitais e PDF.",
+      "Crie testes de leitura com feedback imediato."
+    ],
+    "cta": "Registe-se hoje"
+  },
+  "students": {
+    "eyebrow": "Para alunos",
+    "title": "Aprenda mais rápido, melhor e com mais inteligência",
+    "description": "Crie as suas próprias lições, verifique o seu nível e pratique com ferramentas de IA como tradução, áudio e feedback imediato em vários idiomas.",
+    "imageAlt": "Aluno a aprender com auscultadores",
+    "bullets": [
+      "Crie as suas próprias lições em qualquer nível.",
+      "Lições com velocidade de áudio ajustável—para texto e tradução.",
+      "Feedback imediato na escrita (língua de aprendizagem + língua de apoio opcional).",
+      "Explicações que ajudam a melhorar—não apenas certo/errado.",
+      "Participe em redes globais de aprendizagem.",
+      "Descubra o seu nível e crie testes de leitura com feedback imediato."
+    ],
+    "cta": "Entrar"
+  },
+  "parents": {
+    "eyebrow": "Para pais",
+    "title": "Apoie a aprendizagem de forma mais inteligente",
+    "description": "Acompanhe, pratique e apoie o progresso com ferramentas simples para o dia a dia em casa.",
+    "imageAlt": "Pai/mãe e filho a aprender juntos",
+    "bullets": [
+      "Crie tarefas, lições e Spaces familiares.",
+      "Verifique o nível e acompanhe o progresso ao longo do tempo.",
+      "Leia e pratique em conjunto com áudio, tradução e testes de leitura.",
+      "Use explicações que promovem a compreensão—não apenas certo/errado.",
+      "Dê feedback com classificações simples por estrelas.",
+      "Descubra o nível e crie testes de leitura com feedback imediato."
+    ],
+    "cta": "Entrar"
+  },
     "spaces": {
-      "eyebrow": "Espaços",
-      "title": "Uma sala para tudo o que acontece na aprendizagem",
-      "description": "Compartilhe lições, receba entregas e acompanhe o progresso — para turmas, cursos e educação de adultos.",
-      "cards": [
-        { "title": "Compartilhe em segundos", "text": "Dê aos alunos um link ou código. Eles caem direto na lição." },
-        { "title": "Anônimo ou logado", "text": "Baixa barreira no começo — login seguro quando você quiser." },
-        { "title": "Visão geral e fluxo", "text": "Tudo junto: textos, tarefas, respostas e feedback — claro e organizado." }
-      ],
-      "imageAlt": "Mockup de Espaços no 321skole"
-    },
+  "eyebrow": "Spaces",
+  "title": "Um espaço para tudo o que acontece na aprendizagem",
+  "description": "Partilhe lições, recolha respostas e acompanhe o progresso—para turmas, cursos e educação de adultos.",
+  "cards": [
+    {"title": "Partilhe em segundos","text": "Dê aos alunos um link ou código. Eles entram diretamente na lição."},
+    {"title": "Anónimo ou com conta","text": "Baixa barreira no início—login seguro quando estiver pronto."},
+    {"title": "Visão clara e fluxo","text": "Tudo num só lugar: textos, tarefas, respostas e feedback—organizado e claro."}
+  ],
+  "imageAlt": "Mockup de Spaces no 321skole"
+},
     "whyAi": {
-      "eyebrow": "Por que IA?",
-      "title": "IA como assistente. Não como gabarito.",
-      "description": "Isto é IA pedagógica: o professor decide o conteúdo e a IA ajuda com idioma, nível e variedade. Os alunos recebem explicações — não atalhos.",
-      "checks": [
-        "O professor continua no controle: tudo pode ser editado e ajustado.",
-        "Apoio seguro: foco em aprender, entender e progredir.",
-        "Multilíngue desde a base: texto, tarefas, áudio e feedback."
-      ],
-      "flowTitle": "Exemplo de fluxo",
-      "flow": {
-        "1": "Professor escolhe tema e nível",
-        "2": "Texto é criado/adaptado em minutos",
-        "3": "Tarefas são geradas e editadas",
-        "4": "Compartilha em um Espaço → alunos fazem",
-        "5": "Feedback instantâneo + exportar como PDF"
-      }
-    },
+  "eyebrow": "Por que ferramentas com IA?",
+  "title": "IA como assistente. Não como resposta final.",
+  "description": "Isto é IA pedagógica: você controla o conteúdo, e a IA ajuda com idioma, nível e variedade. Os alunos recebem explicações—não atalhos.",
+  "checks": [
+    "Controlo total: tudo pode ser editado e ajustado.",
+    "Apoio seguro: foco na aprendizagem, compreensão e progresso.",
+    "Multilíngue desde o início: texto, tarefas, áudio e feedback."
+  ],
+  "flowTitle": "Exemplo de fluxo",
+  "flow": {
+    "1": "O professor escolhe tema e nível",
+    "2": "O texto é criado ou adaptado em minutos",
+    "3": "As tarefas são geradas e editadas",
+    "4": "Partilhado num Space → os alunos trabalham",
+    "5": "Feedback imediato + exportação para PDF"
+  }
+},
     "roles": {
   "title": "Grátis para começar. Fácil para fazer upgrade.",
   "description": "Use a biblioteca e o tradutor gratuitamente. Faça upgrade quando precisar de mais capacidade, mais atividades e ferramentas avançadas de IA.",
