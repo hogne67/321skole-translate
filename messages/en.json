@@ -214,7 +214,11 @@
     "readingTestGenerator": {
       "title": "Reading test generator",
       "description": "Generate reading tests with questions and automatic evaluation."
-    }
+    },
+    "geometryGenerator": {
+  "title": "Geometry generator",
+  "description": "Create printable geometry worksheets with shapes, perimeter and area."
+}
   }
 },
       "items": {

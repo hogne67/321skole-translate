@@ -23,6 +23,11 @@ const premiumTools: Tool[] = [
     href: "/producer/reading-tests/new",
     badge: "PREMIUM",
   },
+  {
+    id: "geometryGenerator",
+    href: "/producer/math/geometry",
+    badge: "NEW",
+  },
 ];
 
 const tools: Tool[] = [
@@ -60,12 +65,12 @@ export default function ToolsPage() {
           {t("premium.title")}
         </h2>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {premiumTools.map((tool) => (
             <Link
               key={tool.id}
               href={`/${locale}${tool.href}`}
-              className="group relative flex min-h-[190px] flex-col justify-between rounded-2xl border border-sky-300 bg-sky-100 p-6 no-underline hover:no-underline shadow-sm transition-all duration-200 hover:border-sky-400 hover:bg-sky-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-300"
+              className="group relative flex min-h-[190px] flex-col justify-between rounded-2xl border border-sky-300 bg-sky-100 p-6 no-underline shadow-sm transition-all duration-200 hover:border-sky-400 hover:bg-sky-200 hover:shadow-lg hover:no-underline focus:outline-none focus:ring-2 focus:ring-sky-300"
             >
               <div className="absolute left-0 top-0 h-1 w-full rounded-t-2xl bg-sky-500" />
 
@@ -102,7 +107,7 @@ export default function ToolsPage() {
           <Link
             key={tool.id}
             href={`/${locale}${tool.href}`}
-            className="group relative flex min-h-[180px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 no-underline hover:no-underline shadow-sm transition-all duration-100 hover:border-sky-200 hover:bg-sky-100 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="group relative flex min-h-[180px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 no-underline shadow-sm transition-all duration-100 hover:border-sky-200 hover:bg-sky-100 hover:shadow-lg hover:no-underline focus:outline-none focus:ring-2 focus:ring-sky-200"
           >
             <div className="absolute left-0 top-0 h-1 w-full rounded-t-2xl bg-transparent transition group-hover:bg-sky-400" />
 

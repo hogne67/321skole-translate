@@ -205,7 +205,11 @@
     "readingTestGenerator": {
       "title": "Gerador de teste de leitura",
       "description": "Crie testes de leitura com perguntas e avaliação automática."
-    }
+    },
+    "geometryGenerator": {
+  "title": "Gerador de geometria",
+  "description": "Crie fichas de geometria para impressão com formas, perímetro e área."
+}
   }
 },
   "title": "Ferramentas",

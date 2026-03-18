@@ -205,7 +205,11 @@
     "readingTestGenerator": {
       "title": "Lesetestgenerator",
       "description": "Lag nivåbaserte lesetester med spørsmål og automatisk vurdering."
-    }
+    },
+    "geometryGenerator": {
+  "title": "Geometri-generator",
+  "description": "Lag utskriftsvennlige arbeidsark i geometri med former, omkrets og areal."
+}
   }
 },
   "title": "Verktøy",
