@@ -37,6 +37,7 @@ export const LANGUAGES: LanguageOption[] = [
   { code: "ru", label: "Russisk – Русский" },
   { code: "uk", label: "Ukrainsk – Українська" },
   { code: "sr", label: "Serbisk – Српски" },
+  { code: "tr", label: "Tyrkisk – Türkçe" },
 
   // 🇱🇻🇱🇹 Baltikum
   { code: "lv", label: "Latvisk – Latviešu" },
@@ -47,6 +48,10 @@ export const LANGUAGES: LanguageOption[] = [
   { code: "so", label: "Somali – Soomaali" },
   { code: "ti", label: "Tigrinja – ትግርኛ" },
   { code: "am", label: "Amharisk – አማርኛ" },
+  { code: "kmr", label: "Kurdisk (Kurmanji) – Kurdî" },
+{ code: "ckb", label: "Kurdisk (Sorani) – کوردی" },
+{ code: "sq", label: "Albansk – Shqip" },
+{ code: "ta", label: "Tamil – தமிழ்" },
 
   // 🇪🇹 Etiopia (tillegg)
   { code: "om", label: "Oromo – Afaan Oromoo" },
