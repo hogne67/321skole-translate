@@ -328,7 +328,7 @@ function PublicHeader(props: { locale: string; schoolLabel: string; loginLabel: 
         {/* Brand block: centered. Logo on top, 321skole under (same sizes) */}
         <div className="mt-3 flex flex-col items-center justify-center pb-2 pt-4">
           <Image
-            src="/logo 321_2.png"
+            src="/logo321ny.png"
             alt="321"
             width={90}
             height={30}

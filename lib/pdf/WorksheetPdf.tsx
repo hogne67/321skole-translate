@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   title: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 800,
     marginBottom: 4,
   },
@@ -67,13 +67,13 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   logo: {
-    width: 100,
-    height: 30,
+    width: 60,
+    height: 20,
     objectFit: "contain",
   },
   brandText: {
     marginTop: 4,
-    fontSize: 9,
+    fontSize: 12,
     color: "#666",
   },
 
@@ -127,8 +127,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   paragraph: {
-    fontSize: 11,
-    lineHeight: 1.4,
+    fontSize: 14,
+    lineHeight: 1.5,
   },
 
   // Tasks
@@ -214,7 +214,7 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
 
   const logoSrc =
     lesson.logoUrl?.trim() ||
-    "/logo 321_2.png";
+    "/logo321ny.png";
 
   return (
     <Document>

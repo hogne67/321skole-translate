@@ -1903,7 +1903,7 @@
       }
     },
     "editor": {
-  "pageTitle": "Editor do produtor",
+  "pageTitle": "editar/concluir lição",
   "nav": {
     "back": "← Voltar"
   },
@@ -1914,7 +1914,8 @@
     "save": "Salvar em Meu conteúdo",
     "saving": "Salvando…",
     "saveAndGo": "Salvar → Meu conteúdo",
-    "saveAndGoTitle": "Salvar e ir para Meu conteúdo"
+    "saveAndGoTitle": "Salvar e ir para Meu conteúdo",
+    "saveToMyContent": "Salvar e ir para Meu conteúdo"
   },
   "metaLine": "id: {id} · uid: {uid} · status: {status}",
   "errors": {
@@ -2063,51 +2064,51 @@
   "footerRemember": "Lembre-se de clicar em"
 },
     "print": {
-      "pageTitle": "Utskriftsvennlig PDF",
-      "states": { "loading": "Laster…" },
-      "nav": { "backToEditor": "← Tilbake" },
-      "actions": {
-        "print": "Last ned PDF / Skriv ut",
-        "teacherVersion": "Lærerversjon (fasit)",
-        "studentVersion": "Elevversjon"
-      },
-      "tips": {
-        "saveAsPdf": "Tips: I utskriftsdialogen → velg «Lagre som PDF»."
-      },
-      "defaults": { "worksheetTitle": "Arbeidsark" },
-      "labels": {
-        "producer": "Produsent",
-        "level": "Nivå",
-        "bannerAlt": "Banner"
-      },
-      "identity": {
-        "name": "Navn",
-        "date": "Dato",
-        "class": "Klasse"
-      },
-      "sections": {
-        "readingText": "Lesetekst",
-        "tasks": "Oppgaver"
-      },
-      "tasksEmpty": "Ingen oppgaver å skrive ut (tomme prompts skjules).",
-      "teacher": {
-        "answerKey": "Fasit",
-        "suggestionNote": "Forslag / notat",
-        "dash": "—"
-      },
-      "answers": {
-        "true": "Sant",
-        "false": "Usant"
-      },
-      "errors": {
-        "title": "Feil",
-        "unknown": "Ukjent feil",
-        "noAuthUid": "Ingen auth uid.",
-        "notFound": "Fant ikke oppgaven.",
-        "noAccessOwnerMismatch": "Du har ikke tilgang til denne oppgaven (ownerId mismatch).",
-        "loadFailed": "Kunne ikke laste oppgaven."
-      }
-    }
+  "pageTitle": "PDF para impressão",
+  "states": { "loading": "Carregando…" },
+  "nav": { "backToEditor": "← Voltar" },
+  "actions": {
+    "print": "Baixar PDF / Imprimir",
+    "teacherVersion": "Versão do professor (respostas)",
+    "studentVersion": "Versão do aluno"
+  },
+  "tips": {
+    "saveAsPdf": "Dica: Na janela de impressão → escolha 'Salvar como PDF'."
+  },
+  "defaults": { "worksheetTitle": "Folha de exercícios" },
+  "labels": {
+    "producer": "Autor",
+    "level": "Nível",
+    "bannerAlt": "Banner"
+  },
+  "identity": {
+    "name": "Nome",
+    "date": "Data",
+    "class": "Turma"
+  },
+  "sections": {
+    "readingText": "Texto de leitura",
+    "tasks": "Atividades"
+  },
+  "tasksEmpty": "Nenhuma atividade para imprimir (itens vazios são ocultados).",
+  "teacher": {
+    "answerKey": "Gabarito",
+    "suggestionNote": "Sugestão / observação",
+    "dash": "—"
+  },
+  "answers": {
+    "true": "Verdadeiro",
+    "false": "Falso"
+  },
+  "errors": {
+    "title": "Erro",
+    "unknown": "Erro desconhecido",
+    "noAuthUid": "Sem autenticação.",
+    "notFound": "Atividade não encontrada.",
+    "noAccessOwnerMismatch": "Você não tem acesso a esta atividade (ownerId mismatch).",
+    "loadFailed": "Não foi possível carregar a atividade."
+  }
+}
   },
   "unauthorized": {
     "common": {

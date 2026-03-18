@@ -208,7 +208,7 @@
   "title": "Premium generators",
   "items": {
     "assignmentGenerator": {
-      "title": "Assignment generator",
+      "title": "Worksheet generator",
       "description": "Create structured assignments with AI support."
     },
     "readingTestGenerator": {
@@ -241,7 +241,7 @@
       }
     },
     "generator": {
-      "title": "Simple task generator",
+      "title": "Text an task generator light",
       "subtitle": "Generate a short text with multiple choice and true/false tasks.",
       "fields": {
         "topic": "Topic",
@@ -1903,7 +1903,7 @@
       }
     },
     "editor": {
-  "pageTitle": "Producer editor",
+  "pageTitle": "Edit/ finish lesson",
   "nav": {
     "back": "← Back"
   },
@@ -1914,7 +1914,8 @@
     "save": "Save to my content",
     "saving": "Saving…",
     "saveAndGo": "Save → My content",
-    "saveAndGoTitle": "Save and go to My content"
+    "saveAndGoTitle": "Save and go to My content",
+    "saveToMyContent": "Save and go to My content"
   },
   "metaLine": "id: {id} · uid: {uid} · status: {status}",
   "errors": {
@@ -2063,51 +2064,51 @@
   "footerRemember": "Remember to click"
 },
     "print": {
-      "pageTitle": "Utskriftsvennlig PDF",
-      "states": { "loading": "Laster…" },
-      "nav": { "backToEditor": "← Tilbake" },
-      "actions": {
-        "print": "Last ned PDF / Skriv ut",
-        "teacherVersion": "Lærerversjon (fasit)",
-        "studentVersion": "Elevversjon"
-      },
-      "tips": {
-        "saveAsPdf": "Tips: I utskriftsdialogen → velg «Lagre som PDF»."
-      },
-      "defaults": { "worksheetTitle": "Arbeidsark" },
-      "labels": {
-        "producer": "Produsent",
-        "level": "Nivå",
-        "bannerAlt": "Banner"
-      },
-      "identity": {
-        "name": "Navn",
-        "date": "Dato",
-        "class": "Klasse"
-      },
-      "sections": {
-        "readingText": "Lesetekst",
-        "tasks": "Oppgaver"
-      },
-      "tasksEmpty": "Ingen oppgaver å skrive ut (tomme prompts skjules).",
-      "teacher": {
-        "answerKey": "Fasit",
-        "suggestionNote": "Forslag / notat",
-        "dash": "—"
-      },
-      "answers": {
-        "true": "Sant",
-        "false": "Usant"
-      },
-      "errors": {
-        "title": "Feil",
-        "unknown": "Ukjent feil",
-        "noAuthUid": "Ingen auth uid.",
-        "notFound": "Fant ikke oppgaven.",
-        "noAccessOwnerMismatch": "Du har ikke tilgang til denne oppgaven (ownerId mismatch).",
-        "loadFailed": "Kunne ikke laste oppgaven."
-      }
-    }
+  "pageTitle": "Printable PDF",
+  "states": { "loading": "Loading…" },
+  "nav": { "backToEditor": "← Back" },
+  "actions": {
+    "print": "Download PDF / Print",
+    "teacherVersion": "Teacher version (answer key)",
+    "studentVersion": "Student version"
+  },
+  "tips": {
+    "saveAsPdf": "Tip: In the print dialog → choose 'Save as PDF'."
+  },
+  "defaults": { "worksheetTitle": "Worksheet" },
+  "labels": {
+    "producer": "Producer",
+    "level": "Level",
+    "bannerAlt": "Banner"
+  },
+  "identity": {
+    "name": "Name",
+    "date": "Date",
+    "class": "Class"
+  },
+  "sections": {
+    "readingText": "Reading text",
+    "tasks": "Tasks"
+  },
+  "tasksEmpty": "No tasks to print (empty prompts are hidden).",
+  "teacher": {
+    "answerKey": "Answer key",
+    "suggestionNote": "Suggestion / note",
+    "dash": "—"
+  },
+  "answers": {
+    "true": "True",
+    "false": "False"
+  },
+  "errors": {
+    "title": "Error",
+    "unknown": "Unknown error",
+    "noAuthUid": "No auth uid.",
+    "notFound": "Lesson not found.",
+    "noAccessOwnerMismatch": "You do not have access to this lesson (ownerId mismatch).",
+    "loadFailed": "Could not load lesson."
+  }
+}
   },
   "unauthorized": {
     "common": {

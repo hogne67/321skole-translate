@@ -185,7 +185,7 @@ export default function TopNav() {
           aria-label="321"
         >
           <Image
-            src="/logo 321_2.png"
+            src="/logo321ny.png"
             alt="321 logo"
             width={34}
             height={34}

@@ -199,12 +199,12 @@
   "title": "Premiumgeneratorer",
   "items": {
     "assignmentGenerator": {
-      "title": "Oppgavegenerator",
-      "description": "Lag strukturerte oppgaver med støtte fra AI."
+      "title": "Tekst og oppgavegenerator",
+      "description": "Lag nivåbaserte tekster med oppgaver klar for deling/print."
     },
     "readingTestGenerator": {
       "title": "Lesetestgenerator",
-      "description": "Lag lesetester med spørsmål og automatisk vurdering."
+      "description": "Lag nivåbaserte lesetester med spørsmål og automatisk vurdering."
     }
   }
 },
@@ -241,7 +241,7 @@
   }
 },
     "generator": {
-      "title": "Simple task generator",
+      "title": "Tekst og oppgave generator, enkel",
       "subtitle": "Generate a short text with multiple choice and true/false tasks.",
       "fields": {
         "topic": "Topic",
@@ -1798,7 +1798,7 @@
     }
   },
     "newText": {
-      "title": "Lag ny oppgave",
+      "title": "Lag ny leksjon",
       "subtitle": "Steg 1: generer tekst → Steg 2: generer oppgaver → rediger → lagre utkast.",
       "defaults": {
         "title": "Ny oppgave",
@@ -1903,7 +1903,7 @@
       }
     },
     "editor": {
-  "pageTitle": "Redigering av oppgave",
+  "pageTitle": "Rediger/ fullfør leksjon",
   "nav": {
     "back": "← Tilbake"
   },
@@ -1914,7 +1914,8 @@
     "save": "Lagre til Mitt innhold",
     "saving": "Lagrer…",
     "saveAndGo": "Lagre → Mitt innhold",
-    "saveAndGoTitle": "Lagre og gå til Mitt innhold"
+    "saveAndGoTitle": "Lagre og gå til Mitt innhold",
+    "saveToMyContent": "Lagre og gå til Mitt innhold"
   },
   "metaLine": "id: {id} · uid: {uid} · status: {status}",
   "errors": {

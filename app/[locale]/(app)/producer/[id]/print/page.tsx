@@ -163,6 +163,7 @@ export default function ProducerPrintPage() {
     return (
       <main style={{ padding: 20, maxWidth: 980, margin: "0 auto" }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>{t("pageTitle")}</h1>
+
         <div
           style={{
             marginTop: 12,
@@ -185,7 +186,6 @@ export default function ProducerPrintPage() {
   return (
     <main className="pdf-print-root">
       <div className="pdf-shell">
-        {/* Top bar (ikke print) */}
         <div className="no-print topbar">
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <Link href={`/${locale}/producer/${lessonId}`} className="btn-lite">
@@ -210,35 +210,40 @@ export default function ProducerPrintPage() {
           <div style={{ opacity: 0.7, fontSize: 12, marginTop: 6 }}>{t("tips.saveAsPdf")}</div>
         </div>
 
-        {/* Printable content */}
         <div className="pdf-page">
+          <div className="pdf-topline" />
+
           <div className="pdf-header">
-            <div>
+            <div className="pdf-headerMain">
+              <div className="pdf-kicker">321school worksheet</div>
               <div className="pdf-title">{lesson.title ?? t("defaults.worksheetTitle")}</div>
 
-              {lesson.producerName?.trim() ? (
-                <div className="pdf-producer">
-                  {t("labels.producer")}: {lesson.producerName.trim()}
-                </div>
-              ) : null}
+              <div className="pdf-metaRow">
+                {lesson.producerName?.trim() ? (
+                  <div className="pdf-producer">
+                    {t("labels.producer")}: {lesson.producerName.trim()}
+                  </div>
+                ) : null}
 
-              {lesson.level?.trim() ? (
-                <div className="pdf-meta">
-                  {t("labels.level")}: {lesson.level.trim()}
-                </div>
-              ) : null}
+                {lesson.level?.trim() ? (
+                  <div className="pdf-meta">
+                    {t("labels.level")}: {lesson.level.trim()}
+                  </div>
+                ) : null}
+              </div>
             </div>
 
-            <div className="pdf-logoWrap">
+            <div className="pdf-brandBlock">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/321skole-logo.png"
-                alt="321skole"
+                src="/logo321ny.png"
+                alt="321school"
                 className="pdf-logo"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                 }}
               />
+              <div className="pdf-brandText">321school.com</div>
             </div>
           </div>
 
@@ -254,7 +259,6 @@ export default function ProducerPrintPage() {
             </div>
           </div>
 
-          {/* Banner image: alltid 16:9 */}
           {lesson.coverImageUrl?.trim() ? (
             <div className="pdf-banner is-16x9">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -394,50 +398,92 @@ export default function ProducerPrintPage() {
           margin: 0 auto;
           font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
           color: #111;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 18mm 16mm;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        }
+
+        .pdf-topline {
+          height: 5px;
+          width: 100%;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #111827 0%, #374151 45%, #9ca3af 100%);
+          margin: 0 0 8mm 0;
         }
 
         .pdf-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 12px;
+          gap: 16px;
+        }
+
+        .pdf-headerMain {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .pdf-kicker {
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #6b7280;
+          margin-bottom: 2mm;
         }
 
         .pdf-title {
-          font-size: 22px;
+          font-size: 24px;
           font-weight: 900;
-          line-height: 1.15;
+          line-height: 1.08;
         }
 
-        .pdf-producer {
-          margin-top: 6px;
-          font-size: 13px;
-          opacity: 0.85;
+        .pdf-metaRow {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 3mm;
         }
 
+        .pdf-producer,
         .pdf-meta {
-          margin-top: 2px;
-          font-size: 12px;
-          opacity: 0.75;
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 8px;
+          border: 1px solid #e5e7eb;
+          border-radius: 999px;
+          font-size: 11px;
+          color: #374151;
+          background: #f9fafb;
         }
 
-        .pdf-logoWrap {
+        .pdf-brandBlock {
           width: 120px;
           display: flex;
-          justify-content: flex-end;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
         }
 
         .pdf-logo {
-          width: 110px;
+          width: 72px;
           height: auto;
           object-fit: contain;
         }
 
+        .pdf-brandText {
+          font-size: 9px;
+          font-weight: 700;
+          color: #6b7280;
+        }
+
         .pdf-identity {
-          margin-top: 10mm;
+          margin-top: 9mm;
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
-          gap: 10mm;
+          gap: 8mm;
           font-size: 12px;
         }
 
@@ -445,21 +491,26 @@ export default function ProducerPrintPage() {
           display: flex;
           gap: 6px;
           align-items: baseline;
+          padding: 6px 8px 4px 8px;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          background: #fcfcfc;
         }
 
         .pdf-identity .blank {
           flex: 1;
           border-bottom: 1px solid #111;
-          transform: translateY(-2px);
+          transform: translateY(-1px);
         }
 
         .pdf-banner {
-          margin: 8mm 0 6mm 0;
+          margin: 8mm 0 7mm 0;
           width: 100%;
           overflow: hidden;
-          border-radius: 10px;
+          border-radius: 12px;
           border: 1px solid #e5e7eb;
           aspect-ratio: 16 / 9;
+          background: #f3f4f6;
         }
 
         .pdf-banner img {
@@ -469,27 +520,25 @@ export default function ProducerPrintPage() {
           display: block;
         }
 
-        .pdf-banner.is-16x9 {
-          aspect-ratio: 16 / 9;
-        }
-
         .pdf-section {
-          margin-top: 6mm;
+          margin-top: 7mm;
         }
 
         .pdf-h2 {
           font-size: 15px;
           font-weight: 900;
           margin: 0 0 4mm 0;
+          padding-bottom: 2mm;
+          border-bottom: 2px solid #111827;
         }
 
         .pdf-reading {
-          font-size: 12.5px;
-          line-height: 1.55;
+          font-size: 14px;
+          line-height: 1.68;
         }
 
         .pdf-reading p {
-          margin: 0 0 3mm 0;
+          margin: 0 0 3.2mm 0;
           white-space: pre-wrap;
         }
 
@@ -497,7 +546,7 @@ export default function ProducerPrintPage() {
           margin: 0;
           padding-left: 18px;
           display: grid;
-          gap: 6mm;
+          gap: 7mm;
         }
 
         .pdf-task {
@@ -506,26 +555,27 @@ export default function ProducerPrintPage() {
         }
 
         .task-prompt {
-          font-size: 12.5px;
-          font-weight: 700;
+          font-size: 13px;
+          font-weight: 800;
           margin-bottom: 3mm;
         }
 
         .task-box {
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
-          padding: 10px;
+          border: 1px solid #dbe3ea;
+          border-radius: 12px;
+          padding: 12px;
+          background: #ffffff;
         }
 
         .choices {
           display: grid;
-          gap: 6px;
+          gap: 7px;
         }
 
         .choices.tf {
           grid-template-columns: 1fr 1fr;
-          gap: 10px;
-          max-width: 260px;
+          gap: 12px;
+          max-width: 280px;
         }
 
         .choice {
@@ -539,28 +589,29 @@ export default function ProducerPrintPage() {
           width: 14px;
           height: 14px;
           border: 1.5px solid #111;
-          border-radius: 3px;
+          border-radius: 4px;
           display: inline-block;
         }
 
         .write-lines {
           display: grid;
-          gap: 6mm;
+          gap: 8mm;
           padding: 2mm 0 1mm 0;
         }
 
         .write-line {
           height: 0;
           border-bottom: 1px solid #111;
-          opacity: 0.55;
+          opacity: 0.6;
         }
 
         .answer {
-          margin-top: 8px;
+          margin-top: 10px;
           font-size: 12px;
-          opacity: 0.9;
+          opacity: 0.95;
           border-top: 1px dashed #cbd5e1;
           padding-top: 8px;
+          color: #374151;
         }
 
         .page-break {
@@ -607,6 +658,10 @@ export default function ProducerPrintPage() {
           .pdf-page {
             max-width: unset !important;
             margin: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            padding: 0 !important;
           }
 
           a {
