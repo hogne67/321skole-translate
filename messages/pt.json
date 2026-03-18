@@ -1259,13 +1259,13 @@
     "noData": "Sem dados.",
     "fallback": { "lessonTitle": "Lição" },
     "nav": {
-      "backToDashboard": "Voltar para o painel",
+      "backToDashboard": "Voltar ao meu conteúdo",
       "backToPreview": "Voltar para a prévia"
     },
     "errors": {
       "missingLessonId": "Faltando lessonId na URL.",
       "notPublished": "Esta lição não está publicada (ou foi despublicada).",
-      "notFound": "Esta lição não está publicada (ou não existe).",
+      "notFound": "Esta lição não está publicada (ou não existe).PUBLICAR PARA ABRIR",
       "noAccess": "Esta lição não está publicada (ou você não tem acesso).",
       "generic": "Algo deu errado",
       "couldNotSave": "Não foi possível salvar",

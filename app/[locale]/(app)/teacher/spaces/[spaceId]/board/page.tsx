@@ -1,3 +1,4 @@
+// app/[locale]/(app)/teacher/spaces/[spaceId]/board/page.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,9 +13,9 @@ function requireDb(x: Firestore | null | undefined): Firestore {
   return x;
 }
 
-type BoardMode = "text" | "poll";
+type BoardMode = "text" | "poll" | "wordwall";
 type NoteColor = "amber" | "emerald" | "sky" | "rose" | "violet";
-type TabKey = "question" | "notes" | "poll";
+type TabKey = "question" | "notes" | "poll" | "wordwall";
 
 type BoardState = {
   active?: boolean;
@@ -35,6 +36,8 @@ type BoardState = {
 
     pollQuestion?: string;
     pollOptions?: string[];
+
+    wordwallPrompt?: string;
   };
   updatedAt?: unknown;
 };
@@ -52,7 +55,17 @@ type BoardResponse = {
   // poll mode (anonymous)
   pollChoice?: string;
 
+  // wordwall mode (anonymous)
+  wordwallWord?: string;
+
   createdAt?: unknown;
+};
+
+type WordwallItem = {
+  key: string;
+  word: string;
+  count: number;
+  latest: number;
 };
 
 function safeString(v: unknown): string | null {
@@ -131,6 +144,35 @@ function normalizeOptions(raw: string): string[] {
   return out.slice(0, 10);
 }
 
+function normalizeWordwallWord(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/^[.,!?;:()[\]{}"'«»]+|[.,!?;:()[\]{}"'«»]+$/g, "");
+}
+
+function displayWordwallWord(input: string): string {
+  if (!input) return "";
+  return input.charAt(0).toUpperCase() + input.slice(1);
+}
+
+function wordwallSizeClass(count: number, present: boolean): string {
+  if (present) {
+    if (count >= 8) return "text-6xl font-bold leading-tight";
+    if (count >= 6) return "text-5xl font-bold leading-tight";
+    if (count >= 4) return "text-4xl font-bold leading-tight";
+    if (count >= 2) return "text-3xl font-semibold leading-tight";
+    return "text-2xl font-semibold leading-tight";
+  }
+
+  if (count >= 8) return "text-5xl font-bold leading-tight";
+  if (count >= 6) return "text-4xl font-bold leading-tight";
+  if (count >= 4) return "text-3xl font-bold leading-tight";
+  if (count >= 2) return "text-2xl font-semibold leading-tight";
+  return "text-xl font-semibold leading-tight";
+}
+
 export default function TeacherBoardPage() {
   const t = useTranslations("teacherBoard");
   const locale = useLocale();
@@ -163,6 +205,9 @@ export default function TeacherBoardPage() {
   const [pollQuestion, setPollQuestion] = useState<string>("Hva mener du?");
   const [pollOptionsRaw, setPollOptionsRaw] = useState<string>("Ja, Nei, Vet ikke");
 
+  // Wordwall editor
+  const [wordwallPrompt, setWordwallPrompt] = useState<string>("Skriv ett ord som passer til temaet.");
+
   const [responses, setResponses] = useState<Array<{ id: string; data: BoardResponse }>>([]);
 
   const dbx = useMemo(() => requireDb(db), []);
@@ -173,7 +218,7 @@ export default function TeacherBoardPage() {
   );
 
   // Don’t overwrite teacher edits if dirty
-  const dirtyRef = useRef({ title: false, prompt: false, poll: false });
+  const dirtyRef = useRef({ title: false, prompt: false, poll: false, wordwall: false });
 
   useEffect(() => {
     if (!dirtyRef.current.title) setTitle(t("defaults.title"));
@@ -200,6 +245,10 @@ export default function TeacherBoardPage() {
           if (Array.isArray(data?.data?.pollOptions) && data.data.pollOptions.length > 0) {
             setPollOptionsRaw(data.data.pollOptions.join(", "));
           }
+        }
+
+        if (!dirtyRef.current.wordwall && data?.data?.wordwallPrompt) {
+          setWordwallPrompt(data.data.wordwallPrompt);
         }
       },
       (e: unknown) => {
@@ -242,13 +291,14 @@ export default function TeacherBoardPage() {
       else await document.exitFullscreen();
     } catch {
       // ignore fullscreen errors
-      }
+    }
   }
 
   const activeSessionId = safeString(state?.sessionId);
   const active = state?.active === true;
   const clearedAt = typeof state?.clearedAt === "number" ? state.clearedAt : null;
-  const mode: BoardMode = (state?.mode === "poll" ? "poll" : "text") as BoardMode;
+  const mode: BoardMode =
+    state?.mode === "poll" ? "poll" : state?.mode === "wordwall" ? "wordwall" : "text";
 
   const filteredResponses = useMemo(() => {
     if (!activeSessionId) return [];
@@ -269,6 +319,10 @@ export default function TeacherBoardPage() {
 
   const textResponses = useMemo(() => filteredResponses.filter((r) => safeString(r.data.text)), [filteredResponses]);
   const pollResponses = useMemo(() => filteredResponses.filter((r) => safeString(r.data.pollChoice)), [filteredResponses]);
+  const wordwallResponses = useMemo(
+    () => filteredResponses.filter((r) => safeString(r.data.wordwallWord)),
+    [filteredResponses]
+  );
 
   const pollCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -279,6 +333,38 @@ export default function TeacherBoardPage() {
     }
     return counts;
   }, [pollResponses]);
+
+  const wordwallItems = useMemo<WordwallItem[]>(() => {
+    const map = new Map<string, WordwallItem>();
+
+    for (const r of wordwallResponses) {
+      const raw = safeString(r.data.wordwallWord);
+      if (!raw) continue;
+
+      const key = normalizeWordwallWord(raw);
+      if (!key) continue;
+
+      const created = toMillis(r.data.createdAt) ?? 0;
+      const existing = map.get(key);
+
+      if (existing) {
+        existing.count += 1;
+        if (created > existing.latest) existing.latest = created;
+      } else {
+        map.set(key, {
+          key,
+          word: displayWordwallWord(key),
+          count: 1,
+          latest: created,
+        });
+      }
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return b.latest - a.latest;
+    });
+  }, [wordwallResponses]);
 
   async function startLiveNewSession() {
     if (!stateRef) return;
@@ -367,6 +453,45 @@ export default function TeacherBoardPage() {
     );
   }
 
+  async function pushWordwallSameSession() {
+    if (!stateRef) return;
+    await setDoc(
+      stateRef,
+      {
+        active: true,
+        mode: "wordwall",
+        data: {
+          wordwallPrompt: safeString(wordwallPrompt) ?? "Skriv ett ord.",
+        },
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  async function startWordwallNewSession() {
+    if (!stateRef) return;
+    const sessionId = newSessionId();
+
+    await setDoc(
+      stateRef,
+      {
+        active: true,
+        sessionId,
+        mode: "wordwall",
+        endsAt: null,
+        timerStartedAt: null,
+        timerTotalSec: null,
+        clearedAt: null,
+        data: {
+          wordwallPrompt: safeString(wordwallPrompt) ?? "Skriv ett ord.",
+        },
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
   async function startTimer(seconds: number) {
     if (!stateRef) return;
     const startedAt = Date.now();
@@ -399,6 +524,7 @@ export default function TeacherBoardPage() {
 
   const boardTitle = safeString(state?.data?.title) ?? title;
   const boardPrompt = safeString(state?.data?.prompt) ?? prompt;
+  const boardWordwallPrompt = safeString(state?.data?.wordwallPrompt) ?? wordwallPrompt;
 
   const noteCardClass = present
     ? "rounded-2xl border p-6 shadow-sm transition-transform hover:-translate-y-0.5"
@@ -415,7 +541,7 @@ export default function TeacherBoardPage() {
 
   return (
     <AuthGate>
-      <div ref={fsRef} className="min-h-screen bg-background text-foreground">
+      <div ref={fsRef} className="min-h-screen bg-emerald-100 text-foreground">
         <div className="mx-auto max-w-6xl p-4">
           {/* Header */}
           <div className="sticky top-0 z-10 -mx-4 border-b bg-background/80 px-4 py-3 backdrop-blur">
@@ -439,7 +565,6 @@ export default function TeacherBoardPage() {
                   </div>
                 )}
 
-                {/* Buttons row moved up */}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {!active ? (
                     <button onClick={startLiveNewSession} className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white">
@@ -474,7 +599,6 @@ export default function TeacherBoardPage() {
               </div>
             </div>
 
-            {/* Tabs */}
             <div className="mt-3 flex flex-wrap gap-2">
               <TabButton active={tab === "question"} onClick={() => setTab("question")}>
                 Dagens spørsmål
@@ -485,9 +609,11 @@ export default function TeacherBoardPage() {
               <TabButton active={tab === "poll"} onClick={() => setTab("poll")}>
                 Poll
               </TabButton>
+              <TabButton active={tab === "wordwall"} onClick={() => setTab("wordwall")}>
+                Wordwall
+              </TabButton>
             </div>
 
-            {/* Timer bar under menu (toggleable) */}
             {showTimer ? (
               <div className="mt-3">
                 <TimerBar
@@ -506,7 +632,6 @@ export default function TeacherBoardPage() {
             <div className="mt-4 mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>
           )}
 
-          {/* Content */}
           {tab === "notes" ? <TeacherNotesPanel /> : null}
 
           {tab === "poll" ? (
@@ -615,6 +740,77 @@ export default function TeacherBoardPage() {
                     </div>
                   ) : (
                     <div className="text-sm text-muted-foreground">Start en poll for å se resultater.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {tab === "wordwall" ? (
+            <div className={present ? "mt-4" : "mt-4 grid gap-4 lg:grid-cols-12"}>
+              {!present ? (
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="rounded-xl border bg-background p-4 shadow-sm">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 block text-sm font-medium">Prompt / instruksjon</label>
+                        <textarea
+                          value={wordwallPrompt}
+                          onChange={(e) => {
+                            dirtyRef.current.wordwall = true;
+                            setWordwallPrompt(e.target.value);
+                          }}
+                          className="min-h-[120px] w-full rounded-lg border px-3 py-2 text-sm"
+                          placeholder="Eksempel: Skriv ett ord som passer til teksten."
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <button onClick={pushWordwallSameSession} className="rounded-md border px-2.5 py-1.5 text-xs font-medium">
+                          Oppdater wordwall
+                        </button>
+                        <button onClick={startWordwallNewSession} className="rounded-md border px-2.5 py-1.5 text-xs font-medium">
+                          Ny runde
+                        </button>
+                        <button onClick={clearAnswersSoft} className="rounded-md border px-2.5 py-1.5 text-xs font-medium">
+                          Tøm svar
+                        </button>
+                        <button onClick={showAnswersAgain} className="rounded-md border px-2.5 py-1.5 text-xs font-medium">
+                          Vis svar
+                        </button>
+                      </div>
+
+                      <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+                        Wordwall er anonym. Like ord slås sammen automatisk, og ordene blir større når flere skriver det samme.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border bg-background p-4 shadow-sm">
+                    <div className="mb-2 text-sm font-medium">Forhåndsvisning</div>
+                    <div className="rounded-lg border p-3">
+                      <div className="text-base font-semibold">{boardWordwallPrompt}</div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className={present ? "" : "lg:col-span-7"}>
+                <div className={present ? "" : "rounded-xl border bg-background p-4 shadow-sm"}>
+                  {!activeSessionId ? (
+                    <div className="text-sm text-muted-foreground">Ingen aktiv session.</div>
+                  ) : wordwallItems.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">Ingen ord ennå.</div>
+                  ) : (
+                    <div className={present ? "" : "lg:max-h-[calc(100vh-360px)] lg:overflow-auto"}>
+                      <div className={present ? "space-y-5" : "space-y-4"}>
+                        {wordwallItems.map((item) => (
+                          <div key={item.key} className="rounded-2xl border bg-background px-5 py-4 shadow-sm">
+                            <div className={wordwallSizeClass(item.count, present)}>{item.word}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

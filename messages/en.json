@@ -1259,13 +1259,13 @@
     "noData": "No data.",
     "fallback": { "lessonTitle": "Lesson" },
     "nav": {
-      "backToDashboard": "Back to dashboard",
+      "backToDashboard": "Back to My content",
       "backToPreview": "Back to preview"
     },
     "errors": {
       "missingLessonId": "Missing lessonId in URL.",
       "notPublished": "This lesson is not published (or has been unpublished)PUBLISH TO OPEN.",
-      "notFound": "This lesson is not published (or does not exist).",
+      "notFound": "This lesson is not published (or does not exist).PUBLISH TO OPEN",
       "noAccess": "This lesson is not published (or you don’t have access).",
       "generic": "Something went wrong",
       "couldNotSave": "Could not save",

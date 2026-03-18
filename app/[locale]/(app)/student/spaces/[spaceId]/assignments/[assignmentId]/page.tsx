@@ -1,7 +1,8 @@
 // app\[locale]\(app)\student\spaces\[spaceId]\assignments\[assignmentId]\page.tsx
+// app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -1258,6 +1259,11 @@ export default function StudentAssignmentPage() {
     }
   }
 
+  const isLockedByTeacher = useCallback((): boolean => {
+    const s = normalizeStatus(liveStatus ?? "submitted");
+    return s === "reviewed" || s === "approved";
+  }, [liveStatus]);
+
   function startReadingTest() {
     if (submitted) return;
     if (saving) return;
@@ -1357,11 +1363,6 @@ export default function StudentAssignmentPage() {
     return `${spaceId}_${assignmentId}_${currentUid}`;
   }
 
-  function isLockedByTeacher(): boolean {
-    const s = normalizeStatus(liveStatus ?? "submitted");
-    return s === "reviewed" || s === "approved";
-  }
-
   function statusLabel(s: SubmissionStatus) {
     const v = normalizeStatus(s);
     if (v === "draft") return "Kladd";
@@ -1397,7 +1398,7 @@ export default function StudentAssignmentPage() {
     return value;
   }
 
-  async function saveDraft(manual = false) {
+  const saveDraft = useCallback(async (manual = false) => {
     if (!spaceId || !assignmentId || !uid) return;
     if (submitted) return;
     if (isLockedByTeacher()) return;
@@ -1459,7 +1460,21 @@ export default function StudentAssignmentPage() {
     } finally {
       setSaving(false);
     }
-  }
+  }, [
+    spaceId,
+    assignmentId,
+    uid,
+    submitted,
+    isLockedByTeacher,
+    isReadingTest,
+    assignment,
+    lesson,
+    isAnon,
+    answers,
+    startedAt,
+    editingSubmissionId,
+    t,
+  ]);
 
   const lastAutoSaveRef = useRef<number>(0);
 
@@ -1479,9 +1494,12 @@ export default function StudentAssignmentPage() {
     }, 900);
 
     return () => window.clearTimeout(timer);
-  }, [answers, uid, spaceId, assignmentId, submitted, liveStatus, isReadingTest]);
+  }, [answers, uid, spaceId, assignmentId, submitted, isReadingTest, isLockedByTeacher, saveDraft]);
 
-  async function submitToSpace(mode: "manual" | "timeout" = "manual", explicitAnswers?: AnswersMap) {
+  const submitToSpace = useCallback(async (
+    mode: "manual" | "timeout" = "manual",
+    explicitAnswers?: AnswersMap
+  ) => {
     if (!spaceId || !assignmentId || !uid) return;
     if (submitted) return;
 
@@ -1503,40 +1521,40 @@ export default function StudentAssignmentPage() {
 
     try {
       const finalAnswers = explicitAnswers ?? answersRef.current;
-const subId = buildSubmissionId(uid);
+      const subId = buildSubmissionId(uid);
 
-const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
-const indexRef = doc(db, "spaceSubmissions", subId);
+      const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
+      const indexRef = doc(db, "spaceSubmissions", subId);
 
-const auto = computeAutoGrade(tasksOriginal, finalAnswers);
-const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+      const auto = computeAutoGrade(tasksOriginal, finalAnswers);
+      const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
 
-const basePayload: Record<string, unknown> = stripUndefinedDeep({
-  spaceId,
-  assignmentId,
-  sourceType: assignment?.sourceType ?? null,
-  sourceId: assignment?.sourceId ?? null,
-  title: assignment?.title ?? lesson?.title ?? null,
-  level: assignment?.level ?? lesson?.level ?? null,
-  language: assignment?.language ?? lesson?.language ?? null,
-  uid,
-  isAnon,
-  status: "submitted",
-  answers: finalAnswers,
-  auto,
+      const basePayload: Record<string, unknown> = stripUndefinedDeep({
+        spaceId,
+        assignmentId,
+        sourceType: assignment?.sourceType ?? null,
+        sourceId: assignment?.sourceId ?? null,
+        title: assignment?.title ?? lesson?.title ?? null,
+        level: assignment?.level ?? lesson?.level ?? null,
+        language: assignment?.language ?? lesson?.language ?? null,
+        uid,
+        isAnon,
+        status: "submitted",
+        answers: finalAnswers,
+        auto,
 
-  startedAt,
-  submittedAt: Date.now(),
-  timeSpentSeconds: elapsedSeconds,
+        startedAt,
+        submittedAt: Date.now(),
+        timeSpentSeconds: elapsedSeconds,
 
-  readingTestTimeLimitSeconds: isReadingTest ? readingTestTotalSeconds : null,
-  readingTestTimeUsedSeconds: isReadingTest ? elapsedSeconds : null,
-  readingTestTimedOut: isReadingTest ? mode === "timeout" : false,
-  readingTestSubmittedManually: isReadingTest ? mode === "manual" : false,
+        readingTestTimeLimitSeconds: isReadingTest ? readingTestTotalSeconds : null,
+        readingTestTimeUsedSeconds: isReadingTest ? elapsedSeconds : null,
+        readingTestTimedOut: isReadingTest ? mode === "timeout" : false,
+        readingTestSubmittedManually: isReadingTest ? mode === "manual" : false,
 
-  updatedAt: serverTimestamp(),
-  auth: { isAnon, uid },
-});
+        updatedAt: serverTimestamp(),
+        auth: { isAnon, uid },
+      });
 
       const batch = writeBatch(db);
 
@@ -1575,7 +1593,23 @@ const basePayload: Record<string, unknown> = stripUndefinedDeep({
     } finally {
       setSaving(false);
     }
-  }
+  }, [
+    spaceId,
+    assignmentId,
+    uid,
+    submitted,
+    sid,
+    editingSubmissionId,
+    assignment,
+    lesson,
+    isAnon,
+    tasksOriginal,
+    startedAt,
+    isReadingTest,
+    readingTestTotalSeconds,
+    t,
+    isLockedByTeacher,
+  ]);
 
   useEffect(() => {
     if (!isReadingTest) return;
@@ -1589,7 +1623,7 @@ const basePayload: Record<string, unknown> = stripUndefinedDeep({
     setReadingTestRuntimeActive(false);
     setReadingTestFinished(true);
     void submitToSpace("timeout", answersRef.current);
-  }, [isReadingTest, readingTestStarted, readingTestRuntimeActive, submitted, readingTestSecondsLeft]);
+  }, [isReadingTest, readingTestStarted, readingTestRuntimeActive, submitted, readingTestSecondsLeft, submitToSpace]);
 
   const renderFollowText = (mode: "original" | "translation", segs: SentenceSeg[], fallbackText: string) => {
     if (!fallbackText.trim()) return <span style={{ opacity: 0.6 }}>{t("text.noText")}</span>;
@@ -1820,8 +1854,8 @@ const basePayload: Record<string, unknown> = stripUndefinedDeep({
 
   const showStatusCard = !!(sid || submissionId || editingSubmissionId || liveStatus);
   const effectiveStatus = normalizeStatus(
-  liveStatus ?? (editingSubmissionId ? "draft" : sid ? "submitted" : "")
-);
+    liveStatus ?? (editingSubmissionId ? "draft" : sid ? "submitted" : "")
+  );
   const theme = statusTheme(effectiveStatus);
   const lock = isLockedByTeacher();
 
@@ -1833,22 +1867,22 @@ const basePayload: Record<string, unknown> = stripUndefinedDeep({
 
   const currentStatus = normalizeStatus(liveStatus ?? "");
 
-const canResubmit = currentStatus === "needs_work";
+  const canResubmit = currentStatus === "needs_work";
 
-const isAlreadyFinal =
-  currentStatus === "submitted" ||
-  currentStatus === "reviewed" ||
-  currentStatus === "approved";
+  const isAlreadyFinal =
+    currentStatus === "submitted" ||
+    currentStatus === "reviewed" ||
+    currentStatus === "approved";
 
-const showDraftButton =
-  !isReadingTest &&
-  !submitted &&
-  !isAlreadyFinal;
+  const showDraftButton =
+    !isReadingTest &&
+    !submitted &&
+    !isAlreadyFinal;
 
-const showSubmitButton =
-  !submitted &&
-  !isAlreadyFinal &&
-  (!isReadingTest || readingTestStarted);
+  const showSubmitButton =
+    !submitted &&
+    !isAlreadyFinal &&
+    (!isReadingTest || readingTestStarted);
 
   const submitLabel = saving
     ? t("actions.saving")

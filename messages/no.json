@@ -1259,13 +1259,13 @@
     "noData": "Ingen data.",
     "fallback": { "lessonTitle": "Oppgave" },
     "nav": {
-      "backToDashboard": "Tilbake til dashboard",
+      "backToDashboard": "Tilbake til Mitt innhold",
       "backToPreview": "Tilbake til forhåndsvisning"
     },
     "errors": {
       "missingLessonId": "Mangler lessonId i URL.",
       "notPublished": "Denne oppgaven er ikke publisert (eller er avpublisert). PUBLISERE FOR Å ÅPNE",
-      "notFound": "Denne oppgaven er ikke publisert (eller finnes ikke).",
+      "notFound": "Denne oppgaven er ikke publisert (eller finnes ikke). PUBLISERE FOR Å ÅPNE",
       "noAccess": "Denne oppgaven er ikke publisert (eller du har ikke tilgang).",
       "generic": "Noe gikk galt",
       "couldNotSave": "Kunne ikke lagre",

@@ -4,6 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
@@ -77,6 +78,7 @@ function TeacherSpacesInner() {
   const t = useTranslations("teacher.spaces");
   const tCommon = useTranslations("common");
   const locale = useLocale();
+  const router = useRouter();
 
   const { user, loading } = useUserProfile();
   const [rows, setRows] = useState<Row[]>([]);
@@ -220,7 +222,7 @@ function TeacherSpacesInner() {
           title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
           className={[
             "rounded-xl px-3 py-2 text-sm font-medium no-underline",
-            canCreateSpace ? "bg-black text-white" : "border border-black/20 bg-transparent text-slate-900",
+            canCreateSpace ? "bg-emerald-600 text-white hover:bg-emerald-500" : "border border-black/20 bg-transparent text-slate-900",
           ].join(" ")}
         >
           {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
@@ -286,17 +288,16 @@ function TeacherSpacesInner() {
             <div
               key={r.id}
               className={[
-                "rounded-2xl bg-white p-4 shadow-sm overflow-hidden", // ✅ prevents accidental overflow
+                "overflow-hidden rounded-2xl bg-white p-4 shadow-sm",
                 "border-2",
                 open ? "border-emerald-200" : "border-slate-200",
-                "hover:shadow-md hover:border-slate-300 transition",
+                "transition hover:border-slate-300 hover:shadow-md",
               ].join(" ")}
             >
-              <div className="flex flex-wrap items-start justify-between gap-3 min-w-0">
-                {/* ✅ min-w-0 lets text wrap instead of forcing overflow */}
+              <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="text-base font-semibold break-words">{title}</div>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="break-words text-base font-semibold">{title}</div>
                     <span
                       className={[
                         "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
@@ -308,12 +309,12 @@ function TeacherSpacesInner() {
                     </span>
                   </div>
 
-                  <div className="mt-1 text-sm text-muted-foreground min-w-0">
+                  <div className="mt-1 min-w-0 text-sm text-muted-foreground">
                     {t("list.code")}{" "}
                     <button
                       type="button"
                       onClick={() => copyToClipboard(code, r.id)}
-                      className="rounded-lg border px-2 py-0.5 text-sm font-medium hover:shadow-sm max-w-full"
+                      className="max-w-full rounded-lg border px-2 py-0.5 text-sm font-medium hover:shadow-sm"
                       title={t("list.copyCodeTitle")}
                     >
                       <span className="break-all">{code || "—"}</span>
@@ -345,34 +346,37 @@ function TeacherSpacesInner() {
                     >
                       {t("list.joinWithQr")}
                     </button>
-
-                    <Link
-                      href={withLocale(locale, `/teacher/spaces/${r.id}/members`)}
-                      className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm no-underline"
-                      title={t("list.seeMembersTitle")}
-                    >
-                      {t("list.seeMembers")}
-                    </Link>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-  <Link
-    href={withLocale(locale, `/teacher/spaces/${r.id}/board`)}
-    className="rounded-xl border px-3 py-2 text-sm font-medium hover:shadow-sm no-underline"
-    title={t("list.boardTitle")}
-  >
-    {t("list.board")}
-  </Link>
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
+                    className="rounded-xl border px-3 py-2 text-sm font-medium hover:shadow-sm"
+                    title={t("list.seeMembersTitle")}
+                  >
+                    {t("list.seeMembers")}
+                  </button>
 
-  <Link
-    href={withLocale(locale, `/teacher/spaces/${r.id}`)}
-    className="rounded-xl bg-black px-3 py-2 text-sm font-medium text-white no-underline hover:opacity-90"
-    title={t("list.openSpaceTitle")}
-  >
-    {t("list.openSpace")}
-  </Link>
+                  <button
+                    type="button"
+                    onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/board`))}
+                    className="rounded-xl border px-3 py-2 text-sm font-medium hover:shadow-sm"
+                    title={t("list.boardTitle")}
+                  >
+                    {t("list.board")}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}`))}
+                    className="rounded-xl bg-black px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+                    title={t("list.openSpaceTitle")}
+                  >
+                    {t("list.openSpace")}
+                  </button>
                 </div>
               </div>
             </div>
@@ -396,22 +400,22 @@ function TeacherSpacesInner() {
           aria-modal="true"
         >
           <div className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-3 min-w-0">
+            <div className="min-w-0 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-lg font-semibold">{t("qr.title")}</div>
-                <div className="mt-1 text-sm text-muted-foreground break-words">
+                <div className="mt-1 break-words text-sm text-muted-foreground">
                   {t("qr.subtitle", {
                     title: qrFor?.title ?? t("list.untitled"),
                     code: qrFor?.code ?? "",
                   })}
                 </div>
               </div>
-              <button type="button" onClick={closeQr} className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm shrink-0">
+              <button type="button" onClick={closeQr} className="shrink-0 rounded-xl border px-3 py-2 text-sm hover:shadow-sm">
                 {t("qr.close")}
               </button>
             </div>
 
-            <div className="mt-4 rounded-xl border p-4 overflow-x-auto">
+            <div className="mt-4 overflow-x-auto rounded-xl border p-4">
               {qrBusy && <div className="text-sm text-muted-foreground">{t("qr.generating")}</div>}
               {qrErr && <div className="text-sm text-red-600">{qrErr}</div>}
 
@@ -425,7 +429,7 @@ function TeacherSpacesInner() {
                     unoptimized
                     className="h-auto w-64 rounded-lg border"
                   />
-                  <div className="text-center text-xs text-muted-foreground break-all">
+                  <div className="break-all text-center text-xs text-muted-foreground">
                     {t("qr.pointsTo")}{" "}
                     <b>
                       {typeof window !== "undefined"

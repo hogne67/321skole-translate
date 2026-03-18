@@ -1185,7 +1185,7 @@ export default function StudentLessonPage() {
     return (
       <div style={{ padding: 16 }}>
         <p style={{ color: "crimson" }}>{error}</p>
-        <Link href="/student">← {t("nav.backToDashboard")}</Link>
+        <Link href="/content">← {t("nav.backToDashboard")}</Link>
       </div>
     );
   }

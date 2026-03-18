@@ -1,3 +1,4 @@
+// app/[locale]/(app)/student/spaces/[spaceId]/board/page.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,9 +15,9 @@ function requireDb(x: Firestore | null | undefined): Firestore {
   return x;
 }
 
-type BoardMode = "text" | "poll";
+type BoardMode = "text" | "poll" | "wordwall";
 type NoteColor = "amber" | "emerald" | "sky" | "rose" | "violet";
-type TabKey = "question" | "notes" | "poll";
+type TabKey = "question" | "notes" | "poll" | "wordwall";
 
 type BoardState = {
   active?: boolean;
@@ -37,6 +38,9 @@ type BoardState = {
     // poll mode
     pollQuestion?: string;
     pollOptions?: string[];
+
+    // wordwall mode
+    wordwallPrompt?: string;
   };
 };
 
@@ -54,6 +58,14 @@ function normalizeOptions(arr: unknown): string[] {
     .map((x) => (typeof x === "string" ? x.trim() : ""))
     .filter(Boolean)
     .slice(0, 10);
+}
+
+function normalizeWordwallWord(input: string): string {
+  return input
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/^[.,!?;:()[\]{}"'«»]+|[.,!?;:()[\]{}"'«»]+$/g, "")
+    .slice(0, 60);
 }
 
 function isNoteColor(v: unknown): v is NoteColor {
@@ -137,6 +149,8 @@ export default function StudentBoardPage() {
 
   const [pollChoice, setPollChoice] = useState<string>("");
 
+  const [wordwallWord, setWordwallWord] = useState("");
+
   const dbx = useMemo(() => requireDb(db), []);
   const stateRef = useMemo(
     () => (spaceId ? doc(dbx, "spaces", spaceId, "board", "state") : null),
@@ -169,12 +183,10 @@ export default function StudentBoardPage() {
     return () => unsub();
   }, [stateRef, t]);
 
-  // lagre gruppenavn lokalt
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("boardGroupName", groupName);
   }, [groupName]);
 
-  // lagre farge lokalt
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("boardNoteColor", noteColor);
   }, [noteColor]);
@@ -183,19 +195,20 @@ export default function StudentBoardPage() {
   const sessionId = safeString(state?.sessionId);
   const uid = user?.uid ?? null;
 
-  const mode: BoardMode = (state?.mode === "poll" ? "poll" : "text") as BoardMode;
+  const mode: BoardMode =
+    state?.mode === "poll" ? "poll" : state?.mode === "wordwall" ? "wordwall" : "text";
 
-  // Når lærer starter ny runde: nullstill UI
   useEffect(() => {
     setSent(null);
     setText("");
     setPollChoice("");
+    setWordwallWord("");
   }, [sessionId]);
 
-  // Auto-bytt fane til matchende modus (nice)
   useEffect(() => {
     if (!active) return;
     if (mode === "poll") setTab("poll");
+    else if (mode === "wordwall") setTab("wordwall");
     else setTab("question");
   }, [active, mode]);
 
@@ -251,11 +264,36 @@ export default function StudentBoardPage() {
     setSent("Takk! Stemmen din er sendt.");
   }
 
+  async function sendWordwall() {
+    if (!spaceId || !sessionId) return;
+
+    const word = normalizeWordwallWord(wordwallWord);
+    if (!word) return;
+
+    const responseId = `${sessionId}_word_${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
+    const ref = doc(dbx, "spaces", spaceId, "boardResponses", responseId);
+
+    await setDoc(
+      ref,
+      {
+        sessionId,
+        wordwallWord: word,
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    setSent("Takk! Ordet ditt er sendt.");
+    setWordwallWord("");
+  }
+
   const title = safeString(state?.data?.title) ?? t("fallbackQuestionTitle");
   const prompt = safeString(state?.data?.prompt) ?? "";
 
   const pollQuestion = safeString(state?.data?.pollQuestion) ?? "Hva mener du?";
   const pollOptions = normalizeOptions(state?.data?.pollOptions);
+
+  const wordwallPrompt = safeString(state?.data?.wordwallPrompt) ?? "Skriv ett ord.";
 
   const liveBadgeText = loading
     ? t("loading")
@@ -267,7 +305,6 @@ export default function StudentBoardPage() {
     <AuthGate>
       <div className="min-h-screen bg-background text-foreground">
         <div className="mx-auto max-w-4xl p-4">
-          {/* Sticky header */}
           <div className="sticky top-0 z-10 -mx-4 border-b bg-background/80 px-4 py-3 backdrop-blur">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -289,7 +326,6 @@ export default function StudentBoardPage() {
               </div>
             </div>
 
-            {/* Tabs */}
             <div className="mt-3 flex flex-wrap gap-2">
               <TabButton active={tab === "question"} onClick={() => setTab("question")}>
                 Dagens spørsmål
@@ -300,9 +336,11 @@ export default function StudentBoardPage() {
               <TabButton active={tab === "poll"} onClick={() => setTab("poll")}>
                 Poll
               </TabButton>
+              <TabButton active={tab === "wordwall"} onClick={() => setTab("wordwall")}>
+                Wordwall
+              </TabButton>
             </div>
 
-            {/* Timer bar: vis bare når lærer kjører den */}
             {typeof state?.endsAt === "number" ? (
               <div className="mt-3">
                 <TimerBarStudent
@@ -368,6 +406,49 @@ export default function StudentBoardPage() {
                   Stemmen din er anonym (vi lagrer ikke navn/uid).
                 </div>
               </>
+            ) : tab === "wordwall" ? (
+              <>
+                <div className="text-base font-semibold">{wordwallPrompt}</div>
+
+                <div className="mt-4">
+                  <label className="mb-1 block text-sm font-medium">Ditt ord</label>
+                  <input
+                    value={wordwallWord}
+                    onChange={(e) => setWordwallWord(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void sendWordwall();
+                      }
+                    }}
+                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                    placeholder="Skriv ett ord eller et kort uttrykk"
+                    maxLength={60}
+                  />
+                </div>
+
+                <div className="mt-3 rounded-xl border bg-muted/40 p-4">
+                  <div className="mb-2 text-sm font-medium">Forhåndsvisning</div>
+                  <div className="text-2xl font-semibold leading-tight">
+                    {safeString(normalizeWordwallWord(wordwallWord)) ?? "Ordet ditt vises her…"}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-2">
+                  <div className="text-sm text-muted-foreground">{sent ?? ""}</div>
+                  <button
+                    onClick={sendWordwall}
+                    disabled={!safeString(normalizeWordwallWord(wordwallWord))}
+                    className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    Send ord
+                  </button>
+                </div>
+
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Wordwall er anonym. Vi lagrer bare ordet og ikke navn eller uid.
+                </div>
+              </>
             ) : (
               <>
                 <div className="text-base font-semibold">{title}</div>
@@ -383,7 +464,6 @@ export default function StudentBoardPage() {
                   />
                 </div>
 
-                {/* Color picker */}
                 <div className="mt-4">
                   <div className="mb-2 text-sm font-medium">Sticky note-farge</div>
                   <div className="flex flex-wrap gap-2">
@@ -407,12 +487,10 @@ export default function StudentBoardPage() {
                   </div>
                 </div>
 
-                {/* Answer + Preview */}
                 <div className="mt-4">
                   <label className="mb-1 block text-sm font-medium">{t("answer.label")}</label>
 
                   <div className="grid gap-3 md:grid-cols-2">
-                    {/* Svarfelt */}
                     <div>
                       <textarea
                         value={text}
@@ -433,7 +511,6 @@ export default function StudentBoardPage() {
                       </div>
                     </div>
 
-                    {/* Sticky preview */}
                     <div className="md:pt-[2px]">
                       <div className="mb-2 text-sm font-medium">Forhåndsvisning</div>
 
@@ -571,7 +648,6 @@ function TimerBarStudent({
   let baseStarted = startedAtMs ?? null;
   let baseTotalMs = total ? total * 1000 : null;
 
-  // fallback baseline if teacher doesn't provide metadata
   if ((!baseStarted || !baseTotalMs) && endsAtMs) {
     const prev = baselineRef.current;
     if (!prev || prev.endsAtMs !== endsAtMs) {
