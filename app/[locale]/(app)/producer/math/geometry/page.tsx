@@ -1,7 +1,13 @@
+// app/[locale]/(app)/producer/math/geometry/page.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useLocale } from "next-intl";
+import { auth } from "@/lib/firebase";
+import { useUserProfile } from "@/lib/useUserProfile";
+import { getFeatureStatus, type FeatureStatus } from "@/lib/featureGuard";
+import type { PlanKey } from "@/lib/featureAccess";
 
 type WorksheetLanguage = "no" | "en" | "pt";
 type GeometryTopic = "shapes" | "perimeter" | "area" | "mixed";
@@ -55,6 +61,7 @@ type GenerateResponse =
   | {
       ok: false;
       error: string;
+      reason?: string;
     };
 
 type UIStrings = {
@@ -98,6 +105,13 @@ type UIStrings = {
   grade57: string;
   grade810: string;
   failed: string;
+  usageSaved: string;
+  usageLeft: string;
+  limitReached: string;
+  seePlans: string;
+  teacherOnly: string;
+  upgradeRequired: string;
+  signInRequired: string;
 };
 
 const STRINGS: Record<WorksheetLanguage, UIStrings> = {
@@ -142,6 +156,13 @@ const STRINGS: Record<WorksheetLanguage, UIStrings> = {
     grade57: "5.–7. trinn",
     grade810: "8.–10. trinn",
     failed: "Kunne ikke lage arbeidsarket.",
+    usageSaved: "Bruk registrert.",
+    usageLeft: "Premium-generatorer igjen denne måneden",
+    limitReached: "Du har brukt opp kvoten din for premium-generatorer.",
+    seePlans: "Se planer / oppgrader",
+    teacherOnly: "Denne funksjonen er bare tilgjengelig for lærere.",
+    upgradeRequired: "Denne funksjonen krever en plan med tilgang.",
+    signInRequired: "Du må være logget inn for å bruke generatoren.",
   },
   en: {
     pageTitle: "Geometry worksheet generator",
@@ -184,6 +205,13 @@ const STRINGS: Record<WorksheetLanguage, UIStrings> = {
     grade57: "Grades 5–7",
     grade810: "Grades 8–10",
     failed: "Could not generate worksheet.",
+    usageSaved: "Usage recorded.",
+    usageLeft: "Premium generators left this month",
+    limitReached: "You have reached your premium generator limit.",
+    seePlans: "See plans / upgrade",
+    teacherOnly: "This feature is only available for teachers.",
+    upgradeRequired: "This feature requires a plan with access.",
+    signInRequired: "You must be signed in to use this generator.",
   },
   pt: {
     pageTitle: "Gerador de geometria",
@@ -226,6 +254,13 @@ const STRINGS: Record<WorksheetLanguage, UIStrings> = {
     grade57: "5.º–7.º ano",
     grade810: "8.º–10.º ano",
     failed: "Não foi possível gerar a ficha.",
+    usageSaved: "Utilização registada.",
+    usageLeft: "Geradores premium restantes este mês",
+    limitReached: "Atingiste o teu limite de geradores premium.",
+    seePlans: "Ver planos / atualizar",
+    teacherOnly: "Esta funcionalidade está disponível apenas para professores.",
+    upgradeRequired: "Esta funcionalidade requer um plano com acesso.",
+    signInRequired: "Tens de iniciar sessão para usar este gerador.",
   },
 };
 
@@ -254,14 +289,27 @@ function fallbackWorksheet(language: WorksheetLanguage): MathWorksheet {
   };
 }
 
+function safePlan(plan: unknown): PlanKey {
+  if (plan === "basic") return "basic";
+  if (plan === "plus") return "plus";
+  if (plan === "pro") return "pro";
+  return "free";
+}
+
 function answerSpaceClass(answerSpace: AnswerSpace): string {
   if (answerSpace === "small") return "min-h-[40px]";
   if (answerSpace === "large") return "min-h-[92px]";
   return "min-h-[64px]";
 }
 
-function getMeasurementLabel(lang: WorksheetLanguage, key: "length" | "width" | "side"): string {
-  const labels: Record<WorksheetLanguage, Record<"length" | "width" | "side", string>> = {
+function getMeasurementLabel(
+  lang: WorksheetLanguage,
+  key: "length" | "width" | "side"
+): string {
+  const labels: Record<
+    WorksheetLanguage,
+    Record<"length" | "width" | "side", string>
+  > = {
     no: { length: "lengde", width: "bredde", side: "side" },
     en: { length: "length", width: "width", side: "side" },
     pt: { length: "comprimento", width: "largura", side: "lado" },
@@ -269,7 +317,13 @@ function getMeasurementLabel(lang: WorksheetLanguage, key: "length" | "width" | 
   return labels[lang][key];
 }
 
-function GeometryFigure({ figure, language }: { figure?: FigureSpec; language: WorksheetLanguage }) {
+function GeometryFigure({
+  figure,
+  language,
+}: {
+  figure?: FigureSpec;
+  language: WorksheetLanguage;
+}) {
   if (!figure) return null;
 
   const labelClass = "text-[11px] fill-slate-700";
@@ -339,7 +393,8 @@ function GeometryFigure({ figure, language }: { figure?: FigureSpec; language: W
         />
         {figure.sides ? (
           <text x="100" y="144" textAnchor="middle" className={labelClass}>
-            {figure.sides} {language === "no" ? "sider" : language === "en" ? "sides" : "lados"}
+            {figure.sides}{" "}
+            {language === "no" ? "sider" : language === "en" ? "sides" : "lados"}
           </text>
         ) : null}
       </svg>
@@ -373,14 +428,21 @@ function GeometryFigure({ figure, language }: { figure?: FigureSpec; language: W
       />
       {figure.sides ? (
         <text x="115" y="142" textAnchor="middle" className={labelClass}>
-          {figure.sides} {language === "no" ? "sider" : language === "en" ? "sides" : "lados"}
+          {figure.sides}{" "}
+          {language === "no" ? "sider" : language === "en" ? "sides" : "lados"}
         </text>
       ) : null}
     </svg>
   );
 }
 
-function FigureMeta({ figure, language }: { figure?: FigureSpec; language: WorksheetLanguage }) {
+function FigureMeta({
+  figure,
+  language,
+}: {
+  figure?: FigureSpec;
+  language: WorksheetLanguage;
+}) {
   if (!figure) return null;
 
   if (figure.kind === "rectangle" && figure.widthCm && figure.heightCm) {
@@ -403,10 +465,24 @@ function FigureMeta({ figure, language }: { figure?: FigureSpec; language: Works
   return null;
 }
 
+function getStatusMessage(
+  status: FeatureStatus | null,
+  strings: UIStrings
+): string {
+  if (!status?.reason) return "";
+
+  if (status.reason === "teacher_only") return strings.teacherOnly;
+  if (status.reason === "upgrade_required") return strings.upgradeRequired;
+  if (status.reason === "limit_reached") return strings.limitReached;
+  return strings.failed;
+}
+
 export default function ProducerMathGeometryPage() {
   const locale = useLocale();
   const initialLanguage: WorksheetLanguage =
     locale === "no" || locale === "en" || locale === "pt" ? locale : "no";
+
+  const { profile } = useUserProfile();
 
   const [language, setLanguage] = useState<WorksheetLanguage>(initialLanguage);
   const [level, setLevel] = useState<GeometryLevel>("grade_5_7");
@@ -416,21 +492,135 @@ export default function ProducerMathGeometryPage() {
   const [includeHints, setIncludeHints] = useState<boolean>(true);
   const [teacherVersion, setTeacherVersion] = useState<boolean>(false);
   const [answerSpace, setAnswerSpace] = useState<AnswerSpace>("medium");
-  const [worksheet, setWorksheet] = useState<MathWorksheet>(() => fallbackWorksheet(initialLanguage));
+  const [worksheet, setWorksheet] = useState<MathWorksheet>(() =>
+    fallbackWorksheet(initialLanguage)
+  );
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [usageInfo, setUsageInfo] = useState<string>("");
+  const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState<boolean>(true);
 
   const strings = useMemo(() => STRINGS[language], [language]);
 
-  async function handleGenerate() {
-    setLoading(true);
-    setError("");
+  const profileUid =
+    profile && typeof profile === "object" && "uid" in profile
+      ? (profile as { uid?: string }).uid
+      : undefined;
+
+  const uid = profileUid ?? auth.currentUser?.uid ?? undefined;
+
+  const planValue =
+    profile && typeof profile === "object" && "plan" in profile
+      ? (profile as { plan?: string }).plan
+      : undefined;
+
+  const roleValue =
+    profile && typeof profile === "object" && "role" in profile
+      ? (profile as { role?: string }).role
+      : undefined;
+
+  const plan = safePlan(planValue);
+  const role = roleValue ?? "anonymous";
+
+  async function refreshFeatureStatus(currentUid?: string) {
+    const targetUid = currentUid ?? auth.currentUser?.uid ?? uid;
+    if (!targetUid) {
+      setFeatureStatus(null);
+      setStatusLoading(false);
+      return;
+    }
 
     try {
+      const status = await getFeatureStatus({
+        uid: targetUid,
+        role,
+        plan,
+        feature: "producer_create_math_worksheet",
+      });
+      setFeatureStatus(status);
+    } catch {
+      setFeatureStatus(null);
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+    useEffect(() => {
+    let active = true;
+
+    async function loadStatus() {
+      const currentUid = auth.currentUser?.uid ?? uid;
+
+      if (!currentUid) {
+        if (active) {
+          setFeatureStatus(null);
+          setStatusLoading(false);
+        }
+        return;
+      }
+
+      setStatusLoading(true);
+
+      try {
+        const status = await getFeatureStatus({
+          uid: currentUid,
+          role,
+          plan,
+          feature: "producer_create_math_worksheet",
+        });
+
+        if (active) {
+          setFeatureStatus(status);
+        }
+      } catch {
+        if (active) {
+          setFeatureStatus(null);
+        }
+      } finally {
+        if (active) {
+          setStatusLoading(false);
+        }
+      }
+    }
+
+    void loadStatus();
+
+    return () => {
+      active = false;
+    };
+  }, [uid, role, plan]);
+
+  const generatorsLimit = featureStatus?.limit ?? 0;
+  const generatorsRemaining = featureStatus?.remaining ?? 0;
+  const featureBlocked = featureStatus ? !featureStatus.allowed : false;
+
+  async function handleGenerate() {
+    const currentUser = auth.currentUser;
+    const currentUid = currentUser?.uid ?? uid;
+
+    if (!currentUid || !currentUser) {
+      setError(strings.signInRequired);
+      return;
+    }
+
+    if (featureBlocked) {
+      setError(getStatusMessage(featureStatus, strings));
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setUsageInfo("");
+
+    try {
+      const idToken = await currentUser.getIdToken();
+
       const response = await fetch("/api/generate-math-worksheet", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           language,
@@ -447,12 +637,18 @@ export default function ProducerMathGeometryPage() {
       const data = (await response.json()) as GenerateResponse;
 
       if (!response.ok || !data.ok) {
-        const message = "error" in data && typeof data.error === "string" ? data.error : strings.failed;
+        const message =
+          "error" in data && typeof data.error === "string"
+            ? data.error
+            : strings.failed;
         setError(message);
+        await refreshFeatureStatus(currentUid);
         return;
       }
 
       setWorksheet(data.worksheet);
+      setUsageInfo(strings.usageSaved);
+      await refreshFeatureStatus(currentUid);
     } catch (err) {
       setError(err instanceof Error ? err.message : strings.failed);
     } finally {
@@ -471,18 +667,24 @@ export default function ProducerMathGeometryPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             {strings.pageTitle}
           </h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">{strings.pageSubtitle}</p>
+          <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
+            {strings.pageSubtitle}
+          </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)] print:block">
           <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm print:hidden">
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">{strings.builder}</h2>
+              <h2 className="text-lg font-semibold text-slate-900">
+                {strings.builder}
+              </h2>
             </div>
 
             <div className="space-y-4">
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">{strings.language}</span>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  {strings.language}
+                </span>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value as WorksheetLanguage)}
@@ -495,7 +697,9 @@ export default function ProducerMathGeometryPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">{strings.level}</span>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  {strings.level}
+                </span>
                 <select
                   value={level}
                   onChange={(e) => setLevel(e.target.value as GeometryLevel)}
@@ -508,7 +712,9 @@ export default function ProducerMathGeometryPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">{strings.topic}</span>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  {strings.topic}
+                </span>
                 <select
                   value={topic}
                   onChange={(e) => setTopic(e.target.value as GeometryTopic)}
@@ -522,7 +728,9 @@ export default function ProducerMathGeometryPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">{strings.difficulty}</span>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  {strings.difficulty}
+                </span>
                 <select
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value as Difficulty)}
@@ -535,7 +743,9 @@ export default function ProducerMathGeometryPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">{strings.taskCount}</span>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  {strings.taskCount}
+                </span>
                 <input
                   type="number"
                   min={4}
@@ -547,7 +757,9 @@ export default function ProducerMathGeometryPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">{strings.answerSpace}</span>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  {strings.answerSpace}
+                </span>
                 <select
                   value={answerSpace}
                   onChange={(e) => setAnswerSpace(e.target.value as AnswerSpace)}
@@ -576,8 +788,25 @@ export default function ProducerMathGeometryPage() {
                   onChange={(e) => setTeacherVersion(e.target.checked)}
                   className="h-4 w-4 rounded border-slate-300"
                 />
-                <span className="text-sm text-slate-700">{strings.teacherVersion}</span>
+                <span className="text-sm text-slate-700">
+                  {strings.teacherVersion}
+                </span>
               </label>
+
+              {!statusLoading && featureStatus ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {strings.usageLeft}: {generatorsRemaining} / {generatorsLimit}
+                </div>
+              ) : null}
+
+              {!statusLoading && featureBlocked ? (
+                <Link
+                  href={`/${locale}/pricing`}
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+                >
+                  {strings.seePlans}
+                </Link>
+              ) : null}
 
               {error ? (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -585,12 +814,18 @@ export default function ProducerMathGeometryPage() {
                 </div>
               ) : null}
 
+              {!error && usageInfo ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                  {usageInfo}
+                </div>
+              ) : null}
+
               <div className="grid gap-3 pt-2">
                 <button
                   type="button"
                   onClick={handleGenerate}
-                  disabled={loading}
-                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={loading || statusLoading || featureBlocked}
+                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? strings.generating : strings.generate}
                 </button>
@@ -608,7 +843,9 @@ export default function ProducerMathGeometryPage() {
 
           <section className="rounded-3xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none">
             <div className="border-b border-slate-200 px-6 py-4 print:hidden">
-              <h2 className="text-lg font-semibold text-slate-900">{strings.preview}</h2>
+              <h2 className="text-lg font-semibold text-slate-900">
+                {strings.preview}
+              </h2>
             </div>
 
             <div className="px-6 py-6 print:px-0 print:py-0">
@@ -617,11 +854,15 @@ export default function ProducerMathGeometryPage() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <h3 className="text-2xl font-bold">{worksheet.title}</h3>
-                      <p className="mt-2 text-sm text-slate-600">{worksheet.instructions}</p>
+                      <p className="mt-2 text-sm text-slate-600">
+                        {worksheet.instructions}
+                      </p>
                     </div>
 
                     <div className="shrink-0 rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
-                      {worksheet.teacherVersion ? strings.teacherVersionLabel : strings.studentVersion}
+                      {worksheet.teacherVersion
+                        ? strings.teacherVersionLabel
+                        : strings.studentVersion}
                     </div>
                   </div>
 
@@ -642,34 +883,53 @@ export default function ProducerMathGeometryPage() {
                 ) : (
                   <div className="space-y-5">
                     {worksheet.tasks.map((task, idx) => (
-                      <article key={task.id} className="rounded-3xl border border-slate-200 p-4 sm:p-5">
+                      <article
+                        key={task.id}
+                        className="rounded-3xl border border-slate-200 p-4 sm:p-5"
+                      >
                         <div className="mb-3 flex items-start gap-3">
                           <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
                             {idx + 1}
                           </div>
                           <div className="min-w-0">
-                            <h4 className="text-base font-semibold text-slate-900">{task.prompt}</h4>
-                            <FigureMeta figure={task.figure} language={worksheet.language} />
+                            <h4 className="text-base font-semibold text-slate-900">
+                              {task.prompt}
+                            </h4>
+                            <FigureMeta
+                              figure={task.figure}
+                              language={worksheet.language}
+                            />
                           </div>
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
                           <div className="flex items-center justify-center rounded-2xl bg-slate-50 p-3">
-                            <GeometryFigure figure={task.figure} language={worksheet.language} />
+                            <GeometryFigure
+                              figure={task.figure}
+                              language={worksheet.language}
+                            />
                           </div>
 
                           <div className="space-y-3">
                             <div
-                              className={`rounded-2xl border border-dashed border-slate-300 bg-white px-3 py-3 ${answerSpaceClass(answerSpace)}`}
+                              className={`rounded-2xl border border-dashed border-slate-300 bg-white px-3 py-3 ${answerSpaceClass(
+                                answerSpace
+                              )}`}
                             >
-                              <span className="text-sm font-medium text-slate-600">{strings.answer}:</span>
+                              <span className="text-sm font-medium text-slate-600">
+                                {strings.answer}:
+                              </span>
                             </div>
 
                             {worksheet.teacherVersion ? (
                               <div className="space-y-2 rounded-2xl bg-emerald-50 p-3">
                                 <p className="text-sm">
-                                  <span className="font-semibold text-slate-900">{strings.answer}:</span>{" "}
-                                  <span className="text-slate-800">{task.answer}</span>
+                                  <span className="font-semibold text-slate-900">
+                                    {strings.answer}:
+                                  </span>{" "}
+                                  <span className="text-slate-800">
+                                    {task.answer}
+                                  </span>
                                 </p>
 
                                 {task.explanation ? (
@@ -683,9 +943,13 @@ export default function ProducerMathGeometryPage() {
                               </div>
                             ) : null}
 
-                            {!worksheet.teacherVersion && includeHints && task.hint ? (
+                            {!worksheet.teacherVersion &&
+                            includeHints &&
+                            task.hint ? (
                               <div className="rounded-2xl bg-amber-50 p-3 text-sm text-slate-700">
-                                <span className="font-semibold text-slate-900">{strings.hint}:</span>{" "}
+                                <span className="font-semibold text-slate-900">
+                                  {strings.hint}:
+                                </span>{" "}
                                 {task.hint}
                               </div>
                             ) : null}

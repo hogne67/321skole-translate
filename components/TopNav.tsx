@@ -189,7 +189,6 @@ export default function TopNav() {
             alt="321 logo"
             width={34}
             height={34}
-            priority
             style={{ display: "block" }}
           />
           <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.2 }}>

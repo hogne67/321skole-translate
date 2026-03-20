@@ -1,5 +1,4 @@
 // app\[locale]\(app)\student\spaces\[spaceId]\assignments\[assignmentId]\page.tsx
-// app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";

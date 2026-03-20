@@ -18,6 +18,10 @@ import {
 } from "firebase/firestore";
 import { LANGUAGES } from "@/lib/languages";
 import { useLocale, useTranslations } from "next-intl";
+import { useUserProfile } from "@/lib/useUserProfile";
+import { useUsage } from "@/lib/useUsage";
+import { getBucketLimit, type PlanKey } from "@/lib/featureAccess";
+import { incrementUsage } from "@/lib/usage";
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   value: l.code,
@@ -82,6 +86,28 @@ type Task = {
   options?: unknown[];
   correctAnswer?: unknown;
 };
+
+type Role = "student" | "teacher" | "parent";
+
+function safeRole(role: unknown): Role {
+  if (role === "teacher") return "teacher";
+  if (role === "parent") return "parent";
+  return "student";
+}
+
+function safePlan(plan: unknown): PlanKey {
+  if (plan === "basic") return "basic";
+  if (plan === "plus") return "plus";
+  if (plan === "pro") return "pro";
+  return "free";
+}
+
+function readStringField(obj: unknown, key: string): string | null {
+  if (!obj || typeof obj !== "object") return null;
+  const rec = obj as Record<string, unknown>;
+  const v = rec[key];
+  return typeof v === "string" ? v : null;
+}
 
 function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
   const d = data as Partial<PublishedLessonDoc>;
@@ -324,7 +350,7 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
     if (type !== "mcq" && type !== "truefalse") continue;
 
     const val = answersObj[stableId];
-    if (val === undefined || val === null || val === "") continue; // unanswered -> ignore
+    if (val === undefined || val === null || val === "") continue;
 
     const options = Array.isArray(tt?.options) ? (tt.options as unknown[]) : [];
     const rawCorrect = tt?.correctAnswer;
@@ -438,7 +464,6 @@ function buildSvarString(lessonObj: Lesson, answersObj: AnswersMap): string {
       const type = String(tt?.type ?? "open");
       const ans = answersObj[stableId];
 
-      // We only send open answers to the AI.
       const isOpen = type === "open" || (type !== "mcq" && type !== "truefalse");
       if (!isOpen) continue;
 
@@ -452,7 +477,6 @@ function buildSvarString(lessonObj: Lesson, answersObj: AnswersMap): string {
       lines.push("");
     }
   } else {
-    // Fallback: if tasks missing, send everything as text (but still try to keep it readable)
     for (const [k, v] of Object.entries(answersObj)) {
       const ansText = typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim();
       if (!ansText) continue;
@@ -465,12 +489,13 @@ function buildSvarString(lessonObj: Lesson, answersObj: AnswersMap): string {
 
 export default function StudentLessonPage() {
   const t = useTranslations("studentLesson");
-  const locale = useLocale(); // ✅ must be top-level in component
+  const locale = useLocale();
 
   const params = useParams<{ lessonId: string }>();
   const lessonId = params?.lessonId;
 
   const router = useRouter();
+  const { profile } = useUserProfile();
 
   const [loading, setLoading] = useState(true);
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -505,6 +530,18 @@ export default function StudentLessonPage() {
   const [feedbackTranslateErr, setFeedbackTranslateErr] = useState<string | null>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  const role: Role = isAnon ? "student" : safeRole(readStringField(profile, "role"));
+  const plan: PlanKey = isAnon ? "free" : safePlan(readStringField(profile, "plan"));
+
+  const { usage, loading: usageLoading, reload: reloadUsage } = useUsage(uid ?? undefined);
+
+  const feedbackUsed = usage["ai_feedback"] ?? 0;
+  const feedbackLimit = getBucketLimit(role, plan, "ai_feedback");
+  const feedbackRemaining = Math.max(0, feedbackLimit - feedbackUsed);
+
+  const feedbackLimitReached =
+    !isAnon && !usageLoading && feedbackLimit > 0 && feedbackUsed >= feedbackLimit;
 
   const [showAnswers, setShowAnswers] = useState(false);
   useEffect(() => {
@@ -672,7 +709,8 @@ export default function StudentLessonPage() {
       const tt = a.currentTime;
       const ratio = Math.max(0, Math.min(1, tt / d));
 
-      const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+      const segs =
+        activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
       if (!segs || segs.length === 0) return;
 
       let idx = segs.findIndex((s) => ratio >= s.startRatio && ratio < s.endRatio);
@@ -737,7 +775,6 @@ export default function StudentLessonPage() {
     seekToSentence(activeTextMode, nextIdx);
   }
 
-  // ---- Load lesson + answers ----
   useEffect(() => {
     let alive = true;
 
@@ -758,7 +795,6 @@ export default function StudentLessonPage() {
         setUid(user.uid);
         setIsAnon(!!user.isAnonymous);
 
-        // 1) Load published lesson
         let lessonSnap;
         try {
           lessonSnap = await getDoc(doc(db, "published_lessons", lessonId));
@@ -805,7 +841,6 @@ export default function StudentLessonPage() {
         setLesson(lessonData);
         setImageUrl(lessonData.coverImageUrl ?? null);
 
-        // 2) Load answers: Firestore if logged in, localStorage if anon
         if (user.isAnonymous) {
           try {
             const raw = localStorage.getItem(lsKey(lessonId));
@@ -843,7 +878,6 @@ export default function StudentLessonPage() {
           }
         }
 
-        // reset translations per lesson load
         setTranslatedText(null);
         setTranslatedTasks(null);
         setTranslateErr(null);
@@ -874,7 +908,6 @@ export default function StudentLessonPage() {
     };
   }, [lessonId, t]);
 
-  // Auto-save to localStorage when anon
   useEffect(() => {
     if (!lessonId) return;
     if (!isAnon) return;
@@ -920,7 +953,6 @@ export default function StudentLessonPage() {
     setMsg(null);
 
     try {
-      // Anon: local only
       if (isAnon) {
         try {
           localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
@@ -933,7 +965,6 @@ export default function StudentLessonPage() {
 
       const stableId = `${uid}_${lessonId}`;
 
-      // 1) behold eksisterende praksis-lagring
       const practiceRef = doc(db, "practiceSubmissions", stableId);
       await setDoc(
         practiceRef,
@@ -948,7 +979,6 @@ export default function StudentLessonPage() {
         { merge: true }
       );
 
-      // 2) NYTT: skriv også til submissions slik at My content-feed ser den
       const subRef = doc(db, "submissions", stableId);
       await setDoc(
         subRef,
@@ -989,10 +1019,15 @@ export default function StudentLessonPage() {
       return;
     }
 
+    if (feedbackLimitReached) {
+      flash(t("feedback.limitReached"));
+      router.push(`/${locale}/pricing`);
+      return;
+    }
+
     setSubmitting(true);
     setMsg(null);
 
-    // Make it clear we're generating a new one
     setFeedback("⏳ Genererer ny tilbakemelding…");
     setTranslatedFeedback(null);
 
@@ -1016,8 +1051,6 @@ export default function StudentLessonPage() {
       const lesetekst = (lesson.sourceText ?? lesson.text ?? "").trim();
       const oppgave = buildOppgaveString(lesson);
       const svar = buildSvarString(lesson, answers);
-
-      // auto result summary from closed tasks:
       const autoResultat = buildAutoResultat(lesson, answers);
 
       if (!svar && !autoResultat) {
@@ -1034,7 +1067,7 @@ export default function StudentLessonPage() {
         svar,
         nivå,
         autoResultat,
-        locale, // ✅ so API can choose language later if you implement that
+        locale,
       };
 
       const res = await fetch("/api/feedback", {
@@ -1061,11 +1094,13 @@ export default function StudentLessonPage() {
         updatedAt: serverTimestamp(),
       });
 
+      await incrementUsage(uid, "ai_feedback");
+      await reloadUsage();
+
       flash(t("flash.submitted"));
     } catch (e: unknown) {
       const m = (e as { message?: unknown })?.message;
       setMsg(typeof m === "string" ? m : t("errors.couldNotSubmit"));
-      // if failed, don't leave "generating..." forever
       setFeedback(null);
     } finally {
       setSubmitting(false);
@@ -1209,7 +1244,11 @@ export default function StudentLessonPage() {
   const originalSegs = textFollow.original.segs;
   const translationSegs = textFollow.translation.segs;
 
-  const renderFollowText = (mode: "original" | "translation", segs: SentenceSeg[], fallbackText: string) => {
+  const renderFollowText = (
+    mode: "original" | "translation",
+    segs: SentenceSeg[],
+    fallbackText: string
+  ) => {
     if (!fallbackText.trim()) return <span style={{ opacity: 0.6 }}>{t("text.noText")}</span>;
 
     if (!segs || segs.length === 0) {
@@ -1267,7 +1306,6 @@ export default function StudentLessonPage() {
         </div>
       ) : null}
 
-      {/* IMAGE */}
       <section style={{ marginTop: 14 }}>
         <h2 style={{ marginBottom: 8 }}>{t("image.title")}</h2>
 
@@ -1305,7 +1343,6 @@ export default function StudentLessonPage() {
         </div>
       </section>
 
-      {/* ACTIONS + TRANSLATE */}
       <section style={{ marginTop: 18, padding: 12, border: "1px solid rgba(0, 0, 0, 0.12)", borderRadius: 12 }}>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
           <button
@@ -1371,7 +1408,6 @@ export default function StudentLessonPage() {
         {feedbackTranslateErr ? <p style={{ marginTop: 10, color: "crimson" }}>{feedbackTranslateErr}</p> : null}
       </section>
 
-      {/* TEXT */}
       <section style={{ marginTop: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <h2 style={{ marginBottom: 8 }}>{t("text.title")}</h2>
@@ -1482,7 +1518,6 @@ export default function StudentLessonPage() {
         ) : null}
       </section>
 
-      {/* TASKS */}
       <section style={{ marginTop: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
           <h2 style={{ margin: 0 }}>{t("tasks.title")}</h2>
@@ -1740,26 +1775,43 @@ export default function StudentLessonPage() {
         )}
       </section>
 
-      {/* FEEDBACK */}
       <section style={{ marginTop: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <h2 style={{ marginBottom: 8 }}>{t("feedback.title")}</h2>
 
+          {!isAnon && feedbackLimit > 0 ? (
+            <div style={{ fontSize: 13, opacity: 0.8 }}>
+              AI feedback: {feedbackUsed} / {feedbackLimit} brukt • {feedbackRemaining} igjen
+            </div>
+          ) : null}
+
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <button
               onClick={submitForFeedback}
-              disabled={submitting || !uid}
+              disabled={submitting || !uid || feedbackLimitReached}
               style={{
                 ...btnStyle,
                 background: "#bef7c0",
                 borderColor: "#2563eb",
                 color: "black",
                 fontWeight: 600,
-                opacity: submitting ? 0.6 : 1,
+                opacity: submitting || feedbackLimitReached ? 0.6 : 1,
               }}
-              title={isAnon ? t("feedback.loginToGetFeedback") : t("feedback.generate")}
+              title={
+                isAnon
+                  ? t("feedback.loginToGetFeedback")
+                  : feedbackLimitReached
+                  ? t("feedback.limitReached")
+                  : t("feedback.generate")
+              }
             >
-              {submitting ? t("feedback.submitting") : isAnon ? t("feedback.loginForFeedback") : t("feedback.getFeedback")}
+              {submitting
+                ? t("feedback.submitting")
+                : isAnon
+                ? t("feedback.loginForFeedback")
+                : feedbackLimitReached
+                ? t("feedback.limitReachedShort")
+                : t("feedback.getFeedback")}
             </button>
 
             <button

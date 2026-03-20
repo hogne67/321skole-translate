@@ -1,4 +1,11 @@
+// app/api/generate-math-worksheet/route.ts
 import { NextResponse } from "next/server";
+import { getAdmin } from "@/lib/firebaseAdmin";
+import {
+  getFeatureStatusAdmin,
+  consumeFeatureAdmin,
+} from "@/lib/featureGuardAdmin";
+import type { AppRole, PlanKey } from "@/lib/featureAccess";
 
 export const runtime = "nodejs";
 
@@ -55,6 +62,12 @@ type GenerateMathWorksheetRequest = {
   includeHints?: boolean;
   teacherVersion?: boolean;
   answerSpace?: string;
+};
+
+type RequestUserContext = {
+  uid: string;
+  role: AppRole | string;
+  plan: PlanKey | string;
 };
 
 function isWorksheetLanguage(value: unknown): value is WorksheetLanguage {
@@ -127,7 +140,7 @@ function localizePrompt(
     | "perimeter_square"
     | "area_rectangle"
     | "area_square"
-    | "instructions",
+    | "instructions"
 ): string {
   const prompts: Record<WorksheetLanguage, Record<string, string>> = {
     no: {
@@ -190,7 +203,7 @@ function getTitle(lang: WorksheetLanguage, topic: GeometryTopic): string {
 function buildHint(
   type: MathWorksheetTask["type"],
   figure: FigureSpec | undefined,
-  lang: WorksheetLanguage,
+  lang: WorksheetLanguage
 ): string | undefined {
   if (!figure) return undefined;
 
@@ -221,7 +234,7 @@ function buildHint(
 function generateShapeTask(
   index: number,
   lang: WorksheetLanguage,
-  includeHints: boolean,
+  includeHints: boolean
 ): MathWorksheetTask {
   const kind = randomFrom<FigureKind>(["rectangle", "square", "triangle", "circle", "trapezoid"]);
 
@@ -238,7 +251,7 @@ function generateShapeTask(
 function generateCountSidesTask(
   index: number,
   lang: WorksheetLanguage,
-  includeHints: boolean,
+  includeHints: boolean
 ): MathWorksheetTask {
   const choices: Array<{ kind: FigureKind; sides: number }> = [
     { kind: "rectangle", sides: 4 },
@@ -263,7 +276,7 @@ function generatePerimeterTask(
   index: number,
   lang: WorksheetLanguage,
   difficulty: Difficulty,
-  includeHints: boolean,
+  includeHints: boolean
 ): MathWorksheetTask {
   const isSquare = Math.random() < 0.4;
 
@@ -329,7 +342,7 @@ function generateAreaTask(
   index: number,
   lang: WorksheetLanguage,
   difficulty: Difficulty,
-  includeHints: boolean,
+  includeHints: boolean
 ): MathWorksheetTask {
   const isSquare = Math.random() < 0.35;
 
@@ -462,26 +475,102 @@ function normalizeRequest(body: GenerateMathWorksheetRequest) {
   };
 }
 
+async function getRequestUserContext(req: Request): Promise<RequestUserContext | null> {
+  const authHeader =
+    req.headers.get("authorization") || req.headers.get("Authorization");
+
+  if (!authHeader?.startsWith("Bearer ")) return null;
+
+  const idToken = authHeader.slice(7).trim();
+  if (!idToken) return null;
+
+  const { auth, db } = getAdmin();
+  const decoded = await auth.verifyIdToken(idToken);
+  const uid = decoded.uid;
+
+  const userSnap = await db.collection("users").doc(uid).get();
+  const data = userSnap.exists ? userSnap.data() : undefined;
+
+  const role =
+    typeof data?.role === "string"
+      ? data.role
+      : typeof data?.mode === "string"
+        ? data.mode
+        : "anonymous";
+
+  const plan = typeof data?.plan === "string" ? data.plan : "free";
+
+  return { uid, role, plan };
+}
+
+function mapStatusToResponse(
+  status: Awaited<ReturnType<typeof getFeatureStatusAdmin>>
+) {
+  if (status.reason === "teacher_only") {
+    return NextResponse.json(
+      { ok: false, error: "This feature is only available for teachers.", reason: status.reason },
+      { status: 403 }
+    );
+  }
+
+  if (status.reason === "limit_reached") {
+    return NextResponse.json(
+      { ok: false, error: "You have reached your monthly limit.", reason: status.reason },
+      { status: 403 }
+    );
+  }
+
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "This feature requires an upgraded plan.",
+      reason: status.reason ?? "upgrade_required",
+    },
+    { status: 403 }
+  );
+}
+
 export async function POST(req: Request) {
   try {
+    const user = await getRequestUserContext(req);
+
+    if (!user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const status = await getFeatureStatusAdmin({
+      uid: user.uid,
+      role: user.role,
+      plan: user.plan,
+      feature: "producer_create_math_worksheet",
+    });
+
+    if (!status.allowed) {
+      return mapStatusToResponse(status);
+    }
+
     const body = (await req.json()) as GenerateMathWorksheetRequest;
     const params = normalizeRequest(body);
-
     const worksheet = generateWorksheet(params);
+
+    await consumeFeatureAdmin({
+      uid: user.uid,
+      feature: "producer_create_math_worksheet",
+    });
 
     return NextResponse.json({
       ok: true,
       worksheet,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to generate worksheet";
+    console.error("generate-math-worksheet failed:", error);
+
+    const message =
+      error instanceof Error ? error.message : "Failed to generate worksheet";
 
     return NextResponse.json(
-      {
-        ok: false,
-        error: message,
-      },
-      { status: 500 },
+      { ok: false, error: message },
+      { status: 500 }
     );
   }
 }

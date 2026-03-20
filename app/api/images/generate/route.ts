@@ -1,15 +1,15 @@
-// app/api/images/generate/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { randomUUID } from "crypto";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { getBucketLimit, type AppRole, type PlanKey } from "@/lib/featureAccess";
 
 type CoverImageStyle = "illustration" | "realistic";
 type CoverImagePromptMode = "custom" | "fromText";
 
 type GenerateImageBody = {
   lessonId?: string;
-  uid?: string; // legacy, no longer required
+  uid?: string;
   format?: "16:9";
   style?: CoverImageStyle;
   promptMode?: CoverImagePromptMode;
@@ -18,6 +18,10 @@ type GenerateImageBody = {
   title?: string;
   level?: string;
   language?: string;
+};
+
+type UsageDoc = Partial<Record<"image_generation", number>> & {
+  updatedAt?: unknown;
 };
 
 function readBearerToken(req: NextRequest): string | null {
@@ -48,6 +52,28 @@ function getBucketName(): string {
   }
 
   return bucket.trim();
+}
+
+function normalizeRole(role?: unknown): AppRole {
+  if (role === "teacher") return "teacher";
+  if (role === "student") return "student";
+  if (role === "parent") return "parent";
+  if (role === "creator") return "creator";
+  if (role === "admin") return "admin";
+  return "anonymous";
+}
+
+function normalizePlan(plan?: unknown): PlanKey {
+  if (plan === "basic") return "basic";
+  if (plan === "plus") return "plus";
+  if (plan === "pro") return "pro";
+  return "free";
+}
+
+function getMonthId(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
 }
 
 function buildPrompt(
@@ -109,12 +135,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing auth token." }, { status: 401 });
     }
 
-    const { auth, storage } = getAdmin();
+    const { auth, db, storage } = getAdmin();
     const decoded = await auth.verifyIdToken(authToken);
     const uid = decoded.uid;
 
     if (!uid) {
       return NextResponse.json({ error: "Invalid auth token." }, { status: 401 });
+    }
+
+    const userSnap = await db.doc(`users/${uid}`).get();
+    const userData = userSnap.exists ? userSnap.data() : {};
+
+    const role = normalizeRole(userData?.role);
+    const plan = normalizePlan(userData?.plan);
+
+    const imageLimit = getBucketLimit(role, plan, "image_generation");
+    if (imageLimit <= 0) {
+      return NextResponse.json(
+        { error: "Image generation is not available on your current plan." },
+        { status: 403 }
+      );
+    }
+
+    const monthId = getMonthId();
+    const usageRef = db.doc(`users/${uid}/usage/${monthId}`);
+    const usageSnap = await usageRef.get();
+    const usageData = (usageSnap.exists ? usageSnap.data() : {}) as UsageDoc;
+    const imagesUsed = typeof usageData.image_generation === "number" ? usageData.image_generation : 0;
+
+    if (imagesUsed >= imageLimit) {
+      return NextResponse.json(
+        { error: "You have reached your image generation limit for this period." },
+        { status: 403 }
+      );
     }
 
     const body = (await req.json()) as GenerateImageBody;
@@ -187,6 +240,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await usageRef.set(
+      {
+        image_generation: imagesUsed + 1,
+        updatedAt: new Date(),
+      },
+      { merge: true }
+    );
+
     const imageUrl =
       `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/` +
       `${encodeURIComponent(storagePath)}?alt=media&token=${downloadToken}`;
@@ -195,6 +256,11 @@ export async function POST(req: NextRequest) {
       ok: true,
       imageUrl,
       storagePath,
+      usage: {
+        used: imagesUsed + 1,
+        limit: imageLimit,
+        remaining: Math.max(0, imageLimit - (imagesUsed + 1)),
+      },
     });
   } catch (error: unknown) {
     const message =

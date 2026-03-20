@@ -1,6 +1,12 @@
-// app\api\reading-tests\generate\route.ts
+// app/api/reading-tests/generate/route.ts
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { getAdmin } from "@/lib/firebaseAdmin";
+import {
+  getFeatureStatusAdmin,
+  consumeFeatureAdmin,
+} from "@/lib/featureGuardAdmin";
+import type { AppRole, PlanKey } from "@/lib/featureAccess";
 
 export const runtime = "nodejs";
 
@@ -77,6 +83,12 @@ type ReadingTestResponse = {
 
 type OpenAIErrorLike = { message?: string; code?: string | number };
 
+type RequestUserContext = {
+  uid: string;
+  role: AppRole | string;
+  plan: PlanKey | string;
+};
+
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
@@ -151,8 +163,8 @@ function normalizeTaskTypes(v: unknown): ReadingTestTaskType[] {
     return ["word_choice", "sentence_placement", "best_summary"];
   }
 
-  const picked = v.filter((x): x is ReadingTestTaskType =>
-    valid.includes(x as ReadingTestTaskType)
+  const picked = v.filter(
+    (x): x is ReadingTestTaskType => valid.includes(x as ReadingTestTaskType)
   );
 
   return picked.length > 0
@@ -166,7 +178,16 @@ function normalizeLanguageCode(v: unknown): string {
   if (raw === "no") return "nb";
   if (raw === "pt-br") return "pt-BR";
   if (raw === "pt-pt") return "pt-PT";
-  if (raw === "nb" || raw === "nn" || raw === "en" || raw === "es" || raw === "de" || raw === "fr" || raw === "it" || raw === "pt") {
+  if (
+    raw === "nb" ||
+    raw === "nn" ||
+    raw === "en" ||
+    raw === "es" ||
+    raw === "de" ||
+    raw === "fr" ||
+    raw === "it" ||
+    raw === "pt"
+  ) {
     return raw;
   }
 
@@ -379,13 +400,93 @@ function buildOutputShape(
 }`;
 }
 
+async function getRequestUserContext(req: Request): Promise<RequestUserContext | null> {
+  const authHeader =
+    req.headers.get("authorization") || req.headers.get("Authorization");
+
+  if (!authHeader?.startsWith("Bearer ")) return null;
+
+  const idToken = authHeader.slice(7).trim();
+  if (!idToken) return null;
+
+  const { auth, db } = getAdmin();
+  const decoded = await auth.verifyIdToken(idToken);
+  const uid = decoded.uid;
+
+  const userSnap = await db.collection("users").doc(uid).get();
+  const data = userSnap.exists ? userSnap.data() : undefined;
+
+  const role =
+    typeof data?.role === "string"
+      ? data.role
+      : typeof data?.mode === "string"
+        ? data.mode
+        : "anonymous";
+
+  const plan = typeof data?.plan === "string" ? data.plan : "free";
+
+  return { uid, role, plan };
+}
+
+function mapStatusToResponse(
+  status: Awaited<ReturnType<typeof getFeatureStatusAdmin>>
+) {
+  if (status.reason === "teacher_only") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "This feature is only available for teachers.",
+        reason: status.reason,
+      },
+      { status: 403 }
+    );
+  }
+
+  if (status.reason === "limit_reached") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "You have reached your monthly limit.",
+        reason: status.reason,
+      },
+      { status: 403 }
+    );
+  }
+
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "This feature requires an upgraded plan.",
+      reason: status.reason ?? "upgrade_required",
+    },
+    { status: 403 }
+  );
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: "OPENAI_API_KEY is missing in environment variables." },
+        { ok: false, error: "OPENAI_API_KEY is missing in environment variables." },
         { status: 500 }
       );
+    }
+
+    const user = await getRequestUserContext(req);
+
+    if (!user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const status = await getFeatureStatusAdmin({
+      uid: user.uid,
+      role: user.role,
+      plan: user.plan,
+      feature: "producer_create_reading_test",
+    });
+
+    if (!status.allowed) {
+      return mapStatusToResponse(status);
     }
 
     const body = (await req.json()) as GenerateReadingTestBody;
@@ -413,7 +514,7 @@ Do not return explanations outside the JSON.
 The reading text, title, prompts, options, summaries and feedback must all be written in the requested target language.
 `.trim();
 
-    const user = `
+    const userPrompt = `
 Create one reading test.
 
 Target language:
@@ -460,14 +561,17 @@ ${buildOutputShape(level, language, topic, wantsFillInWord)}
       model,
       input: [
         { role: "system", content: system },
-        { role: "user", content: user },
+        { role: "user", content: userPrompt },
       ],
     });
 
     const out = (resp.output_text || "").trim();
 
     if (!out) {
-      return NextResponse.json({ error: "Empty response from model." }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: "Empty response from model." },
+        { status: 500 }
+      );
     }
 
     let parsed: unknown;
@@ -476,6 +580,7 @@ ${buildOutputShape(level, language, topic, wantsFillInWord)}
     } catch {
       return NextResponse.json(
         {
+          ok: false,
           error: "Model did not return valid JSON.",
           raw: out.slice(0, 3000),
         },
@@ -486,6 +591,7 @@ ${buildOutputShape(level, language, topic, wantsFillInWord)}
     if (!isReadingTestResponse(parsed)) {
       return NextResponse.json(
         {
+          ok: false,
           error: "JSON response is missing fields or has an invalid structure.",
           raw: JSON.stringify(parsed).slice(0, 3000),
         },
@@ -507,10 +613,32 @@ ${buildOutputShape(level, language, topic, wantsFillInWord)}
       },
     };
 
-    return NextResponse.json(normalized);
+        await consumeFeatureAdmin({
+      uid: user.uid,
+      feature: "producer_create_reading_test",
+    });
+
+    const quotaAfter = await getFeatureStatusAdmin({
+      uid: user.uid,
+      role: user.role,
+      plan: user.plan,
+      feature: "producer_create_reading_test",
+    });
+
+    return NextResponse.json({
+      ok: true,
+      readingTest: normalized,
+      quota: {
+        feature: "producer_create_reading_test",
+        bucket: quotaAfter.bucket,
+        limit: quotaAfter.limit,
+        used: quotaAfter.used,
+        remaining: quotaAfter.remaining,
+      },
+    });
   } catch (err: unknown) {
     return NextResponse.json(
-      { error: getErrorMessage(err) || "Unknown error" },
+      { ok: false, error: getErrorMessage(err) || "Unknown error" },
       { status: 500 }
     );
   }

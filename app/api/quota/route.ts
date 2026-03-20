@@ -23,18 +23,14 @@ type QuotaInfo = {
   period: string; // YYYY-MM (Europe/Oslo)
 };
 
-type UsageBucketEntry = {
-  used?: number;
-};
-
-type UsageDoc = {
-  buckets?: Partial<Record<QuotaBucket, UsageBucketEntry>>;
+type UsageDoc = Partial<Record<QuotaBucket, number>> & {
   updatedAt?: unknown;
 };
 
 type UserProfileDoc = {
   role?: unknown;
   plan?: unknown;
+  mode?: unknown;
   roles?: unknown;
 };
 
@@ -67,7 +63,8 @@ function isAppRole(v: unknown): v is AppRole {
     v === "student" ||
     v === "parent" ||
     v === "creator" ||
-    v === "admin"
+    v === "admin" ||
+    v === "anonymous"
   );
 }
 
@@ -81,7 +78,16 @@ function isFeatureKey(v: unknown): v is FeatureKey {
     v === "producer_create_reading_test" ||
     v === "producer_create_quiz" ||
     v === "producer_create_writing_task" ||
-    v === "ai_image_generate"
+    v === "producer_create_math_worksheet" ||
+    v === "teacher_assign_task" ||
+    v === "ai_feedback" ||
+    v === "ai_generate_text" ||
+    v === "ai_generate_reading_test" ||
+    v === "ai_image_generate" ||
+    v === "image_download" ||
+    v === "pdf_download" ||
+    v === "space_members" ||
+    v === "premium_app_access"
   );
 }
 
@@ -99,8 +105,7 @@ function currentPeriodOslo(d = new Date()): string {
 }
 
 function readUsed(doc: UsageDoc | null | undefined, bucket: QuotaBucket): number {
-  const used = doc?.buckets?.[bucket]?.used;
-  return safeNumber(used);
+  return safeNumber(doc?.[bucket]);
 }
 
 function pickRoleFromRolesObject(roles: unknown): AppRole | null {
@@ -118,10 +123,9 @@ function pickRoleFromRolesObject(roles: unknown): AppRole | null {
 async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>) {
   const { db } = getAdmin();
 
-  let role: AppRole = "student";
+  let role: AppRole = "anonymous";
   let plan: PlanKey = "free";
 
-  // 1) Try custom claims first
   if (isAppRole(decoded.role)) {
     role = decoded.role;
   }
@@ -135,7 +139,6 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
     role = claimRoles;
   }
 
-  // 2) Fallback to Firestore users/{uid}
   try {
     const userRef = db.collection("users").doc(uid);
     const userSnap = await userRef.get();
@@ -146,6 +149,8 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
       if (!isAppRole(decoded.role)) {
         if (isAppRole(userData.role)) {
           role = userData.role;
+        } else if (isAppRole(userData.mode)) {
+          role = userData.mode;
         } else {
           const roleFromRoles = pickRoleFromRolesObject(userData.roles);
           if (roleFromRoles) role = roleFromRoles;
@@ -188,7 +193,7 @@ export async function GET(req: Request) {
     const period = currentPeriodOslo();
     const limit = getBucketLimit(role, plan, bucket);
 
-    const ref = db.collection("usage").doc(uid).collection("months").doc(period);
+    const ref = db.collection("users").doc(uid).collection("usage").doc(period);
     const snap = await ref.get();
     const data = (snap.exists ? (snap.data() as UsageDoc) : null) ?? null;
 
@@ -245,7 +250,7 @@ export async function POST(req: Request) {
     const period = currentPeriodOslo();
     const limit = getBucketLimit(role, plan, bucket);
 
-    const ref = db.collection("usage").doc(uid).collection("months").doc(period);
+    const ref = db.collection("users").doc(uid).collection("usage").doc(period);
 
     const out = await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
@@ -270,16 +275,14 @@ export async function POST(req: Request) {
         };
       }
 
-      const next: UsageDoc = {
-        ...(data ?? {}),
-        buckets: {
-          ...(data?.buckets ?? {}),
-          [bucket]: { used: usedAfter },
+      tx.set(
+        ref,
+        {
+          [bucket]: usedAfter,
+          updatedAt: new Date(),
         },
-        updatedAt: new Date(),
-      };
-
-      tx.set(ref, next, { merge: true });
+        { merge: true }
+      );
 
       return {
         ok: true as const,

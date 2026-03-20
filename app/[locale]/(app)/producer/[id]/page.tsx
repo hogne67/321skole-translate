@@ -10,6 +10,9 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useLocale, useTranslations } from "next-intl";
+import { useUserProfile } from "@/lib/useUserProfile";
+import { useUsage } from "@/lib/useUsage";
+import { getBucketLimit, type AppRole, type PlanKey } from "@/lib/featureAccess";
 
 type TaskType = "truefalse" | "mcq" | "open";
 type ReleaseMode = "ALL_AT_ONCE" | "TEXT_FIRST";
@@ -143,10 +146,31 @@ function readUserDisplayName(d: unknown): string {
   );
 }
 
+function safeRole(role?: string): AppRole {
+  if (role === "teacher") return "teacher";
+  if (role === "student") return "student";
+  if (role === "parent") return "parent";
+  if (role === "creator") return "creator";
+  if (role === "admin") return "admin";
+  return "teacher";
+}
+
+function safePlan(plan?: string): PlanKey {
+  if (plan === "basic") return "basic";
+  if (plan === "plus") return "plus";
+  if (plan === "pro") return "pro";
+  return "free";
+}
+
 type GenerateCoverResponse = {
   imageUrl?: string;
   url?: string;
   error?: string;
+  usage?: {
+    used?: number;
+    limit?: number;
+    remaining?: number;
+  };
 };
 
 export default function ProducerLessonEditorPage() {
@@ -162,6 +186,19 @@ export default function ProducerLessonEditorPage() {
 
   const [err, setErr] = useState<string | null>(null);
   const [uid, setUid] = useState<string | null>(null);
+
+  const { profile } = useUserProfile();
+  const { usage, loading: usageLoading, reload: reloadUsage } = useUsage(uid ?? undefined);
+
+  const role = safeRole((profile as { role?: string } | null)?.role);
+  const plan = safePlan((profile as { plan?: string } | null)?.plan);
+
+  const imagesUsed = usage["image_generation"] ?? 0;
+  const imagesLimit = getBucketLimit(role, plan, "image_generation");
+  const imagesRemaining = Math.max(0, imagesLimit - imagesUsed);
+
+  const imageLimitReached =
+    !usageLoading && imagesLimit > 0 && imagesUsed >= imagesLimit;
 
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState("");
@@ -225,6 +262,21 @@ export default function ProducerLessonEditorPage() {
       if (m === "Bildegenerering feilet.") {
         return locale === "en" ? "Image generation failed." : "Bildegenerering feilet.";
       }
+      if (m === "Image generation is not available on your current plan.") {
+        return locale === "en"
+          ? "Image generation is not available on your current plan."
+          : "Bildegenerering er ikke tilgjengelig på abonnementet ditt.";
+      }
+      if (m === "You have reached your image generation limit for this period.") {
+        return locale === "en"
+          ? "You have reached your image generation limit for this period."
+          : "Du har nådd grensen for bildegenerering i denne perioden.";
+      }
+      if (m === "You have reached your image generation limit.") {
+        return locale === "en"
+          ? "You have reached your image generation limit."
+          : "Du har nådd grensen for bildegenerering.";
+      }
 
       return m;
     },
@@ -272,13 +324,14 @@ export default function ProducerLessonEditorPage() {
         setStatus(normalizeStatus(data.status));
         setTasks(Array.isArray(data.tasks) ? (data.tasks as Task[]) : []);
 
-        setTopic("");
+        setTopic(typeof data.topic === "string" ? data.topic : "");
         setTextType(typeof data.textType === "string" ? data.textType : "");
         setTagsText(Array.isArray(data.tags) ? data.tags.join(", ") : "");
         setLanguage(typeof data.language === "string" ? data.language : t("defaults.language"));
         setEstimatedMinutes(typeof data.estimatedMinutes === "number" ? data.estimatedMinutes : 20);
         setReleaseMode(normalizeReleaseMode(data.releaseMode));
 
+        setProducerName(typeof data.producerName === "string" ? data.producerName : "");
         setCoverImageUrl(typeof data.coverImageUrl === "string" ? data.coverImageUrl : "");
         setCoverImageFormat(normalizeCoverFormat(data.coverImageFormat));
 
@@ -373,6 +426,14 @@ export default function ProducerLessonEditorPage() {
         throw new Error("No auth uid.");
       }
 
+      if (imageLimitReached) {
+        throw new Error(
+          locale === "en"
+            ? "You have reached your image generation limit."
+            : "Du har nådd grensen for bildegenerering."
+        );
+      }
+
       const token = await user.getIdToken();
       if (!token) {
         throw new Error("Missing auth token.");
@@ -422,6 +483,7 @@ export default function ProducerLessonEditorPage() {
 
       setCoverImageUrl(url);
       setCoverImageSource("ai");
+      await reloadUsage();
     } catch (e: unknown) {
       setErr(localizeError(getErrorMessage(e) || "Bildegenerering feilet."));
     } finally {
@@ -533,32 +595,32 @@ export default function ProducerLessonEditorPage() {
   }
 
   if (loading) {
-  return (
-    <main
-      style={{
-        paddingTop: 20,
-        paddingRight: 20,
-        paddingBottom: 110,
-        paddingLeft: 20,
-      }}
-    >
-      {t("states.loading")}
-    </main>
-  );
-}
+    return (
+      <main
+        style={{
+          paddingTop: 20,
+          paddingRight: 20,
+          paddingBottom: 110,
+          paddingLeft: 20,
+        }}
+      >
+        {t("states.loading")}
+      </main>
+    );
+  }
 
   if (err) {
     return (
       <main
-  style={{
-    paddingTop: 20,
-    paddingRight: 20,
-    paddingBottom: 110,
-    paddingLeft: 20,
-    maxWidth: 980,
-    margin: "0 auto",
-  }}
->
+        style={{
+          paddingTop: 20,
+          paddingRight: 20,
+          paddingBottom: 110,
+          paddingLeft: 20,
+          maxWidth: 980,
+          margin: "0 auto",
+        }}
+      >
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>{t("pageTitle")}</h1>
         <div style={{ marginTop: 12, border: "1px solid #f3b4b4", borderRadius: 12, padding: 12 }}>
           <div style={{ fontWeight: 800 }}>{t("errors.title")}</div>
@@ -574,53 +636,53 @@ export default function ProducerLessonEditorPage() {
   return (
     <>
       <main
-  style={{
-    paddingTop: 20,
-    paddingRight: 20,
-    paddingBottom: 110,
-    paddingLeft: 20,
-    maxWidth: 980,
-    margin: "0 auto",
-  }}
->
+        style={{
+          paddingTop: 20,
+          paddingRight: 20,
+          paddingBottom: 110,
+          paddingLeft: 20,
+          maxWidth: 980,
+          margin: "0 auto",
+        }}
+      >
         <div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 12,
-    flexWrap: "wrap",
-  }}
->
-  <div>
-    <Link href={backHref}>{t("nav.back")}</Link>
-    <h1 style={{ fontSize: 24, fontWeight: 900, marginTop: 10 }}>{t("pageTitle")}</h1>
-    <div style={{ fontSize: 13, opacity: 0.7 }}>
-      {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
-    </div>
-  </div>
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <Link href={backHref}>{t("nav.back")}</Link>
+            <h1 style={{ fontSize: 24, fontWeight: 900, marginTop: 10 }}>{t("pageTitle")}</h1>
+            <div style={{ fontSize: 13, opacity: 0.7 }}>
+              {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
+            </div>
+          </div>
 
-  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-    <button
-      onClick={saveAndGoToMyContent}
-      disabled={saving}
-      style={{
-        padding: "10px 14px",
-        borderRadius: 12,
-        border: "1px solid #86efac",
-        background: "#16a34a",
-        color: "white",
-        fontWeight: 900,
-        cursor: saving ? "not-allowed" : "pointer",
-        opacity: saving ? 0.7 : 1,
-        whiteSpace: "nowrap",
-      }}
-      title={t("buttons.saveToMyContent")}
-    >
-      {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
-    </button>
-  </div>
-</div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              onClick={saveAndGoToMyContent}
+              disabled={saving}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: "1px solid #86efac",
+                background: "#16a34a",
+                color: "white",
+                fontWeight: 900,
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.7 : 1,
+                whiteSpace: "nowrap",
+              }}
+              title={t("buttons.saveToMyContent")}
+            >
+              {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
+            </button>
+          </div>
+        </div>
 
         <section style={{ marginTop: 16, border: "1px solid #e5e7eb", borderRadius: 12, padding: 14 }}>
           <div style={{ display: "grid", gap: 10 }}>
@@ -893,11 +955,17 @@ export default function ProducerLessonEditorPage() {
                       </div>
                     )}
 
+                    <div style={{ fontSize: 12, opacity: 0.75 }}>
+                      {locale === "en"
+                        ? `Image generation: ${imagesUsed} / ${imagesLimit} used • ${imagesRemaining} left`
+                        : `Bildegenerering: ${imagesUsed} / ${imagesLimit} brukt • ${imagesRemaining} igjen`}
+                    </div>
+
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       <button
                         type="button"
                         onClick={generateAiCover}
-                        disabled={generatingCover}
+                        disabled={generatingCover || imageLimitReached}
                         style={{
                           padding: "10px 14px",
                           borderRadius: 10,
@@ -905,17 +973,21 @@ export default function ProducerLessonEditorPage() {
                           background: "#2563eb",
                           color: "#fff",
                           fontWeight: 800,
-                          cursor: generatingCover ? "not-allowed" : "pointer",
-                          opacity: generatingCover ? 0.7 : 1,
+                          cursor: generatingCover || imageLimitReached ? "not-allowed" : "pointer",
+                          opacity: generatingCover || imageLimitReached ? 0.7 : 1,
                         }}
                       >
                         {generatingCover
                           ? locale === "en"
                             ? "Generating..."
                             : "Genererer..."
-                          : locale === "en"
-                            ? "Generate image"
-                            : "Generer bilde"}
+                          : imageLimitReached
+                            ? locale === "en"
+                              ? "Limit reached"
+                              : "Grense nådd"
+                            : locale === "en"
+                              ? "Generate image"
+                              : "Generer bilde"}
                       </button>
 
                       <button
@@ -1257,41 +1329,40 @@ export default function ProducerLessonEditorPage() {
           <div style={{ marginTop: 12, opacity: 0.75 }}>
             {t("footerRemember")} <b>{t("buttons.save")}</b>.
           </div>
-            
         </section>
       </main>
 
       <div
-  style={{
-    position: "fixed",
-    left: "50%",
-    transform: "translateX(-50%)",
-    bottom: 16,
-    zIndex: 1000,
-    pointerEvents: "none",
-  }}
->
-  <button
-    onClick={saveAndGoToMyContent}
-    disabled={saving}
-    style={{
-      pointerEvents: "auto",
-      padding: "12px 16px",
-      borderRadius: 14,
-      border: "1px solid #86efac",
-      background: "#9db9a7",
-      color: "white",
-      fontWeight: 900,
-      cursor: saving ? "not-allowed" : "pointer",
-      opacity: saving ? 0.92 : 1,
-      boxShadow: "0 10px 24px rgba(22,163,74,0.28)",
-      whiteSpace: "nowrap",
-    }}
-    title={t("buttons.saveToMyContent")}
-  >
-    {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
-  </button>
-</div>
+        style={{
+          position: "fixed",
+          left: "50%",
+          transform: "translateX(-50%)",
+          bottom: 16,
+          zIndex: 1000,
+          pointerEvents: "none",
+        }}
+      >
+        <button
+          onClick={saveAndGoToMyContent}
+          disabled={saving}
+          style={{
+            pointerEvents: "auto",
+            padding: "12px 16px",
+            borderRadius: 14,
+            border: "1px solid #86efac",
+            background: "#9db9a7",
+            color: "white",
+            fontWeight: 900,
+            cursor: saving ? "not-allowed" : "pointer",
+            opacity: saving ? 0.92 : 1,
+            boxShadow: "0 10px 24px rgba(22,163,74,0.28)",
+            whiteSpace: "nowrap",
+          }}
+          title={t("buttons.saveToMyContent")}
+        >
+          {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
+        </button>
+      </div>
     </>
   );
 }

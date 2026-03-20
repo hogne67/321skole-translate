@@ -282,29 +282,35 @@ service cloud.firestore {
        USERS
     ========================= */
     match /users/{uid} {
-      function isSelf() { return signedIn() && myUid() == uid; }
-      function changedKeys() { return request.resource.data.diff(resource.data).changedKeys(); }
-      function isChanging(field) { return changedKeys().hasAny([field]); }
+  function isSelf() { return signedIn() && myUid() == uid; }
+  function changedKeys() { return request.resource.data.diff(resource.data).changedKeys(); }
+  function isChanging(field) { return changedKeys().hasAny([field]); }
 
-      function roleOk() {
-        return !isChanging("role")
-          || (
-            (request.resource.data.role is string)
-            && (
-              request.resource.data.role == "student"
-              || request.resource.data.role == "teacher"
-              || request.resource.data.role == "parent"
-            )
-          );
-      }
+  function roleOk() {
+    return !isChanging("role")
+      || (
+        (request.resource.data.role is string)
+        && (
+          request.resource.data.role == "student"
+          || request.resource.data.role == "teacher"
+          || request.resource.data.role == "parent"
+        )
+      );
+  }
 
-      function rolesNotChangedBySelf() { return !isChanging("roles"); }
+  function rolesNotChangedBySelf() { return !isChanging("roles"); }
 
-      allow create: if isSelf();
-      allow read: if isSelf() || isAdmin();
-      allow update: if isAdmin() || (isSelf() && rolesNotChangedBySelf() && roleOk());
-      allow delete: if false;
-    }
+  allow create: if isSelf();
+  allow read: if isSelf() || isAdmin();
+  allow update: if isAdmin() || (isSelf() && rolesNotChangedBySelf() && roleOk());
+  allow delete: if false;
+
+  match /usage/{monthId} {
+    allow read: if signedIn() && myUid() == uid;
+    allow create, update: if signedIn() && myUid() == uid;
+    allow delete: if false;
+  }
+}
 
     /* =========================
        SPACE MEMBERS

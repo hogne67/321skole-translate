@@ -3,12 +3,27 @@
 
 import React, { useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { collection, getDocs, limit, query, where, type Firestore } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  where,
+  type Firestore,
+} from "firebase/firestore";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { ensureSpaceMember } from "@/lib/spaceMembership";
 import { useLocale, useTranslations } from "next-intl";
+import {
+  canTeacherAddStudent,
+  getTeacherUidFromSpaceData,
+  isUserAlreadyStudentInSpace,
+} from "@/lib/teacherStudentLimit";
+import type { AppRole, PlanKey } from "@/lib/featureAccess";
 
 async function findSpaceByCode(dbx: Firestore, codeRaw: string) {
   const code = (codeRaw || "").trim().toUpperCase();
@@ -34,14 +49,32 @@ function requireDb(x: Firestore | null | undefined): Firestore {
 }
 
 function errToText(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  if (typeof e === "string") return e;
+  if (e instanceof Error) {
+    if (e.message === "student_limit_reached") {
+      return "This teacher has reached the student limit for the current plan.";
+    }
+    return e.message;
+  }
+
+  if (typeof e === "string") {
+    if (e === "student_limit_reached") {
+      return "This teacher has reached the student limit for the current plan.";
+    }
+    return e;
+  }
+
   if (e && typeof e === "object") {
     const maybe = e as { code?: unknown; message?: unknown };
     const code = typeof maybe.code === "string" ? maybe.code : "";
     const msg = typeof maybe.message === "string" ? maybe.message : "";
+
+    if (msg === "student_limit_reached") {
+      return "This teacher has reached the student limit for the current plan.";
+    }
+
     return code && msg ? `${code}: ${msg}` : msg || JSON.stringify(e);
   }
+
   return String(e);
 }
 
@@ -74,6 +107,22 @@ async function waitForUser(): Promise<User> {
 
 function cleanName(raw: string): string {
   return raw.replace(/\s+/g, " ").trim();
+}
+
+function safeRole(role?: string): AppRole {
+  if (role === "teacher") return "teacher";
+  if (role === "student") return "student";
+  if (role === "parent") return "parent";
+  if (role === "creator") return "creator";
+  if (role === "admin") return "admin";
+  return "teacher";
+}
+
+function safePlan(plan?: string): PlanKey {
+  if (plan === "basic") return "basic";
+  if (plan === "plus") return "plus";
+  if (plan === "pro") return "pro";
+  return "free";
 }
 
 export default function JoinClient() {
@@ -114,9 +163,37 @@ export default function JoinClient() {
       }
 
       const spaceId = spaceDoc.id;
+      const teacherUid = getTeacherUidFromSpaceData(spaceDoc.data());
 
       await ensureAnonymousUser();
       const u = await waitForUser();
+
+      const alreadyMember = await isUserAlreadyStudentInSpace({
+        db: dbx,
+        spaceId,
+        uid: u.uid,
+      });
+
+      if (!alreadyMember && teacherUid) {
+        const teacherSnap = await getDoc(doc(dbx, "users", teacherUid));
+        const teacherData = teacherSnap.exists()
+          ? (teacherSnap.data() as { role?: string; plan?: string })
+          : null;
+
+        const teacherRole = safeRole(teacherData?.role);
+        const teacherPlan = safePlan(teacherData?.plan);
+
+        const memberStatus = await canTeacherAddStudent({
+          db: dbx,
+          teacherUid,
+          role: teacherRole,
+          plan: teacherPlan,
+        });
+
+        if (!memberStatus.allowed) {
+          throw new Error("student_limit_reached");
+        }
+      }
 
       await ensureSpaceMember(dbx, spaceId, u.uid, "student", {
         code: c,

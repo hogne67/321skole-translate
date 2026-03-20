@@ -1,3 +1,4 @@
+// app\[locale]\(app)\producer\reading-tests\new\page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -86,11 +87,6 @@ type ReadingTestPack = {
     adult: string;
     nextStep: string;
   };
-};
-
-type GenerateReadingTestResp = ReadingTestPack & {
-  error?: string;
-  raw?: string;
 };
 
 function newId() {
@@ -372,32 +368,32 @@ export default function NewReadingTestPage() {
     return t("timer.minutesAndSeconds", { minutes: mins, seconds: secs });
   }, [timerEnabled, timerSeconds, t]);
 
-  async function fetchQuotaForCreateLesson() {
-    try {
-      setQuotaLoading(true);
-      const user = getAuth().currentUser;
-      if (!user) {
-        setQuotaInfo(null);
-        return;
-      }
-
-      const token = await user.getIdToken();
-      const res = await fetch(`/api/quota?feature=producer_create_lesson`, {
-        headers: { authorization: `Bearer ${token}` },
-      });
-
-      const raw = await res.text();
-      const data = raw ? (JSON.parse(raw) as QuotaInfo) : null;
-
-      if (res.ok && data && typeof data.used === "number") {
-        setQuotaInfo(data);
-      }
-    } catch {
-      // silent
-    } finally {
-      setQuotaLoading(false);
+ async function fetchQuotaForCreateLesson() {
+  try {
+    setQuotaLoading(true);
+    const user = getAuth().currentUser;
+    if (!user) {
+      setQuotaInfo(null);
+      return;
     }
+
+    const token = await user.getIdToken();
+    const res = await fetch(`/api/quota?feature=producer_create_reading_test`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    const raw = await res.text();
+    const data = raw ? (JSON.parse(raw) as QuotaInfo) : null;
+
+    if (res.ok && data && typeof data.used === "number") {
+      setQuotaInfo(data);
+    }
+  } catch {
+    // silent
+  } finally {
+    setQuotaLoading(false);
   }
+}
 
   useEffect(() => {
     fetchQuotaForCreateLesson();
@@ -406,53 +402,87 @@ export default function NewReadingTestPage() {
   }, []);
 
   async function generateReadingTest() {
-    setLoadingReadingTest(true);
-    setError(null);
-    setSavedId(null);
+  setLoadingReadingTest(true);
+  setError(null);
+  setSavedId(null);
 
+  try {
+    const user = getAuth().currentUser;
+    if (!user) throw new Error(t("errors.notSignedIn"));
+
+    const token = await user.getIdToken();
+
+    const res = await fetch("/api/reading-tests/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        level,
+        language,
+        topic,
+        audience,
+        minWords,
+        maxWords,
+        enabledTaskTypes,
+      }),
+    });
+
+    const raw = await res.text();
+    if (!raw) throw new Error(t("errors.emptyResponse", { status: res.status }));
+
+    let parsed: unknown;
     try {
-      const res = await fetch("/api/reading-tests/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          level,
-          language,
-          topic,
-          audience,
-          minWords,
-          maxWords,
-          enabledTaskTypes,
-        }),
-      });
-
-      const raw = await res.text();
-      if (!raw) throw new Error(t("errors.emptyResponse", { status: res.status }));
-
-      let data: GenerateReadingTestResp;
-      try {
-        data = JSON.parse(raw) as GenerateReadingTestResp;
-      } catch {
-        throw new Error(t("errors.notJson", { status: res.status, preview: raw.slice(0, 200) }));
-      }
-
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      if (!data?.text?.trim()) throw new Error(t("errors.missingReadingText"));
-
-      const nextTitle = (data.title || t("defaults.title")).trim() || t("defaults.title");
-
-      setTitle(nextTitle);
-      setSourceText(data.text.trim());
-      setLessonTasks(
-        readingTestToLessonTasks(data, enabledTaskTypes, t("defaults.fillInWordPrompt"))
-      );
-      setReadingPack(data);
-      setTasksDirty(false);
-    } catch (e: unknown) {
-      setError(getErrorMessage(e));
-    } finally {
-      setLoadingReadingTest(false);
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error(t("errors.notJson", { status: res.status, preview: raw.slice(0, 200) }));
     }
+
+    const data = isRecord(parsed) ? parsed : {};
+
+    if (!res.ok) {
+      const msg =
+        typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+
+    const readingTestUnknown = data.readingTest;
+    if (!isRecord(readingTestUnknown) || typeof readingTestUnknown.text !== "string") {
+      throw new Error(t("errors.missingReadingText"));
+    }
+
+    const readingTest = readingTestUnknown as ReadingTestPack;
+
+    const nextTitle =
+      (typeof readingTest.title === "string" ? readingTest.title : t("defaults.title")).trim() ||
+      t("defaults.title");
+
+    const quotaUnknown = data.quota;
+if (quotaUnknown && typeof quotaUnknown === "object") {
+  const q = quotaUnknown as QuotaInfo;
+  if (typeof q.used === "number") {
+    setQuotaInfo(q);
   }
+}
+
+    setTitle(nextTitle);
+    setSourceText(readingTest.text.trim());
+    setLessonTasks(
+      readingTestToLessonTasks(
+        readingTest,
+        enabledTaskTypes,
+        t("defaults.fillInWordPrompt")
+      )
+    );
+    setReadingPack(readingTest);
+    setTasksDirty(false);
+  } catch (e: unknown) {
+    setError(getErrorMessage(e));
+  } finally {
+    setLoadingReadingTest(false);
+  }
+}
 
   async function saveToFirestore() {
     setSaving(true);

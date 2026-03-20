@@ -1,5 +1,12 @@
+// app/api/producer/generate-text/route.ts
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { getAdmin } from "@/lib/firebaseAdmin";
+import {
+  getFeatureStatusAdmin,
+  consumeFeatureAdmin,
+} from "@/lib/featureGuardAdmin";
+import type { AppRole, PlanKey } from "@/lib/featureAccess";
 
 export const runtime = "nodejs";
 
@@ -18,6 +25,12 @@ type GenerateTextResult = {
 
 type OpenAIErrorLike = { message?: string; code?: string | number };
 
+type RequestUserContext = {
+  uid: string;
+  role: AppRole | string;
+  plan: PlanKey | string;
+};
+
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
@@ -32,18 +45,101 @@ function getErrorMessage(err: unknown): string {
   }
 }
 
+async function getRequestUserContext(req: Request): Promise<RequestUserContext | null> {
+  const authHeader =
+    req.headers.get("authorization") || req.headers.get("Authorization");
+
+  if (!authHeader?.startsWith("Bearer ")) return null;
+
+  const idToken = authHeader.slice(7).trim();
+  if (!idToken) return null;
+
+  const { auth, db } = getAdmin();
+  const decoded = await auth.verifyIdToken(idToken);
+  const uid = decoded.uid;
+
+  const userSnap = await db.collection("users").doc(uid).get();
+  const data = userSnap.exists ? userSnap.data() : undefined;
+
+  const role =
+    typeof data?.role === "string"
+      ? data.role
+      : typeof data?.mode === "string"
+        ? data.mode
+        : "anonymous";
+
+  const plan = typeof data?.plan === "string" ? data.plan : "free";
+
+  return { uid, role, plan };
+}
+
+function mapStatusToResponse(
+  status: Awaited<ReturnType<typeof getFeatureStatusAdmin>>
+) {
+  if (status.reason === "teacher_only") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "This feature is only available for teachers.",
+        reason: status.reason,
+      },
+      { status: 403 }
+    );
+  }
+
+  if (status.reason === "limit_reached") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "You have reached your monthly limit.",
+        reason: status.reason,
+      },
+      { status: 403 }
+    );
+  }
+
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "This feature requires an upgraded plan.",
+      reason: status.reason ?? "upgrade_required",
+    },
+    { status: 403 }
+  );
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json({ error: "OPENAI_API_KEY mangler i .env.local" }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: "OPENAI_API_KEY mangler i .env.local" },
+        { status: 500 }
+      );
+    }
+
+    const user = await getRequestUserContext(req);
+
+    if (!user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const status = await getFeatureStatusAdmin({
+      uid: user.uid,
+      role: user.role,
+      plan: user.plan,
+      feature: "producer_create_lesson",
+    });
+
+    if (!status.allowed) {
+      return mapStatusToResponse(status);
     }
 
     const body = (await req.json()) as GenerateTextBody;
 
-    const level = (body.level || "A2").trim();
-    const language = (body.language || "en").trim();
-    const topic = (body.topic || "Untitled topic").trim();
-    const textType = (body.textType || "Everyday story").trim();
+    const level = String(body.level || "A2").trim();
+    const language = String(body.language || "en").trim();
+    const topic = String(body.topic || "Untitled topic").trim();
+    const textType = String(body.textType || "Everyday story").trim();
     const textLength = Number(body.textLength || 260);
 
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -53,7 +149,7 @@ Du er en profesjonell innholdsprodusent for språkinnlæring (CEFR) for 321skole
 Du må returnere ren JSON og ingenting annet.
 `.trim();
 
-    const user = `
+    const userPrompt = `
 Skriv EN tekst på språk: ${language} for nivå: ${level}
 
 Tema: ${topic}
@@ -78,13 +174,16 @@ RETURNER EKSAKT gyldig JSON (ingen markdown, ingen ekstra tekst) i denne struktu
       model,
       input: [
         { role: "system", content: system },
-        { role: "user", content: user },
+        { role: "user", content: userPrompt },
       ],
     });
 
     const out = (resp.output_text || "").trim();
     if (!out) {
-      return NextResponse.json({ error: "Tomt svar fra modellen." }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: "Tomt svar fra modellen." },
+        { status: 500 }
+      );
     }
 
     let parsed: GenerateTextResult;
@@ -92,7 +191,11 @@ RETURNER EKSAKT gyldig JSON (ingen markdown, ingen ekstra tekst) i denne struktu
       parsed = JSON.parse(out) as GenerateTextResult;
     } catch {
       return NextResponse.json(
-        { error: "Modellen returnerte ikke gyldig JSON.", raw: out.slice(0, 2000) },
+        {
+          ok: false,
+          error: "Modellen returnerte ikke gyldig JSON.",
+          raw: out.slice(0, 2000),
+        },
         { status: 500 }
       );
     }
@@ -101,11 +204,40 @@ RETURNER EKSAKT gyldig JSON (ingen markdown, ingen ekstra tekst) i denne struktu
     const text = String(parsed.text || "").trim();
 
     if (!text) {
-      return NextResponse.json({ error: "Mangler 'text' i JSON-respons." }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: "Mangler 'text' i JSON-respons." },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ title, text });
+    await consumeFeatureAdmin({
+      uid: user.uid,
+      feature: "producer_create_lesson",
+    });
+
+    const quotaAfter = await getFeatureStatusAdmin({
+      uid: user.uid,
+      role: user.role,
+      plan: user.plan,
+      feature: "producer_create_lesson",
+    });
+
+    return NextResponse.json({
+      ok: true,
+      title,
+      text,
+      quota: {
+        feature: "producer_create_lesson",
+        bucket: quotaAfter.bucket,
+        limit: quotaAfter.limit,
+        used: quotaAfter.used,
+        remaining: quotaAfter.remaining,
+      },
+    });
   } catch (err: unknown) {
-    return NextResponse.json({ error: getErrorMessage(err) || "Ukjent feil" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: getErrorMessage(err) || "Ukjent feil" },
+      { status: 500 }
+    );
   }
 }

@@ -6,7 +6,10 @@ import { getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { LANGUAGES } from "@/lib/languages";
 import type { CSSProperties } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { getFeatureStatus, type FeatureStatus } from "@/lib/featureGuard";
+import type { PlanKey } from "@/lib/featureAccess";
+import { useUserProfile } from "@/lib/useUserProfile";
 
 type MCQ = {
   q: string;
@@ -29,7 +32,6 @@ type ContentPack = {
   };
 };
 
-// LessonTask-formatet som Producer editor/preview bruker
 type TaskType = "truefalse" | "mcq" | "open";
 type LessonTask = {
   id: string;
@@ -65,7 +67,6 @@ function getErrorMessage(err: unknown): string {
   }
 }
 
-// ===== Text types (keys) =====
 const TEXT_TYPE_KEYS = [
   "everydayStory",
   "factual",
@@ -81,7 +82,6 @@ const TEXT_TYPE_KEYS = [
 ] as const;
 type TextTypeKey = (typeof TEXT_TYPE_KEYS)[number];
 
-// ===== Level defaults =====
 type LevelKey = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
 const LEVEL_DEFAULTS: Record<
@@ -96,21 +96,21 @@ const LEVEL_DEFAULTS: Record<
   C2: { textLength: 300, trueFalse: 10, mcq: 8, facts: 6, reflection: 3 },
 };
 
-type QuotaInfo = {
-  feature: string;
-  limit: number;
-  used: number;
-  remaining: number;
-  period: string; // YYYY-MM (Europe/Oslo)
-};
+function safePlan(plan: unknown): PlanKey {
+  if (plan === "basic") return "basic";
+  if (plan === "plus") return "plus";
+  if (plan === "pro") return "pro";
+  return "free";
+}
 
 export default function NewTextPage() {
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations("producer.newText");
+  const { profile } = useUserProfile();
 
-  // ===== Inline UI styles (SAFE: no Tailwind dependency) =====
   const fieldStyle: CSSProperties = {
-    boxSizing: "border-box", // ✅ prevents 100% + padding overflow
+    boxSizing: "border-box",
     width: "100%",
     padding: 10,
     marginTop: 6,
@@ -173,7 +173,6 @@ export default function NewTextPage() {
     boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
   };
 
-  // Responsive: 2 columns on wide, 1 column on narrow
   const [isNarrow, setIsNarrow] = useState(false);
   useEffect(() => {
     const onResize = () => setIsNarrow(window.innerWidth < 900);
@@ -182,71 +181,66 @@ export default function NewTextPage() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // ===== Producer inputs for AI generation =====
   const [level, setLevel] = useState<LevelKey>("A2");
-
-  // Default: Bokmål
   const [language, setLanguage] = useState("nb");
   const [languageSearch, setLanguageSearch] = useState("");
-
-  // Full prompt/instructions
   const [prompt, setPrompt] = useState(t("defaults.prompt"));
-
   const [textTypePreset, setTextTypePreset] = useState<TextTypeKey>("everydayStory");
   const [textTypeOther, setTextTypeOther] = useState("");
-
-  // Hva vi faktisk sender til API (tekstverdi):
   const textTypeLabel = useMemo(() => {
-    if (textTypePreset === "other")
+    if (textTypePreset === "other") {
       return (textTypeOther || t("textTypes.other")).trim() || t("textTypes.other");
+    }
     return t(`textTypes.${textTypePreset}`);
   }, [textTypePreset, textTypeOther, t]);
 
   const [textLength, setTextLength] = useState<number>(LEVEL_DEFAULTS.A2.textLength);
-
   const [mcqCount, setMcqCount] = useState<number>(LEVEL_DEFAULTS.A2.mcq);
   const [trueFalseCount, setTrueFalseCount] = useState<number>(LEVEL_DEFAULTS.A2.trueFalse);
-
-  // ✅ Faktasetninger (0–10)
   const [factsCount, setFactsCount] = useState<number>(LEVEL_DEFAULTS.A2.facts);
-
   const [reflectionCount, setReflectionCount] = useState<number>(LEVEL_DEFAULTS.A2.reflection);
 
-  // ===== Lesson Builder state (truth) =====
   const [title, setTitle] = useState<string>(t("defaults.title"));
   const [sourceText, setSourceText] = useState<string>("");
   const [lessonTasks, setLessonTasks] = useState<LessonTask[]>([]);
-
-  // Optional: keep pack for debugging / tracing AI output
   const [pack, setPack] = useState<ContentPack | null>(null);
 
-  // ===== UI state =====
   const [loadingText, setLoadingText] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
-
-  // Track if text has changed after tasks were generated
   const [tasksDirty, setTasksDirty] = useState(false);
 
-  // ✅ Quota UI state
-  const [quotaInfo, setQuotaInfo] = useState<QuotaInfo | null>(null);
-  const [quotaLoading, setQuotaLoading] = useState(false);
+  const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   const busy = loadingText || loadingTasks || saving;
 
-  // Apply defaults when level changes
+  const profileUid =
+    profile && typeof profile === "object" && "uid" in profile
+      ? (profile as { uid?: string }).uid
+      : undefined;
+
+  const roleValue =
+    profile && typeof profile === "object" && "role" in profile
+      ? (profile as { role?: string }).role
+      : undefined;
+
+  const planValue =
+    profile && typeof profile === "object" && "plan" in profile
+      ? (profile as { plan?: string }).plan
+      : undefined;
+
+  const role = roleValue ?? "anonymous";
+  const plan = safePlan(planValue);
+
   useEffect(() => {
     const d = LEVEL_DEFAULTS[level];
     setTextLength(d.textLength);
     setTrueFalseCount(d.trueFalse);
     setMcqCount(d.mcq);
-
-    // clamp facts to 0–10
-    const nextFacts = Math.max(0, Math.min(10, d.facts));
-    setFactsCount(nextFacts);
-
+    setFactsCount(Math.max(0, Math.min(10, d.facts)));
     setReflectionCount(d.reflection);
   }, [level]);
 
@@ -260,50 +254,83 @@ export default function NewTextPage() {
     });
   }, [languageSearch]);
 
-  async function fetchQuotaForCreateLesson() {
+  async function refreshFeatureStatus(currentUid?: string) {
+    const uid = currentUid ?? getAuth().currentUser?.uid ?? profileUid;
+    if (!uid) {
+      setFeatureStatus(null);
+      setStatusLoading(false);
+      return;
+    }
+
     try {
-      setQuotaLoading(true);
-      const user = getAuth().currentUser;
-      if (!user) {
-        setQuotaInfo(null);
-        return;
-      }
-
-      const token = await user.getIdToken();
-      const res = await fetch(`/api/quota?feature=producer_create_lesson`, {
-        headers: { authorization: `Bearer ${token}` },
+      const status = await getFeatureStatus({
+        uid,
+        role,
+        plan,
+        feature: "producer_create_lesson",
       });
-
-      const raw = await res.text();
-      const data = raw ? (JSON.parse(raw) as QuotaInfo) : null;
-
-      if (res.ok && data && typeof data.used === "number") setQuotaInfo(data);
+      setFeatureStatus(status);
     } catch {
-      // silent
+      setFeatureStatus(null);
     } finally {
-      setQuotaLoading(false);
+      setStatusLoading(false);
     }
   }
 
-  // ✅ fetch quota on mount (and once more shortly after, to catch late auth init)
-  useEffect(() => {
-    fetchQuotaForCreateLesson();
-    const tt = setTimeout(() => fetchQuotaForCreateLesson(), 600);
-    return () => clearTimeout(tt);
-  }, []);
+    useEffect(() => {
+    let active = true;
+
+    async function loadStatus() {
+      const uid = getAuth().currentUser?.uid ?? profileUid;
+
+      if (!uid) {
+        if (active) {
+          setFeatureStatus(null);
+          setStatusLoading(false);
+        }
+        return;
+      }
+
+      setStatusLoading(true);
+
+      try {
+        const status = await getFeatureStatus({
+          uid,
+          role,
+          plan,
+          feature: "producer_create_lesson",
+        });
+
+        if (active) {
+          setFeatureStatus(status);
+        }
+      } catch {
+        if (active) {
+          setFeatureStatus(null);
+        }
+      } finally {
+        if (active) {
+          setStatusLoading(false);
+        }
+      }
+    }
+
+    void loadStatus();
+
+    return () => {
+      active = false;
+    };
+  }, [profileUid, role, plan]);
 
   function buildFactsPrompt(count: number, suggestions: string[]) {
-    // 0 -> ingen oppgave
     if (count <= 0) return "";
 
-    // korte tips + litt inspirasjon uten å bli for langt (prompt-feltet er input)
     const tips = [
       "Bruk egne ord.",
       "Hold deg til fakta (ingen meninger).",
       "Du kan bruke fakta fra teksten – og gjerne legge til relevante fakta om temaet.",
     ];
 
-    // ta maks 5 korte inspirasjonspunkter
     const insp = (suggestions || [])
       .map((s) => String(s || "").trim())
       .filter(Boolean)
@@ -311,7 +338,7 @@ export default function NewTextPage() {
 
     const inspPart = insp.length ? ` Inspirasjon: ${insp.join(" • ")}` : "";
 
-    return `Faktasetninger (${count}): Skriv ${count} faktasetninger til teksten.${" "}${tips.join(" ")}${inspPart}`;
+    return `Faktasetninger (${count}): Skriv ${count} faktasetninger til teksten. ${tips.join(" ")}${inspPart}`;
   }
 
   function packToLessonTasks(p: ContentPack): LessonTask[] {
@@ -341,7 +368,6 @@ export default function NewTextPage() {
       });
     }
 
-    // ✅ NYTT: “faktasetninger” skal være ÉN oppgave (én boks), ikke én per setning
     const factsSuggestions = p.tasks?.writeFacts ?? [];
     const factsN = Math.max(0, Math.min(10, factsSuggestions.length));
     if (factsN > 0) {
@@ -387,13 +413,13 @@ export default function NewTextPage() {
               correctAnswer: t("tasks.defaults.option1"),
             }
           : type === "truefalse"
-          ? {
-              id: newId(),
-              type: "truefalse",
-              prompt: t("tasks.defaults.tfPrompt"),
-              correctAnswer: "true",
-            }
-          : { id: newId(), type: "open", prompt: t("tasks.defaults.openPrompt") },
+            ? {
+                id: newId(),
+                type: "truefalse",
+                prompt: t("tasks.defaults.tfPrompt"),
+                correctAnswer: "true",
+              }
+            : { id: newId(), type: "open", prompt: t("tasks.defaults.openPrompt") },
       ];
       return renumberOrders(next);
     });
@@ -420,7 +446,6 @@ export default function NewTextPage() {
     el.style.height = `${el.scrollHeight}px`;
   }
 
-  // “Kjente” feilmeldinger (vi oversetter disse, ellers viser vi raw)
   function localizeError(message: string): string {
     const m = message || "";
     if (m === "Generate or write text first.") return t("errors.generateOrWriteTextFirst");
@@ -431,117 +456,147 @@ export default function NewTextPage() {
     if (m === "Not signed in.") return t("errors.notSignedIn");
     if (m.startsWith("Empty response from server.")) return t("errors.emptyResponseFromServer", { status: "" });
     if (m.startsWith("Not JSON.")) return t("errors.notJsonFromServer");
-    if (m.startsWith("Limit reached:")) return m; // ok å vise direkte
+    if (m.startsWith("Limit reached:")) return m;
     return m;
   }
 
   async function generateTextOnly() {
-    setLoadingText(true);
-    setError(null);
-    setSavedId(null);
+  setLoadingText(true);
+  setError(null);
+  setSavedId(null);
 
-    try {
-      const res = await fetch("/api/producer/generate-text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          level,
-          language,
-          topic: prompt,
-          textType: textTypeLabel,
-          textLength,
-        }),
-      });
+  try {
+    const user = getAuth().currentUser;
+    if (!user) throw new Error("Not signed in.");
 
-      const raw = await res.text();
-      if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
+    const token = await user.getIdToken();
 
-      let data: GenerateTextResp;
-      try {
-        data = JSON.parse(raw) as GenerateTextResp;
-      } catch {
-        throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
-      }
-
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-
-      const nextTitle = String(data.title || t("defaults.title")).trim() || t("defaults.title");
-      const nextText = String(data.text || "").trim();
-      if (!nextText) throw new Error("Missing text in response.");
-
-      setTitle(nextTitle);
-      setSourceText(nextText);
-
-      // When text changes, tasks should be regenerated
-      setLessonTasks([]);
-      setPack(null);
-      setTasksDirty(true);
-    } catch (e: unknown) {
-      setError(localizeError(getErrorMessage(e)));
-    } finally {
-      setLoadingText(false);
-    }
-  }
-
-  async function generateTasksOnly() {
-    setLoadingTasks(true);
-    setError(null);
-    setSavedId(null);
-
-    try {
-      if (!sourceText.trim()) throw new Error("Generate or write text first.");
-
-      const res = await fetch("/api/producer/generate-tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          level,
-          language,
-          topic: prompt,
-          textType: textTypeLabel,
-          text: sourceText,
-          tasks: {
-            mcq: mcqCount,
-            trueFalse: trueFalseCount,
-            facts: Math.max(0, Math.min(10, factsCount)), // ✅ clamp 0–10
-            reflection: reflectionCount,
-          },
-        }),
-      });
-
-      const raw = await res.text();
-      if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
-
-      let data: GenerateTasksResp;
-      try {
-        data = JSON.parse(raw) as GenerateTasksResp;
-      } catch {
-        throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
-      }
-
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      if (!data?.tasks) throw new Error(t("errors.missingTasksInResponse"));
-
-      const fakePack: ContentPack = {
-        title: title || t("defaults.title"),
+    const res = await fetch("/api/producer/generate-text", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
         level,
         language,
         topic: prompt,
-        text: sourceText,
-        tasks: data.tasks,
+        textType: textTypeLabel,
+        textLength,
+      }),
+    });
+
+    const raw = await res.text();
+    if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
+
+    let data: GenerateTextResp & {
+      quota?: {
+        feature?: string;
+        limit?: number;
+        used?: number;
+        remaining?: number;
       };
+    };
 
-      setLessonTasks(packToLessonTasks(fakePack));
-      setPack(fakePack); // for debug panel
-      setTasksDirty(false);
-    } catch (e: unknown) {
-      setError(localizeError(getErrorMessage(e)));
-    } finally {
-      setLoadingTasks(false);
+    try {
+      data = JSON.parse(raw) as GenerateTextResp & {
+        quota?: {
+          feature?: string;
+          limit?: number;
+          used?: number;
+          remaining?: number;
+        };
+      };
+    } catch {
+      throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
     }
-  }
 
-  // ✅ Server-en lager lesson + quota-sjekk
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+    const nextTitle = String(data.title || t("defaults.title")).trim() || t("defaults.title");
+    const nextText = String(data.text || "").trim();
+    if (!nextText) throw new Error("Missing text in response.");
+
+    setTitle(nextTitle);
+    setSourceText(nextText);
+    setLessonTasks([]);
+    setPack(null);
+    setTasksDirty(true);
+
+    await refreshFeatureStatus(user.uid);
+  } catch (e: unknown) {
+    setError(localizeError(getErrorMessage(e)));
+  } finally {
+    setLoadingText(false);
+  }
+}
+
+  async function generateTasksOnly() {
+  setLoadingTasks(true);
+  setError(null);
+  setSavedId(null);
+
+  try {
+    if (!sourceText.trim()) throw new Error("Generate or write text first.");
+
+    const user = getAuth().currentUser;
+    if (!user) throw new Error("Not signed in.");
+
+    const token = await user.getIdToken();
+
+    const res = await fetch("/api/producer/generate-tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        level,
+        language,
+        topic: prompt,
+        textType: textTypeLabel,
+        text: sourceText,
+        tasks: {
+          mcq: mcqCount,
+          trueFalse: trueFalseCount,
+          facts: factsCount,
+          reflection: reflectionCount,
+        },
+      }),
+    });
+
+    const raw = await res.text();
+    if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
+
+    let data: GenerateTasksResp;
+    try {
+      data = JSON.parse(raw) as GenerateTasksResp;
+    } catch {
+      throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
+    }
+
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+    if (!data?.tasks) throw new Error(t("errors.missingTasksInResponse"));
+
+    const fakePack: ContentPack = {
+      title: title || t("defaults.title"),
+      level,
+      language,
+      topic: prompt,
+      text: sourceText,
+      tasks: data.tasks,
+    };
+
+    setLessonTasks(packToLessonTasks(fakePack));
+    setPack(fakePack);
+    setTasksDirty(false);
+  } catch (e: unknown) {
+    setError(localizeError(getErrorMessage(e)));
+  } finally {
+    setLoadingTasks(false);
+  }
+}
+
   async function saveToFirestore() {
     setSaving(true);
     setError(null);
@@ -553,6 +608,14 @@ export default function NewTextPage() {
 
       const user = getAuth().currentUser;
       if (!user) throw new Error("Not signed in. Please log in as teacher/producer.");
+
+      if (featureStatus && !featureStatus.allowed) {
+        throw new Error(
+          featureStatus.reason === "limit_reached"
+            ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden. Du kan ikke lage flere nå.`
+            : "Denne funksjonen er ikke tilgjengelig for deg."
+        );
+      }
 
       const token = await user.getIdToken();
 
@@ -580,21 +643,12 @@ export default function NewTextPage() {
       try {
         data = raw ? JSON.parse(raw) : {};
       } catch {
-        // ignore invalid JSON (fallback to {})
+        // ignore invalid JSON
       }
 
       const anyData: Record<string, unknown> = isRecord(data) ? data : {};
 
       if (!res.ok) {
-        // 429 from server gives { error, quota }
-        const quotaUnknown = anyData["quota"];
-        if (res.status === 429 && quotaUnknown && typeof quotaUnknown === "object") {
-          const q = quotaUnknown as Partial<QuotaInfo>;
-          const used = typeof q.used === "number" ? q.used : 15;
-          const limit = typeof q.limit === "number" ? q.limit : 15;
-          throw new Error(`Du har brukt ${used} av ${limit} denne måneden. Du kan ikke lage flere nå.`);
-        }
-
         const msg = typeof anyData["error"] === "string" ? anyData["error"] : `HTTP ${res.status}`;
         throw new Error(msg);
       }
@@ -603,17 +657,8 @@ export default function NewTextPage() {
       if (!id) throw new Error("Missing id from server.");
 
       setSavedId(id);
-
-      // ✅ Update quota in UI (server returns quota)
-      const quota2 = anyData["quota"];
-      if (quota2 && typeof quota2 === "object") {
-        setQuotaInfo(quota2 as QuotaInfo);
-      } else {
-        fetchQuotaForCreateLesson();
-      }
-
-      // ✅ Redirect directly to Producer editor
-      router.push(`/producer/${id}`);
+      await refreshFeatureStatus(user.uid);
+      router.push(`/${locale}/producer/${id}`);
     } catch (e: unknown) {
       setError(localizeError(getErrorMessage(e)));
     } finally {
@@ -621,12 +666,14 @@ export default function NewTextPage() {
     }
   }
 
-  const quotaBlocked = quotaInfo ? quotaInfo.remaining <= 0 : false;
+  const quotaBlocked = featureStatus ? !featureStatus.allowed : false;
+  const quotaBadgeText = featureStatus
+    ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden`
+    : null;
 
   return (
     <main
       className="pageWrap"
-      // ✅ Desktop: senter + maks bredde. Mobil overstyres i media query.
       style={{
         width: "100%",
         maxWidth: 980,
@@ -778,7 +825,7 @@ export default function NewTextPage() {
                   onChange={(e) => setFactsCount(Math.max(0, Math.min(10, Number(e.target.value))))}
                   style={fieldStyle}
                   min={0}
-                  max={10} // ✅ 0–10
+                  max={10}
                 />
                 <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
                   Faktasetninger skrives i én boks (ikke én oppgave per setning).
@@ -839,18 +886,18 @@ export default function NewTextPage() {
             <button
               className="actionBtn"
               onClick={saveToFirestore}
-              disabled={busy || quotaBlocked}
+              disabled={busy || statusLoading || quotaBlocked}
               style={{
                 ...buttonSecondary,
-                opacity: busy || quotaBlocked ? 0.55 : 1,
-                cursor: busy || quotaBlocked ? "not-allowed" : "pointer",
+                opacity: busy || statusLoading || quotaBlocked ? 0.55 : 1,
+                cursor: busy || statusLoading || quotaBlocked ? "not-allowed" : "pointer",
               }}
               title={
-                quotaBlocked && quotaInfo
-                  ? `Du har brukt ${quotaInfo.used} av ${quotaInfo.limit} denne måneden.`
+                quotaBlocked && featureStatus
+                  ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden.`
                   : tasksDirty
-                  ? t("hints.tasksDirty")
-                  : t("hints.saveDraft")
+                    ? t("hints.tasksDirty")
+                    : t("hints.saveDraft")
               }
             >
               {saving ? t("buttons.saving") : t("buttons.saveDraft")}
@@ -860,24 +907,27 @@ export default function NewTextPage() {
               <span style={{ color: "#b45309", fontWeight: 700 }}>{t("warnings.checkTextBeforeTasks")}</span>
             )}
 
-            {/* ✅ Quota badge */}
-            {quotaLoading && <span style={{ opacity: 0.75 }}>Laster kvote…</span>}
+            {statusLoading && <span style={{ opacity: 0.75 }}>Laster kvote…</span>}
 
-            {quotaInfo && (
+            {featureStatus && quotaBadgeText && (
               <span
                 style={{
                   fontSize: 13,
                   padding: "6px 10px",
                   borderRadius: 999,
                   border: "1px solid #e2e8f0",
-                  background: quotaInfo.remaining <= 0 ? "#fff1f2" : quotaInfo.remaining <= 2 ? "#fffbeb" : "#f0fdf4",
+                  background:
+                    featureStatus.remaining <= 0
+                      ? "#fff1f2"
+                      : featureStatus.remaining <= 2
+                        ? "#fffbeb"
+                        : "#f0fdf4",
                   color: "#0f172a",
                   fontWeight: 700,
                 }}
-                title={`Periode: ${quotaInfo.period}`}
               >
-                {`Du har brukt ${quotaInfo.used} av ${quotaInfo.limit} denne måneden`}
-                {quotaInfo.remaining <= 2 ? " (snart tomt)" : ""}
+                {quotaBadgeText}
+                {featureStatus.remaining <= 2 && featureStatus.remaining > 0 ? " (snart tomt)" : ""}
               </span>
             )}
 
@@ -1107,7 +1157,6 @@ export default function NewTextPage() {
               width: 100% !important;
             }
 
-            /* ✅ edge-to-edge + prevent horizontal overflow */
             .pageWrap {
               width: 100% !important;
               max-width: none !important;
