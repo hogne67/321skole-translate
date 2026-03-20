@@ -12,6 +12,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  setDoc,
   where,
   type DocumentData,
 } from "firebase/firestore";
@@ -238,6 +239,9 @@ export default function LessonsLandingPage() {
   const [ratingBusyId, setRatingBusyId] = useState<string | null>(null);
   const [ratingMsg, setRatingMsg] = useState<string | null>(null);
   const [myRatings, setMyRatings] = useState<Record<string, number>>({});
+
+  const [saveBusyId, setSaveBusyId] = useState<string | null>(null);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
   const [qText, setQText] = useState("");
   const [level, setLevel] = useState<string>("all");
@@ -495,6 +499,65 @@ export default function LessonsLandingPage() {
     }
   }
 
+  async function addToMyContent(lesson: PublishedLesson) {
+    if (!currentUser || currentUser.isAnonymous) {
+      router.push(`/${locale}/login`);
+      return;
+    }
+
+    setSaveMsg(null);
+    setSaveBusyId(lesson.id);
+
+    try {
+      const stableId = `${currentUser.uid}_${lesson.id}`;
+
+      const practiceRef = doc(db, "practiceSubmissions", stableId);
+      await setDoc(
+        practiceRef,
+        {
+          uid: currentUser.uid,
+          publishedLessonId: lesson.id,
+          lessonId: lesson.id,
+          title: lesson.title || "Untitled",
+          answers: {},
+          status: "draft",
+          kind: "practice",
+          source: "library",
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      const submissionRef = doc(db, "submissions", stableId);
+      await setDoc(
+        submissionRef,
+        {
+          uid: currentUser.uid,
+          lessonId: lesson.id,
+          publishedLessonId: lesson.id,
+          title: lesson.title || "Untitled",
+          answers: {},
+          status: "draft",
+          kind: "practice",
+          source: "library",
+          meta: ["practice"],
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setSaveMsg(`"${lesson.title}" ble lagt til i Mitt innhold.`);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Kunne ikke legge til i Mitt innhold.";
+      setSaveMsg(message);
+    } finally {
+      setSaveBusyId(null);
+    }
+  }
+
   return (
     <main>
       <style jsx>{`
@@ -672,7 +735,24 @@ export default function LessonsLandingPage() {
           padding-top: 12px;
           display: flex;
           align-items: center;
-          justify-content: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .libraryBtn {
+          padding: 8px 12px;
+          border-radius: 10px;
+          border: 1px solid rgba(0, 0, 0, 0.2);
+          background: rgba(190, 247, 192, 1);
+          color: black;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        .libraryBtn:disabled {
+          opacity: 0.6;
+          cursor: default;
         }
 
         .pagerRow {
@@ -736,6 +816,20 @@ export default function LessonsLandingPage() {
           }}
         >
           <span style={{ opacity: 0.85 }}>{ratingMsg}</span>
+        </section>
+      ) : null}
+
+      {saveMsg ? (
+        <section
+          style={{
+            marginTop: 12,
+            padding: 12,
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 12,
+            background: "rgba(0,0,0,0.03)",
+          }}
+        >
+          <span style={{ opacity: 0.85 }}>{saveMsg}</span>
         </section>
       ) : null}
 
@@ -901,6 +995,19 @@ export default function LessonsLandingPage() {
                         disabled={!currentUser}
                         onRate={(value) => rateLesson(l.id, value)}
                       />
+
+                      <button
+                        type="button"
+                        className="libraryBtn"
+                        disabled={saveBusyId === l.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void addToMyContent(l);
+                        }}
+                      >
+                        {saveBusyId === l.id ? "Lagrer..." : "Legg til mitt innhold"}
+                      </button>
                     </div>
                   </div>
                 </div>

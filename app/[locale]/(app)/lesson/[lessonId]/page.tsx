@@ -3,9 +3,20 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, limit, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 type Lesson = {
   title: string;
@@ -127,24 +138,16 @@ type PublishedLessonResult =
   | { via: "fieldQuery"; data: Record<string, unknown> }
   | { via: "none"; data: null };
 
-/**
- * Hent published lesson på to måter:
- * 1) DocId === lessonId
- * 2) Fallback: query where(lessonId == param) hvis publisering har auto-ID
- */
 async function fetchPublishedLessonByEitherIdOrField(lessonId: string): Promise<PublishedLessonResult> {
-  // 1) DocId
   try {
     const directSnap = await getDoc(doc(db, "published_lessons", lessonId));
     if (directSnap.exists()) {
       return { via: "docId", data: (directSnap.data() as Record<string, unknown>) ?? {} };
     }
   } catch (e: unknown) {
-    // Hvis permission-denied, prøv likevel fallback-query
     if (!isPermissionDenied(e)) throw e;
   }
 
-  // 2) Fallback query på feltet lessonId
   const q = query(collection(db, "published_lessons"), where("lessonId", "==", lessonId), limit(1));
   const qsnap = await getDocs(q);
   if (qsnap.empty) return { via: "none", data: null };
@@ -154,11 +157,15 @@ async function fetchPublishedLessonByEitherIdOrField(lessonId: string): Promise<
 
 export default function LessonPreviewPage() {
   const params = useParams<{ lessonId: string }>();
+  const router = useRouter();
   const lessonId = params?.lessonId;
 
   const [loading, setLoading] = useState(true);
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -187,7 +194,6 @@ export default function LessonPreviewPage() {
 
         const raw = res.data as Partial<Lesson>;
 
-        // Hard filter: må være aktiv
         if (raw?.isActive === false) {
           setLesson(null);
           setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
@@ -242,6 +248,66 @@ export default function LessonPreviewPage() {
     return arr.slice().sort(sortTasksByOrder);
   }, [lesson?.tasks]);
 
+  async function addToMyContent() {
+    if (!lessonId || !lesson) return;
+
+    setSaveMsg(null);
+    setSaveBusy(true);
+
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user || user.isAnonymous) {
+        router.push("/login");
+        return;
+      }
+
+      const stableId = `${user.uid}_${lessonId}`;
+
+      await setDoc(
+        doc(db, "practiceSubmissions", stableId),
+        {
+          uid: user.uid,
+          lessonId,
+          publishedLessonId: lessonId,
+          title: lesson.title || "Untitled",
+          answers: {},
+          status: "draft",
+          kind: "practice",
+          source: "library",
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      await setDoc(
+        doc(db, "submissions", stableId),
+        {
+          uid: user.uid,
+          lessonId,
+          publishedLessonId: lessonId,
+          title: lesson.title || "Untitled",
+          answers: {},
+          status: "draft",
+          kind: "practice",
+          source: "library",
+          meta: ["practice"],
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setSaveMsg(`"${lesson.title}" ble lagt til i Mitt innhold.`);
+    } catch (e: unknown) {
+      setSaveMsg(getErrorInfo(e).message || "Kunne ikke legge til i Mitt innhold.");
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
   if (loading) return <p style={{ padding: 16 }}>Loading…</p>;
 
   if (error) {
@@ -285,6 +351,10 @@ export default function LessonPreviewPage() {
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <button onClick={addToMyContent} disabled={saveBusy} style={saveBtn}>
+            {saveBusy ? "LAGRER..." : "LEGG TIL MITT INNHOLD"}
+          </button>
+
           <Link href={`/student/lesson/${lessonId}`} style={startBtn}>
             START OPPGAVE
           </Link>
@@ -295,7 +365,20 @@ export default function LessonPreviewPage() {
         </div>
       </header>
 
-      {/* IMAGE */}
+      {saveMsg ? (
+        <div
+          style={{
+            marginTop: 12,
+            padding: 12,
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 12,
+            background: "rgba(0,0,0,0.03)",
+          }}
+        >
+          {saveMsg}
+        </div>
+      ) : null}
+
       <section style={{ marginTop: 14 }}>
         <div
           style={{
@@ -323,7 +406,6 @@ export default function LessonPreviewPage() {
         </div>
       </section>
 
-      {/* TEXT */}
       <section style={{ marginTop: 16 }}>
         <h2 style={{ marginBottom: 8 }}>Text</h2>
         <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
@@ -335,7 +417,6 @@ export default function LessonPreviewPage() {
         </div>
       </section>
 
-      {/* TASKS (read-only) */}
       <section style={{ marginTop: 16 }}>
         <h2 style={{ marginBottom: 8 }}>Tasks</h2>
 
@@ -392,7 +473,11 @@ export default function LessonPreviewPage() {
         )}
       </section>
 
-      <section style={{ marginTop: 18, display: "flex", justifyContent: "flex-end" }}>
+      <section style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+        <button onClick={addToMyContent} disabled={saveBusy} style={saveBtn}>
+          {saveBusy ? "LAGRER..." : "LEGG TIL MITT INNHOLD"}
+        </button>
+
         <Link href={`/student/lesson/${lessonId}`} style={startBtn}>
           START OPPGAVE
         </Link>
@@ -410,6 +495,17 @@ const startBtn: React.CSSProperties = {
   color: "black",
   fontWeight: 800,
   letterSpacing: 0.2,
+};
+
+const saveBtn: React.CSSProperties = {
+  border: "1px solid rgba(0,0,0,0.2)",
+  borderRadius: 12,
+  padding: "10px 14px",
+  background: "rgba(234,243,182,1)",
+  color: "black",
+  fontWeight: 800,
+  letterSpacing: 0.2,
+  cursor: "pointer",
 };
 
 const secondaryBtn: React.CSSProperties = {
