@@ -196,7 +196,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
 
     const feature = "teacher_assign_task";
     const period = currentPeriodOslo();
-    const limit = limitForFeature(feature, { uid, isAdmin: admin });
+    const shouldCountQuota = sourceType !== "myContent";
+
+    const limit = shouldCountQuota ? limitForFeature(feature, { uid, isAdmin: admin }) : null;
 
     const usageRef = db.collection("usage").doc(uid).collection("months").doc(period);
     const assignmentRef = db.collection("spaces").doc(spaceId).collection("lessons").doc();
@@ -205,37 +207,58 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
     const now = new Date();
 
     const result = await db.runTransaction(async (tx) => {
-      const usageSnap = await tx.get(usageRef);
-      const usage = (usageSnap.exists ? (usageSnap.data() as UsageDoc) : null) ?? null;
-      const usedBefore = readUsed(usage, feature);
+      let quota:
+        | {
+            feature: string;
+            limit: number;
+            used: number;
+            remaining: number;
+            period: string;
+          }
+        | null = null;
 
-      if (usedBefore + 1 > limit) {
-        return {
-          ok: false as const,
-          quota: {
-            feature,
-            limit,
-            used: usedBefore,
-            remaining: Math.max(0, limit - usedBefore),
-            period,
-          },
+      if (shouldCountQuota) {
+        const usageSnap = await tx.get(usageRef);
+        const usage = (usageSnap.exists ? (usageSnap.data() as UsageDoc) : null) ?? null;
+        const usedBefore = readUsed(usage, feature);
+        const safeLimit = limit ?? 0;
+
+        if (usedBefore + 1 > safeLimit) {
+          return {
+            ok: false as const,
+            quota: {
+              feature,
+              limit: safeLimit,
+              used: usedBefore,
+              remaining: Math.max(0, safeLimit - usedBefore),
+              period,
+            },
+          };
+        }
+
+        const usedAfter = usedBefore + 1;
+
+        tx.set(
+          usageRef,
+          {
+            ...(usage ?? {}),
+            features: {
+              ...(usage?.features ?? {}),
+              [feature]: { used: usedAfter },
+            },
+            updatedAt: now,
+          } satisfies UsageDoc,
+          { merge: true }
+        );
+
+        quota = {
+          feature,
+          limit: safeLimit,
+          used: usedAfter,
+          remaining: Math.max(0, safeLimit - usedAfter),
+          period,
         };
       }
-
-      const usedAfter = usedBefore + 1;
-
-      tx.set(
-        usageRef,
-        {
-          ...(usage ?? {}),
-          features: {
-            ...(usage?.features ?? {}),
-            [feature]: { used: usedAfter },
-          },
-          updatedAt: now,
-        } satisfies UsageDoc,
-        { merge: true }
-      );
 
       const finalTitle = titleOverride || source.title || "Untitled task";
       const finalLevel = levelOverride || source.level || null;
@@ -257,7 +280,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
         tasks: source.tasks ?? [],
         coverImageUrl: source.coverImageUrl ?? null,
 
-        // ✅ important for reading tests
+        // important for reading tests
         lessonType: source.lessonType ?? null,
         readingTestConfig: source.readingTestConfig ?? null,
 
@@ -282,13 +305,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
       return {
         ok: true as const,
         assignmentId: assignmentRef.id,
-        quota: {
-          feature,
-          limit,
-          used: usedAfter,
-          remaining: Math.max(0, limit - usedAfter),
-          period,
-        },
+        quota,
       };
     });
 

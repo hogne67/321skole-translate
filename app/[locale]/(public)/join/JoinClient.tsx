@@ -3,76 +3,35 @@
 
 import React, { useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  query,
-  where,
-  type Firestore,
-} from "firebase/firestore";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { db, auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { ensureSpaceMember } from "@/lib/spaceMembership";
 import { useLocale, useTranslations } from "next-intl";
-import {
-  canTeacherAddStudent,
-  getTeacherUidFromSpaceData,
-  isUserAlreadyStudentInSpace,
-} from "@/lib/teacherStudentLimit";
-import type { AppRole, PlanKey } from "@/lib/featureAccess";
 
-async function findSpaceByCode(dbx: Firestore, codeRaw: string) {
-  const code = (codeRaw || "").trim().toUpperCase();
-  if (!code) return null;
+type JoinApiSuccess = {
+  ok: true;
+  spaceId: string;
+  title?: string;
+  alreadyMember?: boolean;
+};
 
-  const tries = [
-    query(collection(dbx, "spaces"), where("code", "==", code), limit(1)),
-    query(collection(dbx, "spaces"), where("joinCode", "==", code), limit(1)),
-    query(collection(dbx, "spaces"), where("join.code", "==", code), limit(1)),
-  ];
-
-  for (const qy of tries) {
-    const snap = await getDocs(qy);
-    if (!snap.empty) return snap.docs[0];
-  }
-
-  return null;
-}
-
-function requireDb(x: Firestore | null | undefined): Firestore {
-  if (!x) throw new Error("Firestore is not initialized (db is null).");
-  return x;
-}
+type JoinApiError = {
+  error?: string;
+  used?: number;
+  limit?: number;
+  remaining?: number;
+};
 
 function errToText(e: unknown): string {
-  if (e instanceof Error) {
-    if (e.message === "student_limit_reached") {
-      return "This teacher has reached the student limit for the current plan.";
-    }
-    return e.message;
-  }
-
-  if (typeof e === "string") {
-    if (e === "student_limit_reached") {
-      return "This teacher has reached the student limit for the current plan.";
-    }
-    return e;
-  }
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
 
   if (e && typeof e === "object") {
-    const maybe = e as { code?: unknown; message?: unknown };
-    const code = typeof maybe.code === "string" ? maybe.code : "";
-    const msg = typeof maybe.message === "string" ? maybe.message : "";
-
-    if (msg === "student_limit_reached") {
-      return "This teacher has reached the student limit for the current plan.";
+    const maybe = e as { message?: unknown };
+    if (typeof maybe.message === "string" && maybe.message.trim()) {
+      return maybe.message;
     }
-
-    return code && msg ? `${code}: ${msg}` : msg || JSON.stringify(e);
+    return JSON.stringify(e);
   }
 
   return String(e);
@@ -109,30 +68,33 @@ function cleanName(raw: string): string {
   return raw.replace(/\s+/g, " ").trim();
 }
 
-function safeRole(role?: string): AppRole {
-  if (role === "teacher") return "teacher";
-  if (role === "student") return "student";
-  if (role === "parent") return "parent";
-  if (role === "creator") return "creator";
-  if (role === "admin") return "admin";
-  return "teacher";
-}
+function mapApiError(data: JoinApiError, fallback: string): string {
+  if (data.error === "student_limit_reached") {
+    const used = typeof data.used === "number" ? data.used : null;
+    const limit = typeof data.limit === "number" ? data.limit : null;
 
-function safePlan(plan?: string): PlanKey {
-  if (plan === "basic") return "basic";
-  if (plan === "plus") return "plus";
-  if (plan === "pro") return "pro";
-  return "free";
+    if (used !== null && limit !== null) {
+      return `Teacher limit reached (${used}/${limit} students).`;
+    }
+
+    return "This teacher has reached the student limit for the current plan.";
+  }
+
+  if (typeof data.error === "string" && data.error.trim()) {
+    return data.error;
+  }
+
+  return fallback;
 }
 
 export default function JoinClient() {
   const t = useTranslations("join");
   const locale = useLocale();
-
   const sp = useSearchParams();
   const router = useRouter();
 
   const initialCode = useMemo(() => (sp.get("code") ?? "").trim(), [sp]);
+
   const [code, setCode] = useState(initialCode);
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -145,6 +107,7 @@ export default function JoinClient() {
     const name = cleanName(displayName);
 
     if (!c) return;
+
     if (!name) {
       setErr(t("errors.nameRequired"));
       return;
@@ -154,54 +117,46 @@ export default function JoinClient() {
     setErr(null);
 
     try {
-      const dbx = requireDb(db);
-
-      const spaceDoc = await findSpaceByCode(dbx, c);
-      if (!spaceDoc) {
-        setErr(t("errors.spaceNotFound"));
-        return;
-      }
-
-      const spaceId = spaceDoc.id;
-      const teacherUid = getTeacherUidFromSpaceData(spaceDoc.data());
-
+      console.log("JOIN API step 1: ensure anonymous user");
       await ensureAnonymousUser();
+
+      console.log("JOIN API step 2: wait for auth user");
       const u = await waitForUser();
 
-      const alreadyMember = await isUserAlreadyStudentInSpace({
-        db: dbx,
-        spaceId,
-        uid: u.uid,
+      console.log("JOIN API step 3: get id token");
+      const token = await u.getIdToken();
+
+      console.log("JOIN API step 4: call /api/spaces/join");
+      const res = await fetch("/api/spaces/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          code: c,
+          displayName: name,
+        }),
       });
 
-      if (!alreadyMember && teacherUid) {
-        const teacherSnap = await getDoc(doc(dbx, "users", teacherUid));
-        const teacherData = teacherSnap.exists()
-          ? (teacherSnap.data() as { role?: string; plan?: string })
-          : null;
+      const data = (await res.json().catch(() => ({}))) as JoinApiSuccess | JoinApiError;
 
-        const teacherRole = safeRole(teacherData?.role);
-        const teacherPlan = safePlan(teacherData?.plan);
-
-        const memberStatus = await canTeacherAddStudent({
-          db: dbx,
-          teacherUid,
-          role: teacherRole,
-          plan: teacherPlan,
-        });
-
-        if (!memberStatus.allowed) {
-          throw new Error("student_limit_reached");
-        }
+      if (!res.ok) {
+        throw new Error(mapApiError(data as JoinApiError, "Could not join space."));
       }
 
-      await ensureSpaceMember(dbx, spaceId, u.uid, "student", {
-        code: c,
-        isAnon: Boolean(u.isAnonymous),
-        displayName: name,
+      const okData = data as JoinApiSuccess;
+
+      if (!okData.spaceId) {
+        throw new Error("Join succeeded, but no spaceId was returned.");
+      }
+
+      console.log("JOIN API step 5 OK", {
+        spaceId: okData.spaceId,
+        alreadyMember: okData.alreadyMember,
       });
 
-      router.push(`/${locale}/student/spaces/${spaceId}`);
+      router.push(`/${locale}/student/spaces/${okData.spaceId}`);
     } catch (e2: unknown) {
       console.error("JOIN FAILED", e2);
       setErr(errToText(e2));

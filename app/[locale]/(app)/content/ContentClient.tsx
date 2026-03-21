@@ -224,6 +224,10 @@ function isDeletedItem(it: ContentItem): boolean {
   return !!getDeletedAt(it);
 }
 
+function isReadingTestLesson(it: ContentItem) {
+  return it.type === "lesson" && (it.meta ?? []).includes("reading_test");
+}
+
 type LoadMyContentArgs = {
   db: typeof db;
   uid: string | null;
@@ -242,6 +246,7 @@ export default function ContentClient() {
   const role: AppRole = isAnon ? "student" : (profile?.role as AppRole) || "student";
   const isTeacher = role === "teacher";
   const isParent = role === "parent";
+  const isStudent = role === "student";
 
   const contentMode: "student" | "teacher" = isTeacher ? "teacher" : "student";
   const isTeacherApproved = isTeacher;
@@ -291,9 +296,23 @@ export default function ContentClient() {
     return `/${locale}${noLocale}`;
   }
 
+  function readingTestPlayHref(lessonId: string) {
+    return `/${locale}/reading-tests/${lessonId}`;
+  }
+
   function lessonOpenHref(it: Extract<ContentItem, { type: "lesson" }>) {
+    if (isReadingTestLesson(it)) {
+      return readingTestPlayHref(it.id);
+    }
     const pid = it.activePublishedId || it.id;
     return `/${locale}/student/lesson/${pid}`;
+  }
+
+  function lessonEditHref(it: Extract<ContentItem, { type: "lesson" }>) {
+    if (isReadingTestLesson(it)) {
+      return `/${locale}/producer/reading-tests/${it.id}`;
+    }
+    return `/${locale}/producer/${it.id}`;
   }
 
   function spaceBoardHref(spaceId: string) {
@@ -549,6 +568,12 @@ export default function ContentClient() {
   }
 
   async function openShareForLesson(it: Extract<ContentItem, { type: "lesson" }>) {
+    if (isReadingTestLesson(it)) {
+      const url = `${getOrigin()}/${locale}/reading-tests/${it.id}`;
+      await openShareModal(titleForCard(it), url);
+      return;
+    }
+
     let pid = it.activePublishedId || it.id;
 
     if (!it.activePublishedId) {
@@ -754,6 +779,7 @@ export default function ContentClient() {
     const filteredMeta = meta.filter((m) => {
       if (typeof m !== "string") return false;
       if (hasLessonTitle && m.startsWith("lesson:")) return false;
+      if (m === "reading_test") return false;
       return true;
     });
     return filteredMeta.join(" · ");
@@ -845,15 +871,17 @@ export default function ContentClient() {
     const status = (ls.status ?? "draft") as LessonStatus;
     const isPublished = status === "published";
     const isDeleted = isDeletedItem(ls);
+    const isReadingTest = isReadingTestLesson(ls);
 
-    const canPublish = isTeacherApproved && !isDeleted;
-    const canDelete = (isTeacher || isParent) && !busy;
+    const canPublish = isTeacherApproved && !isDeleted && !isReadingTest;
+    const canDelete = (isTeacher || isParent || isStudent) && !busy;
     const canShareToSpace = mySpaces.length > 0 && (isTeacher || isParent) && !isDeleted;
-    const canEdit = isTeacher && !isDeleted;
-    const canSharePublic = isTeacher && isPublished && !isDeleted;
-    const canPdf = isTeacher && !isDeleted;
+    const canEdit = (isTeacher || isParent || isStudent) && !isDeleted;
+    const canShareReadingTest = !isDeleted && isReadingTest && (isTeacher || isParent || isStudent);
+    const canSharePublic = isTeacher && isPublished && !isDeleted && !isReadingTest;
+    const canPdf = isTeacher && !isDeleted && !isReadingTest;
 
-    const editHref = `/${locale}/producer/${ls.id}`;
+    const editHref = lessonEditHref(ls);
     const pdfHref = `/${locale}/producer/${ls.id}/print`;
 
     const restoreAction: ActionItem[] =
@@ -871,34 +899,47 @@ export default function ContentClient() {
     return [
       ...restoreAction,
       { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(ls)) },
-      ...(isTeacher
+
+      ...(canEdit
         ? [
             {
               key: "edit",
               label: t("actions.edit"),
-              disabled: busy || !canEdit,
+              disabled: busy,
               onClick: () => router.push(editHref),
             },
+          ]
+        : []),
+
+      ...(isTeacher
+        ? [
             {
               key: isPublished ? "unpublish" : "publish",
               label: busy ? t("actions.working") : isPublished ? t("actions.unpublish") : t("actions.publish"),
               disabled: busy || !canPublish,
               onClick: () => setPublished(ls.id, !isPublished),
             },
+          ]
+        : []),
+
+      ...((canSharePublic || canShareReadingTest)
+        ? [
             {
               key: "share",
               label: t("actions.share"),
-              disabled: busy || !canSharePublic,
+              disabled: busy,
               onClick: () => openShareForLesson(ls),
             },
           ]
         : []),
+
       {
         key: "shareToSpace",
         label: t("actions.shareToSpace"),
         disabled: busy || !canShareToSpace,
         onClick: () => openPickSpace(ls.id, titleForCard(ls)),
       },
+
       ...(isTeacher
         ? [
             {
@@ -909,6 +950,7 @@ export default function ContentClient() {
             },
           ]
         : []),
+
       {
         key: "delete",
         label: t("actions.delete"),
@@ -1163,7 +1205,11 @@ export default function ContentClient() {
                   if (isDeletedItem(it)) {
                     pill = <StatusPill label={deletedLabel} variant="amber" />;
                   } else if (it.type === "lesson") {
-                    if (isParent) {
+                    if (isReadingTestLesson(it)) {
+                      pill = locale === "en"
+                        ? <StatusPill label="Reading test" variant="gray" />
+                        : <StatusPill label="Lesetest" variant="gray" />;
+                    } else if (isParent) {
                       pill = <StatusPill label="Klar til å dele" variant="green" />;
                     } else {
                       const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
@@ -1189,14 +1235,14 @@ export default function ContentClient() {
                       <div className="flex min-w-0 max-w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0 max-w-full flex-1">
                           <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
-  <div className="min-w-0 max-w-full break-words text-base font-black leading-tight">
-    {title}
-  </div>
+                            <div className="min-w-0 max-w-full break-words text-base font-black leading-tight">
+                              {title}
+                            </div>
 
-  {pill}
+                            {pill}
 
-  {extraPill}
-</div>
+                            {extraPill}
+                          </div>
 
                           <div className="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs opacity-75">
                             {it.updatedAt ? <span>{fmtDate(it.updatedAt, locale)}</span> : null}

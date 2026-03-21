@@ -32,6 +32,7 @@ type PublishedLesson = {
   language?: string;
   textType?: string;
   texttype?: string;
+  lessonType?: string;
   topics?: string[];
   topic?: string;
   isActive?: boolean;
@@ -44,6 +45,9 @@ type PublishedLesson = {
   ratingAverage?: number;
   ratingCount?: number;
   ratingSum?: number;
+  publishVisibility?: string;
+  visibility?: string;
+  showInLibrary?: boolean;
 };
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
@@ -86,6 +90,10 @@ function toNumberSafe(v: unknown): number | undefined {
   return typeof v === "number" && Number.isFinite(v) ? v : undefined;
 }
 
+function toBooleanSafe(v: unknown): boolean | undefined {
+  return typeof v === "boolean" ? v : undefined;
+}
+
 function coerceTextType(l: PublishedLesson): string {
   const tt1 = String(l.textType ?? "").trim();
   if (tt1) return tt1;
@@ -94,6 +102,21 @@ function coerceTextType(l: PublishedLesson): string {
   if (tt2) return tt2;
 
   return "";
+}
+
+function shouldShowInLibrary(l: PublishedLesson): boolean {
+  const lessonType = String(l.lessonType || "").trim().toLowerCase();
+  if (lessonType === "reading_test") return false;
+
+  const publishVisibility = String(l.publishVisibility || "").trim().toLowerCase();
+  if (publishVisibility === "private") return false;
+
+  const visibility = String(l.visibility || "").trim().toLowerCase();
+  if (visibility === "private") return false;
+
+  if (l.showInLibrary === false) return false;
+
+  return true;
 }
 
 function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson {
@@ -116,6 +139,7 @@ function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson 
     language: toStringSafe(obj.language) || undefined,
     textType: toStringSafe(obj.textType) || undefined,
     texttype: toStringSafe(obj.texttype) || undefined,
+    lessonType: toStringSafe(obj.lessonType) || undefined,
     topics: Array.isArray(obj.topics)
       ? obj.topics.filter((x) => typeof x === "string")
       : undefined,
@@ -133,6 +157,9 @@ function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson 
     ratingAverage: toNumberSafe(obj.ratingAverage),
     ratingCount: toNumberSafe(obj.ratingCount),
     ratingSum: toNumberSafe(obj.ratingSum),
+    publishVisibility: toStringSafe(obj.publishVisibility) || undefined,
+    visibility: toStringSafe(obj.visibility) || undefined,
+    showInLibrary: toBooleanSafe(obj.showInLibrary),
   };
 }
 
@@ -308,9 +335,9 @@ export default function LessonsLandingPage() {
     const unsub = onSnapshot(
       qy,
       (snap) => {
-        const rows: PublishedLesson[] = snap.docs.map((d) =>
-          coercePublishedLesson(d.id, d.data())
-        );
+        const rows: PublishedLesson[] = snap.docs
+          .map((d) => coercePublishedLesson(d.id, d.data()))
+          .filter((lesson) => shouldShowInLibrary(lesson));
 
         rows.sort((a, b) => {
           const at = a.publishedAt?.seconds ?? a.updatedAt?.seconds ?? 0;

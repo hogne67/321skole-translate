@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getAuth } from "firebase/auth";
 import { collection, getDocs, orderBy, query, where, type DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -46,10 +46,10 @@ function formatMaybeDate(v: unknown) {
       isRecord(v) && typeof v.toDate === "function" && v.toDate() instanceof Date
         ? (v.toDate() as Date)
         : v instanceof Date
-        ? v
-        : typeof v === "number"
-        ? new Date(v)
-        : null;
+          ? v
+          : typeof v === "number"
+            ? new Date(v)
+            : null;
 
     if (!d) return "—";
     return d.toLocaleString("no-NO");
@@ -179,7 +179,7 @@ export default function AdminTrashPage() {
     return u.uid;
   }
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
     setMsg(null);
@@ -202,7 +202,7 @@ export default function AdminTrashPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   async function restore(lessonId: string) {
     setBusy(lessonId, true);
@@ -244,8 +244,8 @@ export default function AdminTrashPage() {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    void load();
+  }, [load]);
 
   const filtered = useMemo(() => {
     const n = qText.trim().toLowerCase();
@@ -288,7 +288,7 @@ export default function AdminTrashPage() {
           </div>
 
           <button
-            onClick={load}
+            onClick={() => void load()}
             disabled={loading}
             style={{
               padding: "10px 14px",
@@ -432,7 +432,7 @@ export default function AdminTrashPage() {
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                   <button
-                    onClick={() => restore(l.id)}
+                    onClick={() => void restore(l.id)}
                     disabled={busy}
                     style={{
                       padding: "10px 14px",
@@ -449,7 +449,7 @@ export default function AdminTrashPage() {
                   </button>
 
                   <button
-                    onClick={() => permanentDelete(l.id, l.title)}
+                    onClick={() => void permanentDelete(l.id, l.title)}
                     disabled={busy}
                     style={{
                       padding: "10px 14px",

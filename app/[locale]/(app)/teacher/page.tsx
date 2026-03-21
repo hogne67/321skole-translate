@@ -101,6 +101,37 @@ function getProgressTone(used: number, limit: number): {
   };
 }
 
+function getRemaining(used: number, limit: number): number {
+  return Math.max(0, limit - used);
+}
+
+function getStudentCapacityMessage(used: number, limit: number): string {
+  const remaining = getRemaining(used, limit);
+
+  if (limit <= 0) {
+    return "Student capacity is unavailable for your current plan.";
+  }
+
+  if (remaining <= 0) {
+    return "You have reached your student limit. New students cannot join until you upgrade or remove inactive students.";
+  }
+
+  if (remaining === 1) {
+    return "You have 1 student place left.";
+  }
+
+  if (remaining <= 3) {
+    return `You have only ${remaining} student places left.`;
+  }
+
+  return `You have ${remaining} student places available.`;
+}
+
+function shouldShowUpgradeCta(used: number, limit: number): boolean {
+  if (limit <= 0) return true;
+  return used >= Math.max(1, limit - 3);
+}
+
 type StatCardProps = {
   title: string;
   used: number;
@@ -392,6 +423,9 @@ export default function TeacherPage() {
   const studentsLimit = getBucketLimit(role, plan, "members");
   const studentsPercent = percent(studentsUsed, studentsLimit);
   const studentsTone = getProgressTone(studentsUsed, studentsLimit);
+  const studentsRemaining = getRemaining(studentsUsed, studentsLimit);
+  const studentCapacityMessage = getStudentCapacityMessage(studentsUsed, studentsLimit);
+  const showUpgradeCta = shouldShowUpgradeCta(studentsUsed, studentsLimit);
 
   return (
     <main style={{ maxWidth: 980, margin: "10px auto", padding: 10 }}>
@@ -552,6 +586,66 @@ export default function TeacherPage() {
 
               <div style={{ marginTop: 10, fontSize: 12, color: "#64748b" }}>
                 {studentsPercent}% of your student capacity is in use
+              </div>
+
+              <div
+                style={{
+                  marginTop: 12,
+                  border: `1px solid ${
+                    studentsRemaining <= 0
+                      ? "#fecaca"
+                      : studentsRemaining <= 3
+                      ? "#fde68a"
+                      : "#bfdbfe"
+                  }`,
+                  background:
+                    studentsRemaining <= 0
+                      ? "#fef2f2"
+                      : studentsRemaining <= 3
+                      ? "#fffbeb"
+                      : "#f8fbff",
+                  color:
+                    studentsRemaining <= 0
+                      ? "#b91c1c"
+                      : studentsRemaining <= 3
+                      ? "#92400e"
+                      : "#1e3a8a",
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>{studentCapacityMessage}</div>
+
+                {studentsRemaining <= 0 && (
+                  <div style={{ marginTop: 6, fontSize: 13 }}>
+                    New students are currently blocked from joining your spaces.
+                  </div>
+                )}
+
+                {showUpgradeCta && (
+                  <div style={{ marginTop: 10 }}>
+                    <Link
+                      href={withLocale(locale, "/pricing")}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 12,
+                        padding: "10px 14px",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        textDecoration: "none",
+                        background: studentsRemaining <= 0 ? "#dc2626" : "#2563eb",
+                        color: "#ffffff",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                      }}
+                    >
+                      Upgrade for more students
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>

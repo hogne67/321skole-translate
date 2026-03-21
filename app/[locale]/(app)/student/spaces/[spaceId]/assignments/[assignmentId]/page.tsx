@@ -1,4 +1,3 @@
-// app\[locale]\(app)\student\spaces\[spaceId]\assignments\[assignmentId]\page.tsx
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -80,7 +79,14 @@ type TranslatedTask = {
 
 type TtsLang = "no" | "en" | "pt-BR";
 
-type SubmissionStatus = "draft" | "submitted" | "needs_work" | "reviewed" | "approved" | "rejected" | string;
+type SubmissionStatus =
+  | "draft"
+  | "submitted"
+  | "needs_work"
+  | "reviewed"
+  | "approved"
+  | "rejected"
+  | string;
 
 type TeacherFeedback = {
   text?: string;
@@ -442,7 +448,12 @@ function segmentSentences(fullText: string): { clean: string; segs: SentenceSeg[
 }
 
 function hasToDate(v: unknown): v is { toDate: () => Date } {
-  return typeof v === "object" && v !== null && "toDate" in v && typeof (v as { toDate?: unknown }).toDate === "function";
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "toDate" in v &&
+    typeof (v as { toDate?: unknown }).toDate === "function"
+  );
 }
 
 function toDateString(v: unknown) {
@@ -475,7 +486,8 @@ function normalizeStatus(s: unknown): SubmissionStatus {
 function statusTheme(s: SubmissionStatus): { border: string; bg: string } {
   const v = normalizeStatus(s);
   if (v === "needs_work") return { border: "rgba(245,158,11,0.45)", bg: "rgba(245,158,11,0.10)" };
-  if (v === "reviewed" || v === "approved") return { border: "rgba(46,204,113,0.45)", bg: "rgba(46,204,113,0.10)" };
+  if (v === "reviewed" || v === "approved")
+    return { border: "rgba(46,204,113,0.45)", bg: "rgba(46,204,113,0.10)" };
   if (v === "draft") return { border: "rgba(99,102,241,0.45)", bg: "rgba(99,102,241,0.08)" };
   return { border: "rgba(0,0,0,0.14)", bg: "rgba(0,0,0,0.02)" };
 }
@@ -485,6 +497,33 @@ function formatSeconds(totalSeconds: number): string {
   const mins = Math.floor(secs / 60);
   const rest = secs % 60;
   return `${String(mins).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+}
+
+function stripUndefinedDeep<T>(value: T): T {
+  if (value === null) return value;
+  if (value === undefined) return value;
+
+  if (Array.isArray(value)) return value.map((v) => stripUndefinedDeep(v)) as unknown as T;
+
+  if (typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v === undefined) continue;
+      out[k] = stripUndefinedDeep(v);
+    }
+    return out as T;
+  }
+  return value;
+}
+
+function buildSubmissionId(
+  spaceId: string | undefined,
+  assignmentId: string | undefined,
+  currentUid: string,
+  editingSubmissionId: string | null
+) {
+  if (editingSubmissionId) return editingSubmissionId;
+  return `${spaceId}_${assignmentId}_${currentUid}`;
 }
 
 /* =========================
@@ -504,10 +543,10 @@ function Badge({
     kind === "good"
       ? { bg: "rgba(16,185,129,0.16)", bd: "rgba(16,185,129,0.45)", tx: "rgba(5,150,105,1)" }
       : kind === "bad"
-      ? { bg: "rgba(231,76,60,0.14)", bd: "rgba(231,76,60,0.40)", tx: "rgba(180,40,30,1)" }
-      : kind === "warn"
-      ? { bg: "rgba(245,158,11,0.16)", bd: "rgba(245,158,11,0.45)", tx: "rgba(180,83,9,1)" }
-      : { bg: "rgba(0,0,0,0.04)", bd: "rgba(0,0,0,0.14)", tx: "rgba(0,0,0,0.75)" };
+        ? { bg: "rgba(231,76,60,0.14)", bd: "rgba(231,76,60,0.40)", tx: "rgba(180,40,30,1)" }
+        : kind === "warn"
+          ? { bg: "rgba(245,158,11,0.16)", bd: "rgba(245,158,11,0.45)", tx: "rgba(180,83,9,1)" }
+          : { bg: "rgba(0,0,0,0.04)", bd: "rgba(0,0,0,0.14)", tx: "rgba(0,0,0,0.75)" };
 
   return (
     <span
@@ -685,11 +724,7 @@ export default function StudentAssignmentPage() {
 
     return tasksOriginal.some((task) => {
       const type = String(task?.type ?? "").trim().toLowerCase();
-      return (
-        type === "word_choice" ||
-        type === "sentence_placement" ||
-        type === "best_summary"
-      );
+      return type === "word_choice" || type === "sentence_placement" || type === "best_summary";
     });
   }, [lesson?.lessonType, tasksOriginal]);
 
@@ -722,9 +757,10 @@ export default function StudentAssignmentPage() {
     const cfg = lesson?.readingTestConfig;
     if (!cfg?.timerEnabled) return null;
 
-    const raw = typeof cfg.timerSeconds === "number" && Number.isFinite(cfg.timerSeconds)
-      ? Math.floor(cfg.timerSeconds)
-      : 300;
+    const raw =
+      typeof cfg.timerSeconds === "number" && Number.isFinite(cfg.timerSeconds)
+        ? Math.floor(cfg.timerSeconds)
+        : 300;
 
     return Math.max(10, raw);
   }, [lesson?.readingTestConfig]);
@@ -1357,11 +1393,6 @@ export default function StudentAssignmentPage() {
     }
   }
 
-  function buildSubmissionId(currentUid: string) {
-    if (editingSubmissionId) return editingSubmissionId;
-    return `${spaceId}_${assignmentId}_${currentUid}`;
-  }
-
   function statusLabel(s: SubmissionStatus) {
     const v = normalizeStatus(s);
     if (v === "draft") return "Kladd";
@@ -1380,100 +1411,86 @@ export default function StudentAssignmentPage() {
     return t("statusDesc.generic");
   }
 
-  function stripUndefinedDeep<T>(value: T): T {
-    if (value === null) return value;
-    if (value === undefined) return value;
+  const saveDraft = useCallback(
+    async (manual = false) => {
+      if (!spaceId || !assignmentId || !uid) return;
+      if (submitted) return;
+      if (isLockedByTeacher()) return;
+      if (isReadingTest) return;
 
-    if (Array.isArray(value)) return value.map((v) => stripUndefinedDeep(v)) as unknown as T;
+      setSaving(true);
+      setErr(null);
+      if (manual) setMsg(null);
 
-    if (typeof value === "object") {
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-        if (v === undefined) continue;
-        out[k] = stripUndefinedDeep(v);
+      try {
+        const subId = buildSubmissionId(spaceId, assignmentId, uid, editingSubmissionId);
+
+        const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
+        const indexRef = doc(db, "spaceSubmissions", subId);
+
+        const basePayload: Record<string, unknown> = stripUndefinedDeep({
+          spaceId,
+          assignmentId,
+          sourceType: assignment?.sourceType ?? null,
+          sourceId: assignment?.sourceId ?? null,
+          title: assignment?.title ?? lesson?.title ?? null,
+          level: assignment?.level ?? lesson?.level ?? null,
+          language: assignment?.language ?? lesson?.language ?? null,
+          uid,
+          isAnon,
+          status: "draft",
+          answers,
+          auto: null,
+          startedAt,
+          timeSpentSeconds: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
+          updatedAt: serverTimestamp(),
+          auth: { isAnon, uid },
+        });
+
+        const batch = writeBatch(db);
+
+        if (editingSubmissionId) {
+          batch.set(nestedRef, basePayload, { merge: true });
+          batch.set(indexRef, basePayload, { merge: true });
+        } else {
+          const firstPayload = { ...basePayload, createdAt: serverTimestamp() };
+          batch.set(nestedRef, firstPayload, { merge: true });
+          batch.set(indexRef, firstPayload, { merge: true });
+        }
+
+        await batch.commit();
+
+        setSubmissionId(subId);
+        setLiveStatus("draft");
+        setLiveAuto(null);
+
+        if (manual) setMsg("Kladd lagret.");
+      } catch (e: unknown) {
+        if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
+        else {
+          const m = (e as { message?: unknown })?.message;
+          setErr(typeof m === "string" ? m : t("errors.submitFailed"));
+        }
+      } finally {
+        setSaving(false);
       }
-      return out as T;
-    }
-    return value;
-  }
-
-  const saveDraft = useCallback(async (manual = false) => {
-    if (!spaceId || !assignmentId || !uid) return;
-    if (submitted) return;
-    if (isLockedByTeacher()) return;
-    if (isReadingTest) return;
-
-    setSaving(true);
-    setErr(null);
-    if (manual) setMsg(null);
-
-    try {
-      const subId = buildSubmissionId(uid);
-
-      const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
-      const indexRef = doc(db, "spaceSubmissions", subId);
-
-      const basePayload: Record<string, unknown> = stripUndefinedDeep({
-        spaceId,
-        assignmentId,
-        sourceType: assignment?.sourceType ?? null,
-        sourceId: assignment?.sourceId ?? null,
-        title: assignment?.title ?? lesson?.title ?? null,
-        level: assignment?.level ?? lesson?.level ?? null,
-        language: assignment?.language ?? lesson?.language ?? null,
-        uid,
-        isAnon,
-        status: "draft",
-        answers,
-        auto: null,
-        startedAt,
-        timeSpentSeconds: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
-        updatedAt: serverTimestamp(),
-        auth: { isAnon, uid },
-      });
-
-      const batch = writeBatch(db);
-
-      if (editingSubmissionId) {
-        batch.set(nestedRef, basePayload, { merge: true });
-        batch.set(indexRef, basePayload, { merge: true });
-      } else {
-        const firstPayload = { ...basePayload, createdAt: serverTimestamp() };
-        batch.set(nestedRef, firstPayload, { merge: true });
-        batch.set(indexRef, firstPayload, { merge: true });
-      }
-
-      await batch.commit();
-
-      setSubmissionId(subId);
-      setLiveStatus("draft");
-      setLiveAuto(null);
-
-      if (manual) setMsg("Kladd lagret.");
-    } catch (e: unknown) {
-      if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
-      else {
-        const m = (e as { message?: unknown })?.message;
-        setErr(typeof m === "string" ? m : t("errors.submitFailed"));
-      }
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    spaceId,
-    assignmentId,
-    uid,
-    submitted,
-    isLockedByTeacher,
-    isReadingTest,
-    assignment,
-    lesson,
-    isAnon,
-    answers,
-    startedAt,
-    editingSubmissionId,
-    t,
-  ]);
+    },
+    [
+      spaceId,
+      assignmentId,
+      uid,
+      submitted,
+      isLockedByTeacher,
+      isReadingTest,
+      assignment,
+      lesson,
+      isAnon,
+      answers,
+      startedAt,
+      editingSubmissionId,
+      t,
+    ]
+  );
 
   const lastAutoSaveRef = useRef<number>(0);
 
@@ -1495,120 +1512,120 @@ export default function StudentAssignmentPage() {
     return () => window.clearTimeout(timer);
   }, [answers, uid, spaceId, assignmentId, submitted, isReadingTest, isLockedByTeacher, saveDraft]);
 
-  const submitToSpace = useCallback(async (
-    mode: "manual" | "timeout" = "manual",
-    explicitAnswers?: AnswersMap
-  ) => {
-    if (!spaceId || !assignmentId || !uid) return;
-    if (submitted) return;
+  const submitToSpace = useCallback(
+    async (mode: "manual" | "timeout" = "manual", explicitAnswers?: AnswersMap) => {
+      if (!spaceId || !assignmentId || !uid) return;
+      if (submitted) return;
 
-    if ((sid || editingSubmissionId) && editingSubmissionId == null) {
+      if ((sid || editingSubmissionId) && editingSubmissionId == null) {
+        setErr(null);
+        setMsg(t("messages.lockedNoChanges"));
+        return;
+      }
+
+      if (isLockedByTeacher()) {
+        setErr(null);
+        setMsg(t("messages.lockedNoChanges"));
+        return;
+      }
+
+      setSaving(true);
       setErr(null);
-      setMsg(t("messages.lockedNoChanges"));
-      return;
-    }
+      setMsg(null);
 
-    if (isLockedByTeacher()) {
-      setErr(null);
-      setMsg(t("messages.lockedNoChanges"));
-      return;
-    }
+      try {
+        const finalAnswers = explicitAnswers ?? answersRef.current;
+        const subId = buildSubmissionId(spaceId, assignmentId, uid, editingSubmissionId);
 
-    setSaving(true);
-    setErr(null);
-    setMsg(null);
+        const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
+        const indexRef = doc(db, "spaceSubmissions", subId);
 
-    try {
-      const finalAnswers = explicitAnswers ?? answersRef.current;
-      const subId = buildSubmissionId(uid);
+        const auto = computeAutoGrade(tasksOriginal, finalAnswers);
+        const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
 
-      const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
-      const indexRef = doc(db, "spaceSubmissions", subId);
+        const basePayload: Record<string, unknown> = stripUndefinedDeep({
+          spaceId,
+          assignmentId,
+          sourceType: assignment?.sourceType ?? null,
+          sourceId: assignment?.sourceId ?? null,
+          title: assignment?.title ?? lesson?.title ?? null,
+          level: assignment?.level ?? lesson?.level ?? null,
+          language: assignment?.language ?? lesson?.language ?? null,
+          uid,
+          isAnon,
+          status: "submitted",
+          answers: finalAnswers,
+          auto,
 
-      const auto = computeAutoGrade(tasksOriginal, finalAnswers);
-      const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+          startedAt,
+          submittedAt: Date.now(),
+          timeSpentSeconds: elapsedSeconds,
 
-      const basePayload: Record<string, unknown> = stripUndefinedDeep({
-        spaceId,
-        assignmentId,
-        sourceType: assignment?.sourceType ?? null,
-        sourceId: assignment?.sourceId ?? null,
-        title: assignment?.title ?? lesson?.title ?? null,
-        level: assignment?.level ?? lesson?.level ?? null,
-        language: assignment?.language ?? lesson?.language ?? null,
-        uid,
-        isAnon,
-        status: "submitted",
-        answers: finalAnswers,
-        auto,
+          readingTestTimeLimitSeconds: isReadingTest ? readingTestTotalSeconds : null,
+          readingTestTimeUsedSeconds: isReadingTest ? elapsedSeconds : null,
+          readingTestTimedOut: isReadingTest ? mode === "timeout" : false,
+          readingTestSubmittedManually: isReadingTest ? mode === "manual" : false,
 
-        startedAt,
-        submittedAt: Date.now(),
-        timeSpentSeconds: elapsedSeconds,
+          updatedAt: serverTimestamp(),
+          auth: { isAnon, uid },
+        });
 
-        readingTestTimeLimitSeconds: isReadingTest ? readingTestTotalSeconds : null,
-        readingTestTimeUsedSeconds: isReadingTest ? elapsedSeconds : null,
-        readingTestTimedOut: isReadingTest ? mode === "timeout" : false,
-        readingTestSubmittedManually: isReadingTest ? mode === "manual" : false,
+        const batch = writeBatch(db);
 
-        updatedAt: serverTimestamp(),
-        auth: { isAnon, uid },
-      });
+        if (editingSubmissionId) {
+          batch.set(nestedRef, basePayload, { merge: true });
+          batch.set(indexRef, basePayload, { merge: true });
+        } else {
+          const firstPayload = { ...basePayload, createdAt: serverTimestamp() };
+          batch.set(nestedRef, firstPayload, { merge: true });
+          batch.set(indexRef, firstPayload, { merge: true });
+        }
 
-      const batch = writeBatch(db);
+        await batch.commit();
 
-      if (editingSubmissionId) {
-        batch.set(nestedRef, basePayload, { merge: true });
-        batch.set(indexRef, basePayload, { merge: true });
-      } else {
-        const firstPayload = { ...basePayload, createdAt: serverTimestamp() };
-        batch.set(nestedRef, firstPayload, { merge: true });
-        batch.set(indexRef, firstPayload, { merge: true });
+        setSubmissionId(subId);
+        setSubmitted(true);
+        setReadingTestFinished(true);
+        setReadingTestRuntimeActive(false);
+        setReadingTestSecondsLeft((prev) => (mode === "timeout" ? 0 : prev));
+        setLiveStatus("submitted");
+        setLiveAuto(auto);
+
+        if (mode === "timeout") {
+          setMsg("Takk for innsatsen. Tiden er ute, og læreren har mottatt svaret ditt.");
+        } else {
+          setMsg(editingSubmissionId ? t("messages.resubmitted") : t("messages.submitted"));
+        }
+      } catch (e: unknown) {
+        if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
+        else {
+          const m = (e as { message?: unknown })?.message;
+          setErr(typeof m === "string" ? m : t("errors.submitFailed"));
+        }
+        setSubmitted(false);
+        setSubmissionId(null);
+      } finally {
+        setSaving(false);
       }
-
-      await batch.commit();
-
-      setSubmissionId(subId);
-      setSubmitted(true);
-      setReadingTestFinished(true);
-      setReadingTestRuntimeActive(false);
-      setReadingTestSecondsLeft((prev) => (mode === "timeout" ? 0 : prev));
-      setLiveStatus("submitted");
-      setLiveAuto(auto);
-
-      if (mode === "timeout") {
-        setMsg("Takk for innsatsen. Tiden er ute, og læreren har mottatt svaret ditt.");
-      } else {
-        setMsg(editingSubmissionId ? t("messages.resubmitted") : t("messages.submitted"));
-      }
-    } catch (e: unknown) {
-      if (isPermissionDenied(e)) setErr(t("errors.permissionDenied"));
-      else {
-        const m = (e as { message?: unknown })?.message;
-        setErr(typeof m === "string" ? m : t("errors.submitFailed"));
-      }
-      setSubmitted(false);
-      setSubmissionId(null);
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    spaceId,
-    assignmentId,
-    uid,
-    submitted,
-    sid,
-    editingSubmissionId,
-    assignment,
-    lesson,
-    isAnon,
-    tasksOriginal,
-    startedAt,
-    isReadingTest,
-    readingTestTotalSeconds,
-    t,
-    isLockedByTeacher,
-  ]);
+    },
+    [
+      spaceId,
+      assignmentId,
+      uid,
+      submitted,
+      sid,
+      editingSubmissionId,
+      assignment,
+      lesson,
+      isAnon,
+      tasksOriginal,
+      startedAt,
+      isReadingTest,
+      readingTestTotalSeconds,
+      t,
+      isLockedByTeacher,
+    ]
+  );
 
   useEffect(() => {
     if (!isReadingTest) return;
@@ -1622,7 +1639,14 @@ export default function StudentAssignmentPage() {
     setReadingTestRuntimeActive(false);
     setReadingTestFinished(true);
     void submitToSpace("timeout", answersRef.current);
-  }, [isReadingTest, readingTestStarted, readingTestRuntimeActive, submitted, readingTestSecondsLeft, submitToSpace]);
+  }, [
+    isReadingTest,
+    readingTestStarted,
+    readingTestRuntimeActive,
+    submitted,
+    readingTestSecondsLeft,
+    submitToSpace,
+  ]);
 
   const renderFollowText = (mode: "original" | "translation", segs: SentenceSeg[], fallbackText: string) => {
     if (!fallbackText.trim()) return <span style={{ opacity: 0.6 }}>{t("text.noText")}</span>;
@@ -1775,7 +1799,9 @@ export default function StudentAssignmentPage() {
                 style={{
                   ...btnStyle,
                   background: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.14)" : "white",
-                  borderColor: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
+                  borderColor: isTrueSelected(stableId, true)
+                    ? "rgba(16,185,129,0.55)"
+                    : "rgba(0,0,0,0.16)",
                   fontWeight: isTrueSelected(stableId, true) ? 900 : 700,
                   opacity: locked ? 0.7 : 1,
                 }}
@@ -1789,7 +1815,9 @@ export default function StudentAssignmentPage() {
                 style={{
                   ...btnStyle,
                   background: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.14)" : "white",
-                  borderColor: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.55)" : "rgba(0,0,0,0.16)",
+                  borderColor: isTrueSelected(stableId, false)
+                    ? "rgba(16,185,129,0.55)"
+                    : "rgba(0,0,0,0.16)",
                   fontWeight: isTrueSelected(stableId, false) ? 900 : 700,
                   opacity: locked ? 0.7 : 1,
                 }}
@@ -1852,9 +1880,7 @@ export default function StudentAssignmentPage() {
   const translationSegs = textFollow.translation.segs;
 
   const showStatusCard = !!(sid || submissionId || editingSubmissionId || liveStatus);
-  const effectiveStatus = normalizeStatus(
-    liveStatus ?? (editingSubmissionId ? "draft" : sid ? "submitted" : "")
-  );
+  const effectiveStatus = normalizeStatus(liveStatus ?? (editingSubmissionId ? "draft" : sid ? "submitted" : ""));
   const theme = statusTheme(effectiveStatus);
   const lock = isLockedByTeacher();
 
@@ -1869,19 +1895,11 @@ export default function StudentAssignmentPage() {
   const canResubmit = currentStatus === "needs_work";
 
   const isAlreadyFinal =
-    currentStatus === "submitted" ||
-    currentStatus === "reviewed" ||
-    currentStatus === "approved";
+    currentStatus === "submitted" || currentStatus === "reviewed" || currentStatus === "approved";
 
-  const showDraftButton =
-    !isReadingTest &&
-    !submitted &&
-    !isAlreadyFinal;
+  const showDraftButton = !isReadingTest && !submitted && !isAlreadyFinal;
 
-  const showSubmitButton =
-    !submitted &&
-    !isAlreadyFinal &&
-    (!isReadingTest || readingTestStarted);
+  const showSubmitButton = !submitted && !isAlreadyFinal && (!isReadingTest || readingTestStarted);
 
   const submitLabel = saving
     ? t("actions.saving")
@@ -1892,11 +1910,7 @@ export default function StudentAssignmentPage() {
         : t("actions.submit");
 
   const submitDisabled =
-    saving ||
-    lock ||
-    !uid ||
-    (isReadingTest && !readingTestStarted) ||
-    readingTestFinished;
+    saving || lock || !uid || (isReadingTest && !readingTestStarted) || readingTestFinished;
 
   function SubmitButton({ fullWidth }: { fullWidth?: boolean }) {
     if (!showSubmitButton) return null;
@@ -1989,7 +2003,9 @@ export default function StudentAssignmentPage() {
         </div>
       </header>
 
-      {translateErr ? <div style={{ marginTop: 10, color: "crimson", whiteSpace: "pre-wrap" }}>{translateErr}</div> : null}
+      {translateErr ? (
+        <div style={{ marginTop: 10, color: "crimson", whiteSpace: "pre-wrap" }}>{translateErr}</div>
+      ) : null}
 
       {imageUrl ? (
         <div
@@ -2015,11 +2031,26 @@ export default function StudentAssignmentPage() {
             padding: 12,
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
               <strong>{t("status.title")}</strong>
-              <Badge text={statusLabel(effectiveStatus)} kind={effectiveStatus === "needs_work" ? "warn" : "neutral"} />
-              <AutoGradeBadge auto={liveAuto} labelAuto={t("autograde.label")} labelDetails={(s) => t("autograde.details", { s })} />
+              <Badge
+                text={statusLabel(effectiveStatus)}
+                kind={effectiveStatus === "needs_work" ? "warn" : "neutral"}
+              />
+              <AutoGradeBadge
+                auto={liveAuto}
+                labelAuto={t("autograde.label")}
+                labelDetails={(s) => t("autograde.details", { s })}
+              />
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2045,12 +2076,16 @@ export default function StudentAssignmentPage() {
               <div style={{ fontWeight: 900 }}>{t("teacherFeedback.title")}</div>
               <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{liveTeacherText}</div>
               {liveTeacherUpdatedAt ? (
-                <div style={{ marginTop: 6, opacity: 0.7 }}>{t("teacherFeedback.updatedAt", { at: liveTeacherUpdatedAt })}</div>
+                <div style={{ marginTop: 6, opacity: 0.7 }}>
+                  {t("teacherFeedback.updatedAt", { at: liveTeacherUpdatedAt })}
+                </div>
               ) : null}
             </div>
           ) : null}
 
-          {liveUpdatedAt ? <div style={{ marginTop: 10, opacity: 0.7 }}>{t("submission.updatedAt", { at: liveUpdatedAt })}</div> : null}
+          {liveUpdatedAt ? (
+            <div style={{ marginTop: 10, opacity: 0.7 }}>{t("submission.updatedAt", { at: liveUpdatedAt })}</div>
+          ) : null}
 
           {lock ? <div style={{ marginTop: 10, fontWeight: 800 }}>{t("messages.lockedByTeacher")}</div> : null}
         </section>
@@ -2058,7 +2093,15 @@ export default function StudentAssignmentPage() {
 
       {!isReadingTest && (
         <section style={{ marginTop: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <h2 style={{ margin: 0, fontSize: 18 }}>{t("text.title")}</h2>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -2068,7 +2111,11 @@ export default function StudentAssignmentPage() {
 
               <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ fontWeight: 800 }}>{t("tts.speed")}</span>
-                <select value={String(playbackRate)} onChange={(e) => setPlaybackRate(Number(e.target.value))} style={{ ...btnStyle, padding: "8px 10px" }}>
+                <select
+                  value={String(playbackRate)}
+                  onChange={(e) => setPlaybackRate(Number(e.target.value))}
+                  style={{ ...btnStyle, padding: "8px 10px" }}
+                >
                   {[0.75, 1.0, 1.25, 1.5].map((r) => (
                     <option key={r} value={String(r)}>
                       {r}x
@@ -2104,7 +2151,15 @@ export default function StudentAssignmentPage() {
           {ttsErr ? <div style={{ marginTop: 8, color: "crimson", whiteSpace: "pre-wrap" }}>{ttsErr}</div> : null}
 
           {audioRef.current ? (
-            <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <div
+              style={{
+                marginTop: 10,
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
               <button type="button" onClick={isPlaying ? pauseAudio : resumeAudio} style={btnStyle}>
                 {isPlaying ? t("tts.pause") : t("tts.resume")}
               </button>
@@ -2118,14 +2173,23 @@ export default function StudentAssignmentPage() {
                 {t("tts.next")}
               </button>
 
-              <div style={{ opacity: 0.75 }}>{t("tts.time", { cur: Math.round(currentTime), dur: Math.round(duration) })}</div>
+              <div style={{ opacity: 0.75 }}>
+                {t("tts.time", { cur: Math.round(currentTime), dur: Math.round(duration) })}
+              </div>
             </div>
           ) : null}
 
           <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
             <div>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.original")}</div>
-              <div style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 12, padding: 12, background: "white" }}>
+              <div
+                style={{
+                  border: "1px solid rgba(0,0,0,0.10)",
+                  borderRadius: 12,
+                  padding: 12,
+                  background: "white",
+                }}
+              >
                 {renderFollowText("original", originalSegs, sourceTextSafe)}
               </div>
             </div>
@@ -2133,7 +2197,14 @@ export default function StudentAssignmentPage() {
             {showTextTranslation ? (
               <div>
                 <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.translation")}</div>
-                <div style={{ border: "1px solid rgba(0,0,0,0.10)", borderRadius: 12, padding: 12, background: "white" }}>
+                <div
+                  style={{
+                    border: "1px solid rgba(0,0,0,0.10)",
+                    borderRadius: 12,
+                    padding: 12,
+                    background: "white",
+                  }}
+                >
                   {renderFollowText("translation", translationSegs, String(translatedText ?? ""))}
                 </div>
               </div>
@@ -2302,7 +2373,18 @@ export default function StudentAssignmentPage() {
       </section>
 
       <section style={{ marginTop: 18 }}>
-        {msg ? <div style={{ marginBottom: 10, padding: 10, borderRadius: 12, background: "rgba(0,0,0,0.04)" }}>{msg}</div> : null}
+        {msg ? (
+          <div
+            style={{
+              marginBottom: 10,
+              padding: 10,
+              borderRadius: 12,
+              background: "rgba(0,0,0,0.04)",
+            }}
+          >
+            {msg}
+          </div>
+        ) : null}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <DraftButton />

@@ -26,6 +26,13 @@ export type ContentItem =
       ownerId?: string;
       activePublishedId?: string | null;
       visibility?: PublishVisibility;
+      publishVisibility?: PublishVisibility;
+      showInLibrary?: boolean;
+      lessonType?: string;
+      textType?: string;
+      texttype?: string;
+      language?: string;
+      level?: string;
       deletedAt?: Date | null;
     }
   | {
@@ -105,6 +112,33 @@ function pickUpdated(d: unknown): Date | null {
   );
 }
 
+function pickLessonType(d: unknown): string | undefined {
+  const x = d as Record<string, unknown> | null;
+  const candidates = [x?.lessonType, x?.lesson_type];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c.trim();
+  }
+  return undefined;
+}
+
+function pickTextType(d: unknown): string | undefined {
+  const x = d as Record<string, unknown> | null;
+  const v = x?.textType;
+  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
+
+function pickTexttype(d: unknown): string | undefined {
+  const x = d as Record<string, unknown> | null;
+  const v = x?.texttype;
+  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
+
+function pickLanguage(d: unknown): string | undefined {
+  const x = d as Record<string, unknown> | null;
+  const v = x?.language || x?.lang;
+  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
+
 function safeMeta(d: unknown): string[] {
   const x = d as Record<string, unknown> | null;
   const out: string[] = [];
@@ -112,10 +146,12 @@ function safeMeta(d: unknown): string[] {
   const level = x?.level || x?.cefr || x?.difficulty;
   const textType = x?.textType || x?.texttype || x?.type;
   const lang = x?.language || x?.lang;
+  const lessonType = x?.lessonType || x?.lesson_type;
 
   if (level) out.push(String(level));
   if (textType) out.push(String(textType));
   if (lang) out.push(String(lang));
+  if (lessonType) out.push(String(lessonType));
 
   return out;
 }
@@ -127,16 +163,39 @@ function pickVisibility(d: unknown): PublishVisibility | undefined {
   return v === "public" || v === "unlisted" || v === "private" ? v : undefined;
 }
 
+function pickPublishVisibility(d: unknown): PublishVisibility | undefined {
+  const x = d as Record<string, unknown> | null;
+  const v = x?.publishVisibility;
+  return v === "public" || v === "unlisted" || v === "private" ? v : undefined;
+}
+
+function pickShowInLibrary(d: unknown): boolean | undefined {
+  const x = d as Record<string, unknown> | null;
+  return typeof x?.showInLibrary === "boolean" ? x.showInLibrary : undefined;
+}
+
 function withLocale(locale: string, path: string) {
   const loc = (locale || "no").replace(/^\//, "");
   const p = path.startsWith("/") ? path : `/${path}`;
   return `/${loc}${p}`;
 }
 
-function hrefForLesson(locale: string, mode: AppMode, lessonId: string) {
+function hrefForLesson(
+  locale: string,
+  mode: AppMode,
+  lessonId: string,
+  lessonType?: string
+) {
+  const normalizedLessonType = String(lessonType || "").trim().toLowerCase();
+
+  if (normalizedLessonType === "reading_test") {
+    return withLocale(locale, `/reading-tests/${lessonId}`);
+  }
+
   if (mode === "teacher" || mode === "creator") {
     return withLocale(locale, `/producer/${lessonId}`);
   }
+
   return withLocale(locale, `/student/lesson/${lessonId}`);
 }
 
@@ -159,6 +218,7 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode, locale:
 
     snap.forEach((docSnap) => {
       const d = docSnap.data() as Record<string, unknown>;
+      const lessonType = pickLessonType(d);
 
       results.push({
         type: "lesson",
@@ -166,11 +226,18 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode, locale:
         title: pickTitle(d) || "Lesson",
         status: pickStatus(d),
         updatedAt: pickUpdated(d),
-        href: hrefForLesson(locale, mode, docSnap.id),
+        href: hrefForLesson(locale, mode, docSnap.id, lessonType),
         meta: safeMeta(d),
         ownerId: typeof d.ownerId === "string" ? d.ownerId : undefined,
         activePublishedId: typeof d.activePublishedId === "string" ? d.activePublishedId : null,
         visibility: pickVisibility(d),
+        publishVisibility: pickPublishVisibility(d),
+        showInLibrary: pickShowInLibrary(d),
+        lessonType,
+        textType: pickTextType(d),
+        texttype: pickTexttype(d),
+        language: pickLanguage(d),
+        level: pickLevel(d) || undefined,
         deletedAt: toDateSafe(d.deletedAt),
       });
     });

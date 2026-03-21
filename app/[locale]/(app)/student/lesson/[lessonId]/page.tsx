@@ -219,7 +219,6 @@ function getStableTaskId(t: Task, idx: number): string {
   return `${orderPart}__idx${idx}`;
 }
 
-// ---- TTS helpers ----
 type TtsLang = "no" | "en" | "pt-BR";
 function toTtsLang(lang: string): TtsLang {
   const v = (lang || "").toLowerCase().trim();
@@ -228,7 +227,6 @@ function toTtsLang(lang: string): TtsLang {
   return "no";
 }
 
-// ---- Text follow ----
 type SentenceSeg = {
   text: string;
   startChar: number;
@@ -324,16 +322,10 @@ function Pill({ text, kind = "neutral" }: { text: string; kind?: "neutral" | "go
   );
 }
 
-// ---------- LOCAL STORAGE HELPERS ----------
 function lsKey(lessonId: string) {
   return `321skole:answers:${lessonId}`;
 }
-// ------------------------------------------
 
-/**
- * Build a readable auto-result summary from MCQ/TrueFalse tasks.
- * This is sent to /api/feedback as "autoResultat".
- */
 function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
   const tasksArr = safeTasksArray(lessonObj.tasks);
   const sorted = [...tasksArr].sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
@@ -385,8 +377,8 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
       type === "mcq"
         ? mcqCorrectText != null && val != null && String(val) === String(mcqCorrectText)
         : type === "truefalse"
-        ? tfCorrectBool != null && typeof val === "boolean" && val === tfCorrectBool
-        : false;
+          ? tfCorrectBool != null && typeof val === "boolean" && val === tfCorrectBool
+          : false;
 
     if (isCorrect) correct += 1;
 
@@ -418,10 +410,6 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
   return lines.join("\n").trim();
 }
 
-/**
- * Build a "task string" describing what the student should be assessed on.
- * Keep it short—API system prompt does most of the work.
- */
 function buildOppgaveString(lessonObj: Lesson): string {
   const tasksArr = safeTasksArray(lessonObj.tasks);
   const sorted = [...tasksArr].sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
@@ -446,9 +434,6 @@ function buildOppgaveString(lessonObj: Lesson): string {
   ).trim();
 }
 
-/**
- * Build answer string containing ONLY open answers (free text).
- */
 function buildSvarString(lessonObj: Lesson, answersObj: AnswersMap): string {
   const tasksArr = safeTasksArray(lessonObj.tasks);
   const sorted = [...tasksArr].sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
@@ -1357,7 +1342,7 @@ export default function StudentLessonPage() {
               opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? t("actions.saving") : isAnon ? t("actions.saveOnDevice") : t("actions.saveToMyContent")}
+            {saving ? t("actions.saving") : locale === "en" ? "SAVE" : "LAGRE"}
           </button>
         </div>
 
@@ -1598,8 +1583,8 @@ export default function StudentLessonPage() {
                 type === "mcq"
                   ? mcqCorrectText != null && val != null && String(val) === String(mcqCorrectText)
                   : type === "truefalse"
-                  ? tfCorrectBool != null && typeof val === "boolean" && val === tfCorrectBool
-                  : null;
+                    ? tfCorrectBool != null && typeof val === "boolean" && val === tfCorrectBool
+                    : null;
 
               return (
                 <div key={stableId} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
@@ -1668,14 +1653,14 @@ export default function StudentLessonPage() {
                         const borderColor = isOptionCorrect
                           ? "rgba(46, 204, 113, 0.85)"
                           : isOptionChosenWrong
-                          ? "rgba(231, 76, 60, 0.85)"
-                          : "rgba(0,0,0,0.12)";
+                            ? "rgba(231, 76, 60, 0.85)"
+                            : "rgba(0,0,0,0.12)";
 
                         const background = isOptionCorrect
                           ? "rgba(46, 204, 113, 0.12)"
                           : isOptionChosenWrong
-                          ? "rgba(231, 76, 60, 0.12)"
-                          : "white";
+                            ? "rgba(231, 76, 60, 0.12)"
+                            : "white";
 
                         return (
                           <label
@@ -1801,17 +1786,17 @@ export default function StudentLessonPage() {
                 isAnon
                   ? t("feedback.loginToGetFeedback")
                   : feedbackLimitReached
-                  ? t("feedback.limitReached")
-                  : t("feedback.generate")
+                    ? t("feedback.limitReached")
+                    : t("feedback.generate")
               }
             >
               {submitting
                 ? t("feedback.submitting")
                 : isAnon
-                ? t("feedback.loginForFeedback")
-                : feedbackLimitReached
-                ? t("feedback.limitReachedShort")
-                : t("feedback.getFeedback")}
+                  ? t("feedback.loginForFeedback")
+                  : feedbackLimitReached
+                    ? t("feedback.limitReachedShort")
+                    : t("feedback.getFeedback")}
             </button>
 
             <button

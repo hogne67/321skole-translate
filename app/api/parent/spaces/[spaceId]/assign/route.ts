@@ -1,4 +1,4 @@
-// app\api\parent\spaces\[spaceId]\assign\route.ts
+// app/api/parent/spaces/[spaceId]/assign/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
@@ -72,7 +72,7 @@ export async function POST(
       return NextResponse.json({ error: "Missing bearer token." }, { status: 401 });
     }
 
-    const body = (await req.json()) as AssignBody;
+    const body = (await req.json().catch(() => ({}))) as AssignBody;
     const sourceType = safeString(body?.sourceType);
     const sourceId = safeString(body?.sourceId);
     const requestedTitle = safeString(body?.title);
@@ -134,7 +134,7 @@ export async function POST(
     const lessonData = source.data;
     const lessonTitle = requestedTitle || safeString(lessonData.title) || "Untitled task";
 
-    const targetRef = spaceRef.collection("lessons").doc(sourceId);
+    const targetRef = spaceRef.collection("lessons").doc();
 
     const assignmentDoc: Record<string, unknown> = {
       ...lessonData,
@@ -143,27 +143,23 @@ export async function POST(
       sourceType: sourceType || "myContent",
       sourceCollection: source.sourceCollection,
       assignedByUid: uid,
-      assignedByRole: "parent",
+      assignedByRole: role === "admin" ? "admin" : "parent",
       ownerId: uid,
       archived: false,
       updatedAt: FieldValue.serverTimestamp(),
       copiedFromLessonId: sourceId,
       copiedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     };
-
-    const existingSnap = await targetRef.get();
-    if (!existingSnap.exists) {
-      assignmentDoc.createdAt = FieldValue.serverTimestamp();
-    }
 
     const batch = adminDb.batch();
 
-    batch.set(targetRef, assignmentDoc, { merge: true });
+    batch.set(targetRef, assignmentDoc, { merge: false });
 
     batch.set(
       spaceRef,
       {
-        activeLessonId: sourceId,
+        activeLessonId: targetRef.id,
         activeLessonTitle: lessonTitle,
         updatedAt: FieldValue.serverTimestamp(),
       },
@@ -175,7 +171,7 @@ export async function POST(
     return NextResponse.json({
       ok: true,
       spaceId,
-      assignmentId: sourceId,
+      assignmentId: targetRef.id,
       title: lessonTitle,
       sourceCollection: source.sourceCollection,
     });

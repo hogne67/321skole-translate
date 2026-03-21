@@ -4,9 +4,6 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
-import { limitForFeature } from "@/lib/limits";
-
-const FEATURE = "producer_create_lesson";
 
 type ReadingTestTaskType =
   | "word_choice"
@@ -53,11 +50,6 @@ type Body = {
   readingTestConfig: ReadingTestConfig;
 };
 
-type UsageDoc = {
-  features?: Record<string, { used?: number }>;
-  updatedAt?: unknown;
-};
-
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
 }
@@ -70,39 +62,8 @@ function safeNullableNumber(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
-/** YYYY-MM in Europe/Oslo */
-function currentPeriodOslo(d = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Oslo",
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(d);
-
-  const year = parts.find((p) => p.type === "year")?.value || "1970";
-  const month = parts.find((p) => p.type === "month")?.value || "01";
-  return `${year}-${month}`;
-}
-
-function readUsed(doc: UsageDoc | null | undefined, feature: string): number {
-  const used = doc?.features?.[feature]?.used;
-  return safeNumber(used);
-}
-
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
-}
-
-async function isAdminUser(db: FirebaseFirestore.Firestore, uid: string): Promise<boolean> {
-  const snap = await db.collection("users").doc(uid).get();
-  if (!snap.exists) return false;
-  const d = snap.data() as Record<string, unknown>;
-
-  if (typeof d.role === "string" && d.role === "admin") return true;
-
-  const roles = d.roles;
-  if (isRecord(roles) && roles.admin === true) return true;
-
-  return false;
 }
 
 function countWords(text: string) {
@@ -130,17 +91,18 @@ function normalizeTaskType(v: unknown): ReadingTestTaskType {
 function normalizeTask(task: unknown, index: number): ReadingTestTask {
   const t = isRecord(task) ? task : {};
 
-  const options =
-    Array.isArray(t.options)
-      ? t.options.map((x) => String(x ?? "").trim()).filter(Boolean)
-      : undefined;
+  const options = Array.isArray(t.options)
+    ? t.options.map((x) => String(x ?? "").trim()).filter(Boolean)
+    : undefined;
 
   const correctAnswerRaw = t.correctAnswer;
   let correctAnswer: string | boolean | string[] | undefined;
 
-  if (typeof correctAnswerRaw === "string") correctAnswer = correctAnswerRaw.trim();
-  else if (typeof correctAnswerRaw === "boolean") correctAnswer = correctAnswerRaw;
-  else if (Array.isArray(correctAnswerRaw)) {
+  if (typeof correctAnswerRaw === "string") {
+    correctAnswer = correctAnswerRaw.trim();
+  } else if (typeof correctAnswerRaw === "boolean") {
+    correctAnswer = correctAnswerRaw;
+  } else if (Array.isArray(correctAnswerRaw)) {
     correctAnswer = correctAnswerRaw.map((x) => String(x ?? "").trim()).filter(Boolean);
   }
 
@@ -201,14 +163,12 @@ function normalizeConfig(v: unknown, fallbackLevel: string): ReadingTestConfig {
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("authorization") || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     if (!token) return json({ error: "Not signed in." }, 401);
 
     const { auth, db } = getAdmin();
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
-
-    const admin = await isAdminUser(db, uid);
 
     const body = (await req.json()) as Partial<Body>;
 
@@ -231,96 +191,49 @@ export async function POST(req: Request) {
         ? body.wordCount
         : countWords(sourceText);
 
-    const period = currentPeriodOslo();
-
-    const usageRef = db.collection("usage").doc(uid).collection("months").doc(period);
     const lessonRef = db.collection("lessons").doc();
 
-    const limit = limitForFeature(FEATURE, { uid, isAdmin: admin });
+    await lessonRef.set({
+      ownerId: uid,
 
-    const result = await db.runTransaction(async (tx) => {
-      const usageSnap = await tx.get(usageRef);
-      const usage = (usageSnap.exists ? (usageSnap.data() as UsageDoc) : null) ?? null;
+      status: "draft",
+      lessonType: "reading_test",
 
-      const usedBefore = readUsed(usage, FEATURE);
-      if (usedBefore + 1 > limit) {
-        return {
-          ok: false as const,
-          quota: {
-            feature: FEATURE,
-            limit,
-            used: usedBefore,
-            remaining: Math.max(0, limit - usedBefore),
-            period,
-          },
-        };
-      }
+      title,
+      level,
+      language,
 
-      const usedAfter = usedBefore + 1;
+      topic: readingTestConfig.topic || "",
+      prompt: readingTestConfig.topic || "",
 
-      tx.set(
-        usageRef,
-        {
-          ...(usage ?? {}),
-          features: {
-            ...(usage?.features ?? {}),
-            [FEATURE]: { used: usedAfter },
-          },
-          updatedAt: FieldValue.serverTimestamp(),
-        } satisfies UsageDoc,
-        { merge: true }
-      );
+      textType: "Reading test",
+      texttype: "Reading test",
 
-      tx.set(lessonRef, {
-        ownerId: uid,
-        status: "draft",
-        lessonType: "reading_test",
+      estimatedMinutes: 10,
+      releaseMode: "ALL_AT_ONCE",
 
-        title,
-        level,
-        language,
+      sourceText,
+      wordCount,
 
-        topic: readingTestConfig.topic || "",
-        prompt: readingTestConfig.topic || "",
+      readingTestConfig,
+      tasks: normalizedTasks,
 
-        textType: "Reading test",
-        texttype: "Reading test",
+      source: "reading-test-generator",
 
-        estimatedMinutes: 10,
-        releaseMode: "ALL_AT_ONCE",
+      // Viktig: dette gjør at testen ikke skal regnes som offentlig bibliotekinnhold
+      publishVisibility: "private",
+      visibility: "private",
+      showInLibrary: false,
+      published: false,
 
-        sourceText,
-        wordCount,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
 
-        readingTestConfig,
-        tasks: normalizedTasks,
-
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        source: "reading-test-generator",
-
-        deletedAt: null,
-        activePublishedId: null,
-      });
-
-      return {
-        ok: true as const,
-        id: lessonRef.id,
-        quota: {
-          feature: FEATURE,
-          limit,
-          used: usedAfter,
-          remaining: Math.max(0, limit - usedAfter),
-          period,
-        },
-      };
+      deletedAt: null,
+      activePublishedId: null,
     });
 
-    if (!result.ok) {
-      return json({ error: "Limit reached", quota: result.quota }, 429);
-    }
-
-    return json({ id: result.id, quota: result.quota }, 200);
+    return json({ id: lessonRef.id }, 200);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     return json({ error: msg || "Unknown error" }, 500);
