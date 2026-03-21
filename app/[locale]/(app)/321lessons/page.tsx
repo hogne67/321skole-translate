@@ -263,6 +263,8 @@ export default function LessonsLandingPage() {
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
   const [ratingBusyId, setRatingBusyId] = useState<string | null>(null);
   const [ratingMsg, setRatingMsg] = useState<string | null>(null);
   const [myRatings, setMyRatings] = useState<Record<string, number>>({});
@@ -290,6 +292,7 @@ export default function LessonsLandingPage() {
     const auth = getAuth();
     const unsub = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      setAuthReady(true);
     });
     return () => unsub();
   }, []);
@@ -527,6 +530,11 @@ export default function LessonsLandingPage() {
   }
 
   async function addToMyContent(lesson: PublishedLesson) {
+    if (!authReady) {
+      setSaveMsg("Vent litt mens brukeren lastes inn.");
+      return;
+    }
+
     if (!currentUser || currentUser.isAnonymous) {
       router.push(`/${locale}/login`);
       return;
@@ -577,6 +585,7 @@ export default function LessonsLandingPage() {
 
       setSaveMsg(`"${lesson.title}" ble lagt til i Mitt innhold.`);
     } catch (err) {
+      console.error("addToMyContent failed", err);
       const message =
         err instanceof Error ? err.message : "Kunne ikke legge til i Mitt innhold.";
       setSaveMsg(message);
@@ -768,13 +777,16 @@ export default function LessonsLandingPage() {
         }
 
         .libraryBtn {
-          padding: 8px 12px;
-          border-radius: 10px;
-          border: 1px solid rgba(0, 0, 0, 0.2);
+          padding: 6px 10px;
+          border-radius: 9px;
+          border: 1px solid rgba(0, 0, 0, 0.18);
           background: rgba(190, 247, 192, 1);
           color: black;
-          font-weight: 800;
+          font-weight: 700;
+          font-size: 12px;
+          line-height: 1.2;
           cursor: pointer;
+          white-space: nowrap;
         }
 
         .libraryBtn:disabled {
@@ -1026,14 +1038,18 @@ export default function LessonsLandingPage() {
                       <button
                         type="button"
                         className="libraryBtn"
-                        disabled={saveBusyId === l.id}
+                        disabled={!authReady || saveBusyId === l.id}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           void addToMyContent(l);
                         }}
                       >
-                        {saveBusyId === l.id ? "Lagrer..." : "Legg til mitt innhold"}
+                        {!authReady
+                          ? "Laster..."
+                          : saveBusyId === l.id
+                            ? "Lagrer..."
+                            : "Legg til mitt innhold"}
                       </button>
                     </div>
                   </div>

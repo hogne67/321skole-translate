@@ -3,7 +3,12 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
-import { limitForFeature } from "@/lib/limits";
+import {
+  getFeatureLimit,
+  getQuotaBucket,
+  type AppRole,
+  type PlanKey,
+} from "@/lib/featureAccess";
 
 type SourceType = "myContent" | "library";
 
@@ -35,6 +40,12 @@ type SourceLessonData = {
   ownerId?: string;
   lessonType?: string;
   readingTestConfig?: unknown;
+};
+
+type UserProfileAccess = {
+  role: AppRole;
+  plan: PlanKey;
+  isAdmin: boolean;
 };
 
 function json(data: unknown, status = 200) {
@@ -69,8 +80,8 @@ function currentPeriodOslo(d = new Date()): string {
   return `${year}-${month}`;
 }
 
-function readUsed(doc: UsageDoc | null | undefined, feature: string): number {
-  const used = doc?.features?.[feature]?.used;
+function readUsed(doc: UsageDoc | null | undefined, key: string): number {
+  const used = doc?.features?.[key]?.used;
   return typeof used === "number" && Number.isFinite(used) ? used : 0;
 }
 
@@ -100,20 +111,58 @@ function pickSourceLessonData(raw: FirebaseFirestore.DocumentData | undefined): 
   };
 }
 
-async function isAdminUser(db: FirebaseFirestore.Firestore, uid: string): Promise<boolean> {
-  const snap = await db.collection("users").doc(uid).get();
-  if (!snap.exists) return false;
-  const d = (snap.data() ?? {}) as Record<string, unknown>;
-
-  if (typeof d.role === "string" && d.role === "admin") return true;
-
-  const roles = d.roles;
-  if (isRecord(roles) && roles.admin === true) return true;
-
-  return false;
+function normalizeRole(role?: string, isAdminFlag?: boolean): AppRole {
+  if (isAdminFlag) return "admin";
+  if (role === "teacher") return "teacher";
+  if (role === "student") return "student";
+  if (role === "parent") return "parent";
+  if (role === "creator") return "creator";
+  if (role === "admin") return "admin";
+  return "anonymous";
 }
 
-async function isSpaceOwner(db: FirebaseFirestore.Firestore, spaceId: string, uid: string): Promise<boolean> {
+function normalizePlan(plan?: string): PlanKey {
+  if (plan === "basic") return "basic";
+  if (plan === "plus") return "plus";
+  if (plan === "pro") return "pro";
+  return "free";
+}
+
+async function loadUserProfileAccess(
+  db: FirebaseFirestore.Firestore,
+  uid: string
+): Promise<UserProfileAccess> {
+  const snap = await db.collection("users").doc(uid).get();
+  if (!snap.exists) {
+    return {
+      role: "anonymous",
+      plan: "free",
+      isAdmin: false,
+    };
+  }
+
+  const d = (snap.data() ?? {}) as Record<string, unknown>;
+
+  const roleValue = typeof d.role === "string" ? d.role : undefined;
+  const planValue = typeof d.plan === "string" ? d.plan : undefined;
+
+  const roles = d.roles;
+  const isAdminFromRoles = isRecord(roles) && roles.admin === true;
+  const isAdminFromRole = roleValue === "admin";
+  const isAdmin = isAdminFromRoles || isAdminFromRole;
+
+  return {
+    role: normalizeRole(roleValue, isAdmin),
+    plan: normalizePlan(planValue),
+    isAdmin,
+  };
+}
+
+async function isSpaceOwner(
+  db: FirebaseFirestore.Firestore,
+  spaceId: string,
+  uid: string
+): Promise<boolean> {
   const snap = await db.collection("spaces").doc(spaceId).get();
   if (!snap.exists) return false;
   const d = (snap.data() ?? {}) as Record<string, unknown>;
@@ -183,22 +232,31 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
 
-    const [admin, owner] = await Promise.all([isAdminUser(db, uid), isSpaceOwner(db, spaceId, uid)]);
-    if (!admin && !owner) return json({ error: "No access (owner/admin required)" }, 403);
+    const [profile, owner] = await Promise.all([
+      loadUserProfileAccess(db, uid),
+      isSpaceOwner(db, spaceId, uid),
+    ]);
+
+    if (!profile.isAdmin && !owner) {
+      return json({ error: "No access (owner/admin required)" }, 403);
+    }
 
     const source = await loadSourceLesson({
       db,
       sourceType,
       sourceId,
       uid,
-      isAdmin: admin,
+      isAdmin: profile.isAdmin,
     });
 
-    const feature = "teacher_assign_task";
+    const feature = "teacher_assign_task" as const;
+    const bucket = getQuotaBucket(feature);
     const period = currentPeriodOslo();
     const shouldCountQuota = sourceType !== "myContent";
 
-    const limit = shouldCountQuota ? limitForFeature(feature, { uid, isAdmin: admin }) : null;
+    const limit = shouldCountQuota
+      ? getFeatureLimit(profile.role, profile.plan, feature)
+      : null;
 
     const usageRef = db.collection("usage").doc(uid).collection("months").doc(period);
     const assignmentRef = db.collection("spaces").doc(spaceId).collection("lessons").doc();
@@ -210,6 +268,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
       let quota:
         | {
             feature: string;
+            bucket: string;
             limit: number;
             used: number;
             remaining: number;
@@ -220,7 +279,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
       if (shouldCountQuota) {
         const usageSnap = await tx.get(usageRef);
         const usage = (usageSnap.exists ? (usageSnap.data() as UsageDoc) : null) ?? null;
-        const usedBefore = readUsed(usage, feature);
+
+        const usedBefore = readUsed(usage, bucket);
         const safeLimit = limit ?? 0;
 
         if (usedBefore + 1 > safeLimit) {
@@ -228,6 +288,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
             ok: false as const,
             quota: {
               feature,
+              bucket,
               limit: safeLimit,
               used: usedBefore,
               remaining: Math.max(0, safeLimit - usedBefore),
@@ -244,7 +305,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
             ...(usage ?? {}),
             features: {
               ...(usage?.features ?? {}),
-              [feature]: { used: usedAfter },
+              [bucket]: { used: usedAfter },
             },
             updatedAt: now,
           } satisfies UsageDoc,
@@ -253,6 +314,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
 
         quota = {
           feature,
+          bucket,
           limit: safeLimit,
           used: usedAfter,
           remaining: Math.max(0, safeLimit - usedAfter),
