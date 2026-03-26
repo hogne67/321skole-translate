@@ -26,43 +26,45 @@ function required(name: string): string {
   return value;
 }
 
-export const BILLING_PRICES: BillingPriceConfig[] = [
-  {
-    role: "student",
-    plan: "basic",
-    priceId: required("STRIPE_PRICE_STUDENT_BASIC"),
-  },
-  {
-    role: "student",
-    plan: "plus",
-    priceId: required("STRIPE_PRICE_STUDENT_PLUS"),
-  },
-  {
-    role: "teacher",
-    plan: "basic",
-    priceId: required("STRIPE_PRICE_TEACHER_BASIC"),
-  },
-  {
-    role: "teacher",
-    plan: "plus",
-    priceId: required("STRIPE_PRICE_TEACHER_PLUS"),
-  },
-  {
-    role: "teacher",
-    plan: "pro",
-    priceId: required("STRIPE_PRICE_TEACHER_PRO"),
-  },
-  {
-    role: "parent",
-    plan: "basic",
-    priceId: required("STRIPE_PRICE_PARENT_BASIC"),
-  },
-  {
-    role: "parent",
-    plan: "plus",
-    priceId: required("STRIPE_PRICE_PARENT_PLUS"),
-  },
-];
+export function getBillingPrices(): BillingPriceConfig[] {
+  return [
+    {
+      role: "student",
+      plan: "basic",
+      priceId: required("STRIPE_PRICE_STUDENT_BASIC"),
+    },
+    {
+      role: "student",
+      plan: "plus",
+      priceId: required("STRIPE_PRICE_STUDENT_PLUS"),
+    },
+    {
+      role: "teacher",
+      plan: "basic",
+      priceId: required("STRIPE_PRICE_TEACHER_BASIC"),
+    },
+    {
+      role: "teacher",
+      plan: "plus",
+      priceId: required("STRIPE_PRICE_TEACHER_PLUS"),
+    },
+    {
+      role: "teacher",
+      plan: "pro",
+      priceId: required("STRIPE_PRICE_TEACHER_PRO"),
+    },
+    {
+      role: "parent",
+      plan: "basic",
+      priceId: required("STRIPE_PRICE_PARENT_BASIC"),
+    },
+    {
+      role: "parent",
+      plan: "plus",
+      priceId: required("STRIPE_PRICE_PARENT_PLUS"),
+    },
+  ];
+}
 
 export function isBillingRole(value: unknown): value is BillingRole {
   return value === "student" || value === "teacher" || value === "parent";
@@ -89,12 +91,12 @@ export function getCheckoutPriceId(
   role: BillingRole,
   plan: Exclude<BillingPlan, "free">
 ): string | null {
-  const item = BILLING_PRICES.find((entry) => entry.role === role && entry.plan === plan);
+  const item = getBillingPrices().find((entry) => entry.role === role && entry.plan === plan);
   return item?.priceId ?? null;
 }
 
 export function getBillingPlanByPriceId(priceId: string): BillingPriceConfig | null {
-  const item = BILLING_PRICES.find((entry) => entry.priceId === priceId);
+  const item = getBillingPrices().find((entry) => entry.priceId === priceId);
   return item ?? null;
 }
 
