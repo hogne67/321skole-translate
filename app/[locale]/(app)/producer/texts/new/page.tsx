@@ -7,8 +7,11 @@ import { useRouter } from "next/navigation";
 import { LANGUAGES } from "@/lib/languages";
 import type { CSSProperties } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { getFeatureStatus, type FeatureStatus } from "@/lib/featureGuard";
-import type { PlanKey } from "@/lib/featureAccess";
+import {
+  getFeatureStatusFromProfile,
+  type FeatureStatus,
+} from "@/lib/featureGuard";
+import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 type MCQ = {
@@ -101,6 +104,52 @@ function safePlan(plan: unknown): PlanKey {
   if (plan === "plus") return "plus";
   if (plan === "pro") return "pro";
   return "free";
+}
+
+function resolveRoleFromProfile(profile: unknown): string {
+  if (!profile || typeof profile !== "object") return "anonymous";
+
+  const p = profile as Record<string, unknown>;
+
+  if (p.role === "teacher" || p.role === "student" || p.role === "parent") {
+    return p.role;
+  }
+
+  if (p.mode === "teacher" || p.mode === "student" || p.mode === "parent") {
+    return p.mode;
+  }
+
+  if (p.org && typeof p.org === "object") {
+    const orgRole = (p.org as Record<string, unknown>).role;
+    if (orgRole === "teacher" || orgRole === "student" || orgRole === "parent") {
+      return orgRole;
+    }
+  }
+
+  if (p.roles && typeof p.roles === "object") {
+    const roles = p.roles as Record<string, unknown>;
+    if (roles.teacher === true) return "teacher";
+    if (roles.parent === true) return "parent";
+    if (roles.student === true) return "student";
+  }
+
+  return "anonymous";
+}
+
+function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
+  if (!profile || typeof profile !== "object") return null;
+
+  const p = profile as Record<string, unknown>;
+  const billing = p.billing;
+
+  if (!billing || typeof billing !== "object") return null;
+
+  const b = billing as Record<string, unknown>;
+
+  return {
+    plan: typeof b.plan === "string" ? b.plan : null,
+    status: typeof b.status === "string" ? b.status : null,
+  };
 }
 
 export default function NewTextPage() {
@@ -222,18 +271,14 @@ export default function NewTextPage() {
       ? (profile as { uid?: string }).uid
       : undefined;
 
-  const roleValue =
-    profile && typeof profile === "object" && "role" in profile
-      ? (profile as { role?: string }).role
-      : undefined;
-
   const planValue =
     profile && typeof profile === "object" && "plan" in profile
       ? (profile as { plan?: string }).plan
       : undefined;
 
-  const role = roleValue ?? "anonymous";
-  const plan = safePlan(planValue);
+    const role = useMemo(() => resolveRoleFromProfile(profile), [profile]);
+  const plan = useMemo(() => safePlan(planValue), [planValue]);
+  const billing = useMemo(() => getBillingSnapshot(profile), [profile]);
 
   useEffect(() => {
     const d = LEVEL_DEFAULTS[level];
@@ -263,10 +308,11 @@ export default function NewTextPage() {
     }
 
     try {
-      const status = await getFeatureStatus({
+      const status = await getFeatureStatusFromProfile({
         uid,
         role,
         plan,
+        billing,
         feature: "producer_create_lesson",
       });
       setFeatureStatus(status);
@@ -277,7 +323,7 @@ export default function NewTextPage() {
     }
   }
 
-    useEffect(() => {
+  useEffect(() => {
     let active = true;
 
     async function loadStatus() {
@@ -294,10 +340,11 @@ export default function NewTextPage() {
       setStatusLoading(true);
 
       try {
-        const status = await getFeatureStatus({
+        const status = await getFeatureStatusFromProfile({
           uid,
           role,
           plan,
+          billing,
           feature: "producer_create_lesson",
         });
 
@@ -320,7 +367,7 @@ export default function NewTextPage() {
     return () => {
       active = false;
     };
-  }, [profileUid, role, plan]);
+    }, [profileUid, role, plan, billing]);
 
   function buildFactsPrompt(count: number, suggestions: string[]) {
     if (count <= 0) return "";
@@ -461,45 +508,35 @@ export default function NewTextPage() {
   }
 
   async function generateTextOnly() {
-  setLoadingText(true);
-  setError(null);
-  setSavedId(null);
-
-  try {
-    const user = getAuth().currentUser;
-    if (!user) throw new Error("Not signed in.");
-
-    const token = await user.getIdToken();
-
-    const res = await fetch("/api/producer/generate-text", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        level,
-        language,
-        topic: prompt,
-        textType: textTypeLabel,
-        textLength,
-      }),
-    });
-
-    const raw = await res.text();
-    if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
-
-    let data: GenerateTextResp & {
-      quota?: {
-        feature?: string;
-        limit?: number;
-        used?: number;
-        remaining?: number;
-      };
-    };
+    setLoadingText(true);
+    setError(null);
+    setSavedId(null);
 
     try {
-      data = JSON.parse(raw) as GenerateTextResp & {
+      const user = getAuth().currentUser;
+      if (!user) throw new Error("Not signed in.");
+
+      const token = await user.getIdToken();
+
+      const res = await fetch("/api/producer/generate-text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          level,
+          language,
+          topic: prompt,
+          textType: textTypeLabel,
+          textLength,
+        }),
+      });
+
+      const raw = await res.text();
+      if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
+
+      let data: GenerateTextResp & {
         quota?: {
           feature?: string;
           limit?: number;
@@ -507,95 +544,105 @@ export default function NewTextPage() {
           remaining?: number;
         };
       };
-    } catch {
-      throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
+
+      try {
+        data = JSON.parse(raw) as GenerateTextResp & {
+          quota?: {
+            feature?: string;
+            limit?: number;
+            used?: number;
+            remaining?: number;
+          };
+        };
+      } catch {
+        throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
+      }
+
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+      const nextTitle = String(data.title || t("defaults.title")).trim() || t("defaults.title");
+      const nextText = String(data.text || "").trim();
+      if (!nextText) throw new Error("Missing text in response.");
+
+      setTitle(nextTitle);
+      setSourceText(nextText);
+      setLessonTasks([]);
+      setPack(null);
+      setTasksDirty(true);
+
+      await refreshFeatureStatus(user.uid);
+    } catch (e: unknown) {
+      setError(localizeError(getErrorMessage(e)));
+    } finally {
+      setLoadingText(false);
     }
-
-    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-
-    const nextTitle = String(data.title || t("defaults.title")).trim() || t("defaults.title");
-    const nextText = String(data.text || "").trim();
-    if (!nextText) throw new Error("Missing text in response.");
-
-    setTitle(nextTitle);
-    setSourceText(nextText);
-    setLessonTasks([]);
-    setPack(null);
-    setTasksDirty(true);
-
-    await refreshFeatureStatus(user.uid);
-  } catch (e: unknown) {
-    setError(localizeError(getErrorMessage(e)));
-  } finally {
-    setLoadingText(false);
   }
-}
 
   async function generateTasksOnly() {
-  setLoadingTasks(true);
-  setError(null);
-  setSavedId(null);
+    setLoadingTasks(true);
+    setError(null);
+    setSavedId(null);
 
-  try {
-    if (!sourceText.trim()) throw new Error("Generate or write text first.");
+    try {
+      if (!sourceText.trim()) throw new Error("Generate or write text first.");
 
-    const user = getAuth().currentUser;
-    if (!user) throw new Error("Not signed in.");
+      const user = getAuth().currentUser;
+      if (!user) throw new Error("Not signed in.");
 
-    const token = await user.getIdToken();
+      const token = await user.getIdToken();
 
-    const res = await fetch("/api/producer/generate-tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
+      const res = await fetch("/api/producer/generate-tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          level,
+          language,
+          topic: prompt,
+          textType: textTypeLabel,
+          text: sourceText,
+          tasks: {
+            mcq: mcqCount,
+            trueFalse: trueFalseCount,
+            facts: factsCount,
+            reflection: reflectionCount,
+          },
+        }),
+      });
+
+      const raw = await res.text();
+      if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
+
+      let data: GenerateTasksResp;
+      try {
+        data = JSON.parse(raw) as GenerateTasksResp;
+      } catch {
+        throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
+      }
+
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      if (!data?.tasks) throw new Error(t("errors.missingTasksInResponse"));
+
+      const fakePack: ContentPack = {
+        title: title || t("defaults.title"),
         level,
         language,
         topic: prompt,
-        textType: textTypeLabel,
         text: sourceText,
-        tasks: {
-          mcq: mcqCount,
-          trueFalse: trueFalseCount,
-          facts: factsCount,
-          reflection: reflectionCount,
-        },
-      }),
-    });
+        tasks: data.tasks,
+      };
 
-    const raw = await res.text();
-    if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
-
-    let data: GenerateTasksResp;
-    try {
-      data = JSON.parse(raw) as GenerateTasksResp;
-    } catch {
-      throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
+      setLessonTasks(packToLessonTasks(fakePack));
+      setPack(fakePack);
+      setTasksDirty(false);
+    } catch (e: unknown) {
+      setError(localizeError(getErrorMessage(e)));
+    } finally {
+      setLoadingTasks(false);
     }
-
-    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-    if (!data?.tasks) throw new Error(t("errors.missingTasksInResponse"));
-
-    const fakePack: ContentPack = {
-      title: title || t("defaults.title"),
-      level,
-      language,
-      topic: prompt,
-      text: sourceText,
-      tasks: data.tasks,
-    };
-
-    setLessonTasks(packToLessonTasks(fakePack));
-    setPack(fakePack);
-    setTasksDirty(false);
-  } catch (e: unknown) {
-    setError(localizeError(getErrorMessage(e)));
-  } finally {
-    setLoadingTasks(false);
   }
-}
 
   async function saveToFirestore() {
     setSaving(true);

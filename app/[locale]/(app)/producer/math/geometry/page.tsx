@@ -1,16 +1,19 @@
-// app/[locale]/(app)/producer/math/geometry/page.tsx
+// app\[locale]\(app)\producer\math\geometry\page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useLocale } from "next-intl";
+import Link from "next/link";
 import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { getFeatureStatus, type FeatureStatus } from "@/lib/featureGuard";
-import type { PlanKey } from "@/lib/featureAccess";
+import {
+  getFeatureStatusFromProfile,
+  type FeatureStatus,
+} from "@/lib/featureGuard";
+import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
 
 type WorksheetLanguage = "no" | "en" | "pt";
-type GeometryTopic = "shapes" | "perimeter" | "area" | "mixed";
+type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
 type Difficulty = "easy" | "medium" | "hard";
 type GeometryLevel = "grade_3_4" | "grade_5_7" | "grade_8_10";
 type AnswerSpace = "small" | "medium" | "large";
@@ -18,28 +21,36 @@ type AnswerSpace = "small" | "medium" | "large";
 type FigureKind =
   | "rectangle"
   | "square"
+  | "parallelogram"
+  | "rhombus"
+  | "trapezoid"
   | "triangle"
-  | "circle"
-  | "trapezoid";
+  | "circle";
 
 type FigureSpec = {
   kind: FigureKind;
   widthCm?: number;
   heightCm?: number;
   sideCm?: number;
-  sides?: number;
-  corners?: number;
+  baseCm?: number;
+  topCm?: number;
+  sideLeftCm?: number;
+  sideRightCm?: number;
+  sideAcm?: number;
+  sideBcm?: number;
+  sideCcm?: number;
+  radiusCm?: number;
 };
 
 type MathWorksheetTask = {
   id: string;
-  type: "shape_name" | "count_sides" | "perimeter" | "area";
+  type: "shape_name" | "perimeter" | "area" | "all_in_one";
   prompt: string;
   figure?: FigureSpec;
-  options?: string[];
   answer: string;
   explanation?: string;
   hint?: string;
+  formula?: string;
 };
 
 type MathWorksheet = {
@@ -49,7 +60,9 @@ type MathWorksheet = {
   topic: GeometryTopic;
   difficulty: Difficulty;
   instructions: string;
-  teacherVersion: boolean;
+  showAnswerKey: boolean;
+  showFormulas: boolean;
+  selectedShapes: FigureKind[];
   tasks: MathWorksheetTask[];
 };
 
@@ -61,7 +74,6 @@ type GenerateResponse =
   | {
       ok: false;
       error: string;
-      reason?: string;
     };
 
 type UIStrings = {
@@ -75,49 +87,76 @@ type UIStrings = {
   difficulty: string;
   taskCount: string;
   hints: string;
-  teacherVersion: string;
+  showAnswerKey: string;
+  showFormulas: string;
   answerSpace: string;
+  chooseShapes: string;
+  options: string;
   generate: string;
   generating: string;
   print: string;
-  studentVersion: string;
-  teacherVersionLabel: string;
-  worksheetTitle: string;
-  instructions: string;
+  saveToMyContent: string;
+  saving: string;
+  answerKey: string;
+  worksheet: string;
   name: string;
   date: string;
   answer: string;
   explanation: string;
   hint: string;
+  formula: string;
   shapes: string;
   perimeter: string;
   area: string;
-  mixed: string;
+  all: string;
   easy: string;
   medium: string;
   hard: string;
   small: string;
   mediumSpace: string;
   large: string;
-  yes: string;
-  no: string;
   grade34: string;
   grade57: string;
   grade810: string;
   failed: string;
-  usageSaved: string;
   usageLeft: string;
   limitReached: string;
   seePlans: string;
   teacherOnly: string;
   upgradeRequired: string;
-  signInRequired: string;
+  successGenerated: string;
+  savedToMyContent: string;
+  saveFailed: string;
+  square: string;
+  rectangle: string;
+  parallelogram: string;
+  rhombus: string;
+  trapezoid: string;
+  triangle: string;
+  circle: string;
+  selectAtLeastOneShape: string;
+  selectAll: string;
+  clearAll: string;
+  selectedCount: string;
+  answerKeyTitle: string;
+  taskLabel: string;
+  shapeNameLabel: string;
 };
+
+const ALL_FIGURES: FigureKind[] = [
+  "square",
+  "rectangle",
+  "parallelogram",
+  "rhombus",
+  "trapezoid",
+  "triangle",
+  "circle",
+];
 
 const STRINGS: Record<WorksheetLanguage, UIStrings> = {
   no: {
     pageTitle: "Geometri-generator",
-    pageSubtitle: "Lag et enkelt arbeidsark i geometri for utskrift.",
+    pageSubtitle: "Lag et arbeidsark med former, omkrets og areal for utskrift.",
     builder: "Generator",
     preview: "Forhåndsvisning",
     language: "Språk",
@@ -125,48 +164,65 @@ const STRINGS: Record<WorksheetLanguage, UIStrings> = {
     topic: "Tema",
     difficulty: "Vanskelighetsgrad",
     taskCount: "Antall oppgaver",
-    hints: "Med hint",
-    teacherVersion: "Vis lærerversjon",
+    hints: "Hint",
+    showAnswerKey: "Fasit",
+    showFormulas: "Vis formler",
     answerSpace: "Svarplass",
+    chooseShapes: "Velg figurer",
+    options: "Valg",
     generate: "Lag arbeidsark",
     generating: "Lager arbeidsark...",
     print: "Skriv ut / lagre som PDF",
-    studentVersion: "Elevversjon",
-    teacherVersionLabel: "Lærerversjon",
-    worksheetTitle: "Tittel",
-    instructions: "Instruksjon",
+    saveToMyContent: "Lagre i Mitt innhold",
+    saving: "Lagrer...",
+    answerKey: "Fasit",
+    worksheet: "Oppgaveark",
     name: "Navn",
     date: "Dato",
     answer: "Svar",
     explanation: "Forklaring",
     hint: "Hint",
+    formula: "Formel",
     shapes: "Former",
     perimeter: "Omkrets",
     area: "Areal",
-    mixed: "Blandet",
+    all: "Alle",
     easy: "Lett",
     medium: "Middels",
     hard: "Utfordrende",
     small: "Liten",
     mediumSpace: "Middels",
     large: "Stor",
-    yes: "Ja",
-    no: "Nei",
     grade34: "3.–4. trinn",
     grade57: "5.–7. trinn",
     grade810: "8.–10. trinn",
     failed: "Kunne ikke lage arbeidsarket.",
-    usageSaved: "Bruk registrert.",
     usageLeft: "Premium-generatorer igjen denne måneden",
     limitReached: "Du har brukt opp kvoten din for premium-generatorer.",
     seePlans: "Se planer / oppgrader",
-    teacherOnly: "Denne funksjonen er bare tilgjengelig for lærere.",
+    teacherOnly: "Denne funksjonen er bare tilgjengelig for lærer/produsent.",
     upgradeRequired: "Denne funksjonen krever en plan med tilgang.",
-    signInRequired: "Du må være logget inn for å bruke generatoren.",
+    successGenerated: "Arbeidsarket er oppdatert.",
+    savedToMyContent: "Lagret i Mitt innhold.",
+    saveFailed: "Kunne ikke lagre i Mitt innhold.",
+    square: "Kvadrat",
+    rectangle: "Rektangel",
+    parallelogram: "Parallellogram",
+    rhombus: "Rombe",
+    trapezoid: "Trapes",
+    triangle: "Trekant",
+    circle: "Sirkel",
+    selectAtLeastOneShape: "Velg minst én figur.",
+    selectAll: "Velg alle",
+    clearAll: "Fjern alle",
+    selectedCount: "Valgt",
+    answerKeyTitle: "Fasit",
+    taskLabel: "Oppgave",
+    shapeNameLabel: "Navn",
   },
   en: {
     pageTitle: "Geometry worksheet generator",
-    pageSubtitle: "Create a simple printable geometry worksheet.",
+    pageSubtitle: "Create a printable worksheet with shapes, perimeter and area.",
     builder: "Builder",
     preview: "Preview",
     language: "Language",
@@ -174,48 +230,65 @@ const STRINGS: Record<WorksheetLanguage, UIStrings> = {
     topic: "Topic",
     difficulty: "Difficulty",
     taskCount: "Number of tasks",
-    hints: "Include hints",
-    teacherVersion: "Show teacher version",
+    hints: "Hints",
+    showAnswerKey: "Answer key",
+    showFormulas: "Show formulas",
     answerSpace: "Answer space",
+    chooseShapes: "Choose shapes",
+    options: "Options",
     generate: "Generate worksheet",
     generating: "Generating worksheet...",
     print: "Print / save as PDF",
-    studentVersion: "Student version",
-    teacherVersionLabel: "Teacher version",
-    worksheetTitle: "Title",
-    instructions: "Instructions",
+    saveToMyContent: "Save to My content",
+    saving: "Saving...",
+    answerKey: "Answer key",
+    worksheet: "Worksheet",
     name: "Name",
     date: "Date",
     answer: "Answer",
     explanation: "Explanation",
     hint: "Hint",
+    formula: "Formula",
     shapes: "Shapes",
     perimeter: "Perimeter",
     area: "Area",
-    mixed: "Mixed",
+    all: "All",
     easy: "Easy",
     medium: "Medium",
     hard: "Challenging",
     small: "Small",
     mediumSpace: "Medium",
     large: "Large",
-    yes: "Yes",
-    no: "No",
     grade34: "Grades 3–4",
     grade57: "Grades 5–7",
     grade810: "Grades 8–10",
     failed: "Could not generate worksheet.",
-    usageSaved: "Usage recorded.",
     usageLeft: "Premium generators left this month",
     limitReached: "You have reached your premium generator limit.",
     seePlans: "See plans / upgrade",
-    teacherOnly: "This feature is only available for teachers.",
+    teacherOnly: "This feature is only available for teachers/producers.",
     upgradeRequired: "This feature requires a plan with access.",
-    signInRequired: "You must be signed in to use this generator.",
+    successGenerated: "Worksheet updated.",
+    savedToMyContent: "Saved to My content.",
+    saveFailed: "Could not save to My content.",
+    square: "Square",
+    rectangle: "Rectangle",
+    parallelogram: "Parallelogram",
+    rhombus: "Rhombus",
+    trapezoid: "Trapezoid",
+    triangle: "Triangle",
+    circle: "Circle",
+    selectAtLeastOneShape: "Choose at least one shape.",
+    selectAll: "Select all",
+    clearAll: "Clear all",
+    selectedCount: "Selected",
+    answerKeyTitle: "Answer key",
+    taskLabel: "Task",
+    shapeNameLabel: "Name",
   },
   pt: {
     pageTitle: "Gerador de geometria",
-    pageSubtitle: "Crie uma ficha simples de geometria para impressão.",
+    pageSubtitle: "Crie uma ficha imprimível com formas, perímetro e área.",
     builder: "Gerador",
     preview: "Pré-visualização",
     language: "Idioma",
@@ -223,44 +296,61 @@ const STRINGS: Record<WorksheetLanguage, UIStrings> = {
     topic: "Tema",
     difficulty: "Dificuldade",
     taskCount: "Número de tarefas",
-    hints: "Com dicas",
-    teacherVersion: "Mostrar versão do professor",
+    hints: "Dicas",
+    showAnswerKey: "Gabarito",
+    showFormulas: "Mostrar fórmulas",
     answerSpace: "Espaço para resposta",
+    chooseShapes: "Escolher figuras",
+    options: "Opções",
     generate: "Gerar ficha",
     generating: "A gerar ficha...",
     print: "Imprimir / guardar em PDF",
-    studentVersion: "Versão do aluno",
-    teacherVersionLabel: "Versão do professor",
-    worksheetTitle: "Título",
-    instructions: "Instruções",
+    saveToMyContent: "Guardar em Meu conteúdo",
+    saving: "A guardar...",
+    answerKey: "Gabarito",
+    worksheet: "Ficha",
     name: "Nome",
     date: "Data",
     answer: "Resposta",
     explanation: "Explicação",
     hint: "Dica",
+    formula: "Fórmula",
     shapes: "Formas",
     perimeter: "Perímetro",
     area: "Área",
-    mixed: "Misto",
+    all: "Todas",
     easy: "Fácil",
     medium: "Médio",
     hard: "Desafiante",
     small: "Pequeno",
     mediumSpace: "Médio",
     large: "Grande",
-    yes: "Sim",
-    no: "Não",
     grade34: "3.º–4.º ano",
     grade57: "5.º–7.º ano",
     grade810: "8.º–10.º ano",
     failed: "Não foi possível gerar a ficha.",
-    usageSaved: "Utilização registada.",
     usageLeft: "Geradores premium restantes este mês",
     limitReached: "Atingiste o teu limite de geradores premium.",
     seePlans: "Ver planos / atualizar",
-    teacherOnly: "Esta funcionalidade está disponível apenas para professores.",
+    teacherOnly: "Esta funcionalidade está disponível apenas para professores/produtores.",
     upgradeRequired: "Esta funcionalidade requer um plano com acesso.",
-    signInRequired: "Tens de iniciar sessão para usar este gerador.",
+    successGenerated: "Ficha atualizada.",
+    savedToMyContent: "Guardado em Meu conteúdo.",
+    saveFailed: "Não foi possível guardar em Meu conteúdo.",
+    square: "Quadrado",
+    rectangle: "Retângulo",
+    parallelogram: "Paralelogramo",
+    rhombus: "Losango",
+    trapezoid: "Trapézio",
+    triangle: "Triângulo",
+    circle: "Círculo",
+    selectAtLeastOneShape: "Escolhe pelo menos uma figura.",
+    selectAll: "Selecionar todas",
+    clearAll: "Limpar todas",
+    selectedCount: "Selecionadas",
+    answerKeyTitle: "Gabarito",
+    taskLabel: "Tarefa",
+    shapeNameLabel: "Nome",
   },
 };
 
@@ -281,10 +371,12 @@ function fallbackWorksheet(language: WorksheetLanguage): MathWorksheet {
     title: titles[language],
     language,
     level: "grade_5_7",
-    topic: "mixed",
+    topic: "all",
     difficulty: "easy",
     instructions: instructions[language],
-    teacherVersion: false,
+    showAnswerKey: false,
+    showFormulas: false,
+    selectedShapes: ALL_FIGURES,
     tasks: [],
   };
 }
@@ -296,25 +388,124 @@ function safePlan(plan: unknown): PlanKey {
   return "free";
 }
 
+function resolveRoleFromProfile(profile: unknown): string {
+  if (!profile || typeof profile !== "object") return "anonymous";
+
+  const p = profile as Record<string, unknown>;
+
+  if (p.role === "teacher" || p.role === "student" || p.role === "parent") {
+    return p.role;
+  }
+
+  if (p.mode === "teacher" || p.mode === "student" || p.mode === "parent") {
+    return p.mode;
+  }
+
+  if (p.org && typeof p.org === "object") {
+    const orgRole = (p.org as Record<string, unknown>).role;
+    if (orgRole === "teacher" || orgRole === "student" || orgRole === "parent") {
+      return orgRole;
+    }
+  }
+
+  if (p.roles && typeof p.roles === "object") {
+    const roles = p.roles as Record<string, unknown>;
+    if (roles.teacher === true) return "teacher";
+    if (roles.parent === true) return "parent";
+    if (roles.student === true) return "student";
+  }
+
+  return "anonymous";
+}
+
+function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
+  if (!profile || typeof profile !== "object") return null;
+
+  const p = profile as Record<string, unknown>;
+  const billing = p.billing;
+
+  if (!billing || typeof billing !== "object") return null;
+
+  const b = billing as Record<string, unknown>;
+
+  return {
+    plan: typeof b.plan === "string" ? b.plan : null,
+    status: typeof b.status === "string" ? b.status : null,
+  };
+}
+
 function answerSpaceClass(answerSpace: AnswerSpace): string {
   if (answerSpace === "small") return "min-h-[40px]";
-  if (answerSpace === "large") return "min-h-[92px]";
-  return "min-h-[64px]";
+  if (answerSpace === "large") return "min-h-[110px]";
+  return "min-h-[72px]";
 }
 
 function getMeasurementLabel(
   lang: WorksheetLanguage,
-  key: "length" | "width" | "side"
+  key:
+    | "length"
+    | "width"
+    | "side"
+    | "base"
+    | "height"
+    | "topBase"
+    | "leftSide"
+    | "rightSide"
+    | "radius"
 ): string {
   const labels: Record<
     WorksheetLanguage,
-    Record<"length" | "width" | "side", string>
+    Record<
+      "length" | "width" | "side" | "base" | "height" | "topBase" | "leftSide" | "rightSide" | "radius",
+      string
+    >
   > = {
-    no: { length: "lengde", width: "bredde", side: "side" },
-    en: { length: "length", width: "width", side: "side" },
-    pt: { length: "comprimento", width: "largura", side: "lado" },
+    no: {
+      length: "lengde",
+      width: "bredde",
+      side: "side",
+      base: "grunnlinje",
+      height: "høyde",
+      topBase: "øvre grunnlinje",
+      leftSide: "venstre side",
+      rightSide: "høyre side",
+      radius: "radius",
+    },
+    en: {
+      length: "length",
+      width: "width",
+      side: "side",
+      base: "base",
+      height: "height",
+      topBase: "top base",
+      leftSide: "left side",
+      rightSide: "right side",
+      radius: "radius",
+    },
+    pt: {
+      length: "comprimento",
+      width: "largura",
+      side: "lado",
+      base: "base",
+      height: "altura",
+      topBase: "base menor",
+      leftSide: "lado esquerdo",
+      rightSide: "lado direito",
+      radius: "raio",
+    },
   };
   return labels[lang][key];
+}
+
+function getShapeLabel(language: WorksheetLanguage, kind: FigureKind) {
+  const s = STRINGS[language];
+  if (kind === "square") return s.square;
+  if (kind === "rectangle") return s.rectangle;
+  if (kind === "parallelogram") return s.parallelogram;
+  if (kind === "rhombus") return s.rhombus;
+  if (kind === "trapezoid") return s.trapezoid;
+  if (kind === "triangle") return s.triangle;
+  return s.circle;
 }
 
 function GeometryFigure({
@@ -327,16 +518,19 @@ function GeometryFigure({
   if (!figure) return null;
 
   const labelClass = "text-[11px] fill-slate-700";
+  const dashedLineClass = "stroke-slate-400";
+  const heightText =
+    language === "no" ? "høyde" : language === "en" ? "height" : "altura";
 
   if (figure.kind === "rectangle") {
     const width = figure.widthCm ?? 8;
     const height = figure.heightCm ?? 5;
 
     return (
-      <svg viewBox="0 0 240 140" className="h-36 w-full max-w-[260px]">
+      <svg viewBox="0 0 240 150" className="h-36 w-full max-w-[260px]">
         <rect
           x="40"
-          y="25"
+          y="28"
           width="160"
           height="90"
           rx="4"
@@ -345,10 +539,10 @@ function GeometryFigure({
           strokeWidth="2"
           className="text-slate-700"
         />
-        <text x="120" y="18" textAnchor="middle" className={labelClass}>
+        <text x="120" y="20" textAnchor="middle" className={labelClass}>
           {width} cm
         </text>
-        <text x="214" y="74" textAnchor="middle" className={labelClass}>
+        <text x="216" y="76" textAnchor="middle" className={labelClass}>
           {height} cm
         </text>
       </svg>
@@ -381,57 +575,201 @@ function GeometryFigure({
     );
   }
 
-  if (figure.kind === "triangle") {
+  if (figure.kind === "parallelogram") {
+    const base = figure.baseCm ?? 8;
+    const side = figure.sideCm ?? 5;
+    const height = figure.heightCm ?? 4;
+
     return (
-      <svg viewBox="0 0 200 150" className="h-36 w-full max-w-[220px]">
+      <svg viewBox="0 0 240 160" className="h-36 w-full max-w-[260px]">
         <polygon
-          points="100,20 25,125 175,125"
+          points="55,118 95,36 195,36 155,118"
           fill="white"
           stroke="currentColor"
           strokeWidth="2"
           className="text-slate-700"
         />
-        {figure.sides ? (
-          <text x="100" y="144" textAnchor="middle" className={labelClass}>
-            {figure.sides}{" "}
-            {language === "no" ? "sider" : language === "en" ? "sides" : "lados"}
-          </text>
-        ) : null}
+        <line
+          x1="95"
+          y1="36"
+          x2="95"
+          y2="118"
+          strokeDasharray="5 5"
+          strokeWidth="2"
+          className={dashedLineClass}
+        />
+        <text x="125" y="28" textAnchor="middle" className={labelClass}>
+          {base} cm
+        </text>
+        <text x="48" y="80" textAnchor="middle" className={labelClass}>
+          {side} cm
+        </text>
+        <text x="82" y="80" textAnchor="end" className={labelClass}>
+          {height} cm
+        </text>
+        <text x="82" y="94" textAnchor="end" className={labelClass}>
+          {heightText}
+        </text>
       </svg>
     );
   }
 
-  if (figure.kind === "circle") {
+  if (figure.kind === "rhombus") {
+    const side = figure.sideCm ?? 6;
+    const height = figure.heightCm ?? 4;
+
     return (
-      <svg viewBox="0 0 180 150" className="h-36 w-full max-w-[220px]">
-        <circle
-          cx="90"
-          cy="72"
-          r="44"
+      <svg viewBox="0 0 240 180" className="h-36 w-full max-w-[260px]">
+        <polygon
+          points="120,30 185,80 120,130 55,80"
           fill="white"
           stroke="currentColor"
           strokeWidth="2"
           className="text-slate-700"
         />
+        <line
+          x1="55"
+          y1="80"
+          x2="185"
+          y2="80"
+          strokeDasharray="4 4"
+          strokeWidth="1.5"
+          className="stroke-slate-300"
+        />
+        <line
+          x1="120"
+          y1="30"
+          x2="120"
+          y2="80"
+          strokeDasharray="5 5"
+          strokeWidth="2"
+          className={dashedLineClass}
+        />
+        <text x="198" y="84" textAnchor="start" className={labelClass}>
+          {side} cm
+        </text>
+        <text x="108" y="58" textAnchor="end" className={labelClass}>
+          {height} cm
+        </text>
+        <text x="108" y="72" textAnchor="end" className={labelClass}>
+          {heightText}
+        </text>
       </svg>
     );
   }
+
+  if (figure.kind === "trapezoid") {
+    const base = figure.baseCm ?? 12;
+    const top = figure.topCm ?? 8;
+    const height = figure.heightCm ?? 4;
+    const sideLeft = figure.sideLeftCm ?? 5;
+    const sideRight = figure.sideRightCm ?? 5;
+
+    return (
+      <svg viewBox="0 0 250 170" className="h-36 w-full max-w-[270px]">
+        <polygon
+          points="45,122 80,44 170,44 205,122"
+          fill="white"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-slate-700"
+        />
+        <line
+          x1="80"
+          y1="44"
+          x2="80"
+          y2="122"
+          strokeDasharray="5 5"
+          strokeWidth="2"
+          className={dashedLineClass}
+        />
+        <text x="125" y="34" textAnchor="middle" className={labelClass}>
+          {top} cm
+        </text>
+        <text x="125" y="143" textAnchor="middle" className={labelClass}>
+          {base} cm
+        </text>
+        <text x="34" y="82" textAnchor="middle" className={labelClass}>
+          {sideLeft} cm
+        </text>
+        <text x="216" y="82" textAnchor="middle" className={labelClass}>
+          {sideRight} cm
+        </text>
+        <text x="68" y="82" textAnchor="end" className={labelClass}>
+          {height} cm
+        </text>
+        <text x="68" y="96" textAnchor="end" className={labelClass}>
+          {heightText}
+        </text>
+      </svg>
+    );
+  }
+
+  if (figure.kind === "triangle") {
+    const a = figure.sideAcm ?? 3;
+    const b = figure.sideBcm ?? 4;
+    const c = figure.sideCcm ?? 5;
+    const h = figure.heightCm ?? 4;
+
+    return (
+      <svg viewBox="0 0 240 170" className="h-36 w-full max-w-[250px]">
+        <polygon
+          points="55,130 55,40 175,130"
+          fill="white"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-slate-700"
+        />
+        <line
+          x1="55"
+          y1="40"
+          x2="55"
+          y2="130"
+          strokeDasharray="5 5"
+          strokeWidth="2"
+          className={dashedLineClass}
+        />
+        <text x="112" y="146" textAnchor="middle" className={labelClass}>
+          {a} cm
+        </text>
+        <text x="38" y="88" textAnchor="middle" className={labelClass}>
+          {b} cm
+        </text>
+        <text x="122" y="76" textAnchor="middle" className={labelClass}>
+          {c} cm
+        </text>
+        <text x="42" y="90" textAnchor="end" className={labelClass}>
+          {h} cm
+        </text>
+      </svg>
+    );
+  }
+
+  const radius = figure.radiusCm ?? 5;
 
   return (
-    <svg viewBox="0 0 220 150" className="h-36 w-full max-w-[240px]">
-      <polygon
-        points="50,115 75,35 155,35 180,115"
+    <svg viewBox="0 0 220 170" className="h-36 w-full max-w-[240px]">
+      <circle
+        cx="110"
+        cy="85"
+        r="50"
         fill="white"
         stroke="currentColor"
         strokeWidth="2"
         className="text-slate-700"
       />
-      {figure.sides ? (
-        <text x="115" y="142" textAnchor="middle" className={labelClass}>
-          {figure.sides}{" "}
-          {language === "no" ? "sider" : language === "en" ? "sides" : "lados"}
-        </text>
-      ) : null}
+      <line
+        x1="110"
+        y1="85"
+        x2="160"
+        y2="85"
+        strokeDasharray="5 5"
+        strokeWidth="2"
+        className={dashedLineClass}
+      />
+      <text x="135" y="76" textAnchor="middle" className={labelClass}>
+        {radius} cm
+      </text>
     </svg>
   );
 }
@@ -462,6 +800,68 @@ function FigureMeta({
     );
   }
 
+  if (figure.kind === "parallelogram" && figure.baseCm && figure.sideCm && figure.heightCm) {
+    return (
+      <p className="text-sm text-slate-600">
+        {getMeasurementLabel(language, "base")}: {figure.baseCm} cm,{" "}
+        {getMeasurementLabel(language, "side")}: {figure.sideCm} cm,{" "}
+        {getMeasurementLabel(language, "height")}: {figure.heightCm} cm
+      </p>
+    );
+  }
+
+  if (figure.kind === "rhombus" && figure.sideCm && figure.heightCm) {
+    return (
+      <p className="text-sm text-slate-600">
+        {getMeasurementLabel(language, "side")}: {figure.sideCm} cm,{" "}
+        {getMeasurementLabel(language, "height")}: {figure.heightCm} cm
+      </p>
+    );
+  }
+
+  if (
+    figure.kind === "trapezoid" &&
+    figure.baseCm &&
+    figure.topCm &&
+    figure.heightCm &&
+    figure.sideLeftCm &&
+    figure.sideRightCm
+  ) {
+    return (
+      <p className="text-sm text-slate-600">
+        {getMeasurementLabel(language, "base")}: {figure.baseCm} cm,{" "}
+        {getMeasurementLabel(language, "topBase")}: {figure.topCm} cm,{" "}
+        {getMeasurementLabel(language, "height")}: {figure.heightCm} cm,{" "}
+        {getMeasurementLabel(language, "leftSide")}: {figure.sideLeftCm} cm,{" "}
+        {getMeasurementLabel(language, "rightSide")}: {figure.sideRightCm} cm
+      </p>
+    );
+  }
+
+  if (
+    figure.kind === "triangle" &&
+    figure.sideAcm &&
+    figure.sideBcm &&
+    figure.sideCcm &&
+    figure.heightCm
+  ) {
+    return (
+      <p className="text-sm text-slate-600">
+        {language === "no" ? "Sider" : language === "en" ? "Sides" : "Lados"}:{" "}
+        {figure.sideAcm} cm, {figure.sideBcm} cm, {figure.sideCcm} cm,{" "}
+        {getMeasurementLabel(language, "height")}: {figure.heightCm} cm
+      </p>
+    );
+  }
+
+  if (figure.kind === "circle" && figure.radiusCm) {
+    return (
+      <p className="text-sm text-slate-600">
+        {getMeasurementLabel(language, "radius")}: {figure.radiusCm} cm
+      </p>
+    );
+  }
+
   return null;
 }
 
@@ -477,6 +877,50 @@ function getStatusMessage(
   return strings.failed;
 }
 
+function formatAnswerKeyAnswer(task: MathWorksheetTask, language: WorksheetLanguage) {
+  if (task.type === "all_in_one") return task.answer;
+
+  if (task.type === "shape_name") {
+    return `${STRINGS[language].shapeNameLabel}: ${task.answer}`;
+  }
+
+  return task.answer;
+}
+
+function ToggleChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-left text-sm transition ${
+        active
+          ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+      }`}
+    >
+      <span
+        className={`flex h-5 w-5 items-center justify-center rounded border text-xs font-bold ${
+          active
+            ? "border-emerald-500 bg-emerald-500 text-white"
+            : "border-slate-300 bg-white text-transparent"
+        }`}
+      >
+        ✓
+      </span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
 export default function ProducerMathGeometryPage() {
   const locale = useLocale();
   const initialLanguage: WorksheetLanguage =
@@ -486,16 +930,19 @@ export default function ProducerMathGeometryPage() {
 
   const [language, setLanguage] = useState<WorksheetLanguage>(initialLanguage);
   const [level, setLevel] = useState<GeometryLevel>("grade_5_7");
-  const [topic, setTopic] = useState<GeometryTopic>("mixed");
+  const [topic, setTopic] = useState<GeometryTopic>("all");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [taskCount, setTaskCount] = useState<number>(6);
   const [includeHints, setIncludeHints] = useState<boolean>(true);
-  const [teacherVersion, setTeacherVersion] = useState<boolean>(false);
+  const [showAnswerKey, setShowAnswerKey] = useState<boolean>(false);
+  const [showFormulas, setShowFormulas] = useState<boolean>(false);
   const [answerSpace, setAnswerSpace] = useState<AnswerSpace>("medium");
+  const [selectedShapes, setSelectedShapes] = useState<FigureKind[]>(ALL_FIGURES);
   const [worksheet, setWorksheet] = useState<MathWorksheet>(() =>
     fallbackWorksheet(initialLanguage)
   );
   const [loading, setLoading] = useState<boolean>(false);
+  const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [usageInfo, setUsageInfo] = useState<string>("");
   const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
@@ -515,44 +962,15 @@ export default function ProducerMathGeometryPage() {
       ? (profile as { plan?: string }).plan
       : undefined;
 
-  const roleValue =
-    profile && typeof profile === "object" && "role" in profile
-      ? (profile as { role?: string }).role
-      : undefined;
+  const plan = useMemo(() => safePlan(planValue), [planValue]);
+  const role = useMemo(() => resolveRoleFromProfile(profile), [profile]);
+  const billing = useMemo(() => getBillingSnapshot(profile), [profile]);
 
-  const plan = safePlan(planValue);
-  const role = roleValue ?? "anonymous";
-
-  async function refreshFeatureStatus(currentUid?: string) {
-    const targetUid = currentUid ?? auth.currentUser?.uid ?? uid;
-    if (!targetUid) {
-      setFeatureStatus(null);
-      setStatusLoading(false);
-      return;
-    }
-
-    try {
-      const status = await getFeatureStatus({
-        uid: targetUid,
-        role,
-        plan,
-        feature: "producer_create_math_worksheet",
-      });
-      setFeatureStatus(status);
-    } catch {
-      setFeatureStatus(null);
-    } finally {
-      setStatusLoading(false);
-    }
-  }
-
-    useEffect(() => {
+  useEffect(() => {
     let active = true;
 
     async function loadStatus() {
-      const currentUid = auth.currentUser?.uid ?? uid;
-
-      if (!currentUid) {
+      if (!uid) {
         if (active) {
           setFeatureStatus(null);
           setStatusLoading(false);
@@ -563,10 +981,11 @@ export default function ProducerMathGeometryPage() {
       setStatusLoading(true);
 
       try {
-        const status = await getFeatureStatus({
-          uid: currentUid,
+        const status = await getFeatureStatusFromProfile({
+          uid,
           role,
           plan,
+          billing,
           feature: "producer_create_math_worksheet",
         });
 
@@ -589,18 +1008,48 @@ export default function ProducerMathGeometryPage() {
     return () => {
       active = false;
     };
-  }, [uid, role, plan]);
+  }, [uid, role, plan, billing]);
 
   const generatorsLimit = featureStatus?.limit ?? 0;
   const generatorsRemaining = featureStatus?.remaining ?? 0;
   const featureBlocked = featureStatus ? !featureStatus.allowed : false;
 
-  async function handleGenerate() {
-    const currentUser = auth.currentUser;
-    const currentUid = currentUser?.uid ?? uid;
+  async function refreshFeatureStatus() {
+    if (!uid) return;
 
-    if (!currentUid || !currentUser) {
-      setError(strings.signInRequired);
+    try {
+      const status = await getFeatureStatusFromProfile({
+        uid,
+        role,
+        plan,
+        billing,
+        feature: "producer_create_math_worksheet",
+      });
+      setFeatureStatus(status);
+    } catch {
+      // beholder gammel status
+    }
+  }
+
+  function toggleShape(kind: FigureKind) {
+    setSelectedShapes((current) => {
+      const exists = current.includes(kind);
+      if (exists) return current.filter((item) => item !== kind);
+      return [...current, kind];
+    });
+  }
+
+  function selectAllShapes() {
+    setSelectedShapes([...ALL_FIGURES]);
+  }
+
+  function clearAllShapes() {
+    setSelectedShapes([]);
+  }
+
+  async function handleGenerate() {
+    if (!uid) {
+      setError(strings.upgradeRequired);
       return;
     }
 
@@ -609,18 +1058,24 @@ export default function ProducerMathGeometryPage() {
       return;
     }
 
+    if (selectedShapes.length === 0) {
+      setError(strings.selectAtLeastOneShape);
+      return;
+    }
+
     setLoading(true);
     setError("");
     setUsageInfo("");
 
     try {
-      const idToken = await currentUser.getIdToken();
+      const currentUser = auth.currentUser;
+      const idToken = currentUser ? await currentUser.getIdToken() : null;
 
       const response = await fetch("/api/generate-math-worksheet", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
         },
         body: JSON.stringify({
           language,
@@ -629,8 +1084,10 @@ export default function ProducerMathGeometryPage() {
           difficulty,
           taskCount,
           includeHints,
-          teacherVersion,
+          showAnswerKey,
+          showFormulas,
           answerSpace,
+          selectedShapes,
         }),
       });
 
@@ -642,17 +1099,54 @@ export default function ProducerMathGeometryPage() {
             ? data.error
             : strings.failed;
         setError(message);
-        await refreshFeatureStatus(currentUid);
         return;
       }
 
       setWorksheet(data.worksheet);
-      setUsageInfo(strings.usageSaved);
-      await refreshFeatureStatus(currentUid);
+      setUsageInfo(strings.successGenerated);
+      await refreshFeatureStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : strings.failed);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveToMyContent() {
+    if (!uid || worksheet.tasks.length === 0) return;
+
+    setSaving(true);
+    setError("");
+    setUsageInfo("");
+
+    try {
+      const currentUser = auth.currentUser;
+      const idToken = currentUser ? await currentUser.getIdToken() : null;
+
+      const response = await fetch("/api/producer/save-math-worksheet", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+        body: JSON.stringify({
+          worksheet,
+          source: "math-geometry-generator",
+        }),
+      });
+
+      const data = (await response.json()) as { ok?: boolean; error?: string };
+
+      if (!response.ok || !data.ok) {
+        setError(data.error || strings.saveFailed);
+        return;
+      }
+
+      setUsageInfo(strings.savedToMyContent);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : strings.saveFailed);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -662,6 +1156,30 @@ export default function ProducerMathGeometryPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 print:bg-white">
+      <style jsx global>{`
+        @media print {
+          header,
+          nav,
+          aside[class*="sidebar"],
+          [data-topnav],
+          [data-sidebar],
+          [data-app-shell-nav] {
+            display: none !important;
+          }
+
+          main,
+          section,
+          article,
+          div {
+            box-shadow: none !important;
+          }
+
+          body {
+            background: white !important;
+          }
+        }
+      `}</style>
+
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
         <div className="mb-6 print:hidden">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -672,7 +1190,7 @@ export default function ProducerMathGeometryPage() {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)] print:block">
+        <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] print:block">
           <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm print:hidden">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-slate-900">
@@ -723,7 +1241,7 @@ export default function ProducerMathGeometryPage() {
                   <option value="shapes">{strings.shapes}</option>
                   <option value="perimeter">{strings.perimeter}</option>
                   <option value="area">{strings.area}</option>
-                  <option value="mixed">{strings.mixed}</option>
+                  <option value="all">{strings.all}</option>
                 </select>
               </label>
 
@@ -771,27 +1289,95 @@ export default function ProducerMathGeometryPage() {
                 </select>
               </label>
 
-              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-3 py-2">
-                <input
-                  type="checkbox"
-                  checked={includeHints}
-                  onChange={(e) => setIncludeHints(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                <span className="text-sm text-slate-700">{strings.hints}</span>
-              </label>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-700">
+                    {strings.chooseShapes}
+                  </p>
 
-              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-3 py-2">
-                <input
-                  type="checkbox"
-                  checked={teacherVersion}
-                  onChange={(e) => setTeacherVersion(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                <span className="text-sm text-slate-700">
-                  {strings.teacherVersion}
-                </span>
-              </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={selectAllShapes}
+                      className="rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                    >
+                      {strings.selectAll}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearAllShapes}
+                      className="rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                    >
+                      {strings.clearAll}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {ALL_FIGURES.map((shape) => {
+                    const checked = selectedShapes.includes(shape);
+
+                    return (
+                      <button
+                        key={shape}
+                        type="button"
+                        onClick={() => toggleShape(shape)}
+                        className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-left text-sm transition ${
+                          checked
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        }`}
+                        aria-pressed={checked}
+                      >
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded border text-xs font-bold ${
+                            checked
+                              ? "border-emerald-500 bg-emerald-500 text-white"
+                              : "border-slate-300 bg-white text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </span>
+                        <span>{getShapeLabel(language, shape)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedShapes.length === 0 ? (
+                  <p className="mt-3 text-sm text-red-600">
+                    {strings.selectAtLeastOneShape}
+                  </p>
+                ) : (
+                  <p className="mt-3 text-xs text-slate-500">
+                    {strings.selectedCount}: {selectedShapes.length}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="mb-3 text-sm font-medium text-slate-700">
+                  {strings.options}
+                </p>
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <ToggleChip
+                    label={strings.hints}
+                    active={includeHints}
+                    onClick={() => setIncludeHints((v) => !v)}
+                  />
+                  <ToggleChip
+                    label={strings.showFormulas}
+                    active={showFormulas}
+                    onClick={() => setShowFormulas((v) => !v)}
+                  />
+                  <ToggleChip
+                    label={strings.showAnswerKey}
+                    active={showAnswerKey}
+                    onClick={() => setShowAnswerKey((v) => !v)}
+                  />
+                </div>
+              </div>
 
               {!statusLoading && featureStatus ? (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -832,6 +1418,15 @@ export default function ProducerMathGeometryPage() {
 
                 <button
                   type="button"
+                  onClick={handleSaveToMyContent}
+                  disabled={saving || worksheet.tasks.length === 0}
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saving ? strings.saving : strings.saveToMyContent}
+                </button>
+
+                <button
+                  type="button"
                   onClick={handlePrint}
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
                 >
@@ -860,9 +1455,7 @@ export default function ProducerMathGeometryPage() {
                     </div>
 
                     <div className="shrink-0 rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
-                      {worksheet.teacherVersion
-                        ? strings.teacherVersionLabel
-                        : strings.studentVersion}
+                      {strings.worksheet}
                     </div>
                   </div>
 
@@ -881,83 +1474,147 @@ export default function ProducerMathGeometryPage() {
                     {strings.generate}
                   </div>
                 ) : (
-                  <div className="space-y-5">
-                    {worksheet.tasks.map((task, idx) => (
-                      <article
-                        key={task.id}
-                        className="rounded-3xl border border-slate-200 p-4 sm:p-5"
-                      >
-                        <div className="mb-3 flex items-start gap-3">
-                          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                            {idx + 1}
-                          </div>
-                          <div className="min-w-0">
-                            <h4 className="text-base font-semibold text-slate-900">
-                              {task.prompt}
-                            </h4>
-                            <FigureMeta
-                              figure={task.figure}
-                              language={worksheet.language}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
-                          <div className="flex items-center justify-center rounded-2xl bg-slate-50 p-3">
-                            <GeometryFigure
-                              figure={task.figure}
-                              language={worksheet.language}
-                            />
+                  <>
+                    <div className="space-y-5">
+                      {worksheet.tasks.map((task, idx) => (
+                        <article
+                          key={task.id}
+                          className="rounded-3xl border border-slate-200 p-4 sm:p-5"
+                        >
+                          <div className="mb-3 flex items-start gap-3">
+                            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                              {idx + 1}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-base font-semibold text-slate-900">
+                                {task.prompt}
+                              </h4>
+                              <FigureMeta
+                                figure={task.figure}
+                                language={worksheet.language}
+                              />
+                            </div>
                           </div>
 
-                          <div className="space-y-3">
-                            <div
-                              className={`rounded-2xl border border-dashed border-slate-300 bg-white px-3 py-3 ${answerSpaceClass(
-                                answerSpace
-                              )}`}
-                            >
-                              <span className="text-sm font-medium text-slate-600">
-                                {strings.answer}:
-                              </span>
+                          <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
+                            <div className="flex items-center justify-center rounded-2xl bg-slate-50 p-3">
+                              <GeometryFigure
+                                figure={task.figure}
+                                language={worksheet.language}
+                              />
                             </div>
 
-                            {worksheet.teacherVersion ? (
-                              <div className="space-y-2 rounded-2xl bg-emerald-50 p-3">
-                                <p className="text-sm">
+                            <div className="space-y-3">
+                              <div
+                                className={`rounded-2xl border border-dashed border-slate-300 bg-white px-3 py-3 ${answerSpaceClass(
+                                  answerSpace
+                                )}`}
+                              >
+                                <span className="text-sm font-medium text-slate-600">
+                                  {strings.answer}:
+                                </span>
+                              </div>
+
+                              {worksheet.showFormulas && task.formula ? (
+                                <div className="rounded-2xl bg-blue-50 p-3 text-sm text-slate-700">
                                   <span className="font-semibold text-slate-900">
-                                    {strings.answer}:
-                                  </span>{" "}
-                                  <span className="text-slate-800">
-                                    {task.answer}
+                                    {strings.formula}:
                                   </span>
-                                </p>
+                                  <div className="mt-1 whitespace-pre-line">
+                                    {task.formula}
+                                  </div>
+                                </div>
+                              ) : null}
 
-                                {task.explanation ? (
-                                  <p className="text-sm text-slate-700">
-                                    <span className="font-semibold text-slate-900">
-                                      {strings.explanation}:
-                                    </span>{" "}
-                                    {task.explanation}
-                                  </p>
-                                ) : null}
-                              </div>
-                            ) : null}
-
-                            {!worksheet.teacherVersion &&
-                            includeHints &&
-                            task.hint ? (
-                              <div className="rounded-2xl bg-amber-50 p-3 text-sm text-slate-700">
-                                <span className="font-semibold text-slate-900">
-                                  {strings.hint}:
-                                </span>{" "}
-                                {task.hint}
-                              </div>
-                            ) : null}
+                              {includeHints && task.hint ? (
+                                <div className="rounded-2xl bg-amber-50 p-3 text-sm text-slate-700">
+                                  <span className="font-semibold text-slate-900">
+                                    {strings.hint}:
+                                  </span>{" "}
+                                  {task.hint}
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
+                        </article>
+                      ))}
+                    </div>
+
+                    {worksheet.showAnswerKey ? (
+                      <section className="mt-10 break-before-page border-t-2 border-slate-300 pt-8">
+                        <div className="mb-6">
+                          <h3 className="text-2xl font-bold text-slate-900">
+                            {strings.answerKeyTitle}
+                          </h3>
                         </div>
-                      </article>
-                    ))}
-                  </div>
+
+                        <div className="space-y-5">
+                          {worksheet.tasks.map((task, idx) => (
+                            <article
+                              key={`answer-key-${task.id}`}
+                              className="rounded-3xl border border-slate-200 bg-emerald-50 p-4 sm:p-5"
+                            >
+                              <div className="mb-3 flex items-start gap-3">
+                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                                  {idx + 1}
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="text-base font-semibold text-slate-900">
+                                    {strings.taskLabel} {idx + 1}
+                                  </h4>
+                                  <p className="mt-1 text-sm text-slate-700">
+                                    {task.prompt}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
+                                <div className="flex items-center justify-center rounded-2xl bg-white p-3">
+                                  <GeometryFigure
+                                    figure={task.figure}
+                                    language={worksheet.language}
+                                  />
+                                </div>
+
+                                <div className="space-y-3">
+                                  <div className="rounded-2xl bg-white p-3">
+                                    <p className="whitespace-pre-line text-sm text-slate-800">
+                                      <span className="font-semibold text-slate-900">
+                                        {strings.answer}:
+                                      </span>{" "}
+                                      {formatAnswerKeyAnswer(task, worksheet.language)}
+                                    </p>
+                                  </div>
+
+                                  {task.formula ? (
+                                    <div className="rounded-2xl bg-white p-3">
+                                      <p className="whitespace-pre-line text-sm text-slate-700">
+                                        <span className="font-semibold text-slate-900">
+                                          {strings.formula}:
+                                        </span>{" "}
+                                        {task.formula}
+                                      </p>
+                                    </div>
+                                  ) : null}
+
+                                  {task.explanation ? (
+                                    <div className="rounded-2xl bg-white p-3">
+                                      <p className="text-sm text-slate-700">
+                                        <span className="font-semibold text-slate-900">
+                                          {strings.explanation}:
+                                        </span>{" "}
+                                        {task.explanation}
+                                      </p>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
+                  </>
                 )}
               </div>
             </div>

@@ -1,14 +1,22 @@
 // app/[locale]/pricing/page.tsx
+"use client";
+
 import Link from "next/link";
+import { useLocale } from "next-intl";
+import {
+  getEffectivePlan,
+  type BillingSnapshot,
+} from "@/lib/featureAccess";
+import { useUserProfile } from "@/lib/useUserProfile";
 
 type TierKey = "free" | "basic" | "plus" | "pro";
+type RoleKey = "student" | "teacher" | "parent";
 
 type Tier = {
   key: TierKey;
   name: string;
   price: string;
   tagline: string;
-  cta: { label: string; href: string };
   accent: "slate" | "blue" | "violet" | "rose";
   recommended?: boolean;
 };
@@ -20,7 +28,7 @@ type FeatureRow = {
 };
 
 type RoleSection = {
-  id: "student" | "teacher" | "parent";
+  id: RoleKey;
   title: string;
   subtitle: string;
   hint?: string;
@@ -33,7 +41,6 @@ const TIERS: Tier[] = [
     name: "Free",
     price: "0 kr",
     tagline: "Kom i gang gratis med bibliotek, lesing og enkel bruk.",
-    cta: { label: "Kom i gang", href: "/join" },
     accent: "slate",
   },
   {
@@ -41,7 +48,6 @@ const TIERS: Tier[] = [
     name: "Basic",
     price: "59 kr / mnd",
     tagline: "For deg som vil bruke plattformen oftere og få mer kapasitet.",
-    cta: { label: "Velg Basic", href: "/join" },
     accent: "blue",
   },
   {
@@ -49,7 +55,6 @@ const TIERS: Tier[] = [
     name: "Plus",
     price: "129 kr / mnd",
     tagline: "Mer AI, mer samarbeid og tilgang til de viktigste premium-funksjonene.",
-    cta: { label: "Velg Plus", href: "/join" },
     accent: "violet",
     recommended: true,
   },
@@ -58,7 +63,6 @@ const TIERS: Tier[] = [
     name: "Pro",
     price: "199 kr / mnd",
     tagline: "For høy aktivitet, publisering og mer profesjonell bruk.",
-    cta: { label: "Velg Pro", href: "/join" },
     accent: "rose",
   },
 ];
@@ -142,7 +146,12 @@ const ROLES: RoleSection[] = [
       },
       {
         label: "🏫 Rom og tavler",
-        values: { free: "Basic", basic: "Mer kapasitet", plus: "Stor kapasitet", pro: "Maks kapasitet" },
+        values: {
+          free: "Basic",
+          basic: "Mer kapasitet",
+          plus: "Stor kapasitet",
+          pro: "Maks kapasitet",
+        },
       },
       {
         label: "🌍 Premium app-tilgang",
@@ -198,15 +207,68 @@ function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
+function safePlan(plan?: string | null): TierKey {
+  if (plan === "basic") return "basic";
+  if (plan === "plus") return "plus";
+  if (plan === "pro") return "pro";
+  return "free";
+}
+
+function resolveRoleFromProfile(profile: unknown): RoleKey | null {
+  if (!profile || typeof profile !== "object") return null;
+
+  const p = profile as Record<string, unknown>;
+
+  if (p.role === "student" || p.role === "teacher" || p.role === "parent") {
+    return p.role;
+  }
+
+  if (p.mode === "student" || p.mode === "teacher" || p.mode === "parent") {
+    return p.mode;
+  }
+
+  if (p.org && typeof p.org === "object") {
+    const orgRole = (p.org as Record<string, unknown>).role;
+    if (orgRole === "student" || orgRole === "teacher" || orgRole === "parent") {
+      return orgRole;
+    }
+  }
+
+  if (p.roles && typeof p.roles === "object") {
+    const roles = p.roles as Record<string, unknown>;
+    if (roles.teacher === true) return "teacher";
+    if (roles.parent === true) return "parent";
+    if (roles.student === true) return "student";
+  }
+
+  return null;
+}
+
+function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
+  if (!profile || typeof profile !== "object") return null;
+
+  const p = profile as Record<string, unknown>;
+  const billing = p.billing;
+
+  if (!billing || typeof billing !== "object") return null;
+
+  const b = billing as Record<string, unknown>;
+
+  return {
+    plan: typeof b.plan === "string" ? b.plan : null,
+    status: typeof b.status === "string" ? b.status : null,
+  };
+}
+
 function AccentPill({ accent, label }: { accent: Tier["accent"]; label: string }) {
   const cls =
     accent === "blue"
       ? "border-blue-200 bg-blue-50 text-blue-700"
       : accent === "violet"
-      ? "border-violet-200 bg-violet-50 text-violet-700"
-      : accent === "rose"
-      ? "border-rose-200 bg-rose-50 text-rose-700"
-      : "border-slate-200 bg-slate-50 text-slate-700";
+        ? "border-violet-200 bg-violet-50 text-violet-700"
+        : accent === "rose"
+          ? "border-rose-200 bg-rose-50 text-rose-700"
+          : "border-slate-200 bg-slate-50 text-slate-700";
 
   return (
     <span className={cx("inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium", cls)}>
@@ -215,30 +277,55 @@ function AccentPill({ accent, label }: { accent: Tier["accent"]; label: string }
   );
 }
 
-function TierCard({ tier }: { tier: Tier }) {
+function TierCard({
+  tier,
+  activePlan,
+  isLoggedIn,
+}: {
+  tier: Tier;
+  activePlan: TierKey;
+  isLoggedIn: boolean;
+}) {
   const border =
     tier.accent === "blue"
       ? "border-blue-200"
       : tier.accent === "violet"
-      ? "border-violet-300 ring-2 ring-violet-100"
-      : tier.accent === "rose"
-      ? "border-rose-200"
-      : "border-slate-200";
+        ? "border-violet-300 ring-2 ring-violet-100"
+        : tier.accent === "rose"
+          ? "border-rose-200"
+          : "border-slate-200";
 
   const buttonClass =
     tier.accent === "violet"
       ? "bg-violet-700 hover:bg-violet-800"
       : "bg-slate-900 hover:bg-slate-800";
 
+  const isCurrent = activePlan === tier.key;
+  const ctaHref = isLoggedIn ? "/account/billing" : "/join";
+  const ctaLabel = isCurrent
+    ? "Aktiv plan"
+    : isLoggedIn
+      ? tier.key === "free"
+        ? "Administrer plan"
+        : `Velg ${tier.name}`
+      : tier.key === "free"
+        ? "Kom i gang"
+        : `Velg ${tier.name}`;
+
   return (
-    <div className={cx("rounded-2xl border bg-white p-5 shadow-sm", border)}>
+    <div className={cx("rounded-2xl border bg-white p-5 shadow-sm", border, isCurrent && "ring-2 ring-emerald-100 border-emerald-300")}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <AccentPill accent={tier.accent} label={tier.key === "free" ? "Gratis" : tier.name} />
             {tier.recommended ? (
               <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-700">
                 Anbefalt
+              </span>
+            ) : null}
+            {isCurrent ? (
+              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                Aktiv plan
               </span>
             ) : null}
           </div>
@@ -251,13 +338,13 @@ function TierCard({ tier }: { tier: Tier }) {
 
       <div className="mt-5">
         <Link
-          href={tier.cta.href}
+          href={ctaHref}
           className={cx(
             "inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium text-white",
-            buttonClass
+            isCurrent ? "bg-emerald-600 hover:bg-emerald-700" : buttonClass
           )}
         >
-          {tier.cta.label}
+          {ctaLabel}
         </Link>
       </div>
 
@@ -266,15 +353,22 @@ function TierCard({ tier }: { tier: Tier }) {
   );
 }
 
-function ValueCell({ value }: { value: string }) {
+function ValueCell({
+  value,
+  highlight,
+}: {
+  value: string;
+  highlight?: boolean;
+}) {
   const isCheck = value.trim() === "✔";
   const isDash = value.trim() === "–" || value.trim() === "-";
 
   return (
     <div
       className={cx(
-        "flex min-h-[40px] items-center justify-center rounded-lg px-2 text-sm text-center",
-        isCheck && "bg-emerald-50 text-emerald-700",
+        "flex min-h-[40px] items-center justify-center rounded-lg px-2 text-sm text-center border",
+        highlight ? "border-emerald-200 bg-emerald-50" : "border-transparent",
+        isCheck && "text-emerald-700",
         isDash && "text-slate-400",
         !isCheck && !isDash && "text-slate-800"
       )}
@@ -285,7 +379,17 @@ function ValueCell({ value }: { value: string }) {
   );
 }
 
-function CompareTable({ role }: { role: RoleSection }) {
+function CompareTable({
+  role,
+  activePlan,
+  activeRole,
+}: {
+  role: RoleSection;
+  activePlan: TierKey;
+  activeRole: RoleKey | null;
+}) {
+  const highlightPlan = activeRole === role.id ? activePlan : null;
+
   return (
     <section id={role.id} className="scroll-mt-24">
       <div className="mb-3">
@@ -298,7 +402,13 @@ function CompareTable({ role }: { role: RoleSection }) {
         <div className="hidden grid-cols-6 gap-0 border-b bg-slate-50 px-4 py-3 text-xs font-medium text-slate-600 md:grid">
           <div className="col-span-2">Funksjon</div>
           {TIERS.map((t) => (
-            <div key={t.key} className="text-center">
+            <div
+              key={t.key}
+              className={cx(
+                "text-center",
+                highlightPlan === t.key && "text-emerald-700 font-semibold"
+              )}
+            >
               {t.name}
             </div>
           ))}
@@ -318,10 +428,10 @@ function CompareTable({ role }: { role: RoleSection }) {
                 <div className="md:hidden text-center text-xs font-medium text-slate-500">Plus</div>
                 <div className="md:hidden text-center text-xs font-medium text-slate-500">Pro</div>
 
-                <ValueCell value={row.values.free} />
-                <ValueCell value={row.values.basic} />
-                <ValueCell value={row.values.plus} />
-                <ValueCell value={row.values.pro} />
+                <ValueCell value={row.values.free} highlight={highlightPlan === "free"} />
+                <ValueCell value={row.values.basic} highlight={highlightPlan === "basic"} />
+                <ValueCell value={row.values.plus} highlight={highlightPlan === "plus"} />
+                <ValueCell value={row.values.pro} highlight={highlightPlan === "pro"} />
               </div>
             </div>
           ))}
@@ -332,6 +442,24 @@ function CompareTable({ role }: { role: RoleSection }) {
 }
 
 export default function PricingPage() {
+  const locale = useLocale();
+  const { user, loading } = useUserProfile();
+
+  const activeRole = resolveRoleFromProfile(user);
+  const topLevelPlan = safePlan((user as { plan?: string } | null)?.plan ?? null);
+  const billing = getBillingSnapshot(user);
+
+  const activePlan = getEffectivePlan({
+    plan: topLevelPlan,
+    billing,
+  }) as TierKey;
+
+  const isLoggedIn = Boolean(user);
+
+  const backHref = locale ? `/${locale}` : "/";
+  const joinHref = locale ? `/${locale}/join` : "/join";
+  const billingHref = locale ? `/${locale}/account/billing` : "/account/billing";
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
@@ -354,24 +482,46 @@ export default function PricingPage() {
                 Parent
               </a>
             </div>
+
+            {!loading && isLoggedIn ? (
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                Aktiv plan: <span className="font-semibold">{activePlan.toUpperCase()}</span>
+                {activeRole ? (
+                  <>
+                    {" "}
+                    · Rolle: <span className="font-semibold">{activeRole}</span>
+                  </>
+                ) : null}
+                <div className="mt-2">
+                  <Link href={billingHref} className="font-medium underline underline-offset-2">
+                    Administrer abonnement
+                  </Link>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href="/" className="rounded-xl border px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <Link href={backHref} className="rounded-xl border px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
               Tilbake til forsiden
             </Link>
             <Link
-              href="/join"
+              href={isLoggedIn ? billingHref : joinHref}
               className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
             >
-              Opprett konto
+              {isLoggedIn ? "Administrer plan" : "Opprett konto"}
             </Link>
           </div>
         </div>
 
         <div className="mt-8 grid gap-4 md:mt-10 md:grid-cols-4">
           {TIERS.map((tier) => (
-            <TierCard key={tier.key} tier={tier} />
+            <TierCard
+              key={tier.key}
+              tier={tier}
+              activePlan={activePlan}
+              isLoggedIn={isLoggedIn}
+            />
           ))}
         </div>
 
@@ -407,14 +557,19 @@ export default function PricingPage() {
 
         <div className="mt-10 space-y-10 md:mt-12">
           {ROLES.map((role) => (
-            <CompareTable key={role.id} role={role} />
+            <CompareTable
+              key={role.id}
+              role={role}
+              activePlan={activePlan}
+              activeRole={activeRole}
+            />
           ))}
         </div>
 
         <div className="mt-12 border-t pt-6 text-sm text-slate-500">
           <p>
-            Dette er en levende planside under utvikling. Tall, grenser og innhold kan justeres før lansering. Senere kan
-            CTA-knappene kobles direkte til Stripe checkout eller en egen oppgraderingsflyt.
+            Dette er en levende planside under utvikling. Tall, grenser og innhold kan justeres før lansering. CTA-knappene
+            kan kobles direkte til Stripe checkout eller billing-siden.
           </p>
         </div>
       </div>

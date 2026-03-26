@@ -195,10 +195,13 @@ export default function ParentSpacesPage() {
 
   const collatorLocale = useMemo(() => (locale === "no" ? "nb" : "en"), [locale]);
 
-  function titleOfSpace(s: SpaceDoc): string {
+  const titleOfSpace = useMemo(
+  () => (s: SpaceDoc): string => {
     const title = safeString(getKey(s, "title"));
     return title ?? t("defaultTitle");
-  }
+  },
+  [t]
+);
 
   function subtitleOfSpace(s: SpaceDoc): string {
     const kind = kindOfSpace(s);
@@ -265,7 +268,7 @@ export default function ParentSpacesPage() {
     return () => {
       alive = false;
     };
-  }, [user, collatorLocale, t]);
+  }, [user, collatorLocale, t, titleOfSpace]);
 
   useEffect(() => {
     if (!user?.uid || spaces.length === 0) {

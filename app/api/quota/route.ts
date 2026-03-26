@@ -6,10 +6,12 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import {
   getQuotaBucket,
   getBucketLimit,
+  getEffectivePlan,
   type AppRole,
   type PlanKey,
   type FeatureKey,
   type QuotaBucket,
+  type BillingSnapshot,
 } from "@/lib/featureAccess";
 
 type QuotaInfo = {
@@ -32,6 +34,8 @@ type UserProfileDoc = {
   plan?: unknown;
   mode?: unknown;
   roles?: unknown;
+  org?: unknown;
+  billing?: unknown;
 };
 
 function json(data: unknown, status = 200) {
@@ -120,24 +124,50 @@ function pickRoleFromRolesObject(roles: unknown): AppRole | null {
   return null;
 }
 
+function resolveRoleFromUserData(data: Record<string, unknown>): AppRole {
+  if (isAppRole(data.role)) return data.role;
+  if (isAppRole(data.mode)) return data.mode;
+
+  const roleFromRoles = pickRoleFromRolesObject(data.roles);
+  if (roleFromRoles) return roleFromRoles;
+
+  if (isRecord(data.org) && isAppRole(data.org.role)) {
+    return data.org.role;
+  }
+
+  return "anonymous";
+}
+
+function readBillingSnapshot(value: unknown): BillingSnapshot | null {
+  if (!isRecord(value)) return null;
+
+  return {
+    plan: typeof value.plan === "string" ? value.plan : null,
+    status: typeof value.status === "string" ? value.status : null,
+  };
+}
+
 async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>) {
   const { db } = getAdmin();
 
   let role: AppRole = "anonymous";
-  let plan: PlanKey = "free";
+  let topLevelPlan: PlanKey = "free";
+  let billing: BillingSnapshot | null = null;
 
   if (isAppRole(decoded.role)) {
     role = decoded.role;
+  } else if (isAppRole(decoded.mode)) {
+    role = decoded.mode;
+  } else {
+    const claimRoles = pickRoleFromRolesObject(decoded.roles);
+    if (claimRoles) role = claimRoles;
   }
 
   if (isPlanKey(decoded.plan)) {
-    plan = decoded.plan;
+    topLevelPlan = decoded.plan;
   }
 
-  const claimRoles = pickRoleFromRolesObject(decoded.roles);
-  if (!isAppRole(decoded.role) && claimRoles) {
-    role = claimRoles;
-  }
+  billing = readBillingSnapshot(decoded.billing);
 
   try {
     const userRef = db.collection("users").doc(uid);
@@ -145,27 +175,29 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
 
     if (userSnap.exists) {
       const userData = (userSnap.data() as UserProfileDoc) ?? {};
+      const userRecord = userData as Record<string, unknown>;
 
-      if (!isAppRole(decoded.role)) {
-        if (isAppRole(userData.role)) {
-          role = userData.role;
-        } else if (isAppRole(userData.mode)) {
-          role = userData.mode;
-        } else {
-          const roleFromRoles = pickRoleFromRolesObject(userData.roles);
-          if (roleFromRoles) role = roleFromRoles;
-        }
+      role = resolveRoleFromUserData(userRecord) || role;
+
+      if (isPlanKey(userData.plan)) {
+        topLevelPlan = userData.plan;
       }
 
-      if (!isPlanKey(decoded.plan) && isPlanKey(userData.plan)) {
-        plan = userData.plan;
+      const userBilling = readBillingSnapshot(userData.billing);
+      if (userBilling) {
+        billing = userBilling;
       }
     }
   } catch {
     // keep fallbacks
   }
 
-  return { role, plan };
+  const plan = getEffectivePlan({
+    plan: topLevelPlan,
+    billing,
+  });
+
+  return { role, plan, billing };
 }
 
 export async function GET(req: Request) {

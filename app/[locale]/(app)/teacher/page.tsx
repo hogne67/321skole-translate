@@ -6,7 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import { db } from "@/lib/firebase";
-import { getBucketLimit, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import {
+  getBucketLimit,
+  getEffectivePlan,
+  type AppRole,
+  type BillingSnapshot,
+} from "@/lib/featureAccess";
 import {
   archiveStudentFromTeacherSpaces,
   getTeacherStudentCount,
@@ -26,11 +31,70 @@ function safeRole(role?: string): AppRole {
   return "teacher";
 }
 
-function safePlan(plan?: string): PlanKey {
-  if (plan === "basic") return "basic";
-  if (plan === "plus") return "plus";
-  if (plan === "pro") return "pro";
-  return "free";
+function resolveRoleFromProfile(profile: unknown): AppRole {
+  if (!profile || typeof profile !== "object") return "teacher";
+
+  const p = profile as Record<string, unknown>;
+
+  if (
+    p.role === "teacher" ||
+    p.role === "student" ||
+    p.role === "parent" ||
+    p.role === "creator" ||
+    p.role === "admin"
+  ) {
+    return safeRole(p.role);
+  }
+
+  if (
+    p.mode === "teacher" ||
+    p.mode === "student" ||
+    p.mode === "parent" ||
+    p.mode === "creator" ||
+    p.mode === "admin"
+  ) {
+    return safeRole(p.mode);
+  }
+
+  if (p.org && typeof p.org === "object") {
+    const orgRole = (p.org as Record<string, unknown>).role;
+    if (
+      orgRole === "teacher" ||
+      orgRole === "student" ||
+      orgRole === "parent" ||
+      orgRole === "creator" ||
+      orgRole === "admin"
+    ) {
+      return safeRole(orgRole);
+    }
+  }
+
+  if (p.roles && typeof p.roles === "object") {
+    const roles = p.roles as Record<string, unknown>;
+    if (roles.admin === true) return "admin";
+    if (roles.teacher === true) return "teacher";
+    if (roles.creator === true) return "creator";
+    if (roles.parent === true) return "parent";
+    if (roles.student === true) return "student";
+  }
+
+  return "teacher";
+}
+
+function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
+  if (!profile || typeof profile !== "object") return null;
+
+  const p = profile as Record<string, unknown>;
+  const billing = p.billing;
+
+  if (!billing || typeof billing !== "object") return null;
+
+  const b = billing as Record<string, unknown>;
+
+  return {
+    plan: typeof b.plan === "string" ? b.plan : null,
+    status: typeof b.status === "string" ? b.status : null,
+  };
 }
 
 function withLocale(locale: string, href: string): string {
@@ -150,8 +214,8 @@ function StatCard({ title, used, limit, accent = "slate" }: StatCardProps) {
       : accent === "emerald"
       ? "linear-gradient(135deg, rgba(16,185,129,0.14), rgba(110,231,183,0.04))"
       : accent === "violet"
-      ? "linear-gradient(135deg, rgba(139,92,246,0.14), rgba(196,181,253,0.04))"
-      : "linear-gradient(135deg, rgba(148,163,184,0.14), rgba(226,232,240,0.04))";
+        ? "linear-gradient(135deg, rgba(139,92,246,0.14), rgba(196,181,253,0.04))"
+        : "linear-gradient(135deg, rgba(148,163,184,0.14), rgba(226,232,240,0.04))";
 
   return (
     <div
@@ -245,26 +309,34 @@ function StatCard({ title, used, limit, accent = "slate" }: StatCardProps) {
 }
 
 export default function TeacherPage() {
-  const locale = useLocale();
-  const { user, loading } = useUserProfile();
-  const { usage, loading: usageLoading } = useUsage(user?.uid);
+ const locale = useLocale();
+const { user, profile, loading } = useUserProfile();
+const { usage, loading: usageLoading } = useUsage(user?.uid);
 
-  const [studentsUsed, setStudentsUsed] = useState(0);
-  const [studentsLoading, setStudentsLoading] = useState(true);
-  const [studentItems, setStudentItems] = useState<TeacherStudentOverviewItem[]>([]);
-  const [studentItemsLoading, setStudentItemsLoading] = useState(true);
-  const [studentSearch, setStudentSearch] = useState("");
-  const [busyStudentUid, setBusyStudentUid] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [studentsOpen, setStudentsOpen] = useState(false);
+const [studentsUsed, setStudentsUsed] = useState(0);
+const [studentsLoading, setStudentsLoading] = useState(true);
+const [studentItems, setStudentItems] = useState<TeacherStudentOverviewItem[]>([]);
+const [studentItemsLoading, setStudentItemsLoading] = useState(true);
+const [studentSearch, setStudentSearch] = useState("");
+const [busyStudentUid, setBusyStudentUid] = useState<string | null>(null);
+const [actionError, setActionError] = useState<string | null>(null);
+const [studentsOpen, setStudentsOpen] = useState(false);
 
-  const isAnon = Boolean(user?.isAnonymous);
+const sourceProfile = profile ?? user ?? null;
+const isAnon = Boolean(user?.isAnonymous);
 
-  const roleValue = (user as { role?: string } | null)?.role;
-  const planValue = (user as { plan?: string } | null)?.plan;
+const planValue =
+  sourceProfile && typeof sourceProfile === "object"
+    ? ((sourceProfile as { plan?: string | null }).plan ?? null)
+    : null;
 
-  const role = safeRole(roleValue);
-  const plan = safePlan(planValue);
+const role = resolveRoleFromProfile(sourceProfile);
+const billing = getBillingSnapshot(sourceProfile);
+
+const effectivePlan = getEffectivePlan({
+  plan: planValue,
+  billing,
+});
 
   async function reloadStudents(currentUid?: string) {
     if (!currentUid || !db) {
@@ -412,15 +484,15 @@ export default function TeacherPage() {
   if (loading || usageLoading || studentsLoading || studentItemsLoading) return null;
 
   const generatorsUsed = usage["premium_generators"] ?? 0;
-  const generatorsLimit = getBucketLimit(role, plan, "premium_generators");
+  const generatorsLimit = getBucketLimit(role, effectivePlan, "premium_generators");
 
   const imagesUsed = usage["image_generation"] ?? 0;
-  const imagesLimit = getBucketLimit(role, plan, "image_generation");
+  const imagesLimit = getBucketLimit(role, effectivePlan, "image_generation");
 
   const feedbackUsed = usage["ai_feedback"] ?? 0;
-  const feedbackLimit = getBucketLimit(role, plan, "ai_feedback");
+  const feedbackLimit = getBucketLimit(role, effectivePlan, "ai_feedback");
 
-  const studentsLimit = getBucketLimit(role, plan, "members");
+  const studentsLimit = getBucketLimit(role, effectivePlan, "members");
   const studentsPercent = percent(studentsUsed, studentsLimit);
   const studentsTone = getProgressTone(studentsUsed, studentsLimit);
   const studentsRemaining = getRemaining(studentsUsed, studentsLimit);
@@ -595,21 +667,21 @@ export default function TeacherPage() {
                     studentsRemaining <= 0
                       ? "#fecaca"
                       : studentsRemaining <= 3
-                      ? "#fde68a"
-                      : "#bfdbfe"
+                        ? "#fde68a"
+                        : "#bfdbfe"
                   }`,
                   background:
                     studentsRemaining <= 0
                       ? "#fef2f2"
                       : studentsRemaining <= 3
-                      ? "#fffbeb"
-                      : "#f8fbff",
+                        ? "#fffbeb"
+                        : "#f8fbff",
                   color:
                     studentsRemaining <= 0
                       ? "#b91c1c"
                       : studentsRemaining <= 3
-                      ? "#92400e"
-                      : "#1e3a8a",
+                        ? "#92400e"
+                        : "#1e3a8a",
                   borderRadius: 14,
                   padding: "12px 14px",
                   fontSize: 14,

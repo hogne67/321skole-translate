@@ -1,4 +1,4 @@
-// app\[locale]\(app)\producer\reading-tests\new\page.tsx
+// app/[locale]/(app)/producer/reading-tests/new/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -7,6 +7,12 @@ import { getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { LANGUAGES } from "@/lib/languages";
+import {
+  getFeatureStatusFromProfile,
+  type FeatureStatus,
+} from "@/lib/featureGuard";
+import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
+import { useUserProfile } from "@/lib/useUserProfile";
 
 type LevelKey = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type AudienceKey = "children" | "teenagers" | "adult learners" | "learners";
@@ -205,10 +211,64 @@ const LEVEL_DEFAULTS: Record<LevelKey, { minWords: number; maxWords: number }> =
   C2: { minWords: 180, maxWords: 260 },
 };
 
+function safePlan(plan: unknown): PlanKey {
+  if (plan === "basic") return "basic";
+  if (plan === "plus") return "plus";
+  if (plan === "pro") return "pro";
+  return "free";
+}
+
+function resolveRoleFromProfile(profile: unknown): string {
+  if (!profile || typeof profile !== "object") return "anonymous";
+
+  const p = profile as Record<string, unknown>;
+
+  if (p.role === "teacher" || p.role === "student" || p.role === "parent") {
+    return p.role;
+  }
+
+  if (p.mode === "teacher" || p.mode === "student" || p.mode === "parent") {
+    return p.mode;
+  }
+
+  if (p.org && typeof p.org === "object") {
+    const orgRole = (p.org as Record<string, unknown>).role;
+    if (orgRole === "teacher" || orgRole === "student" || orgRole === "parent") {
+      return orgRole;
+    }
+  }
+
+  if (p.roles && typeof p.roles === "object") {
+    const roles = p.roles as Record<string, unknown>;
+    if (roles.teacher === true) return "teacher";
+    if (roles.parent === true) return "parent";
+    if (roles.student === true) return "student";
+  }
+
+  return "anonymous";
+}
+
+function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
+  if (!profile || typeof profile !== "object") return null;
+
+  const p = profile as Record<string, unknown>;
+  const billing = p.billing;
+
+  if (!billing || typeof billing !== "object") return null;
+
+  const b = billing as Record<string, unknown>;
+
+  return {
+    plan: typeof b.plan === "string" ? b.plan : null,
+    status: typeof b.status === "string" ? b.status : null,
+  };
+}
+
 export default function NewReadingTestPage() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("producer.readingTestsNew");
+  const { profile } = useUserProfile();
 
   const fieldStyle: CSSProperties = {
     boxSizing: "border-box",
@@ -321,8 +381,24 @@ export default function NewReadingTestPage() {
 
   const [quotaInfo, setQuotaInfo] = useState<QuotaInfo | null>(null);
   const [quotaLoading, setQuotaLoading] = useState(false);
+  const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   const busy = loadingReadingTest || saving;
+
+  const profileUid =
+    profile && typeof profile === "object" && "uid" in profile
+      ? (profile as { uid?: string }).uid
+      : undefined;
+
+  const planValue =
+    profile && typeof profile === "object" && "plan" in profile
+      ? (profile as { plan?: string }).plan
+      : undefined;
+
+    const role = useMemo(() => resolveRoleFromProfile(profile), [profile]);
+  const plan = useMemo(() => safePlan(planValue), [planValue]);
+  const billing = useMemo(() => getBillingSnapshot(profile), [profile]);
 
   const taskTypeLabels: Record<ReadingTestTaskType, string> = useMemo(
     () => ({
@@ -368,121 +444,190 @@ export default function NewReadingTestPage() {
     return t("timer.minutesAndSeconds", { minutes: mins, seconds: secs });
   }, [timerEnabled, timerSeconds, t]);
 
- async function fetchQuotaForCreateLesson() {
-  try {
-    setQuotaLoading(true);
-    const user = getAuth().currentUser;
-    if (!user) {
-      setQuotaInfo(null);
+  async function refreshFeatureStatus(currentUid?: string) {
+    const uid = currentUid ?? getAuth().currentUser?.uid ?? profileUid;
+    if (!uid) {
+      setFeatureStatus(null);
+      setStatusLoading(false);
       return;
     }
 
-    const token = await user.getIdToken();
-    const res = await fetch(`/api/quota?feature=producer_create_reading_test`, {
-      headers: { authorization: `Bearer ${token}` },
-    });
-
-    const raw = await res.text();
-    const data = raw ? (JSON.parse(raw) as QuotaInfo) : null;
-
-    if (res.ok && data && typeof data.used === "number") {
-      setQuotaInfo(data);
+    try {
+      const status = await getFeatureStatusFromProfile({
+        uid,
+        role,
+        plan,
+        billing,
+        feature: "producer_create_reading_test",
+      });
+      setFeatureStatus(status);
+    } catch {
+      setFeatureStatus(null);
+    } finally {
+      setStatusLoading(false);
     }
-  } catch {
-    // silent
-  } finally {
-    setQuotaLoading(false);
   }
-}
+
+  async function fetchQuotaForCreateLesson() {
+    try {
+      setQuotaLoading(true);
+      const user = getAuth().currentUser;
+      if (!user) {
+        setQuotaInfo(null);
+        return;
+      }
+
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/quota?feature=producer_create_reading_test`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      const raw = await res.text();
+      const data = raw ? (JSON.parse(raw) as QuotaInfo) : null;
+
+      if (res.ok && data && typeof data.used === "number") {
+        setQuotaInfo(data);
+      }
+    } catch {
+      // silent
+    } finally {
+      setQuotaLoading(false);
+    }
+  }
 
   useEffect(() => {
+    let active = true;
+
+    async function loadStatus() {
+      const uid = getAuth().currentUser?.uid ?? profileUid;
+
+      if (!uid) {
+        if (active) {
+          setFeatureStatus(null);
+          setStatusLoading(false);
+        }
+        return;
+      }
+
+      setStatusLoading(true);
+
+      try {
+        const status = await getFeatureStatusFromProfile({
+          uid,
+          role,
+          plan,
+          billing,
+          feature: "producer_create_reading_test",
+        });
+
+        if (active) {
+          setFeatureStatus(status);
+        }
+      } catch {
+        if (active) {
+          setFeatureStatus(null);
+        }
+      } finally {
+        if (active) {
+          setStatusLoading(false);
+        }
+      }
+    }
+
+    void loadStatus();
     fetchQuotaForCreateLesson();
     const tt = setTimeout(() => fetchQuotaForCreateLesson(), 600);
-    return () => clearTimeout(tt);
-  }, []);
+
+    return () => {
+      active = false;
+      clearTimeout(tt);
+    };
+    }, [profileUid, role, plan, billing]);
 
   async function generateReadingTest() {
-  setLoadingReadingTest(true);
-  setError(null);
-  setSavedId(null);
+    setLoadingReadingTest(true);
+    setError(null);
+    setSavedId(null);
 
-  try {
-    const user = getAuth().currentUser;
-    if (!user) throw new Error(t("errors.notSignedIn"));
-
-    const token = await user.getIdToken();
-
-    const res = await fetch("/api/reading-tests/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        level,
-        language,
-        topic,
-        audience,
-        minWords,
-        maxWords,
-        enabledTaskTypes,
-      }),
-    });
-
-    const raw = await res.text();
-    if (!raw) throw new Error(t("errors.emptyResponse", { status: res.status }));
-
-    let parsed: unknown;
     try {
-      parsed = JSON.parse(raw);
-    } catch {
-      throw new Error(t("errors.notJson", { status: res.status, preview: raw.slice(0, 200) }));
+      const user = getAuth().currentUser;
+      if (!user) throw new Error(t("errors.notSignedIn"));
+
+      const token = await user.getIdToken();
+
+      const res = await fetch("/api/reading-tests/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          level,
+          language,
+          topic,
+          audience,
+          minWords,
+          maxWords,
+          enabledTaskTypes,
+        }),
+      });
+
+      const raw = await res.text();
+      if (!raw) throw new Error(t("errors.emptyResponse", { status: res.status }));
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error(t("errors.notJson", { status: res.status, preview: raw.slice(0, 200) }));
+      }
+
+      const data = isRecord(parsed) ? parsed : {};
+
+      if (!res.ok) {
+        const msg =
+          typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+
+      const readingTestUnknown = data.readingTest;
+      if (!isRecord(readingTestUnknown) || typeof readingTestUnknown.text !== "string") {
+        throw new Error(t("errors.missingReadingText"));
+      }
+
+      const readingTest = readingTestUnknown as ReadingTestPack;
+
+      const nextTitle =
+        (typeof readingTest.title === "string" ? readingTest.title : t("defaults.title")).trim() ||
+        t("defaults.title");
+
+      const quotaUnknown = data.quota;
+      if (quotaUnknown && typeof quotaUnknown === "object") {
+        const q = quotaUnknown as QuotaInfo;
+        if (typeof q.used === "number") {
+          setQuotaInfo(q);
+        }
+      }
+
+      setTitle(nextTitle);
+      setSourceText(readingTest.text.trim());
+      setLessonTasks(
+        readingTestToLessonTasks(
+          readingTest,
+          enabledTaskTypes,
+          t("defaults.fillInWordPrompt")
+        )
+      );
+      setReadingPack(readingTest);
+      setTasksDirty(false);
+
+      await refreshFeatureStatus(user.uid);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
+    } finally {
+      setLoadingReadingTest(false);
     }
-
-    const data = isRecord(parsed) ? parsed : {};
-
-    if (!res.ok) {
-      const msg =
-        typeof data.error === "string" ? data.error : `HTTP ${res.status}`;
-      throw new Error(msg);
-    }
-
-    const readingTestUnknown = data.readingTest;
-    if (!isRecord(readingTestUnknown) || typeof readingTestUnknown.text !== "string") {
-      throw new Error(t("errors.missingReadingText"));
-    }
-
-    const readingTest = readingTestUnknown as ReadingTestPack;
-
-    const nextTitle =
-      (typeof readingTest.title === "string" ? readingTest.title : t("defaults.title")).trim() ||
-      t("defaults.title");
-
-    const quotaUnknown = data.quota;
-if (quotaUnknown && typeof quotaUnknown === "object") {
-  const q = quotaUnknown as QuotaInfo;
-  if (typeof q.used === "number") {
-    setQuotaInfo(q);
   }
-}
-
-    setTitle(nextTitle);
-    setSourceText(readingTest.text.trim());
-    setLessonTasks(
-      readingTestToLessonTasks(
-        readingTest,
-        enabledTaskTypes,
-        t("defaults.fillInWordPrompt")
-      )
-    );
-    setReadingPack(readingTest);
-    setTasksDirty(false);
-  } catch (e: unknown) {
-    setError(getErrorMessage(e));
-  } finally {
-    setLoadingReadingTest(false);
-  }
-}
 
   async function saveToFirestore() {
     setSaving(true);
@@ -498,6 +643,17 @@ if (quotaUnknown && typeof quotaUnknown === "object") {
 
       const user = getAuth().currentUser;
       if (!user) throw new Error(t("errors.notSignedIn"));
+
+      if (featureStatus && !featureStatus.allowed) {
+        throw new Error(
+          featureStatus.reason === "limit_reached"
+            ? t("errors.quotaExceeded", {
+                used: featureStatus.used,
+                limit: featureStatus.limit,
+              })
+            : t("errors.notSignedIn")
+        );
+      }
 
       const token = await user.getIdToken();
 
@@ -546,8 +702,8 @@ if (quotaUnknown && typeof quotaUnknown === "object") {
         const quotaUnknown = anyData["quota"];
         if (res.status === 429 && quotaUnknown && typeof quotaUnknown === "object") {
           const q = quotaUnknown as Partial<QuotaInfo>;
-          const used = typeof q.used === "number" ? q.used : 15;
-          const limit = typeof q.limit === "number" ? q.limit : 15;
+          const used = typeof q.used === "number" ? q.used : featureStatus?.used ?? 15;
+          const limit = typeof q.limit === "number" ? q.limit : featureStatus?.limit ?? 15;
           throw new Error(t("errors.quotaExceeded", { used, limit }));
         }
 
@@ -566,6 +722,8 @@ if (quotaUnknown && typeof quotaUnknown === "object") {
       } else {
         fetchQuotaForCreateLesson();
       }
+
+      await refreshFeatureStatus(user.uid);
 
       router.push(`/${locale}/producer/reading-tests/${id}`);
     } catch (e: unknown) {
@@ -607,46 +765,50 @@ if (quotaUnknown && typeof quotaUnknown === "object") {
             enabled: true,
           }
         : type === "true_false"
-        ? {
-            id: newId(),
-            type: "true_false",
-            prompt: t("defaults.trueFalsePrompt"),
-            options: [t("common.true"), t("common.false")],
-            correctAnswer: t("common.true"),
-            enabled: true,
-          }
-        : type === "fill_in_word"
-        ? {
-            id: newId(),
-            type: "fill_in_word",
-            prompt: t("defaults.fillInWordPrompt"),
-            sentence: t("defaults.fillInWordSentence"),
-            options: [
-              t("defaults.fillInWordOption1"),
-              t("defaults.fillInWordOption2"),
-              t("defaults.fillInWordOption3"),
-            ],
-            correctAnswer: t("defaults.fillInWordOption1"),
-            enabled: true,
-          }
-        : type === "short_answer"
-        ? {
-            id: newId(),
-            type: "short_answer",
-            prompt: t("defaults.shortAnswerPrompt"),
-            enabled: true,
-          }
-        : {
-            id: newId(),
-            type: "open",
-            prompt: t("defaults.openPrompt"),
-            enabled: true,
-          };
+          ? {
+              id: newId(),
+              type: "true_false",
+              prompt: t("defaults.trueFalsePrompt"),
+              options: [t("common.true"), t("common.false")],
+              correctAnswer: t("common.true"),
+              enabled: true,
+            }
+          : type === "fill_in_word"
+            ? {
+                id: newId(),
+                type: "fill_in_word",
+                prompt: t("defaults.fillInWordPrompt"),
+                sentence: t("defaults.fillInWordSentence"),
+                options: [
+                  t("defaults.fillInWordOption1"),
+                  t("defaults.fillInWordOption2"),
+                  t("defaults.fillInWordOption3"),
+                ],
+                correctAnswer: t("defaults.fillInWordOption1"),
+                enabled: true,
+              }
+            : type === "short_answer"
+              ? {
+                  id: newId(),
+                  type: "short_answer",
+                  prompt: t("defaults.shortAnswerPrompt"),
+                  enabled: true,
+                }
+              : {
+                  id: newId(),
+                  type: "open",
+                  prompt: t("defaults.openPrompt"),
+                  enabled: true,
+                };
 
     setLessonTasks((prev) => renumberOrders([...prev, baseTask]));
   }
 
-  const quotaBlocked = quotaInfo ? quotaInfo.remaining <= 0 : false;
+  const quotaBlocked = featureStatus
+    ? !featureStatus.allowed
+    : quotaInfo
+      ? quotaInfo.remaining <= 0
+      : false;
 
   const visibleFeedbackText = useMemo(() => {
     if (!readingPack) return null;
@@ -1011,16 +1173,21 @@ if (quotaUnknown && typeof quotaUnknown === "object") {
             <button
               className="actionBtn"
               onClick={saveToFirestore}
-              disabled={busy || quotaBlocked}
+              disabled={busy || quotaBlocked || statusLoading}
               style={{
                 ...buttonSecondary,
-                opacity: busy || quotaBlocked ? 0.55 : 1,
-                cursor: busy || quotaBlocked ? "not-allowed" : "pointer",
+                opacity: busy || quotaBlocked || statusLoading ? 0.55 : 1,
+                cursor: busy || quotaBlocked || statusLoading ? "not-allowed" : "pointer",
               }}
               title={
-                quotaBlocked && quotaInfo
-                  ? t("quota.usedOfLimit", { used: quotaInfo.used, limit: quotaInfo.limit })
-                  : t("actions.saveDraft")
+                featureStatus
+                  ? t("quota.usedOfLimit", {
+                      used: featureStatus.used,
+                      limit: featureStatus.limit,
+                    })
+                  : quotaBlocked && quotaInfo
+                    ? t("quota.usedOfLimit", { used: quotaInfo.used, limit: quotaInfo.limit })
+                    : t("actions.saveDraft")
               }
             >
               {saving ? t("actions.saving") : t("actions.saveDraft")}
@@ -1032,9 +1199,34 @@ if (quotaUnknown && typeof quotaUnknown === "object") {
               </span>
             )}
 
-            {quotaLoading && <span style={{ opacity: 0.75 }}>{t("quota.loading")}</span>}
+            {(quotaLoading || statusLoading) && (
+              <span style={{ opacity: 0.75 }}>{t("quota.loading")}</span>
+            )}
 
-            {quotaInfo && (
+            {featureStatus ? (
+              <span
+                style={{
+                  fontSize: 13,
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  border: "1px solid #e2e8f0",
+                  background:
+                    featureStatus.remaining <= 0
+                      ? "#fff1f2"
+                      : featureStatus.remaining <= 2
+                        ? "#fffbeb"
+                        : "#f0fdf4",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                }}
+              >
+                {t("quota.usedOfLimit", {
+                  used: featureStatus.used,
+                  limit: featureStatus.limit,
+                })}
+                {featureStatus.remaining <= 2 ? ` ${t("quota.runningLow")}` : ""}
+              </span>
+            ) : quotaInfo ? (
               <span
                 style={{
                   fontSize: 13,
@@ -1045,8 +1237,8 @@ if (quotaUnknown && typeof quotaUnknown === "object") {
                     quotaInfo.remaining <= 0
                       ? "#fff1f2"
                       : quotaInfo.remaining <= 2
-                      ? "#fffbeb"
-                      : "#f0fdf4",
+                        ? "#fffbeb"
+                        : "#f0fdf4",
                   color: "#0f172a",
                   fontWeight: 700,
                 }}
@@ -1055,7 +1247,7 @@ if (quotaUnknown && typeof quotaUnknown === "object") {
                 {t("quota.usedOfLimit", { used: quotaInfo.used, limit: quotaInfo.limit })}
                 {quotaInfo.remaining <= 2 ? ` ${t("quota.runningLow")}` : ""}
               </span>
-            )}
+            ) : null}
 
             {savedId && <span style={{ color: "green" }}>{t("messages.saved", { id: savedId })}</span>}
             {error && <span style={{ color: "crimson" }}>{error}</span>}

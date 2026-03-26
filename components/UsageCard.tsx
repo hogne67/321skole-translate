@@ -8,69 +8,109 @@ type Props = {
   title: string;
   used: number;
   limit: number;
+  upgradeHref?: string;
+  showUpgrade?: boolean;
 };
 
-export default function UsageCard({ title, used, limit }: Props) {
+const UNLIMITED_THRESHOLD = 999999;
+
+export default function UsageCard({
+  title,
+  used,
+  limit,
+  upgradeHref,
+  showUpgrade = true,
+}: Props) {
   const locale = useLocale();
 
-  const safeLimit = typeof limit === "number" && limit > 0 ? limit : 0;
-  const safeUsed = typeof used === "number" ? used : 0;
+  const safeUsed = typeof used === "number" && Number.isFinite(used) ? used : 0;
+  const safeLimit = typeof limit === "number" && Number.isFinite(limit) ? limit : 0;
+
+  const isUnlimited = safeLimit >= UNLIMITED_THRESHOLD;
+  const effectiveLimit = isUnlimited ? safeUsed : Math.max(0, safeLimit);
 
   const percentage =
-    safeLimit > 0 ? Math.min(100, (safeUsed / safeLimit) * 100) : 0;
+    !isUnlimited && effectiveLimit > 0
+      ? Math.min(100, (safeUsed / effectiveLimit) * 100)
+      : 0;
 
-  const isNearLimit = percentage >= 80 && percentage < 100;
-  const isLimitReached = safeLimit > 0 && safeUsed >= safeLimit;
+  const remaining = isUnlimited ? null : Math.max(0, effectiveLimit - safeUsed);
 
-  let barColor = "#10b981"; // grønn
-  if (isLimitReached) barColor = "#ef4444"; // rød
-  else if (isNearLimit) barColor = "#f59e0b"; // gul
+  const isNearLimit = !isUnlimited && percentage >= 80 && percentage < 100;
+  const isLimitReached = !isUnlimited && effectiveLimit > 0 && safeUsed >= effectiveLimit;
+
+  let barColor = "#10b981";
+  if (isLimitReached) barColor = "#ef4444";
+  else if (isNearLimit) barColor = "#f59e0b";
+
+  const pricingHref = upgradeHref ?? `/${locale}/pricing`;
 
   return (
     <div
       style={{
         border: "1px solid #e5e7eb",
-        borderRadius: 12,
+        borderRadius: 14,
         padding: 16,
         marginBottom: 12,
         background: "#ffffff",
       }}
     >
-      {/* Tittel */}
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>{title}</div>
+      <div style={{ fontWeight: 700, marginBottom: 6 }}>{title}</div>
 
-      {/* Tall */}
-      <div style={{ fontSize: 14, marginBottom: 8 }}>
-        {safeUsed} / {safeLimit} brukt
-      </div>
+      {isUnlimited ? (
+        <div style={{ fontSize: 14, marginBottom: 8 }}>Ubegrenset</div>
+      ) : (
+        <div style={{ fontSize: 14, marginBottom: 8 }}>
+          {safeUsed} / {effectiveLimit} brukt
+          <span style={{ color: "#64748b" }}> · {remaining} igjen</span>
+        </div>
+      )}
 
-      {/* Progress bar */}
-      <div
-        style={{
-          height: 8,
-          background: "#f1f5f9",
-          borderRadius: 999,
-          overflow: "hidden",
-        }}
-      >
+      {!isUnlimited ? (
         <div
           style={{
-            width: `${percentage}%`,
-            height: "100%",
-            background: barColor,
+            height: 8,
+            background: "#f1f5f9",
+            borderRadius: 999,
+            overflow: "hidden",
           }}
-        />
-      </div>
+        >
+          <div
+            style={{
+              width: `${percentage}%`,
+              height: "100%",
+              background: barColor,
+              transition: "width 180ms ease",
+            }}
+          />
+        </div>
+      ) : (
+        <div
+          style={{
+            height: 8,
+            background: "#ecfdf5",
+            borderRadius: 999,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              background: "#10b981",
+            }}
+          />
+        </div>
+      )}
 
-      {/* 🟡 Nær grense */}
-      {isNearLimit && !isLimitReached && (
+      {isNearLimit && !isLimitReached && showUpgrade && (
         <div style={{ marginTop: 10 }}>
           <div style={{ fontSize: 13, color: "#92400e" }}>
             Du nærmer deg grensen din.
           </div>
 
           <Link
-            href={`/${locale}/pricing`}
+            href={pricingHref}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -91,15 +131,14 @@ export default function UsageCard({ title, used, limit }: Props) {
         </div>
       )}
 
-      {/* 🔴 Nådd grense */}
-      {isLimitReached && (
+      {isLimitReached && showUpgrade && (
         <div style={{ marginTop: 10 }}>
           <div style={{ color: "#ef4444", fontSize: 13 }}>
             Du har nådd grensen din.
           </div>
 
           <Link
-            href={`/${locale}/pricing`}
+            href={pricingHref}
             style={{
               display: "inline-flex",
               alignItems: "center",

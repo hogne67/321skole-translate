@@ -139,19 +139,77 @@ function pickLanguage(d: unknown): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
 }
 
+function normalizeMetaValue(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const trimmed = v.trim();
+  return trimmed ? trimmed : null;
+}
+
+function pushUnique(out: string[], value?: string | null) {
+  if (!value) return;
+  if (!out.includes(value)) out.push(value);
+}
+
+function deriveMathMeta(d: unknown): string[] {
+  const x = d as Record<string, unknown> | null;
+
+  const values = [
+    x?.lessonType,
+    x?.lesson_type,
+    x?.textType,
+    x?.texttype,
+    x?.type,
+    x?.category,
+  ]
+    .map((v) => (typeof v === "string" ? v.toLowerCase() : ""))
+    .filter(Boolean);
+
+  const joined = values.join(" | ");
+  const out: string[] = [];
+
+  if (
+    joined.includes("math_generator") ||
+    joined.includes("math-generator") ||
+    joined.includes("math_worksheet") ||
+    joined.includes("geometry_worksheet")
+  ) {
+    out.push("math");
+  }
+
+  if (joined.includes("geometry") || joined.includes("geometri") || joined.includes("geometry_worksheet")) {
+    out.push("geometry");
+  }
+
+  if (joined.includes("algebra")) out.push("algebra");
+  if (joined.includes("fractions")) out.push("fractions");
+  if (joined.includes("percent")) out.push("percent");
+  if (joined.includes("equations")) out.push("equations");
+  if (joined.includes("measurement")) out.push("measurement");
+
+  return out;
+}
+
 function safeMeta(d: unknown): string[] {
   const x = d as Record<string, unknown> | null;
   const out: string[] = [];
 
-  const level = x?.level || x?.cefr || x?.difficulty;
-  const textType = x?.textType || x?.texttype || x?.type;
-  const lang = x?.language || x?.lang;
-  const lessonType = x?.lessonType || x?.lesson_type;
+  const level = normalizeMetaValue(x?.level ?? x?.cefr ?? x?.difficulty);
+  const textType = normalizeMetaValue(x?.textType);
+  const texttype = normalizeMetaValue(x?.texttype);
+  const typeValue = normalizeMetaValue(x?.type);
+  const lang = normalizeMetaValue(x?.language ?? x?.lang);
+  const lessonType = normalizeMetaValue(x?.lessonType ?? x?.lesson_type);
 
-  if (level) out.push(String(level));
-  if (textType) out.push(String(textType));
-  if (lang) out.push(String(lang));
-  if (lessonType) out.push(String(lessonType));
+  pushUnique(out, level);
+  pushUnique(out, textType);
+  pushUnique(out, texttype);
+  pushUnique(out, typeValue);
+  pushUnique(out, lang);
+  pushUnique(out, lessonType);
+
+  for (const tag of deriveMathMeta(d)) {
+    pushUnique(out, tag);
+  }
 
   return out;
 }
@@ -251,6 +309,11 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode, locale:
 type LessonMeta = {
   title: string;
   level?: string;
+  language?: string;
+  lessonType?: string;
+  textType?: string;
+  texttype?: string;
+  meta?: string[];
 };
 
 async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
@@ -268,9 +331,21 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
         const d = docSnap.data() as Record<string, unknown>;
         const title = pickTitle(d);
         const level = pickLevel(d) || undefined;
+        const language = pickLanguage(d);
+        const lessonType = pickLessonType(d);
+        const textType = pickTextType(d);
+        const texttype = pickTexttype(d);
+        const meta = safeMeta(d);
 
-        if (title) metaById.set(docSnap.id, { title, level });
-        else if (level) metaById.set(docSnap.id, { title: "", level });
+        metaById.set(docSnap.id, {
+          title: title || "",
+          level,
+          language,
+          lessonType,
+          textType,
+          texttype,
+          meta,
+        });
       });
     } catch {
       // ignore
@@ -350,7 +425,7 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
         ((d as { reviewedAt?: unknown }).reviewedAt ? "reviewed" : "submitted");
 
       const fallbackHref = lessonId
-        ? hrefForLesson(locale, mode, lessonId)
+        ? hrefForLesson(locale, mode, lessonId, lessonMeta?.lessonType)
         : withLocale(locale, `/student/results`);
 
       const meta: string[] = [];
@@ -360,6 +435,15 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
 
       if (kind === "practice" || source === "library") meta.push("practice");
       if (lessonMeta?.level) meta.push(String(lessonMeta.level));
+      if (lessonMeta?.language) meta.push(String(lessonMeta.language));
+      if (lessonMeta?.lessonType) meta.push(String(lessonMeta.lessonType));
+      if (lessonMeta?.textType) meta.push(String(lessonMeta.textType));
+      if (lessonMeta?.texttype) meta.push(String(lessonMeta.texttype));
+      if (lessonMeta?.meta?.length) {
+        for (const tag of lessonMeta.meta) {
+          if (!meta.includes(tag)) meta.push(tag);
+        }
+      }
       if (lessonMeta?.title) meta.push(`Lesson: ${lessonMeta.title}`);
       if (spaceId) meta.push(`space:${spaceId}`);
       if (lessonId) meta.push(`lesson:${lessonId}`);
@@ -433,6 +517,15 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: st
 
       const meta: string[] = ["practice"];
       if (lessonMeta?.level) meta.push(String(lessonMeta.level));
+      if (lessonMeta?.language) meta.push(String(lessonMeta.language));
+      if (lessonMeta?.lessonType) meta.push(String(lessonMeta.lessonType));
+      if (lessonMeta?.textType) meta.push(String(lessonMeta.textType));
+      if (lessonMeta?.texttype) meta.push(String(lessonMeta.texttype));
+      if (lessonMeta?.meta?.length) {
+        for (const tag of lessonMeta.meta) {
+          if (!meta.includes(tag)) meta.push(tag);
+        }
+      }
       if (lessonMeta?.title) meta.push(`Lesson: ${lessonMeta.title}`);
       if (lessonId) meta.push(`lesson:${lessonId}`);
 
@@ -493,6 +586,10 @@ async function fetchMySpaceSubmissions(
       const meta: string[] = ["space"];
       meta.push(`space:${spaceId}`);
       meta.push(`lesson:${assignmentId}`);
+
+      for (const tag of safeMeta(d)) {
+        if (!meta.includes(tag)) meta.push(tag);
+      }
 
       results.push({
         type: "submission",

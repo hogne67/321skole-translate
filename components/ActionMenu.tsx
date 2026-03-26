@@ -1,7 +1,7 @@
 // components/ActionMenu.tsx
 "use client";
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export type ActionItem = {
@@ -65,7 +65,7 @@ export default function ActionMenu({
     };
   }, [open]);
 
-  function updatePosition() {
+    const updatePosition = useCallback(() => {
     const btn = buttonRef.current;
     if (!btn) return;
 
@@ -81,7 +81,7 @@ export default function ActionMenu({
       top: rect.bottom + margin,
       left,
     });
-  }
+  }, [align]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -98,7 +98,7 @@ export default function ActionMenu({
       window.removeEventListener("resize", handleReposition);
       window.removeEventListener("scroll", handleReposition, true);
     };
-  }, [open, align]);
+    }, [open, updatePosition]);
 
   if (!items.length) return null;
 

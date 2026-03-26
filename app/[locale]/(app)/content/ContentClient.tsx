@@ -24,7 +24,7 @@ import { authedPost } from "@/lib/authedPost";
 import { useLocale, useTranslations } from "next-intl";
 
 type LessonStatus = "draft" | "published";
-type FilterType = "all" | "library" | "teacher" | "lesson" | "submission" | "space";
+type FilterType = "all" | "library" | "math" | "lesson" | "submission" | "space";
 
 type AssignmentDoc = {
   title?: string;
@@ -226,6 +226,82 @@ function isDeletedItem(it: ContentItem): boolean {
 
 function isReadingTestLesson(it: ContentItem) {
   return it.type === "lesson" && (it.meta ?? []).includes("reading_test");
+}
+
+function normalizedMetaSet(it: ContentItem) {
+  return new Set((it.meta ?? []).map((m) => String(m).trim().toLowerCase()).filter(Boolean));
+}
+
+function normalizedLessonSignals(it: ContentItem) {
+  if (it.type !== "lesson") return [];
+
+  const lesson = it as Extract<ContentItem, { type: "lesson" }>;
+
+  return [lesson.lessonType, lesson.textType, lesson.texttype]
+    .map((v) => (typeof v === "string" ? v.trim().toLowerCase() : ""))
+    .filter(Boolean);
+}
+
+function isMathContent(it: ContentItem) {
+  const meta = normalizedMetaSet(it);
+  const lessonSignals = normalizedLessonSignals(it);
+
+  const exactMathTags = new Set([
+    "math",
+    "math_worksheet",
+    "math-generator",
+    "math_generator",
+    "geometry",
+    "geometry_worksheet",
+    "algebra",
+    "fractions",
+    "percent",
+    "equations",
+    "measurement",
+  ]);
+
+  for (const tag of meta) {
+    if (exactMathTags.has(tag)) return true;
+  }
+
+  for (const signal of lessonSignals) {
+    if (exactMathTags.has(signal)) return true;
+  }
+
+  return false;
+}
+
+function isMathArchiveItem(it: ContentItem) {
+  return it.type === "lesson" && isMathContent(it);
+}
+
+function getMathSubtype(it: ContentItem): string | null {
+  const meta = normalizedMetaSet(it);
+  const lessonSignals = normalizedLessonSignals(it);
+  const all = new Set<string>([...meta, ...lessonSignals]);
+
+  if (all.has("geometry") || all.has("geometry_worksheet")) return "geometry";
+  if (all.has("algebra")) return "algebra";
+  if (all.has("fractions")) return "fractions";
+  if (all.has("percent")) return "percent";
+  if (all.has("equations")) return "equations";
+  if (all.has("measurement")) return "measurement";
+  if (all.has("math") || all.has("math_worksheet") || all.has("math-generator") || all.has("math_generator")) {
+    return "math";
+  }
+
+  return null;
+}
+
+function mathSubtypeLabel(subtype: string | null, locale: string) {
+  if (subtype === "geometry") return locale === "en" ? "Geometry" : "Geometri";
+  if (subtype === "algebra") return "Algebra";
+  if (subtype === "fractions") return locale === "en" ? "Fractions" : "Brøk";
+  if (subtype === "percent") return locale === "en" ? "Percent" : "Prosent";
+  if (subtype === "equations") return locale === "en" ? "Equations" : "Likninger";
+  if (subtype === "measurement") return locale === "en" ? "Measurement" : "Måling";
+  if (subtype === "math") return locale === "en" ? "Math" : "Matte";
+  return null;
 }
 
 type LoadMyContentArgs = {
@@ -776,12 +852,30 @@ export default function ContentClient() {
   function cleanMetaForCard(it: ContentItem): string {
     const meta = it.meta?.filter(Boolean) ?? [];
     const hasLessonTitle = meta.some((m) => typeof m === "string" && m.startsWith("Lesson: "));
+    const mathUiTags = new Set([
+      "math",
+      "math_worksheet",
+      "math-generator",
+      "math_generator",
+      "geometry",
+      "geometry_worksheet",
+      "algebra",
+      "fractions",
+      "percent",
+      "equations",
+      "measurement",
+      "reading_test",
+      "practice",
+    ]);
+
     const filteredMeta = meta.filter((m) => {
       if (typeof m !== "string") return false;
       if (hasLessonTitle && m.startsWith("lesson:")) return false;
-      if (m === "reading_test") return false;
+      if (m.startsWith("space:")) return false;
+      if (mathUiTags.has(m.trim().toLowerCase())) return false;
       return true;
     });
+
     return filteredMeta.join(" · ");
   }
 
@@ -872,6 +966,9 @@ export default function ContentClient() {
     const isPublished = status === "published";
     const isDeleted = isDeletedItem(ls);
     const isReadingTest = isReadingTestLesson(ls);
+    const isMath = isMathContent(ls);
+    const mathSubtype = getMathSubtype(ls);
+    const mathSubtypeText = mathSubtypeLabel(mathSubtype, locale);
 
     const canPublish = isTeacherApproved && !isDeleted && !isReadingTest;
     const canDelete = (isTeacher || isParent || isStudent) && !busy;
@@ -882,7 +979,10 @@ export default function ContentClient() {
     const canPdf = isTeacher && !isDeleted && !isReadingTest;
 
     const editHref = lessonEditHref(ls);
-    const pdfHref = `/${locale}/producer/${ls.id}/print`;
+    const pdfHref = isMath
+  ? `/${locale}/producer/math/${ls.id}/print`
+  : `/${locale}/producer/${ls.id}/print`;
+    const isMathArchive = isMathArchiveItem(ls);
 
     const restoreAction: ActionItem[] =
       showDeleted && isDeleted && (isTeacher || isParent)
@@ -895,6 +995,34 @@ export default function ContentClient() {
             },
           ]
         : [];
+
+    if (isMathArchive) {
+      return [
+        ...restoreAction,
+        ...(canPdf
+          ? [
+              {
+                key: "pdf",
+                label:
+                  mathSubtypeText && mathSubtype !== "math"
+                    ? `${mathSubtypeText}-PDF`
+                    : locale === "en"
+                      ? "Math PDF"
+                      : "Matte-PDF",
+                disabled: busy,
+                onClick: () => router.push(pdfHref),
+              },
+            ]
+          : []),
+        {
+          key: "delete",
+          label: t("actions.delete"),
+          danger: true,
+          disabled: busy || !canDelete,
+          onClick: () => deleteLessonSoft(ls.id, titleForCard(ls)),
+        },
+      ];
+    }
 
     return [
       ...restoreAction,
@@ -944,7 +1072,13 @@ export default function ContentClient() {
         ? [
             {
               key: "pdf",
-              label: t("actions.pdf"),
+              label: isMath
+                ? mathSubtypeText && mathSubtype !== "math"
+                  ? `${mathSubtypeText}-PDF`
+                  : locale === "en"
+                    ? "Math PDF"
+                    : "Matte-PDF"
+                : t("actions.pdf"),
               disabled: busy || !canPdf,
               onClick: () => router.push(pdfHref),
             },
@@ -964,6 +1098,7 @@ export default function ContentClient() {
   function visibleDesktopActionKeys(it: ContentItem): string[] {
     if (it.type === "submission") return ["open", "edit", "shareToSpace"];
     if (it.type === "space") return ["open", "board", "copyCode", "shareLinkQr", "copyJoinLink"];
+    if (isMathArchiveItem(it)) return ["pdf", "delete", "restore"];
     return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "pdf", "delete", "restore"];
   }
 
@@ -978,15 +1113,20 @@ export default function ContentClient() {
   }
 
   const counts = useMemo(() => {
-    const c = { lesson: 0, submission: 0, space: 0, library: 0, teacher: 0 };
+    const c = { lesson: 0, submission: 0, space: 0, library: 0, math: 0 };
+
     for (const it of items) {
       if (it.type === "lesson") c.lesson += 1;
       else if (it.type === "submission") {
         c.submission += 1;
         if (isLibraryPractice(it)) c.library += 1;
-        if (isTeacherSpaceSubmission(it)) c.teacher += 1;
-      } else if (it.type === "space") c.space += 1;
+      } else if (it.type === "space") {
+        c.space += 1;
+      }
+
+      if (isMathContent(it)) c.math += 1;
     }
+
     return c;
   }, [items]);
 
@@ -998,7 +1138,7 @@ export default function ContentClient() {
       .filter((it) => {
         if (filter === "all") return true;
         if (filter === "library") return isLibraryPractice(it);
-        if (filter === "teacher") return isTeacherSpaceSubmission(it);
+        if (filter === "math") return isMathContent(it);
         if (filter === "lesson") return it.type === "lesson";
         if (filter === "submission") return it.type === "submission";
         if (filter === "space") return it.type === "space";
@@ -1029,8 +1169,8 @@ export default function ContentClient() {
         ? (t("filters.all") as string)
         : ft === "library"
           ? (locale === "en" ? "Library" : "Bibliotek")
-          : ft === "teacher"
-            ? (locale === "en" ? "Teacher" : "Innlevering")
+          : ft === "math"
+            ? (locale === "en" ? "Math" : "Matte")
             : ft === "lesson"
               ? (t("filters.lessons") as string)
               : ft === "submission"
@@ -1041,13 +1181,13 @@ export default function ContentClient() {
     if (ft === "submission") return `${label} (${counts.submission})`;
     if (ft === "space") return `${label} (${counts.space})`;
     if (ft === "library") return `${label} (${counts.library})`;
-    if (ft === "teacher") return `${label} (${counts.teacher})`;
+    if (ft === "math") return `${label} (${counts.math})`;
 
     return `${label} (${counts.lesson + counts.submission + counts.space})`;
   }
 
   const mobileFilterActions: ActionItem[] = [
-    ...(["library", "teacher", "lesson", "submission", "space"] as const).map((ft) => ({
+    ...(["library", "math", "lesson", "submission", "space"] as const).map((ft) => ({
       key: `mobile-filter-${ft}`,
       label: labelWithCount(ft),
       onClick: () => setFilter(ft),
@@ -1089,7 +1229,7 @@ export default function ContentClient() {
 
           <div className="mt-3 hidden flex-wrap items-center justify-between gap-2 sm:flex">
             <div className="flex flex-wrap gap-2">
-              {(["all", "library", "teacher", "lesson", "submission", "space"] as const).map((ft) => (
+              {(["all", "library", "math", "lesson", "submission", "space"] as const).map((ft) => (
                 <button
                   key={ft}
                   onClick={() => setFilter(ft)}
@@ -1102,10 +1242,10 @@ export default function ContentClient() {
                       ? locale === "en"
                         ? "Your own tasks from the library (practice)"
                         : "Dine egne oppgaver hentet fra biblioteket"
-                      : ft === "teacher"
+                      : ft === "math"
                         ? locale === "en"
-                          ? "Assignments submitted in a class/space"
-                          : "Oppgaver levert i rom"
+                          ? "Only items marked from the math generator"
+                          : "Kun innhold merket fra mattegeneratoren"
                         : undefined
                   }
                 >
@@ -1186,6 +1326,9 @@ export default function ContentClient() {
 
                   const title = titleForCard(it);
                   const deletedAt = getDeletedAt(it);
+                  const mathItem = isMathContent(it);
+                  const mathSubtype = getMathSubtype(it);
+                  const mathSubtypeText = mathSubtypeLabel(mathSubtype, locale);
 
                   let pill: React.ReactNode = null;
 
@@ -1211,6 +1354,10 @@ export default function ContentClient() {
                         : <StatusPill label="Lesetest" variant="gray" />;
                     } else if (isParent) {
                       pill = <StatusPill label="Klar til å dele" variant="green" />;
+                    } else if (isMathArchiveItem(it)) {
+                      pill = locale === "en"
+                        ? <StatusPill label="Ready for PDF" variant="green" />
+                        : <StatusPill label="Klar for PDF" variant="green" />;
                     } else {
                       const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
                       pill =
@@ -1226,6 +1373,12 @@ export default function ContentClient() {
 
                   const metaLine = cleanMetaForCard(it);
                   const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
+                  const mathHint =
+                    mathItem && it.type === "lesson"
+                      ? locale === "en"
+                        ? "Ready for PDF export. Generate a new worksheet if you want another version."
+                        : "Klar for PDF-eksport. Generer en ny oppgave hvis du vil ha en annen variant."
+                      : null;
 
                   return (
                     <div
@@ -1240,8 +1393,18 @@ export default function ContentClient() {
                             </div>
 
                             {pill}
-
                             {extraPill}
+
+                            {mathItem ? (
+                              <StatusPill
+                                label={locale === "en" ? "Math generator" : "Mattegenerator"}
+                                variant="amber"
+                              />
+                            ) : null}
+
+                            {mathItem && mathSubtypeText && mathSubtype !== "math" ? (
+                              <StatusPill label={mathSubtypeText} variant="gray" />
+                            ) : null}
                           </div>
 
                           <div className="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs opacity-75">
@@ -1260,7 +1423,13 @@ export default function ContentClient() {
                             {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
                           </div>
 
-                          {isParent && it.type === "lesson" ? (
+                          {mathHint ? (
+                            <div className="mt-2 text-xs font-semibold text-amber-700">
+                              {mathHint}
+                            </div>
+                          ) : null}
+
+                          {isParent && it.type === "lesson" && !isMathArchiveItem(it) ? (
                             <div className="mt-3 flex flex-wrap gap-2">
                               <StatusPill label="Kan deles til barnas rom" variant="gray" />
                             </div>

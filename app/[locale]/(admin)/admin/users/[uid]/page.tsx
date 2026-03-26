@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { doc, getDoc, serverTimestamp, updateDoc, type DocumentData } from "firebase/firestore";
@@ -300,7 +300,7 @@ export default function AdminUserDetailPage() {
 
   const canWrite = isSuperAdmin(currentProfile);
 
-  async function load() {
+    const load = useCallback(async () => {
     if (!db) {
       setErr("Firestore db is null.");
       setLoading(false);
@@ -338,7 +338,7 @@ export default function AdminUserDetailPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [uid]);
 
   async function saveChanges() {
     if (!db) {
@@ -383,8 +383,8 @@ export default function AdminUserDetailPage() {
   }
 
   useEffect(() => {
-    load();
-  }, [uid]);
+    void load();
+  }, [load]);
 
   return (
     <main style={{ display: "grid", gap: 16 }}>

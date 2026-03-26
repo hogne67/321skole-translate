@@ -1,4 +1,4 @@
-// \lib\useUsage.ts
+// lib/useUsage.ts
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -15,10 +15,16 @@ export function useUsage(uid?: string) {
       return;
     }
 
-    setLoading(true);
-    const data = await getUsage(uid);
-    setUsage(data || {});
-    setLoading(false);
+    try {
+      setLoading(true);
+      const data = await getUsage(uid);
+      setUsage(data || {});
+    } catch (error) {
+      console.error("Failed to load usage", error);
+      setUsage({});
+    } finally {
+      setLoading(false);
+    }
   }, [uid]);
 
   useEffect(() => {
@@ -33,15 +39,24 @@ export function useUsage(uid?: string) {
         return;
       }
 
-      const data = await getUsage(uid);
+      try {
+        const data = await getUsage(uid);
 
-      if (mounted) {
-        setUsage(data || {});
-        setLoading(false);
+        if (mounted) {
+          setUsage(data || {});
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Failed to load usage", error);
+
+        if (mounted) {
+          setUsage({});
+          setLoading(false);
+        }
       }
     }
 
-    load();
+    void load();
 
     return () => {
       mounted = false;

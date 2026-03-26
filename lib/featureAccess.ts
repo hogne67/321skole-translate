@@ -10,6 +10,20 @@ export type AppRole =
 
 export type PlanKey = "free" | "basic" | "plus" | "pro";
 
+export type BillingStatus =
+  | "inactive"
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "unpaid"
+  | "incomplete";
+
+export type BillingSnapshot = {
+  plan?: string | null;
+  status?: string | null;
+};
+
 export type FeatureKey =
   | "producer_create_lesson"
   | "producer_create_reading_test"
@@ -51,15 +65,63 @@ function normalizeRole(role?: string): AppRole {
   return "anonymous";
 }
 
-function normalizePlan(plan?: string): PlanKey {
+function normalizePlan(plan?: string | null): PlanKey {
   if (plan === "basic") return "basic";
   if (plan === "plus") return "plus";
   if (plan === "pro") return "pro";
   return "free";
 }
 
+function normalizeBillingStatus(status?: string | null): BillingStatus {
+  if (status === "trialing") return "trialing";
+  if (status === "active") return "active";
+  if (status === "past_due") return "past_due";
+  if (status === "canceled") return "canceled";
+  if (status === "unpaid") return "unpaid";
+  if (status === "incomplete") return "incomplete";
+  return "inactive";
+}
+
+function isActiveBillingStatus(status?: string | null): boolean {
+  const normalized = normalizeBillingStatus(status);
+  return normalized === "active" || normalized === "trialing";
+}
+
 function isTeacherOnlyFeature(feature: FeatureKey): boolean {
   return feature === "teacher_assign_task";
+}
+
+/**
+ * Stripe-aware effective plan.
+ * If billing is active/trialing, billing.plan wins.
+ * Otherwise we fall back to the stored top-level plan.
+ */
+export function getEffectivePlan(input: {
+  plan?: string | null;
+  billing?: BillingSnapshot | null;
+}): PlanKey {
+  const topLevelPlan = normalizePlan(input.plan);
+  const billingPlan = normalizePlan(input.billing?.plan);
+  const billingStatus = input.billing?.status ?? null;
+
+  if (isActiveBillingStatus(billingStatus) && billingPlan !== "free") {
+    return billingPlan;
+  }
+
+  return topLevelPlan;
+}
+
+/**
+ * Backward-compatible helper for older code paths.
+ */
+export function resolvePlanKey(
+  planInput?: string | null,
+  billing?: BillingSnapshot | null
+): PlanKey {
+  return getEffectivePlan({
+    plan: planInput,
+    billing,
+  });
 }
 
 /**
@@ -222,6 +284,24 @@ export function getBucketLimit(
 }
 
 /**
+ * Billing-aware bucket limit helper.
+ */
+export function getBucketLimitFromProfile(input: {
+  role?: string | null;
+  plan?: string | null;
+  billing?: BillingSnapshot | null;
+  bucket: QuotaBucket;
+}): number {
+  const role = normalizeRole(input.role ?? undefined);
+  const plan = getEffectivePlan({
+    plan: input.plan,
+    billing: input.billing,
+  });
+
+  return getBucketLimit(role, plan, input.bucket);
+}
+
+/**
  * Limit for a specific feature.
  */
 export function getFeatureLimit(
@@ -244,12 +324,53 @@ export function getFeatureLimit(
   return getBucketLimit(role, planInput, bucket);
 }
 
+/**
+ * Billing-aware feature limit helper.
+ */
+export function getFeatureLimitFromProfile(input: {
+  role?: string | null;
+  plan?: string | null;
+  billing?: BillingSnapshot | null;
+  feature: FeatureKey;
+}): number {
+  const role = normalizeRole(input.role ?? undefined);
+
+  if (
+    isTeacherOnlyFeature(input.feature) &&
+    role !== "teacher" &&
+    role !== "creator" &&
+    role !== "admin"
+  ) {
+    return 0;
+  }
+
+  const effectivePlan = getEffectivePlan({
+    plan: input.plan,
+    billing: input.billing,
+  });
+
+  const bucket = getQuotaBucket(input.feature);
+  return getBucketLimit(role, effectivePlan, bucket);
+}
+
 export function canAccessFeature(
   roleInput: AppRole | string,
   planInput: PlanKey | string,
   feature: FeatureKey
 ): boolean {
   return getFeatureLimit(roleInput, planInput, feature) > 0;
+}
+
+/**
+ * Billing-aware access helper.
+ */
+export function canAccessFeatureFromProfile(input: {
+  role?: string | null;
+  plan?: string | null;
+  billing?: BillingSnapshot | null;
+  feature: FeatureKey;
+}): boolean {
+  return getFeatureLimitFromProfile(input) > 0;
 }
 
 export function getFeatureDecision(
@@ -268,6 +389,42 @@ export function getFeatureDecision(
   }
 
   if (isTeacherOnlyFeature(feature)) {
+    if (role !== "teacher" && role !== "creator" && role !== "admin") {
+      return {
+        allowed: false,
+        limit: 0,
+        reason: "teacher_only",
+      };
+    }
+  }
+
+  return {
+    allowed: false,
+    limit: 0,
+    reason: "upgrade_required",
+  };
+}
+
+/**
+ * Billing-aware feature decision helper.
+ */
+export function getFeatureDecisionFromProfile(input: {
+  role?: string | null;
+  plan?: string | null;
+  billing?: BillingSnapshot | null;
+  feature: FeatureKey;
+}): FeatureDecision {
+  const role = normalizeRole(input.role ?? undefined);
+  const limit = getFeatureLimitFromProfile(input);
+
+  if (limit > 0) {
+    return {
+      allowed: true,
+      limit,
+    };
+  }
+
+  if (isTeacherOnlyFeature(input.feature)) {
     if (role !== "teacher" && role !== "creator" && role !== "admin") {
       return {
         allowed: false,

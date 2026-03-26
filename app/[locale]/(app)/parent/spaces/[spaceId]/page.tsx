@@ -186,13 +186,16 @@ export default function ParentSpaceDetailPage() {
   const t = useTranslations("parent.spaceDetail");
   const locale = useLocale();
 
-  const tx = (key: string, fallback: string) => {
-    try {
-      return t(key as never);
-    } catch {
-      return fallback;
-    }
-  };
+    const tx = useMemo(
+    () => (key: string, fallback: string) => {
+      try {
+        return t(key as never);
+      } catch {
+        return fallback;
+      }
+    },
+    [t]
+  );
 
   const [user, setUser] = useState<User | null>(null);
 
@@ -250,7 +253,7 @@ export default function ParentSpaceDetailPage() {
     }
 
     return () => unsub?.();
-  }, [spaceId]);
+    }, [spaceId, tx]);
 
   useEffect(() => {
     setAssignErr(null);
@@ -289,7 +292,7 @@ export default function ParentSpaceDetailPage() {
     }
 
     return () => unsub?.();
-  }, [spaceId, collatorLocale]);
+    }, [spaceId, collatorLocale, tx]);
 
   useEffect(() => {
     if (!user?.uid || assignments.length === 0) {
