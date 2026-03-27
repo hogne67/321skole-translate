@@ -83,19 +83,15 @@ function TeacherSpacesInner() {
   const { user, loading } = useUserProfile();
   const [rows, setRows] = useState<Row[]>([]);
 
-  // UI controls
   const [search, setSearch] = useState("");
   const [openOnly, setOpenOnly] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
 
-  // Member counts cache
   const [memberCount, setMemberCount] = useState<Record<string, number | undefined>>({});
   const [memberCountBusy, setMemberCountBusy] = useState<Record<string, boolean>>({});
 
-  // Copy toast
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // QR modal
   const [qrOpen, setQrOpen] = useState(false);
   const [qrFor, setQrFor] = useState<QrFor | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -209,214 +205,235 @@ function TeacherSpacesInner() {
   }
 
   if (loading) {
-    return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{tCommon("loading")}</div>;
+    return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="m-0 text-2xl font-semibold">{t("title")}</h1>
-
-        <Link
-          href={withLocale(locale, "/teacher/spaces/new")}
-          title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
-          className={[
-            "rounded-xl px-3 py-2 text-sm font-medium no-underline",
-            canCreateSpace ? "bg-emerald-600 text-white hover:bg-emerald-500" : "border border-black/20 bg-transparent text-slate-900",
-          ].join(" ")}
-        >
-          {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
-        </Link>
-      </div>
-
-      <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
-
-      {/* Controls */}
-      <div className="mt-4 grid gap-3 rounded-2xl border bg-white p-4 shadow-sm md:grid-cols-3">
-        <div className="md:col-span-1">
-          <label className="text-sm font-medium">{t("controls.search.label")}</label>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("controls.search.placeholder")}
-            className="mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none"
-          />
-        </div>
-
-        <div className="md:col-span-1">
-          <label className="text-sm font-medium">{t("controls.sort.label")}</label>
-          <select
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className="mt-2 w-full rounded-xl border px-3 py-2 text-sm"
-          >
-            <option value="newest">{t("controls.sort.options.newest")}</option>
-            <option value="oldest">{t("controls.sort.options.oldest")}</option>
-            <option value="title_az">{t("controls.sort.options.title_az")}</option>
-            <option value="title_za">{t("controls.sort.options.title_za")}</option>
-          </select>
-        </div>
-
-        <div className="md:col-span-1">
-          <label className="text-sm font-medium">{t("controls.filters.label")}</label>
-          <div className="mt-2 flex items-center gap-2">
-            <input
-              id="openOnly"
-              type="checkbox"
-              checked={openOnly}
-              onChange={(e) => setOpenOnly(e.target.checked)}
-              className="h-4 w-4"
-            />
-            <label htmlFor="openOnly" className="text-sm text-muted-foreground">
-              {t("controls.filters.openOnly")}
-            </label>
+    <div className="w-full space-y-4">
+      <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="m-0 text-2xl font-semibold text-slate-900">{t("title")}</h1>
+            <p className="mt-2 text-sm text-slate-600">{t("subtitle")}</p>
           </div>
-          <div className="mt-2 text-xs text-muted-foreground">{t("controls.filters.showing", { n: filtered.length })}</div>
+
+          <Link
+            href={withLocale(locale, "/teacher/spaces/new")}
+            title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
+            className={[
+              "inline-flex items-center justify-center rounded-xl px-4 py-2 text-base font-semibold shadow-sm hover:shadow-md no-underline",
+              canCreateSpace
+                ? "bg-green-600 text-white hover:bg-green-500"
+                : "border border-slate-300 bg-white text-slate-800",
+            ].join(" ")}
+          >
+            {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
+          </Link>
         </div>
       </div>
 
-      {/* List */}
-      <div className="mt-4 grid gap-3">
-        {filtered.map((r) => {
-          const code = (r.data.code ?? "").toString();
-          const title = (r.data.title ?? t("list.untitled")).toString();
-          const open = Boolean(r.data.isOpen);
-          const count = memberCount[r.id];
-          const countBusy = Boolean(memberCountBusy[r.id]);
+      <div className="rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <div className="flex flex-col gap-4">
+          <div>
+            <div className="text-base font-semibold text-slate-900">{t("controls.filters.label")}</div>
+            <div className="mt-1 text-sm text-slate-600">{t("controls.filters.showing", { n: filtered.length })}</div>
+          </div>
 
-          return (
-            <div
-              key={r.id}
-              className={[
-                "overflow-hidden rounded-2xl bg-white p-4 shadow-sm",
-                "border-2",
-                open ? "border-emerald-200" : "border-slate-200",
-                "transition hover:border-slate-300 hover:shadow-md",
-              ].join(" ")}
-            >
-              <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className="break-words text-base font-semibold">{title}</div>
-                    <span
-                      className={[
-                        "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-                        open ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-700",
-                      ].join(" ")}
-                      title={open ? t("list.openTitle") : t("list.closedTitle")}
-                    >
-                      {open ? t("list.open") : t("list.closed")}
-                    </span>
+          <div className="grid gap-3 lg:grid-cols-3">
+            <div className="lg:col-span-1">
+              <label className="text-sm font-medium text-slate-800">{t("controls.search.label")}</label>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("controls.search.placeholder")}
+                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+              />
+            </div>
+
+            <div className="lg:col-span-1">
+              <label className="text-sm font-medium text-slate-800">{t("controls.sort.label")}</label>
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as SortKey)}
+                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+              >
+                <option value="newest">{t("controls.sort.options.newest")}</option>
+                <option value="oldest">{t("controls.sort.options.oldest")}</option>
+                <option value="title_az">{t("controls.sort.options.title_az")}</option>
+                <option value="title_za">{t("controls.sort.options.title_za")}</option>
+              </select>
+            </div>
+
+            <div className="lg:col-span-1">
+              <label className="text-sm font-medium text-slate-800">{t("controls.filters.label")}</label>
+              <label className="mt-2 flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2">
+                <input
+                  id="openOnly"
+                  type="checkbox"
+                  checked={openOnly}
+                  onChange={(e) => setOpenOnly(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-400"
+                />
+                <span className="text-sm text-slate-700">{t("controls.filters.openOnly")}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="mb-4">
+          <div className="text-base font-semibold text-slate-900">{t("title")}</div>
+          <div className="mt-1 text-sm text-slate-600">
+            {filtered.length} {filtered.length === 1 ? "rom" : "rom"}
+          </div>
+        </div>
+
+        <div className="grid gap-3">
+          {filtered.map((r) => {
+            const code = (r.data.code ?? "").toString();
+            const title = (r.data.title ?? t("list.untitled")).toString();
+            const open = Boolean(r.data.isOpen);
+            const count = memberCount[r.id];
+            const countBusy = Boolean(memberCountBusy[r.id]);
+
+            return (
+              <div
+                key={r.id}
+                className={[
+                  "w-full overflow-hidden rounded-2xl border bg-white p-4 shadow-sm transition sm:p-5",
+                  open ? "border-emerald-300" : "border-slate-300",
+                  "hover:shadow-md",
+                ].join(" ")}
+              >
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="break-words text-base font-semibold text-slate-900">{title}</div>
+                      <span
+                        className={[
+                          "shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
+                          open
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                            : "border-slate-300 bg-slate-100 text-slate-700",
+                        ].join(" ")}
+                        title={open ? t("list.openTitle") : t("list.closedTitle")}
+                      >
+                        {open ? t("list.open") : t("list.closed")}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 min-w-0 text-sm text-slate-600">
+                      {t("list.code")}{" "}
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(code, r.id)}
+                        className="max-w-full rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-sm font-medium text-slate-900 hover:bg-slate-100"
+                        title={t("list.copyCodeTitle")}
+                      >
+                        <span className="break-all">{code || "—"}</span>
+                      </button>
+                      {copiedId === r.id && <span className="ml-2 text-xs text-slate-600">{t("list.copied")}</span>}
+                      <span className="mx-2">·</span>
+                      {t("list.members")} <b className="text-slate-900">{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
+                    </div>
+
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const joinPath = withLocale(locale, `/join?code=${encodeURIComponent(code)}`);
+                          const url = `${window.location.origin}${joinPath}`;
+                          copyToClipboard(url, `url_${r.id}`);
+                        }}
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                        title={t("list.copyJoinLinkTitle")}
+                      >
+                        {t("list.copyJoinLink")}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openQr(r.id, code, title)}
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                        title={t("list.joinWithQrTitle")}
+                      >
+                        {t("list.joinWithQr")}
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="mt-1 min-w-0 text-sm text-muted-foreground">
-                    {t("list.code")}{" "}
+                  <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[360px]">
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(code, r.id)}
-                      className="max-w-full rounded-lg border px-2 py-0.5 text-sm font-medium hover:shadow-sm"
-                      title={t("list.copyCodeTitle")}
+                      onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
+                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      title={t("list.seeMembersTitle")}
                     >
-                      <span className="break-all">{code || "—"}</span>
-                    </button>
-                    {copiedId === r.id && <span className="ml-2 text-xs">{t("list.copied")}</span>}
-                    <span className="mx-2">·</span>
-                    {t("list.members")} <b>{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const joinPath = withLocale(locale, `/join?code=${encodeURIComponent(code)}`);
-                        const url = `${window.location.origin}${joinPath}`;
-                        copyToClipboard(url, `url_${r.id}`);
-                      }}
-                      className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm"
-                      title={t("list.copyJoinLinkTitle")}
-                    >
-                      {t("list.copyJoinLink")}
+                      {t("list.seeMembers")}
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => openQr(r.id, code, title)}
-                      className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm"
-                      title={t("list.joinWithQrTitle")}
+                      onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/board`))}
+                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      title={t("list.boardTitle")}
                     >
-                      {t("list.joinWithQr")}
+                      {t("list.board")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}`))}
+                      className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                      title={t("list.openSpaceTitle")}
+                    >
+                      {t("list.openSpace")}
                     </button>
                   </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
-                    className="rounded-xl border px-3 py-2 text-sm font-medium hover:shadow-sm"
-                    title={t("list.seeMembersTitle")}
-                  >
-                    {t("list.seeMembers")}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/board`))}
-                    className="rounded-xl border px-3 py-2 text-sm font-medium hover:shadow-sm"
-                    title={t("list.boardTitle")}
-                  >
-                    {t("list.board")}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}`))}
-                    className="rounded-xl bg-black px-3 py-2 text-sm font-medium text-white hover:opacity-90"
-                    title={t("list.openSpaceTitle")}
-                  >
-                    {t("list.openSpace")}
-                  </button>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {filtered.length === 0 && (
-          <div className="rounded-2xl border bg-white p-6 text-sm text-muted-foreground shadow-sm">
-            {t("empty.title")}
-            <div className="mt-2">{t("empty.hint")}</div>
-          </div>
-        )}
+          {filtered.length === 0 && (
+            <div className="rounded-2xl border border-slate-300 bg-white p-6 text-sm text-slate-600 shadow-sm">
+              {t("empty.title")}
+              <div className="mt-2">{t("empty.hint")}</div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* QR Modal */}
       {qrOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={closeQr}
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="min-w-0 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-lg font-semibold">{t("qr.title")}</div>
-                <div className="mt-1 break-words text-sm text-muted-foreground">
+                <div className="text-lg font-semibold text-slate-900">{t("qr.title")}</div>
+                <div className="mt-1 break-words text-sm text-slate-600">
                   {t("qr.subtitle", {
                     title: qrFor?.title ?? t("list.untitled"),
                     code: qrFor?.code ?? "",
                   })}
                 </div>
               </div>
-              <button type="button" onClick={closeQr} className="shrink-0 rounded-xl border px-3 py-2 text-sm hover:shadow-sm">
+              <button
+                type="button"
+                onClick={closeQr}
+                className="shrink-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              >
                 {t("qr.close")}
               </button>
             </div>
 
-            <div className="mt-4 overflow-x-auto rounded-xl border p-4">
-              {qrBusy && <div className="text-sm text-muted-foreground">{t("qr.generating")}</div>}
+            <div className="mt-4 overflow-x-auto rounded-xl border border-slate-300 p-4">
+              {qrBusy && <div className="text-sm text-slate-600">{t("qr.generating")}</div>}
               {qrErr && <div className="text-sm text-red-600">{qrErr}</div>}
 
               {qrDataUrl && (
@@ -427,11 +444,11 @@ function TeacherSpacesInner() {
                     width={256}
                     height={256}
                     unoptimized
-                    className="h-auto w-64 rounded-lg border"
+                    className="h-auto w-64 rounded-lg border border-slate-300"
                   />
-                  <div className="break-all text-center text-xs text-muted-foreground">
+                  <div className="break-all text-center text-xs text-slate-600">
                     {t("qr.pointsTo")}{" "}
-                    <b>
+                    <b className="text-slate-900">
                       {typeof window !== "undefined"
                         ? `${window.location.origin}${withLocale(
                             locale,
@@ -444,7 +461,7 @@ function TeacherSpacesInner() {
               )}
             </div>
 
-            <div className="mt-3 text-xs text-muted-foreground">{t("qr.note")}</div>
+            <div className="mt-3 text-xs text-slate-600">{t("qr.note")}</div>
           </div>
         </div>
       )}

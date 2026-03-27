@@ -4,7 +4,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
@@ -79,8 +78,6 @@ type SpaceDocSafe = SpaceDoc & {
   activeLessonTitle?: unknown;
   title?: unknown;
 };
-
-type QrState = { open: boolean; dataUrl: string | null; busy: boolean; err: string | null };
 
 type QuotaState = {
   feature: string;
@@ -261,10 +258,6 @@ function Inner() {
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState<string | null>(null);
 
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  const [qr, setQr] = useState<QrState>({ open: false, dataUrl: null, busy: false, err: null });
-
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -286,13 +279,11 @@ function Inner() {
   const [library, setLibrary] = useState<Array<{ id: string; data: LibraryLesson }>>([]);
 
   const FEATURE_ASSIGN = "teacher_assign_task";
-  const [quota, setQuota] = useState<QuotaState | null>(null);
+  const [, setQuota] = useState<QuotaState | null>(null);
   const [quotaErr, setQuotaErr] = useState<string | null>(null);
-  const [quotaLoading, setQuotaLoading] = useState(false);
 
   const loadQuota = useCallback(async () => {
     setQuotaErr(null);
-    setQuotaLoading(true);
     try {
       const u = getAuth().currentUser;
       if (!u) {
@@ -333,8 +324,6 @@ function Inner() {
     } catch (e: unknown) {
       setQuota(null);
       setQuotaErr(getErrorInfo(e).message || "Failed to load quota");
-    } finally {
-      setQuotaLoading(false);
     }
   }, [FEATURE_ASSIGN]);
 
@@ -409,9 +398,6 @@ function Inner() {
     void loadQuota();
   }, [assignOpen, access, loadQuota]);
 
-  const joinCode = useMemo(() => (space?.code ?? "").toString(), [space]);
-  const joinLink = useMemo(() => withLocale(locale, `/join?code=${encodeURIComponent(joinCode || "")}`), [locale, joinCode]);
-
   const activeForStudentsId = useMemo(() => {
     const v = space?.activeLessonId;
     return typeof v === "string" && v.trim() ? v : null;
@@ -421,60 +407,6 @@ function Inner() {
     const v = space?.activeLessonTitle;
     return typeof v === "string" ? v : "";
   }, [space]);
-
-  const isOpen = Boolean(space?.isOpen);
-
-  async function copyToClipboard(text: string, key: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedKey(key);
-      window.setTimeout(() => setCopiedKey((v) => (v === key ? null : v)), 1200);
-    } catch {
-      // no-op
-    }
-  }
-
-  async function openQr() {
-    setQr({ open: true, dataUrl: null, busy: true, err: null });
-
-    try {
-      const QRCode = (await import("qrcode")).default;
-      const url = `${window.location.origin}${joinLink}`;
-      const dataUrl = await QRCode.toDataURL(url, { margin: 1, scale: 6 });
-      setQr({ open: true, dataUrl, busy: false, err: null });
-    } catch {
-      setQr({ open: true, dataUrl: null, busy: false, err: t("qr.error") });
-    }
-  }
-
-  function closeQr() {
-    setQr({ open: false, dataUrl: null, busy: false, err: null });
-  }
-
-  async function setActiveForStudents(assignmentId: string | null) {
-    setSaveErr(null);
-
-    if (access !== "allowed") {
-      setSaveErr(t("errors.noManageAccess"));
-      return;
-    }
-    if (!user?.uid) return;
-
-    const title = assignmentId ? assignments.find((a) => a.id === assignmentId)?.data?.title ?? null : null;
-
-    setSaving(true);
-    try {
-      await updateDoc(doc(db, "spaces", spaceId), {
-        activeLessonId: assignmentId,
-        activeLessonTitle: title,
-        activeUpdatedAt: Timestamp.now(),
-      });
-    } catch (e: unknown) {
-      setSaveErr(getErrorInfo(e).message || t("errors.setActiveFailed"));
-    } finally {
-      setSaving(false);
-    }
-  }
 
   useEffect(() => {
     if (access !== "allowed") return;
@@ -489,7 +421,10 @@ function Inner() {
     });
   }, [access, spaceId]);
 
-  const visibleAssignments = useMemo(() => (showArchived ? assignments : assignments.filter((a) => a.data.status !== "archived")), [assignments, showArchived]);
+  const visibleAssignments = useMemo(
+    () => (showArchived ? assignments : assignments.filter((a) => a.data.status !== "archived")),
+    [assignments, showArchived]
+  );
 
   useEffect(() => {
     if (access !== "allowed") return;
@@ -684,10 +619,34 @@ function Inner() {
 
       setAssignOpen(false);
       setAssignSearch("");
-
       void loadQuota();
     } catch (e: unknown) {
       setSaveErr(getErrorInfo(e).message || t("errors.assignFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function setActiveForStudents(assignmentId: string | null) {
+    setSaveErr(null);
+
+    if (access !== "allowed") {
+      setSaveErr(t("errors.noManageAccess"));
+      return;
+    }
+    if (!user?.uid) return;
+
+    const title = assignmentId ? assignments.find((a) => a.id === assignmentId)?.data?.title ?? null : null;
+
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, "spaces", spaceId), {
+        activeLessonId: assignmentId,
+        activeLessonTitle: title,
+        activeUpdatedAt: Timestamp.now(),
+      });
+    } catch (e: unknown) {
+      setSaveErr(getErrorInfo(e).message || t("errors.setActiveFailed"));
     } finally {
       setSaving(false);
     }
@@ -729,12 +688,12 @@ function Inner() {
     }
   }
 
-  if (loading) return <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6 text-sm text-slate-600">{tCommon("loading")}</div>;
-  if (!space) return <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6 text-sm text-slate-600">{tCommon("loading")}</div>;
+  if (loading) return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
+  if (!space) return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
 
   if (access === "checking") {
     return (
-      <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6">
+      <div className="w-full">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="m-0 text-2xl font-semibold text-slate-900">{t("checking.title")}</h1>
@@ -750,7 +709,7 @@ function Inner() {
 
   if (access === "denied") {
     return (
-      <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6">
+      <div className="w-full">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="m-0 text-2xl font-semibold text-slate-900">{t("denied.title")}</h1>
@@ -761,63 +720,19 @@ function Inner() {
             {t("actions.back")}
           </Link>
         </div>
-
-        <div className="mt-4 rounded-2xl border border-slate-300 bg-white p-4 shadow-md">
-          <div className="text-base font-semibold text-slate-900">{t("denied.joinCardTitle")}</div>
-          <div className="mt-2 break-all text-sm text-slate-600">
-            {t("denied.joinLinkLabel")}{" "}
-            <Link className="font-medium text-slate-800 underline underline-offset-4" href={joinLink}>
-              {joinLink}
-            </Link>
-          </div>
-        </div>
       </div>
     );
   }
 
   const canManage = access === "allowed" && Boolean(user?.uid) && canOperateSpace;
 
-  const quotaBadge = (
-    <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs text-slate-700">
-      {quotaLoading ? (
-        <>Quota: …</>
-      ) : quota ? (
-        <>
-          Quota: <b className="text-slate-900">{quota.remaining}</b> / {quota.limit} igjen ({quota.periodKey})
-        </>
-      ) : quotaErr ? (
-        <>Quota: feilet</>
-      ) : (
-        <>Quota: —</>
-      )}
-    </span>
-  );
-
   return (
-    <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6">
-      <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
+    <div className="w-full space-y-4">
+      <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{String(space.title ?? "")}</h1>
-
             <div className="mt-1 text-sm text-slate-600">{t("overview.subtitle")}</div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-700">
-              <span>{t("overview.code")}</span>
-              <button
-                type="button"
-                onClick={() => copyToClipboard(joinCode, "code")}
-                className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-sm font-medium text-slate-900 hover:bg-slate-100"
-                title={t("overview.copyCodeTitle")}
-              >
-                {joinCode || "—"}
-              </button>
-              {copiedKey === "code" && <span className="text-xs text-slate-600">{t("overview.copied")}</span>}
-              <span className="hidden sm:inline mx-1">·</span>
-              <span>
-                {t("overview.openLabel")} <b className="text-slate-900">{isOpen ? t("overview.yes") : t("overview.no")}</b>
-              </span>
-            </div>
           </div>
 
           <div className="flex w-full justify-start lg:w-auto lg:justify-end">
@@ -826,60 +741,11 @@ function Inner() {
             </Link>
           </div>
         </div>
-
-        <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <button
-              type="button"
-              onClick={() => {
-                const url = `${window.location.origin}${joinLink}`;
-                copyToClipboard(url, "joinlink");
-              }}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 sm:w-auto"
-            >
-              {t("overview.copyJoinLink")}
-            </button>
-
-            <button
-              type="button"
-              onClick={openQr}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 sm:w-auto"
-            >
-              {t("overview.qr")}
-            </button>
-
-            {copiedKey === "joinlink" && <span className="self-center text-xs text-slate-600">{t("overview.copied")}</span>}
-          </div>
-
-          <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
-            <div className="flex flex-wrap items-center gap-2">{quotaBadge}</div>
-
-            {activeForStudentsId ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
-                <span className="text-sm text-slate-600">
-                  {t("overview.activeForStudents")} <b className="text-slate-900">{activeForStudentsTitle || t("fallback.task")}</b>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setActiveForStudents(null)}
-                  disabled={saving || !canManage}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:w-auto"
-                >
-                  {t("overview.clear")}
-                </button>
-              </div>
-            ) : (
-              <span className="text-sm text-slate-600">
-                {t("overview.activeForStudents")} <b className="text-slate-900">—</b>
-              </span>
-            )}
-          </div>
-        </div>
       </div>
 
-      {saveErr && <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveErr}</div>}
+      {saveErr && <div className="rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveErr}</div>}
 
-      <div className="mt-4 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
+      <div className="rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
@@ -914,7 +780,7 @@ function Inner() {
                 }
                 setSaving(true);
                 try {
-                  await setSpaceOpen(spaceId, !isOpen);
+                  await setSpaceOpen(spaceId, !(space?.isOpen === true));
                 } catch (e: unknown) {
                   setSaveErr(getErrorInfo(e).message || t("errors.updateSpaceFailed"));
                 } finally {
@@ -924,14 +790,27 @@ function Inner() {
               disabled={saving || !canManage}
               className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:col-span-2 xl:col-span-1"
             >
-              {isOpen ? t("assignments.closeSpace") : t("assignments.openSpace")}
+              {space?.isOpen ? t("assignments.closeSpace") : t("assignments.openSpace")}
             </button>
+          </div>
+
+          {quotaErr && <div className="text-xs text-slate-600">{quotaErr}</div>}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
+            <div className="mt-1 text-sm text-slate-600">
+              {visibleAssignments.length} {visibleAssignments.length === 1 ? "oppgave" : "oppgaver"}
+            </div>
           </div>
         </div>
 
         <div className="mt-4 grid gap-3">
           {visibleAssignments.length === 0 ? (
-            <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+            <div className="rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
               {t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}
             </div>
           ) : (
@@ -948,7 +827,7 @@ function Inner() {
               const hasNew = summary.newCount > 0;
 
               return (
-                <div key={a.id} className="rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
+                <div key={a.id} className="rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -1061,11 +940,7 @@ function Inner() {
                   <div className="min-w-0">
                     <div className="text-lg font-semibold text-slate-900">{t("assignModal.title")}</div>
                     <div className="mt-1 text-sm text-slate-600">{t("assignModal.subtitle")}</div>
-
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {quotaBadge}
-                      {quotaErr && <span className="text-xs text-slate-600">{quotaErr}</span>}
-                    </div>
+                    {quotaErr && <div className="mt-2 text-xs text-slate-600">{quotaErr}</div>}
                   </div>
 
                   <button
@@ -1200,9 +1075,8 @@ function Inner() {
                                     language: x.data.language,
                                   })
                                 }
-                                disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
+                                disabled={saving || !canManage}
                                 className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
-                                title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
                               >
                                 {t("assignModal.assign")}
                               </button>
@@ -1243,9 +1117,8 @@ function Inner() {
                                     language: x.data.language,
                                   })
                                 }
-                                disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
+                                disabled={saving || !canManage}
                                 className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
-                                title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
                               >
                                 {t("assignModal.assign")}
                               </button>
@@ -1258,51 +1131,6 @@ function Inner() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {qr.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeQr} role="dialog" aria-modal="true">
-          <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-lg font-semibold text-slate-900">{t("qr.title")}</div>
-                <div className="mt-1 break-all text-sm text-slate-600">
-                  {t("qr.codeLabel")} <b className="text-slate-900">{joinCode}</b>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={closeQr}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-              >
-                {t("qr.close")}
-              </button>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-slate-300 p-4">
-              {qr.busy && <div className="text-sm text-slate-600">{t("qr.generating")}</div>}
-              {qr.err && <div className="text-sm text-red-600">{qr.err}</div>}
-
-              {qr.dataUrl && (
-                <div className="flex flex-col items-center gap-3">
-                  <Image
-                    src={qr.dataUrl}
-                    alt={t("qr.imageAlt")}
-                    width={256}
-                    height={256}
-                    unoptimized
-                    className="h-auto w-64 rounded-lg border border-slate-300"
-                  />
-                  <div className="break-all text-center text-xs text-slate-600">
-                    {t("qr.pointsTo")} <b className="text-slate-900">{typeof window !== "undefined" ? `${window.location.origin}${joinLink}` : joinLink}</b>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-3 text-xs text-slate-600">{t("qr.note")}</div>
           </div>
         </div>
       )}
