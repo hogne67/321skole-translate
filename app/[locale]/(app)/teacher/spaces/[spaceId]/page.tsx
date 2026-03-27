@@ -48,7 +48,6 @@ type AssignmentRow = { id: string; data: AssignmentDoc };
 
 type SubmissionData = { createdAt?: unknown; status?: unknown };
 
-// NOTE: vi lar oss være fleksible — hvis dere senere lagrer taskType/type, så matcher søket på det også
 type MyLesson = {
   title?: string;
   level?: string;
@@ -162,7 +161,6 @@ function parseJsonUnknown(raw: string): unknown {
   }
 }
 
-// -------- Language helpers (for søk) --------
 function normalizeLang(s: unknown): string {
   const v = typeof s === "string" ? s.trim().toLowerCase() : "";
   if (!v) return "";
@@ -199,7 +197,6 @@ function matchesLanguage(docLangRaw: unknown, searchRaw: string): boolean {
   });
 }
 
-// -------- "type" helpers (valgfritt) --------
 function normalizeType(s: unknown): string {
   return typeof s === "string" ? s.trim().toLowerCase() : "";
 }
@@ -208,7 +205,6 @@ function queryImpliesType(q: string): string[] {
   const s = q.trim().toLowerCase();
   if (!s) return [];
 
-  // super-enkel: bruk ord folk faktisk skriver
   if (["text", "tekst", "writing", "skriving", "free", "fritekst"].includes(s)) return ["text", "writing", "free", "free_text"];
   if (["mcq", "multiple", "multiple choice", "flervalg"].includes(s)) return ["mcq", "multiple", "multiple_choice"];
   if (["truefalse", "true/false", "sant", "usant", "sant/usant"].includes(s)) return ["truefalse", "true_false", "tf"];
@@ -289,7 +285,6 @@ function Inner() {
   const [myContent, setMyContent] = useState<Array<{ id: string; data: MyLesson }>>([]);
   const [library, setLibrary] = useState<Array<{ id: string; data: LibraryLesson }>>([]);
 
-  // ✅ QUOTA UI
   const FEATURE_ASSIGN = "teacher_assign_task";
   const [quota, setQuota] = useState<QuotaState | null>(null);
   const [quotaErr, setQuotaErr] = useState<string | null>(null);
@@ -343,13 +338,11 @@ function Inner() {
     }
   }, [FEATURE_ASSIGN]);
 
-  // Space doc
   useEffect(() => {
     const ref = doc(db, "spaces", spaceId);
     return onSnapshot(ref, (snap) => setSpace(snap.exists() ? (snap.data() as SpaceDocSafe) : null));
   }, [spaceId]);
 
-  // Access check
   useEffect(() => {
     let alive = true;
 
@@ -404,7 +397,6 @@ function Inner() {
     };
   }, [loading, user?.uid, isAdmin, spaceId, space, t]);
 
-  // Load quota when allowed + when modal opens
   useEffect(() => {
     if (access !== "allowed") return;
     if (!user?.uid) return;
@@ -484,7 +476,6 @@ function Inner() {
     }
   }
 
-  // Assignments list
   useEffect(() => {
     if (access !== "allowed") return;
 
@@ -500,7 +491,6 @@ function Inner() {
 
   const visibleAssignments = useMemo(() => (showArchived ? assignments : assignments.filter((a) => a.data.status !== "archived")), [assignments, showArchived]);
 
-  // Submission summary listeners
   useEffect(() => {
     if (access !== "allowed") return;
 
@@ -561,7 +551,6 @@ function Inner() {
     };
   }, [subSummaryUnsubByAssignment]);
 
-  // My Content (published + unlisted)
   useEffect(() => {
     if (access !== "allowed") return;
     if (!user?.uid) return;
@@ -577,7 +566,6 @@ function Inner() {
     return onSnapshot(qy, (snap) => setMyContent(snap.docs.map((d) => ({ id: d.id, data: snapTo<MyLesson>(d) }))));
   }, [access, user?.uid]);
 
-  // Library
   useEffect(() => {
     if (access !== "allowed") return;
 
@@ -586,13 +574,11 @@ function Inner() {
     return onSnapshot(qy, (snap) => setLibrary(snap.docs.map((d) => ({ id: d.id, data: snapTo<LibraryLesson>(d) }))));
   }, [access]);
 
-  // Reset paging when switching tab or search
   useEffect(() => {
     setPageMy(0);
     setPageLib(0);
   }, [assignTab, assignSearch]);
 
-  // Better filtering (title + level + lang + id + language synonyms + optional type synonyms)
   const filteredMyContent = useMemo(() => {
     const s = assignSearch.trim().toLowerCase();
     if (!s) return myContent;
@@ -655,7 +641,6 @@ function Inner() {
     return `${start}–${end} / ${total}`;
   }, [filteredLibrary.length, pageLib]);
 
-  // Assign via server (quota enforced)
   async function assignTask(src: { type: SourceType; id: string; title?: string; level?: string; language?: string }) {
     setSaveErr(null);
 
@@ -697,7 +682,6 @@ function Inner() {
         throw new Error(msg);
       }
 
-      // close modal
       setAssignOpen(false);
       setAssignSearch("");
 
@@ -745,18 +729,18 @@ function Inner() {
     }
   }
 
-  if (loading) return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{tCommon("loading")}</div>;
-  if (!space) return <div className="mx-auto max-w-4xl p-4 text-sm text-muted-foreground">{tCommon("loading")}</div>;
+  if (loading) return <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6 text-sm text-slate-600">{tCommon("loading")}</div>;
+  if (!space) return <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6 text-sm text-slate-600">{tCommon("loading")}</div>;
 
   if (access === "checking") {
     return (
-      <div className="mx-auto max-w-4xl p-4">
+      <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="m-0 text-2xl font-semibold">{t("checking.title")}</h1>
-            <div className="mt-1 text-sm text-muted-foreground">{t("checking.subtitle")}</div>
+            <h1 className="m-0 text-2xl font-semibold text-slate-900">{t("checking.title")}</h1>
+            <div className="mt-1 text-sm text-slate-600">{t("checking.subtitle")}</div>
           </div>
-          <Link className="text-sm underline" href={withLocale(locale, "/teacher/spaces")}>
+          <Link className="text-sm font-medium text-slate-700 underline underline-offset-4" href={withLocale(locale, "/teacher/spaces")}>
             {t("actions.back")}
           </Link>
         </div>
@@ -766,23 +750,23 @@ function Inner() {
 
   if (access === "denied") {
     return (
-      <div className="mx-auto max-w-4xl p-4">
+      <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="m-0 text-2xl font-semibold">{t("denied.title")}</h1>
-            <div className="mt-2 text-sm text-muted-foreground">{accessReason || t("denied.subtitle")}</div>
-            <div className="mt-2 text-sm text-muted-foreground">{t("denied.hint")}</div>
+            <h1 className="m-0 text-2xl font-semibold text-slate-900">{t("denied.title")}</h1>
+            <div className="mt-2 text-sm text-slate-600">{accessReason || t("denied.subtitle")}</div>
+            <div className="mt-2 text-sm text-slate-600">{t("denied.hint")}</div>
           </div>
-          <Link className="text-sm underline" href={withLocale(locale, "/teacher/spaces")}>
+          <Link className="text-sm font-medium text-slate-700 underline underline-offset-4" href={withLocale(locale, "/teacher/spaces")}>
             {t("actions.back")}
           </Link>
         </div>
 
-        <div className="mt-4 rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="text-base font-semibold">{t("denied.joinCardTitle")}</div>
-          <div className="mt-2 text-sm text-muted-foreground">
+        <div className="mt-4 rounded-2xl border border-slate-300 bg-white p-4 shadow-md">
+          <div className="text-base font-semibold text-slate-900">{t("denied.joinCardTitle")}</div>
+          <div className="mt-2 break-all text-sm text-slate-600">
             {t("denied.joinLinkLabel")}{" "}
-            <Link className="underline" href={joinLink}>
+            <Link className="font-medium text-slate-800 underline underline-offset-4" href={joinLink}>
               {joinLink}
             </Link>
           </div>
@@ -794,12 +778,12 @@ function Inner() {
   const canManage = access === "allowed" && Boolean(user?.uid) && canOperateSpace;
 
   const quotaBadge = (
-    <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-muted-foreground">
+    <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs text-slate-700">
       {quotaLoading ? (
         <>Quota: …</>
       ) : quota ? (
         <>
-          Quota: <b className="text-foreground">{quota.remaining}</b> / {quota.limit} igjen ({quota.periodKey})
+          Quota: <b className="text-slate-900">{quota.remaining}</b> / {quota.limit} igjen ({quota.periodKey})
         </>
       ) : quotaErr ? (
         <>Quota: feilet</>
@@ -810,77 +794,83 @@ function Inner() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl p-4">
-      {/* Top / Overview */}
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-[240px]">
-            <h1 className="m-0 text-2xl font-semibold">{String(space.title ?? "")}</h1>
+    <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 md:px-6">
+      <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{String(space.title ?? "")}</h1>
 
-            <div className="mt-1 text-sm text-muted-foreground">{t("overview.subtitle")}</div>
+            <div className="mt-1 text-sm text-slate-600">{t("overview.subtitle")}</div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-700">
               <span>{t("overview.code")}</span>
               <button
                 type="button"
                 onClick={() => copyToClipboard(joinCode, "code")}
-                className="rounded-lg border px-2 py-0.5 text-sm font-medium hover:shadow-sm"
+                className="rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-sm font-medium text-slate-900 hover:bg-slate-100"
                 title={t("overview.copyCodeTitle")}
               >
                 {joinCode || "—"}
               </button>
-              {copiedKey === "code" && <span className="text-xs">{t("overview.copied")}</span>}
-              <span className="mx-1">·</span>
+              {copiedKey === "code" && <span className="text-xs text-slate-600">{t("overview.copied")}</span>}
+              <span className="hidden sm:inline mx-1">·</span>
               <span>
-                {t("overview.openLabel")} <b>{isOpen ? t("overview.yes") : t("overview.no")}</b>
+                {t("overview.openLabel")} <b className="text-slate-900">{isOpen ? t("overview.yes") : t("overview.no")}</b>
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link className="text-sm underline" href={withLocale(locale, "/teacher/spaces")}>
+          <div className="flex w-full justify-start lg:w-auto lg:justify-end">
+            <Link className="text-sm font-medium text-slate-700 underline underline-offset-4" href={withLocale(locale, "/teacher/spaces")}>
               {t("actions.back")}
             </Link>
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              const url = `${window.location.origin}${joinLink}`;
-              copyToClipboard(url, "joinlink");
-            }}
-            className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm"
-          >
-            {t("overview.copyJoinLink")}
-          </button>
-          {copiedKey === "joinlink" && <span className="self-center text-xs">{t("overview.copied")}</span>}
+        <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                const url = `${window.location.origin}${joinLink}`;
+                copyToClipboard(url, "joinlink");
+              }}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 sm:w-auto"
+            >
+              {t("overview.copyJoinLink")}
+            </button>
 
-          <button type="button" onClick={openQr} className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm">
-            {t("overview.qr")}
-          </button>
+            <button
+              type="button"
+              onClick={openQr}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 sm:w-auto"
+            >
+              {t("overview.qr")}
+            </button>
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            {quotaBadge}
+            {copiedKey === "joinlink" && <span className="self-center text-xs text-slate-600">{t("overview.copied")}</span>}
+          </div>
+
+          <div className="flex w-full flex-col gap-2 xl:w-auto xl:items-end">
+            <div className="flex flex-wrap items-center gap-2">{quotaBadge}</div>
 
             {activeForStudentsId ? (
-              <>
-                <span className="text-sm text-muted-foreground">
-                  {t("overview.activeForStudents")} <b>{activeForStudentsTitle || t("fallback.task")}</b>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
+                <span className="text-sm text-slate-600">
+                  {t("overview.activeForStudents")} <b className="text-slate-900">{activeForStudentsTitle || t("fallback.task")}</b>
                 </span>
                 <button
                   type="button"
                   onClick={() => setActiveForStudents(null)}
                   disabled={saving || !canManage}
-                  className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm disabled:opacity-50"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:w-auto"
                 >
                   {t("overview.clear")}
                 </button>
-              </>
+              </div>
             ) : (
-              <span className="text-sm text-muted-foreground">
-                {t("overview.activeForStudents")} <b>—</b>
+              <span className="text-sm text-slate-600">
+                {t("overview.activeForStudents")} <b className="text-slate-900">—</b>
               </span>
             )}
           </div>
@@ -889,20 +879,19 @@ function Inner() {
 
       {saveErr && <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveErr}</div>}
 
-      {/* Assignments */}
-      <div className="mt-4 grid gap-3 rounded-2xl border bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-4 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <div className="text-base font-semibold">{t("assignments.title")}</div>
-            <div className="mt-1 text-sm text-muted-foreground">{t("assignments.subtitle")}</div>
+            <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
+            <div className="mt-1 text-sm text-slate-600">{t("assignments.subtitle")}</div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:w-auto xl:flex-wrap xl:justify-end">
             <button
               type="button"
               onClick={() => setAssignOpen(true)}
               disabled={!canManage || saving}
-              className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
             >
               {t("assignments.assignTask")}
             </button>
@@ -910,7 +899,7 @@ function Inner() {
             <button
               type="button"
               onClick={() => setShowArchived((v) => !v)}
-              className="rounded-xl border px-4 py-2 text-sm hover:shadow-sm"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
             >
               {showArchived ? t("assignments.hideArchived") : t("assignments.showArchived")}
             </button>
@@ -933,16 +922,18 @@ function Inner() {
                 }
               }}
               disabled={saving || !canManage}
-              className="rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:col-span-2 xl:col-span-1"
             >
               {isOpen ? t("assignments.closeSpace") : t("assignments.openSpace")}
             </button>
           </div>
         </div>
 
-        <div className="grid gap-2">
+        <div className="mt-4 grid gap-3">
           {visibleAssignments.length === 0 ? (
-            <div className="rounded-xl border p-4 text-sm text-muted-foreground">{t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}</div>
+            <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+              {t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}
+            </div>
           ) : (
             visibleAssignments.map((a) => {
               const assignedAt = formatMaybeDate(a.data.assignedAt || a.data.createdAt);
@@ -957,22 +948,30 @@ function Inner() {
               const hasNew = summary.newCount > 0;
 
               return (
-                <div key={a.id} className="rounded-xl border">
-                  <div className="flex flex-wrap items-start justify-between gap-3 p-3">
-                    <div className="min-w-[220px]">
+                <div key={a.id} className="rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="font-semibold">{a.data.title || t("fallback.untitledTask")}</div>
+                        <div className="break-words font-semibold text-slate-900">{a.data.title || t("fallback.untitledTask")}</div>
 
-                        {isActiveForStudents && <span className="rounded-full border px-2 py-0.5 text-xs">{t("badges.active")}</span>}
+                        {isActiveForStudents && (
+                          <span className="rounded-full border border-slate-300 bg-slate-900 px-2 py-0.5 text-xs font-medium text-white">
+                            {t("badges.active")}
+                          </span>
+                        )}
 
                         {status === "archived" && (
-                          <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{t("badges.archived")}</span>
+                          <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                            {t("badges.archived")}
+                          </span>
                         )}
 
                         {!sumErr ? (
                           <>
                             {summary.total === 0 ? (
-                              <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{t("badges.noSubmissions")}</span>
+                              <span className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
+                                {t("badges.noSubmissions")}
+                              </span>
                             ) : allReviewed ? (
                               <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-800">
                                 {t("badges.allReviewed")}
@@ -982,17 +981,19 @@ function Inner() {
                                 {t("badges.newCount", { n: summary.newCount })}
                               </span>
                             ) : (
-                              <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                              <span className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs text-slate-700">
                                 {t("badges.submissionsCount", { n: summary.total })}
                               </span>
                             )}
                           </>
                         ) : (
-                          <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700">{t("badges.submissionsError")}</span>
+                          <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700">
+                            {t("badges.submissionsError")}
+                          </span>
                         )}
                       </div>
 
-                      <div className="mt-1 text-sm text-muted-foreground">
+                      <div className="mt-2 break-words text-sm text-slate-600">
                         {sourceLabel}
                         {a.data.level ? ` · ${a.data.level}` : ""}
                         {a.data.language ? ` · ${a.data.language}` : ""}
@@ -1000,11 +1001,11 @@ function Inner() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:w-auto xl:flex-wrap xl:justify-end">
                       <button
                         type="button"
                         onClick={() => router.push(withLocale(locale, `/teacher/spaces/${spaceId}/lessons/${a.id}`))}
-                        className="rounded-xl border px-4 py-2 text-sm hover:shadow-sm"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
                       >
                         {t("actions.submissions")}
                       </button>
@@ -1013,7 +1014,12 @@ function Inner() {
                         type="button"
                         onClick={() => setActiveForStudents(a.id)}
                         disabled={saving || !canManage || status === "archived"}
-                        className={["rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50", isActiveForStudents ? "bg-black text-white" : ""].join(" ")}
+                        className={[
+                          "rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50",
+                          isActiveForStudents
+                            ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
+                            : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
+                        ].join(" ")}
                       >
                         {t("actions.setActive")}
                       </button>
@@ -1023,7 +1029,7 @@ function Inner() {
                           type="button"
                           onClick={() => setAssignmentStatus(a.id, "archived")}
                           disabled={saving || !canManage}
-                          className="rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50"
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:col-span-2 xl:col-span-1"
                         >
                           {t("actions.archive")}
                         </button>
@@ -1032,7 +1038,7 @@ function Inner() {
                           type="button"
                           onClick={() => setAssignmentStatus(a.id, "active")}
                           disabled={saving || !canManage}
-                          className="rounded-xl border px-4 py-2 text-sm hover:shadow-sm disabled:opacity-50"
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:col-span-2 xl:col-span-1"
                         >
                           {t("actions.restore")}
                         </button>
@@ -1046,74 +1052,87 @@ function Inner() {
         </div>
       </div>
 
-      {/* Assign modal */}
       {assignOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 p-4" onClick={() => setAssignOpen(false)} role="dialog" aria-modal="true">
-          <div className="mx-auto w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="max-h-[85vh] overflow-hidden rounded-2xl border bg-white shadow-lg">
-              {/* Header (fixed) */}
-              <div className="border-b p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-semibold">{t("assignModal.title")}</div>
-                    <div className="mt-1 text-sm text-muted-foreground">{t("assignModal.subtitle")}</div>
+        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4" onClick={() => setAssignOpen(false)} role="dialog" aria-modal="true">
+          <div className="mx-auto w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
+            <div className="max-h-[90vh] overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-xl">
+              <div className="border-b border-slate-200 p-4 sm:p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-lg font-semibold text-slate-900">{t("assignModal.title")}</div>
+                    <div className="mt-1 text-sm text-slate-600">{t("assignModal.subtitle")}</div>
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       {quotaBadge}
-                      {quotaErr && <span className="text-xs text-muted-foreground">{quotaErr}</span>}
+                      {quotaErr && <span className="text-xs text-slate-600">{quotaErr}</span>}
                     </div>
                   </div>
 
-                  <button type="button" onClick={() => setAssignOpen(false)} className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setAssignOpen(false)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 sm:w-auto"
+                  >
                     {t("assignModal.close")}
                   </button>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAssignTab("myContent")}
-                    className={["rounded-xl border px-3 py-2 text-sm", assignTab === "myContent" ? "bg-black text-white" : "bg-white"].join(" ")}
-                  >
-                    {t("labels.myContent")}
-                  </button>
+                <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAssignTab("myContent")}
+                      className={[
+                        "rounded-xl border px-3 py-2 text-sm font-medium",
+                        assignTab === "myContent"
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
+                      ].join(" ")}
+                    >
+                      {t("labels.myContent")}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setAssignTab("library")}
-                    className={["rounded-xl border px-3 py-2 text-sm", assignTab === "library" ? "bg-black text-white" : "bg-white"].join(" ")}
-                  >
-                    {t("labels.library")}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setAssignTab("library")}
+                      className={[
+                        "rounded-xl border px-3 py-2 text-sm font-medium",
+                        assignTab === "library"
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
+                      ].join(" ")}
+                    >
+                      {t("labels.library")}
+                    </button>
+                  </div>
 
                   <input
                     value={assignSearch}
                     onChange={(e) => setAssignSearch(e.target.value)}
                     placeholder={t("assignModal.searchPlaceholder")}
-                    className="ml-auto w-full rounded-xl border px-3 py-2 text-sm md:w-[360px]"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 lg:ml-auto lg:max-w-[360px]"
                   />
                 </div>
 
-                {/* paging header: vis relevant paging for tab */}
-                <div className="mt-3 flex items-center justify-between gap-2">
+                <div className="mt-3 grid grid-cols-3 items-center gap-2">
                   {assignTab === "myContent" ? (
                     <>
                       <button
                         type="button"
-                        className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 disabled:opacity-50"
                         disabled={pageMy === 0}
                         onClick={() => setPageMy((p) => Math.max(0, p - 1))}
                       >
                         {t("assignModal.paging.prev")}
                       </button>
 
-                      <div className="text-xs text-muted-foreground">
-                        {t("assignModal.paging.showing")} <b>{myRangeText}</b>
+                      <div className="px-2 text-center text-xs text-slate-600">
+                        {t("assignModal.paging.showing")} <b className="text-slate-900">{myRangeText}</b>
                       </div>
 
                       <button
                         type="button"
-                        className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 disabled:opacity-50"
                         disabled={(pageMy + 1) * PAGE_SIZE >= filteredMyContent.length}
                         onClick={() => setPageMy((p) => p + 1)}
                       >
@@ -1124,20 +1143,20 @@ function Inner() {
                     <>
                       <button
                         type="button"
-                        className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 disabled:opacity-50"
                         disabled={pageLib === 0}
                         onClick={() => setPageLib((p) => Math.max(0, p - 1))}
                       >
                         {t("assignModal.paging.prev")}
                       </button>
 
-                      <div className="text-xs text-muted-foreground">
-                        {t("assignModal.paging.showing")} <b>{libRangeText}</b>
+                      <div className="px-2 text-center text-xs text-slate-600">
+                        {t("assignModal.paging.showing")} <b className="text-slate-900">{libRangeText}</b>
                       </div>
 
                       <button
                         type="button"
-                        className="rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 disabled:opacity-50"
                         disabled={(pageLib + 1) * PAGE_LIB_SIZE >= filteredLibrary.length}
                         onClick={() => setPageLib((p) => p + 1)}
                       >
@@ -1148,26 +1167,24 @@ function Inner() {
                 </div>
               </div>
 
-              {/* Body (scrollable) */}
-              <div className="max-h-[calc(85vh-260px)] overflow-y-auto p-5">
-                <div className="grid gap-2">
-                  {/* My content */}
+              <div className="max-h-[calc(90vh-270px)] overflow-y-auto p-4 sm:p-5">
+                <div className="grid gap-3">
                   {assignTab === "myContent" && (
                     <>
                       {pagedMy.length === 0 ? (
-                        <div className="rounded-xl border p-4 text-sm text-muted-foreground">{t("assignModal.noResults")}</div>
+                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">{t("assignModal.noResults")}</div>
                       ) : (
                         pagedMy.map((x) => (
-                          <div key={x.id} className="rounded-xl border p-3">
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div>
-                                <div className="font-semibold">{x.data.title || t("fallback.untitled")}</div>
-                                <div className="mt-1 text-sm text-muted-foreground">
+                          <div key={x.id} className="rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0 flex-1">
+                                <div className="break-words font-semibold text-slate-900">{x.data.title || t("fallback.untitled")}</div>
+                                <div className="mt-1 break-words text-sm text-slate-600">
                                   {x.data.level ? x.data.level : "—"}
                                   {x.data.language ? ` · ${x.data.language}` : ""}
                                   {x.data.status ? ` · ${x.data.status}` : ""}
                                 </div>
-                                <div className="mt-1 text-xs text-muted-foreground">
+                                <div className="mt-1 break-all text-xs text-slate-500">
                                   {t("assignModal.lessonId")}: <code>{x.id}</code>
                                 </div>
                               </div>
@@ -1184,7 +1201,7 @@ function Inner() {
                                   })
                                 }
                                 disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
-                                className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                                className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
                                 title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
                               >
                                 {t("assignModal.assign")}
@@ -1196,22 +1213,21 @@ function Inner() {
                     </>
                   )}
 
-                  {/* Library */}
                   {assignTab === "library" && (
                     <>
                       {filteredLibrary.length === 0 ? (
-                        <div className="rounded-xl border p-4 text-sm text-muted-foreground">{t("assignModal.noResults")}</div>
+                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">{t("assignModal.noResults")}</div>
                       ) : (
                         pagedLibrary.map((x) => (
-                          <div key={x.id} className="rounded-xl border p-3">
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div>
-                                <div className="font-semibold">{x.data.title || t("fallback.untitled")}</div>
-                                <div className="mt-1 text-sm text-muted-foreground">
+                          <div key={x.id} className="rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0 flex-1">
+                                <div className="break-words font-semibold text-slate-900">{x.data.title || t("fallback.untitled")}</div>
+                                <div className="mt-1 break-words text-sm text-slate-600">
                                   {x.data.level ? x.data.level : "—"}
                                   {x.data.language ? ` · ${x.data.language}` : ""}
                                 </div>
-                                <div className="mt-1 text-xs text-muted-foreground">
+                                <div className="mt-1 break-all text-xs text-slate-500">
                                   {t("assignModal.publishedLessonId")}: <code>{x.id}</code>
                                 </div>
                               </div>
@@ -1228,7 +1244,7 @@ function Inner() {
                                   })
                                 }
                                 disabled={saving || !canManage || (quota ? quota.remaining <= 0 : false)}
-                                className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                                className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
                                 title={quota && quota.remaining <= 0 ? "Quota brukt opp" : undefined}
                               >
                                 {t("assignModal.assign")}
@@ -1246,37 +1262,47 @@ function Inner() {
         </div>
       )}
 
-      {/* QR Modal */}
       {qr.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeQr} role="dialog" aria-modal="true">
-          <div className="w-full max-w-md rounded-2xl border bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeQr} role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-lg font-semibold">{t("qr.title")}</div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {t("qr.codeLabel")} <b>{joinCode}</b>
+              <div className="min-w-0">
+                <div className="text-lg font-semibold text-slate-900">{t("qr.title")}</div>
+                <div className="mt-1 break-all text-sm text-slate-600">
+                  {t("qr.codeLabel")} <b className="text-slate-900">{joinCode}</b>
                 </div>
               </div>
-              <button type="button" onClick={closeQr} className="rounded-xl border px-3 py-2 text-sm hover:shadow-sm">
+              <button
+                type="button"
+                onClick={closeQr}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              >
                 {t("qr.close")}
               </button>
             </div>
 
-            <div className="mt-4 rounded-xl border p-4">
-              {qr.busy && <div className="text-sm text-muted-foreground">{t("qr.generating")}</div>}
+            <div className="mt-4 rounded-xl border border-slate-300 p-4">
+              {qr.busy && <div className="text-sm text-slate-600">{t("qr.generating")}</div>}
               {qr.err && <div className="text-sm text-red-600">{qr.err}</div>}
 
               {qr.dataUrl && (
                 <div className="flex flex-col items-center gap-3">
-                  <Image src={qr.dataUrl} alt={t("qr.imageAlt")} width={256} height={256} unoptimized className="h-auto w-64 rounded-lg border" />
-                  <div className="text-center text-xs text-muted-foreground">
-                    {t("qr.pointsTo")} <b>{typeof window !== "undefined" ? `${window.location.origin}${joinLink}` : joinLink}</b>
+                  <Image
+                    src={qr.dataUrl}
+                    alt={t("qr.imageAlt")}
+                    width={256}
+                    height={256}
+                    unoptimized
+                    className="h-auto w-64 rounded-lg border border-slate-300"
+                  />
+                  <div className="break-all text-center text-xs text-slate-600">
+                    {t("qr.pointsTo")} <b className="text-slate-900">{typeof window !== "undefined" ? `${window.location.origin}${joinLink}` : joinLink}</b>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="mt-3 text-xs text-muted-foreground">{t("qr.note")}</div>
+            <div className="mt-3 text-xs text-slate-600">{t("qr.note")}</div>
           </div>
         </div>
       )}

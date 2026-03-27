@@ -594,6 +594,41 @@ export default function ProducerLessonEditorPage() {
     setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, ...patch } : task)));
   }
 
+  const sectionStyle: React.CSSProperties = {
+    marginTop: 16,
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    padding: 16,
+    background: "#fff",
+    boxShadow: "0 4px 18px rgba(15, 23, 42, 0.04)",
+  };
+
+  const fieldStyle: React.CSSProperties = {
+    padding: "10px 12px",
+    border: "1px solid #d1d5db",
+    borderRadius: 12,
+    width: "100%",
+    boxSizing: "border-box",
+    background: "#fff",
+  };
+
+  const smallHelpStyle: React.CSSProperties = {
+    fontSize: 12,
+    opacity: 0.72,
+  };
+
+  const primaryButton: React.CSSProperties = {
+    padding: "10px 14px",
+    borderRadius: 12,
+    border: "1px solid #86efac",
+    background: "#16a34a",
+    color: "white",
+    fontWeight: 900,
+    cursor: saving ? "not-allowed" : "pointer",
+    opacity: saving ? 0.7 : 1,
+    whiteSpace: "nowrap",
+  };
+
   if (loading) {
     return (
       <main
@@ -656,9 +691,14 @@ export default function ProducerLessonEditorPage() {
         >
           <div>
             <Link href={backHref}>{t("nav.back")}</Link>
-            <h1 style={{ fontSize: 24, fontWeight: 900, marginTop: 10 }}>{t("pageTitle")}</h1>
-            <div style={{ fontSize: 13, opacity: 0.7 }}>
+            <h1 style={{ fontSize: 26, fontWeight: 900, marginTop: 10 }}>{t("pageTitle")}</h1>
+            <div style={{ fontSize: 13, opacity: 0.7, marginTop: 4 }}>
               {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
+            </div>
+            <div style={{ fontSize: 14, opacity: 0.78, marginTop: 8 }}>
+              {locale === "en"
+                ? "Now finish the lesson with metadata, cover image and final adjustments."
+                : "Nå ferdigstiller du oppgaven med metadata, forsidebilde og siste justeringer."}
             </div>
           </div>
 
@@ -666,17 +706,7 @@ export default function ProducerLessonEditorPage() {
             <button
               onClick={saveAndGoToMyContent}
               disabled={saving}
-              style={{
-                padding: "10px 14px",
-                borderRadius: 12,
-                border: "1px solid #86efac",
-                background: "#16a34a",
-                color: "white",
-                fontWeight: 900,
-                cursor: saving ? "not-allowed" : "pointer",
-                opacity: saving ? 0.7 : 1,
-                whiteSpace: "nowrap",
-              }}
+              style={primaryButton}
               title={t("buttons.saveToMyContent")}
             >
               {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
@@ -684,27 +714,97 @@ export default function ProducerLessonEditorPage() {
           </div>
         </div>
 
-        <section style={{ marginTop: 16, border: "1px solid #e5e7eb", borderRadius: 12, padding: 14 }}>
-          <div style={{ display: "grid", gap: 10 }}>
+        <section
+          style={{
+            ...sectionStyle,
+            background: "#f8fafc",
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 10,
+            }}
+          >
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {locale === "en" ? "Title" : "Tittel"}
+              </div>
+              <div style={{ fontWeight: 800, marginTop: 4 }}>{title || "—"}</div>
+            </div>
+
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {locale === "en" ? "Tasks" : "Oppgaver"}
+              </div>
+              <div style={{ fontWeight: 800, marginTop: 4 }}>{sortedTasks.length}</div>
+            </div>
+
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {locale === "en" ? "Words" : "Ord"}
+              </div>
+              <div style={{ fontWeight: 800, marginTop: 4 }}>{wordCount}</div>
+            </div>
+
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {locale === "en" ? "Image generation" : "Bildegenerering"}
+              </div>
+              <div style={{ fontWeight: 800, marginTop: 4 }}>
+                {imagesUsed} / {imagesLimit}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section style={sectionStyle}>
+          <div style={{ marginBottom: 14 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>
+              {locale === "en" ? "1. Basic information" : "1. Grunninformasjon"}
+            </h2>
+            <div style={{ marginTop: 6, ...smallHelpStyle }}>
+              {locale === "en"
+                ? "Fill in the core information that describes the lesson."
+                : "Fyll ut den viktigste informasjonen som beskriver oppgaven."}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 12 }}>
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 800 }}>{t("fields.title")} *</div>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                style={{ padding: "10px 12px" }}
+                style={fieldStyle}
                 placeholder={t("placeholders.title")}
               />
             </label>
 
-            <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 800 }}>{t("fields.levelOptional")} *</div>
-              <input
-                value={level}
-                onChange={(e) => setLevel(e.target.value)}
-                style={{ padding: "10px 12px" }}
-                placeholder={t("placeholders.level")}
-              />
-            </label>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
+              <label style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontWeight: 800 }}>{t("fields.levelOptional")} *</div>
+                <input
+                  value={level}
+                  onChange={(e) => setLevel(e.target.value)}
+                  style={fieldStyle}
+                  placeholder={t("placeholders.level")}
+                />
+              </label>
+
+              <label style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontWeight: 800 }}>{t("fields.language")}</div>
+                <input
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  style={fieldStyle}
+                  placeholder={t("placeholders.language")}
+                />
+              </label>
+            </div>
 
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 800 }}>{t("fields.producerName")}</div>
@@ -713,355 +813,18 @@ export default function ProducerLessonEditorPage() {
                 disabled
                 readOnly
                 style={{
-                  padding: "10px 12px",
+                  ...fieldStyle,
                   background: "#f4f4f5",
-                  border: "1px solid #e5e7eb",
-                  color: "#111827",
                 }}
                 placeholder={locale === "en" ? "Your name (from profile)" : "Ditt navn (fra profil)"}
                 title={locale === "en" ? "Pulled from your user profile" : "Hentes fra brukerprofil"}
               />
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
+              <div style={smallHelpStyle}>
                 {locale === "en"
                   ? "This is taken from your profile (users/{uid})."
                   : "Dette hentes fra profilen din (users/{uid})."}
               </div>
             </label>
-
-            <div style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 800 }}>
-                {locale === "en" ? "Cover image" : "Forsidebilde"}
-              </div>
-
-              <div
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  padding: 12,
-                  display: "grid",
-                  gap: 12,
-                  background: "#fafafa",
-                }}
-              >
-                <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    {locale === "en" ? "Choose image source" : "Velg bildekilde"}
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => setCoverImageSource("upload")}
-                      style={{
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        border: coverImageSource === "upload" ? "2px solid #2563eb" : "1px solid #d1d5db",
-                        background: "#fff",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {locale === "en" ? "Upload image" : "Last opp bilde"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setCoverImageSource("ai")}
-                      style={{
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        border: coverImageSource === "ai" ? "2px solid #2563eb" : "1px solid #d1d5db",
-                        background: "#fff",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {locale === "en" ? "Generate AI image" : "Generer AI-bilde"}
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gap: 6, maxWidth: 240 }}>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    {locale === "en" ? "Format" : "Format"}
-                  </div>
-                  <select
-                    value={coverImageFormat}
-                    onChange={(e) => setCoverImageFormat(normalizeCoverFormat(e.target.value))}
-                    style={{ padding: "10px 12px", background: "#f4f4f5" }}
-                    disabled
-                  >
-                    <option value="16:9">16:9</option>
-                  </select>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    {locale === "en" ? "Only 16:9 is allowed." : "Kun 16:9 er tillatt."}
-                  </div>
-                </div>
-
-                {coverImageSource === "upload" ? (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      <label
-                        style={{
-                          padding: "8px 12px",
-                          border: "1px solid #ddd",
-                          borderRadius: 10,
-                          cursor: uploadingCover ? "not-allowed" : "pointer",
-                          opacity: uploadingCover ? 0.6 : 1,
-                          display: "inline-block",
-                          background: "#fff",
-                        }}
-                      >
-                        {uploadingCover
-                          ? locale === "en"
-                            ? "Uploading..."
-                            : "Laster opp..."
-                          : locale === "en"
-                            ? "Upload image"
-                            : "Last opp bilde"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          style={{ display: "none" }}
-                          disabled={uploadingCover}
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) uploadCover(f);
-                            e.currentTarget.value = "";
-                          }}
-                        />
-                      </label>
-
-                      <button
-                        type="button"
-                        onClick={() => setCoverImageUrl("")}
-                        style={{
-                          padding: "8px 12px",
-                          border: "1px solid #ddd",
-                          borderRadius: 10,
-                          background: "#fff",
-                        }}
-                        disabled={uploadingCover || !coverImageUrl}
-                      >
-                        {locale === "en" ? "Remove image" : "Fjern bilde"}
-                      </button>
-                    </div>
-
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>
-                      {locale === "en"
-                        ? "Upload jpg, png or webp. Image will be used in 16:9 format."
-                        : "Last opp jpg, png eller webp. Bildet brukes i 16:9-format."}
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <div style={{ display: "grid", gap: 6 }}>
-                      <div style={{ fontSize: 12, opacity: 0.7 }}>
-                        {locale === "en" ? "Image style" : "Bildestil"}
-                      </div>
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button
-                          type="button"
-                          onClick={() => setAiCoverStyle("illustration")}
-                          style={{
-                            padding: "10px 12px",
-                            borderRadius: 10,
-                            border: aiCoverStyle === "illustration" ? "2px solid #2563eb" : "1px solid #d1d5db",
-                            background: "#fff",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {locale === "en" ? "Illustration" : "Illustrasjon"}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setAiCoverStyle("realistic")}
-                          style={{
-                            padding: "10px 12px",
-                            borderRadius: 10,
-                            border: aiCoverStyle === "realistic" ? "2px solid #2563eb" : "1px solid #d1d5db",
-                            background: "#fff",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {locale === "en" ? "Realistic" : "Realistisk"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "grid", gap: 6 }}>
-                      <div style={{ fontSize: 12, opacity: 0.7 }}>
-                        {locale === "en" ? "Prompt source" : "Prompt-kilde"}
-                      </div>
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button
-                          type="button"
-                          onClick={() => setAiCoverPromptMode("custom")}
-                          style={{
-                            padding: "10px 12px",
-                            borderRadius: 10,
-                            border: aiCoverPromptMode === "custom" ? "2px solid #2563eb" : "1px solid #d1d5db",
-                            background: "#fff",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {locale === "en" ? "Write prompt" : "Skriv prompt"}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setAiCoverPromptMode("fromText")}
-                          style={{
-                            padding: "10px 12px",
-                            borderRadius: 10,
-                            border: aiCoverPromptMode === "fromText" ? "2px solid #2563eb" : "1px solid #d1d5db",
-                            background: "#fff",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {locale === "en" ? "Use text as inspiration" : "Bruk teksten som inspirasjon"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {aiCoverPromptMode === "custom" ? (
-                      <label style={{ display: "grid", gap: 6 }}>
-                        <div style={{ fontWeight: 800 }}>
-                          {locale === "en" ? "Prompt" : "Prompt"}
-                        </div>
-                        <textarea
-                          value={aiCoverPrompt}
-                          onChange={(e) => setAiCoverPrompt(e.target.value)}
-                          rows={4}
-                          style={{ padding: "10px 12px", width: "100%" }}
-                          placeholder={
-                            locale === "en"
-                              ? "Example: A calm classroom scene with students reading, warm light, detailed, clean composition"
-                              : "Eksempel: Et rolig klasserom med elever som leser, varmt lys, detaljer, ren komposisjon"
-                          }
-                        />
-                      </label>
-                    ) : (
-                      <div
-                        style={{
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 10,
-                          padding: 12,
-                          background: "#fff",
-                          fontSize: 14,
-                        }}
-                      >
-                        {locale === "en"
-                          ? "The system will use the lesson title and text as inspiration for the image."
-                          : "Systemet vil bruke tittel og tekst som inspirasjon for bildet."}
-                      </div>
-                    )}
-
-                    <div style={{ fontSize: 12, opacity: 0.75 }}>
-                      {locale === "en"
-                        ? `Image generation: ${imagesUsed} / ${imagesLimit} used • ${imagesRemaining} left`
-                        : `Bildegenerering: ${imagesUsed} / ${imagesLimit} brukt • ${imagesRemaining} igjen`}
-                    </div>
-
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        onClick={generateAiCover}
-                        disabled={generatingCover || imageLimitReached}
-                        style={{
-                          padding: "10px 14px",
-                          borderRadius: 10,
-                          border: "1px solid #c7d2fe",
-                          background: "#2563eb",
-                          color: "#fff",
-                          fontWeight: 800,
-                          cursor: generatingCover || imageLimitReached ? "not-allowed" : "pointer",
-                          opacity: generatingCover || imageLimitReached ? 0.7 : 1,
-                        }}
-                      >
-                        {generatingCover
-                          ? locale === "en"
-                            ? "Generating..."
-                            : "Genererer..."
-                          : imageLimitReached
-                            ? locale === "en"
-                              ? "Limit reached"
-                              : "Grense nådd"
-                            : locale === "en"
-                              ? "Generate image"
-                              : "Generer bilde"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setCoverImageUrl("")}
-                        style={{
-                          padding: "10px 14px",
-                          borderRadius: 10,
-                          border: "1px solid #ddd",
-                          background: "#fff",
-                        }}
-                        disabled={generatingCover || !coverImageUrl}
-                      >
-                        {locale === "en" ? "Remove image" : "Fjern bilde"}
-                      </button>
-                    </div>
-
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>
-                      {locale === "en"
-                        ? "The generated image should be landscape in 16:9."
-                        : "Det genererte bildet skal være liggende i 16:9."}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ fontSize: 12, opacity: 0.7 }}>
-                  {locale === "en"
-                    ? "Remember to save the lesson after selecting or generating an image."
-                    : "Husk å lagre oppgaven etter at du har valgt eller generert bilde."}
-                </div>
-
-                {coverImageUrl?.trim() ? (
-                  <div style={{ marginTop: 10 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={coverImageUrl}
-                      alt={locale === "en" ? "Cover preview" : "Forhåndsvisning av forside"}
-                      style={{
-                        width: "100%",
-                        maxWidth: previewW,
-                        height: previewH,
-                        objectFit: "cover",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 10,
-                        display: "block",
-                      }}
-                    />
-                    <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-                      {locale === "en"
-                        ? `Preview in ${coverImageFormat}. Source: ${coverImageSource === "ai" ? "AI" : "upload"}.`
-                        : `Forhåndsvisning i ${coverImageFormat}. Kilde: ${coverImageSource === "ai" ? "AI" : "opplasting"}.`}
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      marginTop: 10,
-                      width: "100%",
-                      maxWidth: previewW,
-                      height: previewH,
-                      border: "1px dashed #bbb",
-                      borderRadius: 10,
-                      display: "grid",
-                      placeItems: "center",
-                      color: "#777",
-                      fontSize: 12,
-                      background: "#fff",
-                    }}
-                  >
-                    {locale === "en" ? "No image selected yet (16:9)." : "Ingen bilde valgt ennå (16:9)."}
-                  </div>
-                )}
-              </div>
-            </div>
 
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 800 }}>
@@ -1070,10 +833,10 @@ export default function ProducerLessonEditorPage() {
               <input
                 value={textType}
                 onChange={(e) => setTextType(e.target.value)}
-                style={{ padding: "10px 12px" }}
+                style={fieldStyle}
                 placeholder={locale === "en" ? "e.g. article, email, dialogue…" : "f.eks. artikkel, e-post, dialog…"}
               />
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
+              <div style={smallHelpStyle}>
                 {locale === "en"
                   ? "Used for metadata and library filtering. Keep topic separate."
                   : "Brukes som metadata (filtrering i bibliotek). Hold topic separat."}
@@ -1085,7 +848,7 @@ export default function ProducerLessonEditorPage() {
               <input
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                style={{ padding: "10px 12px" }}
+                style={fieldStyle}
                 placeholder={
                   locale === "en"
                     ? "Optional. Leave empty to avoid showing the AI prompt."
@@ -1099,23 +862,367 @@ export default function ProducerLessonEditorPage() {
               <input
                 value={tagsText}
                 onChange={(e) => setTagsText(e.target.value)}
-                style={{ padding: "10px 12px" }}
+                style={fieldStyle}
                 placeholder={t("placeholders.tags")}
               />
-              <div style={{ fontSize: 12, opacity: 0.7 }}>{t("fields.tagsHelp")}</div>
+              <div style={smallHelpStyle}>{t("fields.tagsHelp")}</div>
             </label>
+          </div>
+        </section>
 
-            <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
-              <label style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 800 }}>{t("fields.language")}</div>
-                <input
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  style={{ padding: "10px 12px" }}
-                  placeholder={t("placeholders.language")}
+        <section style={sectionStyle}>
+          <div style={{ marginBottom: 14 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>
+              {locale === "en" ? "2. Cover image and presentation" : "2. Forsidebilde og presentasjon"}
+            </h2>
+            <div style={{ marginTop: 6, ...smallHelpStyle }}>
+              {locale === "en"
+                ? "Choose whether to upload an image or generate one with AI."
+                : "Velg om du vil laste opp et bilde eller generere et med AI."}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 16 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setCoverImageSource("upload")}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: coverImageSource === "upload" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                  background: "#fff",
+                  fontWeight: 700,
+                }}
+              >
+                {locale === "en" ? "Upload image" : "Last opp bilde"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCoverImageSource("ai")}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: coverImageSource === "ai" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                  background: "#fff",
+                  fontWeight: 700,
+                }}
+              >
+                {locale === "en" ? "Generate AI image" : "Generer AI-bilde"}
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: 6, maxWidth: 240 }}>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {locale === "en" ? "Format" : "Format"}
+              </div>
+              <select
+                value={coverImageFormat}
+                onChange={(e) => setCoverImageFormat(normalizeCoverFormat(e.target.value))}
+                style={{ ...fieldStyle, background: "#f4f4f5" }}
+                disabled
+              >
+                <option value="16:9">16:9</option>
+              </select>
+              <div style={smallHelpStyle}>
+                {locale === "en" ? "Only 16:9 is allowed." : "Kun 16:9 er tillatt."}
+              </div>
+            </div>
+
+            {coverImageSource === "upload" ? (
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <label
+                    style={{
+                      padding: "10px 12px",
+                      border: "1px solid #ddd",
+                      borderRadius: 10,
+                      cursor: uploadingCover ? "not-allowed" : "pointer",
+                      opacity: uploadingCover ? 0.6 : 1,
+                      display: "inline-block",
+                      background: "#fff",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {uploadingCover
+                      ? locale === "en"
+                        ? "Uploading..."
+                        : "Laster opp..."
+                      : locale === "en"
+                        ? "Upload image"
+                        : "Last opp bilde"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      disabled={uploadingCover}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) uploadCover(f);
+                        e.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => setCoverImageUrl("")}
+                    style={{
+                      padding: "10px 12px",
+                      border: "1px solid #ddd",
+                      borderRadius: 10,
+                      background: "#fff",
+                      fontWeight: 700,
+                    }}
+                    disabled={uploadingCover || !coverImageUrl}
+                  >
+                    {locale === "en" ? "Remove image" : "Fjern bilde"}
+                  </button>
+                </div>
+
+                <div style={smallHelpStyle}>
+                  {locale === "en"
+                    ? "Upload jpg, png or webp. Image will be used in 16:9 format."
+                    : "Last opp jpg, png eller webp. Bildet brukes i 16:9-format."}
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    {locale === "en" ? "Image style" : "Bildestil"}
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => setAiCoverStyle("illustration")}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: aiCoverStyle === "illustration" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                        background: "#fff",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {locale === "en" ? "Illustration" : "Illustrasjon"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAiCoverStyle("realistic")}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: aiCoverStyle === "realistic" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                        background: "#fff",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {locale === "en" ? "Realistic" : "Realistisk"}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    {locale === "en" ? "Prompt source" : "Prompt-kilde"}
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => setAiCoverPromptMode("custom")}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: aiCoverPromptMode === "custom" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                        background: "#fff",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {locale === "en" ? "Write prompt" : "Skriv prompt"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAiCoverPromptMode("fromText")}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: aiCoverPromptMode === "fromText" ? "2px solid #2563eb" : "1px solid #d1d5db",
+                        background: "#fff",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {locale === "en" ? "Use text as inspiration" : "Bruk teksten som inspirasjon"}
+                    </button>
+                  </div>
+                </div>
+
+                {aiCoverPromptMode === "custom" ? (
+                  <label style={{ display: "grid", gap: 6 }}>
+                    <div style={{ fontWeight: 800 }}>
+                      {locale === "en" ? "Prompt" : "Prompt"}
+                    </div>
+                    <textarea
+                      value={aiCoverPrompt}
+                      onChange={(e) => setAiCoverPrompt(e.target.value)}
+                      rows={4}
+                      style={fieldStyle}
+                      placeholder={
+                        locale === "en"
+                          ? "Example: A calm classroom scene with students reading, warm light, detailed, clean composition"
+                          : "Eksempel: Et rolig klasserom med elever som leser, varmt lys, detaljer, ren komposisjon"
+                      }
+                    />
+                  </label>
+                ) : (
+                  <div
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 10,
+                      padding: 12,
+                      background: "#fff",
+                      fontSize: 14,
+                    }}
+                  >
+                    {locale === "en"
+                      ? "The system will use the lesson title and text as inspiration for the image."
+                      : "Systemet vil bruke tittel og tekst som inspirasjon for bildet."}
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    fontSize: 13,
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid #e5e7eb",
+                    background: imageLimitReached ? "#fff7ed" : "#f8fafc",
+                  }}
+                >
+                  {locale === "en"
+                    ? `Image generation: ${imagesUsed} / ${imagesLimit} used • ${imagesRemaining} left`
+                    : `Bildegenerering: ${imagesUsed} / ${imagesLimit} brukt • ${imagesRemaining} igjen`}
+                </div>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={generateAiCover}
+                    disabled={generatingCover || imageLimitReached}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      border: "1px solid #c7d2fe",
+                      background: "#2563eb",
+                      color: "#fff",
+                      fontWeight: 800,
+                      cursor: generatingCover || imageLimitReached ? "not-allowed" : "pointer",
+                      opacity: generatingCover || imageLimitReached ? 0.7 : 1,
+                    }}
+                  >
+                    {generatingCover
+                      ? locale === "en"
+                        ? "Generating..."
+                        : "Genererer..."
+                      : imageLimitReached
+                        ? locale === "en"
+                          ? "Limit reached"
+                          : "Grense nådd"
+                        : locale === "en"
+                          ? "Generate image"
+                          : "Generer bilde"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCoverImageUrl("")}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 10,
+                      border: "1px solid #ddd",
+                      background: "#fff",
+                      fontWeight: 700,
+                    }}
+                    disabled={generatingCover || !coverImageUrl}
+                  >
+                    {locale === "en" ? "Remove image" : "Fjern bilde"}
+                  </button>
+                </div>
+
+                <div style={smallHelpStyle}>
+                  {locale === "en"
+                    ? "The generated image should be landscape in 16:9."
+                    : "Det genererte bildet skal være liggende i 16:9."}
+                </div>
+              </div>
+            )}
+
+            <div style={smallHelpStyle}>
+              {locale === "en"
+                ? "Remember to save the lesson after selecting or generating an image."
+                : "Husk å lagre oppgaven etter at du har valgt eller generert bilde."}
+            </div>
+
+            {coverImageUrl?.trim() ? (
+              <div style={{ marginTop: 4 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={coverImageUrl}
+                  alt={locale === "en" ? "Cover preview" : "Forhåndsvisning av forside"}
+                  style={{
+                    width: "100%",
+                    maxWidth: previewW,
+                    height: previewH,
+                    objectFit: "cover",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 12,
+                    display: "block",
+                  }}
                 />
-              </label>
+                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
+                  {locale === "en"
+                    ? `Preview in ${coverImageFormat}. Source: ${coverImageSource === "ai" ? "AI" : "upload"}.`
+                    : `Forhåndsvisning i ${coverImageFormat}. Kilde: ${coverImageSource === "ai" ? "AI" : "opplasting"}.`}
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginTop: 4,
+                  width: "100%",
+                  maxWidth: previewW,
+                  height: previewH,
+                  border: "1px dashed #bbb",
+                  borderRadius: 12,
+                  display: "grid",
+                  placeItems: "center",
+                  color: "#777",
+                  fontSize: 12,
+                  background: "#fff",
+                }}
+              >
+                {locale === "en" ? "No image selected yet (16:9)." : "Ingen bilde valgt ennå (16:9)."}
+              </div>
+            )}
+          </div>
+        </section>
 
+        <section style={sectionStyle}>
+          <div style={{ marginBottom: 14 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>
+              {locale === "en" ? "3. Text and lesson settings" : "3. Tekst og oppsett"}
+            </h2>
+            <div style={{ marginTop: 6, ...smallHelpStyle }}>
+              {locale === "en"
+                ? "Check the text and choose how the lesson should be shown."
+                : "Se over teksten og velg hvordan oppgaven skal vises."}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
               <label style={{ display: "grid", gap: 6 }}>
                 <div style={{ fontWeight: 800 }}>{t("fields.estimatedMinutes")}</div>
                 <input
@@ -1123,30 +1230,30 @@ export default function ProducerLessonEditorPage() {
                   min={1}
                   value={estimatedMinutes}
                   onChange={(e) => setEstimatedMinutes(Number(e.target.value))}
-                  style={{ padding: "10px 12px" }}
+                  style={fieldStyle}
                 />
               </label>
-            </div>
 
-            <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 800 }}>{t("fields.releaseMode")}</div>
-              <select
-                value={releaseMode}
-                onChange={(e) => setReleaseMode(normalizeReleaseMode(e.target.value))}
-                style={{ padding: "10px 12px" }}
-              >
-                <option value="ALL_AT_ONCE">{t("releaseModes.allAtOnce")}</option>
-                <option value="TEXT_FIRST">{t("releaseModes.textFirst")}</option>
-              </select>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>{t("fields.releaseModeHelp")}</div>
-            </label>
+              <label style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontWeight: 800 }}>{t("fields.releaseMode")}</div>
+                <select
+                  value={releaseMode}
+                  onChange={(e) => setReleaseMode(normalizeReleaseMode(e.target.value))}
+                  style={fieldStyle}
+                >
+                  <option value="ALL_AT_ONCE">{t("releaseModes.allAtOnce")}</option>
+                  <option value="TEXT_FIRST">{t("releaseModes.textFirst")}</option>
+                </select>
+                <div style={smallHelpStyle}>{t("fields.releaseModeHelp")}</div>
+              </label>
+            </div>
 
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 800 }}>{t("fields.status")}</div>
               <select
                 value={status}
                 onChange={(e) => setStatus(normalizeStatus(e.target.value))}
-                style={{ padding: "10px 12px" }}
+                style={fieldStyle}
               >
                 <option value="draft">{t("statuses.draft")}</option>
                 <option value="published">{t("statuses.published")}</option>
@@ -1159,7 +1266,7 @@ export default function ProducerLessonEditorPage() {
                 value={sourceText}
                 onChange={(e) => setSourceText(e.target.value)}
                 rows={10}
-                style={{ padding: "10px 12px", width: "100%" }}
+                style={fieldStyle}
                 placeholder={t("placeholders.sourceText")}
               />
               <div style={{ fontSize: 12, opacity: 0.75 }}>
@@ -1173,7 +1280,7 @@ export default function ProducerLessonEditorPage() {
           </div>
         </section>
 
-        <section style={{ marginTop: 16 }}>
+        <section style={sectionStyle}>
           <div
             style={{
               display: "flex",
@@ -1183,7 +1290,14 @@ export default function ProducerLessonEditorPage() {
               flexWrap: "wrap",
             }}
           >
-            <h2 style={{ fontSize: 18, fontWeight: 900 }}>{t("tasks.title")}</h2>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>{t("tasks.title")}</h2>
+              <div style={{ marginTop: 6, ...smallHelpStyle }}>
+                {locale === "en"
+                  ? "Edit the tasks before saving the lesson to My content."
+                  : "Rediger oppgavene før du lagrer oppgaven til Mitt innhold."}
+              </div>
+            </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button onClick={() => addTask("truefalse")} style={{ padding: "8px 10px" }}>
@@ -1199,9 +1313,9 @@ export default function ProducerLessonEditorPage() {
           </div>
 
           {sortedTasks.length === 0 ? (
-            <p style={{ opacity: 0.7, marginTop: 8 }}>{t("tasks.empty")}</p>
+            <p style={{ opacity: 0.7, marginTop: 12 }}>{t("tasks.empty")}</p>
           ) : (
-            <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
+            <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
               {sortedTasks.map((task, idx) => (
                 <div key={task.id} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 12 }}>
                   <div
@@ -1249,7 +1363,7 @@ export default function ProducerLessonEditorPage() {
                       value={task.prompt}
                       onChange={(e) => updateTask(task.id, { prompt: e.target.value })}
                       rows={3}
-                      style={{ padding: "10px 12px", width: "100%" }}
+                      style={fieldStyle}
                       placeholder={t("placeholders.taskPrompt")}
                     />
                   </label>
@@ -1269,7 +1383,7 @@ export default function ProducerLessonEditorPage() {
                             })
                           }
                           rows={5}
-                          style={{ padding: "10px 12px", width: "100%" }}
+                          style={fieldStyle}
                         />
                       </label>
 
@@ -1278,7 +1392,7 @@ export default function ProducerLessonEditorPage() {
                         <input
                           value={typeof task.correctAnswer === "string" ? task.correctAnswer : ""}
                           onChange={(e) => updateTask(task.id, { correctAnswer: e.target.value })}
-                          style={{ padding: "10px 12px" }}
+                          style={fieldStyle}
                           placeholder={t("placeholders.mcqCorrectAnswer")}
                         />
                       </label>
@@ -1292,12 +1406,12 @@ export default function ProducerLessonEditorPage() {
                         <select
                           value={task.correctAnswer ?? "true"}
                           onChange={(e) => updateTask(task.id, { correctAnswer: e.target.value })}
-                          style={{ padding: "10px 12px" }}
+                          style={fieldStyle}
                         >
                           <option value="true">{t("answers.true")}</option>
                           <option value="false">{t("answers.false")}</option>
                         </select>
-                        <div style={{ fontSize: 12, opacity: 0.7 }}>{t("tf.tip")}</div>
+                        <div style={smallHelpStyle}>{t("tf.tip")}</div>
                       </label>
                     </div>
                   )}
@@ -1309,13 +1423,13 @@ export default function ProducerLessonEditorPage() {
                         <select
                           value={task.answerSpace ?? "medium"}
                           onChange={(e) => updateTask(task.id, { answerSpace: e.target.value as AnswerSpace })}
-                          style={{ padding: "10px 12px" }}
+                          style={fieldStyle}
                         >
                           <option value="short">{t("answerSpace.short")}</option>
                           <option value="medium">{t("answerSpace.medium")}</option>
                           <option value="long">{t("answerSpace.long")}</option>
                         </select>
-                        <div style={{ fontSize: 12, opacity: 0.7 }}>{t("open.answerSpaceHelp")}</div>
+                        <div style={smallHelpStyle}>{t("open.answerSpaceHelp")}</div>
                       </label>
 
                       <div style={{ fontSize: 13, opacity: 0.75 }}>{t("open.hint")}</div>
@@ -1326,7 +1440,7 @@ export default function ProducerLessonEditorPage() {
             </div>
           )}
 
-          <div style={{ marginTop: 12, opacity: 0.75 }}>
+          <div style={{ marginTop: 14, opacity: 0.75 }}>
             {t("footerRemember")} <b>{t("buttons.save")}</b>.
           </div>
         </section>
@@ -1350,7 +1464,7 @@ export default function ProducerLessonEditorPage() {
             padding: "12px 16px",
             borderRadius: 14,
             border: "1px solid #86efac",
-            background: "#9db9a7",
+            background: "#16a34a",
             color: "white",
             fontWeight: 900,
             cursor: saving ? "not-allowed" : "pointer",

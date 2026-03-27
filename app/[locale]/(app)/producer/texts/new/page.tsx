@@ -184,6 +184,12 @@ export default function NewTextPage() {
     padding: 18,
   };
 
+  const mutedCardStyle: CSSProperties = {
+    ...cardStyle,
+    opacity: 0.68,
+    background: "#fafafa",
+  };
+
   const sectionTitleStyle: CSSProperties = {
     margin: 0,
     fontSize: 18,
@@ -200,12 +206,22 @@ export default function NewTextPage() {
     cursor: "pointer",
   };
 
+  const buttonSuccess: CSSProperties = {
+    padding: "10px 14px",
+    borderRadius: 12,
+    border: "1px solid #14532d",
+    background: "#15803d",
+    color: "#fff",
+    fontWeight: 700,
+    cursor: "pointer",
+  };
+
   const buttonSecondary: CSSProperties = {
     padding: "10px 14px",
     borderRadius: 12,
-    border: "1px solid #e2e8f0",
-    background: "#318a5d",
-    color: "#d8dce6",
+    border: "1px solid #cbd5e1",
+    background: "#fff",
+    color: "#0f172a",
     fontWeight: 700,
     cursor: "pointer",
     boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
@@ -221,6 +237,21 @@ export default function NewTextPage() {
     cursor: "pointer",
     boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
   };
+
+  const stepBadgeStyle = (active: boolean, done: boolean): CSSProperties => ({
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 28,
+    height: 28,
+    padding: "0 10px",
+    borderRadius: 999,
+    fontSize: 13,
+    fontWeight: 800,
+    border: "1px solid #cbd5e1",
+    background: done ? "#dcfce7" : active ? "#dbeafe" : "#f8fafc",
+    color: "#0f172a",
+  });
 
   const [isNarrow, setIsNarrow] = useState(false);
   useEffect(() => {
@@ -276,7 +307,7 @@ export default function NewTextPage() {
       ? (profile as { plan?: string }).plan
       : undefined;
 
-    const role = useMemo(() => resolveRoleFromProfile(profile), [profile]);
+  const role = useMemo(() => resolveRoleFromProfile(profile), [profile]);
   const plan = useMemo(() => safePlan(planValue), [planValue]);
   const billing = useMemo(() => getBillingSnapshot(profile), [profile]);
 
@@ -367,7 +398,7 @@ export default function NewTextPage() {
     return () => {
       active = false;
     };
-    }, [profileUid, role, plan, billing]);
+  }, [profileUid, role, plan, billing]);
 
   function buildFactsPrompt(count: number, suggestions: string[]) {
     if (count <= 0) return "";
@@ -568,7 +599,7 @@ export default function NewTextPage() {
       setSourceText(nextText);
       setLessonTasks([]);
       setPack(null);
-      setTasksDirty(true);
+      setTasksDirty(false);
 
       await refreshFeatureStatus(user.uid);
     } catch (e: unknown) {
@@ -644,67 +675,88 @@ export default function NewTextPage() {
     }
   }
 
-  async function saveToFirestore() {
+  async function saveLesson(): Promise<string> {
+    if (!title.trim()) throw new Error("Title is required.");
+    if (!sourceText.trim()) throw new Error("Source text is empty.");
+
+    const user = getAuth().currentUser;
+    if (!user) throw new Error("Not signed in. Please log in as teacher/producer.");
+
+    if (featureStatus && !featureStatus.allowed) {
+      throw new Error(
+        featureStatus.reason === "limit_reached"
+          ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden. Du kan ikke lage flere nå.`
+          : "Denne funksjonen er ikke tilgjengelig for deg."
+      );
+    }
+
+    const token = await user.getIdToken();
+
+    const res = await fetch("/api/producer/create-lesson", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: title || t("defaults.title"),
+        level,
+        language,
+        prompt,
+        topic: prompt,
+        textType: textTypeLabel,
+        sourceText: sourceText || "",
+        tasks: renumberOrders(lessonTasks),
+      }),
+    });
+
+    const raw = await res.text();
+
+    let data: unknown = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      // ignore invalid JSON
+    }
+
+    const anyData: Record<string, unknown> = isRecord(data) ? data : {};
+
+    if (!res.ok) {
+      const msg = typeof anyData["error"] === "string" ? anyData["error"] : `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+
+    const id = typeof anyData["id"] === "string" ? anyData["id"].trim() : "";
+    if (!id) throw new Error("Missing id from server.");
+
+    setSavedId(id);
+    await refreshFeatureStatus(user.uid);
+
+    return id;
+  }
+
+  async function saveDraftOnly() {
     setSaving(true);
     setError(null);
     setSavedId(null);
 
     try {
-      if (!title.trim()) throw new Error("Title is required.");
-      if (!sourceText.trim()) throw new Error("Source text is empty.");
+      const id = await saveLesson();
+      router.push(`/${locale}/producer/${id}`);
+    } catch (e: unknown) {
+      setError(localizeError(getErrorMessage(e)));
+    } finally {
+      setSaving(false);
+    }
+  }
 
-      const user = getAuth().currentUser;
-      if (!user) throw new Error("Not signed in. Please log in as teacher/producer.");
+  async function goToFinishing() {
+    setSaving(true);
+    setError(null);
+    setSavedId(null);
 
-      if (featureStatus && !featureStatus.allowed) {
-        throw new Error(
-          featureStatus.reason === "limit_reached"
-            ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden. Du kan ikke lage flere nå.`
-            : "Denne funksjonen er ikke tilgjengelig for deg."
-        );
-      }
-
-      const token = await user.getIdToken();
-
-      const res = await fetch("/api/producer/create-lesson", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: title || t("defaults.title"),
-          level,
-          language,
-          prompt,
-          topic: prompt,
-          textType: textTypeLabel,
-          sourceText: sourceText || "",
-          tasks: renumberOrders(lessonTasks),
-        }),
-      });
-
-      const raw = await res.text();
-
-      let data: unknown = {};
-      try {
-        data = raw ? JSON.parse(raw) : {};
-      } catch {
-        // ignore invalid JSON
-      }
-
-      const anyData: Record<string, unknown> = isRecord(data) ? data : {};
-
-      if (!res.ok) {
-        const msg = typeof anyData["error"] === "string" ? anyData["error"] : `HTTP ${res.status}`;
-        throw new Error(msg);
-      }
-
-      const id = typeof anyData["id"] === "string" ? anyData["id"].trim() : "";
-      if (!id) throw new Error("Missing id from server.");
-
-      setSavedId(id);
-      await refreshFeatureStatus(user.uid);
+    try {
+      const id = await saveLesson();
       router.push(`/${locale}/producer/${id}`);
     } catch (e: unknown) {
       setError(localizeError(getErrorMessage(e)));
@@ -717,6 +769,34 @@ export default function NewTextPage() {
   const quotaBadgeText = featureStatus
     ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden`
     : null;
+
+  const hasText = sourceText.trim().length > 0;
+  const hasTasks = lessonTasks.length > 0;
+  const step1Done = hasText;
+  const step2Active = hasText;
+  const step2Done = hasTasks;
+  const step3Active = hasText && hasTasks;
+
+  const stepStatus = !hasText
+    ? {
+        title: "Steg 1: Lag eller lim inn tekst",
+        body: "Start med å generere en tekst eller lime inn din egen. Når teksten er klar, låses neste steg opp.",
+        tone: "#eff6ff",
+        border: "#bfdbfe",
+      }
+    : !hasTasks
+      ? {
+          title: "Teksten er klar",
+          body: "Neste steg er å generere oppgaver til teksten. Du kan justere antall oppgaver før du fortsetter.",
+          tone: "#fffbeb",
+          border: "#fde68a",
+        }
+      : {
+          title: "Oppgavene er klare",
+          body: "Neste steg er ferdigstilling. Der kan du legge inn bilde, metadata, dele til Space og gjøre siste justeringer.",
+          tone: "#ecfdf5",
+          border: "#86efac",
+        };
 
   return (
     <main
@@ -735,111 +815,273 @@ export default function NewTextPage() {
 
         <section
           style={{
+            ...cardStyle,
+            marginBottom: 16,
+            background: "#f8fafc",
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, 1fr)",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 16,
+                padding: 12,
+                background: "#fff",
+              }}
+            >
+              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
+                <span style={stepBadgeStyle(!step1Done, step1Done)}>1</span>
+                <strong>Tekst</strong>
+              </div>
+              <div style={{ fontSize: 13, opacity: 0.8 }}>
+                {step1Done ? "Klar" : "Generer eller lim inn tekst"}
+              </div>
+            </div>
+
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 16,
+                padding: 12,
+                background: "#fff",
+              }}
+            >
+              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
+                <span style={stepBadgeStyle(step2Active && !step2Done, step2Done)}>2</span>
+                <strong>Oppgaver</strong>
+              </div>
+              <div style={{ fontSize: 13, opacity: 0.8 }}>
+                {step2Done ? "Klar" : step2Active ? "Neste steg" : "Låst til teksten er klar"}
+              </div>
+            </div>
+
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 16,
+                padding: 12,
+                background: "#fff",
+              }}
+            >
+              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
+                <span style={stepBadgeStyle(step3Active, false)}>3</span>
+                <strong>Ferdigstilling</strong>
+              </div>
+              <div style={{ fontSize: 13, opacity: 0.8 }}>
+                {step3Active ? "Klar til siste oppsett" : "Låst til oppgaver er klare"}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: `1px solid ${stepStatus.border}`,
+              background: stepStatus.tone,
+              borderRadius: 16,
+              padding: 14,
+            }}
+          >
+            <div style={{ fontWeight: 800, marginBottom: 4 }}>{stepStatus.title}</div>
+            <div style={{ fontSize: 14, opacity: 0.9 }}>{stepStatus.body}</div>
+          </div>
+        </section>
+
+        <section
+          style={{
             display: "grid",
             gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
             gap: 12,
             marginTop: 14,
           }}
         >
-          <label>
-            {t("fields.level")}
-            <select value={level} onChange={(e) => setLevel(e.target.value as LevelKey)} style={fieldStyle}>
-              <option value="A1">A1</option>
-              <option value="A2">A2</option>
-              <option value="B1">B1</option>
-              <option value="B2">B2</option>
-              <option value="C1">C1</option>
-              <option value="C2">C2</option>
-            </select>
-          </label>
-
-          <label>
-            {t("fields.language")}
-            <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
-              <input
-                value={languageSearch}
-                onChange={(e) => setLanguageSearch(e.target.value)}
-                placeholder={t("fields.languageSearchPlaceholder")}
-                style={fieldStyleCompact}
-              />
-              <select value={language} onChange={(e) => setLanguage(e.target.value)} style={fieldStyle}>
-                {filteredLanguages.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.label} ({l.code})
-                  </option>
-                ))}
-              </select>
-              <div style={{ fontSize: 12, opacity: 0.75 }}>
-                {t("fields.languageCount", { count: filteredLanguages.length })}
+          <div style={{ gridColumn: "1 / -1", ...cardStyle }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+              <span style={stepBadgeStyle(!step1Done, step1Done)}>1</span>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Generer / lim inn tekst</h2>
+                <div style={{ fontSize: 13, opacity: 0.75 }}>
+                  Velg nivå, språk, teksttype og prompt. Du kan også skrive eller lime inn teksten selv.
+                </div>
               </div>
             </div>
-          </label>
 
-          <label style={{ gridColumn: "1 / -1" }}>
-            {t("fields.prompt")}
-            <textarea
-              value={prompt}
-              onChange={(e) => {
-                setPrompt(e.target.value);
-                autoGrow(e.currentTarget);
-              }}
-              onInput={(e) => autoGrow(e.currentTarget as HTMLTextAreaElement)}
-              rows={4}
+            <div
               style={{
-                ...fieldStyle,
-                resize: "vertical",
-                minHeight: 90,
-                lineHeight: 1.35,
-                fontFamily: "inherit",
+                display: "grid",
+                gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
+                gap: 12,
               }}
-            />
-            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>{t("fields.promptTip")}</div>
-          </label>
-
-          <label>
-            {t("fields.textType")}
-            <select
-              value={textTypePreset}
-              onChange={(e) => setTextTypePreset(e.target.value as TextTypeKey)}
-              style={fieldStyle}
             >
-              {TEXT_TYPE_KEYS.map((k) => (
-                <option key={k} value={k}>
-                  {t(`textTypes.${k}`)}
-                </option>
-              ))}
-            </select>
+              <label>
+                {t("fields.level")}
+                <select value={level} onChange={(e) => setLevel(e.target.value as LevelKey)} style={fieldStyle}>
+                  <option value="A1">A1</option>
+                  <option value="A2">A2</option>
+                  <option value="B1">B1</option>
+                  <option value="B2">B2</option>
+                  <option value="C1">C1</option>
+                  <option value="C2">C2</option>
+                </select>
+              </label>
 
-            {textTypePreset === "other" && (
-              <input
-                value={textTypeOther}
-                onChange={(e) => setTextTypeOther(e.target.value)}
-                placeholder={t("fields.textTypeOtherPlaceholder")}
-                style={{ ...fieldStyle, marginTop: 8 }}
-              />
+              <label>
+                {t("fields.language")}
+                <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
+                  <input
+                    value={languageSearch}
+                    onChange={(e) => setLanguageSearch(e.target.value)}
+                    placeholder={t("fields.languageSearchPlaceholder")}
+                    style={fieldStyleCompact}
+                  />
+                  <select value={language} onChange={(e) => setLanguage(e.target.value)} style={fieldStyle}>
+                    {filteredLanguages.map((l) => (
+                      <option key={l.code} value={l.code}>
+                        {l.label} ({l.code})
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ fontSize: 12, opacity: 0.75 }}>
+                    {t("fields.languageCount", { count: filteredLanguages.length })}
+                  </div>
+                </div>
+              </label>
+
+              <label style={{ gridColumn: "1 / -1" }}>
+                {t("fields.prompt")}
+                <textarea
+                  value={prompt}
+                  onChange={(e) => {
+                    setPrompt(e.target.value);
+                    autoGrow(e.currentTarget);
+                  }}
+                  onInput={(e) => autoGrow(e.currentTarget as HTMLTextAreaElement)}
+                  rows={4}
+                  style={{
+                    ...fieldStyle,
+                    resize: "vertical",
+                    minHeight: 90,
+                    lineHeight: 1.35,
+                    fontFamily: "inherit",
+                  }}
+                />
+                <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>{t("fields.promptTip")}</div>
+              </label>
+
+              <label>
+                {t("fields.textType")}
+                <select
+                  value={textTypePreset}
+                  onChange={(e) => setTextTypePreset(e.target.value as TextTypeKey)}
+                  style={fieldStyle}
+                >
+                  {TEXT_TYPE_KEYS.map((k) => (
+                    <option key={k} value={k}>
+                      {t(`textTypes.${k}`)}
+                    </option>
+                  ))}
+                </select>
+
+                {textTypePreset === "other" && (
+                  <input
+                    value={textTypeOther}
+                    onChange={(e) => setTextTypeOther(e.target.value)}
+                    placeholder={t("fields.textTypeOtherPlaceholder")}
+                    style={{ ...fieldStyle, marginTop: 8 }}
+                  />
+                )}
+              </label>
+
+              <label>
+                {t("fields.textLength")}
+                <input
+                  type="number"
+                  value={textLength}
+                  onChange={(e) => setTextLength(Number(e.target.value))}
+                  style={fieldStyle}
+                  min={60}
+                  max={900}
+                />
+              </label>
+
+              <div style={{ gridColumn: "1 / -1" }}>
+                <button
+                  className="actionBtn"
+                  onClick={generateTextOnly}
+                  disabled={busy}
+                  style={{
+                    ...buttonPrimary,
+                    width: isNarrow ? "100%" : "auto",
+                    opacity: busy ? 0.7 : 1,
+                    cursor: busy ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {loadingText ? t("buttons.generatingText") : "Generer tekst"}
+                </button>
+              </div>
+
+              <label style={{ gridColumn: "1 / -1" }}>
+                {t("builder.lessonTitle")}
+                <input value={title} onChange={(e) => setTitle(e.target.value)} style={fieldStyle} />
+              </label>
+
+              <label style={{ gridColumn: "1 / -1" }}>
+                {t("builder.text")}
+                <textarea
+                  value={sourceText}
+                  onChange={(e) => {
+                    setSourceText(e.target.value);
+                    if (lessonTasks.length > 0) setTasksDirty(true);
+                  }}
+                  rows={10}
+                  style={{ ...fieldStyle, resize: "vertical" }}
+                />
+                <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+                  Du kan generere tekst med AI eller lime inn / skrive teksten selv.
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div style={{ gridColumn: "1 / -1", ...(hasText ? cardStyle : mutedCardStyle) }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+              <span style={stepBadgeStyle(step2Active && !step2Done, step2Done)}>2</span>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Generer oppgaver</h2>
+                <div style={{ fontSize: 13, opacity: 0.75 }}>
+                  Velg hvor mange oppgaver du vil ha. Denne delen låses opp når teksten er klar.
+                </div>
+              </div>
+            </div>
+
+            {!hasText && (
+              <div
+                style={{
+                  border: "1px dashed #cbd5e1",
+                  borderRadius: 14,
+                  padding: 14,
+                  background: "#fff",
+                  fontSize: 14,
+                  opacity: 0.8,
+                }}
+              >
+                Generer eller lim inn tekst først for å aktivere oppgavegeneratoren.
+              </div>
             )}
-          </label>
 
-          <label>
-            {t("fields.textLength")}
-            <input
-              type="number"
-              value={textLength}
-              onChange={(e) => setTextLength(Number(e.target.value))}
-              style={fieldStyle}
-              min={60}
-              max={900}
-            />
-          </label>
-
-          <div style={{ gridColumn: "1 / -1", ...cardStyle }}>
-            <strong>{t("tasks.generatorTitle")}</strong>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: isNarrow ? "1fr 1fr" : "repeat(4, 1fr)",
                 gap: 10,
-                marginTop: 10,
+                marginTop: hasText ? 10 : 14,
               }}
             >
               <label>
@@ -851,6 +1093,7 @@ export default function NewTextPage() {
                   style={fieldStyle}
                   min={0}
                   max={20}
+                  disabled={!hasText}
                 />
               </label>
               <label>
@@ -862,6 +1105,7 @@ export default function NewTextPage() {
                   style={fieldStyle}
                   min={0}
                   max={30}
+                  disabled={!hasText}
                 />
               </label>
               <label>
@@ -873,9 +1117,10 @@ export default function NewTextPage() {
                   style={fieldStyle}
                   min={0}
                   max={10}
+                  disabled={!hasText}
                 />
                 <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                  Faktasetninger skrives i én boks (ikke én oppgave per setning).
+                  Faktasetninger skrives i én boks.
                 </div>
               </label>
               <label>
@@ -887,72 +1132,310 @@ export default function NewTextPage() {
                   style={fieldStyle}
                   min={0}
                   max={20}
+                  disabled={!hasText}
                 />
               </label>
             </div>
-          </div>
 
+            {hasText && (
+              <div
+                className="actionRow"
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  marginTop: 14,
+                }}
+              >
+                <button
+                  className="actionBtn"
+                  onClick={generateTasksOnly}
+                  disabled={busy || !sourceText.trim()}
+                  style={{
+                    ...buttonPrimary,
+                    opacity: busy || !sourceText.trim() ? 0.55 : 1,
+                    cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
+                  }}
+                  title={!sourceText.trim() ? t("hints.generateTextFirst") : t("hints.generateTasks")}
+                >
+                  {loadingTasks ? t("buttons.generatingTasks") : "Generer oppgaver"}
+                </button>
+
+                {tasksDirty && sourceText.trim() && (
+                  <span style={{ color: "#b45309", fontWeight: 700 }}>{t("warnings.checkTextBeforeTasks")}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {(hasTasks || hasText) && (
+          <section style={{ marginTop: 22 }}>
+            <div style={{ ...(hasTasks ? cardStyle : mutedCardStyle) }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  marginBottom: 10,
+                }}
+              >
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={stepBadgeStyle(step3Active, false)}>3</span>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Gå til ferdigstilling</h2>
+                    <div style={{ fontSize: 13, opacity: 0.75 }}>
+                      Herfra går du videre til bilde, metadata, deling til Space og siste justeringer.
+                    </div>
+                  </div>
+                </div>
+
+                {hasTasks && (
+                  <button
+                    className="actionBtn"
+                    onClick={goToFinishing}
+                    disabled={busy || statusLoading || quotaBlocked}
+                    style={{
+                      ...buttonSuccess,
+                      opacity: busy || statusLoading || quotaBlocked ? 0.55 : 1,
+                      cursor: busy || statusLoading || quotaBlocked ? "not-allowed" : "pointer",
+                    }}
+                    title={
+                      quotaBlocked && featureStatus
+                        ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden.`
+                        : "Lagre og gå til ferdigstilling"
+                    }
+                  >
+                    {saving ? t("buttons.saving") : "Gå til ferdigstilling"}
+                  </button>
+                )}
+              </div>
+
+              {!hasTasks && (
+                <div
+                  style={{
+                    border: "1px dashed #cbd5e1",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#fff",
+                    fontSize: 14,
+                    opacity: 0.8,
+                  }}
+                >
+                  Når oppgavene er generert, kan du gå videre til ferdigstilling.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {hasTasks && (
+          <section style={{ marginTop: 22 }}>
+            <h2 style={sectionTitleStyle}>{t("editor.title")}</h2>
+
+            <div style={{ marginTop: 12, ...cardStyle }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                }}
+              >
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Rediger oppgaver før ferdigstilling</h3>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button onClick={() => addTask("mcq")} style={buttonSmall}>
+                    {t("editor.addMcq")}
+                  </button>
+                  <button onClick={() => addTask("truefalse")} style={buttonSmall}>
+                    {t("editor.addTf")}
+                  </button>
+                  <button onClick={() => addTask("open")} style={buttonSmall}>
+                    {t("editor.addOpen")}
+                  </button>
+                </div>
+              </div>
+
+              {lessonTasks.length === 0 ? (
+                <p style={{ opacity: 0.75, marginTop: 10 }}>{t("editor.empty")}</p>
+              ) : (
+                <div style={{ marginTop: 12 }}>
+                  {lessonTasks.map((task, idx) => (
+                    <div
+                      key={task.id}
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 14,
+                        padding: 12,
+                        marginBottom: 10,
+                        background: "#fff",
+                        boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                          <strong style={{ minWidth: 110 }}>
+                            {idx + 1}. {task.type.toUpperCase()}
+                          </strong>
+                          <span style={{ opacity: 0.7, fontSize: 13 }}>{t("editor.taskId", { id: task.id })}</span>
+                        </div>
+
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            onClick={() => moveTask(idx, -1)}
+                            disabled={idx === 0}
+                            style={{
+                              ...buttonSmall,
+                              opacity: idx === 0 ? 0.5 : 1,
+                              cursor: idx === 0 ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            ↑
+                          </button>
+                          <button
+                            onClick={() => moveTask(idx, 1)}
+                            disabled={idx === lessonTasks.length - 1}
+                            style={{
+                              ...buttonSmall,
+                              opacity: idx === lessonTasks.length - 1 ? 0.5 : 1,
+                              cursor: idx === lessonTasks.length - 1 ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            ↓
+                          </button>
+                          <button onClick={() => deleteTask(idx)} style={buttonSmall}>
+                            {t("editor.delete")}
+                          </button>
+                        </div>
+                      </div>
+
+                      <label style={{ display: "block", marginTop: 10 }}>
+                        {t("editor.prompt")}
+                        <input
+                          value={task.prompt}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, prompt: v } : x)));
+                          }}
+                          style={fieldStyle}
+                        />
+                      </label>
+
+                      {task.type === "truefalse" && (
+                        <label style={{ display: "block", marginTop: 10 }}>
+                          {t("editor.correctAnswer")}
+                          <select
+                            value={String(task.correctAnswer ?? "true")}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x)));
+                            }}
+                            style={fieldStyle}
+                          >
+                            <option value="true">{t("answers.true")}</option>
+                            <option value="false">{t("answers.false")}</option>
+                          </select>
+                        </label>
+                      )}
+
+                      {task.type === "mcq" && (
+                        <div style={{ marginTop: 10 }}>
+                          <div style={{ fontWeight: 800, marginBottom: 6 }}>{t("editor.options")}</div>
+
+                          {(task.options ?? []).map((opt, oIdx) => (
+                            <input
+                              key={oIdx}
+                              value={opt}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setLessonTasks((prev) =>
+                                  prev.map((x, i) => {
+                                    if (i !== idx) return x;
+                                    const opts = [...(x.options ?? [])];
+                                    opts[oIdx] = v;
+
+                                    const correct =
+                                      typeof x.correctAnswer === "string" && opts.includes(x.correctAnswer as string)
+                                        ? (x.correctAnswer as string)
+                                        : opts[0] ?? "";
+
+                                    return { ...x, options: opts, correctAnswer: correct };
+                                  })
+                                );
+                              }}
+                              style={{ ...fieldStyle, marginTop: 8 }}
+                            />
+                          ))}
+
+                          <label style={{ display: "block", marginTop: 10 }}>
+                            {t("editor.correctAnswerHint")}
+                            <input
+                              value={typeof task.correctAnswer === "string" ? task.correctAnswer : ""}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x)));
+                              }}
+                              style={fieldStyle}
+                            />
+                          </label>
+                        </div>
+                      )}
+
+                      {task.type === "open" && (
+                        <p style={{ marginTop: 10, opacity: 0.75, marginBottom: 0 }}>{t("editor.openHint")}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        <section style={{ marginTop: 20 }}>
           <div
             className="actionRow"
             style={{
-              gridColumn: "1 / -1",
               display: "flex",
               gap: 10,
               alignItems: "center",
               flexWrap: "wrap",
-              marginTop: 4,
             }}
           >
             <button
               className="actionBtn"
-              onClick={generateTextOnly}
-              disabled={busy}
-              style={{
-                ...buttonPrimary,
-                opacity: busy ? 0.7 : 1,
-                cursor: busy ? "not-allowed" : "pointer",
-              }}
-            >
-              {loadingText ? t("buttons.generatingText") : t("buttons.step1")}
-            </button>
-
-            <button
-              className="actionBtn"
-              onClick={generateTasksOnly}
-              disabled={busy || !sourceText.trim()}
-              style={{
-                ...buttonPrimary,
-                opacity: busy || !sourceText.trim() ? 0.55 : 1,
-                cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
-              }}
-              title={!sourceText.trim() ? t("hints.generateTextFirst") : t("hints.generateTasks")}
-            >
-              {loadingTasks ? t("buttons.generatingTasks") : t("buttons.step2")}
-            </button>
-
-            <button
-              className="actionBtn"
-              onClick={saveToFirestore}
-              disabled={busy || statusLoading || quotaBlocked}
+              onClick={saveDraftOnly}
+              disabled={busy || statusLoading || quotaBlocked || !hasText}
               style={{
                 ...buttonSecondary,
-                opacity: busy || statusLoading || quotaBlocked ? 0.55 : 1,
-                cursor: busy || statusLoading || quotaBlocked ? "not-allowed" : "pointer",
+                opacity: busy || statusLoading || quotaBlocked || !hasText ? 0.55 : 1,
+                cursor: busy || statusLoading || quotaBlocked || !hasText ? "not-allowed" : "pointer",
               }}
               title={
-                quotaBlocked && featureStatus
-                  ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden.`
-                  : tasksDirty
-                    ? t("hints.tasksDirty")
-                    : t("hints.saveDraft")
+                !hasText
+                  ? "Legg inn tekst først"
+                  : quotaBlocked && featureStatus
+                    ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden.`
+                    : tasksDirty
+                      ? t("hints.tasksDirty")
+                      : t("hints.saveDraft")
               }
             >
               {saving ? t("buttons.saving") : t("buttons.saveDraft")}
             </button>
-
-            {tasksDirty && sourceText.trim() && (
-              <span style={{ color: "#b45309", fontWeight: 700 }}>{t("warnings.checkTextBeforeTasks")}</span>
-            )}
 
             {statusLoading && <span style={{ opacity: 0.75 }}>Laster kvote…</span>}
 
@@ -983,213 +1466,24 @@ export default function NewTextPage() {
           </div>
         </section>
 
-        <section style={{ marginTop: 22 }}>
-          <h2 style={sectionTitleStyle}>{t("builder.title")}</h2>
-
-          <label style={{ display: "block", marginTop: 10 }}>
-            {t("builder.lessonTitle")}
-            <input value={title} onChange={(e) => setTitle(e.target.value)} style={fieldStyle} />
-          </label>
-
-          <label style={{ display: "block", marginTop: 12 }}>
-            {t("builder.text")}
-            <textarea
-              value={sourceText}
-              onChange={(e) => {
-                setSourceText(e.target.value);
-                if (lessonTasks.length > 0) setTasksDirty(true);
-              }}
-              rows={10}
-              style={{ ...fieldStyle, resize: "vertical" }}
-            />
-          </label>
-
-          <div style={{ marginTop: 18, ...cardStyle }}>
-            <div
+        {pack && (
+          <details style={{ marginTop: 16 }}>
+            <summary style={{ cursor: "pointer" }}>{t("debug.title")}</summary>
+            <pre
               style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
+                whiteSpace: "pre-wrap",
+                background: "#f7f7f742",
+                border: "1px solid #eee",
+                borderRadius: 10,
+                padding: 12,
+                marginTop: 10,
+                overflowX: "auto",
               }}
             >
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>{t("editor.title")}</h3>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={() => addTask("mcq")} style={buttonSmall}>
-                  {t("editor.addMcq")}
-                </button>
-                <button onClick={() => addTask("truefalse")} style={buttonSmall}>
-                  {t("editor.addTf")}
-                </button>
-                <button onClick={() => addTask("open")} style={buttonSmall}>
-                  {t("editor.addOpen")}
-                </button>
-              </div>
-            </div>
-
-            {lessonTasks.length === 0 ? (
-              <p style={{ opacity: 0.75, marginTop: 10 }}>{t("editor.empty")}</p>
-            ) : (
-              <div style={{ marginTop: 12 }}>
-                {lessonTasks.map((task, idx) => (
-                  <div
-                    key={task.id}
-                    style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 14,
-                      padding: 12,
-                      marginBottom: 10,
-                      background: "#fff",
-                      boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <strong style={{ minWidth: 110 }}>
-                          {idx + 1}. {task.type.toUpperCase()}
-                        </strong>
-                        <span style={{ opacity: 0.7, fontSize: 13 }}>{t("editor.taskId", { id: task.id })}</span>
-                      </div>
-
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button
-                          onClick={() => moveTask(idx, -1)}
-                          disabled={idx === 0}
-                          style={{
-                            ...buttonSmall,
-                            opacity: idx === 0 ? 0.5 : 1,
-                            cursor: idx === 0 ? "not-allowed" : "pointer",
-                          }}
-                        >
-                          ↑
-                        </button>
-                        <button
-                          onClick={() => moveTask(idx, 1)}
-                          disabled={idx === lessonTasks.length - 1}
-                          style={{
-                            ...buttonSmall,
-                            opacity: idx === lessonTasks.length - 1 ? 0.5 : 1,
-                            cursor: idx === lessonTasks.length - 1 ? "not-allowed" : "pointer",
-                          }}
-                        >
-                          ↓
-                        </button>
-                        <button onClick={() => deleteTask(idx)} style={buttonSmall}>
-                          {t("editor.delete")}
-                        </button>
-                      </div>
-                    </div>
-
-                    <label style={{ display: "block", marginTop: 10 }}>
-                      {t("editor.prompt")}
-                      <input
-                        value={task.prompt}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, prompt: v } : x)));
-                        }}
-                        style={fieldStyle}
-                      />
-                    </label>
-
-                    {task.type === "truefalse" && (
-                      <label style={{ display: "block", marginTop: 10 }}>
-                        {t("editor.correctAnswer")}
-                        <select
-                          value={String(task.correctAnswer ?? "true")}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x)));
-                          }}
-                          style={fieldStyle}
-                        >
-                          <option value="true">{t("answers.true")}</option>
-                          <option value="false">{t("answers.false")}</option>
-                        </select>
-                      </label>
-                    )}
-
-                    {task.type === "mcq" && (
-                      <div style={{ marginTop: 10 }}>
-                        <div style={{ fontWeight: 800, marginBottom: 6 }}>{t("editor.options")}</div>
-
-                        {(task.options ?? []).map((opt, oIdx) => (
-                          <input
-                            key={oIdx}
-                            value={opt}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setLessonTasks((prev) =>
-                                prev.map((x, i) => {
-                                  if (i !== idx) return x;
-                                  const opts = [...(x.options ?? [])];
-                                  opts[oIdx] = v;
-
-                                  const correct =
-                                    typeof x.correctAnswer === "string" && opts.includes(x.correctAnswer as string)
-                                      ? (x.correctAnswer as string)
-                                      : opts[0] ?? "";
-
-                                  return { ...x, options: opts, correctAnswer: correct };
-                                })
-                              );
-                            }}
-                            style={{ ...fieldStyle, marginTop: 8 }}
-                          />
-                        ))}
-
-                        <label style={{ display: "block", marginTop: 10 }}>
-                          {t("editor.correctAnswerHint")}
-                          <input
-                            value={typeof task.correctAnswer === "string" ? task.correctAnswer : ""}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x)));
-                            }}
-                            style={fieldStyle}
-                          />
-                        </label>
-                      </div>
-                    )}
-
-                    {task.type === "open" && (
-                      <p style={{ marginTop: 10, opacity: 0.75, marginBottom: 0 }}>{t("editor.openHint")}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {pack && (
-            <details style={{ marginTop: 16 }}>
-              <summary style={{ cursor: "pointer" }}>{t("debug.title")}</summary>
-              <pre
-                style={{
-                  whiteSpace: "pre-wrap",
-                  background: "#f7f7f742",
-                  border: "1px solid #eee",
-                  borderRadius: 10,
-                  padding: 12,
-                  marginTop: 10,
-                  overflowX: "auto",
-                }}
-              >
-                {JSON.stringify(pack, null, 2)}
-              </pre>
-            </details>
-          )}
-        </section>
+              {JSON.stringify(pack, null, 2)}
+            </pre>
+          </details>
+        )}
 
         <style jsx>{`
           @media (max-width: 560px) {
