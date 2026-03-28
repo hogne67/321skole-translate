@@ -128,10 +128,6 @@ type SpaceMemberDoc = {
 
 type AiResp = { text: string; skipped?: boolean; locale?: string };
 
-/* =========================
-   Helpers
-========================= */
-
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
@@ -180,10 +176,10 @@ function formatMaybeDate(v: unknown) {
       v instanceof Date
         ? v
         : typeof (v as { toDate?: unknown })?.toDate === "function"
-        ? (v as { toDate: () => Date }).toDate()
-        : v instanceof Timestamp
-        ? v.toDate()
-        : null;
+          ? (v as { toDate: () => Date }).toDate()
+          : v instanceof Timestamp
+            ? v.toDate()
+            : null;
     return d ? d.toLocaleString() : "";
   } catch {
     return "";
@@ -387,10 +383,6 @@ function readReadingTestMeta(sub: SubmissionDoc | null) {
   };
 }
 
-/* =========================
-   UI bits
-========================= */
-
 function StatusPill({
   status,
   t,
@@ -408,38 +400,38 @@ function StatusPill({
   const bg = isDraft
     ? "rgba(99,102,241,0.12)"
     : isApproved
-    ? "rgba(16,185,129,0.16)"
-    : isNeeds
-    ? "rgba(245,158,11,0.18)"
-    : isSubmitted
-    ? "rgba(0,0,0,0.06)"
-    : "rgba(0,0,0,0.06)";
+      ? "rgba(16,185,129,0.16)"
+      : isNeeds
+        ? "rgba(245,158,11,0.18)"
+        : isSubmitted
+          ? "rgba(0,0,0,0.06)"
+          : "rgba(0,0,0,0.06)";
 
   const bd = isDraft
     ? "rgba(99,102,241,0.40)"
     : isApproved
-    ? "rgba(16,185,129,0.45)"
-    : isNeeds
-    ? "rgba(245,158,11,0.55)"
-    : "rgba(0,0,0,0.16)";
+      ? "rgba(16,185,129,0.45)"
+      : isNeeds
+        ? "rgba(245,158,11,0.55)"
+        : "rgba(0,0,0,0.16)";
 
   const tx = isDraft
     ? "rgba(67,56,202,1)"
     : isApproved
-    ? "rgba(5,150,105,1)"
-    : isNeeds
-    ? "rgba(180,83,9,1)"
-    : "rgba(0,0,0,0.70)";
+      ? "rgba(5,150,105,1)"
+      : isNeeds
+        ? "rgba(180,83,9,1)"
+        : "rgba(0,0,0,0.70)";
 
   const label = isDraft
     ? t("status.draft")
     : isApproved
-    ? t("status.approved")
-    : isNeeds
-    ? t("status.needsWork")
-    : isSubmitted
-    ? t("status.submitted")
-    : t("status.submitted");
+      ? t("status.approved")
+      : isNeeds
+        ? t("status.needsWork")
+        : isSubmitted
+          ? t("status.submitted")
+          : t("status.submitted");
 
   return (
     <span
@@ -473,10 +465,10 @@ function Badge({
     kind === "good"
       ? { bg: "rgba(16,185,129,0.16)", bd: "rgba(16,185,129,0.45)", tx: "rgba(5,150,105,1)" }
       : kind === "bad"
-      ? { bg: "rgba(231,76,60,0.14)", bd: "rgba(231,76,60,0.40)", tx: "rgba(180,40,30,1)" }
-      : kind === "warn"
-      ? { bg: "rgba(245,158,11,0.16)", bd: "rgba(245,158,11,0.45)", tx: "rgba(180,83,9,1)" }
-      : { bg: "rgba(0,0,0,0.04)", bd: "rgba(0,0,0,0.14)", tx: "rgba(0,0,0,0.75)" };
+        ? { bg: "rgba(231,76,60,0.14)", bd: "rgba(231,76,60,0.40)", tx: "rgba(180,40,30,1)" }
+        : kind === "warn"
+          ? { bg: "rgba(245,158,11,0.16)", bd: "rgba(245,158,11,0.45)", tx: "rgba(180,83,9,1)" }
+          : { bg: "rgba(0,0,0,0.04)", bd: "rgba(0,0,0,0.14)", tx: "rgba(0,0,0,0.75)" };
 
   return (
     <span
@@ -542,7 +534,7 @@ function StatusToggle({
 }) {
   const checked = value === "reviewed";
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 10, userSelect: "none" }}>
+    <label style={{ display: "flex", alignItems: "center", gap: 10, userSelect: "none", flexWrap: "wrap" }}>
       <span style={{ fontSize: 13, opacity: 0.85 }}>{t("feedback.statusLabel")}</span>
 
       <button
@@ -559,6 +551,7 @@ function StatusToggle({
           background: checked ? "rgba(16,185,129,0.25)" : "rgba(245,158,11,0.25)",
           opacity: disabled ? 0.6 : 1,
           cursor: disabled ? "not-allowed" : "pointer",
+          flex: "0 0 auto",
         }}
       >
         <span
@@ -825,30 +818,36 @@ function Inner() {
     }
   }
 
-  const backLink = withLocale(locale, hasParams ? `/teacher/spaces/${spaceId}` : "/teacher/spaces");
+  const backLink = withLocale(locale, hasParams ? `/teacher/spaces/${spaceId}/lessons/${assignmentId}` : "/teacher/spaces");
 
   if (!hasParams) {
     return (
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: 16 }}>
-        <div style={{ opacity: 0.85 }}>{t("errors.missingParams")}</div>
+      <div className="mx-auto box-border w-full max-w-6xl min-w-0 p-4">
+        <div className="text-sm text-slate-600">{t("errors.missingParams")}</div>
       </div>
     );
   }
 
   if (loading || profileLoading) {
-    return <div style={{ padding: 16 }}>{tCommon("loading")}</div>;
+    return <div className="p-4 text-sm text-slate-600">{tCommon("loading")}</div>;
   }
 
   if (!sub) {
     return (
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: 16 }}>
-        <h1 style={{ marginTop: 0 }}>{t("missing.title")}</h1>
-        <p style={{ opacity: 0.8 }}>
-          <code>
-            spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId}
-          </code>
-        </p>
-        <Link href={backLink}>{t("actions.back")}</Link>
+      <div className="mx-auto box-border w-full max-w-6xl min-w-0 p-4">
+        <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+          <h1 className="m-0 text-xl font-semibold text-slate-900">{t("missing.title")}</h1>
+          <p className="mt-3 break-all text-sm text-slate-600">
+            <code>
+              spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId}
+            </code>
+          </p>
+          <div className="mt-4">
+            <Link href={backLink} className="text-sm font-medium text-slate-700 underline underline-offset-4">
+              {t("actions.back")}
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -879,205 +878,204 @@ function Inner() {
           readingMeta.limitSeconds
         )}. Besvarelsen ble sendt automatisk da tiden gikk ut.`
       : readingMeta.submittedManually === true
-      ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
-          readingMeta.limitSeconds
-        )} og leverte manuelt før tiden var ute.`
-      : readingMeta.usedSeconds != null || readingMeta.limitSeconds != null
-      ? `Lesetest: Tidsbruk ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
-          readingMeta.limitSeconds
-        )}.`
-      : ""
+        ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
+            readingMeta.limitSeconds
+          )} og leverte manuelt før tiden var ute.`
+        : readingMeta.usedSeconds != null || readingMeta.limitSeconds != null
+          ? `Lesetest: Tidsbruk ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
+              readingMeta.limitSeconds
+            )}.`
+          : ""
     : "";
 
   const statusChanged = status !== initialStatus;
   const needsTextToChangeStatus = statusChanged && text.trim().length === 0;
   const canSave = canOperate && !saving && !needsTextToChangeStatus;
-
   const canGenerateAi = canOperate && !aiGenerating && !aiSaving;
 
   return (
-    <div style={{ maxWidth: 1060, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <h1 style={{ margin: 0 }}>{t("title")}</h1>
-
-          <div style={{ marginTop: 6 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>
-              {t("meta.studentLabel")}{" "}
-              <span style={{ fontWeight: 900 }}>
-                {studentName || (authInfo.isAnon ? t("fallback.guest") : authInfo.uid || "—")}
-              </span>
-            </div>
-          </div>
-
-          <div style={{ opacity: 0.8, marginTop: 6, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <div>
+    <div className="mx-auto box-border w-full max-w-6xl min-w-0 space-y-4">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium text-slate-500">{t("title")}</div>
+            <h1 className="mt-1 break-words text-2xl font-semibold text-slate-900">
+              {studentName || (authInfo.isAnon ? t("fallback.guest") : authInfo.uid || "—")}
+            </h1>
+            <div className="mt-2 break-words text-base text-slate-700">{lessonTitle}</div>
+            <div className="mt-2 text-sm text-slate-600">
               {createdAt ? (
                 <>
                   {t("meta.delivered")} <b>{createdAt}</b>
                 </>
               ) : (
                 t("meta.deliveredUnknown")
-              )}{" "}
-              · <StatusPill status={rawStatus} t={(k) => t(k)} />
+              )}
             </div>
-
-            <AutoGradeBadge auto={auto} t={tAny} />
           </div>
 
-          {isReadingTest ? (
-            <div
-              style={{
-                marginTop: 12,
-                border: "1px solid rgba(59,130,246,0.25)",
-                background: "rgba(239,246,255,1)",
-                borderRadius: 14,
-                padding: 12,
-                display: "grid",
-                gap: 8,
-              }}
+          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
+            <Link
+              href={backLink}
+              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50 sm:w-auto"
             >
-              <div style={{ fontWeight: 900 }}>Lesetest-data</div>
+              {t("actions.back")}
+            </Link>
+          </div>
+        </div>
+      </div>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Badge text={`Tidsgrense: ${formatDuration(readingMeta.limitSeconds)}`} />
-                <Badge text={`Brukt tid: ${formatDuration(readingMeta.usedSeconds)}`} kind="good" />
-                {readingMeta.timedOut === true ? (
-                  <Badge text="Sendt ved timeout" kind="warn" />
-                ) : readingMeta.submittedManually === true ? (
-                  <Badge text="Levert manuelt" kind="good" />
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="text-base font-semibold text-slate-900">{t("meta.summaryTitle")}</div>
+
+          <div className="flex flex-wrap gap-2">
+            <StatusPill status={rawStatus} t={(k) => t(k)} />
+            <AutoGradeBadge auto={auto} t={tAny} />
+            {lessonLevel ? <Badge text={t("studentView.level", { v: lessonLevel })} /> : null}
+            {authInfo.isAnon ? (
+              <Badge text={t("meta.guest")} />
+            ) : (
+              <Badge text={`${t("meta.loggedIn")} · uid: ${authInfo.uid ?? "—"}`} />
+            )}
+          </div>
+
+          {(isReadingTest || auto) && (
+            <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3">
+              {isReadingTest ? (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                  <div className="text-sm font-semibold text-slate-900">Lesetest-data</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge text={`Tidsgrense: ${formatDuration(readingMeta.limitSeconds)}`} />
+                    <Badge text={`Brukt tid: ${formatDuration(readingMeta.usedSeconds)}`} kind="good" />
+                    {readingMeta.timedOut === true ? (
+                      <Badge text="Sendt ved timeout" kind="warn" />
+                    ) : readingMeta.submittedManually === true ? (
+                      <Badge text="Levert manuelt" kind="good" />
+                    ) : (
+                      <Badge text="Leveringsmåte ukjent" />
+                    )}
+                  </div>
+                  <div className="mt-3 text-sm text-slate-700">
+                    {readingMeta.timedOut === true
+                      ? "Eleven rakk ikke å levere selv. Systemet sendte testen automatisk da tiden gikk ut."
+                      : readingMeta.submittedManually === true
+                        ? "Eleven leverte testen selv før tiden var ute."
+                        : "Denne innleveringen har ikke full lesetest-metadata ennå."}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="rounded-xl border border-slate-300 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-900">{t("meta.deliveryTitle")}</div>
+                <div className="mt-3 grid gap-2 text-sm text-slate-700">
+                  <div>
+                    <span className="font-medium">{t("meta.delivered")}:</span> {createdAt || "—"}
+                  </div>
+                  <div>
+                    <span className="font-medium">{t("meta.studentLabel")}:</span>{" "}
+                    {studentName || (authInfo.isAnon ? t("fallback.guest") : authInfo.uid || "—")}
+                  </div>
+                  <div>
+                    <span className="font-medium">{t("meta.statusLabel")}:</span> {String(rawStatus || "—")}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-300 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-900">{t("meta.autoScoreTitle")}</div>
+                {auto ? (
+                  <div className="mt-3 grid gap-2 text-sm text-slate-700">
+                    <div>
+                      <span className="font-medium">Riktige:</span> {auto.correctAuto}
+                    </div>
+                    <div>
+                      <span className="font-medium">Feil:</span> {auto.wrongAuto}
+                    </div>
+                    <div>
+                      <span className="font-medium">Ubesvart:</span> {auto.unansweredAuto}
+                    </div>
+                    <div>
+                      <span className="font-medium">Score:</span> {auto.percentAuto ?? "—"}%
+                    </div>
+                  </div>
                 ) : (
-                  <Badge text="Leveringsmåte ukjent" />
+                  <div className="mt-3 text-sm text-slate-600">Ingen autoscore-data.</div>
                 )}
               </div>
-
-              <div style={{ fontSize: 13, opacity: 0.8 }}>
-                {readingMeta.timedOut === true
-                  ? "Eleven rakk ikke å levere selv. Systemet sendte testen automatisk da tiden gikk ut."
-                  : readingMeta.submittedManually === true
-                  ? "Eleven leverte testen selv før tiden var ute."
-                  : "Denne innleveringen har ikke full lesetest-metadata ennå."}
-              </div>
             </div>
-          ) : null}
+          )}
 
           {isDraft ? (
-            <div
-              style={{
-                marginTop: 10,
-                padding: 10,
-                borderRadius: 12,
-                border: "1px solid rgba(99,102,241,0.40)",
-                background: "rgba(99,102,241,0.10)",
-                fontSize: 13,
-                fontWeight: 800,
-              }}
-            >
+            <div className="rounded-xl border border-indigo-300 bg-indigo-50 p-3 text-sm font-semibold text-indigo-900">
               {t("draft.notice")}
             </div>
           ) : null}
-
-          <div style={{ opacity: 0.75, marginTop: 4, fontSize: 12 }}>
-            {authInfo.isAnon ? (
-              <>{t("meta.guest")}</>
-            ) : (
-              <>
-                {t("meta.loggedIn")} · uid: <code>{authInfo.uid ?? "—"}</code>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Link href={backLink}>{t("actions.back")}</Link>
         </div>
       </div>
 
       {!canOperate && (
-        <div
-          style={{
-            marginTop: 12,
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 12,
-            padding: 12,
-            opacity: 0.9,
-          }}
-        >
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-700 shadow-sm">
           Du har ikke lærerrettigheter til å gi tilbakemelding på denne siden.
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.1fr 0.9fr",
-          gap: 12,
-          marginTop: 12,
-        }}
-      >
-        <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
-            <div style={{ fontWeight: 900 }}>{t("studentView.title")}</div>
-            {loadingLesson ? <span style={{ fontSize: 12, opacity: 0.7 }}>{t("studentView.loadingLesson")}</span> : null}
+      <div className="submissionGrid">
+        <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="text-base font-semibold text-slate-900">{t("studentView.title")}</div>
+              {loadingLesson ? (
+                <div className="mt-1 text-sm text-slate-600">{t("studentView.loadingLesson")}</div>
+              ) : null}
+            </div>
           </div>
 
-          <div style={{ marginTop: 10, display: "grid", gap: 12 }}>
-            <div style={{ display: "grid", gap: 4 }}>
-              <div style={{ fontWeight: 900, fontSize: 16 }}>{lessonTitle}</div>
-              {lessonLevel ? <div style={{ opacity: 0.75, fontSize: 12 }}>{t("studentView.level", { v: lessonLevel })}</div> : null}
+          <div className="mt-4 grid gap-4">
+            <div className="grid gap-1">
+              <div className="break-words text-lg font-semibold text-slate-900">{lessonTitle}</div>
+              {lessonLevel ? <div className="text-sm text-slate-600">{t("studentView.level", { v: lessonLevel })}</div> : null}
             </div>
 
-            <div
-              style={{
-                border: "1px solid rgba(0,0,0,0.12)",
-                borderRadius: 12,
-                padding: 12,
-                background: "rgba(0,0,0,0.02)",
-              }}
-            >
+            <div className="rounded-xl border border-slate-300 bg-slate-50 p-3">
               <div
-                style={{
-                  width: "100%",
-                  aspectRatio: "16 / 9",
-                  borderRadius: 12,
-                  border: "1px dashed rgba(0,0,0,0.18)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                  background: "white",
-                }}
+                className="flex w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white"
+                style={{ aspectRatio: "16 / 9" }}
               >
                 {cover ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={cover} alt={t("studentView.imageAlt")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img
+                    src={cover}
+                    alt={t("studentView.imageAlt")}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
                 ) : (
-                  <div style={{ textAlign: "center", padding: 16, opacity: 0.7 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 4 }}>{t("studentView.noImageTitle")}</div>
-                    <div style={{ fontSize: 13 }}>{t("studentView.noImageDesc")}</div>
+                  <div className="px-4 text-center text-sm text-slate-600">
+                    <div className="mb-1 font-semibold text-slate-800">{t("studentView.noImageTitle")}</div>
+                    <div>{t("studentView.noImageDesc")}</div>
                   </div>
                 )}
               </div>
             </div>
 
             {sourceText.trim() ? (
-              <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
-                <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("studentView.textTitle")}</div>
-                <div style={{ whiteSpace: "pre-wrap" }}>{sourceText}</div>
+              <div className="rounded-xl border border-slate-300 bg-white p-4">
+                <div className="mb-2 text-xs text-slate-500">{t("studentView.textTitle")}</div>
+                <div className="whitespace-pre-wrap leading-7 text-slate-800">{sourceText}</div>
               </div>
             ) : null}
 
-            <div style={{ marginTop: 2 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("studentView.tasksTitle")}</div>
+            <div>
+              <div className="mb-3 text-base font-semibold text-slate-900">{t("studentView.tasksTitle")}</div>
 
               {tasksOriginal.length === 0 ? (
-                <div style={{ opacity: 0.75, fontSize: 13 }}>
+                <div className="text-sm text-slate-600">
                   {t("studentView.noTasks")}
                   <br />
-                  <span style={{ opacity: 0.7 }}>{t("studentView.noTasksHint")}</span>
+                  <span className="text-slate-500">{t("studentView.noTasksHint")}</span>
                 </div>
               ) : (
-                <div style={{ display: "grid", gap: 12 }}>
+                <div className="grid gap-3">
                   {tasksOriginal.map((task, idx) => {
                     const stableId = getStableTaskId(task, idx);
                     const type = String(task?.type ?? "open").toLowerCase();
@@ -1111,47 +1109,27 @@ function Inner() {
                       selectedIndex != null && selectedIndex >= 0 && selectedIndex < options.length
                         ? String(options[selectedIndex])
                         : typeof val === "string"
-                        ? val
-                        : "";
+                          ? val
+                          : "";
 
                     return (
-                      <div key={stableId} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8, opacity: 0.92 }}>
-                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.9, alignItems: "center" }}>
-                            <span>{t("studentView.taskN", { n: orderLabel })}</span>
-                            <span>• {type}</span>
-                            {autoBadge}
-                          </div>
+                      <div key={stableId} className="rounded-xl border border-slate-300 bg-white p-4">
+                        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                          <span>{t("studentView.taskN", { n: orderLabel })}</span>
+                          <span>• {type}</span>
+                          {autoBadge}
                         </div>
 
-                        <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10, fontWeight: 700 }}>{prompt}</div>
+                        <div className="mb-3 whitespace-pre-wrap font-semibold leading-6 text-slate-900">{prompt}</div>
 
                         {(type === "word_choice" || type === "fill_in_word") && task?.sentence ? (
-                          <div
-                            style={{
-                              marginBottom: 10,
-                              padding: 10,
-                              borderRadius: 10,
-                              border: "1px solid rgba(0,0,0,0.12)",
-                              background: "rgba(0,0,0,0.03)",
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
+                          <div className="mb-3 whitespace-pre-wrap rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
                             {String(task.sentence)}
                           </div>
                         ) : null}
 
                         {type === "sentence_placement" && task?.textWithGap ? (
-                          <div
-                            style={{
-                              marginBottom: 10,
-                              padding: 10,
-                              borderRadius: 10,
-                              border: "1px solid rgba(0,0,0,0.12)",
-                              background: "rgba(0,0,0,0.03)",
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
+                          <div className="mb-3 whitespace-pre-wrap rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
                             {String(task.textWithGap)}
                           </div>
                         ) : null}
@@ -1162,7 +1140,7 @@ function Inner() {
                           type === "best_summary" ||
                           type === "fill_in_word") &&
                         options.length > 0 ? (
-                          <div style={{ display: "grid", gap: 8 }}>
+                          <div className="grid gap-2">
                             {options.map((o, i) => {
                               const opt = String(o);
                               const checked = opt === selectedText;
@@ -1173,22 +1151,17 @@ function Inner() {
                               return (
                                 <div
                                   key={i}
-                                  style={{
-                                    display: "flex",
-                                    gap: 10,
-                                    alignItems: "flex-start",
-                                    padding: "8px 10px",
-                                    border: "1px solid rgba(0,0,0,0.12)",
-                                    borderRadius: 10,
-                                    background: checked ? "rgba(46, 204, 113, 0.10)" : "white",
-                                  }}
+                                  className="flex gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2"
+                                  style={{ background: checked ? "rgba(46, 204, 113, 0.10)" : "white" }}
                                 >
                                   <input type="radio" checked={checked} readOnly style={{ marginTop: 3 }} />
-                                  <div style={{ width: "100%" }}>
-                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                                      <div>
+                                  <div className="w-full min-w-0">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div className="break-words text-slate-800">
                                         {opt}
-                                        {isCorrectOption ? <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span> : null}
+                                        {isCorrectOption ? (
+                                          <span className="ml-2 text-xs text-slate-500">{t("studentView.correctTag")}</span>
+                                        ) : null}
                                       </div>
                                       {checked ? <Badge text={t("studentView.selectedTag")} /> : null}
                                     </div>
@@ -1200,33 +1173,29 @@ function Inner() {
                         ) : null}
 
                         {(type === "truefalse" || type === "true_false") ? (
-                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <div className="flex flex-wrap gap-2">
                             <div
+                              className="rounded-xl border border-slate-300 px-3 py-2"
                               style={{
-                                border: "1px solid rgba(0,0,0,0.14)",
-                                borderRadius: 10,
-                                padding: "8px 12px",
                                 background: val === true || val === "true" ? "rgba(46, 204, 113, 0.12)" : "white",
                                 fontWeight: val === true || val === "true" ? 800 : 600,
                               }}
                             >
                               {t("studentView.true")} {val === true || val === "true" ? "✓" : ""}
                               {entry?.correctAnswer === true || entry?.correctAnswer === "true" ? (
-                                <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
+                                <span className="ml-2 text-xs text-slate-500">{t("studentView.correctTag")}</span>
                               ) : null}
                             </div>
                             <div
+                              className="rounded-xl border border-slate-300 px-3 py-2"
                               style={{
-                                border: "1px solid rgba(0,0,0,0.14)",
-                                borderRadius: 10,
-                                padding: "8px 12px",
                                 background: val === false || val === "false" ? "rgba(46, 204, 113, 0.12)" : "white",
                                 fontWeight: val === false || val === "false" ? 800 : 600,
                               }}
                             >
                               {t("studentView.false")} {val === false || val === "false" ? "✓" : ""}
                               {entry?.correctAnswer === false || entry?.correctAnswer === "false" ? (
-                                <span style={{ marginLeft: 8, opacity: 0.8, fontSize: 12 }}>{t("studentView.correctTag")}</span>
+                                <span className="ml-2 text-xs text-slate-500">{t("studentView.correctTag")}</span>
                               ) : null}
                             </div>
                           </div>
@@ -1241,17 +1210,8 @@ function Inner() {
                           "best_summary",
                           "fill_in_word",
                         ].includes(type) ? (
-                          <div
-                            style={{
-                              width: "100%",
-                              padding: 10,
-                              borderRadius: 10,
-                              border: "1px solid rgba(0,0,0,0.2)",
-                              background: "rgba(0,0,0,0.02)",
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
-                            {renderValue(val) || <span style={{ opacity: 0.6 }}>{t("studentView.notAnswered")}</span>}
+                          <div className="w-full whitespace-pre-wrap rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
+                            {renderValue(val) || <span className="text-slate-500">{t("studentView.notAnswered")}</span>}
                           </div>
                         ) : null}
                       </div>
@@ -1263,166 +1223,118 @@ function Inner() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 12, height: "fit-content" }}>
-          <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
-              <div style={{ fontWeight: 900 }}>{t("ai.title")}</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  disabled={!canGenerateAi}
-                  onClick={async () => {
-                    setAiGenerating(true);
-                    setAiMsg(null);
+        <div className="rightCol">
+          <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-base font-semibold text-slate-900">{t("ai.title")}</div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    disabled={!canGenerateAi}
+                    onClick={async () => {
+                      setAiGenerating(true);
+                      setAiMsg(null);
 
-                    try {
-                      const data = await authedPost<AiResp>("/api/teacher/ai-feedback", {
-                        spaceId,
-                        assignmentId,
-                        subId,
-                        locale,
-                      });
+                      try {
+                        const data = await authedPost<AiResp>("/api/teacher/ai-feedback", {
+                          spaceId,
+                          assignmentId,
+                          subId,
+                          locale,
+                        });
 
-                      const newText = data.text || "";
-                      setAiText(newText);
+                        const newText = data.text || "";
+                        setAiText(newText);
 
-                      if (!data.skipped) {
-                        await saveAiFeedbackToFirestore(newText);
-                        setAiMsg(t("ai.generated"));
-                      } else {
-                        setAiMsg(newText);
+                        if (!data.skipped) {
+                          await saveAiFeedbackToFirestore(newText);
+                          setAiMsg(t("ai.generated"));
+                        } else {
+                          setAiMsg(newText);
+                        }
+                      } catch (e: unknown) {
+                        const info = getErrorInfo(e);
+                        console.log("[TEACHER] generate ai feedback ERROR =>", info.code, info.message, e);
+                        setAiMsg(t("ai.generateFailed", { msg: info.message || t("fallback.unknownError") }));
+                      } finally {
+                        setAiGenerating(false);
+                        setTimeout(() => setAiMsg(null), 2500);
                       }
-                    } catch (e: unknown) {
-                      const info = getErrorInfo(e);
-                      console.log("[TEACHER] generate ai feedback ERROR =>", info.code, info.message, e);
-                      setAiMsg(t("ai.generateFailed", { msg: info.message || t("fallback.unknownError") }));
-                    } finally {
-                      setAiGenerating(false);
-                      setTimeout(() => setAiMsg(null), 2500);
-                    }
-                  }}
-                  style={{
-                    padding: "9px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.15)",
-                    background: "white",
-                    opacity: !canGenerateAi ? 0.6 : 1,
-                    cursor: !canGenerateAi ? "not-allowed" : "pointer",
-                    fontWeight: 900,
-                  }}
-                >
-                  {aiGenerating ? t("ai.generating") : t("ai.generateButton")}
-                </button>
+                    }}
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+                  >
+                    {aiGenerating ? t("ai.generating") : t("ai.generateButton")}
+                  </button>
 
-                <button
-                  disabled={!canOperate || !aiText.trim() || aiSaving}
-                  onClick={() => void saveAiFeedbackToFirestore(aiText)}
-                  style={{
-                    padding: "9px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.15)",
-                    background: "white",
-                    opacity: !canOperate || !aiText.trim() || aiSaving ? 0.55 : 1,
-                    cursor: !canOperate || !aiText.trim() || aiSaving ? "not-allowed" : "pointer",
-                    fontWeight: 900,
-                  }}
-                >
-                  {aiSaving ? t("ai.saving") : t("ai.saveButton")}
-                </button>
+                  <button
+                    disabled={!canOperate || !aiText.trim() || aiSaving}
+                    onClick={() => void saveAiFeedbackToFirestore(aiText)}
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+                  >
+                    {aiSaving ? t("ai.saving") : t("ai.saveButton")}
+                  </button>
 
-                <button
-                  disabled={!canOperate || !aiText.trim()}
-                  onClick={async () => {
-                    const ok = await safeCopyToClipboard(aiText);
-                    setAiMsg(ok ? t("ai.copied") : t("ai.copyFailed"));
-                    setTimeout(() => setAiMsg(null), 1500);
-                  }}
-                  style={{
-                    padding: "9px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.15)",
-                    background: "white",
-                    opacity: !canOperate || !aiText.trim() ? 0.55 : 1,
-                    cursor: !canOperate || !aiText.trim() ? "not-allowed" : "pointer",
-                    fontWeight: 900,
-                  }}
-                >
-                  {t("ai.copyButton")}
-                </button>
+                  <button
+                    disabled={!canOperate || !aiText.trim()}
+                    onClick={async () => {
+                      const ok = await safeCopyToClipboard(aiText);
+                      setAiMsg(ok ? t("ai.copied") : t("ai.copyFailed"));
+                      setTimeout(() => setAiMsg(null), 1500);
+                    }}
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+                  >
+                    {t("ai.copyButton")}
+                  </button>
 
-                <button
-                  disabled={!canOperate || !aiText.trim()}
-                  onClick={() => {
-                    const chunk = aiText.trim();
-                    if (!chunk) return;
-                    setText((prev) => {
-                      const p = prev.trim();
-                      if (!p) return chunk;
-                      return `${p}\n\n${chunk}`;
-                    });
-                    setAiMsg(t("ai.inserted"));
-                    setTimeout(() => setAiMsg(null), 1500);
-                  }}
-                  style={{
-                    padding: "9px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.15)",
-                    background: "white",
-                    opacity: !canOperate || !aiText.trim() ? 0.55 : 1,
-                    cursor: !canOperate || !aiText.trim() ? "not-allowed" : "pointer",
-                    fontWeight: 900,
-                  }}
-                >
-                  {t("ai.insertButton")}
-                </button>
+                  <button
+                    disabled={!canOperate || !aiText.trim()}
+                    onClick={() => {
+                      const chunk = aiText.trim();
+                      if (!chunk) return;
+                      setText((prev) => {
+                        const p = prev.trim();
+                        if (!p) return chunk;
+                        return `${p}\n\n${chunk}`;
+                      });
+                      setAiMsg(t("ai.inserted"));
+                      setTimeout(() => setAiMsg(null), 1500);
+                    }}
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+                  >
+                    {t("ai.insertButton")}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <textarea
-              value={aiText}
-              onChange={(e) => setAiText(e.target.value)}
-              placeholder={t("ai.placeholder")}
-              rows={9}
-              disabled={!canOperate}
-              style={{
-                width: "100%",
-                marginTop: 12,
-                padding: 10,
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.18)",
-                opacity: !canOperate ? 0.65 : 1,
-                resize: "vertical",
-                background: "rgba(0,0,0,0.01)",
-              }}
-            />
+              <textarea
+                value={aiText}
+                onChange={(e) => setAiText(e.target.value)}
+                placeholder={t("ai.placeholder")}
+                rows={9}
+                disabled={!canOperate}
+                className="box-border w-full min-w-0 max-w-full resize-y rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm text-slate-900 disabled:opacity-65"
+              />
 
-            {aiMsg && <div style={{ marginTop: 10, opacity: 0.85, fontSize: 13, fontWeight: 800 }}>{aiMsg}</div>}
+              {aiMsg && <div className="text-sm font-semibold text-slate-700">{aiMsg}</div>}
 
-            <div style={{ marginTop: 10, opacity: 0.75, fontSize: 12 }}>
-              {t("ai.rulesHint")} <code>aiFeedback</code>.
+              <div className="text-xs text-slate-500">
+                {t("ai.rulesHint")} <code>aiFeedback</code>.
+              </div>
             </div>
           </div>
 
-          <div style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
-            <div style={{ fontWeight: 900, marginBottom: 10 }}>{t("feedback.title")}</div>
+          <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
+            <div className="text-base font-semibold text-slate-900">{t("feedback.title")}</div>
 
             {readingSummaryText ? (
-              <div
-                style={{
-                  marginBottom: 12,
-                  padding: 10,
-                  borderRadius: 12,
-                  border: "1px solid rgba(59,130,246,0.25)",
-                  background: "rgba(239,246,255,1)",
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  fontWeight: 700,
-                }}
-              >
+              <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold leading-6 text-slate-800">
                 {readingSummaryText}
               </div>
             ) : null}
 
-            <StatusToggle value={status} onChange={setStatus} disabled={!canOperate} t={(k) => t(k)} />
+            <div className="mt-4">
+              <StatusToggle value={status} onChange={setStatus} disabled={!canOperate} t={(k) => t(k)} />
+            </div>
 
             <textarea
               value={text}
@@ -1430,34 +1342,16 @@ function Inner() {
               placeholder={t("feedback.placeholder")}
               rows={10}
               disabled={!canOperate}
-              style={{
-                width: "100%",
-                marginTop: 12,
-                padding: 10,
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.18)",
-                opacity: !canOperate ? 0.65 : 1,
-                resize: "vertical",
-              }}
+              className="box-border mt-4 w-full min-w-0 max-w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 disabled:opacity-65"
             />
 
             {needsTextToChangeStatus && (
-              <div
-                style={{
-                  marginTop: 10,
-                  padding: 10,
-                  borderRadius: 12,
-                  border: "1px solid rgba(245,158,11,0.55)",
-                  background: "rgba(245,158,11,0.12)",
-                  fontSize: 13,
-                  fontWeight: 800,
-                }}
-              >
+              <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
                 {t("feedback.needTextToChangeStatus")}
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+            <div className="mt-3 flex flex-wrap gap-2">
               {readingSummaryText ? (
                 <button
                   type="button"
@@ -1470,15 +1364,7 @@ function Inner() {
                       return `${readingSummaryText}\n\n${prev}`;
                     });
                   }}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.15)",
-                    background: "white",
-                    opacity: !canOperate ? 0.6 : 1,
-                    cursor: !canOperate ? "not-allowed" : "pointer",
-                    fontWeight: 900,
-                  }}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
                 >
                   Sett inn tidsdata
                 </button>
@@ -1518,23 +1404,15 @@ function Inner() {
                     setTimeout(() => setSaveMsg(null), 2000);
                   }
                 }}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  background: "white",
-                  opacity: !canSave ? 0.6 : 1,
-                  cursor: !canSave ? "not-allowed" : "pointer",
-                  fontWeight: 900,
-                }}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
               >
                 {saving ? t("feedback.saving") : t("feedback.saveButton")}
               </button>
 
-              {saveMsg && <div style={{ opacity: 0.85, alignSelf: "center" }}>{saveMsg}</div>}
+              {saveMsg ? <div className="self-center text-sm text-slate-700">{saveMsg}</div> : null}
             </div>
 
-            <div style={{ marginTop: 10, opacity: 0.75, fontSize: 12 }}>
+            <div className="mt-3 text-xs text-slate-500">
               {t("feedback.rulesHint")} <code>status</code> <code>teacherFeedback</code>.
             </div>
           </div>
@@ -1542,9 +1420,22 @@ function Inner() {
       </div>
 
       <style jsx>{`
+        .submissionGrid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+          gap: 16px;
+          align-items: start;
+        }
+
+        .rightCol {
+          display: grid;
+          gap: 16px;
+          min-width: 0;
+        }
+
         @media (max-width: 980px) {
-          div[style*="grid-template-columns: 1.1fr 0.9fr"] {
-            grid-template-columns: 1fr !important;
+          .submissionGrid {
+            grid-template-columns: minmax(0, 1fr);
           }
         }
       `}</style>

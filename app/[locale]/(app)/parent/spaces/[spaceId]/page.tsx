@@ -186,7 +186,7 @@ export default function ParentSpaceDetailPage() {
   const t = useTranslations("parent.spaceDetail");
   const locale = useLocale();
 
-    const tx = useMemo(
+  const tx = useMemo(
     () => (key: string, fallback: string) => {
       try {
         return t(key as never);
@@ -253,7 +253,7 @@ export default function ParentSpaceDetailPage() {
     }
 
     return () => unsub?.();
-    }, [spaceId, tx]);
+  }, [spaceId, tx]);
 
   useEffect(() => {
     setAssignErr(null);
@@ -292,7 +292,7 @@ export default function ParentSpaceDetailPage() {
     }
 
     return () => unsub?.();
-    }, [spaceId, collatorLocale, tx]);
+  }, [spaceId, collatorLocale, tx]);
 
   useEffect(() => {
     if (!user?.uid || assignments.length === 0) {
@@ -409,11 +409,17 @@ export default function ParentSpaceDetailPage() {
 
   if (missing) {
     return (
-      <div style={{ padding: 16 }}>
-        <h1>{tx("missing.title", "Space not found")}</h1>
-        <div style={{ opacity: 0.75 }}>{tx("missing.subtitle", "This space does not exist or is unavailable.")}</div>
-        <div style={{ marginTop: 12 }}>
-          <Link href="/parent/spaces">{tx("actions.backToMySpaces", "Back to my spaces")}</Link>
+      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+          <h1 className="m-0 text-xl font-semibold text-slate-900">{tx("missing.title", "Space not found")}</h1>
+          <div className="mt-2 text-sm text-slate-600">
+            {tx("missing.subtitle", "This space does not exist or is unavailable.")}
+          </div>
+          <div className="mt-4">
+            <Link href="/parent/spaces" className="text-sm font-medium text-slate-700 underline underline-offset-4">
+              {tx("actions.backToMySpaces", "Back to my spaces")}
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -421,81 +427,68 @@ export default function ParentSpaceDetailPage() {
 
   if (err) {
     return (
-      <div style={{ padding: 16 }}>
-        <h1>{tx("error.title", "Something went wrong")}</h1>
-        <div style={{ color: "crimson", whiteSpace: "pre-wrap", marginTop: 8 }}>{err}</div>
-        <div style={{ marginTop: 12 }}>
-          <Link href="/parent/spaces">{tx("actions.backToMySpaces", "Back to my spaces")}</Link>
+      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-red-300 bg-red-50 p-5 shadow-sm">
+          <h1 className="m-0 text-xl font-semibold text-slate-900">{tx("error.title", "Something went wrong")}</h1>
+          <div className="mt-3 whitespace-pre-wrap text-sm text-red-700">{err}</div>
+          <div className="mt-4">
+            <Link href="/parent/spaces" className="text-sm font-medium text-slate-700 underline underline-offset-4">
+              {tx("actions.backToMySpaces", "Back to my spaces")}
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   if (!space) {
-    return <div style={{ padding: 16 }}>{tx("loading", "Loading…")}</div>;
+    return <div className="w-full py-4 text-sm text-slate-600">{tx("loading", "Loading…")}</div>;
   }
 
   return (
-    <main style={{ maxWidth: 900, margin: "14px auto", padding: 12 }}>
-      <div style={{ marginBottom: 16 }}>
-        <Link href="/parent/spaces">{tx("actions.backToMySpaces", "Back to my spaces")}</Link>
-      </div>
+    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{spaceTitle}</h1>
 
-      <section
-        style={{
-          border: "1px solid rgba(0,0,0,0.10)",
-          borderRadius: 16,
-          background: "white",
-          padding: 18,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <h1 style={{ margin: 0 }}>{spaceTitle}</h1>
-
-            <div style={{ opacity: 0.72, marginTop: 8 }}>
+            <div className="mt-2 break-words text-sm text-slate-600">
               {tx("header.kind", "Type")}: <b>{kindLabel(spaceKind)}</b>
             </div>
 
             {spaceCode ? (
-              <div style={{ opacity: 0.72, marginTop: 4 }}>
+              <div className="mt-1 break-words text-sm text-slate-600">
                 {tx("header.code", "Code")}: <b>{spaceCode}</b>
               </div>
             ) : null}
           </div>
-        </div>
-      </section>
 
-      <section
-        style={{
-          marginTop: 14,
-          border: "1px solid rgba(0,0,0,0.10)",
-          borderRadius: 16,
-          background: "white",
-          padding: 18,
-        }}
-      >
-        <div style={{ fontWeight: 800, marginBottom: 8 }}>
+          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
+            <Link
+              href="/parent/spaces"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50 sm:w-auto"
+            >
+              {tx("actions.backToMySpaces", "Back to my spaces")}
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <div className="text-base font-semibold text-slate-900">
           {tx("active.title", "Active lesson")}
         </div>
 
         {activeAssignmentId && activeAssignmentHref ? (
-          <>
-            <div style={{ fontSize: 18, fontWeight: 800 }}>
+          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
+            <div className="break-words text-lg font-semibold text-slate-900">
               {activeLessonTitleFromSpace ??
                 safeString(activeAssignmentDoc?.title) ??
                 tx("active.defaultTitle", "Lesson")}
             </div>
 
             {safeString(activeAssignmentDoc?.level) || safeString(activeAssignmentDoc?.language) ? (
-              <div style={{ fontSize: 13, opacity: 0.72, marginTop: 6 }}>
+              <div className="mt-2 text-sm text-slate-600">
                 {[safeString(activeAssignmentDoc?.level), safeString(activeAssignmentDoc?.language)]
                   .filter(Boolean)
                   .join(" • ")}
@@ -503,7 +496,7 @@ export default function ParentSpaceDetailPage() {
             ) : null}
 
             {activeAssignmentMeta ? (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Badge
                   text={statusLabel(activeAssignmentMeta.submissionStatus)}
                   tone={statusTone(activeAssignmentMeta.submissionStatus)}
@@ -527,50 +520,25 @@ export default function ParentSpaceDetailPage() {
               </div>
             ) : null}
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+            <div className="mt-4">
               <Link
                 href={activeAssignmentHref}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  padding: "10px 14px",
-                  background: "#111",
-                  color: "#fff",
-                  borderRadius: 10,
-                  textDecoration: "none",
-                }}
+                className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800"
               >
                 {tx("active.open", "Open")}
               </Link>
-
             </div>
-          </>
+          </div>
         ) : (
-          <div style={{ opacity: 0.75 }}>{tx("active.none", "No active lesson right now.")}</div>
+          <div className="mt-3 text-sm text-slate-600">{tx("active.none", "No active lesson right now.")}</div>
         )}
       </section>
 
-      <section
-        style={{
-          marginTop: 14,
-          border: "1px solid rgba(0,0,0,0.10)",
-          borderRadius: 16,
-          background: "white",
-          padding: 18,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 10,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ fontWeight: 800 }}>{tx("all.title", "All lessons")}</div>
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-base font-semibold text-slate-900">{tx("all.title", "All lessons")}</div>
 
-          <label style={{ display: "flex", gap: 8, alignItems: "center", opacity: 0.85 }}>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               checked={showArchived}
@@ -581,11 +549,13 @@ export default function ParentSpaceDetailPage() {
         </div>
 
         {assignErr ? (
-          <div style={{ marginTop: 10, color: "crimson", whiteSpace: "pre-wrap" }}>{assignErr}</div>
+          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{assignErr}</div>
         ) : visibleAssignments.length === 0 ? (
-          <div style={{ marginTop: 10, opacity: 0.75 }}>{tx("all.none", "No lessons yet.")}</div>
+          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+            {tx("all.none", "No lessons yet.")}
+          </div>
         ) : (
-          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+          <div className="mt-4 grid min-w-0 gap-3">
             {visibleAssignments.map((it) => {
               const title = titleOfAssignment(it.data, it.id);
               const snippet = assignmentSnippet(it.data);
@@ -596,32 +566,21 @@ export default function ParentSpaceDetailPage() {
               return (
                 <div
                   key={it.id}
-                  style={{
-                    border: "1px solid rgba(0,0,0,0.10)",
-                    borderRadius: 12,
-                    padding: 12,
-                  }}
+                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div style={{ minWidth: 240, flex: 1 }}>
-                      <div style={{ fontWeight: 800 }}>
+                  <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="break-words text-base font-semibold text-slate-900">
                         {title}{" "}
                         {archived ? (
-                          <span style={{ fontWeight: 600, opacity: 0.6 }}>
+                          <span className="text-sm font-medium text-slate-500">
                             {tx("all.archivedTag", "(archived)")}
                           </span>
                         ) : null}
                       </div>
 
                       {safeString(it.data.level) || safeString(it.data.language) ? (
-                        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+                        <div className="mt-2 text-sm text-slate-600">
                           {[safeString(it.data.level), safeString(it.data.language)]
                             .filter(Boolean)
                             .join(" • ")}
@@ -629,7 +588,7 @@ export default function ParentSpaceDetailPage() {
                       ) : null}
 
                       {meta ? (
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                        <div className="mt-3 flex flex-wrap gap-2">
                           <Badge
                             text={statusLabel(meta.submissionStatus)}
                             tone={statusTone(meta.submissionStatus)}
@@ -652,32 +611,24 @@ export default function ParentSpaceDetailPage() {
                           ) : null}
                         </div>
                       ) : (
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                        <div className="mt-3 flex flex-wrap gap-2">
                           <Badge text="Ikke startet" tone="neutral" />
                         </div>
                       )}
 
                       {snippet ? (
-                        <div style={{ marginTop: 8, opacity: 0.8, whiteSpace: "pre-wrap" }}>{snippet}</div>
+                        <div className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{snippet}</div>
                       ) : null}
                     </div>
 
-                    <Link
-                      href={href}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        padding: "8px 12px",
-                        background: "#111",
-                        color: "#fff",
-                        borderRadius: 10,
-                        textDecoration: "none",
-                        whiteSpace: "nowrap",
-                        height: "fit-content",
-                      }}
-                    >
-                      {tx("actions.open", "Open")}
-                    </Link>
+                    <div className="w-full min-w-0 sm:w-auto">
+                      <Link
+                        href={href}
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800 sm:w-auto"
+                      >
+                        {tx("actions.open", "Open")}
+                      </Link>
+                    </div>
                   </div>
                 </div>
               );

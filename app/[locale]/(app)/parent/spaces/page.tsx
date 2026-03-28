@@ -196,12 +196,12 @@ export default function ParentSpacesPage() {
   const collatorLocale = useMemo(() => (locale === "no" ? "nb" : "en"), [locale]);
 
   const titleOfSpace = useMemo(
-  () => (s: SpaceDoc): string => {
-    const title = safeString(getKey(s, "title"));
-    return title ?? t("defaultTitle");
-  },
-  [t]
-);
+    () => (s: SpaceDoc): string => {
+      const title = safeString(getKey(s, "title"));
+      return title ?? t("defaultTitle");
+    },
+    [t]
+  );
 
   function subtitleOfSpace(s: SpaceDoc): string {
     const kind = kindOfSpace(s);
@@ -303,7 +303,6 @@ export default function ParentSpacesPage() {
 
     for (const space of spaces) {
       const sid = space.id;
-
       let innerUnsubs: Array<() => void> = [];
 
       const lessonsQuery = query(
@@ -401,159 +400,128 @@ export default function ParentSpacesPage() {
     };
   }, [spaces, user?.uid]);
 
-  if (loading) return <div style={{ padding: 16 }}>{t("loading")}</div>;
+  if (loading) return <div className="w-full py-4 text-sm text-slate-600">{t("loading")}</div>;
 
   return (
-    <div style={{ padding: 16, maxWidth: 900 }}>
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h1 style={{ marginBottom: 6 }}>{t("title")}</h1>
-          <div style={{ opacity: 0.75 }}>{t("subtitle")}</div>
-        </div>
+    <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
+            <div className="mt-2 break-words text-sm text-slate-600">{t("subtitle")}</div>
+          </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Link
-            href="/parent/spaces/new"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "10px 14px",
-              borderRadius: 12,
-              border: "1px solid rgba(0,0,0,0.15)",
-              textDecoration: "none",
-              fontWeight: 700,
-              color: "inherit",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {t("actions.parentGroups")}
-          </Link>
+          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
+            <Link
+              href="/parent/spaces/new"
+              className="inline-flex w-full items-center justify-center rounded-xl bg-green-600 px-4 py-2 text-base font-semibold text-white no-underline shadow-sm hover:bg-green-500 hover:shadow-md sm:w-auto"
+            >
+              {t("actions.parentGroups")}
+            </Link>
+          </div>
         </div>
       </div>
 
-      {err ? <div style={{ color: "crimson", marginTop: 12, whiteSpace: "pre-wrap" }}>{err}</div> : null}
+      {err ? (
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {err}
+        </div>
+      ) : null}
 
-      <div style={{ marginTop: 14 }}>
-        {spaces.length === 0 ? (
-          <div style={{ opacity: 0.7 }}>
-            {t.rich("empty", {
-              b: (chunks) => <b>{chunks}</b>,
-            })}
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="min-w-0">
+          <div className="text-base font-semibold text-slate-900">{t("title")}</div>
+          <div className="mt-1 break-words text-sm text-slate-600">
+            {spaces.length} {spaces.length === 1 ? "gruppe" : "grupper"}
           </div>
-        ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {spaces.map((s) => {
-              const title = titleOfSpace(s.data);
-              const code = codeOfSpace(s.data);
-              const subtitle = subtitleOfSpace(s.data);
+        </div>
 
-              const openHref = `/parent/spaces/${s.id}`;
-              const meta = spaceMeta[s.id] ?? null;
+        <div className="mt-4">
+          {spaces.length === 0 ? (
+            <div className="rounded-2xl border border-slate-300 bg-white p-6 text-sm text-slate-600 shadow-sm">
+              {t.rich("empty", {
+                b: (chunks) => <b>{chunks}</b>,
+              })}
+            </div>
+          ) : (
+            <div className="grid min-w-0 gap-3">
+              {spaces.map((s) => {
+                const title = titleOfSpace(s.data);
+                const code = codeOfSpace(s.data);
+                const subtitle = subtitleOfSpace(s.data);
 
-              return (
-                <div
-                  key={s.id}
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => router.push(openHref)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") router.push(openHref);
-                  }}
-                  style={{
-                    display: "block",
-                    border: "1px solid rgba(0,0,0,0.12)",
-                    borderRadius: 12,
-                    padding: 12,
-                    textDecoration: "none",
-                    color: "inherit",
-                    cursor: "pointer",
-                  }}
-                >
+                const openHref = `/parent/spaces/${s.id}`;
+                const meta = spaceMeta[s.id] ?? null;
+
+                return (
                   <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      flexWrap: "wrap",
-                      alignItems: "center",
+                    key={s.id}
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => router.push(openHref)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") router.push(openHref);
                     }}
+                    className="box-border w-full min-w-0 max-w-full cursor-pointer rounded-2xl border border-slate-300 bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5"
                   >
-                    <div style={{ minWidth: 220, flex: 1 }}>
-                      <div style={{ fontWeight: 700 }}>{title}</div>
+                    <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="break-words text-base font-semibold text-slate-900">{title}</div>
 
-                      <div style={{ opacity: 0.75, marginTop: 4 }}>{subtitle}</div>
+                        <div className="mt-2 text-sm text-slate-600">{subtitle}</div>
 
-                      {code ? (
-                        <div style={{ opacity: 0.75, marginTop: 4 }}>
-                          {t("meta.code")}: <b>{code}</b>
-                        </div>
-                      ) : null}
+                        {code ? (
+                          <div className="mt-2 break-words text-sm text-slate-600">
+                            {t("meta.code")}: <b className="text-slate-900">{code}</b>
+                          </div>
+                        ) : null}
 
-                      {meta ? (
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-                          <Badge text={`${meta.lessonCount} oppgaver`} tone="neutral" />
-                          {meta.activeLessonTitle ? (
-                            <Badge text={`Aktiv: ${meta.activeLessonTitle}`} tone="neutral" />
-                          ) : null}
-                          <Badge
-                            text={statusLabel(meta.activeSubmissionStatus)}
-                            tone={statusTone(meta.activeSubmissionStatus)}
-                          />
-                          {meta.activeHasAiFeedback ? (
-                            <Badge text="AI-feedback" tone="good" />
-                          ) : null}
-                          {meta.activeHasParentReview ? (
+                        {meta ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Badge text={`${meta.lessonCount} oppgaver`} tone="neutral" />
+                            {meta.activeLessonTitle ? (
+                              <Badge text={`Aktiv: ${meta.activeLessonTitle}`} tone="neutral" />
+                            ) : null}
                             <Badge
-                              text={
-                                meta.activeReviewStars
-                                  ? `Foreldrevurdering • ${meta.activeReviewStars}★`
-                                  : "Foreldrevurdering"
-                              }
-                              tone="good"
+                              text={statusLabel(meta.activeSubmissionStatus)}
+                              tone={statusTone(meta.activeSubmissionStatus)}
                             />
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
+                            {meta.activeHasAiFeedback ? (
+                              <Badge text="AI-feedback" tone="good" />
+                            ) : null}
+                            {meta.activeHasParentReview ? (
+                              <Badge
+                                text={
+                                  meta.activeReviewStars
+                                    ? `Foreldrevurdering • ${meta.activeReviewStars}★`
+                                    : "Foreldrevurdering"
+                                }
+                                tone="good"
+                              />
+                            ) : null}
+                          </div>
+                        ) : null}
 
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <Link
-                        href={openHref}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          padding: "8px 12px",
-                          borderRadius: 10,
-                          border: "1px solid rgba(0,0,0,0.15)",
-                          textDecoration: "none",
-                          fontWeight: 800,
-                          color: "inherit",
-                          whiteSpace: "nowrap",
-                        }}
-                        title={t("actions.openSpace")}
-                      >
-                        {t("actions.openSpace")}
-                      </Link>
+                        <div className="mt-3 break-words text-sm text-slate-500">{t("actions.openSpace")}</div>
+                      </div>
+
+                      <div className="w-full min-w-0 sm:w-auto">
+                        <Link
+                          href={openHref}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800 sm:w-auto"
+                          title={t("actions.openSpace")}
+                        >
+                          {t("actions.openSpace")}
+                        </Link>
+                      </div>
                     </div>
                   </div>
-
-                  <div style={{ opacity: 0.7, marginTop: 8 }}>{t("actions.openSpace")}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

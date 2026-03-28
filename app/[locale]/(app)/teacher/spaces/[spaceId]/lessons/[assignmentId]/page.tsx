@@ -32,7 +32,6 @@ type LessonDoc = {
   status?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
-
   topic?: string;
   isActive?: boolean;
   tasks?: unknown;
@@ -60,8 +59,6 @@ type SubmissionDoc = {
   status?: string;
   auth?: unknown;
   answers?: unknown;
-
-  // some older shapes
   studentName?: unknown;
   name?: unknown;
   userName?: unknown;
@@ -108,10 +105,10 @@ function formatMaybeDate(v: unknown, locale: string): string {
       v instanceof Date
         ? v
         : typeof (v as { toDate?: unknown })?.toDate === "function"
-        ? (v as { toDate: () => Date }).toDate()
-        : v instanceof Timestamp
-        ? v.toDate()
-        : null;
+          ? (v as { toDate: () => Date }).toDate()
+          : v instanceof Timestamp
+            ? v.toDate()
+            : null;
 
     if (!d) return "";
     return new Intl.DateTimeFormat(locale, {
@@ -126,7 +123,6 @@ function formatMaybeDate(v: unknown, locale: string): string {
 function getSubmissionUid(s: SubmissionDoc): string | null {
   if (typeof s.uid === "string" && s.uid.trim()) return s.uid.trim();
 
-  // fallback: auth.uid
   const a = s.auth;
   if (a && typeof a === "object") {
     const uid = (a as { uid?: unknown }).uid;
@@ -173,9 +169,6 @@ function statusBadge(
       cls: "border-green-200 bg-green-50 text-green-900",
     };
   }
-
-  // Draft should normally be filtered out before rendering,
-  // but keep a safe fallback style if something slips through:
   if (s === "draft") {
     return {
       label: t("status.draft"),
@@ -185,16 +178,11 @@ function statusBadge(
 
   return {
     label: typeof statusRaw === "string" && statusRaw ? statusRaw : dash,
-    cls: "border-muted bg-background text-muted-foreground",
+    cls: "border-slate-300 bg-white text-slate-700",
   };
 }
 
-async function resolveAssignedLesson(
-  dbx: Firestore,
-  spaceId: string,
-  assignmentId: string
-) {
-  // 1) assignment doc under spaces/{spaceId}/lessons/{assignmentId}
+async function resolveAssignedLesson(dbx: Firestore, spaceId: string, assignmentId: string) {
   const assignRef = doc(dbx, "spaces", spaceId, "lessons", assignmentId);
   const assignSnap = await getDoc(assignRef);
 
@@ -220,7 +208,6 @@ async function resolveAssignedLesson(
     };
   }
 
-  // 2) load source doc
   const colName = sourceType === "myContent" ? "lessons" : "published_lessons";
   const lessonRef = doc(dbx, colName, sourceId);
   const lessonSnap = await getDoc(lessonRef);
@@ -242,12 +229,6 @@ async function resolveAssignedLesson(
   };
 }
 
-/**
- * Locale-safe link helper:
- * - keeps absolute URLs unchanged
- * - prefixes "/{locale}" for internal paths that start with "/"
- * - avoids double-prefix if already "/en/..." or "/no/..."
- */
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
   if (!href.startsWith("/")) return href;
@@ -271,7 +252,6 @@ export default function TeacherSpaceAssignedTaskPage() {
   const tCommon = useTranslations("common");
   const tActions = useTranslations("actions");
 
-  // Robust params typing (avoid red squiggles)
   const params = useParams();
   const rawSpaceId = (params as Record<string, string | string[] | undefined>)["spaceId"];
   const rawAssignmentId = (params as Record<string, string | string[] | undefined>)["assignmentId"];
@@ -287,12 +267,11 @@ export default function TeacherSpaceAssignedTaskPage() {
   const uidNow = authUser?.uid ?? null;
 
   const [space, setSpace] = useState<SpaceDocLite | null>(null);
-
   const [lesson, setLesson] = useState<LessonDoc | null>(null);
   const [assignment, setAssignment] = useState<SpaceAssignmentDoc | null>(null);
 
   const [submissions, setSubmissions] = useState<Array<{ id: string; data: SubmissionDoc }>>([]);
-  const [memberNames, setMemberNames] = useState<Record<string, string>>({}); // uid -> displayName
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [loadingLesson, setLoadingLesson] = useState(true);
   const [loadingSubs, setLoadingSubs] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -300,25 +279,21 @@ export default function TeacherSpaceAssignedTaskPage() {
   const dash = tCommon("dash");
   const unknownErr = tCommon("unknownError");
 
-  // Track auth user (uid)
   useEffect(() => {
     const unsub = onAuthStateChanged(getAuth(), (u) => setAuthUser(u));
     return () => unsub();
   }, []);
 
-  // Load space doc (for title/owner)
   useEffect(() => {
     if (!spaceId) return;
     const ref = doc(db, "spaces", spaceId);
     return onSnapshot(
       ref,
-      (snap) =>
-        setSpace(snap.exists() ? ((snap.data() as DocumentData) as SpaceDocLite) : null),
+      (snap) => setSpace(snap.exists() ? ((snap.data() as DocumentData) as SpaceDocLite) : null),
       (err) => console.log("[SPACE] read error", err)
     );
   }, [spaceId]);
 
-  // Load assignment + source lesson
   useEffect(() => {
     let alive = true;
     setError(null);
@@ -349,7 +324,6 @@ export default function TeacherSpaceAssignedTaskPage() {
     };
   }, [spaceId, assignmentId, unknownErr]);
 
-  // Load submissions list (✅ filter out drafts)
   useEffect(() => {
     setLoadingSubs(true);
     setSubmissions([]);
@@ -370,7 +344,6 @@ export default function TeacherSpaceAssignedTaskPage() {
       (snap) => {
         const rows = snap.docs
           .map((d) => ({ id: d.id, data: (d.data() as SubmissionDoc) ?? {} }))
-          // ✅ hide drafts completely
           .filter((row) => normalizeStatus(row.data.status) !== "draft");
 
         setSubmissions(rows);
@@ -385,7 +358,6 @@ export default function TeacherSpaceAssignedTaskPage() {
     return () => unsub();
   }, [spaceId, assignmentId, unknownErr]);
 
-  // Resolve displayName from spaceMembers for submissions (uid -> displayName)
   useEffect(() => {
     let alive = true;
     if (!spaceId) return;
@@ -423,7 +395,7 @@ export default function TeacherSpaceAssignedTaskPage() {
 
             if (name) pairs.push([uid, name]);
           } catch {
-            // ignore name lookup failures
+            // ignore
           }
         })
       );
@@ -452,94 +424,99 @@ export default function TeacherSpaceAssignedTaskPage() {
 
   const ownerId = space?.ownerId ?? null;
   const isOwner = Boolean(uidNow && ownerId && uidNow === ownerId);
-  void isOwner; // intentionally unused (Owner chip removed by request)
+  void isOwner;
 
   return (
     <AuthGate requireRole="teacher">
-      <main className="mx-auto w-full max-w-6xl px-6 py-6">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <Link href={backHref} className="text-sm underline opacity-80">
-            {t("actions.backToSpace")}
-          </Link>
-
-          <div className="text-sm text-muted-foreground">
-            {space?.title ? (
-              <span className="font-medium text-foreground">{space.title}</span>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Task header */}
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <h1 className="text-xl font-semibold">
-            {loadingLesson ? tCommon("loading") : title}
-          </h1>
-
-          <div className="mt-1 text-sm text-muted-foreground">
-            {t("header.subtitle")}
-          </div>
-
-          {!loadingLesson && !assignment ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              {t("header.assignmentMissing")}{" "}
-              <code>
-                spaces/{spaceId}/lessons/{assignmentId}
-              </code>
-              .
-            </p>
-          ) : null}
-
-          {!loadingLesson && assignment && !lesson ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              {t("header.sourceMissing")}
-              <br />
-              sourceType: <code>{assignment.sourceType ?? dash}</code> · sourceId:{" "}
-              <code>{assignment.sourceId ?? dash}</code>
-            </p>
-          ) : null}
-
-          {desc ? <p className="mt-3 opacity-80">{desc}</p> : null}
-
-          {/* Keep only useful chips (remove Status/Source/SourceId/Owner) */}
-          <div className="mt-4 flex flex-wrap gap-2 text-sm">
-            {level ? (
-              <span className="rounded-full border px-3 py-1 text-muted-foreground">
-                {t("meta.level")}: {level}
-              </span>
-            ) : null}
-            {language ? (
-              <span className="rounded-full border px-3 py-1 text-muted-foreground">
-                {t("meta.language")}: {language}
-              </span>
-            ) : null}
-          </div>
-
-          {error ? (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              <b>{t("error.title")}:</b> {error}
+      <main className="mx-auto box-border w-full max-w-6xl min-w-0 space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-slate-500">{t("submissions.title")}</div>
+              <h1 className="mt-1 break-words text-2xl font-semibold text-slate-900">
+                {space?.title || t("fallback.space")}
+              </h1>
+              <div className="mt-2 break-words text-base text-slate-700">
+                {loadingLesson ? tCommon("loading") : title}
+              </div>
+              <div className="mt-2 break-words text-sm text-slate-600">{t("header.subtitle")}</div>
             </div>
-          ) : null}
+
+            <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
+              <Link
+                href={backHref}
+                className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50 sm:w-auto"
+              >
+                {t("actions.backToSpace")}
+              </Link>
+            </div>
+          </div>
         </div>
 
-        {/* Submissions */}
-        <div className="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">{t("submissions.title")}</h2>
-            <span className="text-sm text-muted-foreground">
-              {loadingSubs ? tCommon("loading") : `${submissions.length}`}
-            </span>
+        {error ? (
+          <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            <b>{t("error.title")}:</b> {error}
+          </div>
+        ) : null}
+
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+          <div className="min-w-0">
+            <div className="text-base font-semibold text-slate-900">{t("header.taskInfo")}</div>
+
+            {!loadingLesson && !assignment ? (
+              <p className="mt-3 break-words text-sm text-slate-600">
+                {t("header.assignmentMissing")}{" "}
+                <code>
+                  spaces/{spaceId}/lessons/{assignmentId}
+                </code>
+                .
+              </p>
+            ) : null}
+
+            {!loadingLesson && assignment && !lesson ? (
+              <p className="mt-3 break-words text-sm text-slate-600">
+                {t("header.sourceMissing")}
+                <br />
+                sourceType: <code>{assignment.sourceType ?? dash}</code> · sourceId:{" "}
+                <code>{assignment.sourceId ?? dash}</code>
+              </p>
+            ) : null}
+
+            {desc ? <p className="mt-3 break-words text-sm text-slate-700">{desc}</p> : null}
+
+            <div className="mt-4 flex flex-wrap gap-2 text-sm">
+              {level ? (
+                <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-slate-700">
+                  {t("meta.level")}: {level}
+                </span>
+              ) : null}
+              {language ? (
+                <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-slate-700">
+                  {t("meta.language")}: {language}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="text-base font-semibold text-slate-900">{t("submissions.title")}</div>
+              <div className="mt-1 break-words text-sm text-slate-600">
+                {loadingSubs ? tCommon("loading") : `${submissions.length}`}
+              </div>
+            </div>
           </div>
 
           {loadingSubs ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              {t("submissions.loading")}
-            </p>
+            <p className="mt-4 text-sm text-slate-600">{t("submissions.loading")}</p>
           ) : submissions.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">
+            <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
               {t("submissions.empty")}
-            </p>
+            </div>
           ) : (
-            <ul className="mt-3 grid gap-2">
+            <div className="mt-4 grid min-w-0 gap-3">
               {submissions.map((s) => {
                 const uid = getSubmissionUid(s.data);
                 const memberName = uid ? memberNames[uid] : null;
@@ -555,41 +532,42 @@ export default function TeacherSpaceAssignedTaskPage() {
                 const createdAt = formatMaybeDate(s.data.createdAt, locale) || dash;
                 const badge = statusBadge(s.data.status, (k) => t(k), dash);
 
-                const badgeSizeCls = "px-3 py-1.5 text-sm font-semibold"; // bigger than before
-
                 const openHref = withLocale(
                   locale,
                   `/teacher/spaces/${spaceId}/lessons/${assignmentId}/submissions/${s.id}`
                 );
 
                 return (
-                  <li key={s.id} className="rounded-xl border p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="min-w-[220px]">
-                        <div className="font-medium">{name}</div>
-                        <div className="mt-1 text-sm text-muted-foreground">
-                          {createdAt}
-                        </div>
+                  <div
+                    key={s.id}
+                    className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="break-words font-semibold text-slate-900">{name}</div>
+                        <div className="mt-1 break-words text-sm text-slate-600">{createdAt}</div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full border ${badgeSizeCls} ${badge.cls}`}>
+                      <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-[auto_auto] sm:items-center">
+                        <span
+                          className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-sm font-semibold ${badge.cls}`}
+                        >
                           {badge.label}
                         </span>
 
                         <button
                           type="button"
                           onClick={() => router.push(openHref)}
-                          className="rounded-xl border px-4 py-2 text-sm hover:shadow-sm"
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
                         >
                           {tActions("open")}
                         </button>
                       </div>
                     </div>
-                  </li>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           )}
         </div>
       </main>

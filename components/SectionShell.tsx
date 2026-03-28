@@ -61,6 +61,15 @@ export default function SectionShell({
               <h1 className="sectionTitle">{title}</h1>
               {subtitle ? <p className="sectionSubtitle">{subtitle}</p> : null}
             </div>
+
+            {!hideNav && toolsItem ? (
+              <Link
+                href={withLocale(toolsItem.href)}
+                className="mobileToolsLink"
+              >
+                {toolsItem.label}
+              </Link>
+            ) : null}
           </div>
 
           {!hideNav && (
@@ -107,25 +116,9 @@ export default function SectionShell({
         </div>
       )}
 
-      <div
-        className={`sectionContent ${fullWidth ? "full" : ""} ${
-          toolsItem && !hideNav ? "hasMobileCreate" : ""
-        }`}
-      >
+      <div className={`sectionContent ${fullWidth ? "full" : ""}`}>
         {children}
       </div>
-
-      {!hideNav && toolsItem ? (
-        <div className="mobileCreateWrap" aria-hidden={false}>
-          <Link
-            href={withLocale(toolsItem.href)}
-            className="mobileCreateButton"
-          >
-            <span className="mobileCreatePlus">+</span>
-            <span>Create</span>
-          </Link>
-        </div>
-      ) : null}
 
       <style jsx>{`
         .shellRoot {
@@ -155,6 +148,7 @@ export default function SectionShell({
         .sectionTitleWrap {
           min-width: 0;
           max-width: 100%;
+          flex: 1 1 auto;
         }
 
         .sectionTitle {
@@ -168,6 +162,10 @@ export default function SectionShell({
           margin: 6px 0 0;
           opacity: 0.75;
           overflow-wrap: anywhere;
+        }
+
+        .mobileToolsLink {
+          display: none;
         }
 
         .sectionNav {
@@ -203,35 +201,6 @@ export default function SectionShell({
           padding: 0;
         }
 
-        .mobileCreateWrap {
-          display: none;
-        }
-
-        .mobileCreateButton {
-          pointer-events: auto;
-          margin: 0 auto;
-          width: fit-content;
-          max-width: calc(100vw - 24px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          text-decoration: none;
-          border-radius: 999px;
-          padding: 12px 18px;
-          font-size: 15px;
-          font-weight: 700;
-          color: #1f7a1f;
-          background: #deebde;
-          border: 1px solid #81beb3;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-        }
-
-        .mobileCreatePlus {
-          font-size: 18px;
-          line-height: 1;
-        }
-
         @media (max-width: 560px) {
           .sectionHeader {
             padding: 12px 10px 6px;
@@ -245,22 +214,25 @@ export default function SectionShell({
             padding: 0;
           }
 
-          .sectionContent.hasMobileCreate {
-            padding-bottom: 88px;
+          .mobileToolsLink {
+            display: inline-flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1f7a1f;
+            background: #deebde;
+            border: 1px solid #81beb3;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            white-space: nowrap;
           }
 
           .navLinkTools {
             display: none !important;
-          }
-
-          .mobileCreateWrap {
-            display: block;
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: max(12px, env(safe-area-inset-bottom));
-            z-index: 40;
-            pointer-events: none;
           }
         }
 

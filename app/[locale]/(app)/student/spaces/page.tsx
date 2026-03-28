@@ -30,7 +30,6 @@ function getKey(obj: unknown, key: string): unknown {
 }
 
 function codeOfSpace(s: SpaceDoc | null | undefined): string | null {
-  // støtter både code / joinCode / join.code
   const code = safeString(getKey(s, "code"));
   if (code) return code;
 
@@ -54,7 +53,7 @@ function errMessage(e: unknown, fallback: string) {
 
 export default function StudentSpacesPage() {
   const t = useTranslations("student.spaces");
-  const locale = useLocale(); // brukes bare til sort locale, ikke URL
+  const locale = useLocale();
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
@@ -70,20 +69,17 @@ export default function StudentSpacesPage() {
     return title ?? t("defaultTitle");
   }
 
-  // auth
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsub();
   }, []);
 
-  // load spaces for user
   useEffect(() => {
     let alive = true;
 
     async function run() {
       setErr(null);
 
-      // Ikke innlogget? Vis tom liste.
       if (!user) {
         if (alive) {
           setSpaces([]);
@@ -96,8 +92,6 @@ export default function StudentSpacesPage() {
 
       try {
         const dbx = requireDb(db);
-
-        // 1) hent spaceIds fra medlemskap
         const ids = await listMySpaceIds(dbx, user.uid);
 
         if (!ids.length) {
@@ -105,7 +99,6 @@ export default function StudentSpacesPage() {
           return;
         }
 
-        // 2) hent space docs parallelt
         const docs = await Promise.all(
           ids.map(async (id) => {
             const snap = await getDoc(doc(dbx, "spaces", id));
@@ -115,8 +108,6 @@ export default function StudentSpacesPage() {
         );
 
         const items = docs.filter((x): x is { id: string; data: SpaceDoc } => x !== null);
-
-        // 3) sorter litt pent: alfabetisk på tittel
         items.sort((a, b) => titleOfSpace(a.data).localeCompare(titleOfSpace(b.data), collatorLocale));
 
         if (alive) setSpaces(items);
@@ -134,55 +125,53 @@ export default function StudentSpacesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, collatorLocale]);
 
-  if (loading) return <div style={{ padding: 16 }}>{t("loading")}</div>;
+  if (loading) {
+    return <div className="w-full py-4 text-sm text-slate-600">{t("loading")}</div>;
+  }
 
   return (
-    <div style={{ padding: 16, maxWidth: 900 }}>
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h1 style={{ marginBottom: 6 }}>{t("title")}</h1>
-          <div style={{ opacity: 0.75 }}>{t("subtitle")}</div>
-        </div>
+    <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
+            <div className="mt-2 break-words text-sm text-slate-600">{t("subtitle")}</div>
+          </div>
 
-        <Link
-          href="/join"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "10px 14px",
-            borderRadius: 12,
-            border: "1px solid rgba(0,0,0,0.15)",
-            textDecoration: "none",
-            fontWeight: 700,
-            color: "inherit",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {t("actions.joinSpace")}
-        </Link>
+          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
+            <Link
+              href="/join"
+              className="inline-flex w-full items-center justify-center rounded-xl bg-green-600 px-4 py-2 text-base font-semibold text-white no-underline shadow-sm hover:bg-green-500 hover:shadow-md sm:w-auto"
+            >
+              {t("actions.joinSpace")}
+            </Link>
+          </div>
+        </div>
       </div>
 
-      {err ? <div style={{ color: "crimson", marginTop: 12, whiteSpace: "pre-wrap" }}>{err}</div> : null}
+      {err ? (
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {err}
+        </div>
+      ) : null}
 
-      <div style={{ marginTop: 14 }}>
-        {spaces.length === 0 ? (
-          <div style={{ opacity: 0.7 }}>
-            {t.rich("empty", {
-              b: (chunks) => <b>{chunks}</b>,
-            })}
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="min-w-0">
+          <div className="text-base font-semibold text-slate-900">{t("title")}</div>
+          <div className="mt-1 break-words text-sm text-slate-600">
+            {spaces.length} {spaces.length === 1 ? t("meta.oneSpace") : t("meta.manySpaces")}
           </div>
-        ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {spaces.map((s) => {
+        </div>
+
+        <div className="mt-4 grid min-w-0 gap-3">
+          {spaces.length === 0 ? (
+            <div className="rounded-2xl border border-slate-300 bg-white p-6 text-sm text-slate-600 shadow-sm">
+              {t.rich("empty", {
+                b: (chunks) => <b>{chunks}</b>,
+              })}
+            </div>
+          ) : (
+            spaces.map((s) => {
               const title = titleOfSpace(s.data);
               const code = codeOfSpace(s.data);
 
@@ -198,51 +187,26 @@ export default function StudentSpacesPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") router.push(openHref);
                   }}
-                  style={{
-                    display: "block",
-                    border: "1px solid rgba(0,0,0,0.12)",
-                    borderRadius: 12,
-                    padding: 12,
-                    textDecoration: "none",
-                    color: "inherit",
-                    cursor: "pointer",
-                  }}
+                  className="box-border w-full min-w-0 max-w-full cursor-pointer rounded-2xl border border-slate-300 bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div style={{ minWidth: 220 }}>
-                      <div style={{ fontWeight: 700 }}>{title}</div>
+                  <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="break-words text-base font-semibold text-slate-900">{title}</div>
+
                       {code ? (
-                        <div style={{ opacity: 0.75, marginTop: 4 }}>
-                          {t("meta.code")}: <b>{code}</b>
+                        <div className="mt-2 break-words text-sm text-slate-600">
+                          {t("meta.code")}: <b className="text-slate-900">{code}</b>
                         </div>
                       ) : null}
+
+                      <div className="mt-3 break-words text-sm text-slate-500">{t("actions.openSpace")}</div>
                     </div>
 
-                    {/* Actions on card */}
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:min-w-[320px]">
                       <Link
                         href={boardHref}
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          padding: "8px 12px",
-                          borderRadius: 10,
-                          border: "1px solid rgba(0,0,0,0.15)",
-                          textDecoration: "none",
-                          fontWeight: 800,
-                          color: "inherit",
-                          whiteSpace: "nowrap",
-                        }}
+                        className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50"
                         title="Åpne tavle"
                       >
                         Tavle
@@ -251,31 +215,18 @@ export default function StudentSpacesPage() {
                       <Link
                         href={openHref}
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          padding: "8px 12px",
-                          borderRadius: 10,
-                          border: "1px solid rgba(0,0,0,0.15)",
-                          textDecoration: "none",
-                          fontWeight: 800,
-                          color: "inherit",
-                          whiteSpace: "nowrap",
-                        }}
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800"
                         title={t("actions.openSpace")}
                       >
                         {t("actions.openSpace")}
                       </Link>
                     </div>
                   </div>
-
-                  <div style={{ opacity: 0.7, marginTop: 8 }}>{t("actions.openSpace")}</div>
                 </div>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
     </div>
   );
