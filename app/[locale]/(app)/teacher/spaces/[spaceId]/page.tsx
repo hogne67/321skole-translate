@@ -1,4 +1,3 @@
-// app/[locale]/(app)/teacher/spaces/[spaceId]/page.tsx
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -210,7 +209,10 @@ function queryImpliesType(q: string): string[] {
   return [];
 }
 
-function matchesType(doc: { type?: unknown; taskType?: unknown; contentType?: unknown; kind?: unknown }, searchRaw: string): boolean {
+function matchesType(
+  doc: { type?: unknown; taskType?: unknown; contentType?: unknown; kind?: unknown },
+  searchRaw: string
+): boolean {
   const q = searchRaw.trim().toLowerCase();
   if (!q) return true;
 
@@ -300,7 +302,10 @@ function Inner() {
       const data: unknown = parseJsonUnknown(raw) ?? {};
 
       if (!res.ok) {
-        const msg = isRecord(data) && typeof data["error"] === "string" ? String(data["error"]) : raw || `Quota request failed (${res.status})`;
+        const msg =
+          isRecord(data) && typeof data["error"] === "string"
+            ? String(data["error"])
+            : raw || `Quota request failed (${res.status})`;
         throw new Error(msg);
       }
 
@@ -446,7 +451,11 @@ function Inner() {
 
       setSubSummaryErrByAssignment((m) => ({ ...m, [a.id]: null }));
 
-      const qy = query(collection(db, "spaces", spaceId, "lessons", a.id, "submissions"), orderBy("createdAt", "desc"), limit(200));
+      const qy = query(
+        collection(db, "spaces", spaceId, "lessons", a.id, "submissions"),
+        orderBy("createdAt", "desc"),
+        limit(200)
+      );
 
       const unsub = onSnapshot(
         qy,
@@ -461,7 +470,10 @@ function Inner() {
         },
         (err: unknown) => {
           const info = getErrorInfo(err);
-          setSubSummaryErrByAssignment((m) => ({ ...m, [a.id]: info.message || t("errors.readSubmissionsFailed") }));
+          setSubSummaryErrByAssignment((m) => ({
+            ...m,
+            [a.id]: info.message || t("errors.readSubmissionsFailed"),
+          }));
         }
       );
 
@@ -499,7 +511,12 @@ function Inner() {
   useEffect(() => {
     if (access !== "allowed") return;
 
-    const qy = query(collection(db, "published_lessons"), where("isActive", "==", true), orderBy("createdAt", "desc"), limit(50));
+    const qy = query(
+      collection(db, "published_lessons"),
+      where("isActive", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
 
     return onSnapshot(qy, (snap) => setLibrary(snap.docs.map((d) => ({ id: d.id, data: snapTo<LibraryLesson>(d) }))));
   }, [access]);
@@ -571,7 +588,13 @@ function Inner() {
     return `${start}–${end} / ${total}`;
   }, [filteredLibrary.length, pageLib]);
 
-  async function assignTask(src: { type: SourceType; id: string; title?: string; level?: string; language?: string }) {
+  async function assignTask(src: {
+    type: SourceType;
+    id: string;
+    title?: string;
+    level?: string;
+    language?: string;
+  }) {
     setSaveErr(null);
 
     if (access !== "allowed") {
@@ -608,7 +631,10 @@ function Inner() {
       }
 
       if (!res.ok) {
-        const msg = isRecord(data) && typeof data["error"] === "string" ? String(data["error"]) : raw || `Request failed (${res.status})`;
+        const msg =
+          isRecord(data) && typeof data["error"] === "string"
+            ? String(data["error"])
+            : raw || `Request failed (${res.status})`;
         throw new Error(msg);
       }
 
@@ -657,7 +683,10 @@ function Inner() {
 
     setSaving(true);
     try {
-      await updateDoc(doc(db, "spaces", spaceId, "lessons", assignmentId), { status, updatedAt: Timestamp.now() });
+      await updateDoc(doc(db, "spaces", spaceId, "lessons", assignmentId), {
+        status,
+        updatedAt: Timestamp.now(),
+      });
 
       if (status === "archived" && activeForStudentsId === assignmentId) {
         const nextActive = assignments.find((a) => a.id !== assignmentId && a.data.status !== "archived");
@@ -688,13 +717,16 @@ function Inner() {
 
   if (access === "checking") {
     return (
-      <div className="w-full">
+      <div className="w-full min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="m-0 text-2xl font-semibold text-slate-900">{t("checking.title")}</h1>
-            <div className="mt-1 text-sm text-slate-600">{t("checking.subtitle")}</div>
+          <div className="min-w-0">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("checking.title")}</h1>
+            <div className="mt-1 break-words text-sm text-slate-600">{t("checking.subtitle")}</div>
           </div>
-          <Link className="text-sm font-medium text-slate-700 underline underline-offset-4" href={withLocale(locale, "/teacher/spaces")}>
+          <Link
+            className="text-sm font-medium text-slate-700 underline underline-offset-4"
+            href={withLocale(locale, "/teacher/spaces")}
+          >
             {t("actions.back")}
           </Link>
         </div>
@@ -704,14 +736,17 @@ function Inner() {
 
   if (access === "denied") {
     return (
-      <div className="w-full">
+      <div className="w-full min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="m-0 text-2xl font-semibold text-slate-900">{t("denied.title")}</h1>
-            <div className="mt-2 text-sm text-slate-600">{accessReason || t("denied.subtitle")}</div>
-            <div className="mt-2 text-sm text-slate-600">{t("denied.hint")}</div>
+          <div className="min-w-0">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("denied.title")}</h1>
+            <div className="mt-2 break-words text-sm text-slate-600">{accessReason || t("denied.subtitle")}</div>
+            <div className="mt-2 break-words text-sm text-slate-600">{t("denied.hint")}</div>
           </div>
-          <Link className="text-sm font-medium text-slate-700 underline underline-offset-4" href={withLocale(locale, "/teacher/spaces")}>
+          <Link
+            className="text-sm font-medium text-slate-700 underline underline-offset-4"
+            href={withLocale(locale, "/teacher/spaces")}
+          >
             {t("actions.back")}
           </Link>
         </div>
@@ -722,32 +757,39 @@ function Inner() {
   const canManage = access === "allowed" && Boolean(user?.uid) && canOperateSpace;
 
   return (
-    <div className="w-full space-y-4">
-      <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+    <div className="w-full min-w-0 space-y-4">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{String(space.title ?? "")}</h1>
-            <div className="mt-1 text-sm text-slate-600">{t("overview.subtitle")}</div>
+            <div className="mt-1 break-words text-sm text-slate-600">{t("overview.subtitle")}</div>
           </div>
 
           <div className="flex w-full justify-start lg:w-auto lg:justify-end">
-            <Link className="text-sm font-medium text-slate-700 underline underline-offset-4" href={withLocale(locale, "/teacher/spaces")}>
+            <Link
+              className="text-sm font-medium text-slate-700 underline underline-offset-4"
+              href={withLocale(locale, "/teacher/spaces")}
+            >
               {t("actions.back")}
             </Link>
           </div>
         </div>
       </div>
 
-      {saveErr && <div className="rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveErr}</div>}
+      {saveErr && (
+        <div className="w-full min-w-0 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {saveErr}
+        </div>
+      )}
 
-      <div className="rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
-            <div className="mt-1 text-sm text-slate-600">{t("assignments.subtitle")}</div>
+            <div className="mt-1 break-words text-sm text-slate-600">{t("assignments.subtitle")}</div>
           </div>
 
-          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:w-auto xl:flex-wrap xl:justify-end">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:w-auto xl:flex-wrap xl:justify-end">
             <button
               type="button"
               onClick={() => setAssignOpen(true)}
@@ -789,21 +831,21 @@ function Inner() {
             </button>
           </div>
 
-          {quotaErr && <div className="text-xs text-slate-600">{quotaErr}</div>}
+          {quotaErr && <div className="break-words text-xs text-slate-600">{quotaErr}</div>}
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
-            <div className="mt-1 text-sm text-slate-600">
+            <div className="mt-1 break-words text-sm text-slate-600">
               {visibleAssignments.length} {visibleAssignments.length === 1 ? "oppgave" : "oppgaver"}
             </div>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3">
+        <div className="mt-4 grid min-w-0 gap-3 px-1 sm:px-0">
           {visibleAssignments.length === 0 ? (
             <div className="rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
               {t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}
@@ -822,11 +864,13 @@ function Inner() {
               const hasNew = summary.newCount > 0;
 
               return (
-                <div key={a.id} className="rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4">
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div key={a.id} className="min-w-0 rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4">
+                  <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="break-words font-semibold text-slate-900">{a.data.title || t("fallback.untitledTask")}</div>
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <div className="break-words font-semibold text-slate-900">
+                          {a.data.title || t("fallback.untitledTask")}
+                        </div>
 
                         {isActiveForStudents && (
                           <span className="rounded-full border border-slate-300 bg-slate-900 px-2 py-0.5 text-xs font-medium text-white">
@@ -875,7 +919,7 @@ function Inner() {
                       </div>
                     </div>
 
-                    <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:w-auto xl:flex-wrap xl:justify-end">
+                    <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:w-auto xl:flex-wrap xl:justify-end">
                       <button
                         type="button"
                         onClick={() => router.push(withLocale(locale, `/teacher/spaces/${spaceId}/lessons/${a.id}`))}
@@ -927,15 +971,20 @@ function Inner() {
       </div>
 
       {assignOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4" onClick={() => setAssignOpen(false)} role="dialog" aria-modal="true">
-          <div className="mx-auto w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
-            <div className="max-h-[90vh] overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-xl">
+        <div
+          className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4"
+          onClick={() => setAssignOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="mx-auto w-full max-w-4xl min-w-0" onClick={(e) => e.stopPropagation()}>
+            <div className="max-h-[90vh] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-xl">
               <div className="border-b border-slate-200 p-4 sm:p-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="text-lg font-semibold text-slate-900">{t("assignModal.title")}</div>
-                    <div className="mt-1 text-sm text-slate-600">{t("assignModal.subtitle")}</div>
-                    {quotaErr && <div className="mt-2 text-xs text-slate-600">{quotaErr}</div>}
+                    <div className="mt-1 break-words text-sm text-slate-600">{t("assignModal.subtitle")}</div>
+                    {quotaErr && <div className="mt-2 break-words text-xs text-slate-600">{quotaErr}</div>}
                   </div>
 
                   <button
@@ -947,8 +996,8 @@ function Inner() {
                   </button>
                 </div>
 
-                <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
-                  <div className="flex flex-wrap gap-2">
+                <div className="mt-4 flex min-w-0 flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+                  <div className="flex min-w-0 flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => setAssignTab("myContent")}
@@ -980,11 +1029,11 @@ function Inner() {
                     value={assignSearch}
                     onChange={(e) => setAssignSearch(e.target.value)}
                     placeholder={t("assignModal.searchPlaceholder")}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 lg:ml-auto lg:max-w-[360px]"
+                    className="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 lg:ml-auto lg:max-w-[360px]"
                   />
                 </div>
 
-                <div className="mt-3 grid grid-cols-3 items-center gap-2">
+                <div className="mt-3 grid min-w-0 grid-cols-3 items-center gap-2">
                   {assignTab === "myContent" ? (
                     <>
                       <button
@@ -1037,18 +1086,22 @@ function Inner() {
                 </div>
               </div>
 
-              <div className="max-h-[calc(90vh-270px)] overflow-y-auto p-4 sm:p-5">
-                <div className="grid gap-3">
+              <div className="max-h-[calc(90vh-270px)] min-w-0 overflow-y-auto p-4 sm:p-5">
+                <div className="grid min-w-0 gap-3">
                   {assignTab === "myContent" && (
                     <>
                       {pagedMy.length === 0 ? (
-                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">{t("assignModal.noResults")}</div>
+                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                          {t("assignModal.noResults")}
+                        </div>
                       ) : (
                         pagedMy.map((x) => (
-                          <div key={x.id} className="rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div key={x.id} className="w-full min-w-0 rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
+                            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                               <div className="min-w-0 flex-1">
-                                <div className="break-words font-semibold text-slate-900">{x.data.title || t("fallback.untitled")}</div>
+                                <div className="break-words font-semibold text-slate-900">
+                                  {x.data.title || t("fallback.untitled")}
+                                </div>
                                 <div className="mt-1 break-words text-sm text-slate-600">
                                   {x.data.level ? x.data.level : "—"}
                                   {x.data.language ? ` · ${x.data.language}` : ""}
@@ -1085,13 +1138,17 @@ function Inner() {
                   {assignTab === "library" && (
                     <>
                       {filteredLibrary.length === 0 ? (
-                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">{t("assignModal.noResults")}</div>
+                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                          {t("assignModal.noResults")}
+                        </div>
                       ) : (
                         pagedLibrary.map((x) => (
-                          <div key={x.id} className="rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div key={x.id} className="w-full min-w-0 rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
+                            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                               <div className="min-w-0 flex-1">
-                                <div className="break-words font-semibold text-slate-900">{x.data.title || t("fallback.untitled")}</div>
+                                <div className="break-words font-semibold text-slate-900">
+                                  {x.data.title || t("fallback.untitled")}
+                                </div>
                                 <div className="mt-1 break-words text-sm text-slate-600">
                                   {x.data.level ? x.data.level : "—"}
                                   {x.data.language ? ` · ${x.data.language}` : ""}

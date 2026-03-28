@@ -1,4 +1,3 @@
-// app/[locale]/(app)/teacher/spaces/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -20,16 +19,11 @@ type TimestampLike = { toMillis: () => number };
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
+
 function isTimestampLike(v: unknown): v is TimestampLike {
   return isRecord(v) && typeof v["toMillis"] === "function";
 }
 
-/**
- * Accepts:
- * - Firestore Timestamp (or Timestamp-like)
- * - number (already millis)
- * - { seconds, nanoseconds } style objects (best-effort)
- */
 function asMillis(v: unknown): number {
   if (isTimestampLike(v)) return v.toMillis();
 
@@ -49,12 +43,6 @@ function asMillis(v: unknown): number {
 
 type SortKey = "newest" | "oldest" | "title_az" | "title_za";
 
-/**
- * Locale-safe link helper:
- * - keeps absolute URLs unchanged
- * - prefixes "/{locale}" for internal paths that start with "/"
- * - avoids double-prefix if already "/en/..." or "/no/..." or "/pt/..."
- */
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
   if (!href.startsWith("/")) return href;
@@ -209,53 +197,57 @@ function TeacherSpacesInner() {
   }
 
   return (
-    <div className="w-full space-y-4">
-      <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+    <div className="w-full min-w-0 space-y-4">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="m-0 text-2xl font-semibold text-slate-900">{t("title")}</h1>
-            <p className="mt-2 text-sm text-slate-600">{t("subtitle")}</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
+            <p className="mt-2 break-words text-sm text-slate-600">{t("subtitle")}</p>
           </div>
 
-          <Link
-            href={withLocale(locale, "/teacher/spaces/new")}
-            title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
-            className={[
-              "inline-flex items-center justify-center rounded-xl px-4 py-2 text-base font-semibold shadow-sm hover:shadow-md no-underline",
-              canCreateSpace
-                ? "bg-green-600 text-white hover:bg-green-500"
-                : "border border-slate-300 bg-white text-slate-800",
-            ].join(" ")}
-          >
-            {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
-          </Link>
+          <div className="flex w-full justify-start lg:w-auto lg:justify-end">
+            <Link
+              href={withLocale(locale, "/teacher/spaces/new")}
+              title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
+              className={[
+                "inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-base font-semibold shadow-sm hover:shadow-md no-underline sm:w-auto",
+                canCreateSpace
+                  ? "bg-green-600 text-white hover:bg-green-500"
+                  : "border border-slate-300 bg-white text-slate-800",
+              ].join(" ")}
+            >
+              {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
+            </Link>
+          </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
-        <div className="flex flex-col gap-4">
-          <div>
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("controls.filters.label")}</div>
-            <div className="mt-1 text-sm text-slate-600">{t("controls.filters.showing", { n: filtered.length })}</div>
+            <div className="mt-1 break-words text-sm text-slate-600">
+              {t("controls.filters.showing", { n: filtered.length })}
+            </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-3">
-            <div className="lg:col-span-1">
+          <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3">
+            <div className="min-w-0 lg:col-span-1">
               <label className="text-sm font-medium text-slate-800">{t("controls.search.label")}</label>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t("controls.search.placeholder")}
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                className="mt-2 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
               />
             </div>
 
-            <div className="lg:col-span-1">
+            <div className="min-w-0 lg:col-span-1">
               <label className="text-sm font-medium text-slate-800">{t("controls.sort.label")}</label>
               <select
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value as SortKey)}
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                className="mt-2 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
               >
                 <option value="newest">{t("controls.sort.options.newest")}</option>
                 <option value="oldest">{t("controls.sort.options.oldest")}</option>
@@ -264,9 +256,9 @@ function TeacherSpacesInner() {
               </select>
             </div>
 
-            <div className="lg:col-span-1">
+            <div className="min-w-0 lg:col-span-1">
               <label className="text-sm font-medium text-slate-800">{t("controls.filters.label")}</label>
-              <label className="mt-2 flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2">
+              <label className="mt-2 flex min-w-0 items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2">
                 <input
                   id="openOnly"
                   type="checkbox"
@@ -274,22 +266,22 @@ function TeacherSpacesInner() {
                   onChange={(e) => setOpenOnly(e.target.checked)}
                   className="h-4 w-4 rounded border-slate-400"
                 />
-                <span className="text-sm text-slate-700">{t("controls.filters.openOnly")}</span>
+                <span className="min-w-0 break-words text-sm text-slate-700">{t("controls.filters.openOnly")}</span>
               </label>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
-        <div className="mb-4">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="mb-4 min-w-0">
           <div className="text-base font-semibold text-slate-900">{t("title")}</div>
-          <div className="mt-1 text-sm text-slate-600">
+          <div className="mt-1 break-words text-sm text-slate-600">
             {filtered.length} {filtered.length === 1 ? "rom" : "rom"}
           </div>
         </div>
 
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3 px-1 sm:px-0">
           {filtered.map((r) => {
             const code = (r.data.code ?? "").toString();
             const title = (r.data.title ?? t("list.untitled")).toString();
@@ -301,14 +293,14 @@ function TeacherSpacesInner() {
               <div
                 key={r.id}
                 className={[
-                  "w-full overflow-hidden rounded-2xl border bg-white p-4 shadow-sm transition sm:p-5",
+                  "min-w-0 overflow-hidden rounded-2xl border bg-white p-4 shadow-sm transition sm:p-5",
                   open ? "border-emerald-300" : "border-slate-300",
                   "hover:shadow-md",
                 ].join(" ")}
               >
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <div className="break-words text-base font-semibold text-slate-900">{title}</div>
                       <span
                         className={[
@@ -323,7 +315,7 @@ function TeacherSpacesInner() {
                       </span>
                     </div>
 
-                    <div className="mt-2 min-w-0 text-sm text-slate-600">
+                    <div className="mt-2 min-w-0 break-words text-sm text-slate-600">
                       {t("list.code")}{" "}
                       <button
                         type="button"
@@ -333,12 +325,15 @@ function TeacherSpacesInner() {
                       >
                         <span className="break-all">{code || "—"}</span>
                       </button>
-                      {copiedId === r.id && <span className="ml-2 text-xs text-slate-600">{t("list.copied")}</span>}
+                      {copiedId === r.id && (
+                        <span className="ml-2 inline-block break-words text-xs text-slate-600">{t("list.copied")}</span>
+                      )}
                       <span className="mx-2">·</span>
-                      {t("list.members")} <b className="text-slate-900">{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
+                      {t("list.members")}{" "}
+                      <b className="text-slate-900">{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
                     </div>
 
-                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
                       <button
                         type="button"
                         onClick={() => {
@@ -363,7 +358,7 @@ function TeacherSpacesInner() {
                     </div>
                   </div>
 
-                  <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[360px]">
+                  <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[360px] xl:grid-cols-1 2xl:grid-cols-3">
                     <button
                       type="button"
                       onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
@@ -407,13 +402,16 @@ function TeacherSpacesInner() {
 
       {qrOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4"
           onClick={closeQr}
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-md rounded-2xl border border-slate-300 bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="min-w-0 flex items-start justify-between gap-3">
+          <div
+            className="w-full max-w-md min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-xl sm:p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-lg font-semibold text-slate-900">{t("qr.title")}</div>
                 <div className="mt-1 break-words text-sm text-slate-600">
@@ -444,7 +442,7 @@ function TeacherSpacesInner() {
                     width={256}
                     height={256}
                     unoptimized
-                    className="h-auto w-64 rounded-lg border border-slate-300"
+                    className="h-auto max-w-full rounded-lg border border-slate-300"
                   />
                   <div className="break-all text-center text-xs text-slate-600">
                     {t("qr.pointsTo")}{" "}

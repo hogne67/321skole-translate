@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 
 type NavItem = { href: string; label: string };
 
@@ -24,6 +24,8 @@ export default function SectionShell({
   hideNav?: boolean;
 }) {
   const pathname = usePathname();
+  const params = useParams<{ locale?: string }>();
+  const locale = typeof params?.locale === "string" ? params.locale : "";
 
   function isItemActive(itemHref: string) {
     if (!pathname) return false;
@@ -33,6 +35,19 @@ export default function SectionShell({
 
   function isToolsItem(itemHref: string) {
     return itemHref === "/tools" || itemHref.startsWith("/tools/");
+  }
+
+  function withLocale(href: string) {
+    if (!href) return href;
+    if (/^https?:\/\//i.test(href)) return href;
+    if (!href.startsWith("/")) return href;
+    if (!locale) return href;
+
+    const seg = href.split("/")[1];
+    if (seg === "en" || seg === "no" || seg === "pt") return href;
+
+    if (href === "/") return `/${locale}`;
+    return `/${locale}${href}`;
   }
 
   const toolsItem = items.find((it) => isToolsItem(it.href));
@@ -80,7 +95,7 @@ export default function SectionShell({
                 return (
                   <Link
                     key={it.href}
-                    href={it.href}
+                    href={withLocale(it.href)}
                     className={isTools ? "navLink navLinkTools" : "navLink"}
                     style={{
                       textDecoration: "none",
@@ -114,9 +129,29 @@ export default function SectionShell({
       </div>
 
       {!hideNav && toolsItem ? (
-        <div className="mobileCreateWrap">
-          <Link href={toolsItem.href} className="mobileCreateButton">
-            <span className="mobileCreatePlus">+</span>
+        <div className="mobileCreateWrap" aria-hidden={false}>
+          <Link
+            href={withLocale(toolsItem.href)}
+            style={{
+              pointerEvents: "auto",
+              margin: "0 auto",
+              width: "fit-content",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              textDecoration: "none",
+              borderRadius: 999,
+              padding: "12px 18px",
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#1f7a1f",
+              background: "#deebde",
+              border: "1px solid #81beb3",
+              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.14)",
+            }}
+          >
+            <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
             <span>Create</span>
           </Link>
         </div>
@@ -158,12 +193,7 @@ export default function SectionShell({
           flex: 0 0 auto;
         }
 
-        .sectionContent {
-          width: 100%;
-          box-sizing: border-box;
-          padding: 16px;
-          overflow-x: hidden;
-        }
+        .sectionContent 
 
         .sectionContent.full {
           padding: 0;
@@ -202,29 +232,6 @@ export default function SectionShell({
             bottom: max(12px, env(safe-area-inset-bottom));
             z-index: 40;
             pointer-events: none;
-          }
-
-          .mobileCreateButton {
-            pointer-events: auto;
-            margin: 0 auto;
-            width: fit-content;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-            border-radius: 999px;
-            padding: 12px 18px;
-            font-size: 15px;
-            font-weight: 700;
-            color: #1f7a1f;
-            background: #deebde;
-            border: 1px solid #81beb3;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-          }
-
-          .mobileCreatePlus {
-            font-size: 18px;
-            line-height: 1;
           }
         }
       `}</style>
