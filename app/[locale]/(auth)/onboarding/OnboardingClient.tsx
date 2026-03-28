@@ -150,8 +150,6 @@ export default function OnboardingClient({ nextUrl }: Props) {
     [t]
   );
 
-  // Viktig: denne må IKKE avhenge av valgt rolle,
-  // ellers resettes rolle når brukeren klikker student/teacher/parent.
   const safeNext = useMemo(() => normalizeNext(nextUrl, locale), [nextUrl, locale]);
 
   const nameOk = !!displayName.trim();
@@ -218,7 +216,12 @@ export default function OnboardingClient({ nextUrl }: Props) {
           setMunicipality(String(orgMunicipality).trim());
           setInstitutionType(instType);
           setInstitutionName(String(orgInstitutionName).trim());
-          setStep(1);
+
+          if (r) {
+            setStep(2);
+          } else {
+            setStep(1);
+          }
         } else {
           setDisplayName(authName);
           setRole("");
@@ -303,6 +306,13 @@ export default function OnboardingClient({ nextUrl }: Props) {
     }
   }
 
+  function chooseRole(nextRole: Role) {
+    setRoleTouched(true);
+    setRole(nextRole);
+    setErr(null);
+    setStep(2);
+  }
+
   async function saveProfile() {
     if (!uid) return;
 
@@ -373,13 +383,13 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
   const pageBg: React.CSSProperties = {
     minHeight: "100vh",
-    padding: 16,
+    padding: "12px 14px 28px",
     background: "linear-gradient(180deg, rgba(124,199,255,0.16), rgba(255,255,255,1) 340px)",
   };
 
   const wrap: React.CSSProperties = {
     maxWidth: 820,
-    margin: "32px auto",
+    margin: "12px auto",
   };
 
   const card: React.CSSProperties = {
@@ -387,20 +397,20 @@ export default function OnboardingClient({ nextUrl }: Props) {
     border: "1px solid rgba(15,23,42,0.08)",
     borderRadius: 24,
     boxShadow: "0 18px 50px rgba(15,23,42,0.10)",
-    padding: 22,
+    padding: 18,
   };
 
   const logoWrap: React.CSSProperties = {
     display: "flex",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   };
 
   const header: React.CSSProperties = {
     display: "grid",
     gap: 8,
     textAlign: "center",
-    marginBottom: 18,
+    marginBottom: 16,
   };
 
   const eyebrow: React.CSSProperties = {
@@ -413,8 +423,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
   const title: React.CSSProperties = {
     margin: 0,
-    fontSize: 30,
-    lineHeight: 1.1,
+    fontSize: 28,
+    lineHeight: 1.08,
     fontWeight: 900,
     color: "#0f172a",
   };
@@ -422,7 +432,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const subtitle: React.CSSProperties = {
     margin: 0,
     color: "rgba(15,23,42,0.72)",
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 1.55,
   };
 
@@ -431,8 +441,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
     borderRadius: 999,
     background: "rgba(148,163,184,0.18)",
     overflow: "hidden",
-    marginTop: 8,
-    marginBottom: 20,
+    marginTop: 6,
+    marginBottom: 18,
   };
 
   const progressInner: React.CSSProperties = {
@@ -465,13 +475,13 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const roleGrid: React.CSSProperties = {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 14,
+    gap: 12,
   };
 
   const roleCard = (active: boolean): React.CSSProperties => ({
     border: active ? "2px solid #2563eb" : "1px solid rgba(15,23,42,0.10)",
     borderRadius: 18,
-    padding: 16,
+    padding: 14,
     cursor: "pointer",
     background: active
       ? "linear-gradient(180deg, rgba(37,99,235,0.16), rgba(6,182,212,0.12))"
@@ -483,7 +493,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
     display: "grid",
     gap: 8,
     textAlign: "left",
-    minHeight: 158,
+    minHeight: 142,
     position: "relative",
     transition: "all 160ms ease",
   });
@@ -506,9 +516,9 @@ export default function OnboardingClient({ nextUrl }: Props) {
   });
 
   const roleEmoji: React.CSSProperties = {
-    fontSize: 28,
+    fontSize: 26,
     lineHeight: 1,
-    marginTop: 6,
+    marginTop: 2,
   };
 
   const roleTitle: React.CSSProperties = {
@@ -518,7 +528,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
   };
 
   const roleHint: React.CSSProperties = {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 1.45,
     color: "#475569",
   };
@@ -540,6 +550,17 @@ export default function OnboardingClient({ nextUrl }: Props) {
     background: "rgba(220,38,38,0.06)",
     color: "#991b1b",
     fontSize: 14,
+  };
+
+  const changeRoleButton: React.CSSProperties = {
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    color: "#2563eb",
+    fontWeight: 800,
+    fontSize: 14,
+    cursor: "pointer",
+    justifySelf: "start",
   };
 
   const labelStyle: React.CSSProperties = { display: "grid", gap: 6 };
@@ -609,12 +630,12 @@ export default function OnboardingClient({ nextUrl }: Props) {
                 width={220}
                 height={72}
                 priority
-                style={{ width: "auto", height: "58px", objectFit: "contain" }}
+                style={{ width: "auto", height: "56px", objectFit: "contain" }}
               />
             </div>
 
             <div style={header}>
-              <div style={eyebrow}>{safeT("title", "Get started")} · 1/2</div>
+              <div style={eyebrow}>{safeT("title", "Get started")}</div>
               <h1 style={title}>{safeT("title", "Get started")}</h1>
               <p style={subtitle}>{safeT("loading", "Loading…")}</p>
             </div>
@@ -635,7 +656,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
               width={220}
               height={72}
               priority
-              style={{ width: "auto", height: "58px", objectFit: "contain" }}
+              style={{ width: "auto", height: "56px", objectFit: "contain" }}
             />
           </div>
 
@@ -666,7 +687,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
               <p style={sectionText}>
                 {safeT(
                   "steps.role.text",
-                  "Choose the role that fits you best. You can add or change your role later."
+                  "Tap the role that fits you best. You can change it later."
                 )}
               </p>
 
@@ -675,11 +696,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
                   type="button"
                   className="role-card"
                   aria-pressed={role === "student"}
-                  onClick={() => {
-                    setRoleTouched(true);
-                    setRole("student");
-                    setErr(null);
-                  }}
+                  onClick={() => chooseRole("student")}
                   style={roleCard(role === "student")}
                 >
                   <span style={selectedBadge(role === "student")}>✓</span>
@@ -697,11 +714,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
                   type="button"
                   className="role-card"
                   aria-pressed={role === "teacher"}
-                  onClick={() => {
-                    setRoleTouched(true);
-                    setRole("teacher");
-                    setErr(null);
-                  }}
+                  onClick={() => chooseRole("teacher")}
                   style={roleCard(role === "teacher")}
                 >
                   <span style={selectedBadge(role === "teacher")}>✓</span>
@@ -719,11 +732,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
                   type="button"
                   className="role-card"
                   aria-pressed={role === "parent"}
-                  onClick={() => {
-                    setRoleTouched(true);
-                    setRole("parent");
-                    setErr(null);
-                  }}
+                  onClick={() => chooseRole("parent")}
                   style={roleCard(role === "parent")}
                 >
                   <span style={selectedBadge(role === "parent")}>✓</span>
@@ -743,22 +752,19 @@ export default function OnboardingClient({ nextUrl }: Props) {
                   {safeT("errors.missingRole", "Choose a role (Student, Teacher or Parent).")}
                 </div>
               ) : null}
-
-              <div style={footerRow}>
-                <div />
-                <button
-                  type="button"
-                  onClick={goNext}
-                  style={{ ...primaryBtn, cursor: "pointer" }}
-                >
-                  {safeT("buttons.continue", "Continue")}
-                </button>
-              </div>
             </section>
           ) : null}
 
           {step === 2 ? (
             <section style={section}>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                style={changeRoleButton}
+              >
+                ← {safeT("buttons.changeRole", "Change role")}
+              </button>
+
               <h2 style={sectionTitle}>
                 {safeT("steps.profile.title", "Basic profile")}
               </h2>
@@ -857,6 +863,14 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
           {step === 3 && isTeacher ? (
             <section style={section}>
+              <button
+                type="button"
+                onClick={goBack}
+                style={changeRoleButton}
+              >
+                ← {safeT("buttons.back", "Back")}
+              </button>
+
               <h2 style={sectionTitle}>
                 {safeT("steps.institution.title", "Learning institution")}
               </h2>
@@ -903,14 +917,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
               </div>
 
               <div style={footerRow}>
-                <button
-                  type="button"
-                  onClick={goBack}
-                  style={{ ...secondaryBtn, cursor: "pointer" }}
-                >
-                  {safeT("buttons.back", "Back")}
-                </button>
-
+                <div />
                 <button
                   type="button"
                   onClick={saveProfile}

@@ -55,17 +55,17 @@
   "auth": {
   "login": {
     "title": {
-      "signin": "Entrar",
+      "signin": "Bem-vindo de volta",
       "signup": "Criar conta"
     },
     "intro": {
-      "anon": "Você está usando uma conta temporária. Entre ou crie uma conta para manter seu trabalho.",
-      "normal": "Entre para continuar.",
-      "signup": "Crie uma conta para começar como aluno, professor ou responsável."
+      "anon": "Você está usando uma conta temporária. Entre ou crie uma conta agora para guardar seu trabalho.",
+      "normal": "Escolha como deseja entrar.",
+      "signup": "Comece como aluno, professor ou responsável em apenas um minuto."
     },
     "tabs": {
-      "signin": "Entrar",
-      "signup": "Criar conta"
+      "signin": "Já tenho uma conta",
+      "signup": "Sou novo aqui"
     },
     "separator": "ou",
     "fields": {
@@ -78,15 +78,19 @@
       "rememberMe": "Lembrar de mim neste dispositivo"
     },
     "buttons": {
-      "working": "Trabalhando…",
+      "working": "Processando…",
       "sending": "Enviando…",
-      "upgradeGoogle": "Atualizar com Google",
-      "signinGoogle": "Continuar com Google",
-      "signinEmail": "Entrar com e-mail",
+      "upgradeGoogle": "Salvar e continuar com Google",
+      "signinGoogle": "Entrar com Google",
+      "signupGoogle": "Criar conta com Google",
+      "useEmailSignin": "Usar e-mail e senha",
+      "useEmailSignup": "Criar conta com e-mail",
+      "signinEmail": "Entrar",
       "upgradeAccount": "Salvar conta anônima",
       "createAccount": "Criar conta",
       "forgotPassword": "Esqueceu a senha?",
-      "sendReset": "Enviar e-mail de redefinição"
+      "sendReset": "Enviar e-mail de redefinição",
+      "backToOptions": "Voltar às opções de entrada"
     },
     "forgot": {
       "title": "Redefinir senha",
@@ -96,12 +100,14 @@
       "resetSent": "Enviamos um e-mail com um link para redefinir sua senha."
     },
     "hints": {
-      "anonSignup": "Dica: se este e-mail já existir, escolha <b>Entrar</b>."
+      "anonSignup": "Dica: se este e-mail já existir, escolha <b>Já tenho uma conta</b>.",
+      "methodSignin": "Use Google se você se cadastrou com Google antes. Caso contrário, escolha e-mail.",
+      "methodSignup": "Escolha Google para começar mais rápido, ou e-mail se preferir usar senha."
     },
     "footer": {
-      "noAccount": "Ainda não tem conta?",
+      "noAccount": "Não tem conta?",
       "signupLink": "Crie uma aqui",
-      "hasAccount": "Já é cadastrado?",
+      "hasAccount": "Já está registrado?",
       "signinLink": "Entre aqui"
     },
     "errors": {
@@ -110,88 +116,89 @@
       "missingName": "Digite seu nome.",
       "invalidCredential": "E-mail ou senha incorretos.",
       "userNotFound": "Nenhum usuário encontrado com esse e-mail.",
-      "emailAlreadyInUse": "Este e-mail já está em uso.",
-      "emailAlreadyInUseLoginInstead": "Este e-mail já está em uso. Entre em vez disso.",
+      "emailAlreadyInUse": "Esse e-mail já está em uso.",
+      "emailAlreadyInUseLoginInstead": "Esse e-mail já está em uso. Entre em vez disso.",
       "weakPassword": "A senha é muito fraca (mínimo de 6 caracteres).",
       "invalidEmail": "Endereço de e-mail inválido.",
       "tooManyRequests": "Muitas tentativas. Tente novamente mais tarde.",
-      "popupClosed": "A entrada foi cancelada.",
+      "popupClosed": "O login foi cancelado.",
       "generic": "Não foi possível continuar. Tente novamente."
     }
   },
   "onboarding": {
-  "title": "Começar",
-  "loading": "Carregando…",
-  "subtitle": "Escolha sua função e preencha as informações básicas para continuar.",
-  "steps": {
-    "role": {
-      "title": "Escolha sua função",
-      "text": "Escolha a função que combina melhor com você. Você poderá adicionar ou alterar a função depois."
+    "title": "Começar",
+    "loading": "Carregando…",
+    "subtitle": "Escolha seu perfil e preencha algumas informações básicas para continuar.",
+    "steps": {
+      "role": {
+        "title": "Escolha seu perfil",
+        "text": "Toque no perfil que mais combina com você. Você poderá alterá-lo depois."
+      },
+      "profile": {
+        "title": "Perfil básico",
+        "text": "Conte um pouco sobre você para que possamos adaptar melhor a experiência."
+      },
+      "institution": {
+        "title": "Instituição de ensino",
+        "text": "Esta etapa é opcional, mas nos ajuda a adaptar melhor a experiência do professor."
+      }
     },
-    "profile": {
-      "title": "Perfil básico",
-      "text": "Conte um pouco sobre você para que possamos adaptar melhor a experiência."
+    "fields": {
+      "role": {
+        "label": "Escolha um perfil *",
+        "student": "Aluno",
+        "teacher": "Professor",
+        "parent": "Responsável",
+        "hint": "Escolha um perfil para continuar.",
+        "studentHint": "Para alunos e estudantes que querem aprender mais sozinhos ou com outras pessoas.",
+        "teacherHint": "Plataforma de aprendizagem para professores com turmas, salas de aula e quadro digital.",
+        "parentHint": "Para responsáveis que querem ajudar seus filhos a aprender mais. Crie seus próprios espaços de estudo e ofereça atividades adaptadas."
+      },
+      "fullName": {
+        "label": "Nome completo *"
+      },
+      "country": {
+        "label": "País *",
+        "placeholder": "Pesquisar país…"
+      },
+      "municipalityNo": {
+        "label": "Município *",
+        "placeholder": "Pesquisar município…"
+      },
+      "municipalityOther": {
+        "label": "Cidade / região *"
+      }
+    },
+    "errors": {
+      "missingRole": "Escolha um perfil (Aluno, Professor ou Responsável).",
+      "missingName": "Digite seu nome completo.",
+      "missingCountry": "Escolha um país.",
+      "missingMunicipalityNo": "Escolha um município.",
+      "missingMunicipalityOther": "Digite uma cidade ou região."
+    },
+    "buttons": {
+      "back": "Voltar",
+      "continue": "Continuar",
+      "saving": "Salvando…",
+      "complete": "Concluir perfil",
+      "changeRole": "Alterar perfil"
     },
     "institution": {
-      "title": "Instituição de ensino",
-      "text": "Esta etapa é opcional, mas nos ajuda a adaptar melhor a experiência do professor."
-    }
-  },
-  "fields": {
-    "role": {
-      "label": "Escolha a função *",
-      "student": "Aluno",
-      "teacher": "Professor",
-      "parent": "Responsável",
-      "hint": "Escolha uma função para continuar.",
-      "studentHint": "Para alunos e estudantes que querem aprender mais sozinhos ou junto com outras pessoas.",
-      "teacherHint": "Plataforma de aprendizagem para profissionais da educação com turmas, salas de aula e quadro digital.",
-      "parentHint": "Para responsáveis que querem ajudar seus filhos a aprender mais. Crie seus próprios espaços de estudo e ofereça atividades adaptadas."
-    },
-    "fullName": {
-      "label": "Nome completo *"
-    },
-    "country": {
-      "label": "País *",
-      "placeholder": "Pesquisar país…"
-    },
-    "municipalityNo": {
-      "label": "Município *",
-      "placeholder": "Pesquisar município…"
-    },
-    "municipalityOther": {
-      "label": "Cidade / região *"
-    }
-  },
-  "errors": {
-    "missingRole": "Escolha uma função (Aluno, Professor ou Responsável).",
-    "missingName": "Digite seu nome completo.",
-    "missingCountry": "Escolha um país.",
-    "missingMunicipalityNo": "Escolha um município.",
-    "missingMunicipalityOther": "Digite uma cidade ou região."
-  },
-  "buttons": {
-    "back": "Voltar",
-    "continue": "Continuar",
-    "saving": "Salvando…",
-    "complete": "Concluir perfil"
-  },
-  "institution": {
-    "title": "Instituição de ensino (opcional)",
-    "typeLabel": "Tipo",
-    "none": "Nenhuma",
-    "nameLabel": "Nome (opcional)",
-    "namePlaceholder": "",
-    "types": {
-      "school": "Escola",
-      "kindergarten": "Jardim de infância",
-      "adult_education": "Educação de adultos",
-      "university": "Universidade / faculdade",
-      "workplace": "Empresa / local de trabalho",
-      "other": "Outro"
+      "title": "Instituição de ensino (opcional)",
+      "typeLabel": "Tipo",
+      "none": "Nenhum",
+      "nameLabel": "Nome (opcional)",
+      "namePlaceholder": "",
+      "types": {
+        "school": "Escola",
+        "kindergarten": "Jardim de infância",
+        "adult_education": "Educação de adultos",
+        "university": "Universidade / faculdade",
+        "workplace": "Empresa / local de trabalho",
+        "other": "Outro"
+      }
     }
   }
-}
 },
   "tools": {
     "page": {

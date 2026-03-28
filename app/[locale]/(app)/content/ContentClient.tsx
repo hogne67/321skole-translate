@@ -161,8 +161,8 @@ function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
     <button
       {...props}
       className={[
-        "inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-extrabold",
-        "bg-white hover:bg-zinc-50 active:bg-zinc-100",
+        "inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-extrabold",
+        "bg-white text-slate-800 hover:bg-zinc-50 active:bg-zinc-100",
         "disabled:cursor-not-allowed disabled:opacity-50",
         props.className || "",
       ].join(" ")}
@@ -196,8 +196,8 @@ function GhostLink(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
     <a
       {...props}
       className={[
-        "inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-extrabold",
-        "bg-white hover:bg-zinc-50 active:bg-zinc-100",
+        "inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-extrabold",
+        "bg-white text-slate-800 hover:bg-zinc-50 active:bg-zinc-100",
         props.className || "",
       ].join(" ")}
     />
@@ -980,8 +980,8 @@ export default function ContentClient() {
 
     const editHref = lessonEditHref(ls);
     const pdfHref = isMath
-  ? `/${locale}/producer/math/${ls.id}/print`
-  : `/${locale}/producer/${ls.id}/print`;
+      ? `/${locale}/producer/math/${ls.id}/print`
+      : `/${locale}/producer/${ls.id}/print`;
     const isMathArchive = isMathArchiveItem(ls);
 
     const restoreAction: ActionItem[] =
@@ -1204,27 +1204,29 @@ export default function ContentClient() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-5xl min-w-0 px-2 py-4 sm:px-4">
-      <div className="mx-auto w-full min-w-0 max-w-full overflow-x-clip">
-        <div className="flex flex-col gap-3">
+    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-3">
           <div className="min-w-0">
-            <h1 className="text-xl font-black tracking-tight">
+            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">
               {isParent ? "Mitt innhold for familien" : t("title")}
             </h1>
-            <p className="mt-1 text-sm opacity-75">
+            <p className="mt-2 break-words text-sm text-slate-600">
               {isParent
                 ? "Her finner du oppgaver du kan åpne, organisere og dele videre til barnas rom."
                 : t("subtitle")}
             </p>
           </div>
         </div>
+      </section>
 
-        <div className="mt-4 min-w-0 max-w-full overflow-x-clip">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <div className="min-w-0">
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={isParent ? "Søk i oppgaver, rom og innleveringer …" : t("search.placeholder")}
-            className="block w-full max-w-full box-border rounded-2xl border px-4 py-3 text-sm font-semibold outline-none focus:ring-2"
+            className="block w-full max-w-full box-border rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none"
           />
 
           <div className="mt-3 hidden flex-wrap items-center justify-between gap-2 sm:flex">
@@ -1235,7 +1237,9 @@ export default function ContentClient() {
                   onClick={() => setFilter(ft)}
                   className={[
                     "rounded-full border px-3 py-2 text-sm font-extrabold",
-                    filter === ft ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
+                    filter === ft
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
                   ].join(" ")}
                   title={
                     ft === "library"
@@ -1254,7 +1258,7 @@ export default function ContentClient() {
               ))}
             </div>
 
-            <label className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-2 text-sm font-extrabold">
+            <label className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-sm font-extrabold text-slate-800">
               <input
                 type="checkbox"
                 checked={showDeleted}
@@ -1269,8 +1273,10 @@ export default function ContentClient() {
             <button
               onClick={() => setFilter("all")}
               className={[
-                "min-w-0 max-w-full flex-1 rounded-2xl border px-4 py-3 text-sm font-extrabold transition-colors",
-                filter === "all" ? "bg-zinc-900 text-white" : "bg-white hover:bg-zinc-50",
+                "min-w-0 max-w-full flex-1 rounded-xl border px-4 py-3 text-sm font-extrabold transition-colors",
+                filter === "all"
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
               ].join(" ")}
             >
               <span className="truncate">{labelWithCount("all")}</span>
@@ -1281,323 +1287,334 @@ export default function ContentClient() {
             </div>
           </div>
         </div>
+      </section>
 
-        {err ? (
-          <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
-            <div className="mb-1 font-black">{t("errors.label")}</div>
-            <div className="whitespace-pre-wrap text-sm">{err}</div>
+      {err ? (
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm">
+          <div className="mb-1 font-black">{t("errors.label")}</div>
+          <div className="whitespace-pre-wrap">{err}</div>
+        </div>
+      ) : null}
+
+      {notes.length > 0 ? (
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">
+          {notes.map((n) => (
+            <div key={n} className="text-sm text-slate-700">
+              • {n}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {warnings.length > 0 ? (
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+          {warnings.map((w) => (
+            <div key={w} className="text-sm text-amber-900">
+              • {w}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="min-w-0">
+          <div className="text-base font-semibold text-slate-900">
+            {isParent ? "Innhold" : t("title")}
           </div>
-        ) : null}
-
-        {notes.length > 0 ? (
-          <div className="mt-4 rounded-2xl border bg-zinc-50 p-4">
-            {notes.map((n) => (
-              <div key={n} className="text-sm">
-                • {n}
-              </div>
-            ))}
+          <div className="mt-1 text-sm text-slate-600">
+            {filtered.length} {locale === "en" ? "items" : "elementer"}
           </div>
-        ) : null}
+        </div>
 
-        {warnings.length > 0 ? (
-          <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
-            {warnings.map((w) => (
-              <div key={w} className="text-sm">
-                • {w}
-              </div>
-            ))}
-          </div>
-        ) : null}
+        <div className="mt-4 grid min-w-0 max-w-full gap-3">
+          {loading ? <div className="text-sm text-slate-600">{t("states.loadingContent")}</div> : null}
 
-        <div className="mt-4 min-w-0 max-w-full overflow-x-clip">
-          <div className="grid min-w-0 max-w-full gap-3">
-            {loading ? <div className="opacity-70">{t("states.loadingContent")}</div> : null}
+          {!loading && filtered.length === 0 ? (
+            <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-600 shadow-sm">
+              {emptyHint}
+            </div>
+          ) : null}
 
-            {!loading && filtered.length === 0 ? (
-              <div className="rounded-2xl border bg-white p-4">{emptyHint}</div>
-            ) : null}
+          {!loading
+            ? filtered.map((it) => {
+                const key = `${it.type}:${it.id}`;
+                const actions = buildActions(it);
+                const desktopMainActions = desktopActions(it, actions);
+                const desktopExtraActions = desktopOverflowActions(it, actions);
 
-            {!loading
-              ? filtered.map((it) => {
-                  const key = `${it.type}:${it.id}`;
-                  const actions = buildActions(it);
-                  const desktopMainActions = desktopActions(it, actions);
-                  const desktopExtraActions = desktopOverflowActions(it, actions);
+                const title = titleForCard(it);
+                const deletedAt = getDeletedAt(it);
+                const mathItem = isMathContent(it);
+                const mathSubtype = getMathSubtype(it);
+                const mathSubtypeText = mathSubtypeLabel(mathSubtype, locale);
 
-                  const title = titleForCard(it);
-                  const deletedAt = getDeletedAt(it);
-                  const mathItem = isMathContent(it);
-                  const mathSubtype = getMathSubtype(it);
-                  const mathSubtypeText = mathSubtypeLabel(mathSubtype, locale);
+                let pill: React.ReactNode = null;
 
-                  let pill: React.ReactNode = null;
-
-                  const extraPill =
-                    it.type === "submission"
-                      ? isLibraryPractice(it)
-                        ? locale === "en"
-                          ? <StatusPill label="Library" variant="gray" />
-                          : <StatusPill label="Bibliotek" variant="gray" />
-                        : isTeacherSpaceSubmission(it)
-                          ? locale === "en"
-                            ? <StatusPill label="Teacher" variant="gray" />
-                            : <StatusPill label="Innlevering" variant="gray" />
-                          : null
-                      : null;
-
-                  if (isDeletedItem(it)) {
-                    pill = <StatusPill label={deletedLabel} variant="amber" />;
-                  } else if (it.type === "lesson") {
-                    if (isReadingTestLesson(it)) {
-                      pill = locale === "en"
-                        ? <StatusPill label="Reading test" variant="gray" />
-                        : <StatusPill label="Lesetest" variant="gray" />;
-                    } else if (isParent) {
-                      pill = <StatusPill label="Klar til å dele" variant="green" />;
-                    } else if (isMathArchiveItem(it)) {
-                      pill = locale === "en"
-                        ? <StatusPill label="Ready for PDF" variant="green" />
-                        : <StatusPill label="Klar for PDF" variant="green" />;
-                    } else {
-                      const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
-                      pill =
-                        s === "published" ? (
-                          <StatusPill label={t("pills.published")} variant="green" />
-                        ) : (
-                          <StatusPill label={t("pills.unpublished")} variant="red" />
-                        );
-                    }
-                  } else if (it.status) {
-                    pill = <StatusPill label={it.status} variant="gray" />;
-                  }
-
-                  const metaLine = cleanMetaForCard(it);
-                  const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
-                  const mathHint =
-                    mathItem && it.type === "lesson"
+                const extraPill =
+                  it.type === "submission"
+                    ? isLibraryPractice(it)
                       ? locale === "en"
-                        ? "Ready for PDF export. Generate a new worksheet if you want another version."
-                        : "Klar for PDF-eksport. Generer en ny oppgave hvis du vil ha en annen variant."
-                      : null;
+                        ? <StatusPill label="Library" variant="gray" />
+                        : <StatusPill label="Bibliotek" variant="gray" />
+                      : isTeacherSpaceSubmission(it)
+                        ? locale === "en"
+                          ? <StatusPill label="Teacher" variant="gray" />
+                          : <StatusPill label="Innlevering" variant="gray" />
+                        : null
+                    : null;
 
-                  return (
-                    <div
-                      key={key}
-                      className="block w-full max-w-full min-w-0 box-border rounded-2xl border bg-white p-4"
-                    >
-                      <div className="flex min-w-0 max-w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0 max-w-full flex-1">
-                          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
-                            <div className="min-w-0 max-w-full break-words text-base font-black leading-tight">
-                              {title}
-                            </div>
+                if (isDeletedItem(it)) {
+                  pill = <StatusPill label={deletedLabel} variant="amber" />;
+                } else if (it.type === "lesson") {
+                  if (isReadingTestLesson(it)) {
+                    pill = locale === "en"
+                      ? <StatusPill label="Reading test" variant="gray" />
+                      : <StatusPill label="Lesetest" variant="gray" />;
+                  } else if (isParent) {
+                    pill = <StatusPill label="Klar til å dele" variant="green" />;
+                  } else if (isMathArchiveItem(it)) {
+                    pill = locale === "en"
+                      ? <StatusPill label="Ready for PDF" variant="green" />
+                      : <StatusPill label="Klar for PDF" variant="green" />;
+                  } else {
+                    const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
+                    pill =
+                      s === "published" ? (
+                        <StatusPill label={t("pills.published")} variant="green" />
+                      ) : (
+                        <StatusPill label={t("pills.unpublished")} variant="red" />
+                      );
+                  }
+                } else if (it.status) {
+                  pill = <StatusPill label={it.status} variant="gray" />;
+                }
 
-                            {pill}
-                            {extraPill}
+                const metaLine = cleanMetaForCard(it);
+                const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
+                const mathHint =
+                  mathItem && it.type === "lesson"
+                    ? locale === "en"
+                      ? "Ready for PDF export. Generate a new worksheet if you want another version."
+                      : "Klar for PDF-eksport. Generer en ny oppgave hvis du vil ha en annen variant."
+                    : null;
 
-                            {mathItem ? (
-                              <StatusPill
-                                label={locale === "en" ? "Math generator" : "Mattegenerator"}
-                                variant="amber"
-                              />
-                            ) : null}
-
-                            {mathItem && mathSubtypeText && mathSubtype !== "math" ? (
-                              <StatusPill label={mathSubtypeText} variant="gray" />
-                            ) : null}
+                return (
+                  <div
+                    key={key}
+                    className="box-border block w-full max-w-full min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex min-w-0 max-w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 max-w-full flex-1">
+                        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+                          <div className="min-w-0 max-w-full break-words text-base font-black leading-tight text-slate-900">
+                            {title}
                           </div>
 
-                          <div className="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs opacity-75">
-                            {it.updatedAt ? <span>{fmtDate(it.updatedAt, locale)}</span> : null}
+                          {pill}
+                          {extraPill}
 
-                            {deletedAt ? (
-                              <>
-                                <span className="opacity-60">•</span>
-                                <span>
-                                  {deletedAtLabel}: {fmtDate(deletedAt, locale)}
-                                </span>
-                              </>
-                            ) : null}
-
-                            {metaLine ? <span className="opacity-60">•</span> : null}
-                            {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
-                          </div>
-
-                          {mathHint ? (
-                            <div className="mt-2 text-xs font-semibold text-amber-700">
-                              {mathHint}
-                            </div>
+                          {mathItem ? (
+                            <StatusPill
+                              label={locale === "en" ? "Math generator" : "Mattegenerator"}
+                              variant="amber"
+                            />
                           ) : null}
 
-                          {isParent && it.type === "lesson" && !isMathArchiveItem(it) ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <StatusPill label="Kan deles til barnas rom" variant="gray" />
-                            </div>
+                          {mathItem && mathSubtypeText && mathSubtype !== "math" ? (
+                            <StatusPill label={mathSubtypeText} variant="gray" />
                           ) : null}
-
-                          {parentMeta ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <StatusPill label={`${parentMeta.lessonCount} oppgaver`} variant="gray" />
-                              {parentMeta.activeLessonTitle ? (
-                                <StatusPill label={`Aktiv: ${parentMeta.activeLessonTitle}`} variant="gray" />
-                              ) : null}
-                              <StatusPill
-                                label={parentChildProgressLabel(parentMeta.activeSubmissionStatus, locale)}
-                                variant={parentChildProgressVariant(parentMeta.activeSubmissionStatus)}
-                              />
-                              {parentMeta.submittedCount > 0 ? (
-                                <StatusPill label={`${parentMeta.submittedCount} sendt inn`} variant="green" />
-                              ) : null}
-                              {parentMeta.draftCount > 0 ? (
-                                <StatusPill label={`${parentMeta.draftCount} påbegynt`} variant="amber" />
-                              ) : null}
-                              {parentMeta.aiFeedbackCount > 0 ? (
-                                <StatusPill label={`${parentMeta.aiFeedbackCount} med AI-feedback`} variant="green" />
-                              ) : null}
-                              {parentMeta.reviewCount > 0 ? (
-                                <StatusPill label={`${parentMeta.reviewCount} foreldrevurdert`} variant="green" />
-                              ) : null}
-                            </div>
-                          ) : null}
-
-                          <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
-                            {desktopMainActions.map((a) => {
-                              if (a.key === "delete") {
-                                return (
-                                  <DangerButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
-                                    {a.label}
-                                  </DangerButton>
-                                );
-                              }
-                              if (a.key === "restore") {
-                                return (
-                                  <SuccessButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
-                                    {a.label}
-                                  </SuccessButton>
-                                );
-                              }
-                              return (
-                                <PrimaryButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
-                                  {a.label}
-                                </PrimaryButton>
-                              );
-                            })}
-                          </div>
                         </div>
 
-                        <div className="flex min-w-0 w-full justify-end sm:w-auto">
-                          <div className="ml-2 shrink-0 sm:hidden">
-                            <ActionMenu items={actions} />
-                          </div>
+                        <div className="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs text-slate-500">
+                          {it.updatedAt ? <span>{fmtDate(it.updatedAt, locale)}</span> : null}
 
-                          <div className="ml-2 hidden shrink-0 sm:block">
-                            {desktopExtraActions.length > 0 ? <ActionMenu items={desktopExtraActions} /> : null}
+                          {deletedAt ? (
+                            <>
+                              <span className="opacity-60">•</span>
+                              <span>
+                                {deletedAtLabel}: {fmtDate(deletedAt, locale)}
+                              </span>
+                            </>
+                          ) : null}
+
+                          {metaLine ? <span className="opacity-60">•</span> : null}
+                          {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
+                        </div>
+
+                        {mathHint ? (
+                          <div className="mt-2 text-xs font-semibold text-amber-700">
+                            {mathHint}
                           </div>
+                        ) : null}
+
+                        {isParent && it.type === "lesson" && !isMathArchiveItem(it) ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <StatusPill label="Kan deles til barnas rom" variant="gray" />
+                          </div>
+                        ) : null}
+
+                        {parentMeta ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <StatusPill label={`${parentMeta.lessonCount} oppgaver`} variant="gray" />
+                            {parentMeta.activeLessonTitle ? (
+                              <StatusPill label={`Aktiv: ${parentMeta.activeLessonTitle}`} variant="gray" />
+                            ) : null}
+                            <StatusPill
+                              label={parentChildProgressLabel(parentMeta.activeSubmissionStatus, locale)}
+                              variant={parentChildProgressVariant(parentMeta.activeSubmissionStatus)}
+                            />
+                            {parentMeta.submittedCount > 0 ? (
+                              <StatusPill label={`${parentMeta.submittedCount} sendt inn`} variant="green" />
+                            ) : null}
+                            {parentMeta.draftCount > 0 ? (
+                              <StatusPill label={`${parentMeta.draftCount} påbegynt`} variant="amber" />
+                            ) : null}
+                            {parentMeta.aiFeedbackCount > 0 ? (
+                              <StatusPill label={`${parentMeta.aiFeedbackCount} med AI-feedback`} variant="green" />
+                            ) : null}
+                            {parentMeta.reviewCount > 0 ? (
+                              <StatusPill label={`${parentMeta.reviewCount} foreldrevurdert`} variant="green" />
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
+                          {desktopMainActions.map((a) => {
+                            if (a.key === "delete") {
+                              return (
+                                <DangerButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                  {a.label}
+                                </DangerButton>
+                              );
+                            }
+                            if (a.key === "restore") {
+                              return (
+                                <SuccessButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                  {a.label}
+                                </SuccessButton>
+                              );
+                            }
+                            return (
+                              <PrimaryButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                {a.label}
+                              </PrimaryButton>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="flex min-w-0 w-full justify-end sm:w-auto">
+                        <div className="ml-2 shrink-0 sm:hidden">
+                          <ActionMenu items={actions} />
+                        </div>
+
+                        <div className="ml-2 hidden shrink-0 sm:block">
+                          {desktopExtraActions.length > 0 ? <ActionMenu items={desktopExtraActions} /> : null}
                         </div>
                       </div>
                     </div>
-                  );
-                })
-              : null}
-          </div>
+                  </div>
+                );
+              })
+            : null}
         </div>
+      </section>
 
-        <div className="mt-6 text-sm opacity-80">
-          <Link href={`/${locale}/join`} className="mr-4 underline">
-            {t("footer.joinViaCode")}
-          </Link>
-          <Link href={`/${locale}/tools`} className="underline">
-            {t("footer.tools")}
-          </Link>
-        </div>
-
-        {shareOpen ? (
-          <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
-              <div className="flex items-center justify-between gap-3 border-b p-4">
-                <div className="min-w-0">
-                  <div className="font-black">{t("share.title")}</div>
-                  <div className="truncate text-sm opacity-75">{shareTitle}</div>
-                </div>
-                <button onClick={closeShare} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">
-                  ✕
-                </button>
-              </div>
-
-              <div className="grid gap-4 p-4 sm:grid-cols-[1.3fr_0.7fr]">
-                <div>
-                  <div className="mb-2 text-sm font-black">{t("share.linkLabel")}</div>
-                  <input value={shareUrl} readOnly className="w-full rounded-xl border px-3 py-3 font-semibold" />
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <PrimaryButton onClick={copyShareUrl}>{copied ? t("share.copied") : t("share.copyLink")}</PrimaryButton>
-                    <GhostLink href={shareUrl} target="_blank" rel="noreferrer">
-                      {t("share.openLink")}
-                    </GhostLink>
-                  </div>
-
-                  <div className="mt-3 text-sm opacity-70">{t("share.tip")}</div>
-                </div>
-
-                <div className="grid place-items-center">
-                  <div className="mb-2 w-full text-left text-sm font-black">{t("share.qrLabel")}</div>
-                  <div className="grid h-56 w-56 place-items-center overflow-hidden rounded-2xl border bg-white">
-                    {qrDataUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={qrDataUrl} alt={t("share.qrAlt")} style={{ width: "100%", height: "100%" }} />
-                    ) : (
-                      <div className="p-3 text-center text-sm opacity-70">{t("share.qrNotReady")}</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t p-4 text-xs opacity-70">
-                {t("share.shareUrlLabel")} <code className="break-all">{shareUrl}</code>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {pickSpaceOpen && pickLesson ? (
-          <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border bg-white shadow-2xl">
-              <div className="flex items-center justify-between gap-3 border-b p-4">
-                <div className="min-w-0">
-                  <div className="font-black">{t("shareToSpace.title")}</div>
-                  <div className="truncate text-sm opacity-75">{pickLesson.title}</div>
-                </div>
-                <button onClick={closePickSpace} className="rounded-xl border px-3 py-2 font-black hover:bg-zinc-50">
-                  ✕
-                </button>
-              </div>
-
-              <div className="p-4">
-                {mySpaces.length === 0 ? (
-                  <div className="opacity-75">{t("shareToSpace.noSpaces")}</div>
-                ) : (
-                  <div className="grid gap-2">
-                    {mySpaces.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => assignLessonToSpace(s.id)}
-                        className="rounded-2xl border bg-white p-4 text-left font-black hover:bg-zinc-50"
-                      >
-                        {(s.title || t("titles.space")).trim() || t("titles.space")}
-                        <div className="mt-1 text-xs font-semibold opacity-70">{(s.meta?.join(" · ") ?? "").trim()}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t p-4 text-xs opacity-70">
-                {t("shareToSpace.createsLabel")} <code>{`spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
-              </div>
-            </div>
-          </div>
-        ) : null}
+      <div className="mt-2 text-sm text-slate-600">
+        <Link href={`/${locale}/join`} className="mr-4 underline">
+          {t("footer.joinViaCode")}
+        </Link>
+        <Link href={`/${locale}/tools`} className="underline">
+          {t("footer.tools")}
+        </Link>
       </div>
+
+      {shareOpen ? (
+        <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+              <div className="min-w-0">
+                <div className="font-black text-slate-900">{t("share.title")}</div>
+                <div className="truncate text-sm text-slate-600">{shareTitle}</div>
+              </div>
+              <button onClick={closeShare} className="rounded-xl border border-slate-300 px-3 py-2 font-black text-slate-800 hover:bg-zinc-50">
+                ✕
+              </button>
+            </div>
+
+            <div className="grid gap-4 p-4 sm:grid-cols-[1.3fr_0.7fr]">
+              <div>
+                <div className="mb-2 text-sm font-black text-slate-900">{t("share.linkLabel")}</div>
+                <input value={shareUrl} readOnly className="w-full rounded-xl border border-slate-300 px-3 py-3 font-semibold text-slate-900" />
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <PrimaryButton onClick={copyShareUrl}>{copied ? t("share.copied") : t("share.copyLink")}</PrimaryButton>
+                  <GhostLink href={shareUrl} target="_blank" rel="noreferrer">
+                    {t("share.openLink")}
+                  </GhostLink>
+                </div>
+
+                <div className="mt-3 text-sm text-slate-500">{t("share.tip")}</div>
+              </div>
+
+              <div className="grid place-items-center">
+                <div className="mb-2 w-full text-left text-sm font-black text-slate-900">{t("share.qrLabel")}</div>
+                <div className="grid h-56 w-56 place-items-center overflow-hidden rounded-2xl border border-slate-300 bg-white">
+                  {qrDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={qrDataUrl} alt={t("share.qrAlt")} style={{ width: "100%", height: "100%" }} />
+                  ) : (
+                    <div className="p-3 text-center text-sm text-slate-500">{t("share.qrNotReady")}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
+              {t("share.shareUrlLabel")} <code className="break-all">{shareUrl}</code>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pickSpaceOpen && pickLesson ? (
+        <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+              <div className="min-w-0">
+                <div className="font-black text-slate-900">{t("shareToSpace.title")}</div>
+                <div className="truncate text-sm text-slate-600">{pickLesson.title}</div>
+              </div>
+              <button onClick={closePickSpace} className="rounded-xl border border-slate-300 px-3 py-2 font-black text-slate-800 hover:bg-zinc-50">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4">
+              {mySpaces.length === 0 ? (
+                <div className="text-sm text-slate-600">{t("shareToSpace.noSpaces")}</div>
+              ) : (
+                <div className="grid gap-2">
+                  {mySpaces.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => assignLessonToSpace(s.id)}
+                      className="rounded-2xl border border-slate-300 bg-white p-4 text-left font-black text-slate-900 hover:bg-zinc-50"
+                    >
+                      {(s.title || t("titles.space")).trim() || t("titles.space")}
+                      <div className="mt-1 text-xs font-semibold text-slate-500">{(s.meta?.join(" · ") ?? "").trim()}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
+              {t("shareToSpace.createsLabel")} <code>{`spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

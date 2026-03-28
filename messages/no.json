@@ -55,17 +55,17 @@
   "auth": {
   "login": {
     "title": {
-      "signin": "Logg inn",
+      "signin": "Velkommen tilbake",
       "signup": "Opprett konto"
     },
     "intro": {
-      "anon": "Du bruker en midlertidig konto. Logg inn eller opprett konto for å beholde arbeidet ditt.",
-      "normal": "Logg inn for å fortsette.",
-      "signup": "Opprett konto for å komme i gang som elev, lærer eller forelder."
+      "anon": "Du bruker en midlertidig konto. Logg inn eller opprett en konto nå for å ta vare på arbeidet ditt.",
+      "normal": "Velg hvordan du vil logge inn.",
+      "signup": "Kom i gang som elev, lærer eller foresatt på bare et minutt."
     },
     "tabs": {
-      "signin": "Logg inn",
-      "signup": "Opprett konto"
+      "signin": "Jeg har allerede konto",
+      "signup": "Jeg er ny her"
     },
     "separator": "eller",
     "fields": {
@@ -80,23 +80,29 @@
     "buttons": {
       "working": "Jobber…",
       "sending": "Sender…",
-      "upgradeGoogle": "Oppgrader med Google",
-      "signinGoogle": "Fortsett med Google",
-      "signinEmail": "Logg inn med e-post",
+      "upgradeGoogle": "Lagre og fortsett med Google",
+      "signinGoogle": "Logg inn med Google",
+      "signupGoogle": "Opprett konto med Google",
+      "useEmailSignin": "Bruk e-post og passord",
+      "useEmailSignup": "Opprett konto med e-post",
+      "signinEmail": "Logg inn",
       "upgradeAccount": "Lagre anonym konto",
       "createAccount": "Opprett konto",
       "forgotPassword": "Glemt passord?",
-      "sendReset": "Send e-post for nytt passord"
+      "sendReset": "Send e-post for tilbakestilling",
+      "backToOptions": "Tilbake til innloggingsvalg"
     },
     "forgot": {
-      "title": "Lag nytt passord",
-      "text": "Skriv inn e-posten din, så sender vi deg en lenke for å lage nytt passord."
+      "title": "Tilbakestill passord",
+      "text": "Skriv inn e-posten din, så sender vi deg en lenke for å lage et nytt passord."
     },
     "messages": {
-      "resetSent": "Vi har sendt deg en e-post med en lenke for å lage nytt passord."
+      "resetSent": "Vi har sendt deg en e-post med lenke for å tilbakestille passordet ditt."
     },
     "hints": {
-      "anonSignup": "Tips: Hvis denne e-posten allerede finnes, velg <b>Logg inn</b> i stedet."
+      "anonSignup": "Tips: Hvis denne e-posten allerede finnes, velg <b>Jeg har allerede konto</b> i stedet.",
+      "methodSignin": "Bruk Google hvis du registrerte deg med Google tidligere. Ellers velger du e-post.",
+      "methodSignup": "Velg Google for raskest oppstart, eller e-post hvis du vil bruke passord."
     },
     "footer": {
       "noAccount": "Har du ikke konto?",
@@ -105,8 +111,8 @@
       "signinLink": "Logg inn her"
     },
     "errors": {
-      "missingEmail": "Skriv inn e-post.",
-      "missingPassword": "Skriv inn passord.",
+      "missingEmail": "Skriv inn e-postadressen din.",
+      "missingPassword": "Skriv inn passordet ditt.",
       "missingName": "Skriv inn navnet ditt.",
       "invalidCredential": "Feil e-post eller passord.",
       "userNotFound": "Fant ingen bruker med denne e-posten.",
@@ -120,78 +126,79 @@
     }
   },
   "onboarding": {
-  "title": "Kom i gang",
-  "loading": "Laster…",
-  "subtitle": "Velg rolle og fyll ut grunnleggende informasjon for å fortsette.",
-  "steps": {
-    "role": {
-      "title": "Velg rolle",
-      "text": "Velg rollen som passer best for deg. Du kan legge til eller endre rolle senere."
+    "title": "Kom i gang",
+    "loading": "Laster…",
+    "subtitle": "Velg rollen din og fyll inn litt grunnleggende informasjon for å fortsette.",
+    "steps": {
+      "role": {
+        "title": "Velg rollen din",
+        "text": "Trykk på rollen som passer best for deg. Du kan endre den senere."
+      },
+      "profile": {
+        "title": "Grunnleggende profil",
+        "text": "Fortell litt om deg selv, så kan vi tilpasse opplevelsen bedre."
+      },
+      "institution": {
+        "title": "Lærested",
+        "text": "Dette steget er valgfritt, men det hjelper oss å tilpasse læreropplevelsen."
+      }
     },
-    "profile": {
-      "title": "Grunnleggende profil",
-      "text": "Fortell litt om deg selv, så kan vi tilpasse opplevelsen bedre."
+    "fields": {
+      "role": {
+        "label": "Velg rolle *",
+        "student": "Elev",
+        "teacher": "Lærer",
+        "parent": "Foresatt",
+        "hint": "Velg én rolle for å fortsette.",
+        "studentHint": "For elever og studenter som vil lære mer på egen hånd eller sammen med andre.",
+        "teacherHint": "Læringsplattform for undervisningspersonale med klasser, klasserom og digital tavle.",
+        "parentHint": "For foresatte som vil hjelpe barna sine med å lære mer. Opprett egne læringsrom og gi dem tilpassede oppgaver."
+      },
+      "fullName": {
+        "label": "Fullt navn *"
+      },
+      "country": {
+        "label": "Land *",
+        "placeholder": "Søk etter land…"
+      },
+      "municipalityNo": {
+        "label": "Kommune *",
+        "placeholder": "Søk etter kommune…"
+      },
+      "municipalityOther": {
+        "label": "By / område *"
+      }
+    },
+    "errors": {
+      "missingRole": "Velg en rolle (Elev, Lærer eller Foresatt).",
+      "missingName": "Skriv inn fullt navn.",
+      "missingCountry": "Velg et land.",
+      "missingMunicipalityNo": "Velg en kommune.",
+      "missingMunicipalityOther": "Skriv inn by eller område."
+    },
+    "buttons": {
+      "back": "Tilbake",
+      "continue": "Fortsett",
+      "saving": "Lagrer…",
+      "complete": "Fullfør profil",
+      "changeRole": "Bytt rolle"
     },
     "institution": {
-      "title": "Læringsinstitusjon",
-      "text": "Dette steget er valgfritt, men hjelper oss å tilpasse læreropplevelsen bedre."
-    }
-  },
-  "fields": {
-    "role": {
-      "label": "Velg rolle *",
-      "student": "Student",
-      "teacher": "Lærer",
-      "parent": "Forelder",
-      "hint": "Velg én rolle for å fortsette.",
-      "studentHint": "For elever og studenter som vil lære mer på egenhånd eller sammen med andre.",
-      "teacherHint": "Læringsplattform for undervisningspersonell med klasser, klasserom og digital tavle.",
-      "parentHint": "For foresatte som vil lære barna sine mer. Lag egne studierom for barna og gi dem tilpassede oppgaver."
-    },
-    "fullName": {
-      "label": "Fullt navn *"
-    },
-    "country": {
-      "label": "Land *",
-      "placeholder": "Søk land…"
-    },
-    "municipalityNo": {
-      "label": "Kommune *",
-      "placeholder": "Søk kommune…"
-    },
-    "municipalityOther": {
-      "label": "By / område *"
-    }
-  },
-  "errors": {
-    "missingRole": "Velg rolle (Student, Lærer eller Forelder).",
-    "missingName": "Skriv inn fullt navn.",
-    "missingCountry": "Velg land.",
-    "missingMunicipalityNo": "Velg kommune.",
-    "missingMunicipalityOther": "Skriv inn by eller område."
-  },
-  "buttons": {
-    "back": "Tilbake",
-    "continue": "Fortsett",
-    "saving": "Lagrer…",
-    "complete": "Fullfør profil"
-  },
-  "institution": {
-    "title": "Læringsinstitusjon (valgfritt)",
-    "typeLabel": "Type",
-    "none": "Ingen",
-    "nameLabel": "Navn (valgfritt)",
-    "namePlaceholder": "",
-    "types": {
-      "school": "Skole",
-      "kindergarten": "Barnehage",
-      "adult_education": "Voksenopplæring",
-      "university": "Universitet / høyskole",
-      "workplace": "Bedrift / arbeidsplass",
-      "other": "Annet"
+      "title": "Lærested (valgfritt)",
+      "typeLabel": "Type",
+      "none": "Ingen",
+      "nameLabel": "Navn (valgfritt)",
+      "namePlaceholder": "",
+      "types": {
+        "school": "Skole",
+        "kindergarten": "Barnehage",
+        "adult_education": "Voksenopplæring",
+        "university": "Universitet / høyskole",
+        "workplace": "Bedrift / arbeidsplass",
+        "other": "Annet"
+      }
     }
   }
-}
 },
   "tools": {
     "page": {

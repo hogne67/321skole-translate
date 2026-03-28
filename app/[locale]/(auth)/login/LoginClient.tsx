@@ -47,6 +47,9 @@ function friendlyAuthErrorKey(msg: string): string {
   return "generic";
 }
 
+type Mode = "signin" | "signup";
+type LoginMethod = "choice" | "email";
+
 export default function LoginClient() {
   const t = useTranslations("auth.login");
   const locale = useLocale();
@@ -67,7 +70,8 @@ export default function LoginClient() {
     return `/${locale}/post-login${q}`;
   }, [sp, locale]);
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<Mode>("signin");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("choice");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -94,9 +98,19 @@ export default function LoginClient() {
     await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
   }
 
-  async function handleGoogle() {
+  function resetMessages() {
     setError(null);
     setInfo(null);
+  }
+
+  function switchMode(nextMode: Mode) {
+    setMode(nextMode);
+    setShowForgotPassword(false);
+    resetMessages();
+  }
+
+  async function handleGoogle() {
+    resetMessages();
     setLoadingGoogle(true);
 
     try {
@@ -125,8 +139,7 @@ export default function LoginClient() {
   }
 
   async function handleEmail() {
-    setError(null);
-    setInfo(null);
+    resetMessages();
 
     const e = email.trim();
     if (!e) {
@@ -168,8 +181,7 @@ export default function LoginClient() {
   }
 
   async function handleForgotPassword() {
-    setError(null);
-    setInfo(null);
+    resetMessages();
 
     const e = email.trim();
     if (!e) {
@@ -197,17 +209,18 @@ export default function LoginClient() {
   }
 
   const busy = loadingGoogle || loadingEmail || sendingReset;
+  const showEmailForm = loginMethod === "email";
 
   const pageStyle: React.CSSProperties = {
     minHeight: "100vh",
-    padding: 16,
+    padding: "12px 14px 24px",
     background:
       "linear-gradient(180deg, rgba(124,199,255,0.16), rgba(255,255,255,1) 320px)",
   };
 
   const wrapStyle: React.CSSProperties = {
     maxWidth: 560,
-    margin: "32px auto",
+    margin: "12px auto",
   };
 
   const cardStyle: React.CSSProperties = {
@@ -215,26 +228,26 @@ export default function LoginClient() {
     border: "1px solid rgba(15,23,42,0.08)",
     borderRadius: 24,
     boxShadow: "0 18px 50px rgba(15,23,42,0.10)",
-    padding: 22,
+    padding: 18,
   };
 
   const logoWrap: React.CSSProperties = {
     display: "flex",
     justifyContent: "center",
-    marginBottom: 14,
+    marginBottom: 10,
   };
 
   const headerStyle: React.CSSProperties = {
     textAlign: "center",
     display: "grid",
     gap: 8,
-    marginBottom: 18,
+    marginBottom: 14,
   };
 
   const titleStyle: React.CSSProperties = {
     margin: 0,
-    fontSize: 30,
-    lineHeight: 1.1,
+    fontSize: 28,
+    lineHeight: 1.08,
     fontWeight: 900,
     color: "#0f172a",
   };
@@ -242,61 +255,94 @@ export default function LoginClient() {
   const subtitleStyle: React.CSSProperties = {
     margin: 0,
     color: "rgba(15,23,42,0.72)",
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 1.5,
   };
 
-  const tabRowStyle: React.CSSProperties = {
+  const modeRowStyle: React.CSSProperties = {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 10,
     marginTop: 8,
-    marginBottom: 18,
+    marginBottom: 14,
     padding: 6,
     background: "rgba(148,163,184,0.12)",
     borderRadius: 16,
   };
 
-  const tabButton = (active: boolean): React.CSSProperties => ({
+  const modeButton = (active: boolean): React.CSSProperties => ({
     minHeight: 48,
     borderRadius: 12,
     border: active ? "1px solid rgba(59,130,246,0.36)" : "1px solid transparent",
     background: active ? "linear-gradient(180deg, #2563eb, #1d4ed8)" : "transparent",
-    color: active ? "white" : "#0f172a",
+    color: active ? "#fff" : "#0f172a",
     fontWeight: 800,
-    fontSize: 15,
+    fontSize: 14,
     cursor: busy ? "not-allowed" : "pointer",
     opacity: busy ? 0.7 : 1,
     boxShadow: active ? "0 8px 22px rgba(37,99,235,0.22)" : "none",
+    textAlign: "center",
+    padding: "8px 10px",
   });
 
-  const socialButtonStyle: React.CSSProperties = {
-  width: "100%",
-  minHeight: 52,
-  borderRadius: 14,
-  border: "1px solid rgba(15,23,42,0.10)",
-  background: "#ccd2d9bd",
-  color: "#0f172a",
-  fontWeight: 800,
-  fontSize: 15,
-  cursor: busy ? "not-allowed" : "pointer",
-  boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-};
-
-  const separatorRowStyle: React.CSSProperties = {
+  const choiceGrid: React.CSSProperties = {
     display: "grid",
-    gridTemplateColumns: "1fr auto 1fr",
-    alignItems: "center",
-    gap: 12,
-    margin: "18px 0",
-    color: "rgba(15,23,42,0.55)",
-    fontSize: 13,
-    fontWeight: 700,
+    gap: 10,
+    marginTop: 8,
   };
 
-  const lineStyle: React.CSSProperties = {
-    height: 1,
-    background: "rgba(15,23,42,0.10)",
+  const googleButtonStyle: React.CSSProperties = {
+    width: "100%",
+    minHeight: 54,
+    borderRadius: 16,
+    border: "1px solid rgba(15,23,42,0.10)",
+    background: "#fff",
+    color: "#0f172a",
+    fontWeight: 900,
+    fontSize: 15,
+    cursor: busy ? "not-allowed" : "pointer",
+    boxShadow: "0 4px 14px rgba(15,23,42,0.06)",
+    padding: "0 16px",
+  };
+
+  const emailChoiceButtonStyle: React.CSSProperties = {
+    width: "100%",
+    minHeight: 54,
+    borderRadius: 16,
+    border: "1px solid rgba(37,99,235,0.18)",
+    background: "rgba(37,99,235,0.05)",
+    color: "#0f172a",
+    fontWeight: 900,
+    fontSize: 15,
+    cursor: busy ? "not-allowed" : "pointer",
+    padding: "0 16px",
+  };
+
+  const choiceHintStyle: React.CSSProperties = {
+    margin: 0,
+    textAlign: "center",
+    fontSize: 13,
+    color: "rgba(15,23,42,0.62)",
+    lineHeight: 1.45,
+  };
+
+  const emailPanelStyle: React.CSSProperties = {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTop: "1px solid rgba(15,23,42,0.08)",
+    display: "grid",
+    gap: 12,
+  };
+
+  const smallBackButtonStyle: React.CSSProperties = {
+    justifySelf: "start",
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    color: "#2563eb",
+    fontWeight: 800,
+    fontSize: 14,
+    cursor: "pointer",
   };
 
   const fieldWrapStyle: React.CSSProperties = {
@@ -356,13 +402,13 @@ export default function LoginClient() {
     width: "100%",
     minHeight: 52,
     borderRadius: 14,
-    border: "1px solid rgba(37,99,235,0.35)",
-    background: "linear-gradient(180deg, #169125, #2c8d64)",
+    border: "1px solid rgba(34,197,94,0.32)",
+    background: "linear-gradient(180deg, #169125, #15803d)",
     color: "white",
     fontWeight: 900,
     fontSize: 15,
     cursor: busy ? "not-allowed" : "pointer",
-    boxShadow: "0 12px 28px rgba(37,99,235,0.24)",
+    boxShadow: "0 12px 28px rgba(22,145,37,0.22)",
   };
 
   const infoBoxStyle: React.CSSProperties = {
@@ -395,7 +441,6 @@ export default function LoginClient() {
   };
 
   const forgotCardStyle: React.CSSProperties = {
-    marginTop: 12,
     padding: 14,
     borderRadius: 16,
     border: "1px solid rgba(37,99,235,0.16)",
@@ -403,6 +448,25 @@ export default function LoginClient() {
     display: "grid",
     gap: 10,
   };
+
+  const googleLabel = isAnon
+    ? safeT("buttons.upgradeGoogle", "Save and continue with Google")
+    : mode === "signin"
+      ? safeT("buttons.signinGoogle", "Log in with Google")
+      : safeT("buttons.signupGoogle", "Create account with Google");
+
+  const emailChoiceLabel =
+    mode === "signin"
+      ? safeT("buttons.useEmailSignin", "Use email and password")
+      : safeT("buttons.useEmailSignup", "Create account with email");
+
+  const emailSubmitLabel = loadingEmail
+    ? safeT("buttons.working", "Working…")
+    : mode === "signin"
+      ? safeT("buttons.signinEmail", "Log in")
+      : isAnon
+        ? safeT("buttons.upgradeAccount", "Save anonymous account")
+        : safeT("buttons.createAccount", "Create account");
 
   return (
     <main style={pageStyle}>
@@ -415,216 +479,231 @@ export default function LoginClient() {
               width={220}
               height={72}
               priority
-              style={{ width: "auto", height: "58px", objectFit: "contain" }}
+              style={{ width: "auto", height: "56px", objectFit: "contain" }}
             />
           </div>
 
           <div style={headerStyle}>
             <h1 style={titleStyle}>
               {mode === "signin"
-                ? safeT("title.signin", "Log in")
-                : safeT("title.signup", "Create account")}
+                ? safeT("title.signin", "Welcome back")
+                : safeT("title.signup", "Create your account")}
             </h1>
 
             <p style={subtitleStyle}>
               {isAnon
                 ? safeT(
                     "intro.anon",
-                    "You are using a temporary account. Sign in or create an account to keep your work."
+                    "You are using a temporary account. Sign in or create an account now to keep your work."
                   )
                 : mode === "signin"
-                  ? safeT("intro.normal", "Log in to continue.")
+                  ? safeT("intro.normal", "Choose how you want to log in.")
                   : safeT(
                       "intro.signup",
-                      "Create an account to get started as a student, teacher or parent."
+                      "Start as a student, teacher or parent in just a minute."
                     )}
             </p>
           </div>
 
-          <div style={tabRowStyle}>
+          <div style={modeRowStyle}>
             <button
               type="button"
-              onClick={() => {
-                setMode("signin");
-                setError(null);
-                setInfo(null);
-                setShowForgotPassword(false);
-              }}
+              onClick={() => switchMode("signin")}
               disabled={busy}
-              style={tabButton(mode === "signin")}
+              style={modeButton(mode === "signin")}
             >
-              {safeT("tabs.signin", "Log in")}
+              {safeT("tabs.signin", "I already have an account")}
             </button>
 
             <button
               type="button"
-              onClick={() => {
-                setMode("signup");
-                setError(null);
-                setInfo(null);
-                setShowForgotPassword(false);
-              }}
+              onClick={() => switchMode("signup")}
               disabled={busy}
-              style={tabButton(mode === "signup")}
+              style={modeButton(mode === "signup")}
             >
-              {safeT("tabs.signup", "Create account")}
+              {safeT("tabs.signup", "I’m new here")}
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={busy}
-            style={socialButtonStyle}
-          >
-            {loadingGoogle
-              ? safeT("buttons.working", "Working…")
-              : isAnon
-                ? safeT("buttons.upgradeGoogle", "Upgrade with Google")
-                : safeT("buttons.signinGoogle", "Continue with Google")}
-          </button>
-
-          <div style={separatorRowStyle}>
-            <div style={lineStyle} />
-            <span>{safeT("separator", "or")}</span>
-            <div style={lineStyle} />
-          </div>
-
-          <div style={fieldWrapStyle}>
-            {mode === "signup" && (
-              <label style={labelStyle}>
-                <span style={labelTextStyle}>
-                  {safeT("fields.displayNameLabel", "Full name")}
-                </span>
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder={safeT("fields.displayNamePlaceholder", "Full name")}
-                  autoComplete="name"
-                  style={inputStyle}
-                />
-              </label>
-            )}
-
-            <label style={labelStyle}>
-              <span style={labelTextStyle}>
-                {safeT("fields.emailLabel", "Email")}
-              </span>
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={safeT("fields.emailPlaceholder", "Email")}
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                style={inputStyle}
-              />
-            </label>
-
-            <label style={labelStyle}>
-              <span style={labelTextStyle}>
-                {safeT("fields.passwordLabel", "Password")}
-              </span>
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={safeT("fields.passwordPlaceholder", "Password")}
-                type="password"
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                style={inputStyle}
-              />
-            </label>
-
-            <div style={helperRowStyle}>
-              <label style={checkboxLabelStyle}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                <span>{safeT("fields.rememberMe", "Remember me on this device")}</span>
-              </label>
-
-              {mode === "signin" ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForgotPassword((s) => !s);
-                    setError(null);
-                    setInfo(null);
-                  }}
-                  style={linkButtonStyle}
-                >
-                  {safeT("buttons.forgotPassword", "Forgot password?")}
-                </button>
-              ) : null}
-            </div>
-
-            {showForgotPassword && mode === "signin" ? (
-              <div style={forgotCardStyle}>
-                <div style={{ fontWeight: 800, color: "#0f172a" }}>
-                  {safeT("forgot.title", "Reset password")}
-                </div>
-                <div style={{ fontSize: 14, color: "rgba(15,23,42,0.72)" }}>
-                  {safeT(
-                    "forgot.text",
-                    "Enter your email and we will send you a link to create a new password."
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  disabled={sendingReset}
-                  style={{
-                    ...socialButtonStyle,
-                    minHeight: 46,
-                    fontWeight: 800,
-                  }}
-                >
-                  {sendingReset
-                    ? safeT("buttons.sending", "Sending…")
-                    : safeT("buttons.sendReset", "Send reset email")}
-                </button>
-              </div>
-            ) : null}
-
+          <div style={choiceGrid}>
             <button
-  type="button"
-  onClick={handleEmail}
-  disabled={busy}
-  style={primaryButtonStyle}
-  onMouseEnter={(e) => {
-    if (!busy) {
-      e.currentTarget.style.transform = "translateY(-1px)";
-      e.currentTarget.style.boxShadow = "0 16px 32px rgba(16,185,129,0.30)";
-    }
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.transform = "none";
-    e.currentTarget.style.boxShadow = "0 12px 28px rgba(16,185,129,0.25)";
-  }}
->
-              {loadingEmail
-                ? safeT("buttons.working", "Working…")
-                : mode === "signin"
-                  ? safeT("buttons.signinEmail", "Log in with email")
-                  : isAnon
-                    ? safeT("buttons.upgradeAccount", "Save anonymous account")
-                    : safeT("buttons.createAccount", "Create account")}
+              type="button"
+              onClick={handleGoogle}
+              disabled={busy}
+              style={googleButtonStyle}
+            >
+              {loadingGoogle ? safeT("buttons.working", "Working…") : googleLabel}
             </button>
 
-            {mode === "signup" && isAnon ? (
-              <p
-                style={{ margin: 0, fontSize: 13, color: "rgba(15,23,42,0.68)", lineHeight: 1.5 }}
-                dangerouslySetInnerHTML={{
-                  __html: safeT(
-                    "hints.anonSignup",
-                    "Tip: If this email already exists, choose <b>Log in</b> instead."
-                  ),
+            {!showEmailForm ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginMethod("email");
+                  setShowForgotPassword(false);
+                  resetMessages();
                 }}
-              />
+                disabled={busy}
+                style={emailChoiceButtonStyle}
+              >
+                {emailChoiceLabel}
+              </button>
+            ) : null}
+
+            {!showEmailForm ? (
+              <p style={choiceHintStyle}>
+                {mode === "signin"
+                  ? safeT(
+                      "hints.methodSignin",
+                      "Use Google if you signed up with Google before. Otherwise choose email."
+                    )
+                  : safeT(
+                      "hints.methodSignup",
+                      "Choose Google for the fastest start, or email if you prefer password login."
+                    )}
+              </p>
             ) : null}
           </div>
+
+          {showEmailForm ? (
+            <div style={emailPanelStyle}>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginMethod("choice");
+                  setShowForgotPassword(false);
+                  resetMessages();
+                }}
+                style={smallBackButtonStyle}
+              >
+                ← {safeT("buttons.backToOptions", "Back to login options")}
+              </button>
+
+              <div style={fieldWrapStyle}>
+                {mode === "signup" && (
+                  <label style={labelStyle}>
+                    <span style={labelTextStyle}>
+                      {safeT("fields.displayNameLabel", "Full name")}
+                    </span>
+                    <input
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder={safeT("fields.displayNamePlaceholder", "Full name")}
+                      autoComplete="name"
+                      style={inputStyle}
+                    />
+                  </label>
+                )}
+
+                <label style={labelStyle}>
+                  <span style={labelTextStyle}>
+                    {safeT("fields.emailLabel", "Email")}
+                  </span>
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={safeT("fields.emailPlaceholder", "Email")}
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    style={inputStyle}
+                  />
+                </label>
+
+                <label style={labelStyle}>
+                  <span style={labelTextStyle}>
+                    {safeT("fields.passwordLabel", "Password")}
+                  </span>
+                  <input
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={safeT("fields.passwordPlaceholder", "Password")}
+                    type="password"
+                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                    style={inputStyle}
+                  />
+                </label>
+
+                <div style={helperRowStyle}>
+                  <label style={checkboxLabelStyle}>
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
+                    <span>{safeT("fields.rememberMe", "Remember me on this device")}</span>
+                  </label>
+
+                  {mode === "signin" ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword((s) => !s);
+                        resetMessages();
+                      }}
+                      style={linkButtonStyle}
+                    >
+                      {safeT("buttons.forgotPassword", "Forgot password?")}
+                    </button>
+                  ) : null}
+                </div>
+
+                {showForgotPassword && mode === "signin" ? (
+                  <div style={forgotCardStyle}>
+                    <div style={{ fontWeight: 800, color: "#0f172a" }}>
+                      {safeT("forgot.title", "Reset password")}
+                    </div>
+                    <div style={{ fontSize: 14, color: "rgba(15,23,42,0.72)" }}>
+                      {safeT(
+                        "forgot.text",
+                        "Enter your email and we will send you a link to create a new password."
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      disabled={sendingReset}
+                      style={{
+                        ...googleButtonStyle,
+                        minHeight: 46,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {sendingReset
+                        ? safeT("buttons.sending", "Sending…")
+                        : safeT("buttons.sendReset", "Send reset email")}
+                    </button>
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={handleEmail}
+                  disabled={busy}
+                  style={primaryButtonStyle}
+                >
+                  {emailSubmitLabel}
+                </button>
+
+                {mode === "signup" && isAnon ? (
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 13,
+                      color: "rgba(15,23,42,0.68)",
+                      lineHeight: 1.5,
+                    }}
+                    dangerouslySetInnerHTML={{
+                      __html: safeT(
+                        "hints.anonSignup",
+                        "Tip: If this email already exists, choose <b>I already have an account</b> instead."
+                      ),
+                    }}
+                  />
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           {info ? <div style={infoBoxStyle}>{info}</div> : null}
           {error ? <div style={errorBoxStyle}>{error}</div> : null}
@@ -635,12 +714,7 @@ export default function LoginClient() {
                 {safeT("footer.noAccount", "Don’t have an account?")}{" "}
                 <button
                   type="button"
-                  onClick={() => {
-                    setMode("signup");
-                    setError(null);
-                    setInfo(null);
-                    setShowForgotPassword(false);
-                  }}
+                  onClick={() => switchMode("signup")}
                   style={linkButtonStyle}
                 >
                   {safeT("footer.signupLink", "Create one here")}
@@ -651,12 +725,7 @@ export default function LoginClient() {
                 {safeT("footer.hasAccount", "Already registered?")}{" "}
                 <button
                   type="button"
-                  onClick={() => {
-                    setMode("signin");
-                    setError(null);
-                    setInfo(null);
-                    setShowForgotPassword(false);
-                  }}
+                  onClick={() => switchMode("signin")}
                   style={linkButtonStyle}
                 >
                   {safeT("footer.signinLink", "Log in here")}

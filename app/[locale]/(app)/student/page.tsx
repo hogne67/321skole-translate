@@ -71,52 +71,65 @@ export default function StudentDashboard() {
   const imagesLimit = getBucketLimit(role, plan, "image_generation");
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-3">
+    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
       <DashboardIntro userIsAnon={isAnon} />
 
       {!usageLoading && (
-        <div className="mt-4 grid gap-3">
-          <UsageCard
-            title="Premium generators"
-            used={generatorsUsed}
-            limit={generatorsLimit}
-          />
+        <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+          <div className="mb-4 min-w-0">
+            <div className="text-base font-semibold text-slate-900">
+              {t.has("usage.title") ? t("usage.title") : "Usage"}
+            </div>
+            <div className="mt-1 text-sm text-slate-600">
+              {t.has("usage.subtitle")
+                ? t("usage.subtitle")
+                : "See how much you have used this month."}
+            </div>
+          </div>
 
-          <UsageCard
-            title="AI feedback"
-            used={feedbackUsed}
-            limit={feedbackLimit}
-          />
+          <div className="grid min-w-0 gap-3">
+            <UsageCard
+              title="Premium generators"
+              used={generatorsUsed}
+              limit={generatorsLimit}
+            />
 
-          <UsageCard
-            title="Image generation"
-            used={imagesUsed}
-            limit={imagesLimit}
-          />
-        </div>
+            <UsageCard
+              title="AI feedback"
+              used={feedbackUsed}
+              limit={feedbackLimit}
+            />
+
+            <UsageCard
+              title="Image generation"
+              used={imagesUsed}
+              limit={imagesLimit}
+            />
+          </div>
+        </section>
       )}
 
-      <div className="mt-6 rounded-2xl border bg-background p-4">
-        <h2 className="text-base font-extrabold text-foreground">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <h2 className="text-base font-extrabold text-slate-900">
           {t.has("quickLinks.title") ? t("quickLinks.title") : "Quick links"}
         </h2>
 
-        <div className="mt-3 flex flex-wrap gap-3">
+        <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
           <Link
             href={`/${locale}/321lessons`}
-            className="inline-flex rounded-xl border px-4 py-2 text-sm font-medium no-underline hover:bg-slate-50"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50"
           >
             {t.has("quickLinks.library") ? t("quickLinks.library") : "Open library"}
           </Link>
 
           <Link
             href={`/${locale}/student/content`}
-            className="inline-flex rounded-xl border px-4 py-2 text-sm font-medium no-underline hover:bg-slate-50"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50"
           >
             {t.has("quickLinks.myContent") ? t("quickLinks.myContent") : "My content"}
           </Link>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

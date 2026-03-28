@@ -37,10 +37,11 @@ export default function ParentPage() {
       } catch {
         if (!alive) return;
         setIsAnon(true);
+        setUid(undefined);
       }
     };
 
-    run();
+    void run();
 
     return () => {
       alive = false;
@@ -65,29 +66,38 @@ export default function ParentPage() {
   const imagesLimit = getBucketLimit(role, plan, "image_generation");
 
   return (
-    <main style={{ maxWidth: 1100, margin: "14px auto", padding: 12 }}>
+    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
       <DashboardIntro userIsAnon={isAnon} />
 
       {!loading && (
-        <div style={{ marginTop: 20 }}>
-          <UsageCard
-            title="Premium generators"
-            used={generatorsUsed}
-            limit={generatorsLimit}
-          />
+        <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+          <div className="mb-4 min-w-0">
+            <div className="text-base font-semibold text-slate-900">Bruk denne måneden</div>
+            <div className="mt-1 text-sm text-slate-600">
+              Her ser du hvor mye du har brukt av funksjonene dine.
+            </div>
+          </div>
 
-          <UsageCard
-            title="AI feedback"
-            used={feedbackUsed}
-            limit={feedbackLimit}
-          />
+          <div className="grid min-w-0 gap-3">
+            <UsageCard
+              title="Premium generators"
+              used={generatorsUsed}
+              limit={generatorsLimit}
+            />
 
-          <UsageCard
-            title="Image generation"
-            used={imagesUsed}
-            limit={imagesLimit}
-          />
-        </div>
+            <UsageCard
+              title="AI feedback"
+              used={feedbackUsed}
+              limit={feedbackLimit}
+            />
+
+            <UsageCard
+              title="Image generation"
+              used={imagesUsed}
+              limit={imagesLimit}
+            />
+          </div>
+        </section>
       )}
     </main>
   );
