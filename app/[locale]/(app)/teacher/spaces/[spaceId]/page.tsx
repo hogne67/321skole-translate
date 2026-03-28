@@ -403,11 +403,6 @@ function Inner() {
     return typeof v === "string" && v.trim() ? v : null;
   }, [space]);
 
-  const activeForStudentsTitle = useMemo(() => {
-    const v = space?.activeLessonTitle;
-    return typeof v === "string" ? v : "";
-  }, [space]);
-
   useEffect(() => {
     if (access !== "allowed") return;
 
