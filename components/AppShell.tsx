@@ -50,25 +50,40 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [role, tNav]);
 
   return (
-    <div className="app-scope tw-scope">
+    <div className="app-scope tw-scope appShellRoot">
       <TopNav />
       <LibraryBar />
 
       {isLibrary ? (
-        <div style={{ maxWidth: 1200, margin: "10px auto", padding: 10 }}>{children}</div>
+        <div className="libraryWrap">{children}</div>
       ) : (
-        <>
-          <SectionShell title={title} items={items} fullWidth={isProducer}>
-            {children}
-          </SectionShell>
-
-          <style jsx>{`
-            :global(body) {
-              overflow-x: hidden;
-            }
-          `}</style>
-        </>
+        <SectionShell title={title} items={items} fullWidth={isProducer}>
+          {children}
+        </SectionShell>
       )}
+
+      <style jsx>{`
+        .appShellRoot {
+          width: 100%;
+          min-width: 0;
+          overflow-x: clip;
+        }
+
+        .libraryWrap {
+          max-width: 1200px;
+          margin: 10px auto;
+          padding: 10px;
+          width: 100%;
+          min-width: 0;
+          overflow-x: clip;
+        }
+
+        :global(html),
+        :global(body) {
+          max-width: 100%;
+          overflow-x: clip;
+        }
+      `}</style>
     </div>
   );
 }

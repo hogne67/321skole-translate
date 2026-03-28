@@ -1,3 +1,4 @@
+// app\[locale]\(app)\teacher\spaces\[spaceId]\page.tsx
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -263,7 +264,9 @@ function Inner() {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [showArchived, setShowArchived] = useState(false);
 
-  const [subSummaryByAssignment, setSubSummaryByAssignment] = useState<Record<string, { total: number; newCount: number }>>({});
+  const [subSummaryByAssignment, setSubSummaryByAssignment] = useState<Record<string, { total: number; newCount: number }>>(
+    {}
+  );
   const [subSummaryErrByAssignment, setSubSummaryErrByAssignment] = useState<Record<string, string | null>>({});
   const [subSummaryUnsubByAssignment, setSubSummaryUnsubByAssignment] = useState<Record<string, Unsubscribe>>({});
 
@@ -717,7 +720,7 @@ function Inner() {
 
   if (access === "checking") {
     return (
-      <div className="w-full min-w-0">
+      <div className="mx-auto w-full max-w-5xl min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("checking.title")}</h1>
@@ -736,7 +739,7 @@ function Inner() {
 
   if (access === "denied") {
     return (
-      <div className="w-full min-w-0">
+      <div className="mx-auto w-full max-w-5xl min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("denied.title")}</h1>
@@ -757,15 +760,15 @@ function Inner() {
   const canManage = access === "allowed" && Boolean(user?.uid) && canOperateSpace;
 
   return (
-    <div className="w-full min-w-0 space-y-4">
+    <div className="mx-auto w-full max-w-5xl min-w-0 space-y-4">
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{String(space.title ?? "")}</h1>
             <div className="mt-1 break-words text-sm text-slate-600">{t("overview.subtitle")}</div>
           </div>
 
-          <div className="flex w-full justify-start lg:w-auto lg:justify-end">
+          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
             <Link
               className="text-sm font-medium text-slate-700 underline underline-offset-4"
               href={withLocale(locale, "/teacher/spaces")}
@@ -783,13 +786,17 @@ function Inner() {
       )}
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
-            <div className="mt-1 break-words text-sm text-slate-600">{t("assignments.subtitle")}</div>
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="min-w-0">
+              <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
+              <div className="mt-1 break-words text-sm text-slate-600">{t("assignments.subtitle")}</div>
+            </div>
+
+            {quotaErr && <div className="break-words text-xs text-slate-600">{quotaErr}</div>}
           </div>
 
-          <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:w-auto xl:flex-wrap xl:justify-end">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
             <button
               type="button"
               onClick={() => setAssignOpen(true)}
@@ -830,8 +837,6 @@ function Inner() {
               {space?.isOpen ? t("assignments.closeSpace") : t("assignments.openSpace")}
             </button>
           </div>
-
-          {quotaErr && <div className="break-words text-xs text-slate-600">{quotaErr}</div>}
         </div>
       </div>
 
@@ -845,7 +850,7 @@ function Inner() {
           </div>
         </div>
 
-        <div className="mt-4 grid min-w-0 gap-3 px-1 sm:px-0">
+        <div className="mt-4 grid min-w-0 gap-3">
           {visibleAssignments.length === 0 ? (
             <div className="rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
               {t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}
@@ -919,7 +924,7 @@ function Inner() {
                       </div>
                     </div>
 
-                    <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:w-auto xl:flex-wrap xl:justify-end">
+                    <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:min-w-[340px]">
                       <button
                         type="button"
                         onClick={() => router.push(withLocale(locale, `/teacher/spaces/${spaceId}/lessons/${a.id}`))}
@@ -947,7 +952,7 @@ function Inner() {
                           type="button"
                           onClick={() => setAssignmentStatus(a.id, "archived")}
                           disabled={saving || !canManage}
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:col-span-2 xl:col-span-1"
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:col-span-2"
                         >
                           {t("actions.archive")}
                         </button>
@@ -956,7 +961,7 @@ function Inner() {
                           type="button"
                           onClick={() => setAssignmentStatus(a.id, "active")}
                           disabled={saving || !canManage}
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:col-span-2 xl:col-span-1"
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:col-span-2"
                         >
                           {t("actions.restore")}
                         </button>

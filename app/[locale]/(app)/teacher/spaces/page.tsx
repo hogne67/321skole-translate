@@ -1,3 +1,4 @@
+// app\[locale]\(app)\teacher\spaces\page.tsx
 "use client";
 
 import Link from "next/link";
@@ -197,20 +198,20 @@ function TeacherSpacesInner() {
   }
 
   return (
-    <div className="w-full min-w-0 space-y-4">
+    <div className="mx-auto w-full max-w-5xl min-w-0 space-y-4">
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
             <p className="mt-2 break-words text-sm text-slate-600">{t("subtitle")}</p>
           </div>
 
-          <div className="flex w-full justify-start lg:w-auto lg:justify-end">
+          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
             <Link
               href={withLocale(locale, "/teacher/spaces/new")}
               title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
               className={[
-                "inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-base font-semibold shadow-sm hover:shadow-md no-underline sm:w-auto",
+                "inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-base font-semibold shadow-sm no-underline hover:shadow-md sm:w-auto",
                 canCreateSpace
                   ? "bg-green-600 text-white hover:bg-green-500"
                   : "border border-slate-300 bg-white text-slate-800",
@@ -232,7 +233,7 @@ function TeacherSpacesInner() {
           </div>
 
           <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3">
-            <div className="min-w-0 lg:col-span-1">
+            <div className="min-w-0">
               <label className="text-sm font-medium text-slate-800">{t("controls.search.label")}</label>
               <input
                 value={search}
@@ -242,7 +243,7 @@ function TeacherSpacesInner() {
               />
             </div>
 
-            <div className="min-w-0 lg:col-span-1">
+            <div className="min-w-0">
               <label className="text-sm font-medium text-slate-800">{t("controls.sort.label")}</label>
               <select
                 value={sortKey}
@@ -256,7 +257,7 @@ function TeacherSpacesInner() {
               </select>
             </div>
 
-            <div className="min-w-0 lg:col-span-1">
+            <div className="min-w-0">
               <label className="text-sm font-medium text-slate-800">{t("controls.filters.label")}</label>
               <label className="mt-2 flex min-w-0 items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2">
                 <input
@@ -281,7 +282,7 @@ function TeacherSpacesInner() {
           </div>
         </div>
 
-        <div className="grid min-w-0 gap-3 px-1 sm:px-0">
+        <div className="grid min-w-0 gap-3">
           {filtered.map((r) => {
             const code = (r.data.code ?? "").toString();
             const title = (r.data.title ?? t("list.untitled")).toString();
@@ -293,9 +294,8 @@ function TeacherSpacesInner() {
               <div
                 key={r.id}
                 className={[
-                  "min-w-0 overflow-hidden rounded-2xl border bg-white p-4 shadow-sm transition sm:p-5",
+                  "min-w-0 overflow-hidden rounded-2xl border bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5",
                   open ? "border-emerald-300" : "border-slate-300",
-                  "hover:shadow-md",
                 ].join(" ")}
               >
                 <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -320,7 +320,7 @@ function TeacherSpacesInner() {
                       <button
                         type="button"
                         onClick={() => copyToClipboard(code, r.id)}
-                        className="max-w-full rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-sm font-medium text-slate-900 hover:bg-slate-100"
+                        className="max-w-full rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-left text-sm font-medium text-slate-900 hover:bg-slate-100"
                         title={t("list.copyCodeTitle")}
                       >
                         <span className="break-all">{code || "—"}</span>
@@ -333,7 +333,7 @@ function TeacherSpacesInner() {
                       <b className="text-slate-900">{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
                     </div>
 
-                    <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    <div className="mt-3 grid w-full min-w-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
                       <button
                         type="button"
                         onClick={() => {
@@ -358,7 +358,7 @@ function TeacherSpacesInner() {
                     </div>
                   </div>
 
-                  <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[360px] xl:grid-cols-1 2xl:grid-cols-3">
+                  <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[340px]">
                     <button
                       type="button"
                       onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
@@ -430,7 +430,7 @@ function TeacherSpacesInner() {
               </button>
             </div>
 
-            <div className="mt-4 overflow-x-auto rounded-xl border border-slate-300 p-4">
+            <div className="mt-4 rounded-xl border border-slate-300 p-4">
               {qrBusy && <div className="text-sm text-slate-600">{t("qr.generating")}</div>}
               {qrErr && <div className="text-sm text-red-600">{qrErr}</div>}
 

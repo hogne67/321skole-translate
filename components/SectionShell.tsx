@@ -1,4 +1,3 @@
-// components/SectionShell.tsx
 "use client";
 
 import Link from "next/link";
@@ -54,15 +53,13 @@ export default function SectionShell({
   const navItems = items;
 
   return (
-    <div style={{ width: "100%" }}>
+    <div className="w-full">
       {!hideHeader && (
         <div className="sectionHeader">
           <div className="sectionHeaderTop">
             <div className="sectionTitleWrap">
               <h1 style={{ margin: 0, fontSize: 22 }}>{title}</h1>
-              {subtitle ? (
-                <p style={{ margin: "6px 0 0", opacity: 0.75 }}>{subtitle}</p>
-              ) : null}
+              {subtitle ? <p style={{ margin: "6px 0 0", opacity: 0.75 }}>{subtitle}</p> : null}
             </div>
           </div>
 
@@ -72,24 +69,13 @@ export default function SectionShell({
                 const isTools = isToolsItem(it.href);
                 const isActive = isItemActive(it.href);
 
-                const background = isTools
-                  ? "#deebde"
-                  : isActive
-                    ? "#eef6ff"
-                    : "#ffffff";
-
-                const color = isTools
-                  ? "#1f7a1f"
-                  : isActive
-                    ? "#0f172a"
-                    : "#1f2937";
-
+                const background = isTools ? "#deebde" : isActive ? "#eef6ff" : "#ffffff";
+                const color = isTools ? "#1f7a1f" : isActive ? "#0f172a" : "#1f2937";
                 const border = isTools
                   ? "1px solid #81beb3"
                   : isActive
                     ? "1px solid #bfd7f7"
                     : "1px solid rgba(0,0,0,0.12)";
-
                 const boxShadow = isTools ? "0 1px 2px rgba(0,0,0,0.10)" : "none";
 
                 return (
@@ -120,11 +106,7 @@ export default function SectionShell({
         </div>
       )}
 
-      <div
-        className={`sectionContent ${fullWidth ? "full" : ""} ${
-          toolsItem && !hideNav ? "hasMobileCreate" : ""
-        }`}
-      >
+      <div className={`sectionContent ${fullWidth ? "full" : ""} ${toolsItem && !hideNav ? "hasMobileCreate" : ""}`}>
         {children}
       </div>
 
@@ -193,7 +175,11 @@ export default function SectionShell({
           flex: 0 0 auto;
         }
 
-        .sectionContent 
+        .sectionContent {
+          width: 100%;
+          min-width: 0;
+          padding: 12px 16px 16px;
+        }
 
         .sectionContent.full {
           padding: 0;
