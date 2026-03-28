@@ -53,13 +53,13 @@ export default function SectionShell({
   const navItems = items;
 
   return (
-    <div className="w-full">
+    <div className="shellRoot">
       {!hideHeader && (
         <div className="sectionHeader">
           <div className="sectionHeaderTop">
             <div className="sectionTitleWrap">
-              <h1 style={{ margin: 0, fontSize: 22 }}>{title}</h1>
-              {subtitle ? <p style={{ margin: "6px 0 0", opacity: 0.75 }}>{subtitle}</p> : null}
+              <h1 className="sectionTitle">{title}</h1>
+              {subtitle ? <p className="sectionSubtitle">{subtitle}</p> : null}
             </div>
           </div>
 
@@ -90,7 +90,8 @@ export default function SectionShell({
                       whiteSpace: "nowrap",
                       fontSize: 14,
                       fontWeight: 600,
-                      display: "inline-block",
+                      display: "inline-flex",
+                      alignItems: "center",
                       background,
                       color,
                       border,
@@ -106,7 +107,11 @@ export default function SectionShell({
         </div>
       )}
 
-      <div className={`sectionContent ${fullWidth ? "full" : ""} ${toolsItem && !hideNav ? "hasMobileCreate" : ""}`}>
+      <div
+        className={`sectionContent ${fullWidth ? "full" : ""} ${
+          toolsItem && !hideNav ? "hasMobileCreate" : ""
+        }`}
+      >
         {children}
       </div>
 
@@ -114,33 +119,25 @@ export default function SectionShell({
         <div className="mobileCreateWrap" aria-hidden={false}>
           <Link
             href={withLocale(toolsItem.href)}
-            style={{
-              pointerEvents: "auto",
-              margin: "0 auto",
-              width: "fit-content",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              textDecoration: "none",
-              borderRadius: 999,
-              padding: "12px 18px",
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#1f7a1f",
-              background: "#deebde",
-              border: "1px solid #81beb3",
-              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.14)",
-            }}
+            className="mobileCreateButton"
           >
-            <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
+            <span className="mobileCreatePlus">+</span>
             <span>Create</span>
           </Link>
         </div>
       ) : null}
 
       <style jsx>{`
+        .shellRoot {
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
+        }
+
         .sectionHeader {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
           padding: 14px 16px 8px;
           border-bottom: 1px solid rgba(0, 0, 0, 0.08);
           background: #fff;
@@ -151,17 +148,36 @@ export default function SectionShell({
           align-items: flex-start;
           justify-content: space-between;
           gap: 12px;
+          min-width: 0;
+          max-width: 100%;
         }
 
         .sectionTitleWrap {
           min-width: 0;
+          max-width: 100%;
+        }
+
+        .sectionTitle {
+          margin: 0;
+          font-size: 22px;
+          line-height: 1.2;
+          overflow-wrap: anywhere;
+        }
+
+        .sectionSubtitle {
+          margin: 6px 0 0;
+          opacity: 0.75;
+          overflow-wrap: anywhere;
         }
 
         .sectionNav {
           margin-top: 12px;
           display: flex;
           gap: 8px;
+          min-width: 0;
+          max-width: 100%;
           overflow-x: auto;
+          overflow-y: hidden;
           padding-bottom: 6px;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
@@ -173,11 +189,13 @@ export default function SectionShell({
 
         .navLink {
           flex: 0 0 auto;
+          max-width: 100%;
         }
 
         .sectionContent {
           width: 100%;
           min-width: 0;
+          max-width: 100%;
           padding: 12px 16px 16px;
         }
 
@@ -187,6 +205,31 @@ export default function SectionShell({
 
         .mobileCreateWrap {
           display: none;
+        }
+
+        .mobileCreateButton {
+          pointer-events: auto;
+          margin: 0 auto;
+          width: fit-content;
+          max-width: calc(100vw - 24px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          text-decoration: none;
+          border-radius: 999px;
+          padding: 12px 18px;
+          font-size: 15px;
+          font-weight: 700;
+          color: #1f7a1f;
+          background: #deebde;
+          border: 1px solid #81beb3;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+        }
+
+        .mobileCreatePlus {
+          font-size: 18px;
+          line-height: 1;
         }
 
         @media (max-width: 560px) {
@@ -219,6 +262,12 @@ export default function SectionShell({
             z-index: 40;
             pointer-events: none;
           }
+        }
+
+        :global(*),
+        :global(*::before),
+        :global(*::after) {
+          box-sizing: border-box;
         }
       `}</style>
     </div>

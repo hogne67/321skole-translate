@@ -198,8 +198,8 @@ function TeacherSpacesInner() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl min-w-0 space-y-4">
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+    <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
@@ -239,7 +239,7 @@ function TeacherSpacesInner() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t("controls.search.placeholder")}
-                className="mt-2 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
               />
             </div>
 
