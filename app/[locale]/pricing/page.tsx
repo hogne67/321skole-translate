@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   getEffectivePlan,
   type BillingSnapshot,
@@ -34,174 +34,6 @@ type RoleSection = {
   hint?: string;
   rows: FeatureRow[];
 };
-
-const TIERS: Tier[] = [
-  {
-    key: "free",
-    name: "Free",
-    price: "0 kr",
-    tagline: "Kom i gang gratis med bibliotek, lesing og enkel bruk.",
-    accent: "slate",
-  },
-  {
-    key: "basic",
-    name: "Basic",
-    price: "59 kr / mnd",
-    tagline: "For deg som vil bruke plattformen oftere og få mer kapasitet.",
-    accent: "blue",
-  },
-  {
-    key: "plus",
-    name: "Plus",
-    price: "129 kr / mnd",
-    tagline: "Mer AI, mer samarbeid og tilgang til de viktigste premium-funksjonene.",
-    accent: "violet",
-    recommended: true,
-  },
-  {
-    key: "pro",
-    name: "Pro",
-    price: "199 kr / mnd",
-    tagline: "For høy aktivitet, publisering og mer profesjonell bruk.",
-    accent: "rose",
-  },
-];
-
-const ROLES: RoleSection[] = [
-  {
-    id: "student",
-    title: "🧑‍🎓 Student",
-    subtitle: "Perfekt for selvstudie, øving og samarbeid.",
-    hint:
-      "Student-planene bygger på en samlet premium-generator-pott per måned. Den samme potten brukes når du lager premium-oppgaver, tekster og lignende verktøy.",
-    rows: [
-      {
-        label: "📚 Bibliotek (lese)",
-        values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
-      },
-      {
-        label: "🏫 Delta i klasserom",
-        values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
-      },
-      {
-        label: "🧠 Premium-generatorer / måned",
-        note: "Samlet pott for premium-generatorer",
-        values: { free: "2", basic: "10", plus: "25", pro: "100" },
-      },
-      {
-        label: "🧠 AI-tilbakemeldinger / måned",
-        values: { free: "5", basic: "30", plus: "100", pro: "300" },
-      },
-      {
-        label: "🖼 AI-bilder / måned",
-        values: { free: "–", basic: "10", plus: "50", pro: "150" },
-      },
-      {
-        label: "📥 Nedlastinger / måned",
-        values: { free: "3", basic: "20", plus: "75", pro: "200" },
-      },
-      {
-        label: "🌍 Oversetter",
-        values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
-      },
-      {
-        label: "👥 Samarbeid og grupper",
-        note: "Kan utvides senere",
-        values: { free: "Enkel", basic: "Mer", plus: "Mer", pro: "Mest" },
-      },
-    ],
-  },
-  {
-    id: "teacher",
-    title: "👩‍🏫 Teacher",
-    subtitle: "Bygget for lærere med tydelige rammer per plan.",
-    hint:
-      "Teacher-planene bruker samme modell som dashboardet ditt: en samlet premium-generator-pott, egne grenser for AI-feedback, bilder, nedlastinger og medlemmer.",
-    rows: [
-      {
-        label: "📚 Bibliotek (lese)",
-        values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
-      },
-      {
-        label: "🧠 Premium-generatorer / måned",
-        note: "Samlet pott for lesson, reading test, quiz, writing task m.m.",
-        values: { free: "15", basic: "50", plus: "150", pro: "500" },
-      },
-      {
-        label: "🧠 AI-tilbakemeldinger / måned",
-        values: { free: "20", basic: "100", plus: "300", pro: "1000" },
-      },
-      {
-        label: "🖼 AI-bilder / måned",
-        values: { free: "5", basic: "50", plus: "200", pro: "1000" },
-      },
-      {
-        label: "📥 Nedlastinger / måned",
-        values: { free: "10", basic: "50", plus: "200", pro: "1000" },
-      },
-      {
-        label: "👥 Maks medlemmer",
-        note: "Samlet kapasitet",
-        values: { free: "50", basic: "150", plus: "500", pro: "2000" },
-      },
-      {
-        label: "🏫 Rom og tavler",
-        values: {
-          free: "Basic",
-          basic: "Mer kapasitet",
-          plus: "Stor kapasitet",
-          pro: "Maks kapasitet",
-        },
-      },
-      {
-        label: "🌍 Premium app-tilgang",
-        values: { free: "–", basic: "✔", plus: "✔", pro: "✔" },
-      },
-    ],
-  },
-  {
-    id: "parent",
-    title: "👨‍👩‍👧 Parent",
-    subtitle: "For hjemmetrening, støtte og progresjonskontroll.",
-    hint:
-      "Parent-planene bruker også en samlet premium-generator-pott, sammen med egne grenser for AI-feedback, bilder og nedlastinger.",
-    rows: [
-      {
-        label: "📚 Bibliotek (lese)",
-        values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
-      },
-      {
-        label: "🏠 Læringsrom hjemme",
-        values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
-      },
-      {
-        label: "🧠 Premium-generatorer / måned",
-        note: "Samlet pott for premium-generatorer",
-        values: { free: "1", basic: "5", plus: "20", pro: "100" },
-      },
-      {
-        label: "🧠 AI-tilbakemeldinger / måned",
-        values: { free: "3", basic: "20", plus: "75", pro: "200" },
-      },
-      {
-        label: "🖼 AI-bilder / måned",
-        values: { free: "–", basic: "10", plus: "50", pro: "150" },
-      },
-      {
-        label: "📥 Nedlastinger / måned",
-        values: { free: "3", basic: "15", plus: "50", pro: "150" },
-      },
-      {
-        label: "👶 Kapasitet for familiebruk",
-        values: { free: "Liten", basic: "Mer", plus: "Stor", pro: "Størst" },
-      },
-      {
-        label: "🌍 Premium app-tilgang",
-        values: { free: "–", basic: "✔", plus: "✔", pro: "✔" },
-      },
-    ],
-  },
-];
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -260,7 +92,13 @@ function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
   };
 }
 
-function AccentPill({ accent, label }: { accent: Tier["accent"]; label: string }) {
+function AccentPill({
+  accent,
+  label,
+}: {
+  accent: Tier["accent"];
+  label: string;
+}) {
   const cls =
     accent === "blue"
       ? "border-blue-200 bg-blue-50 text-blue-700"
@@ -271,7 +109,12 @@ function AccentPill({ accent, label }: { accent: Tier["accent"]; label: string }
           : "border-slate-200 bg-slate-50 text-slate-700";
 
   return (
-    <span className={cx("inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium", cls)}>
+    <span
+      className={cx(
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+        cls
+      )}
+    >
       {label}
     </span>
   );
@@ -281,10 +124,14 @@ function TierCard({
   tier,
   activePlan,
   isLoggedIn,
+  locale,
+  t,
 }: {
   tier: Tier;
   activePlan: TierKey;
   isLoggedIn: boolean;
+  locale: string;
+  t: ReturnType<typeof useTranslations>;
 }) {
   const border =
     tier.accent === "blue"
@@ -301,31 +148,43 @@ function TierCard({
       : "bg-slate-900 hover:bg-slate-800";
 
   const isCurrent = activePlan === tier.key;
-  const ctaHref = isLoggedIn ? "/account/billing" : "/join";
+  const ctaHref = isLoggedIn ? `/${locale}/account/billing` : `/${locale}/join`;
+
   const ctaLabel = isCurrent
-    ? "Aktiv plan"
+    ? t("tiers.card.activePlan")
     : isLoggedIn
       ? tier.key === "free"
-        ? "Administrer plan"
-        : `Velg ${tier.name}`
+        ? t("tiers.card.managePlan")
+        : t("tiers.card.choosePlan", { name: tier.name })
       : tier.key === "free"
-        ? "Kom i gang"
-        : `Velg ${tier.name}`;
+        ? t("tiers.card.getStarted")
+        : t("tiers.card.choosePlan", { name: tier.name });
 
   return (
-    <div className={cx("rounded-2xl border bg-white p-5 shadow-sm", border, isCurrent && "ring-2 ring-emerald-100 border-emerald-300")}>
+    <div
+      className={cx(
+        "rounded-2xl border bg-white p-5 shadow-sm",
+        border,
+        isCurrent && "ring-2 ring-emerald-100 border-emerald-300"
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <AccentPill accent={tier.accent} label={tier.key === "free" ? "Gratis" : tier.name} />
+            <AccentPill
+              accent={tier.accent}
+              label={tier.key === "free" ? t("tiers.free.badge") : tier.name}
+            />
+
             {tier.recommended ? (
               <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-medium text-violet-700">
-                Anbefalt
+                {t("tiers.card.recommended")}
               </span>
             ) : null}
+
             {isCurrent ? (
               <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                Aktiv plan
+                {t("tiers.card.activePlan")}
               </span>
             ) : null}
           </div>
@@ -348,7 +207,7 @@ function TierCard({
         </Link>
       </div>
 
-      <p className="mt-3 text-xs text-slate-500">* Priser og innhold kan justeres før lansering.</p>
+      <p className="mt-3 text-xs text-slate-500">{t("tiers.card.disclaimer")}</p>
     </div>
   );
 }
@@ -383,10 +242,12 @@ function CompareTable({
   role,
   activePlan,
   activeRole,
+  t,
 }: {
   role: RoleSection;
   activePlan: TierKey;
   activeRole: RoleKey | null;
+  t: ReturnType<typeof useTranslations>;
 }) {
   const highlightPlan = activeRole === role.id ? activePlan : null;
 
@@ -400,18 +261,39 @@ function CompareTable({
 
       <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
         <div className="hidden grid-cols-6 gap-0 border-b bg-slate-50 px-4 py-3 text-xs font-medium text-slate-600 md:grid">
-          <div className="col-span-2">Funksjon</div>
-          {TIERS.map((t) => (
-            <div
-              key={t.key}
-              className={cx(
-                "text-center",
-                highlightPlan === t.key && "text-emerald-700 font-semibold"
-              )}
-            >
-              {t.name}
-            </div>
-          ))}
+          <div className="col-span-2">{t("compare.function")}</div>
+          <div
+            className={cx(
+              "text-center",
+              highlightPlan === "free" && "text-emerald-700 font-semibold"
+            )}
+          >
+            {t("tiers.free.name")}
+          </div>
+          <div
+            className={cx(
+              "text-center",
+              highlightPlan === "basic" && "text-emerald-700 font-semibold"
+            )}
+          >
+            {t("tiers.basic.name")}
+          </div>
+          <div
+            className={cx(
+              "text-center",
+              highlightPlan === "plus" && "text-emerald-700 font-semibold"
+            )}
+          >
+            {t("tiers.plus.name")}
+          </div>
+          <div
+            className={cx(
+              "text-center",
+              highlightPlan === "pro" && "text-emerald-700 font-semibold"
+            )}
+          >
+            {t("tiers.pro.name")}
+          </div>
         </div>
 
         <div className="divide-y">
@@ -423,10 +305,18 @@ function CompareTable({
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:col-span-4 md:grid-cols-4">
-                <div className="md:hidden text-center text-xs font-medium text-slate-500">Free</div>
-                <div className="md:hidden text-center text-xs font-medium text-slate-500">Basic</div>
-                <div className="md:hidden text-center text-xs font-medium text-slate-500">Plus</div>
-                <div className="md:hidden text-center text-xs font-medium text-slate-500">Pro</div>
+                <div className="md:hidden text-center text-xs font-medium text-slate-500">
+                  {t("tiers.free.name")}
+                </div>
+                <div className="md:hidden text-center text-xs font-medium text-slate-500">
+                  {t("tiers.basic.name")}
+                </div>
+                <div className="md:hidden text-center text-xs font-medium text-slate-500">
+                  {t("tiers.plus.name")}
+                </div>
+                <div className="md:hidden text-center text-xs font-medium text-slate-500">
+                  {t("tiers.pro.name")}
+                </div>
 
                 <ValueCell value={row.values.free} highlight={highlightPlan === "free"} />
                 <ValueCell value={row.values.basic} highlight={highlightPlan === "basic"} />
@@ -443,6 +333,7 @@ function CompareTable({
 
 export default function PricingPage() {
   const locale = useLocale();
+  const t = useTranslations("pricing");
   const { user, loading } = useUserProfile();
 
   const activeRole = resolveRoleFromProfile(user);
@@ -460,41 +351,220 @@ export default function PricingPage() {
   const joinHref = locale ? `/${locale}/join` : "/join";
   const billingHref = locale ? `/${locale}/account/billing` : "/account/billing";
 
+  const TIERS: Tier[] = [
+    {
+      key: "free",
+      name: t("tiers.free.name"),
+      price: t("tiers.free.price"),
+      tagline: t("tiers.free.tagline"),
+      accent: "slate",
+    },
+    {
+      key: "basic",
+      name: t("tiers.basic.name"),
+      price: t("tiers.basic.price"),
+      tagline: t("tiers.basic.tagline"),
+      accent: "blue",
+    },
+    {
+      key: "plus",
+      name: t("tiers.plus.name"),
+      price: t("tiers.plus.price"),
+      tagline: t("tiers.plus.tagline"),
+      accent: "violet",
+      recommended: true,
+    },
+    {
+      key: "pro",
+      name: t("tiers.pro.name"),
+      price: t("tiers.pro.price"),
+      tagline: t("tiers.pro.tagline"),
+      accent: "rose",
+    },
+  ];
+
+  const ROLES: RoleSection[] = [
+    {
+      id: "student",
+      title: t("roles.student.title"),
+      subtitle: t("roles.student.subtitle"),
+      hint: t("roles.student.hint"),
+      rows: [
+        {
+          label: t("roles.student.rows.library.label"),
+          values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
+        },
+        {
+          label: t("roles.student.rows.classroom.label"),
+          values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
+        },
+        {
+          label: t("roles.student.rows.generators.label"),
+          note: t("roles.student.rows.generators.note"),
+          values: { free: "2", basic: "10", plus: "25", pro: "100" },
+        },
+        {
+          label: t("roles.student.rows.feedback.label"),
+          values: { free: "5", basic: "30", plus: "100", pro: "300" },
+        },
+        {
+          label: t("roles.student.rows.images.label"),
+          values: { free: "–", basic: "10", plus: "50", pro: "150" },
+        },
+        {
+          label: t("roles.student.rows.downloads.label"),
+          values: { free: "3", basic: "20", plus: "75", pro: "200" },
+        },
+        {
+          label: t("roles.student.rows.translator.label"),
+          values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
+        },
+        {
+          label: t("roles.student.rows.groups.label"),
+          note: t("roles.student.rows.groups.note"),
+          values: {
+            free: t("values.simple"),
+            basic: t("values.more"),
+            plus: t("values.more"),
+            pro: t("values.most"),
+          },
+        },
+      ],
+    },
+    {
+      id: "teacher",
+      title: t("roles.teacher.title"),
+      subtitle: t("roles.teacher.subtitle"),
+      hint: t("roles.teacher.hint"),
+      rows: [
+        {
+          label: t("roles.teacher.rows.library.label"),
+          values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
+        },
+        {
+          label: t("roles.teacher.rows.generators.label"),
+          note: t("roles.teacher.rows.generators.note"),
+          values: { free: "15", basic: "50", plus: "150", pro: "500" },
+        },
+        {
+          label: t("roles.teacher.rows.feedback.label"),
+          values: { free: "20", basic: "100", plus: "300", pro: "1000" },
+        },
+        {
+          label: t("roles.teacher.rows.images.label"),
+          values: { free: "5", basic: "50", plus: "200", pro: "1000" },
+        },
+        {
+          label: t("roles.teacher.rows.downloads.label"),
+          values: { free: "10", basic: "50", plus: "200", pro: "1000" },
+        },
+        {
+          label: t("roles.teacher.rows.members.label"),
+          note: t("roles.teacher.rows.members.note"),
+          values: { free: "50", basic: "150", plus: "500", pro: "2000" },
+        },
+        {
+          label: t("roles.teacher.rows.rooms.label"),
+          values: {
+            free: t("values.basic"),
+            basic: t("values.moreCapacity"),
+            plus: t("values.largeCapacity"),
+            pro: t("values.maxCapacity"),
+          },
+        },
+        {
+          label: t("roles.teacher.rows.appAccess.label"),
+          values: { free: "–", basic: "✔", plus: "✔", pro: "✔" },
+        },
+      ],
+    },
+    {
+      id: "parent",
+      title: t("roles.parent.title"),
+      subtitle: t("roles.parent.subtitle"),
+      hint: t("roles.parent.hint"),
+      rows: [
+        {
+          label: t("roles.parent.rows.library.label"),
+          values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
+        },
+        {
+          label: t("roles.parent.rows.homeRoom.label"),
+          values: { free: "✔", basic: "✔", plus: "✔", pro: "✔" },
+        },
+        {
+          label: t("roles.parent.rows.generators.label"),
+          note: t("roles.parent.rows.generators.note"),
+          values: { free: "1", basic: "5", plus: "20", pro: "100" },
+        },
+        {
+          label: t("roles.parent.rows.feedback.label"),
+          values: { free: "3", basic: "20", plus: "75", pro: "200" },
+        },
+        {
+          label: t("roles.parent.rows.images.label"),
+          values: { free: "–", basic: "10", plus: "50", pro: "150" },
+        },
+        {
+          label: t("roles.parent.rows.downloads.label"),
+          values: { free: "3", basic: "15", plus: "50", pro: "150" },
+        },
+        {
+          label: t("roles.parent.rows.family.label"),
+          values: {
+            free: t("values.small"),
+            basic: t("values.more"),
+            plus: t("values.large"),
+            pro: t("values.largest"),
+          },
+        },
+        {
+          label: t("roles.parent.rows.appAccess.label"),
+          values: { free: "–", basic: "✔", plus: "✔", pro: "✔" },
+        },
+      ],
+    },
+  ];
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Priser og planer</h1>
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              {t("hero.title")}
+            </h1>
+
             <p className="mt-3 text-base text-slate-600">
-              321 School er bygget slik at alle kan lære gratis. Når du trenger mer kapasitet, flere AI-funksjoner og
-              mer samarbeid, kan du oppgradere til planen som passer rollen din.
+              {t("hero.subtitle")}
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2">
               <a href="#student" className="rounded-full border px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
-                Student
+                {t("nav.student")}
               </a>
               <a href="#teacher" className="rounded-full border px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
-                Teacher
+                {t("nav.teacher")}
               </a>
               <a href="#parent" className="rounded-full border px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
-                Parent
+                {t("nav.parent")}
               </a>
             </div>
 
             {!loading && isLoggedIn ? (
               <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                Aktiv plan: <span className="font-semibold">{activePlan.toUpperCase()}</span>
+                {t("activePlan.label")}{" "}
+                <span className="font-semibold">{activePlan.toUpperCase()}</span>
                 {activeRole ? (
                   <>
                     {" "}
-                    · Rolle: <span className="font-semibold">{activeRole}</span>
+                    · {t("activePlan.role")}{" "}
+                    <span className="font-semibold">{activeRole}</span>
                   </>
                 ) : null}
                 <div className="mt-2">
                   <Link href={billingHref} className="font-medium underline underline-offset-2">
-                    Administrer abonnement
+                    {t("activePlan.manage")}
                   </Link>
                 </div>
               </div>
@@ -502,14 +572,18 @@ export default function PricingPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href={backHref} className="rounded-xl border px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-              Tilbake til forsiden
+            <Link
+              href={backHref}
+              className="rounded-xl border px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              {t("buttons.back")}
             </Link>
+
             <Link
               href={isLoggedIn ? billingHref : joinHref}
               className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
             >
-              {isLoggedIn ? "Administrer plan" : "Opprett konto"}
+              {isLoggedIn ? t("buttons.managePlan") : t("buttons.createAccount")}
             </Link>
           </div>
         </div>
@@ -521,35 +595,51 @@ export default function PricingPage() {
               tier={tier}
               activePlan={activePlan}
               isLoggedIn={isLoggedIn}
+              locale={locale}
+              t={t}
             />
           ))}
         </div>
 
         <div className="mt-8 rounded-2xl border bg-slate-50 p-5">
-          <h2 className="text-base font-semibold text-slate-900">Hvordan fungerer dette i praksis?</h2>
+          <h2 className="text-base font-semibold text-slate-900">
+            {t("howItWorks.title")}
+          </h2>
+
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <div className="rounded-xl bg-white p-4">
-              <div className="text-sm font-semibold text-slate-900">Én samlet pott per kategori</div>
+              <div className="text-sm font-semibold text-slate-900">
+                {t("howItWorks.cards.categories.title")}
+              </div>
               <p className="mt-1 text-sm text-slate-600">
-                Premium-generatorer, AI-feedback, bilder og nedlastinger teller i egne månedlige potter.
+                {t("howItWorks.cards.categories.body")}
               </p>
             </div>
+
             <div className="rounded-xl bg-white p-4">
-              <div className="text-sm font-semibold text-slate-900">Dashboard og planer henger sammen</div>
+              <div className="text-sm font-semibold text-slate-900">
+                {t("howItWorks.cards.dashboard.title")}
+              </div>
               <p className="mt-1 text-sm text-slate-600">
-                Tallene du ser i dashboardet ditt og i generatorene skal samsvare med grensene i planen din.
+                {t("howItWorks.cards.dashboard.body")}
               </p>
             </div>
+
             <div className="rounded-xl bg-white p-4">
-              <div className="text-sm font-semibold text-slate-900">Rollene har ulik verdi</div>
+              <div className="text-sm font-semibold text-slate-900">
+                {t("howItWorks.cards.roles.title")}
+              </div>
               <p className="mt-1 text-sm text-slate-600">
-                Student, teacher og parent får ulike grenser fordi de bruker plattformen forskjellig.
+                {t("howItWorks.cards.roles.body")}
               </p>
             </div>
+
             <div className="rounded-xl bg-white p-4">
-              <div className="text-sm font-semibold text-slate-900">Pluss er broen til premium</div>
+              <div className="text-sm font-semibold text-slate-900">
+                {t("howItWorks.cards.plus.title")}
+              </div>
               <p className="mt-1 text-sm text-slate-600">
-                Plus er laget for brukere som trenger mer kapasitet, men ikke full profesjonell bruk.
+                {t("howItWorks.cards.plus.body")}
               </p>
             </div>
           </div>
@@ -562,15 +652,13 @@ export default function PricingPage() {
               role={role}
               activePlan={activePlan}
               activeRole={activeRole}
+              t={t}
             />
           ))}
         </div>
 
         <div className="mt-12 border-t pt-6 text-sm text-slate-500">
-          <p>
-            Dette er en levende planside under utvikling. Tall, grenser og innhold kan justeres før lansering. CTA-knappene
-            kan kobles direkte til Stripe checkout eller billing-siden.
-          </p>
+          <p>{t("footer.note")}</p>
         </div>
       </div>
     </main>

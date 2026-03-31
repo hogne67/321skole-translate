@@ -19,6 +19,8 @@ import {
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import type { SpaceDoc } from "@/lib/spacesClient";
 
+type TFn = ReturnType<typeof useTranslations>;
+
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
   return x;
@@ -118,13 +120,13 @@ function renderAutoSummary(auto: ParentSpaceSubmissionDoc["auto"]): string | nul
   return null;
 }
 
-function statusLabel(status: string | null) {
+function statusLabel(status: string | null, t: TFn) {
   const s = String(status ?? "").trim().toLowerCase();
-  if (!s) return "Ikke startet";
-  if (s === "draft") return "Kladd";
-  if (s === "submitted") return "Sendt inn";
-  if (s === "needs_work") return "Trenger arbeid";
-  if (s === "reviewed" || s === "approved") return "Vurdert";
+  if (!s) return t("status.notStarted");
+  if (s === "draft") return t("status.draft");
+  if (s === "submitted") return t("status.submitted");
+  if (s === "needs_work") return t("status.needsWork");
+  if (s === "reviewed" || s === "approved") return t("status.reviewed");
   return s;
 }
 
@@ -133,6 +135,12 @@ function statusTone(status: string | null): "neutral" | "good" | "warn" {
   if (s === "submitted" || s === "reviewed" || s === "approved") return "good";
   if (s === "draft" || s === "needs_work") return "warn";
   return "neutral";
+}
+
+function kindLabel(kind: string | null, t: TFn) {
+  if (kind === "family") return t("kinds.family");
+  if (kind === "parent_group") return t("kinds.parentGroup");
+  return t("kinds.other");
 }
 
 function Badge({
@@ -183,7 +191,7 @@ function Badge({
 
 export default function ParentSpaceDetailPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
-  const t = useTranslations("parent.spaceDetail");
+  const t = useTranslations("parentSpaceDetail");
   const locale = useLocale();
 
   const tx = useMemo(
@@ -213,12 +221,6 @@ export default function ParentSpaceDetailPage() {
 
   function titleOfAssignment(d: AssignmentDoc, id: string) {
     return safeString(d.title) ?? id;
-  }
-
-  function kindLabel(kind: string | null) {
-    if (kind === "family") return tx("kinds.family", "Family room");
-    if (kind === "parent_group") return tx("kinds.parentGroup", "Parent group");
-    return tx("kinds.other", "Space");
   }
 
   useEffect(() => {
@@ -453,7 +455,7 @@ export default function ParentSpaceDetailPage() {
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{spaceTitle}</h1>
 
             <div className="mt-2 break-words text-sm text-slate-600">
-              {tx("header.kind", "Type")}: <b>{kindLabel(spaceKind)}</b>
+              {tx("header.kind", "Type")}: <b>{kindLabel(spaceKind, t)}</b>
             </div>
 
             {spaceCode ? (
@@ -498,21 +500,21 @@ export default function ParentSpaceDetailPage() {
             {activeAssignmentMeta ? (
               <div className="mt-3 flex flex-wrap gap-2">
                 <Badge
-                  text={statusLabel(activeAssignmentMeta.submissionStatus)}
+                  text={statusLabel(activeAssignmentMeta.submissionStatus, t)}
                   tone={statusTone(activeAssignmentMeta.submissionStatus)}
                 />
                 {activeAssignmentMeta.autoSummary ? (
-                  <Badge text={`Auto: ${activeAssignmentMeta.autoSummary}`} tone="neutral" />
+                  <Badge text={t("badges.auto", { value: activeAssignmentMeta.autoSummary })} tone="neutral" />
                 ) : null}
                 {activeAssignmentMeta.hasAiFeedback ? (
-                  <Badge text="AI-feedback" tone="good" />
+                  <Badge text={t("badges.aiFeedback")} tone="good" />
                 ) : null}
                 {activeAssignmentMeta.hasParentReview ? (
                   <Badge
                     text={
                       activeAssignmentMeta.reviewStars
-                        ? `Foreldrevurdering • ${activeAssignmentMeta.reviewStars}★`
-                        : "Foreldrevurdering"
+                        ? t("badges.parentReviewWithStars", { stars: activeAssignmentMeta.reviewStars })
+                        : t("badges.parentReview")
                     }
                     tone="good"
                   />
@@ -590,21 +592,21 @@ export default function ParentSpaceDetailPage() {
                       {meta ? (
                         <div className="mt-3 flex flex-wrap gap-2">
                           <Badge
-                            text={statusLabel(meta.submissionStatus)}
+                            text={statusLabel(meta.submissionStatus, t)}
                             tone={statusTone(meta.submissionStatus)}
                           />
                           {meta.autoSummary ? (
-                            <Badge text={`Auto: ${meta.autoSummary}`} tone="neutral" />
+                            <Badge text={t("badges.auto", { value: meta.autoSummary })} tone="neutral" />
                           ) : null}
                           {meta.hasAiFeedback ? (
-                            <Badge text="AI-feedback" tone="good" />
+                            <Badge text={t("badges.aiFeedback")} tone="good" />
                           ) : null}
                           {meta.hasParentReview ? (
                             <Badge
                               text={
                                 meta.reviewStars
-                                  ? `Foreldrevurdering • ${meta.reviewStars}★`
-                                  : "Foreldrevurdering"
+                                  ? t("badges.parentReviewWithStars", { stars: meta.reviewStars })
+                                  : t("badges.parentReview")
                               }
                               tone="good"
                             />
@@ -612,7 +614,7 @@ export default function ParentSpaceDetailPage() {
                         </div>
                       ) : (
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge text="Ikke startet" tone="neutral" />
+                          <Badge text={t("status.notStarted")} tone="neutral" />
                         </div>
                       )}
 

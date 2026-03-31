@@ -4,7 +4,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useParams } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { doc, getDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "@/lib/firebase";
@@ -235,12 +235,23 @@ function canViewReadingTest(docData: LessonDoc, currentUid: string | null) {
   return false;
 }
 
+function renderCorrectAnswer(task: LessonTask, t: (key: string) => string) {
+  if (typeof task.correctAnswer === "boolean") {
+    return task.correctAnswer ? t("questions.true") : t("questions.false");
+  }
+  if (typeof task.correctAnswer === "string") {
+    return task.correctAnswer;
+  }
+  if (Array.isArray(task.correctAnswer)) {
+    return task.correctAnswer.join(", ");
+  }
+  return "—";
+}
+
 export default function ReadingTestPlayPage() {
   const params = useParams<{ id: string }>();
-  const locale = useLocale();
+  const t = useTranslations("readingTestPlayer");
   const lessonId = typeof params?.id === "string" ? params.id : "";
-
-  const isEn = locale === "en";
 
   const fieldStyle: CSSProperties = {
     boxSizing: "border-box",
@@ -318,25 +329,25 @@ export default function ReadingTestPlayPage() {
         setError(null);
 
         if (!lessonId) {
-          setError(isEn ? "Missing lesson id." : "Mangler test-id.");
+          setError(t("errors.missingLessonId"));
           return;
         }
 
         const snap = await getDoc(doc(db, "lessons", lessonId));
         if (!snap.exists()) {
-          setError(isEn ? "Test not found." : "Fant ikke testen.");
+          setError(t("errors.notFound"));
           return;
         }
 
         const data = snap.data() as LessonDoc;
 
         if (data.lessonType !== "reading_test") {
-          setError(isEn ? "This is not a reading test." : "Dette er ikke en lesetest.");
+          setError(t("errors.notReadingTest"));
           return;
         }
 
         if (!canViewReadingTest(data, uid)) {
-          setError(isEn ? "You do not have access to this test." : "Du har ikke tilgang til denne testen.");
+          setError(t("errors.noAccess"));
           return;
         }
 
@@ -345,7 +356,7 @@ export default function ReadingTestPlayPage() {
           safeString(data.level, "A2")
         );
 
-        setTitle(safeString(data.title, isEn ? "Reading test" : "Lesetest"));
+        setTitle(safeString(data.title, t("fallback.title")));
         setLanguage(safeString(data.language, "nb"));
         setLevel(safeString(data.level, "A2"));
         setSourceText(safeString(data.sourceText, ""));
@@ -371,7 +382,7 @@ export default function ReadingTestPlayPage() {
 
     if (!authResolved) return;
     void load();
-  }, [lessonId, authResolved, uid, isEn]);
+  }, [lessonId, authResolved, uid, t]);
 
   useEffect(() => {
     if (!started || submitted || timeLeft == null) return;
@@ -424,21 +435,15 @@ export default function ReadingTestPlayPage() {
     if (!config) return "";
 
     if (config.feedbackMode === "learner") {
-      return isEn
-        ? "Great work. Review the answers you missed and try one more test at the same level."
-        : "Bra jobbet. Se gjennom svarene du bommet på, og prøv gjerne en ny test på samme nivå.";
+      return t("feedback.learner");
     }
 
     if (config.feedbackMode === "adult") {
-      return isEn
-        ? "Use the result to identify patterns. Focus especially on vocabulary in context and summary reading."
-        : "Bruk resultatet til å se mønstre. Fokuser spesielt på ordforståelse i kontekst og på å finne hovedinnhold.";
+      return t("feedback.adult");
     }
 
-    return isEn
-      ? "Great work. Review your answers and focus on the task types that were hardest for you."
-      : "Bra jobbet. Se gjennom svarene dine og fokuser særlig på oppgavetypene som var vanskeligst for deg.";
-  }, [config, isEn]);
+    return t("feedback.both");
+  }, [config, t]);
 
   function startTest() {
     setStarted(true);
@@ -472,23 +477,10 @@ export default function ReadingTestPlayPage() {
     setAnswers((prev) => ({ ...prev, [taskId]: value }));
   }
 
-  function renderCorrectAnswer(task: LessonTask) {
-    if (typeof task.correctAnswer === "boolean") {
-      return task.correctAnswer ? (isEn ? "True" : "Sant") : (isEn ? "False" : "Usant");
-    }
-    if (typeof task.correctAnswer === "string") {
-      return task.correctAnswer;
-    }
-    if (Array.isArray(task.correctAnswer)) {
-      return task.correctAnswer.join(", ");
-    }
-    return "—";
-  }
-
   if (loading) {
     return (
       <main style={{ maxWidth: 980, margin: "0 auto", padding: "16px 12px 60px" }}>
-        {isEn ? "Loading..." : "Laster..."}
+        {t("loading")}
       </main>
     );
   }
@@ -525,7 +517,7 @@ export default function ReadingTestPlayPage() {
           <div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>{title}</h1>
             <p style={{ marginTop: 6, opacity: 0.8 }}>
-              {level} · {language} · {wordCount} {isEn ? "words" : "ord"}
+              {level} · {language} · {wordCount} {t("meta.words")}
             </p>
             {topic ? <p style={{ marginTop: 6, opacity: 0.82 }}>{topic}</p> : null}
           </div>
@@ -533,15 +525,15 @@ export default function ReadingTestPlayPage() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {!started ? (
               <button onClick={startTest} style={buttonPrimary}>
-                {isEn ? "Start test" : "Start test"}
+                {t("actions.startTest")}
               </button>
             ) : !submitted ? (
               <button onClick={submitTest} style={buttonPrimary}>
-                {isEn ? "Submit" : "Lever"}
+                {t("actions.submit")}
               </button>
             ) : (
               <button onClick={resetTest} style={buttonSecondary}>
-                {isEn ? "Try again" : "Prøv igjen"}
+                {t("actions.tryAgain")}
               </button>
             )}
           </div>
@@ -557,7 +549,7 @@ export default function ReadingTestPlayPage() {
               justifyContent: "space-between",
             }}
           >
-            <strong>{isEn ? "Reading text" : "Lesetekst"}</strong>
+            <strong>{t("readingText.title")}</strong>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {config?.timerEnabled && timeLeft != null ? (
@@ -571,7 +563,7 @@ export default function ReadingTestPlayPage() {
                     fontWeight: 700,
                   }}
                 >
-                  {isEn ? "Time" : "Tid"}: {formatSeconds(timeLeft)}
+                  {t("readingText.time")}: {formatSeconds(timeLeft)}
                 </span>
               ) : null}
 
@@ -585,7 +577,7 @@ export default function ReadingTestPlayPage() {
                   fontWeight: 700,
                 }}
               >
-                {answeredCount} / {tasks.length} {isEn ? "answered" : "besvart"}
+                {answeredCount} / {tasks.length} {t("meta.answered")}
               </span>
             </div>
           </div>
@@ -604,13 +596,11 @@ export default function ReadingTestPlayPage() {
           {config?.showQuestionsAfterReading && !showQuestions ? (
             <div style={{ marginTop: 18 }}>
               <button onClick={revealQuestions} style={buttonPrimary} disabled={!started}>
-                {isEn ? "Show questions" : "Vis spørsmål"}
+                {t("actions.showQuestions")}
               </button>
               {!started ? (
                 <div style={{ marginTop: 8, fontSize: 13, opacity: 0.72 }}>
-                  {isEn
-                    ? "Start the test before opening the questions."
-                    : "Start testen før du åpner spørsmålene."}
+                  {t("readingText.startFirst")}
                 </div>
               ) : null}
             </div>
@@ -619,9 +609,7 @@ export default function ReadingTestPlayPage() {
 
         {showQuestions ? (
           <section style={{ marginTop: 18, ...cardStyle }}>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>
-              {isEn ? "Questions" : "Spørsmål"}
-            </h2>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{t("questions.title")}</h2>
 
             <div style={{ marginTop: 14 }}>
               {tasks.map((task, idx) => {
@@ -707,7 +695,7 @@ export default function ReadingTestPlayPage() {
                               disabled={submitted}
                               onChange={() => setAnswer(task.id, value)}
                             />
-                            <span>{value ? (isEn ? "True" : "Sant") : (isEn ? "False" : "Usant")}</span>
+                            <span>{value ? t("questions.true") : t("questions.false")}</span>
                           </label>
                         ))}
                       </div>
@@ -730,19 +718,17 @@ export default function ReadingTestPlayPage() {
                               color: correct ? "green" : "crimson",
                             }}
                           >
-                            {correct ? (isEn ? "Correct" : "Riktig") : (isEn ? "Incorrect" : "Feil")}
+                            {correct ? t("questions.correct") : t("questions.incorrect")}
                           </div>
                         ) : (
                           <div style={{ fontWeight: 700, opacity: 0.78 }}>
-                            {isEn
-                              ? "Open response saved for self-review"
-                              : "Åpent svar lagret for egenvurdering"}
+                            {t("questions.openSaved")}
                           </div>
                         )}
 
                         <div style={{ marginTop: 6, fontSize: 14, opacity: 0.86 }}>
-                          <strong>{isEn ? "Correct answer:" : "Riktig svar:"}</strong>{" "}
-                          {renderCorrectAnswer(task)}
+                          <strong>{t("questions.correctAnswer")}</strong>{" "}
+                          {renderCorrectAnswer(task, t)}
                         </div>
                       </div>
                     ) : null}
@@ -755,9 +741,7 @@ export default function ReadingTestPlayPage() {
 
         {submitted ? (
           <section style={{ marginTop: 18, ...cardStyle }}>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>
-              {isEn ? "Result" : "Resultat"}
-            </h2>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{t("result.title")}</h2>
 
             <div style={{ marginTop: 12, fontSize: 18, fontWeight: 800 }}>
               {score.correct} / {score.total}

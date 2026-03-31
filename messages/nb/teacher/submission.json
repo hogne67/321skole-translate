@@ -1,0 +1,96 @@
+{
+  "submission": {
+    "title": "Submission",
+    "actions": {
+      "back": "← Back"
+    },
+    "errors": {
+      "missingParams": "Missing spaceId/assignmentId/subId in URL."
+    },
+    "missing": {
+      "title": "Submission not found"
+    },
+    "meta": {
+      "summaryTitle": "Summary",
+      "deliveryTitle": "Delivery details",
+      "statusLabel": "Status",
+      "autoScoreTitle": "Auto score",
+      "studentLabel": "Student:",
+      "delivered": "Submitted:",
+      "deliveredUnknown": "Submitted: (unknown)",
+      "guest": "Guest (not logged in)",
+      "loggedIn": "Logged in"
+    },
+    "status": {
+      "submitted": "Submitted",
+      "approved": "Approved",
+      "needsWork": "Needs work",
+      "draft": "Draft"
+    },
+    "auto": {
+      "main": "AUTO RESULT: {correct}/{total}{pctText}",
+      "details": "Correct: {correct} · Wrong: {wrong} · Unanswered: {unanswered}",
+      "taskCorrect": "Auto correction: ✅ correct",
+      "taskWrong": "Auto correction: ❌ wrong",
+      "taskUnanswered": "Auto: ⏳ unanswered"
+    },
+    "notice": {
+      "needAttestationHtml": "To give feedback, you need <b>attestation</b> and must be in <b>teacher</b> or <b>creator</b> mode."
+    },
+    "draft": {
+      "notice": "This submission is still a draft."
+    },
+    "studentView": {
+      "title": "Answers (as the student sees them)",
+      "loadingLesson": "Fetching lesson…",
+      "level": "Level: {v}",
+      "imageAlt": "Lesson",
+      "noImageTitle": "No image",
+      "noImageDesc": "This lesson has no cover image.",
+      "textTitle": "Text",
+      "tasksTitle": "Tasks",
+      "noTasks": "No tasks in this lesson (or the lesson could not be found).",
+      "noTasksHint": "This usually means assignment.sourceId is missing or lesson.tasks is empty.",
+      "taskN": "Task {n}",
+      "correctTag": "✓ correct",
+      "selectedTag": "Selected",
+      "true": "True",
+      "false": "False",
+      "notAnswered": "(not answered)"
+    },
+    "feedback": {
+      "title": "Feedback",
+      "statusLabel": "Status",
+      "placeholder": "Write a short feedback…",
+      "needTextToChangeStatus": "To change status, you must write a short comment.",
+      "saveButton": "Save feedback",
+      "saving": "Saving…",
+      "saved": "Saved ✅",
+      "saveFailed": "Could not save: {msg}",
+      "rulesHint": "(Rules: only teacher/owner/admin can change)"
+    },
+    "ai": {
+      "title": "AI feedback",
+      "generateButton": "Generate AI feedback",
+      "generating": "Generating…",
+      "copyButton": "Copy",
+      "insertButton": "Insert into teacher feedback",
+      "placeholder": "AI feedback is shown here…",
+      "generated": "AI feedback generated.",
+      "saved": "AI feedback saved.",
+      "generateFailed": "Could not generate AI feedback: {msg}",
+      "saveFailed": "Could not save AI feedback: {msg}",
+      "copied": "Copied!",
+      "copyFailed": "Could not copy.",
+      "inserted": "Inserted into teacher feedback.",
+      "rulesHint": "Saved in",
+      "saveButton": "Save",
+      "saving": "Saving…"
+    },
+    "fallback": {
+      "guest": "Guest",
+      "task": "Task",
+      "unknownError": "unknown error"
+    }
+  }
+}

@@ -10,9 +10,21 @@ type Props = {
   limit: number;
   upgradeHref?: string;
   showUpgrade?: boolean;
+
+  unlimitedLabel: string;
+  usedLabel: string;
+  remainingLabel: string;
+  nearLimitLabel: string;
+  seePlansLabel: string;
+  limitReachedLabel: string;
+  upgradeLabel: string;
 };
 
 const UNLIMITED_THRESHOLD = 999999;
+
+function interpolate(template: string, values: Record<string, string | number>) {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ""));
+}
 
 export default function UsageCard({
   title,
@@ -20,6 +32,13 @@ export default function UsageCard({
   limit,
   upgradeHref,
   showUpgrade = true,
+  unlimitedLabel,
+  usedLabel,
+  remainingLabel,
+  nearLimitLabel,
+  seePlansLabel,
+  limitReachedLabel,
+  upgradeLabel,
 }: Props) {
   const locale = useLocale();
 
@@ -58,11 +77,14 @@ export default function UsageCard({
       <div style={{ fontWeight: 700, marginBottom: 6 }}>{title}</div>
 
       {isUnlimited ? (
-        <div style={{ fontSize: 14, marginBottom: 8 }}>Ubegrenset</div>
+        <div style={{ fontSize: 14, marginBottom: 8 }}>{unlimitedLabel}</div>
       ) : (
         <div style={{ fontSize: 14, marginBottom: 8 }}>
-          {safeUsed} / {effectiveLimit} brukt
-          <span style={{ color: "#64748b" }}> · {remaining} igjen</span>
+          {interpolate(usedLabel, { used: safeUsed, limit: effectiveLimit })}
+          <span style={{ color: "#64748b" }}>
+            {" "}
+            · {interpolate(remainingLabel, { count: remaining ?? 0 })}
+          </span>
         </div>
       )}
 
@@ -105,9 +127,7 @@ export default function UsageCard({
 
       {isNearLimit && !isLimitReached && showUpgrade && (
         <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 13, color: "#92400e" }}>
-            Du nærmer deg grensen din.
-          </div>
+          <div style={{ fontSize: 13, color: "#92400e" }}>{nearLimitLabel}</div>
 
           <Link
             href={pricingHref}
@@ -126,16 +146,14 @@ export default function UsageCard({
               background: "#ffffff",
             }}
           >
-            Se planer
+            {seePlansLabel}
           </Link>
         </div>
       )}
 
       {isLimitReached && showUpgrade && (
         <div style={{ marginTop: 10 }}>
-          <div style={{ color: "#ef4444", fontSize: 13 }}>
-            Du har nådd grensen din.
-          </div>
+          <div style={{ color: "#ef4444", fontSize: 13 }}>{limitReachedLabel}</div>
 
           <Link
             href={pricingHref}
@@ -153,7 +171,7 @@ export default function UsageCard({
               textDecoration: "none",
             }}
           >
-            Oppgrader
+            {upgradeLabel}
           </Link>
         </div>
       )}

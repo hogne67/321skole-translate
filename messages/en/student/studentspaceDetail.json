@@ -1,0 +1,83 @@
+{
+    "studentspaceDetail": {
+      "loading": "Loading…",
+      "actions": {
+        "open": "Open",
+        "backToMySpaces": "← Back to My spaces",
+        "backMySpacesShort": "← My spaces"
+      },
+      "header": {
+        "classCode": "Class code"
+      },
+      "missing": {
+        "title": "Space not found",
+        "subtitle": "This space does not exist, or you don’t have access."
+      },
+      "error": {
+        "title": "Could not open space"
+      },
+      "active": {
+        "title": "Active assignment",
+        "open": "Open assignment",
+        "hint": "The assignment appears here when your teacher sets it as active.",
+        "none": "No active assignment right now. Assignments you’ve already submitted are shown under “My submissions”."
+      },
+      "mine": {
+        "title": "My submissions",
+        "subtitle": "Latest submission per assignment in this space.",
+        "refresh": "Refresh",
+        "loginToSee": "Log in to see submissions.",
+        "none": "No submissions here yet.",
+        "teacherMessage": "✉️ Your teacher sent you a message",
+        "openForImprovement": "✍️ Open for improvement",
+        "archiveHint": "Move this submission to your archive",
+        "moveToArchive": "Move to archive",
+        "archiving": "Moving…"
+      },
+      "archive": {
+        "title": "Archive",
+        "loginToSee": "Log in to see your archive.",
+        "none": "No archived submissions yet.",
+        "message": "✉️ message",
+        "restore": "Restore",
+        "restoring": "Restoring…",
+        "restoreHint": "Move back to My submissions"
+      },
+      "all": {
+        "title": "All assignments in this space",
+        "showArchived": "Show archived",
+        "none": "No assignments here yet.",
+        "archivedTag": "(archived)",
+        "yourStatus": "Your status:",
+        "message": "✉️ message",
+        "notSubmitted": "You haven’t submitted this yet."
+      },
+      "status": {
+        "submitted": "Submitted",
+        "needsWork": "Needs work",
+        "approved": "Approved",
+        "draft": "Draft",
+        "unknown": "Unknown"
+      },
+      "statusHints": {
+        "submitted": "Waiting for feedback",
+        "needsWork": "Teacher opened for improvement",
+        "approved": "Done",
+        "draft": "Not submitted",
+        "unknown": ""
+      },
+      "toast": {
+        "movedToArchive": "Moved to archive ✅",
+        "restored": "Restored ✅"
+      },
+      "errors": {
+        "readSpace": "Could not read space",
+        "listenStart": "Could not start listening",
+        "readAssignments": "Could not read assignments",
+        "listenAssignmentsStart": "Could not start listening to assignments",
+        "readSubmissions": "Could not load submissions",
+        "archiveMove": "Could not move to archive",
+        "archiveRestore": "Could not restore"
+      }
+    }
+  }

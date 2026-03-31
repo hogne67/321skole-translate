@@ -96,7 +96,7 @@ async function generateTopic(args: {
 }
 
 export default function SpeakingTopicPage() {
-  const t = useTranslations("tools.speakingTopic");
+  const t = useTranslations("speakingTopicFree");
   const locale = useLocale();
 
   const languageOptions = useMemo(() => {

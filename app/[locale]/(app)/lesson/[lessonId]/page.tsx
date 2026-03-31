@@ -4,6 +4,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -22,20 +23,14 @@ type Lesson = {
   title: string;
   description?: string;
   level?: string;
-
   topic?: string;
   topics?: string[];
-
   language?: string;
-
   sourceText?: string;
   text?: string;
-
   tasks?: unknown;
-
   coverImageUrl?: string;
   imageUrl?: string;
-
   isActive?: boolean;
   lessonId?: string;
   visibility?: string;
@@ -158,6 +153,9 @@ async function fetchPublishedLessonByEitherIdOrField(lessonId: string): Promise<
 export default function LessonPreviewPage() {
   const params = useParams<{ lessonId: string }>();
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("libraryOpenLesson");
+
   const lessonId = params?.lessonId;
 
   const [loading, setLoading] = useState(true);
@@ -176,7 +174,7 @@ export default function LessonPreviewPage() {
 
       if (!lessonId) {
         if (alive) {
-          setError("Mangler lessonId i URL.");
+          setError(t("missingLessonId"));
           setLoading(false);
         }
         return;
@@ -188,7 +186,7 @@ export default function LessonPreviewPage() {
 
         if (!res.data) {
           setLesson(null);
-          setError("Denne oppgaven er ikke publisert (eller finnes ikke).");
+          setError(t("notPublished"));
           return;
         }
 
@@ -196,14 +194,14 @@ export default function LessonPreviewPage() {
 
         if (raw?.isActive === false) {
           setLesson(null);
-          setError("Denne oppgaven er ikke publisert (eller er avpublisert).");
+          setError(t("unpublished"));
           return;
         }
 
         const sourceText = toStringOrEmpty(raw?.sourceText) || toStringOrEmpty(raw?.text) || "";
 
         const data: Lesson = {
-          title: toStringOrEmpty(raw?.title) || "(Uten tittel)",
+          title: toStringOrEmpty(raw?.title) || t("untitled"),
           description: toStringOrEmpty(raw?.description) || undefined,
           level: toStringOrEmpty(raw?.level) || undefined,
           topic: toStringOrEmpty(raw?.topic) || undefined,
@@ -223,9 +221,9 @@ export default function LessonPreviewPage() {
       } catch (e: unknown) {
         if (!alive) return;
         if (isPermissionDenied(e)) {
-          setError("Denne oppgaven er ikke publisert (eller du har ikke tilgang).");
+          setError(t("noAccess"));
         } else {
-          setError(getErrorInfo(e).message || "Noe gikk galt");
+          setError(getErrorInfo(e).message || t("somethingWentWrong"));
         }
       } finally {
         if (alive) setLoading(false);
@@ -236,17 +234,20 @@ export default function LessonPreviewPage() {
     return () => {
       alive = false;
     };
-  }, [lessonId]);
+  }, [lessonId, t]);
 
   const sourceTextSafe = useMemo(
     () => (lesson?.sourceText ?? lesson?.text ?? "").toString().trim(),
-    [lesson]
+    [lesson?.sourceText, lesson?.text]
   );
 
   const tasksOriginal = useMemo(() => {
     const arr = safeTasksArray(lesson?.tasks);
     return arr.slice().sort(sortTasksByOrder);
   }, [lesson?.tasks]);
+
+  const topics = useMemo(() => coerceTopics(lesson ?? { title: "" }), [lesson]);
+  const img = useMemo(() => (lesson ? pickImageUrl(lesson) : null), [lesson]);
 
   async function addToMyContent() {
     if (!lessonId || !lesson) return;
@@ -259,7 +260,7 @@ export default function LessonPreviewPage() {
       const user = auth.currentUser;
 
       if (!user || user.isAnonymous) {
-        router.push("/login");
+        router.push(`/${locale}/login`);
         return;
       }
 
@@ -271,7 +272,7 @@ export default function LessonPreviewPage() {
           uid: user.uid,
           lessonId,
           publishedLessonId: lessonId,
-          title: lesson.title || "Untitled",
+          title: lesson.title || t("untitledPlain"),
           answers: {},
           status: "draft",
           kind: "practice",
@@ -288,7 +289,7 @@ export default function LessonPreviewPage() {
           uid: user.uid,
           lessonId,
           publishedLessonId: lessonId,
-          title: lesson.title || "Untitled",
+          title: lesson.title || t("untitledPlain"),
           answers: {},
           status: "draft",
           kind: "practice",
@@ -300,21 +301,21 @@ export default function LessonPreviewPage() {
         { merge: true }
       );
 
-      setSaveMsg(`"${lesson.title}" ble lagt til i Mitt innhold.`);
+      setSaveMsg(t("addedToMyContent", { title: lesson.title || t("untitledPlain") }));
     } catch (e: unknown) {
-      setSaveMsg(getErrorInfo(e).message || "Kunne ikke legge til i Mitt innhold.");
+      setSaveMsg(getErrorInfo(e).message || t("saveFailed"));
     } finally {
       setSaveBusy(false);
     }
   }
 
-  if (loading) return <p style={{ padding: 16 }}>Loading…</p>;
+  if (loading) return <p style={{ padding: 16 }}>{t("loading")}</p>;
 
   if (error) {
     return (
       <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
         <p style={{ color: "crimson" }}>{error}</p>
-        <Link href="/321lessons">← Tilbake til bibliotek</Link>
+        <Link href={`/${locale}/321lessons`}>{t("backToLibrary")}</Link>
       </div>
     );
   }
@@ -322,14 +323,11 @@ export default function LessonPreviewPage() {
   if (!lesson) {
     return (
       <div style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
-        <p>Ingen data.</p>
-        <Link href="/321lessons">← Tilbake til bibliotek</Link>
+        <p>{t("noData")}</p>
+        <Link href={`/${locale}/321lessons`}>{t("backToLibrary")}</Link>
       </div>
     );
   }
-
-  const topics = coerceTopics(lesson);
-  const img = pickImageUrl(lesson);
 
   return (
     <main style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
@@ -352,15 +350,15 @@ export default function LessonPreviewPage() {
 
         <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
           <button onClick={addToMyContent} disabled={saveBusy} style={saveBtn}>
-            {saveBusy ? "LAGRER..." : "LEGG TIL MITT INNHOLD"}
+            {saveBusy ? t("saving") : t("saveToMyContent")}
           </button>
 
-          <Link href={`/student/lesson/${lessonId}`} style={startBtn}>
-            START OPPGAVE
+          <Link href={`/${locale}/student/lesson/${lessonId}`} style={startBtn}>
+            {t("startTask")}
           </Link>
 
-          <Link href="/321lessons" style={secondaryBtn}>
-            Tilbake
+          <Link href={`/${locale}/321lessons`} style={secondaryBtn}>
+            {t("back")}
           </Link>
         </div>
       </header>
@@ -401,34 +399,34 @@ export default function LessonPreviewPage() {
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
-            <div style={{ opacity: 0.65 }}>Ingen cover</div>
+            <div style={{ opacity: 0.65 }}>{t("noCover")}</div>
           )}
         </div>
       </section>
 
       <section style={{ marginTop: 16 }}>
-        <h2 style={{ marginBottom: 8 }}>Text</h2>
+        <h2 style={{ marginBottom: 8 }}>{t("textHeading")}</h2>
         <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
           {sourceTextSafe ? (
             <div style={{ whiteSpace: "pre-wrap" }}>{sourceTextSafe}</div>
           ) : (
-            <span style={{ opacity: 0.6 }}>No text</span>
+            <span style={{ opacity: 0.6 }}>{t("noText")}</span>
           )}
         </div>
       </section>
 
       <section style={{ marginTop: 16 }}>
-        <h2 style={{ marginBottom: 8 }}>Tasks</h2>
+        <h2 style={{ marginBottom: 8 }}>{t("tasksHeading")}</h2>
 
         {tasksOriginal.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>No tasks in this lesson.</p>
+          <p style={{ opacity: 0.7 }}>{t("noTasks")}</p>
         ) : (
           <div style={{ display: "grid", gap: 12 }}>
-            {tasksOriginal.map((t, idx) => {
-              const stableId = getStableTaskId(t, idx);
-              const type = typeof t.type === "string" ? t.type : "open";
-              const prompt = typeof t.prompt === "string" ? t.prompt : "";
-              const options = Array.isArray(t.options) ? t.options : [];
+            {tasksOriginal.map((tItem, idx) => {
+              const stableId = getStableTaskId(tItem, idx);
+              const type = typeof tItem.type === "string" ? tItem.type : "open";
+              const prompt = typeof tItem.prompt === "string" ? tItem.prompt : "";
+              const options = Array.isArray(tItem.options) ? tItem.options : [];
 
               return (
                 <div
@@ -436,7 +434,11 @@ export default function LessonPreviewPage() {
                   style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}
                 >
                   <div style={{ opacity: 0.8, marginBottom: 8 }}>
-                    <strong>Oppgave {typeof t.order === "number" ? t.order : idx + 1}</strong>{" "}
+                    <strong>
+                      {t("taskLabel", {
+                        number: typeof tItem.order === "number" ? tItem.order : idx + 1,
+                      })}
+                    </strong>{" "}
                     <span style={{ marginLeft: 8 }}>• {type}</span>
                   </div>
 
@@ -456,14 +458,14 @@ export default function LessonPreviewPage() {
 
                   {type === "truefalse" ? (
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <span style={pill}>True</span>
-                      <span style={pill}>False</span>
+                      <span style={pill}>{t("true")}</span>
+                      <span style={pill}>{t("false")}</span>
                     </div>
                   ) : null}
 
                   {type === "open" || !["mcq", "truefalse"].includes(type) ? (
                     <div style={{ marginTop: 8, opacity: 0.65, fontSize: 13 }}>
-                      (Svarfelt vises når du trykker “Start oppgave”)
+                      {t("answerFieldShownLater")}
                     </div>
                   ) : null}
                 </div>
@@ -475,11 +477,11 @@ export default function LessonPreviewPage() {
 
       <section style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
         <button onClick={addToMyContent} disabled={saveBusy} style={saveBtn}>
-          {saveBusy ? "LAGRER..." : "LEGG TIL MITT INNHOLD"}
+          {saveBusy ? t("saving") : t("saveToMyContent")}
         </button>
 
-        <Link href={`/student/lesson/${lessonId}`} style={startBtn}>
-          START OPPGAVE
+        <Link href={`/${locale}/student/lesson/${lessonId}`} style={startBtn}>
+          {t("startTask")}
         </Link>
       </section>
     </main>

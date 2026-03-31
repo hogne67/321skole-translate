@@ -31,7 +31,7 @@ export default function NewSpacePage() {
 }
 
 function NewSpaceInner() {
-  const t = useTranslations("teacher.spacesNew");
+  const t = useTranslations("spacesNew");
   const tCommon = useTranslations("common");
   const { user, loading } = useUserProfile();
   const router = useRouter();

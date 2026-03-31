@@ -1,0 +1,39 @@
+{
+  "vocabFree": {
+    "title": "Glossary generator",
+    "subtitle": "Paste a text, and get glossaries with example sentences + translation.",
+
+    "fields": {
+      "target": "Target",
+      "cefr": "CEFR",
+      "count": "Count",
+      "text": "Text",
+      "vocabulary": "Vocabulary",
+      "meaning": "Meaning",
+      "exampleFromText": "Example (from text)",
+      "exampleTranslation": "Example translation"
+    },
+
+    "buttons": {
+      "findVocabulary": "Find vocabulary",
+      "finding": "Finding…"
+    },
+    "placeholders": {
+      "text": "Paste a text here…"
+    },
+
+    "errors": {
+      "default": "Could not find vocabulary"
+    },
+
+    "languages": {
+      "no": "Norwegian",
+      "en": "English",
+      "uk": "Ukrainian",
+      "ar": "Arabic",
+      "pl": "Polish",
+      "es": "Spanish",
+      "pt": "Portuguese"
+    }
+  }
+}

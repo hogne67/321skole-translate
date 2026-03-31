@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import { db } from "@/lib/firebase";
 import {
@@ -113,15 +113,6 @@ function percent(used: number, limit: number): number {
   return Math.max(0, Math.min(100, Math.round((used / limit) * 100)));
 }
 
-function getStatusText(used: number, limit: number): string {
-  if (limit <= 0) return "Unavailable";
-  const p = percent(used, limit);
-  if (p >= 100) return "Limit reached";
-  if (p >= 85) return "Almost full";
-  if (p >= 60) return "Getting busy";
-  return "Good";
-}
-
 function getProgressTone(used: number, limit: number): {
   badgeBg: string;
   badgeColor: string;
@@ -169,43 +160,16 @@ function getRemaining(used: number, limit: number): number {
   return Math.max(0, limit - used);
 }
 
-function getStudentCapacityMessage(used: number, limit: number): string {
-  const remaining = getRemaining(used, limit);
-
-  if (limit <= 0) {
-    return "Student capacity is unavailable for your current plan.";
-  }
-
-  if (remaining <= 0) {
-    return "You have reached your student limit. New students cannot join until you upgrade or remove inactive students.";
-  }
-
-  if (remaining === 1) {
-    return "You have 1 student place left.";
-  }
-
-  if (remaining <= 3) {
-    return `You have only ${remaining} student places left.`;
-  }
-
-  return `You have ${remaining} student places available.`;
-}
-
-function shouldShowUpgradeCta(used: number, limit: number): boolean {
-  if (limit <= 0) return true;
-  return used >= Math.max(1, limit - 3);
-}
-
 type StatCardProps = {
   title: string;
   used: number;
   limit: number;
   accent?: "blue" | "emerald" | "violet" | "slate";
+  t: ReturnType<typeof useTranslations>;
 };
 
-function StatCard({ title, used, limit, accent = "slate" }: StatCardProps) {
+function StatCard({ title, used, limit, accent = "slate", t }: StatCardProps) {
   const p = percent(used, limit);
-  const status = getStatusText(used, limit);
   const tone = getProgressTone(used, limit);
 
   const topGlow =
@@ -216,6 +180,15 @@ function StatCard({ title, used, limit, accent = "slate" }: StatCardProps) {
         : accent === "violet"
           ? "linear-gradient(135deg, rgba(139,92,246,0.14), rgba(196,181,253,0.04))"
           : "linear-gradient(135deg, rgba(148,163,184,0.14), rgba(226,232,240,0.04))";
+
+  function getStatusText(usedValue: number, limitValue: number): string {
+    if (limitValue <= 0) return t("status.unavailable");
+    const value = percent(usedValue, limitValue);
+    if (value >= 100) return t("status.limitReached");
+    if (value >= 85) return t("status.almostFull");
+    if (value >= 60) return t("status.gettingBusy");
+    return t("status.good");
+  }
 
   return (
     <div
@@ -261,7 +234,7 @@ function StatCard({ title, used, limit, accent = "slate" }: StatCardProps) {
               border: `1px solid ${tone.badgeBorder}`,
             }}
           >
-            {status}
+            {getStatusText(used, limit)}
           </span>
         </div>
 
@@ -281,7 +254,9 @@ function StatCard({ title, used, limit, accent = "slate" }: StatCardProps) {
             </span>
           </div>
 
-          <div style={{ fontSize: 12, color: "#64748b" }}>{p}% used</div>
+          <div style={{ fontSize: 12, color: "#64748b" }}>
+            {t("stats.percentUsed", { percent: p })}
+          </div>
         </div>
 
         <div
@@ -310,6 +285,7 @@ function StatCard({ title, used, limit, accent = "slate" }: StatCardProps) {
 
 export default function TeacherPage() {
   const locale = useLocale();
+  const t = useTranslations("teacherPage");
   const { user, profile, loading } = useUserProfile();
   const { usage, loading: usageLoading } = useUsage(user?.uid);
 
@@ -427,12 +403,46 @@ export default function TeacherPage() {
     });
   }, [studentItems, studentSearch]);
 
+  function getStudentCapacityMessage(used: number, limit: number): string {
+    const remaining = getRemaining(used, limit);
+
+    if (limit <= 0) {
+      return t("students.capacity.unavailable");
+    }
+
+    if (remaining <= 0) {
+      return t("students.capacity.limitReached");
+    }
+
+    if (remaining === 1) {
+      return t("students.capacity.oneLeft");
+    }
+
+    if (remaining <= 3) {
+      return t("students.capacity.fewLeft", { count: remaining });
+    }
+
+    return t("students.capacity.available", { count: remaining });
+  }
+
+  function shouldShowUpgradeCta(used: number, limit: number): boolean {
+    if (limit <= 0) return true;
+    return used >= Math.max(1, limit - 3);
+  }
+
+  function getStatusText(used: number, limit: number): string {
+    if (limit <= 0) return t("status.unavailable");
+    const p = percent(used, limit);
+    if (p >= 100) return t("status.limitReached");
+    if (p >= 85) return t("status.almostFull");
+    if (p >= 60) return t("status.gettingBusy");
+    return t("status.good");
+  }
+
   async function handleArchiveStudent(student: TeacherStudentOverviewItem) {
     if (!user?.uid || !db) return;
 
-    const ok = window.confirm(
-      `Set ${student.displayName} to inactive in all your spaces?`
-    );
+    const ok = window.confirm(t("students.confirm.archive", { name: student.displayName }));
     if (!ok) return;
 
     setBusyStudentUid(student.uid);
@@ -448,7 +458,7 @@ export default function TeacherPage() {
       await reloadStudents(user.uid);
     } catch (error) {
       console.error("Failed to archive student", error);
-      setActionError("Could not set this student to inactive.");
+      setActionError(t("students.errors.archive"));
     } finally {
       setBusyStudentUid(null);
     }
@@ -457,9 +467,7 @@ export default function TeacherPage() {
   async function handleRemoveStudent(student: TeacherStudentOverviewItem) {
     if (!user?.uid || !db) return;
 
-    const ok = window.confirm(
-      `Remove ${student.displayName} from all your spaces? This cannot be undone.`
-    );
+    const ok = window.confirm(t("students.confirm.remove", { name: student.displayName }));
     if (!ok) return;
 
     setBusyStudentUid(student.uid);
@@ -475,7 +483,7 @@ export default function TeacherPage() {
       await reloadStudents(user.uid);
     } catch (error) {
       console.error("Failed to remove student", error);
-      setActionError("Could not remove this student.");
+      setActionError(t("students.errors.remove"));
     } finally {
       setBusyStudentUid(null);
     }
@@ -509,7 +517,28 @@ export default function TeacherPage() {
         width: "100%",
       }}
     >
-      <DashboardIntro userIsAnon={isAnon} />
+      <DashboardIntro
+  userIsAnon={isAnon}
+  helloAnon={t("dashboardIntro.helloAnon")}
+  helloUser={t.raw("dashboardIntro.helloUser")}
+  guestLabel={t("dashboardIntro.guest")}
+  loggedInLabel={t("dashboardIntro.loggedIn")}
+  youAre={t.raw("dashboardIntro.youAre")}
+  activity={t.raw("dashboardIntro.activity")}
+  recommendRegister={t("dashboardIntro.recommendRegister")}
+  remainingLabel={t.raw("dashboardIntro.remaining")}
+  roleLabelStudent={t("dashboardIntro.roles.student")}
+  roleLabelTeacher={t("dashboardIntro.roles.teacher")}
+  roleLabelParent={t("dashboardIntro.roles.parent")}
+  roleFallback={t("dashboardIntro.roleFallback")}
+  planFree={t("dashboardIntro.plans.free")}
+  planBasic={t("dashboardIntro.plans.basic")}
+  planPlus={t("dashboardIntro.plans.plus")}
+  planPro={t("dashboardIntro.plans.pro")}
+  actionSeePlans={t("dashboardIntro.actions.seePlans")}
+  actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
+  actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
+/>
 
       <section
         style={{
@@ -520,22 +549,25 @@ export default function TeacherPage() {
         }}
       >
         <StatCard
-          title="Premium generators"
+          title={t("cards.premiumGenerators")}
           used={generatorsUsed}
           limit={generatorsLimit}
           accent="violet"
+          t={t}
         />
         <StatCard
-          title="Image generation"
+          title={t("cards.imageGeneration")}
           used={imagesUsed}
           limit={imagesLimit}
           accent="emerald"
+          t={t}
         />
         <StatCard
-          title="AI feedback"
+          title={t("cards.aiFeedback")}
           used={feedbackUsed}
           limit={feedbackLimit}
           accent="slate"
+          t={t}
         />
       </section>
 
@@ -584,7 +616,7 @@ export default function TeacherPage() {
                     fontWeight: 700,
                   }}
                 >
-                  Student overview
+                  {t("students.badge")}
                 </div>
 
                 <h2
@@ -596,7 +628,7 @@ export default function TeacherPage() {
                     lineHeight: 1.15,
                   }}
                 >
-                  My students
+                  {t("students.title")}
                 </h2>
 
                 <p
@@ -608,8 +640,7 @@ export default function TeacherPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  Total unique students across your spaces. A student can be in several spaces,
-                  but only counts once here. You can search, review and manage them from this panel.
+                  {t("students.description")}
                 </p>
               </div>
 
@@ -677,7 +708,7 @@ export default function TeacherPage() {
                 </div>
 
                 <div style={{ marginTop: 10, fontSize: 12, color: "#64748b" }}>
-                  {studentsPercent}% of your student capacity is in use
+                  {t("students.capacity.percentUsed", { percent: studentsPercent })}
                 </div>
 
                 <div
@@ -712,7 +743,7 @@ export default function TeacherPage() {
 
                   {studentsRemaining <= 0 && (
                     <div style={{ marginTop: 6, fontSize: 13 }}>
-                      New students are currently blocked from joining your spaces.
+                      {t("students.capacity.blocked")}
                     </div>
                   )}
 
@@ -734,7 +765,7 @@ export default function TeacherPage() {
                           boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
                         }}
                       >
-                        Upgrade for more students
+                        {t("students.capacity.upgrade")}
                       </Link>
                     </div>
                   )}
@@ -767,11 +798,14 @@ export default function TeacherPage() {
                   boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                 }}
               >
-                {studentsOpen ? "Hide students" : "Show students"}
+                {studentsOpen ? t("students.actions.hide") : t("students.actions.show")}
               </button>
 
               <div style={{ fontSize: 13, color: "#64748b" }}>
-                {filteredStudents.length} shown · {studentItems.length} total
+                {t("students.counts.shownTotal", {
+                  shown: filteredStudents.length,
+                  total: studentItems.length,
+                })}
               </div>
             </div>
 
@@ -790,14 +824,14 @@ export default function TeacherPage() {
                     htmlFor="student-search"
                     style={{ display: "block", fontSize: 14, fontWeight: 700, marginBottom: 8 }}
                   >
-                    Search students
+                    {t("students.search.label")}
                   </label>
 
                   <input
                     id="student-search"
                     value={studentSearch}
                     onChange={(e) => setStudentSearch(e.target.value)}
-                    placeholder="Search by name or space"
+                    placeholder={t("students.search.placeholder")}
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -839,7 +873,7 @@ export default function TeacherPage() {
                         fontSize: 14,
                       }}
                     >
-                      No students found.
+                      {t("students.empty")}
                     </div>
                   ) : (
                     filteredStudents.map((student) => {
@@ -896,7 +930,9 @@ export default function TeacherPage() {
                                     border: `1px solid ${student.isAnon ? "#fdba74" : "#a7f3d0"}`,
                                   }}
                                 >
-                                  {student.isAnon ? "Anonymous" : "Registered"}
+                                  {student.isAnon
+                                    ? t("students.labels.anonymous")
+                                    : t("students.labels.registered")}
                                 </span>
 
                                 <span
@@ -910,7 +946,9 @@ export default function TeacherPage() {
                                     border: "1px solid #cbd5e1",
                                   }}
                                 >
-                                  {student.spaces.length} {student.spaces.length === 1 ? "space" : "spaces"}
+                                  {t("students.labels.spacesCount", {
+                                    count: student.spaces.length,
+                                  })}
                                 </span>
                               </div>
 
@@ -922,7 +960,7 @@ export default function TeacherPage() {
                                   wordBreak: "break-word",
                                 }}
                               >
-                                UID: {student.uid}
+                                {t("students.labels.uid", { uid: student.uid })}
                               </div>
 
                               <div
@@ -985,7 +1023,7 @@ export default function TeacherPage() {
                                   opacity: isBusy ? 0.6 : 1,
                                 }}
                               >
-                                {isBusy ? "Working..." : "Set inactive"}
+                                {isBusy ? t("students.actions.working") : t("students.actions.setInactive")}
                               </button>
 
                               <button
@@ -1005,7 +1043,7 @@ export default function TeacherPage() {
                                   opacity: isBusy ? 0.6 : 1,
                                 }}
                               >
-                                {isBusy ? "Working..." : "Remove"}
+                                {isBusy ? t("students.actions.working") : t("students.actions.remove")}
                               </button>
                             </div>
                           </div>

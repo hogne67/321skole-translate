@@ -1,0 +1,29 @@
+{
+    "libraryOpenLesson": {
+  "loading": "Loading…",
+  "missingLessonId": "Missing lessonId in the URL.",
+  "notPublished": "This task is not published (or does not exist).",
+  "unpublished": "This task is not published (or has been unpublished).",
+  "noAccess": "This task is not published (or you do not have access).",
+  "somethingWentWrong": "Something went wrong",
+  "backToLibrary": "← Back to library",
+  "noData": "No data.",
+  "untitled": "(Untitled)",
+  "untitledPlain": "Untitled",
+  "saveToMyContent": "ADD TO MY CONTENT",
+  "saving": "SAVING...",
+  "startTask": "START TASK",
+  "back": "Back",
+  "addedToMyContent": "\"{title}\" was added to My content.",
+  "saveFailed": "Could not add to My content.",
+  "noCover": "No cover",
+  "textHeading": "Text",
+  "noText": "No text",
+  "tasksHeading": "Tasks",
+  "noTasks": "No tasks in this lesson.",
+  "taskLabel": "Task {number}",
+  "answerFieldShownLater": "(The answer field appears when you press “Start task”)",
+  "true": "True",
+  "false": "False"
+}
+}

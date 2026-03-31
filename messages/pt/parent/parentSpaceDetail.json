@@ -1,0 +1,65 @@
+{
+  "parentSpaceDetail": {
+    "loading": "Loading…",
+    "header": {
+      "untitled": "Untitled space",
+      "kind": "Type",
+      "code": "Code"
+    },
+    "kinds": {
+      "family": "Family room",
+      "parentGroup": "Parent group",
+      "other": "Space"
+    },
+    "actions": {
+      "backToMySpaces": "Back to my spaces",
+      "backMySpacesShort": "My spaces",
+      "open": "Open",
+      "openSpace": "Open space"
+    },
+    "missing": {
+      "title": "Space not found",
+      "subtitle": "It may have been deleted or you may not have access."
+    },
+    "error": {
+      "title": "Something went wrong"
+    },
+    "errors": {
+      "readSpace": "Could not read the space.",
+      "listenStart": "Could not start listening to the space.",
+      "readAssignments": "Could not read assignments.",
+      "listenAssignmentsStart": "Could not start listening to assignments."
+    },
+    "active": {
+      "title": "Active activity",
+      "defaultTitle": "Assignment",
+      "open": "Open activity",
+      "hint": "This activity can be used as a starting point for something you do together at home.",
+      "none": "No active activity right now."
+    },
+    "purpose": {
+      "title": "This space can be used for",
+      "family": "A family room can be used for short learning sessions, reading, activities and conversations at home.",
+      "parentGroup": "A parent group can be used for sharing resources, activities and common focus areas."
+    },
+    "all": {
+      "title": "All activities in this space",
+      "showArchived": "Show archived",
+      "none": "No activities in this space.",
+      "archivedTag": "(archived)"
+    },
+    "status": {
+      "notStarted": "Not started",
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "needsWork": "Needs work",
+      "reviewed": "Reviewed"
+    },
+    "badges": {
+      "auto": "Auto: {value}",
+      "aiFeedback": "AI feedback",
+      "parentReview": "Parent review",
+      "parentReviewWithStars": "Parent review • {stars}★"
+    }
+  }
+}

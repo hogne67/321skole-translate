@@ -48,7 +48,7 @@ function getErrMessage(e: unknown, fallback: string): string {
 }
 
 export default function ParentNewSpacePage() {
-  const t = useTranslations("parent.newSpace");
+  const t = useTranslations("parentNewSpace");
   const locale = useLocale();
   const router = useRouter();
   const { user, profile, loading } = useUserProfile();

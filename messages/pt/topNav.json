@@ -1,0 +1,10 @@
+{
+  "topNav": {
+    "language": "Idioma",
+    "guestMode": "Modo visitante",
+    "loginOrCreate": "Entrar / Criar conta",
+    "completeProfile": "Completar perfil",
+    "logout": "Sair",
+    "login": "Entrar"
+  }
+}

@@ -1,4 +1,3 @@
-// app/[locale]/(app)/student/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -20,7 +19,7 @@ function safePlan(plan?: string): PlanKey {
 
 export default function StudentDashboard() {
   const locale = useLocale();
-  const t = useTranslations("student.dashboard");
+  const t = useTranslations("dashboard");
 
   const { profile } = useUserProfile();
 
@@ -72,38 +71,78 @@ export default function StudentDashboard() {
 
   return (
     <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-      <DashboardIntro userIsAnon={isAnon} />
+      <DashboardIntro
+        userIsAnon={isAnon}
+        helloAnon={t("dashboardIntro.helloAnon")}
+        helloUser={t.raw("dashboardIntro.helloUser")}
+        guestLabel={t("dashboardIntro.guest")}
+        loggedInLabel={t("dashboardIntro.loggedIn")}
+        youAre={t.raw("dashboardIntro.youAre")}
+        activity={t.raw("dashboardIntro.activity")}
+        recommendRegister={t("dashboardIntro.recommendRegister")}
+        remainingLabel={t.raw("dashboardIntro.remaining")}
+        roleLabelStudent={t("dashboardIntro.roles.student")}
+        roleLabelTeacher={t("dashboardIntro.roles.teacher")}
+        roleLabelParent={t("dashboardIntro.roles.parent")}
+        roleFallback={t("dashboardIntro.roleFallback")}
+        planFree={t("dashboardIntro.plans.free")}
+        planBasic={t("dashboardIntro.plans.basic")}
+        planPlus={t("dashboardIntro.plans.plus")}
+        planPro={t("dashboardIntro.plans.pro")}
+        actionSeePlans={t("dashboardIntro.actions.seePlans")}
+        actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
+        actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
+      />
 
       {!usageLoading && (
         <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
           <div className="mb-4 min-w-0">
             <div className="text-base font-semibold text-slate-900">
-              {t.has("usage.title") ? t("usage.title") : "Usage"}
+              {t("usage.title")}
             </div>
             <div className="mt-1 text-sm text-slate-600">
-              {t.has("usage.subtitle")
-                ? t("usage.subtitle")
-                : "See how much you have used this month."}
+              {t("usage.subtitle")}
             </div>
           </div>
 
           <div className="grid min-w-0 gap-3">
             <UsageCard
-              title="Premium generators"
+              title={t("usage.cards.premiumGenerators")}
               used={generatorsUsed}
               limit={generatorsLimit}
+              unlimitedLabel={t("usage.labels.unlimited")}
+              usedLabel={t.raw("usage.labels.used")}
+              remainingLabel={t.raw("usage.labels.remaining")}
+              nearLimitLabel={t("usage.labels.nearLimit")}
+              seePlansLabel={t("usage.labels.seePlans")}
+              limitReachedLabel={t("usage.labels.limitReached")}
+              upgradeLabel={t("usage.labels.upgrade")}
             />
 
             <UsageCard
-              title="AI feedback"
+              title={t("usage.cards.aiFeedback")}
               used={feedbackUsed}
               limit={feedbackLimit}
+              unlimitedLabel={t("usage.labels.unlimited")}
+              usedLabel={t.raw("usage.labels.used")}
+              remainingLabel={t.raw("usage.labels.remaining")}
+              nearLimitLabel={t("usage.labels.nearLimit")}
+              seePlansLabel={t("usage.labels.seePlans")}
+              limitReachedLabel={t("usage.labels.limitReached")}
+              upgradeLabel={t("usage.labels.upgrade")}
             />
 
             <UsageCard
-              title="Image generation"
+              title={t("usage.cards.imageGeneration")}
               used={imagesUsed}
               limit={imagesLimit}
+              unlimitedLabel={t("usage.labels.unlimited")}
+              usedLabel={t.raw("usage.labels.used")}
+              remainingLabel={t.raw("usage.labels.remaining")}
+              nearLimitLabel={t("usage.labels.nearLimit")}
+              seePlansLabel={t("usage.labels.seePlans")}
+              limitReachedLabel={t("usage.labels.limitReached")}
+              upgradeLabel={t("usage.labels.upgrade")}
             />
           </div>
         </section>
@@ -111,7 +150,7 @@ export default function StudentDashboard() {
 
       <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
         <h2 className="text-base font-extrabold text-slate-900">
-          {t.has("quickLinks.title") ? t("quickLinks.title") : "Quick links"}
+          {t("quickLinks.title")}
         </h2>
 
         <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
@@ -119,14 +158,14 @@ export default function StudentDashboard() {
             href={`/${locale}/321lessons`}
             className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50"
           >
-            {t.has("quickLinks.library") ? t("quickLinks.library") : "Open library"}
+            {t("quickLinks.library")}
           </Link>
 
           <Link
             href={`/${locale}/student/content`}
             className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50"
           >
-            {t.has("quickLinks.myContent") ? t("quickLinks.myContent") : "My content"}
+            {t("quickLinks.myContent")}
           </Link>
         </div>
       </section>

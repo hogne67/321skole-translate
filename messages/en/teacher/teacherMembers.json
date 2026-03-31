@@ -1,0 +1,43 @@
+{
+"teacherMembers": {
+    "title": "Members",
+    "subtitle": "{spaceTitle}",
+    "showing": "Showing:",
+    "common": {
+      "loading": "Loading…",
+      "dash": "—"
+    },
+    "errors": {
+      "missingSpaceId": "Missing spaceId"
+    },
+    "fallbacks": {
+      "spaceTitle": "Space"
+    },
+    "labels": {
+      "spaceId": "SpaceId"
+    },
+    "actions": {
+      "backToSpace": "Back to space",
+      "allSpaces": "All spaces"
+    },
+    "search": {
+      "placeholder": "Search name / role / uid…"
+    },
+    "table": {
+      "name": "Name",
+      "role": "Role",
+      "joined": "Joined",
+      "type": "Type",
+      "uid": "UID"
+    },
+    "types": {
+      "anon": "Anon",
+      "signedIn": "Signed-in"
+    },
+    "empty": "No members found.",
+    "tip": {
+      "prefix": "Tip: If you don’t see names yet, it means join-flow hasn’t stored",
+      "suffix": "on members."
+    }
+  }
+}

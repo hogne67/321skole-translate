@@ -1,4 +1,3 @@
-// app/[locale]/(app)/parent/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,6 +7,7 @@ import UsageCard from "@/components/UsageCard";
 import { useUsage } from "@/lib/useUsage";
 import { getBucketLimit, type PlanKey } from "@/lib/featureAccess";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { useTranslations } from "next-intl";
 
 function safePlan(plan?: string): PlanKey {
   if (plan === "basic") return "basic";
@@ -17,6 +17,7 @@ function safePlan(plan?: string): PlanKey {
 }
 
 export default function ParentPage() {
+  const t = useTranslations("dashboardPage");
   const { profile } = useUserProfile();
 
   const [isAnon, setIsAnon] = useState(true);
@@ -67,34 +68,78 @@ export default function ParentPage() {
 
   return (
     <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-      <DashboardIntro userIsAnon={isAnon} />
+      <DashboardIntro
+        userIsAnon={isAnon}
+        helloAnon={t("dashboardIntro.helloAnon")}
+        helloUser={t.raw("dashboardIntro.helloUser")}
+        guestLabel={t("dashboardIntro.guest")}
+        loggedInLabel={t("dashboardIntro.loggedIn")}
+        youAre={t.raw("dashboardIntro.youAre")}
+        activity={t.raw("dashboardIntro.activity")}
+        recommendRegister={t("dashboardIntro.recommendRegister")}
+        remainingLabel={t.raw("dashboardIntro.remaining")}
+        roleLabelStudent={t("dashboardIntro.roles.student")}
+        roleLabelTeacher={t("dashboardIntro.roles.teacher")}
+        roleLabelParent={t("dashboardIntro.roles.parent")}
+        roleFallback={t("dashboardIntro.roleFallback")}
+        planFree={t("dashboardIntro.plans.free")}
+        planBasic={t("dashboardIntro.plans.basic")}
+        planPlus={t("dashboardIntro.plans.plus")}
+        planPro={t("dashboardIntro.plans.pro")}
+        actionSeePlans={t("dashboardIntro.actions.seePlans")}
+        actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
+        actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
+      />
 
       {!loading && (
         <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
           <div className="mb-4 min-w-0">
-            <div className="text-base font-semibold text-slate-900">Bruk denne måneden</div>
+            <div className="text-base font-semibold text-slate-900">
+              {t("usage.title")}
+            </div>
             <div className="mt-1 text-sm text-slate-600">
-              Her ser du hvor mye du har brukt av funksjonene dine.
+              {t("usage.subtitle")}
             </div>
           </div>
 
           <div className="grid min-w-0 gap-3">
             <UsageCard
-              title="Premium generators"
+              title={t("usage.cards.premiumGenerators")}
               used={generatorsUsed}
               limit={generatorsLimit}
+              unlimitedLabel={t("usage.labels.unlimited")}
+              usedLabel={t.raw("usage.labels.used")}
+              remainingLabel={t.raw("usage.labels.remaining")}
+              nearLimitLabel={t("usage.labels.nearLimit")}
+              seePlansLabel={t("usage.labels.seePlans")}
+              limitReachedLabel={t("usage.labels.limitReached")}
+              upgradeLabel={t("usage.labels.upgrade")}
             />
 
             <UsageCard
-              title="AI feedback"
+              title={t("usage.cards.aiFeedback")}
               used={feedbackUsed}
               limit={feedbackLimit}
+              unlimitedLabel={t("usage.labels.unlimited")}
+              usedLabel={t.raw("usage.labels.used")}
+              remainingLabel={t.raw("usage.labels.remaining")}
+              nearLimitLabel={t("usage.labels.nearLimit")}
+              seePlansLabel={t("usage.labels.seePlans")}
+              limitReachedLabel={t("usage.labels.limitReached")}
+              upgradeLabel={t("usage.labels.upgrade")}
             />
 
             <UsageCard
-              title="Image generation"
+              title={t("usage.cards.imageGeneration")}
               used={imagesUsed}
               limit={imagesLimit}
+              unlimitedLabel={t("usage.labels.unlimited")}
+              usedLabel={t.raw("usage.labels.used")}
+              remainingLabel={t.raw("usage.labels.remaining")}
+              nearLimitLabel={t("usage.labels.nearLimit")}
+              seePlansLabel={t("usage.labels.seePlans")}
+              limitReachedLabel={t("usage.labels.limitReached")}
+              upgradeLabel={t("usage.labels.upgrade")}
             />
           </div>
         </section>

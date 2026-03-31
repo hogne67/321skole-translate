@@ -1,0 +1,52 @@
+{
+  "toolsIndex": {
+    "title": "Tools",
+    "subtitle": "Learning resources for school and home.",
+    "open": "Open tool",
+    "badges": {
+      "NEW": "New",
+      "POPULAR": "Popular",
+      "BETA": "Beta",
+      "PREMIUM": "Premium"
+    },
+    "premium": {
+      "title": "Premium generators",
+      "items": {
+        "assignmentGenerator": {
+          "title": "Worksheet generator",
+          "description": "Create structured assignments with AI support."
+        },
+        "readingTestGenerator": {
+          "title": "Reading test generator",
+          "description": "Generate reading tests with questions and automatic evaluation."
+        },
+        "geometryGenerator": {
+          "title": "Geometry generator",
+          "description": "Create printable geometry worksheets with shapes, perimeter and area."
+        }
+      }
+    },
+    "items": {
+      "translate": {
+        "title": "Translator",
+        "description": "Translate words, sentences and short texts between languages."
+      },
+      "generator": {
+        "title": "Reading generator",
+        "description": "Create a short reading text with auto-corrected questions."
+      },
+      "vocab": {
+        "title": "Glossary generator",
+        "description": "Build vocabulary lists from a topic or text."
+      },
+      "sentenceFixer": {
+        "title": "Sentence fixer",
+        "description": "Fix grammar and make sentences clearer."
+      },
+      "speakingTopic": {
+        "title": "Speaking topics",
+        "description": "Generate a topic and follow-up questions for speaking practice."
+      }
+    }
+  }
+}

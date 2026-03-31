@@ -1,0 +1,37 @@
+{
+  "assignedTask": {
+    "actions": {
+      "backToSpace": "← Back to space"
+    },
+    "header": {
+      "subtitle": "This is the assigned task view. Submissions are listed below.",
+      "taskInfo": "Task information",
+      "assignmentMissing": "Could not find assignment in",
+      "sourceMissing": "Assignment exists, but the source lesson could not be found or read."
+    },
+    "meta": {
+      "level": "Level",
+      "language": "Language"
+    },
+    "error": {
+      "title": "Error"
+    },
+    "submissions": {
+      "title": "Submissions",
+      "loading": "Fetching submissions…",
+      "empty": "No submissions yet."
+    },
+    "status": {
+      "submitted": "Submitted",
+      "needsWork": "Needs work",
+      "approved": "Approved",
+      "draft": "Draft"
+    },
+    "fallback": {
+      "task": "Task",
+      "space": "Space",
+      "student": "Student",
+      "unknownStudent": "Unknown student"
+    }
+  }
+}

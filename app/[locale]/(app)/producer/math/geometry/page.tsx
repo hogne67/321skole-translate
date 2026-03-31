@@ -11,6 +11,7 @@ import {
   type FeatureStatus,
 } from "@/lib/featureGuard";
 import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
+import mathGeometryMessages from "@/messages/en/math/mathGeometry.json";
 
 type WorksheetLanguage = "no" | "en" | "pt";
 type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
@@ -76,73 +77,6 @@ type GenerateResponse =
       error: string;
     };
 
-type UIStrings = {
-  pageTitle: string;
-  pageSubtitle: string;
-  builder: string;
-  preview: string;
-  language: string;
-  level: string;
-  topic: string;
-  difficulty: string;
-  taskCount: string;
-  hints: string;
-  showAnswerKey: string;
-  showFormulas: string;
-  answerSpace: string;
-  chooseShapes: string;
-  options: string;
-  generate: string;
-  generating: string;
-  print: string;
-  saveToMyContent: string;
-  saving: string;
-  answerKey: string;
-  worksheet: string;
-  name: string;
-  date: string;
-  answer: string;
-  explanation: string;
-  hint: string;
-  formula: string;
-  shapes: string;
-  perimeter: string;
-  area: string;
-  all: string;
-  easy: string;
-  medium: string;
-  hard: string;
-  small: string;
-  mediumSpace: string;
-  large: string;
-  grade34: string;
-  grade57: string;
-  grade810: string;
-  failed: string;
-  usageLeft: string;
-  limitReached: string;
-  seePlans: string;
-  teacherOnly: string;
-  upgradeRequired: string;
-  successGenerated: string;
-  savedToMyContent: string;
-  saveFailed: string;
-  square: string;
-  rectangle: string;
-  parallelogram: string;
-  rhombus: string;
-  trapezoid: string;
-  triangle: string;
-  circle: string;
-  selectAtLeastOneShape: string;
-  selectAll: string;
-  clearAll: string;
-  selectedCount: string;
-  answerKeyTitle: string;
-  taskLabel: string;
-  shapeNameLabel: string;
-};
-
 const ALL_FIGURES: FigureKind[] = [
   "square",
   "rectangle",
@@ -153,227 +87,17 @@ const ALL_FIGURES: FigureKind[] = [
   "circle",
 ];
 
-const STRINGS: Record<WorksheetLanguage, UIStrings> = {
-  no: {
-    pageTitle: "Geometri-generator",
-    pageSubtitle: "Lag et arbeidsark med former, omkrets og areal for utskrift.",
-    builder: "Generator",
-    preview: "Forhåndsvisning",
-    language: "Språk",
-    level: "Nivå",
-    topic: "Tema",
-    difficulty: "Vanskelighetsgrad",
-    taskCount: "Antall oppgaver",
-    hints: "Hint",
-    showAnswerKey: "Fasit",
-    showFormulas: "Vis formler",
-    answerSpace: "Svarplass",
-    chooseShapes: "Velg figurer",
-    options: "Valg",
-    generate: "Lag arbeidsark",
-    generating: "Lager arbeidsark...",
-    print: "Skriv ut / lagre som PDF",
-    saveToMyContent: "Lagre i Mitt innhold",
-    saving: "Lagrer...",
-    answerKey: "Fasit",
-    worksheet: "Oppgaveark",
-    name: "Navn",
-    date: "Dato",
-    answer: "Svar",
-    explanation: "Forklaring",
-    hint: "Hint",
-    formula: "Formel",
-    shapes: "Former",
-    perimeter: "Omkrets",
-    area: "Areal",
-    all: "Alle",
-    easy: "Lett",
-    medium: "Middels",
-    hard: "Utfordrende",
-    small: "Liten",
-    mediumSpace: "Middels",
-    large: "Stor",
-    grade34: "3.–4. trinn",
-    grade57: "5.–7. trinn",
-    grade810: "8.–10. trinn",
-    failed: "Kunne ikke lage arbeidsarket.",
-    usageLeft: "Premium-generatorer igjen denne måneden",
-    limitReached: "Du har brukt opp kvoten din for premium-generatorer.",
-    seePlans: "Se planer / oppgrader",
-    teacherOnly: "Denne funksjonen er bare tilgjengelig for lærer/produsent.",
-    upgradeRequired: "Denne funksjonen krever en plan med tilgang.",
-    successGenerated: "Arbeidsarket er oppdatert.",
-    savedToMyContent: "Lagret i Mitt innhold.",
-    saveFailed: "Kunne ikke lagre i Mitt innhold.",
-    square: "Kvadrat",
-    rectangle: "Rektangel",
-    parallelogram: "Parallellogram",
-    rhombus: "Rombe",
-    trapezoid: "Trapes",
-    triangle: "Trekant",
-    circle: "Sirkel",
-    selectAtLeastOneShape: "Velg minst én figur.",
-    selectAll: "Velg alle",
-    clearAll: "Fjern alle",
-    selectedCount: "Valgt",
-    answerKeyTitle: "Fasit",
-    taskLabel: "Oppgave",
-    shapeNameLabel: "Navn",
-  },
-  en: {
-    pageTitle: "Geometry worksheet generator",
-    pageSubtitle: "Create a printable worksheet with shapes, perimeter and area.",
-    builder: "Builder",
-    preview: "Preview",
-    language: "Language",
-    level: "Level",
-    topic: "Topic",
-    difficulty: "Difficulty",
-    taskCount: "Number of tasks",
-    hints: "Hints",
-    showAnswerKey: "Answer key",
-    showFormulas: "Show formulas",
-    answerSpace: "Answer space",
-    chooseShapes: "Choose shapes",
-    options: "Options",
-    generate: "Generate worksheet",
-    generating: "Generating worksheet...",
-    print: "Print / save as PDF",
-    saveToMyContent: "Save to My content",
-    saving: "Saving...",
-    answerKey: "Answer key",
-    worksheet: "Worksheet",
-    name: "Name",
-    date: "Date",
-    answer: "Answer",
-    explanation: "Explanation",
-    hint: "Hint",
-    formula: "Formula",
-    shapes: "Shapes",
-    perimeter: "Perimeter",
-    area: "Area",
-    all: "All",
-    easy: "Easy",
-    medium: "Medium",
-    hard: "Challenging",
-    small: "Small",
-    mediumSpace: "Medium",
-    large: "Large",
-    grade34: "Grades 3–4",
-    grade57: "Grades 5–7",
-    grade810: "Grades 8–10",
-    failed: "Could not generate worksheet.",
-    usageLeft: "Premium generators left this month",
-    limitReached: "You have reached your premium generator limit.",
-    seePlans: "See plans / upgrade",
-    teacherOnly: "This feature is only available for teachers/producers.",
-    upgradeRequired: "This feature requires a plan with access.",
-    successGenerated: "Worksheet updated.",
-    savedToMyContent: "Saved to My content.",
-    saveFailed: "Could not save to My content.",
-    square: "Square",
-    rectangle: "Rectangle",
-    parallelogram: "Parallelogram",
-    rhombus: "Rhombus",
-    trapezoid: "Trapezoid",
-    triangle: "Triangle",
-    circle: "Circle",
-    selectAtLeastOneShape: "Choose at least one shape.",
-    selectAll: "Select all",
-    clearAll: "Clear all",
-    selectedCount: "Selected",
-    answerKeyTitle: "Answer key",
-    taskLabel: "Task",
-    shapeNameLabel: "Name",
-  },
-  pt: {
-    pageTitle: "Gerador de geometria",
-    pageSubtitle: "Crie uma ficha imprimível com formas, perímetro e área.",
-    builder: "Gerador",
-    preview: "Pré-visualização",
-    language: "Idioma",
-    level: "Nível",
-    topic: "Tema",
-    difficulty: "Dificuldade",
-    taskCount: "Número de tarefas",
-    hints: "Dicas",
-    showAnswerKey: "Gabarito",
-    showFormulas: "Mostrar fórmulas",
-    answerSpace: "Espaço para resposta",
-    chooseShapes: "Escolher figuras",
-    options: "Opções",
-    generate: "Gerar ficha",
-    generating: "A gerar ficha...",
-    print: "Imprimir / guardar em PDF",
-    saveToMyContent: "Guardar em Meu conteúdo",
-    saving: "A guardar...",
-    answerKey: "Gabarito",
-    worksheet: "Ficha",
-    name: "Nome",
-    date: "Data",
-    answer: "Resposta",
-    explanation: "Explicação",
-    hint: "Dica",
-    formula: "Fórmula",
-    shapes: "Formas",
-    perimeter: "Perímetro",
-    area: "Área",
-    all: "Todas",
-    easy: "Fácil",
-    medium: "Médio",
-    hard: "Desafiante",
-    small: "Pequeno",
-    mediumSpace: "Médio",
-    large: "Grande",
-    grade34: "3.º–4.º ano",
-    grade57: "5.º–7.º ano",
-    grade810: "8.º–10.º ano",
-    failed: "Não foi possível gerar a ficha.",
-    usageLeft: "Geradores premium restantes este mês",
-    limitReached: "Atingiste o teu limite de geradores premium.",
-    seePlans: "Ver planos / atualizar",
-    teacherOnly: "Esta funcionalidade está disponível apenas para professores/produtores.",
-    upgradeRequired: "Esta funcionalidade requer um plano com acesso.",
-    successGenerated: "Ficha atualizada.",
-    savedToMyContent: "Guardado em Meu conteúdo.",
-    saveFailed: "Não foi possível guardar em Meu conteúdo.",
-    square: "Quadrado",
-    rectangle: "Retângulo",
-    parallelogram: "Paralelogramo",
-    rhombus: "Losango",
-    trapezoid: "Trapézio",
-    triangle: "Triângulo",
-    circle: "Círculo",
-    selectAtLeastOneShape: "Escolhe pelo menos uma figura.",
-    selectAll: "Selecionar todas",
-    clearAll: "Limpar todas",
-    selectedCount: "Selecionadas",
-    answerKeyTitle: "Gabarito",
-    taskLabel: "Tarefa",
-    shapeNameLabel: "Nome",
-  },
-};
+const strings = mathGeometryMessages.mathGeometry;
+type MathGeometryStrings = typeof strings;
 
 function fallbackWorksheet(language: WorksheetLanguage): MathWorksheet {
-  const titles: Record<WorksheetLanguage, string> = {
-    no: "Geometri – former, omkrets og areal",
-    en: "Geometry – shapes, perimeter and area",
-    pt: "Geometria – formas, perímetro e área",
-  };
-
-  const instructions: Record<WorksheetLanguage, string> = {
-    no: "Svar på oppgavene. Vis utregning der det passer.",
-    en: "Answer the questions. Show your work when relevant.",
-    pt: "Responde às tarefas. Mostra os cálculos quando fizer sentido.",
-  };
-
   return {
-    title: titles[language],
+    title: strings.fallback.title,
     language,
     level: "grade_5_7",
     topic: "all",
     difficulty: "easy",
-    instructions: instructions[language],
+    instructions: strings.fallback.instructions,
     showAnswerKey: false,
     showFormulas: false,
     selectedShapes: ALL_FIGURES,
@@ -441,7 +165,6 @@ function answerSpaceClass(answerSpace: AnswerSpace): string {
 }
 
 function getMeasurementLabel(
-  lang: WorksheetLanguage,
   key:
     | "length"
     | "width"
@@ -452,75 +175,31 @@ function getMeasurementLabel(
     | "leftSide"
     | "rightSide"
     | "radius"
+    | "sides"
 ): string {
-  const labels: Record<
-    WorksheetLanguage,
-    Record<
-      "length" | "width" | "side" | "base" | "height" | "topBase" | "leftSide" | "rightSide" | "radius",
-      string
-    >
-  > = {
-    no: {
-      length: "lengde",
-      width: "bredde",
-      side: "side",
-      base: "grunnlinje",
-      height: "høyde",
-      topBase: "øvre grunnlinje",
-      leftSide: "venstre side",
-      rightSide: "høyre side",
-      radius: "radius",
-    },
-    en: {
-      length: "length",
-      width: "width",
-      side: "side",
-      base: "base",
-      height: "height",
-      topBase: "top base",
-      leftSide: "left side",
-      rightSide: "right side",
-      radius: "radius",
-    },
-    pt: {
-      length: "comprimento",
-      width: "largura",
-      side: "lado",
-      base: "base",
-      height: "altura",
-      topBase: "base menor",
-      leftSide: "lado esquerdo",
-      rightSide: "lado direito",
-      radius: "raio",
-    },
-  };
-  return labels[lang][key];
+  return strings.measurementLabels[key];
 }
 
-function getShapeLabel(language: WorksheetLanguage, kind: FigureKind) {
-  const s = STRINGS[language];
-  if (kind === "square") return s.square;
-  if (kind === "rectangle") return s.rectangle;
-  if (kind === "parallelogram") return s.parallelogram;
-  if (kind === "rhombus") return s.rhombus;
-  if (kind === "trapezoid") return s.trapezoid;
-  if (kind === "triangle") return s.triangle;
-  return s.circle;
+function getShapeLabel(kind: FigureKind) {
+  if (kind === "square") return strings.square;
+  if (kind === "rectangle") return strings.rectangle;
+  if (kind === "parallelogram") return strings.parallelogram;
+  if (kind === "rhombus") return strings.rhombus;
+  if (kind === "trapezoid") return strings.trapezoid;
+  if (kind === "triangle") return strings.triangle;
+  return strings.circle;
 }
 
 function GeometryFigure({
   figure,
-  language,
 }: {
   figure?: FigureSpec;
-  language: WorksheetLanguage;
 }) {
   if (!figure) return null;
 
   const labelClass = "text-[11px] fill-slate-700";
   const dashedLineClass = "stroke-slate-400";
-  const heightText =
-    language === "no" ? "høyde" : language === "en" ? "height" : "altura";
+  const heightText = getMeasurementLabel("height");
 
   if (figure.kind === "rectangle") {
     const width = figure.widthCm ?? 8;
@@ -776,18 +455,16 @@ function GeometryFigure({
 
 function FigureMeta({
   figure,
-  language,
 }: {
   figure?: FigureSpec;
-  language: WorksheetLanguage;
 }) {
   if (!figure) return null;
 
   if (figure.kind === "rectangle" && figure.widthCm && figure.heightCm) {
     return (
       <p className="text-sm text-slate-600">
-        {getMeasurementLabel(language, "length")}: {figure.widthCm} cm,{" "}
-        {getMeasurementLabel(language, "width")}: {figure.heightCm} cm
+        {getMeasurementLabel("length")}: {figure.widthCm} cm, {getMeasurementLabel("width")}:{" "}
+        {figure.heightCm} cm
       </p>
     );
   }
@@ -795,7 +472,7 @@ function FigureMeta({
   if (figure.kind === "square" && figure.sideCm) {
     return (
       <p className="text-sm text-slate-600">
-        {getMeasurementLabel(language, "side")}: {figure.sideCm} cm
+        {getMeasurementLabel("side")}: {figure.sideCm} cm
       </p>
     );
   }
@@ -803,9 +480,8 @@ function FigureMeta({
   if (figure.kind === "parallelogram" && figure.baseCm && figure.sideCm && figure.heightCm) {
     return (
       <p className="text-sm text-slate-600">
-        {getMeasurementLabel(language, "base")}: {figure.baseCm} cm,{" "}
-        {getMeasurementLabel(language, "side")}: {figure.sideCm} cm,{" "}
-        {getMeasurementLabel(language, "height")}: {figure.heightCm} cm
+        {getMeasurementLabel("base")}: {figure.baseCm} cm, {getMeasurementLabel("side")}:{" "}
+        {figure.sideCm} cm, {getMeasurementLabel("height")}: {figure.heightCm} cm
       </p>
     );
   }
@@ -813,8 +489,8 @@ function FigureMeta({
   if (figure.kind === "rhombus" && figure.sideCm && figure.heightCm) {
     return (
       <p className="text-sm text-slate-600">
-        {getMeasurementLabel(language, "side")}: {figure.sideCm} cm,{" "}
-        {getMeasurementLabel(language, "height")}: {figure.heightCm} cm
+        {getMeasurementLabel("side")}: {figure.sideCm} cm, {getMeasurementLabel("height")}:{" "}
+        {figure.heightCm} cm
       </p>
     );
   }
@@ -829,11 +505,10 @@ function FigureMeta({
   ) {
     return (
       <p className="text-sm text-slate-600">
-        {getMeasurementLabel(language, "base")}: {figure.baseCm} cm,{" "}
-        {getMeasurementLabel(language, "topBase")}: {figure.topCm} cm,{" "}
-        {getMeasurementLabel(language, "height")}: {figure.heightCm} cm,{" "}
-        {getMeasurementLabel(language, "leftSide")}: {figure.sideLeftCm} cm,{" "}
-        {getMeasurementLabel(language, "rightSide")}: {figure.sideRightCm} cm
+        {getMeasurementLabel("base")}: {figure.baseCm} cm, {getMeasurementLabel("topBase")}:{" "}
+        {figure.topCm} cm, {getMeasurementLabel("height")}: {figure.heightCm} cm,{" "}
+        {getMeasurementLabel("leftSide")}: {figure.sideLeftCm} cm,{" "}
+        {getMeasurementLabel("rightSide")}: {figure.sideRightCm} cm
       </p>
     );
   }
@@ -847,9 +522,8 @@ function FigureMeta({
   ) {
     return (
       <p className="text-sm text-slate-600">
-        {language === "no" ? "Sider" : language === "en" ? "Sides" : "Lados"}:{" "}
-        {figure.sideAcm} cm, {figure.sideBcm} cm, {figure.sideCcm} cm,{" "}
-        {getMeasurementLabel(language, "height")}: {figure.heightCm} cm
+        {getMeasurementLabel("sides")}: {figure.sideAcm} cm, {figure.sideBcm} cm,{" "}
+        {figure.sideCcm} cm, {getMeasurementLabel("height")}: {figure.heightCm} cm
       </p>
     );
   }
@@ -857,7 +531,7 @@ function FigureMeta({
   if (figure.kind === "circle" && figure.radiusCm) {
     return (
       <p className="text-sm text-slate-600">
-        {getMeasurementLabel(language, "radius")}: {figure.radiusCm} cm
+        {getMeasurementLabel("radius")}: {figure.radiusCm} cm
       </p>
     );
   }
@@ -865,23 +539,20 @@ function FigureMeta({
   return null;
 }
 
-function getStatusMessage(
-  status: FeatureStatus | null,
-  strings: UIStrings
-): string {
+function getStatusMessage(status: FeatureStatus | null, ui: MathGeometryStrings): string {
   if (!status?.reason) return "";
 
-  if (status.reason === "teacher_only") return strings.teacherOnly;
-  if (status.reason === "upgrade_required") return strings.upgradeRequired;
-  if (status.reason === "limit_reached") return strings.limitReached;
-  return strings.failed;
+  if (status.reason === "teacher_only") return ui.teacherOnly;
+  if (status.reason === "upgrade_required") return ui.upgradeRequired;
+  if (status.reason === "limit_reached") return ui.limitReached;
+  return ui.failed;
 }
 
-function formatAnswerKeyAnswer(task: MathWorksheetTask, language: WorksheetLanguage) {
+function formatAnswerKeyAnswer(task: MathWorksheetTask) {
   if (task.type === "all_in_one") return task.answer;
 
   if (task.type === "shape_name") {
-    return `${STRINGS[language].shapeNameLabel}: ${task.answer}`;
+    return `${strings.shapeNameLabel}: ${task.answer}`;
   }
 
   return task.answer;
@@ -924,7 +595,7 @@ function ToggleChip({
 export default function ProducerMathGeometryPage() {
   const locale = useLocale();
   const initialLanguage: WorksheetLanguage =
-    locale === "no" || locale === "en" || locale === "pt" ? locale : "no";
+    locale === "no" || locale === "en" || locale === "pt" ? locale : "en";
 
   const { profile } = useUserProfile();
 
@@ -947,8 +618,6 @@ export default function ProducerMathGeometryPage() {
   const [usageInfo, setUsageInfo] = useState<string>("");
   const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState<boolean>(true);
-
-  const strings = useMemo(() => STRINGS[language], [language]);
 
   const profileUid =
     profile && typeof profile === "object" && "uid" in profile
@@ -1027,7 +696,7 @@ export default function ProducerMathGeometryPage() {
       });
       setFeatureStatus(status);
     } catch {
-      // beholder gammel status
+      // behold gammel status
     }
   }
 
@@ -1338,7 +1007,7 @@ export default function ProducerMathGeometryPage() {
                         >
                           ✓
                         </span>
-                        <span>{getShapeLabel(language, shape)}</span>
+                        <span>{getShapeLabel(shape)}</span>
                       </button>
                     );
                   })}
@@ -1489,19 +1158,13 @@ export default function ProducerMathGeometryPage() {
                               <h4 className="text-base font-semibold text-slate-900">
                                 {task.prompt}
                               </h4>
-                              <FigureMeta
-                                figure={task.figure}
-                                language={worksheet.language}
-                              />
+                              <FigureMeta figure={task.figure} />
                             </div>
                           </div>
 
                           <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
                             <div className="flex items-center justify-center rounded-2xl bg-slate-50 p-3">
-                              <GeometryFigure
-                                figure={task.figure}
-                                language={worksheet.language}
-                              />
+                              <GeometryFigure figure={task.figure} />
                             </div>
 
                             <div className="space-y-3">
@@ -1570,10 +1233,7 @@ export default function ProducerMathGeometryPage() {
 
                               <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
                                 <div className="flex items-center justify-center rounded-2xl bg-white p-3">
-                                  <GeometryFigure
-                                    figure={task.figure}
-                                    language={worksheet.language}
-                                  />
+                                  <GeometryFigure figure={task.figure} />
                                 </div>
 
                                 <div className="space-y-3">
@@ -1582,7 +1242,7 @@ export default function ProducerMathGeometryPage() {
                                       <span className="font-semibold text-slate-900">
                                         {strings.answer}:
                                       </span>{" "}
-                                      {formatAnswerKeyAnswer(task, worksheet.language)}
+                                      {formatAnswerKeyAnswer(task)}
                                     </p>
                                   </div>
 

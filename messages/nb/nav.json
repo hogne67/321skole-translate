@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "mySpaces": "Mine spaces",
+    "join": "Bli med",
+    "dashboard": "Dashbord",
+    "myContent": "Mitt innhold",
+    "joinSpace": "Bli med i space",
+    "spaces": "Spaces",
+    "createLesson": "+ Lag oppgave",
+    "createtest": "+ Lag leseprøve",
+    "myLessons": "Mine oppgaver",
+    "newLesson": "+ Ny oppgave",
+    "users": "Brukere",
+    "review": "Vurdering",
+    "submissions": "Besvarelser",
+    "tools": "+ Ny oppgave"
+  }
+}

@@ -267,7 +267,7 @@ function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
 export default function NewReadingTestPage() {
   const router = useRouter();
   const locale = useLocale();
-  const t = useTranslations("producer.readingTestsNew");
+  const t = useTranslations("readingTestsNew");
   const { profile } = useUserProfile();
 
   const fieldStyle: CSSProperties = {

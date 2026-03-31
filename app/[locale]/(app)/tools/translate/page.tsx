@@ -1,7 +1,7 @@
-// app/[locale]/(app)/tools/translate/page.tsx
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 async function translateOne(text: string, targetLang: string) {
   const res = await fetch("/api/translate", {
@@ -18,25 +18,27 @@ async function translateOne(text: string, targetLang: string) {
   return String(d.translatedText ?? d.translation ?? d.text ?? "");
 }
 
-function getErrMessage(e: unknown) {
-  const msg = (e as { message?: unknown })?.message;
-  return typeof msg === "string" ? msg : "Translate failed";
-}
-
 export default function ToolsTranslatePage() {
+  const t = useTranslations("translateFree");
+
   const [source, setSource] = useState("");
   const [targetLang, setTargetLang] = useState("no");
   const [out, setOut] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  function getErrMessage(e: unknown) {
+    const msg = (e as { message?: unknown })?.message;
+    return typeof msg === "string" ? msg : t("errors.default");
+  }
+
   async function onTranslate() {
     setErr(null);
     setBusy(true);
 
     try {
-      const t = await translateOne(source, targetLang);
-      setOut(t);
+      const translated = await translateOne(source, targetLang);
+      setOut(translated);
     } catch (e: unknown) {
       setErr(getErrMessage(e));
     } finally {
@@ -46,12 +48,14 @@ export default function ToolsTranslatePage() {
 
   return (
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Translator</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>
+        {t("title")}
+      </h1>
 
       <hr style={{ margin: "10px 0 14px" }} />
 
       <p style={{ opacity: 0.75, marginTop: 0 }}>
-        Paste the text and select the language you want to translate to
+        {t("subtitle")}
       </p>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -60,13 +64,13 @@ export default function ToolsTranslatePage() {
           onChange={(e) => setTargetLang(e.target.value)}
           style={{ border: "1px solid #ddd", borderRadius: 10, padding: "8px 10px" }}
         >
-          <option value="no">Norwegian</option>
-          <option value="en">English</option>
-          <option value="uk">Ukrainian</option>
-          <option value="ar">Arabic</option>
-          <option value="pl">Polish</option>
-          <option value="es">Spanish</option>
-          <option value="pt">Portuguese</option>
+          <option value="no">{t("languages.no")}</option>
+          <option value="en">{t("languages.en")}</option>
+          <option value="uk">{t("languages.uk")}</option>
+          <option value="ar">{t("languages.ar")}</option>
+          <option value="pl">{t("languages.pl")}</option>
+          <option value="es">{t("languages.es")}</option>
+          <option value="pt">{t("languages.pt")}</option>
         </select>
 
         <button
@@ -82,7 +86,7 @@ export default function ToolsTranslatePage() {
             opacity: busy || !source.trim() ? 0.6 : 1,
           }}
         >
-          {busy ? "Translating…" : "Translate"}
+          {busy ? t("buttons.translating") : t("buttons.translate")}
         </button>
 
         {err && <span style={{ color: "crimson" }}>{err}</span>}
@@ -92,7 +96,9 @@ export default function ToolsTranslatePage() {
 
       <div style={{ display: "grid", gap: 12 }}>
         <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12 }}>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Original</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>
+            {t("fields.source")}
+          </div>
           <textarea
             rows={10}
             value={source}
@@ -104,12 +110,14 @@ export default function ToolsTranslatePage() {
               padding: 10,
               fontFamily: "inherit",
             }}
-            placeholder="Paste text here…"
+            placeholder={t("placeholders.source")}
           />
         </div>
 
         <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12 }}>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>Translation</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>
+            {t("fields.result")}
+          </div>
           <textarea
             rows={10}
             value={out}
@@ -121,7 +129,7 @@ export default function ToolsTranslatePage() {
               padding: 10,
               fontFamily: "inherit",
             }}
-            placeholder="Result…"
+            placeholder={t("placeholders.result")}
           />
         </div>
       </div>

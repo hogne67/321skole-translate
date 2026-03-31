@@ -1,3 +1,4 @@
+// app)\student\spaces\[spaceId]\assignments\[assignmentId]\page.tsx
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -651,7 +652,7 @@ function SmartImage({ src, alt }: { src: string; alt: string }) {
 ========================= */
 
 export default function StudentAssignmentPage() {
-  const t = useTranslations("student.assignment");
+  const t = useTranslations("studentAssignment");
 
   const params = useParams<{ spaceId: string; assignmentId: string }>();
   const spaceId = params?.spaceId;

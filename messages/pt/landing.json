@@ -1,0 +1,223 @@
+{
+  "landing": {
+    "common": {
+      "login": "Entrar",
+      "register": "Criar conta"
+    },
+    "topbar": {
+      "nav": {
+        "teachers": "Para professores",
+        "students": "Para alunos",
+        "spaces": "Spaces"
+      }
+    },
+    "hero": {
+      "badge": "Participe de uma rede global de aprendizagem!",
+      "title": "O futuro da aprendizagem começa aqui",
+      "lead": "Uma nova plataforma revolucionária para criar, compartilhar e dominar conhecimento — feita para alunos, professores e pais. E o melhor: é gratuita.",
+      "ctaPrimary": "Criar conta hoje",
+      "ctaSecondary": "Entrar",
+      "guestNote": "Convidados entram por links compartilhados de aulas/Spaces.",
+      "stats": {
+        "languages": {
+          "title": "Idiomas",
+          "value": "Todos",
+          "hint": "Texto + tarefas + feedback"
+        },
+        "level": {
+          "title": "Nível",
+          "value": "CEFR A1–C1",
+          "hint": "Simplificar, melhorar, variar"
+        },
+        "audio": {
+          "title": "Áudio",
+          "value": "Ajustável",
+          "hint": "Texto + tradução"
+        },
+        "pdf": {
+          "title": "PDF",
+          "value": "Exportar",
+          "hint": "Folhas prontas para uso"
+        }
+      },
+      "imageAlt": "Ilustração de um professor e um aluno usando o 321skole",
+      "cards": {
+        "text": {
+          "title": "Texto",
+          "subtitle": "Ajustar nível"
+        },
+        "tasks": {
+          "title": "Tarefas",
+          "subtitle": "Variar"
+        },
+        "feedback": {
+          "title": "Feedback",
+          "subtitle": "Imediato"
+        }
+      },
+      "floating": {
+        "title": "IA pedagógica",
+        "subtitle": "Professor lidera · IA ajuda"
+      }
+    },
+    "trustLine": "Pronto para escolas, cursos e educação de adultos — sem a complexidade de um LMS pesado.",
+    "teachers": {
+      "eyebrow": "Para professores",
+      "title": "Crie mais, mais rápido e melhor",
+      "description": "Um sistema prático de ensino que ajuda você a produzir, adaptar e compartilhar conteúdo — sem perder o controle da qualidade e do nível.",
+      "imageAlt": "Professor planejando aulas em um laptop",
+      "bullets": [
+        "Crie textos em qualquer idioma e nível (escreva, cole ou gere).",
+        "Gere e edite vários tipos de tarefas (múltipla escolha, respostas abertas, escrita).",
+        "Crie seus próprios Spaces — e receba respostas dos alunos.",
+        "Obtenha correção automática e gere feedback com IA.",
+        "Exporte conteúdos como aulas digitais ou PDF.",
+        "Crie testes de leitura com feedback imediato."
+      ],
+      "cta": "Criar conta hoje"
+    },
+    "students": {
+      "eyebrow": "Para alunos",
+      "title": "Aprenda mais rápido, melhor e com inteligência",
+      "description": "Crie suas próprias aulas, descubra seu nível e pratique com ferramentas de IA como tradução, áudio e feedback imediato em vários idiomas.",
+      "imageAlt": "Aluno aprendendo idioma com fones de ouvido",
+      "bullets": [
+        "Crie suas próprias aulas em qualquer nível.",
+        "Áudio com velocidade ajustável — tanto para o texto quanto para a tradução.",
+        "Feedback imediato na escrita (idioma de aprendizagem + idioma opcional).",
+        "Explicações que ajudam você a melhorar — não apenas certo/errado.",
+        "Participe de redes globais de aprendizagem.",
+        "Descubra seu nível. Crie testes de leitura com feedback imediato."
+      ],
+      "cta": "Entrar"
+    },
+    "parents": {
+      "eyebrow": "Para pais",
+      "title": "Apoie a aprendizagem de forma mais inteligente",
+      "description": "Acompanhe, pratique e apoie o aprendizado com ferramentas poderosas feitas para o dia a dia em casa.",
+      "imageAlt": "Aluno aprendendo idioma com fones de ouvido",
+      "bullets": [
+        "Crie tarefas, aulas e Spaces para a família.",
+        "Acompanhe o nível e o progresso ao longo do tempo.",
+        "Pratique leitura com áudio, tradução e testes de leitura.",
+        "Explicações que ajudam — não apenas certo/errado.",
+        "Dê feedback simples com sistema de estrelas.",
+        "Descubra o nível. Crie testes de leitura com feedback imediato."
+      ],
+      "cta": "Entrar"
+    },
+    "spaces": {
+      "eyebrow": "Spaces",
+      "title": "Um espaço para tudo que acontece na aprendizagem",
+      "description": "Compartilhe aulas, receba respostas e acompanhe o progresso — para escolas, cursos e educação de adultos.",
+      "cards": [
+        {
+          "title": "Compartilhe em segundos",
+          "text": "Envie um link ou código. Os alunos entram direto na atividade."
+        },
+        {
+          "title": "Anônimo ou com login",
+          "text": "Baixa barreira no início — login seguro quando necessário."
+        },
+        {
+          "title": "Visão clara e organizada",
+          "text": "Tudo reunido: textos, tarefas, respostas e feedback."
+        }
+      ],
+      "imageAlt": "Mockup de Spaces no 321skole"
+    },
+    "whyAi": {
+      "eyebrow": "Por que usar IA?",
+      "title": "IA como assistente. Não como resposta.",
+      "description": "Isso é IA pedagógica: você decide o conteúdo, e a IA ajuda com idioma, nível e variedade. Os alunos recebem explicações — não atalhos.",
+      "checks": [
+        "Controle total: tudo pode ser editado e ajustado.",
+        "Apoio seguro: foco em aprendizagem e progresso.",
+        "Multilíngue desde o início: texto, tarefas, áudio e feedback."
+      ],
+      "flowTitle": "Exemplo de fluxo",
+      "flow": {
+        "1": "Professor escolhe tema e nível",
+        "2": "Texto é criado/adaptado em minutos",
+        "3": "Tarefas são geradas e editadas",
+        "4": "Compartilhar em um Space → alunos trabalham",
+        "5": "Feedback imediato + exportar como PDF"
+      }
+    },
+    "roles": {
+      "title": "Grátis para começar. Fácil de evoluir.",
+      "description": "Use a biblioteca e o tradutor gratuitamente. Atualize quando precisar de mais capacidade e ferramentas avançadas.",
+      "seeAll": "Ver todos os planos",
+      "teaser": "Planos para aluno, professor e pai/mãe — a partir de 59 NOK/mês.",
+      "cards": {
+        "student": {
+          "title": "Aluno",
+          "freeTitle": "Grátis",
+          "free": {
+            "0": "Acesse a biblioteca e o tradutor",
+            "1": "Iniciar tarefas: 2 / mês",
+            "2": "Participar de salas e colaborar"
+          },
+          "paidTitle": "Planos a partir de",
+          "price": "59 NOK/mês",
+          "paid": {
+            "0": "Mais tarefas por mês",
+            "1": "Grupos de estudo + colaboração",
+            "2": "Ferramentas Pro (idioma + áudio)"
+          }
+        },
+        "teacher": {
+          "title": "Professor",
+          "freeTitle": "Grátis",
+          "free": {
+            "0": "Criar e testar tarefas (Light)",
+            "1": "1 space / 15 alunos",
+            "2": "2 tarefas Pro / mês"
+          },
+          "paidTitle": "Planos a partir de",
+          "price": "59 NOK/mês",
+          "paid": {
+            "0": "Mais spaces e mais alunos",
+            "1": "PDF + compartilhamento privado",
+            "2": "Publicação e análises"
+          }
+        },
+        "parent": {
+          "title": "Pais",
+          "freeTitle": "Grátis",
+          "free": {
+            "0": "Apoie seu filho em casa",
+            "1": "Iniciar tarefas: 2 / mês"
+          },
+          "paidTitle": "Planos a partir de",
+          "price": "59 NOK/mês",
+          "paid": {
+            "0": "Mais filhos + mais prática",
+            "1": "Visão de progresso",
+            "2": "Mais IA e créditos de imagem"
+          }
+        }
+      }
+    },
+    "ctaLite": {
+      "title": "Pronto para começar?",
+      "lead": "Crie, adapte e compartilhe conteúdos com ferramentas de IA feitas para a educação real.",
+      "primary": "Começar agora",
+      "secondary": "Ver preços",
+      "note": "Grátis para começar. Atualize quando precisar.",
+      "boxTitle": "O que você ganha desde o primeiro dia",
+      "checks": [
+        "Crie conteúdos em minutos",
+        "Use tradução, áudio e feedback",
+        "Compartilhe em Spaces",
+        "Reutilize conteúdos facilmente"
+      ]
+    },
+    "footer": {
+      "about": "Sobre",
+      "privacy": "Privacidade",
+      "contact": "Contato",
+      "rights": "Todos os direitos reservados."
+    }
+  }
+}

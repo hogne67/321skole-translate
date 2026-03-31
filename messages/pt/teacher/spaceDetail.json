@@ -1,0 +1,80 @@
+{
+  "spaceDetail": {
+      "checking": {
+    "title": "Space",
+    "subtitle": "Verifying access…"
+  },
+  "actions": {
+    "back": "← Back",
+    "submissions": "Submissions",
+    "setActive": "Set active",
+    "archive": "Archive",
+    "restore": "Restore"
+  },
+  "access": {
+    "mustBeSignedIn": "You must be signed in.",
+    "notMember": "You are not a member of this space.",
+    "verifyFailed": "Could not verify access."
+  },
+  "denied": {
+    "title": "No access",
+    "subtitle": "You do not have access to this space.",
+    "hint": "To join, use the join link/code or ask the owner to add you.",
+    "joinCardTitle": "Join this space",
+    "joinLinkLabel": "Join link:"
+  },
+  "overview": {
+    "subtitle": "Here you can find codes and links you can send to members, so they can join your space.",
+    "code": "Code:",
+    "copyCodeTitle": "Copy code",
+    "copied": "Copied ✅",
+    "openLabel": "Open:",
+    "yes": "Yes",
+    "no": "No",
+    "copyJoinLink": "Copy join link",
+    "qr": "QR",
+    "activeForStudents": "Active for students:",
+    "clear": "Clear"
+  },
+  "assignments": {
+    "title": "Assignments",
+    "subtitle": "Assign tasks from My Content or Library. Students see assigned tasks after they join.",
+    "assignTask": "Assign task",
+    "showArchived": "Show archived",
+    "hideArchived": "Hide archived",
+    "openSpace": "Open space",
+    "closeSpace": "Close space",
+    "emptyHtml": "No assignments yet. Click <b>Assign task</b>."
+  },
+  "labels": {
+    "myContent": "My Content",
+    "library": "Library"
+  },
+  "badges": {
+    "active": "Active",
+    "archived": "Archived",
+    "noSubmissions": "No submissions",
+    "allReviewed": "All reviewed",
+    "newCount": "{n} new",
+    "submissionsCount": "{n} submissions",
+    "submissionsError": "Submissions: error"
+  },
+  "assignModal": {
+    "title": "Assign task",
+    "subtitle": "Choose from My Content or Library.",
+    "close": "Close",
+    "searchPlaceholder": "Search title or level A1, A2 etc",
+    "noResults": "No results.",
+    "lessonId": "lessonId",
+    "publishedLessonId": "publishedLessonId",
+    "assign": "Assign",
+    "paging": {
+      "prev": "← Previous",
+      "next": "Next →",
+      "showing": "Showing",
+      "zero": "0 of 0",
+      "range": "{start}-{end} of {total}"
+    }
+  }
+} 
+}

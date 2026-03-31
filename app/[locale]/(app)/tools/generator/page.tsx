@@ -220,7 +220,7 @@ async function generateLesson(args: {
 }
 
 export default function ToolsGeneratorPage() {
-  const t = useTranslations("tools.generator");
+  const t = useTranslations("textGeneratorFree");
   const locale = useLocale();
 
   const languageOptions = useMemo(() => {

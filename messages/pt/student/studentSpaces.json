@@ -1,0 +1,23 @@
+{
+  "studentSpaces": {
+    "title": "My spaces",
+    "subtitle": "Here you can find the spaces you are a member of.",
+    "loading": "Loading…",
+    "defaultTitle": "Untitled space",
+    "empty": "You are not a member of any spaces yet. Press <b>Join space</b> to get started.",
+    "errors": {
+      "loadFailed": "Could not load spaces."
+    },
+    "actions": {
+      "joinSpace": "Join space",
+      "openSpace": "Open space",
+      "openBoard": "Open board",
+      "board": "Board"
+    },
+    "meta": {
+      "oneSpace": "space",
+      "manySpaces": "spaces",
+      "code": "Code"
+    }
+  }
+}

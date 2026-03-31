@@ -26,7 +26,7 @@ function ownerFromDoc(d: Record<string, unknown>): string | null {
 export default function StudentSubmissionPage() {
   const router = useRouter();
   const locale = useLocale();
-  const t = useTranslations("student.submission");
+  const t = useTranslations("studentSubmission");
 
   // IMPORTANT:
   // Folder name is [submissionsId] -> param key is "submissionsId" (not "submissionId")

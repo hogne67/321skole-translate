@@ -1,0 +1,29 @@
+{
+  "libraryOpenLesson": {
+    "loading": "Carregando…",
+    "missingLessonId": "Faltando lessonId na URL.",
+    "notPublished": "Esta atividade não está publicada (ou não existe).",
+    "unpublished": "Esta atividade não está publicada (ou foi despublicada).",
+    "noAccess": "Esta atividade não está publicada (ou você não tem acesso).",
+    "somethingWentWrong": "Algo deu errado",
+    "backToLibrary": "← Voltar para a biblioteca",
+    "noData": "Sem dados.",
+    "untitled": "(Sem título)",
+    "untitledPlain": "Sem título",
+    "saveToMyContent": "ADICIONAR A MEUS CONTEÚDOS",
+    "saving": "SALVANDO...",
+    "startTask": "INICIAR ATIVIDADE",
+    "back": "Voltar",
+    "addedToMyContent": "\"{title}\" foi adicionado a Meus conteúdos.",
+    "saveFailed": "Não foi possível adicionar a Meus conteúdos.",
+    "noCover": "Sem capa",
+    "textHeading": "Texto",
+    "noText": "Sem texto",
+    "tasksHeading": "Atividades",
+    "noTasks": "Não há atividades nesta lição.",
+    "taskLabel": "Atividade {number}",
+    "answerFieldShownLater": "(O campo de resposta aparece ao clicar em “Iniciar atividade”)",
+    "true": "Verdadeiro",
+    "false": "Falso"
+  }
+}

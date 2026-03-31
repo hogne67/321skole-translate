@@ -1,0 +1,54 @@
+{
+  "dashboard": {
+    "dashboardIntro": {
+      "helloAnon": "Hello!",
+      "helloUser": "Hello {name}!",
+      "guest": "guest",
+      "loggedIn": "logged in",
+      "roleFallback": "User",
+      "youAre": "You are {state} as <b>{role}</b>.",
+      "activity": "You can continue your <b>activity</b> below.",
+      "recommendRegister": "We recommend creating an account to save your work and sync your content.",
+      "remaining": "{count} left",
+      "roles": {
+        "student": "Student",
+        "teacher": "Teacher",
+        "parent": "Parent"
+      },
+      "plans": {
+        "free": "Free",
+        "basic": "Basic",
+        "plus": "Plus",
+        "pro": "Pro"
+      },
+      "actions": {
+        "seePlans": "See plans",
+        "registerLogin": "Register / log in",
+        "openLibrary": "Open library"
+      }
+    },
+    "usage": {
+      "title": "Usage",
+      "subtitle": "See how much you have used this month.",
+      "cards": {
+        "premiumGenerators": "Premium generators",
+        "aiFeedback": "AI feedback",
+        "imageGeneration": "Image generation"
+      },
+      "labels": {
+        "unlimited": "Unlimited",
+        "used": "{used} / {limit} used",
+        "remaining": "{count} left",
+        "nearLimit": "You are getting close to your limit.",
+        "seePlans": "See plans",
+        "limitReached": "You have reached your limit.",
+        "upgrade": "Upgrade"
+      }
+    },
+    "quickLinks": {
+      "title": "Quick links",
+      "library": "Open library",
+      "myContent": "My content"
+    }
+  }
+}

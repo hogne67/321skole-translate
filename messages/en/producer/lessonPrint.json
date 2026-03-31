@@ -1,0 +1,55 @@
+{
+  "lessonPrint": {
+    "pageTitle": "Worksheet – print",
+    "states": {
+      "loading": "Loading worksheet..."
+    },
+    "nav": {
+      "backToEditor": "Back"
+    },
+    "actions": {
+      "print": "Print / save as PDF",
+      "teacherVersion": "Teacher version",
+      "studentVersion": "Student version"
+    },
+    "tips": {
+      "saveAsPdf": "Use your browser print dialog and choose Save as PDF."
+    },
+    "labels": {
+      "kicker": "worksheet",
+      "producer": "Producer",
+      "level": "Level",
+      "bannerAlt": "Worksheet banner image"
+    },
+    "identity": {
+      "name": "Name",
+      "date": "Date",
+      "class": "Class"
+    },
+    "sections": {
+      "readingText": "Reading text",
+      "tasks": "Tasks"
+    },
+    "answers": {
+      "true": "True",
+      "false": "False"
+    },
+    "teacher": {
+      "answerKey": "Answer key",
+      "suggestionNote": "Suggested answer",
+      "dash": "—"
+    },
+    "defaults": {
+      "worksheetTitle": "Worksheet"
+    },
+    "tasksEmpty": "No tasks found.",
+    "errors": {
+      "title": "Error",
+      "unknown": "Something went wrong.",
+      "noAuthUid": "You do not have access to this worksheet.",
+      "notFound": "Worksheet not found.",
+      "noAccessOwnerMismatch": "You do not have access to this worksheet.",
+      "loadFailed": "Could not load worksheet."
+    }
+  }
+}

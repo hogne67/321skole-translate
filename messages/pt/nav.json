@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "mySpaces": "Meus spaces",
+    "join": "Entrar",
+    "dashboard": "Painel",
+    "myContent": "Meus conteúdos",
+    "joinSpace": "Entrar no space",
+    "spaces": "Spaces",
+    "createLesson": "+ Criar atividade",
+    "createtest": "+ Criar teste de leitura",
+    "myLessons": "Minhas atividades",
+    "newLesson": "+ Nova atividade",
+    "users": "Usuários",
+    "review": "Avaliação",
+    "submissions": "Respostas",
+    "tools": "+ Nova atividade"
+  }
+}

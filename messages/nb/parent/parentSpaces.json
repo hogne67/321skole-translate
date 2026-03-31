@@ -1,0 +1,43 @@
+{
+  "parentSpaces": {
+    "title": "My spaces",
+    "subtitle": "Here you will find family rooms and parent spaces for activities at home.",
+    "defaultTitle": "Untitled space",
+    "actions": {
+      "open": "Open",
+      "openSpace": "Open space",
+      "newSpace": "Create space",
+      "parentGroups": "+ Create new room"
+    },
+    "meta": {
+      "code": "Code"
+    },
+    "kinds": {
+      "family": "Family room",
+      "parentGroup": "Parent group",
+      "other": "Space"
+    },
+    "empty": "You do not have any parent spaces yet.",
+    "loading": "Loading…",
+    "errors": {
+      "loadFailed": "Could not load spaces."
+    },
+    "counts": {
+      "groups": "{count, plural, one {# group} other {# groups}}"
+    },
+    "status": {
+      "notStarted": "Not started",
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "needsWork": "Needs work",
+      "reviewed": "Reviewed"
+    },
+    "badges": {
+      "tasks": "{count} tasks",
+      "active": "Active: {title}",
+      "aiFeedback": "AI feedback",
+      "parentReview": "Parent review",
+      "parentReviewWithStars": "Parent review • {stars}★"
+    }
+  }
+}

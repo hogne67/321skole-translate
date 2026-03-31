@@ -52,12 +52,11 @@ function errMessage(e: unknown, fallback: string) {
 }
 
 export default function StudentSpacesPage() {
-  const t = useTranslations("student.spaces");
+  const t = useTranslations("studentSpaces");
   const locale = useLocale();
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
-
   const [spaces, setSpaces] = useState<Array<{ id: string; data: SpaceDoc }>>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -207,9 +206,9 @@ export default function StudentSpacesPage() {
                         href={boardHref}
                         onClick={(e) => e.stopPropagation()}
                         className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50"
-                        title="Åpne tavle"
+                        title={t("actions.openBoard")}
                       >
-                        Tavle
+                        {t("actions.board")}
                       </Link>
 
                       <Link

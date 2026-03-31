@@ -1,0 +1,29 @@
+{
+  "libraryOpenLesson": {
+    "loading": "Laster…",
+    "missingLessonId": "Mangler lessonId i URL-en.",
+    "notPublished": "Denne oppgaven er ikke publisert (eller finnes ikke).",
+    "unpublished": "Denne oppgaven er ikke publisert (eller har blitt avpublisert).",
+    "noAccess": "Denne oppgaven er ikke publisert (eller du har ikke tilgang).",
+    "somethingWentWrong": "Noe gikk galt",
+    "backToLibrary": "← Tilbake til biblioteket",
+    "noData": "Ingen data.",
+    "untitled": "(Uten tittel)",
+    "untitledPlain": "Uten tittel",
+    "saveToMyContent": "LEGG TIL I MITT INNHOLD",
+    "saving": "LAGRER...",
+    "startTask": "START OPPGAVE",
+    "back": "Tilbake",
+    "addedToMyContent": "\"{title}\" ble lagt til i Mitt innhold.",
+    "saveFailed": "Kunne ikke legge til i Mitt innhold.",
+    "noCover": "Ingen forside",
+    "textHeading": "Tekst",
+    "noText": "Ingen tekst",
+    "tasksHeading": "Oppgaver",
+    "noTasks": "Ingen oppgaver i denne leksjonen.",
+    "taskLabel": "Oppgave {number}",
+    "answerFieldShownLater": "(Svarfeltet vises når du trykker «Start oppgave»)",
+    "true": "Sant",
+    "false": "Usant"
+  }
+}

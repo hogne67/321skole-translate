@@ -91,7 +91,7 @@ type Props = { nextUrl?: string };
 type Step = 1 | 2 | 3;
 
 export default function OnboardingClient({ nextUrl }: Props) {
-  const t = useTranslations("auth.onboarding");
+  const t = useTranslations("onboarding");
   const locale = useLocale();
   const router = useRouter();
 
@@ -625,7 +625,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
           <div style={card}>
             <div style={logoWrap}>
               <Image
-                src="/logo 321_2.png"
+                src="/logo321ny.png"
                 alt="321skole"
                 width={220}
                 height={72}
@@ -651,7 +651,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
         <div style={card}>
           <div style={logoWrap}>
             <Image
-              src="/logo 321_2.png"
+              src="/logo321ny.png"
               alt="321skole"
               width={220}
               height={72}

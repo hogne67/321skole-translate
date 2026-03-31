@@ -194,7 +194,7 @@ function detectTeacherMessage(data: Record<string, unknown>) {
 
 export default function StudentSpaceDetailPage() {
   const { spaceId } = useParams<{ spaceId: string }>();
-  const t = useTranslations("student.spaceDetail");
+  const t = useTranslations("studentspaceDetail");
   const locale = useLocale();
 
   const { user } = useUserProfile();

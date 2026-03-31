@@ -210,7 +210,7 @@ export default function ReadingTestEditorPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const locale = useLocale();
-  const t = useTranslations("producer.readingTestsEditor");
+  const t = useTranslations("readingTestsEditor");
   const lessonId = typeof params?.id === "string" ? params.id : "";
 
   const fieldStyle: CSSProperties = {

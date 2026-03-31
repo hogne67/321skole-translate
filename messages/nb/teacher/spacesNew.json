@@ -1,0 +1,24 @@
+{
+"spacesNew": {
+      "title": "Create new room",
+      "fields": {
+        "name": {
+          "label": "Name",
+          "placeholder": "e.g. Norwegian A2 – Group 1"
+        },
+        "isOpen": {
+          "label": "Give the room a suitable name. Invite members afterwards)"
+        }
+      },
+      "actions": {
+        "create": "Create",
+        "creating": "Creating…"
+      },
+      "errors": {
+        "missingUser": "Missing user.",
+        "cannotCreate": "You can’t create a classroom.",
+        "missingTitle": "Please name the classroom.",
+        "unknown": "Unknown error"
+      }
+    }
+}

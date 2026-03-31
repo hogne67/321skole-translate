@@ -2,12 +2,37 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { useLocale, useTranslations } from "next-intl";
 import { useUsage } from "@/lib/useUsage";
 import { getBucketLimit, type PlanKey } from "@/lib/featureAccess";
 
-type Props = { userIsAnon: boolean };
+type Props = {
+  userIsAnon: boolean;
+
+  helloAnon: string;
+  helloUser: string;
+  guestLabel: string;
+  loggedInLabel: string;
+  youAre: string;
+  activity: string;
+  recommendRegister: string;
+  remainingLabel: string;
+
+  roleLabelStudent: string;
+  roleLabelTeacher: string;
+  roleLabelParent: string;
+  roleFallback: string;
+
+  planFree: string;
+  planBasic: string;
+  planPlus: string;
+  planPro: string;
+
+  actionSeePlans: string;
+  actionRegisterLogin: string;
+  actionOpenLibrary: string;
+};
 
 type Role = "student" | "teacher" | "parent";
 
@@ -31,11 +56,54 @@ function readStringField(obj: unknown, key: string): string | null {
   return typeof v === "string" ? v : null;
 }
 
-function getPlanLabel(plan: PlanKey) {
-  if (plan === "basic") return "Basic";
-  if (plan === "plus") return "Plus";
-  if (plan === "pro") return "Pro";
-  return "Free";
+function withLocale(locale: string, href: string): string {
+  if (/^https?:\/\//i.test(href)) return href;
+  if (!href.startsWith("/")) return href;
+
+  const seg = href.split("/")[1];
+  if (seg === "en" || seg === "no" || seg === "pt") return href;
+
+  if (href === "/") return `/${locale}`;
+  return `/${locale}${href}`;
+}
+
+function interpolate(template: string, values: Record<string, string | number>) {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ""));
+}
+
+function renderSimpleRichText(
+  template: string,
+  values: Record<string, string | number>
+): React.ReactNode {
+  const withValues = interpolate(template, values);
+  const parts = withValues.split(/(<b>|<\/b>)/g);
+
+  const nodes: React.ReactNode[] = [];
+  let bold = false;
+  let key = 0;
+
+  for (const part of parts) {
+    if (part === "<b>") {
+      bold = true;
+      continue;
+    }
+    if (part === "</b>") {
+      bold = false;
+      continue;
+    }
+    if (!part) continue;
+
+    nodes.push(bold ? <b key={key++}>{part}</b> : <span key={key++}>{part}</span>);
+  }
+
+  return nodes;
+}
+
+function getPlanLabel(plan: PlanKey, props: Props) {
+  if (plan === "basic") return props.planBasic;
+  if (plan === "plus") return props.planPlus;
+  if (plan === "pro") return props.planPro;
+  return props.planFree;
 }
 
 function getPlanColor(plan: PlanKey) {
@@ -45,27 +113,24 @@ function getPlanColor(plan: PlanKey) {
   return "#64748b";
 }
 
-export function DashboardIntro({ userIsAnon }: Props) {
-  const locale = useLocale();
-  const t = useTranslations("student.dashboardIntro");
-  const tModes = useTranslations("modes");
+function getRoleLabel(role: Role, props: Props) {
+  if (role === "teacher") return props.roleLabelTeacher;
+  if (role === "parent") return props.roleLabelParent;
+  return props.roleLabelStudent;
+}
 
+export function DashboardIntro(props: Props) {
+  const locale = useLocale();
   const { profile } = useUserProfile();
 
   const name = (readStringField(profile, "displayName") ?? "").trim();
   const uid = readStringField(profile, "uid") ?? undefined;
 
-  const role: Role = userIsAnon ? "student" : safeRole(readStringField(profile, "role"));
-  const plan: PlanKey = userIsAnon ? "free" : safePlan(readStringField(profile, "plan"));
+  const role: Role = props.userIsAnon ? "student" : safeRole(readStringField(profile, "role"));
+  const plan: PlanKey = props.userIsAnon ? "free" : safePlan(readStringField(profile, "plan"));
 
-  const roleLabel =
-    role === "teacher"
-      ? tModes("teacher")
-      : role === "parent"
-      ? tModes("parent")
-      : tModes("student");
-
-  const planLabel = getPlanLabel(plan);
+  const roleLabel = getRoleLabel(role, props) || props.roleFallback;
+  const planLabel = getPlanLabel(plan, props);
   const planColor = getPlanColor(plan);
 
   const { usage, loading: usageLoading } = useUsage(uid);
@@ -74,21 +139,22 @@ export function DashboardIntro({ userIsAnon }: Props) {
   const generatorsLimit = getBucketLimit(role, plan, "premium_generators");
   const generatorsRemaining = Math.max(0, generatorsLimit - generatorsUsed);
 
-  const showUsageBadge = !userIsAnon && !usageLoading && generatorsLimit > 0;
-
-  const usageBadgeStyle: React.CSSProperties = {
-    marginLeft: 8,
-    padding: "2px 8px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 600,
-    border: "1px solid rgba(0,0,0,0.12)",
-    background: "#ffffff",
-    color: "#111827",
-  };
+  const showUsageBadge = !props.userIsAnon && !usageLoading && generatorsLimit > 0;
 
   const lowUsage =
     generatorsLimit > 0 && generatorsRemaining <= Math.max(2, Math.floor(generatorsLimit * 0.2));
+
+  const helloText =
+    props.userIsAnon || !name
+      ? props.helloAnon
+      : interpolate(props.helloUser, { name });
+
+  const youAreNode = renderSimpleRichText(props.youAre, {
+    state: props.userIsAnon ? props.guestLabel : props.loggedInLabel,
+    role: roleLabel,
+  });
+
+  const activityNode = renderSimpleRichText(props.activity, {});
 
   return (
     <section
@@ -100,20 +166,21 @@ export function DashboardIntro({ userIsAnon }: Props) {
         marginBottom: 14,
       }}
     >
-      <h2 style={{ margin: 0, fontSize: 18 }}>
-        {userIsAnon || !name ? t("helloAnon") : t("helloUser", { name })}
-      </h2>
+      <h2 style={{ margin: 0, fontSize: 18 }}>{helloText}</h2>
 
-      <p style={{ margin: "8px 0 0", opacity: 0.8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-        <span>
-          {t.rich("youAre", {
-            state: userIsAnon ? t("guest") : t("loggedIn"),
-            role: roleLabel,
-            b: (chunks) => <b>{chunks}</b>,
-          })}
-        </span>
+      <p
+        style={{
+          margin: "8px 0 0",
+          opacity: 0.8,
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <span>{youAreNode}</span>
 
-        {!userIsAnon && (
+        {!props.userIsAnon && (
           <span
             style={{
               padding: "2px 8px",
@@ -132,27 +199,27 @@ export function DashboardIntro({ userIsAnon }: Props) {
         {showUsageBadge && (
           <span
             style={{
-              ...usageBadgeStyle,
-              color: lowUsage ? "#92400e" : usageBadgeStyle.color,
-              background: lowUsage ? "#fff7ed" : usageBadgeStyle.background,
-              border: lowUsage ? "1px solid #fdba74" : usageBadgeStyle.border,
+              marginLeft: 8,
+              padding: "2px 8px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 600,
+              border: lowUsage ? "1px solid #fdba74" : "1px solid rgba(0,0,0,0.12)",
+              background: lowUsage ? "#fff7ed" : "#ffffff",
+              color: lowUsage ? "#92400e" : "#111827",
             }}
           >
-            {generatorsRemaining} igjen
+            {interpolate(props.remainingLabel, { count: generatorsRemaining })}
           </span>
         )}
       </p>
 
-      <p style={{ margin: "8px 0 0", opacity: 0.8 }}>
-        {t.rich("activity", {
-          b: (chunks) => <b>{chunks}</b>,
-        })}
-      </p>
+      <p style={{ margin: "8px 0 0", opacity: 0.8 }}>{activityNode}</p>
 
-      {!userIsAnon && (plan === "free" || lowUsage) && (
+      {!props.userIsAnon && (plan === "free" || lowUsage) && (
         <div style={{ marginTop: 10 }}>
           <Link
-            href={`/${locale}/pricing`}
+            href={withLocale(locale, "/pricing")}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -167,18 +234,18 @@ export function DashboardIntro({ userIsAnon }: Props) {
               background: "#fff",
             }}
           >
-            Se planer
+            {props.actionSeePlans}
           </Link>
         </div>
       )}
 
-      {userIsAnon ? (
+      {props.userIsAnon ? (
         <div style={{ marginTop: 10 }}>
-          <p style={{ margin: 0, opacity: 0.85 }}>{t("recommendRegister")}</p>
+          <p style={{ margin: 0, opacity: 0.85 }}>{props.recommendRegister}</p>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
             <Link
-              href={`/${locale}/join`}
+              href={withLocale(locale, "/join")}
               style={{
                 padding: "8px 12px",
                 borderRadius: 10,
@@ -186,11 +253,11 @@ export function DashboardIntro({ userIsAnon }: Props) {
                 textDecoration: "none",
               }}
             >
-              {t("actions.registerLogin")}
+              {props.actionRegisterLogin}
             </Link>
 
             <Link
-              href={`/${locale}/321lessons`}
+              href={withLocale(locale, "/321lessons")}
               style={{
                 padding: "8px 12px",
                 borderRadius: 10,
@@ -198,7 +265,7 @@ export function DashboardIntro({ userIsAnon }: Props) {
                 textDecoration: "none",
               }}
             >
-              {t("actions.openLibrary")}
+              {props.actionOpenLibrary}
             </Link>
           </div>
         </div>

@@ -1,0 +1,90 @@
+{
+  "teacherPage": {
+    "status": {
+      "unavailable": "Unavailable",
+      "limitReached": "Limit reached",
+      "almostFull": "Almost full",
+      "gettingBusy": "Getting busy",
+      "good": "Good"
+    },
+    "stats": {
+      "percentUsed": "{percent}% used"
+    },
+    "cards": {
+      "premiumGenerators": "Premium generators",
+      "imageGeneration": "Image generation",
+      "aiFeedback": "AI feedback"
+    },
+    "students": {
+      "badge": "Student overview",
+      "title": "My students",
+      "description": "Total unique students across your spaces. A student can be in several spaces, but only counts once here. You can search, review and manage them from this panel.",
+      "empty": "No students found.",
+      "counts": {
+        "shownTotal": "{shown} shown · {total} total"
+      },
+      "search": {
+        "label": "Search students",
+        "placeholder": "Search by name or space"
+      },
+      "labels": {
+        "anonymous": "Anonymous",
+        "registered": "Registered",
+        "spacesCount": "{count, plural, one {# space} other {# spaces}}",
+        "uid": "UID: {uid}"
+      },
+      "actions": {
+        "show": "Show students",
+        "hide": "Hide students",
+        "working": "Working...",
+        "setInactive": "Set inactive",
+        "remove": "Remove"
+      },
+      "confirm": {
+        "archive": "Set {name} to inactive in all your spaces?",
+        "remove": "Remove {name} from all your spaces? This cannot be undone."
+      },
+      "errors": {
+        "archive": "Could not set this student to inactive.",
+        "remove": "Could not remove this student."
+      },
+      "capacity": {
+        "unavailable": "Student capacity is unavailable for your current plan.",
+        "limitReached": "You have reached your student limit. New students cannot join until you upgrade or remove inactive students.",
+        "oneLeft": "You have 1 student place left.",
+        "fewLeft": "You have only {count} student places left.",
+        "available": "You have {count} student places available.",
+        "percentUsed": "{percent}% of your student capacity is in use",
+        "blocked": "New students are currently blocked from joining your spaces.",
+        "upgrade": "Upgrade for more students"
+      }
+    },
+    "dashboardIntro": {
+      "helloAnon": "Hi! 👋",
+      "helloUser": "Hi, {name} 👋",
+      "guest": "in as a guest",
+      "loggedIn": "logged in",
+      "roleFallback": "User",
+      "youAre": "You are {state} as <b>{role}</b>.",
+      "activity": "Here you will eventually find important information about your activity. You will find the menu, tools and library on the buttons above.",
+      "recommendRegister": "We recommend creating an account to save started lessons.",
+      "remaining": "{count} left",
+      "roles": {
+        "student": "Student",
+        "teacher": "Teacher",
+        "parent": "Parent"
+      },
+      "plans": {
+        "free": "Free",
+        "basic": "Basic",
+        "plus": "Plus",
+        "pro": "Pro"
+      },
+      "actions": {
+        "seePlans": "See plans",
+        "registerLogin": "Register / log in",
+        "openLibrary": "Open Library"
+      }
+    }
+  }
+}

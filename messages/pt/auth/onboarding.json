@@ -1,0 +1,76 @@
+{
+    "onboarding": {
+      "title": "Get started",
+      "loading": "Loading…",
+      "subtitle": "Choose your role and fill in basic information to continue.",
+      "steps": {
+        "role": {
+          "title": "Choose your role",
+          "text": "Tap the role that fits you best. You can change it later."
+        },
+        "profile": {
+          "title": "Basic profile",
+          "text": "Tell us a little about yourself so we can tailor the experience."
+        },
+        "institution": {
+          "title": "Learning institution",
+          "text": "This step is optional, but it helps us tailor the teacher experience."
+        }
+      },
+      "fields": {
+        "role": {
+          "label": "Choose role *",
+          "student": "Student",
+          "teacher": "Teacher",
+          "parent": "Parent",
+          "hint": "Choose one role to continue.",
+          "studentHint": "For pupils and students who want to learn more on their own or together with others.",
+          "teacherHint": "Learning platform for teaching staff with classes, classrooms and digital whiteboard.",
+          "parentHint": "For guardians who want to help their children learn more. Create your own study spaces and give them adapted tasks."
+        },
+        "fullName": {
+          "label": "Full name *"
+        },
+        "country": {
+          "label": "Country *",
+          "placeholder": "Search country…"
+        },
+        "municipalityNo": {
+          "label": "Municipality *",
+          "placeholder": "Search municipality…"
+        },
+        "municipalityOther": {
+          "label": "City / area *"
+        }
+      },
+      "errors": {
+        "missingRole": "Choose a role (Student, Teacher or Parent).",
+        "missingName": "Enter your full name.",
+        "missingCountry": "Choose a country.",
+        "missingMunicipalityNo": "Choose a municipality.",
+        "missingMunicipalityOther": "Enter a city or area."
+      },
+      "buttons": {
+        "back": "Back",
+        "continue": "Continue",
+        "saving": "Saving…",
+        "complete": "Complete profile",
+        "changeRole": "Change role"
+      },
+      "institution": {
+        "title": "Learning institution (optional)",
+        "typeLabel": "Type",
+        "none": "None",
+        "nameLabel": "Name (optional)",
+        "namePlaceholder": "",
+        "types": {
+          "school": "School",
+          "kindergarten": "Kindergarten",
+          "adult_education": "Adult education",
+          "university": "University / college",
+          "workplace": "Company / workplace",
+          "other": "Other"
+        }
+      }
+    }
+  }

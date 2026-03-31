@@ -1,0 +1,223 @@
+{
+  "landing": {
+    "common": {
+      "login": "Logg inn",
+      "register": "Registrer deg"
+    },
+    "topbar": {
+      "nav": {
+        "teachers": "For lærere",
+        "students": "For elever",
+        "spaces": "Spaces"
+      }
+    },
+    "hero": {
+      "badge": "Bli med i et globalt læringsnettverk!",
+      "title": "Fremtidens læring starter her",
+      "lead": "En ny og revolusjonerende plattform for å skape, dele og mestre kunnskap – tilpasset elever, lærere og foreldre. Og best av alt: Den er gratis.",
+      "ctaPrimary": "Registrer deg i dag",
+      "ctaSecondary": "Logg inn",
+      "guestNote": "Gjestebrukere blir med via delte lenker til oppgaver/Spaces.",
+      "stats": {
+        "languages": {
+          "title": "Språk",
+          "value": "Alle",
+          "hint": "Tekst + oppgaver + tilbakemelding"
+        },
+        "level": {
+          "title": "Nivå",
+          "value": "CEFR A1–C1",
+          "hint": "Forenkle, forbedre, variere"
+        },
+        "audio": {
+          "title": "Lyd",
+          "value": "Justerbar",
+          "hint": "Tekst + oversettelse"
+        },
+        "pdf": {
+          "title": "PDF",
+          "value": "Eksporter",
+          "hint": "Klare arbeidsark"
+        }
+      },
+      "imageAlt": "Illustrasjon av en lærer og elev som bruker 321skole",
+      "cards": {
+        "text": {
+          "title": "Tekst",
+          "subtitle": "Tilpass nivå"
+        },
+        "tasks": {
+          "title": "Oppgaver",
+          "subtitle": "Varier"
+        },
+        "feedback": {
+          "title": "Tilbakemelding",
+          "subtitle": "Umiddelbar"
+        }
+      },
+      "floating": {
+        "title": "Pedagogisk KI",
+        "subtitle": "Lærer styrer · KI hjelper"
+      }
+    },
+    "trustLine": "Klar for skoler, kurs og voksenopplæring – uten tung LMS-friksjon.",
+    "teachers": {
+      "eyebrow": "For lærere",
+      "title": "Lag mer, raskere og bedre",
+      "description": "Et praktisk læringssystem som hjelper deg å produsere, tilpasse og dele innhold – uten å miste kontroll på kvalitet og nivå.",
+      "imageAlt": "Lærer som planlegger undervisning på en laptop",
+      "bullets": [
+        "Lag tekster på alle språk og nivåer (skriv, lim inn eller generer).",
+        "Generer og rediger mange oppgavetyper (MCQ, åpne svar, skriveoppgaver).",
+        "Opprett egne Spaces – og samle inn besvarelser.",
+        "Få automatisk retting og generer KI-støttet tilbakemelding.",
+        "Eksporter ferdige oppgaver som både digitale opplegg og PDF.",
+        "Lag leseprøver med umiddelbar tilbakemelding."
+      ],
+      "cta": "Registrer deg i dag"
+    },
+    "students": {
+      "eyebrow": "For elever",
+      "title": "Lær raskere, bedre og smartere",
+      "description": "Lag egne oppgaver, sjekk nivået ditt og øv med KI-verktøy som oversettelse, lyd og umiddelbar tilbakemelding på flere språk.",
+      "imageAlt": "Elev som lærer språk med hodetelefoner",
+      "bullets": [
+        "Lag egne oppgaver på alle nivåer.",
+        "Oppgaver med justerbar lydhastighet – både tekst og oversettelse.",
+        "Umiddelbar tilbakemelding på skriving (læringsspråk + valgfritt andrespråk).",
+        "Forklaringer som hjelper deg å bli bedre – ikke bare riktig/feil.",
+        "Delta i globale læringsnettverk.",
+        "Finn nivået ditt. Lag leseprøver med umiddelbar tilbakemelding."
+      ],
+      "cta": "Logg inn"
+    },
+    "parents": {
+      "eyebrow": "For foreldre",
+      "title": "Støtt læring smartere og bedre",
+      "description": "Støtt, øv og følg utviklingen med kraftige verktøy laget for hverdagen hjemme.",
+      "imageAlt": "Elev som lærer språk med hodetelefoner",
+      "bullets": [
+        "Lag egne oppgaver, opplegg og familie-Spaces.",
+        "Sjekk nivå og følg utviklingen over tid.",
+        "Øv på lesing sammen med lyd, oversettelse og leseprøver.",
+        "Forklaringer som hjelper – ikke bare riktig/feil.",
+        "Gi personlig tilbakemelding med enkle stjerner.",
+        "Finn nivået. Lag leseprøver med umiddelbar tilbakemelding."
+      ],
+      "cta": "Logg inn"
+    },
+    "spaces": {
+      "eyebrow": "Spaces",
+      "title": "Ett rom for alt som skjer i læring",
+      "description": "Del oppgaver, samle besvarelser og følg progresjon – for klasserom, kurs og voksenopplæring.",
+      "cards": [
+        {
+          "title": "Del på sekunder",
+          "text": "Gi elevene en lenke eller kode. De lander rett i oppgaven."
+        },
+        {
+          "title": "Anonymt eller innlogget",
+          "text": "Lav terskel i starten – trygg innlogging når dere er klare."
+        },
+        {
+          "title": "Oversikt og flyt",
+          "text": "Alt samlet: tekst, oppgaver, svar og tilbakemelding – ryddig og oversiktlig."
+        }
+      ],
+      "imageAlt": "Mockup av Spaces i 321skole"
+    },
+    "whyAi": {
+      "eyebrow": "Hvorfor KI-støttede verktøy?",
+      "title": "KI som assistent – ikke fasit.",
+      "description": "Dette er pedagogisk KI: Du bestemmer innholdet, og KI hjelper med språk, nivå og variasjon. Elevene får forklaringer – ikke snarveier.",
+      "checks": [
+        "Full kontroll: alt kan redigeres og justeres.",
+        "Trygg støtte: fokus på læring, forståelse og progresjon.",
+        "Flerspråklig fra starten: tekst, oppgaver, lyd og tilbakemelding."
+      ],
+      "flowTitle": "Eksempel på flyt",
+      "flow": {
+        "1": "Lærer velger tema og nivå",
+        "2": "Tekst lages/tilpasses på minutter",
+        "3": "Oppgaver genereres og redigeres",
+        "4": "Del i et Space → elever jobber",
+        "5": "Umiddelbar tilbakemelding + eksport til PDF"
+      }
+    },
+    "roles": {
+      "title": "Gratis å starte. Enkelt å oppgradere.",
+      "description": "Bruk biblioteket og oversetteren gratis. Oppgrader når du trenger mer kapasitet, flere oppgaver og avanserte KI-verktøy.",
+      "seeAll": "Se alle planer",
+      "teaser": "Planer for elev, lærer og forelder – fra 59 kr/mnd. Se full oversikt på prissiden.",
+      "cards": {
+        "student": {
+          "title": "Elev",
+          "freeTitle": "Gratis",
+          "free": {
+            "0": "Les i biblioteket og bruk oversetteren",
+            "1": "Start oppgaver: 2 / måned",
+            "2": "Bli med i klasser og samarbeid"
+          },
+          "paidTitle": "Planer fra",
+          "price": "59 kr/mnd",
+          "paid": {
+            "0": "Flere oppgaver per måned",
+            "1": "Studiegrupper og samarbeidstavle",
+            "2": "Pro-verktøy (språk + lyd) i Plus/Pro"
+          }
+        },
+        "teacher": {
+          "title": "Lærer",
+          "freeTitle": "Gratis",
+          "free": {
+            "0": "Lag og test oppgaver (Light)",
+            "1": "1 space / 15 elever",
+            "2": "2 Pro-oppgaver (språk + lyd) / måned"
+          },
+          "paidTitle": "Planer fra",
+          "price": "59 kr/mnd",
+          "paid": {
+            "0": "Flere spaces og flere elever",
+            "1": "PDF + privat deling (unlisted)",
+            "2": "Publisering og analyse i Plus/Pro"
+          }
+        },
+        "parent": {
+          "title": "Forelder",
+          "freeTitle": "Gratis",
+          "free": {
+            "0": "Støtt barnet hjemme",
+            "1": "Start oppgaver: 2 / måned"
+          },
+          "paidTitle": "Planer fra",
+          "price": "59 kr/mnd",
+          "paid": {
+            "0": "Flere barn + mer øving",
+            "1": "Progresjonsoversikt i Plus/Pro",
+            "2": "Mer KI (Light/Pro) og bildekreditter"
+          }
+        }
+      }
+    },
+    "ctaLite": {
+      "title": "Klar til å komme i gang?",
+      "lead": "Lag, tilpass, del og støtt læring med KI-verktøy utviklet for ekte klasserom og ekte elever.",
+      "primary": "Kom i gang",
+      "secondary": "Se priser",
+      "note": "Gratis å starte. Oppgrader kun når du trenger mer kapasitet.",
+      "boxTitle": "Dette får du fra dag én",
+      "checks": [
+        "Lag oppgaver og innhold på minutter",
+        "Bruk oversettelse, lyd og tilbakemelding",
+        "Del oppgaver i Spaces",
+        "Eksporter og gjenbruk innhold enkelt"
+      ]
+    },
+    "footer": {
+      "about": "Om oss",
+      "privacy": "Personvern",
+      "contact": "Kontakt",
+      "rights": "Alle rettigheter reservert."
+    }
+  }
+}

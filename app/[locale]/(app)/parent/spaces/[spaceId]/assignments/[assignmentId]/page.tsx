@@ -1,3 +1,4 @@
+// \app\[locale]\(app)\parent\spaces\[spaceId]\assignments\[assignmentId]\page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +17,8 @@ import {
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import type { SpaceDoc } from "@/lib/spacesClient";
+
+type TFn = ReturnType<typeof useTranslations>;
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -140,10 +143,7 @@ function buildParentSubmissionId(spaceId: string, assignmentId: string, uid: str
   return `${spaceId}_${assignmentId}_${uid}`;
 }
 
-function kindLabel(
-  kind: string | null,
-  t: ReturnType<typeof useTranslations<"parent.assignmentDetail">>
-) {
+function kindLabel(kind: string | null, t: TFn) {
   if (kind === "family") return t("kinds.family");
   if (kind === "parent_group") return t("kinds.parentGroup");
   return t("kinds.other");
@@ -378,8 +378,8 @@ function renderAutoSummary(auto: SubmissionDoc["auto"]): string | null {
   return null;
 }
 
-function starsLabel(value: number) {
-  return value === 1 ? "1 stjerne" : `${value} stjerner`;
+function starsLabel(value: number, t: TFn) {
+  return value === 1 ? t("stars.one", { count: value }) : t("stars.many", { count: value });
 }
 
 async function translateOne(text: string, targetLang: string) {
@@ -475,7 +475,8 @@ function fmtTime(sec: number) {
 
 function buildAutoResultatForParent(
   assignmentObj: AssignmentDoc,
-  answersObj: Record<string, string | boolean>
+  answersObj: Record<string, string | boolean>,
+  t: TFn
 ): string {
   const tasksArr = safeTasksArray(assignmentObj.tasks);
   const sorted = [...tasksArr].sort(sortTasksByOrder);
@@ -547,11 +548,21 @@ function buildAutoResultatForParent(
     if (!isCorrect) {
       if (type === "mcq") {
         wrongLines.push(
-          `- Oppgave ${order} (MCQ): "${prompt}" | Svar: "${String(val)}" | Fasit: "${String(mcqCorrectText)}"`
+          t("ai.wrongMcq", {
+            order,
+            prompt,
+            answer: String(val),
+            correct: String(mcqCorrectText),
+          })
         );
       } else {
         wrongLines.push(
-          `- Oppgave ${order} (True/False): "${prompt}" | Svar: ${String(val)} | Fasit: ${String(tfCorrectBool)}`
+          t("ai.wrongTrueFalse", {
+            order,
+            prompt,
+            answer: String(val),
+            correct: String(tfCorrectBool),
+          })
         );
       }
     }
@@ -559,17 +570,17 @@ function buildAutoResultatForParent(
 
   if (total === 0) return "";
 
-  lines.push(`Lukkede oppgaver (MCQ/True-False): ${correct}/${total} riktige.`);
+  lines.push(t("ai.closedSummary", { correct, total }));
   if (wrongLines.length) {
     lines.push("");
-    lines.push("Feil/misforståelser:");
+    lines.push(t("ai.mistakesTitle"));
     lines.push(...wrongLines.slice(0, 8));
   }
 
   return lines.join("\n").trim();
 }
 
-function buildOppgaveStringForParent(assignmentObj: AssignmentDoc): string {
+function buildOppgaveStringForParent(assignmentObj: AssignmentDoc, t: TFn): string {
   const tasksArr = safeTasksArray(assignmentObj.tasks);
   const sorted = [...tasksArr].sort(sortTasksByOrder);
   const openPrompts: string[] = [];
@@ -583,21 +594,23 @@ function buildOppgaveStringForParent(assignmentObj: AssignmentDoc): string {
     const prompt = taskPrompt(tt).trim();
     if (!prompt) continue;
 
-    openPrompts.push(`- Oppgave ${order}: ${prompt}`);
+    openPrompts.push(t("ai.openTaskLine", { order, prompt }));
   }
 
   const level = (assignmentObj.level ?? "A2").toString();
   const target = "C1";
 
   return (
-    `Vurder åpne svar i forhold til CEFR ${level}, og gi råd for progresjon mot ${target}.\n` +
-    (openPrompts.length ? `Åpne oppgaver:\n${openPrompts.join("\n")}\n` : "")
+    t("ai.assessmentIntro", { level, target }) +
+    "\n" +
+    (openPrompts.length ? `${t("ai.openTasksTitle")}\n${openPrompts.join("\n")}\n` : "")
   ).trim();
 }
 
 function buildSvarStringForParent(
   assignmentObj: AssignmentDoc,
-  answersObj: Record<string, string | boolean>
+  answersObj: Record<string, string | boolean>,
+  t: TFn
 ): string {
   const tasksArr = safeTasksArray(assignmentObj.tasks);
   const sorted = [...tasksArr].sort(sortTasksByOrder);
@@ -619,8 +632,8 @@ function buildSvarStringForParent(
     const order = tt.order ?? i + 1;
     const prompt = taskPrompt(tt).trim();
 
-    lines.push(`Oppgave ${order} (åpen): ${prompt}`);
-    lines.push(`Svar: ${ansText}`);
+    lines.push(t("ai.openAnswerTask", { order, prompt }));
+    lines.push(t("ai.answerLine", { answer: ansText }));
     lines.push("");
   }
 
@@ -629,7 +642,7 @@ function buildSvarStringForParent(
 
 export default function ParentAssignmentDetailPage() {
   const { spaceId, assignmentId } = useParams<{ spaceId: string; assignmentId: string }>();
-  const t = useTranslations("parent.assignmentDetail");
+  const t = useTranslations("parentAssignmentDetail");
 
   const [user, setUser] = useState<User | null>(null);
 
@@ -1000,7 +1013,7 @@ export default function ParentAssignmentDetailPage() {
       await a.play();
     } catch (e: unknown) {
       const m = (e as { message?: unknown })?.message;
-      setTtsErr(typeof m === "string" ? m : "TTS feilet.");
+      setTtsErr(typeof m === "string" ? m : t("errors.ttsFailed"));
       setActiveSentenceIndex(null);
       setActiveTextMode(null);
     } finally {
@@ -1080,7 +1093,7 @@ export default function ParentAssignmentDetailPage() {
       setShowTextTranslation(true);
     } catch (e: unknown) {
       const m = (e as { message?: unknown })?.message;
-      setTranslateErr(typeof m === "string" ? m : "Oversettelse feilet.");
+      setTranslateErr(typeof m === "string" ? m : t("errors.translateFailed"));
       setTranslatedText(null);
     } finally {
       setTranslating(null);
@@ -1112,7 +1125,7 @@ export default function ParentAssignmentDetailPage() {
             translatedPrompt = await translateOne(promptOrig, targetLang);
           } catch (e: unknown) {
             const m = (e as { message?: unknown })?.message;
-            setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : "Oversettelse feilet."));
+            setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : t("errors.translateFailed")));
           }
         }
 
@@ -1124,7 +1137,7 @@ export default function ParentAssignmentDetailPage() {
                 return await translateOne(String(o), targetLang);
               } catch (e: unknown) {
                 const m = (e as { message?: unknown })?.message;
-                setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : "Oversettelse feilet."));
+                setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : t("errors.translateFailed")));
                 return "";
               }
             })
@@ -1143,7 +1156,7 @@ export default function ParentAssignmentDetailPage() {
       setTaskTranslationOpen({});
     } catch (e: unknown) {
       const m = (e as { message?: unknown })?.message;
-      setTranslateErr(typeof m === "string" ? m : "Oversettelse feilet.");
+      setTranslateErr(typeof m === "string" ? m : t("errors.translateFailed"));
     } finally {
       setTranslating(null);
     }
@@ -1151,7 +1164,7 @@ export default function ParentAssignmentDetailPage() {
 
   async function saveParentReview() {
     if (!user?.uid) {
-      setReviewMsg("Du må være innlogget for å lagre kommentar.");
+      setReviewMsg(t("errors.saveReviewLogin"));
       return;
     }
 
@@ -1171,117 +1184,117 @@ export default function ParentAssignmentDetailPage() {
         { merge: true }
       );
 
-      setReviewMsg("Kommentar lagret.");
+      setReviewMsg(t("review.saved"));
     } catch (e: unknown) {
-      setReviewMsg(errMessage(e, "Kunne ikke lagre kommentar."));
+      setReviewMsg(errMessage(e, t("errors.saveReviewFailed")));
     } finally {
       setSavingReview(false);
     }
   }
 
   async function submitAssignment() {
-  if (!assignment || !user?.uid) {
-    setSubmitMsg("Du må være innlogget for å sende inn.");
-    return;
-  }
-
-  setSubmitting(true);
-  setSubmitMsg(null);
-
-  try {
-    const dbx = requireDb(db);
-    const auto = evaluateAnswers(tasksOriginal, answers);
-
-    let nextAiFeedback: string | null = null;
-
-    if (libraryAssignment) {
-      try {
-        const lesetekst = (assignment.sourceText ?? assignment.text ?? assignment.description ?? "").trim();
-        const oppgave = buildOppgaveStringForParent(assignment);
-        const svar = buildSvarStringForParent(assignment, answers);
-        const autoResultat = buildAutoResultatForParent(assignment, answers);
-        const nivå = `${String(assignment.level ?? "A2")} (mål: C1)`;
-
-        if (svar || autoResultat) {
-          const response = await fetch("/api/feedback", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              lesetekst,
-              oppgave,
-              svar,
-              nivå,
-              autoResultat,
-              locale: "no",
-            }),
-          });
-
-          if (response.ok) {
-            const data: unknown = await response.json();
-            const d = data as { feedback?: unknown };
-            nextAiFeedback = typeof d?.feedback === "string" ? d.feedback : null;
-          }
-        }
-      } catch {
-        nextAiFeedback = null;
-      }
+    if (!assignment || !user?.uid) {
+      setSubmitMsg(t("errors.submitLogin"));
+      return;
     }
 
-    const submissionId = buildParentSubmissionId(spaceId, assignmentId, user.uid);
+    setSubmitting(true);
+    setSubmitMsg(null);
 
-    const nestedRef = doc(
-      dbx,
-      "spaces",
-      spaceId,
-      "lessons",
-      assignmentId,
-      "submissions",
-      submissionId
-    );
+    try {
+      const dbx = requireDb(db);
+      const auto = evaluateAnswers(tasksOriginal, answers);
 
-    const indexRef = doc(dbx, "spaceSubmissions", submissionId);
+      let nextAiFeedback: string | null = null;
 
-    const payload = {
-      spaceId,
-      assignmentId,
-      uid: user.uid,
+      if (libraryAssignment) {
+        try {
+          const lesetekst = (assignment.sourceText ?? assignment.text ?? assignment.description ?? "").trim();
+          const oppgave = buildOppgaveStringForParent(assignment, t);
+          const svar = buildSvarStringForParent(assignment, answers, t);
+          const autoResultat = buildAutoResultatForParent(assignment, answers, t);
+          const nivå = `${String(assignment.level ?? "A2")} (mål: C1)`;
 
-      status: "submitted",
-      title: assignmentTitle,
+          if (svar || autoResultat) {
+            const response = await fetch("/api/feedback", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                lesetekst,
+                oppgave,
+                svar,
+                nivå,
+                autoResultat,
+                locale: "no",
+              }),
+            });
 
-      answers,
-      auto,
-      aiFeedback: nextAiFeedback,
+            if (response.ok) {
+              const data: unknown = await response.json();
+              const d = data as { feedback?: unknown };
+              nextAiFeedback = typeof d?.feedback === "string" ? d.feedback : null;
+            }
+          }
+        } catch {
+          nextAiFeedback = null;
+        }
+      }
 
-      sourceType: assignment.sourceType ?? null,
-      sourceId: assignment.sourceId ?? null,
-      level: assignment.level ?? null,
-      language: assignment.language ?? null,
+      const submissionId = buildParentSubmissionId(spaceId, assignmentId, user.uid);
 
-      role: "parent",
-      isParentFlow: true,
+      const nestedRef = doc(
+        dbx,
+        "spaces",
+        spaceId,
+        "lessons",
+        assignmentId,
+        "submissions",
+        submissionId
+      );
 
-      parentCommentSnapshot: reviewComment.trim(),
-      parentStarsSnapshot: reviewStars,
+      const indexRef = doc(dbx, "spaceSubmissions", submissionId);
 
-      submittedAt: Date.now(),
-      updatedAt: serverTimestamp(),
-      createdAt: serverTimestamp(),
-    };
+      const payload = {
+        spaceId,
+        assignmentId,
+        uid: user.uid,
 
-    const batch = writeBatch(dbx);
-    batch.set(nestedRef, payload, { merge: true });
-    batch.set(indexRef, payload, { merge: true });
-    await batch.commit();
+        status: "submitted",
+        title: assignmentTitle,
 
-    setAiFeedback(nextAiFeedback);
-    setSubmitMsg("Besvarelse lagret.");
-  } catch (e: unknown) {
-    setSubmitMsg(errMessage(e, "Kunne ikke sende inn oppgaven."));
-  } finally {
-    setSubmitting(false);
+        answers,
+        auto,
+        aiFeedback: nextAiFeedback,
+
+        sourceType: assignment.sourceType ?? null,
+        sourceId: assignment.sourceId ?? null,
+        level: assignment.level ?? null,
+        language: assignment.language ?? null,
+
+        role: "parent",
+        isParentFlow: true,
+
+        parentCommentSnapshot: reviewComment.trim(),
+        parentStarsSnapshot: reviewStars,
+
+        submittedAt: Date.now(),
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      };
+
+      const batch = writeBatch(dbx);
+      batch.set(nestedRef, payload, { merge: true });
+      batch.set(indexRef, payload, { merge: true });
+      await batch.commit();
+
+      setAiFeedback(nextAiFeedback);
+      setSubmitMsg(t("submission.saved"));
+    } catch (e: unknown) {
+      setSubmitMsg(errMessage(e, t("errors.submitFailed")));
+    } finally {
+      setSubmitting(false);
+    }
   }
-}
 
   function renderFollowText(
     mode: "original" | "translation",
@@ -1361,10 +1374,10 @@ export default function ParentAssignmentDetailPage() {
           marginBottom: 14,
         }}
       >
-        <div style={{ fontWeight: 900, marginBottom: 8 }}>Foreldrevurdering</div>
+        <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("review.title")}</div>
 
         <div style={{ opacity: 0.8, lineHeight: 1.5, marginBottom: 12 }}>
-          Her kan du skrive en kommentar og gi stjerner til hvordan oppgaven fungerte hjemme.
+          {t("review.intro")}
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
@@ -1392,7 +1405,7 @@ export default function ParentAssignmentDetailPage() {
 
           {reviewStars > 0 ? (
             <div style={{ alignSelf: "center", opacity: 0.7, fontSize: 13 }}>
-              {starsLabel(reviewStars)}
+              {starsLabel(reviewStars, t)}
             </div>
           ) : null}
         </div>
@@ -1401,7 +1414,7 @@ export default function ParentAssignmentDetailPage() {
           value={reviewComment}
           onChange={(e) => setReviewComment(e.target.value)}
           rows={4}
-          placeholder="Skriv en kommentar …"
+          placeholder={t("review.placeholder")}
           style={{
             width: "100%",
             border: "1px solid rgba(0,0,0,0.14)",
@@ -1419,10 +1432,10 @@ export default function ParentAssignmentDetailPage() {
             disabled={savingReview}
             style={darkBtn}
           >
-            {savingReview ? "Lagrer …" : "Lagre kommentar"}
+            {savingReview ? t("review.saving") : t("actions.saveComment")}
           </button>
 
-          {review ? <span style={{ opacity: 0.7, fontSize: 13 }}>Tidligere vurdering funnet.</span> : null}
+          {review ? <span style={{ opacity: 0.7, fontSize: 13 }}>{t("review.existing")}</span> : null}
           {reviewMsg ? <span style={{ opacity: 0.8, fontSize: 13 }}>{reviewMsg}</span> : null}
         </div>
       </section>
@@ -1439,8 +1452,8 @@ export default function ParentAssignmentDetailPage() {
             {level ? <span>{level}</span> : null}
             {language ? <span>• {language.toUpperCase()}</span> : null}
             {topics.length ? <span>• {topics.slice(0, 3).join(" • ")}</span> : null}
-            {libraryAssignment ? <span>• bibliotek</span> : null}
-            {archived ? <span>• arkivert</span> : null}
+            {libraryAssignment ? <span>• {t("task.library")}</span> : null}
+            {archived ? <span>• {t("task.archived")}</span> : null}
           </div>
 
           {assignment.description ? (
@@ -1451,9 +1464,9 @@ export default function ParentAssignmentDetailPage() {
 
           {(sourceType || sourceId) ? (
             <div style={{ marginTop: 10, opacity: 0.68, fontSize: 13 }}>
-              {sourceType ? `sourceType: ${sourceType}` : null}
+              {sourceType ? `${t("about.sourceType")}: ${sourceType}` : null}
               {sourceType && sourceId ? " • " : null}
-              {sourceId ? `sourceId: ${sourceId}` : null}
+              {sourceId ? `${t("about.sourceId")}: ${sourceId}` : null}
             </div>
           ) : null}
         </div>
@@ -1491,7 +1504,7 @@ export default function ParentAssignmentDetailPage() {
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
-            <div style={{ opacity: 0.65 }}>Ingen cover</div>
+            <div style={{ opacity: 0.65 }}>{t("content.noCover")}</div>
           )}
         </div>
       </section>
@@ -1499,7 +1512,7 @@ export default function ParentAssignmentDetailPage() {
       <section style={{ marginTop: 18, padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ opacity: 0.75, fontWeight: 700 }}>Oversett til</span>
+            <span style={{ opacity: 0.75, fontWeight: 700 }}>{t("translation.translateTo")}</span>
             <select
               value={targetLang}
               onChange={(e) => setTargetLang(e.target.value)}
@@ -1518,7 +1531,7 @@ export default function ParentAssignmentDetailPage() {
             disabled={translating === "text" || !sourceTextSafe.trim()}
             style={{ ...btnStyle, opacity: translating === "text" ? 0.6 : 1 }}
           >
-            {translating === "text" ? "Oversetter …" : "Oversett tekst"}
+            {translating === "text" ? t("translation.translating") : t("actions.translateText")}
           </button>
 
           <button
@@ -1526,7 +1539,7 @@ export default function ParentAssignmentDetailPage() {
             disabled={translating === "tasks" || tasksOriginal.length === 0}
             style={{ ...btnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
           >
-            {translating === "tasks" ? "Oversetter …" : "Oversett oppgaver"}
+            {translating === "tasks" ? t("translation.translating") : t("actions.translateTasks")}
           </button>
 
           <button
@@ -1538,7 +1551,7 @@ export default function ParentAssignmentDetailPage() {
             }}
             style={btnStyle}
           >
-            Nullstill
+            {t("actions.reset")}
           </button>
         </div>
 
@@ -1547,11 +1560,11 @@ export default function ParentAssignmentDetailPage() {
 
       <section style={{ marginTop: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <h2 style={{ marginBottom: 8 }}>Text</h2>
+          <h2 style={{ marginBottom: 8 }}>{t("sections.text")}</h2>
 
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ opacity: 0.75 }}>Fart</span>
+              <span style={{ opacity: 0.75 }}>{t("audio.speed")}</span>
               <input
                 type="range"
                 min="0.75"
@@ -1569,26 +1582,26 @@ export default function ParentAssignmentDetailPage() {
               disabled={ttsBusy !== null || !sourceTextSafe.trim()}
               onClick={() => playTTS(sourceTextSafe, originalLangForTTS, "original")}
             >
-              {ttsBusy === "original" ? "Lager lyd …" : "Spill original"}
+              {ttsBusy === "original" ? t("audio.generating") : t("actions.playOriginal")}
             </button>
 
             <button type="button" style={btnStyle} onClick={stopAudio} disabled={!audioRef.current}>
-              Stopp
+              {t("actions.stop")}
             </button>
 
             {audioRef.current ? (
               <>
                 <button type="button" style={btnStyle} onClick={isPlaying ? pauseAudio : resumeAudio}>
-                  {isPlaying ? "Pause" : "Fortsett"}
+                  {isPlaying ? t("actions.pause") : t("actions.resume")}
                 </button>
                 <button type="button" style={btnStyle} onClick={replaySentence}>
-                  Spill setning igjen
+                  {t("actions.replaySentence")}
                 </button>
                 <button type="button" style={btnStyle} onClick={prevSentence}>
-                  Forrige
+                  {t("actions.previous")}
                 </button>
                 <button type="button" style={btnStyle} onClick={nextSentence}>
-                  Neste
+                  {t("actions.next")}
                 </button>
 
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1615,7 +1628,7 @@ export default function ParentAssignmentDetailPage() {
 
             {translatedText ? (
               <button type="button" style={btnStyle} onClick={() => setShowTextTranslation((v) => !v)}>
-                {showTextTranslation ? "Skjul oversettelse" : "Vis oversettelse"}
+                {showTextTranslation ? t("actions.hideTranslation") : t("actions.showTranslation")}
               </button>
             ) : null}
 
@@ -1626,7 +1639,7 @@ export default function ParentAssignmentDetailPage() {
                 disabled={ttsBusy !== null || !translatedText.trim()}
                 onClick={() => playTTS(translatedText, translationLangForTTS, "translation")}
               >
-                {ttsBusy === "translation" ? "Lager lyd …" : "Spill oversettelse"}
+                {ttsBusy === "translation" ? t("audio.generating") : t("actions.playTranslation")}
               </button>
             ) : null}
           </div>
@@ -1649,7 +1662,7 @@ export default function ParentAssignmentDetailPage() {
               background: "rgba(0,0,0,0.02)",
             }}
           >
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Oversatt tekst</div>
+            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translation.translatedText")}</div>
             {renderFollowText("translation", textFollow.translation.segs, translatedText)}
           </div>
         ) : null}
@@ -1657,17 +1670,17 @@ export default function ParentAssignmentDetailPage() {
 
       <section style={{ marginTop: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-          <h2 style={{ marginBottom: 8 }}>Tasks</h2>
+          <h2 style={{ marginBottom: 8 }}>{t("sections.tasks")}</h2>
 
           {(translatedTasks ?? []).length > 0 ? (
             <button type="button" style={btnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
-              {showTaskTranslations ? "Skjul alle oversettelser" : "Vis alle oversettelser"}
+              {showTaskTranslations ? t("actions.hideAllTranslations") : t("actions.showAllTranslations")}
             </button>
           ) : null}
         </div>
 
         {tasksOriginal.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>No tasks in this lesson.</p>
+          <p style={{ opacity: 0.7 }}>{t("content.noTasks")}</p>
         ) : (
           <div style={{ display: "grid", gap: 12 }}>
             {tasksOriginal.map((task, idx) => {
@@ -1677,10 +1690,10 @@ export default function ParentAssignmentDetailPage() {
               const options = taskOptions(task);
               const current = answers[stableId];
               const taskAuto = submission?.auto?.byTask?.[stableId];
-              const tr = tMap.get(stableId);
+              const trTask = tMap.get(stableId);
               const showThisTranslation = isTaskTranslationVisible(stableId);
-              const translatedPrompt = tr?.translatedPrompt ?? "";
-              const translatedOptions = tr?.translatedOptions ?? [];
+              const translatedPrompt = trTask?.translatedPrompt ?? "";
+              const translatedOptions = trTask?.translatedOptions ?? [];
 
               return (
                 <div key={stableId} style={taskCard}>
@@ -1695,7 +1708,7 @@ export default function ParentAssignmentDetailPage() {
                     }}
                   >
                     <div>
-                      <strong>Oppgave {typeof task.order === "number" ? task.order : idx + 1}</strong>
+                      <strong>{t("task.label")} {typeof task.order === "number" ? task.order : idx + 1}</strong>
                       <span style={{ marginLeft: 8 }}>• {type}</span>
                     </div>
 
@@ -1705,7 +1718,7 @@ export default function ParentAssignmentDetailPage() {
                         style={btnStyle}
                         onClick={() => toggleTaskTranslation(stableId)}
                       >
-                        {showThisTranslation ? "Skjul oversettelse" : "Vis oversettelse"}
+                        {showThisTranslation ? t("actions.hideTranslation") : t("actions.showTranslation")}
                       </button>
                     ) : null}
                   </div>
@@ -1727,7 +1740,7 @@ export default function ParentAssignmentDetailPage() {
                         lineHeight: 1.45,
                       }}
                     >
-                      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Oversatt oppgave</div>
+                      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translation.translatedTask")}</div>
                       {translatedPrompt}
                     </div>
                   ) : null}
@@ -1781,7 +1794,7 @@ export default function ParentAssignmentDetailPage() {
                           color: current === true ? "#fff" : "#111",
                         }}
                       >
-                        True
+                        {t("answers.true")}
                       </button>
 
                       <button
@@ -1793,7 +1806,7 @@ export default function ParentAssignmentDetailPage() {
                           color: current === false ? "#fff" : "#111",
                         }}
                       >
-                        False
+                        {t("answers.false")}
                       </button>
                     </div>
                   ) : null}
@@ -1803,7 +1816,7 @@ export default function ParentAssignmentDetailPage() {
                       value={typeof current === "string" ? current : ""}
                       onChange={(e) => setAnswer(stableId, e.target.value)}
                       rows={4}
-                      placeholder="Skriv svaret her …"
+                      placeholder={t("task.answerHere")}
                       style={{
                         width: "100%",
                         border: "1px solid rgba(0,0,0,0.14)",
@@ -1817,9 +1830,9 @@ export default function ParentAssignmentDetailPage() {
 
                   <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                     {typeof current !== "undefined" ? (
-                      <span style={{ fontSize: 13, opacity: 0.75 }}>Svar registrert</span>
+                      <span style={{ fontSize: 13, opacity: 0.75 }}>{t("task.answerRegistered")}</span>
                     ) : (
-                      <span style={{ fontSize: 13, opacity: 0.55 }}>Ikke besvart ennå</span>
+                      <span style={{ fontSize: 13, opacity: 0.55 }}>{t("task.notAnsweredYet")}</span>
                     )}
 
                     {typeof taskAuto?.correct === "boolean" ? (
@@ -1830,7 +1843,7 @@ export default function ParentAssignmentDetailPage() {
                           color: taskAuto.correct ? "green" : "crimson",
                         }}
                       >
-                        {taskAuto.correct ? "Riktig" : "Ikke riktig"}
+                        {taskAuto.correct ? t("task.correct") : t("task.incorrect")}
                       </span>
                     ) : null}
                   </div>
@@ -1848,7 +1861,7 @@ export default function ParentAssignmentDetailPage() {
           disabled={submitting}
           style={startBtn}
         >
-          {submitting ? "Sender inn …" : "SEND INN"}
+          {submitting ? t("actions.submitting") : t("actions.submit")}
         </button>
 
         <Link href={backHref} style={secondaryBtn}>
@@ -1858,24 +1871,24 @@ export default function ParentAssignmentDetailPage() {
 
       {(autoSummary || aiFeedback || submitMsg) ? (
         <section style={{ marginTop: 16 }}>
-          <h2 style={{ marginBottom: 8 }}>Tilbakemelding</h2>
+          <h2 style={{ marginBottom: 8 }}>{t("sections.feedback")}</h2>
           <div style={panel}>
             {submitMsg ? <div style={{ marginBottom: 10, opacity: 0.82 }}>{submitMsg}</div> : null}
 
             {autoSummary ? (
               <div style={{ marginBottom: aiFeedback ? 12 : 0 }}>
-                <div style={{ fontWeight: 800 }}>Autoresultat</div>
+                <div style={{ fontWeight: 800 }}>{t("feedback.autoResult")}</div>
                 <div style={{ opacity: 0.84 }}>{autoSummary}</div>
               </div>
             ) : null}
 
             {aiFeedback ? (
               <div>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>AI-feedback</div>
+                <div style={{ fontWeight: 800, marginBottom: 6 }}>{t("feedback.aiFeedback")}</div>
                 <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>{aiFeedback}</div>
               </div>
             ) : libraryAssignment ? (
-              <div style={{ opacity: 0.68 }}>Ingen AI-feedback lagret ennå.</div>
+              <div style={{ opacity: 0.68 }}>{t("feedback.noneYet")}</div>
             ) : null}
           </div>
         </section>

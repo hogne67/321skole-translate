@@ -94,28 +94,6 @@ function pickVisibility(v: unknown): "public" | "unlisted" | "private" {
   return v === "unlisted" || v === "private" || v === "public" ? v : "public";
 }
 
-function parentChildProgressLabel(status: string | null, locale: string) {
-  const s = String(status ?? "").trim().toLowerCase();
-
-  if (s === "submitted" || s === "reviewed" || s === "approved") {
-    return locale === "en" ? "🟢 Completed by child" : "🟢 Fullført av barn";
-  }
-
-  if (s === "draft" || s === "needs_work") {
-    return locale === "en" ? "🟡 Started" : "🟡 Påbegynt";
-  }
-
-  return locale === "en" ? "⚪ Not started" : "⚪ Ikke startet";
-}
-
-function parentChildProgressVariant(status: string | null): "green" | "amber" | "gray" {
-  const s = String(status ?? "").trim().toLowerCase();
-
-  if (s === "submitted" || s === "reviewed" || s === "approved") return "green";
-  if (s === "draft" || s === "needs_work") return "amber";
-  return "gray";
-}
-
 function StatusPill({
   label,
   variant,
@@ -174,7 +152,10 @@ function DangerButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <PrimaryButton
       {...props}
-      className={["border-red-200 text-red-700 hover:bg-red-50 active:bg-red-100", props.className || ""].join(" ")}
+      className={[
+        "border-red-200 text-red-700 hover:bg-red-50 active:bg-red-100",
+        props.className || "",
+      ].join(" ")}
     />
   );
 }
@@ -286,21 +267,15 @@ function getMathSubtype(it: ContentItem): string | null {
   if (all.has("percent")) return "percent";
   if (all.has("equations")) return "equations";
   if (all.has("measurement")) return "measurement";
-  if (all.has("math") || all.has("math_worksheet") || all.has("math-generator") || all.has("math_generator")) {
+  if (
+    all.has("math") ||
+    all.has("math_worksheet") ||
+    all.has("math-generator") ||
+    all.has("math_generator")
+  ) {
     return "math";
   }
 
-  return null;
-}
-
-function mathSubtypeLabel(subtype: string | null, locale: string) {
-  if (subtype === "geometry") return locale === "en" ? "Geometry" : "Geometri";
-  if (subtype === "algebra") return "Algebra";
-  if (subtype === "fractions") return locale === "en" ? "Fractions" : "Brøk";
-  if (subtype === "percent") return locale === "en" ? "Percent" : "Prosent";
-  if (subtype === "equations") return locale === "en" ? "Equations" : "Likninger";
-  if (subtype === "measurement") return locale === "en" ? "Measurement" : "Måling";
-  if (subtype === "math") return locale === "en" ? "Math" : "Matte";
   return null;
 }
 
@@ -421,6 +396,33 @@ export default function ContentClient() {
     if (it.type !== "submission") return false;
     const s = it as Extract<ContentItem, { type: "submission" }>;
     return !!s.spaceId || (s.meta ?? []).some((m) => typeof m === "string" && m.startsWith("space:"));
+  }
+
+  function mathSubtypeLabel(subtype: string | null) {
+    if (!subtype) return null;
+    return t(`math.subtypes.${subtype}`);
+  }
+
+  function parentChildProgressLabel(status: string | null) {
+    const s = String(status ?? "").trim().toLowerCase();
+
+    if (s === "submitted" || s === "reviewed" || s === "approved") {
+      return t("parentSpace.progress.completed");
+    }
+
+    if (s === "draft" || s === "needs_work") {
+      return t("parentSpace.progress.started");
+    }
+
+    return t("parentSpace.progress.notStarted");
+  }
+
+  function parentChildProgressVariant(status: string | null): "green" | "amber" | "gray" {
+    const s = String(status ?? "").trim().toLowerCase();
+
+    if (s === "submitted" || s === "reviewed" || s === "approved") return "green";
+    if (s === "draft" || s === "needs_work") return "amber";
+    return "gray";
   }
 
   const titleForCard = useCallback(
@@ -583,7 +585,7 @@ export default function ContentClient() {
     return () => {
       allUnsubs.forEach((u) => u());
     };
-  }, [isParent, uid, mySpaces]);
+  }, [isParent, uid, mySpaces, t]);
 
   const emptyHint = useMemo(() => {
     if (isAnon) {
@@ -618,7 +620,11 @@ export default function ContentClient() {
     setShareOpen(true);
 
     try {
-      const dataUrl = await QRCode.toDataURL(url, { margin: 1, scale: 7, errorCorrectionLevel: "M" });
+      const dataUrl = await QRCode.toDataURL(url, {
+        margin: 1,
+        scale: 7,
+        errorCorrectionLevel: "M",
+      });
       setQrDataUrl(dataUrl);
     } catch {
       setQrDataUrl("");
@@ -657,7 +663,9 @@ export default function ContentClient() {
         const snap = await getDoc(doc(db, "lessons", it.id));
         const dUnknown = snap.data() as unknown;
         const d = isRecord(dUnknown) ? dUnknown : {};
-        if (typeof d.activePublishedId === "string" && d.activePublishedId) pid = d.activePublishedId;
+        if (typeof d.activePublishedId === "string" && d.activePublishedId) {
+          pid = d.activePublishedId;
+        }
       } catch {
         // ignore
       }
@@ -669,7 +677,9 @@ export default function ContentClient() {
 
   async function openShareForSpace(it: Extract<ContentItem, { type: "space" }>) {
     const code = it.joinCode ? encodeURIComponent(it.joinCode) : "";
-    const url = code ? `${getOrigin()}/${locale}/join?code=${code}` : `${getOrigin()}${itemOpenHref(it)}`;
+    const url = code
+      ? `${getOrigin()}/${locale}/join?code=${code}`
+      : `${getOrigin()}${itemOpenHref(it)}`;
     await openShareModal(titleForCard(it), url);
   }
 
@@ -730,7 +740,9 @@ export default function ContentClient() {
       const dataUnknown = lessonSnap.data() as unknown;
       const data = isRecord(dataUnknown) ? dataUnknown : {};
 
-      if ((data as { deletedAt?: unknown }).deletedAt) throw new Error(t("errors.cannotPublishDeleted"));
+      if ((data as { deletedAt?: unknown }).deletedAt) {
+        throw new Error(t("errors.cannotPublishDeleted"));
+      }
 
       if (nextPublished) {
         const publishObj = isRecord((data as { publish?: unknown }).publish)
@@ -738,10 +750,14 @@ export default function ContentClient() {
           : undefined;
         const vis = pickVisibility(publishObj?.visibility);
 
-        const resp = await authedPost<{ publishedId?: string; publishedLessonId?: string; id?: string }>(
-          "/api/publish",
-          { id: lessonId, visibility: vis }
-        );
+        const resp = await authedPost<{
+          publishedId?: string;
+          publishedLessonId?: string;
+          id?: string;
+        }>("/api/publish", {
+          id: lessonId,
+          visibility: vis,
+        });
 
         const publishedId = resp.publishedId || resp.publishedLessonId || resp.id || lessonId;
 
@@ -816,11 +832,7 @@ export default function ContentClient() {
   }
 
   async function restoreLesson(lessonId: string, title: string) {
-    const msg =
-      locale === "en"
-        ? `Restore lesson${title ? `: "${title}"` : ""}?`
-        : `Gjenopprette oppgaven${title ? `: "${title}"` : ""}?`;
-
+    const msg = t("confirm.restoreLesson", { title: title ? `: "${title}"` : "" });
     const ok = confirm(msg);
     if (!ok) return;
 
@@ -835,7 +847,7 @@ export default function ContentClient() {
       });
       await refresh();
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : locale === "en" ? "Could not restore." : "Kunne ikke gjenopprette.");
+      setErr(e instanceof Error ? e.message : t("errors.restoreFailed"));
     } finally {
       setBusy(key, false);
     }
@@ -884,7 +896,14 @@ export default function ContentClient() {
     const busy = !!busyByKey[key];
 
     if (isAnon) {
-      return [{ key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(it)) }];
+      return [
+        {
+          key: "open",
+          label: t("actions.open"),
+          disabled: busy,
+          onClick: () => router.push(itemOpenHref(it)),
+        },
+      ];
     }
 
     if (it.type === "submission") {
@@ -938,7 +957,12 @@ export default function ContentClient() {
       const canShareSpace = role === "teacher";
 
       return [
-        { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(sp)) },
+        {
+          key: "open",
+          label: t("actions.open"),
+          disabled: busy,
+          onClick: () => router.push(itemOpenHref(sp)),
+        },
         ...(!isParent
           ? [
               {
@@ -950,13 +974,34 @@ export default function ContentClient() {
             ]
           : []),
         ...(canShareSpace && code
-          ? [{ key: "copyCode", label: t("actions.copyJoinCode"), disabled: busy, onClick: () => copyText(code) }]
+          ? [
+              {
+                key: "copyCode",
+                label: t("actions.copyJoinCode"),
+                disabled: busy,
+                onClick: () => copyText(code),
+              },
+            ]
           : []),
         ...(canShareSpace
-          ? [{ key: "share", label: t("actions.shareLinkQr"), disabled: busy, onClick: () => openShareForSpace(sp) }]
+          ? [
+              {
+                key: "share",
+                label: t("actions.shareLinkQr"),
+                disabled: busy,
+                onClick: () => openShareForSpace(sp),
+              },
+            ]
           : []),
         ...(canShareSpace && joinUrl
-          ? [{ key: "copyJoinLink", label: t("actions.copyJoinLink"), disabled: busy, onClick: () => copyText(joinUrl) }]
+          ? [
+              {
+                key: "copyJoinLink",
+                label: t("actions.copyJoinLink"),
+                disabled: busy,
+                onClick: () => copyText(joinUrl),
+              },
+            ]
           : []),
       ];
     }
@@ -968,7 +1013,7 @@ export default function ContentClient() {
     const isReadingTest = isReadingTestLesson(ls);
     const isMath = isMathContent(ls);
     const mathSubtype = getMathSubtype(ls);
-    const mathSubtypeText = mathSubtypeLabel(mathSubtype, locale);
+    const mathSubtypeText = mathSubtypeLabel(mathSubtype);
 
     const canPublish = isTeacherApproved && !isDeleted && !isReadingTest;
     const canDelete = (isTeacher || isParent || isStudent) && !busy;
@@ -989,7 +1034,7 @@ export default function ContentClient() {
         ? [
             {
               key: "restore",
-              label: locale === "en" ? "Restore" : "Gjenopprett",
+              label: t("actions.restore"),
               disabled: busy,
               onClick: () => restoreLesson(ls.id, titleForCard(ls)),
             },
@@ -1006,9 +1051,7 @@ export default function ContentClient() {
                 label:
                   mathSubtypeText && mathSubtype !== "math"
                     ? `${mathSubtypeText}-PDF`
-                    : locale === "en"
-                      ? "Math PDF"
-                      : "Matte-PDF",
+                    : t("math.pdf"),
                 disabled: busy,
                 onClick: () => router.push(pdfHref),
               },
@@ -1026,7 +1069,12 @@ export default function ContentClient() {
 
     return [
       ...restoreAction,
-      { key: "open", label: t("actions.open"), disabled: busy, onClick: () => router.push(itemOpenHref(ls)) },
+      {
+        key: "open",
+        label: t("actions.open"),
+        disabled: busy,
+        onClick: () => router.push(itemOpenHref(ls)),
+      },
 
       ...(canEdit
         ? [
@@ -1043,7 +1091,11 @@ export default function ContentClient() {
         ? [
             {
               key: isPublished ? "unpublish" : "publish",
-              label: busy ? t("actions.working") : isPublished ? t("actions.unpublish") : t("actions.publish"),
+              label: busy
+                ? t("actions.working")
+                : isPublished
+                  ? t("actions.unpublish")
+                  : t("actions.publish"),
               disabled: busy || !canPublish,
               onClick: () => setPublished(ls.id, !isPublished),
             },
@@ -1075,9 +1127,7 @@ export default function ContentClient() {
               label: isMath
                 ? mathSubtypeText && mathSubtype !== "math"
                   ? `${mathSubtypeText}-PDF`
-                  : locale === "en"
-                    ? "Math PDF"
-                    : "Matte-PDF"
+                  : t("math.pdf")
                 : t("actions.pdf"),
               disabled: busy || !canPdf,
               onClick: () => router.push(pdfHref),
@@ -1159,18 +1209,18 @@ export default function ContentClient() {
       });
   }, [items, q, filter, showDeleted, titleForCard]);
 
-  const deletedLabel = locale === "en" ? "Deleted" : "Slettet";
-  const showDeletedLabel = locale === "en" ? "Show deleted" : "Vis slettet";
-  const deletedAtLabel = locale === "en" ? "Deleted at" : "Slettet";
+  const deletedLabel = t("labels.deleted");
+  const showDeletedLabel = t("toggles.showDeleted");
+  const deletedAtLabel = t("labels.deletedAt");
 
   function labelWithCount(ft: FilterType) {
     const label =
       ft === "all"
         ? (t("filters.all") as string)
         : ft === "library"
-          ? (locale === "en" ? "Library" : "Bibliotek")
+          ? (t("filters.library") as string)
           : ft === "math"
-            ? (locale === "en" ? "Math" : "Matte")
+            ? (t("filters.math") as string)
             : ft === "lesson"
               ? (t("filters.lessons") as string)
               : ft === "submission"
@@ -1194,11 +1244,7 @@ export default function ContentClient() {
     })),
     {
       key: "toggle-deleted",
-      label: showDeleted
-        ? locale === "en"
-          ? "Hide deleted"
-          : "Skjul slettet"
-        : showDeletedLabel,
+      label: showDeleted ? t("toggles.hideDeleted") : showDeletedLabel,
       onClick: () => setShowDeleted((v) => !v),
     },
   ];
@@ -1209,12 +1255,10 @@ export default function ContentClient() {
         <div className="flex min-w-0 flex-col gap-3">
           <div className="min-w-0">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">
-              {isParent ? "Mitt innhold for familien" : t("title")}
+              {isParent ? t("parent.title") : t("title")}
             </h1>
             <p className="mt-2 break-words text-sm text-slate-600">
-              {isParent
-                ? "Her finner du oppgaver du kan åpne, organisere og dele videre til barnas rom."
-                : t("subtitle")}
+              {isParent ? t("parent.subtitle") : t("subtitle")}
             </p>
           </div>
         </div>
@@ -1225,7 +1269,7 @@ export default function ContentClient() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={isParent ? "Søk i oppgaver, rom og innleveringer …" : t("search.placeholder")}
+            placeholder={isParent ? t("search.parentPlaceholder") : t("search.placeholder")}
             className="block w-full max-w-full box-border rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none"
           />
 
@@ -1243,13 +1287,9 @@ export default function ContentClient() {
                   ].join(" ")}
                   title={
                     ft === "library"
-                      ? locale === "en"
-                        ? "Your own tasks from the library (practice)"
-                        : "Dine egne oppgaver hentet fra biblioteket"
+                      ? t("filterHints.library")
                       : ft === "math"
-                        ? locale === "en"
-                          ? "Only items marked from the math generator"
-                          : "Kun innhold merket fra mattegeneratoren"
+                        ? t("filterHints.math")
                         : undefined
                   }
                 >
@@ -1319,10 +1359,10 @@ export default function ContentClient() {
       <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
         <div className="min-w-0">
           <div className="text-base font-semibold text-slate-900">
-            {isParent ? "Innhold" : t("title")}
+            {isParent ? t("parent.contentTitle") : t("title")}
           </div>
           <div className="mt-1 text-sm text-slate-600">
-            {filtered.length} {locale === "en" ? "items" : "elementer"}
+            {filtered.length} {t("labels.items")}
           </div>
         </div>
 
@@ -1346,20 +1386,16 @@ export default function ContentClient() {
                 const deletedAt = getDeletedAt(it);
                 const mathItem = isMathContent(it);
                 const mathSubtype = getMathSubtype(it);
-                const mathSubtypeText = mathSubtypeLabel(mathSubtype, locale);
+                const mathSubtypeText = mathSubtypeLabel(mathSubtype);
 
                 let pill: React.ReactNode = null;
 
                 const extraPill =
                   it.type === "submission"
                     ? isLibraryPractice(it)
-                      ? locale === "en"
-                        ? <StatusPill label="Library" variant="gray" />
-                        : <StatusPill label="Bibliotek" variant="gray" />
+                      ? <StatusPill label={t("pills.library")} variant="gray" />
                       : isTeacherSpaceSubmission(it)
-                        ? locale === "en"
-                          ? <StatusPill label="Teacher" variant="gray" />
-                          : <StatusPill label="Innlevering" variant="gray" />
+                        ? <StatusPill label={t("pills.teacherSubmission")} variant="gray" />
                         : null
                     : null;
 
@@ -1367,15 +1403,11 @@ export default function ContentClient() {
                   pill = <StatusPill label={deletedLabel} variant="amber" />;
                 } else if (it.type === "lesson") {
                   if (isReadingTestLesson(it)) {
-                    pill = locale === "en"
-                      ? <StatusPill label="Reading test" variant="gray" />
-                      : <StatusPill label="Lesetest" variant="gray" />;
+                    pill = <StatusPill label={t("pills.readingTest")} variant="gray" />;
                   } else if (isParent) {
-                    pill = <StatusPill label="Klar til å dele" variant="green" />;
+                    pill = <StatusPill label={t("parent.shareReady")} variant="green" />;
                   } else if (isMathArchiveItem(it)) {
-                    pill = locale === "en"
-                      ? <StatusPill label="Ready for PDF" variant="green" />
-                      : <StatusPill label="Klar for PDF" variant="green" />;
+                    pill = <StatusPill label={t("pills.readyForPdf")} variant="green" />;
                   } else {
                     const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
                     pill =
@@ -1391,12 +1423,7 @@ export default function ContentClient() {
 
                 const metaLine = cleanMetaForCard(it);
                 const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
-                const mathHint =
-                  mathItem && it.type === "lesson"
-                    ? locale === "en"
-                      ? "Ready for PDF export. Generate a new worksheet if you want another version."
-                      : "Klar for PDF-eksport. Generer en ny oppgave hvis du vil ha en annen variant."
-                    : null;
+                const mathHint = mathItem && it.type === "lesson" ? t("math.hint") : null;
 
                 return (
                   <div
@@ -1414,10 +1441,7 @@ export default function ContentClient() {
                           {extraPill}
 
                           {mathItem ? (
-                            <StatusPill
-                              label={locale === "en" ? "Math generator" : "Mattegenerator"}
-                              variant="amber"
-                            />
+                            <StatusPill label={t("pills.mathGenerator")} variant="amber" />
                           ) : null}
 
                           {mathItem && mathSubtypeText && mathSubtype !== "math" ? (
@@ -1449,31 +1473,49 @@ export default function ContentClient() {
 
                         {isParent && it.type === "lesson" && !isMathArchiveItem(it) ? (
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <StatusPill label="Kan deles til barnas rom" variant="gray" />
+                            <StatusPill label={t("parent.canShareToChildren")} variant="gray" />
                           </div>
                         ) : null}
 
                         {parentMeta ? (
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <StatusPill label={`${parentMeta.lessonCount} oppgaver`} variant="gray" />
+                            <StatusPill
+                              label={t("parentSpace.tasksCount", { count: parentMeta.lessonCount })}
+                              variant="gray"
+                            />
                             {parentMeta.activeLessonTitle ? (
-                              <StatusPill label={`Aktiv: ${parentMeta.activeLessonTitle}`} variant="gray" />
+                              <StatusPill
+                                label={t("parentSpace.active", { title: parentMeta.activeLessonTitle })}
+                                variant="gray"
+                              />
                             ) : null}
                             <StatusPill
-                              label={parentChildProgressLabel(parentMeta.activeSubmissionStatus, locale)}
+                              label={parentChildProgressLabel(parentMeta.activeSubmissionStatus)}
                               variant={parentChildProgressVariant(parentMeta.activeSubmissionStatus)}
                             />
                             {parentMeta.submittedCount > 0 ? (
-                              <StatusPill label={`${parentMeta.submittedCount} sendt inn`} variant="green" />
+                              <StatusPill
+                                label={t("parentSpace.submittedCount", { count: parentMeta.submittedCount })}
+                                variant="green"
+                              />
                             ) : null}
                             {parentMeta.draftCount > 0 ? (
-                              <StatusPill label={`${parentMeta.draftCount} påbegynt`} variant="amber" />
+                              <StatusPill
+                                label={t("parentSpace.draftCount", { count: parentMeta.draftCount })}
+                                variant="amber"
+                              />
                             ) : null}
                             {parentMeta.aiFeedbackCount > 0 ? (
-                              <StatusPill label={`${parentMeta.aiFeedbackCount} med AI-feedback`} variant="green" />
+                              <StatusPill
+                                label={t("parentSpace.aiFeedbackCount", { count: parentMeta.aiFeedbackCount })}
+                                variant="green"
+                              />
                             ) : null}
                             {parentMeta.reviewCount > 0 ? (
-                              <StatusPill label={`${parentMeta.reviewCount} foreldrevurdert`} variant="green" />
+                              <StatusPill
+                                label={t("parentSpace.reviewCount", { count: parentMeta.reviewCount })}
+                                variant="green"
+                              />
                             ) : null}
                           </div>
                         ) : null}
@@ -1530,14 +1572,25 @@ export default function ContentClient() {
       </div>
 
       {shareOpen ? (
-        <div role="dialog" aria-modal="true" onClick={closeShare} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closeShare}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl"
+          >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
               <div className="min-w-0">
                 <div className="font-black text-slate-900">{t("share.title")}</div>
                 <div className="truncate text-sm text-slate-600">{shareTitle}</div>
               </div>
-              <button onClick={closeShare} className="rounded-xl border border-slate-300 px-3 py-2 font-black text-slate-800 hover:bg-zinc-50">
+              <button
+                onClick={closeShare}
+                className="rounded-xl border border-slate-300 px-3 py-2 font-black text-slate-800 hover:bg-zinc-50"
+              >
                 ✕
               </button>
             </div>
@@ -1545,10 +1598,16 @@ export default function ContentClient() {
             <div className="grid gap-4 p-4 sm:grid-cols-[1.3fr_0.7fr]">
               <div>
                 <div className="mb-2 text-sm font-black text-slate-900">{t("share.linkLabel")}</div>
-                <input value={shareUrl} readOnly className="w-full rounded-xl border border-slate-300 px-3 py-3 font-semibold text-slate-900" />
+                <input
+                  value={shareUrl}
+                  readOnly
+                  className="w-full rounded-xl border border-slate-300 px-3 py-3 font-semibold text-slate-900"
+                />
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <PrimaryButton onClick={copyShareUrl}>{copied ? t("share.copied") : t("share.copyLink")}</PrimaryButton>
+                  <PrimaryButton onClick={copyShareUrl}>
+                    {copied ? t("share.copied") : t("share.copyLink")}
+                  </PrimaryButton>
                   <GhostLink href={shareUrl} target="_blank" rel="noreferrer">
                     {t("share.openLink")}
                   </GhostLink>
@@ -1558,13 +1617,21 @@ export default function ContentClient() {
               </div>
 
               <div className="grid place-items-center">
-                <div className="mb-2 w-full text-left text-sm font-black text-slate-900">{t("share.qrLabel")}</div>
+                <div className="mb-2 w-full text-left text-sm font-black text-slate-900">
+                  {t("share.qrLabel")}
+                </div>
                 <div className="grid h-56 w-56 place-items-center overflow-hidden rounded-2xl border border-slate-300 bg-white">
                   {qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={qrDataUrl} alt={t("share.qrAlt")} style={{ width: "100%", height: "100%" }} />
+                    <img
+                      src={qrDataUrl}
+                      alt={t("share.qrAlt")}
+                      style={{ width: "100%", height: "100%" }}
+                    />
                   ) : (
-                    <div className="p-3 text-center text-sm text-slate-500">{t("share.qrNotReady")}</div>
+                    <div className="p-3 text-center text-sm text-slate-500">
+                      {t("share.qrNotReady")}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1578,14 +1645,25 @@ export default function ContentClient() {
       ) : null}
 
       {pickSpaceOpen && pickLesson ? (
-        <div role="dialog" aria-modal="true" onClick={closePickSpace} className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closePickSpace}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl"
+          >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
               <div className="min-w-0">
                 <div className="font-black text-slate-900">{t("shareToSpace.title")}</div>
                 <div className="truncate text-sm text-slate-600">{pickLesson.title}</div>
               </div>
-              <button onClick={closePickSpace} className="rounded-xl border border-slate-300 px-3 py-2 font-black text-slate-800 hover:bg-zinc-50">
+              <button
+                onClick={closePickSpace}
+                className="rounded-xl border border-slate-300 px-3 py-2 font-black text-slate-800 hover:bg-zinc-50"
+              >
                 ✕
               </button>
             </div>
@@ -1602,7 +1680,9 @@ export default function ContentClient() {
                       className="rounded-2xl border border-slate-300 bg-white p-4 text-left font-black text-slate-900 hover:bg-zinc-50"
                     >
                       {(s.title || t("titles.space")).trim() || t("titles.space")}
-                      <div className="mt-1 text-xs font-semibold text-slate-500">{(s.meta?.join(" · ") ?? "").trim()}</div>
+                      <div className="mt-1 text-xs font-semibold text-slate-500">
+                        {(s.meta?.join(" · ") ?? "").trim()}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -1610,7 +1690,8 @@ export default function ContentClient() {
             </div>
 
             <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
-              {t("shareToSpace.createsLabel")} <code>{`spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
+              {t("shareToSpace.createsLabel")}{" "}
+              <code>{`spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
             </div>
           </div>
         </div>

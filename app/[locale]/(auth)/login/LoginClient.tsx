@@ -51,7 +51,7 @@ type Mode = "signin" | "signup";
 type LoginMethod = "choice" | "email";
 
 export default function LoginClient() {
-  const t = useTranslations("auth.login");
+  const t = useTranslations("login");
   const locale = useLocale();
   const sp = useSearchParams();
   const router = useRouter();
@@ -224,7 +224,7 @@ export default function LoginClient() {
   };
 
   const cardStyle: React.CSSProperties = {
-    background: "#fff",
+    background: "#e4e9ee",
     border: "1px solid rgba(15,23,42,0.08)",
     borderRadius: 24,
     boxShadow: "0 18px 50px rgba(15,23,42,0.10)",
@@ -274,7 +274,7 @@ export default function LoginClient() {
     minHeight: 48,
     borderRadius: 12,
     border: active ? "1px solid rgba(59,130,246,0.36)" : "1px solid transparent",
-    background: active ? "linear-gradient(180deg, #2563eb, #1d4ed8)" : "transparent",
+    background: active ? "linear-gradient(180deg, #cbadc5, #b06799)" : "transparent",
     color: active ? "#fff" : "#0f172a",
     fontWeight: 800,
     fontSize: 14,
@@ -296,7 +296,7 @@ export default function LoginClient() {
     minHeight: 54,
     borderRadius: 16,
     border: "1px solid rgba(15,23,42,0.10)",
-    background: "#fff",
+    background: "#c6d1e8b7",
     color: "#0f172a",
     fontWeight: 900,
     fontSize: 15,
@@ -339,7 +339,7 @@ export default function LoginClient() {
     background: "transparent",
     border: "none",
     padding: 0,
-    color: "#2563eb",
+    color: "#2564eb61",
     fontWeight: 800,
     fontSize: 14,
     cursor: "pointer",
@@ -362,7 +362,7 @@ export default function LoginClient() {
   };
 
   const inputStyle: React.CSSProperties = {
-    width: "100%",
+    width: "95%",
     minHeight: 50,
     padding: "12px 14px",
     borderRadius: 14,
@@ -393,7 +393,7 @@ export default function LoginClient() {
     background: "transparent",
     border: "none",
     padding: 0,
-    color: "#2563eb",
+    color: "#71eb25",
     fontWeight: 700,
     cursor: "pointer",
   };
@@ -474,7 +474,7 @@ export default function LoginClient() {
         <div style={cardStyle}>
           <div style={logoWrap}>
             <Image
-              src="/logo 321_2.png"
+              src="/logo321ny.png"
               alt="321skole"
               width={220}
               height={72}

@@ -155,7 +155,7 @@ function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
 export default function NewTextPage() {
   const router = useRouter();
   const locale = useLocale();
-  const t = useTranslations("producer.newText");
+  const t = useTranslations("generateNewText");
   const { profile } = useUserProfile();
 
   const fieldStyle: CSSProperties = {
@@ -532,8 +532,9 @@ export default function NewTextPage() {
     if (m === "Source text is empty.") return t("errors.sourceTextEmpty");
     if (m === "Not signed in. Please log in as teacher/producer.") return t("errors.notSignedIn");
     if (m === "Not signed in.") return t("errors.notSignedIn");
-    if (m.startsWith("Empty response from server.")) return t("errors.emptyResponseFromServer", { status: "" });
+    if (m.startsWith("Empty response from server.")) return t("errors.emptyResponseFromServer");
     if (m.startsWith("Not JSON.")) return t("errors.notJsonFromServer");
+    if (m === "Missing id from server.") return t("errors.missingIdFromServer");
     if (m.startsWith("Limit reached:")) return m;
     return m;
   }
@@ -685,8 +686,11 @@ export default function NewTextPage() {
     if (featureStatus && !featureStatus.allowed) {
       throw new Error(
         featureStatus.reason === "limit_reached"
-          ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden. Du kan ikke lage flere nå.`
-          : "Denne funksjonen er ikke tilgjengelig for deg."
+          ? t("status.quotaExceeded", {
+              used: featureStatus.used,
+              limit: featureStatus.limit,
+            })
+          : t("status.featureUnavailable")
       );
     }
 
@@ -767,7 +771,7 @@ export default function NewTextPage() {
 
   const quotaBlocked = featureStatus ? !featureStatus.allowed : false;
   const quotaBadgeText = featureStatus
-    ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden`
+    ? t("status.quotaUsed", { used: featureStatus.used, limit: featureStatus.limit })
     : null;
 
   const hasText = sourceText.trim().length > 0;
@@ -779,21 +783,21 @@ export default function NewTextPage() {
 
   const stepStatus = !hasText
     ? {
-        title: "Steg 1: Lag eller lim inn tekst",
-        body: "Start med å generere en tekst eller lime inn din egen. Når teksten er klar, låses neste steg opp.",
+        title: t("stepStatus.step1Title"),
+        body: t("stepStatus.step1Body"),
         tone: "#eff6ff",
         border: "#bfdbfe",
       }
     : !hasTasks
       ? {
-          title: "Teksten er klar",
-          body: "Neste steg er å generere oppgaver til teksten. Du kan justere antall oppgaver før du fortsetter.",
+          title: t("stepStatus.textReadyTitle"),
+          body: t("stepStatus.textReadyBody"),
           tone: "#fffbeb",
           border: "#fde68a",
         }
       : {
-          title: "Oppgavene er klare",
-          body: "Neste steg er ferdigstilling. Der kan du legge inn bilde, metadata, dele til Space og gjøre siste justeringer.",
+          title: t("stepStatus.tasksReadyTitle"),
+          body: t("stepStatus.tasksReadyBody"),
           tone: "#ecfdf5",
           border: "#86efac",
         };
@@ -839,10 +843,10 @@ export default function NewTextPage() {
             >
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
                 <span style={stepBadgeStyle(!step1Done, step1Done)}>1</span>
-                <strong>Tekst</strong>
+                <strong>{t("steps.text")}</strong>
               </div>
               <div style={{ fontSize: 13, opacity: 0.8 }}>
-                {step1Done ? "Klar" : "Generer eller lim inn tekst"}
+                {step1Done ? t("steps.ready") : t("steps.generateOrPasteText")}
               </div>
             </div>
 
@@ -856,10 +860,14 @@ export default function NewTextPage() {
             >
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
                 <span style={stepBadgeStyle(step2Active && !step2Done, step2Done)}>2</span>
-                <strong>Oppgaver</strong>
+                <strong>{t("steps.tasks")}</strong>
               </div>
               <div style={{ fontSize: 13, opacity: 0.8 }}>
-                {step2Done ? "Klar" : step2Active ? "Neste steg" : "Låst til teksten er klar"}
+                {step2Done
+                  ? t("steps.ready")
+                  : step2Active
+                    ? t("steps.nextStep")
+                    : t("steps.lockedUntilTextReady")}
               </div>
             </div>
 
@@ -873,10 +881,10 @@ export default function NewTextPage() {
             >
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
                 <span style={stepBadgeStyle(step3Active, false)}>3</span>
-                <strong>Ferdigstilling</strong>
+                <strong>{t("steps.finishing")}</strong>
               </div>
               <div style={{ fontSize: 13, opacity: 0.8 }}>
-                {step3Active ? "Klar til siste oppsett" : "Låst til oppgaver er klare"}
+                {step3Active ? t("steps.readyForFinalSetup") : t("steps.lockedUntilTasksReady")}
               </div>
             </div>
           </div>
@@ -906,9 +914,11 @@ export default function NewTextPage() {
             <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
               <span style={stepBadgeStyle(!step1Done, step1Done)}>1</span>
               <div>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Generer / lim inn tekst</h2>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
+                  {t("sections.generateOrPasteTextTitle")}
+                </h2>
                 <div style={{ fontSize: 13, opacity: 0.75 }}>
-                  Velg nivå, språk, teksttype og prompt. Du kan også skrive eller lime inn teksten selv.
+                  {t("sections.generateOrPasteTextBody")}
                 </div>
               </div>
             </div>
@@ -1023,7 +1033,7 @@ export default function NewTextPage() {
                     cursor: busy ? "not-allowed" : "pointer",
                   }}
                 >
-                  {loadingText ? t("buttons.generatingText") : "Generer tekst"}
+                  {loadingText ? t("buttons.generatingText") : t("buttons.generateText")}
                 </button>
               </div>
 
@@ -1044,7 +1054,7 @@ export default function NewTextPage() {
                   style={{ ...fieldStyle, resize: "vertical" }}
                 />
                 <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                  Du kan generere tekst med AI eller lime inn / skrive teksten selv.
+                  {t("builder.textHelp")}
                 </div>
               </label>
             </div>
@@ -1054,9 +1064,11 @@ export default function NewTextPage() {
             <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
               <span style={stepBadgeStyle(step2Active && !step2Done, step2Done)}>2</span>
               <div>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Generer oppgaver</h2>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
+                  {t("sections.generateTasksTitle")}
+                </h2>
                 <div style={{ fontSize: 13, opacity: 0.75 }}>
-                  Velg hvor mange oppgaver du vil ha. Denne delen låses opp når teksten er klar.
+                  {t("sections.generateTasksBody")}
                 </div>
               </div>
             </div>
@@ -1072,7 +1084,7 @@ export default function NewTextPage() {
                   opacity: 0.8,
                 }}
               >
-                Generer eller lim inn tekst først for å aktivere oppgavegeneratoren.
+                {t("sections.enableTaskGeneratorFirst")}
               </div>
             )}
 
@@ -1120,7 +1132,7 @@ export default function NewTextPage() {
                   disabled={!hasText}
                 />
                 <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                  Faktasetninger skrives i én boks.
+                  {t("tasks.factsSingleBoxHelp")}
                 </div>
               </label>
               <label>
@@ -1159,7 +1171,7 @@ export default function NewTextPage() {
                   }}
                   title={!sourceText.trim() ? t("hints.generateTextFirst") : t("hints.generateTasks")}
                 >
-                  {loadingTasks ? t("buttons.generatingTasks") : "Generer oppgaver"}
+                  {loadingTasks ? t("buttons.generatingTasks") : t("buttons.generateTasks")}
                 </button>
 
                 {tasksDirty && sourceText.trim() && (
@@ -1186,9 +1198,11 @@ export default function NewTextPage() {
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <span style={stepBadgeStyle(step3Active, false)}>3</span>
                   <div>
-                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Gå til ferdigstilling</h2>
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
+                      {t("sections.goToFinishingTitle")}
+                    </h2>
                     <div style={{ fontSize: 13, opacity: 0.75 }}>
-                      Herfra går du videre til bilde, metadata, deling til Space og siste justeringer.
+                      {t("sections.goToFinishingBody")}
                     </div>
                   </div>
                 </div>
@@ -1205,11 +1219,14 @@ export default function NewTextPage() {
                     }}
                     title={
                       quotaBlocked && featureStatus
-                        ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden.`
-                        : "Lagre og gå til ferdigstilling"
+                        ? t("status.quotaUsed", {
+                            used: featureStatus.used,
+                            limit: featureStatus.limit,
+                          })
+                        : t("buttons.saveAndGoToFinishing")
                     }
                   >
-                    {saving ? t("buttons.saving") : "Gå til ferdigstilling"}
+                    {saving ? t("buttons.saving") : t("buttons.goToFinishing")}
                   </button>
                 )}
               </div>
@@ -1225,7 +1242,7 @@ export default function NewTextPage() {
                     opacity: 0.8,
                   }}
                 >
-                  Når oppgavene er generert, kan du gå videre til ferdigstilling.
+                  {t("sections.readyToFinishBody")}
                 </div>
               )}
             </div>
@@ -1246,7 +1263,9 @@ export default function NewTextPage() {
                   flexWrap: "wrap",
                 }}
               >
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Rediger oppgaver før ferdigstilling</h3>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
+                  {t("editor.editBeforeFinishing")}
+                </h3>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button onClick={() => addTask("mcq")} style={buttonSmall}>
@@ -1426,9 +1445,12 @@ export default function NewTextPage() {
               }}
               title={
                 !hasText
-                  ? "Legg inn tekst først"
+                  ? t("hints.enterTextFirst")
                   : quotaBlocked && featureStatus
-                    ? `Du har brukt ${featureStatus.used} av ${featureStatus.limit} denne måneden.`
+                    ? t("status.quotaUsed", {
+                        used: featureStatus.used,
+                        limit: featureStatus.limit,
+                      })
                     : tasksDirty
                       ? t("hints.tasksDirty")
                       : t("hints.saveDraft")
@@ -1437,7 +1459,7 @@ export default function NewTextPage() {
               {saving ? t("buttons.saving") : t("buttons.saveDraft")}
             </button>
 
-            {statusLoading && <span style={{ opacity: 0.75 }}>Laster kvote…</span>}
+            {statusLoading && <span style={{ opacity: 0.75 }}>{t("status.loadingQuota")}</span>}
 
             {featureStatus && quotaBadgeText && (
               <span
@@ -1457,7 +1479,7 @@ export default function NewTextPage() {
                 }}
               >
                 {quotaBadgeText}
-                {featureStatus.remaining <= 2 && featureStatus.remaining > 0 ? " (snart tomt)" : ""}
+                {featureStatus.remaining <= 2 && featureStatus.remaining > 0 ? ` ${t("warnings.soonEmpty")}` : ""}
               </span>
             )}
 

@@ -1,0 +1,132 @@
+{
+  "teacherBoard": {
+    "header": {
+      "title": "Digital board",
+      "subtitle": "Live in this space. You control the content — students see it in real time."
+    },
+    "common": {
+      "loading": "Loading…",
+      "mode": "mode"
+    },
+    "errors": {
+      "fetchState": "Could not load board state."
+    },
+    "defaults": {
+      "title": "Today's question",
+      "prompt": "Write in your own words: What do numerator and denominator mean?",
+      "pollQuestion": "What do you think?",
+      "pollOptions": "Yes, No, Not sure",
+      "wordwallPrompt": "Write one word that fits the topic.",
+      "pollTitle": "Poll",
+      "wordwallShortPrompt": "Write one word."
+    },
+    "fallbacks": {
+      "question": "Question"
+    },
+    "status": {
+      "label": "Status",
+      "live": "LIVE",
+      "notLive": "Not live",
+      "session": "session"
+    },
+    "actions": {
+      "startLive": "Start live",
+      "stop": "Stop",
+      "updateBoard": "Update board",
+      "newRound": "New round",
+      "clearAnswers": "Clear answers",
+      "showAnswers": "Show answers again",
+      "presentation": "Presentation",
+      "showControlPanel": "Show control panel",
+      "fullscreen": "Fullscreen",
+      "exitFullscreen": "Exit fullscreen",
+      "hideTimer": "Hide timer",
+      "showTimer": "Show timer",
+      "clear": "Clear"
+    },
+    "tabs": {
+      "question": "Today's question",
+      "notes": "Notes",
+      "poll": "Poll",
+      "wordwall": "Wordwall"
+    },
+    "fields": {
+      "title": {
+        "label": "Title",
+        "placeholder": "E.g.: Today's question"
+      },
+      "prompt": {
+        "label": "Text / prompt",
+        "placeholder": "Write the prompt students should see…"
+      }
+    },
+    "question": {
+      "sameRoundHint": "\"Update board\" uses the same round. \"New round\" creates a new session and resets responses."
+    },
+    "poll": {
+      "setupTitle": "Poll setup",
+      "questionLabel": "Question",
+      "questionPlaceholder": "Write poll question…",
+      "optionsLabel": "Answer options",
+      "optionsPlaceholder": "Yes, No, Not sure … (comma or line breaks)",
+      "optionsHint": "Tip: use commas or line breaks. Maximum 10 options.",
+      "update": "Update poll",
+      "newRound": "New poll round",
+      "clearAnswers": "Clear answers",
+      "showAnswers": "Show answers",
+      "anonymousHint": "Poll responses are anonymous: we do not store names or uid.",
+      "previewTitle": "Preview",
+      "resultsTitle": "Poll results",
+      "responsesCount": "{count} responses",
+      "noSession": "No active session",
+      "startHint": "Start a poll to see results."
+    },
+    "wordwall": {
+      "promptLabel": "Prompt / instruction",
+      "promptPlaceholder": "Example: Write one word that fits the text.",
+      "update": "Update wordwall",
+      "newRound": "New round",
+      "clearAnswers": "Clear answers",
+      "showAnswers": "Show answers",
+      "anonymousHint": "Wordwall is anonymous. Identical words are merged automatically, and words grow larger when more students write the same word.",
+      "previewTitle": "Preview",
+      "noSession": "No active session.",
+      "noneYet": "No words yet."
+    },
+    "notes": {
+      "title": "Notes (local)",
+      "clear": "Clear",
+      "clearTitle": "Eraser / clear",
+      "placeholder": "Write notes here… (not saved to Firestore)",
+      "localOnly": "This is only for you on this device (local storage). Students cannot see this."
+    },
+    "timer": {
+      "title": "Timer",
+      "set": "Timer {seconds}s",
+      "clear": "Remove timer",
+      "toggleTitle": "Show/hide timer bar",
+      "stop": "Stop"
+    },
+    "preview": {
+      "title": "Preview"
+    },
+    "countdown": {
+      "label": "Time left"
+    },
+    "responses": {
+      "title": "Student responses (live)",
+      "count": "{count} responses",
+      "hint": "Start live to collect responses",
+      "clearedPrefix": "Responses are cleared (hidden). Press",
+      "clearedSuffix": "to see everything.",
+      "noSession": "No active session.",
+      "noneYet": "No responses yet.",
+      "unknown": "Unknown"
+    },
+    "modes": {
+  "text": "text",
+  "poll": "poll",
+  "wordwall": "wordwall"
+}
+  }
+}

@@ -473,7 +473,7 @@ function buildSvarString(lessonObj: Lesson, answersObj: AnswersMap): string {
 }
 
 export default function StudentLessonPage() {
-  const t = useTranslations("studentLesson");
+  const t = useTranslations("lessonsLanding");
   const locale = useLocale();
 
   const params = useParams<{ lessonId: string }>();

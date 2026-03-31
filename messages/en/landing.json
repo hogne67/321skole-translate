@@ -1,0 +1,223 @@
+{
+  "landing": {
+    "common": {
+      "login": "Log in",
+      "register": "Sign up"
+    },
+    "topbar": {
+      "nav": {
+        "teachers": "For teachers",
+        "students": "For students",
+        "spaces": "Spaces"
+      }
+    },
+    "hero": {
+      "badge": "Join a global learning network!",
+      "title": "The future of learning starts here",
+      "lead": "A new, revolutionary platform to create, share, and master knowledge – tailored for students, teachers, and parents. And best of all: It’s free.",
+      "ctaPrimary": "Sign up today",
+      "ctaSecondary": "Log in",
+      "guestNote": "Guests join via shared links to lessons/Spaces.",
+      "stats": {
+        "languages": {
+          "title": "Languages",
+          "value": "All",
+          "hint": "Text + tasks + feedback"
+        },
+        "level": {
+          "title": "Level",
+          "value": "CEFR A1–C1",
+          "hint": "Simplify, improve, vary"
+        },
+        "audio": {
+          "title": "Audio",
+          "value": "Adjustable",
+          "hint": "Text + translation"
+        },
+        "pdf": {
+          "title": "PDF",
+          "value": "Export",
+          "hint": "Ready-to-use worksheets"
+        }
+      },
+      "imageAlt": "Illustration of a teacher and student using 321skole",
+      "cards": {
+        "text": {
+          "title": "Text",
+          "subtitle": "Level-adjust"
+        },
+        "tasks": {
+          "title": "Tasks",
+          "subtitle": "Vary"
+        },
+        "feedback": {
+          "title": "Feedback",
+          "subtitle": "Instant"
+        }
+      },
+      "floating": {
+        "title": "Pedagogical AI",
+        "subtitle": "Teacher leads · AI assists"
+      }
+    },
+    "trustLine": "Ready for schools, courses, and adult education—without heavy LMS friction.",
+    "teachers": {
+      "eyebrow": "For teachers",
+      "title": "Create more, faster and better",
+      "description": "A practical learning management system that helps you produce, adapt, and share learning content—without losing control of quality and level.",
+      "imageAlt": "Teacher planning lessons on a laptop",
+      "bullets": [
+        "Create texts in any language and level (write, paste, or generate).",
+        "Generate and edit many task types (MCQ, open answers, writing tasks).",
+        "Create own spaces—and collect submissions.",
+        "Get auto corrected submissions and generate AI supported feedback.",
+        "Export finished lessons as both digital lessons and PDF.",
+        "Create reading tests with immediately feedback."
+      ],
+      "cta": "Sign up today"
+    },
+    "students": {
+      "eyebrow": "For students",
+      "title": "Learn faster, better and smarter",
+      "description": "Generate own lessons, check your level and exercise with AI powered tools like translation, sound and immediately feedback in multiple languages.",
+      "imageAlt": "Student learning a language with headphones",
+      "bullets": [
+        "Create own lessons in any level.",
+        "Lessons with adjustable audio speed—both for the main text and translation.",
+        "Instant feedback on writing (learning language + optional second language).",
+        "Explanations that help you improve—not just right/wrong.",
+        "Participate in worldwide learning networks",
+        "Find your level. Create reading tests with immediately feedback."
+      ],
+      "cta": "Log in"
+    },
+    "parents": {
+      "eyebrow": "For parents",
+      "title": "Support learning smarter and better",
+      "description": "Support, practice, and follow progress with powerful tools designed for everyday use at home.",
+      "imageAlt": "Student learning a language with headphones",
+      "bullets": [
+        "Create your own tasks, lessons, and family Spaces.",
+        "Check level and track development over time.",
+        "Practice reading together with audio, translation, and reading tests.",
+        "Explanations that help you improve—not just right/wrong.",
+        "Give personal feedback with simple star ratings",
+        "Find your level. Create reading tests with immediately feedback."
+      ],
+      "cta": "Log in"
+    },
+    "spaces": {
+      "eyebrow": "Spaces",
+      "title": "One room for everything happening in learning",
+      "description": "Share lessons, collect submissions, and follow progress—for classrooms, courses, and adult education.",
+      "cards": [
+        {
+          "title": "Share in seconds",
+          "text": "Give students a link or code. They land right in the lesson."
+        },
+        {
+          "title": "Anonymous or logged in",
+          "text": "Low barrier at the start—secure login when you're ready."
+        },
+        {
+          "title": "Overview and flow",
+          "text": "Everything together: texts, tasks, answers, and feedback—clear and tidy."
+        }
+      ],
+      "imageAlt": "Mockup of Spaces in 321skole"
+    },
+    "whyAi": {
+      "eyebrow": "Why AI supprted tools?",
+      "title": "AI as an assistant. Not the answer key.",
+      "description": "This is pedagogical AI: You decides the content, and AI helps with language, level, and variety. Students get explanations—not shortcuts.",
+      "checks": [
+        "Full control: everything can be edited and adjusted.",
+        "Safe support: focus on learning, understanding, and progress.",
+        "Multilingual from the ground up: text, tasks, audio, and feedback."
+      ],
+      "flowTitle": "Example flow",
+      "flow": {
+        "1": "Teacher chooses topic and level",
+        "2": "Text is created/adapted in minutes",
+        "3": "Tasks are generated and edited",
+        "4": "Share in a Space → students work",
+        "5": "Instant feedback + export as PDF"
+      }
+    },
+    "roles": {
+      "title": "Free to start. Easy to upgrade.",
+      "description": "Use the library and translator for free. Upgrade when you need more capacity, more tasks, and advanced AI tools.",
+      "seeAll": "See all plans",
+      "teaser": "Plans for Student, Teacher and Parent — from 59 NOK/mo. See full details on the pricing page.",
+      "cards": {
+        "student": {
+          "title": "Student",
+          "freeTitle": "Free",
+          "free": {
+            "0": "Read the library and use the translator",
+            "1": "Start tasks: 2 / month",
+            "2": "Join classrooms and collaborate"
+          },
+          "paidTitle": "Plans from",
+          "price": "59 NOK/mo",
+          "paid": {
+            "0": "More tasks per month",
+            "1": "Study groups + collaboration board",
+            "2": "Pro tools (language + audio) in Plus/Pro"
+          }
+        },
+        "teacher": {
+          "title": "Teacher",
+          "freeTitle": "Free",
+          "free": {
+            "0": "Create and test tasks (Light)",
+            "1": "1 space / 15 students",
+            "2": "2 Pro tasks (language + audio) / month"
+          },
+          "paidTitle": "Plans from",
+          "price": "59 NOK/mo",
+          "paid": {
+            "0": "More spaces and more students",
+            "1": "PDF + private sharing (unlisted)",
+            "2": "Publishing and analytics in Plus/Pro"
+          }
+        },
+        "parent": {
+          "title": "Parent",
+          "freeTitle": "Free",
+          "free": {
+            "0": "Support your child at home",
+            "1": "Start tasks: 2 / month"
+          },
+          "paidTitle": "Plans from",
+          "price": "59 NOK/mo",
+          "paid": {
+            "0": "More kids + more practice",
+            "1": "Progress overview in Plus/Pro",
+            "2": "More AI (Light/Pro) and image credits"
+          }
+        }
+      }
+    },
+    "ctaLite": {
+      "title": "Ready to get started?",
+      "lead": "Create, adapt, share, and support learning with AI-powered tools built for real classrooms and real learners.",
+      "primary": "Get started",
+      "secondary": "See pricing",
+      "note": "Free to start. Upgrade only when you need more capacity.",
+      "boxTitle": "What you get from day one",
+      "checks": [
+        "Create lessons and tasks in minutes",
+        "Use translation, audio, and feedback tools",
+        "Share lessons in Spaces",
+        "Export and reuse content easily"
+      ]
+    },
+    "footer": {
+      "about": "About",
+      "privacy": "Privacy",
+      "contact": "Contact",
+      "rights": "All rights reserved."
+    }
+  }
+}

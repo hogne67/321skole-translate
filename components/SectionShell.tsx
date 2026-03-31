@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { useParams, usePathname } from "next/navigation";
 
 type NavItem = { href: string; label: string };
@@ -49,49 +50,55 @@ export default function SectionShell({
     return `/${locale}${href}`;
   }
 
-  const toolsItem = items.find((it) => isToolsItem(it.href));
-  const navItems = items;
+  const navItems = useMemo(() => {
+    const tools = items.filter((it) => isToolsItem(it.href));
+    const rest = items.filter((it) => !isToolsItem(it.href));
+    return [...tools, ...rest];
+  }, [items]);
 
   return (
     <div className="shellRoot">
       {!hideHeader && (
         <div className="sectionHeader">
-          <div className="sectionHeaderTop">
-            <div className="sectionTitleWrap">
-              <h1 className="sectionTitle">{title}</h1>
-              {subtitle ? <p className="sectionSubtitle">{subtitle}</p> : null}
-            </div>
-
-            {!hideNav && toolsItem ? (
-              <Link
-                href={withLocale(toolsItem.href)}
-                className="mobileToolsLink"
-              >
-                {toolsItem.label}
-              </Link>
-            ) : null}
+          <div className="sectionTitleWrap">
+            <h1 className="sectionTitle">{title}</h1>
+            {subtitle ? <p className="sectionSubtitle">{subtitle}</p> : null}
           </div>
 
           {!hideNav && (
-            <div className="sectionNav">
-              {navItems.map((it) => {
+            <div className="sectionNav" aria-label="Section navigation">
+              {navItems.map((it, index) => {
                 const isTools = isToolsItem(it.href);
                 const isActive = isItemActive(it.href);
+                const isPrimary = index === 0 && isTools;
 
-                const background = isTools ? "#deebde" : isActive ? "#eef6ff" : "#ffffff";
-                const color = isTools ? "#1f7a1f" : isActive ? "#0f172a" : "#1f2937";
+                const background = isTools
+                  ? "#deebde"
+                  : isActive
+                    ? "#eef6ff"
+                    : "#ffffff";
+
+                const color = isTools
+                  ? "#1f7a1f"
+                  : isActive
+                    ? "#0f172a"
+                    : "#1f2937";
+
                 const border = isTools
                   ? "1px solid #81beb3"
                   : isActive
                     ? "1px solid #bfd7f7"
                     : "1px solid rgba(0,0,0,0.12)";
-                const boxShadow = isTools ? "0 1px 2px rgba(0,0,0,0.10)" : "none";
+
+                const boxShadow = isTools
+                  ? "0 1px 2px rgba(0,0,0,0.10)"
+                  : "none";
 
                 return (
                   <Link
                     key={it.href}
                     href={withLocale(it.href)}
-                    className={isTools ? "navLink navLinkTools" : "navLink"}
+                    className={`navLink ${isTools ? "navLinkTools" : ""} ${isPrimary ? "navLinkPrimary" : ""}`}
                     style={{
                       textDecoration: "none",
                       borderRadius: 999,
@@ -136,19 +143,9 @@ export default function SectionShell({
           background: #fff;
         }
 
-        .sectionHeaderTop {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 12px;
-          min-width: 0;
-          max-width: 100%;
-        }
-
         .sectionTitleWrap {
           min-width: 0;
           max-width: 100%;
-          flex: 1 1 auto;
         }
 
         .sectionTitle {
@@ -164,10 +161,6 @@ export default function SectionShell({
           overflow-wrap: anywhere;
         }
 
-        .mobileToolsLink {
-          display: none;
-        }
-
         .sectionNav {
           margin-top: 12px;
           display: flex;
@@ -179,6 +172,7 @@ export default function SectionShell({
           padding-bottom: 6px;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
+          scroll-snap-type: x proximity;
         }
 
         .sectionNav::-webkit-scrollbar {
@@ -188,6 +182,7 @@ export default function SectionShell({
         .navLink {
           flex: 0 0 auto;
           max-width: 100%;
+          scroll-snap-align: start;
         }
 
         .sectionContent {
@@ -203,7 +198,31 @@ export default function SectionShell({
 
         @media (max-width: 560px) {
           .sectionHeader {
-            padding: 12px 10px 6px;
+            padding: 10px 10px 6px;
+          }
+
+          .sectionTitle {
+            font-size: 18px;
+          }
+
+          .sectionSubtitle {
+            font-size: 13px;
+            margin-top: 4px;
+          }
+
+          .sectionNav {
+            margin-top: 10px;
+            gap: 8px;
+            padding-bottom: 4px;
+          }
+
+          .navLink {
+            font-size: 13px !important;
+            padding: 9px 12px !important;
+          }
+
+          .navLinkPrimary {
+            font-weight: 800 !important;
           }
 
           .sectionContent {
@@ -212,27 +231,6 @@ export default function SectionShell({
 
           .sectionContent.full {
             padding: 0;
-          }
-
-          .mobileToolsLink {
-            display: inline-flex;
-            flex: 0 0 auto;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            border-radius: 999px;
-            padding: 8px 12px;
-            font-size: 13px;
-            font-weight: 700;
-            color: #1f7a1f;
-            background: #deebde;
-            border: 1px solid #81beb3;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-            white-space: nowrap;
-          }
-
-          .navLinkTools {
-            display: none !important;
           }
         }
 

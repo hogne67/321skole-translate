@@ -1,0 +1,51 @@
+{
+  "libraryLanding": {
+    "errors": {
+      "label": "Error",
+      "fetchFailed": "Could not load published lessons.",
+      "ratingSaveFailed": "Could not save rating.",
+      "saveToMyContentFailed": "Could not add to My content."
+    },
+    "filters": {
+      "searchPlaceholder": "Search: title, text, type…",
+      "textTypeAll": "Text type",
+      "languagePlaceholder": "Search language…",
+      "levelAll": "Level",
+      "reset": "Reset"
+    },
+    "status": {
+      "loading": "Loading published lessons…",
+      "showingCount": "Showing {shown} of {total}",
+      "range": "({from}–{to})"
+    },
+    "empty": {
+      "noResults": "No published lessons found. Try clearing filters or searching for something else."
+    },
+    "card": {
+      "imageFallback": "Image"
+    },
+    "languages": {
+      "all": "All languages",
+      "norwegianBokmal": "Norwegian (Bokmål)"
+    },
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next",
+      "page": "Page",
+      "perPage": "Per page"
+    },
+    "rating": {
+      "ariaLabel": "Rating {value} out of 5",
+      "rateStar": "Give {star} stars",
+      "saving": "Saving…",
+      "loginRequired": "You must be logged in to rate."
+    },
+    "saveToMyContent": {
+      "loadingUser": "Please wait while your user is loading.",
+      "loading": "Loading…",
+      "saving": "Saving…",
+      "button": "Add to My content",
+      "success": "\"{title}\" was added to My content."
+    }
+  }
+}

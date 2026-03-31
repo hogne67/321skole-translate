@@ -1,0 +1,24 @@
+{
+  "dashboardIntro": {
+    "helloAnon": "Hello!",
+    "helloUser": "Hello {name}!",
+    "guest": "guest",
+    "loggedIn": "logged in",
+    "youAre": "You are {state} as <b>{role}</b>.",
+    "activity": "You can continue your <b>activity</b> below.",
+    "recommendRegister": "We recommend creating an account to save your work and sync your content.",
+    "remaining": "{count} left",
+    "plans": {
+      "free": "Free",
+      "basic": "Basic",
+      "plus": "Plus",
+      "pro": "Pro"
+    },
+    "actions": {
+      "seePlans": "See plans",
+      "registerLogin": "Register / log in",
+      "openLibrary": "Open library"
+    }
+  }
+}  
+

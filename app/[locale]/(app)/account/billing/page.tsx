@@ -1,9 +1,11 @@
+//\(app)\account\billing\page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useLocale, useTranslations } from "next-intl";
 
 type BillingPlan = "free" | "basic" | "plus" | "pro";
 type BillingRole = "student" | "teacher" | "parent";
@@ -42,27 +44,15 @@ type CheckoutPlan = "basic" | "plus" | "pro";
 function resolveRole(data: UserDocData | null): BillingRole | null {
   if (!data) return null;
 
-  if (
-    data.role === "student" ||
-    data.role === "teacher" ||
-    data.role === "parent"
-  ) {
+  if (data.role === "student" || data.role === "teacher" || data.role === "parent") {
     return data.role;
   }
 
-  if (
-    data.mode === "student" ||
-    data.mode === "teacher" ||
-    data.mode === "parent"
-  ) {
+  if (data.mode === "student" || data.mode === "teacher" || data.mode === "parent") {
     return data.mode;
   }
 
-  if (
-    data.org?.role === "student" ||
-    data.org?.role === "teacher" ||
-    data.org?.role === "parent"
-  ) {
+  if (data.org?.role === "student" || data.org?.role === "teacher" || data.org?.role === "parent") {
     return data.org.role;
   }
 
@@ -80,46 +70,15 @@ function allowedPlansForRole(role: BillingRole | null): CheckoutPlan[] {
   return [];
 }
 
-function labelForPlan(plan: BillingPlan | null | undefined): string {
-  if (plan === "basic") return "Basic";
-  if (plan === "plus") return "Plus";
-  if (plan === "pro") return "Pro";
-  return "Free";
-}
-
-function labelForStatus(status: BillingStatus | null | undefined): string {
-  switch (status) {
-    case "active":
-      return "Aktiv";
-    case "trialing":
-      return "Prøveperiode";
-    case "past_due":
-      return "Forfalt";
-    case "canceled":
-      return "Avsluttet";
-    case "unpaid":
-      return "Ubetalt";
-    case "incomplete":
-      return "Ufullført";
-    default:
-      return "Ikke aktiv";
-  }
-}
-
-function formatDate(iso?: string | null): string {
-  if (!iso) return "—";
-
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-
-  return new Intl.DateTimeFormat("no-NO", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
+function capitalize(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export default function BillingPage() {
+  const t = useTranslations("accountBilling");
+  const locale = useLocale();
+
   const [uid, setUid] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserDocData | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -130,12 +89,10 @@ export default function BillingPage() {
 
   useEffect(() => {
     const auth = getAuth();
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUid(user?.uid ?? null);
       setAuthReady(true);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -160,6 +117,28 @@ export default function BillingPage() {
   const effectivePlan = userData?.plan ?? "free";
   const billing = userData?.billing ?? null;
   const status = billing?.status ?? "inactive";
+
+  function labelForPlan(plan: BillingPlan | null | undefined) {
+    return t(`plans.${plan ?? "free"}`);
+  }
+
+  function labelForStatus(status: BillingStatus | null | undefined) {
+    return t(`statuses.${status ?? "inactive"}`);
+  }
+
+  function formatDate(iso?: string | null) {
+    if (!iso) return t("common.empty");
+
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return t("common.empty");
+
+    return new Intl.DateTimeFormat(locale, {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  }
+
   const renewalText = formatDate(billing?.currentPeriodEnd ?? null);
 
   async function getToken(): Promise<string> {
@@ -167,7 +146,7 @@ export default function BillingPage() {
     const user = auth.currentUser;
 
     if (!user) {
-      throw new Error("Du må være logget inn.");
+      throw new Error(t("errors.mustBeSignedIn"));
     }
 
     return user.getIdToken();
@@ -190,8 +169,8 @@ export default function BillingPage() {
       });
 
       const text = await res.text();
-
       let data: Record<string, unknown> = {};
+
       try {
         data = text ? JSON.parse(text) : {};
       } catch {
@@ -199,14 +178,7 @@ export default function BillingPage() {
       }
 
       if (!res.ok) {
-        const errorMessage =
-          typeof data.error === "string"
-            ? data.error
-            : typeof data.raw === "string" && data.raw
-            ? data.raw
-            : `Feil ved checkout (${res.status})`;
-
-        setMessage(errorMessage);
+        setMessage(t("errors.checkoutFailed", { status: res.status }));
         return;
       }
 
@@ -215,10 +187,10 @@ export default function BillingPage() {
         return;
       }
 
-      setMessage("Checkout svarte uten URL.");
+      setMessage(t("errors.checkoutMissingUrl"));
     } catch (error) {
       console.error("Checkout failed:", error);
-      setMessage(error instanceof Error ? error.message : "Noe gikk galt.");
+      setMessage(error instanceof Error ? error.message : t("errors.generic"));
     } finally {
       setCheckoutLoading(null);
     }
@@ -239,8 +211,8 @@ export default function BillingPage() {
       });
 
       const text = await res.text();
-
       let data: Record<string, unknown> = {};
+
       try {
         data = text ? JSON.parse(text) : {};
       } catch {
@@ -248,14 +220,7 @@ export default function BillingPage() {
       }
 
       if (!res.ok) {
-        const errorMessage =
-          typeof data.error === "string"
-            ? data.error
-            : typeof data.raw === "string" && data.raw
-            ? data.raw
-            : `Feil ved portal (${res.status})`;
-
-        setMessage(errorMessage);
+        setMessage(t("errors.portalFailed", { status: res.status }));
         return;
       }
 
@@ -264,10 +229,10 @@ export default function BillingPage() {
         return;
       }
 
-      setMessage("Portal svarte uten URL.");
+      setMessage(t("errors.portalMissingUrl"));
     } catch (error) {
       console.error("Portal failed:", error);
-      setMessage(error instanceof Error ? error.message : "Noe gikk galt.");
+      setMessage(error instanceof Error ? error.message : t("errors.generic"));
     } finally {
       setPortalLoading(false);
     }
@@ -276,59 +241,58 @@ export default function BillingPage() {
   return (
     <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
-        Abonnement
+        {t("title")}
       </h1>
 
       <p style={{ color: "#475569", marginBottom: 24 }}>
-        Her kan du se plan, status og administrere Stripe-abonnementet ditt.
+        {t("subtitle")}
       </p>
 
       {!authReady ? (
-        <div style={cardStyle}>Laster innlogging ...</div>
+        <div style={cardStyle}>{t("loadingAuth")}</div>
       ) : !uid ? (
-        <div style={cardStyle}>Du må være logget inn for å se abonnement.</div>
+        <div style={cardStyle}>{t("mustBeSignedIn")}</div>
       ) : (
         <>
           <section style={cardStyle}>
-            <h2 style={sectionTitleStyle}>Nåværende status</h2>
+            <h2 style={sectionTitleStyle}>{t("currentStatus")}</h2>
 
             <div style={gridStyle}>
-              <InfoItem label="Rolle" value={role ? capitalize(role) : "—"} />
-              <InfoItem label="Plan" value={labelForPlan(effectivePlan)} />
-              <InfoItem label="Billing-status" value={labelForStatus(status)} />
-              <InfoItem label="Fornyes / utløper" value={renewalText} />
+              <InfoItem label={t("fields.role")} value={role ? capitalize(role) : t("common.empty")} />
+              <InfoItem label={t("fields.plan")} value={labelForPlan(effectivePlan)} />
+              <InfoItem label={t("fields.billingStatus")} value={labelForStatus(status)} />
+              <InfoItem label={t("fields.renewsOrEnds")} value={renewalText} />
               <InfoItem
-                label="Avsluttes ved periodens slutt"
-                value={billing?.cancelAtPeriodEnd ? "Ja" : "Nei"}
+                label={t("fields.cancelAtPeriodEnd")}
+                value={billing?.cancelAtPeriodEnd ? t("common.yes") : t("common.no")}
               />
               <InfoItem
-                label="Provider"
-                value={billing?.provider ? String(billing.provider) : "—"}
+                label={t("fields.provider")}
+                value={billing?.provider ? String(billing.provider) : t("common.empty")}
               />
             </div>
 
-            <div style={{ marginTop: 20, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ marginTop: 20 }}>
               <button
                 onClick={openPortal}
                 disabled={portalLoading || !billing?.customerId}
                 style={secondaryButtonStyle}
               >
-                {portalLoading ? "Åpner ..." : "Administrer abonnement"}
+                {portalLoading ? t("buttons.opening") : t("buttons.manageSubscription")}
               </button>
             </div>
           </section>
 
           <section style={cardStyle}>
-            <h2 style={sectionTitleStyle}>Oppgrader eller bytt plan</h2>
+            <h2 style={sectionTitleStyle}>{t("upgradeSection")}</h2>
 
             {allowedPlans.length === 0 ? (
-              <p style={{ color: "#64748b" }}>
-                Fant ingen gyldige planer for denne brukeren.
-              </p>
+              <p style={{ color: "#64748b" }}>{t("noPlansForUser")}</p>
             ) : (
               <div style={planGridStyle}>
                 {allowedPlans.map((plan) => {
                   const isCurrent = effectivePlan === plan;
+
                   return (
                     <div key={plan} style={planCardStyle}>
                       <div style={{ fontSize: 20, fontWeight: 700 }}>
@@ -336,9 +300,7 @@ export default function BillingPage() {
                       </div>
 
                       <div style={{ color: "#64748b", marginTop: 8 }}>
-                        {plan === "basic" && "Et godt startnivå for vanlig bruk."}
-                        {plan === "plus" && "Mer kapasitet og flere premium-funksjoner."}
-                        {plan === "pro" && "Mest relevant for lærer med høyere behov."}
+                        {t(`plans.${plan}Description`)}
                       </div>
 
                       <div style={{ marginTop: 16 }}>
@@ -348,10 +310,10 @@ export default function BillingPage() {
                           style={isCurrent ? disabledButtonStyle : primaryButtonStyle}
                         >
                           {isCurrent
-                            ? "Nåværende plan"
+                            ? t("buttons.currentPlan")
                             : checkoutLoading === plan
-                            ? "Laster ..."
-                            : `Velg ${labelForPlan(plan)}`}
+                            ? t("buttons.loading")
+                            : t("buttons.choosePlan", { plan: labelForPlan(plan) })}
                         </button>
                       </div>
                     </div>
@@ -362,19 +324,7 @@ export default function BillingPage() {
           </section>
 
           {message ? (
-            <div
-              style={{
-                marginTop: 20,
-                padding: 16,
-                border: "1px solid #fed7aa",
-                borderRadius: 14,
-                background: "#fff7ed",
-                color: "#9a3412",
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {message}
-            </div>
+            <div style={messageStyle}>{message}</div>
           ) : null}
         </>
       )}
@@ -384,23 +334,11 @@ export default function BillingPage() {
 
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      style={{
-        padding: 14,
-        borderRadius: 14,
-        border: "1px solid #e2e8f0",
-        background: "#f8fafc",
-      }}
-    >
+    <div style={infoItemStyle}>
       <div style={{ fontSize: 13, color: "#64748b", marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 16, fontWeight: 600 }}>{value}</div>
     </div>
   );
-}
-
-function capitalize(value: string): string {
-  if (!value) return value;
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 const cardStyle: React.CSSProperties = {
@@ -409,7 +347,6 @@ const cardStyle: React.CSSProperties = {
   padding: 20,
   background: "#ffffff",
   marginBottom: 20,
-  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
 };
 
 const sectionTitleStyle: React.CSSProperties = {
@@ -434,7 +371,13 @@ const planCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 16,
   padding: 16,
-  background: "#fcfcfd",
+};
+
+const infoItemStyle: React.CSSProperties = {
+  padding: 14,
+  borderRadius: 14,
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
 };
 
 const primaryButtonStyle: React.CSSProperties = {
@@ -452,7 +395,6 @@ const secondaryButtonStyle: React.CSSProperties = {
   borderRadius: 12,
   padding: "10px 14px",
   background: "#fff",
-  color: "#0f172a",
   fontWeight: 600,
   cursor: "pointer",
 };
@@ -463,6 +405,13 @@ const disabledButtonStyle: React.CSSProperties = {
   padding: "10px 14px",
   background: "#f8fafc",
   color: "#94a3b8",
-  fontWeight: 600,
-  cursor: "not-allowed",
+};
+
+const messageStyle: React.CSSProperties = {
+  marginTop: 20,
+  padding: 16,
+  border: "1px solid #fed7aa",
+  borderRadius: 14,
+  background: "#fff7ed",
+  color: "#9a3412",
 };

@@ -248,7 +248,7 @@ export default function TeacherSpaceAssignedTaskPage() {
   const router = useRouter();
   const locale = useLocale();
 
-  const t = useTranslations("teacher.assignedTask");
+  const t = useTranslations("assignedTask");
   const tCommon = useTranslations("common");
   const tActions = useTranslations("actions");
 

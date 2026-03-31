@@ -1,0 +1,9 @@
+{
+  "modes": {
+    "student": "Student",
+    "parent": "Parent",
+    "teacher": "Teacher",
+    "creator": "Creator",
+    "admin": "Admin"
+  }
+}

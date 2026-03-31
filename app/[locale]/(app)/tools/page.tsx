@@ -1,4 +1,4 @@
-// app/[locale]/(app)/tools/page.tsx"use client";
+// app/[locale]/(app)/tools/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -36,8 +36,7 @@ function badgeClass(badge?: ToolBadge) {
 
 export default function ToolsPage() {
   const locale = useLocale();
-  const t = useTranslations("tools.page");
-
+  const t = useTranslations("toolsIndex");
   return (
     <main className="mx-auto w-full max-w-5xl min-w-0 px-3 py-6 sm:px-4 sm:py-8">
       {/* Header */}

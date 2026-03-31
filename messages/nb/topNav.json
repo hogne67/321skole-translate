@@ -1,0 +1,10 @@
+{
+  "topNav": {
+    "language": "Språk",
+    "guestMode": "Gjest",
+    "loginOrCreate": "Logg inn / Registrer deg",
+    "completeProfile": "Fullfør profil",
+    "logout": "Logg ut",
+    "login": "Logg inn"
+  }
+}

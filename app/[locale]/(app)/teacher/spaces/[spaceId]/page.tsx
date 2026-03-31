@@ -241,7 +241,7 @@ export default function TeacherSpaceDetailPage() {
 }
 
 function Inner() {
-  const t = useTranslations("teacher.spaceDetail");
+  const t = useTranslations("spaceDetail");
   const tCommon = useTranslations("common");
   const locale = useLocale();
 

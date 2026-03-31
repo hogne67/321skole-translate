@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
@@ -22,9 +22,13 @@ function normalizeRole(raw: unknown): AppRole | null {
   if (r === "student") return "student";
   if (r === "parent") return "parent";
 
-  // gamle/utvidede roller:
-  // admin + creator behandles fortsatt som teacher-flyt i appen
-  if (r === "admin" || r === "creator" || r === "content" || r === "review" || r === "reviewer") {
+  if (
+    r === "admin" ||
+    r === "creator" ||
+    r === "content" ||
+    r === "review" ||
+    r === "reviewer"
+  ) {
     return "teacher";
   }
 
@@ -65,12 +69,11 @@ function normalizeNext(raw: string | null, locale: string): string | null {
     "/",
     `/${locale}`,
   ]);
+
   if (blocked.has(path)) return null;
 
   const withLocale = /^\/(en|no|pt)(\/|$)/.test(path) ? rebuilt : `/${locale}${rebuilt}`;
 
-  // Legacy remapping:
-  // gamle "globale" områder sendes til teacher-flyt
   const mapped =
     withLocale.startsWith(`/${locale}/content`)
       ? `/${locale}/teacher`
@@ -101,6 +104,7 @@ export default function PostLoginPage() {
   const router = useRouter();
   const sp = useSearchParams();
   const locale = useLocale();
+  const t = useTranslations("postLogin");
 
   const next = useMemo(() => normalizeNext(sp.get("next"), locale), [sp, locale]);
 
@@ -129,7 +133,6 @@ export default function PostLoginPage() {
       return;
     }
 
-    // auto-migrate eldre roller til ren rollemodell
     if (profile.role !== role || profile.onboardingComplete !== true) {
       (async () => {
         try {
@@ -159,7 +162,7 @@ export default function PostLoginPage() {
 
   return (
     <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, opacity: 0.8 }}>
-      Redirecting…
+      {t("redirecting")}
     </main>
   );
 }

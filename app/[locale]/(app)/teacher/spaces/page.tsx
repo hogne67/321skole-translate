@@ -64,7 +64,7 @@ export default function TeacherSpacesPage() {
 }
 
 function TeacherSpacesInner() {
-  const t = useTranslations("teacher.spaces");
+  const t = useTranslations("spaces")
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();

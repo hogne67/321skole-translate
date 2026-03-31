@@ -1,0 +1,65 @@
+{
+    "spaces": {
+      "title": "Spaces",
+      "subtitle": "Spaces are class or group rooms where you can share assignments with students, either with the whole class or with a smaller group.",
+      "newSpace": "+ Create new space",
+      "newSpaceLocked": "+ New space (locked)",
+      "newSpaceTitle": "Create a new space",
+      "newSpaceLockedTitle": "Requires attestation + Teacher/Creator mode",
+      "controls": {
+        "search": {
+          "label": "Search",
+          "placeholder": "Title or code…"
+        },
+        "sort": {
+          "label": "Sort",
+          "options": {
+            "newest": "Newest",
+            "oldest": "Oldest",
+            "title_az": "Title (A–Z)",
+            "title_za": "Title (Z–A)"
+          }
+        },
+        "filters": {
+          "label": "Filters",
+          "openOnly": "Open only",
+          "showing": "Showing: {n}"
+        }
+      },
+      "list": {
+        "untitled": "Untitled space",
+        "open": "Open",
+        "closed": "Closed",
+        "openTitle": "Space is open",
+        "closedTitle": "Space is closed",
+        "code": "Code:",
+        "copyCodeTitle": "Copy code",
+        "copied": "Copied ✅",
+        "members": "Members:",
+        "copyJoinLink": "Copy join link",
+        "copyJoinLinkTitle": "Copy join link",
+        "joinWithQr": "Join with QR code",
+        "joinWithQrTitle": "Show QR code",
+        "seeMembers": "See members",
+        "seeMembersTitle": "See members",
+        "openSpace": "Open space",
+        "openSpaceTitle": "Open space",
+        "board": "Board",
+        "boardTitle": "Open the board for this space"
+      },
+      "empty": {
+        "title": "No spaces found.",
+        "hint": "Create one with New space, then share it by code or link."
+      },
+      "qr": {
+        "title": "Join QR",
+        "subtitle": "{title} · Code: {code}",
+        "close": "Close",
+        "generating": "Generating…",
+        "error": "Could not generate QR. Install dependency: npm i qrcode",
+        "pointsTo": "This QR points to",
+        "note": "Note: install the QR dependency once: npm i qrcode",
+        "imageAlt": "QR code"
+      }
+    }
+  }

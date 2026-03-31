@@ -79,7 +79,7 @@ function getErrorMessage(err: unknown): string {
 }
 
 export default function ProducerPrintPage() {
-  const t = useTranslations("producer.print");
+  const t = useTranslations("lessonPrint");
   const locale = useLocale();
 
   const params = useParams<{ id: string }>();
@@ -97,9 +97,11 @@ export default function ProducerPrintPage() {
       const m = message || "";
       if (m === "No auth uid.") return t("errors.noAuthUid");
       if (m === "Fant ikke lesson.") return t("errors.notFound");
-      if (m === "Du har ikke tilgang til denne lesson (ownerId mismatch).") return t("errors.noAccessOwnerMismatch");
+      if (m === "Du har ikke tilgang til denne lesson (ownerId mismatch).") {
+        return t("errors.noAccessOwnerMismatch");
+      }
       if (m === "Kunne ikke laste lesson.") return t("errors.loadFailed");
-      return m;
+      return m || t("errors.unknown");
     },
     [t]
   );
@@ -215,7 +217,7 @@ export default function ProducerPrintPage() {
 
           <div className="pdf-header">
             <div className="pdf-headerMain">
-              <div className="pdf-kicker">321school worksheet</div>
+              <div className="pdf-kicker">321school {t("labels.kicker")}</div>
               <div className="pdf-title">{lesson.title ?? t("defaults.worksheetTitle")}</div>
 
               <div className="pdf-metaRow">
@@ -304,7 +306,9 @@ export default function ProducerPrintPage() {
                         {teacherMode ? (
                           <div className="answer">
                             <b>{t("teacher.answerKey")}:</b>{" "}
-                            {typeof task.correctAnswer === "string" ? task.correctAnswer : t("teacher.dash")}
+                            {typeof task.correctAnswer === "string"
+                              ? task.correctAnswer
+                              : t("teacher.dash")}
                           </div>
                         ) : null}
                       </div>
@@ -326,7 +330,9 @@ export default function ProducerPrintPage() {
                         {teacherMode ? (
                           <div className="answer">
                             <b>{t("teacher.answerKey")}:</b>{" "}
-                            {isTruthyString(task.correctAnswer) ? t("answers.true") : t("answers.false")}
+                            {isTruthyString(task.correctAnswer)
+                              ? t("answers.true")
+                              : t("answers.false")}
                           </div>
                         ) : null}
                       </div>
@@ -340,7 +346,9 @@ export default function ProducerPrintPage() {
                           ))}
                         </div>
 
-                        {teacherMode && typeof task.correctAnswer === "string" && task.correctAnswer.trim() ? (
+                        {teacherMode &&
+                        typeof task.correctAnswer === "string" &&
+                        task.correctAnswer.trim() ? (
                           <div className="answer">
                             <b>{t("teacher.suggestionNote")}:</b> {task.correctAnswer}
                           </div>

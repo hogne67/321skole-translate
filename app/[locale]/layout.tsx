@@ -1,10 +1,9 @@
-// app/[locale]/layout.tsx
 import React from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 
-const SUPPORTED_LOCALES = ["en", "no", "pt"] as const;
+const SUPPORTED_LOCALES = ["en", "nb", "pt"] as const;
 type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const dynamic = "force-dynamic";
@@ -20,7 +19,11 @@ export default async function LocaleLayout({
 
   if (!SUPPORTED_LOCALES.includes(locale as Locale)) notFound();
 
-  const messages = await getMessages();
+  const messages = await getMessages({ locale });
 
-  return <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>;
+  return (
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      {children}
+    </NextIntlClientProvider>
+  );
 }

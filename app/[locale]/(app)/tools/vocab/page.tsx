@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type VocabItem = {
   term: string;
@@ -44,12 +45,9 @@ async function findVocab(args: {
   return Array.isArray(data.items) ? data.items : [];
 }
 
-function getErrMessage(e: unknown) {
-  const msg = (e as { message?: unknown })?.message;
-  return typeof msg === "string" ? msg : "Could not find vocabulary";
-}
-
 export default function ToolsVocabPage() {
+  const t = useTranslations("vocabFree");
+
   const [text, setText] = useState("");
   const [targetLang, setTargetLang] = useState("no");
   const [level, setLevel] = useState("A2");
@@ -60,6 +58,11 @@ export default function ToolsVocabPage() {
   const [err, setErr] = useState<string | null>(null);
 
   const hasText = useMemo(() => text.trim().length > 0, [text]);
+
+  function getErrMessage(e: unknown) {
+    const msg = (e as { message?: unknown })?.message;
+    return typeof msg === "string" ? msg : t("errors.default");
+  }
 
   async function onRun() {
     setErr(null);
@@ -78,34 +81,40 @@ export default function ToolsVocabPage() {
 
   return (
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Glossary generator</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>
+        {t("title")}
+      </h1>
 
       <hr style={{ margin: "10px 0 14px" }} />
 
       <p style={{ opacity: 0.75, marginTop: 0 }}>
-        Paste a text, and get glossaries with example sentences + translation.
+        {t("subtitle")}
       </p>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ opacity: 0.75, fontSize: 13 }}>Target</span>
+          <span style={{ opacity: 0.75, fontSize: 13 }}>
+            {t("fields.target")}
+          </span>
           <select
             value={targetLang}
             onChange={(e) => setTargetLang(e.target.value)}
             style={{ border: "1px solid #ddd", borderRadius: 10, padding: "8px 10px" }}
           >
-            <option value="no">Norwegian</option>
-            <option value="en">English</option>
-            <option value="uk">Ukrainian</option>
-            <option value="ar">Arabic</option>
-            <option value="pl">Polish</option>
-            <option value="es">Spanish</option>
-            <option value="pt">Portuguese</option>
+            <option value="no">{t("languages.no")}</option>
+            <option value="en">{t("languages.en")}</option>
+            <option value="uk">{t("languages.uk")}</option>
+            <option value="ar">{t("languages.ar")}</option>
+            <option value="pl">{t("languages.pl")}</option>
+            <option value="es">{t("languages.es")}</option>
+            <option value="pt">{t("languages.pt")}</option>
           </select>
         </label>
 
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ opacity: 0.75, fontSize: 13 }}>CEFR</span>
+          <span style={{ opacity: 0.75, fontSize: 13 }}>
+            {t("fields.cefr")}
+          </span>
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value)}
@@ -120,7 +129,9 @@ export default function ToolsVocabPage() {
         </label>
 
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ opacity: 0.75, fontSize: 13 }}>Count</span>
+          <span style={{ opacity: 0.75, fontSize: 13 }}>
+            {t("fields.count")}
+          </span>
           <input
             type="number"
             min={5}
@@ -149,7 +160,7 @@ export default function ToolsVocabPage() {
             opacity: busy || !hasText ? 0.6 : 1,
           }}
         >
-          {busy ? "Finding…" : "Find vocabulary"}
+          {busy ? t("buttons.finding") : t("buttons.findVocabulary")}
         </button>
 
         {err && <span style={{ color: "crimson" }}>{err}</span>}
@@ -158,7 +169,9 @@ export default function ToolsVocabPage() {
       <div style={{ height: 12 }} />
 
       <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12 }}>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>Text</div>
+        <div style={{ fontWeight: 600, marginBottom: 8 }}>
+          {t("fields.text")}
+        </div>
         <textarea
           rows={10}
           value={text}
@@ -170,16 +183,18 @@ export default function ToolsVocabPage() {
             padding: 10,
             fontFamily: "inherit",
           }}
-          placeholder="Paste a text here…"
+          placeholder={t("placeholders.text")}
         />
       </div>
 
-      {items.length > 0 ? (
+      {items.length > 0 && (
         <>
           <div style={{ height: 12 }} />
 
           <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Vocabulary</div>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>
+              {t("fields.vocabulary")}
+            </div>
 
             <div style={{ display: "grid", gap: 12 }}>
               {items.map((it, idx) => (
@@ -194,14 +209,14 @@ export default function ToolsVocabPage() {
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "baseline" }}>
                     <div style={{ fontWeight: 800 }}>
                       {it.term}
-                      {it.baseForm && it.baseForm !== it.term ? (
+                      {it.baseForm && it.baseForm !== it.term && (
                         <span style={{ marginLeft: 8, opacity: 0.7, fontWeight: 600 }}>
                           ({it.baseForm})
                         </span>
-                      ) : null}
+                      )}
                     </div>
 
-                    {it.pos ? (
+                    {it.pos && (
                       <span
                         style={{
                           fontSize: 12,
@@ -213,22 +228,30 @@ export default function ToolsVocabPage() {
                       >
                         {it.pos}
                       </span>
-                    ) : null}
+                    )}
                   </div>
 
                   <div style={{ marginTop: 6 }}>
-                    <span style={{ opacity: 0.75 }}>Meaning:</span>{" "}
+                    <span style={{ opacity: 0.75 }}>
+                      {t("fields.meaning")}:
+                    </span>{" "}
                     <span style={{ fontWeight: 700 }}>{it.meaning}</span>
-                    {it.note ? <span style={{ opacity: 0.75 }}> — {it.note}</span> : null}
+                    {it.note && <span style={{ opacity: 0.75 }}> — {it.note}</span>}
                   </div>
 
                   <div style={{ marginTop: 10 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Example (from text)</div>
-                    <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>{it.example}</div>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                      {t("fields.exampleFromText")}
+                    </div>
+                    <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>
+                      {it.example}
+                    </div>
                   </div>
 
                   <div style={{ marginTop: 10 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Example translation</div>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                      {t("fields.exampleTranslation")}
+                    </div>
                     <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>
                       {it.exampleTranslation}
                     </div>
@@ -238,7 +261,7 @@ export default function ToolsVocabPage() {
             </div>
           </div>
         </>
-      ) : null}
+      )}
     </main>
   );
 }

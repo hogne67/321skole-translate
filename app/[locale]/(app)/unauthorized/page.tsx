@@ -57,7 +57,6 @@ export default function UnauthorizedPage() {
       </main>
     );
   }
-
   // Anonym bruker
   if (user.isAnonymous) {
     return (

@@ -11,9 +11,9 @@ const brand = {
 // Nå kun to språk. Legg bare til flere her senere (f.eks. en, es, fr ...).
 // Dette er bevisst ikke i18n-styrt ennå.
 const LOCALES: Array<{ code: string; label: string }> = [
-  { code: "no", label: "Norsk" },
+  { code: "nb", label: "Norsk" },
   { code: "en", label: "English" },
-  { code: "pt", label: "Portugese" },
+  { code: "pt", label: "Português" },
 ];
 
 export default async function HomePage() {
@@ -25,7 +25,7 @@ export default async function HomePage() {
     <main className="min-h-screen bg-white text-slate-900">
       <PublicHeader
         locale={locale}
-        schoolLabel={tr("brand.school")}
+        schoolLabel={tr("brandLogo.school")}
         loginLabel={t("common.login")}
       />
 

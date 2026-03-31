@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { auth, db } from "@/lib/firebase";
+
 import { onAuthStateChanged, type User } from "firebase/auth";
 import {
   collection,
@@ -20,6 +21,8 @@ import {
 } from "firebase/firestore";
 import { listMySpaceIds } from "@/lib/spaceMembership";
 import type { SpaceDoc } from "@/lib/spacesClient";
+
+type TFn = ReturnType<typeof useTranslations>;
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -118,13 +121,13 @@ function buildParentSubmissionId(spaceId: string, assignmentId: string, uid: str
   return `${spaceId}_${assignmentId}_${uid}`;
 }
 
-function statusLabel(status: string | null) {
+function statusLabel(status: string | null, t: TFn) {
   const s = String(status ?? "").trim().toLowerCase();
-  if (!s) return "Ikke startet";
-  if (s === "draft") return "Kladd";
-  if (s === "submitted") return "Sendt inn";
-  if (s === "needs_work") return "Trenger arbeid";
-  if (s === "reviewed" || s === "approved") return "Vurdert";
+  if (!s) return t("status.notStarted");
+  if (s === "draft") return t("status.draft");
+  if (s === "submitted") return t("status.submitted");
+  if (s === "needs_work") return t("status.needsWork");
+  if (s === "reviewed" || s === "approved") return t("status.reviewed");
   return s;
 }
 
@@ -182,7 +185,7 @@ function Badge({
 }
 
 export default function ParentSpacesPage() {
-  const t = useTranslations("parent.spaces");
+  const t = useTranslations("parentSpaces");
   const locale = useLocale();
   const router = useRouter();
 
@@ -432,7 +435,7 @@ export default function ParentSpacesPage() {
         <div className="min-w-0">
           <div className="text-base font-semibold text-slate-900">{t("title")}</div>
           <div className="mt-1 break-words text-sm text-slate-600">
-            {spaces.length} {spaces.length === 1 ? "gruppe" : "grupper"}
+            {t("counts.groups", { count: spaces.length })}
           </div>
         </div>
 
@@ -478,23 +481,23 @@ export default function ParentSpacesPage() {
 
                         {meta ? (
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Badge text={`${meta.lessonCount} oppgaver`} tone="neutral" />
+                            <Badge text={t("badges.tasks", { count: meta.lessonCount })} tone="neutral" />
                             {meta.activeLessonTitle ? (
-                              <Badge text={`Aktiv: ${meta.activeLessonTitle}`} tone="neutral" />
+                              <Badge text={t("badges.active", { title: meta.activeLessonTitle })} tone="neutral" />
                             ) : null}
                             <Badge
-                              text={statusLabel(meta.activeSubmissionStatus)}
+                              text={statusLabel(meta.activeSubmissionStatus, t)}
                               tone={statusTone(meta.activeSubmissionStatus)}
                             />
                             {meta.activeHasAiFeedback ? (
-                              <Badge text="AI-feedback" tone="good" />
+                              <Badge text={t("badges.aiFeedback")} tone="good" />
                             ) : null}
                             {meta.activeHasParentReview ? (
                               <Badge
                                 text={
                                   meta.activeReviewStars
-                                    ? `Foreldrevurdering • ${meta.activeReviewStars}★`
-                                    : "Foreldrevurdering"
+                                    ? t("badges.parentReviewWithStars", { stars: meta.activeReviewStars })
+                                    : t("badges.parentReview")
                                 }
                                 tone="good"
                               />

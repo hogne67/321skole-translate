@@ -13,17 +13,23 @@ import { useTranslations } from "next-intl";
    Locale helpers (TopNav)
 ========================= */
 
-const SUPPORTED_LOCALES = ["no", "en", "pt"] as const;
+const SUPPORTED_LOCALES = ["nb", "en", "pt"] as const;
 type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 function isLocale(x: string | undefined | null): x is Locale {
   return !!x && (SUPPORTED_LOCALES as readonly string[]).includes(x);
 }
 
+function normalizeLocale(x: string | undefined | null): Locale | null {
+  if (!x) return null;
+  if (x === "no") return "nb";
+  return isLocale(x) ? x : null;
+}
+
 function getLocaleFromPathname(pathname: string | null): Locale | null {
   if (!pathname) return null;
   const seg = pathname.split("/")[1];
-  return isLocale(seg) ? seg : null;
+  return normalizeLocale(seg);
 }
 
 /**
@@ -36,7 +42,7 @@ function getLocaleFromPathname(pathname: string | null): Locale | null {
  */
 function stripLeadingLocales(pathname: string): string {
   const parts = pathname.split("/").filter(Boolean);
-  while (parts.length > 0 && isLocale(parts[0])) parts.shift();
+  while (parts.length > 0 && normalizeLocale(parts[0])) parts.shift();
   return "/" + parts.join("/");
 }
 
@@ -48,14 +54,12 @@ function stripLeadingLocales(pathname: string): string {
  */
 function withLocale(locale: Locale | null, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
-
   if (href.startsWith("/space/")) return href;
 
   const cleaned = stripLeadingLocales(href);
   if (cleaned === "/") return locale ? `/${locale}` : "/";
 
-  if (locale) return `/${locale}${cleaned}`;
-  return cleaned;
+  return locale ? `/${locale}${cleaned}` : cleaned;
 }
 
 /**
@@ -63,21 +67,22 @@ function withLocale(locale: Locale | null, href: string): string {
  */
 function setLocaleInPathname(pathname: string, nextLocale: Locale): string {
   if (!pathname) return `/${nextLocale}`;
-
   if (pathname.startsWith("/space/")) return pathname;
 
-  const current = getLocaleFromPathname(pathname);
-  if (current) {
-    const parts = pathname.split("/");
+  const parts = pathname.split("/");
+  const first = normalizeLocale(parts[1]);
+
+  if (first) {
     parts[1] = nextLocale;
 
-    if (isLocale(parts[2])) parts.splice(2, 1);
+    while (normalizeLocale(parts[2])) {
+      parts.splice(2, 1);
+    }
 
-    const joined = parts.join("/");
-    return joined || `/${nextLocale}`;
+    return parts.join("/") || `/${nextLocale}`;
   }
 
-  return pathname;
+  return `/${nextLocale}${pathname === "/" ? "" : pathname}`;
 }
 
 /* =========================
@@ -111,18 +116,17 @@ function defaultHomeForRole(role: AppRole | null): string {
 }
 
 export default function TopNav() {
-  const tTop = useTranslations("topnav");
-  const tBrand = useTranslations("brand");
+  const tTop = useTranslations("topNav");
+  const tBrand = useTranslations("brandLogo");
 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const locale = getLocaleFromPathname(pathname);
-  const currentLocale: Locale = locale ?? "no";
+  const currentLocale: Locale = locale ?? "nb";
 
   const { profile, loading } = useUserProfile();
-
   const [authUser, setAuthUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -132,8 +136,6 @@ export default function TopNav() {
   const isAnon = !!authUser?.isAnonymous;
   const isLoggedIn = !!authUser && !isAnon;
 
-  // anon => student
-  // logged in => read real role if present
   const role = useMemo<AppRole | null>(() => {
     if (isAnon) return "student";
     const roleStr = readStringField(profile, "role");
@@ -177,7 +179,6 @@ export default function TopNav() {
         flexWrap: "wrap",
       }}
     >
-      {/* LEFT */}
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <Link
           href={withLocale(locale, "/")}
@@ -197,7 +198,6 @@ export default function TopNav() {
         </Link>
       </div>
 
-      {/* RIGHT */}
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <label className="langWrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span className="langIcon" aria-hidden="true" style={{ fontSize: 18, opacity: 0.85 }}>
@@ -217,7 +217,7 @@ export default function TopNav() {
             aria-label={tTop("language")}
             title={tTop("language")}
           >
-            <option value="no">NO</option>
+            <option value="nb">NB</option>
             <option value="en">EN</option>
             <option value="pt">PT</option>
           </select>

@@ -1,0 +1,77 @@
+{
+  "studentBoard": {
+    "title": "Board",
+    "subtitle": "This is the live classroom board.",
+    "loading": "Loading…",
+    "inactive": "No live session right now.",
+    "sent": "Sent.",
+    "fallbackStudentName": "Student",
+    "fallbackQuestionTitle": "Today's question",
+    "errors": {
+      "fetchBoardFailed": "Could not load board."
+    },
+    "status": {
+      "live": "LIVE",
+      "notLive": "Not live",
+      "session": "session",
+      "mode": "mode"
+    },
+    "tabs": {
+      "question": "Today's question",
+      "notes": "Notes",
+      "poll": "Poll",
+      "wordwall": "Wordwall"
+    },
+    "groupName": {
+      "label": "Name / group",
+      "placeholder": "Write your name or group name"
+    },
+    "answer": {
+      "label": "Your answer",
+      "placeholder": "Write briefly…",
+      "send": "Send to board"
+    },
+    "poll": {
+      "fallbackQuestion": "What do you think?",
+      "noOptions": "No answer options yet.",
+      "send": "Send vote",
+      "sent": "Thank you! Your vote has been sent.",
+      "anonymousHint": "Your vote is anonymous (we do not store name/uid)."
+    },
+    "wordwall": {
+      "fallbackPrompt": "Write one word.",
+      "label": "Your word",
+      "placeholder": "Write one word or a short phrase",
+      "previewTitle": "Preview",
+      "previewFallback": "Your word appears here…",
+      "send": "Send word",
+      "sent": "Thank you! Your word has been sent.",
+      "anonymousHint": "Wordwall is anonymous. We only store the word, not name or uid."
+    },
+    "sticky": {
+      "colorLabel": "Sticky note color",
+      "previewTitle": "Preview",
+      "previewTag": "sticky",
+      "previewFallback": "Write an answer to preview the note…",
+      "previewHint": "This is how the note appears on the teacher's board.",
+      "colors": {
+        "amber": "Yellow",
+        "emerald": "Green",
+        "sky": "Blue",
+        "rose": "Pink",
+        "violet": "Purple"
+      }
+    },
+    "notes": {
+      "title": "Notes (local)",
+      "clear": "Clear",
+      "clearTitle": "Eraser / clear",
+      "placeholder": "Write notes here… (saved only on this device)",
+      "localOnly": "Only for you – no one else can see this."
+    },
+    "timer": {
+      "title": "Timer",
+      "countingDown": "Counting down…"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+    "parentNewSpace": {
+    "title": "Create new family room",
+    "subtitle": "Give the room a name that fits your home. For example, you can create one room per child or per topic.",
+    "loading": "Loading…",
+    "fields": {
+      "title": "Room name",
+      "placeholder": "For example: Knut's room",
+      "help": "You can change and build on the room later."
+    },
+    "suggestions": {
+      "title": "Suggestions",
+      "room1": "Knut's room",
+      "room2": "Knut English",
+      "room3": "Emma reading",
+      "room4": "Family math"
+    },
+    "actions": {
+      "back": "Back to my spaces",
+      "create": "Create room",
+      "creating": "Creating…",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "mustBeLoggedIn": "You must be logged in as a parent to create a room.",
+      "missingTitle": "Enter a room name.",
+      "createFailed": "Could not create the room."
+    }
+  }
+}

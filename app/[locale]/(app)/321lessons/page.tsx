@@ -177,6 +177,9 @@ function StarRating({
   busy,
   disabled,
   onRate,
+  ariaLabel,
+  rateStarLabel,
+  savingLabel,
 }: {
   value: number;
   count: number;
@@ -184,6 +187,9 @@ function StarRating({
   busy?: boolean;
   disabled?: boolean;
   onRate: (value: number) => void;
+  ariaLabel: string;
+  rateStarLabel: (star: number) => string;
+  savingLabel: string;
 }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const shown = hovered ?? myValue ?? Math.round(value);
@@ -201,7 +207,7 @@ function StarRating({
         gap: 8,
         flexWrap: "wrap",
       }}
-      aria-label={`Rating ${value.toFixed(1)} av 5`}
+      aria-label={ariaLabel}
     >
       <div style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
         {[1, 2, 3, 4, 5].map((star) => {
@@ -220,8 +226,8 @@ function StarRating({
                 e.stopPropagation();
                 onRate(star);
               }}
-              aria-label={`Gi ${star} stjerner`}
-              title={`Gi ${star} stjerner`}
+              aria-label={rateStarLabel(star)}
+              title={rateStarLabel(star)}
               style={{
                 appearance: "none",
                 border: "none",
@@ -245,13 +251,13 @@ function StarRating({
         ({count})
       </span>
 
-      {busy ? <span style={{ fontSize: 12, opacity: 0.6 }}>Lagrer…</span> : null}
+      {busy ? <span style={{ fontSize: 12, opacity: 0.6 }}>{savingLabel}</span> : null}
     </div>
   );
 }
 
 export default function LessonsLandingPage() {
-  const t = useTranslations("lessonsLanding");
+  const t = useTranslations("libraryLanding");
   const tLoose = t as unknown as LooseT;
   const locale = useLocale();
   const router = useRouter();
@@ -464,7 +470,7 @@ export default function LessonsLandingPage() {
 
   async function rateLesson(lessonId: string, nextRating: number) {
     if (!currentUser?.uid) {
-      setRatingMsg("Du må være logget inn for å gi stjerner.");
+      setRatingMsg(t("rating.loginRequired"));
       return;
     }
 
@@ -522,7 +528,7 @@ export default function LessonsLandingPage() {
         [lessonId]: nextRating,
       }));
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Kunne ikke lagre rating.";
+      const message = err instanceof Error ? err.message : t("errors.ratingSaveFailed");
       setRatingMsg(message);
     } finally {
       setRatingBusyId(null);
@@ -531,7 +537,7 @@ export default function LessonsLandingPage() {
 
   async function addToMyContent(lesson: PublishedLesson) {
     if (!authReady) {
-      setSaveMsg("Vent litt mens brukeren lastes inn.");
+      setSaveMsg(t("saveToMyContent.loadingUser"));
       return;
     }
 
@@ -583,11 +589,11 @@ export default function LessonsLandingPage() {
         { merge: true }
       );
 
-      setSaveMsg(`"${lesson.title}" ble lagt til i Mitt innhold.`);
+      setSaveMsg(t("saveToMyContent.success", { title: lesson.title }));
     } catch (err) {
       console.error("addToMyContent failed", err);
       const message =
-        err instanceof Error ? err.message : "Kunne ikke legge til i Mitt innhold.";
+        err instanceof Error ? err.message : t("errors.saveToMyContentFailed");
       setSaveMsg(message);
     } finally {
       setSaveBusyId(null);
@@ -954,7 +960,7 @@ export default function LessonsLandingPage() {
             {t("status.showingCount", { shown: filtered.length, total: all.length })}{" "}
             {filtered.length > 0 ? (
               <span style={{ marginLeft: 8 }}>
-                ({shownFrom}–{shownTo})
+                {t("status.range", { from: shownFrom, to: shownTo })}
               </span>
             ) : null}
           </p>
@@ -1033,6 +1039,11 @@ export default function LessonsLandingPage() {
                         busy={ratingBusyId === l.id}
                         disabled={!currentUser}
                         onRate={(value) => rateLesson(l.id, value)}
+                        ariaLabel={t("rating.ariaLabel", {
+                          value: ratingAverage.toFixed(1),
+                        })}
+                        rateStarLabel={(star) => t("rating.rateStar", { star })}
+                        savingLabel={t("rating.saving")}
                       />
 
                       <button
@@ -1046,10 +1057,10 @@ export default function LessonsLandingPage() {
                         }}
                       >
                         {!authReady
-                          ? "Laster..."
+                          ? t("saveToMyContent.loading")
                           : saveBusyId === l.id
-                            ? "Lagrer..."
-                            : "Legg til mitt innhold"}
+                            ? t("saveToMyContent.saving")
+                            : t("saveToMyContent.button")}
                       </button>
                     </div>
                   </div>

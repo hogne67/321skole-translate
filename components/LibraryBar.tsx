@@ -11,7 +11,7 @@ import { useTranslations } from "next-intl";
    Locale helpers
 ========================= */
 
-const SUPPORTED_LOCALES = ["en", "no", "pt"] as const;
+const SUPPORTED_LOCALES = ["en", "nb", "pt"] as const;
 type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 function isLocale(x: string | undefined | null): x is Locale {

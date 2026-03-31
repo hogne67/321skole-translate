@@ -10,7 +10,7 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth } from "firebase/auth";
 import { useLocale } from "next-intl";
 
-type WorksheetLanguage = "no" | "en" | "pt";
+type WorksheetLanguage = "nb" | "en" | "pt";
 type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
 type Difficulty = "easy" | "medium" | "hard";
 type GeometryLevel = "grade_3_4" | "grade_5_7" | "grade_8_10";
@@ -102,7 +102,7 @@ type UIStrings = {
 };
 
 const STRINGS: Record<WorksheetLanguage, UIStrings> = {
-  no: {
+  nb: {
     pageTitle: "Matteark – utskrift",
     worksheet: "Arbeidsark",
     answerKeyTitle: "Fasit",
@@ -203,7 +203,7 @@ function safeString(v: unknown, fallback = ""): string {
 }
 
 function isWorksheetLanguage(value: unknown): value is WorksheetLanguage {
-  return value === "no" || value === "en" || value === "pt";
+  return value === "nb" || value === "en" || value === "pt";
 }
 
 function isGeometryTopic(value: unknown): value is GeometryTopic {
@@ -348,7 +348,7 @@ function getMeasurementLabel(
       string
     >
   > = {
-    no: {
+    nb: {
       length: "lengde",
       width: "bredde",
       side: "side",
@@ -397,7 +397,7 @@ function GeometryFigure({
   const labelClass = "text-[10px] fill-slate-700";
   const dashedLineClass = "stroke-slate-400";
   const heightText =
-    language === "no" ? "høyde" : language === "en" ? "height" : "altura";
+    language === "nb" ? "høyde" : language === "en" ? "height" : "altura";
 
   if (figure.kind === "rectangle") {
     const width = figure.widthCm ?? 8;
@@ -724,7 +724,7 @@ function FigureMeta({
   ) {
     return (
       <p className="text-xs text-slate-600">
-        {language === "no" ? "Sider" : language === "en" ? "Sides" : "Lados"}:{" "}
+        {language === "nb" ? "Sider" : language === "en" ? "Sides" : "Lados"}:{" "}
         {figure.sideAcm} cm, {figure.sideBcm} cm, {figure.sideCcm} cm,{" "}
         {getMeasurementLabel(language, "height")}: {figure.heightCm} cm
       </p>
@@ -754,9 +754,9 @@ export default function MathWorksheetPrintPage() {
 
   const strings = useMemo<UIStrings>(() => {
     const lang =
-      locale === "en" || locale === "pt" || locale === "no"
+      locale === "en" || locale === "pt" || locale === "nb"
         ? (locale as WorksheetLanguage)
-        : "no";
+        : "nb";
     return STRINGS[lang];
   }, [locale]);
 
@@ -828,7 +828,7 @@ export default function MathWorksheetPrintPage() {
     };
   }, [lessonId, strings, localizeError]);
 
-  const lang = worksheet?.language ?? "no";
+  const lang = worksheet?.language ?? "nb";
   const ui = STRINGS[lang];
 
   if (loading) {

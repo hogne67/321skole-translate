@@ -1,0 +1,51 @@
+{
+  "libraryLanding": {
+    "errors": {
+      "label": "Erro",
+      "fetchFailed": "Não foi possível carregar as aulas publicadas.",
+      "ratingSaveFailed": "Não foi possível salvar a avaliação.",
+      "saveToMyContentFailed": "Não foi possível adicionar a Meus conteúdos."
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar: título, texto, tipo…",
+      "textTypeAll": "Tipo de texto",
+      "languagePlaceholder": "Buscar idioma…",
+      "levelAll": "Nível",
+      "reset": "Limpar"
+    },
+    "status": {
+      "loading": "Carregando aulas publicadas…",
+      "showingCount": "Mostrando {shown} de {total}",
+      "range": "({from}–{to})"
+    },
+    "empty": {
+      "noResults": "Nenhuma aula publicada encontrada. Tente limpar os filtros ou buscar outra coisa."
+    },
+    "card": {
+      "imageFallback": "Imagem"
+    },
+    "languages": {
+      "all": "Todos os idiomas",
+      "norwegianBokmal": "Norueguês (Bokmål)"
+    },
+    "pagination": {
+      "prev": "Anterior",
+      "next": "Próximo",
+      "page": "Página",
+      "perPage": "Por página"
+    },
+    "rating": {
+      "ariaLabel": "Avaliação {value} de 5",
+      "rateStar": "Dar {star} estrelas",
+      "saving": "Salvando…",
+      "loginRequired": "Você precisa estar logado para avaliar."
+    },
+    "saveToMyContent": {
+      "loadingUser": "Aguarde enquanto seu usuário é carregado.",
+      "loading": "Carregando…",
+      "saving": "Salvando…",
+      "button": "Adicionar a Meus conteúdos",
+      "success": "\"{title}\" foi adicionado a Meus conteúdos."
+    }
+  }
+}

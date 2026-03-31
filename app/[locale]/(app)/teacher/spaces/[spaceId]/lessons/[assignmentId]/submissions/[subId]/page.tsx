@@ -585,7 +585,7 @@ export default function TeacherSubmissionPage() {
 
 function Inner() {
   const locale = useLocale();
-  const t = useTranslations("teacher.submission");
+  const t = useTranslations("submission");
   const tAny = t as unknown as (key: string, values?: Record<string, unknown>) => string;
   const tCommon = useTranslations("common");
 

@@ -1,0 +1,145 @@
+{
+  "generateNewText": {
+    "title": "Create new lesson",
+    "subtitle": "Step 1: generate text → Step 2: generate tasks → edit → save draft.",
+    "defaults": {
+      "title": "New lesson",
+      "prompt": "Moving to a New Country"
+    },
+    "fields": {
+      "level": "Level",
+      "language": "Choose lesson language",
+      "languageSearchPlaceholder": "Search language (e.g. Norwegian, Somali, ti, pt-BR...)",
+      "languageCount": "Showing {count} languages",
+      "prompt": "Prompt / instructions",
+      "promptTip": "Tip: This field is the main prompt that drives the AI generation.",
+      "textType": "Text type",
+      "textTypeOtherPlaceholder": "Describe the text type...",
+      "textLength": "Text length (words)"
+    },
+    "textTypes": {
+      "everydayStory": "Everyday story",
+      "factual": "Factual",
+      "fiction": "Fiction",
+      "article": "Article",
+      "dialogue": "Dialogue",
+      "news": "News",
+      "biography": "Biography",
+      "letterEmail": "Letter / Email",
+      "opinion": "Opinion",
+      "howto": "How-to / Instructions",
+      "other": "Other"
+    },
+    "tasks": {
+      "mcq": "MCQ",
+      "trueFalse": "True / False",
+      "facts": "Facts",
+      "reflection": "Reflection",
+      "factsSingleBoxHelp": "Fact sentences are written in one box.",
+      "defaults": {
+        "mcqPrompt": "New multiple choice question",
+        "tfPrompt": "New true / false statement",
+        "openPrompt": "New open question",
+        "option1": "Option 1",
+        "option2": "Option 2",
+        "option3": "Option 3",
+        "option4": "Option 4"
+      }
+    },
+    "buttons": {
+      "generateText": "Generate text",
+      "generatingText": "Generating text...",
+      "generateTasks": "Generate tasks",
+      "generatingTasks": "Generating tasks...",
+      "saveDraft": "Save draft lesson",
+      "goToFinishing": "Go to finishing",
+      "saveAndGoToFinishing": "Save and go to finishing",
+      "saving": "Saving..."
+    },
+    "hints": {
+      "generateTextFirst": "Generate or write text first.",
+      "generateTasks": "Generate tasks based on the current text.",
+      "enterTextFirst": "Enter text first",
+      "tasksDirty": "The text has changed since the tasks were generated.",
+      "saveDraft": "Save draft to Firestore"
+    },
+    "warnings": {
+      "checkTextBeforeTasks": "Please check the text before you generate tasks.",
+      "soonEmpty": "(running low)"
+    },
+    "status": {
+      "saved": "Saved! ID: {id}",
+      "loadingQuota": "Loading quota...",
+      "quotaUsed": "You have used {used} of {limit} this month",
+      "quotaExceeded": "You have used {used} of {limit} this month. You cannot create more right now.",
+      "featureUnavailable": "This feature is not available for you."
+    },
+    "builder": {
+      "lessonTitle": "Title",
+      "text": "Text",
+      "textHelp": "You can generate text with AI or paste / write the text yourself."
+    },
+    "editor": {
+      "title": "Tasks editor",
+      "editBeforeFinishing": "Edit tasks before finishing",
+      "addMcq": "+ MCQ",
+      "addTf": "+ True / False",
+      "addOpen": "+ Open",
+      "empty": "No tasks yet. Generate tasks or add them manually.",
+      "taskId": "ID: {id}",
+      "delete": "Delete",
+      "prompt": "Prompt",
+      "correctAnswer": "Correct answer",
+      "options": "Options",
+      "correctAnswerHint": "Correct answer (must match one option)",
+      "openHint": "Open task: the student writes a response."
+    },
+    "answers": {
+      "true": "True",
+      "false": "False"
+    },
+    "debug": {
+      "title": "Debug: latest generated pack snapshot"
+    },
+    "errors": {
+      "generateOrWriteTextFirst": "Generate or write text first.",
+      "missingTextInResponse": "Missing text in response.",
+      "missingTasksInResponse": "Missing tasks in response.",
+      "titleRequired": "Title is required.",
+      "sourceTextEmpty": "Source text is empty.",
+      "notSignedIn": "Not signed in. Please log in as teacher/producer.",
+      "emptyResponseFromServer": "Empty response from server.",
+      "notJsonFromServer": "The server did not return JSON.",
+      "missingIdFromServer": "Missing ID from server."
+    },
+    "steps": {
+      "text": "Text",
+      "tasks": "Tasks",
+      "finishing": "Finishing",
+      "ready": "Ready",
+      "generateOrPasteText": "Generate or paste text",
+      "nextStep": "Next step",
+      "lockedUntilTextReady": "Locked until the text is ready",
+      "readyForFinalSetup": "Ready for final setup",
+      "lockedUntilTasksReady": "Locked until the tasks are ready"
+    },
+    "stepStatus": {
+      "step1Title": "Step 1: Create or paste text",
+      "step1Body": "Start by generating a text or pasting your own. When the text is ready, the next step is unlocked.",
+      "textReadyTitle": "The text is ready",
+      "textReadyBody": "The next step is to generate tasks for the text. You can adjust the number of tasks before you continue.",
+      "tasksReadyTitle": "The tasks are ready",
+      "tasksReadyBody": "The next step is finishing. There you can add an image, metadata, share to Space, and make final adjustments."
+    },
+    "sections": {
+      "generateOrPasteTextTitle": "Generate / paste text",
+      "generateOrPasteTextBody": "Choose level, language, text type, and prompt. You can also write or paste the text yourself.",
+      "generateTasksTitle": "Generate tasks",
+      "generateTasksBody": "Choose how many tasks you want. This section is unlocked when the text is ready.",
+      "enableTaskGeneratorFirst": "Generate or paste text first to activate the task generator.",
+      "goToFinishingTitle": "Go to finishing",
+      "goToFinishingBody": "From here you continue to image, metadata, sharing to Space, and final adjustments.",
+      "readyToFinishBody": "When the tasks are generated, you can continue to finishing."
+    }
+  }
+}

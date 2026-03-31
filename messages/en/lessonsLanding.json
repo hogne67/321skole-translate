@@ -1,0 +1,114 @@
+{
+  "lessonsLanding": {
+    "loading": "Loading…",
+    "noData": "No lesson data found.",
+    "fallback": {
+      "lessonTitle": "Lesson"
+    },
+    "nav": {
+      "backToDashboard": "Back",
+      "backToPreview": "Back to preview"
+    },
+    "anon": {
+      "savedLocally": "Your answers are saved locally on this device."
+    },
+    "image": {
+      "title": "Image",
+      "alt": "Lesson image",
+      "noImageTitle": "No image",
+      "noImageHint": "This lesson has no image."
+    },
+    "actions": {
+      "save": "Save",
+      "saving": "Saving…"
+    },
+    "translate": {
+      "label": "Translate to",
+      "searchPlaceholder": "Search language…",
+      "translateText": "Translate text",
+      "translateTasks": "Translate tasks",
+      "translating": "Translating…",
+      "reset": "Reset",
+      "translatedLabel": "Translation",
+      "failed": "Could not translate."
+    },
+    "text": {
+      "title": "Text",
+      "noText": "No text available.",
+      "clickToSeek": "Click to jump here in the audio",
+      "speed": "Speed",
+      "generating": "Generating audio…",
+      "playOriginal": "Play original",
+      "playTranslation": "Play translation",
+      "stop": "Stop",
+      "pause": "Pause",
+      "continue": "Continue",
+      "replaySentence": "Replay sentence",
+      "prev": "Previous",
+      "next": "Next",
+      "hideTranslation": "Hide translation",
+      "showTranslation": "Show translation",
+      "noAudio": "No audio available.",
+      "failed": "Could not generate audio."
+    },
+    "tasks": {
+      "title": "Tasks",
+      "showAnswers": "Show answers",
+      "hideAnswers": "Hide answers",
+      "clearAnswers": "Clear answers",
+      "hideAllTranslations": "Hide all translations",
+      "showAllTranslations": "Show all translations",
+      "noTasks": "No tasks found.",
+      "taskLabel": "Task {n}",
+      "correct": "Correct",
+      "wrong": "Wrong",
+      "yourAnswer": "Your answer",
+      "hideTranslation": "Hide translation",
+      "showTranslation": "Show translation",
+      "true": "True",
+      "false": "False",
+      "writeAnswerPlaceholder": "Write your answer here…"
+    },
+    "feedback": {
+      "title": "Feedback",
+      "usage": "AI feedback: {used} / {limit} used • {remaining} left",
+      "generate": "Get AI feedback",
+      "getFeedback": "Get feedback",
+      "submitting": "Submitting…",
+      "loginForFeedback": "Log in for feedback",
+      "loginToGetFeedback": "Log in to get feedback.",
+      "limitReached": "You have reached your AI feedback limit.",
+      "limitReachedShort": "Limit reached",
+      "translateFeedback": "Translate feedback",
+      "translateButtonTitle": "Translate feedback",
+      "translating": "Translating…",
+      "translatedFeedbackLabel": "Translated feedback",
+      "translateFailed": "Could not translate feedback.",
+      "anonHint": "Log in to get AI feedback.",
+      "noFeedbackYet": "No feedback yet.",
+      "generatingNew": "⏳ Generating new feedback…",
+      "answerAtLeastOne": "You must answer at least one task before requesting feedback."
+    },
+    "flash": {
+      "saved": "Saved.",
+      "submitted": "Submitted.",
+      "clearedAnswers": "Answers cleared.",
+      "answerAtLeastOne": "Answer at least one task first.",
+      "loginToGetFeedback": "Log in to get feedback."
+    },
+    "errors": {
+      "label": "Error",
+      "fetchFailed": "Could not load published lessons.",
+      "missingLessonId": "Missing lessonId.",
+      "notPublished": "This lesson is not published.",
+      "notFound": "Lesson not found.",
+      "noAccess": "You do not have access to this lesson.",
+      "generic": "Something went wrong.",
+      "couldNotSave": "Could not save.",
+      "couldNotSubmit": "Could not submit."
+    },
+    "tts": {
+      "failed": "Could not generate audio."
+    }
+  }
+}

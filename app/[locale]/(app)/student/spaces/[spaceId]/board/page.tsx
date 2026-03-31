@@ -31,15 +31,10 @@ type BoardState = {
   clearedAt?: number | null;
 
   data?: {
-    // text mode
     title?: string;
     prompt?: string;
-
-    // poll mode
     pollQuestion?: string;
     pollOptions?: string[];
-
-    // wordwall mode
     wordwallPrompt?: string;
   };
 };
@@ -72,18 +67,18 @@ function isNoteColor(v: unknown): v is NoteColor {
   return v === "amber" || v === "emerald" || v === "sky" || v === "rose" || v === "violet";
 }
 
-function colorLabel(c: NoteColor) {
+function colorLabel(t: (key: string) => string, c: NoteColor) {
   switch (c) {
     case "amber":
-      return "Gul";
+      return t("sticky.colors.amber");
     case "emerald":
-      return "Grønn";
+      return t("sticky.colors.emerald");
     case "sky":
-      return "Blå";
+      return t("sticky.colors.sky");
     case "rose":
-      return "Rosa";
+      return t("sticky.colors.rose");
     case "violet":
-      return "Lilla";
+      return t("sticky.colors.violet");
   }
 }
 
@@ -118,14 +113,14 @@ function noteAccentClass(c: NoteColor) {
 }
 
 export default function StudentBoardPage() {
-  const t = useTranslations("student.board");
+  const t = useTranslations("studentBoard");
   const locale = useLocale();
 
   const params = useParams<{ spaceId: string }>();
   const spaceId = params?.spaceId;
 
   const [user, setUser] = useState<User | null>(null);
-  const profile = useUserProfile() as UserProfileLike | null;
+  const { profile } = useUserProfile();
 
   const [state, setState] = useState<BoardState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -213,7 +208,7 @@ export default function StudentBoardPage() {
   }, [active, mode]);
 
   const displayNameForPreview =
-    safeString(profile?.displayName) ||
+    safeString((profile as UserProfileLike | null)?.displayName) ||
     safeString(user?.displayName) ||
     safeString(groupName) ||
     t("fallbackStudentName");
@@ -261,7 +256,7 @@ export default function StudentBoardPage() {
       { merge: true }
     );
 
-    setSent("Takk! Stemmen din er sendt.");
+    setSent(t("poll.sent"));
   }
 
   async function sendWordwall() {
@@ -283,23 +278,23 @@ export default function StudentBoardPage() {
       { merge: true }
     );
 
-    setSent("Takk! Ordet ditt er sendt.");
+    setSent(t("wordwall.sent"));
     setWordwallWord("");
   }
 
   const title = safeString(state?.data?.title) ?? t("fallbackQuestionTitle");
   const prompt = safeString(state?.data?.prompt) ?? "";
 
-  const pollQuestion = safeString(state?.data?.pollQuestion) ?? "Hva mener du?";
+  const pollQuestion = safeString(state?.data?.pollQuestion) ?? t("poll.fallbackQuestion");
   const pollOptions = normalizeOptions(state?.data?.pollOptions);
 
-  const wordwallPrompt = safeString(state?.data?.wordwallPrompt) ?? "Skriv ett ord.";
+  const wordwallPrompt = safeString(state?.data?.wordwallPrompt) ?? t("wordwall.fallbackPrompt");
 
   const liveBadgeText = loading
     ? t("loading")
     : active
-      ? `LIVE${sessionId ? ` • session: ${sessionId.slice(0, 8)}…` : ""} • mode: ${mode}`
-      : "Ikke live";
+      ? `${t("status.live")}${sessionId ? ` • ${t("status.session")}: ${sessionId.slice(0, 8)}…` : ""} • ${t("status.mode")}: ${mode}`
+      : t("status.notLive");
 
   return (
     <AuthGate>
@@ -328,16 +323,16 @@ export default function StudentBoardPage() {
 
             <div className="mt-3 flex flex-wrap gap-2">
               <TabButton active={tab === "question"} onClick={() => setTab("question")}>
-                Dagens spørsmål
+                {t("tabs.question")}
               </TabButton>
               <TabButton active={tab === "notes"} onClick={() => setTab("notes")}>
-                Notatblokk
+                {t("tabs.notes")}
               </TabButton>
               <TabButton active={tab === "poll"} onClick={() => setTab("poll")}>
-                Poll
+                {t("tabs.poll")}
               </TabButton>
               <TabButton active={tab === "wordwall"} onClick={() => setTab("wordwall")}>
-                Wordwall
+                {t("tabs.wordwall")}
               </TabButton>
             </div>
 
@@ -370,7 +365,7 @@ export default function StudentBoardPage() {
                 <div className="text-base font-semibold">{pollQuestion}</div>
 
                 {pollOptions.length === 0 ? (
-                  <div className="mt-2 text-sm text-muted-foreground">Ingen svaralternativer enda.</div>
+                  <div className="mt-2 text-sm text-muted-foreground">{t("poll.noOptions")}</div>
                 ) : (
                   <div className="mt-3 grid gap-2">
                     {pollOptions.map((opt) => {
@@ -381,7 +376,7 @@ export default function StudentBoardPage() {
                           onClick={() => setPollChoice(opt)}
                           className={[
                             "rounded-lg border px-3 py-2 text-left text-sm",
-                            selected ? "bg-black text-white border-black" : "hover:bg-muted",
+                            selected ? "border-black bg-black text-white" : "hover:bg-muted",
                           ].join(" ")}
                         >
                           {opt}
@@ -398,12 +393,12 @@ export default function StudentBoardPage() {
                     disabled={!safeString(pollChoice)}
                     className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    Send stemme
+                    {t("poll.send")}
                   </button>
                 </div>
 
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Stemmen din er anonym (vi lagrer ikke navn/uid).
+                  {t("poll.anonymousHint")}
                 </div>
               </>
             ) : tab === "wordwall" ? (
@@ -411,7 +406,7 @@ export default function StudentBoardPage() {
                 <div className="text-base font-semibold">{wordwallPrompt}</div>
 
                 <div className="mt-4">
-                  <label className="mb-1 block text-sm font-medium">Ditt ord</label>
+                  <label className="mb-1 block text-sm font-medium">{t("wordwall.label")}</label>
                   <input
                     value={wordwallWord}
                     onChange={(e) => setWordwallWord(e.target.value)}
@@ -422,15 +417,15 @@ export default function StudentBoardPage() {
                       }
                     }}
                     className="w-full rounded-lg border px-3 py-2 text-sm"
-                    placeholder="Skriv ett ord eller et kort uttrykk"
+                    placeholder={t("wordwall.placeholder")}
                     maxLength={60}
                   />
                 </div>
 
                 <div className="mt-3 rounded-xl border bg-muted/40 p-4">
-                  <div className="mb-2 text-sm font-medium">Forhåndsvisning</div>
+                  <div className="mb-2 text-sm font-medium">{t("wordwall.previewTitle")}</div>
                   <div className="text-2xl font-semibold leading-tight">
-                    {safeString(normalizeWordwallWord(wordwallWord)) ?? "Ordet ditt vises her…"}
+                    {safeString(normalizeWordwallWord(wordwallWord)) ?? t("wordwall.previewFallback")}
                   </div>
                 </div>
 
@@ -441,12 +436,12 @@ export default function StudentBoardPage() {
                     disabled={!safeString(normalizeWordwallWord(wordwallWord))}
                     className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    Send ord
+                    {t("wordwall.send")}
                   </button>
                 </div>
 
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Wordwall er anonym. Vi lagrer bare ordet og ikke navn eller uid.
+                  {t("wordwall.anonymousHint")}
                 </div>
               </>
             ) : (
@@ -465,7 +460,7 @@ export default function StudentBoardPage() {
                 </div>
 
                 <div className="mt-4">
-                  <div className="mb-2 text-sm font-medium">Sticky note-farge</div>
+                  <div className="mb-2 text-sm font-medium">{t("sticky.colorLabel")}</div>
                   <div className="flex flex-wrap gap-2">
                     {(["amber", "emerald", "sky", "rose", "violet"] as NoteColor[]).map((c) => {
                       const activeC = noteColor === c;
@@ -477,10 +472,10 @@ export default function StudentBoardPage() {
                             "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm",
                             activeC ? "border-black" : "hover:bg-muted",
                           ].join(" ")}
-                          title={colorLabel(c)}
+                          title={colorLabel(t, c)}
                         >
                           <span className={["h-3 w-3 rounded-full", colorSwatchClass(c)].join(" ")} />
-                          {colorLabel(c)}
+                          {colorLabel(t, c)}
                         </button>
                       );
                     })}
@@ -512,26 +507,26 @@ export default function StudentBoardPage() {
                     </div>
 
                     <div className="md:pt-[2px]">
-                      <div className="mb-2 text-sm font-medium">Forhåndsvisning</div>
+                      <div className="mb-2 text-sm font-medium">{t("sticky.previewTitle")}</div>
 
                       <div className={["rounded-2xl border p-4 shadow-sm", noteAccentClass(noteColor)].join(" ")}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="text-sm font-semibold">{displayNameForPreview}</div>
-                          <div className="text-[11px] text-muted-foreground">sticky</div>
+                          <div className="text-[11px] text-muted-foreground">{t("sticky.previewTag")}</div>
                         </div>
 
                         <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
-                          {safeString(text) ?? "Skriv et svar for å se lappen…"}
+                          {safeString(text) ?? t("sticky.previewFallback")}
                         </div>
 
                         <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                           <span className={["h-2.5 w-2.5 rounded-full", colorSwatchClass(noteColor)].join(" ")} />
-                          <span>{colorLabel(noteColor)}</span>
+                          <span>{colorLabel(t, noteColor)}</span>
                         </div>
                       </div>
 
                       <div className="mt-2 text-xs text-muted-foreground">
-                        Dette er slik lappen vises i lærerens tavle.
+                        {t("sticky.previewHint")}
                       </div>
                     </div>
                   </div>
@@ -559,7 +554,7 @@ function TabButton({
       onClick={onClick}
       className={[
         "rounded-full border px-3 py-1.5 text-sm font-medium",
-        active ? "bg-black text-white border-black" : "bg-background hover:bg-muted",
+        active ? "border-black bg-black text-white" : "bg-background hover:bg-muted",
       ].join(" ")}
     >
       {children}
@@ -568,6 +563,8 @@ function TabButton({
 }
 
 function StudentNotesPanel() {
+  const t = useTranslations("studentBoard");
+
   const [text, setText] = useState<string>(() => {
     if (typeof window === "undefined") return "";
     return localStorage.getItem("studentBoardNotes") ?? "";
@@ -580,13 +577,13 @@ function StudentNotesPanel() {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-sm font-medium">Notatblokk (lokal)</div>
+        <div className="text-sm font-medium">{t("notes.title")}</div>
         <button
           onClick={() => setText("")}
           className="rounded-md border px-2.5 py-1.5 text-xs font-medium"
-          title="Viskelær / tøm"
+          title={t("notes.clearTitle")}
         >
-          Viskelær
+          {t("notes.clear")}
         </button>
       </div>
 
@@ -594,10 +591,10 @@ function StudentNotesPanel() {
         value={text}
         onChange={(e) => setText(e.target.value)}
         className="min-h-[260px] w-full rounded-lg border px-3 py-2 text-sm"
-        placeholder="Skriv notater her… (lagres bare på denne enheten)"
+        placeholder={t("notes.placeholder")}
       />
 
-      <div className="mt-2 text-xs text-muted-foreground">Bare for deg – ingen andre ser dette.</div>
+      <div className="mt-2 text-xs text-muted-foreground">{t("notes.localOnly")}</div>
     </div>
   );
 }
@@ -631,6 +628,7 @@ function TimerBarStudent({
   startedAt: unknown;
   totalSec: unknown;
 }) {
+  const t = useTranslations("studentBoard");
   const [now, setNow] = useState(() => Date.now());
   const baselineRef = useRef<{ endsAtMs: number; startedAtMs: number; totalMs: number } | null>(null);
 
@@ -668,10 +666,10 @@ function TimerBarStudent({
     <div className="rounded-xl border bg-background p-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-xs font-medium text-muted-foreground">Timer</div>
+          <div className="text-xs font-medium text-muted-foreground">{t("timer.title")}</div>
           <div className="mt-0.5 text-lg font-semibold tabular-nums">{secondsLeft}s</div>
         </div>
-        <div className="text-xs text-muted-foreground">Teller ned…</div>
+        <div className="text-xs text-muted-foreground">{t("timer.countingDown")}</div>
       </div>
 
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">

@@ -1,0 +1,41 @@
+{
+  "mathGeometryPrint": {
+    "pageTitle": "Geometry worksheet – print",
+    "worksheet": "Worksheet",
+    "answerKeyTitle": "Answer key",
+    "name": "Name",
+    "date": "Date",
+    "classLabel": "Class",
+    "answer": "Answer",
+    "explanation": "Explanation",
+    "hint": "Hint",
+    "formula": "Formula",
+    "print": "Print / save as PDF",
+    "backToEditor": "Back",
+    "saveAsPdf": "Use your browser print dialog and choose Save as PDF.",
+    "loading": "Loading worksheet...",
+    "readyForPrint": "Ready for PDF",
+    "producer": "Producer",
+    "level": "Level",
+    "geometryWorksheet": "Geometry worksheet",
+    "task": "Task",
+    "errorTitle": "Error",
+    "errors": {
+      "notFound": "Worksheet not found.",
+      "noAccess": "You do not have access to this worksheet.",
+      "invalidWorksheet": "This document does not contain a valid math worksheet."
+    },
+    "measurements": {
+      "length": "length",
+      "width": "width",
+      "side": "side",
+      "base": "base",
+      "height": "height",
+      "topBase": "top base",
+      "leftSide": "left side",
+      "rightSide": "right side",
+      "radius": "radius",
+      "sides": "Sides"
+    }
+  }
+}

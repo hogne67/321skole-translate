@@ -95,7 +95,7 @@ async function fixSentence(args: {
 }
 
 export default function SentenceFixerPage() {
-  const t = useTranslations("tools.sentenceFixer");
+  const t = useTranslations("sentenceFixerFree");
   const locale = useLocale();
 
   const languageOptions = useMemo(() => {

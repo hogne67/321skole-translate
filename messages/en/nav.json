@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "mySpaces": "My spaces",
+    "join": "Join",
+    "dashboard": "Dashboard",
+    "myContent": "My content",
+    "joinSpace": "Join space",
+    "spaces": "Spaces",
+    "createLesson": "+ Create lesson",
+    "createtest": "+ Create Reading Test",
+    "myLessons": "My lessons",
+    "newLesson": "+ New lesson",
+    "users": "Users",
+    "review": "Review",
+    "submissions": "Submissions",
+    "tools": "+ Create lesson"
+  }
+}

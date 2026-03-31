@@ -1,0 +1,51 @@
+{
+  "libraryLanding": {
+    "errors": {
+      "label": "Feil",
+      "fetchFailed": "Kunne ikke laste publiserte oppgaver.",
+      "ratingSaveFailed": "Kunne ikke lagre vurdering.",
+      "saveToMyContentFailed": "Kunne ikke legge til i Mitt innhold."
+    },
+    "filters": {
+      "searchPlaceholder": "Søk: tittel, tekst, type…",
+      "textTypeAll": "Teksttype",
+      "languagePlaceholder": "Søk etter språk…",
+      "levelAll": "Nivå",
+      "reset": "Tilbakestill"
+    },
+    "status": {
+      "loading": "Laster publiserte oppgaver…",
+      "showingCount": "Viser {shown} av {total}",
+      "range": "({from}–{to})"
+    },
+    "empty": {
+      "noResults": "Ingen publiserte oppgaver funnet. Prøv å fjerne filtre eller søk etter noe annet."
+    },
+    "card": {
+      "imageFallback": "Bilde"
+    },
+    "languages": {
+      "all": "Alle språk",
+      "norwegianBokmal": "Norsk (bokmål)"
+    },
+    "pagination": {
+      "prev": "Forrige",
+      "next": "Neste",
+      "page": "Side",
+      "perPage": "Per side"
+    },
+    "rating": {
+      "ariaLabel": "Vurdering {value} av 5",
+      "rateStar": "Gi {star} stjerner",
+      "saving": "Lagrer…",
+      "loginRequired": "Du må være logget inn for å gi vurdering."
+    },
+    "saveToMyContent": {
+      "loadingUser": "Vennligst vent mens brukeren lastes.",
+      "loading": "Laster…",
+      "saving": "Lagrer…",
+      "button": "Legg til i Mitt innhold",
+      "success": "\"{title}\" ble lagt til i Mitt innhold."
+    }
+  }
+}

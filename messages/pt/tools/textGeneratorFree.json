@@ -1,0 +1,57 @@
+{
+    "textGeneratorFree": {
+      "title": "Text and task generator light",
+      "subtitle": "Generate a short text with multiple choice and true/false tasks.",
+      "fields": {
+        "topic": "Topic",
+        "level": "CEFR",
+        "length": "Length",
+        "language": "Language"
+      },
+      "placeholders": {
+        "topic": "e.g. Food, Winter, Work..."
+      },
+      "length": {
+        "short": "Short",
+        "normal": "Normal",
+        "long": "Long"
+      },
+      "languages": {
+        "en": "English",
+        "no": "Norwegian",
+        "pt": "Portuguese"
+      },
+      "actions": {
+        "generate": "Generate",
+        "generating": "Generating...",
+        "checkAnswers": "Check answers"
+      },
+      "sections": {
+        "text": "Text",
+        "tasks": "Tasks"
+      },
+      "meta": {
+        "level": "Level",
+        "topic": "Topic",
+        "language": "Language"
+      },
+      "taskLabel": "Task {number}",
+      "taskTypes": {
+        "mcq": "multiple choice",
+        "truefalse": "true/false"
+      },
+      "answers": {
+        "true": "True",
+        "false": "False"
+      },
+      "results": {
+        "correct": "Correct",
+        "incorrect": "Not correct",
+        "correctAnswer": "Correct answer",
+        "score": "Score: {score} / {total}"
+      },
+      "errors": {
+        "generateFailed": "Could not generate"
+      }
+    }
+  }

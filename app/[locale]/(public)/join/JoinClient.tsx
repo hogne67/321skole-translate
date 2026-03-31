@@ -1,4 +1,3 @@
-// app/[locale]/(public)/join/JoinClient.tsx
 "use client";
 
 import React, { useMemo, useState } from "react";
@@ -37,54 +36,8 @@ function errToText(e: unknown): string {
   return String(e);
 }
 
-async function waitForUser(): Promise<User> {
-  const current = auth.currentUser;
-  if (current) return current;
-
-  return await new Promise<User>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error("Timed out while waiting for auth user."));
-    }, 10000);
-
-    const unsub = onAuthStateChanged(
-      auth,
-      (u) => {
-        if (u) {
-          clearTimeout(timeout);
-          unsub();
-          resolve(u);
-        }
-      },
-      (err) => {
-        clearTimeout(timeout);
-        unsub();
-        reject(err);
-      }
-    );
-  });
-}
-
 function cleanName(raw: string): string {
   return raw.replace(/\s+/g, " ").trim();
-}
-
-function mapApiError(data: JoinApiError, fallback: string): string {
-  if (data.error === "student_limit_reached") {
-    const used = typeof data.used === "number" ? data.used : null;
-    const limit = typeof data.limit === "number" ? data.limit : null;
-
-    if (used !== null && limit !== null) {
-      return `Teacher limit reached (${used}/${limit} students).`;
-    }
-
-    return "This teacher has reached the student limit for the current plan.";
-  }
-
-  if (typeof data.error === "string" && data.error.trim()) {
-    return data.error;
-  }
-
-  return fallback;
 }
 
 export default function JoinClient() {
@@ -99,6 +52,52 @@ export default function JoinClient() {
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  async function waitForUser(): Promise<User> {
+    const current = auth.currentUser;
+    if (current) return current;
+
+    return await new Promise<User>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(t("errors.authTimeout")));
+      }, 10000);
+
+      const unsub = onAuthStateChanged(
+        auth,
+        (u) => {
+          if (u) {
+            clearTimeout(timeout);
+            unsub();
+            resolve(u);
+          }
+        },
+        (authErr) => {
+          clearTimeout(timeout);
+          unsub();
+          reject(authErr);
+        }
+      );
+    });
+  }
+
+  function mapApiError(data: JoinApiError, fallback: string): string {
+    if (data.error === "student_limit_reached") {
+      const used = typeof data.used === "number" ? data.used : null;
+      const limit = typeof data.limit === "number" ? data.limit : null;
+
+      if (used !== null && limit !== null) {
+        return t("errors.teacherLimitReachedWithCount", { used, limit });
+      }
+
+      return t("errors.teacherLimitReached");
+    }
+
+    if (typeof data.error === "string" && data.error.trim()) {
+      return data.error;
+    }
+
+    return fallback;
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -117,16 +116,11 @@ export default function JoinClient() {
     setErr(null);
 
     try {
-      console.log("JOIN API step 1: ensure anonymous user");
       await ensureAnonymousUser();
 
-      console.log("JOIN API step 2: wait for auth user");
       const u = await waitForUser();
-
-      console.log("JOIN API step 3: get id token");
       const token = await u.getIdToken();
 
-      console.log("JOIN API step 4: call /api/spaces/join");
       const res = await fetch("/api/spaces/join", {
         method: "POST",
         headers: {
@@ -142,23 +136,17 @@ export default function JoinClient() {
       const data = (await res.json().catch(() => ({}))) as JoinApiSuccess | JoinApiError;
 
       if (!res.ok) {
-        throw new Error(mapApiError(data as JoinApiError, "Could not join space."));
+        throw new Error(mapApiError(data as JoinApiError, t("errors.joinFailed")));
       }
 
       const okData = data as JoinApiSuccess;
 
       if (!okData.spaceId) {
-        throw new Error("Join succeeded, but no spaceId was returned.");
+        throw new Error(t("errors.missingSpaceId"));
       }
-
-      console.log("JOIN API step 5 OK", {
-        spaceId: okData.spaceId,
-        alreadyMember: okData.alreadyMember,
-      });
 
       router.push(`/${locale}/student/spaces/${okData.spaceId}`);
     } catch (e2: unknown) {
-      console.error("JOIN FAILED", e2);
       setErr(errToText(e2));
     } finally {
       setBusy(false);

@@ -1,0 +1,15 @@
+{
+  "producer": {
+    "readingTestsEditor": {
+      "page": {
+        "title": "Reading test editor"
+      },
+      "actions": {
+        "save": "Save"
+      },
+      "errors": {
+        "notFound": "Reading test not found."
+      }
+    }
+  }
+}
