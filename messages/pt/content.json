@@ -1,153 +1,66 @@
 {
   "content": {
-    "title": "My content",
-    "subtitle": "Here you can manage everything: publish, share, PDF, edit and more.",
+    "title": "Meus conteúdos",
+    "subtitle": "Aqui você pode gerenciar tudo: publicar, compartilhar, PDF, editar e mais.",
     "parent": {
-      "title": "My family content",
-      "subtitle": "Here you will find tasks you can open, organize, and share to your children’s spaces.",
-      "contentTitle": "Content",
-      "shareReady": "Ready to share",
-      "canShareToChildren": "Can be shared to children’s spaces"
+      "title": "Conteúdo da família",
+      "subtitle": "Aqui você encontra atividades para abrir, organizar e compartilhar com os Spaces das crianças.",
+      "contentTitle": "Conteúdo",
+      "shareReady": "Pronto para compartilhar",
+      "canShareToChildren": "Pode ser compartilhado com os Spaces das crianças"
     },
     "search": {
-      "placeholder": "Search title, status, metadata…",
-      "parentPlaceholder": "Search tasks, spaces, and submissions…"
+      "placeholder": "Buscar título, status, metadados…",
+      "parentPlaceholder": "Buscar atividades, Spaces e respostas…"
     },
     "filters": {
-  "all": "All",
-  "library": "LIBRARY TEST",
-  "math": "MATH TEST",
-  "lesson": "Lesson",
-  "lessons": "Lessons",
-  "submission": "Submission",
-  "submissions": "Submissions",
-  "space": "Space",
-  "spaces": "Spaces"
-},
+      "all": "Todos",
+      "library": "BIBLIOTECA",
+      "math": "MATEMÁTICA",
+      "lesson": "Atividade",
+      "lessons": "GERADO",
+      "submission": "Resposta",
+      "submissions": "RESPOSTAS",
+      "space": "Space",
+      "spaces": "SPACES"
+    },
     "filterHints": {
-      "library": "Your own tasks from the library (practice)",
-      "math": "Only items marked from the math generator"
+      "library": "Suas atividades da biblioteca (prática)",
+      "math": "Apenas itens do gerador de matemática"
     },
     "toggles": {
-      "showDeleted": "Show deleted",
-      "hideDeleted": "Hide deleted"
+      "showDeleted": "Mostrar excluídos",
+      "hideDeleted": "Ocultar excluídos"
     },
     "labels": {
-      "deleted": "Deleted",
-      "deletedAt": "Deleted at",
-      "items": "items"
+      "deleted": "Excluído",
+      "deletedAt": "Excluído em",
+      "items": "itens"
     },
     "states": {
-      "loadingContent": "Loading content…"
+      "loadingContent": "Carregando conteúdos…"
     },
     "pills": {
-      "published": "published",
-      "unpublished": "unpublished",
-      "library": "Library",
-      "teacherSubmission": "Teacher",
-      "readingTest": "Reading test",
-      "readyForPdf": "Ready for PDF",
-      "mathGenerator": "Math generator"
+      "published": "publicado",
+      "unpublished": "não publicado",
+      "library": "Biblioteca",
+      "teacherSubmission": "Professor",
+      "readingTest": "Teste de leitura",
+      "readyForPdf": "Pronto para PDF",
+      "mathGenerator": "Gerador de matemática"
     },
     "math": {
-      "pdf": "Math PDF",
-      "hint": "Ready for PDF export. Generate a new worksheet if you want another version.",
+      "pdf": "PDF Matemática",
+      "hint": "Pronto para exportar como PDF. Gere uma nova versão se quiser.",
       "subtypes": {
-        "geometry": "Geometry",
-        "algebra": "Algebra",
-        "fractions": "Fractions",
-        "percent": "Percent",
-        "equations": "Equations",
-        "measurement": "Measurement",
-        "math": "Math"
+        "geometry": "Geometria",
+        "algebra": "Álgebra",
+        "fractions": "Frações",
+        "percent": "Porcentagem",
+        "equations": "Equações",
+        "measurement": "Medidas",
+        "math": "Matemática"
       }
-    },
-    "parentSpace": {
-      "tasksCount": "{count} tasks",
-      "active": "Active: {title}",
-      "submittedCount": "{count} submitted",
-      "draftCount": "{count} started",
-      "aiFeedbackCount": "{count} with AI feedback",
-      "reviewCount": "{count} parent reviewed",
-      "progress": {
-        "completed": "🟢 Completed by child",
-        "started": "🟡 Started",
-        "notStarted": "⚪ Not started"
-      }
-    },
-    "actions": {
-      "open": "Open",
-      "edit": "Edit",
-      "editAnswers": "Edit answers",
-      "openLesson": "Open lesson",
-      "openSpace": "Open space",
-      "publish": "Publish",
-      "unpublish": "Unpublish",
-      "working": "Working…",
-      "share": "Share",
-      "shareTitle": "Share (link + QR)",
-      "shareToSpace": "Share to space",
-      "pdf": "PDF",
-      "delete": "Delete",
-      "restore": "Restore",
-      "refresh": "Refresh",
-      "loading": "Loading…",
-      "copyJoinCode": "Copy join code",
-      "copyJoinLink": "Copy join link",
-      "shareLinkQr": "Share (link + QR)",
-      "board": "Board"
-    },
-    "errors": {
-      "label": "Error",
-      "loadFailed": "Failed to load content",
-      "assignFailed": "Failed to assign to space",
-      "lessonNotFound": "Lesson not found",
-      "cannotPublishDeleted": "This lesson is deleted/archived and cannot be published.",
-      "publishFailed": "Failed to update publish status",
-      "deleteFailed": "Failed to delete (archive) lesson",
-      "restoreFailed": "Could not restore."
-    },
-    "titles": {
-      "lesson": "Lesson",
-      "space": "Space",
-      "submission": "Submission",
-      "submissionWithLesson": "{lessonTitle} – Submission",
-      "submissionWithId": "Submission · {id}"
-    },
-    "empty": {
-      "guest": {
-        "line1": "You’re in guest mode. My content does not show saved items here yet.",
-        "line2": "Use <join>Join</join> to open a lesson/space with a code, or <login>log in</login> to sync your content."
-      },
-      "authed": "You don’t have any items in your feed yet. When you create/use lessons, spaces or submissions, they will appear here."
-    },
-    "footer": {
-      "joinViaCode": "Join via code",
-      "tools": "Tools"
-    },
-    "share": {
-      "title": "Share",
-      "linkLabel": "Link",
-      "copyLink": "Copy link",
-      "copied": "Copied!",
-      "openLink": "Open link",
-      "tip": "Tip: Share the QR on screen or print it.",
-      "qrLabel": "QR",
-      "qrAlt": "QR code",
-      "qrNotReady": "QR not ready (link works).",
-      "shareUrlLabel": "Share URL:"
-    },
-    "shareToSpace": {
-      "title": "Share to space",
-      "noSpaces": "You don’t have any spaces yet.",
-      "createsLabel": "Creates:"
-    },
-    "confirm": {
-      "deleteLesson": "Delete lesson{title}?\n\nThis will archive it (soft delete).\nIt will also attempt to unpublish via server.\n\nAn admin can restore it later.",
-      "restoreLesson": "Restore lesson{title}?"
-    },
-    "fallback": {
-      "untitledTask": "Untitled task"
     }
   }
 }

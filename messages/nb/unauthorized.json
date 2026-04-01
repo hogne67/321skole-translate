@@ -1,39 +1,39 @@
 {
-    "unauthorized": {
+  "unauthorized": {
     "common": {
-      "yes": "ja",
-      "no": "nei",
+      "yes": "Ja",
+      "no": "Nei",
       "login": "Logg inn",
-      "backToStudent": "Tilbake til Student",
-      "backToTeacher": "Back to teacher"
+      "backToStudent": "Tilbake til elev",
+      "backToTeacher": "Tilbake til lærer"
     },
     "notLoggedIn": {
       "title": "Ingen tilgang",
-      "body": "Du må være innlogget for å få tilgang til denne siden.",
-      "ctaLogin": "Gå til login"
+      "body": "Du må være logget inn for å få tilgang til denne siden.",
+      "ctaLogin": "Gå til innlogging"
     },
     "anonymous": {
       "title": "Du har ikke tilgang ennå",
-      "body": "Du er inne som gjest (anonym). Noen deler krever en innlogget konto."
+      "body": "Du bruker en gjestekonto (anonym). Noen funksjoner krever at du er logget inn."
     },
     "noAccess": {
       "title": "Du har ikke tilgang ennå",
-      "body": "Kontoen din mangler riktig tilgang for denne delen."
+      "body": "Kontoen din har ikke riktig tilgang til denne delen."
     },
     "card": {
       "title": "Din tilgang",
       "admin": "admin",
-      "teacher": "teacher",
+      "teacher": "lærer",
       "creator": "creator",
       "status": "(status: {status})"
     },
     "actions": {
-      "applyTeacher": "Søk om teacher",
+      "applyTeacher": "Søk om lærer",
       "applyCreator": "Søk om creator",
       "frontpage": "Forsiden"
     },
     "tips": {
-      "refresh": "Hvis du nettopp ble godkjent: prøv å refresh siden."
+      "refresh": "Hvis du nettopp ble godkjent: prøv å oppdatere siden."
     }
   }
 }

@@ -1,76 +1,76 @@
 {
-    "onboarding": {
-      "title": "Get started",
-      "loading": "Loading…",
-      "subtitle": "Choose your role and fill in basic information to continue.",
-      "steps": {
-        "role": {
-          "title": "Choose your role",
-          "text": "Tap the role that fits you best. You can change it later."
-        },
-        "profile": {
-          "title": "Basic profile",
-          "text": "Tell us a little about yourself so we can tailor the experience."
-        },
-        "institution": {
-          "title": "Learning institution",
-          "text": "This step is optional, but it helps us tailor the teacher experience."
-        }
+  "onboarding": {
+    "title": "Começar",
+    "loading": "Carregando…",
+    "subtitle": "Escolha seu perfil e preencha informações básicas para continuar.",
+    "steps": {
+      "role": {
+        "title": "Escolha seu perfil",
+        "text": "Toque no perfil que melhor se encaixa em você. Você pode mudar depois."
       },
-      "fields": {
-        "role": {
-          "label": "Choose role *",
-          "student": "Student",
-          "teacher": "Teacher",
-          "parent": "Parent",
-          "hint": "Choose one role to continue.",
-          "studentHint": "For pupils and students who want to learn more on their own or together with others.",
-          "teacherHint": "Learning platform for teaching staff with classes, classrooms and digital whiteboard.",
-          "parentHint": "For guardians who want to help their children learn more. Create your own study spaces and give them adapted tasks."
-        },
-        "fullName": {
-          "label": "Full name *"
-        },
-        "country": {
-          "label": "Country *",
-          "placeholder": "Search country…"
-        },
-        "municipalityNo": {
-          "label": "Municipality *",
-          "placeholder": "Search municipality…"
-        },
-        "municipalityOther": {
-          "label": "City / area *"
-        }
-      },
-      "errors": {
-        "missingRole": "Choose a role (Student, Teacher or Parent).",
-        "missingName": "Enter your full name.",
-        "missingCountry": "Choose a country.",
-        "missingMunicipalityNo": "Choose a municipality.",
-        "missingMunicipalityOther": "Enter a city or area."
-      },
-      "buttons": {
-        "back": "Back",
-        "continue": "Continue",
-        "saving": "Saving…",
-        "complete": "Complete profile",
-        "changeRole": "Change role"
+      "profile": {
+        "title": "Perfil básico",
+        "text": "Conte um pouco sobre você para que possamos adaptar a experiência."
       },
       "institution": {
-        "title": "Learning institution (optional)",
-        "typeLabel": "Type",
-        "none": "None",
-        "nameLabel": "Name (optional)",
-        "namePlaceholder": "",
-        "types": {
-          "school": "School",
-          "kindergarten": "Kindergarten",
-          "adult_education": "Adult education",
-          "university": "University / college",
-          "workplace": "Company / workplace",
-          "other": "Other"
-        }
+        "title": "Instituição de ensino",
+        "text": "Esta etapa é opcional, mas ajuda a adaptar a experiência para professores."
+      }
+    },
+    "fields": {
+      "role": {
+        "label": "Escolha o perfil *",
+        "student": "Aluno",
+        "teacher": "Professor",
+        "parent": "Responsável",
+        "hint": "Escolha um perfil para continuar.",
+        "studentHint": "Para alunos que querem aprender mais sozinhos ou com outras pessoas.",
+        "teacherHint": "Plataforma de aprendizagem para professores com turmas, salas e quadro digital.",
+        "parentHint": "Para responsáveis que querem ajudar seus filhos a aprender mais. Crie espaços de estudo e ofereça atividades adaptadas."
+      },
+      "fullName": {
+        "label": "Nome completo *"
+      },
+      "country": {
+        "label": "País *",
+        "placeholder": "Buscar país…"
+      },
+      "municipalityNo": {
+        "label": "Município *",
+        "placeholder": "Buscar município…"
+      },
+      "municipalityOther": {
+        "label": "Cidade / região *"
+      }
+    },
+    "errors": {
+      "missingRole": "Escolha um perfil (Aluno, Professor ou Responsável).",
+      "missingName": "Digite seu nome completo.",
+      "missingCountry": "Escolha um país.",
+      "missingMunicipalityNo": "Escolha um município.",
+      "missingMunicipalityOther": "Digite uma cidade ou região."
+    },
+    "buttons": {
+      "back": "Voltar",
+      "continue": "Continuar",
+      "saving": "Salvando…",
+      "complete": "Completar perfil",
+      "changeRole": "Alterar perfil"
+    },
+    "institution": {
+      "title": "Instituição de ensino (opcional)",
+      "typeLabel": "Tipo",
+      "none": "Nenhuma",
+      "nameLabel": "Nome (opcional)",
+      "namePlaceholder": "",
+      "types": {
+        "school": "Escola",
+        "kindergarten": "Creche",
+        "adult_education": "Educação de adultos",
+        "university": "Universidade / faculdade",
+        "workplace": "Empresa / local de trabalho",
+        "other": "Outro"
       }
     }
   }
+}

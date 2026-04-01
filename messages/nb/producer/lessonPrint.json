@@ -1,55 +1,55 @@
 {
   "lessonPrint": {
-    "pageTitle": "Worksheet – print",
+    "pageTitle": "Arbeidsark – utskrift",
     "states": {
-      "loading": "Loading worksheet..."
+      "loading": "Laster arbeidsark..."
     },
     "nav": {
-      "backToEditor": "Back"
+      "backToEditor": "Tilbake"
     },
     "actions": {
-      "print": "Print / save as PDF",
-      "teacherVersion": "Teacher version",
-      "studentVersion": "Student version"
+      "print": "Skriv ut / lagre som PDF",
+      "teacherVersion": "Lærerversjon",
+      "studentVersion": "Elevversjon"
     },
     "tips": {
-      "saveAsPdf": "Use your browser print dialog and choose Save as PDF."
+      "saveAsPdf": "Bruk utskriftsdialogen i nettleseren og velg Lagre som PDF."
     },
     "labels": {
-      "kicker": "worksheet",
-      "producer": "Producer",
-      "level": "Level",
-      "bannerAlt": "Worksheet banner image"
+      "kicker": "arbeidsark",
+      "producer": "Produsent",
+      "level": "Nivå",
+      "bannerAlt": "Bilde for arbeidsark"
     },
     "identity": {
-      "name": "Name",
-      "date": "Date",
-      "class": "Class"
+      "name": "Navn",
+      "date": "Dato",
+      "class": "Klasse"
     },
     "sections": {
-      "readingText": "Reading text",
-      "tasks": "Tasks"
+      "readingText": "Lesetekst",
+      "tasks": "Oppgaver"
     },
     "answers": {
-      "true": "True",
-      "false": "False"
+      "true": "Sant",
+      "false": "Usant"
     },
     "teacher": {
-      "answerKey": "Answer key",
-      "suggestionNote": "Suggested answer",
+      "answerKey": "Fasit",
+      "suggestionNote": "Forslag til svar",
       "dash": "—"
     },
     "defaults": {
-      "worksheetTitle": "Worksheet"
+      "worksheetTitle": "Arbeidsark"
     },
-    "tasksEmpty": "No tasks found.",
+    "tasksEmpty": "Ingen oppgaver funnet.",
     "errors": {
-      "title": "Error",
-      "unknown": "Something went wrong.",
-      "noAuthUid": "You do not have access to this worksheet.",
-      "notFound": "Worksheet not found.",
-      "noAccessOwnerMismatch": "You do not have access to this worksheet.",
-      "loadFailed": "Could not load worksheet."
+      "title": "Feil",
+      "unknown": "Noe gikk galt.",
+      "noAuthUid": "Du har ikke tilgang til dette arbeidsarket.",
+      "notFound": "Arbeidsark ikke funnet.",
+      "noAccessOwnerMismatch": "Du har ikke tilgang til dette arbeidsarket.",
+      "loadFailed": "Kunne ikke laste arbeidsarket."
     }
   }
 }

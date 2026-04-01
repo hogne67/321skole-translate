@@ -1,30 +1,30 @@
 {
-    "parentNewSpace": {
-    "title": "Create new family room",
-    "subtitle": "Give the room a name that fits your home. For example, you can create one room per child or per topic.",
-    "loading": "Loading…",
+  "parentNewSpace": {
+    "title": "Opprett nytt familierom",
+    "subtitle": "Gi rommet et navn som passer hjemme hos dere. Du kan for eksempel lage ett rom per barn eller per tema.",
+    "loading": "Laster…",
     "fields": {
-      "title": "Room name",
-      "placeholder": "For example: Knut's room",
-      "help": "You can change and build on the room later."
+      "title": "Romnavn",
+      "placeholder": "For eksempel: Knut sitt rom",
+      "help": "Du kan endre og bygge videre på rommet senere."
     },
     "suggestions": {
-      "title": "Suggestions",
-      "room1": "Knut's room",
-      "room2": "Knut English",
-      "room3": "Emma reading",
-      "room4": "Family math"
+      "title": "Forslag",
+      "room1": "Knut sitt rom",
+      "room2": "Knut engelsk",
+      "room3": "Emma lesing",
+      "room4": "Familie matematikk"
     },
     "actions": {
-      "back": "Back to my spaces",
-      "create": "Create room",
-      "creating": "Creating…",
-      "cancel": "Cancel"
+      "back": "Tilbake til mine spaces",
+      "create": "Opprett rom",
+      "creating": "Oppretter…",
+      "cancel": "Avbryt"
     },
     "errors": {
-      "mustBeLoggedIn": "You must be logged in as a parent to create a room.",
-      "missingTitle": "Enter a room name.",
-      "createFailed": "Could not create the room."
+      "mustBeLoggedIn": "Du må være logget inn som forelder for å opprette et rom.",
+      "missingTitle": "Skriv inn et romnavn.",
+      "createFailed": "Kunne ikke opprette rommet."
     }
   }
 }

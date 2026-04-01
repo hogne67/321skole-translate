@@ -1,65 +1,65 @@
 {
-    "spaces": {
-      "title": "Spaces",
-      "subtitle": "Spaces are class or group rooms where you can share assignments with students, either with the whole class or with a smaller group.",
-      "newSpace": "+ Create new space",
-      "newSpaceLocked": "+ New space (locked)",
-      "newSpaceTitle": "Create a new space",
-      "newSpaceLockedTitle": "Requires attestation + Teacher/Creator mode",
-      "controls": {
-        "search": {
-          "label": "Search",
-          "placeholder": "Title or code…"
-        },
-        "sort": {
-          "label": "Sort",
-          "options": {
-            "newest": "Newest",
-            "oldest": "Oldest",
-            "title_az": "Title (A–Z)",
-            "title_za": "Title (Z–A)"
-          }
-        },
-        "filters": {
-          "label": "Filters",
-          "openOnly": "Open only",
-          "showing": "Showing: {n}"
+  "spaces": {
+    "title": "Spaces",
+    "subtitle": "Spaces são salas de aula ou grupos onde você pode compartilhar atividades com os alunos, seja com toda a turma ou com um grupo menor.",
+    "newSpace": "+ Criar novo space",
+    "newSpaceLocked": "+ Novo space (bloqueado)",
+    "newSpaceTitle": "Criar um novo space",
+    "newSpaceLockedTitle": "Requer validação + modo Professor/Criador",
+    "controls": {
+      "search": {
+        "label": "Buscar",
+        "placeholder": "Título ou código…"
+      },
+      "sort": {
+        "label": "Ordenar",
+        "options": {
+          "newest": "Mais recente",
+          "oldest": "Mais antigo",
+          "title_az": "Título (A–Z)",
+          "title_za": "Título (Z–A)"
         }
       },
-      "list": {
-        "untitled": "Untitled space",
-        "open": "Open",
-        "closed": "Closed",
-        "openTitle": "Space is open",
-        "closedTitle": "Space is closed",
-        "code": "Code:",
-        "copyCodeTitle": "Copy code",
-        "copied": "Copied ✅",
-        "members": "Members:",
-        "copyJoinLink": "Copy join link",
-        "copyJoinLinkTitle": "Copy join link",
-        "joinWithQr": "Join with QR code",
-        "joinWithQrTitle": "Show QR code",
-        "seeMembers": "See members",
-        "seeMembersTitle": "See members",
-        "openSpace": "Open space",
-        "openSpaceTitle": "Open space",
-        "board": "Board",
-        "boardTitle": "Open the board for this space"
-      },
-      "empty": {
-        "title": "No spaces found.",
-        "hint": "Create one with New space, then share it by code or link."
-      },
-      "qr": {
-        "title": "Join QR",
-        "subtitle": "{title} · Code: {code}",
-        "close": "Close",
-        "generating": "Generating…",
-        "error": "Could not generate QR. Install dependency: npm i qrcode",
-        "pointsTo": "This QR points to",
-        "note": "Note: install the QR dependency once: npm i qrcode",
-        "imageAlt": "QR code"
+      "filters": {
+        "label": "Filtros",
+        "openOnly": "Apenas abertos",
+        "showing": "Mostrando: {n}"
       }
+    },
+    "list": {
+      "untitled": "Sem título",
+      "open": "Aberto",
+      "closed": "Fechado",
+      "openTitle": "O space está aberto",
+      "closedTitle": "O space está fechado",
+      "code": "Código:",
+      "copyCodeTitle": "Copiar código",
+      "copied": "Copiado ✅",
+      "members": "Membros:",
+      "copyJoinLink": "Copiar link de entrada",
+      "copyJoinLinkTitle": "Copiar link de entrada",
+      "joinWithQr": "Entrar com QR code",
+      "joinWithQrTitle": "Mostrar QR code",
+      "seeMembers": "Ver membros",
+      "seeMembersTitle": "Ver membros",
+      "openSpace": "Abrir space",
+      "openSpaceTitle": "Abrir space",
+      "board": "Quadro",
+      "boardTitle": "Abrir o quadro deste space"
+    },
+    "empty": {
+      "title": "Nenhum space encontrado.",
+      "hint": "Crie um com Novo space e compartilhe por código ou link."
+    },
+    "qr": {
+      "title": "QR de entrada",
+      "subtitle": "{title} · Código: {code}",
+      "close": "Fechar",
+      "generating": "Gerando…",
+      "error": "Não foi possível gerar o QR. Instale a dependência: npm i qrcode",
+      "pointsTo": "Este QR aponta para",
+      "note": "Nota: instale a dependência de QR uma vez: npm i qrcode",
+      "imageAlt": "QR code"
     }
   }
+}

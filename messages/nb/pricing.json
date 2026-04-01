@@ -1,155 +1,155 @@
 {
   "pricing": {
-  "hero": {
-    "title": "Pricing and plans",
-    "subtitle": "321 School is built so everyone can learn for free. When you need more capacity, more AI features, and more collaboration, you can upgrade to the plan that fits your role."
-  },
-  "nav": {
-    "student": "Student",
-    "teacher": "Teacher",
-    "parent": "Parent"
-  },
-  "activePlan": {
-    "label": "Active plan:",
-    "role": "Role:",
-    "manage": "Manage subscription"
-  },
-  "buttons": {
-    "back": "Back to front page",
-    "managePlan": "Manage plan",
-    "createAccount": "Create account"
-  },
-  "tiers": {
-    "free": {
-      "name": "Free",
-      "price": "0 NOK",
-      "tagline": "Get started for free with library access, reading, and simple use.",
-      "badge": "Free"
+    "hero": {
+      "title": "Priser og planer",
+      "subtitle": "321 Skole er laget slik at alle kan lære gratis. Når du trenger mer kapasitet, flere AI-funksjoner og mer samarbeid, kan du oppgradere til planen som passer din rolle."
     },
-    "basic": {
-      "name": "Basic",
-      "price": "59 NOK / month",
-      "tagline": "For those who want to use the platform more often and get more capacity."
+    "nav": {
+      "student": "Elev",
+      "teacher": "Lærer",
+      "parent": "Forelder"
     },
-    "plus": {
-      "name": "Plus",
-      "price": "129 NOK / month",
-      "tagline": "More AI, more collaboration, and access to the most important premium features."
+    "activePlan": {
+      "label": "Aktiv plan:",
+      "role": "Rolle:",
+      "manage": "Administrer abonnement"
     },
-    "pro": {
-      "name": "Pro",
-      "price": "199 NOK / month",
-      "tagline": "For high activity, publishing, and more professional use."
+    "buttons": {
+      "back": "Tilbake til forsiden",
+      "managePlan": "Administrer plan",
+      "createAccount": "Opprett konto"
     },
-    "card": {
-      "recommended": "Recommended",
-      "activePlan": "Active plan",
-      "managePlan": "Manage plan",
-      "getStarted": "Get started",
-      "choosePlan": "Choose {name}",
-      "disclaimer": "* Prices and content may be adjusted before launch."
-    }
-  },
-  "howItWorks": {
-    "title": "How does this work in practice?",
-    "cards": {
-      "categories": {
-        "title": "One shared pool per category",
-        "body": "Premium generators, AI feedback, images, and downloads are counted in separate monthly pools."
+    "tiers": {
+      "free": {
+        "name": "Gratis",
+        "price": "0 NOK",
+        "tagline": "Kom i gang gratis med bibliotek, lesing og enkel bruk.",
+        "badge": "Gratis"
       },
-      "dashboard": {
-        "title": "Dashboard and plans are aligned",
-        "body": "The numbers you see in your dashboard and in the generators should match the limits in your plan."
-      },
-      "roles": {
-        "title": "Roles have different value",
-        "body": "Student, teacher, and parent get different limits because they use the platform differently."
+      "basic": {
+        "name": "Basis",
+        "price": "59 NOK / måned",
+        "tagline": "For deg som vil bruke plattformen mer og få større kapasitet."
       },
       "plus": {
-        "title": "Plus is the bridge to premium",
-        "body": "Plus is made for users who need more capacity, but not full professional use."
+        "name": "Pluss",
+        "price": "129 NOK / måned",
+        "tagline": "Mer AI, mer samarbeid og tilgang til de viktigste premiumfunksjonene."
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "199 NOK / måned",
+        "tagline": "For høy aktivitet, publisering og mer profesjonell bruk."
+      },
+      "card": {
+        "recommended": "Anbefalt",
+        "activePlan": "Aktiv plan",
+        "managePlan": "Administrer plan",
+        "getStarted": "Kom i gang",
+        "choosePlan": "Velg {name}",
+        "disclaimer": "* Priser og innhold kan justeres før lansering."
       }
-    }
-  },
-  "compare": {
-    "function": "Feature"
-  },
-  "roles": {
-    "student": {
-      "title": "🧑‍🎓 Student",
-      "subtitle": "Perfect for self-study, practice, and collaboration.",
-      "hint": "Student plans are built around a shared premium generator pool per month. The same pool is used when you create premium tasks, texts, and similar tools.",
-      "rows": {
-        "library": { "label": "📚 Library (read)" },
-        "classroom": { "label": "🏫 Join classroom" },
-        "generators": {
-          "label": "🧠 Premium generators / month",
-          "note": "Shared pool for premium generators"
+    },
+    "howItWorks": {
+      "title": "Hvordan fungerer dette i praksis?",
+      "cards": {
+        "categories": {
+          "title": "Én felles pott per kategori",
+          "body": "Premium-generatorer, AI-tilbakemelding, bilder og nedlastinger telles i separate månedlige potter."
         },
-        "feedback": { "label": "🧠 AI feedback / month" },
-        "images": { "label": "🖼 AI images / month" },
-        "downloads": { "label": "📥 Downloads / month" },
-        "translator": { "label": "🌍 Translator" },
-        "groups": {
-          "label": "👥 Collaboration and groups",
-          "note": "Can be expanded later"
+        "dashboard": {
+          "title": "Dashboard og planer henger sammen",
+          "body": "Tallene du ser i dashboardet og i generatorene samsvarer med grensene i planen din."
+        },
+        "roles": {
+          "title": "Roller har ulik verdi",
+          "body": "Elev, lærer og forelder har ulike grenser fordi de bruker plattformen forskjellig."
+        },
+        "plus": {
+          "title": "Pluss er broen til premium",
+          "body": "Pluss er laget for brukere som trenger mer kapasitet, men ikke full profesjonell bruk."
         }
       }
     },
-    "teacher": {
-      "title": "👩‍🏫 Teacher",
-      "subtitle": "Built for teachers with clear limits per plan.",
-      "hint": "Teacher plans use the same model as your dashboard: a shared premium generator pool, separate limits for AI feedback, images, downloads, and members.",
-      "rows": {
-        "library": { "label": "📚 Library (read)" },
-        "generators": {
-          "label": "🧠 Premium generators / month",
-          "note": "Shared pool for lesson, reading test, quiz, writing task, and more"
-        },
-        "feedback": { "label": "🧠 AI feedback / month" },
-        "images": { "label": "🖼 AI images / month" },
-        "downloads": { "label": "📥 Downloads / month" },
-        "members": {
-          "label": "👥 Max members",
-          "note": "Shared capacity"
-        },
-        "rooms": { "label": "🏫 Rooms and boards" },
-        "appAccess": { "label": "🌍 Premium app access" }
+    "compare": {
+      "function": "Funksjon"
+    },
+    "roles": {
+      "student": {
+        "title": "🧑‍🎓 Elev",
+        "subtitle": "Perfekt for egen læring, øving og samarbeid.",
+        "hint": "Elevplaner er bygget rundt en delt premium-generatorpott per måned. Den samme potten brukes når du lager premiumoppgaver, tekster og lignende.",
+        "rows": {
+          "library": { "label": "📚 Bibliotek (les)" },
+          "classroom": { "label": "🏫 Bli med i klasserom" },
+          "generators": {
+            "label": "🧠 Premium-generatorer / måned",
+            "note": "Felles pott for premium-generatorer"
+          },
+          "feedback": { "label": "🧠 AI-tilbakemelding / måned" },
+          "images": { "label": "🖼 AI-bilder / måned" },
+          "downloads": { "label": "📥 Nedlastinger / måned" },
+          "translator": { "label": "🌍 Oversetter" },
+          "groups": {
+            "label": "👥 Samarbeid og grupper",
+            "note": "Kan utvides senere"
+          }
+        }
+      },
+      "teacher": {
+        "title": "👩‍🏫 Lærer",
+        "subtitle": "Laget for lærere med tydelige grenser per plan.",
+        "hint": "Lærerplaner bruker samme modell som dashboardet ditt: en delt premium-generatorpott, samt egne grenser for AI-tilbakemelding, bilder, nedlastinger og medlemmer.",
+        "rows": {
+          "library": { "label": "📚 Bibliotek (les)" },
+          "generators": {
+            "label": "🧠 Premium-generatorer / måned",
+            "note": "Felles pott for leksjon, leseprøve, quiz, skriveoppgave og mer"
+          },
+          "feedback": { "label": "🧠 AI-tilbakemelding / måned" },
+          "images": { "label": "🖼 AI-bilder / måned" },
+          "downloads": { "label": "📥 Nedlastinger / måned" },
+          "members": {
+            "label": "👥 Maks antall medlemmer",
+            "note": "Felles kapasitet"
+          },
+          "rooms": { "label": "🏫 Rom og tavler" },
+          "appAccess": { "label": "🌍 Premium app-tilgang" }
+        }
+      },
+      "parent": {
+        "title": "👨‍👩‍👧 Forelder",
+        "subtitle": "For hjemmeøving, støtte og oppfølging.",
+        "hint": "Foreldreplaner bruker også en delt premium-generatorpott, med egne grenser for AI-tilbakemelding, bilder og nedlastinger.",
+        "rows": {
+          "library": { "label": "📚 Bibliotek (les)" },
+          "homeRoom": { "label": "🏠 Læringsrom hjemme" },
+          "generators": {
+            "label": "🧠 Premium-generatorer / måned",
+            "note": "Felles pott for premium-generatorer"
+          },
+          "feedback": { "label": "🧠 AI-tilbakemelding / måned" },
+          "images": { "label": "🖼 AI-bilder / måned" },
+          "downloads": { "label": "📥 Nedlastinger / måned" },
+          "family": { "label": "👶 Familiebruk" },
+          "appAccess": { "label": "🌍 Premium app-tilgang" }
+        }
       }
     },
-    "parent": {
-      "title": "👨‍👩‍👧 Parent",
-      "subtitle": "For home training, support, and progress monitoring.",
-      "hint": "Parent plans also use a shared premium generator pool, along with separate limits for AI feedback, images, and downloads.",
-      "rows": {
-        "library": { "label": "📚 Library (read)" },
-        "homeRoom": { "label": "🏠 Learning space at home" },
-        "generators": {
-          "label": "🧠 Premium generators / month",
-          "note": "Shared pool for premium generators"
-        },
-        "feedback": { "label": "🧠 AI feedback / month" },
-        "images": { "label": "🖼 AI images / month" },
-        "downloads": { "label": "📥 Downloads / month" },
-        "family": { "label": "👶 Family-use capacity" },
-        "appAccess": { "label": "🌍 Premium app access" }
-      }
+    "values": {
+      "simple": "Enkel",
+      "more": "Mer",
+      "most": "Mest",
+      "basic": "Basis",
+      "moreCapacity": "Mer kapasitet",
+      "largeCapacity": "Stor kapasitet",
+      "maxCapacity": "Maks kapasitet",
+      "small": "Liten",
+      "large": "Stor",
+      "largest": "Størst"
+    },
+    "footer": {
+      "note": "Dette er en prisside under utvikling. Tall, grenser og innhold kan endres før lansering. CTA-knappene kan kobles direkte til Stripe eller betalingsside."
     }
-  },
-  "values": {
-    "simple": "Simple",
-    "more": "More",
-    "most": "Most",
-    "basic": "Basic",
-    "moreCapacity": "More capacity",
-    "largeCapacity": "Large capacity",
-    "maxCapacity": "Max capacity",
-    "small": "Small",
-    "large": "Large",
-    "largest": "Largest"
-  },
-  "footer": {
-    "note": "This is a living pricing page under development. Numbers, limits, and content may be adjusted before launch. The CTA buttons can be connected directly to Stripe checkout or the billing page."
   }
-}
 }

@@ -1,155 +1,155 @@
 {
   "pricing": {
-  "hero": {
-    "title": "Pricing and plans",
-    "subtitle": "321 School is built so everyone can learn for free. When you need more capacity, more AI features, and more collaboration, you can upgrade to the plan that fits your role."
-  },
-  "nav": {
-    "student": "Student",
-    "teacher": "Teacher",
-    "parent": "Parent"
-  },
-  "activePlan": {
-    "label": "Active plan:",
-    "role": "Role:",
-    "manage": "Manage subscription"
-  },
-  "buttons": {
-    "back": "Back to front page",
-    "managePlan": "Manage plan",
-    "createAccount": "Create account"
-  },
-  "tiers": {
-    "free": {
-      "name": "Free",
-      "price": "0 NOK",
-      "tagline": "Get started for free with library access, reading, and simple use.",
-      "badge": "Free"
+    "hero": {
+      "title": "Preços e planos",
+      "subtitle": "O 321 School foi criado para que todos possam aprender gratuitamente. Quando você precisar de mais capacidade, mais recursos de IA e mais colaboração, pode fazer upgrade para o plano que melhor se adapta ao seu perfil."
     },
-    "basic": {
-      "name": "Basic",
-      "price": "59 NOK / month",
-      "tagline": "For those who want to use the platform more often and get more capacity."
+    "nav": {
+      "student": "Aluno",
+      "teacher": "Professor",
+      "parent": "Responsável"
     },
-    "plus": {
-      "name": "Plus",
-      "price": "129 NOK / month",
-      "tagline": "More AI, more collaboration, and access to the most important premium features."
+    "activePlan": {
+      "label": "Plano ativo:",
+      "role": "Perfil:",
+      "manage": "Gerenciar assinatura"
     },
-    "pro": {
-      "name": "Pro",
-      "price": "199 NOK / month",
-      "tagline": "For high activity, publishing, and more professional use."
+    "buttons": {
+      "back": "Voltar para a página inicial",
+      "managePlan": "Gerenciar plano",
+      "createAccount": "Criar conta"
     },
-    "card": {
-      "recommended": "Recommended",
-      "activePlan": "Active plan",
-      "managePlan": "Manage plan",
-      "getStarted": "Get started",
-      "choosePlan": "Choose {name}",
-      "disclaimer": "* Prices and content may be adjusted before launch."
-    }
-  },
-  "howItWorks": {
-    "title": "How does this work in practice?",
-    "cards": {
-      "categories": {
-        "title": "One shared pool per category",
-        "body": "Premium generators, AI feedback, images, and downloads are counted in separate monthly pools."
+    "tiers": {
+      "free": {
+        "name": "Grátis",
+        "price": "0 NOK",
+        "tagline": "Comece gratuitamente com acesso à biblioteca, leitura e uso básico.",
+        "badge": "Grátis"
       },
-      "dashboard": {
-        "title": "Dashboard and plans are aligned",
-        "body": "The numbers you see in your dashboard and in the generators should match the limits in your plan."
-      },
-      "roles": {
-        "title": "Roles have different value",
-        "body": "Student, teacher, and parent get different limits because they use the platform differently."
+      "basic": {
+        "name": "Básico",
+        "price": "59 NOK / mês",
+        "tagline": "Para quem quer usar a plataforma com mais frequência e ter mais capacidade."
       },
       "plus": {
-        "title": "Plus is the bridge to premium",
-        "body": "Plus is made for users who need more capacity, but not full professional use."
+        "name": "Plus",
+        "price": "129 NOK / mês",
+        "tagline": "Mais IA, mais colaboração e acesso aos principais recursos premium."
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "199 NOK / mês",
+        "tagline": "Para uso intensivo, publicação e uso mais profissional."
+      },
+      "card": {
+        "recommended": "Recomendado",
+        "activePlan": "Plano ativo",
+        "managePlan": "Gerenciar plano",
+        "getStarted": "Começar",
+        "choosePlan": "Escolher {name}",
+        "disclaimer": "* Preços e conteúdo podem ser ajustados antes do lançamento."
       }
-    }
-  },
-  "compare": {
-    "function": "Feature"
-  },
-  "roles": {
-    "student": {
-      "title": "🧑‍🎓 Student",
-      "subtitle": "Perfect for self-study, practice, and collaboration.",
-      "hint": "Student plans are built around a shared premium generator pool per month. The same pool is used when you create premium tasks, texts, and similar tools.",
-      "rows": {
-        "library": { "label": "📚 Library (read)" },
-        "classroom": { "label": "🏫 Join classroom" },
-        "generators": {
-          "label": "🧠 Premium generators / month",
-          "note": "Shared pool for premium generators"
+    },
+    "howItWorks": {
+      "title": "Como isso funciona na prática?",
+      "cards": {
+        "categories": {
+          "title": "Um pool compartilhado por categoria",
+          "body": "Geradores premium, feedback de IA, imagens e downloads são contados em pools mensais separados."
         },
-        "feedback": { "label": "🧠 AI feedback / month" },
-        "images": { "label": "🖼 AI images / month" },
-        "downloads": { "label": "📥 Downloads / month" },
-        "translator": { "label": "🌍 Translator" },
-        "groups": {
-          "label": "👥 Collaboration and groups",
-          "note": "Can be expanded later"
+        "dashboard": {
+          "title": "Dashboard e planos estão alinhados",
+          "body": "Os números que você vê no dashboard e nos geradores correspondem aos limites do seu plano."
+        },
+        "roles": {
+          "title": "Perfis têm valores diferentes",
+          "body": "Aluno, professor e responsável têm limites diferentes porque usam a plataforma de formas distintas."
+        },
+        "plus": {
+          "title": "Plus é a ponte para o premium",
+          "body": "O plano Plus é feito para usuários que precisam de mais capacidade, mas não uso profissional completo."
         }
       }
     },
-    "teacher": {
-      "title": "👩‍🏫 Teacher",
-      "subtitle": "Built for teachers with clear limits per plan.",
-      "hint": "Teacher plans use the same model as your dashboard: a shared premium generator pool, separate limits for AI feedback, images, downloads, and members.",
-      "rows": {
-        "library": { "label": "📚 Library (read)" },
-        "generators": {
-          "label": "🧠 Premium generators / month",
-          "note": "Shared pool for lesson, reading test, quiz, writing task, and more"
-        },
-        "feedback": { "label": "🧠 AI feedback / month" },
-        "images": { "label": "🖼 AI images / month" },
-        "downloads": { "label": "📥 Downloads / month" },
-        "members": {
-          "label": "👥 Max members",
-          "note": "Shared capacity"
-        },
-        "rooms": { "label": "🏫 Rooms and boards" },
-        "appAccess": { "label": "🌍 Premium app access" }
+    "compare": {
+      "function": "Recurso"
+    },
+    "roles": {
+      "student": {
+        "title": "🧑‍🎓 Aluno",
+        "subtitle": "Perfeito para estudo individual, prática e colaboração.",
+        "hint": "Os planos de aluno são baseados em um pool compartilhado de geradores premium por mês. O mesmo pool é usado ao criar tarefas, textos e outras ferramentas premium.",
+        "rows": {
+          "library": { "label": "📚 Biblioteca (leitura)" },
+          "classroom": { "label": "🏫 Entrar na sala de aula" },
+          "generators": {
+            "label": "🧠 Geradores premium / mês",
+            "note": "Pool compartilhado para geradores premium"
+          },
+          "feedback": { "label": "🧠 Feedback de IA / mês" },
+          "images": { "label": "🖼 Imagens de IA / mês" },
+          "downloads": { "label": "📥 Downloads / mês" },
+          "translator": { "label": "🌍 Tradutor" },
+          "groups": {
+            "label": "👥 Colaboração e grupos",
+            "note": "Pode ser expandido depois"
+          }
+        }
+      },
+      "teacher": {
+        "title": "👩‍🏫 Professor",
+        "subtitle": "Desenvolvido para professores com limites claros por plano.",
+        "hint": "Os planos para professores usam o mesmo modelo do dashboard: um pool compartilhado de geradores premium, com limites separados para feedback de IA, imagens, downloads e membros.",
+        "rows": {
+          "library": { "label": "📚 Biblioteca (leitura)" },
+          "generators": {
+            "label": "🧠 Geradores premium / mês",
+            "note": "Pool compartilhado para aulas, testes de leitura, quizzes, tarefas de escrita e mais"
+          },
+          "feedback": { "label": "🧠 Feedback de IA / mês" },
+          "images": { "label": "🖼 Imagens de IA / mês" },
+          "downloads": { "label": "📥 Downloads / mês" },
+          "members": {
+            "label": "👥 Máx. de membros",
+            "note": "Capacidade compartilhada"
+          },
+          "rooms": { "label": "🏫 Salas e quadros" },
+          "appAccess": { "label": "🌍 Acesso ao app premium" }
+        }
+      },
+      "parent": {
+        "title": "👨‍👩‍👧 Responsável",
+        "subtitle": "Para prática em casa, apoio e acompanhamento do progresso.",
+        "hint": "Os planos para responsáveis também usam um pool compartilhado de geradores premium, com limites separados para feedback de IA, imagens e downloads.",
+        "rows": {
+          "library": { "label": "📚 Biblioteca (leitura)" },
+          "homeRoom": { "label": "🏠 Espaço de aprendizagem em casa" },
+          "generators": {
+            "label": "🧠 Geradores premium / mês",
+            "note": "Pool compartilhado para geradores premium"
+          },
+          "feedback": { "label": "🧠 Feedback de IA / mês" },
+          "images": { "label": "🖼 Imagens de IA / mês" },
+          "downloads": { "label": "📥 Downloads / mês" },
+          "family": { "label": "👶 Uso familiar" },
+          "appAccess": { "label": "🌍 Acesso ao app premium" }
+        }
       }
     },
-    "parent": {
-      "title": "👨‍👩‍👧 Parent",
-      "subtitle": "For home training, support, and progress monitoring.",
-      "hint": "Parent plans also use a shared premium generator pool, along with separate limits for AI feedback, images, and downloads.",
-      "rows": {
-        "library": { "label": "📚 Library (read)" },
-        "homeRoom": { "label": "🏠 Learning space at home" },
-        "generators": {
-          "label": "🧠 Premium generators / month",
-          "note": "Shared pool for premium generators"
-        },
-        "feedback": { "label": "🧠 AI feedback / month" },
-        "images": { "label": "🖼 AI images / month" },
-        "downloads": { "label": "📥 Downloads / month" },
-        "family": { "label": "👶 Family-use capacity" },
-        "appAccess": { "label": "🌍 Premium app access" }
-      }
+    "values": {
+      "simple": "Simples",
+      "more": "Mais",
+      "most": "Mais",
+      "basic": "Básico",
+      "moreCapacity": "Mais capacidade",
+      "largeCapacity": "Alta capacidade",
+      "maxCapacity": "Capacidade máxima",
+      "small": "Pequeno",
+      "large": "Grande",
+      "largest": "Maior"
+    },
+    "footer": {
+      "note": "Esta é uma página de preços em desenvolvimento. Números, limites e conteúdo podem ser ajustados antes do lançamento. Os botões de CTA podem ser conectados diretamente ao Stripe ou à página de pagamento."
     }
-  },
-  "values": {
-    "simple": "Simple",
-    "more": "More",
-    "most": "Most",
-    "basic": "Basic",
-    "moreCapacity": "More capacity",
-    "largeCapacity": "Large capacity",
-    "maxCapacity": "Max capacity",
-    "small": "Small",
-    "large": "Large",
-    "largest": "Largest"
-  },
-  "footer": {
-    "note": "This is a living pricing page under development. Numbers, limits, and content may be adjusted before launch. The CTA buttons can be connected directly to Stripe checkout or the billing page."
   }
-}
 }

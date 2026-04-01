@@ -1,51 +1,51 @@
 {
   "toolsIndex": {
-    "title": "Tools",
-    "subtitle": "Learning resources for school and home.",
-    "open": "Open tool",
+    "title": "Ferramentas",
+    "subtitle": "Recursos de aprendizagem para escola e casa.",
+    "open": "Abrir ferramenta",
     "badges": {
-      "NEW": "New",
+      "NEW": "Novo",
       "POPULAR": "Popular",
       "BETA": "Beta",
       "PREMIUM": "Premium"
     },
     "premium": {
-      "title": "Premium generators",
+      "title": "Geradores premium",
       "items": {
         "assignmentGenerator": {
-          "title": "Worksheet generator",
-          "description": "Create structured assignments with AI support."
+          "title": "Gerador de atividades",
+          "description": "Crie tarefas estruturadas com suporte de IA."
         },
         "readingTestGenerator": {
-          "title": "Reading test generator",
-          "description": "Generate reading tests with questions and automatic evaluation."
+          "title": "Gerador de testes de leitura",
+          "description": "Gere testes de leitura com perguntas e avaliação automática."
         },
         "geometryGenerator": {
-          "title": "Geometry generator",
-          "description": "Create printable geometry worksheets with shapes, perimeter and area."
+          "title": "Gerador de geometria",
+          "description": "Crie atividades de geometria para impressão com figuras, perímetro e área."
         }
       }
     },
     "items": {
       "translate": {
-        "title": "Translator",
-        "description": "Translate words, sentences and short texts between languages."
+        "title": "Tradutor",
+        "description": "Traduza palavras, frases e textos curtos entre idiomas."
       },
       "generator": {
-        "title": "Reading generator",
-        "description": "Create a short reading text with auto-corrected questions."
+        "title": "Gerador de leitura",
+        "description": "Crie um texto curto com perguntas corrigidas automaticamente."
       },
       "vocab": {
-        "title": "Glossary generator",
-        "description": "Build vocabulary lists from a topic or text."
+        "title": "Gerador de vocabulário",
+        "description": "Crie listas de vocabulário a partir de um tema ou texto."
       },
       "sentenceFixer": {
-        "title": "Sentence fixer",
-        "description": "Fix grammar and make sentences clearer."
+        "title": "Corretor de frases",
+        "description": "Corrija a gramática e melhore a clareza das frases."
       },
       "speakingTopic": {
-        "title": "Speaking topics",
-        "description": "Generate a topic and follow-up questions for speaking practice."
+        "title": "Temas de conversação",
+        "description": "Gere um tema e perguntas para prática oral."
       }
     }
   }

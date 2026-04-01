@@ -1,14 +1,14 @@
 {
-"teacherMembers": {
-    "title": "Members",
+  "teacherMembers": {
+    "title": "Membros",
     "subtitle": "{spaceTitle}",
-    "showing": "Showing:",
+    "showing": "Mostrando:",
     "common": {
-      "loading": "Loading…",
+      "loading": "Carregando…",
       "dash": "—"
     },
     "errors": {
-      "missingSpaceId": "Missing spaceId"
+      "missingSpaceId": "Falta spaceId"
     },
     "fallbacks": {
       "spaceTitle": "Space"
@@ -17,27 +17,27 @@
       "spaceId": "SpaceId"
     },
     "actions": {
-      "backToSpace": "Back to space",
-      "allSpaces": "All spaces"
+      "backToSpace": "Voltar para o space",
+      "allSpaces": "Todos os spaces"
     },
     "search": {
-      "placeholder": "Search name / role / uid…"
+      "placeholder": "Buscar nome / função / uid…"
     },
     "table": {
-      "name": "Name",
-      "role": "Role",
-      "joined": "Joined",
-      "type": "Type",
+      "name": "Nome",
+      "role": "Função",
+      "joined": "Entrou",
+      "type": "Tipo",
       "uid": "UID"
     },
     "types": {
-      "anon": "Anon",
-      "signedIn": "Signed-in"
+      "anon": "Anônimo",
+      "signedIn": "Conectado"
     },
-    "empty": "No members found.",
+    "empty": "Nenhum membro encontrado.",
     "tip": {
-      "prefix": "Tip: If you don’t see names yet, it means join-flow hasn’t stored",
-      "suffix": "on members."
+      "prefix": "Dica: Se você ainda não vê nomes, isso significa que o fluxo de entrada não salvou",
+      "suffix": "nos membros."
     }
   }
 }

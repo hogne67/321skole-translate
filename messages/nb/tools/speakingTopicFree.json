@@ -1,31 +1,31 @@
 {
-    "speakingTopicFree": {
-      "title": "Speaking topic generator",
-      "subtitle": "Generate a topic, a main question and follow-up questions for speaking practice.",
-      "fields": {
-        "language": "Language",
-        "level": "CEFR",
-        "category": "Category"
-      },
-      "categories": {
-        "everyday": "Everyday life",
-        "school": "School",
-        "work": "Work",
-        "travel": "Travel",
-        "food": "Food",
-        "friends": "Friends and family",
-        "culture": "Culture",
-        "free": "Free topic"
-      },
-      "actions": {
-        "generate": "Generate topic",
-        "generating": "Generating..."
-      },
-      "sections": {
-        "topic": "Topic",
-        "mainQuestion": "Main question",
-        "followups": "Follow-up questions"
-      },
-      "hint": "Great for pair work, speaking practice and language cafés."
-    }
+  "speakingTopicFree": {
+    "title": "Samtaletema-generator",
+    "subtitle": "Generer et tema, et hovedspørsmål og oppfølgingsspørsmål for muntlig øving.",
+    "fields": {
+      "language": "Språk",
+      "level": "CEFR",
+      "category": "Kategori"
+    },
+    "categories": {
+      "everyday": "Hverdagsliv",
+      "school": "Skole",
+      "work": "Arbeid",
+      "travel": "Reise",
+      "food": "Mat",
+      "friends": "Venner og familie",
+      "culture": "Kultur",
+      "free": "Fritt tema"
+    },
+    "actions": {
+      "generate": "Generer tema",
+      "generating": "Genererer..."
+    },
+    "sections": {
+      "topic": "Tema",
+      "mainQuestion": "Hovedspørsmål",
+      "followups": "Oppfølgingsspørsmål"
+    },
+    "hint": "Perfekt for pararbeid, muntlig øving og språkkafé."
   }
+}

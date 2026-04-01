@@ -1,54 +1,54 @@
 {
   "dashboard": {
     "dashboardIntro": {
-      "helloAnon": "Hello!",
-      "helloUser": "Hello {name}!",
-      "guest": "guest",
-      "loggedIn": "logged in",
-      "roleFallback": "User",
-      "youAre": "You are {state} as <b>{role}</b>.",
-      "activity": "You can continue your <b>activity</b> below.",
-      "recommendRegister": "We recommend creating an account to save your work and sync your content.",
-      "remaining": "{count} left",
+      "helloAnon": "Hei!",
+      "helloUser": "Hei {name}!",
+      "guest": "gjest",
+      "loggedIn": "logget inn",
+      "roleFallback": "Bruker",
+      "youAre": "Du er {state} som <b>{role}</b>.",
+      "activity": "Du kan fortsette din <b>aktivitet</b> nedenfor.",
+      "recommendRegister": "Vi anbefaler å opprette en konto for å lagre arbeidet ditt og synkronisere innholdet ditt.",
+      "remaining": "{count} igjen",
       "roles": {
-        "student": "Student",
-        "teacher": "Teacher",
-        "parent": "Parent"
+        "student": "Elev",
+        "teacher": "Lærer",
+        "parent": "Forelder"
       },
       "plans": {
-        "free": "Free",
+        "free": "Gratis",
         "basic": "Basic",
         "plus": "Plus",
         "pro": "Pro"
       },
       "actions": {
-        "seePlans": "See plans",
-        "registerLogin": "Register / log in",
-        "openLibrary": "Open library"
+        "seePlans": "Se abonnement",
+        "registerLogin": "Registrer / logg inn",
+        "openLibrary": "Åpne bibliotek"
       }
     },
     "usage": {
-      "title": "Usage",
-      "subtitle": "See how much you have used this month.",
+      "title": "Bruk",
+      "subtitle": "Se hvor mye du har brukt denne måneden.",
       "cards": {
-        "premiumGenerators": "Premium generators",
-        "aiFeedback": "AI feedback",
-        "imageGeneration": "Image generation"
+        "premiumGenerators": "Premium-generatorer",
+        "aiFeedback": "AI-tilbakemelding",
+        "imageGeneration": "Bildegenerering"
       },
       "labels": {
-        "unlimited": "Unlimited",
-        "used": "{used} / {limit} used",
-        "remaining": "{count} left",
-        "nearLimit": "You are getting close to your limit.",
-        "seePlans": "See plans",
-        "limitReached": "You have reached your limit.",
-        "upgrade": "Upgrade"
+        "unlimited": "Ubegrenset",
+        "used": "{used} / {limit} brukt",
+        "remaining": "{count} igjen",
+        "nearLimit": "Du nærmer deg grensen din.",
+        "seePlans": "Se abonnement",
+        "limitReached": "Du har nådd grensen.",
+        "upgrade": "Oppgrader"
       }
     },
     "quickLinks": {
-      "title": "Quick links",
-      "library": "Open library",
-      "myContent": "My content"
+      "title": "Hurtiglenker",
+      "library": "Åpne bibliotek",
+      "myContent": "Mitt innhold"
     }
   }
 }

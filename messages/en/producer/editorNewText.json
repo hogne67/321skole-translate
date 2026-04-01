@@ -1,8 +1,180 @@
 {
-"editorNewText": {
-  "pageTitle": "Edit/ finish lesson",
-  "nav": {
-    "back": "← Back"
+  "editorNewText": {
+    "pageTitle": "Finish lesson",
+    "metaLine": "ID: {id} · UID: {uid} · Status: {status}",
+    "footerRemember": "Remember to save the lesson to My content with",
+    "defaults": {
+      "language": "English"
+    },
+    "states": {
+      "loading": "Loading…"
+    },
+    "nav": {
+      "back": "← Back"
+    },
+    "buttons": {
+      "save": "Save",
+      "saveToMyContent": "Save to My content",
+      "saving": "Saving…"
+    },
+    "errors": {
+      "title": "Error",
+      "notFound": "Lesson not found.",
+      "noAccessOwnerMismatch": "You do not have access to this lesson.",
+      "loadFailed": "Could not load lesson.",
+      "saveFailed": "Could not save lesson.",
+      "uploadFailed": "Upload failed.",
+      "chooseImageFile": "Choose an image file (jpg/png/webp).",
+      "fileTooLarge": "The file is too large. Max 8 MB.",
+      "noAuthUid": "No authenticated user found.",
+      "noAuthUidNotReady": "Authentication is not ready yet.",
+      "writePromptForAiImage": "Write a prompt for the AI image.",
+      "textEmptyForAi": "The text is empty. Cannot use the text as inspiration.",
+      "imageGenerationFailed": "Image generation failed.",
+      "imageGenerationNotAvailable": "Image generation is not available on your current plan.",
+      "imageGenerationLimitPeriod": "You have reached your image generation limit for this period.",
+      "imageGenerationLimit": "You have reached your image generation limit.",
+      "missingAuthToken": "Missing auth token."
+    },
+    "intro": {
+      "finishLesson": "Now finish the lesson with metadata, cover image and final adjustments."
+    },
+    "summary": {
+      "title": "Title",
+      "tasks": "Tasks",
+      "words": "Words",
+      "imageGeneration": "Image generation"
+    },
+    "sections": {
+      "basicInfoTitle": "1. Basic information",
+      "basicInfoHelp": "Fill in the core information that describes the lesson.",
+      "coverTitle": "2. Cover image and presentation",
+      "coverHelp": "Choose whether to upload an image or generate one with AI.",
+      "textSettingsTitle": "3. Text and lesson settings",
+      "textSettingsHelp": "Check the text and choose how the lesson should be shown."
+    },
+    "fields": {
+      "title": "Title",
+      "levelOptional": "Level",
+      "language": "Language",
+      "producerName": "Producer name",
+      "topic": "Topic",
+      "tags": "Tags",
+      "tagsHelp": "Separate tags with commas.",
+      "estimatedMinutes": "Estimated minutes",
+      "releaseMode": "Release mode",
+      "releaseModeHelp": "Choose whether text and tasks should be shown together or text first.",
+      "status": "Status",
+      "text": "Text"
+    },
+    "fieldsExtra": {
+      "textType": "Text type",
+      "textTypeHelp": "Used for metadata and library filtering. Keep topic separate.",
+      "format": "Format",
+      "formatHelp": "Only 16:9 is allowed.",
+      "imageStyle": "Image style",
+      "promptSource": "Prompt source",
+      "prompt": "Prompt"
+    },
+    "placeholders": {
+      "title": "Enter title",
+      "level": "For example A1, A2, B1…",
+      "language": "For example English, Norwegian, Portuguese…",
+      "tags": "For example school, grammar, reading",
+      "sourceText": "Paste or write the lesson text here…",
+      "taskPrompt": "Write the task prompt here…",
+      "mcqCorrectAnswer": "Write the correct answer"
+    },
+    "placeholdersExtra": {
+      "producerName": "Your name (from profile)",
+      "textType": "e.g. article, email, dialogue…",
+      "topic": "Optional. Leave empty to avoid showing the AI prompt.",
+      "customPrompt": "Example: A calm classroom scene with students reading, warm light, detailed, clean composition"
+    },
+    "help": {
+      "producerName": "This is taken from your profile (users/{uid}).",
+      "uploadImage": "Upload jpg, png or webp. Image will be used in 16:9 format.",
+      "fromTextPrompt": "The system will use the lesson title and text as inspiration for the image.",
+      "imageLimit": "Image generation: {used} / {limit} used • {remaining} left",
+      "generatedLandscape": "The generated image should be landscape in 16:9.",
+      "rememberSaveImage": "Remember to save the lesson after selecting or generating an image."
+    },
+    "cover": {
+      "uploadImage": "Upload image",
+      "generateAiImage": "Generate AI image",
+      "uploading": "Uploading...",
+      "removeImage": "Remove image",
+      "illustration": "Illustration",
+      "realistic": "Realistic",
+      "writePrompt": "Write prompt",
+      "useTextAsInspiration": "Use text as inspiration",
+      "generateImage": "Generate image",
+      "generating": "Generating...",
+      "limitReached": "Limit reached",
+      "previewAlt": "Cover preview",
+      "previewCaption": "Preview in {format}. Source: {source}.",
+      "previewSourceAi": "AI",
+      "previewSourceUpload": "upload",
+      "noImageYet": "No image selected yet (16:9)."
+    },
+    "releaseModes": {
+      "allAtOnce": "Text and tasks together",
+      "textFirst": "Show text first"
+    },
+    "statuses": {
+      "draft": "Draft",
+      "published": "Published"
+    },
+    "counts": "{words} words · {charsNoSpaces} characters without spaces · {charsWithSpaces} characters with spaces",
+    "tasksIntro": {
+      "help": "Edit the tasks before saving the lesson to My content."
+    },
+    "tasks": {
+      "title": "Tasks",
+      "empty": "No tasks yet.",
+      "type": "Task type",
+      "prompt": "Prompt",
+      "delete": "Delete",
+      "deleteTitle": "Delete task",
+      "headerLine": "Task {n} · {type} · {id}",
+      "add": {
+        "trueFalse": "+ True / False",
+        "mcq": "+ Multiple choice",
+        "open": "+ Open question"
+      },
+      "defaults": {
+        "optionA": "Option A",
+        "optionB": "Option B",
+        "optionC": "Option C",
+        "optionD": "Option D"
+      }
+    },
+    "taskTypes": {
+      "truefalse": "True / False",
+      "mcq": "Multiple choice",
+      "open": "Open question"
+    },
+    "mcq": {
+      "optionsOnePerLine": "Options (one per line)",
+      "correctAnswer": "Correct answer"
+    },
+    "tf": {
+      "correctAnswer": "Correct answer",
+      "tip": "Choose whether the statement is true or false."
+    },
+    "answers": {
+      "true": "True",
+      "false": "False"
+    },
+    "open": {
+      "answerSpace": "Answer space",
+      "answerSpaceHelp": "Choose how much space the student should get for the answer.",
+      "hint": "Open questions are shown with a writing field for the student."
+    },
+    "answerSpace": {
+      "short": "Short",
+      "medium": "Medium",
+      "long": "Long"
+    }
   }
-}
 }

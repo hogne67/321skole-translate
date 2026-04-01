@@ -1,31 +1,31 @@
 {
-    "speakingTopicFree": {
-      "title": "Speaking topic generator",
-      "subtitle": "Generate a topic, a main question and follow-up questions for speaking practice.",
-      "fields": {
-        "language": "Language",
-        "level": "CEFR",
-        "category": "Category"
-      },
-      "categories": {
-        "everyday": "Everyday life",
-        "school": "School",
-        "work": "Work",
-        "travel": "Travel",
-        "food": "Food",
-        "friends": "Friends and family",
-        "culture": "Culture",
-        "free": "Free topic"
-      },
-      "actions": {
-        "generate": "Generate topic",
-        "generating": "Generating..."
-      },
-      "sections": {
-        "topic": "Topic",
-        "mainQuestion": "Main question",
-        "followups": "Follow-up questions"
-      },
-      "hint": "Great for pair work, speaking practice and language cafés."
-    }
+  "speakingTopicFree": {
+    "title": "Gerador de temas para conversação",
+    "subtitle": "Gere um tema, uma pergunta principal e perguntas de acompanhamento para prática oral.",
+    "fields": {
+      "language": "Idioma",
+      "level": "CEFR",
+      "category": "Categoria"
+    },
+    "categories": {
+      "everyday": "Vida cotidiana",
+      "school": "Escola",
+      "work": "Trabalho",
+      "travel": "Viagem",
+      "food": "Comida",
+      "friends": "Amigos e família",
+      "culture": "Cultura",
+      "free": "Tema livre"
+    },
+    "actions": {
+      "generate": "Gerar tema",
+      "generating": "Gerando..."
+    },
+    "sections": {
+      "topic": "Tema",
+      "mainQuestion": "Pergunta principal",
+      "followups": "Perguntas de acompanhamento"
+    },
+    "hint": "Perfeito para trabalho em pares, prática oral e cafés de idiomas."
   }
+}

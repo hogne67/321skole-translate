@@ -1,54 +1,54 @@
 {
   "dashboard": {
     "dashboardIntro": {
-      "helloAnon": "Hello!",
-      "helloUser": "Hello {name}!",
-      "guest": "guest",
-      "loggedIn": "logged in",
-      "roleFallback": "User",
-      "youAre": "You are {state} as <b>{role}</b>.",
-      "activity": "You can continue your <b>activity</b> below.",
-      "recommendRegister": "We recommend creating an account to save your work and sync your content.",
-      "remaining": "{count} left",
+      "helloAnon": "Olá!",
+      "helloUser": "Olá {name}!",
+      "guest": "visitante",
+      "loggedIn": "conectado",
+      "roleFallback": "Usuário",
+      "youAre": "Você está {state} como <b>{role}</b>.",
+      "activity": "Você pode continuar sua <b>atividade</b> abaixo.",
+      "recommendRegister": "Recomendamos criar uma conta para salvar seu trabalho e sincronizar seu conteúdo.",
+      "remaining": "{count} restantes",
       "roles": {
-        "student": "Student",
-        "teacher": "Teacher",
-        "parent": "Parent"
+        "student": "Aluno",
+        "teacher": "Professor",
+        "parent": "Responsável"
       },
       "plans": {
-        "free": "Free",
+        "free": "Gratuito",
         "basic": "Basic",
         "plus": "Plus",
         "pro": "Pro"
       },
       "actions": {
-        "seePlans": "See plans",
-        "registerLogin": "Register / log in",
-        "openLibrary": "Open library"
+        "seePlans": "Ver planos",
+        "registerLogin": "Registrar / entrar",
+        "openLibrary": "Abrir biblioteca"
       }
     },
     "usage": {
-      "title": "Usage",
-      "subtitle": "See how much you have used this month.",
+      "title": "Uso",
+      "subtitle": "Veja quanto você usou neste mês.",
       "cards": {
-        "premiumGenerators": "Premium generators",
-        "aiFeedback": "AI feedback",
-        "imageGeneration": "Image generation"
+        "premiumGenerators": "Geradores premium",
+        "aiFeedback": "Feedback com IA",
+        "imageGeneration": "Geração de imagens"
       },
       "labels": {
-        "unlimited": "Unlimited",
-        "used": "{used} / {limit} used",
-        "remaining": "{count} left",
-        "nearLimit": "You are getting close to your limit.",
-        "seePlans": "See plans",
-        "limitReached": "You have reached your limit.",
-        "upgrade": "Upgrade"
+        "unlimited": "Ilimitado",
+        "used": "{used} / {limit} usado",
+        "remaining": "{count} restantes",
+        "nearLimit": "Você está próximo do seu limite.",
+        "seePlans": "Ver planos",
+        "limitReached": "Você atingiu seu limite.",
+        "upgrade": "Atualizar plano"
       }
     },
     "quickLinks": {
-      "title": "Quick links",
-      "library": "Open library",
-      "myContent": "My content"
+      "title": "Acessos rápidos",
+      "library": "Abrir biblioteca",
+      "myContent": "Meu conteúdo"
     }
   }
 }

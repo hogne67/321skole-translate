@@ -1,30 +1,30 @@
 {
   "join": {
-    "title": "Join",
-    "subtitle": "Enter the code and your name. Your name will be shown to the teacher in the member list.",
+    "title": "Entrar",
+    "subtitle": "Digite o código e seu nome. Seu nome será mostrado ao professor na lista de participantes.",
     "fields": {
       "spaceCode": {
-        "label": "Space code",
-        "placeholder": "e.g. MUR583"
+        "label": "Código",
+        "placeholder": "ex.: MUR583"
       },
       "name": {
-        "label": "Your name",
-        "placeholder": "e.g. Sara Ali",
-        "tip": "Tip: this can be first name + last name, or just first name."
+        "label": "Seu nome",
+        "placeholder": "ex.: Sara Ali",
+        "tip": "Dica: Pode ser nome + sobrenome ou apenas o primeiro nome."
       }
     },
     "actions": {
-      "join": "Join",
-      "joining": "Joining…"
+      "join": "Entrar",
+      "joining": "Entrando…"
     },
     "errors": {
-      "nameRequired": "Please enter your name before joining.",
-      "spaceNotFound": "No space found with this code. Check that the code is correct.",
-      "authTimeout": "Timed out while waiting for auth user.",
-      "teacherLimitReached": "This teacher has reached the student limit for the current plan.",
-      "teacherLimitReachedWithCount": "Teacher limit reached ({used}/{limit} students).",
-      "joinFailed": "Could not join space.",
-      "missingSpaceId": "Join succeeded, but no spaceId was returned."
+      "nameRequired": "Digite seu nome antes de entrar.",
+      "spaceNotFound": "Nenhum espaço encontrado com este código. Verifique se está correto.",
+      "authTimeout": "Tempo esgotado ao aguardar autenticação.",
+      "teacherLimitReached": "O professor atingiu o limite de alunos para o plano atual.",
+      "teacherLimitReachedWithCount": "Limite atingido ({used}/{limit} alunos).",
+      "joinFailed": "Não foi possível entrar no espaço.",
+      "missingSpaceId": "Entrada realizada, mas nenhum spaceId foi retornado."
     }
   }
 }

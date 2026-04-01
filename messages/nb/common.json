@@ -1,8 +1,8 @@
 {
   "common": {
-    "loading": "Loading…",
-    "error": "Something went wrong",
+    "loading": "Laster…",
+    "error": "Noe gikk galt",
     "dash": "—",
-    "unknownError": "Unknown error"
+    "unknownError": "Ukjent feil"
   }
 }

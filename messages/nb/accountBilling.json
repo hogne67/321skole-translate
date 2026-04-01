@@ -1,57 +1,57 @@
 {
   "accountBilling": {
-    "title": "Subscription",
-    "subtitle": "Here you can view your plan, status, and manage your Stripe subscription.",
-    "loadingAuth": "Loading sign-in ...",
-    "mustBeSignedIn": "You must be signed in to view your subscription.",
-    "currentStatus": "Current status",
-    "upgradeSection": "Upgrade or change plan",
-    "noPlansForUser": "No valid plans were found for this user.",
+    "title": "Abonnement",
+    "subtitle": "Her kan du se planen din, status og administrere Stripe-abonnementet.",
+    "loadingAuth": "Laster innlogging ...",
+    "mustBeSignedIn": "Du må være logget inn for å se abonnementet ditt.",
+    "currentStatus": "Nåværende status",
+    "upgradeSection": "Oppgrader eller endre plan",
+    "noPlansForUser": "Fant ingen gyldige planer for denne brukeren.",
     "fields": {
-      "role": "Role",
+      "role": "Rolle",
       "plan": "Plan",
-      "billingStatus": "Billing status",
-      "renewsOrEnds": "Renews / ends",
-      "cancelAtPeriodEnd": "Ends at period end",
-      "provider": "Provider"
+      "billingStatus": "Betalingsstatus",
+      "renewsOrEnds": "Fornyes / avsluttes",
+      "cancelAtPeriodEnd": "Avsluttes ved periode slutt",
+      "provider": "Leverandør"
     },
     "common": {
-      "yes": "Yes",
-      "no": "No",
+      "yes": "Ja",
+      "no": "Nei",
       "empty": "—"
     },
     "buttons": {
-      "manageSubscription": "Manage subscription",
-      "opening": "Opening ...",
-      "currentPlan": "Current plan",
-      "loading": "Loading ...",
-      "choosePlan": "Choose {plan}"
+      "manageSubscription": "Administrer abonnement",
+      "opening": "Åpner ...",
+      "currentPlan": "Nåværende plan",
+      "loading": "Laster ...",
+      "choosePlan": "Velg {plan}"
     },
     "plans": {
-      "free": "Free",
-      "basic": "Basic",
-      "plus": "Plus",
+      "free": "Gratis",
+      "basic": "Basis",
+      "plus": "Pluss",
       "pro": "Pro",
-      "basicDescription": "A good starting level for regular use.",
-      "plusDescription": "More capacity and more premium features.",
-      "proDescription": "Most relevant for teachers with greater needs."
+      "basicDescription": "Et godt startnivå for jevnlig bruk.",
+      "plusDescription": "Mer kapasitet og flere premiumfunksjoner.",
+      "proDescription": "Best egnet for lærere med større behov."
     },
     "statuses": {
-      "active": "Active",
-      "trialing": "Trial period",
-      "past_due": "Past due",
-      "canceled": "Canceled",
-      "unpaid": "Unpaid",
-      "incomplete": "Incomplete",
-      "inactive": "Not active"
+      "active": "Aktiv",
+      "trialing": "Prøveperiode",
+      "past_due": "Forfalt",
+      "canceled": "Avsluttet",
+      "unpaid": "Ubetalt",
+      "incomplete": "Ufullstendig",
+      "inactive": "Ikke aktiv"
     },
     "errors": {
-      "mustBeSignedIn": "You must be signed in.",
-      "checkoutFailed": "Checkout failed ({status})",
-      "portalFailed": "Portal failed ({status})",
-      "checkoutMissingUrl": "Checkout returned without a URL.",
-      "portalMissingUrl": "Portal returned without a URL.",
-      "generic": "Something went wrong."
+      "mustBeSignedIn": "Du må være logget inn.",
+      "checkoutFailed": "Betaling feilet ({status})",
+      "portalFailed": "Portal feilet ({status})",
+      "checkoutMissingUrl": "Betaling returnerte uten URL.",
+      "portalMissingUrl": "Portal returnerte uten URL.",
+      "generic": "Noe gikk galt."
     }
   }
 }

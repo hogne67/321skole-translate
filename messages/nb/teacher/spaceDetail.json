@@ -1,80 +1,80 @@
 {
   "spaceDetail": {
-      "checking": {
-    "title": "Space",
-    "subtitle": "Verifying access…"
-  },
-  "actions": {
-    "back": "← Back",
-    "submissions": "Submissions",
-    "setActive": "Set active",
-    "archive": "Archive",
-    "restore": "Restore"
-  },
-  "access": {
-    "mustBeSignedIn": "You must be signed in.",
-    "notMember": "You are not a member of this space.",
-    "verifyFailed": "Could not verify access."
-  },
-  "denied": {
-    "title": "No access",
-    "subtitle": "You do not have access to this space.",
-    "hint": "To join, use the join link/code or ask the owner to add you.",
-    "joinCardTitle": "Join this space",
-    "joinLinkLabel": "Join link:"
-  },
-  "overview": {
-    "subtitle": "Here you can find codes and links you can send to members, so they can join your space.",
-    "code": "Code:",
-    "copyCodeTitle": "Copy code",
-    "copied": "Copied ✅",
-    "openLabel": "Open:",
-    "yes": "Yes",
-    "no": "No",
-    "copyJoinLink": "Copy join link",
-    "qr": "QR",
-    "activeForStudents": "Active for students:",
-    "clear": "Clear"
-  },
-  "assignments": {
-    "title": "Assignments",
-    "subtitle": "Assign tasks from My Content or Library. Students see assigned tasks after they join.",
-    "assignTask": "Assign task",
-    "showArchived": "Show archived",
-    "hideArchived": "Hide archived",
-    "openSpace": "Open space",
-    "closeSpace": "Close space",
-    "emptyHtml": "No assignments yet. Click <b>Assign task</b>."
-  },
-  "labels": {
-    "myContent": "My Content",
-    "library": "Library"
-  },
-  "badges": {
-    "active": "Active",
-    "archived": "Archived",
-    "noSubmissions": "No submissions",
-    "allReviewed": "All reviewed",
-    "newCount": "{n} new",
-    "submissionsCount": "{n} submissions",
-    "submissionsError": "Submissions: error"
-  },
-  "assignModal": {
-    "title": "Assign task",
-    "subtitle": "Choose from My Content or Library.",
-    "close": "Close",
-    "searchPlaceholder": "Search title or level A1, A2 etc",
-    "noResults": "No results.",
-    "lessonId": "lessonId",
-    "publishedLessonId": "publishedLessonId",
-    "assign": "Assign",
-    "paging": {
-      "prev": "← Previous",
-      "next": "Next →",
-      "showing": "Showing",
-      "zero": "0 of 0",
-      "range": "{start}-{end} of {total}"
+    "checking": {
+      "title": "Space",
+      "subtitle": "Verifiserer tilgang…"
+    },
+    "actions": {
+      "back": "← Tilbake",
+      "submissions": "Innleveringer",
+      "setActive": "Sett som aktiv",
+      "archive": "Arkiver",
+      "restore": "Gjenopprett"
+    },
+    "access": {
+      "mustBeSignedIn": "Du må være logget inn.",
+      "notMember": "Du er ikke medlem av dette spacet.",
+      "verifyFailed": "Kunne ikke verifisere tilgang."
+    },
+    "denied": {
+      "title": "Ingen tilgang",
+      "subtitle": "Du har ikke tilgang til dette spacet.",
+      "hint": "For å bli med, bruk bli-med-lenke/kode eller be eieren legge deg til.",
+      "joinCardTitle": "Bli med i dette spacet",
+      "joinLinkLabel": "Bli-med-lenke:"
+    },
+    "overview": {
+      "subtitle": "Her finner du koder og lenker du kan sende til medlemmer, slik at de kan bli med i spacet.",
+      "code": "Kode:",
+      "copyCodeTitle": "Kopier kode",
+      "copied": "Kopiert ✅",
+      "openLabel": "Åpent:",
+      "yes": "Ja",
+      "no": "Nei",
+      "copyJoinLink": "Kopier bli-med-lenke",
+      "qr": "QR",
+      "activeForStudents": "Aktiv for elever:",
+      "clear": "Tøm"
+    },
+    "assignments": {
+      "title": "Oppgaver",
+      "subtitle": "Tildel oppgaver fra Mitt innhold eller Bibliotek. Elever ser oppgavene etter at de har blitt med.",
+      "assignTask": "Tildel oppgave",
+      "showArchived": "Vis arkiverte",
+      "hideArchived": "Skjul arkiverte",
+      "openSpace": "Åpne space",
+      "closeSpace": "Lukk space",
+      "emptyHtml": "Ingen oppgaver ennå. Klikk <b>Tildel oppgave</b>."
+    },
+    "labels": {
+      "myContent": "Mitt innhold",
+      "library": "Bibliotek"
+    },
+    "badges": {
+      "active": "Aktiv",
+      "archived": "Arkivert",
+      "noSubmissions": "Ingen innleveringer",
+      "allReviewed": "Alle vurdert",
+      "newCount": "{n} nye",
+      "submissionsCount": "{n} innleveringer",
+      "submissionsError": "Innleveringer: feil"
+    },
+    "assignModal": {
+      "title": "Tildel oppgave",
+      "subtitle": "Velg fra Mitt innhold eller Bibliotek.",
+      "close": "Lukk",
+      "searchPlaceholder": "Søk tittel eller nivå A1, A2 osv",
+      "noResults": "Ingen resultater.",
+      "lessonId": "lessonId",
+      "publishedLessonId": "publishedLessonId",
+      "assign": "Tildel",
+      "paging": {
+        "prev": "← Forrige",
+        "next": "Neste →",
+        "showing": "Viser",
+        "zero": "0 av 0",
+        "range": "{start}-{end} av {total}"
+      }
     }
   }
-} 
 }

@@ -1,65 +1,65 @@
 {
   "parentSpaceDetail": {
-    "loading": "Loading…",
+    "loading": "Laster…",
     "header": {
-      "untitled": "Untitled space",
+      "untitled": "Uten tittel",
       "kind": "Type",
-      "code": "Code"
+      "code": "Kode"
     },
     "kinds": {
-      "family": "Family room",
-      "parentGroup": "Parent group",
+      "family": "Familierom",
+      "parentGroup": "Foreldregruppe",
       "other": "Space"
     },
     "actions": {
-      "backToMySpaces": "Back to my spaces",
-      "backMySpacesShort": "My spaces",
-      "open": "Open",
-      "openSpace": "Open space"
+      "backToMySpaces": "Tilbake til mine spaces",
+      "backMySpacesShort": "Mine spaces",
+      "open": "Åpne",
+      "openSpace": "Åpne space"
     },
     "missing": {
-      "title": "Space not found",
-      "subtitle": "It may have been deleted or you may not have access."
+      "title": "Space ikke funnet",
+      "subtitle": "Det kan ha blitt slettet, eller du har ikke tilgang."
     },
     "error": {
-      "title": "Something went wrong"
+      "title": "Noe gikk galt"
     },
     "errors": {
-      "readSpace": "Could not read the space.",
-      "listenStart": "Could not start listening to the space.",
-      "readAssignments": "Could not read assignments.",
-      "listenAssignmentsStart": "Could not start listening to assignments."
+      "readSpace": "Kunne ikke lese space.",
+      "listenStart": "Kunne ikke starte lytting på space.",
+      "readAssignments": "Kunne ikke lese oppgaver.",
+      "listenAssignmentsStart": "Kunne ikke starte lytting på oppgaver."
     },
     "active": {
-      "title": "Active activity",
-      "defaultTitle": "Assignment",
-      "open": "Open activity",
-      "hint": "This activity can be used as a starting point for something you do together at home.",
-      "none": "No active activity right now."
+      "title": "Aktiv aktivitet",
+      "defaultTitle": "Oppgave",
+      "open": "Åpne aktivitet",
+      "hint": "Denne aktiviteten kan brukes som utgangspunkt for noe dere gjør sammen hjemme.",
+      "none": "Ingen aktiv aktivitet akkurat nå."
     },
     "purpose": {
-      "title": "This space can be used for",
-      "family": "A family room can be used for short learning sessions, reading, activities and conversations at home.",
-      "parentGroup": "A parent group can be used for sharing resources, activities and common focus areas."
+      "title": "Dette rommet kan brukes til",
+      "family": "Et familierom kan brukes til korte læringsøkter, lesing, aktiviteter og samtaler hjemme.",
+      "parentGroup": "En foreldregruppe kan brukes til å dele ressurser, aktiviteter og felles fokusområder."
     },
     "all": {
-      "title": "All activities in this space",
-      "showArchived": "Show archived",
-      "none": "No activities in this space.",
-      "archivedTag": "(archived)"
+      "title": "Alle aktiviteter i dette rommet",
+      "showArchived": "Vis arkiverte",
+      "none": "Ingen aktiviteter i dette rommet.",
+      "archivedTag": "(arkivert)"
     },
     "status": {
-      "notStarted": "Not started",
-      "draft": "Draft",
-      "submitted": "Submitted",
-      "needsWork": "Needs work",
-      "reviewed": "Reviewed"
+      "notStarted": "Ikke startet",
+      "draft": "Utkast",
+      "submitted": "Levert",
+      "needsWork": "Må jobbes mer med",
+      "reviewed": "Vurdert"
     },
     "badges": {
       "auto": "Auto: {value}",
-      "aiFeedback": "AI feedback",
-      "parentReview": "Parent review",
-      "parentReviewWithStars": "Parent review • {stars}★"
+      "aiFeedback": "KI-tilbakemelding",
+      "parentReview": "Foreldrevurdering",
+      "parentReviewWithStars": "Foreldrevurdering • {stars}★"
     }
   }
 }

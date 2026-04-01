@@ -1,37 +1,37 @@
 {
   "assignedTask": {
     "actions": {
-      "backToSpace": "← Back to space"
+      "backToSpace": "← Voltar para o space"
     },
     "header": {
-      "subtitle": "This is the assigned task view. Submissions are listed below.",
-      "taskInfo": "Task information",
-      "assignmentMissing": "Could not find assignment in",
-      "sourceMissing": "Assignment exists, but the source lesson could not be found or read."
+      "subtitle": "Esta é a visualização da atividade atribuída. As entregas estão listadas abaixo.",
+      "taskInfo": "Informações da atividade",
+      "assignmentMissing": "Não foi possível encontrar a atividade em",
+      "sourceMissing": "A atividade existe, mas a lição de origem não pôde ser encontrada ou lida."
     },
     "meta": {
-      "level": "Level",
-      "language": "Language"
+      "level": "Nível",
+      "language": "Idioma"
     },
     "error": {
-      "title": "Error"
+      "title": "Erro"
     },
     "submissions": {
-      "title": "Submissions",
-      "loading": "Fetching submissions…",
-      "empty": "No submissions yet."
+      "title": "Entregas",
+      "loading": "Buscando entregas…",
+      "empty": "Ainda não há entregas."
     },
     "status": {
-      "submitted": "Submitted",
-      "needsWork": "Needs work",
-      "approved": "Approved",
-      "draft": "Draft"
+      "submitted": "Enviado",
+      "needsWork": "Precisa melhorar",
+      "approved": "Aprovado",
+      "draft": "Rascunho"
     },
     "fallback": {
-      "task": "Task",
+      "task": "Atividade",
       "space": "Space",
-      "student": "Student",
-      "unknownStudent": "Unknown student"
+      "student": "Aluno",
+      "unknownStudent": "Aluno desconhecido"
     }
   }
 }

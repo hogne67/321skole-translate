@@ -1,114 +1,114 @@
 {
   "lessonsLanding": {
-    "loading": "Loading…",
-    "noData": "No lesson data found.",
+    "loading": "Carregando…",
+    "noData": "Nenhum dado de aula encontrado.",
     "fallback": {
-      "lessonTitle": "Lesson"
+      "lessonTitle": "Aula"
     },
     "nav": {
-      "backToDashboard": "Back",
-      "backToPreview": "Back to preview"
+      "backToDashboard": "Voltar",
+      "backToPreview": "Voltar para a pré-visualização"
     },
     "anon": {
-      "savedLocally": "Your answers are saved locally on this device."
+      "savedLocally": "Suas respostas foram salvas localmente neste dispositivo."
     },
     "image": {
-      "title": "Image",
-      "alt": "Lesson image",
-      "noImageTitle": "No image",
-      "noImageHint": "This lesson has no image."
+      "title": "Imagem",
+      "alt": "Imagem da aula",
+      "noImageTitle": "Sem imagem",
+      "noImageHint": "Esta aula não possui imagem."
     },
     "actions": {
-      "save": "Save",
-      "saving": "Saving…"
+      "save": "Salvar",
+      "saving": "Salvando…"
     },
     "translate": {
-      "label": "Translate to",
-      "searchPlaceholder": "Search language…",
-      "translateText": "Translate text",
-      "translateTasks": "Translate tasks",
-      "translating": "Translating…",
-      "reset": "Reset",
-      "translatedLabel": "Translation",
-      "failed": "Could not translate."
+      "label": "Traduzir para",
+      "searchPlaceholder": "Buscar idioma…",
+      "translateText": "Traduzir texto",
+      "translateTasks": "Traduzir tarefas",
+      "translating": "Traduzindo…",
+      "reset": "Redefinir",
+      "translatedLabel": "Tradução",
+      "failed": "Não foi possível traduzir."
     },
     "text": {
-      "title": "Text",
-      "noText": "No text available.",
-      "clickToSeek": "Click to jump here in the audio",
-      "speed": "Speed",
-      "generating": "Generating audio…",
-      "playOriginal": "Play original",
-      "playTranslation": "Play translation",
-      "stop": "Stop",
-      "pause": "Pause",
-      "continue": "Continue",
-      "replaySentence": "Replay sentence",
-      "prev": "Previous",
-      "next": "Next",
-      "hideTranslation": "Hide translation",
-      "showTranslation": "Show translation",
-      "noAudio": "No audio available.",
-      "failed": "Could not generate audio."
+      "title": "Texto",
+      "noText": "Nenhum texto disponível.",
+      "clickToSeek": "Clique para ir para este ponto no áudio",
+      "speed": "Velocidade",
+      "generating": "Gerando áudio…",
+      "playOriginal": "Reproduzir original",
+      "playTranslation": "Reproduzir tradução",
+      "stop": "Parar",
+      "pause": "Pausar",
+      "continue": "Continuar",
+      "replaySentence": "Repetir frase",
+      "prev": "Anterior",
+      "next": "Próximo",
+      "hideTranslation": "Ocultar tradução",
+      "showTranslation": "Mostrar tradução",
+      "noAudio": "Nenhum áudio disponível.",
+      "failed": "Não foi possível gerar áudio."
     },
     "tasks": {
-      "title": "Tasks",
-      "showAnswers": "Show answers",
-      "hideAnswers": "Hide answers",
-      "clearAnswers": "Clear answers",
-      "hideAllTranslations": "Hide all translations",
-      "showAllTranslations": "Show all translations",
-      "noTasks": "No tasks found.",
-      "taskLabel": "Task {n}",
-      "correct": "Correct",
-      "wrong": "Wrong",
-      "yourAnswer": "Your answer",
-      "hideTranslation": "Hide translation",
-      "showTranslation": "Show translation",
-      "true": "True",
-      "false": "False",
-      "writeAnswerPlaceholder": "Write your answer here…"
+      "title": "Tarefas",
+      "showAnswers": "Mostrar respostas",
+      "hideAnswers": "Ocultar respostas",
+      "clearAnswers": "Limpar respostas",
+      "hideAllTranslations": "Ocultar todas as traduções",
+      "showAllTranslations": "Mostrar todas as traduções",
+      "noTasks": "Nenhuma tarefa encontrada.",
+      "taskLabel": "Tarefa {n}",
+      "correct": "Correto",
+      "wrong": "Incorreto",
+      "yourAnswer": "Sua resposta",
+      "hideTranslation": "Ocultar tradução",
+      "showTranslation": "Mostrar tradução",
+      "true": "Verdadeiro",
+      "false": "Falso",
+      "writeAnswerPlaceholder": "Escreva sua resposta aqui…"
     },
     "feedback": {
       "title": "Feedback",
-      "usage": "AI feedback: {used} / {limit} used • {remaining} left",
-      "generate": "Get AI feedback",
-      "getFeedback": "Get feedback",
-      "submitting": "Submitting…",
-      "loginForFeedback": "Log in for feedback",
-      "loginToGetFeedback": "Log in to get feedback.",
-      "limitReached": "You have reached your AI feedback limit.",
-      "limitReachedShort": "Limit reached",
-      "translateFeedback": "Translate feedback",
-      "translateButtonTitle": "Translate feedback",
-      "translating": "Translating…",
-      "translatedFeedbackLabel": "Translated feedback",
-      "translateFailed": "Could not translate feedback.",
-      "anonHint": "Log in to get AI feedback.",
-      "noFeedbackYet": "No feedback yet.",
-      "generatingNew": "⏳ Generating new feedback…",
-      "answerAtLeastOne": "You must answer at least one task before requesting feedback."
+      "usage": "Feedback de IA: {used} / {limit} usados • {remaining} restantes",
+      "generate": "Obter feedback de IA",
+      "getFeedback": "Obter feedback",
+      "submitting": "Enviando…",
+      "loginForFeedback": "Faça login para obter feedback",
+      "loginToGetFeedback": "Faça login para obter feedback.",
+      "limitReached": "Você atingiu o limite de feedback de IA.",
+      "limitReachedShort": "Limite atingido",
+      "translateFeedback": "Traduzir feedback",
+      "translateButtonTitle": "Traduzir feedback",
+      "translating": "Traduzindo…",
+      "translatedFeedbackLabel": "Feedback traduzido",
+      "translateFailed": "Não foi possível traduzir o feedback.",
+      "anonHint": "Faça login para obter feedback de IA.",
+      "noFeedbackYet": "Nenhum feedback ainda.",
+      "generatingNew": "⏳ Gerando novo feedback…",
+      "answerAtLeastOne": "Você deve responder pelo menos uma tarefa antes de solicitar feedback."
     },
     "flash": {
-      "saved": "Saved.",
-      "submitted": "Submitted.",
-      "clearedAnswers": "Answers cleared.",
-      "answerAtLeastOne": "Answer at least one task first.",
-      "loginToGetFeedback": "Log in to get feedback."
+      "saved": "Salvo.",
+      "submitted": "Enviado.",
+      "clearedAnswers": "Respostas limpas.",
+      "answerAtLeastOne": "Responda pelo menos uma tarefa primeiro.",
+      "loginToGetFeedback": "Faça login para obter feedback."
     },
     "errors": {
-      "label": "Error",
-      "fetchFailed": "Could not load published lessons.",
-      "missingLessonId": "Missing lessonId.",
-      "notPublished": "This lesson is not published.",
-      "notFound": "Lesson not found.",
-      "noAccess": "You do not have access to this lesson.",
-      "generic": "Something went wrong.",
-      "couldNotSave": "Could not save.",
-      "couldNotSubmit": "Could not submit."
+      "label": "Erro",
+      "fetchFailed": "Não foi possível carregar as aulas publicadas.",
+      "missingLessonId": "lessonId ausente.",
+      "notPublished": "Esta aula não está publicada.",
+      "notFound": "Aula não encontrada.",
+      "noAccess": "Você não tem acesso a esta aula.",
+      "generic": "Algo deu errado.",
+      "couldNotSave": "Não foi possível salvar.",
+      "couldNotSubmit": "Não foi possível enviar."
     },
     "tts": {
-      "failed": "Could not generate audio."
+      "failed": "Não foi possível gerar áudio."
     }
   }
 }

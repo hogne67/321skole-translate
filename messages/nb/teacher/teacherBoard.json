@@ -1,132 +1,132 @@
 {
   "teacherBoard": {
     "header": {
-      "title": "Digital board",
-      "subtitle": "Live in this space. You control the content — students see it in real time."
+      "title": "Digital tavle",
+      "subtitle": "Live i dette rommet. Du styrer innholdet — elevene ser det i sanntid."
     },
     "common": {
-      "loading": "Loading…",
-      "mode": "mode"
+      "loading": "Laster…",
+      "mode": "modus"
     },
     "errors": {
-      "fetchState": "Could not load board state."
+      "fetchState": "Kunne ikke laste tavlestatus."
     },
     "defaults": {
-      "title": "Today's question",
-      "prompt": "Write in your own words: What do numerator and denominator mean?",
-      "pollQuestion": "What do you think?",
-      "pollOptions": "Yes, No, Not sure",
-      "wordwallPrompt": "Write one word that fits the topic.",
-      "pollTitle": "Poll",
-      "wordwallShortPrompt": "Write one word."
+      "title": "Dagens spørsmål",
+      "prompt": "Skriv med egne ord: Hva betyr teller og nevner?",
+      "pollQuestion": "Hva mener du?",
+      "pollOptions": "Ja, Nei, Usikker",
+      "wordwallPrompt": "Skriv ett ord som passer til temaet.",
+      "pollTitle": "Avstemning",
+      "wordwallShortPrompt": "Skriv ett ord."
     },
     "fallbacks": {
-      "question": "Question"
+      "question": "Spørsmål"
     },
     "status": {
       "label": "Status",
       "live": "LIVE",
-      "notLive": "Not live",
-      "session": "session"
+      "notLive": "Ikke live",
+      "session": "økt"
     },
     "actions": {
       "startLive": "Start live",
-      "stop": "Stop",
-      "updateBoard": "Update board",
-      "newRound": "New round",
-      "clearAnswers": "Clear answers",
-      "showAnswers": "Show answers again",
-      "presentation": "Presentation",
-      "showControlPanel": "Show control panel",
-      "fullscreen": "Fullscreen",
-      "exitFullscreen": "Exit fullscreen",
-      "hideTimer": "Hide timer",
-      "showTimer": "Show timer",
-      "clear": "Clear"
+      "stop": "Stopp",
+      "updateBoard": "Oppdater tavle",
+      "newRound": "Ny runde",
+      "clearAnswers": "Fjern svar",
+      "showAnswers": "Vis svar igjen",
+      "presentation": "Presentasjon",
+      "showControlPanel": "Vis kontrollpanel",
+      "fullscreen": "Fullskjerm",
+      "exitFullscreen": "Avslutt fullskjerm",
+      "hideTimer": "Skjul tidtaker",
+      "showTimer": "Vis tidtaker",
+      "clear": "Tøm"
     },
     "tabs": {
-      "question": "Today's question",
-      "notes": "Notes",
-      "poll": "Poll",
-      "wordwall": "Wordwall"
+      "question": "Dagens spørsmål",
+      "notes": "Notater",
+      "poll": "Avstemning",
+      "wordwall": "Ordsamling"
     },
     "fields": {
       "title": {
-        "label": "Title",
-        "placeholder": "E.g.: Today's question"
+        "label": "Tittel",
+        "placeholder": "F.eks.: Dagens spørsmål"
       },
       "prompt": {
-        "label": "Text / prompt",
-        "placeholder": "Write the prompt students should see…"
+        "label": "Tekst / oppgave",
+        "placeholder": "Skriv teksten elevene skal se…"
       }
     },
     "question": {
-      "sameRoundHint": "\"Update board\" uses the same round. \"New round\" creates a new session and resets responses."
+      "sameRoundHint": "\"Oppdater tavle\" bruker samme runde. \"Ny runde\" lager en ny økt og nullstiller svarene."
     },
     "poll": {
-      "setupTitle": "Poll setup",
-      "questionLabel": "Question",
-      "questionPlaceholder": "Write poll question…",
-      "optionsLabel": "Answer options",
-      "optionsPlaceholder": "Yes, No, Not sure … (comma or line breaks)",
-      "optionsHint": "Tip: use commas or line breaks. Maximum 10 options.",
-      "update": "Update poll",
-      "newRound": "New poll round",
-      "clearAnswers": "Clear answers",
-      "showAnswers": "Show answers",
-      "anonymousHint": "Poll responses are anonymous: we do not store names or uid.",
-      "previewTitle": "Preview",
-      "resultsTitle": "Poll results",
-      "responsesCount": "{count} responses",
-      "noSession": "No active session",
-      "startHint": "Start a poll to see results."
+      "setupTitle": "Oppsett av avstemning",
+      "questionLabel": "Spørsmål",
+      "questionPlaceholder": "Skriv spørsmål…",
+      "optionsLabel": "Svaralternativer",
+      "optionsPlaceholder": "Ja, Nei, Usikker … (komma eller linjeskift)",
+      "optionsHint": "Tips: bruk komma eller linjeskift. Maks 10 alternativer.",
+      "update": "Oppdater avstemning",
+      "newRound": "Ny avstemningsrunde",
+      "clearAnswers": "Fjern svar",
+      "showAnswers": "Vis svar",
+      "anonymousHint": "Svarene er anonyme: vi lagrer ikke navn eller uid.",
+      "previewTitle": "Forhåndsvisning",
+      "resultsTitle": "Resultater",
+      "responsesCount": "{count} svar",
+      "noSession": "Ingen aktiv økt",
+      "startHint": "Start en avstemning for å se resultater."
     },
     "wordwall": {
-      "promptLabel": "Prompt / instruction",
-      "promptPlaceholder": "Example: Write one word that fits the text.",
-      "update": "Update wordwall",
-      "newRound": "New round",
-      "clearAnswers": "Clear answers",
-      "showAnswers": "Show answers",
-      "anonymousHint": "Wordwall is anonymous. Identical words are merged automatically, and words grow larger when more students write the same word.",
-      "previewTitle": "Preview",
-      "noSession": "No active session.",
-      "noneYet": "No words yet."
+      "promptLabel": "Oppgave / instruksjon",
+      "promptPlaceholder": "Eksempel: Skriv ett ord som passer til teksten.",
+      "update": "Oppdater ordsamling",
+      "newRound": "Ny runde",
+      "clearAnswers": "Fjern svar",
+      "showAnswers": "Vis svar",
+      "anonymousHint": "Ordsamlingen er anonym. Like ord slås sammen automatisk, og vokser når flere skriver det samme.",
+      "previewTitle": "Forhåndsvisning",
+      "noSession": "Ingen aktiv økt.",
+      "noneYet": "Ingen ord ennå."
     },
     "notes": {
-      "title": "Notes (local)",
-      "clear": "Clear",
-      "clearTitle": "Eraser / clear",
-      "placeholder": "Write notes here… (not saved to Firestore)",
-      "localOnly": "This is only for you on this device (local storage). Students cannot see this."
+      "title": "Notater (lokalt)",
+      "clear": "Tøm",
+      "clearTitle": "Visk / tøm",
+      "placeholder": "Skriv notater her… (lagres ikke i Firestore)",
+      "localOnly": "Dette er kun synlig for deg på denne enheten. Elevene ser det ikke."
     },
     "timer": {
-      "title": "Timer",
-      "set": "Timer {seconds}s",
-      "clear": "Remove timer",
-      "toggleTitle": "Show/hide timer bar",
-      "stop": "Stop"
+      "title": "Tidtaker",
+      "set": "Tidtaker {seconds}s",
+      "clear": "Fjern tidtaker",
+      "toggleTitle": "Vis/skjul tidslinje",
+      "stop": "Stopp"
     },
     "preview": {
-      "title": "Preview"
+      "title": "Forhåndsvisning"
     },
     "countdown": {
-      "label": "Time left"
+      "label": "Tid igjen"
     },
     "responses": {
-      "title": "Student responses (live)",
-      "count": "{count} responses",
-      "hint": "Start live to collect responses",
-      "clearedPrefix": "Responses are cleared (hidden). Press",
-      "clearedSuffix": "to see everything.",
-      "noSession": "No active session.",
-      "noneYet": "No responses yet.",
-      "unknown": "Unknown"
+      "title": "Elevsvar (live)",
+      "count": "{count} svar",
+      "hint": "Start live for å samle svar",
+      "clearedPrefix": "Svarene er skjult. Trykk",
+      "clearedSuffix": "for å vise alt.",
+      "noSession": "Ingen aktiv økt.",
+      "noneYet": "Ingen svar ennå.",
+      "unknown": "Ukjent"
     },
     "modes": {
-  "text": "text",
-  "poll": "poll",
-  "wordwall": "wordwall"
-}
+      "text": "tekst",
+      "poll": "avstemning",
+      "wordwall": "ordsamling"
+    }
   }
 }

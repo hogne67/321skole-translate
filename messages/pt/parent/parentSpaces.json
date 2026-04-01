@@ -1,43 +1,43 @@
 {
   "parentSpaces": {
-    "title": "My spaces",
-    "subtitle": "Here you will find family rooms and parent spaces for activities at home.",
-    "defaultTitle": "Untitled space",
+    "title": "Meus spaces",
+    "subtitle": "Aqui você encontra salas familiares e grupos de pais para atividades em casa.",
+    "defaultTitle": "Sem título",
     "actions": {
-      "open": "Open",
-      "openSpace": "Open space",
-      "newSpace": "Create space",
-      "parentGroups": "+ Create new room"
+      "open": "Abrir",
+      "openSpace": "Abrir space",
+      "newSpace": "Criar space",
+      "parentGroups": "+ Criar nova sala"
     },
     "meta": {
-      "code": "Code"
+      "code": "Código"
     },
     "kinds": {
-      "family": "Family room",
-      "parentGroup": "Parent group",
+      "family": "Sala familiar",
+      "parentGroup": "Grupo de pais",
       "other": "Space"
     },
-    "empty": "You do not have any parent spaces yet.",
-    "loading": "Loading…",
+    "empty": "Você ainda não tem spaces de pais.",
+    "loading": "Carregando…",
     "errors": {
-      "loadFailed": "Could not load spaces."
+      "loadFailed": "Não foi possível carregar os spaces."
     },
     "counts": {
-      "groups": "{count, plural, one {# group} other {# groups}}"
+      "groups": "{count, plural, one {# grupo} other {# grupos}}"
     },
     "status": {
-      "notStarted": "Not started",
-      "draft": "Draft",
-      "submitted": "Submitted",
-      "needsWork": "Needs work",
-      "reviewed": "Reviewed"
+      "notStarted": "Não iniciado",
+      "draft": "Rascunho",
+      "submitted": "Enviado",
+      "needsWork": "Precisa melhorar",
+      "reviewed": "Revisado"
     },
     "badges": {
-      "tasks": "{count} tasks",
-      "active": "Active: {title}",
-      "aiFeedback": "AI feedback",
-      "parentReview": "Parent review",
-      "parentReviewWithStars": "Parent review • {stars}★"
+      "tasks": "{count} tarefas",
+      "active": "Ativo: {title}",
+      "aiFeedback": "Feedback com IA",
+      "parentReview": "Avaliação dos pais",
+      "parentReviewWithStars": "Avaliação dos pais • {stars}★"
     }
   }
 }

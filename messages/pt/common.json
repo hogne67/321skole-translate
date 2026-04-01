@@ -1,8 +1,8 @@
 {
   "common": {
-    "loading": "Loading…",
-    "error": "Something went wrong",
+    "loading": "Carregando…",
+    "error": "Algo deu errado",
     "dash": "—",
-    "unknownError": "Unknown error"
+    "unknownError": "Erro desconhecido"
   }
 }

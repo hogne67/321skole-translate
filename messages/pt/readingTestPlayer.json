@@ -1,46 +1,46 @@
 {
   "readingTestPlayer": {
     "errors": {
-      "missingLessonId": "Missing lesson id.",
-      "notFound": "Test not found.",
-      "notReadingTest": "This is not a reading test.",
-      "noAccess": "You do not have access to this test."
+      "missingLessonId": "lessonId ausente.",
+      "notFound": "Teste não encontrado.",
+      "notReadingTest": "Este não é um teste de leitura.",
+      "noAccess": "Você não tem acesso a este teste."
     },
     "fallback": {
-      "title": "Reading test"
+      "title": "Teste de leitura"
     },
-    "loading": "Loading...",
+    "loading": "Carregando...",
     "meta": {
-      "words": "words",
-      "answered": "answered"
+      "words": "palavras",
+      "answered": "respondidas"
     },
     "actions": {
-      "startTest": "Start test",
-      "submit": "Submit",
-      "tryAgain": "Try again",
-      "showQuestions": "Show questions"
+      "startTest": "Iniciar teste",
+      "submit": "Enviar",
+      "tryAgain": "Tentar novamente",
+      "showQuestions": "Mostrar perguntas"
     },
     "readingText": {
-      "title": "Reading text",
-      "time": "Time",
-      "startFirst": "Start the test before opening the questions."
+      "title": "Texto",
+      "time": "Tempo",
+      "startFirst": "Inicie o teste antes de abrir as perguntas."
     },
     "questions": {
-      "title": "Questions",
-      "true": "True",
-      "false": "False",
-      "correct": "Correct",
-      "incorrect": "Incorrect",
-      "openSaved": "Open response saved for self-review",
-      "correctAnswer": "Correct answer:"
+      "title": "Perguntas",
+      "true": "Verdadeiro",
+      "false": "Falso",
+      "correct": "Correto",
+      "incorrect": "Incorreto",
+      "openSaved": "Resposta aberta salva para autoavaliação",
+      "correctAnswer": "Resposta correta:"
     },
     "result": {
-      "title": "Result"
+      "title": "Resultado"
     },
     "feedback": {
-      "learner": "Great work. Review the answers you missed and try one more test at the same level.",
-      "adult": "Use the result to identify patterns. Focus especially on vocabulary in context and summary reading.",
-      "both": "Great work. Review your answers and focus on the task types that were hardest for you."
+      "learner": "Ótimo trabalho. Revise as respostas que você errou e tente outro teste no mesmo nível.",
+      "adult": "Use o resultado para identificar padrões. Foque especialmente no vocabulário em contexto e na compreensão geral.",
+      "both": "Ótimo trabalho. Revise suas respostas e foque nos tipos de tarefa mais difíceis para você."
     }
   }
 }

@@ -1,37 +1,36 @@
 {
   "translateFree": {
-    "title": "Translator",
-    "subtitle": "Paste the text and select the language you want to translate to",
+    "title": "Oversetter",
+    "subtitle": "Lim inn teksten og velg språket du vil oversette til",
 
-    
     "fields": {
-      "targetLanguage": "Target language",
+      "targetLanguage": "Målspråk",
       "source": "Original",
-      "result": "Translation"
+      "result": "Oversettelse"
     },
 
     "placeholders": {
-      "source": "Paste text here…",
-      "result": "Result…"
+      "source": "Lim inn tekst her…",
+      "result": "Resultat…"
     },
 
     "buttons": {
-      "translate": "Translate",
-      "translating": "Translating…"
+      "translate": "Oversett",
+      "translating": "Oversetter…"
     },
 
     "errors": {
-      "default": "Translate failed"
+      "default": "Kunne ikke oversette"
     },
 
     "languages": {
-      "no": "Norwegian",
-      "en": "English",
-      "uk": "Ukrainian",
-      "ar": "Arabic",
-      "pl": "Polish",
-      "es": "Spanish",
-      "pt": "Portuguese"
+      "no": "Norsk",
+      "en": "Engelsk",
+      "uk": "Ukrainsk",
+      "ar": "Arabisk",
+      "pl": "Polsk",
+      "es": "Spansk",
+      "pt": "Portugisisk"
     }
   }
 }

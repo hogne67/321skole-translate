@@ -1,24 +1,24 @@
 {
-"spacesNew": {
-      "title": "Create new room",
-      "fields": {
-        "name": {
-          "label": "Name",
-          "placeholder": "e.g. Norwegian A2 – Group 1"
-        },
-        "isOpen": {
-          "label": "Give the room a suitable name. Invite members afterwards)"
-        }
+  "spacesNew": {
+    "title": "Criar novo espaço",
+    "fields": {
+      "name": {
+        "label": "Nome",
+        "placeholder": "ex.: Norueguês A2 – Grupo 1"
       },
-      "actions": {
-        "create": "Create",
-        "creating": "Creating…"
-      },
-      "errors": {
-        "missingUser": "Missing user.",
-        "cannotCreate": "You can’t create a classroom.",
-        "missingTitle": "Please name the classroom.",
-        "unknown": "Unknown error"
+      "isOpen": {
+        "label": "Dê um nome adequado ao espaço. Convide membros depois."
       }
+    },
+    "actions": {
+      "create": "Criar",
+      "creating": "Criando…"
+    },
+    "errors": {
+      "missingUser": "Usuário ausente.",
+      "cannotCreate": "Você não pode criar uma sala.",
+      "missingTitle": "Por favor, dê um nome à sala.",
+      "unknown": "Erro desconhecido"
     }
+  }
 }

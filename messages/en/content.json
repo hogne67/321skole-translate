@@ -15,14 +15,14 @@
     },
     "filters": {
   "all": "All",
-  "library": "LIBRARY TEST",
-  "math": "MATH TEST",
+  "library": "LIBRARY",
+  "math": "MATH",
   "lesson": "Lesson",
-  "lessons": "Lessons",
+  "lessons": "GENERATED",
   "submission": "Submission",
-  "submissions": "Submissions",
+  "submissions": "SUBMISSIONS",
   "space": "Space",
-  "spaces": "Spaces"
+  "spaces": "SPACES"
 },
     "filterHints": {
       "library": "Your own tasks from the library (practice)",

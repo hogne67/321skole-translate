@@ -1,28 +1,28 @@
 {
-  "submission": {
-      "title": "Submission",
-      "submissionIdLabel": "ID",
-      "spaceLabel": "space",
-      "assignmentLabel": "assignment",
-      "toAssignment": "Back to assignment",
-      "back": "Back",
-      "save": "Save",
-      "locked": "Locked",
-      "loading": "Loading…",
-      "errorTitle": "Error",
-      "noFeedback": "No feedback yet.",
-      "teacherFeedbackTitle": "Teacher feedback",
-      "answersTitle": "Answers (JSON)",
-      "helper": "(Temporary JSON editor. Next step could be a proper form based on task type.)",
-      "lockedNotice": "This submission is marked as <strong>reviewed</strong> and cannot be changed.",
-      "errors": {
-        "notFound": "Submission not found",
-        "noAccess": "You do not have access to this submission.",
-        "loadFailed": "Failed to load submission",
-        "locked": "This submission is locked (reviewed).",
-        "invalidJson": "Invalid JSON. Fix formatting before saving.",
-        "answersMustBeObject": "Answers must be a JSON object.",
-        "saveFailed": "Failed to save"
-      }
+  "studentSubmission": {
+    "title": "Entrega",
+    "submissionIdLabel": "ID",
+    "spaceLabel": "space",
+    "assignmentLabel": "atividade",
+    "toAssignment": "Voltar para a atividade",
+    "back": "Voltar",
+    "save": "Salvar",
+    "locked": "Bloqueado",
+    "loading": "Carregando…",
+    "errorTitle": "Erro",
+    "noFeedback": "Ainda não há feedback.",
+    "teacherFeedbackTitle": "Feedback do professor",
+    "answersTitle": "Respostas (JSON)",
+    "helper": "(Editor JSON temporário. O próximo passo pode ser um formulário adequado com base no tipo de atividade.)",
+    "lockedNotice": "Esta entrega está marcada como <strong>revisada</strong> e não pode ser alterada.",
+    "errors": {
+      "notFound": "Entrega não encontrada",
+      "noAccess": "Você não tem acesso a esta entrega.",
+      "loadFailed": "Não foi possível carregar a entrega",
+      "locked": "Esta entrega está bloqueada (revisada).",
+      "invalidJson": "JSON inválido. Corrija a formatação antes de salvar.",
+      "answersMustBeObject": "As respostas devem ser um objeto JSON.",
+      "saveFailed": "Não foi possível salvar"
     }
   }
+}

@@ -1,96 +1,96 @@
 {
   "submission": {
-    "title": "Submission",
+    "title": "Innlevering",
     "actions": {
-      "back": "← Back"
+      "back": "← Tilbake"
     },
     "errors": {
-      "missingParams": "Missing spaceId/assignmentId/subId in URL."
+      "missingParams": "Mangler spaceId/assignmentId/subId i URL."
     },
     "missing": {
-      "title": "Submission not found"
+      "title": "Innlevering ikke funnet"
     },
     "meta": {
-      "summaryTitle": "Summary",
-      "deliveryTitle": "Delivery details",
+      "summaryTitle": "Sammendrag",
+      "deliveryTitle": "Leveringsdetaljer",
       "statusLabel": "Status",
-      "autoScoreTitle": "Auto score",
-      "studentLabel": "Student:",
-      "delivered": "Submitted:",
-      "deliveredUnknown": "Submitted: (unknown)",
-      "guest": "Guest (not logged in)",
-      "loggedIn": "Logged in"
+      "autoScoreTitle": "Automatisk vurdering",
+      "studentLabel": "Elev:",
+      "delivered": "Levert:",
+      "deliveredUnknown": "Levert: (ukjent)",
+      "guest": "Gjest (ikke logget inn)",
+      "loggedIn": "Logget inn"
     },
     "status": {
-      "submitted": "Submitted",
-      "approved": "Approved",
-      "needsWork": "Needs work",
-      "draft": "Draft"
+      "submitted": "Levert",
+      "approved": "Godkjent",
+      "needsWork": "Må forbedres",
+      "draft": "Utkast"
     },
     "auto": {
-      "main": "AUTO RESULT: {correct}/{total}{pctText}",
-      "details": "Correct: {correct} · Wrong: {wrong} · Unanswered: {unanswered}",
-      "taskCorrect": "Auto correction: ✅ correct",
-      "taskWrong": "Auto correction: ❌ wrong",
-      "taskUnanswered": "Auto: ⏳ unanswered"
+      "main": "AUTOMATISK RESULTAT: {correct}/{total}{pctText}",
+      "details": "Riktig: {correct} · Feil: {wrong} · Ikke besvart: {unanswered}",
+      "taskCorrect": "Automatisk vurdering: ✅ riktig",
+      "taskWrong": "Automatisk vurdering: ❌ feil",
+      "taskUnanswered": "Auto: ⏳ ikke besvart"
     },
     "notice": {
-      "needAttestationHtml": "To give feedback, you need <b>attestation</b> and must be in <b>teacher</b> or <b>creator</b> mode."
+      "needAttestationHtml": "For å gi tilbakemelding trenger du <b>attestering</b> og må være i <b>lærer</b>- eller <b>produsent</b>-modus."
     },
     "draft": {
-      "notice": "This submission is still a draft."
+      "notice": "Denne innleveringen er fortsatt et utkast."
     },
     "studentView": {
-      "title": "Answers (as the student sees them)",
-      "loadingLesson": "Fetching lesson…",
-      "level": "Level: {v}",
-      "imageAlt": "Lesson",
-      "noImageTitle": "No image",
-      "noImageDesc": "This lesson has no cover image.",
-      "textTitle": "Text",
-      "tasksTitle": "Tasks",
-      "noTasks": "No tasks in this lesson (or the lesson could not be found).",
-      "noTasksHint": "This usually means assignment.sourceId is missing or lesson.tasks is empty.",
-      "taskN": "Task {n}",
-      "correctTag": "✓ correct",
-      "selectedTag": "Selected",
-      "true": "True",
-      "false": "False",
-      "notAnswered": "(not answered)"
+      "title": "Svar (slik eleven ser dem)",
+      "loadingLesson": "Henter oppgave…",
+      "level": "Nivå: {v}",
+      "imageAlt": "Oppgave",
+      "noImageTitle": "Ingen bilde",
+      "noImageDesc": "Denne oppgaven har ikke noe forsidebilde.",
+      "textTitle": "Tekst",
+      "tasksTitle": "Oppgaver",
+      "noTasks": "Ingen oppgaver i denne leksjonen (eller leksjonen ble ikke funnet).",
+      "noTasksHint": "Dette betyr vanligvis at assignment.sourceId mangler eller at lesson.tasks er tom.",
+      "taskN": "Oppgave {n}",
+      "correctTag": "✓ riktig",
+      "selectedTag": "Valgt",
+      "true": "Sant",
+      "false": "Usant",
+      "notAnswered": "(ikke besvart)"
     },
     "feedback": {
-      "title": "Feedback",
+      "title": "Tilbakemelding",
       "statusLabel": "Status",
-      "placeholder": "Write a short feedback…",
-      "needTextToChangeStatus": "To change status, you must write a short comment.",
-      "saveButton": "Save feedback",
-      "saving": "Saving…",
-      "saved": "Saved ✅",
-      "saveFailed": "Could not save: {msg}",
-      "rulesHint": "(Rules: only teacher/owner/admin can change)"
+      "placeholder": "Skriv en kort tilbakemelding…",
+      "needTextToChangeStatus": "For å endre status må du skrive en kort kommentar.",
+      "saveButton": "Lagre tilbakemelding",
+      "saving": "Lagrer…",
+      "saved": "Lagret ✅",
+      "saveFailed": "Kunne ikke lagre: {msg}",
+      "rulesHint": "(Regler: kun lærer/eier/admin kan endre)"
     },
     "ai": {
-      "title": "AI feedback",
-      "generateButton": "Generate AI feedback",
-      "generating": "Generating…",
-      "copyButton": "Copy",
-      "insertButton": "Insert into teacher feedback",
-      "placeholder": "AI feedback is shown here…",
-      "generated": "AI feedback generated.",
-      "saved": "AI feedback saved.",
-      "generateFailed": "Could not generate AI feedback: {msg}",
-      "saveFailed": "Could not save AI feedback: {msg}",
-      "copied": "Copied!",
-      "copyFailed": "Could not copy.",
-      "inserted": "Inserted into teacher feedback.",
-      "rulesHint": "Saved in",
-      "saveButton": "Save",
-      "saving": "Saving…"
+      "title": "AI-tilbakemelding",
+      "generateButton": "Generer AI-tilbakemelding",
+      "generating": "Genererer…",
+      "copyButton": "Kopier",
+      "insertButton": "Sett inn i lærerens tilbakemelding",
+      "placeholder": "AI-tilbakemelding vises her…",
+      "generated": "AI-tilbakemelding generert.",
+      "saved": "AI-tilbakemelding lagret.",
+      "generateFailed": "Kunne ikke generere AI-tilbakemelding: {msg}",
+      "saveFailed": "Kunne ikke lagre AI-tilbakemelding: {msg}",
+      "copied": "Kopiert!",
+      "copyFailed": "Kunne ikke kopiere.",
+      "inserted": "Satt inn i lærerens tilbakemelding.",
+      "rulesHint": "Lagres i",
+      "saveButton": "Lagre",
+      "saving": "Lagrer…"
     },
     "fallback": {
-      "guest": "Guest",
-      "task": "Task",
-      "unknownError": "unknown error"
+      "guest": "Gjest",
+      "task": "Oppgave",
+      "unknownError": "ukjent feil"
     }
   }
 }

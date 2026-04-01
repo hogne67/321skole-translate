@@ -1,51 +1,51 @@
 {
   "toolsIndex": {
-    "title": "Tools",
-    "subtitle": "Learning resources for school and home.",
-    "open": "Open tool",
+    "title": "Verktøy",
+    "subtitle": "Læringsressurser for skole og hjem.",
+    "open": "Åpne verktøy",
     "badges": {
-      "NEW": "New",
-      "POPULAR": "Popular",
+      "NEW": "Ny",
+      "POPULAR": "Populær",
       "BETA": "Beta",
       "PREMIUM": "Premium"
     },
     "premium": {
-      "title": "Premium generators",
+      "title": "Premium-generatorer",
       "items": {
         "assignmentGenerator": {
-          "title": "Worksheet generator",
-          "description": "Create structured assignments with AI support."
+          "title": "Oppgavegenerator",
+          "description": "Lag strukturerte oppgaver med AI-støtte."
         },
         "readingTestGenerator": {
-          "title": "Reading test generator",
-          "description": "Generate reading tests with questions and automatic evaluation."
+          "title": "Leseprøvegenerator",
+          "description": "Generer leseprøver med spørsmål og automatisk vurdering."
         },
         "geometryGenerator": {
-          "title": "Geometry generator",
-          "description": "Create printable geometry worksheets with shapes, perimeter and area."
+          "title": "Geometrigenerator",
+          "description": "Lag utskrivbare geometrioppgaver med figurer, omkrets og areal."
         }
       }
     },
     "items": {
       "translate": {
-        "title": "Translator",
-        "description": "Translate words, sentences and short texts between languages."
+        "title": "Oversetter",
+        "description": "Oversett ord, setninger og korte tekster mellom språk."
       },
       "generator": {
-        "title": "Reading generator",
-        "description": "Create a short reading text with auto-corrected questions."
+        "title": "Lesegenerator",
+        "description": "Lag en kort lesetekst med automatisk rettede oppgaver."
       },
       "vocab": {
-        "title": "Glossary generator",
-        "description": "Build vocabulary lists from a topic or text."
+        "title": "Ordlistegenerator",
+        "description": "Bygg ordlister fra et tema eller en tekst."
       },
       "sentenceFixer": {
-        "title": "Sentence fixer",
-        "description": "Fix grammar and make sentences clearer."
+        "title": "Setningsretter",
+        "description": "Rett grammatikk og gjør setninger tydeligere."
       },
       "speakingTopic": {
-        "title": "Speaking topics",
-        "description": "Generate a topic and follow-up questions for speaking practice."
+        "title": "Samtaletema",
+        "description": "Generer et tema og oppfølgingsspørsmål for muntlig øving."
       }
     }
   }

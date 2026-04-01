@@ -1,7 +1,7 @@
 {
   "actions": {
-    "open": "Open",
-    "submit": "Submit",
-    "update": "Update"
+    "open": "Åpne",
+    "submit": "Send inn",
+    "update": "Oppdater"
   }
 }

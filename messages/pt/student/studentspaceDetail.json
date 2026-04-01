@@ -1,83 +1,83 @@
 {
-    "studentspaceDetail": {
-      "loading": "Loading…",
-      "actions": {
-        "open": "Open",
-        "backToMySpaces": "← Back to My spaces",
-        "backMySpacesShort": "← My spaces"
-      },
-      "header": {
-        "classCode": "Class code"
-      },
-      "missing": {
-        "title": "Space not found",
-        "subtitle": "This space does not exist, or you don’t have access."
-      },
-      "error": {
-        "title": "Could not open space"
-      },
-      "active": {
-        "title": "Active assignment",
-        "open": "Open assignment",
-        "hint": "The assignment appears here when your teacher sets it as active.",
-        "none": "No active assignment right now. Assignments you’ve already submitted are shown under “My submissions”."
-      },
-      "mine": {
-        "title": "My submissions",
-        "subtitle": "Latest submission per assignment in this space.",
-        "refresh": "Refresh",
-        "loginToSee": "Log in to see submissions.",
-        "none": "No submissions here yet.",
-        "teacherMessage": "✉️ Your teacher sent you a message",
-        "openForImprovement": "✍️ Open for improvement",
-        "archiveHint": "Move this submission to your archive",
-        "moveToArchive": "Move to archive",
-        "archiving": "Moving…"
-      },
-      "archive": {
-        "title": "Archive",
-        "loginToSee": "Log in to see your archive.",
-        "none": "No archived submissions yet.",
-        "message": "✉️ message",
-        "restore": "Restore",
-        "restoring": "Restoring…",
-        "restoreHint": "Move back to My submissions"
-      },
-      "all": {
-        "title": "All assignments in this space",
-        "showArchived": "Show archived",
-        "none": "No assignments here yet.",
-        "archivedTag": "(archived)",
-        "yourStatus": "Your status:",
-        "message": "✉️ message",
-        "notSubmitted": "You haven’t submitted this yet."
-      },
-      "status": {
-        "submitted": "Submitted",
-        "needsWork": "Needs work",
-        "approved": "Approved",
-        "draft": "Draft",
-        "unknown": "Unknown"
-      },
-      "statusHints": {
-        "submitted": "Waiting for feedback",
-        "needsWork": "Teacher opened for improvement",
-        "approved": "Done",
-        "draft": "Not submitted",
-        "unknown": ""
-      },
-      "toast": {
-        "movedToArchive": "Moved to archive ✅",
-        "restored": "Restored ✅"
-      },
-      "errors": {
-        "readSpace": "Could not read space",
-        "listenStart": "Could not start listening",
-        "readAssignments": "Could not read assignments",
-        "listenAssignmentsStart": "Could not start listening to assignments",
-        "readSubmissions": "Could not load submissions",
-        "archiveMove": "Could not move to archive",
-        "archiveRestore": "Could not restore"
-      }
+  "studentspaceDetail": {
+    "loading": "Carregando…",
+    "actions": {
+      "open": "Abrir",
+      "backToMySpaces": "← Voltar para Meus spaces",
+      "backMySpacesShort": "← Meus spaces"
+    },
+    "header": {
+      "classCode": "Código da turma"
+    },
+    "missing": {
+      "title": "Space não encontrado",
+      "subtitle": "Este space não existe ou você não tem acesso."
+    },
+    "error": {
+      "title": "Não foi possível abrir o space"
+    },
+    "active": {
+      "title": "Atividade ativa",
+      "open": "Abrir atividade",
+      "hint": "A atividade aparece aqui quando o professor a define como ativa.",
+      "none": "Nenhuma atividade ativa no momento. Atividades que você já enviou aparecem em “Minhas entregas”."
+    },
+    "mine": {
+      "title": "Minhas entregas",
+      "subtitle": "Última entrega por atividade neste space.",
+      "refresh": "Atualizar",
+      "loginToSee": "Faça login para ver as entregas.",
+      "none": "Ainda não há entregas.",
+      "teacherMessage": "✉️ Seu professor enviou uma mensagem",
+      "openForImprovement": "✍️ Aberto para melhoria",
+      "archiveHint": "Mover esta entrega para o arquivo",
+      "moveToArchive": "Mover para arquivo",
+      "archiving": "Movendo…"
+    },
+    "archive": {
+      "title": "Arquivo",
+      "loginToSee": "Faça login para ver seu arquivo.",
+      "none": "Nenhuma entrega arquivada ainda.",
+      "message": "✉️ mensagem",
+      "restore": "Restaurar",
+      "restoring": "Restaurando…",
+      "restoreHint": "Mover de volta para Minhas entregas"
+    },
+    "all": {
+      "title": "Todas as atividades neste space",
+      "showArchived": "Mostrar arquivadas",
+      "none": "Nenhuma atividade aqui ainda.",
+      "archivedTag": "(arquivada)",
+      "yourStatus": "Seu status:",
+      "message": "✉️ mensagem",
+      "notSubmitted": "Você ainda não enviou esta atividade."
+    },
+    "status": {
+      "submitted": "Enviado",
+      "needsWork": "Precisa melhorar",
+      "approved": "Aprovado",
+      "draft": "Rascunho",
+      "unknown": "Desconhecido"
+    },
+    "statusHints": {
+      "submitted": "Aguardando feedback",
+      "needsWork": "Professor abriu para melhoria",
+      "approved": "Concluído",
+      "draft": "Não enviado",
+      "unknown": ""
+    },
+    "toast": {
+      "movedToArchive": "Movido para o arquivo ✅",
+      "restored": "Restaurado ✅"
+    },
+    "errors": {
+      "readSpace": "Não foi possível ler o space",
+      "listenStart": "Não foi possível iniciar a escuta",
+      "readAssignments": "Não foi possível ler as atividades",
+      "listenAssignmentsStart": "Não foi possível iniciar a escuta das atividades",
+      "readSubmissions": "Não foi possível carregar as entregas",
+      "archiveMove": "Não foi possível mover para o arquivo",
+      "archiveRestore": "Não foi possível restaurar"
     }
   }
+}

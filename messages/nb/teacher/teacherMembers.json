@@ -1,14 +1,14 @@
 {
-"teacherMembers": {
-    "title": "Members",
+  "teacherMembers": {
+    "title": "Medlemmer",
     "subtitle": "{spaceTitle}",
-    "showing": "Showing:",
+    "showing": "Viser:",
     "common": {
-      "loading": "Loading…",
+      "loading": "Laster…",
       "dash": "—"
     },
     "errors": {
-      "missingSpaceId": "Missing spaceId"
+      "missingSpaceId": "Mangler spaceId"
     },
     "fallbacks": {
       "spaceTitle": "Space"
@@ -17,27 +17,27 @@
       "spaceId": "SpaceId"
     },
     "actions": {
-      "backToSpace": "Back to space",
-      "allSpaces": "All spaces"
+      "backToSpace": "Tilbake til space",
+      "allSpaces": "Alle spaces"
     },
     "search": {
-      "placeholder": "Search name / role / uid…"
+      "placeholder": "Søk navn / rolle / uid…"
     },
     "table": {
-      "name": "Name",
-      "role": "Role",
-      "joined": "Joined",
+      "name": "Navn",
+      "role": "Rolle",
+      "joined": "Ble med",
       "type": "Type",
       "uid": "UID"
     },
     "types": {
-      "anon": "Anon",
-      "signedIn": "Signed-in"
+      "anon": "Anonym",
+      "signedIn": "Innlogget"
     },
-    "empty": "No members found.",
+    "empty": "Ingen medlemmer funnet.",
     "tip": {
-      "prefix": "Tip: If you don’t see names yet, it means join-flow hasn’t stored",
-      "suffix": "on members."
+      "prefix": "Tips: Hvis du ikke ser navn ennå, betyr det at join-flyten ikke har lagret",
+      "suffix": "på medlemmer."
     }
   }
 }

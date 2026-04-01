@@ -1,30 +1,30 @@
 {
-    "parentNewSpace": {
-    "title": "Create new family room",
-    "subtitle": "Give the room a name that fits your home. For example, you can create one room per child or per topic.",
-    "loading": "Loading…",
+  "parentNewSpace": {
+    "title": "Criar nova sala familiar",
+    "subtitle": "Dê um nome à sala que combine com sua casa. Por exemplo, você pode criar uma sala para cada criança ou para cada tema.",
+    "loading": "Carregando…",
     "fields": {
-      "title": "Room name",
-      "placeholder": "For example: Knut's room",
-      "help": "You can change and build on the room later."
+      "title": "Nome da sala",
+      "placeholder": "Por exemplo: Sala do Knut",
+      "help": "Você pode alterar e desenvolver a sala depois."
     },
     "suggestions": {
-      "title": "Suggestions",
-      "room1": "Knut's room",
-      "room2": "Knut English",
-      "room3": "Emma reading",
-      "room4": "Family math"
+      "title": "Sugestões",
+      "room1": "Sala do Knut",
+      "room2": "Knut inglês",
+      "room3": "Leitura da Emma",
+      "room4": "Matemática da família"
     },
     "actions": {
-      "back": "Back to my spaces",
-      "create": "Create room",
-      "creating": "Creating…",
-      "cancel": "Cancel"
+      "back": "Voltar para meus spaces",
+      "create": "Criar sala",
+      "creating": "Criando…",
+      "cancel": "Cancelar"
     },
     "errors": {
-      "mustBeLoggedIn": "You must be logged in as a parent to create a room.",
-      "missingTitle": "Enter a room name.",
-      "createFailed": "Could not create the room."
+      "mustBeLoggedIn": "Você deve estar logado como responsável para criar uma sala.",
+      "missingTitle": "Digite um nome para a sala.",
+      "createFailed": "Não foi possível criar a sala."
     }
   }
 }

@@ -1,39 +1,39 @@
 {
   "vocabFree": {
-    "title": "Glossary generator",
-    "subtitle": "Paste a text, and get glossaries with example sentences + translation.",
+    "title": "Gerador de vocabulário",
+    "subtitle": "Cole um texto e gere listas de vocabulário com frases de exemplo e tradução.",
 
     "fields": {
-      "target": "Target",
+      "target": "Idioma de destino",
       "cefr": "CEFR",
-      "count": "Count",
-      "text": "Text",
-      "vocabulary": "Vocabulary",
-      "meaning": "Meaning",
-      "exampleFromText": "Example (from text)",
-      "exampleTranslation": "Example translation"
+      "count": "Quantidade",
+      "text": "Texto",
+      "vocabulary": "Vocabulário",
+      "meaning": "Significado",
+      "exampleFromText": "Exemplo (do texto)",
+      "exampleTranslation": "Tradução do exemplo"
     },
 
     "buttons": {
-      "findVocabulary": "Find vocabulary",
-      "finding": "Finding…"
+      "findVocabulary": "Encontrar vocabulário",
+      "finding": "Buscando…"
     },
     "placeholders": {
-      "text": "Paste a text here…"
+      "text": "Cole o texto aqui…"
     },
 
     "errors": {
-      "default": "Could not find vocabulary"
+      "default": "Não foi possível encontrar vocabulário"
     },
 
     "languages": {
-      "no": "Norwegian",
-      "en": "English",
-      "uk": "Ukrainian",
-      "ar": "Arabic",
-      "pl": "Polish",
-      "es": "Spanish",
-      "pt": "Portuguese"
+      "no": "Norueguês",
+      "en": "Inglês",
+      "uk": "Ucraniano",
+      "ar": "Árabe",
+      "pl": "Polonês",
+      "es": "Espanhol",
+      "pt": "Português"
     }
   }
 }

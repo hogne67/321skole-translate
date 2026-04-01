@@ -1,23 +1,23 @@
 {
   "studentSpaces": {
-    "title": "My spaces",
-    "subtitle": "Here you can find the spaces you are a member of.",
-    "loading": "Loading…",
-    "defaultTitle": "Untitled space",
-    "empty": "You are not a member of any spaces yet. Press <b>Join space</b> to get started.",
+    "title": "Mine spaces",
+    "subtitle": "Her finner du spaces du er medlem av.",
+    "loading": "Laster…",
+    "defaultTitle": "Uten navn",
+    "empty": "Du er ikke medlem av noen spaces ennå. Trykk <b>Bli med i space</b> for å komme i gang.",
     "errors": {
-      "loadFailed": "Could not load spaces."
+      "loadFailed": "Kunne ikke laste spaces."
     },
     "actions": {
-      "joinSpace": "Join space",
-      "openSpace": "Open space",
-      "openBoard": "Open board",
-      "board": "Board"
+      "joinSpace": "Bli med i space",
+      "openSpace": "Åpne space",
+      "openBoard": "Åpne tavle",
+      "board": "Tavle"
     },
     "meta": {
       "oneSpace": "space",
       "manySpaces": "spaces",
-      "code": "Code"
+      "code": "Kode"
     }
   }
 }

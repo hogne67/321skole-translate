@@ -1,37 +1,36 @@
 {
   "translateFree": {
-    "title": "Translator",
-    "subtitle": "Paste the text and select the language you want to translate to",
+    "title": "Tradutor",
+    "subtitle": "Cole o texto e selecione o idioma para o qual deseja traduzir",
 
-    
     "fields": {
-      "targetLanguage": "Target language",
+      "targetLanguage": "Idioma de destino",
       "source": "Original",
-      "result": "Translation"
+      "result": "Tradução"
     },
 
     "placeholders": {
-      "source": "Paste text here…",
-      "result": "Result…"
+      "source": "Cole o texto aqui…",
+      "result": "Resultado…"
     },
 
     "buttons": {
-      "translate": "Translate",
-      "translating": "Translating…"
+      "translate": "Traduzir",
+      "translating": "Traduzindo…"
     },
 
     "errors": {
-      "default": "Translate failed"
+      "default": "Falha ao traduzir"
     },
 
     "languages": {
-      "no": "Norwegian",
-      "en": "English",
-      "uk": "Ukrainian",
-      "ar": "Arabic",
-      "pl": "Polish",
-      "es": "Spanish",
-      "pt": "Portuguese"
+      "no": "Norueguês",
+      "en": "Inglês",
+      "uk": "Ucraniano",
+      "ar": "Árabe",
+      "pl": "Polonês",
+      "es": "Espanhol",
+      "pt": "Português"
     }
   }
 }

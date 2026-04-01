@@ -1,65 +1,65 @@
 {
-    "spaces": {
-      "title": "Spaces",
-      "subtitle": "Spaces are class or group rooms where you can share assignments with students, either with the whole class or with a smaller group.",
-      "newSpace": "+ Create new space",
-      "newSpaceLocked": "+ New space (locked)",
-      "newSpaceTitle": "Create a new space",
-      "newSpaceLockedTitle": "Requires attestation + Teacher/Creator mode",
-      "controls": {
-        "search": {
-          "label": "Search",
-          "placeholder": "Title or code…"
-        },
-        "sort": {
-          "label": "Sort",
-          "options": {
-            "newest": "Newest",
-            "oldest": "Oldest",
-            "title_az": "Title (A–Z)",
-            "title_za": "Title (Z–A)"
-          }
-        },
-        "filters": {
-          "label": "Filters",
-          "openOnly": "Open only",
-          "showing": "Showing: {n}"
+  "spaces": {
+    "title": "Spaces",
+    "subtitle": "Spaces er klasse- eller grupperom der du kan dele oppgaver med elever, enten med hele klassen eller en mindre gruppe.",
+    "newSpace": "+ Opprett nytt space",
+    "newSpaceLocked": "+ Nytt space (låst)",
+    "newSpaceTitle": "Opprett et nytt space",
+    "newSpaceLockedTitle": "Krever attestering + lærer-/produsentmodus",
+    "controls": {
+      "search": {
+        "label": "Søk",
+        "placeholder": "Tittel eller kode…"
+      },
+      "sort": {
+        "label": "Sorter",
+        "options": {
+          "newest": "Nyeste",
+          "oldest": "Eldste",
+          "title_az": "Tittel (A–Å)",
+          "title_za": "Tittel (Å–A)"
         }
       },
-      "list": {
-        "untitled": "Untitled space",
-        "open": "Open",
-        "closed": "Closed",
-        "openTitle": "Space is open",
-        "closedTitle": "Space is closed",
-        "code": "Code:",
-        "copyCodeTitle": "Copy code",
-        "copied": "Copied ✅",
-        "members": "Members:",
-        "copyJoinLink": "Copy join link",
-        "copyJoinLinkTitle": "Copy join link",
-        "joinWithQr": "Join with QR code",
-        "joinWithQrTitle": "Show QR code",
-        "seeMembers": "See members",
-        "seeMembersTitle": "See members",
-        "openSpace": "Open space",
-        "openSpaceTitle": "Open space",
-        "board": "Board",
-        "boardTitle": "Open the board for this space"
-      },
-      "empty": {
-        "title": "No spaces found.",
-        "hint": "Create one with New space, then share it by code or link."
-      },
-      "qr": {
-        "title": "Join QR",
-        "subtitle": "{title} · Code: {code}",
-        "close": "Close",
-        "generating": "Generating…",
-        "error": "Could not generate QR. Install dependency: npm i qrcode",
-        "pointsTo": "This QR points to",
-        "note": "Note: install the QR dependency once: npm i qrcode",
-        "imageAlt": "QR code"
+      "filters": {
+        "label": "Filtre",
+        "openOnly": "Kun åpne",
+        "showing": "Viser: {n}"
       }
+    },
+    "list": {
+      "untitled": "Uten navn",
+      "open": "Åpen",
+      "closed": "Lukket",
+      "openTitle": "Space er åpent",
+      "closedTitle": "Space er lukket",
+      "code": "Kode:",
+      "copyCodeTitle": "Kopier kode",
+      "copied": "Kopiert ✅",
+      "members": "Medlemmer:",
+      "copyJoinLink": "Kopier bli-med-lenke",
+      "copyJoinLinkTitle": "Kopier bli-med-lenke",
+      "joinWithQr": "Bli med med QR-kode",
+      "joinWithQrTitle": "Vis QR-kode",
+      "seeMembers": "Se medlemmer",
+      "seeMembersTitle": "Se medlemmer",
+      "openSpace": "Åpne space",
+      "openSpaceTitle": "Åpne space",
+      "board": "Tavle",
+      "boardTitle": "Åpne tavlen for dette spacet"
+    },
+    "empty": {
+      "title": "Ingen spaces funnet.",
+      "hint": "Opprett et med Nytt space, og del det via kode eller lenke."
+    },
+    "qr": {
+      "title": "Bli med QR",
+      "subtitle": "{title} · Kode: {code}",
+      "close": "Lukk",
+      "generating": "Genererer…",
+      "error": "Kunne ikke generere QR. Installer avhengighet: npm i qrcode",
+      "pointsTo": "Denne QR-koden peker til",
+      "note": "Merk: installer QR-avhengigheten én gang: npm i qrcode",
+      "imageAlt": "QR-kode"
     }
   }
+}

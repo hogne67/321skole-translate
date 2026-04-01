@@ -1,39 +1,39 @@
 {
   "vocabFree": {
-    "title": "Glossary generator",
-    "subtitle": "Paste a text, and get glossaries with example sentences + translation.",
+    "title": "Ordlistegenerator",
+    "subtitle": "Lim inn en tekst og få ordlister med eksempelsetninger og oversettelse.",
 
     "fields": {
-      "target": "Target",
+      "target": "Målspråk",
       "cefr": "CEFR",
-      "count": "Count",
-      "text": "Text",
-      "vocabulary": "Vocabulary",
-      "meaning": "Meaning",
-      "exampleFromText": "Example (from text)",
-      "exampleTranslation": "Example translation"
+      "count": "Antall",
+      "text": "Tekst",
+      "vocabulary": "Ord",
+      "meaning": "Betydning",
+      "exampleFromText": "Eksempel (fra tekst)",
+      "exampleTranslation": "Eksempel – oversettelse"
     },
 
     "buttons": {
-      "findVocabulary": "Find vocabulary",
-      "finding": "Finding…"
+      "findVocabulary": "Finn ord",
+      "finding": "Finner…"
     },
     "placeholders": {
-      "text": "Paste a text here…"
+      "text": "Lim inn tekst her…"
     },
 
     "errors": {
-      "default": "Could not find vocabulary"
+      "default": "Kunne ikke finne ord"
     },
 
     "languages": {
-      "no": "Norwegian",
-      "en": "English",
-      "uk": "Ukrainian",
-      "ar": "Arabic",
-      "pl": "Polish",
-      "es": "Spanish",
-      "pt": "Portuguese"
+      "no": "Norsk",
+      "en": "Engelsk",
+      "uk": "Ukrainsk",
+      "ar": "Arabisk",
+      "pl": "Polsk",
+      "es": "Spansk",
+      "pt": "Portugisisk"
     }
   }
 }

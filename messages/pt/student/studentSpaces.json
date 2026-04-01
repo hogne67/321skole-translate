@@ -1,23 +1,23 @@
 {
   "studentSpaces": {
-    "title": "My spaces",
-    "subtitle": "Here you can find the spaces you are a member of.",
-    "loading": "Loading…",
-    "defaultTitle": "Untitled space",
-    "empty": "You are not a member of any spaces yet. Press <b>Join space</b> to get started.",
+    "title": "Meus spaces",
+    "subtitle": "Aqui você encontra os spaces dos quais você é membro.",
+    "loading": "Carregando…",
+    "defaultTitle": "Sem título",
+    "empty": "Você ainda não é membro de nenhum space. Clique em <b>Entrar em um space</b> para começar.",
     "errors": {
-      "loadFailed": "Could not load spaces."
+      "loadFailed": "Não foi possível carregar os spaces."
     },
     "actions": {
-      "joinSpace": "Join space",
-      "openSpace": "Open space",
-      "openBoard": "Open board",
-      "board": "Board"
+      "joinSpace": "Entrar em um space",
+      "openSpace": "Abrir space",
+      "openBoard": "Abrir quadro",
+      "board": "Quadro"
     },
     "meta": {
       "oneSpace": "space",
       "manySpaces": "spaces",
-      "code": "Code"
+      "code": "Código"
     }
   }
 }

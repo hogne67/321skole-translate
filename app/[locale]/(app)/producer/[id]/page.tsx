@@ -174,7 +174,7 @@ type GenerateCoverResponse = {
 };
 
 export default function ProducerLessonEditorPage() {
-  const t = useTranslations("producer.editor");
+  const t = useTranslations("editorNewText");
   const locale = useLocale();
   const router = useRouter();
 
@@ -251,36 +251,17 @@ export default function ProducerLessonEditorPage() {
       if (m === "Filen er for stor. Maks 8MB.") return t("errors.fileTooLarge");
       if (m === "Upload feilet.") return t("errors.uploadFailed");
       if (m === "Lagring feilet.") return t("errors.saveFailed");
-      if (m === "Skriv et prompt for AI-bildet.") {
-        return locale === "en" ? "Write a prompt for the AI image." : "Skriv et prompt for AI-bildet.";
-      }
-      if (m === "Teksten er tom. Kan ikke bruke teksten som inspirasjon.") {
-        return locale === "en"
-          ? "The text is empty. Cannot use the text as inspiration."
-          : "Teksten er tom. Kan ikke bruke teksten som inspirasjon.";
-      }
-      if (m === "Bildegenerering feilet.") {
-        return locale === "en" ? "Image generation failed." : "Bildegenerering feilet.";
-      }
-      if (m === "Image generation is not available on your current plan.") {
-        return locale === "en"
-          ? "Image generation is not available on your current plan."
-          : "Bildegenerering er ikke tilgjengelig på abonnementet ditt.";
-      }
-      if (m === "You have reached your image generation limit for this period.") {
-        return locale === "en"
-          ? "You have reached your image generation limit for this period."
-          : "Du har nådd grensen for bildegenerering i denne perioden.";
-      }
-      if (m === "You have reached your image generation limit.") {
-        return locale === "en"
-          ? "You have reached your image generation limit."
-          : "Du har nådd grensen for bildegenerering.";
-      }
+      if (m === "Skriv et prompt for AI-bildet.") return t("errors.writePromptForAiImage");
+      if (m === "Teksten er tom. Kan ikke bruke teksten som inspirasjon.") return t("errors.textEmptyForAi");
+      if (m === "Bildegenerering feilet.") return t("errors.imageGenerationFailed");
+      if (m === "Image generation is not available on your current plan.") return t("errors.imageGenerationNotAvailable");
+      if (m === "You have reached your image generation limit for this period.") return t("errors.imageGenerationLimitPeriod");
+      if (m === "You have reached your image generation limit.") return t("errors.imageGenerationLimit");
+      if (m === "Missing auth token.") return t("errors.missingAuthToken");
 
       return m;
     },
-    [t, locale]
+    [t]
   );
 
   const backHref = `/${locale}/producer`;
@@ -427,11 +408,7 @@ export default function ProducerLessonEditorPage() {
       }
 
       if (imageLimitReached) {
-        throw new Error(
-          locale === "en"
-            ? "You have reached your image generation limit."
-            : "Du har nådd grensen for bildegenerering."
-        );
+        throw new Error("You have reached your image generation limit.");
       }
 
       const token = await user.getIdToken();
@@ -485,7 +462,7 @@ export default function ProducerLessonEditorPage() {
       setCoverImageSource("ai");
       await reloadUsage();
     } catch (e: unknown) {
-      setErr(localizeError(getErrorMessage(e) || "Bildegenerering feilet."));
+      setErr(localizeError(getErrorMessage(e) || t("errors.imageGenerationFailed")));
     } finally {
       setGeneratingCover(false);
     }
@@ -696,9 +673,7 @@ export default function ProducerLessonEditorPage() {
               {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
             </div>
             <div style={{ fontSize: 14, opacity: 0.78, marginTop: 8 }}>
-              {locale === "en"
-                ? "Now finish the lesson with metadata, cover image and final adjustments."
-                : "Nå ferdigstiller du oppgaven med metadata, forsidebilde og siste justeringer."}
+              {t("intro.finishLesson")}
             </div>
           </div>
 
@@ -731,28 +706,28 @@ export default function ProducerLessonEditorPage() {
           >
             <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
               <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {locale === "en" ? "Title" : "Tittel"}
+                {t("summary.title")}
               </div>
               <div style={{ fontWeight: 800, marginTop: 4 }}>{title || "—"}</div>
             </div>
 
             <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
               <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {locale === "en" ? "Tasks" : "Oppgaver"}
+                {t("summary.tasks")}
               </div>
               <div style={{ fontWeight: 800, marginTop: 4 }}>{sortedTasks.length}</div>
             </div>
 
             <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
               <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {locale === "en" ? "Words" : "Ord"}
+                {t("summary.words")}
               </div>
               <div style={{ fontWeight: 800, marginTop: 4 }}>{wordCount}</div>
             </div>
 
             <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
               <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {locale === "en" ? "Image generation" : "Bildegenerering"}
+                {t("summary.imageGeneration")}
               </div>
               <div style={{ fontWeight: 800, marginTop: 4 }}>
                 {imagesUsed} / {imagesLimit}
@@ -764,12 +739,10 @@ export default function ProducerLessonEditorPage() {
         <section style={sectionStyle}>
           <div style={{ marginBottom: 14 }}>
             <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>
-              {locale === "en" ? "1. Basic information" : "1. Grunninformasjon"}
+              {t("sections.basicInfoTitle")}
             </h2>
             <div style={{ marginTop: 6, ...smallHelpStyle }}>
-              {locale === "en"
-                ? "Fill in the core information that describes the lesson."
-                : "Fyll ut den viktigste informasjonen som beskriver oppgaven."}
+              {t("sections.basicInfoHelp")}
             </div>
           </div>
 
@@ -816,30 +789,26 @@ export default function ProducerLessonEditorPage() {
                   ...fieldStyle,
                   background: "#f4f4f5",
                 }}
-                placeholder={locale === "en" ? "Your name (from profile)" : "Ditt navn (fra profil)"}
-                title={locale === "en" ? "Pulled from your user profile" : "Hentes fra brukerprofil"}
+                placeholder={t("placeholdersExtra.producerName")}
+                title={t("help.producerName", { uid: uid ?? "uid" })}
               />
               <div style={smallHelpStyle}>
-                {locale === "en"
-                  ? "This is taken from your profile (users/{uid})."
-                  : "Dette hentes fra profilen din (users/{uid})."}
+                {t("help.producerName", { uid: uid ?? "uid" })}
               </div>
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 800 }}>
-                {locale === "en" ? "Text type" : "Teksttype"}
+                {t("fieldsExtra.textType")}
               </div>
               <input
                 value={textType}
                 onChange={(e) => setTextType(e.target.value)}
                 style={fieldStyle}
-                placeholder={locale === "en" ? "e.g. article, email, dialogue…" : "f.eks. artikkel, e-post, dialog…"}
+                placeholder={t("placeholdersExtra.textType")}
               />
               <div style={smallHelpStyle}>
-                {locale === "en"
-                  ? "Used for metadata and library filtering. Keep topic separate."
-                  : "Brukes som metadata (filtrering i bibliotek). Hold topic separat."}
+                {t("fieldsExtra.textTypeHelp")}
               </div>
             </label>
 
@@ -849,11 +818,7 @@ export default function ProducerLessonEditorPage() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 style={fieldStyle}
-                placeholder={
-                  locale === "en"
-                    ? "Optional. Leave empty to avoid showing the AI prompt."
-                    : "Valgfritt. La stå tomt for å unngå at KI-prompt vises."
-                }
+                placeholder={t("placeholdersExtra.topic")}
               />
             </label>
 
@@ -873,12 +838,10 @@ export default function ProducerLessonEditorPage() {
         <section style={sectionStyle}>
           <div style={{ marginBottom: 14 }}>
             <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>
-              {locale === "en" ? "2. Cover image and presentation" : "2. Forsidebilde og presentasjon"}
+              {t("sections.coverTitle")}
             </h2>
             <div style={{ marginTop: 6, ...smallHelpStyle }}>
-              {locale === "en"
-                ? "Choose whether to upload an image or generate one with AI."
-                : "Velg om du vil laste opp et bilde eller generere et med AI."}
+              {t("sections.coverHelp")}
             </div>
           </div>
 
@@ -895,7 +858,7 @@ export default function ProducerLessonEditorPage() {
                   fontWeight: 700,
                 }}
               >
-                {locale === "en" ? "Upload image" : "Last opp bilde"}
+                {t("cover.uploadImage")}
               </button>
 
               <button
@@ -909,13 +872,13 @@ export default function ProducerLessonEditorPage() {
                   fontWeight: 700,
                 }}
               >
-                {locale === "en" ? "Generate AI image" : "Generer AI-bilde"}
+                {t("cover.generateAiImage")}
               </button>
             </div>
 
             <div style={{ display: "grid", gap: 6, maxWidth: 240 }}>
               <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {locale === "en" ? "Format" : "Format"}
+                {t("fieldsExtra.format")}
               </div>
               <select
                 value={coverImageFormat}
@@ -926,7 +889,7 @@ export default function ProducerLessonEditorPage() {
                 <option value="16:9">16:9</option>
               </select>
               <div style={smallHelpStyle}>
-                {locale === "en" ? "Only 16:9 is allowed." : "Kun 16:9 er tillatt."}
+                {t("fieldsExtra.formatHelp")}
               </div>
             </div>
 
@@ -945,13 +908,7 @@ export default function ProducerLessonEditorPage() {
                       fontWeight: 700,
                     }}
                   >
-                    {uploadingCover
-                      ? locale === "en"
-                        ? "Uploading..."
-                        : "Laster opp..."
-                      : locale === "en"
-                        ? "Upload image"
-                        : "Last opp bilde"}
+                    {uploadingCover ? t("cover.uploading") : t("cover.uploadImage")}
                     <input
                       type="file"
                       accept="image/*"
@@ -977,21 +934,19 @@ export default function ProducerLessonEditorPage() {
                     }}
                     disabled={uploadingCover || !coverImageUrl}
                   >
-                    {locale === "en" ? "Remove image" : "Fjern bilde"}
+                    {t("cover.removeImage")}
                   </button>
                 </div>
 
                 <div style={smallHelpStyle}>
-                  {locale === "en"
-                    ? "Upload jpg, png or webp. Image will be used in 16:9 format."
-                    : "Last opp jpg, png eller webp. Bildet brukes i 16:9-format."}
+                  {t("help.uploadImage")}
                 </div>
               </div>
             ) : (
               <div style={{ display: "grid", gap: 12 }}>
                 <div style={{ display: "grid", gap: 6 }}>
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    {locale === "en" ? "Image style" : "Bildestil"}
+                    {t("fieldsExtra.imageStyle")}
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <button
@@ -1005,7 +960,7 @@ export default function ProducerLessonEditorPage() {
                         fontWeight: 700,
                       }}
                     >
-                      {locale === "en" ? "Illustration" : "Illustrasjon"}
+                      {t("cover.illustration")}
                     </button>
 
                     <button
@@ -1019,14 +974,14 @@ export default function ProducerLessonEditorPage() {
                         fontWeight: 700,
                       }}
                     >
-                      {locale === "en" ? "Realistic" : "Realistisk"}
+                      {t("cover.realistic")}
                     </button>
                   </div>
                 </div>
 
                 <div style={{ display: "grid", gap: 6 }}>
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    {locale === "en" ? "Prompt source" : "Prompt-kilde"}
+                    {t("fieldsExtra.promptSource")}
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <button
@@ -1040,7 +995,7 @@ export default function ProducerLessonEditorPage() {
                         fontWeight: 700,
                       }}
                     >
-                      {locale === "en" ? "Write prompt" : "Skriv prompt"}
+                      {t("cover.writePrompt")}
                     </button>
 
                     <button
@@ -1054,7 +1009,7 @@ export default function ProducerLessonEditorPage() {
                         fontWeight: 700,
                       }}
                     >
-                      {locale === "en" ? "Use text as inspiration" : "Bruk teksten som inspirasjon"}
+                      {t("cover.useTextAsInspiration")}
                     </button>
                   </div>
                 </div>
@@ -1062,18 +1017,14 @@ export default function ProducerLessonEditorPage() {
                 {aiCoverPromptMode === "custom" ? (
                   <label style={{ display: "grid", gap: 6 }}>
                     <div style={{ fontWeight: 800 }}>
-                      {locale === "en" ? "Prompt" : "Prompt"}
+                      {t("fieldsExtra.prompt")}
                     </div>
                     <textarea
                       value={aiCoverPrompt}
                       onChange={(e) => setAiCoverPrompt(e.target.value)}
                       rows={4}
                       style={fieldStyle}
-                      placeholder={
-                        locale === "en"
-                          ? "Example: A calm classroom scene with students reading, warm light, detailed, clean composition"
-                          : "Eksempel: Et rolig klasserom med elever som leser, varmt lys, detaljer, ren komposisjon"
-                      }
+                      placeholder={t("placeholdersExtra.customPrompt")}
                     />
                   </label>
                 ) : (
@@ -1086,9 +1037,7 @@ export default function ProducerLessonEditorPage() {
                       fontSize: 14,
                     }}
                   >
-                    {locale === "en"
-                      ? "The system will use the lesson title and text as inspiration for the image."
-                      : "Systemet vil bruke tittel og tekst som inspirasjon for bildet."}
+                    {t("help.fromTextPrompt")}
                   </div>
                 )}
 
@@ -1101,9 +1050,11 @@ export default function ProducerLessonEditorPage() {
                     background: imageLimitReached ? "#fff7ed" : "#f8fafc",
                   }}
                 >
-                  {locale === "en"
-                    ? `Image generation: ${imagesUsed} / ${imagesLimit} used • ${imagesRemaining} left`
-                    : `Bildegenerering: ${imagesUsed} / ${imagesLimit} brukt • ${imagesRemaining} igjen`}
+                  {t("help.imageLimit", {
+                    used: imagesUsed,
+                    limit: imagesLimit,
+                    remaining: imagesRemaining,
+                  })}
                 </div>
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -1123,16 +1074,10 @@ export default function ProducerLessonEditorPage() {
                     }}
                   >
                     {generatingCover
-                      ? locale === "en"
-                        ? "Generating..."
-                        : "Genererer..."
+                      ? t("cover.generating")
                       : imageLimitReached
-                        ? locale === "en"
-                          ? "Limit reached"
-                          : "Grense nådd"
-                        : locale === "en"
-                          ? "Generate image"
-                          : "Generer bilde"}
+                        ? t("cover.limitReached")
+                        : t("cover.generateImage")}
                   </button>
 
                   <button
@@ -1147,22 +1092,18 @@ export default function ProducerLessonEditorPage() {
                     }}
                     disabled={generatingCover || !coverImageUrl}
                   >
-                    {locale === "en" ? "Remove image" : "Fjern bilde"}
+                    {t("cover.removeImage")}
                   </button>
                 </div>
 
                 <div style={smallHelpStyle}>
-                  {locale === "en"
-                    ? "The generated image should be landscape in 16:9."
-                    : "Det genererte bildet skal være liggende i 16:9."}
+                  {t("help.generatedLandscape")}
                 </div>
               </div>
             )}
 
             <div style={smallHelpStyle}>
-              {locale === "en"
-                ? "Remember to save the lesson after selecting or generating an image."
-                : "Husk å lagre oppgaven etter at du har valgt eller generert bilde."}
+              {t("help.rememberSaveImage")}
             </div>
 
             {coverImageUrl?.trim() ? (
@@ -1170,7 +1111,7 @@ export default function ProducerLessonEditorPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={coverImageUrl}
-                  alt={locale === "en" ? "Cover preview" : "Forhåndsvisning av forside"}
+                  alt={t("cover.previewAlt")}
                   style={{
                     width: "100%",
                     maxWidth: previewW,
@@ -1182,9 +1123,13 @@ export default function ProducerLessonEditorPage() {
                   }}
                 />
                 <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>
-                  {locale === "en"
-                    ? `Preview in ${coverImageFormat}. Source: ${coverImageSource === "ai" ? "AI" : "upload"}.`
-                    : `Forhåndsvisning i ${coverImageFormat}. Kilde: ${coverImageSource === "ai" ? "AI" : "opplasting"}.`}
+                  {t("cover.previewCaption", {
+                    format: coverImageFormat,
+                    source:
+                      coverImageSource === "ai"
+                        ? t("cover.previewSourceAi")
+                        : t("cover.previewSourceUpload"),
+                  })}
                 </div>
               </div>
             ) : (
@@ -1203,7 +1148,7 @@ export default function ProducerLessonEditorPage() {
                   background: "#fff",
                 }}
               >
-                {locale === "en" ? "No image selected yet (16:9)." : "Ingen bilde valgt ennå (16:9)."}
+                {t("cover.noImageYet")}
               </div>
             )}
           </div>
@@ -1212,12 +1157,10 @@ export default function ProducerLessonEditorPage() {
         <section style={sectionStyle}>
           <div style={{ marginBottom: 14 }}>
             <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>
-              {locale === "en" ? "3. Text and lesson settings" : "3. Tekst og oppsett"}
+              {t("sections.textSettingsTitle")}
             </h2>
             <div style={{ marginTop: 6, ...smallHelpStyle }}>
-              {locale === "en"
-                ? "Check the text and choose how the lesson should be shown."
-                : "Se over teksten og velg hvordan oppgaven skal vises."}
+              {t("sections.textSettingsHelp")}
             </div>
           </div>
 
@@ -1293,9 +1236,7 @@ export default function ProducerLessonEditorPage() {
             <div>
               <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>{t("tasks.title")}</h2>
               <div style={{ marginTop: 6, ...smallHelpStyle }}>
-                {locale === "en"
-                  ? "Edit the tasks before saving the lesson to My content."
-                  : "Rediger oppgavene før du lagrer oppgaven til Mitt innhold."}
+                {t("tasksIntro.help")}
               </div>
             </div>
 

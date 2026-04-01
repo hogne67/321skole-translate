@@ -1,15 +1,119 @@
 {
-  "producer": {
-    "readingTestsEditor": {
-      "page": {
-        "title": "Reading test editor"
-      },
-      "actions": {
-        "save": "Save"
-      },
-      "errors": {
-        "notFound": "Reading test not found."
-      }
+  "readingTestsEditor": {
+    "loading": "Carregando teste de leitura…",
+    "page": {
+      "title": "Editor de teste de leitura",
+      "statusLabel": "Editor personalizado para testes de leitura. Status:"
+    },
+    "fields": {
+      "title": "Título",
+      "cefrLevel": "Nível CEFR",
+      "language": "Idioma",
+      "searchLanguage": "Buscar idioma",
+      "audience": "Público",
+      "topic": "Tema",
+      "minimumWords": "Mínimo de palavras",
+      "maximumWords": "Máximo de palavras",
+      "feedbackMode": "Modo de feedback",
+      "feedbackModeHelp": "Isto é uma configuração para a orientação gerada e para o modo de exibição desejado. Ainda não altera completamente o fluxo do professor por si só."
+    },
+    "audience": {
+      "children": "Crianças",
+      "teenagers": "Adolescentes",
+      "adultLearners": "Aprendizes adultos",
+      "learners": "Aprendizes"
+    },
+    "flow": {
+      "title": "Fluxo de leitura e tempo",
+      "description": "Essas configurações são armazenadas na configuração do teste de leitura. Elas descrevem como o fluxo do aluno deve funcionar, mas algumas partes da execução real no lado do aluno ainda precisam ser conectadas na página do aluno.",
+      "showQuestionsAfterReading": "Mostrar perguntas depois da leitura",
+      "showQuestionsAfterReadingHelp": "O aluno lê primeiro e depois recebe as atividades."
+    },
+    "timer": {
+      "noTimer": "Sem cronômetro",
+      "enable": "Ativar cronômetro",
+      "quickPresets": "Atalhos rápidos",
+      "minutes": "Minutos",
+      "extraSeconds": "Segundos extras",
+      "minutesOnly": "{minutes} min",
+      "minutesAndSeconds": "{minutes} min {seconds} s"
+    },
+    "feedbackMode": {
+      "learner": "Somente aprendiz",
+      "adult": "Somente professor / responsável",
+      "both": "Ambos"
+    },
+    "taskTypes": {
+      "enabledTitle": "Tipos de atividades ativados",
+      "enabledDescription": "Estes são os tipos de atividades que este teste de leitura pretende usar. A página do aluno poderá depois decidir como cada tipo será mostrado.",
+      "word_choice": "Escolha de palavras",
+      "sentence_placement": "Posicionamento de frases",
+      "best_summary": "Melhor resumo",
+      "mcq": "Múltipla escolha",
+      "true_false": "Verdadeiro / falso",
+      "fill_in_word": "Preencher palavra",
+      "short_answer": "Resposta curta",
+      "open": "Aberta"
+    },
+    "text": {
+      "title": "Texto de leitura",
+      "wordCount": "Quantidade de palavras: {count}"
+    },
+    "tasks": {
+      "title": "Atividades",
+      "id": "ID: {id}",
+      "prompt": "Enunciado",
+      "sentence": "Frase",
+      "sentenceWithBlank": "Frase com lacuna",
+      "textWithGap": "Texto com lacuna",
+      "options": "Alternativas",
+      "correctAnswer": "Resposta correta",
+      "shortAnswerHelp": "Resposta escrita curta do aluno.",
+      "openHelp": "Atividade aberta / campo de resposta."
+    },
+    "actions": {
+      "save": "Salvar",
+      "saving": "Salvando...",
+      "newReadingTest": "Novo teste de leitura",
+      "addFillInWord": "Adicionar preencher palavra",
+      "addMcq": "Adicionar múltipla escolha",
+      "addTrueFalse": "Adicionar verdadeiro/falso",
+      "addShortAnswer": "Adicionar resposta curta",
+      "addOpen": "Adicionar atividade aberta",
+      "delete": "Excluir"
+    },
+    "messages": {
+      "saved": "Salvo.",
+      "noTasks": "Ainda não há atividades."
+    },
+    "common": {
+      "true": "Verdadeiro",
+      "false": "Falso"
+    },
+    "defaults": {
+      "title": "Teste de leitura",
+      "fillInWordPrompt": "Escolha a palavra correta para a lacuna.",
+      "fillInWordSentence": "As crianças viram um _____ preto que dizia miau.",
+      "fillInWordOption1": "gato",
+      "fillInWordOption2": "cavalo",
+      "fillInWordOption3": "cachorro",
+      "newMcqPrompt": "Nova pergunta de múltipla escolha",
+      "trueFalsePrompt": "Escreva verdadeiro ou falso.",
+      "shortAnswerPrompt": "Escreva uma resposta curta.",
+      "openPrompt": "Nova pergunta aberta",
+      "option1": "Alternativa 1",
+      "option2": "Alternativa 2",
+      "option3": "Alternativa 3"
+    },
+    "errors": {
+      "missingLessonId": "Falta o id da atividade.",
+      "notSignedIn": "Não conectado.",
+      "notFound": "Teste de leitura não encontrado.",
+      "noAccess": "Você não tem acesso a este teste de leitura.",
+      "notReadingTest": "Esta atividade não é um teste de leitura.",
+      "titleRequired": "O título é obrigatório.",
+      "sourceTextEmpty": "O texto de leitura está vazio.",
+      "timerTooShort": "O cronômetro deve ter pelo menos 10 segundos."
     }
   }
 }

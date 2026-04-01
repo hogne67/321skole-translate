@@ -1,46 +1,46 @@
 {
   "readingTestPlayer": {
     "errors": {
-      "missingLessonId": "Missing lesson id.",
-      "notFound": "Test not found.",
-      "notReadingTest": "This is not a reading test.",
-      "noAccess": "You do not have access to this test."
+      "missingLessonId": "Mangler lessonId.",
+      "notFound": "Fant ikke testen.",
+      "notReadingTest": "Dette er ikke en leseprøve.",
+      "noAccess": "Du har ikke tilgang til denne testen."
     },
     "fallback": {
-      "title": "Reading test"
+      "title": "Leseprøve"
     },
-    "loading": "Loading...",
+    "loading": "Laster...",
     "meta": {
-      "words": "words",
-      "answered": "answered"
+      "words": "ord",
+      "answered": "besvart"
     },
     "actions": {
       "startTest": "Start test",
-      "submit": "Submit",
-      "tryAgain": "Try again",
-      "showQuestions": "Show questions"
+      "submit": "Send inn",
+      "tryAgain": "Prøv igjen",
+      "showQuestions": "Vis spørsmål"
     },
     "readingText": {
-      "title": "Reading text",
-      "time": "Time",
-      "startFirst": "Start the test before opening the questions."
+      "title": "Lesetekst",
+      "time": "Tid",
+      "startFirst": "Start testen før du åpner spørsmålene."
     },
     "questions": {
-      "title": "Questions",
-      "true": "True",
-      "false": "False",
-      "correct": "Correct",
-      "incorrect": "Incorrect",
-      "openSaved": "Open response saved for self-review",
-      "correctAnswer": "Correct answer:"
+      "title": "Spørsmål",
+      "true": "Sant",
+      "false": "Usant",
+      "correct": "Riktig",
+      "incorrect": "Feil",
+      "openSaved": "Åpent svar lagret for egenvurdering",
+      "correctAnswer": "Riktig svar:"
     },
     "result": {
-      "title": "Result"
+      "title": "Resultat"
     },
     "feedback": {
-      "learner": "Great work. Review the answers you missed and try one more test at the same level.",
-      "adult": "Use the result to identify patterns. Focus especially on vocabulary in context and summary reading.",
-      "both": "Great work. Review your answers and focus on the task types that were hardest for you."
+      "learner": "Bra jobbet. Se gjennom svarene du bommet på, og prøv en ny test på samme nivå.",
+      "adult": "Bruk resultatet til å finne mønstre. Fokuser spesielt på ordforråd i kontekst og helhetsforståelse.",
+      "both": "Bra jobbet. Gå gjennom svarene dine og fokuser på oppgavene som var vanskeligst for deg."
     }
   }
 }

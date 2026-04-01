@@ -1,132 +1,132 @@
 {
   "teacherBoard": {
     "header": {
-      "title": "Digital board",
-      "subtitle": "Live in this space. You control the content — students see it in real time."
+      "title": "Quadro digital",
+      "subtitle": "Ao vivo neste espaço. Você controla o conteúdo — os alunos veem em tempo real."
     },
     "common": {
-      "loading": "Loading…",
-      "mode": "mode"
+      "loading": "Carregando…",
+      "mode": "modo"
     },
     "errors": {
-      "fetchState": "Could not load board state."
+      "fetchState": "Não foi possível carregar o estado do quadro."
     },
     "defaults": {
-      "title": "Today's question",
-      "prompt": "Write in your own words: What do numerator and denominator mean?",
-      "pollQuestion": "What do you think?",
-      "pollOptions": "Yes, No, Not sure",
-      "wordwallPrompt": "Write one word that fits the topic.",
-      "pollTitle": "Poll",
-      "wordwallShortPrompt": "Write one word."
+      "title": "Pergunta do dia",
+      "prompt": "Escreva com suas próprias palavras: O que significam numerador e denominador?",
+      "pollQuestion": "O que você acha?",
+      "pollOptions": "Sim, Não, Não tenho certeza",
+      "wordwallPrompt": "Escreva uma palavra que combine com o tema.",
+      "pollTitle": "Enquete",
+      "wordwallShortPrompt": "Escreva uma palavra."
     },
     "fallbacks": {
-      "question": "Question"
+      "question": "Pergunta"
     },
     "status": {
       "label": "Status",
-      "live": "LIVE",
-      "notLive": "Not live",
-      "session": "session"
+      "live": "AO VIVO",
+      "notLive": "Não está ao vivo",
+      "session": "sessão"
     },
     "actions": {
-      "startLive": "Start live",
-      "stop": "Stop",
-      "updateBoard": "Update board",
-      "newRound": "New round",
-      "clearAnswers": "Clear answers",
-      "showAnswers": "Show answers again",
-      "presentation": "Presentation",
-      "showControlPanel": "Show control panel",
-      "fullscreen": "Fullscreen",
-      "exitFullscreen": "Exit fullscreen",
-      "hideTimer": "Hide timer",
-      "showTimer": "Show timer",
-      "clear": "Clear"
+      "startLive": "Iniciar ao vivo",
+      "stop": "Parar",
+      "updateBoard": "Atualizar quadro",
+      "newRound": "Nova rodada",
+      "clearAnswers": "Limpar respostas",
+      "showAnswers": "Mostrar respostas novamente",
+      "presentation": "Apresentação",
+      "showControlPanel": "Mostrar painel de controle",
+      "fullscreen": "Tela cheia",
+      "exitFullscreen": "Sair da tela cheia",
+      "hideTimer": "Ocultar temporizador",
+      "showTimer": "Mostrar temporizador",
+      "clear": "Limpar"
     },
     "tabs": {
-      "question": "Today's question",
-      "notes": "Notes",
-      "poll": "Poll",
-      "wordwall": "Wordwall"
+      "question": "Pergunta do dia",
+      "notes": "Notas",
+      "poll": "Enquete",
+      "wordwall": "Nuvem de palavras"
     },
     "fields": {
       "title": {
-        "label": "Title",
-        "placeholder": "E.g.: Today's question"
+        "label": "Título",
+        "placeholder": "Ex.: Pergunta do dia"
       },
       "prompt": {
-        "label": "Text / prompt",
-        "placeholder": "Write the prompt students should see…"
+        "label": "Texto / enunciado",
+        "placeholder": "Escreva o texto que os alunos devem ver…"
       }
     },
     "question": {
-      "sameRoundHint": "\"Update board\" uses the same round. \"New round\" creates a new session and resets responses."
+      "sameRoundHint": "\"Atualizar quadro\" usa a mesma rodada. \"Nova rodada\" cria uma nova sessão e reinicia as respostas."
     },
     "poll": {
-      "setupTitle": "Poll setup",
-      "questionLabel": "Question",
-      "questionPlaceholder": "Write poll question…",
-      "optionsLabel": "Answer options",
-      "optionsPlaceholder": "Yes, No, Not sure … (comma or line breaks)",
-      "optionsHint": "Tip: use commas or line breaks. Maximum 10 options.",
-      "update": "Update poll",
-      "newRound": "New poll round",
-      "clearAnswers": "Clear answers",
-      "showAnswers": "Show answers",
-      "anonymousHint": "Poll responses are anonymous: we do not store names or uid.",
-      "previewTitle": "Preview",
-      "resultsTitle": "Poll results",
-      "responsesCount": "{count} responses",
-      "noSession": "No active session",
-      "startHint": "Start a poll to see results."
+      "setupTitle": "Configuração da enquete",
+      "questionLabel": "Pergunta",
+      "questionPlaceholder": "Escreva a pergunta…",
+      "optionsLabel": "Opções de resposta",
+      "optionsPlaceholder": "Sim, Não, Não tenho certeza … (vírgulas ou quebras de linha)",
+      "optionsHint": "Dica: use vírgulas ou quebras de linha. Máximo de 10 opções.",
+      "update": "Atualizar enquete",
+      "newRound": "Nova rodada de enquete",
+      "clearAnswers": "Limpar respostas",
+      "showAnswers": "Mostrar respostas",
+      "anonymousHint": "As respostas são anônimas: não armazenamos nomes ou uid.",
+      "previewTitle": "Pré-visualização",
+      "resultsTitle": "Resultados",
+      "responsesCount": "{count} respostas",
+      "noSession": "Nenhuma sessão ativa",
+      "startHint": "Inicie uma enquete para ver os resultados."
     },
     "wordwall": {
-      "promptLabel": "Prompt / instruction",
-      "promptPlaceholder": "Example: Write one word that fits the text.",
-      "update": "Update wordwall",
-      "newRound": "New round",
-      "clearAnswers": "Clear answers",
-      "showAnswers": "Show answers",
-      "anonymousHint": "Wordwall is anonymous. Identical words are merged automatically, and words grow larger when more students write the same word.",
-      "previewTitle": "Preview",
-      "noSession": "No active session.",
-      "noneYet": "No words yet."
+      "promptLabel": "Enunciado / instrução",
+      "promptPlaceholder": "Exemplo: Escreva uma palavra que combine com o texto.",
+      "update": "Atualizar nuvem de palavras",
+      "newRound": "Nova rodada",
+      "clearAnswers": "Limpar respostas",
+      "showAnswers": "Mostrar respostas",
+      "anonymousHint": "A nuvem de palavras é anônima. Palavras iguais são agrupadas automaticamente e crescem quando mais alunos escrevem a mesma palavra.",
+      "previewTitle": "Pré-visualização",
+      "noSession": "Nenhuma sessão ativa.",
+      "noneYet": "Nenhuma palavra ainda."
     },
     "notes": {
-      "title": "Notes (local)",
-      "clear": "Clear",
-      "clearTitle": "Eraser / clear",
-      "placeholder": "Write notes here… (not saved to Firestore)",
-      "localOnly": "This is only for you on this device (local storage). Students cannot see this."
+      "title": "Notas (local)",
+      "clear": "Limpar",
+      "clearTitle": "Apagar / limpar",
+      "placeholder": "Escreva suas notas aqui… (não são salvas no Firestore)",
+      "localOnly": "Isto é visível apenas para você neste dispositivo. Os alunos não podem ver."
     },
     "timer": {
-      "title": "Timer",
-      "set": "Timer {seconds}s",
-      "clear": "Remove timer",
-      "toggleTitle": "Show/hide timer bar",
-      "stop": "Stop"
+      "title": "Temporizador",
+      "set": "Temporizador {seconds}s",
+      "clear": "Remover temporizador",
+      "toggleTitle": "Mostrar/ocultar barra de tempo",
+      "stop": "Parar"
     },
     "preview": {
-      "title": "Preview"
+      "title": "Pré-visualização"
     },
     "countdown": {
-      "label": "Time left"
+      "label": "Tempo restante"
     },
     "responses": {
-      "title": "Student responses (live)",
-      "count": "{count} responses",
-      "hint": "Start live to collect responses",
-      "clearedPrefix": "Responses are cleared (hidden). Press",
-      "clearedSuffix": "to see everything.",
-      "noSession": "No active session.",
-      "noneYet": "No responses yet.",
-      "unknown": "Unknown"
+      "title": "Respostas dos alunos (ao vivo)",
+      "count": "{count} respostas",
+      "hint": "Inicie ao vivo para coletar respostas",
+      "clearedPrefix": "As respostas estão ocultas. Pressione",
+      "clearedSuffix": "para mostrar tudo.",
+      "noSession": "Nenhuma sessão ativa.",
+      "noneYet": "Nenhuma resposta ainda.",
+      "unknown": "Desconhecido"
     },
     "modes": {
-  "text": "text",
-  "poll": "poll",
-  "wordwall": "wordwall"
-}
+      "text": "texto",
+      "poll": "enquete",
+      "wordwall": "nuvem de palavras"
+    }
   }
 }

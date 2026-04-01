@@ -1,134 +1,134 @@
 {
   "parentAssignmentDetail": {
-    "loading": "Loading…",
+    "loading": "Laster…",
     "header": {
-      "defaultSpaceTitle": "Untitled space",
-      "defaultAssignmentTitle": "Assignment"
+      "defaultSpaceTitle": "Uten navn",
+      "defaultAssignmentTitle": "Oppgave"
     },
     "kinds": {
-      "family": "Family room",
-      "parentGroup": "Parent group",
+      "family": "Familierom",
+      "parentGroup": "Foreldregruppe",
       "other": "Space"
     },
     "actions": {
-      "backToSpace": "Back to space",
-      "openBoard": "Open board",
-      "saveComment": "Save comment",
-      "submit": "SUBMIT",
-      "submitting": "Submitting…",
-      "translateText": "Translate text",
-      "translateTasks": "Translate tasks",
-      "reset": "Reset",
-      "playOriginal": "Play original",
-      "playTranslation": "Play translation",
-      "stop": "Stop",
+      "backToSpace": "Tilbake til space",
+      "openBoard": "Åpne tavle",
+      "saveComment": "Lagre kommentar",
+      "submit": "SEND INN",
+      "submitting": "Sender…",
+      "translateText": "Oversett tekst",
+      "translateTasks": "Oversett oppgaver",
+      "reset": "Nullstill",
+      "playOriginal": "Spill av original",
+      "playTranslation": "Spill av oversettelse",
+      "stop": "Stopp",
       "pause": "Pause",
-      "resume": "Resume",
-      "replaySentence": "Replay sentence",
-      "previous": "Previous",
-      "next": "Next",
-      "showTranslation": "Show translation",
-      "hideTranslation": "Hide translation",
-      "showAllTranslations": "Show all translations",
-      "hideAllTranslations": "Hide all translations"
+      "resume": "Fortsett",
+      "replaySentence": "Spill av setning på nytt",
+      "previous": "Forrige",
+      "next": "Neste",
+      "showTranslation": "Vis oversettelse",
+      "hideTranslation": "Skjul oversettelse",
+      "showAllTranslations": "Vis alle oversettelser",
+      "hideAllTranslations": "Skjul alle oversettelser"
     },
     "missing": {
-      "title": "Assignment not found",
-      "subtitle": "It may have been deleted or you may not have access."
+      "title": "Oppgave ikke funnet",
+      "subtitle": "Den kan være slettet eller du har ikke tilgang."
     },
     "error": {
-      "title": "Something went wrong"
+      "title": "Noe gikk galt"
     },
     "errors": {
-      "readSpace": "Could not read the space.",
-      "listenSpaceStart": "Could not start listening to the space.",
-      "readAssignment": "Could not read the assignment.",
-      "listenAssignmentStart": "Could not start listening to the assignment.",
-      "saveReviewLogin": "You must be signed in to save a comment.",
-      "saveReviewFailed": "Could not save comment.",
-      "submitLogin": "You must be signed in to submit.",
-      "submitFailed": "Could not submit the assignment.",
-      "translateFailed": "Translation failed.",
-      "ttsFailed": "TTS failed."
+      "readSpace": "Kunne ikke lese space.",
+      "listenSpaceStart": "Kunne ikke starte lytting på space.",
+      "readAssignment": "Kunne ikke lese oppgaven.",
+      "listenAssignmentStart": "Kunne ikke starte lytting på oppgaven.",
+      "saveReviewLogin": "Du må være logget inn for å lagre kommentar.",
+      "saveReviewFailed": "Kunne ikke lagre kommentar.",
+      "submitLogin": "Du må være logget inn for å sende inn.",
+      "submitFailed": "Kunne ikke sende inn oppgaven.",
+      "translateFailed": "Oversettelse feilet.",
+      "ttsFailed": "TTS feilet."
     },
     "about": {
-      "title": "About this activity",
-      "level": "Level",
-      "language": "Language",
-      "tasks": "Tasks",
-      "archived": "Archived",
-      "sourceType": "Source type",
-      "sourceId": "Source ID"
+      "title": "Om aktiviteten",
+      "level": "Nivå",
+      "language": "Språk",
+      "tasks": "Oppgaver",
+      "archived": "Arkivert",
+      "sourceType": "Kildetype",
+      "sourceId": "Kilde-ID"
     },
     "together": {
-      "title": "At home",
-      "text": "Use this activity as a starting point for reading, discussion, explanation and small tasks at home."
+      "title": "Hjemme",
+      "text": "Bruk aktiviteten som utgangspunkt for lesing, samtale, forklaring og små oppgaver hjemme."
     },
     "content": {
-      "title": "Content",
-      "none": "No text or description has been added yet.",
-      "noCover": "No cover",
-      "noTasks": "No tasks in this lesson."
+      "title": "Innhold",
+      "none": "Ingen tekst eller beskrivelse er lagt til ennå.",
+      "noCover": "Ingen forside",
+      "noTasks": "Ingen oppgaver i denne oppgaven."
     },
     "review": {
-      "title": "Parent review",
-      "intro": "Here you can write a comment and give stars for how the activity worked at home.",
-      "placeholder": "Write a comment …",
-      "saving": "Saving …",
-      "saved": "Comment saved.",
-      "existing": "Previous review found."
+      "title": "Foreldrevurdering",
+      "intro": "Her kan du skrive en kommentar og gi stjerner for hvordan aktiviteten fungerte hjemme.",
+      "placeholder": "Skriv en kommentar …",
+      "saving": "Lagrer …",
+      "saved": "Kommentar lagret.",
+      "existing": "Tidligere vurdering funnet."
     },
     "translation": {
-      "translateTo": "Translate to",
-      "translating": "Translating …",
-      "translatedText": "Translated text",
-      "translatedTask": "Translated task"
+      "translateTo": "Oversett til",
+      "translating": "Oversetter …",
+      "translatedText": "Oversatt tekst",
+      "translatedTask": "Oversatt oppgave"
     },
     "audio": {
-      "speed": "Speed",
-      "generating": "Generating audio …"
+      "speed": "Hastighet",
+      "generating": "Genererer lyd …"
     },
     "sections": {
-      "text": "Text",
-      "tasks": "Tasks",
-      "feedback": "Feedback"
+      "text": "Tekst",
+      "tasks": "Oppgaver",
+      "feedback": "Tilbakemelding"
     },
     "task": {
-      "label": "Task",
-      "answerHere": "Write your answer here …",
-      "answerRegistered": "Answer recorded",
-      "notAnsweredYet": "Not answered yet",
-      "correct": "Correct",
-      "incorrect": "Incorrect",
-      "library": "library",
-      "archived": "archived"
+      "label": "Oppgave",
+      "answerHere": "Skriv svaret ditt her …",
+      "answerRegistered": "Svar registrert",
+      "notAnsweredYet": "Ikke besvart ennå",
+      "correct": "Riktig",
+      "incorrect": "Feil",
+      "library": "bibliotek",
+      "archived": "arkivert"
     },
     "answers": {
-      "true": "True",
-      "false": "False"
+      "true": "Sant",
+      "false": "Usant"
     },
     "feedback": {
-      "autoResult": "Auto result",
-      "aiFeedback": "AI feedback",
-      "noneYet": "No AI feedback saved yet."
+      "autoResult": "Autoresultat",
+      "aiFeedback": "AI-tilbakemelding",
+      "noneYet": "Ingen AI-tilbakemelding lagret ennå."
     },
     "submission": {
-      "saved": "Submission saved."
+      "saved": "Innlevering lagret."
     },
     "stars": {
-      "one": "{count} star",
-      "many": "{count} stars"
+      "one": "{count} stjerne",
+      "many": "{count} stjerner"
     },
     "ai": {
-      "closedSummary": "Closed tasks (MCQ/True/False): {correct}/{total} correct.",
-      "mistakesTitle": "Errors / misunderstandings:",
-      "wrongMcq": "- Task {order} (MCQ): \"{prompt}\" | Answer: \"{answer}\" | Correct: \"{correct}\"",
-      "wrongTrueFalse": "- Task {order} (True/False): \"{prompt}\" | Answer: {answer} | Correct: {correct}",
-      "assessmentIntro": "Assess the open answers against CEFR {level}, and give advice for progression toward {target}.",
-      "openTasksTitle": "Open tasks:",
-      "openTaskLine": "- Task {order}: {prompt}",
-      "openAnswerTask": "Task {order} (open): {prompt}",
-      "answerLine": "Answer: {answer}"
+      "closedSummary": "Lukkede oppgaver (MCQ/Sant/Usant): {correct}/{total} riktige.",
+      "mistakesTitle": "Feil / misforståelser:",
+      "wrongMcq": "- Oppgave {order} (MCQ): \"{prompt}\" | Svar: \"{answer}\" | Riktig: \"{correct}\"",
+      "wrongTrueFalse": "- Oppgave {order} (Sant/Usant): \"{prompt}\" | Svar: {answer} | Riktig: {correct}",
+      "assessmentIntro": "Vurder åpne svar mot CEFR {level}, og gi råd for progresjon mot {target}.",
+      "openTasksTitle": "Åpne oppgaver:",
+      "openTaskLine": "- Oppgave {order}: {prompt}",
+      "openAnswerTask": "Oppgave {order} (åpen): {prompt}",
+      "answerLine": "Svar: {answer}"
     }
   }
 }

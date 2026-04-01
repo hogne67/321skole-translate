@@ -1,77 +1,77 @@
 {
   "studentBoard": {
-    "title": "Board",
-    "subtitle": "This is the live classroom board.",
-    "loading": "Loading…",
-    "inactive": "No live session right now.",
-    "sent": "Sent.",
-    "fallbackStudentName": "Student",
-    "fallbackQuestionTitle": "Today's question",
+    "title": "Quadro",
+    "subtitle": "Este é o quadro digital da sala de aula.",
+    "loading": "Carregando…",
+    "inactive": "Nenhuma sessão ativa no momento.",
+    "sent": "Enviado.",
+    "fallbackStudentName": "Aluno",
+    "fallbackQuestionTitle": "Pergunta de hoje",
     "errors": {
-      "fetchBoardFailed": "Could not load board."
+      "fetchBoardFailed": "Não foi possível carregar o quadro."
     },
     "status": {
-      "live": "LIVE",
-      "notLive": "Not live",
-      "session": "session",
-      "mode": "mode"
+      "live": "AO VIVO",
+      "notLive": "Não está ao vivo",
+      "session": "sessão",
+      "mode": "modo"
     },
     "tabs": {
-      "question": "Today's question",
-      "notes": "Notes",
-      "poll": "Poll",
-      "wordwall": "Wordwall"
+      "question": "Pergunta de hoje",
+      "notes": "Notas",
+      "poll": "Enquete",
+      "wordwall": "Nuvem de palavras"
     },
     "groupName": {
-      "label": "Name / group",
-      "placeholder": "Write your name or group name"
+      "label": "Nome / grupo",
+      "placeholder": "Escreva seu nome ou nome do grupo"
     },
     "answer": {
-      "label": "Your answer",
-      "placeholder": "Write briefly…",
-      "send": "Send to board"
+      "label": "Sua resposta",
+      "placeholder": "Escreva brevemente…",
+      "send": "Enviar para o quadro"
     },
     "poll": {
-      "fallbackQuestion": "What do you think?",
-      "noOptions": "No answer options yet.",
-      "send": "Send vote",
-      "sent": "Thank you! Your vote has been sent.",
-      "anonymousHint": "Your vote is anonymous (we do not store name/uid)."
+      "fallbackQuestion": "O que você acha?",
+      "noOptions": "Ainda não há opções de resposta.",
+      "send": "Enviar voto",
+      "sent": "Obrigado! Seu voto foi enviado.",
+      "anonymousHint": "Seu voto é anônimo (não armazenamos nome/uid)."
     },
     "wordwall": {
-      "fallbackPrompt": "Write one word.",
-      "label": "Your word",
-      "placeholder": "Write one word or a short phrase",
-      "previewTitle": "Preview",
-      "previewFallback": "Your word appears here…",
-      "send": "Send word",
-      "sent": "Thank you! Your word has been sent.",
-      "anonymousHint": "Wordwall is anonymous. We only store the word, not name or uid."
+      "fallbackPrompt": "Escreva uma palavra.",
+      "label": "Sua palavra",
+      "placeholder": "Escreva uma palavra ou uma frase curta",
+      "previewTitle": "Pré-visualização",
+      "previewFallback": "Sua palavra aparece aqui…",
+      "send": "Enviar palavra",
+      "sent": "Obrigado! Sua palavra foi enviada.",
+      "anonymousHint": "A nuvem de palavras é anônima. Armazenamos apenas a palavra, não nome ou uid."
     },
     "sticky": {
-      "colorLabel": "Sticky note color",
-      "previewTitle": "Preview",
-      "previewTag": "sticky",
-      "previewFallback": "Write an answer to preview the note…",
-      "previewHint": "This is how the note appears on the teacher's board.",
+      "colorLabel": "Cor do post-it",
+      "previewTitle": "Pré-visualização",
+      "previewTag": "post-it",
+      "previewFallback": "Escreva uma resposta para visualizar…",
+      "previewHint": "Assim o post-it aparecerá no quadro do professor.",
       "colors": {
-        "amber": "Yellow",
-        "emerald": "Green",
-        "sky": "Blue",
-        "rose": "Pink",
-        "violet": "Purple"
+        "amber": "Amarelo",
+        "emerald": "Verde",
+        "sky": "Azul",
+        "rose": "Rosa",
+        "violet": "Roxo"
       }
     },
     "notes": {
-      "title": "Notes (local)",
-      "clear": "Clear",
-      "clearTitle": "Eraser / clear",
-      "placeholder": "Write notes here… (saved only on this device)",
-      "localOnly": "Only for you – no one else can see this."
+      "title": "Notas (local)",
+      "clear": "Limpar",
+      "clearTitle": "Borracha / limpar",
+      "placeholder": "Escreva notas aqui… (salvas apenas neste dispositivo)",
+      "localOnly": "Apenas para você – ninguém mais pode ver isso."
     },
     "timer": {
-      "title": "Timer",
-      "countingDown": "Counting down…"
+      "title": "Temporizador",
+      "countingDown": "Contagem regressiva…"
     }
   }
 }

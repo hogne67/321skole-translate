@@ -1,29 +1,29 @@
 {
-    "sentenceFixerFree": {
-      "title": "Sentence fixer",
-      "subtitle": "Fix grammar, get a short explanation, and see a better version.",
-      "fields": {
-        "language": "Language",
-        "level": "CEFR",
-        "mode": "Mode",
-        "text": "Text"
-      },
-      "modes": {
-        "sentence": "One sentence",
-        "short": "Short text"
-      },
-      "placeholders": {
-        "text": "Write a sentence or a short text here..."
-      },
-      "actions": {
-        "fix": "Fix sentence",
-        "fixing": "Fixing..."
-      },
-      "sections": {
-        "corrected": "Corrected",
-        "explanation": "Explanation",
-        "betterVersion": "Better version"
-      },
-      "hint": "Best for one sentence or a very short text."
-    }
+  "sentenceFixerFree": {
+    "title": "Corretor de frases",
+    "subtitle": "Corrija a gramática, veja uma explicação curta e uma versão melhorada.",
+    "fields": {
+      "language": "Idioma",
+      "level": "CEFR",
+      "mode": "Modo",
+      "text": "Texto"
+    },
+    "modes": {
+      "sentence": "Uma frase",
+      "short": "Texto curto"
+    },
+    "placeholders": {
+      "text": "Escreva uma frase ou um texto curto aqui..."
+    },
+    "actions": {
+      "fix": "Corrigir frase",
+      "fixing": "Corrigindo..."
+    },
+    "sections": {
+      "corrected": "Corrigido",
+      "explanation": "Explicação",
+      "betterVersion": "Versão melhorada"
+    },
+    "hint": "Ideal para uma frase ou um texto bem curto."
   }
+}

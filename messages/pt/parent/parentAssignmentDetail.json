@@ -1,134 +1,134 @@
 {
   "parentAssignmentDetail": {
-    "loading": "Loading…",
+    "loading": "Carregando…",
     "header": {
-      "defaultSpaceTitle": "Untitled space",
-      "defaultAssignmentTitle": "Assignment"
+      "defaultSpaceTitle": "Sem título",
+      "defaultAssignmentTitle": "Atividade"
     },
     "kinds": {
-      "family": "Family room",
-      "parentGroup": "Parent group",
+      "family": "Sala familiar",
+      "parentGroup": "Grupo de pais",
       "other": "Space"
     },
     "actions": {
-      "backToSpace": "Back to space",
-      "openBoard": "Open board",
-      "saveComment": "Save comment",
-      "submit": "SUBMIT",
-      "submitting": "Submitting…",
-      "translateText": "Translate text",
-      "translateTasks": "Translate tasks",
-      "reset": "Reset",
-      "playOriginal": "Play original",
-      "playTranslation": "Play translation",
-      "stop": "Stop",
-      "pause": "Pause",
-      "resume": "Resume",
-      "replaySentence": "Replay sentence",
-      "previous": "Previous",
-      "next": "Next",
-      "showTranslation": "Show translation",
-      "hideTranslation": "Hide translation",
-      "showAllTranslations": "Show all translations",
-      "hideAllTranslations": "Hide all translations"
+      "backToSpace": "Voltar para o space",
+      "openBoard": "Abrir quadro",
+      "saveComment": "Salvar comentário",
+      "submit": "ENVIAR",
+      "submitting": "Enviando…",
+      "translateText": "Traduzir texto",
+      "translateTasks": "Traduzir tarefas",
+      "reset": "Redefinir",
+      "playOriginal": "Reproduzir original",
+      "playTranslation": "Reproduzir tradução",
+      "stop": "Parar",
+      "pause": "Pausar",
+      "resume": "Retomar",
+      "replaySentence": "Repetir frase",
+      "previous": "Anterior",
+      "next": "Próximo",
+      "showTranslation": "Mostrar tradução",
+      "hideTranslation": "Ocultar tradução",
+      "showAllTranslations": "Mostrar todas as traduções",
+      "hideAllTranslations": "Ocultar todas as traduções"
     },
     "missing": {
-      "title": "Assignment not found",
-      "subtitle": "It may have been deleted or you may not have access."
+      "title": "Atividade não encontrada",
+      "subtitle": "Pode ter sido excluída ou você não tem acesso."
     },
     "error": {
-      "title": "Something went wrong"
+      "title": "Algo deu errado"
     },
     "errors": {
-      "readSpace": "Could not read the space.",
-      "listenSpaceStart": "Could not start listening to the space.",
-      "readAssignment": "Could not read the assignment.",
-      "listenAssignmentStart": "Could not start listening to the assignment.",
-      "saveReviewLogin": "You must be signed in to save a comment.",
-      "saveReviewFailed": "Could not save comment.",
-      "submitLogin": "You must be signed in to submit.",
-      "submitFailed": "Could not submit the assignment.",
-      "translateFailed": "Translation failed.",
-      "ttsFailed": "TTS failed."
+      "readSpace": "Não foi possível ler o space.",
+      "listenSpaceStart": "Não foi possível iniciar escuta do space.",
+      "readAssignment": "Não foi possível ler a atividade.",
+      "listenAssignmentStart": "Não foi possível iniciar escuta da atividade.",
+      "saveReviewLogin": "Você precisa estar logado para salvar o comentário.",
+      "saveReviewFailed": "Não foi possível salvar o comentário.",
+      "submitLogin": "Você precisa estar logado para enviar.",
+      "submitFailed": "Não foi possível enviar a atividade.",
+      "translateFailed": "Falha na tradução.",
+      "ttsFailed": "Falha no TTS."
     },
     "about": {
-      "title": "About this activity",
-      "level": "Level",
-      "language": "Language",
-      "tasks": "Tasks",
-      "archived": "Archived",
-      "sourceType": "Source type",
-      "sourceId": "Source ID"
+      "title": "Sobre a atividade",
+      "level": "Nível",
+      "language": "Idioma",
+      "tasks": "Tarefas",
+      "archived": "Arquivado",
+      "sourceType": "Tipo de origem",
+      "sourceId": "ID da origem"
     },
     "together": {
-      "title": "At home",
-      "text": "Use this activity as a starting point for reading, discussion, explanation and small tasks at home."
+      "title": "Em casa",
+      "text": "Use a atividade como ponto de partida para leitura, conversa, explicação e pequenas tarefas em casa."
     },
     "content": {
-      "title": "Content",
-      "none": "No text or description has been added yet.",
-      "noCover": "No cover",
-      "noTasks": "No tasks in this lesson."
+      "title": "Conteúdo",
+      "none": "Nenhum texto ou descrição foi adicionado ainda.",
+      "noCover": "Sem capa",
+      "noTasks": "Nenhuma tarefa nesta atividade."
     },
     "review": {
-      "title": "Parent review",
-      "intro": "Here you can write a comment and give stars for how the activity worked at home.",
-      "placeholder": "Write a comment …",
-      "saving": "Saving …",
-      "saved": "Comment saved.",
-      "existing": "Previous review found."
+      "title": "Avaliação dos pais",
+      "intro": "Aqui você pode escrever um comentário e dar estrelas sobre como a atividade funcionou em casa.",
+      "placeholder": "Escreva um comentário …",
+      "saving": "Salvando …",
+      "saved": "Comentário salvo.",
+      "existing": "Avaliação anterior encontrada."
     },
     "translation": {
-      "translateTo": "Translate to",
-      "translating": "Translating …",
-      "translatedText": "Translated text",
-      "translatedTask": "Translated task"
+      "translateTo": "Traduzir para",
+      "translating": "Traduzindo …",
+      "translatedText": "Texto traduzido",
+      "translatedTask": "Tarefa traduzida"
     },
     "audio": {
-      "speed": "Speed",
-      "generating": "Generating audio …"
+      "speed": "Velocidade",
+      "generating": "Gerando áudio …"
     },
     "sections": {
-      "text": "Text",
-      "tasks": "Tasks",
+      "text": "Texto",
+      "tasks": "Tarefas",
       "feedback": "Feedback"
     },
     "task": {
-      "label": "Task",
-      "answerHere": "Write your answer here …",
-      "answerRegistered": "Answer recorded",
-      "notAnsweredYet": "Not answered yet",
-      "correct": "Correct",
-      "incorrect": "Incorrect",
-      "library": "library",
-      "archived": "archived"
+      "label": "Tarefa",
+      "answerHere": "Escreva sua resposta aqui …",
+      "answerRegistered": "Resposta registrada",
+      "notAnsweredYet": "Ainda não respondido",
+      "correct": "Correto",
+      "incorrect": "Incorreto",
+      "library": "biblioteca",
+      "archived": "arquivado"
     },
     "answers": {
-      "true": "True",
-      "false": "False"
+      "true": "Verdadeiro",
+      "false": "Falso"
     },
     "feedback": {
-      "autoResult": "Auto result",
-      "aiFeedback": "AI feedback",
-      "noneYet": "No AI feedback saved yet."
+      "autoResult": "Resultado automático",
+      "aiFeedback": "Feedback com IA",
+      "noneYet": "Nenhum feedback de IA salvo ainda."
     },
     "submission": {
-      "saved": "Submission saved."
+      "saved": "Entrega salva."
     },
     "stars": {
-      "one": "{count} star",
-      "many": "{count} stars"
+      "one": "{count} estrela",
+      "many": "{count} estrelas"
     },
     "ai": {
-      "closedSummary": "Closed tasks (MCQ/True/False): {correct}/{total} correct.",
-      "mistakesTitle": "Errors / misunderstandings:",
-      "wrongMcq": "- Task {order} (MCQ): \"{prompt}\" | Answer: \"{answer}\" | Correct: \"{correct}\"",
-      "wrongTrueFalse": "- Task {order} (True/False): \"{prompt}\" | Answer: {answer} | Correct: {correct}",
-      "assessmentIntro": "Assess the open answers against CEFR {level}, and give advice for progression toward {target}.",
-      "openTasksTitle": "Open tasks:",
-      "openTaskLine": "- Task {order}: {prompt}",
-      "openAnswerTask": "Task {order} (open): {prompt}",
-      "answerLine": "Answer: {answer}"
+      "closedSummary": "Tarefas fechadas (MCQ/Verdadeiro/Falso): {correct}/{total} corretas.",
+      "mistakesTitle": "Erros / mal-entendidos:",
+      "wrongMcq": "- Tarefa {order} (MCQ): \"{prompt}\" | Resposta: \"{answer}\" | Correta: \"{correct}\"",
+      "wrongTrueFalse": "- Tarefa {order} (Verdadeiro/Falso): \"{prompt}\" | Resposta: {answer} | Correta: {correct}",
+      "assessmentIntro": "Avalie as respostas abertas de acordo com CEFR {level} e dê orientações para progresso rumo a {target}.",
+      "openTasksTitle": "Tarefas abertas:",
+      "openTaskLine": "- Tarefa {order}: {prompt}",
+      "openAnswerTask": "Tarefa {order} (aberta): {prompt}",
+      "answerLine": "Resposta: {answer}"
     }
   }
 }

@@ -1,37 +1,37 @@
 {
   "assignedTask": {
     "actions": {
-      "backToSpace": "← Back to space"
+      "backToSpace": "← Tilbake til space"
     },
     "header": {
-      "subtitle": "This is the assigned task view. Submissions are listed below.",
-      "taskInfo": "Task information",
-      "assignmentMissing": "Could not find assignment in",
-      "sourceMissing": "Assignment exists, but the source lesson could not be found or read."
+      "subtitle": "Dette er visningen for tildelt oppgave. Innleveringer vises nedenfor.",
+      "taskInfo": "Oppgaveinformasjon",
+      "assignmentMissing": "Fant ikke oppgaven i",
+      "sourceMissing": "Oppgaven finnes, men kilden (leksjonen) kunne ikke finnes eller leses."
     },
     "meta": {
-      "level": "Level",
-      "language": "Language"
+      "level": "Nivå",
+      "language": "Språk"
     },
     "error": {
-      "title": "Error"
+      "title": "Feil"
     },
     "submissions": {
-      "title": "Submissions",
-      "loading": "Fetching submissions…",
-      "empty": "No submissions yet."
+      "title": "Innleveringer",
+      "loading": "Henter innleveringer…",
+      "empty": "Ingen innleveringer ennå."
     },
     "status": {
-      "submitted": "Submitted",
-      "needsWork": "Needs work",
-      "approved": "Approved",
-      "draft": "Draft"
+      "submitted": "Levert",
+      "needsWork": "Må forbedres",
+      "approved": "Godkjent",
+      "draft": "Utkast"
     },
     "fallback": {
-      "task": "Task",
+      "task": "Oppgave",
       "space": "Space",
-      "student": "Student",
-      "unknownStudent": "Unknown student"
+      "student": "Elev",
+      "unknownStudent": "Ukjent elev"
     }
   }
 }

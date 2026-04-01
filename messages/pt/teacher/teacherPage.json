@@ -1,89 +1,89 @@
 {
   "teacherPage": {
     "status": {
-      "unavailable": "Unavailable",
-      "limitReached": "Limit reached",
-      "almostFull": "Almost full",
-      "gettingBusy": "Getting busy",
-      "good": "Good"
+      "unavailable": "Indisponível",
+      "limitReached": "Limite atingido",
+      "almostFull": "Quase cheio",
+      "gettingBusy": "Começando a encher",
+      "good": "Bom"
     },
     "stats": {
-      "percentUsed": "{percent}% used"
+      "percentUsed": "{percent}% usado"
     },
     "cards": {
-      "premiumGenerators": "Premium generators",
-      "imageGeneration": "Image generation",
-      "aiFeedback": "AI feedback"
+      "premiumGenerators": "Geradores premium",
+      "imageGeneration": "Geração de imagens",
+      "aiFeedback": "Feedback com IA"
     },
     "students": {
-      "badge": "Student overview",
-      "title": "My students",
-      "description": "Total unique students across your spaces. A student can be in several spaces, but only counts once here. You can search, review and manage them from this panel.",
-      "empty": "No students found.",
+      "badge": "Visão geral dos alunos",
+      "title": "Meus alunos",
+      "description": "Total de alunos únicos em todos os seus Spaces. Um aluno pode estar em vários Spaces, mas conta apenas uma vez aqui. Você pode pesquisar, revisar e gerenciar tudo neste painel.",
+      "empty": "Nenhum aluno encontrado.",
       "counts": {
-        "shownTotal": "{shown} shown · {total} total"
+        "shownTotal": "{shown} exibidos · {total} no total"
       },
       "search": {
-        "label": "Search students",
-        "placeholder": "Search by name or space"
+        "label": "Buscar alunos",
+        "placeholder": "Buscar por nome ou Space"
       },
       "labels": {
-        "anonymous": "Anonymous",
-        "registered": "Registered",
+        "anonymous": "Anônimo",
+        "registered": "Registrado",
         "spacesCount": "{count, plural, one {# space} other {# spaces}}",
         "uid": "UID: {uid}"
       },
       "actions": {
-        "show": "Show students",
-        "hide": "Hide students",
-        "working": "Working...",
-        "setInactive": "Set inactive",
-        "remove": "Remove"
+        "show": "Mostrar alunos",
+        "hide": "Ocultar alunos",
+        "working": "Processando...",
+        "setInactive": "Definir como inativo",
+        "remove": "Remover"
       },
       "confirm": {
-        "archive": "Set {name} to inactive in all your spaces?",
-        "remove": "Remove {name} from all your spaces? This cannot be undone."
+        "archive": "Definir {name} como inativo em todos os seus Spaces?",
+        "remove": "Remover {name} de todos os seus Spaces? Isso não pode ser desfeito."
       },
       "errors": {
-        "archive": "Could not set this student to inactive.",
-        "remove": "Could not remove this student."
+        "archive": "Não foi possível definir este aluno como inativo.",
+        "remove": "Não foi possível remover este aluno."
       },
       "capacity": {
-        "unavailable": "Student capacity is unavailable for your current plan.",
-        "limitReached": "You have reached your student limit. New students cannot join until you upgrade or remove inactive students.",
-        "oneLeft": "You have 1 student place left.",
-        "fewLeft": "You have only {count} student places left.",
-        "available": "You have {count} student places available.",
-        "percentUsed": "{percent}% of your student capacity is in use",
-        "blocked": "New students are currently blocked from joining your spaces.",
-        "upgrade": "Upgrade for more students"
+        "unavailable": "A capacidade de alunos não está disponível para o seu plano atual.",
+        "limitReached": "Você atingiu o limite de alunos. Novos alunos não podem entrar até que você faça upgrade ou remova alunos inativos.",
+        "oneLeft": "Você tem 1 vaga restante.",
+        "fewLeft": "Você tem apenas {count} vagas restantes.",
+        "available": "Você tem {count} vagas disponíveis.",
+        "percentUsed": "{percent}% da sua capacidade de alunos está em uso",
+        "blocked": "Novos alunos estão bloqueados de entrar nos seus Spaces no momento.",
+        "upgrade": "Fazer upgrade para mais alunos"
       }
     },
     "dashboardIntro": {
-      "helloAnon": "Hi! 👋",
-      "helloUser": "Hi, {name} 👋",
-      "guest": "in as a guest",
-      "loggedIn": "logged in",
-      "roleFallback": "User",
-      "youAre": "You are {state} as <b>{role}</b>.",
-      "activity": "Here you will eventually find important information about your activity. You will find the menu, tools and library on the buttons above.",
-      "recommendRegister": "We recommend creating an account to save started lessons.",
-      "remaining": "{count} left",
+      "helloAnon": "Olá! 👋",
+      "helloUser": "Olá, {name} 👋",
+      "guest": "como visitante",
+      "loggedIn": "conectado",
+      "roleFallback": "Usuário",
+      "youAre": "Você está {state} como <b>{role}</b>.",
+      "activity": "Aqui você encontrará informações importantes sobre sua atividade. Use os botões acima para acessar o menu, ferramentas e biblioteca.",
+      "recommendRegister": "Recomendamos criar uma conta para salvar suas atividades.",
+      "remaining": "{count} restantes",
       "roles": {
-        "student": "Student",
-        "teacher": "Teacher",
-        "parent": "Parent"
+        "student": "Aluno",
+        "teacher": "Professor",
+        "parent": "Responsável"
       },
       "plans": {
-        "free": "Free",
+        "free": "Grátis",
         "basic": "Basic",
         "plus": "Plus",
         "pro": "Pro"
       },
       "actions": {
-        "seePlans": "See plans",
-        "registerLogin": "Register / log in",
-        "openLibrary": "Open Library"
+        "seePlans": "Ver planos",
+        "registerLogin": "Criar conta / Entrar",
+        "openLibrary": "Abrir biblioteca"
       }
     }
   }

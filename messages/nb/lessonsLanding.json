@@ -1,114 +1,114 @@
 {
   "lessonsLanding": {
-    "loading": "Loading…",
-    "noData": "No lesson data found.",
+    "loading": "Laster…",
+    "noData": "Fant ingen leksjonsdata.",
     "fallback": {
-      "lessonTitle": "Lesson"
+      "lessonTitle": "Leksjon"
     },
     "nav": {
-      "backToDashboard": "Back",
-      "backToPreview": "Back to preview"
+      "backToDashboard": "Tilbake",
+      "backToPreview": "Tilbake til forhåndsvisning"
     },
     "anon": {
-      "savedLocally": "Your answers are saved locally on this device."
+      "savedLocally": "Svarene dine er lagret lokalt på denne enheten."
     },
     "image": {
-      "title": "Image",
-      "alt": "Lesson image",
-      "noImageTitle": "No image",
-      "noImageHint": "This lesson has no image."
+      "title": "Bilde",
+      "alt": "Bilde til leksjonen",
+      "noImageTitle": "Ingen bilde",
+      "noImageHint": "Denne leksjonen har ikke noe bilde."
     },
     "actions": {
-      "save": "Save",
-      "saving": "Saving…"
+      "save": "Lagre",
+      "saving": "Lagrer…"
     },
     "translate": {
-      "label": "Translate to",
-      "searchPlaceholder": "Search language…",
-      "translateText": "Translate text",
-      "translateTasks": "Translate tasks",
-      "translating": "Translating…",
-      "reset": "Reset",
-      "translatedLabel": "Translation",
-      "failed": "Could not translate."
+      "label": "Oversett til",
+      "searchPlaceholder": "Søk språk…",
+      "translateText": "Oversett tekst",
+      "translateTasks": "Oversett oppgaver",
+      "translating": "Oversetter…",
+      "reset": "Tilbakestill",
+      "translatedLabel": "Oversettelse",
+      "failed": "Kunne ikke oversette."
     },
     "text": {
-      "title": "Text",
-      "noText": "No text available.",
-      "clickToSeek": "Click to jump here in the audio",
-      "speed": "Speed",
-      "generating": "Generating audio…",
-      "playOriginal": "Play original",
-      "playTranslation": "Play translation",
-      "stop": "Stop",
+      "title": "Tekst",
+      "noText": "Ingen tekst tilgjengelig.",
+      "clickToSeek": "Klikk for å hoppe til dette stedet i lyden",
+      "speed": "Hastighet",
+      "generating": "Genererer lyd…",
+      "playOriginal": "Spill av original",
+      "playTranslation": "Spill av oversettelse",
+      "stop": "Stopp",
       "pause": "Pause",
-      "continue": "Continue",
-      "replaySentence": "Replay sentence",
-      "prev": "Previous",
-      "next": "Next",
-      "hideTranslation": "Hide translation",
-      "showTranslation": "Show translation",
-      "noAudio": "No audio available.",
-      "failed": "Could not generate audio."
+      "continue": "Fortsett",
+      "replaySentence": "Spill setning på nytt",
+      "prev": "Forrige",
+      "next": "Neste",
+      "hideTranslation": "Skjul oversettelse",
+      "showTranslation": "Vis oversettelse",
+      "noAudio": "Ingen lyd tilgjengelig.",
+      "failed": "Kunne ikke generere lyd."
     },
     "tasks": {
-      "title": "Tasks",
-      "showAnswers": "Show answers",
-      "hideAnswers": "Hide answers",
-      "clearAnswers": "Clear answers",
-      "hideAllTranslations": "Hide all translations",
-      "showAllTranslations": "Show all translations",
-      "noTasks": "No tasks found.",
-      "taskLabel": "Task {n}",
-      "correct": "Correct",
-      "wrong": "Wrong",
-      "yourAnswer": "Your answer",
-      "hideTranslation": "Hide translation",
-      "showTranslation": "Show translation",
-      "true": "True",
-      "false": "False",
-      "writeAnswerPlaceholder": "Write your answer here…"
+      "title": "Oppgaver",
+      "showAnswers": "Vis svar",
+      "hideAnswers": "Skjul svar",
+      "clearAnswers": "Fjern svar",
+      "hideAllTranslations": "Skjul alle oversettelser",
+      "showAllTranslations": "Vis alle oversettelser",
+      "noTasks": "Fant ingen oppgaver.",
+      "taskLabel": "Oppgave {n}",
+      "correct": "Riktig",
+      "wrong": "Feil",
+      "yourAnswer": "Ditt svar",
+      "hideTranslation": "Skjul oversettelse",
+      "showTranslation": "Vis oversettelse",
+      "true": "Sant",
+      "false": "Usant",
+      "writeAnswerPlaceholder": "Skriv svaret ditt her…"
     },
     "feedback": {
-      "title": "Feedback",
-      "usage": "AI feedback: {used} / {limit} used • {remaining} left",
-      "generate": "Get AI feedback",
-      "getFeedback": "Get feedback",
-      "submitting": "Submitting…",
-      "loginForFeedback": "Log in for feedback",
-      "loginToGetFeedback": "Log in to get feedback.",
-      "limitReached": "You have reached your AI feedback limit.",
-      "limitReachedShort": "Limit reached",
-      "translateFeedback": "Translate feedback",
-      "translateButtonTitle": "Translate feedback",
-      "translating": "Translating…",
-      "translatedFeedbackLabel": "Translated feedback",
-      "translateFailed": "Could not translate feedback.",
-      "anonHint": "Log in to get AI feedback.",
-      "noFeedbackYet": "No feedback yet.",
-      "generatingNew": "⏳ Generating new feedback…",
-      "answerAtLeastOne": "You must answer at least one task before requesting feedback."
+      "title": "Tilbakemelding",
+      "usage": "AI-tilbakemelding: {used} / {limit} brukt • {remaining} igjen",
+      "generate": "Få AI-tilbakemelding",
+      "getFeedback": "Få tilbakemelding",
+      "submitting": "Sender…",
+      "loginForFeedback": "Logg inn for tilbakemelding",
+      "loginToGetFeedback": "Logg inn for å få tilbakemelding.",
+      "limitReached": "Du har nådd grensen for AI-tilbakemelding.",
+      "limitReachedShort": "Grense nådd",
+      "translateFeedback": "Oversett tilbakemelding",
+      "translateButtonTitle": "Oversett tilbakemelding",
+      "translating": "Oversetter…",
+      "translatedFeedbackLabel": "Oversatt tilbakemelding",
+      "translateFailed": "Kunne ikke oversette tilbakemelding.",
+      "anonHint": "Logg inn for å få AI-tilbakemelding.",
+      "noFeedbackYet": "Ingen tilbakemelding ennå.",
+      "generatingNew": "⏳ Genererer ny tilbakemelding…",
+      "answerAtLeastOne": "Du må svare på minst én oppgave før du ber om tilbakemelding."
     },
     "flash": {
-      "saved": "Saved.",
-      "submitted": "Submitted.",
-      "clearedAnswers": "Answers cleared.",
-      "answerAtLeastOne": "Answer at least one task first.",
-      "loginToGetFeedback": "Log in to get feedback."
+      "saved": "Lagret.",
+      "submitted": "Sendt inn.",
+      "clearedAnswers": "Svar slettet.",
+      "answerAtLeastOne": "Svar på minst én oppgave først.",
+      "loginToGetFeedback": "Logg inn for å få tilbakemelding."
     },
     "errors": {
-      "label": "Error",
-      "fetchFailed": "Could not load published lessons.",
-      "missingLessonId": "Missing lessonId.",
-      "notPublished": "This lesson is not published.",
-      "notFound": "Lesson not found.",
-      "noAccess": "You do not have access to this lesson.",
-      "generic": "Something went wrong.",
-      "couldNotSave": "Could not save.",
-      "couldNotSubmit": "Could not submit."
+      "label": "Feil",
+      "fetchFailed": "Kunne ikke laste publiserte leksjoner.",
+      "missingLessonId": "Mangler lessonId.",
+      "notPublished": "Denne leksjonen er ikke publisert.",
+      "notFound": "Fant ikke leksjonen.",
+      "noAccess": "Du har ikke tilgang til denne leksjonen.",
+      "generic": "Noe gikk galt.",
+      "couldNotSave": "Kunne ikke lagre.",
+      "couldNotSubmit": "Kunne ikke sende inn."
     },
     "tts": {
-      "failed": "Could not generate audio."
+      "failed": "Kunne ikke generere lyd."
     }
   }
 }

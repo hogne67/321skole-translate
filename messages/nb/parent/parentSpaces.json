@@ -1,43 +1,43 @@
 {
   "parentSpaces": {
-    "title": "My spaces",
-    "subtitle": "Here you will find family rooms and parent spaces for activities at home.",
-    "defaultTitle": "Untitled space",
+    "title": "Mine spaces",
+    "subtitle": "Her finner du familierom og foreldregrupper for aktiviteter hjemme.",
+    "defaultTitle": "Uten tittel",
     "actions": {
-      "open": "Open",
-      "openSpace": "Open space",
-      "newSpace": "Create space",
-      "parentGroups": "+ Create new room"
+      "open": "Åpne",
+      "openSpace": "Åpne space",
+      "newSpace": "Opprett space",
+      "parentGroups": "+ Opprett nytt rom"
     },
     "meta": {
-      "code": "Code"
+      "code": "Kode"
     },
     "kinds": {
-      "family": "Family room",
-      "parentGroup": "Parent group",
+      "family": "Familierom",
+      "parentGroup": "Foreldregruppe",
       "other": "Space"
     },
-    "empty": "You do not have any parent spaces yet.",
-    "loading": "Loading…",
+    "empty": "Du har ingen parent spaces ennå.",
+    "loading": "Laster…",
     "errors": {
-      "loadFailed": "Could not load spaces."
+      "loadFailed": "Kunne ikke laste spaces."
     },
     "counts": {
-      "groups": "{count, plural, one {# group} other {# groups}}"
+      "groups": "{count, plural, one {# gruppe} other {# grupper}}"
     },
     "status": {
-      "notStarted": "Not started",
-      "draft": "Draft",
-      "submitted": "Submitted",
-      "needsWork": "Needs work",
-      "reviewed": "Reviewed"
+      "notStarted": "Ikke startet",
+      "draft": "Utkast",
+      "submitted": "Levert",
+      "needsWork": "Må jobbes mer med",
+      "reviewed": "Vurdert"
     },
     "badges": {
-      "tasks": "{count} tasks",
-      "active": "Active: {title}",
-      "aiFeedback": "AI feedback",
-      "parentReview": "Parent review",
-      "parentReviewWithStars": "Parent review • {stars}★"
+      "tasks": "{count} oppgaver",
+      "active": "Aktiv: {title}",
+      "aiFeedback": "KI-tilbakemelding",
+      "parentReview": "Foreldrevurdering",
+      "parentReviewWithStars": "Foreldrevurdering • {stars}★"
     }
   }
 }

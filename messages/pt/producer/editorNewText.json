@@ -1,8 +1,180 @@
 {
-"editorNewText": {
-  "pageTitle": "Edit/ finish lesson",
-  "nav": {
-    "back": "← Back"
+  "editorNewText": {
+    "pageTitle": "Finalizar atividade",
+    "metaLine": "ID: {id} · UID: {uid} · Status: {status}",
+    "footerRemember": "Lembre-se de salvar a atividade em Meus conteúdos com",
+    "defaults": {
+      "language": "Inglês"
+    },
+    "states": {
+      "loading": "Carregando…"
+    },
+    "nav": {
+      "back": "← Voltar"
+    },
+    "buttons": {
+      "save": "Salvar",
+      "saveToMyContent": "Salvar em Meus conteúdos",
+      "saving": "Salvando…"
+    },
+    "errors": {
+      "title": "Erro",
+      "notFound": "Atividade não encontrada.",
+      "noAccessOwnerMismatch": "Você não tem acesso a esta atividade.",
+      "loadFailed": "Não foi possível carregar a atividade.",
+      "saveFailed": "Não foi possível salvar a atividade.",
+      "uploadFailed": "Falha no upload.",
+      "chooseImageFile": "Escolha um arquivo de imagem (jpg/png/webp).",
+      "fileTooLarge": "O arquivo é muito grande. Máx. 8 MB.",
+      "noAuthUid": "Nenhum usuário autenticado encontrado.",
+      "noAuthUidNotReady": "A autenticação ainda não está pronta.",
+      "writePromptForAiImage": "Escreva um prompt para a imagem com IA.",
+      "textEmptyForAi": "O texto está vazio. Não é possível usar o texto como inspiração.",
+      "imageGenerationFailed": "Falha na geração da imagem.",
+      "imageGenerationNotAvailable": "A geração de imagens não está disponível no seu plano atual.",
+      "imageGenerationLimitPeriod": "Você atingiu o limite de geração de imagens neste período.",
+      "imageGenerationLimit": "Você atingiu o limite de geração de imagens.",
+      "missingAuthToken": "Falta o token de autenticação."
+    },
+    "intro": {
+      "finishLesson": "Agora finalize a atividade com metadados, imagem de capa e ajustes finais."
+    },
+    "summary": {
+      "title": "Título",
+      "tasks": "Atividades",
+      "words": "Palavras",
+      "imageGeneration": "Geração de imagens"
+    },
+    "sections": {
+      "basicInfoTitle": "1. Informações básicas",
+      "basicInfoHelp": "Preencha as informações principais que descrevem a atividade.",
+      "coverTitle": "2. Imagem de capa e apresentação",
+      "coverHelp": "Escolha se deseja enviar uma imagem ou gerar uma com IA.",
+      "textSettingsTitle": "3. Texto e configurações da atividade",
+      "textSettingsHelp": "Revise o texto e escolha como a atividade deve ser exibida."
+    },
+    "fields": {
+      "title": "Título",
+      "levelOptional": "Nível",
+      "language": "Idioma",
+      "producerName": "Nome do produtor",
+      "topic": "Tema",
+      "tags": "Tags",
+      "tagsHelp": "Separe as tags com vírgulas.",
+      "estimatedMinutes": "Minutos estimados",
+      "releaseMode": "Modo de exibição",
+      "releaseModeHelp": "Escolha se o texto e as atividades devem aparecer juntos ou o texto primeiro.",
+      "status": "Status",
+      "text": "Texto"
+    },
+    "fieldsExtra": {
+      "textType": "Tipo de texto",
+      "textTypeHelp": "Usado para metadados e filtros da biblioteca. Mantenha o tema separado.",
+      "format": "Formato",
+      "formatHelp": "Somente 16:9 é permitido.",
+      "imageStyle": "Estilo da imagem",
+      "promptSource": "Fonte do prompt",
+      "prompt": "Prompt"
+    },
+    "placeholders": {
+      "title": "Digite o título",
+      "level": "Por exemplo A1, A2, B1…",
+      "language": "Por exemplo inglês, norueguês, português…",
+      "tags": "Por exemplo escola, gramática, leitura",
+      "sourceText": "Cole ou escreva o texto da atividade aqui…",
+      "taskPrompt": "Escreva o enunciado da atividade aqui…",
+      "mcqCorrectAnswer": "Escreva a resposta correta"
+    },
+    "placeholdersExtra": {
+      "producerName": "Seu nome (do perfil)",
+      "textType": "ex.: artigo, e-mail, diálogo…",
+      "topic": "Opcional. Deixe em branco para evitar mostrar o prompt da IA.",
+      "customPrompt": "Exemplo: Uma sala de aula tranquila com alunos lendo, luz quente, detalhado, composição limpa"
+    },
+    "help": {
+      "producerName": "Isso é obtido do seu perfil (users/{uid}).",
+      "uploadImage": "Envie jpg, png ou webp. A imagem será usada em formato 16:9.",
+      "fromTextPrompt": "O sistema usará o título e o texto da atividade como inspiração para a imagem.",
+      "imageLimit": "Geração de imagens: {used} / {limit} usadas • {remaining} restantes",
+      "generatedLandscape": "A imagem gerada deve ser horizontal em 16:9.",
+      "rememberSaveImage": "Lembre-se de salvar a atividade depois de escolher ou gerar uma imagem."
+    },
+    "cover": {
+      "uploadImage": "Enviar imagem",
+      "generateAiImage": "Gerar imagem com IA",
+      "uploading": "Enviando...",
+      "removeImage": "Remover imagem",
+      "illustration": "Ilustração",
+      "realistic": "Realista",
+      "writePrompt": "Escrever prompt",
+      "useTextAsInspiration": "Usar o texto como inspiração",
+      "generateImage": "Gerar imagem",
+      "generating": "Gerando...",
+      "limitReached": "Limite atingido",
+      "previewAlt": "Pré-visualização da capa",
+      "previewCaption": "Pré-visualização em {format}. Fonte: {source}.",
+      "previewSourceAi": "IA",
+      "previewSourceUpload": "upload",
+      "noImageYet": "Nenhuma imagem selecionada ainda (16:9)."
+    },
+    "releaseModes": {
+      "allAtOnce": "Texto e atividades juntos",
+      "textFirst": "Mostrar texto primeiro"
+    },
+    "statuses": {
+      "draft": "Rascunho",
+      "published": "Publicado"
+    },
+    "counts": "{words} palavras · {charsNoSpaces} caracteres sem espaços · {charsWithSpaces} caracteres com espaços",
+    "tasksIntro": {
+      "help": "Edite as atividades antes de salvar em Meus conteúdos."
+    },
+    "tasks": {
+      "title": "Atividades",
+      "empty": "Ainda não há atividades.",
+      "type": "Tipo de atividade",
+      "prompt": "Enunciado",
+      "delete": "Excluir",
+      "deleteTitle": "Excluir atividade",
+      "headerLine": "Atividade {n} · {type} · {id}",
+      "add": {
+        "trueFalse": "+ Verdadeiro / falso",
+        "mcq": "+ Múltipla escolha",
+        "open": "+ Pergunta aberta"
+      },
+      "defaults": {
+        "optionA": "Alternativa A",
+        "optionB": "Alternativa B",
+        "optionC": "Alternativa C",
+        "optionD": "Alternativa D"
+      }
+    },
+    "taskTypes": {
+      "truefalse": "Verdadeiro / falso",
+      "mcq": "Múltipla escolha",
+      "open": "Pergunta aberta"
+    },
+    "mcq": {
+      "optionsOnePerLine": "Alternativas (uma por linha)",
+      "correctAnswer": "Resposta correta"
+    },
+    "tf": {
+      "correctAnswer": "Resposta correta",
+      "tip": "Escolha se a afirmação é verdadeira ou falsa."
+    },
+    "answers": {
+      "true": "Verdadeiro",
+      "false": "Falso"
+    },
+    "open": {
+      "answerSpace": "Espaço para resposta",
+      "answerSpaceHelp": "Escolha quanto espaço o aluno deve ter para responder.",
+      "hint": "Perguntas abertas aparecem com um campo de escrita para o aluno."
+    },
+    "answerSpace": {
+      "short": "Curto",
+      "medium": "Médio",
+      "long": "Longo"
+    }
   }
-}
 }

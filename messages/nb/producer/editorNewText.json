@@ -1,8 +1,180 @@
 {
-"editorNewText": {
-  "pageTitle": "Edit/ finish lesson",
-  "nav": {
-    "back": "← Back"
+  "editorNewText": {
+    "pageTitle": "Ferdigstill oppgave",
+    "metaLine": "ID: {id} · UID: {uid} · Status: {status}",
+    "footerRemember": "Husk å lagre oppgaven til Mitt innhold med",
+    "defaults": {
+      "language": "Engelsk"
+    },
+    "states": {
+      "loading": "Laster…"
+    },
+    "nav": {
+      "back": "← Tilbake"
+    },
+    "buttons": {
+      "save": "Lagre",
+      "saveToMyContent": "Lagre til Mitt innhold",
+      "saving": "Lagrer…"
+    },
+    "errors": {
+      "title": "Feil",
+      "notFound": "Oppgaven ble ikke funnet.",
+      "noAccessOwnerMismatch": "Du har ikke tilgang til denne oppgaven.",
+      "loadFailed": "Kunne ikke laste oppgaven.",
+      "saveFailed": "Kunne ikke lagre oppgaven.",
+      "uploadFailed": "Opplasting feilet.",
+      "chooseImageFile": "Velg en bildefil (jpg/png/webp).",
+      "fileTooLarge": "Filen er for stor. Maks 8 MB.",
+      "noAuthUid": "Fant ingen autentisert bruker.",
+      "noAuthUidNotReady": "Autentisering er ikke klar ennå.",
+      "writePromptForAiImage": "Skriv et prompt for AI-bildet.",
+      "textEmptyForAi": "Teksten er tom. Kan ikke bruke teksten som inspirasjon.",
+      "imageGenerationFailed": "Bildegenerering feilet.",
+      "imageGenerationNotAvailable": "Bildegenerering er ikke tilgjengelig på abonnementet ditt.",
+      "imageGenerationLimitPeriod": "Du har nådd grensen for bildegenerering i denne perioden.",
+      "imageGenerationLimit": "Du har nådd grensen for bildegenerering.",
+      "missingAuthToken": "Mangler autentiseringstoken."
+    },
+    "intro": {
+      "finishLesson": "Nå ferdigstiller du oppgaven med metadata, forsidebilde og siste justeringer."
+    },
+    "summary": {
+      "title": "Tittel",
+      "tasks": "Oppgaver",
+      "words": "Ord",
+      "imageGeneration": "Bildegenerering"
+    },
+    "sections": {
+      "basicInfoTitle": "1. Grunninformasjon",
+      "basicInfoHelp": "Fyll ut den viktigste informasjonen som beskriver oppgaven.",
+      "coverTitle": "2. Forsidebilde og presentasjon",
+      "coverHelp": "Velg om du vil laste opp et bilde eller generere et med AI.",
+      "textSettingsTitle": "3. Tekst og oppsett",
+      "textSettingsHelp": "Se over teksten og velg hvordan oppgaven skal vises."
+    },
+    "fields": {
+      "title": "Tittel",
+      "levelOptional": "Nivå",
+      "language": "Språk",
+      "producerName": "Produsentnavn",
+      "topic": "Tema",
+      "tags": "Tagger",
+      "tagsHelp": "Skill tagger med komma.",
+      "estimatedMinutes": "Estimert antall minutter",
+      "releaseMode": "Visningsmodus",
+      "releaseModeHelp": "Velg om tekst og oppgaver skal vises sammen eller tekst først.",
+      "status": "Status",
+      "text": "Tekst"
+    },
+    "fieldsExtra": {
+      "textType": "Teksttype",
+      "textTypeHelp": "Brukes som metadata og til filtrering i biblioteket. Hold tema separat.",
+      "format": "Format",
+      "formatHelp": "Kun 16:9 er tillatt.",
+      "imageStyle": "Bildestil",
+      "promptSource": "Prompt-kilde",
+      "prompt": "Prompt"
+    },
+    "placeholders": {
+      "title": "Skriv inn tittel",
+      "level": "For eksempel A1, A2, B1…",
+      "language": "For eksempel engelsk, norsk, portugisisk…",
+      "tags": "For eksempel skole, grammatikk, lesing",
+      "sourceText": "Lim inn eller skriv oppgaveteksten her…",
+      "taskPrompt": "Skriv oppgaveteksten her…",
+      "mcqCorrectAnswer": "Skriv riktig svar"
+    },
+    "placeholdersExtra": {
+      "producerName": "Ditt navn (fra profil)",
+      "textType": "f.eks. artikkel, e-post, dialog…",
+      "topic": "Valgfritt. La stå tomt for å unngå at KI-prompt vises.",
+      "customPrompt": "Eksempel: Et rolig klasserom med elever som leser, varmt lys, detaljert, ren komposisjon"
+    },
+    "help": {
+      "producerName": "Dette hentes fra profilen din (users/{uid}).",
+      "uploadImage": "Last opp jpg, png eller webp. Bildet brukes i 16:9-format.",
+      "fromTextPrompt": "Systemet vil bruke oppgavetittel og tekst som inspirasjon for bildet.",
+      "imageLimit": "Bildegenerering: {used} / {limit} brukt • {remaining} igjen",
+      "generatedLandscape": "Det genererte bildet skal være liggende i 16:9.",
+      "rememberSaveImage": "Husk å lagre oppgaven etter at du har valgt eller generert et bilde."
+    },
+    "cover": {
+      "uploadImage": "Last opp bilde",
+      "generateAiImage": "Generer AI-bilde",
+      "uploading": "Laster opp...",
+      "removeImage": "Fjern bilde",
+      "illustration": "Illustrasjon",
+      "realistic": "Realistisk",
+      "writePrompt": "Skriv prompt",
+      "useTextAsInspiration": "Bruk teksten som inspirasjon",
+      "generateImage": "Generer bilde",
+      "generating": "Genererer...",
+      "limitReached": "Grense nådd",
+      "previewAlt": "Forhåndsvisning av forside",
+      "previewCaption": "Forhåndsvisning i {format}. Kilde: {source}.",
+      "previewSourceAi": "AI",
+      "previewSourceUpload": "opplasting",
+      "noImageYet": "Ingen bilde valgt ennå (16:9)."
+    },
+    "releaseModes": {
+      "allAtOnce": "Tekst og oppgaver sammen",
+      "textFirst": "Vis tekst først"
+    },
+    "statuses": {
+      "draft": "Kladd",
+      "published": "Publisert"
+    },
+    "counts": "{words} ord · {charsNoSpaces} tegn uten mellomrom · {charsWithSpaces} tegn med mellomrom",
+    "tasksIntro": {
+      "help": "Rediger oppgavene før du lagrer oppgaven til Mitt innhold."
+    },
+    "tasks": {
+      "title": "Oppgaver",
+      "empty": "Ingen oppgaver ennå.",
+      "type": "Oppgavetype",
+      "prompt": "Oppgavetekst",
+      "delete": "Slett",
+      "deleteTitle": "Slett oppgave",
+      "headerLine": "Oppgave {n} · {type} · {id}",
+      "add": {
+        "trueFalse": "+ Sant / usant",
+        "mcq": "+ Flervalg",
+        "open": "+ Åpent spørsmål"
+      },
+      "defaults": {
+        "optionA": "Alternativ A",
+        "optionB": "Alternativ B",
+        "optionC": "Alternativ C",
+        "optionD": "Alternativ D"
+      }
+    },
+    "taskTypes": {
+      "truefalse": "Sant / usant",
+      "mcq": "Flervalg",
+      "open": "Åpent spørsmål"
+    },
+    "mcq": {
+      "optionsOnePerLine": "Alternativer (ett per linje)",
+      "correctAnswer": "Riktig svar"
+    },
+    "tf": {
+      "correctAnswer": "Riktig svar",
+      "tip": "Velg om utsagnet er sant eller usant."
+    },
+    "answers": {
+      "true": "Sant",
+      "false": "Usant"
+    },
+    "open": {
+      "answerSpace": "Svarfelt",
+      "answerSpaceHelp": "Velg hvor mye plass eleven skal få til svaret.",
+      "hint": "Åpne spørsmål vises med et skrivefelt for eleven."
+    },
+    "answerSpace": {
+      "short": "Kort",
+      "medium": "Middels",
+      "long": "Lang"
+    }
   }
-}
 }

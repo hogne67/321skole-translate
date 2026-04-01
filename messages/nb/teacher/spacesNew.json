@@ -1,24 +1,24 @@
 {
-"spacesNew": {
-      "title": "Create new room",
-      "fields": {
-        "name": {
-          "label": "Name",
-          "placeholder": "e.g. Norwegian A2 – Group 1"
-        },
-        "isOpen": {
-          "label": "Give the room a suitable name. Invite members afterwards)"
-        }
+  "spacesNew": {
+    "title": "Opprett nytt rom",
+    "fields": {
+      "name": {
+        "label": "Navn",
+        "placeholder": "f.eks. Norsk A2 – Gruppe 1"
       },
-      "actions": {
-        "create": "Create",
-        "creating": "Creating…"
-      },
-      "errors": {
-        "missingUser": "Missing user.",
-        "cannotCreate": "You can’t create a classroom.",
-        "missingTitle": "Please name the classroom.",
-        "unknown": "Unknown error"
+      "isOpen": {
+        "label": "Gi rommet et passende navn. Inviter medlemmer etterpå."
       }
+    },
+    "actions": {
+      "create": "Opprett",
+      "creating": "Oppretter…"
+    },
+    "errors": {
+      "missingUser": "Mangler bruker.",
+      "cannotCreate": "Du kan ikke opprette et klasserom.",
+      "missingTitle": "Vennligst gi klasserommet et navn.",
+      "unknown": "Ukjent feil"
     }
+  }
 }

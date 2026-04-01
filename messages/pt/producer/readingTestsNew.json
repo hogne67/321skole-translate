@@ -1,140 +1,140 @@
 {
   "readingTestsNew": {
-  "page": {
-    "title": "Reading test generator",
-    "subtitle": "Create a reading test with a text and task types that match the selected level and topic."
-  },
-  "fields": {
-    "cefrLevel": "CEFR level",
-    "language": "Language",
-    "searchLanguage": "Search language",
-    "languagesCount": "{count} languages",
-    "audience": "Audience",
-    "minimumWords": "Minimum words",
-    "maximumWords": "Maximum words",
-    "topic": "Topic / prompt",
-    "topicHelp": "Example: A short text about school, football, nature, family life, or daily activities.",
-    "feedbackMode": "Feedback mode",
-    "feedbackModeHelp": "This controls which generated guidance is shown here in the builder. At the moment, the teacher still receives the full submission regardless."
-  },
-  "audience": {
-    "children": "Children",
-    "teenagers": "Teenagers",
-    "adultLearners": "Adult learners",
-    "learners": "Learners"
-  },
-  "flow": {
-    "title": "Reading flow and timing",
-    "description": "These settings are saved in the reading test config. They describe the intended student flow, but they do not yet override the full teacher submission flow everywhere in the app.",
-    "showQuestionsAfterReading": "Show questions after reading",
-    "showQuestionsAfterReadingHelp": "The student reads first, then gets the tasks."
-  },
-  "timer": {
-    "noTimer": "No timer",
-    "enable": "Enable timer",
-    "quickPresets": "Quick presets",
-    "minutes": "Minutes",
-    "extraSeconds": "Extra seconds",
-    "help": "For most cases, set the timer in minutes and only adjust seconds when needed.",
-    "minutesOnly": "{minutes} min",
-    "minutesAndSeconds": "{minutes} min {seconds} sec"
-  },
-  "feedbackMode": {
-    "learner": "Learner only",
-    "adult": "Teacher / parent only",
-    "both": "Both"
-  },
-  "feedback": {
-    "previewTitle": "Generated guidance preview",
-    "forLearner": "For learner:",
-    "forAdult": "For teacher / parent:",
-    "nextStep": "Next step:"
-  },
-  "taskTypes": {
-    "title": "Task types",
-    "description": "The generator currently creates the classic reading test tasks first. You can also include",
-    "descriptionAfter": "immediately, and add more task types manually below.",
-    "word_choice": "Word choice",
-    "sentence_placement": "Sentence placement",
-    "best_summary": "Best summary",
-    "mcq": "MCQ",
-    "true_false": "True / false",
-    "fill_in_word": "Fill in word",
-    "short_answer": "Short answer",
-    "open": "Open"
-  },
-  "actions": {
-    "generate": "Generate reading test",
-    "generating": "Generating reading test...",
-    "saveDraft": "Save draft",
-    "saving": "Saving...",
-    "addFillInWord": "Add fill in word",
-    "addMcq": "Add MCQ",
-    "addTrueFalse": "Add true/false",
-    "addShortAnswer": "Add short answer",
-    "addOpen": "Add open task",
-    "delete": "Delete"
-  },
-  "messages": {
-    "tasksDirty": "The text has changed. Check the tasks before saving.",
-    "saved": "Saved: {id}",
-    "noTasks": "No tasks yet. Generate a reading test first."
-  },
-  "quota": {
-    "loading": "Loading quota…",
-    "usedOfLimit": "You have used {used} of {limit} this month",
-    "runningLow": "(running low)",
-    "periodTitle": "Period: {period}"
-  },
-  "builder": {
-    "title": "Reading test builder",
-    "lessonTitle": "Title",
-    "readingText": "Reading text",
-    "tasks": "Tasks",
-    "id": "ID: {id}",
-    "prompt": "Prompt",
-    "sentence": "Sentence",
-    "sentenceWithBlank": "Sentence with blank",
-    "fillInWordExample": "Example: The children saw a black _____ that said meow.",
-    "textWithGap": "Text with gap",
-    "options": "Options",
-    "correctAnswer": "Correct answer",
-    "shortAnswerHelp": "Short written response from the student.",
-    "openHelp": "Open task / response field."
-  },
-  "debug": {
-    "title": "Debug / raw reading test"
-  },
-  "common": {
-    "true": "True",
-    "false": "False"
-  },
-  "defaults": {
-    "title": "Reading test",
-    "topic": "A short everyday text about family, school, nature, or daily life.",
-    "fillInWordPrompt": "Choose the correct word for the blank.",
-    "fillInWordSentence": "The children saw a black _____ that said meow.",
-    "fillInWordOption1": "cat",
-    "fillInWordOption2": "horse",
-    "fillInWordOption3": "dog",
-    "newMcqPrompt": "New multiple choice question",
-    "trueFalsePrompt": "Write true or false.",
-    "shortAnswerPrompt": "Write a short answer.",
-    "openPrompt": "New open question",
-    "option1": "Option 1",
-    "option2": "Option 2",
-    "option3": "Option 3"
-  },
-  "errors": {
-    "emptyResponse": "Empty response from server. HTTP {status}",
-    "notJson": "Response was not valid JSON. HTTP {status}. First characters: {preview}",
-    "missingReadingText": "Missing reading text in response.",
-    "titleRequired": "Title is required.",
-    "sourceTextEmpty": "Source text is empty.",
-    "timerTooShort": "Timer must be at least 10 seconds.",
-    "notSignedIn": "Not signed in. Please log in as a teacher or producer.",
-    "quotaExceeded": "You have used {used} of {limit} this month. You cannot create more right now.",
-    "missingId": "Missing id from server."
+    "page": {
+      "title": "Gerador de testes de leitura",
+      "subtitle": "Crie um teste de leitura com texto e tipos de atividades que combinam com o nível e o tema escolhidos."
+    },
+    "fields": {
+      "cefrLevel": "Nível CEFR",
+      "language": "Idioma",
+      "searchLanguage": "Buscar idioma",
+      "languagesCount": "{count} idiomas",
+      "audience": "Público",
+      "minimumWords": "Mínimo de palavras",
+      "maximumWords": "Máximo de palavras",
+      "topic": "Tema / prompt",
+      "topicHelp": "Exemplo: Um texto curto sobre escola, futebol, natureza, vida em família ou atividades do dia a dia.",
+      "feedbackMode": "Modo de feedback",
+      "feedbackModeHelp": "Isso controla qual orientação gerada é mostrada aqui no construtor. No momento, o professor ainda recebe a resposta completa de qualquer forma."
+    },
+    "audience": {
+      "children": "Crianças",
+      "teenagers": "Adolescentes",
+      "adultLearners": "Aprendizes adultos",
+      "learners": "Aprendizes"
+    },
+    "flow": {
+      "title": "Fluxo de leitura e tempo",
+      "description": "Essas configurações são salvas na configuração do teste de leitura. Elas descrevem o fluxo planejado para o aluno, mas ainda não substituem totalmente o fluxo completo do professor em toda a aplicação.",
+      "showQuestionsAfterReading": "Mostrar perguntas depois da leitura",
+      "showQuestionsAfterReadingHelp": "O aluno lê primeiro e depois recebe as atividades."
+    },
+    "timer": {
+      "noTimer": "Sem cronômetro",
+      "enable": "Ativar cronômetro",
+      "quickPresets": "Atalhos rápidos",
+      "minutes": "Minutos",
+      "extraSeconds": "Segundos extras",
+      "help": "Na maioria dos casos, basta definir o cronômetro em minutos e ajustar os segundos apenas quando necessário.",
+      "minutesOnly": "{minutes} min",
+      "minutesAndSeconds": "{minutes} min {seconds} s"
+    },
+    "feedbackMode": {
+      "learner": "Somente aprendiz",
+      "adult": "Somente professor / responsável",
+      "both": "Ambos"
+    },
+    "feedback": {
+      "previewTitle": "Prévia da orientação gerada",
+      "forLearner": "Para o aprendiz:",
+      "forAdult": "Para o professor / responsável:",
+      "nextStep": "Próxima etapa:"
+    },
+    "taskTypes": {
+      "title": "Tipos de atividades",
+      "description": "O gerador cria primeiro as atividades clássicas de teste de leitura. Você também pode incluir",
+      "descriptionAfter": "imediatamente e adicionar mais tipos de atividades manualmente abaixo.",
+      "word_choice": "Escolha de palavras",
+      "sentence_placement": "Posicionamento de frases",
+      "best_summary": "Melhor resumo",
+      "mcq": "Múltipla escolha",
+      "true_false": "Verdadeiro / falso",
+      "fill_in_word": "Preencher palavra",
+      "short_answer": "Resposta curta",
+      "open": "Aberta"
+    },
+    "actions": {
+      "generate": "Gerar teste de leitura",
+      "generating": "Gerando teste de leitura...",
+      "saveDraft": "Salvar rascunho",
+      "saving": "Salvando...",
+      "addFillInWord": "Adicionar preencher palavra",
+      "addMcq": "Adicionar múltipla escolha",
+      "addTrueFalse": "Adicionar verdadeiro/falso",
+      "addShortAnswer": "Adicionar resposta curta",
+      "addOpen": "Adicionar atividade aberta",
+      "delete": "Excluir"
+    },
+    "messages": {
+      "tasksDirty": "O texto foi alterado. Verifique as atividades antes de salvar.",
+      "saved": "Salvo: {id}",
+      "noTasks": "Ainda não há atividades. Gere um teste de leitura primeiro."
+    },
+    "quota": {
+      "loading": "Carregando cota…",
+      "usedOfLimit": "Você usou {used} de {limit} neste mês",
+      "runningLow": "(quase acabando)",
+      "periodTitle": "Período: {period}"
+    },
+    "builder": {
+      "title": "Construtor do teste de leitura",
+      "lessonTitle": "Título",
+      "readingText": "Texto de leitura",
+      "tasks": "Atividades",
+      "id": "ID: {id}",
+      "prompt": "Enunciado",
+      "sentence": "Frase",
+      "sentenceWithBlank": "Frase com lacuna",
+      "fillInWordExample": "Exemplo: As crianças viram um _____ preto que dizia miau.",
+      "textWithGap": "Texto com lacuna",
+      "options": "Alternativas",
+      "correctAnswer": "Resposta correta",
+      "shortAnswerHelp": "Resposta escrita curta do aluno.",
+      "openHelp": "Atividade aberta / campo de resposta."
+    },
+    "debug": {
+      "title": "Debug / teste de leitura bruto"
+    },
+    "common": {
+      "true": "Verdadeiro",
+      "false": "Falso"
+    },
+    "defaults": {
+      "title": "Teste de leitura",
+      "topic": "Um texto curto do cotidiano sobre família, escola, natureza ou vida diária.",
+      "fillInWordPrompt": "Escolha a palavra correta para a lacuna.",
+      "fillInWordSentence": "As crianças viram um _____ preto que dizia miau.",
+      "fillInWordOption1": "gato",
+      "fillInWordOption2": "cavalo",
+      "fillInWordOption3": "cachorro",
+      "newMcqPrompt": "Nova pergunta de múltipla escolha",
+      "trueFalsePrompt": "Escreva verdadeiro ou falso.",
+      "shortAnswerPrompt": "Escreva uma resposta curta.",
+      "openPrompt": "Nova pergunta aberta",
+      "option1": "Alternativa 1",
+      "option2": "Alternativa 2",
+      "option3": "Alternativa 3"
+    },
+    "errors": {
+      "emptyResponse": "Resposta vazia do servidor. HTTP {status}",
+      "notJson": "A resposta não era um JSON válido. HTTP {status}. Primeiros caracteres: {preview}",
+      "missingReadingText": "Falta texto de leitura na resposta.",
+      "titleRequired": "O título é obrigatório.",
+      "sourceTextEmpty": "O texto-fonte está vazio.",
+      "timerTooShort": "O cronômetro deve ter pelo menos 10 segundos.",
+      "notSignedIn": "Não conectado. Faça login como professor ou produtor.",
+      "quotaExceeded": "Você usou {used} de {limit} neste mês. Não é possível criar mais agora.",
+      "missingId": "Falta id do servidor."
+    }
   }
-}
 }

@@ -1,24 +1,23 @@
 {
   "dashboardIntro": {
-    "helloAnon": "Hello!",
-    "helloUser": "Hello {name}!",
-    "guest": "guest",
-    "loggedIn": "logged in",
-    "youAre": "You are {state} as <b>{role}</b>.",
-    "activity": "You can continue your <b>activity</b> below.",
-    "recommendRegister": "We recommend creating an account to save your work and sync your content.",
-    "remaining": "{count} left",
+    "helloAnon": "Olá!",
+    "helloUser": "Olá {name}!",
+    "guest": "visitante",
+    "loggedIn": "conectado",
+    "youAre": "Você está {state} como <b>{role}</b>.",
+    "activity": "Você pode continuar sua <b>atividade</b> abaixo.",
+    "recommendRegister": "Recomendamos criar uma conta para salvar seu trabalho e sincronizar seu conteúdo.",
+    "remaining": "{count} restantes",
     "plans": {
-      "free": "Free",
+      "free": "Gratuito",
       "basic": "Basic",
       "plus": "Plus",
       "pro": "Pro"
     },
     "actions": {
-      "seePlans": "See plans",
-      "registerLogin": "Register / log in",
-      "openLibrary": "Open library"
+      "seePlans": "Ver planos",
+      "registerLogin": "Registrar / entrar",
+      "openLibrary": "Abrir biblioteca"
     }
   }
-}  
-
+}

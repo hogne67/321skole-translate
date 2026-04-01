@@ -80,7 +80,6 @@
     "translatedLabel": "Translated",
     "showTranslation": "Show translation",
     "hideTranslation": "Hide translation",
-
     "targetLang": "Translate to",
     "working": "Working…",
     "toggleTask": "Toggle translation",
@@ -107,7 +106,6 @@
     "next": "Next ⟶",
     "generating": "Generating…",
     "failed": "TTS failed",
-
     "working": "Working…",
     "resume": "Resume",
     "time": "{cur}s / {dur}s"
@@ -133,7 +131,6 @@
     "autoWrong": "Auto: ❌ wrong",
     "autoUnanswered": "Auto: ⏳ unanswered",
     "writeAnswerPlaceholder": "Write your answer…",
-
     "noPrompt": "Task",
     "writeAnswer": "Write your answer…"
   },

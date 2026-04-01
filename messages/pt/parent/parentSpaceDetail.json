@@ -1,65 +1,65 @@
 {
   "parentSpaceDetail": {
-    "loading": "Loading…",
+    "loading": "Carregando…",
     "header": {
-      "untitled": "Untitled space",
-      "kind": "Type",
-      "code": "Code"
+      "untitled": "Sem título",
+      "kind": "Tipo",
+      "code": "Código"
     },
     "kinds": {
-      "family": "Family room",
-      "parentGroup": "Parent group",
+      "family": "Sala familiar",
+      "parentGroup": "Grupo de pais",
       "other": "Space"
     },
     "actions": {
-      "backToMySpaces": "Back to my spaces",
-      "backMySpacesShort": "My spaces",
-      "open": "Open",
-      "openSpace": "Open space"
+      "backToMySpaces": "Voltar para meus spaces",
+      "backMySpacesShort": "Meus spaces",
+      "open": "Abrir",
+      "openSpace": "Abrir space"
     },
     "missing": {
-      "title": "Space not found",
-      "subtitle": "It may have been deleted or you may not have access."
+      "title": "Space não encontrado",
+      "subtitle": "Pode ter sido excluído ou você não tem acesso."
     },
     "error": {
-      "title": "Something went wrong"
+      "title": "Algo deu errado"
     },
     "errors": {
-      "readSpace": "Could not read the space.",
-      "listenStart": "Could not start listening to the space.",
-      "readAssignments": "Could not read assignments.",
-      "listenAssignmentsStart": "Could not start listening to assignments."
+      "readSpace": "Não foi possível ler o space.",
+      "listenStart": "Não foi possível iniciar a escuta do space.",
+      "readAssignments": "Não foi possível ler as atividades.",
+      "listenAssignmentsStart": "Não foi possível iniciar a escuta das atividades."
     },
     "active": {
-      "title": "Active activity",
-      "defaultTitle": "Assignment",
-      "open": "Open activity",
-      "hint": "This activity can be used as a starting point for something you do together at home.",
-      "none": "No active activity right now."
+      "title": "Atividade ativa",
+      "defaultTitle": "Atividade",
+      "open": "Abrir atividade",
+      "hint": "Esta atividade pode ser usada como ponto de partida para algo que vocês fazem juntos em casa.",
+      "none": "Nenhuma atividade ativa no momento."
     },
     "purpose": {
-      "title": "This space can be used for",
-      "family": "A family room can be used for short learning sessions, reading, activities and conversations at home.",
-      "parentGroup": "A parent group can be used for sharing resources, activities and common focus areas."
+      "title": "Este espaço pode ser usado para",
+      "family": "Uma sala familiar pode ser usada para sessões curtas de aprendizagem, leitura, atividades e conversas em casa.",
+      "parentGroup": "Um grupo de pais pode ser usado para compartilhar recursos, atividades e áreas de foco em comum."
     },
     "all": {
-      "title": "All activities in this space",
-      "showArchived": "Show archived",
-      "none": "No activities in this space.",
-      "archivedTag": "(archived)"
+      "title": "Todas as atividades neste space",
+      "showArchived": "Mostrar arquivados",
+      "none": "Nenhuma atividade neste space.",
+      "archivedTag": "(arquivado)"
     },
     "status": {
-      "notStarted": "Not started",
-      "draft": "Draft",
-      "submitted": "Submitted",
-      "needsWork": "Needs work",
-      "reviewed": "Reviewed"
+      "notStarted": "Não iniciado",
+      "draft": "Rascunho",
+      "submitted": "Enviado",
+      "needsWork": "Precisa melhorar",
+      "reviewed": "Revisado"
     },
     "badges": {
       "auto": "Auto: {value}",
-      "aiFeedback": "AI feedback",
-      "parentReview": "Parent review",
-      "parentReviewWithStars": "Parent review • {stars}★"
+      "aiFeedback": "Feedback com IA",
+      "parentReview": "Avaliação dos pais",
+      "parentReviewWithStars": "Avaliação dos pais • {stars}★"
     }
   }
 }

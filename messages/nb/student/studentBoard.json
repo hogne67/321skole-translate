@@ -1,77 +1,77 @@
 {
   "studentBoard": {
-    "title": "Board",
-    "subtitle": "This is the live classroom board.",
-    "loading": "Loading…",
-    "inactive": "No live session right now.",
-    "sent": "Sent.",
-    "fallbackStudentName": "Student",
-    "fallbackQuestionTitle": "Today's question",
+    "title": "Tavle",
+    "subtitle": "Dette er den digitale klasseromstavlen.",
+    "loading": "Laster…",
+    "inactive": "Ingen aktiv økt akkurat nå.",
+    "sent": "Sendt.",
+    "fallbackStudentName": "Elev",
+    "fallbackQuestionTitle": "Dagens spørsmål",
     "errors": {
-      "fetchBoardFailed": "Could not load board."
+      "fetchBoardFailed": "Kunne ikke laste tavlen."
     },
     "status": {
       "live": "LIVE",
-      "notLive": "Not live",
-      "session": "session",
-      "mode": "mode"
+      "notLive": "Ikke live",
+      "session": "økt",
+      "mode": "modus"
     },
     "tabs": {
-      "question": "Today's question",
-      "notes": "Notes",
-      "poll": "Poll",
-      "wordwall": "Wordwall"
+      "question": "Dagens spørsmål",
+      "notes": "Notater",
+      "poll": "Avstemning",
+      "wordwall": "Ordsamling"
     },
     "groupName": {
-      "label": "Name / group",
-      "placeholder": "Write your name or group name"
+      "label": "Navn / gruppe",
+      "placeholder": "Skriv navnet ditt eller gruppenavn"
     },
     "answer": {
-      "label": "Your answer",
-      "placeholder": "Write briefly…",
-      "send": "Send to board"
+      "label": "Ditt svar",
+      "placeholder": "Skriv kort…",
+      "send": "Send til tavlen"
     },
     "poll": {
-      "fallbackQuestion": "What do you think?",
-      "noOptions": "No answer options yet.",
-      "send": "Send vote",
-      "sent": "Thank you! Your vote has been sent.",
-      "anonymousHint": "Your vote is anonymous (we do not store name/uid)."
+      "fallbackQuestion": "Hva mener du?",
+      "noOptions": "Ingen svaralternativer ennå.",
+      "send": "Send stemme",
+      "sent": "Takk! Stemmen din er sendt.",
+      "anonymousHint": "Stemmen din er anonym (vi lagrer ikke navn/uid)."
     },
     "wordwall": {
-      "fallbackPrompt": "Write one word.",
-      "label": "Your word",
-      "placeholder": "Write one word or a short phrase",
-      "previewTitle": "Preview",
-      "previewFallback": "Your word appears here…",
-      "send": "Send word",
-      "sent": "Thank you! Your word has been sent.",
-      "anonymousHint": "Wordwall is anonymous. We only store the word, not name or uid."
+      "fallbackPrompt": "Skriv ett ord.",
+      "label": "Ditt ord",
+      "placeholder": "Skriv ett ord eller en kort frase",
+      "previewTitle": "Forhåndsvisning",
+      "previewFallback": "Ordet ditt vises her…",
+      "send": "Send ord",
+      "sent": "Takk! Ordet ditt er sendt.",
+      "anonymousHint": "Ordsamlingen er anonym. Vi lagrer kun ordet, ikke navn eller uid."
     },
     "sticky": {
-      "colorLabel": "Sticky note color",
-      "previewTitle": "Preview",
-      "previewTag": "sticky",
-      "previewFallback": "Write an answer to preview the note…",
-      "previewHint": "This is how the note appears on the teacher's board.",
+      "colorLabel": "Farge på lapp",
+      "previewTitle": "Forhåndsvisning",
+      "previewTag": "lapp",
+      "previewFallback": "Skriv et svar for å se forhåndsvisning…",
+      "previewHint": "Slik vil lappen vises på lærerens tavle.",
       "colors": {
-        "amber": "Yellow",
-        "emerald": "Green",
-        "sky": "Blue",
-        "rose": "Pink",
-        "violet": "Purple"
+        "amber": "Gul",
+        "emerald": "Grønn",
+        "sky": "Blå",
+        "rose": "Rosa",
+        "violet": "Lilla"
       }
     },
     "notes": {
-      "title": "Notes (local)",
-      "clear": "Clear",
-      "clearTitle": "Eraser / clear",
-      "placeholder": "Write notes here… (saved only on this device)",
-      "localOnly": "Only for you – no one else can see this."
+      "title": "Notater (lokalt)",
+      "clear": "Tøm",
+      "clearTitle": "Viskelær / tøm",
+      "placeholder": "Skriv notater her… (lagres kun på denne enheten)",
+      "localOnly": "Kun for deg – ingen andre kan se dette."
     },
     "timer": {
-      "title": "Timer",
-      "countingDown": "Counting down…"
+      "title": "Tidtaker",
+      "countingDown": "Teller ned…"
     }
   }
 }

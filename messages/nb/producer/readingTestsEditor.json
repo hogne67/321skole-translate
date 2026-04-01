@@ -1,15 +1,119 @@
 {
-  "producer": {
-    "readingTestsEditor": {
-      "page": {
-        "title": "Reading test editor"
-      },
-      "actions": {
-        "save": "Save"
-      },
-      "errors": {
-        "notFound": "Reading test not found."
-      }
+  "readingTestsEditor": {
+    "loading": "Laster leseprøve…",
+    "page": {
+      "title": "Redigering av leseprøve",
+      "statusLabel": "Tilpasset redigering for leseprøver. Status:"
+    },
+    "fields": {
+      "title": "Tittel",
+      "cefrLevel": "CEFR-nivå",
+      "language": "Språk",
+      "searchLanguage": "Søk etter språk",
+      "audience": "Målgruppe",
+      "topic": "Tema",
+      "minimumWords": "Minimum ord",
+      "maximumWords": "Maksimum ord",
+      "feedbackMode": "Tilbakemeldingsmodus",
+      "feedbackModeHelp": "Dette er konfigurasjon for generert veiledning og ønsket visningsmodus. Det endrer foreløpig ikke lærerflyten fullt ut alene."
+    },
+    "audience": {
+      "children": "Barn",
+      "teenagers": "Ungdom",
+      "adultLearners": "Voksne deltakere",
+      "learners": "Deltakere"
+    },
+    "flow": {
+      "title": "Leseflyt og timing",
+      "description": "Disse innstillingene lagres i leseprøvekonfigurasjonen. De beskriver hvordan elevflyten skal fungere, men noen deler av den faktiske elevvisningen må fortsatt kobles opp på elevsiden.",
+      "showQuestionsAfterReading": "Vis spørsmål etter lesing",
+      "showQuestionsAfterReadingHelp": "Eleven leser først og får deretter oppgavene."
+    },
+    "timer": {
+      "noTimer": "Ingen tidtaker",
+      "enable": "Aktiver tidtaker",
+      "quickPresets": "Hurtigvalg",
+      "minutes": "Minutter",
+      "extraSeconds": "Ekstra sekunder",
+      "minutesOnly": "{minutes} min",
+      "minutesAndSeconds": "{minutes} min {seconds} sek"
+    },
+    "feedbackMode": {
+      "learner": "Kun deltaker",
+      "adult": "Kun lærer / forelder",
+      "both": "Begge"
+    },
+    "taskTypes": {
+      "enabledTitle": "Aktiverte oppgavetyper",
+      "enabledDescription": "Dette er oppgavetypene denne leseprøven er ment å bruke. Elevsiden kan senere bestemme hvordan hver type skal vises.",
+      "word_choice": "Ordhull",
+      "sentence_placement": "Plassering av setninger",
+      "best_summary": "Beste sammendrag",
+      "mcq": "Flervalg",
+      "true_false": "Sant / usant",
+      "fill_in_word": "Fyll inn ord",
+      "short_answer": "Kort svar",
+      "open": "Åpen"
+    },
+    "text": {
+      "title": "Lesetekst",
+      "wordCount": "Antall ord: {count}"
+    },
+    "tasks": {
+      "title": "Oppgaver",
+      "id": "ID: {id}",
+      "prompt": "Oppgavetekst",
+      "sentence": "Setning",
+      "sentenceWithBlank": "Setning med tomrom",
+      "textWithGap": "Tekst med tomrom",
+      "options": "Alternativer",
+      "correctAnswer": "Riktig svar",
+      "shortAnswerHelp": "Kort skriftlig svar fra eleven.",
+      "openHelp": "Åpen oppgave / svarfelt."
+    },
+    "actions": {
+      "save": "Lagre",
+      "saving": "Lagrer...",
+      "newReadingTest": "Ny leseprøve",
+      "addFillInWord": "Legg til fyll inn ord",
+      "addMcq": "Legg til flervalg",
+      "addTrueFalse": "Legg til sant/usant",
+      "addShortAnswer": "Legg til kort svar",
+      "addOpen": "Legg til åpen oppgave",
+      "delete": "Slett"
+    },
+    "messages": {
+      "saved": "Lagret.",
+      "noTasks": "Ingen oppgaver ennå."
+    },
+    "common": {
+      "true": "Sant",
+      "false": "Usant"
+    },
+    "defaults": {
+      "title": "Leseprøve",
+      "fillInWordPrompt": "Velg riktig ord til tomrommet.",
+      "fillInWordSentence": "Barna så en svart _____ som sa mjau.",
+      "fillInWordOption1": "katt",
+      "fillInWordOption2": "hest",
+      "fillInWordOption3": "hund",
+      "newMcqPrompt": "Nytt flervalgsspørsmål",
+      "trueFalsePrompt": "Skriv sant eller usant.",
+      "shortAnswerPrompt": "Skriv et kort svar.",
+      "openPrompt": "Nytt åpent spørsmål",
+      "option1": "Alternativ 1",
+      "option2": "Alternativ 2",
+      "option3": "Alternativ 3"
+    },
+    "errors": {
+      "missingLessonId": "Mangler lesson-id.",
+      "notSignedIn": "Ikke logget inn.",
+      "notFound": "Leseprøve ikke funnet.",
+      "noAccess": "Du har ikke tilgang til denne leseprøven.",
+      "notReadingTest": "Denne oppgaven er ikke en leseprøve.",
+      "titleRequired": "Tittel er påkrevd.",
+      "sourceTextEmpty": "Leseteksten er tom.",
+      "timerTooShort": "Tidtakeren må være minst 10 sekunder."
     }
   }
 }

@@ -1,55 +1,55 @@
 {
   "lessonPrint": {
-    "pageTitle": "Worksheet – print",
+    "pageTitle": "Folha de exercícios – impressão",
     "states": {
-      "loading": "Loading worksheet..."
+      "loading": "Carregando folha de exercícios..."
     },
     "nav": {
-      "backToEditor": "Back"
+      "backToEditor": "Voltar"
     },
     "actions": {
-      "print": "Print / save as PDF",
-      "teacherVersion": "Teacher version",
-      "studentVersion": "Student version"
+      "print": "Imprimir / salvar como PDF",
+      "teacherVersion": "Versão do professor",
+      "studentVersion": "Versão do aluno"
     },
     "tips": {
-      "saveAsPdf": "Use your browser print dialog and choose Save as PDF."
+      "saveAsPdf": "Use a janela de impressão do navegador e escolha Salvar como PDF."
     },
     "labels": {
-      "kicker": "worksheet",
-      "producer": "Producer",
-      "level": "Level",
-      "bannerAlt": "Worksheet banner image"
+      "kicker": "folha de exercícios",
+      "producer": "Produtor",
+      "level": "Nível",
+      "bannerAlt": "Imagem do cabeçalho da folha"
     },
     "identity": {
-      "name": "Name",
-      "date": "Date",
-      "class": "Class"
+      "name": "Nome",
+      "date": "Data",
+      "class": "Turma"
     },
     "sections": {
-      "readingText": "Reading text",
-      "tasks": "Tasks"
+      "readingText": "Texto de leitura",
+      "tasks": "Atividades"
     },
     "answers": {
-      "true": "True",
-      "false": "False"
+      "true": "Verdadeiro",
+      "false": "Falso"
     },
     "teacher": {
-      "answerKey": "Answer key",
-      "suggestionNote": "Suggested answer",
+      "answerKey": "Gabarito",
+      "suggestionNote": "Resposta sugerida",
       "dash": "—"
     },
     "defaults": {
-      "worksheetTitle": "Worksheet"
+      "worksheetTitle": "Folha de exercícios"
     },
-    "tasksEmpty": "No tasks found.",
+    "tasksEmpty": "Nenhuma atividade encontrada.",
     "errors": {
-      "title": "Error",
-      "unknown": "Something went wrong.",
-      "noAuthUid": "You do not have access to this worksheet.",
-      "notFound": "Worksheet not found.",
-      "noAccessOwnerMismatch": "You do not have access to this worksheet.",
-      "loadFailed": "Could not load worksheet."
+      "title": "Erro",
+      "unknown": "Algo deu errado.",
+      "noAuthUid": "Você não tem acesso a esta folha de exercícios.",
+      "notFound": "Folha de exercícios não encontrada.",
+      "noAccessOwnerMismatch": "Você não tem acesso a esta folha de exercícios.",
+      "loadFailed": "Não foi possível carregar a folha de exercícios."
     }
   }
 }

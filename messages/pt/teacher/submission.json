@@ -1,96 +1,96 @@
 {
   "submission": {
-    "title": "Submission",
+    "title": "Entrega",
     "actions": {
-      "back": "← Back"
+      "back": "← Voltar"
     },
     "errors": {
-      "missingParams": "Missing spaceId/assignmentId/subId in URL."
+      "missingParams": "Faltando spaceId/assignmentId/subId na URL."
     },
     "missing": {
-      "title": "Submission not found"
+      "title": "Entrega não encontrada"
     },
     "meta": {
-      "summaryTitle": "Summary",
-      "deliveryTitle": "Delivery details",
+      "summaryTitle": "Resumo",
+      "deliveryTitle": "Detalhes da entrega",
       "statusLabel": "Status",
-      "autoScoreTitle": "Auto score",
-      "studentLabel": "Student:",
-      "delivered": "Submitted:",
-      "deliveredUnknown": "Submitted: (unknown)",
-      "guest": "Guest (not logged in)",
-      "loggedIn": "Logged in"
+      "autoScoreTitle": "Avaliação automática",
+      "studentLabel": "Aluno:",
+      "delivered": "Enviado:",
+      "deliveredUnknown": "Enviado: (desconhecido)",
+      "guest": "Visitante (não conectado)",
+      "loggedIn": "Conectado"
     },
     "status": {
-      "submitted": "Submitted",
-      "approved": "Approved",
-      "needsWork": "Needs work",
-      "draft": "Draft"
+      "submitted": "Enviado",
+      "approved": "Aprovado",
+      "needsWork": "Precisa melhorar",
+      "draft": "Rascunho"
     },
     "auto": {
-      "main": "AUTO RESULT: {correct}/{total}{pctText}",
-      "details": "Correct: {correct} · Wrong: {wrong} · Unanswered: {unanswered}",
-      "taskCorrect": "Auto correction: ✅ correct",
-      "taskWrong": "Auto correction: ❌ wrong",
-      "taskUnanswered": "Auto: ⏳ unanswered"
+      "main": "RESULTADO AUTOMÁTICO: {correct}/{total}{pctText}",
+      "details": "Corretas: {correct} · Erradas: {wrong} · Não respondidas: {unanswered}",
+      "taskCorrect": "Correção automática: ✅ correta",
+      "taskWrong": "Correção automática: ❌ errada",
+      "taskUnanswered": "Auto: ⏳ não respondida"
     },
     "notice": {
-      "needAttestationHtml": "To give feedback, you need <b>attestation</b> and must be in <b>teacher</b> or <b>creator</b> mode."
+      "needAttestationHtml": "Para dar feedback, você precisa de <b>validação</b> e deve estar no modo <b>professor</b> ou <b>criador</b>."
     },
     "draft": {
-      "notice": "This submission is still a draft."
+      "notice": "Esta entrega ainda é um rascunho."
     },
     "studentView": {
-      "title": "Answers (as the student sees them)",
-      "loadingLesson": "Fetching lesson…",
-      "level": "Level: {v}",
-      "imageAlt": "Lesson",
-      "noImageTitle": "No image",
-      "noImageDesc": "This lesson has no cover image.",
-      "textTitle": "Text",
-      "tasksTitle": "Tasks",
-      "noTasks": "No tasks in this lesson (or the lesson could not be found).",
-      "noTasksHint": "This usually means assignment.sourceId is missing or lesson.tasks is empty.",
-      "taskN": "Task {n}",
-      "correctTag": "✓ correct",
-      "selectedTag": "Selected",
-      "true": "True",
-      "false": "False",
-      "notAnswered": "(not answered)"
+      "title": "Respostas (como o aluno vê)",
+      "loadingLesson": "Buscando atividade…",
+      "level": "Nível: {v}",
+      "imageAlt": "Atividade",
+      "noImageTitle": "Sem imagem",
+      "noImageDesc": "Esta atividade não tem imagem de capa.",
+      "textTitle": "Texto",
+      "tasksTitle": "Atividades",
+      "noTasks": "Nenhuma atividade nesta lição (ou a lição não foi encontrada).",
+      "noTasksHint": "Isso geralmente significa que assignment.sourceId está ausente ou lesson.tasks está vazio.",
+      "taskN": "Atividade {n}",
+      "correctTag": "✓ correta",
+      "selectedTag": "Selecionado",
+      "true": "Verdadeiro",
+      "false": "Falso",
+      "notAnswered": "(não respondida)"
     },
     "feedback": {
       "title": "Feedback",
       "statusLabel": "Status",
-      "placeholder": "Write a short feedback…",
-      "needTextToChangeStatus": "To change status, you must write a short comment.",
-      "saveButton": "Save feedback",
-      "saving": "Saving…",
-      "saved": "Saved ✅",
-      "saveFailed": "Could not save: {msg}",
-      "rulesHint": "(Rules: only teacher/owner/admin can change)"
+      "placeholder": "Escreva um feedback curto…",
+      "needTextToChangeStatus": "Para mudar o status, você deve escrever um comentário curto.",
+      "saveButton": "Salvar feedback",
+      "saving": "Salvando…",
+      "saved": "Salvo ✅",
+      "saveFailed": "Não foi possível salvar: {msg}",
+      "rulesHint": "(Regras: apenas professor/dono/admin pode alterar)"
     },
     "ai": {
-      "title": "AI feedback",
-      "generateButton": "Generate AI feedback",
-      "generating": "Generating…",
-      "copyButton": "Copy",
-      "insertButton": "Insert into teacher feedback",
-      "placeholder": "AI feedback is shown here…",
-      "generated": "AI feedback generated.",
-      "saved": "AI feedback saved.",
-      "generateFailed": "Could not generate AI feedback: {msg}",
-      "saveFailed": "Could not save AI feedback: {msg}",
-      "copied": "Copied!",
-      "copyFailed": "Could not copy.",
-      "inserted": "Inserted into teacher feedback.",
-      "rulesHint": "Saved in",
-      "saveButton": "Save",
-      "saving": "Saving…"
+      "title": "Feedback com IA",
+      "generateButton": "Gerar feedback com IA",
+      "generating": "Gerando…",
+      "copyButton": "Copiar",
+      "insertButton": "Inserir no feedback do professor",
+      "placeholder": "O feedback da IA aparecerá aqui…",
+      "generated": "Feedback da IA gerado.",
+      "saved": "Feedback da IA salvo.",
+      "generateFailed": "Não foi possível gerar o feedback da IA: {msg}",
+      "saveFailed": "Não foi possível salvar o feedback da IA: {msg}",
+      "copied": "Copiado!",
+      "copyFailed": "Não foi possível copiar.",
+      "inserted": "Inserido no feedback do professor.",
+      "rulesHint": "Salvo em",
+      "saveButton": "Salvar",
+      "saving": "Salvando…"
     },
     "fallback": {
-      "guest": "Guest",
-      "task": "Task",
-      "unknownError": "unknown error"
+      "guest": "Visitante",
+      "task": "Atividade",
+      "unknownError": "erro desconhecido"
     }
   }
 }
