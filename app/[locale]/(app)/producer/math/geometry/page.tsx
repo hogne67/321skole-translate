@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -11,9 +11,8 @@ import {
   type FeatureStatus,
 } from "@/lib/featureGuard";
 import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
-import mathGeometryMessages from "@/messages/en/math/mathGeometry.json";
 
-type WorksheetLanguage = "no" | "en" | "pt";
+type WorksheetLanguage = "nb" | "en" | "pt";
 type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
 type Difficulty = "easy" | "medium" | "hard";
 type GeometryLevel = "grade_3_4" | "grade_5_7" | "grade_8_10";
@@ -25,7 +24,9 @@ type FigureKind =
   | "parallelogram"
   | "rhombus"
   | "trapezoid"
-  | "triangle"
+  | "triangle_right"
+  | "triangle_isosceles"
+  | "triangle_equilateral"
   | "circle";
 
 type FigureSpec = {
@@ -83,21 +84,22 @@ const ALL_FIGURES: FigureKind[] = [
   "parallelogram",
   "rhombus",
   "trapezoid",
-  "triangle",
+  "triangle_right",
+  "triangle_isosceles",
+  "triangle_equilateral",
   "circle",
 ];
 
-const strings = mathGeometryMessages.mathGeometry;
-type MathGeometryStrings = typeof strings;
+type TFn = (key: string) => string;
 
-function fallbackWorksheet(language: WorksheetLanguage): MathWorksheet {
+function fallbackWorksheet(language: WorksheetLanguage, t: TFn): MathWorksheet {
   return {
-    title: strings.fallback.title,
+    title: t("fallback.title"),
     language,
     level: "grade_5_7",
     topic: "all",
     difficulty: "easy",
-    instructions: strings.fallback.instructions,
+    instructions: t("fallback.instructions"),
     showAnswerKey: false,
     showFormulas: false,
     selectedShapes: ALL_FIGURES,
@@ -164,30 +166,11 @@ function answerSpaceClass(answerSpace: AnswerSpace): string {
   return "min-h-[72px]";
 }
 
-function getMeasurementLabel(
-  key:
-    | "length"
-    | "width"
-    | "side"
-    | "base"
-    | "height"
-    | "topBase"
-    | "leftSide"
-    | "rightSide"
-    | "radius"
-    | "sides"
-): string {
-  return strings.measurementLabels[key];
-}
-
-function getShapeLabel(kind: FigureKind) {
-  if (kind === "square") return strings.square;
-  if (kind === "rectangle") return strings.rectangle;
-  if (kind === "parallelogram") return strings.parallelogram;
-  if (kind === "rhombus") return strings.rhombus;
-  if (kind === "trapezoid") return strings.trapezoid;
-  if (kind === "triangle") return strings.triangle;
-  return strings.circle;
+function getShapeLabel(t: TFn, kind: FigureKind) {
+  if (kind === "triangle_right") return t("triangleRight");
+  if (kind === "triangle_isosceles") return t("triangleIsosceles");
+  if (kind === "triangle_equilateral") return t("triangleEquilateral");
+  return t(kind);
 }
 
 function GeometryFigure({
@@ -199,7 +182,6 @@ function GeometryFigure({
 
   const labelClass = "text-[11px] fill-slate-700";
   const dashedLineClass = "stroke-slate-400";
-  const heightText = getMeasurementLabel("height");
 
   if (figure.kind === "rectangle") {
     const width = figure.widthCm ?? 8;
@@ -221,7 +203,7 @@ function GeometryFigure({
         <text x="120" y="20" textAnchor="middle" className={labelClass}>
           {width} cm
         </text>
-        <text x="216" y="76" textAnchor="middle" className={labelClass}>
+        <text x="222" y="76" textAnchor="middle" className={labelClass}>
           {height} cm
         </text>
       </svg>
@@ -247,7 +229,7 @@ function GeometryFigure({
         <text x="85" y="20" textAnchor="middle" className={labelClass}>
           {side} cm
         </text>
-        <text x="145" y="78" textAnchor="middle" className={labelClass}>
+        <text x="155" y="78" textAnchor="middle" className={labelClass}>
           {side} cm
         </text>
       </svg>
@@ -255,14 +237,14 @@ function GeometryFigure({
   }
 
   if (figure.kind === "parallelogram") {
-    const base = figure.baseCm ?? 8;
+    const base = figure.baseCm ?? 10;
     const side = figure.sideCm ?? 5;
     const height = figure.heightCm ?? 4;
 
     return (
-      <svg viewBox="0 0 240 160" className="h-36 w-full max-w-[260px]">
+      <svg viewBox="0 0 260 160" className="h-36 w-full max-w-[280px]">
         <polygon
-          points="55,118 95,36 195,36 155,118"
+          points="55,120 95,40 215,40 175,120"
           fill="white"
           stroke="currentColor"
           strokeWidth="2"
@@ -270,24 +252,21 @@ function GeometryFigure({
         />
         <line
           x1="95"
-          y1="36"
+          y1="40"
           x2="95"
-          y2="118"
+          y2="120"
           strokeDasharray="5 5"
           strokeWidth="2"
           className={dashedLineClass}
         />
-        <text x="125" y="28" textAnchor="middle" className={labelClass}>
+        <text x="125" y="136" textAnchor="middle" className={labelClass}>
           {base} cm
         </text>
-        <text x="48" y="80" textAnchor="middle" className={labelClass}>
+        <text x="42" y="86" textAnchor="middle" className={labelClass}>
           {side} cm
         </text>
-        <text x="82" y="80" textAnchor="end" className={labelClass}>
+        <text x="125" y="86" textAnchor="end" className={labelClass}>
           {height} cm
-        </text>
-        <text x="82" y="94" textAnchor="end" className={labelClass}>
-          {heightText}
         </text>
       </svg>
     );
@@ -298,40 +277,31 @@ function GeometryFigure({
     const height = figure.heightCm ?? 4;
 
     return (
-      <svg viewBox="0 0 240 180" className="h-36 w-full max-w-[260px]">
+      <svg viewBox="0 0 260 170" className="h-36 w-full max-w-[280px]">
         <polygon
-          points="120,30 185,80 120,130 55,80"
+          points="70,120 110,50 190,50 150,120"
           fill="white"
           stroke="currentColor"
           strokeWidth="2"
           className="text-slate-700"
         />
         <line
-          x1="55"
-          y1="80"
-          x2="185"
-          y2="80"
-          strokeDasharray="4 4"
-          strokeWidth="1.5"
-          className="stroke-slate-300"
-        />
-        <line
-          x1="120"
-          y1="30"
-          x2="120"
-          y2="80"
+          x1="110"
+          y1="50"
+          x2="110"
+          y2="120"
           strokeDasharray="5 5"
           strokeWidth="2"
           className={dashedLineClass}
         />
-        <text x="198" y="84" textAnchor="start" className={labelClass}>
+        <text x="130" y="42" textAnchor="middle" className={labelClass}>
           {side} cm
         </text>
-        <text x="108" y="58" textAnchor="end" className={labelClass}>
-          {height} cm
+        <text x="58" y="88" textAnchor="middle" className={labelClass}>
+          {side} cm
         </text>
-        <text x="108" y="72" textAnchor="end" className={labelClass}>
-          {heightText}
+        <text x="143" y="86" textAnchor="end" className={labelClass}>
+          {height} cm
         </text>
       </svg>
     );
@@ -368,57 +338,128 @@ function GeometryFigure({
         <text x="125" y="143" textAnchor="middle" className={labelClass}>
           {base} cm
         </text>
-        <text x="34" y="82" textAnchor="middle" className={labelClass}>
+        <text x="28" y="86" textAnchor="middle" className={labelClass}>
           {sideLeft} cm
         </text>
-        <text x="216" y="82" textAnchor="middle" className={labelClass}>
+        <text x="222" y="86" textAnchor="middle" className={labelClass}>
           {sideRight} cm
         </text>
-        <text x="68" y="82" textAnchor="end" className={labelClass}>
+        <text x="120" y="105" textAnchor="end" className={labelClass}>
           {height} cm
-        </text>
-        <text x="68" y="96" textAnchor="end" className={labelClass}>
-          {heightText}
         </text>
       </svg>
     );
   }
 
-  if (figure.kind === "triangle") {
-    const a = figure.sideAcm ?? 3;
-    const b = figure.sideBcm ?? 4;
-    const c = figure.sideCcm ?? 5;
-    const h = figure.heightCm ?? 4;
+  if (figure.kind === "triangle_right") {
+    const base = figure.baseCm ?? 6;
+    const leftSide = figure.sideBcm ?? 8;
+    const hyp = figure.sideCcm ?? 10;
 
     return (
       <svg viewBox="0 0 240 170" className="h-36 w-full max-w-[250px]">
         <polygon
-          points="55,130 55,40 175,130"
+          points="45,130 45,50 165,130"
           fill="white"
           stroke="currentColor"
           strokeWidth="2"
           className="text-slate-700"
         />
         <line
-          x1="55"
-          y1="40"
-          x2="55"
+          x1="45"
+          y1="50"
+          x2="45"
           y2="130"
           strokeDasharray="5 5"
           strokeWidth="2"
           className={dashedLineClass}
         />
-        <text x="112" y="146" textAnchor="middle" className={labelClass}>
-          {a} cm
+        <text x="100" y="146" textAnchor="middle" className={labelClass}>
+          {base} cm
         </text>
-        <text x="38" y="88" textAnchor="middle" className={labelClass}>
-          {b} cm
+        <text x="20" y="94" textAnchor="middle" className={labelClass}>
+          {leftSide} cm
         </text>
-        <text x="122" y="76" textAnchor="middle" className={labelClass}>
-          {c} cm
+        <text x="122" y="86" textAnchor="middle" className={labelClass}>
+          {hyp} cm
         </text>
-        <text x="42" y="90" textAnchor="end" className={labelClass}>
-          {h} cm
+      </svg>
+    );
+  }
+
+  if (figure.kind === "triangle_isosceles") {
+    const base = figure.baseCm ?? 8;
+    const leftSide = figure.sideBcm ?? 5;
+    const rightSide = figure.sideCcm ?? 5;
+    const height = figure.heightCm ?? 4;
+
+    return (
+      <svg viewBox="0 0 240 170" className="h-36 w-full max-w-[250px]">
+        <polygon
+          points="45,130 105,40 165,130"
+          fill="white"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-slate-700"
+        />
+        <line
+          x1="105"
+          y1="40"
+          x2="105"
+          y2="130"
+          strokeDasharray="5 5"
+          strokeWidth="2"
+          className={dashedLineClass}
+        />
+        <text x="105" y="146" textAnchor="middle" className={labelClass}>
+          {base} cm
+        </text>
+        <text x="50" y="88" textAnchor="middle" className={labelClass}>
+          {leftSide} cm
+        </text>
+        <text x="160" y="88" textAnchor="middle" className={labelClass}>
+          {rightSide} cm
+        </text>
+        <text x="135" y="110" textAnchor="end" className={labelClass}>
+          {height} cm
+        </text>
+      </svg>
+    );
+  }
+
+  if (figure.kind === "triangle_equilateral") {
+    const side = figure.sideCm ?? figure.sideAcm ?? 6;
+    const height = figure.heightCm ?? 5.2;
+
+    return (
+      <svg viewBox="0 0 240 170" className="h-36 w-full max-w-[250px]">
+        <polygon
+          points="45,130 105,40 165,130"
+          fill="white"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-slate-700"
+        />
+        <line
+          x1="105"
+          y1="40"
+          x2="105"
+          y2="130"
+          strokeDasharray="5 5"
+          strokeWidth="2"
+          className={dashedLineClass}
+        />
+        <text x="105" y="146" textAnchor="middle" className={labelClass}>
+          {side} cm
+        </text>
+        <text x="50" y="88" textAnchor="middle" className={labelClass}>
+          {side} cm
+        </text>
+        <text x="160" y="88" textAnchor="middle" className={labelClass}>
+          {side} cm
+        </text>
+        <text x="144" y="115" textAnchor="end" className={labelClass}>
+          {height} cm
         </text>
       </svg>
     );
@@ -453,106 +494,20 @@ function GeometryFigure({
   );
 }
 
-function FigureMeta({
-  figure,
-}: {
-  figure?: FigureSpec;
-}) {
-  if (!figure) return null;
-
-  if (figure.kind === "rectangle" && figure.widthCm && figure.heightCm) {
-    return (
-      <p className="text-sm text-slate-600">
-        {getMeasurementLabel("length")}: {figure.widthCm} cm, {getMeasurementLabel("width")}:{" "}
-        {figure.heightCm} cm
-      </p>
-    );
-  }
-
-  if (figure.kind === "square" && figure.sideCm) {
-    return (
-      <p className="text-sm text-slate-600">
-        {getMeasurementLabel("side")}: {figure.sideCm} cm
-      </p>
-    );
-  }
-
-  if (figure.kind === "parallelogram" && figure.baseCm && figure.sideCm && figure.heightCm) {
-    return (
-      <p className="text-sm text-slate-600">
-        {getMeasurementLabel("base")}: {figure.baseCm} cm, {getMeasurementLabel("side")}:{" "}
-        {figure.sideCm} cm, {getMeasurementLabel("height")}: {figure.heightCm} cm
-      </p>
-    );
-  }
-
-  if (figure.kind === "rhombus" && figure.sideCm && figure.heightCm) {
-    return (
-      <p className="text-sm text-slate-600">
-        {getMeasurementLabel("side")}: {figure.sideCm} cm, {getMeasurementLabel("height")}:{" "}
-        {figure.heightCm} cm
-      </p>
-    );
-  }
-
-  if (
-    figure.kind === "trapezoid" &&
-    figure.baseCm &&
-    figure.topCm &&
-    figure.heightCm &&
-    figure.sideLeftCm &&
-    figure.sideRightCm
-  ) {
-    return (
-      <p className="text-sm text-slate-600">
-        {getMeasurementLabel("base")}: {figure.baseCm} cm, {getMeasurementLabel("topBase")}:{" "}
-        {figure.topCm} cm, {getMeasurementLabel("height")}: {figure.heightCm} cm,{" "}
-        {getMeasurementLabel("leftSide")}: {figure.sideLeftCm} cm,{" "}
-        {getMeasurementLabel("rightSide")}: {figure.sideRightCm} cm
-      </p>
-    );
-  }
-
-  if (
-    figure.kind === "triangle" &&
-    figure.sideAcm &&
-    figure.sideBcm &&
-    figure.sideCcm &&
-    figure.heightCm
-  ) {
-    return (
-      <p className="text-sm text-slate-600">
-        {getMeasurementLabel("sides")}: {figure.sideAcm} cm, {figure.sideBcm} cm,{" "}
-        {figure.sideCcm} cm, {getMeasurementLabel("height")}: {figure.heightCm} cm
-      </p>
-    );
-  }
-
-  if (figure.kind === "circle" && figure.radiusCm) {
-    return (
-      <p className="text-sm text-slate-600">
-        {getMeasurementLabel("radius")}: {figure.radiusCm} cm
-      </p>
-    );
-  }
-
-  return null;
-}
-
-function getStatusMessage(status: FeatureStatus | null, ui: MathGeometryStrings): string {
+function getStatusMessage(status: FeatureStatus | null, t: TFn): string {
   if (!status?.reason) return "";
 
-  if (status.reason === "teacher_only") return ui.teacherOnly;
-  if (status.reason === "upgrade_required") return ui.upgradeRequired;
-  if (status.reason === "limit_reached") return ui.limitReached;
-  return ui.failed;
+  if (status.reason === "teacher_only") return t("teacherOnly");
+  if (status.reason === "upgrade_required") return t("upgradeRequired");
+  if (status.reason === "limit_reached") return t("limitReached");
+  return t("failed");
 }
 
-function formatAnswerKeyAnswer(task: MathWorksheetTask) {
+function formatAnswerKeyAnswer(task: MathWorksheetTask, t: TFn) {
   if (task.type === "all_in_one") return task.answer;
 
   if (task.type === "shape_name") {
-    return `${strings.shapeNameLabel}: ${task.answer}`;
+    return `${t("shapeNameLabel")}: ${task.answer}`;
   }
 
   return task.answer;
@@ -594,8 +549,10 @@ function ToggleChip({
 
 export default function ProducerMathGeometryPage() {
   const locale = useLocale();
+  const t = useTranslations("mathGeometry");
+
   const initialLanguage: WorksheetLanguage =
-    locale === "no" || locale === "en" || locale === "pt" ? locale : "en";
+    locale === "nb" || locale === "en" || locale === "pt" ? locale : "en";
 
   const { profile } = useUserProfile();
 
@@ -610,7 +567,7 @@ export default function ProducerMathGeometryPage() {
   const [answerSpace, setAnswerSpace] = useState<AnswerSpace>("medium");
   const [selectedShapes, setSelectedShapes] = useState<FigureKind[]>(ALL_FIGURES);
   const [worksheet, setWorksheet] = useState<MathWorksheet>(() =>
-    fallbackWorksheet(initialLanguage)
+    fallbackWorksheet(initialLanguage, t)
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
@@ -718,17 +675,17 @@ export default function ProducerMathGeometryPage() {
 
   async function handleGenerate() {
     if (!uid) {
-      setError(strings.upgradeRequired);
+      setError(t("upgradeRequired"));
       return;
     }
 
     if (featureBlocked) {
-      setError(getStatusMessage(featureStatus, strings));
+      setError(getStatusMessage(featureStatus, t));
       return;
     }
 
     if (selectedShapes.length === 0) {
-      setError(strings.selectAtLeastOneShape);
+      setError(t("selectAtLeastOneShape"));
       return;
     }
 
@@ -766,16 +723,16 @@ export default function ProducerMathGeometryPage() {
         const message =
           "error" in data && typeof data.error === "string"
             ? data.error
-            : strings.failed;
+            : t("failed");
         setError(message);
         return;
       }
 
       setWorksheet(data.worksheet);
-      setUsageInfo(strings.successGenerated);
+      setUsageInfo(t("successGenerated"));
       await refreshFeatureStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : strings.failed);
+      setError(err instanceof Error ? err.message : t("failed"));
     } finally {
       setLoading(false);
     }
@@ -807,13 +764,13 @@ export default function ProducerMathGeometryPage() {
       const data = (await response.json()) as { ok?: boolean; error?: string };
 
       if (!response.ok || !data.ok) {
-        setError(data.error || strings.saveFailed);
+        setError(data.error || t("saveFailed"));
         return;
       }
 
-      setUsageInfo(strings.savedToMyContent);
+      setUsageInfo(t("savedToMyContent"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : strings.saveFailed);
+      setError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -852,10 +809,10 @@ export default function ProducerMathGeometryPage() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
         <div className="mb-6 print:hidden">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            {strings.pageTitle}
+            {t("pageTitle")}
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
-            {strings.pageSubtitle}
+            {t("pageSubtitle")}
           </p>
         </div>
 
@@ -863,75 +820,75 @@ export default function ProducerMathGeometryPage() {
           <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm print:hidden">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-slate-900">
-                {strings.builder}
+                {t("builder")}
               </h2>
             </div>
 
             <div className="space-y-4">
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {strings.language}
+                  {t("language")}
                 </span>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value as WorksheetLanguage)}
                   className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-0 transition focus:border-slate-400"
                 >
-                  <option value="no">Norsk</option>
-                  <option value="en">English</option>
-                  <option value="pt">Português</option>
+                  <option value="nb">{t("languages.nb")}</option>
+                  <option value="en">{t("languages.en")}</option>
+                  <option value="pt">{t("languages.pt")}</option>
                 </select>
               </label>
 
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {strings.level}
+                  {t("level")}
                 </span>
                 <select
                   value={level}
                   onChange={(e) => setLevel(e.target.value as GeometryLevel)}
                   className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                 >
-                  <option value="grade_3_4">{strings.grade34}</option>
-                  <option value="grade_5_7">{strings.grade57}</option>
-                  <option value="grade_8_10">{strings.grade810}</option>
+                  <option value="grade_3_4">{t("grade34")}</option>
+                  <option value="grade_5_7">{t("grade57")}</option>
+                  <option value="grade_8_10">{t("grade810")}</option>
                 </select>
               </label>
 
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {strings.topic}
+                  {t("topic")}
                 </span>
                 <select
                   value={topic}
                   onChange={(e) => setTopic(e.target.value as GeometryTopic)}
                   className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                 >
-                  <option value="shapes">{strings.shapes}</option>
-                  <option value="perimeter">{strings.perimeter}</option>
-                  <option value="area">{strings.area}</option>
-                  <option value="all">{strings.all}</option>
+                  <option value="shapes">{t("shapes")}</option>
+                  <option value="perimeter">{t("perimeter")}</option>
+                  <option value="area">{t("area")}</option>
+                  <option value="all">{t("all")}</option>
                 </select>
               </label>
 
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {strings.difficulty}
+                  {t("difficulty")}
                 </span>
                 <select
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value as Difficulty)}
                   className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                 >
-                  <option value="easy">{strings.easy}</option>
-                  <option value="medium">{strings.medium}</option>
-                  <option value="hard">{strings.hard}</option>
+                  <option value="easy">{t("easy")}</option>
+                  <option value="medium">{t("medium")}</option>
+                  <option value="hard">{t("hard")}</option>
                 </select>
               </label>
 
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {strings.taskCount}
+                  {t("taskCount")}
                 </span>
                 <input
                   type="number"
@@ -945,23 +902,23 @@ export default function ProducerMathGeometryPage() {
 
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {strings.answerSpace}
+                  {t("answerSpace")}
                 </span>
                 <select
                   value={answerSpace}
                   onChange={(e) => setAnswerSpace(e.target.value as AnswerSpace)}
                   className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                 >
-                  <option value="small">{strings.small}</option>
-                  <option value="medium">{strings.mediumSpace}</option>
-                  <option value="large">{strings.large}</option>
+                  <option value="small">{t("small")}</option>
+                  <option value="medium">{t("mediumSpace")}</option>
+                  <option value="large">{t("large")}</option>
                 </select>
               </label>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-slate-700">
-                    {strings.chooseShapes}
+                    {t("chooseShapes")}
                   </p>
 
                   <div className="flex gap-2">
@@ -970,14 +927,14 @@ export default function ProducerMathGeometryPage() {
                       onClick={selectAllShapes}
                       className="rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                     >
-                      {strings.selectAll}
+                      {t("selectAll")}
                     </button>
                     <button
                       type="button"
                       onClick={clearAllShapes}
                       className="rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                     >
-                      {strings.clearAll}
+                      {t("clearAll")}
                     </button>
                   </div>
                 </div>
@@ -1007,7 +964,7 @@ export default function ProducerMathGeometryPage() {
                         >
                           ✓
                         </span>
-                        <span>{getShapeLabel(shape)}</span>
+                        <span>{getShapeLabel(t, shape)}</span>
                       </button>
                     );
                   })}
@@ -1015,33 +972,33 @@ export default function ProducerMathGeometryPage() {
 
                 {selectedShapes.length === 0 ? (
                   <p className="mt-3 text-sm text-red-600">
-                    {strings.selectAtLeastOneShape}
+                    {t("selectAtLeastOneShape")}
                   </p>
                 ) : (
                   <p className="mt-3 text-xs text-slate-500">
-                    {strings.selectedCount}: {selectedShapes.length}
+                    {t("selectedCount")}: {selectedShapes.length}
                   </p>
                 )}
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <p className="mb-3 text-sm font-medium text-slate-700">
-                  {strings.options}
+                  {t("options")}
                 </p>
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <ToggleChip
-                    label={strings.hints}
+                    label={t("hints")}
                     active={includeHints}
                     onClick={() => setIncludeHints((v) => !v)}
                   />
                   <ToggleChip
-                    label={strings.showFormulas}
+                    label={t("showFormulas")}
                     active={showFormulas}
                     onClick={() => setShowFormulas((v) => !v)}
                   />
                   <ToggleChip
-                    label={strings.showAnswerKey}
+                    label={t("showAnswerKey")}
                     active={showAnswerKey}
                     onClick={() => setShowAnswerKey((v) => !v)}
                   />
@@ -1050,7 +1007,7 @@ export default function ProducerMathGeometryPage() {
 
               {!statusLoading && featureStatus ? (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  {strings.usageLeft}: {generatorsRemaining} / {generatorsLimit}
+                  {t("usageLeft")}: {generatorsRemaining} / {generatorsLimit}
                 </div>
               ) : null}
 
@@ -1059,7 +1016,7 @@ export default function ProducerMathGeometryPage() {
                   href={`/${locale}/pricing`}
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
                 >
-                  {strings.seePlans}
+                  {t("seePlans")}
                 </Link>
               ) : null}
 
@@ -1082,7 +1039,7 @@ export default function ProducerMathGeometryPage() {
                   disabled={loading || statusLoading || featureBlocked}
                   className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading ? strings.generating : strings.generate}
+                  {loading ? t("generating") : t("generate")}
                 </button>
 
                 <button
@@ -1091,7 +1048,7 @@ export default function ProducerMathGeometryPage() {
                   disabled={saving || worksheet.tasks.length === 0}
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {saving ? strings.saving : strings.saveToMyContent}
+                  {saving ? t("saving") : t("saveToMyContent")}
                 </button>
 
                 <button
@@ -1099,7 +1056,7 @@ export default function ProducerMathGeometryPage() {
                   onClick={handlePrint}
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
                 >
-                  {strings.print}
+                  {t("print")}
                 </button>
               </div>
             </div>
@@ -1108,7 +1065,7 @@ export default function ProducerMathGeometryPage() {
           <section className="rounded-3xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none">
             <div className="border-b border-slate-200 px-6 py-4 print:hidden">
               <h2 className="text-lg font-semibold text-slate-900">
-                {strings.preview}
+                {t("preview")}
               </h2>
             </div>
 
@@ -1124,23 +1081,23 @@ export default function ProducerMathGeometryPage() {
                     </div>
 
                     <div className="shrink-0 rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
-                      {strings.worksheet}
+                      {t("worksheet")}
                     </div>
                   </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-slate-200 px-3 py-3 text-sm text-slate-700">
-                      <span className="font-medium">{strings.name}:</span>
+                      <span className="font-medium">{t("name")}:</span>
                     </div>
                     <div className="rounded-2xl border border-slate-200 px-3 py-3 text-sm text-slate-700">
-                      <span className="font-medium">{strings.date}:</span>
+                      <span className="font-medium">{t("date")}:</span>
                     </div>
                   </div>
                 </div>
 
                 {worksheet.tasks.length === 0 ? (
                   <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-                    {strings.generate}
+                    {t("generate")}
                   </div>
                 ) : (
                   <>
@@ -1158,7 +1115,6 @@ export default function ProducerMathGeometryPage() {
                               <h4 className="text-base font-semibold text-slate-900">
                                 {task.prompt}
                               </h4>
-                              <FigureMeta figure={task.figure} />
                             </div>
                           </div>
 
@@ -1174,14 +1130,14 @@ export default function ProducerMathGeometryPage() {
                                 )}`}
                               >
                                 <span className="text-sm font-medium text-slate-600">
-                                  {strings.answer}:
+                                  {t("answer")}:
                                 </span>
                               </div>
 
                               {worksheet.showFormulas && task.formula ? (
                                 <div className="rounded-2xl bg-blue-50 p-3 text-sm text-slate-700">
                                   <span className="font-semibold text-slate-900">
-                                    {strings.formula}:
+                                    {t("formula")}:
                                   </span>
                                   <div className="mt-1 whitespace-pre-line">
                                     {task.formula}
@@ -1192,7 +1148,7 @@ export default function ProducerMathGeometryPage() {
                               {includeHints && task.hint ? (
                                 <div className="rounded-2xl bg-amber-50 p-3 text-sm text-slate-700">
                                   <span className="font-semibold text-slate-900">
-                                    {strings.hint}:
+                                    {t("hint")}:
                                   </span>{" "}
                                   {task.hint}
                                 </div>
@@ -1207,7 +1163,7 @@ export default function ProducerMathGeometryPage() {
                       <section className="mt-10 break-before-page border-t-2 border-slate-300 pt-8">
                         <div className="mb-6">
                           <h3 className="text-2xl font-bold text-slate-900">
-                            {strings.answerKeyTitle}
+                            {t("answerKeyTitle")}
                           </h3>
                         </div>
 
@@ -1223,7 +1179,7 @@ export default function ProducerMathGeometryPage() {
                                 </div>
                                 <div className="min-w-0">
                                   <h4 className="text-base font-semibold text-slate-900">
-                                    {strings.taskLabel} {idx + 1}
+                                    {t("taskLabel")} {idx + 1}
                                   </h4>
                                   <p className="mt-1 text-sm text-slate-700">
                                     {task.prompt}
@@ -1240,9 +1196,9 @@ export default function ProducerMathGeometryPage() {
                                   <div className="rounded-2xl bg-white p-3">
                                     <p className="whitespace-pre-line text-sm text-slate-800">
                                       <span className="font-semibold text-slate-900">
-                                        {strings.answer}:
+                                        {t("answer")}:
                                       </span>{" "}
-                                      {formatAnswerKeyAnswer(task)}
+                                      {formatAnswerKeyAnswer(task, t)}
                                     </p>
                                   </div>
 
@@ -1250,7 +1206,7 @@ export default function ProducerMathGeometryPage() {
                                     <div className="rounded-2xl bg-white p-3">
                                       <p className="whitespace-pre-line text-sm text-slate-700">
                                         <span className="font-semibold text-slate-900">
-                                          {strings.formula}:
+                                          {t("formula")}:
                                         </span>{" "}
                                         {task.formula}
                                       </p>
@@ -1261,7 +1217,7 @@ export default function ProducerMathGeometryPage() {
                                     <div className="rounded-2xl bg-white p-3">
                                       <p className="text-sm text-slate-700">
                                         <span className="font-semibold text-slate-900">
-                                          {strings.explanation}:
+                                          {t("explanation")}:
                                         </span>{" "}
                                         {task.explanation}
                                       </p>

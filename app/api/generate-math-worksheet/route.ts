@@ -9,7 +9,7 @@ import type { AppRole, PlanKey } from "@/lib/featureAccess";
 
 export const runtime = "nodejs";
 
-type WorksheetLanguage = "no" | "en" | "pt";
+type WorksheetLanguage = "nb" | "en" | "pt";
 type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
 type Difficulty = "easy" | "medium" | "hard";
 type GeometryLevel = "grade_3_4" | "grade_5_7" | "grade_8_10";
@@ -21,7 +21,9 @@ type FigureKind =
   | "parallelogram"
   | "rhombus"
   | "trapezoid"
-  | "triangle"
+  | "triangle_right"
+  | "triangle_isosceles"
+  | "triangle_equilateral"
   | "circle";
 
 type FigureSpec = {
@@ -88,12 +90,14 @@ const ALL_FIGURES: FigureKind[] = [
   "parallelogram",
   "rhombus",
   "trapezoid",
-  "triangle",
+  "triangle_right",
+  "triangle_isosceles",
+  "triangle_equilateral",
   "circle",
 ];
 
 function isWorksheetLanguage(value: unknown): value is WorksheetLanguage {
-  return value === "no" || value === "en" || value === "pt";
+  return value === "nb" || value === "en" || value === "pt";
 }
 
 function isGeometryTopic(value: unknown): value is GeometryTopic {
@@ -119,7 +123,9 @@ function isFigureKind(value: unknown): value is FigureKind {
     value === "parallelogram" ||
     value === "rhombus" ||
     value === "trapezoid" ||
-    value === "triangle" ||
+    value === "triangle_right" ||
+    value === "triangle_isosceles" ||
+    value === "triangle_equilateral" ||
     value === "circle"
   );
 }
@@ -143,15 +149,22 @@ function makeId(index: number): string {
   return `${index + 1}`;
 }
 
+function normalizeLanguage(value: unknown): WorksheetLanguage {
+  if (value === "no") return "nb";
+  return isWorksheetLanguage(value) ? value : "nb";
+}
+
 function localizeShapeName(kind: FigureKind, lang: WorksheetLanguage): string {
   const map: Record<WorksheetLanguage, Record<FigureKind, string>> = {
-    no: {
+    nb: {
       rectangle: "rektangel",
       square: "kvadrat",
       parallelogram: "parallellogram",
       rhombus: "rombe",
       trapezoid: "trapes",
-      triangle: "trekant",
+      triangle_right: "rettvinklet trekant",
+      triangle_isosceles: "likebeint trekant",
+      triangle_equilateral: "likesidet trekant",
       circle: "sirkel",
     },
     en: {
@@ -160,7 +173,9 @@ function localizeShapeName(kind: FigureKind, lang: WorksheetLanguage): string {
       parallelogram: "parallelogram",
       rhombus: "rhombus",
       trapezoid: "trapezoid",
-      triangle: "triangle",
+      triangle_right: "right triangle",
+      triangle_isosceles: "isosceles triangle",
+      triangle_equilateral: "equilateral triangle",
       circle: "circle",
     },
     pt: {
@@ -169,7 +184,9 @@ function localizeShapeName(kind: FigureKind, lang: WorksheetLanguage): string {
       parallelogram: "paralelogramo",
       rhombus: "losango",
       trapezoid: "trapézio",
-      triangle: "triângulo",
+      triangle_right: "triângulo retângulo",
+      triangle_isosceles: "triângulo isósceles",
+      triangle_equilateral: "triângulo equilátero",
       circle: "círculo",
     },
   };
@@ -179,38 +196,97 @@ function localizeShapeName(kind: FigureKind, lang: WorksheetLanguage): string {
 
 function localizePrompt(
   lang: WorksheetLanguage,
-  key: "shape_name" | "perimeter" | "area" | "all_in_one" | "instructions"
+  key:
+    | "shape_name"
+    | "perimeter"
+    | "area"
+    | "all_in_one"
+    | "instructions"
 ): string {
-  const prompts: Record<WorksheetLanguage, Record<string, string>> = {
-    no: {
-      shape_name: "Hva heter figuren?",
-      perimeter: "Finn omkretsen av figuren.",
-      area: "Finn arealet av figuren.",
-      all_in_one: "Skriv navnet på figuren. Finn deretter omkretsen og arealet.",
-      instructions: "Svar på oppgavene. Vis utregning der det passer.",
+  const prompts: Record<WorksheetLanguage, Record<string, string[]>> = {
+    nb: {
+      shape_name: [
+        "Hva heter figuren?",
+        "Skriv navnet på figuren.",
+        "Hvilken figur ser du her?",
+      ],
+      perimeter: [
+        "Finn omkretsen av figuren.",
+        "Regn ut omkretsen.",
+        "Hvor stor er omkretsen til figuren?",
+      ],
+      area: [
+        "Finn arealet av figuren.",
+        "Regn ut arealet.",
+        "Hvor stort areal har figuren?",
+      ],
+      all_in_one: [
+        "Skriv navnet på figuren. Finn deretter omkretsen og arealet.",
+        "Hva heter figuren? Regn så ut omkrets og areal.",
+        "Navngi figuren og finn både omkrets og areal.",
+      ],
+      instructions: [
+        "Svar på oppgavene. Vis utregning der det passer.",
+      ],
     },
     en: {
-      shape_name: "What is the name of the shape?",
-      perimeter: "Find the perimeter of the shape.",
-      area: "Find the area of the shape.",
-      all_in_one: "Write the name of the shape. Then find the perimeter and the area.",
-      instructions: "Answer the questions. Show your work when relevant.",
+      shape_name: [
+        "What is the name of the shape?",
+        "Write the name of the shape.",
+        "Which shape do you see?",
+      ],
+      perimeter: [
+        "Find the perimeter of the shape.",
+        "Calculate the perimeter.",
+        "What is the perimeter of the shape?",
+      ],
+      area: [
+        "Find the area of the shape.",
+        "Calculate the area.",
+        "What is the area of the shape?",
+      ],
+      all_in_one: [
+        "Write the name of the shape. Then find the perimeter and the area.",
+        "What is the name of the shape? Then calculate perimeter and area.",
+        "Name the shape and find both perimeter and area.",
+      ],
+      instructions: [
+        "Answer the questions. Show your work when relevant.",
+      ],
     },
     pt: {
-      shape_name: "Como se chama a figura?",
-      perimeter: "Encontra o perímetro da figura.",
-      area: "Encontra a área da figura.",
-      all_in_one: "Escreve o nome da figura. Depois encontra o perímetro e a área.",
-      instructions: "Responde às tarefas. Mostra os cálculos quando fizer sentido.",
+      shape_name: [
+        "Como se chama a figura?",
+        "Escreve o nome da figura.",
+        "Que figura vês aqui?",
+      ],
+      perimeter: [
+        "Encontra o perímetro da figura.",
+        "Calcula o perímetro.",
+        "Qual é o perímetro da figura?",
+      ],
+      area: [
+        "Encontra a área da figura.",
+        "Calcula a área.",
+        "Qual é a área da figura?",
+      ],
+      all_in_one: [
+        "Escreve o nome da figura. Depois encontra o perímetro e a área.",
+        "Como se chama a figura? Depois calcula o perímetro e a área.",
+        "Dá o nome da figura e encontra o perímetro e a área.",
+      ],
+      instructions: [
+        "Responde às tarefas. Mostra os cálculos quando fizer sentido.",
+      ],
     },
   };
 
-  return prompts[lang][key];
+  return randomFrom(prompts[lang][key]);
 }
 
 function getTitle(lang: WorksheetLanguage, topic: GeometryTopic): string {
   const titles: Record<WorksheetLanguage, Record<GeometryTopic, string>> = {
-    no: {
+    nb: {
       shapes: "Geometri – former",
       perimeter: "Geometri – omkrets",
       area: "Geometri – areal",
@@ -240,7 +316,7 @@ function buildHint(
 ): string | undefined {
   if (!figure) return undefined;
 
-  if (lang === "no") {
+  if (lang === "nb") {
     if (type === "shape_name") return "Se på figurens sider, vinkler og form.";
     if (type === "perimeter") {
       return figure.kind === "circle"
@@ -287,34 +363,82 @@ function pickDifficultyValues(
   return randomFrom(hard);
 }
 
-function generateTriangleSpec(difficulty: Difficulty): FigureSpec {
-  const triplesEasy = [
-    { a: 3, b: 4, c: 5 },
-    { a: 5, b: 12, c: 13 },
-  ];
-  const triplesMedium = [
-    { a: 6, b: 8, c: 10 },
-    { a: 8, b: 15, c: 17 },
-  ];
-  const triplesHard = [
-    { a: 7, b: 24, c: 25 },
-    { a: 9, b: 12, c: 15 },
-  ];
-
-  const triple =
+function generateRightTriangleSpec(difficulty: Difficulty): FigureSpec {
+  const presets =
     difficulty === "easy"
-      ? randomFrom(triplesEasy)
+      ? [
+          { base: 3, height: 4, hyp: 5 },
+          { base: 6, height: 8, hyp: 10 },
+        ]
       : difficulty === "medium"
-        ? randomFrom(triplesMedium)
-        : randomFrom(triplesHard);
+        ? [
+            { base: 5, height: 12, hyp: 13 },
+            { base: 8, height: 15, hyp: 17 },
+          ]
+        : [
+            { base: 7, height: 24, hyp: 25 },
+            { base: 9, height: 40, hyp: 41 },
+          ];
+
+  const preset = randomFrom(presets);
 
   return {
-    kind: "triangle",
-    baseCm: triple.a,
-    heightCm: triple.b,
-    sideAcm: triple.a,
-    sideBcm: triple.b,
-    sideCcm: triple.c,
+    kind: "triangle_right",
+    baseCm: preset.base,
+    heightCm: preset.height,
+    sideAcm: preset.base,
+    sideBcm: preset.height,
+    sideCcm: preset.hyp,
+  };
+}
+
+function generateIsoscelesTriangleSpec(difficulty: Difficulty): FigureSpec {
+  const presets =
+    difficulty === "easy"
+      ? [
+          { base: 6, side: 5, height: 4 },
+          { base: 8, side: 5, height: 3 },
+        ]
+      : difficulty === "medium"
+        ? [
+            { base: 10, side: 13, height: 12 },
+            { base: 12, side: 10, height: 8 },
+          ]
+        : [
+            { base: 16, side: 10, height: 6 },
+            { base: 24, side: 25, height: 7 },
+          ];
+
+  const preset = randomFrom(presets);
+
+  return {
+    kind: "triangle_isosceles",
+    baseCm: preset.base,
+    heightCm: preset.height,
+    sideAcm: preset.base,
+    sideBcm: preset.side,
+    sideCcm: preset.side,
+  };
+}
+
+function generateEquilateralTriangleSpec(difficulty: Difficulty): FigureSpec {
+  const side = pickDifficultyValues(
+    difficulty,
+    [4, 6, 8],
+    [6, 8, 10, 12],
+    [10, 12, 14, 16]
+  );
+
+  const height = Math.round((Math.sqrt(3) / 2) * side * 10) / 10;
+
+  return {
+    kind: "triangle_equilateral",
+    sideCm: side,
+    baseCm: side,
+    heightCm: height,
+    sideAcm: side,
+    sideBcm: side,
+    sideCcm: side,
   };
 }
 
@@ -328,6 +452,31 @@ function generateCircleSpec(difficulty: Difficulty): FigureSpec {
       [6, 7, 8, 9]
     ),
   };
+}
+
+function generateDistinctPair(
+  difficulty: Difficulty,
+  firstEasy: number[],
+  firstMedium: number[],
+  firstHard: number[],
+  secondEasy: number[],
+  secondMedium: number[],
+  secondHard: number[]
+): [number, number] {
+  const first = pickDifficultyValues(difficulty, firstEasy, firstMedium, firstHard);
+  let second = pickDifficultyValues(difficulty, secondEasy, secondMedium, secondHard);
+
+  let guard = 0;
+  while (second === first && guard < 10) {
+    second = pickDifficultyValues(difficulty, secondEasy, secondMedium, secondHard);
+    guard += 1;
+  }
+
+  if (second === first) {
+    second += 1;
+  }
+
+  return [first, second];
 }
 
 function generateFigureSpec(
@@ -349,62 +498,80 @@ function generateFigureSpec(
   }
 
   if (kind === "rectangle") {
+    const [width, height] = generateDistinctPair(
+      difficulty,
+      [4, 5, 6, 7],
+      [6, 7, 8, 9, 10],
+      [8, 9, 10, 11, 12],
+      [2, 3, 4, 5],
+      [3, 4, 5, 6],
+      [4, 5, 6, 7]
+    );
+
     return {
       kind,
-      widthCm: pickDifficultyValues(
-        difficulty,
-        [4, 5, 6, 7],
-        [6, 7, 8, 9, 10],
-        [8, 9, 10, 11, 12]
-      ),
-      heightCm: pickDifficultyValues(
-        difficulty,
-        [2, 3, 4, 5],
-        [3, 4, 5, 6],
-        [4, 5, 6, 7]
-      ),
+      widthCm: width,
+      heightCm: height,
     };
   }
 
   if (kind === "parallelogram") {
+    const base = pickDifficultyValues(
+      difficulty,
+      [8, 9, 10, 11],
+      [10, 12, 14, 16],
+      [14, 16, 18, 20]
+    );
+
+    const side = pickDifficultyValues(
+      difficulty,
+      [4, 5],
+      [5, 6, 7],
+      [6, 7, 8]
+    );
+
+    let height = pickDifficultyValues(
+      difficulty,
+      [2, 3, 4],
+      [3, 4, 5],
+      [4, 5, 6]
+    );
+
+    if (height >= side) {
+      height = Math.max(2, side - 1);
+    }
+
     return {
       kind,
-      baseCm: pickDifficultyValues(
-        difficulty,
-        [5, 6, 7, 8],
-        [7, 8, 9, 10],
-        [9, 10, 11, 12]
-      ),
-      sideCm: pickDifficultyValues(
-        difficulty,
-        [3, 4, 5, 6],
-        [4, 5, 6, 7],
-        [5, 6, 7, 8]
-      ),
-      heightCm: pickDifficultyValues(
-        difficulty,
-        [2, 3, 4],
-        [3, 4, 5],
-        [4, 5, 6]
-      ),
+      baseCm: base,
+      sideCm: side,
+      heightCm: height,
     };
   }
 
   if (kind === "rhombus") {
+    const side = pickDifficultyValues(
+      difficulty,
+      [4, 5, 6, 7],
+      [6, 7, 8, 9],
+      [8, 9, 10, 11]
+    );
+
+    let height = pickDifficultyValues(
+      difficulty,
+      [2, 3, 4],
+      [3, 4, 5],
+      [4, 5, 6]
+    );
+
+    if (height >= side) {
+      height = Math.max(2, side - 1);
+    }
+
     return {
       kind,
-      sideCm: pickDifficultyValues(
-        difficulty,
-        [4, 5, 6, 7],
-        [6, 7, 8, 9],
-        [8, 9, 10, 11]
-      ),
-      heightCm: pickDifficultyValues(
-        difficulty,
-        [2, 3, 4],
-        [3, 4, 5],
-        [4, 5, 6]
-      ),
+      sideCm: side,
+      heightCm: height,
     };
   }
 
@@ -415,18 +582,24 @@ function generateFigureSpec(
       [10, 12, 14, 16],
       [12, 14, 16, 18]
     );
-    const top = pickDifficultyValues(
-      difficulty,
-      [4, 6, 8],
-      [6, 8, 10, 12],
-      [8, 10, 12, 14]
+
+    const top = Math.min(
+      pickDifficultyValues(
+        difficulty,
+        [4, 6, 8],
+        [6, 8, 10, 12],
+        [8, 10, 12, 14]
+      ),
+      base - 2
     );
+
     const height = pickDifficultyValues(
       difficulty,
       [2, 4, 6],
       [4, 6, 8],
       [6, 8, 10]
     );
+
     const side = pickDifficultyValues(
       difficulty,
       [4, 5, 6],
@@ -437,15 +610,23 @@ function generateFigureSpec(
     return {
       kind,
       baseCm: Math.max(base, top + 2),
-      topCm: Math.min(top, base - 2),
+      topCm: top,
       heightCm: height,
       sideLeftCm: side,
       sideRightCm: side,
     };
   }
 
-  if (kind === "triangle") {
-    return generateTriangleSpec(difficulty);
+  if (kind === "triangle_right") {
+    return generateRightTriangleSpec(difficulty);
+  }
+
+  if (kind === "triangle_isosceles") {
+    return generateIsoscelesTriangleSpec(difficulty);
+  }
+
+  if (kind === "triangle_equilateral") {
+    return generateEquilateralTriangleSpec(difficulty);
   }
 
   return generateCircleSpec(difficulty);
@@ -454,13 +635,13 @@ function generateFigureSpec(
 function formatNumber(value: number, lang: WorksheetLanguage): string {
   const rounded = Math.round(value * 10) / 10;
   if (Number.isInteger(rounded)) return String(rounded);
-  return lang === "no" || lang === "pt"
+  return lang === "nb" || lang === "pt"
     ? rounded.toFixed(1).replace(".", ",")
     : rounded.toFixed(1);
 }
 
 function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
-  if (lang === "no") {
+  if (lang === "nb") {
     if (figure.kind === "square" && figure.sideCm) {
       return `Side: ${figure.sideCm} cm`;
     }
@@ -484,13 +665,29 @@ function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
       return `Nedre grunnlinje: ${figure.baseCm} cm, øvre grunnlinje: ${figure.topCm} cm, høyde: ${figure.heightCm} cm, sider: ${figure.sideLeftCm} cm og ${figure.sideRightCm} cm`;
     }
     if (
-      figure.kind === "triangle" &&
-      figure.sideAcm &&
+      figure.kind === "triangle_right" &&
+      figure.baseCm &&
       figure.sideBcm &&
       figure.sideCcm &&
       figure.heightCm
     ) {
-      return `Sider: ${figure.sideAcm} cm, ${figure.sideBcm} cm og ${figure.sideCcm} cm. Høyde til grunnlinja: ${figure.heightCm} cm`;
+      return `Grunnlinje: ${figure.baseCm} cm, katet: ${figure.sideBcm} cm, hypotenus: ${figure.sideCcm} cm, høyde: ${figure.heightCm} cm`;
+    }
+    if (
+      figure.kind === "triangle_isosceles" &&
+      figure.baseCm &&
+      figure.sideBcm &&
+      figure.sideCcm &&
+      figure.heightCm
+    ) {
+      return `Grunnlinje: ${figure.baseCm} cm, side: ${figure.sideBcm} cm, side: ${figure.sideCcm} cm, høyde: ${figure.heightCm} cm`;
+    }
+    if (
+      figure.kind === "triangle_equilateral" &&
+      figure.sideCm &&
+      figure.heightCm
+    ) {
+      return `Side: ${figure.sideCm} cm, side: ${figure.sideCm} cm, side: ${figure.sideCm} cm, høyde: ${formatNumber(figure.heightCm, lang)} cm`;
     }
     if (figure.kind === "circle" && figure.radiusCm) {
       return `Radius: ${figure.radiusCm} cm. Bruk π = 3,14`;
@@ -521,13 +718,29 @@ function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
       return `Bottom base: ${figure.baseCm} cm, top base: ${figure.topCm} cm, height: ${figure.heightCm} cm, sides: ${figure.sideLeftCm} cm and ${figure.sideRightCm} cm`;
     }
     if (
-      figure.kind === "triangle" &&
-      figure.sideAcm &&
+      figure.kind === "triangle_right" &&
+      figure.baseCm &&
       figure.sideBcm &&
       figure.sideCcm &&
       figure.heightCm
     ) {
-      return `Sides: ${figure.sideAcm} cm, ${figure.sideBcm} cm and ${figure.sideCcm} cm. Height to the base: ${figure.heightCm} cm`;
+      return `Base: ${figure.baseCm} cm, leg: ${figure.sideBcm} cm, hypotenuse: ${figure.sideCcm} cm, height: ${figure.heightCm} cm`;
+    }
+    if (
+      figure.kind === "triangle_isosceles" &&
+      figure.baseCm &&
+      figure.sideBcm &&
+      figure.sideCcm &&
+      figure.heightCm
+    ) {
+      return `Base: ${figure.baseCm} cm, side: ${figure.sideBcm} cm, side: ${figure.sideCcm} cm, height: ${figure.heightCm} cm`;
+    }
+    if (
+      figure.kind === "triangle_equilateral" &&
+      figure.sideCm &&
+      figure.heightCm
+    ) {
+      return `Side: ${figure.sideCm} cm, side: ${figure.sideCm} cm, side: ${figure.sideCm} cm, height: ${formatNumber(figure.heightCm, lang)} cm`;
     }
     if (figure.kind === "circle" && figure.radiusCm) {
       return `Radius: ${figure.radiusCm} cm. Use π = 3.14`;
@@ -558,13 +771,29 @@ function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
       return `Base maior: ${figure.baseCm} cm, base menor: ${figure.topCm} cm, altura: ${figure.heightCm} cm, lados: ${figure.sideLeftCm} cm e ${figure.sideRightCm} cm`;
     }
     if (
-      figure.kind === "triangle" &&
-      figure.sideAcm &&
+      figure.kind === "triangle_right" &&
+      figure.baseCm &&
       figure.sideBcm &&
       figure.sideCcm &&
       figure.heightCm
     ) {
-      return `Lados: ${figure.sideAcm} cm, ${figure.sideBcm} cm e ${figure.sideCcm} cm. Altura em relação à base: ${figure.heightCm} cm`;
+      return `Base: ${figure.baseCm} cm, cateto: ${figure.sideBcm} cm, hipotenusa: ${figure.sideCcm} cm, altura: ${figure.heightCm} cm`;
+    }
+    if (
+      figure.kind === "triangle_isosceles" &&
+      figure.baseCm &&
+      figure.sideBcm &&
+      figure.sideCcm &&
+      figure.heightCm
+    ) {
+      return `Base: ${figure.baseCm} cm, lado: ${figure.sideBcm} cm, lado: ${figure.sideCcm} cm, altura: ${figure.heightCm} cm`;
+    }
+    if (
+      figure.kind === "triangle_equilateral" &&
+      figure.sideCm &&
+      figure.heightCm
+    ) {
+      return `Lado: ${figure.sideCm} cm, lado: ${figure.sideCm} cm, lado: ${figure.sideCm} cm, altura: ${formatNumber(figure.heightCm, lang)} cm`;
     }
     if (figure.kind === "circle" && figure.radiusCm) {
       return `Raio: ${figure.radiusCm} cm. Usa π = 3,14`;
@@ -575,13 +804,19 @@ function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
 }
 
 function buildFormula(figure: FigureSpec, lang: WorksheetLanguage): string {
-  if (lang === "no") {
+  if (lang === "nb") {
     if (figure.kind === "square") return "Omkrets: 4 × side\nAreal: side × side";
     if (figure.kind === "rectangle") return "Omkrets: 2 × (lengde + bredde)\nAreal: lengde × bredde";
     if (figure.kind === "parallelogram") return "Omkrets: 2 × (grunnlinje + side)\nAreal: grunnlinje × høyde";
-    if (figure.kind === "rhombus") return "Omkrets: 4 × side\nAreal: grunnlinje × høyde";
+    if (figure.kind === "rhombus") return "Omkrets: 4 × side\nAreal: side × høyde";
     if (figure.kind === "trapezoid") return "Omkrets: summen av alle sidene\nAreal: ((øvre grunnlinje + nedre grunnlinje) × høyde) / 2";
-    if (figure.kind === "triangle") return "Omkrets: summen av de tre sidene\nAreal: (grunnlinje × høyde) / 2";
+    if (
+      figure.kind === "triangle_right" ||
+      figure.kind === "triangle_isosceles" ||
+      figure.kind === "triangle_equilateral"
+    ) {
+      return "Omkrets: summen av de tre sidene\nAreal: (grunnlinje × høyde) / 2";
+    }
     return "Omkrets: 2 × π × radius\nAreal: π × radius × radius";
   }
 
@@ -589,18 +824,30 @@ function buildFormula(figure: FigureSpec, lang: WorksheetLanguage): string {
     if (figure.kind === "square") return "Perimeter: 4 × side\nArea: side × side";
     if (figure.kind === "rectangle") return "Perimeter: 2 × (length + width)\nArea: length × width";
     if (figure.kind === "parallelogram") return "Perimeter: 2 × (base + side)\nArea: base × height";
-    if (figure.kind === "rhombus") return "Perimeter: 4 × side\nArea: base × height";
+    if (figure.kind === "rhombus") return "Perimeter: 4 × side\nArea: side × height";
     if (figure.kind === "trapezoid") return "Perimeter: sum of all sides\nArea: ((top base + bottom base) × height) / 2";
-    if (figure.kind === "triangle") return "Perimeter: sum of the three sides\nArea: (base × height) / 2";
+    if (
+      figure.kind === "triangle_right" ||
+      figure.kind === "triangle_isosceles" ||
+      figure.kind === "triangle_equilateral"
+    ) {
+      return "Perimeter: sum of the three sides\nArea: (base × height) / 2";
+    }
     return "Perimeter: 2 × π × radius\nArea: π × radius × radius";
   }
 
   if (figure.kind === "square") return "Perímetro: 4 × lado\nÁrea: lado × lado";
   if (figure.kind === "rectangle") return "Perímetro: 2 × (comprimento + largura)\nÁrea: comprimento × largura";
   if (figure.kind === "parallelogram") return "Perímetro: 2 × (base + lado)\nÁrea: base × altura";
-  if (figure.kind === "rhombus") return "Perímetro: 4 × lado\nÁrea: base × altura";
+  if (figure.kind === "rhombus") return "Perímetro: 4 × lado\nÁrea: lado × altura";
   if (figure.kind === "trapezoid") return "Perímetro: soma de todos os lados\nÁrea: ((base maior + base menor) × altura) / 2";
-  if (figure.kind === "triangle") return "Perímetro: soma dos três lados\nÁrea: (base × altura) / 2";
+  if (
+    figure.kind === "triangle_right" ||
+    figure.kind === "triangle_isosceles" ||
+    figure.kind === "triangle_equilateral"
+  ) {
+    return "Perímetro: soma dos três lados\nÁrea: (base × altura) / 2";
+  }
   return "Perímetro: 2 × π × raio\nÁrea: π × raio × raio";
 }
 
@@ -616,7 +863,7 @@ function solveFigure(
       perimeter: `${perimeter} cm`,
       area: `${area} cm²`,
       explanation:
-        lang === "no"
+        lang === "nb"
           ? `Omkrets = 4 × ${figure.sideCm} = ${perimeter} cm. Areal = ${figure.sideCm} × ${figure.sideCm} = ${area} cm².`
           : lang === "en"
             ? `Perimeter = 4 × ${figure.sideCm} = ${perimeter} cm. Area = ${figure.sideCm} × ${figure.sideCm} = ${area} cm².`
@@ -632,7 +879,7 @@ function solveFigure(
       perimeter: `${perimeter} cm`,
       area: `${area} cm²`,
       explanation:
-        lang === "no"
+        lang === "nb"
           ? `Omkrets = 2 × (${figure.widthCm} + ${figure.heightCm}) = ${perimeter} cm. Areal = ${figure.widthCm} × ${figure.heightCm} = ${area} cm².`
           : lang === "en"
             ? `Perimeter = 2 × (${figure.widthCm} + ${figure.heightCm}) = ${perimeter} cm. Area = ${figure.widthCm} × ${figure.heightCm} = ${area} cm².`
@@ -648,7 +895,7 @@ function solveFigure(
       perimeter: `${perimeter} cm`,
       area: `${area} cm²`,
       explanation:
-        lang === "no"
+        lang === "nb"
           ? `Omkrets = 2 × (${figure.baseCm} + ${figure.sideCm}) = ${perimeter} cm. Areal = ${figure.baseCm} × ${figure.heightCm} = ${area} cm².`
           : lang === "en"
             ? `Perimeter = 2 × (${figure.baseCm} + ${figure.sideCm}) = ${perimeter} cm. Area = ${figure.baseCm} × ${figure.heightCm} = ${area} cm².`
@@ -664,7 +911,7 @@ function solveFigure(
       perimeter: `${perimeter} cm`,
       area: `${area} cm²`,
       explanation:
-        lang === "no"
+        lang === "nb"
           ? `Omkrets = 4 × ${figure.sideCm} = ${perimeter} cm. Areal = ${figure.sideCm} × ${figure.heightCm} = ${area} cm².`
           : lang === "en"
             ? `Perimeter = 4 × ${figure.sideCm} = ${perimeter} cm. Area = ${figure.sideCm} × ${figure.heightCm} = ${area} cm².`
@@ -688,7 +935,7 @@ function solveFigure(
       perimeter: `${perimeter} cm`,
       area: `${formatNumber(area, lang)} cm²`,
       explanation:
-        lang === "no"
+        lang === "nb"
           ? `Omkrets = ${figure.baseCm} + ${figure.topCm} + ${figure.sideLeftCm} + ${figure.sideRightCm} = ${perimeter} cm. Areal = ((${figure.baseCm} + ${figure.topCm}) × ${figure.heightCm}) / 2 = ${formatNumber(area, lang)} cm².`
           : lang === "en"
             ? `Perimeter = ${figure.baseCm} + ${figure.topCm} + ${figure.sideLeftCm} + ${figure.sideRightCm} = ${perimeter} cm. Area = ((${figure.baseCm} + ${figure.topCm}) × ${figure.heightCm}) / 2 = ${formatNumber(area, lang)} cm².`
@@ -697,7 +944,9 @@ function solveFigure(
   }
 
   if (
-    figure.kind === "triangle" &&
+    (figure.kind === "triangle_right" ||
+      figure.kind === "triangle_isosceles" ||
+      figure.kind === "triangle_equilateral") &&
     figure.sideAcm &&
     figure.sideBcm &&
     figure.sideCcm &&
@@ -708,14 +957,14 @@ function solveFigure(
     const area = (figure.baseCm * figure.heightCm) / 2;
 
     return {
-      perimeter: `${perimeter} cm`,
+      perimeter: `${formatNumber(perimeter, lang)} cm`,
       area: `${formatNumber(area, lang)} cm²`,
       explanation:
-        lang === "no"
-          ? `Omkrets = ${figure.sideAcm} + ${figure.sideBcm} + ${figure.sideCcm} = ${perimeter} cm. Areal = (${figure.baseCm} × ${figure.heightCm}) / 2 = ${formatNumber(area, lang)} cm².`
+        lang === "nb"
+          ? `Omkrets = ${formatNumber(figure.sideAcm, lang)} + ${formatNumber(figure.sideBcm, lang)} + ${formatNumber(figure.sideCcm, lang)} = ${formatNumber(perimeter, lang)} cm. Areal = (${formatNumber(figure.baseCm, lang)} × ${formatNumber(figure.heightCm, lang)}) / 2 = ${formatNumber(area, lang)} cm².`
           : lang === "en"
-            ? `Perimeter = ${figure.sideAcm} + ${figure.sideBcm} + ${figure.sideCcm} = ${perimeter} cm. Area = (${figure.baseCm} × ${figure.heightCm}) / 2 = ${formatNumber(area, lang)} cm².`
-            : `Perímetro = ${figure.sideAcm} + ${figure.sideBcm} + ${figure.sideCcm} = ${perimeter} cm. Área = (${figure.baseCm} × ${figure.heightCm}) / 2 = ${formatNumber(area, lang)} cm².`,
+            ? `Perimeter = ${formatNumber(figure.sideAcm, lang)} + ${formatNumber(figure.sideBcm, lang)} + ${formatNumber(figure.sideCcm, lang)} = ${formatNumber(perimeter, lang)} cm. Area = (${formatNumber(figure.baseCm, lang)} × ${formatNumber(figure.heightCm, lang)}) / 2 = ${formatNumber(area, lang)} cm².`
+            : `Perímetro = ${formatNumber(figure.sideAcm, lang)} + ${formatNumber(figure.sideBcm, lang)} + ${formatNumber(figure.sideCcm, lang)} = ${formatNumber(perimeter, lang)} cm. Área = (${formatNumber(figure.baseCm, lang)} × ${formatNumber(figure.heightCm, lang)}) / 2 = ${formatNumber(area, lang)} cm².`,
     };
   }
 
@@ -727,7 +976,7 @@ function solveFigure(
       perimeter: `${formatNumber(perimeter, lang)} cm`,
       area: `${formatNumber(area, lang)} cm²`,
       explanation:
-        lang === "no"
+        lang === "nb"
           ? `Omkrets = 2 × 3,14 × ${figure.radiusCm} = ${formatNumber(perimeter, lang)} cm. Areal = 3,14 × ${figure.radiusCm} × ${figure.radiusCm} = ${formatNumber(area, lang)} cm².`
           : lang === "en"
             ? `Perimeter = 2 × 3.14 × ${figure.radiusCm} = ${formatNumber(perimeter, lang)} cm. Area = 3.14 × ${figure.radiusCm} × ${figure.radiusCm} = ${formatNumber(area, lang)} cm².`
@@ -822,7 +1071,7 @@ function generateAllInOneTask(
   const name = localizeShapeName(figure.kind, lang);
 
   const answer =
-    lang === "no"
+    lang === "nb"
       ? `Navn: ${name}\nOmkrets: ${solved.perimeter}\nAreal: ${solved.area}`
       : lang === "en"
         ? `Name: ${name}\nPerimeter: ${solved.perimeter}\nArea: ${solved.area}`
@@ -922,7 +1171,7 @@ function generateWorksheet(params: {
 }
 
 function normalizeRequest(body: GenerateMathWorksheetRequest) {
-  const language: WorksheetLanguage = isWorksheetLanguage(body.language) ? body.language : "no";
+  const language = normalizeLanguage(body.language);
   const level: GeometryLevel = isGeometryLevel(body.level) ? body.level : "grade_5_7";
   const topic: GeometryTopic = isGeometryTopic(body.topic) ? body.topic : "all";
   const difficulty: Difficulty = isDifficulty(body.difficulty) ? body.difficulty : "easy";

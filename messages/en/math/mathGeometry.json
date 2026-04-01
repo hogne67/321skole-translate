@@ -1,89 +1,99 @@
 {
   "mathGeometry": {
     "pageTitle": "Geometry worksheet generator",
-    "pageSubtitle": "Create a printable worksheet with shapes, perimeter and area.",
-    "builder": "Builder",
+    "pageSubtitle": "Create printable worksheets with shapes, perimeter and area.",
+    "builder": "Settings",
     "preview": "Preview",
+
     "language": "Language",
+    "languages": {
+      "nb": "Norwegian",
+      "en": "English",
+      "pt": "Portuguese"
+    },
+
     "level": "Level",
+    "grade34": "Grade 3–4",
+    "grade57": "Grade 5–7",
+    "grade810": "Grade 8–10",
+
     "topic": "Topic",
-    "difficulty": "Difficulty",
-    "taskCount": "Number of tasks",
-    "hints": "Hints",
-    "showAnswerKey": "Answer key",
-    "showFormulas": "Show formulas",
-    "answerSpace": "Answer space",
-    "chooseShapes": "Choose shapes",
-    "options": "Options",
-    "generate": "Generate worksheet",
-    "generating": "Generating worksheet...",
-    "print": "Print / save as PDF",
-    "saveToMyContent": "Save to My content",
-    "saving": "Saving...",
-    "answerKey": "Answer key",
-    "worksheet": "Worksheet",
-    "name": "Name",
-    "date": "Date",
-    "answer": "Answer",
-    "explanation": "Explanation",
-    "hint": "Hint",
-    "formula": "Formula",
     "shapes": "Shapes",
     "perimeter": "Perimeter",
     "area": "Area",
-    "all": "All",
+    "all": "Mixed",
+
+    "difficulty": "Difficulty",
     "easy": "Easy",
     "medium": "Medium",
-    "hard": "Challenging",
+    "hard": "Hard",
+
+    "taskCount": "Number of tasks",
+
+    "answerSpace": "Answer space",
     "small": "Small",
     "mediumSpace": "Medium",
     "large": "Large",
-    "grade34": "Grades 3–4",
-    "grade57": "Grades 5–7",
-    "grade810": "Grades 8–10",
-    "failed": "Could not generate worksheet.",
-    "usageLeft": "Premium generators left this month",
-    "limitReached": "You have reached your premium generator limit.",
-    "seePlans": "See plans / upgrade",
-    "teacherOnly": "This feature is only available for teachers/producers.",
-    "upgradeRequired": "This feature requires a plan with access.",
-    "successGenerated": "Worksheet updated.",
-    "savedToMyContent": "Saved to My content.",
-    "saveFailed": "Could not save to My content.",
-    "square": "Square",
+
+    "chooseShapes": "Choose shapes",
+    "selectAll": "Select all",
+    "clearAll": "Clear",
+
+    "selectedCount": "Selected",
+
+    "options": "Options",
+    "hints": "Hints",
+    "showFormulas": "Show formulas",
+    "showAnswerKey": "Answer key",
+
+    "usageLeft": "Remaining",
+    "seePlans": "See plans",
+
+    "generate": "Generate worksheet",
+    "generating": "Generating...",
+    "saveToMyContent": "Save to my content",
+    "saving": "Saving...",
+    "print": "Print / save as PDF",
+
+    "successGenerated": "Worksheet generated",
+    "savedToMyContent": "Saved to your content",
+    "failed": "Something went wrong",
+    "saveFailed": "Could not save worksheet",
+
+    "teacherOnly": "Only available for teachers",
+    "upgradeRequired": "Upgrade required to use this feature",
+    "limitReached": "Monthly limit reached",
+
+    "selectAtLeastOneShape": "Select at least one shape",
+
+    "worksheet": "Worksheet",
+    "name": "Name",
+    "date": "Date",
+
+    "answer": "Answer",
+    "formula": "Formula",
+    "hint": "Hint",
+    "explanation": "Explanation",
+
+    "answerKeyTitle": "Answer key",
+    "taskLabel": "Task",
+
+    "shapeNameLabel": "Name",
+
+    "fallback": {
+      "title": "Geometry worksheet",
+      "instructions": "Generate a worksheet to begin."
+    },
+
     "rectangle": "Rectangle",
+    "square": "Square",
     "parallelogram": "Parallelogram",
     "rhombus": "Rhombus",
     "trapezoid": "Trapezoid",
-    "triangle": "Triangle",
     "circle": "Circle",
-    "selectAtLeastOneShape": "Choose at least one shape.",
-    "selectAll": "Select all",
-    "clearAll": "Clear all",
-    "selectedCount": "Selected",
-    "answerKeyTitle": "Answer key",
-    "taskLabel": "Task",
-    "shapeNameLabel": "Name",
-    "measurementLabels": {
-      "length": "length",
-      "width": "width",
-      "side": "side",
-      "base": "base",
-      "height": "height",
-      "topBase": "top base",
-      "leftSide": "left side",
-      "rightSide": "right side",
-      "radius": "radius",
-      "sides": "Sides"
-    },
-    "languages": {
-  "no": "Norwegian",
-  "en": "English",
-  "pt": "Portuguese"
-},
-    "fallback": {
-      "title": "Geometry – shapes, perimeter and area",
-      "instructions": "Answer the questions. Show your work when relevant."
-    }
+
+    "triangleRight": "Right triangle",
+    "triangleIsosceles": "Isosceles triangle",
+    "triangleEquilateral": "Equilateral triangle"
   }
 }

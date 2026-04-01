@@ -1,89 +1,99 @@
 {
   "mathGeometry": {
     "pageTitle": "Geometri-oppgavegenerator",
-    "pageSubtitle": "Lag et utskrivbart ark med figurer, omkrets og areal.",
-    "builder": "Bygger",
+    "pageSubtitle": "Lag utskrivbare oppgaver med figurer, omkrets og areal.",
+    "builder": "Innstillinger",
     "preview": "Forhåndsvisning",
+
     "language": "Språk",
-    "level": "Nivå",
-    "topic": "Tema",
-    "difficulty": "Vanskelighetsgrad",
-    "taskCount": "Antall oppgaver",
-    "hints": "Hint",
-    "showAnswerKey": "Fasit",
-    "showFormulas": "Vis formler",
-    "answerSpace": "Svarfelt",
-    "chooseShapes": "Velg figurer",
-    "options": "Valg",
-    "generate": "Generer ark",
-    "generating": "Genererer ark...",
-    "print": "Skriv ut / lagre som PDF",
-    "saveToMyContent": "Lagre i Mitt innhold",
-    "saving": "Lagrer...",
-    "answerKey": "Fasit",
-    "worksheet": "Oppgaveark",
-    "name": "Navn",
-    "date": "Dato",
-    "answer": "Svar",
-    "explanation": "Forklaring",
-    "hint": "Hint",
-    "formula": "Formel",
-    "shapes": "Figurer",
-    "perimeter": "Omkrets",
-    "area": "Areal",
-    "all": "Alle",
-    "easy": "Enkel",
-    "medium": "Middels",
-    "hard": "Vanskelig",
-    "small": "Liten",
-    "mediumSpace": "Middels",
-    "large": "Stor",
-    "grade34": "3.–4. trinn",
-    "grade57": "5.–7. trinn",
-    "grade810": "8.–10. trinn",
-    "failed": "Kunne ikke generere oppgaveark.",
-    "usageLeft": "Premium-generatorer igjen denne måneden",
-    "limitReached": "Du har nådd grensen for premium-generatorer.",
-    "seePlans": "Se planer / oppgrader",
-    "teacherOnly": "Denne funksjonen er kun tilgjengelig for lærere/produsenter.",
-    "upgradeRequired": "Denne funksjonen krever en plan med tilgang.",
-    "successGenerated": "Oppgavearket er oppdatert.",
-    "savedToMyContent": "Lagret i Mitt innhold.",
-    "saveFailed": "Kunne ikke lagre i Mitt innhold.",
-    "square": "Kvadrat",
-    "rectangle": "Rektangel",
-    "parallelogram": "Parallellogram",
-    "rhombus": "Rombe",
-    "trapezoid": "Trapes",
-    "triangle": "Trekant",
-    "circle": "Sirkel",
-    "selectAtLeastOneShape": "Velg minst én figur.",
-    "selectAll": "Velg alle",
-    "clearAll": "Fjern alle",
-    "selectedCount": "Valgt",
-    "answerKeyTitle": "Fasit",
-    "taskLabel": "Oppgave",
-    "shapeNameLabel": "Navn",
-    "measurementLabels": {
-      "length": "lengde",
-      "width": "bredde",
-      "side": "side",
-      "base": "grunnlinje",
-      "height": "høyde",
-      "topBase": "øverste grunnlinje",
-      "leftSide": "venstre side",
-      "rightSide": "høyre side",
-      "radius": "radius",
-      "sides": "Sider"
-    },
     "languages": {
-      "no": "Norsk",
+      "nb": "Norsk",
       "en": "Engelsk",
       "pt": "Portugisisk"
     },
+
+    "level": "Nivå",
+    "grade34": "3.–4. trinn",
+    "grade57": "5.–7. trinn",
+    "grade810": "8.–10. trinn",
+
+    "topic": "Tema",
+    "shapes": "Figurer",
+    "perimeter": "Omkrets",
+    "area": "Areal",
+    "all": "Blandet",
+
+    "difficulty": "Vanskelighetsgrad",
+    "easy": "Lett",
+    "medium": "Middels",
+    "hard": "Vanskelig",
+
+    "taskCount": "Antall oppgaver",
+
+    "answerSpace": "Svarfelt",
+    "small": "Lite",
+    "mediumSpace": "Middels",
+    "large": "Stort",
+
+    "chooseShapes": "Velg figurer",
+    "selectAll": "Velg alle",
+    "clearAll": "Fjern",
+
+    "selectedCount": "Valgt",
+
+    "options": "Alternativer",
+    "hints": "Hint",
+    "showFormulas": "Vis formler",
+    "showAnswerKey": "Fasit",
+
+    "usageLeft": "Gjenstående",
+    "seePlans": "Se abonnement",
+
+    "generate": "Generer oppgaveark",
+    "generating": "Genererer...",
+    "saveToMyContent": "Lagre i mitt innhold",
+    "saving": "Lagrer...",
+    "print": "Skriv ut / lagre som PDF",
+
+    "successGenerated": "Oppgaveark generert",
+    "savedToMyContent": "Lagret i ditt innhold",
+    "failed": "Noe gikk galt",
+    "saveFailed": "Kunne ikke lagre oppgavearket",
+
+    "teacherOnly": "Kun tilgjengelig for lærere",
+    "upgradeRequired": "Oppgradering kreves for å bruke denne funksjonen",
+    "limitReached": "Månedsgrense nådd",
+
+    "selectAtLeastOneShape": "Velg minst én figur",
+
+    "worksheet": "Oppgaveark",
+    "name": "Navn",
+    "date": "Dato",
+
+    "answer": "Svar",
+    "formula": "Formel",
+    "hint": "Hint",
+    "explanation": "Forklaring",
+
+    "answerKeyTitle": "Fasit",
+    "taskLabel": "Oppgave",
+
+    "shapeNameLabel": "Navn",
+
     "fallback": {
-      "title": "Geometri – figurer, omkrets og areal",
-      "instructions": "Svar på oppgavene. Vis utregning når det er relevant."
-    }
+      "title": "Geometri-oppgaveark",
+      "instructions": "Generer et oppgaveark for å starte."
+    },
+
+    "rectangle": "Rektangel",
+    "square": "Kvadrat",
+    "parallelogram": "Parallellogram",
+    "rhombus": "Rombe",
+    "trapezoid": "Trapes",
+    "circle": "Sirkel",
+
+    "triangleRight": "Rettvinklet trekant",
+    "triangleIsosceles": "Likebeint trekant",
+    "triangleEquilateral": "Likesidet trekant"
   }
 }
