@@ -19,6 +19,9 @@
     "level": "Level",
     "geometryWorksheet": "Geometry worksheet",
     "task": "Task",
+    "taskLabel": "Task",
+    "instructionsTitle": "Instructions",
+    "shapeNameLabel": "Shape name",
     "errorTitle": "Error",
     "errors": {
       "notFound": "Worksheet not found.",

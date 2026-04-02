@@ -1,9 +1,9 @@
-// app\[locale]\(app)\producer\math\geometry\page.tsx
+// app/[locale]/(app)/producer/math/geometry/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import {
@@ -11,62 +11,18 @@ import {
   type FeatureStatus,
 } from "@/lib/featureGuard";
 import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
+import GeometryWorksheetView from "@/components/generators/math/geometry/GeometryWorksheetView";
+import type {
+  FigureKind,
+  MathWorksheet,
+  WorksheetLanguage,
+  GeometryTopic,
+  Difficulty,
+  GeometryLevel,
+} from "@/lib/math/geometry/types";
 
-type WorksheetLanguage = "nb" | "en" | "pt";
-type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
-type Difficulty = "easy" | "medium" | "hard";
-type GeometryLevel = "grade_3_4" | "grade_5_7" | "grade_8_10";
+type SavedWorksheetLanguage = "no" | "en" | "pt";
 type AnswerSpace = "small" | "medium" | "large";
-
-type FigureKind =
-  | "rectangle"
-  | "square"
-  | "parallelogram"
-  | "rhombus"
-  | "trapezoid"
-  | "triangle_right"
-  | "triangle_isosceles"
-  | "triangle_equilateral"
-  | "circle";
-
-type FigureSpec = {
-  kind: FigureKind;
-  widthCm?: number;
-  heightCm?: number;
-  sideCm?: number;
-  baseCm?: number;
-  topCm?: number;
-  sideLeftCm?: number;
-  sideRightCm?: number;
-  sideAcm?: number;
-  sideBcm?: number;
-  sideCcm?: number;
-  radiusCm?: number;
-};
-
-type MathWorksheetTask = {
-  id: string;
-  type: "shape_name" | "perimeter" | "area" | "all_in_one";
-  prompt: string;
-  figure?: FigureSpec;
-  answer: string;
-  explanation?: string;
-  hint?: string;
-  formula?: string;
-};
-
-type MathWorksheet = {
-  title: string;
-  language: WorksheetLanguage;
-  level: GeometryLevel;
-  topic: GeometryTopic;
-  difficulty: Difficulty;
-  instructions: string;
-  showAnswerKey: boolean;
-  showFormulas: boolean;
-  selectedShapes: FigureKind[];
-  tasks: MathWorksheetTask[];
-};
 
 type GenerateResponse =
   | {
@@ -94,6 +50,7 @@ type TFn = (key: string) => string;
 
 function fallbackWorksheet(language: WorksheetLanguage, t: TFn): MathWorksheet {
   return {
+    version: 1,
     title: t("fallback.title"),
     language,
     level: "grade_5_7",
@@ -129,7 +86,11 @@ function resolveRoleFromProfile(profile: unknown): string {
 
   if (p.org && typeof p.org === "object") {
     const orgRole = (p.org as Record<string, unknown>).role;
-    if (orgRole === "teacher" || orgRole === "student" || orgRole === "parent") {
+    if (
+      orgRole === "teacher" ||
+      orgRole === "student" ||
+      orgRole === "parent"
+    ) {
       return orgRole;
     }
   }
@@ -160,12 +121,6 @@ function getBillingSnapshot(profile: unknown): BillingSnapshot | null {
   };
 }
 
-function answerSpaceClass(answerSpace: AnswerSpace): string {
-  if (answerSpace === "small") return "min-h-[40px]";
-  if (answerSpace === "large") return "min-h-[110px]";
-  return "min-h-[72px]";
-}
-
 function getShapeLabel(t: TFn, kind: FigureKind) {
   if (kind === "triangle_right") return t("triangleRight");
   if (kind === "triangle_isosceles") return t("triangleIsosceles");
@@ -173,344 +128,50 @@ function getShapeLabel(t: TFn, kind: FigureKind) {
   return t(kind);
 }
 
-function GeometryFigure({
-  figure,
-}: {
-  figure?: FigureSpec;
-}) {
-  if (!figure) return null;
+// Midlertidig kompatibilitet med eksisterende save-route.
+// Når backend er oppdatert til nb, kan denne fjernes.
+function normalizeLanguageForSave(
+  language: WorksheetLanguage
+): SavedWorksheetLanguage {
+  return language === "nb" ? "no" : language;
+}
 
-  const labelClass = "text-[11px] fill-slate-700";
-  const dashedLineClass = "stroke-slate-400";
+function normalizeWorksheetForSave(worksheet: MathWorksheet) {
+  return {
+    ...worksheet,
+    language: normalizeLanguageForSave(worksheet.language),
+  };
+}
 
-  if (figure.kind === "rectangle") {
-    const width = figure.widthCm ?? 8;
-    const height = figure.heightCm ?? 5;
+async function readErrorMessage(
+  response: Response,
+  fallback: string
+): Promise<string> {
+  try {
+    const text = await response.text();
+    if (!text) return fallback;
 
-    return (
-      <svg viewBox="0 0 240 150" className="h-36 w-full max-w-[260px]">
-        <rect
-          x="40"
-          y="28"
-          width="160"
-          height="90"
-          rx="4"
-          fill="white"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-slate-700"
-        />
-        <text x="120" y="20" textAnchor="middle" className={labelClass}>
-          {width} cm
-        </text>
-        <text x="222" y="76" textAnchor="middle" className={labelClass}>
-          {height} cm
-        </text>
-      </svg>
-    );
+    try {
+      const json = JSON.parse(text) as { error?: string; message?: string };
+      if (typeof json.error === "string" && json.error.trim()) return json.error;
+      if (typeof json.message === "string" && json.message.trim()) {
+        return json.message;
+      }
+      return fallback;
+    } catch {
+      return text.trim() || fallback;
+    }
+  } catch {
+    return fallback;
   }
-
-  if (figure.kind === "square") {
-    const side = figure.sideCm ?? 6;
-
-    return (
-      <svg viewBox="0 0 180 160" className="h-36 w-full max-w-[220px]">
-        <rect
-          x="40"
-          y="30"
-          width="90"
-          height="90"
-          rx="4"
-          fill="white"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-slate-700"
-        />
-        <text x="85" y="20" textAnchor="middle" className={labelClass}>
-          {side} cm
-        </text>
-        <text x="155" y="78" textAnchor="middle" className={labelClass}>
-          {side} cm
-        </text>
-      </svg>
-    );
-  }
-
-  if (figure.kind === "parallelogram") {
-    const base = figure.baseCm ?? 10;
-    const side = figure.sideCm ?? 5;
-    const height = figure.heightCm ?? 4;
-
-    return (
-      <svg viewBox="0 0 260 160" className="h-36 w-full max-w-[280px]">
-        <polygon
-          points="55,120 95,40 215,40 175,120"
-          fill="white"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-slate-700"
-        />
-        <line
-          x1="95"
-          y1="40"
-          x2="95"
-          y2="120"
-          strokeDasharray="5 5"
-          strokeWidth="2"
-          className={dashedLineClass}
-        />
-        <text x="125" y="136" textAnchor="middle" className={labelClass}>
-          {base} cm
-        </text>
-        <text x="42" y="86" textAnchor="middle" className={labelClass}>
-          {side} cm
-        </text>
-        <text x="125" y="86" textAnchor="end" className={labelClass}>
-          {height} cm
-        </text>
-      </svg>
-    );
-  }
-
-  if (figure.kind === "rhombus") {
-    const side = figure.sideCm ?? 6;
-    const height = figure.heightCm ?? 4;
-
-    return (
-      <svg viewBox="0 0 260 170" className="h-36 w-full max-w-[280px]">
-        <polygon
-          points="70,120 110,50 190,50 150,120"
-          fill="white"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-slate-700"
-        />
-        <line
-          x1="110"
-          y1="50"
-          x2="110"
-          y2="120"
-          strokeDasharray="5 5"
-          strokeWidth="2"
-          className={dashedLineClass}
-        />
-        <text x="130" y="42" textAnchor="middle" className={labelClass}>
-          {side} cm
-        </text>
-        <text x="58" y="88" textAnchor="middle" className={labelClass}>
-          {side} cm
-        </text>
-        <text x="143" y="86" textAnchor="end" className={labelClass}>
-          {height} cm
-        </text>
-      </svg>
-    );
-  }
-
-  if (figure.kind === "trapezoid") {
-    const base = figure.baseCm ?? 12;
-    const top = figure.topCm ?? 8;
-    const height = figure.heightCm ?? 4;
-    const sideLeft = figure.sideLeftCm ?? 5;
-    const sideRight = figure.sideRightCm ?? 5;
-
-    return (
-      <svg viewBox="0 0 250 170" className="h-36 w-full max-w-[270px]">
-        <polygon
-          points="45,122 80,44 170,44 205,122"
-          fill="white"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-slate-700"
-        />
-        <line
-          x1="80"
-          y1="44"
-          x2="80"
-          y2="122"
-          strokeDasharray="5 5"
-          strokeWidth="2"
-          className={dashedLineClass}
-        />
-        <text x="125" y="34" textAnchor="middle" className={labelClass}>
-          {top} cm
-        </text>
-        <text x="125" y="143" textAnchor="middle" className={labelClass}>
-          {base} cm
-        </text>
-        <text x="28" y="86" textAnchor="middle" className={labelClass}>
-          {sideLeft} cm
-        </text>
-        <text x="222" y="86" textAnchor="middle" className={labelClass}>
-          {sideRight} cm
-        </text>
-        <text x="120" y="105" textAnchor="end" className={labelClass}>
-          {height} cm
-        </text>
-      </svg>
-    );
-  }
-
-  if (figure.kind === "triangle_right") {
-    const base = figure.baseCm ?? 6;
-    const leftSide = figure.sideBcm ?? 8;
-    const hyp = figure.sideCcm ?? 10;
-
-    return (
-      <svg viewBox="0 0 240 170" className="h-36 w-full max-w-[250px]">
-        <polygon
-          points="45,130 45,50 165,130"
-          fill="white"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-slate-700"
-        />
-        <line
-          x1="45"
-          y1="50"
-          x2="45"
-          y2="130"
-          strokeDasharray="5 5"
-          strokeWidth="2"
-          className={dashedLineClass}
-        />
-        <text x="100" y="146" textAnchor="middle" className={labelClass}>
-          {base} cm
-        </text>
-        <text x="20" y="94" textAnchor="middle" className={labelClass}>
-          {leftSide} cm
-        </text>
-        <text x="122" y="86" textAnchor="middle" className={labelClass}>
-          {hyp} cm
-        </text>
-      </svg>
-    );
-  }
-
-  if (figure.kind === "triangle_isosceles") {
-    const base = figure.baseCm ?? 8;
-    const leftSide = figure.sideBcm ?? 5;
-    const rightSide = figure.sideCcm ?? 5;
-    const height = figure.heightCm ?? 4;
-
-    return (
-      <svg viewBox="0 0 240 170" className="h-36 w-full max-w-[250px]">
-        <polygon
-          points="45,130 105,40 165,130"
-          fill="white"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-slate-700"
-        />
-        <line
-          x1="105"
-          y1="40"
-          x2="105"
-          y2="130"
-          strokeDasharray="5 5"
-          strokeWidth="2"
-          className={dashedLineClass}
-        />
-        <text x="105" y="146" textAnchor="middle" className={labelClass}>
-          {base} cm
-        </text>
-        <text x="50" y="88" textAnchor="middle" className={labelClass}>
-          {leftSide} cm
-        </text>
-        <text x="160" y="88" textAnchor="middle" className={labelClass}>
-          {rightSide} cm
-        </text>
-        <text x="135" y="110" textAnchor="end" className={labelClass}>
-          {height} cm
-        </text>
-      </svg>
-    );
-  }
-
-  if (figure.kind === "triangle_equilateral") {
-    const side = figure.sideCm ?? figure.sideAcm ?? 6;
-    const height = figure.heightCm ?? 5.2;
-
-    return (
-      <svg viewBox="0 0 240 170" className="h-36 w-full max-w-[250px]">
-        <polygon
-          points="45,130 105,40 165,130"
-          fill="white"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-slate-700"
-        />
-        <line
-          x1="105"
-          y1="40"
-          x2="105"
-          y2="130"
-          strokeDasharray="5 5"
-          strokeWidth="2"
-          className={dashedLineClass}
-        />
-        <text x="105" y="146" textAnchor="middle" className={labelClass}>
-          {side} cm
-        </text>
-        <text x="50" y="88" textAnchor="middle" className={labelClass}>
-          {side} cm
-        </text>
-        <text x="160" y="88" textAnchor="middle" className={labelClass}>
-          {side} cm
-        </text>
-        <text x="144" y="115" textAnchor="end" className={labelClass}>
-          {height} cm
-        </text>
-      </svg>
-    );
-  }
-
-  const radius = figure.radiusCm ?? 5;
-
-  return (
-    <svg viewBox="0 0 220 170" className="h-36 w-full max-w-[240px]">
-      <circle
-        cx="110"
-        cy="85"
-        r="50"
-        fill="white"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="text-slate-700"
-      />
-      <line
-        x1="110"
-        y1="85"
-        x2="160"
-        y2="85"
-        strokeDasharray="5 5"
-        strokeWidth="2"
-        className={dashedLineClass}
-      />
-      <text x="135" y="76" textAnchor="middle" className={labelClass}>
-        {radius} cm
-      </text>
-    </svg>
-  );
 }
 
 function getStatusMessage(status: FeatureStatus | null, t: TFn): string {
   if (!status?.reason) return "";
-
   if (status.reason === "teacher_only") return t("teacherOnly");
   if (status.reason === "upgrade_required") return t("upgradeRequired");
   if (status.reason === "limit_reached") return t("limitReached");
   return t("failed");
-}
-
-function formatAnswerKeyAnswer(task: MathWorksheetTask, t: TFn) {
-  if (task.type === "all_in_one") return task.answer;
-
-  if (task.type === "shape_name") {
-    return `${t("shapeNameLabel")}: ${task.answer}`;
-  }
-
-  return task.answer;
 }
 
 function ToggleChip({
@@ -550,6 +211,8 @@ function ToggleChip({
 export default function ProducerMathGeometryPage() {
   const locale = useLocale();
   const t = useTranslations("mathGeometry");
+  const tBrand = useTranslations("brandLogo");
+  const printRef = useRef<HTMLDivElement | null>(null);
 
   const initialLanguage: WorksheetLanguage =
     locale === "nb" || locale === "en" || locale === "pt" ? locale : "en";
@@ -728,7 +391,14 @@ export default function ProducerMathGeometryPage() {
         return;
       }
 
-      setWorksheet(data.worksheet);
+      setWorksheet({
+        ...data.worksheet,
+        version: 1,
+        language:
+          data.worksheet.language === "en" || data.worksheet.language === "pt"
+            ? data.worksheet.language
+            : "nb",
+      });
       setUsageInfo(t("successGenerated"));
       await refreshFeatureStatus();
     } catch (err) {
@@ -739,7 +409,15 @@ export default function ProducerMathGeometryPage() {
   }
 
   async function handleSaveToMyContent() {
-    if (!uid || worksheet.tasks.length === 0) return;
+    if (!uid) {
+      setError(t("saveFailed"));
+      return;
+    }
+
+    if (worksheet.tasks.length === 0) {
+      setError(t("saveFailed"));
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -749,21 +427,29 @@ export default function ProducerMathGeometryPage() {
       const currentUser = auth.currentUser;
       const idToken = currentUser ? await currentUser.getIdToken() : null;
 
+      const payload = {
+        worksheet: normalizeWorksheetForSave(worksheet),
+        source: "math-geometry-generator",
+      };
+
       const response = await fetch("/api/producer/save-math-worksheet", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
         },
-        body: JSON.stringify({
-          worksheet,
-          source: "math-geometry-generator",
-        }),
+        body: JSON.stringify(payload),
       });
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response, t("saveFailed"));
+        setError(message);
+        return;
+      }
 
       const data = (await response.json()) as { ok?: boolean; error?: string };
 
-      if (!response.ok || !data.ok) {
+      if (!data.ok) {
         setError(data.error || t("saveFailed"));
         return;
       }
@@ -777,35 +463,334 @@ export default function ProducerMathGeometryPage() {
   }
 
   function handlePrint() {
-    window.print();
+    const content = printRef.current;
+    if (!content) return;
+
+    const printWindow = window.open("", "_blank", "width=1000,height=1400");
+    if (!printWindow) return;
+
+    const styles = `
+      <style>
+        @page {
+          size: A4;
+          margin: 15mm;
+        }
+
+        html, body {
+          margin: 0;
+          padding: 0;
+          background: #fff;
+          font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+          color: #111827;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        .print-root {
+          max-width: 980px;
+          margin: 0 auto;
+          padding: 0;
+        }
+
+        .print-card {
+          background: #fff;
+        }
+
+        .print-brandbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 20px;
+          padding-bottom: 14px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .print-brandleft {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .print-brandlogo {
+          width: 64px;
+          height: auto;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+
+        .print-brandtext {
+          min-width: 0;
+        }
+
+        .print-brandtitle {
+          font-size: 20px;
+          font-weight: 800;
+          line-height: 1.1;
+          color: #0f172a;
+        }
+
+        .print-brandsite {
+          margin-top: 2px;
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 600;
+        }
+
+        .print-title-wrap {
+          margin-bottom: 24px;
+          border-bottom: 1px solid #e2e8f0;
+          padding-bottom: 16px;
+        }
+
+        .print-top-row {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .print-title {
+          font-size: 24px;
+          line-height: 1.2;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .print-instructions {
+          margin-top: 8px;
+          font-size: 14px;
+          color: #475569;
+        }
+
+        .print-badge {
+          flex-shrink: 0;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 8px 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #334155;
+        }
+
+        .print-meta-grid {
+          margin-top: 20px;
+          display: grid;
+          gap: 12px;
+        }
+
+        .print-meta-box {
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 12px;
+          font-size: 14px;
+          color: #334155;
+        }
+
+        .print-task-list {
+          display: grid;
+          gap: 20px;
+        }
+
+        .print-task {
+          border: 1px solid #e2e8f0;
+          border-radius: 24px;
+          padding: 20px;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        .print-task-head {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+
+        .print-task-num {
+          width: 28px;
+          height: 28px;
+          border-radius: 9999px;
+          background: #0f172a;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 600;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .print-task-prompt {
+          font-size: 16px;
+          font-weight: 600;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .print-task-grid {
+          display: grid;
+          gap: 16px;
+        }
+
+        .print-figure-box {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          align-items: center;
+          justify-content: center;
+          background: #f8fafc;
+          border-radius: 16px;
+          padding: 12px;
+          min-height: 150px;
+        }
+
+        .print-answer-box {
+          border: 1px dashed #cbd5e1;
+          border-radius: 16px;
+          background: #fff;
+          padding: 12px;
+        }
+
+        .print-answer-label {
+          font-size: 14px;
+          font-weight: 500;
+          color: #475569;
+        }
+
+        .print-formula,
+        .print-hint,
+        .print-answer-key,
+        .print-explanation {
+          margin-top: 12px;
+          border-radius: 16px;
+          padding: 12px;
+          font-size: 14px;
+          color: #334155;
+        }
+
+        .print-formula {
+          background: #eff6ff;
+        }
+
+        .print-hint {
+          background: #fffbeb;
+        }
+
+        .print-answer-key {
+          background: #ecfdf5;
+        }
+
+        .print-explanation {
+          background: #f8fafc;
+        }
+
+        .print-strong {
+          font-weight: 600;
+          color: #0f172a;
+        }
+
+        .print-pre {
+          white-space: pre-line;
+        }
+
+        .print-page-break {
+          break-before: page;
+          page-break-before: always;
+          height: 0;
+          margin: 0;
+          padding: 0;
+        }
+
+        .figure-meta-text {
+          font-size: 12px;
+          color: #475569;
+          text-align: center;
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        svg {
+          max-width: 100%;
+          height: auto;
+        }
+
+        @media (min-width: 640px) {
+          .print-top-row {
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-between;
+          }
+
+          .print-meta-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .print-task-grid {
+            grid-template-columns: 220px minmax(0, 1fr);
+          }
+        }
+
+        @media (max-width: 640px) {
+          .print-brandbar {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+        }
+      </style>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${worksheet.title}</title>
+          ${styles}
+        </head>
+        <body>
+          ${content.outerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    const images = Array.from(printWindow.document.images);
+    const doPrint = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+
+    if (images.length === 0) {
+      doPrint();
+      return;
+    }
+
+    let loaded = 0;
+    const done = () => {
+      loaded += 1;
+      if (loaded >= images.length) {
+        doPrint();
+      }
+    };
+
+    images.forEach((img) => {
+      if (img.complete) {
+        done();
+      } else {
+        img.onload = done;
+        img.onerror = done;
+      }
+    });
   }
 
   return (
     <main className="min-h-screen bg-slate-50 print:bg-white">
-      <style jsx global>{`
-        @media print {
-          header,
-          nav,
-          aside[class*="sidebar"],
-          [data-topnav],
-          [data-sidebar],
-          [data-app-shell-nav] {
-            display: none !important;
-          }
-
-          main,
-          section,
-          article,
-          div {
-            box-shadow: none !important;
-          }
-
-          body {
-            background: white !important;
-          }
-        }
-      `}</style>
-
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
         <div className="mb-6 print:hidden">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -1045,7 +1030,7 @@ export default function ProducerMathGeometryPage() {
                 <button
                   type="button"
                   onClick={handleSaveToMyContent}
-                  disabled={saving || worksheet.tasks.length === 0}
+                  disabled={saving || worksheet.tasks.length === 0 || !uid}
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving ? t("saving") : t("saveToMyContent")}
@@ -1070,173 +1055,277 @@ export default function ProducerMathGeometryPage() {
             </div>
 
             <div className="px-6 py-6 print:px-0 print:py-0">
-              <div className="mx-auto max-w-[820px] bg-white text-slate-900 print:max-w-none">
-                <div className="mb-6 border-b border-slate-200 pb-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <h3 className="text-2xl font-bold">{worksheet.title}</h3>
-                      <p className="mt-2 text-sm text-slate-600">
-                        {worksheet.instructions}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
-                      {t("worksheet")}
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-slate-200 px-3 py-3 text-sm text-slate-700">
-                      <span className="font-medium">{t("name")}:</span>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 px-3 py-3 text-sm text-slate-700">
-                      <span className="font-medium">{t("date")}:</span>
-                    </div>
-                  </div>
-                </div>
-
-                {worksheet.tasks.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-                    {t("generate")}
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-5">
-                      {worksheet.tasks.map((task, idx) => (
-                        <article
-                          key={task.id}
-                          className="rounded-3xl border border-slate-200 p-4 sm:p-5"
-                        >
-                          <div className="mb-3 flex items-start gap-3">
-                            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                              {idx + 1}
-                            </div>
-                            <div className="min-w-0">
-                              <h4 className="text-base font-semibold text-slate-900">
-                                {task.prompt}
-                              </h4>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
-                            <div className="flex items-center justify-center rounded-2xl bg-slate-50 p-3">
-                              <GeometryFigure figure={task.figure} />
-                            </div>
-
-                            <div className="space-y-3">
-                              <div
-                                className={`rounded-2xl border border-dashed border-slate-300 bg-white px-3 py-3 ${answerSpaceClass(
-                                  answerSpace
-                                )}`}
-                              >
-                                <span className="text-sm font-medium text-slate-600">
-                                  {t("answer")}:
-                                </span>
-                              </div>
-
-                              {worksheet.showFormulas && task.formula ? (
-                                <div className="rounded-2xl bg-blue-50 p-3 text-sm text-slate-700">
-                                  <span className="font-semibold text-slate-900">
-                                    {t("formula")}:
-                                  </span>
-                                  <div className="mt-1 whitespace-pre-line">
-                                    {task.formula}
-                                  </div>
-                                </div>
-                              ) : null}
-
-                              {includeHints && task.hint ? (
-                                <div className="rounded-2xl bg-amber-50 p-3 text-sm text-slate-700">
-                                  <span className="font-semibold text-slate-900">
-                                    {t("hint")}:
-                                  </span>{" "}
-                                  {task.hint}
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-
-                    {worksheet.showAnswerKey ? (
-                      <section className="mt-10 break-before-page border-t-2 border-slate-300 pt-8">
-                        <div className="mb-6">
-                          <h3 className="text-2xl font-bold text-slate-900">
-                            {t("answerKeyTitle")}
-                          </h3>
-                        </div>
-
-                        <div className="space-y-5">
-                          {worksheet.tasks.map((task, idx) => (
-                            <article
-                              key={`answer-key-${task.id}`}
-                              className="rounded-3xl border border-slate-200 bg-emerald-50 p-4 sm:p-5"
-                            >
-                              <div className="mb-3 flex items-start gap-3">
-                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                                  {idx + 1}
-                                </div>
-                                <div className="min-w-0">
-                                  <h4 className="text-base font-semibold text-slate-900">
-                                    {t("taskLabel")} {idx + 1}
-                                  </h4>
-                                  <p className="mt-1 text-sm text-slate-700">
-                                    {task.prompt}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
-                                <div className="flex items-center justify-center rounded-2xl bg-white p-3">
-                                  <GeometryFigure figure={task.figure} />
-                                </div>
-
-                                <div className="space-y-3">
-                                  <div className="rounded-2xl bg-white p-3">
-                                    <p className="whitespace-pre-line text-sm text-slate-800">
-                                      <span className="font-semibold text-slate-900">
-                                        {t("answer")}:
-                                      </span>{" "}
-                                      {formatAnswerKeyAnswer(task, t)}
-                                    </p>
-                                  </div>
-
-                                  {task.formula ? (
-                                    <div className="rounded-2xl bg-white p-3">
-                                      <p className="whitespace-pre-line text-sm text-slate-700">
-                                        <span className="font-semibold text-slate-900">
-                                          {t("formula")}:
-                                        </span>{" "}
-                                        {task.formula}
-                                      </p>
-                                    </div>
-                                  ) : null}
-
-                                  {task.explanation ? (
-                                    <div className="rounded-2xl bg-white p-3">
-                                      <p className="text-sm text-slate-700">
-                                        <span className="font-semibold text-slate-900">
-                                          {t("explanation")}:
-                                        </span>{" "}
-                                        {task.explanation}
-                                      </p>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </div>
-                            </article>
-                          ))}
-                        </div>
-                      </section>
-                    ) : null}
-                  </>
-                )}
-              </div>
+              <GeometryWorksheetView
+                worksheet={worksheet}
+                answerSpace={answerSpace}
+                includeHints={includeHints}
+                t={t}
+                tBrand={tBrand}
+                printRef={printRef}
+                showIdentityFields={true}
+                showFigureMeta={true}
+                emptyStateKey="generate"
+              />
             </div>
           </section>
         </div>
       </div>
+
+      <style jsx global>{`
+        .print-root {
+          max-width: 980px;
+          margin: 0 auto;
+          padding: 0;
+        }
+
+        .print-card {
+          background: #fff;
+        }
+
+        .print-brandbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 20px;
+          padding-bottom: 14px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .print-brandleft {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .print-brandlogo {
+          width: 64px;
+          height: auto;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+
+        .print-brandtext {
+          min-width: 0;
+        }
+
+        .print-brandtitle {
+          font-size: 20px;
+          font-weight: 800;
+          line-height: 1.1;
+          color: #0f172a;
+        }
+
+        .print-brandsite {
+          margin-top: 2px;
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 600;
+        }
+
+        .print-title-wrap {
+          margin-bottom: 24px;
+          border-bottom: 1px solid #e2e8f0;
+          padding-bottom: 16px;
+        }
+
+        .print-top-row {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .print-title {
+          font-size: 24px;
+          line-height: 1.2;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .print-instructions {
+          margin-top: 8px;
+          font-size: 14px;
+          color: #475569;
+        }
+
+        .print-badge {
+          flex-shrink: 0;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 8px 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #334155;
+        }
+
+        .print-meta-grid {
+          margin-top: 20px;
+          display: grid;
+          gap: 12px;
+        }
+
+        .print-meta-box {
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 12px;
+          font-size: 14px;
+          color: #334155;
+        }
+
+        .print-task-list {
+          display: grid;
+          gap: 20px;
+        }
+
+        .print-task {
+          border: 1px solid #e2e8f0;
+          border-radius: 24px;
+          padding: 20px;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        .print-task-head {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+
+        .print-task-num {
+          width: 28px;
+          height: 28px;
+          border-radius: 9999px;
+          background: #0f172a;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 600;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .print-task-prompt {
+          font-size: 16px;
+          font-weight: 600;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .print-task-grid {
+          display: grid;
+          gap: 16px;
+        }
+
+        .print-figure-box {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          align-items: center;
+          justify-content: center;
+          background: #f8fafc;
+          border-radius: 16px;
+          padding: 12px;
+          min-height: 150px;
+        }
+
+        .print-answer-box {
+          border: 1px dashed #cbd5e1;
+          border-radius: 16px;
+          background: #fff;
+          padding: 12px;
+        }
+
+        .print-answer-label {
+          font-size: 14px;
+          font-weight: 500;
+          color: #475569;
+        }
+
+        .print-formula,
+        .print-hint,
+        .print-answer-key,
+        .print-explanation {
+          margin-top: 12px;
+          border-radius: 16px;
+          padding: 12px;
+          font-size: 14px;
+          color: #334155;
+        }
+
+        .print-formula {
+          background: #eff6ff;
+        }
+
+        .print-hint {
+          background: #fffbeb;
+        }
+
+        .print-answer-key {
+          background: #ecfdf5;
+        }
+
+        .print-explanation {
+          background: #f8fafc;
+        }
+
+        .print-strong {
+          font-weight: 600;
+          color: #0f172a;
+        }
+
+        .print-pre {
+          white-space: pre-line;
+        }
+
+        .print-page-break {
+          break-before: page;
+          page-break-before: always;
+          height: 0;
+          margin: 0;
+          padding: 0;
+        }
+
+        .figure-meta-text {
+          font-size: 12px;
+          color: #475569;
+          text-align: center;
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        svg {
+          max-width: 100%;
+          height: auto;
+        }
+
+        @media (min-width: 640px) {
+          .print-top-row {
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-between;
+          }
+
+          .print-meta-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .print-task-grid {
+            grid-template-columns: 220px minmax(0, 1fr);
+          }
+        }
+
+        @media (max-width: 640px) {
+          .print-brandbar {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+        }
+      `}</style>
     </main>
   );
 }

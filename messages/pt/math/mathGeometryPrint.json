@@ -1,7 +1,7 @@
 {
   "mathGeometryPrint": {
-    "pageTitle": "Atividade de geometria – impressão",
-    "worksheet": "Atividade",
+    "pageTitle": "Ficha de geometria – imprimir",
+    "worksheet": "Tarefas",
     "answerKeyTitle": "Gabarito",
     "name": "Nome",
     "date": "Data",
@@ -10,20 +10,23 @@
     "explanation": "Explicação",
     "hint": "Dica",
     "formula": "Fórmula",
-    "print": "Imprimir / salvar como PDF",
+    "print": "Imprimir / guardar em PDF",
     "backToEditor": "Voltar",
-    "saveAsPdf": "Use a opção de impressão do navegador e escolha Salvar como PDF.",
-    "loading": "Carregando atividade...",
+    "saveAsPdf": "Usa a impressão do navegador e escolhe Guardar em PDF.",
+    "loading": "A carregar ficha de geometria...",
     "readyForPrint": "Pronto para PDF",
     "producer": "Produtor",
     "level": "Nível",
-    "geometryWorksheet": "Atividade de geometria",
+    "geometryWorksheet": "Ficha de geometria",
     "task": "Tarefa",
+    "taskLabel": "Tarefa",
+    "instructionsTitle": "Instruções",
+    "shapeNameLabel": "Nome da figura",
     "errorTitle": "Erro",
     "errors": {
-      "notFound": "Atividade não encontrada.",
-      "noAccess": "Você não tem acesso a esta atividade.",
-      "invalidWorksheet": "Este documento não contém uma atividade válida."
+      "notFound": "Ficha de geometria não encontrada.",
+      "noAccess": "Não tens acesso a esta ficha de geometria.",
+      "invalidWorksheet": "Este documento não contém uma ficha de geometria válida."
     },
     "measurements": {
       "length": "comprimento",

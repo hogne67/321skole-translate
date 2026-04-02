@@ -69,6 +69,7 @@
     "worksheet": "Worksheet",
     "name": "Name",
     "date": "Date",
+    "classLabel": "Class",
 
     "answer": "Answer",
     "formula": "Formula",
@@ -77,8 +78,8 @@
 
     "answerKeyTitle": "Answer key",
     "taskLabel": "Task",
-
-    "shapeNameLabel": "Name",
+    "instructionsTitle": "Instructions",
+    "shapeNameLabel": "Shape name",
 
     "fallback": {
       "title": "Geometry worksheet",
@@ -94,6 +95,18 @@
 
     "triangleRight": "Right triangle",
     "triangleIsosceles": "Isosceles triangle",
-    "triangleEquilateral": "Equilateral triangle"
+    "triangleEquilateral": "Equilateral triangle",
+
+    "measurements": {
+      "length": "length",
+      "width": "width",
+      "side": "side",
+      "base": "base",
+      "height": "height",
+      "topBase": "top base",
+      "leftSide": "left side",
+      "rightSide": "right side",
+      "radius": "radius"
+    }
   }
 }

@@ -1,8 +1,8 @@
 {
   "mathGeometry": {
-    "pageTitle": "Gerador de atividades de geometria",
-    "pageSubtitle": "Crie atividades imprimíveis com figuras, perímetro e área.",
-    "builder": "Configurações",
+    "pageTitle": "Gerador de fichas de geometria",
+    "pageSubtitle": "Cria fichas imprimíveis com figuras, perímetro e área.",
+    "builder": "Definições",
     "preview": "Pré-visualização",
 
     "language": "Idioma",
@@ -13,30 +13,30 @@
     },
 
     "level": "Nível",
-    "grade34": "3º–4º ano",
-    "grade57": "5º–7º ano",
-    "grade810": "8º–10º ano",
+    "grade34": "3.º–4.º ano",
+    "grade57": "5.º–7.º ano",
+    "grade810": "8.º–10.º ano",
 
     "topic": "Tema",
     "shapes": "Figuras",
     "perimeter": "Perímetro",
     "area": "Área",
-    "all": "Misto",
+    "all": "Misturado",
 
     "difficulty": "Dificuldade",
     "easy": "Fácil",
     "medium": "Médio",
     "hard": "Difícil",
 
-    "taskCount": "Número de atividades",
+    "taskCount": "Número de tarefas",
 
     "answerSpace": "Espaço para resposta",
     "small": "Pequeno",
     "mediumSpace": "Médio",
     "large": "Grande",
 
-    "chooseShapes": "Escolher figuras",
-    "selectAll": "Selecionar tudo",
+    "chooseShapes": "Escolhe figuras",
+    "selectAll": "Selecionar todas",
     "clearAll": "Limpar",
 
     "selectedCount": "Selecionado",
@@ -49,26 +49,27 @@
     "usageLeft": "Restante",
     "seePlans": "Ver planos",
 
-    "generate": "Gerar atividade",
-    "generating": "Gerando...",
-    "saveToMyContent": "Salvar no meu conteúdo",
-    "saving": "Salvando...",
-    "print": "Imprimir / salvar como PDF",
+    "generate": "Gerar ficha",
+    "generating": "A gerar...",
+    "saveToMyContent": "Guardar no meu conteúdo",
+    "saving": "A guardar...",
+    "print": "Imprimir / guardar em PDF",
 
-    "successGenerated": "Atividade gerada",
-    "savedToMyContent": "Salvo no seu conteúdo",
-    "failed": "Algo deu errado",
-    "saveFailed": "Não foi possível salvar a atividade",
+    "successGenerated": "Ficha gerada",
+    "savedToMyContent": "Guardado no teu conteúdo",
+    "failed": "Algo correu mal",
+    "saveFailed": "Não foi possível guardar a ficha",
 
     "teacherOnly": "Disponível apenas para professores",
-    "upgradeRequired": "Atualização necessária para usar este recurso",
+    "upgradeRequired": "É necessário fazer upgrade para usar esta funcionalidade",
     "limitReached": "Limite mensal atingido",
 
-    "selectAtLeastOneShape": "Selecione pelo menos uma figura",
+    "selectAtLeastOneShape": "Seleciona pelo menos uma figura",
 
-    "worksheet": "Atividade",
+    "worksheet": "Tarefas",
     "name": "Nome",
     "date": "Data",
+    "classLabel": "Turma",
 
     "answer": "Resposta",
     "formula": "Fórmula",
@@ -76,13 +77,13 @@
     "explanation": "Explicação",
 
     "answerKeyTitle": "Gabarito",
-    "taskLabel": "Atividade",
-
-    "shapeNameLabel": "Nome",
+    "taskLabel": "Tarefa",
+    "instructionsTitle": "Instruções",
+    "shapeNameLabel": "Nome da figura",
 
     "fallback": {
-      "title": "Atividade de geometria",
-      "instructions": "Gere uma atividade para começar."
+      "title": "Ficha de geometria",
+      "instructions": "Gera uma ficha para começar."
     },
 
     "rectangle": "Retângulo",
@@ -94,6 +95,18 @@
 
     "triangleRight": "Triângulo retângulo",
     "triangleIsosceles": "Triângulo isósceles",
-    "triangleEquilateral": "Triângulo equilátero"
+    "triangleEquilateral": "Triângulo equilátero",
+
+    "measurements": {
+      "length": "comprimento",
+      "width": "largura",
+      "side": "lado",
+      "base": "base",
+      "height": "altura",
+      "topBase": "base superior",
+      "leftSide": "lado esquerdo",
+      "rightSide": "lado direito",
+      "radius": "raio"
+    }
   }
 }

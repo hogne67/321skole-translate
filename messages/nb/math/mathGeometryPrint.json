@@ -1,7 +1,7 @@
 {
   "mathGeometryPrint": {
-    "pageTitle": "Geometri-oppgaveark – utskrift",
-    "worksheet": "Oppgaveark",
+    "pageTitle": "Geometriark – utskrift",
+    "worksheet": "Oppgaver",
     "answerKeyTitle": "Fasit",
     "name": "Navn",
     "date": "Dato",
@@ -12,18 +12,21 @@
     "formula": "Formel",
     "print": "Skriv ut / lagre som PDF",
     "backToEditor": "Tilbake",
-    "saveAsPdf": "Bruk nettleserens utskriftsdialog og velg Lagre som PDF.",
-    "loading": "Laster oppgaveark...",
+    "saveAsPdf": "Bruk nettleserens utskrift og velg Lagre som PDF.",
+    "loading": "Laster geometriark...",
     "readyForPrint": "Klar for PDF",
     "producer": "Produsent",
     "level": "Nivå",
-    "geometryWorksheet": "Geometri-oppgaveark",
+    "geometryWorksheet": "Geometriark",
     "task": "Oppgave",
+    "taskLabel": "Oppgave",
+    "instructionsTitle": "Instruksjoner",
+    "shapeNameLabel": "Figurnavn",
     "errorTitle": "Feil",
     "errors": {
-      "notFound": "Fant ikke oppgavearket.",
-      "noAccess": "Du har ikke tilgang til dette oppgavearket.",
-      "invalidWorksheet": "Dette dokumentet inneholder ikke et gyldig oppgaveark."
+      "notFound": "Fant ikke geometriarket.",
+      "noAccess": "Du har ikke tilgang til dette geometriarket.",
+      "invalidWorksheet": "Dette dokumentet inneholder ikke et gyldig geometriark."
     },
     "measurements": {
       "length": "lengde",
@@ -31,7 +34,7 @@
       "side": "side",
       "base": "grunnlinje",
       "height": "høyde",
-      "topBase": "øverste grunnlinje",
+      "topBase": "øvre grunnlinje",
       "leftSide": "venstre side",
       "rightSide": "høyre side",
       "radius": "radius",

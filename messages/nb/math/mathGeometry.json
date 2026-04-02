@@ -1,7 +1,7 @@
 {
   "mathGeometry": {
-    "pageTitle": "Geometri-oppgavegenerator",
-    "pageSubtitle": "Lag utskrivbare oppgaver med figurer, omkrets og areal.",
+    "pageTitle": "Geometriark-generator",
+    "pageSubtitle": "Lag utskriftsvennlige ark med figurer, omkrets og areal.",
     "builder": "Innstillinger",
     "preview": "Forhåndsvisning",
 
@@ -30,45 +30,46 @@
 
     "taskCount": "Antall oppgaver",
 
-    "answerSpace": "Svarfelt",
-    "small": "Lite",
+    "answerSpace": "Svarplass",
+    "small": "Liten",
     "mediumSpace": "Middels",
-    "large": "Stort",
+    "large": "Stor",
 
     "chooseShapes": "Velg figurer",
     "selectAll": "Velg alle",
-    "clearAll": "Fjern",
+    "clearAll": "Tøm",
 
     "selectedCount": "Valgt",
 
-    "options": "Alternativer",
+    "options": "Valg",
     "hints": "Hint",
     "showFormulas": "Vis formler",
     "showAnswerKey": "Fasit",
 
-    "usageLeft": "Gjenstående",
-    "seePlans": "Se abonnement",
+    "usageLeft": "Gjenstår",
+    "seePlans": "Se planer",
 
-    "generate": "Generer oppgaveark",
-    "generating": "Genererer...",
-    "saveToMyContent": "Lagre i mitt innhold",
+    "generate": "Lag geometriark",
+    "generating": "Lager...",
+    "saveToMyContent": "Lagre til mitt innhold",
     "saving": "Lagrer...",
     "print": "Skriv ut / lagre som PDF",
 
-    "successGenerated": "Oppgaveark generert",
-    "savedToMyContent": "Lagret i ditt innhold",
+    "successGenerated": "Geometriark laget",
+    "savedToMyContent": "Lagret i innholdet ditt",
     "failed": "Noe gikk galt",
-    "saveFailed": "Kunne ikke lagre oppgavearket",
+    "saveFailed": "Kunne ikke lagre geometriarket",
 
     "teacherOnly": "Kun tilgjengelig for lærere",
-    "upgradeRequired": "Oppgradering kreves for å bruke denne funksjonen",
-    "limitReached": "Månedsgrense nådd",
+    "upgradeRequired": "Du må oppgradere for å bruke denne funksjonen",
+    "limitReached": "Månedsgrensen er nådd",
 
     "selectAtLeastOneShape": "Velg minst én figur",
 
-    "worksheet": "Oppgaveark",
+    "worksheet": "Oppgaver",
     "name": "Navn",
     "date": "Dato",
+    "classLabel": "Klasse",
 
     "answer": "Svar",
     "formula": "Formel",
@@ -77,12 +78,12 @@
 
     "answerKeyTitle": "Fasit",
     "taskLabel": "Oppgave",
-
-    "shapeNameLabel": "Navn",
+    "instructionsTitle": "Instruksjoner",
+    "shapeNameLabel": "Figurnavn",
 
     "fallback": {
-      "title": "Geometri-oppgaveark",
-      "instructions": "Generer et oppgaveark for å starte."
+      "title": "Geometriark",
+      "instructions": "Lag et geometriark for å komme i gang."
     },
 
     "rectangle": "Rektangel",
@@ -94,6 +95,18 @@
 
     "triangleRight": "Rettvinklet trekant",
     "triangleIsosceles": "Likebeint trekant",
-    "triangleEquilateral": "Likesidet trekant"
+    "triangleEquilateral": "Likesidet trekant",
+
+    "measurements": {
+      "length": "lengde",
+      "width": "bredde",
+      "side": "side",
+      "base": "grunnlinje",
+      "height": "høyde",
+      "topBase": "øvre grunnlinje",
+      "leftSide": "venstre side",
+      "rightSide": "høyre side",
+      "radius": "radius"
+    }
   }
 }
