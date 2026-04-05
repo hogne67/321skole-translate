@@ -39,7 +39,9 @@ type SourceLessonData = {
   isActive?: boolean;
   ownerId?: string;
   lessonType?: string;
+  taskType?: string;
   readingTestConfig?: unknown;
+  mathWorksheet?: unknown;
 };
 
 type UserProfileAccess = {
@@ -107,7 +109,9 @@ function pickSourceLessonData(raw: FirebaseFirestore.DocumentData | undefined): 
     isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
     ownerId: nonEmptyOrUndefined(d.ownerId),
     lessonType: nonEmptyOrUndefined(d.lessonType),
+    taskType: nonEmptyOrUndefined(d.taskType),
     readingTestConfig: d.readingTestConfig ?? null,
+    mathWorksheet: d.mathWorksheet ?? null,
   };
 }
 
@@ -342,9 +346,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
         tasks: source.tasks ?? [],
         coverImageUrl: source.coverImageUrl ?? null,
 
-        // important for reading tests
+        // important for lesson rendering
         lessonType: source.lessonType ?? null,
+        taskType: source.taskType ?? null,
         readingTestConfig: source.readingTestConfig ?? null,
+        mathWorksheet: source.mathWorksheet ?? null,
 
         assignedAt: now,
         createdAt: now,

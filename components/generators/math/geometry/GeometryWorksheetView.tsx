@@ -25,6 +25,18 @@ function answerSpaceClass(answerSpace: AnswerSpace): string {
   return "min-h-[72px]";
 }
 
+function isRawTranslationKey(value: string, key: string) {
+  return value === key || value === `mathGeometry.${key}`;
+}
+
+function getEmptyStateLabel(t: TFn, emptyStateKey: string) {
+  const key = `emptyStates.${emptyStateKey}`;
+  const value = t(key);
+  return isRawTranslationKey(value, key)
+    ? "Generate a geometry worksheet to see a preview."
+    : value;
+}
+
 function formatAnswerKeyAnswer(task: MathWorksheetTask, t: TFn) {
   if (task.type === "all_in_one") return task.answer;
   if (task.type === "shape_name") return `${t("shapeNameLabel")}: ${task.answer}`;
@@ -57,8 +69,9 @@ export default function GeometryWorksheetView({
   emptyStateKey?: string;
 }) {
   const tMeasurement = (key: MeasurementKey) => {
-    const measurementValue = t(`measurements.${key}`);
-    return measurementValue === `measurements.${key}` ? key : measurementValue;
+    const rawKey = `measurements.${key}`;
+    const measurementValue = t(rawKey);
+    return isRawTranslationKey(measurementValue, rawKey) ? key : measurementValue;
   };
 
   return (
@@ -124,7 +137,7 @@ export default function GeometryWorksheetView({
 
         {worksheet.tasks.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-            {t(emptyStateKey)}
+            {getEmptyStateLabel(t, emptyStateKey)}
           </div>
         ) : (
           <>
@@ -141,9 +154,9 @@ export default function GeometryWorksheetView({
                   <div className="print-task-grid">
                     <div className="print-figure-box">
                       <GeometryFigure
-  figure={task.figure}
-  className="h-36 w-full max-w-[260px]"
-/>
+                        figure={task.figure}
+                        className="h-36 w-full max-w-[260px]"
+                      />
                       {showFigureMeta ? (
                         <FigureMeta
                           figure={task.figure}
@@ -204,9 +217,9 @@ export default function GeometryWorksheetView({
                       <div className="print-task-grid">
                         <div className="print-figure-box" style={{ background: "#fff" }}>
                           <GeometryFigure
-  figure={task.figure}
-  className="h-36 w-full max-w-[260px]"
-/>
+                            figure={task.figure}
+                            className="h-36 w-full max-w-[260px]"
+                          />
                           {showFigureMeta ? (
                             <FigureMeta
                               figure={task.figure}

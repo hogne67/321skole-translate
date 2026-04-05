@@ -1,10 +1,10 @@
-// app/[locale]/(app)/producer/math/geometry/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import {
   getFeatureStatusFromProfile,
@@ -12,6 +12,15 @@ import {
 } from "@/lib/featureGuard";
 import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
 import GeometryWorksheetView from "@/components/generators/math/geometry/GeometryWorksheetView";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+  type DocumentData,
+  type QueryDocumentSnapshot,
+} from "firebase/firestore";
 import type {
   FigureKind,
   MathWorksheet,
@@ -33,6 +42,22 @@ type GenerateResponse =
       ok: false;
       error: string;
     };
+
+type SaveWorksheetResponse = {
+  ok?: boolean;
+  error?: string;
+  id?: string;
+  worksheetId?: string;
+  lessonId?: string;
+};
+
+type TeacherSpaceRow = {
+  id: string;
+  title: string;
+  code: string;
+  isOpen: boolean;
+  createdAt?: unknown;
+};
 
 const ALL_FIGURES: FigureKind[] = [
   "square",
@@ -128,8 +153,6 @@ function getShapeLabel(t: TFn, kind: FigureKind) {
   return t(kind);
 }
 
-// Midlertidig kompatibilitet med eksisterende save-route.
-// Når backend er oppdatert til nb, kan denne fjernes.
 function normalizeLanguageForSave(
   language: WorksheetLanguage
 ): SavedWorksheetLanguage {
@@ -208,8 +231,81 @@ function ToggleChip({
   );
 }
 
+function getShareButtonLabel(locale: string) {
+  if (locale === "nb") return "Del til klasserom";
+  if (locale === "pt") return "Compartilhar com turma";
+  return "Share to classroom";
+}
+
+function getSharingLabel(locale: string) {
+  if (locale === "nb") return "Lagrer...";
+  if (locale === "pt") return "Salvando...";
+  return "Saving...";
+}
+
+function getShareInfoTitle(locale: string) {
+  if (locale === "nb") return "Digital utfylling";
+  if (locale === "pt") return "Preenchimento digital";
+  return "Digital completion";
+}
+
+function getShareInfoBody(locale: string) {
+  if (locale === "nb") {
+    return "Lagre geometryarket og velg deretter hvilket klasserom det skal deles til. Oppgaven blir automatisk satt som aktiv i rommet.";
+  }
+  if (locale === "pt") {
+    return "Salve a folha de geometria e escolha para qual turma ela deve ser compartilhada. A atividade será marcada automaticamente como ativa.";
+  }
+  return "Save the geometry worksheet and then choose which classroom to share it to. The task will automatically be set as active in that room.";
+}
+
+function getMissingSavedIdMessage(locale: string) {
+  if (locale === "nb") {
+    return "Arket ble lagret, men save-ruta returnerte ingen id.";
+  }
+  if (locale === "pt") {
+    return "A folha foi salva, mas a rota de salvamento não retornou nenhum id.";
+  }
+  return "The worksheet was saved, but the save route returned no id.";
+}
+
+function getChooseSpaceTitle(locale: string) {
+  if (locale === "nb") return "Velg klasserom";
+  if (locale === "pt") return "Escolha a turma";
+  return "Choose classroom";
+}
+
+function getChooseSpaceBody(locale: string) {
+  if (locale === "nb") {
+    return "Velg hvilket rom du vil dele geometryarket til. Oppgaven blir automatisk delt og satt som aktiv.";
+  }
+  if (locale === "pt") {
+    return "Escolha para qual turma você quer compartilhar a folha de geometria. A atividade será compartilhada e marcada como ativa automaticamente.";
+  }
+  return "Choose which classroom to share the geometry worksheet to. The task will automatically be shared and set as active.";
+}
+
+function getAssignLabel(locale: string) {
+  if (locale === "nb") return "Del hit";
+  if (locale === "pt") return "Compartilhar aqui";
+  return "Share here";
+}
+
+function getAssigningLabel(locale: string) {
+  if (locale === "nb") return "Deler...";
+  if (locale === "pt") return "Compartilhando...";
+  return "Sharing...";
+}
+
+function getCloseLabel(locale: string) {
+  if (locale === "nb") return "Lukk";
+  if (locale === "pt") return "Fechar";
+  return "Close";
+}
+
 export default function ProducerMathGeometryPage() {
   const locale = useLocale();
+  const router = useRouter();
   const t = useTranslations("mathGeometry");
   const tBrand = useTranslations("brandLogo");
   const printRef = useRef<HTMLDivElement | null>(null);
@@ -234,8 +330,16 @@ export default function ProducerMathGeometryPage() {
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
+  const [sharing, setSharing] = useState<boolean>(false);
+  const [assigningSpaceId, setAssigningSpaceId] = useState<string | null>(null);
+  const [savedWorksheetId, setSavedWorksheetId] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState<boolean>(false);
+  const [spaceSearch, setSpaceSearch] = useState<string>("");
+  const [teacherSpaces, setTeacherSpaces] = useState<TeacherSpaceRow[]>([]);
+  const [spacesLoading, setSpacesLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [usageInfo, setUsageInfo] = useState<string>("");
+
   const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState<boolean>(true);
 
@@ -299,9 +403,69 @@ export default function ProducerMathGeometryPage() {
     };
   }, [uid, role, plan, billing]);
 
+  useEffect(() => {
+    if (!uid) {
+      setTeacherSpaces([]);
+      setSpacesLoading(false);
+      return;
+    }
+
+    setSpacesLoading(true);
+
+    const q = query(
+      collection(db, "spaces"),
+      where("ownerId", "==", uid),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const next: TeacherSpaceRow[] = snap.docs.map(
+          (d: QueryDocumentSnapshot<DocumentData>) => {
+            const data = (d.data() ?? {}) as Record<string, unknown>;
+            return {
+              id: d.id,
+              title:
+                typeof data.title === "string" && data.title.trim()
+                  ? data.title.trim()
+                  : "Untitled space",
+              code:
+                typeof data.code === "string" && data.code.trim()
+                  ? data.code.trim()
+                  : "—",
+              isOpen: data.isOpen === true,
+              createdAt: data.createdAt,
+            };
+          }
+        );
+
+        setTeacherSpaces(next);
+        setSpacesLoading(false);
+      },
+      () => {
+        setTeacherSpaces([]);
+        setSpacesLoading(false);
+      }
+    );
+
+    return () => unsub();
+  }, [uid]);
+
   const generatorsLimit = featureStatus?.limit ?? 0;
   const generatorsRemaining = featureStatus?.remaining ?? 0;
   const featureBlocked = featureStatus ? !featureStatus.allowed : false;
+
+  const filteredSpaces = useMemo(() => {
+    const s = spaceSearch.trim().toLowerCase();
+    if (!s) return teacherSpaces;
+
+    return teacherSpaces.filter((space) => {
+      const title = space.title.toLowerCase();
+      const code = space.code.toLowerCase();
+      return title.includes(s) || code.includes(s);
+    });
+  }, [teacherSpaces, spaceSearch]);
 
   async function refreshFeatureStatus() {
     if (!uid) return;
@@ -408,18 +572,105 @@ export default function ProducerMathGeometryPage() {
     }
   }
 
-  async function handleSaveToMyContent() {
+  async function saveWorksheetAndGetId(): Promise<string | null> {
     if (!uid) {
       setError(t("saveFailed"));
-      return;
+      return null;
     }
 
     if (worksheet.tasks.length === 0) {
       setError(t("saveFailed"));
+      return null;
+    }
+
+    const currentUser = auth.currentUser;
+    const idToken = currentUser ? await currentUser.getIdToken() : null;
+
+    const payload = {
+      worksheet: normalizeWorksheetForSave(worksheet),
+      source: "math-geometry-generator",
+    };
+
+    const response = await fetch("/api/producer/save-math-worksheet", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const message = await readErrorMessage(response, t("saveFailed"));
+      setError(message);
+      return null;
+    }
+
+    const data = (await response.json()) as SaveWorksheetResponse;
+
+    if (!data.ok) {
+      setError(data.error || t("saveFailed"));
+      return null;
+    }
+
+    const savedId = data.id || data.worksheetId || data.lessonId || null;
+    return savedId;
+  }
+
+  async function handleSaveToMyContent() {
+    setSaving(true);
+    setError("");
+    setUsageInfo("");
+
+    try {
+      const savedId = await saveWorksheetAndGetId();
+      if (!savedId) return;
+
+      setSavedWorksheetId(savedId);
+      setUsageInfo(t("savedToMyContent"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleShareToSpaces() {
+    setSharing(true);
+    setError("");
+    setUsageInfo("");
+
+    try {
+      const savedId = await saveWorksheetAndGetId();
+
+      if (!savedId) {
+        setError(getMissingSavedIdMessage(locale));
+        return;
+      }
+
+      setSavedWorksheetId(savedId);
+      setUsageInfo(
+        locale === "nb"
+          ? "Arket er lagret. Velg klasserom."
+          : locale === "pt"
+            ? "A folha foi salva. Escolha a turma."
+            : "Worksheet saved. Choose classroom."
+      );
+      setShareModalOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("saveFailed"));
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function handleAssignToSpace(spaceId: string) {
+    if (!savedWorksheetId) {
+      setError(getMissingSavedIdMessage(locale));
       return;
     }
 
-    setSaving(true);
+    setAssigningSpaceId(spaceId);
     setError("");
     setUsageInfo("");
 
@@ -427,18 +678,24 @@ export default function ProducerMathGeometryPage() {
       const currentUser = auth.currentUser;
       const idToken = currentUser ? await currentUser.getIdToken() : null;
 
-      const payload = {
-        worksheet: normalizeWorksheetForSave(worksheet),
-        source: "math-geometry-generator",
-      };
+      if (!idToken) {
+        setError(t("saveFailed"));
+        return;
+      }
 
-      const response = await fetch("/api/producer/save-math-worksheet", {
+      const response = await fetch(`/api/teacher/spaces/${spaceId}/assign`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          sourceType: "myContent",
+          sourceId: savedWorksheetId,
+          title: worksheet.title,
+          level: worksheet.level,
+          language: worksheet.language,
+        }),
       });
 
       if (!response.ok) {
@@ -447,18 +704,21 @@ export default function ProducerMathGeometryPage() {
         return;
       }
 
-      const data = (await response.json()) as { ok?: boolean; error?: string };
+      setShareModalOpen(false);
+      setUsageInfo(
+        locale === "nb"
+          ? "Oppgaven er delt og satt som aktiv."
+          : locale === "pt"
+            ? "A atividade foi compartilhada e marcada como ativa."
+            : "Task shared and set as active."
+      );
 
-      if (!data.ok) {
-        setError(data.error || t("saveFailed"));
-        return;
-      }
-
-      setUsageInfo(t("savedToMyContent"));
+      router.push(`/${locale}/teacher/spaces/${spaceId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
-      setSaving(false);
+      setAssigningSpaceId(spaceId);
+      setAssigningSpaceId(null);
     }
   }
 
@@ -1029,8 +1289,23 @@ export default function ProducerMathGeometryPage() {
 
                 <button
                   type="button"
+                  onClick={handleShareToSpaces}
+                  disabled={
+                    sharing ||
+                    saving ||
+                    loading ||
+                    worksheet.tasks.length === 0 ||
+                    !uid
+                  }
+                  className="inline-flex items-center justify-center rounded-2xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-900 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {sharing ? getSharingLabel(locale) : getShareButtonLabel(locale)}
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleSaveToMyContent}
-                  disabled={saving || worksheet.tasks.length === 0 || !uid}
+                  disabled={saving || sharing || worksheet.tasks.length === 0 || !uid}
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving ? t("saving") : t("saveToMyContent")}
@@ -1043,6 +1318,15 @@ export default function ProducerMathGeometryPage() {
                 >
                   {t("print")}
                 </button>
+              </div>
+
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">
+                  {getShareInfoTitle(locale)}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {getShareInfoBody(locale)}
+                </p>
               </div>
             </div>
           </aside>
@@ -1070,6 +1354,105 @@ export default function ProducerMathGeometryPage() {
           </section>
         </div>
       </div>
+
+      {shareModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4"
+          onClick={() => setShareModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="mx-auto w-full max-w-3xl min-w-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="max-h-[90vh] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-xl">
+              <div className="border-b border-slate-200 p-4 sm:p-5">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-lg font-semibold text-slate-900">
+                      {getChooseSpaceTitle(locale)}
+                    </div>
+                    <div className="mt-1 break-words text-sm text-slate-600">
+                      {getChooseSpaceBody(locale)}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShareModalOpen(false)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 sm:w-auto"
+                  >
+                    {getCloseLabel(locale)}
+                  </button>
+                </div>
+
+                <input
+                  value={spaceSearch}
+                  onChange={(e) => setSpaceSearch(e.target.value)}
+                  placeholder={locale === "nb" ? "Søk etter klasserom eller kode" : locale === "pt" ? "Buscar turma ou código" : "Search classroom or code"}
+                  className="mt-4 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                />
+              </div>
+
+              <div className="max-h-[calc(90vh-180px)] min-w-0 overflow-y-auto p-4 sm:p-5">
+                {spacesLoading ? (
+                  <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                    {locale === "nb" ? "Laster klasserom..." : locale === "pt" ? "Carregando turmas..." : "Loading classrooms..."}
+                  </div>
+                ) : filteredSpaces.length === 0 ? (
+                  <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                    {locale === "nb" ? "Ingen klasserom funnet." : locale === "pt" ? "Nenhuma turma encontrada." : "No classrooms found."}
+                  </div>
+                ) : (
+                  <div className="grid min-w-0 gap-3">
+                    {filteredSpaces.map((space) => (
+                      <div
+                        key={space.id}
+                        className="w-full min-w-0 rounded-xl border border-slate-300 bg-white p-4"
+                      >
+                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <div className="break-words font-semibold text-slate-900">
+                              {space.title}
+                            </div>
+                            <div className="mt-1 break-words text-sm text-slate-600">
+                              {locale === "nb" ? "Kode" : locale === "pt" ? "Código" : "Code"}: {space.code}
+                              {" · "}
+                              {space.isOpen
+                                ? locale === "nb"
+                                  ? "Åpent"
+                                  : locale === "pt"
+                                    ? "Aberto"
+                                    : "Open"
+                                : locale === "nb"
+                                  ? "Lukket"
+                                  : locale === "pt"
+                                    ? "Fechado"
+                                    : "Closed"}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAssignToSpace(space.id)}
+                            disabled={assigningSpaceId !== null}
+                            className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
+                          >
+                            {assigningSpaceId === space.id
+                              ? getAssigningLabel(locale)
+                              : getAssignLabel(locale)}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <style jsx global>{`
         .print-root {

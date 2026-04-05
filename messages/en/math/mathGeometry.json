@@ -67,6 +67,8 @@
     "selectAtLeastOneShape": "Select at least one shape",
 
     "worksheet": "Worksheet",
+    "producer": "Producer",
+    "levelLabel": "Level",
     "name": "Name",
     "date": "Date",
     "classLabel": "Class",
@@ -75,6 +77,10 @@
     "formula": "Formula",
     "hint": "Hint",
     "explanation": "Explanation",
+    "writeShapeName": "Write the name of the shape",
+    "writePerimeterAnswer": "Write the perimeter",
+    "writeAreaAnswer": "Write the area",
+    "numberOnlyHelp": "Write only the number",
 
     "answerKeyTitle": "Answer key",
     "taskLabel": "Task",
@@ -84,6 +90,10 @@
     "fallback": {
       "title": "Geometry worksheet",
       "instructions": "Generate a worksheet to begin."
+    },
+
+    "emptyStates": {
+      "generate": "Generate a geometry worksheet to see a preview."
     },
 
     "rectangle": "Rectangle",
@@ -107,6 +117,15 @@
       "leftSide": "left side",
       "rightSide": "right side",
       "radius": "radius"
-    }
+    },
+    "autoSummaryTitle": "Auto correction",
+    "score": "Score",
+    "tasks": "Tasks",
+    "correct": "Correct",
+    "partial": "Partially correct",
+    "wrong": "Wrong",
+    "unanswered": "Unanswered",
+    "autoSummaryText": "{correct} correct, {partial} partially correct, {wrong} wrong and {unanswered} unanswered out of {total} tasks.",
+    "autoSummaryEmpty": "No tasks to assess."
   }
 }

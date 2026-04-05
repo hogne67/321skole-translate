@@ -13,13 +13,41 @@
     "meta": {
       "summaryTitle": "Summary",
       "deliveryTitle": "Delivery details",
-      "statusLabel": "Status",
+      "statusLabel": "Status:",
       "autoScoreTitle": "Auto score",
       "studentLabel": "Student:",
       "delivered": "Submitted:",
+      "deliveredLabel": "Submitted:",
       "deliveredUnknown": "Submitted: (unknown)",
       "guest": "Guest (not logged in)",
-      "loggedIn": "Logged in"
+      "loggedIn": "Logged in",
+      "loggedInWithUid": "Logged in · uid: {uid}",
+      "geometryBadge": "Geometry",
+      "geometryAutoBadge": "Auto correction: {pct}%",
+      "geometryAutoBadgeTitle": "{correct} correct · {partial} partially correct · {wrong} wrong · {unanswered} unanswered",
+      "readingTestDataTitle": "Reading test data",
+      "timeLimit": "Time limit: {value}",
+      "timeUsed": "Time used: {value}",
+      "sentOnTimeout": "Submitted on timeout",
+      "submittedManually": "Submitted manually",
+      "deliveryMethodUnknown": "Delivery method unknown",
+      "readingTimedOutDesc": "The student did not manage to submit manually. The system submitted the test automatically when time ran out.",
+      "readingManualDesc": "The student submitted the test manually before time ran out.",
+      "readingMissingMetaDesc": "This submission does not have full reading-test metadata yet.",
+      "geometryTitle": "Geometry worksheet",
+      "geometryAnswersLoaded": "Student answers loaded",
+      "geometryWorksheetFound": "Worksheet found",
+      "geometryWorksheetMissing": "Worksheet missing",
+      "geometrySummary": "{correct} correct, {partial} partially correct, {wrong} wrong and {unanswered} unanswered out of {total} tasks.",
+      "geometrySummaryFallback": "This submission is shown as a geometry worksheet with the student's answers and auto correction below.",
+      "correctLabel": "Correct:",
+      "partialLabel": "Partially correct:",
+      "wrongLabel": "Wrong:",
+      "unansweredLabel": "Unanswered:",
+      "scoreLabel": "Score:",
+      "scoreValue": "Score: {value}%",
+      "noGeometryAutoScore": "No geometry auto-correction saved yet.",
+      "noAutoScore": "No auto-score data."
     },
     "status": {
       "submitted": "Submitted",
@@ -35,7 +63,8 @@
       "taskUnanswered": "Auto: ⏳ unanswered"
     },
     "notice": {
-      "needAttestationHtml": "To give feedback, you need <b>attestation</b> and must be in <b>teacher</b> or <b>creator</b> mode."
+      "needAttestationHtml": "To give feedback, you need <b>attestation</b> and must be in <b>teacher</b> or <b>creator</b> mode.",
+      "noTeacherRights": "You do not have teacher permissions to give feedback on this page."
     },
     "draft": {
       "notice": "This submission is still a draft."
@@ -49,6 +78,7 @@
       "noImageDesc": "This lesson has no cover image.",
       "textTitle": "Text",
       "tasksTitle": "Tasks",
+      "geometryTitle": "Geometry worksheet",
       "noTasks": "No tasks in this lesson (or the lesson could not be found).",
       "noTasksHint": "This usually means assignment.sourceId is missing or lesson.tasks is empty.",
       "taskN": "Task {n}",
@@ -63,6 +93,7 @@
       "statusLabel": "Status",
       "placeholder": "Write a short feedback…",
       "needTextToChangeStatus": "To change status, you must write a short comment.",
+      "insertTimingData": "Insert timing data",
       "saveButton": "Save feedback",
       "saving": "Saving…",
       "saved": "Saved ✅",
@@ -86,6 +117,11 @@
       "rulesHint": "Saved in",
       "saveButton": "Save",
       "saving": "Saving…"
+    },
+    "readingSummary": {
+      "timedOut": "Reading test: The student used {used} out of {limit}. The submission was sent automatically when the time ran out.",
+      "submittedManually": "Reading test: The student used {used} out of {limit} and submitted manually before the time ran out.",
+      "generic": "Reading test: Time used {used} out of {limit}."
     },
     "fallback": {
       "guest": "Guest",

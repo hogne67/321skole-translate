@@ -1,5 +1,4 @@
 // lib/math/geometry/types.ts
-
 export type WorksheetLanguage = "nb" | "en" | "pt";
 export type StoredWorksheetLanguage = "nb" | "no" | "en" | "pt";
 
@@ -33,6 +32,11 @@ export type FigureSpec = {
   radiusCm?: number;
 };
 
+export type GeometryTaskInputMode =
+  | "shape_name"
+  | "number_with_unit"
+  | "split_name_perimeter_area";
+
 export type MathWorksheetTask = {
   id: string;
   type: "shape_name" | "perimeter" | "area" | "all_in_one";
@@ -42,6 +46,17 @@ export type MathWorksheetTask = {
   explanation?: string;
   hint?: string;
   formula?: string;
+
+  // Valgfrie felt for digital løsning senere.
+  // De påvirker ikke dagens print-visning.
+  inputMode?: GeometryTaskInputMode;
+  expected?: {
+    shapeName?: string;
+    perimeterValue?: number | null;
+    areaValue?: number | null;
+    perimeterUnit?: "cm" | null;
+    areaUnit?: "cm2" | null;
+  };
 };
 
 export type MathWorksheet = {

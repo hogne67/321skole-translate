@@ -1,4 +1,3 @@
-// app/[locale]/(app)/teacher/spaces/[spaceId]/lessons/[assignmentId]/submissions/[subId]/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -6,10 +5,26 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, onSnapshot, serverTimestamp, Timestamp, writeBatch, type Firestore } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  Timestamp,
+  writeBatch,
+  type Firestore,
+} from "firebase/firestore";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useLocale, useTranslations } from "next-intl";
 import { authedPost } from "@/lib/authedPost";
+import GeometryWorksheetPracticeView from "@/components/generators/math/geometry/GeometryWorksheetPracticeView";
+import GeometryAutoCheckSummary from "@/components/generators/math/geometry/GeometryAutoCheckSummary";
+import GeometryAutoCheckTaskList from "@/components/generators/math/geometry/GeometryAutoCheckTaskList";
+import type { MathWorksheet } from "@/lib/math/geometry/types";
+import type {
+  GeometryAnswersByTaskId,
+  GeometryAutoResult,
+} from "@/lib/math/geometry/submissionTypes";
 
 type Role = "student" | "teacher" | "admin" | "parent" | "creator";
 type ReviewStatus = "reviewed" | "needs_work";
@@ -65,6 +80,7 @@ type SubmissionDoc = {
   updatedAt?: unknown;
   status?: SubmissionStatus;
   answers?: AnswersMap | unknown;
+  answersByTaskId?: AnswersMap | unknown;
   auth?: { isAnon?: boolean; uid?: string | null } | unknown;
 
   studentName?: string;
@@ -72,7 +88,7 @@ type SubmissionDoc = {
 
   teacherFeedback?: TeacherFeedback | null;
   aiFeedback?: AiFeedback | null;
-  auto?: AutoGrade | unknown;
+  auto?: AutoGrade | GeometryAutoResult | unknown;
 
   spaceId?: string;
   assignmentId?: string;
@@ -101,7 +117,15 @@ type AssignmentDoc = {
   createdAt?: unknown;
   assignedAt?: unknown;
   assignedByUid?: string;
+
   lessonType?: string;
+  taskType?: string;
+
+  sourceText?: string;
+  text?: string;
+  tasks?: unknown;
+  coverImageUrl?: string;
+  mathWorksheet?: MathWorksheet | null;
 };
 
 type Lesson = {
@@ -116,6 +140,8 @@ type Lesson = {
   isActive?: boolean;
   status?: string;
   lessonType?: string;
+  taskType?: string;
+  mathWorksheet?: MathWorksheet | null;
 };
 
 type SpaceMemberDoc = {
@@ -130,6 +156,38 @@ type AiResp = { text: string; skipped?: boolean; locale?: string };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
+}
+
+function isMathWorksheet(value: unknown): value is MathWorksheet {
+  if (!value || typeof value !== "object") return false;
+  const v = value as { tasks?: unknown; title?: unknown };
+  return Array.isArray(v.tasks) && typeof v.title === "string";
+}
+
+function hasAssignmentSnapshotContent(a: AssignmentDoc | null): boolean {
+  if (!a) return false;
+  const hasText = String(a.sourceText ?? a.text ?? "").trim().length > 0;
+  const hasTasks = safeTasksArray(a.tasks).length > 0;
+  const hasImage = String(a.coverImageUrl ?? "").trim().length > 0;
+  const hasMathWorksheet = isMathWorksheet(a.mathWorksheet);
+  return hasText || hasTasks || hasImage || hasMathWorksheet;
+}
+
+function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
+  return {
+    title: a.title,
+    level: a.level,
+    topic: a.topic,
+    language: a.language,
+    sourceText: a.sourceText,
+    text: a.text,
+    tasks: a.tasks,
+    coverImageUrl: a.coverImageUrl,
+    status: a.status,
+    lessonType: a.lessonType,
+    taskType: a.taskType,
+    mathWorksheet: a.mathWorksheet ?? null,
+  };
 }
 
 function readLegacyRole(profile: Record<string, unknown>): Role | null {
@@ -202,7 +260,10 @@ function formatDuration(totalSeconds: number | null | undefined): string {
   const seconds = secs % 60;
 
   if (hours > 0) {
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+      2,
+      "0"
+    )}`;
   }
 
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
@@ -285,11 +346,32 @@ function readAutoGrade(sub: SubmissionDoc | null): AutoGrade | null {
   const unansweredAuto = typeof r.unansweredAuto === "number" ? r.unansweredAuto : 0;
   const percentAuto = typeof r.percentAuto === "number" ? r.percentAuto : null;
   const byTask =
-    r.byTask && typeof r.byTask === "object" && !Array.isArray(r.byTask) ? (r.byTask as Record<string, AutoGradeEntry>) : {};
+    r.byTask && typeof r.byTask === "object" && !Array.isArray(r.byTask)
+      ? (r.byTask as Record<string, AutoGradeEntry>)
+      : {};
 
   if (totalAuto === 0 && Object.keys(byTask).length === 0) return null;
 
   return { totalAuto, correctAuto, wrongAuto, unansweredAuto, percentAuto, byTask };
+}
+
+function readGeometryAuto(sub: SubmissionDoc | null): GeometryAutoResult | null {
+  const auto = sub?.auto;
+  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return null;
+
+  const candidate = auto as Partial<GeometryAutoResult>;
+  const hasTaskMap =
+    candidate.byTaskId && typeof candidate.byTaskId === "object" && !Array.isArray(candidate.byTaskId);
+  const hasCounts =
+    typeof candidate.total === "number" ||
+    typeof candidate.correct === "number" ||
+    typeof candidate.wrong === "number" ||
+    typeof candidate.unanswered === "number" ||
+    typeof candidate.percent === "number";
+
+  if (!hasTaskMap && !hasCounts) return null;
+
+  return auto as GeometryAutoResult;
 }
 
 function getAutoEntry(auto: AutoGrade | null, stableId: string): AutoGradeEntry | undefined {
@@ -311,7 +393,7 @@ function withLocale(locale: string, href: string): string {
   if (!href.startsWith("/")) return href;
 
   const seg = href.split("/")[1];
-  if (seg === "en" || seg === "no") return href;
+  if (seg === "en" || seg === "no" || seg === "nb") return href;
 
   if (href === "/") return `/${locale}`;
   return `/${locale}${href}`;
@@ -588,6 +670,18 @@ function Inner() {
   const t = useTranslations("submission");
   const tAny = t as unknown as (key: string, values?: Record<string, unknown>) => string;
   const tCommon = useTranslations("common");
+  const tGeometry = useTranslations("mathGeometry");
+  const tBrand = useTranslations("brandLogo");
+
+  const tGeometryAny = tGeometry as unknown as (
+    key: string,
+    values?: Record<string, unknown>
+  ) => string;
+
+  const tBrandAny = tBrand as unknown as (
+    key: string,
+    values?: Record<string, unknown>
+  ) => string;
 
   const params = useParams();
   const rawSpaceId = (params as Record<string, string | string[] | undefined>)["spaceId"];
@@ -637,6 +731,31 @@ function Inner() {
     () => (hasParams ? doc(db, "spaces", spaceId!, "lessons", assignmentId!) : null),
     [hasParams, spaceId, assignmentId]
   );
+
+  const geometryWorksheet = useMemo(() => {
+    return isMathWorksheet(lesson?.mathWorksheet) ? lesson.mathWorksheet : null;
+  }, [lesson?.mathWorksheet]);
+
+  const isGeometryAssignment = useMemo(() => {
+    const lessonType = String(lesson?.lessonType ?? "").trim().toLowerCase();
+    const lessonTaskType = String(lesson?.taskType ?? "").trim().toLowerCase();
+    const assignmentLessonType = String(assignment?.lessonType ?? "").trim().toLowerCase();
+    const assignmentTaskType = String(assignment?.taskType ?? "").trim().toLowerCase();
+
+    return (
+      lessonType === "math_geometry" ||
+      lessonTaskType === "math_geometry" ||
+      assignmentLessonType === "math_geometry" ||
+      assignmentTaskType === "math_geometry" ||
+      !!geometryWorksheet
+    );
+  }, [
+    lesson?.lessonType,
+    lesson?.taskType,
+    assignment?.lessonType,
+    assignment?.taskType,
+    geometryWorksheet,
+  ]);
 
   useEffect(() => {
     if (!nestedRef) {
@@ -707,18 +826,48 @@ function Inner() {
       setLoadingLesson(true);
 
       try {
+        if (hasAssignmentSnapshotContent(assignment)) {
+          if (alive) setLesson(assignmentSnapshotToLesson(assignment!));
+          return;
+        }
+
         const srcType = (assignment?.sourceType ?? "library") as SourceType;
         const srcId = String(assignment?.sourceId ?? "").trim();
+
         if (!srcId) {
           if (alive) setLesson(null);
           return;
         }
 
         const lSnap =
-          srcType === "library" ? await getDoc(doc(db, "published_lessons", srcId)) : await getDoc(doc(db, "lessons", srcId));
+          srcType === "library"
+            ? await getDoc(doc(db, "published_lessons", srcId))
+            : await getDoc(doc(db, "lessons", srcId));
 
         if (!alive) return;
-        setLesson(lSnap.exists() ? ((lSnap.data() as Lesson) ?? {}) : null);
+
+        const sourceLesson = lSnap.exists() ? ((lSnap.data() as Lesson) ?? {}) : null;
+
+        if (!sourceLesson) {
+          setLesson(null);
+          return;
+        }
+
+        setLesson({
+          title: assignment?.title ?? sourceLesson.title,
+          level: assignment?.level ?? sourceLesson.level,
+          topic: assignment?.topic ?? sourceLesson.topic,
+          language: assignment?.language ?? sourceLesson.language,
+          sourceText: assignment?.sourceText ?? sourceLesson.sourceText,
+          text: assignment?.text ?? sourceLesson.text,
+          tasks: assignment?.tasks ?? sourceLesson.tasks,
+          coverImageUrl: assignment?.coverImageUrl ?? sourceLesson.coverImageUrl,
+          status: sourceLesson.status,
+          isActive: sourceLesson.isActive,
+          lessonType: assignment?.lessonType ?? sourceLesson.lessonType,
+          taskType: assignment?.taskType ?? sourceLesson.taskType,
+          mathWorksheet: assignment?.mathWorksheet ?? sourceLesson.mathWorksheet ?? null,
+        });
       } catch (e) {
         const info = getErrorInfo(e);
         console.log("[TEACHER] read lesson ERROR =>", info.code, info.message, e);
@@ -731,7 +880,7 @@ function Inner() {
     return () => {
       alive = false;
     };
-  }, [assignment?.sourceId, assignment?.sourceType]);
+  }, [assignment]);
 
   useEffect(() => {
     let alive = true;
@@ -741,7 +890,9 @@ function Inner() {
 
       const direct =
         (typeof sub.studentName === "string" && sub.studentName.trim() ? sub.studentName.trim() : "") ||
-        (typeof sub.studentDisplayName === "string" && sub.studentDisplayName.trim() ? sub.studentDisplayName.trim() : "");
+        (typeof sub.studentDisplayName === "string" && sub.studentDisplayName.trim()
+          ? sub.studentDisplayName.trim()
+          : "");
 
       const authInfo = readAuth(sub);
       if (direct) {
@@ -818,7 +969,10 @@ function Inner() {
     }
   }
 
-  const backLink = withLocale(locale, hasParams ? `/teacher/spaces/${spaceId}/lessons/${assignmentId}` : "/teacher/spaces");
+  const backLink = withLocale(
+    locale,
+    hasParams ? `/teacher/spaces/${spaceId}/lessons/${assignmentId}` : "/teacher/spaces"
+  );
 
   if (!hasParams) {
     return (
@@ -867,24 +1021,58 @@ function Inner() {
     .slice()
     .sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
 
-  const answersMap = readAnswerMap(sub.answers);
-  const auto = readAutoGrade(sub);
+  const answersMap = readAnswerMap(isGeometryAssignment ? sub.answersByTaskId : sub.answers);
+  const auto = isGeometryAssignment ? null : readAutoGrade(sub);
+  const geometryAuto = isGeometryAssignment ? readGeometryAuto(sub) : null;
+
+  const geometryPercent =
+    geometryAuto && typeof geometryAuto.percent === "number" && Number.isFinite(geometryAuto.percent)
+      ? geometryAuto.percent
+      : null;
+  const geometryCorrect =
+    geometryAuto && typeof geometryAuto.correct === "number" && Number.isFinite(geometryAuto.correct)
+      ? geometryAuto.correct
+      : 0;
+  const geometryPartial =
+    geometryAuto &&
+    typeof geometryAuto.partial === "number" &&
+    Number.isFinite(geometryAuto.partial)
+      ? geometryAuto.partial
+      : 0;
+  const geometryWrong =
+    geometryAuto && typeof geometryAuto.wrong === "number" && Number.isFinite(geometryAuto.wrong)
+      ? geometryAuto.wrong
+      : 0;
+  const geometryUnanswered =
+    geometryAuto &&
+    typeof geometryAuto.unanswered === "number" &&
+    Number.isFinite(geometryAuto.unanswered)
+      ? geometryAuto.unanswered
+      : 0;
+  const geometryTotal =
+    geometryAuto && typeof geometryAuto.total === "number" && Number.isFinite(geometryAuto.total)
+      ? geometryAuto.total
+      : 0;
 
   const isReadingTest = isReadingTestLesson(assignment, lesson, tasksOriginal);
   const readingMeta = readReadingTestMeta(sub);
+
   const readingSummaryText = isReadingTest
     ? readingMeta.timedOut === true
-      ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
-          readingMeta.limitSeconds
-        )}. Besvarelsen ble sendt automatisk da tiden gikk ut.`
+      ? t("readingSummary.timedOut", {
+          used: formatDuration(readingMeta.usedSeconds),
+          limit: formatDuration(readingMeta.limitSeconds),
+        })
       : readingMeta.submittedManually === true
-        ? `Lesetest: Eleven brukte ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
-            readingMeta.limitSeconds
-          )} og leverte manuelt før tiden var ute.`
+        ? t("readingSummary.submittedManually", {
+            used: formatDuration(readingMeta.usedSeconds),
+            limit: formatDuration(readingMeta.limitSeconds),
+          })
         : readingMeta.usedSeconds != null || readingMeta.limitSeconds != null
-          ? `Lesetest: Tidsbruk ${formatDuration(readingMeta.usedSeconds)} av ${formatDuration(
-              readingMeta.limitSeconds
-            )}.`
+          ? t("readingSummary.generic", {
+              used: formatDuration(readingMeta.usedSeconds),
+              limit: formatDuration(readingMeta.limitSeconds),
+            })
           : ""
     : "";
 
@@ -931,37 +1119,82 @@ function Inner() {
 
           <div className="flex flex-wrap gap-2">
             <StatusPill status={rawStatus} t={(k) => t(k)} />
-            <AutoGradeBadge auto={auto} t={tAny} />
+            {!isGeometryAssignment ? <AutoGradeBadge auto={auto} t={tAny} /> : null}
             {lessonLevel ? <Badge text={t("studentView.level", { v: lessonLevel })} /> : null}
+            {isGeometryAssignment ? (
+              <>
+                <Badge text={t("meta.geometryBadge")} kind="good" />
+                {geometryPercent != null ? (
+                  <Badge
+                    text={t("meta.geometryAutoBadge", { pct: geometryPercent })}
+                    kind={geometryPercent >= 80 ? "good" : geometryPercent >= 50 ? "warn" : "bad"}
+                    title={t("meta.geometryAutoBadgeTitle", {
+                      correct: geometryCorrect,
+                      partial: geometryPartial,
+                      wrong: geometryWrong,
+                      unanswered: geometryUnanswered,
+                    })}
+                  />
+                ) : null}
+              </>
+            ) : null}
             {authInfo.isAnon ? (
               <Badge text={t("meta.guest")} />
             ) : (
-              <Badge text={`${t("meta.loggedIn")} · uid: ${authInfo.uid ?? "—"}`} />
+              <Badge text={t("meta.loggedInWithUid", { uid: authInfo.uid ?? "—" })} />
             )}
           </div>
 
-          {(isReadingTest || auto) && (
+          {(isReadingTest || auto || isGeometryAssignment) && (
             <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3">
               {isReadingTest ? (
                 <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                  <div className="text-sm font-semibold text-slate-900">Lesetest-data</div>
+                  <div className="text-sm font-semibold text-slate-900">{t("meta.readingTestDataTitle")}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge text={`Tidsgrense: ${formatDuration(readingMeta.limitSeconds)}`} />
-                    <Badge text={`Brukt tid: ${formatDuration(readingMeta.usedSeconds)}`} kind="good" />
+                    <Badge text={t("meta.timeLimit", { value: formatDuration(readingMeta.limitSeconds) })} />
+                    <Badge text={t("meta.timeUsed", { value: formatDuration(readingMeta.usedSeconds) })} kind="good" />
                     {readingMeta.timedOut === true ? (
-                      <Badge text="Sendt ved timeout" kind="warn" />
+                      <Badge text={t("meta.sentOnTimeout")} kind="warn" />
                     ) : readingMeta.submittedManually === true ? (
-                      <Badge text="Levert manuelt" kind="good" />
+                      <Badge text={t("meta.submittedManually")} kind="good" />
                     ) : (
-                      <Badge text="Leveringsmåte ukjent" />
+                      <Badge text={t("meta.deliveryMethodUnknown")} />
                     )}
                   </div>
                   <div className="mt-3 text-sm text-slate-700">
                     {readingMeta.timedOut === true
-                      ? "Eleven rakk ikke å levere selv. Systemet sendte testen automatisk da tiden gikk ut."
+                      ? t("meta.readingTimedOutDesc")
                       : readingMeta.submittedManually === true
-                        ? "Eleven leverte testen selv før tiden var ute."
-                        : "Denne innleveringen har ikke full lesetest-metadata ennå."}
+                        ? t("meta.readingManualDesc")
+                        : t("meta.readingMissingMetaDesc")}
+                  </div>
+                </div>
+              ) : isGeometryAssignment ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="text-sm font-semibold text-slate-900">{t("meta.geometryTitle")}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge text={t("meta.geometryAnswersLoaded")} kind="good" />
+                    <Badge
+                      text={geometryWorksheet ? t("meta.geometryWorksheetFound") : t("meta.geometryWorksheetMissing")}
+                      kind={geometryWorksheet ? "good" : "warn"}
+                    />
+                    {geometryPercent != null ? (
+                      <Badge
+                        text={t("meta.scoreValue", { value: geometryPercent })}
+                        kind={geometryPercent >= 80 ? "good" : geometryPercent >= 50 ? "warn" : "bad"}
+                      />
+                    ) : null}
+                  </div>
+                  <div className="mt-3 text-sm text-slate-700">
+                    {geometryAuto
+                      ? t("meta.geometrySummary", {
+                          correct: geometryCorrect,
+                          partial: geometryPartial,
+                          wrong: geometryWrong,
+                          unanswered: geometryUnanswered,
+                          total: geometryTotal,
+                        })
+                      : t("meta.geometrySummaryFallback")}
                   </div>
                 </div>
               ) : null}
@@ -970,14 +1203,14 @@ function Inner() {
                 <div className="text-sm font-semibold text-slate-900">{t("meta.deliveryTitle")}</div>
                 <div className="mt-3 grid gap-2 text-sm text-slate-700">
                   <div>
-                    <span className="font-medium">{t("meta.delivered")}:</span> {createdAt || "—"}
+                    <span className="font-medium">{t("meta.deliveredLabel")}</span> {createdAt || "—"}
                   </div>
                   <div>
-                    <span className="font-medium">{t("meta.studentLabel")}:</span>{" "}
+                    <span className="font-medium">{t("meta.studentLabel")}</span>{" "}
                     {studentName || (authInfo.isAnon ? t("fallback.guest") : authInfo.uid || "—")}
                   </div>
                   <div>
-                    <span className="font-medium">{t("meta.statusLabel")}:</span> {String(rawStatus || "—")}
+                    <span className="font-medium">{t("meta.statusLabel")}</span> {String(rawStatus || "—")}
                   </div>
                 </div>
               </div>
@@ -987,20 +1220,42 @@ function Inner() {
                 {auto ? (
                   <div className="mt-3 grid gap-2 text-sm text-slate-700">
                     <div>
-                      <span className="font-medium">Riktige:</span> {auto.correctAuto}
+                      <span className="font-medium">{t("meta.correctLabel")}</span> {auto.correctAuto}
                     </div>
                     <div>
-                      <span className="font-medium">Feil:</span> {auto.wrongAuto}
+                      <span className="font-medium">{t("meta.wrongLabel")}</span> {auto.wrongAuto}
                     </div>
                     <div>
-                      <span className="font-medium">Ubesvart:</span> {auto.unansweredAuto}
+                      <span className="font-medium">{t("meta.unansweredLabel")}</span> {auto.unansweredAuto}
                     </div>
                     <div>
-                      <span className="font-medium">Score:</span> {auto.percentAuto ?? "—"}%
+                      <span className="font-medium">{t("meta.scoreLabel")}</span> {auto.percentAuto ?? "—"}%
                     </div>
                   </div>
+                ) : isGeometryAssignment ? (
+                  geometryAuto ? (
+                    <div className="mt-3 grid gap-2 text-sm text-slate-700">
+                      <div>
+                        <span className="font-medium">{t("meta.correctLabel")}</span> {geometryCorrect}
+                      </div>
+                      <div>
+                        <span className="font-medium">{t("meta.partialLabel")}</span> {geometryPartial}
+                      </div>
+                      <div>
+                        <span className="font-medium">{t("meta.wrongLabel")}</span> {geometryWrong}
+                      </div>
+                      <div>
+                        <span className="font-medium">{t("meta.unansweredLabel")}</span> {geometryUnanswered}
+                      </div>
+                      <div>
+                        <span className="font-medium">{t("meta.scoreLabel")}</span> {geometryPercent ?? "—"}%
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-sm text-slate-600">{t("meta.noGeometryAutoScore")}</div>
+                  )
                 ) : (
-                  <div className="mt-3 text-sm text-slate-600">Ingen autoscore-data.</div>
+                  <div className="mt-3 text-sm text-slate-600">{t("meta.noAutoScore")}</div>
                 )}
               </div>
             </div>
@@ -1016,7 +1271,7 @@ function Inner() {
 
       {!canOperate && (
         <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-700 shadow-sm">
-          Du har ikke lærerrettigheter til å gi tilbakemelding på denne siden.
+          {t("notice.noTeacherRights")}
         </div>
       )}
 
@@ -1037,38 +1292,74 @@ function Inner() {
               {lessonLevel ? <div className="text-sm text-slate-600">{t("studentView.level", { v: lessonLevel })}</div> : null}
             </div>
 
-            <div className="rounded-xl border border-slate-300 bg-slate-50 p-3">
-              <div
-                className="flex w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white"
-                style={{ aspectRatio: "16 / 9" }}
-              >
-                {cover ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={cover}
-                    alt={t("studentView.imageAlt")}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                ) : (
-                  <div className="px-4 text-center text-sm text-slate-600">
-                    <div className="mb-1 font-semibold text-slate-800">{t("studentView.noImageTitle")}</div>
-                    <div>{t("studentView.noImageDesc")}</div>
+            {!isGeometryAssignment ? (
+              <>
+                <div className="rounded-xl border border-slate-300 bg-slate-50 p-3">
+                  <div
+                    className="flex w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white"
+                    style={{ aspectRatio: "16 / 9" }}
+                  >
+                    {cover ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={cover}
+                        alt={t("studentView.imageAlt")}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <div className="px-4 text-center text-sm text-slate-600">
+                        <div className="mb-1 font-semibold text-slate-800">{t("studentView.noImageTitle")}</div>
+                        <div>{t("studentView.noImageDesc")}</div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {sourceText.trim() ? (
-              <div className="rounded-xl border border-slate-300 bg-white p-4">
-                <div className="mb-2 text-xs text-slate-500">{t("studentView.textTitle")}</div>
-                <div className="whitespace-pre-wrap leading-7 text-slate-800">{sourceText}</div>
-              </div>
+                {sourceText.trim() ? (
+                  <div className="rounded-xl border border-slate-300 bg-white p-4">
+                    <div className="mb-2 text-xs text-slate-500">{t("studentView.textTitle")}</div>
+                    <div className="whitespace-pre-wrap leading-7 text-slate-800">{sourceText}</div>
+                  </div>
+                ) : null}
+              </>
             ) : null}
 
             <div>
-              <div className="mb-3 text-base font-semibold text-slate-900">{t("studentView.tasksTitle")}</div>
+              <div className="mb-3 text-base font-semibold text-slate-900">
+                {isGeometryAssignment ? t("studentView.geometryTitle") : t("studentView.tasksTitle")}
+              </div>
 
-              {tasksOriginal.length === 0 ? (
+              {isGeometryAssignment && geometryWorksheet ? (
+                <div className="grid gap-4">
+                  <div className="rounded-xl border border-slate-300 bg-white p-3">
+                    <GeometryWorksheetPracticeView
+                      worksheet={geometryWorksheet}
+                      t={tGeometryAny}
+                      tBrand={tBrandAny}
+                      answersByTaskId={answersMap as GeometryAnswersByTaskId}
+                      onAnswerChange={() => {
+                        // read-only teacher view
+                      }}
+                      showExpectedAnswers={true}
+                      showIdentityFields={false}
+                      showFigureMeta={true}
+                      includeHints={true}
+                    />
+                  </div>
+
+                  {geometryAuto ? (
+                    <>
+                      <GeometryAutoCheckSummary auto={geometryAuto} t={tGeometryAny} />
+                      <GeometryAutoCheckTaskList
+                        worksheet={geometryWorksheet}
+                        auto={geometryAuto}
+                        answersByTaskId={answersMap as GeometryAnswersByTaskId}
+                        t={tGeometryAny}
+                      />
+                    </>
+                  ) : null}
+                </div>
+              ) : tasksOriginal.length === 0 ? (
                 <div className="text-sm text-slate-600">
                   {t("studentView.noTasks")}
                   <br />
@@ -1095,11 +1386,16 @@ function Inner() {
                         type === "fill_in_word");
 
                     const autoBadge =
-                      showAutoMark && entry
-                        ? entry.isCorrect
-                          ? <Badge text={t("auto.taskCorrect")} kind="good" />
-                          : <Badge text={val == null ? t("auto.taskUnanswered") : t("auto.taskWrong")} kind={val == null ? "neutral" : "bad"} />
-                        : null;
+                      showAutoMark && entry ? (
+                        entry.isCorrect ? (
+                          <Badge text={t("auto.taskCorrect")} kind="good" />
+                        ) : (
+                          <Badge
+                            text={val == null ? t("auto.taskUnanswered") : t("auto.taskWrong")}
+                            kind={val == null ? "neutral" : "bad"}
+                          />
+                        )
+                      ) : null;
 
                     const orderLabel = task?.order ?? idx + 1;
 
@@ -1172,7 +1468,7 @@ function Inner() {
                           </div>
                         ) : null}
 
-                        {(type === "truefalse" || type === "true_false") ? (
+                        {type === "truefalse" || type === "true_false" ? (
                           <div className="flex flex-wrap gap-2">
                             <div
                               className="rounded-xl border border-slate-300 px-3 py-2"
@@ -1201,7 +1497,9 @@ function Inner() {
                           </div>
                         ) : null}
 
-                        {type === "open" || type === "short_answer" || ![
+                        {type === "open" ||
+                        type === "short_answer" ||
+                        ![
                           "mcq",
                           "truefalse",
                           "true_false",
@@ -1366,7 +1664,7 @@ function Inner() {
                   }}
                   className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
                 >
-                  Sett inn tidsdata
+                  {t("feedback.insertTimingData")}
                 </button>
               ) : null}
 

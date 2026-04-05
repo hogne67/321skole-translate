@@ -1,4 +1,4 @@
-// app\api\producer\save-math-worksheet\route.ts
+// app/api/producer/save-math-worksheet/route.ts
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -16,7 +16,9 @@ type FigureKind =
   | "parallelogram"
   | "rhombus"
   | "trapezoid"
-  | "triangle"
+  | "triangle_right"
+  | "triangle_isosceles"
+  | "triangle_equilateral"
   | "circle";
 
 type FigureSpec = {
@@ -43,6 +45,14 @@ type MathWorksheetTask = {
   explanation?: string;
   hint?: string;
   formula?: string;
+  inputMode?: "shape_name" | "number_with_unit" | "split_name_perimeter_area";
+  expected?: {
+    shapeName?: string;
+    perimeterValue?: number | null;
+    areaValue?: number | null;
+    perimeterUnit?: "cm" | null;
+    areaUnit?: "cm2" | null;
+  };
 };
 
 type MathWorksheet = {
@@ -94,7 +104,9 @@ function isFigureKind(value: unknown): value is FigureKind {
     value === "parallelogram" ||
     value === "rhombus" ||
     value === "trapezoid" ||
-    value === "triangle" ||
+    value === "triangle_right" ||
+    value === "triangle_isosceles" ||
+    value === "triangle_equilateral" ||
     value === "circle"
   );
 }
@@ -115,6 +127,54 @@ function stripUndefinedDeep<T>(value: T): T {
   }
 
   return value;
+}
+
+function sanitizeNullableNumber(value: unknown): number | null | undefined {
+  if (value === null) return null;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function sanitizeExpected(
+  value: unknown
+): MathWorksheetTask["expected"] | undefined {
+  if (!isRecord(value)) return undefined;
+
+  const shapeName = safeString(value.shapeName) || undefined;
+  const perimeterValue = sanitizeNullableNumber(value.perimeterValue);
+  const areaValue = sanitizeNullableNumber(value.areaValue);
+
+  const perimeterUnit =
+    value.perimeterUnit === "cm" || value.perimeterUnit === null
+      ? value.perimeterUnit
+      : undefined;
+
+  const areaUnit =
+    value.areaUnit === "cm2" || value.areaUnit === null
+      ? value.areaUnit
+      : undefined;
+
+  const cleaned = stripUndefinedDeep({
+    shapeName,
+    perimeterValue,
+    areaValue,
+    perimeterUnit,
+    areaUnit,
+  }) as NonNullable<MathWorksheetTask["expected"]>;
+
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+}
+
+function sanitizeInputMode(
+  value: unknown
+): MathWorksheetTask["inputMode"] | undefined {
+  if (
+    value === "shape_name" ||
+    value === "number_with_unit" ||
+    value === "split_name_perimeter_area"
+  ) {
+    return value;
+  }
+  return undefined;
 }
 
 function sanitizeFigureSpec(value: unknown): FigureSpec | undefined {
@@ -166,6 +226,8 @@ function sanitizeTask(value: unknown, index: number): MathWorksheetTask | null {
     explanation: safeString(value.explanation) || undefined,
     hint: safeString(value.hint) || undefined,
     formula: safeString(value.formula) || undefined,
+    inputMode: sanitizeInputMode(value.inputMode),
+    expected: sanitizeExpected(value.expected),
   });
 }
 
@@ -283,8 +345,9 @@ export async function POST(req: Request) {
       sourceText: plainText,
       language: worksheet.language,
       level: worksheet.level,
-      status: "draft",
-      lessonType: "math_worksheet",
+      status: "published",
+      lessonType: "math_geometry",
+      taskType: "math_geometry",
       textType: "worksheet",
       topic: worksheet.topic,
       difficulty: worksheet.difficulty,

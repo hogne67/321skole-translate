@@ -1,4 +1,5 @@
-// app)\student\spaces\[spaceId]\assignments\[assignmentId]\page.tsx
+// app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
+// app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/page.tsx
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +17,15 @@ import ReadingTestPlayer, {
   type ReadingLessonTask,
   type ReadingTestConfig,
 } from "@/components/student/ReadingTestPlayer";
+import GeometryWorksheetPracticeView from "@/components/generators/math/geometry/GeometryWorksheetPracticeView";
+import type { MathWorksheet } from "@/lib/math/geometry/types";
+import type {
+  GeometryAnswersByTaskId,
+  GeometryAutoResult,
+} from "@/lib/math/geometry/submissionTypes";
+import { gradeGeometryWorksheet } from "@/lib/math/geometry/autoCheck";
+import GeometryAutoCheckSummary from "@/components/generators/math/geometry/GeometryAutoCheckSummary";
+import GeometryAutoCheckTaskList from "@/components/generators/math/geometry/GeometryAutoCheckTaskList";
 
 /* =========================
    Types
@@ -33,7 +43,9 @@ type Lesson = {
   isActive?: boolean;
   status?: string;
   lessonType?: string;
+  taskType?: string;
   readingTestConfig?: ReadingTestConfig | null;
+  mathWorksheet?: MathWorksheet | null;
 };
 
 type SourceType = "myContent" | "library";
@@ -56,7 +68,9 @@ type AssignmentDoc = {
   tasks?: unknown;
   coverImageUrl?: string;
   lessonType?: string;
+  taskType?: string;
   readingTestConfig?: ReadingTestConfig | null;
+  mathWorksheet?: MathWorksheet | null;
 };
 
 type TaskType = "mcq" | "truefalse" | "open";
@@ -119,7 +133,9 @@ type SubmissionDoc = {
   updatedAt?: unknown;
   createdAt?: unknown;
   answers?: AnswersMap | unknown;
+  answersByTaskId?: AnswersMap | unknown;
   auto?: AutoGrade | unknown;
+  aiFeedback?: unknown;
 };
 
 /* =========================
@@ -175,7 +191,8 @@ function hasSnapshotContent(a: AssignmentDoc | null): boolean {
   const hasText = String(a.sourceText ?? a.text ?? "").trim().length > 0;
   const hasTasks = safeTasksArray(a.tasks).length > 0;
   const hasImage = String(a.coverImageUrl ?? "").trim().length > 0;
-  return hasText || hasTasks || hasImage;
+  const hasMathWorksheet = !!a.mathWorksheet && typeof a.mathWorksheet === "object";
+  return hasText || hasTasks || hasImage || hasMathWorksheet;
 }
 
 function assignmentToLesson(a: AssignmentDoc): Lesson {
@@ -190,8 +207,17 @@ function assignmentToLesson(a: AssignmentDoc): Lesson {
     coverImageUrl: a.coverImageUrl,
     status: a.status,
     lessonType: a.lessonType,
+    taskType: a.taskType,
     readingTestConfig: a.readingTestConfig ?? null,
+    mathWorksheet: a.mathWorksheet ?? null,
   };
+}
+
+function isMathWorksheet(value: unknown): value is MathWorksheet {
+  if (!value || typeof value !== "object") return false;
+
+  const v = value as { tasks?: unknown; title?: unknown };
+  return Array.isArray(v.tasks) && typeof v.title === "string";
 }
 
 async function translateOne(text: string, targetLang: string) {
@@ -250,7 +276,7 @@ async function resolveUserForStudentPage(): Promise<User> {
 }
 
 function normalizeBool(v: unknown): boolean | null {
-  if (typeof v === "boolean") return v;
+  if (typeof v === "boolean") return true === v || false === v ? v : null;
   if (typeof v === "string") {
     const s = v.trim().toLowerCase();
     if (s === "true") return true;
@@ -479,9 +505,20 @@ function toDateString(v: unknown) {
 }
 
 function normalizeStatus(s: unknown): SubmissionStatus {
-  const v = String(s ?? "").trim().toLowerCase();
-  if (!v) return "";
-  return v as SubmissionStatus;
+  const raw = String(s ?? "").trim();
+  if (!raw) return "";
+
+  const lowered = raw.toLowerCase();
+  const compact = lowered.replace(/[\s_-]+/g, "");
+
+  if (compact === "needswork") return "needs_work";
+  if (compact === "reviewed") return "reviewed";
+  if (compact === "approved") return "approved";
+  if (compact === "submitted") return "submitted";
+  if (compact === "draft") return "draft";
+  if (compact === "rejected") return "rejected";
+
+  return lowered as SubmissionStatus;
 }
 
 function statusTheme(s: SubmissionStatus): { border: string; bg: string } {
@@ -525,6 +562,59 @@ function buildSubmissionId(
 ) {
   if (editingSubmissionId) return editingSubmissionId;
   return `${spaceId}_${assignmentId}_${currentUid}`;
+}
+
+function toFiniteNumberOrNull(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+
+  if (typeof v === "string") {
+    const trimmed = v.trim();
+    if (!trimmed) return null;
+
+    const normalized = trimmed
+      .replace(",", ".")
+      .replace(/\s*(cm|m|mm|kvadratcentimeter|cm2|cm²|m2|m²)\s*$/i, "")
+      .trim();
+
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return null;
+}
+
+function normalizeGeometryAnswersByTaskId(raw: unknown): GeometryAnswersByTaskId {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+
+  const input = raw as Record<string, unknown>;
+  const out: GeometryAnswersByTaskId = {};
+
+  for (const [taskId, value] of Object.entries(input)) {
+    const row =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
+
+    const shapeName =
+      typeof row.shapeName === "string" && row.shapeName.trim()
+        ? row.shapeName.trim()
+        : undefined;
+
+    out[taskId] = {
+      taskId,
+      shapeName,
+      perimeterValue: toFiniteNumberOrNull(row.perimeterValue),
+      areaValue: toFiniteNumberOrNull(row.areaValue),
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  return out;
+}
+
+function isFinalSubmissionStatus(status: SubmissionStatus): boolean {
+  const s = normalizeStatus(status);
+  return s === "submitted" || s === "reviewed" || s === "approved";
 }
 
 /* =========================
@@ -601,30 +691,34 @@ function StatusToggleButton({
   kind: "warn" | "good";
   title: string;
 }) {
-  const bg = active ? (kind === "good" ? "rgba(46,204,113,0.18)" : "rgba(245,158,11,0.16)") : "white";
-  const border = active
-    ? kind === "good"
-      ? "rgba(46,204,113,0.55)"
-      : "rgba(245,158,11,0.55)"
-    : "rgba(0,0,0,0.14)";
+  const activeBg =
+    kind === "good" ? "rgba(46,204,113,0.18)" : "rgba(245,158,11,0.18)";
+  const activeBorder =
+    kind === "good" ? "rgba(46,204,113,0.60)" : "rgba(245,158,11,0.60)";
+  const activeText =
+    kind === "good" ? "rgba(5,150,105,1)" : "rgba(180,83,9,1)";
 
   return (
-    <button
-      type="button"
-      disabled
+    <span
+      title={title}
       aria-pressed={active}
       style={{
-        ...btnStyle,
-        cursor: "default",
-        borderColor: border,
-        background: bg,
-        fontWeight: active ? 800 : 600,
-        opacity: active ? 1 : 0.8,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: 40,
+        padding: "8px 12px",
+        borderRadius: 10,
+        border: `1px solid ${active ? activeBorder : "rgba(0,0,0,0.14)"}`,
+        background: active ? activeBg : "white",
+        color: active ? activeText : "rgba(0,0,0,0.75)",
+        fontWeight: active ? 900 : 700,
+        opacity: 1,
+        whiteSpace: "nowrap",
       }}
-      title={title}
     >
       {label}
-    </button>
+    </span>
   );
 }
 
@@ -653,6 +747,17 @@ function SmartImage({ src, alt }: { src: string; alt: string }) {
 
 export default function StudentAssignmentPage() {
   const t = useTranslations("studentAssignment");
+  const tGeometry = useTranslations("mathGeometry");
+  const tBrand = useTranslations("brandLogo");
+  const tGeometryAny = tGeometry as unknown as (
+    key: string,
+    values?: Record<string, unknown>
+  ) => string;
+
+  const tBrandAny = tBrand as unknown as (
+    key: string,
+    values?: Record<string, unknown>
+  ) => string;
 
   const params = useParams<{ spaceId: string; assignmentId: string }>();
   const spaceId = params?.spaceId;
@@ -673,7 +778,8 @@ export default function StudentAssignmentPage() {
 
   const [answers, setAnswers] = useState<AnswersMap>({});
   const answersRef = useRef<AnswersMap>({});
-  const [saving, setSaving] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [submitted, setSubmitted] = useState(false);
@@ -684,6 +790,7 @@ export default function StudentAssignmentPage() {
   const [liveTeacherUpdatedAt, setLiveTeacherUpdatedAt] = useState<string | null>(null);
   const [liveUpdatedAt, setLiveUpdatedAt] = useState<string | null>(null);
   const [liveAuto, setLiveAuto] = useState<AutoGrade | null>(null);
+  const [liveGeometryAuto, setLiveGeometryAuto] = useState<GeometryAutoResult | null>(null);
 
   const [targetLang, setTargetLang] = useState("no");
   const [translatedText, setTranslatedText] = useState<string | null>(null);
@@ -728,6 +835,25 @@ export default function StudentAssignmentPage() {
       return type === "word_choice" || type === "sentence_placement" || type === "best_summary";
     });
   }, [lesson?.lessonType, tasksOriginal]);
+
+  const geometryWorksheet = useMemo(() => {
+    return isMathWorksheet(lesson?.mathWorksheet) ? lesson.mathWorksheet : null;
+  }, [lesson?.mathWorksheet]);
+
+  const isGeometryAssignment = useMemo(() => {
+    const lessonType = String(lesson?.lessonType ?? "").trim().toLowerCase();
+    const taskType = String(lesson?.taskType ?? "").trim().toLowerCase();
+    const assignmentLessonType = String(assignment?.lessonType ?? "").trim().toLowerCase();
+    const assignmentTaskType = String(assignment?.taskType ?? "").trim().toLowerCase();
+
+    return (
+      lessonType === "math_geometry" ||
+      taskType === "math_geometry" ||
+      assignmentLessonType === "math_geometry" ||
+      assignmentTaskType === "math_geometry" ||
+      !!geometryWorksheet
+    );
+  }, [lesson, assignment, geometryWorksheet]);
 
   const tMap = useMemo(() => {
     const m = new Map<string, TranslatedTask>();
@@ -1095,11 +1221,18 @@ export default function StudentAssignmentPage() {
             status: d.status,
             isActive: d.isActive,
             lessonType: aDoc.lessonType ?? d.lessonType,
+            taskType: aDoc.taskType ?? d.taskType,
             readingTestConfig: aDoc.readingTestConfig ?? d.readingTestConfig ?? null,
+            mathWorksheet: aDoc.mathWorksheet ?? d.mathWorksheet ?? null,
           };
         }
 
         setLesson(resolvedLesson);
+
+        const isGeometryResolved =
+          String(resolvedLesson?.lessonType ?? "").trim().toLowerCase() === "math_geometry" ||
+          String(resolvedLesson?.taskType ?? "").trim().toLowerCase() === "math_geometry" ||
+          isMathWorksheet(resolvedLesson?.mathWorksheet);
 
         setTranslatedText(null);
         setTranslatedTasks(null);
@@ -1125,6 +1258,7 @@ export default function StudentAssignmentPage() {
         setLiveTeacherUpdatedAt(null);
         setLiveUpdatedAt(null);
         setLiveAuto(null);
+        setLiveGeometryAuto(null);
 
         if (sid) {
           const sRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", sid);
@@ -1136,15 +1270,32 @@ export default function StudentAssignmentPage() {
 
             const sStatus = normalizeStatus(sd.status);
             setLiveStatus(sStatus);
+            setSubmitted(isFinalSubmissionStatus(sStatus));
             setLiveTeacherText(sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : null);
             setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
             setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
-            setLiveAuto(readAutoGrade(sd));
+
+            const nextAnswers = isGeometryResolved
+              ? (normalizeGeometryAnswersByTaskId(sd.answersByTaskId) as unknown as AnswersMap)
+              : (
+                  sd.answers && typeof sd.answers === "object" && !Array.isArray(sd.answers)
+                    ? (sd.answers as AnswersMap)
+                    : {}
+                );
+
+            if (Object.keys(nextAnswers).length > 0) {
+              setAnswers(nextAnswers);
+            }
+
+            if (isGeometryResolved) {
+              setLiveGeometryAuto((sd.auto as GeometryAutoResult | null) ?? null);
+              setLiveAuto(null);
+            } else {
+              setLiveAuto(readAutoGrade(sd));
+              setLiveGeometryAuto(null);
+            }
 
             if (sStatus === "needs_work" || sStatus === "draft") {
-              const a = sd.answers as unknown;
-              const nextAnswers = a && typeof a === "object" && !Array.isArray(a) ? (a as AnswersMap) : {};
-              setAnswers(nextAnswers);
               setEditingSubmissionId(sid);
             } else {
               setEditingSubmissionId(null);
@@ -1177,15 +1328,32 @@ export default function StudentAssignmentPage() {
 
             const sStatus = normalizeStatus(sd.status);
             setLiveStatus(sStatus);
+            setSubmitted(isFinalSubmissionStatus(sStatus));
             setLiveTeacherText(sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : null);
             setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
             setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
-            setLiveAuto(readAutoGrade(sd));
+
+            const nextAnswers = isGeometryResolved
+              ? (normalizeGeometryAnswersByTaskId(sd.answersByTaskId) as unknown as AnswersMap)
+              : (
+                  sd.answers && typeof sd.answers === "object" && !Array.isArray(sd.answers)
+                    ? (sd.answers as AnswersMap)
+                    : {}
+                );
+
+            if (Object.keys(nextAnswers).length > 0) {
+              setAnswers(nextAnswers);
+            }
+
+            if (isGeometryResolved) {
+              setLiveGeometryAuto((sd.auto as GeometryAutoResult | null) ?? null);
+              setLiveAuto(null);
+            } else {
+              setLiveAuto(readAutoGrade(sd));
+              setLiveGeometryAuto(null);
+            }
 
             if (sStatus === "draft" || sStatus === "needs_work") {
-              const a = sd.answers as unknown;
-              const nextAnswers = a && typeof a === "object" && !Array.isArray(a) ? (a as AnswersMap) : {};
-              setAnswers(nextAnswers);
               setEditingSubmissionId(autoId);
             } else {
               setEditingSubmissionId(null);
@@ -1237,6 +1405,7 @@ export default function StudentAssignmentPage() {
 
         const sStatus = normalizeStatus(sd.status);
         setLiveStatus(sStatus);
+        setSubmitted(isFinalSubmissionStatus(sStatus));
 
         const tText = sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : "";
         setLiveTeacherText(tText ? tText : null);
@@ -1244,10 +1413,24 @@ export default function StudentAssignmentPage() {
         setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
         setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
 
-        setLiveAuto(readAutoGrade(sd));
+        if (isGeometryAssignment) {
+          setLiveGeometryAuto((sd.auto as GeometryAutoResult | null) ?? null);
+          setLiveAuto(null);
 
-        if (sStatus === "needs_work" || sStatus === "draft") setEditingSubmissionId(activeSubId);
-        else if (activeSubId === sid) setEditingSubmissionId(null);
+          const nextAnswers = normalizeGeometryAnswersByTaskId(sd.answersByTaskId);
+          if (Object.keys(nextAnswers).length > 0) {
+            setAnswers(nextAnswers as unknown as AnswersMap);
+          }
+        } else {
+          setLiveAuto(readAutoGrade(sd));
+          setLiveGeometryAuto(null);
+        }
+
+        if (sStatus === "needs_work" || sStatus === "draft") {
+          setEditingSubmissionId(activeSubId);
+        } else {
+          setEditingSubmissionId(null);
+        }
 
         if (sStatus === "submitted" || sStatus === "reviewed" || sStatus === "approved") {
           setReadingTestStarted(true);
@@ -1259,7 +1442,7 @@ export default function StudentAssignmentPage() {
     );
 
     return () => unsub();
-  }, [spaceId, assignmentId, uid, sid, submissionId, editingSubmissionId]);
+  }, [spaceId, assignmentId, uid, sid, submissionId, editingSubmissionId, isGeometryAssignment]);
 
   useEffect(() => {
     setTranslateErr(null);
@@ -1270,7 +1453,7 @@ export default function StudentAssignmentPage() {
     if (!readingTestStarted) return;
     if (!readingTestRuntimeActive) return;
     if (submitted) return;
-    if (saving) return;
+    if (submitting) return;
 
     if (readingTestSecondsLeft == null) return;
     if (readingTestSecondsLeft <= 0) return;
@@ -1283,7 +1466,7 @@ export default function StudentAssignmentPage() {
     }, 1000);
 
     return () => window.clearTimeout(timer);
-  }, [isReadingTest, readingTestStarted, readingTestRuntimeActive, submitted, saving, readingTestSecondsLeft]);
+  }, [isReadingTest, readingTestStarted, readingTestRuntimeActive, submitted, submitting, readingTestSecondsLeft]);
 
   function setReadingTestCountdownFromConfig() {
     if (readingTestTotalSeconds != null) {
@@ -1302,7 +1485,7 @@ export default function StudentAssignmentPage() {
 
   function startReadingTest() {
     if (submitted) return;
-    if (saving) return;
+    if (submitting) return;
     if (isLockedByTeacher()) return;
 
     timeoutHandledRef.current = false;
@@ -1418,8 +1601,9 @@ export default function StudentAssignmentPage() {
       if (submitted) return;
       if (isLockedByTeacher()) return;
       if (isReadingTest) return;
+      if (submitting) return;
 
-      setSaving(true);
+      setDraftSaving(true);
       setErr(null);
       if (manual) setMsg(null);
 
@@ -1428,6 +1612,14 @@ export default function StudentAssignmentPage() {
 
         const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
         const indexRef = doc(db, "spaceSubmissions", subId);
+
+        const isGeometryDraft = isGeometryAssignment && !!geometryWorksheet;
+        const normalizedGeometryAnswers = isGeometryDraft
+          ? normalizeGeometryAnswersByTaskId(answers)
+          : null;
+
+        const currentDraftStatus =
+          normalizeStatus(liveStatus) === "needs_work" ? "needs_work" : "draft";
 
         const basePayload: Record<string, unknown> = stripUndefinedDeep({
           spaceId,
@@ -1439,9 +1631,18 @@ export default function StudentAssignmentPage() {
           language: assignment?.language ?? lesson?.language ?? null,
           uid,
           isAnon,
-          status: "draft",
-          answers,
+          status: currentDraftStatus,
+
+          taskType: isGeometryDraft ? "math_geometry" : null,
+          lessonType: isGeometryDraft ? "math_geometry" : lesson?.lessonType ?? null,
+          mathWorksheet: isGeometryDraft ? geometryWorksheet : null,
+
+          answers: isGeometryDraft ? normalizedGeometryAnswers : answers,
+          answersByTaskId: isGeometryDraft ? normalizedGeometryAnswers : undefined,
+
           auto: null,
+          aiFeedback: null,
+
           startedAt,
           timeSpentSeconds: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
           updatedAt: serverTimestamp(),
@@ -1462,8 +1663,11 @@ export default function StudentAssignmentPage() {
         await batch.commit();
 
         setSubmissionId(subId);
-        setLiveStatus("draft");
+        setEditingSubmissionId(subId);
+        setLiveStatus(currentDraftStatus);
+        setSubmitted(false);
         setLiveAuto(null);
+        setLiveGeometryAuto(null);
 
         if (manual) setMsg("Kladd lagret.");
       } catch (e: unknown) {
@@ -1473,7 +1677,7 @@ export default function StudentAssignmentPage() {
           setErr(typeof m === "string" ? m : t("errors.submitFailed"));
         }
       } finally {
-        setSaving(false);
+        setDraftSaving(false);
       }
     },
     [
@@ -1483,6 +1687,7 @@ export default function StudentAssignmentPage() {
       submitted,
       isLockedByTeacher,
       isReadingTest,
+      submitting,
       assignment,
       lesson,
       isAnon,
@@ -1490,6 +1695,9 @@ export default function StudentAssignmentPage() {
       startedAt,
       editingSubmissionId,
       t,
+      isGeometryAssignment,
+      geometryWorksheet,
+      liveStatus,
     ]
   );
 
@@ -1498,6 +1706,7 @@ export default function StudentAssignmentPage() {
   useEffect(() => {
     if (!uid || !spaceId || !assignmentId) return;
     if (submitted) return;
+    if (submitting) return;
     if (isLockedByTeacher()) return;
     if (isReadingTest) return;
     if (!answers || Object.keys(answers).length === 0) return;
@@ -1511,7 +1720,7 @@ export default function StudentAssignmentPage() {
     }, 900);
 
     return () => window.clearTimeout(timer);
-  }, [answers, uid, spaceId, assignmentId, submitted, isReadingTest, isLockedByTeacher, saveDraft]);
+  }, [answers, uid, spaceId, assignmentId, submitted, submitting, isReadingTest, isLockedByTeacher, saveDraft]);
 
   const submitToSpace = useCallback(
     async (mode: "manual" | "timeout" = "manual", explicitAnswers?: AnswersMap) => {
@@ -1530,18 +1739,32 @@ export default function StudentAssignmentPage() {
         return;
       }
 
-      setSaving(true);
+      setSubmitting(true);
       setErr(null);
       setMsg(null);
 
       try {
         const finalAnswers = explicitAnswers ?? answersRef.current;
+        const normalizedGeometryAnswers = isGeometryAssignment
+          ? normalizeGeometryAnswersByTaskId(finalAnswers)
+          : null;
+
         const subId = buildSubmissionId(spaceId, assignmentId, uid, editingSubmissionId);
 
         const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
         const indexRef = doc(db, "spaceSubmissions", subId);
 
-        const auto = computeAutoGrade(tasksOriginal, finalAnswers);
+        let auto: unknown = computeAutoGrade(tasksOriginal, finalAnswers);
+        const aiFeedback: unknown = null;
+
+        if (isGeometryAssignment && geometryWorksheet) {
+          const geometryAuto = gradeGeometryWorksheet(
+            geometryWorksheet,
+            normalizedGeometryAnswers ?? {}
+          );
+          auto = geometryAuto;
+        }
+
         const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
 
         const basePayload: Record<string, unknown> = stripUndefinedDeep({
@@ -1555,8 +1778,16 @@ export default function StudentAssignmentPage() {
           uid,
           isAnon,
           status: "submitted",
-          answers: finalAnswers,
+
+          taskType: isGeometryAssignment ? "math_geometry" : null,
+          lessonType: isGeometryAssignment ? "math_geometry" : lesson?.lessonType ?? null,
+          mathWorksheet: isGeometryAssignment ? geometryWorksheet : null,
+
+          answers: isGeometryAssignment ? normalizedGeometryAnswers : finalAnswers,
+          answersByTaskId: isGeometryAssignment ? normalizedGeometryAnswers : undefined,
+
           auto,
+          aiFeedback,
 
           startedAt,
           submittedAt: Date.now(),
@@ -1585,12 +1816,19 @@ export default function StudentAssignmentPage() {
         await batch.commit();
 
         setSubmissionId(subId);
+        setEditingSubmissionId(null);
         setSubmitted(true);
         setReadingTestFinished(true);
         setReadingTestRuntimeActive(false);
         setReadingTestSecondsLeft((prev) => (mode === "timeout" ? 0 : prev));
         setLiveStatus("submitted");
-        setLiveAuto(auto);
+        if (isGeometryAssignment) {
+          setLiveGeometryAuto((auto as GeometryAutoResult) ?? null);
+          setLiveAuto(null);
+        } else {
+          setLiveAuto(auto as AutoGrade);
+          setLiveGeometryAuto(null);
+        }
 
         if (mode === "timeout") {
           setMsg("Takk for innsatsen. Tiden er ute, og læreren har mottatt svaret ditt.");
@@ -1606,7 +1844,7 @@ export default function StudentAssignmentPage() {
         setSubmitted(false);
         setSubmissionId(null);
       } finally {
-        setSaving(false);
+        setSubmitting(false);
       }
     },
     [
@@ -1625,6 +1863,8 @@ export default function StudentAssignmentPage() {
       readingTestTotalSeconds,
       t,
       isLockedByTeacher,
+      isGeometryAssignment,
+      geometryWorksheet,
     ]
   );
 
@@ -1893,16 +2133,23 @@ export default function StudentAssignmentPage() {
 
   const currentStatus = normalizeStatus(liveStatus ?? "");
 
-  const canResubmit = currentStatus === "needs_work";
+  const isNeedsWorkStatus = currentStatus === "needs_work";
+  const isSubmittedStatus = currentStatus === "submitted";
+  const isApprovedLikeStatus = currentStatus === "reviewed" || currentStatus === "approved";
 
-  const isAlreadyFinal =
-    currentStatus === "submitted" || currentStatus === "reviewed" || currentStatus === "approved";
+  const canResubmit = isNeedsWorkStatus;
 
-  const showDraftButton = !isReadingTest && !submitted && !isAlreadyFinal;
+  const showDraftButton =
+    !isReadingTest &&
+    !isApprovedLikeStatus &&
+    !isSubmittedStatus;
 
-  const showSubmitButton = !submitted && !isAlreadyFinal && (!isReadingTest || readingTestStarted);
+  const showSubmitButton =
+    !isApprovedLikeStatus &&
+    (!isReadingTest || readingTestStarted) &&
+    (!isSubmittedStatus || isNeedsWorkStatus);
 
-  const submitLabel = saving
+  const submitLabel = submitting
     ? t("actions.saving")
     : canResubmit
       ? t("actions.resubmit")
@@ -1911,7 +2158,22 @@ export default function StudentAssignmentPage() {
         : t("actions.submit");
 
   const submitDisabled =
-    saving || lock || !uid || (isReadingTest && !readingTestStarted) || readingTestFinished;
+    submitting ||
+    lock ||
+    !uid ||
+    (isReadingTest && !readingTestStarted) ||
+    (isReadingTest && readingTestFinished);
+
+  const showGeometryAutoTop =
+    isGeometryAssignment &&
+    !!liveGeometryAuto &&
+    (
+      submitted ||
+      effectiveStatus === "submitted" ||
+      effectiveStatus === "reviewed" ||
+      effectiveStatus === "approved" ||
+      effectiveStatus === "needs_work"
+    );
 
   function SubmitButton({ fullWidth }: { fullWidth?: boolean }) {
     if (!showSubmitButton) return null;
@@ -1934,7 +2196,7 @@ export default function StudentAssignmentPage() {
   function DraftButton() {
     if (!showDraftButton) return null;
 
-    const disabled = saving || lock || !uid;
+    const disabled = draftSaving || submitting || lock || !uid;
 
     return (
       <button
@@ -1948,7 +2210,7 @@ export default function StudentAssignmentPage() {
         }}
         title="Lagrer uten å sende til lærer"
       >
-        Lagre kladd
+        {draftSaving ? "Lagrer kladd..." : "Lagre kladd"}
       </button>
     );
   }
@@ -1962,7 +2224,7 @@ export default function StudentAssignmentPage() {
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          {!isReadingTest && (
+          {!isReadingTest && !isGeometryAssignment && (
             <>
               <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ fontWeight: 800 }}>{t("translate.targetLang")}</span>
@@ -2047,11 +2309,13 @@ export default function StudentAssignmentPage() {
                 text={statusLabel(effectiveStatus)}
                 kind={effectiveStatus === "needs_work" ? "warn" : "neutral"}
               />
-              <AutoGradeBadge
-                auto={liveAuto}
-                labelAuto={t("autograde.label")}
-                labelDetails={(s) => t("autograde.details", { s })}
-              />
+              {!isGeometryAssignment ? (
+                <AutoGradeBadge
+                  auto={liveAuto}
+                  labelAuto={t("autograde.label")}
+                  labelDetails={(s) => t("autograde.details", { s })}
+                />
+              ) : null}
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2071,6 +2335,15 @@ export default function StudentAssignmentPage() {
           </div>
 
           <div style={{ marginTop: 8, opacity: 0.8 }}>{statusDesc(effectiveStatus)}</div>
+
+          {showGeometryAutoTop ? (
+            <div style={{ marginTop: 12 }}>
+              <GeometryAutoCheckSummary
+                auto={liveGeometryAuto}
+                t={tGeometryAny}
+              />
+            </div>
+          ) : null}
 
           {liveTeacherText ? (
             <div style={{ marginTop: 10 }}>
@@ -2092,7 +2365,7 @@ export default function StudentAssignmentPage() {
         </section>
       ) : null}
 
-      {!isReadingTest && (
+      {!isReadingTest && !isGeometryAssignment && (
         <section style={{ marginTop: 18 }}>
           <div
             style={{
@@ -2249,8 +2522,8 @@ export default function StudentAssignmentPage() {
                   <button
                     type="button"
                     onClick={startReadingTest}
-                    disabled={saving || !uid}
-                    style={saving || !uid ? primarySubmitStyleDisabled : primarySubmitStyle}
+                    disabled={submitting || !uid}
+                    style={submitting || !uid ? primarySubmitStyleDisabled : primarySubmitStyle}
                   >
                     Start test
                   </button>
@@ -2344,6 +2617,46 @@ export default function StudentAssignmentPage() {
               </>
             )}
           </>
+        ) : isGeometryAssignment && geometryWorksheet ? (
+          <div style={{ display: "grid", gap: 16 }}>
+            <GeometryWorksheetPracticeView
+              worksheet={geometryWorksheet}
+              t={tGeometryAny}
+              tBrand={tBrandAny}
+              answersByTaskId={answers as GeometryAnswersByTaskId}
+              onAnswerChange={(taskId, patch) => {
+                if (lock || submitted) return;
+
+                setAnswers((prev) => {
+                  const current =
+                    prev[taskId] && typeof prev[taskId] === "object"
+                      ? (prev[taskId] as Record<string, unknown>)
+                      : { taskId };
+
+                  return {
+                    ...prev,
+                    [taskId]: {
+                      ...current,
+                      ...patch,
+                    },
+                  };
+                });
+              }}
+              showExpectedAnswers={false}
+              showIdentityFields={false}
+              showFigureMeta={true}
+              includeHints={true}
+            />
+
+            {showGeometryAutoTop ? (
+              <GeometryAutoCheckTaskList
+                worksheet={geometryWorksheet}
+                auto={liveGeometryAuto}
+                answersByTaskId={answers as GeometryAnswersByTaskId}
+                t={tGeometryAny}
+              />
+            ) : null}
+          </div>
         ) : (
           <>
             <div
@@ -2357,7 +2670,11 @@ export default function StudentAssignmentPage() {
             >
               <h2 style={{ margin: 0, fontSize: 18 }}>{t("tasks.title")}</h2>
 
-              <button type="button" onClick={() => setShowTaskTranslations((v) => !v)} style={btnStyle}>
+              <button
+                type="button"
+                onClick={() => setShowTaskTranslations((v) => !v)}
+                style={btnStyle}
+              >
                 {showTaskTranslations ? t("translate.hide") : t("translate.show")}
               </button>
             </div>

@@ -75,6 +75,9 @@
     "formula": "Formel",
     "hint": "Hint",
     "explanation": "Forklaring",
+    "writeShapeName": "Skriv navn på figuren",
+"writePerimeterAnswer": "Skriv omkrets",
+"writeAreaAnswer": "Skriv areal",
 
     "answerKeyTitle": "Fasit",
     "taskLabel": "Oppgave",

@@ -50,6 +50,14 @@ type MathWorksheetTask = {
   explanation?: string;
   hint?: string;
   formula?: string;
+  inputMode?: "shape_name" | "number_with_unit" | "split_name_perimeter_area";
+  expected?: {
+    shapeName?: string;
+    perimeterValue?: number | null;
+    areaValue?: number | null;
+    perimeterUnit?: "cm" | null;
+    areaUnit?: "cm2" | null;
+  };
 };
 
 type MathWorksheet = {
@@ -101,7 +109,12 @@ function isWorksheetLanguage(value: unknown): value is WorksheetLanguage {
 }
 
 function isGeometryTopic(value: unknown): value is GeometryTopic {
-  return value === "shapes" || value === "perimeter" || value === "area" || value === "all";
+  return (
+    value === "shapes" ||
+    value === "perimeter" ||
+    value === "area" ||
+    value === "all"
+  );
 }
 
 function isDifficulty(value: unknown): value is Difficulty {
@@ -109,7 +122,11 @@ function isDifficulty(value: unknown): value is Difficulty {
 }
 
 function isGeometryLevel(value: unknown): value is GeometryLevel {
-  return value === "grade_3_4" || value === "grade_5_7" || value === "grade_8_10";
+  return (
+    value === "grade_3_4" ||
+    value === "grade_5_7" ||
+    value === "grade_8_10"
+  );
 }
 
 function isAnswerSpace(value: unknown): value is AnswerSpace {
@@ -196,12 +213,7 @@ function localizeShapeName(kind: FigureKind, lang: WorksheetLanguage): string {
 
 function localizePrompt(
   lang: WorksheetLanguage,
-  key:
-    | "shape_name"
-    | "perimeter"
-    | "area"
-    | "all_in_one"
-    | "instructions"
+  key: "shape_name" | "perimeter" | "area" | "all_in_one" | "instructions"
 ): string {
   const prompts: Record<WorksheetLanguage, Record<string, string[]>> = {
     nb: {
@@ -225,9 +237,7 @@ function localizePrompt(
         "Hva heter figuren? Regn så ut omkrets og areal.",
         "Navngi figuren og finn både omkrets og areal.",
       ],
-      instructions: [
-        "Svar på oppgavene. Vis utregning der det passer.",
-      ],
+      instructions: ["Svar på oppgavene. Vis utregning der det passer."],
     },
     en: {
       shape_name: [
@@ -250,9 +260,7 @@ function localizePrompt(
         "What is the name of the shape? Then calculate perimeter and area.",
         "Name the shape and find both perimeter and area.",
       ],
-      instructions: [
-        "Answer the questions. Show your work when relevant.",
-      ],
+      instructions: ["Answer the questions. Show your work when relevant."],
     },
     pt: {
       shape_name: [
@@ -324,29 +332,39 @@ function buildHint(
         : "Legg sammen alle sidene rundt figuren.";
     }
     if (type === "area") return "Bruk riktig arealformel for figuren.";
-    if (type === "all_in_one") return "Start med å navngi figuren, finn så omkrets og til slutt areal.";
+    if (type === "all_in_one") {
+      return "Start med å navngi figuren, finn så omkrets og til slutt areal.";
+    }
   }
 
   if (lang === "en") {
-    if (type === "shape_name") return "Look at the sides, angles and the overall form.";
+    if (type === "shape_name") {
+      return "Look at the sides, angles and the overall form.";
+    }
     if (type === "perimeter") {
       return figure.kind === "circle"
         ? "Use the formula for the circumference of a circle."
         : "Add all side lengths around the shape.";
     }
     if (type === "area") return "Use the correct area formula for the shape.";
-    if (type === "all_in_one") return "Start by naming the shape, then find the perimeter and the area.";
+    if (type === "all_in_one") {
+      return "Start by naming the shape, then find the perimeter and the area.";
+    }
   }
 
   if (lang === "pt") {
-    if (type === "shape_name") return "Observa os lados, os ângulos e a forma geral.";
+    if (type === "shape_name") {
+      return "Observa os lados, os ângulos e a forma geral.";
+    }
     if (type === "perimeter") {
       return figure.kind === "circle"
         ? "Usa a fórmula do perímetro da circunferência."
         : "Soma todos os lados da figura.";
     }
     if (type === "area") return "Usa a fórmula correta da área para a figura.";
-    if (type === "all_in_one") return "Começa por escrever o nome da figura, depois encontra o perímetro e a área.";
+    if (type === "all_in_one") {
+      return "Começa por escrever o nome da figura, depois encontra o perímetro e a área.";
+    }
   }
 
   return undefined;
@@ -463,12 +481,27 @@ function generateDistinctPair(
   secondMedium: number[],
   secondHard: number[]
 ): [number, number] {
-  const first = pickDifficultyValues(difficulty, firstEasy, firstMedium, firstHard);
-  let second = pickDifficultyValues(difficulty, secondEasy, secondMedium, secondHard);
+  const first = pickDifficultyValues(
+    difficulty,
+    firstEasy,
+    firstMedium,
+    firstHard
+  );
+  let second = pickDifficultyValues(
+    difficulty,
+    secondEasy,
+    secondMedium,
+    secondHard
+  );
 
   let guard = 0;
   while (second === first && guard < 10) {
-    second = pickDifficultyValues(difficulty, secondEasy, secondMedium, secondHard);
+    second = pickDifficultyValues(
+      difficulty,
+      secondEasy,
+      secondMedium,
+      secondHard
+    );
     guard += 1;
   }
 
@@ -523,12 +556,7 @@ function generateFigureSpec(
       [14, 16, 18, 20]
     );
 
-    const side = pickDifficultyValues(
-      difficulty,
-      [4, 5],
-      [5, 6, 7],
-      [6, 7, 8]
-    );
+    const side = pickDifficultyValues(difficulty, [4, 5], [5, 6, 7], [6, 7, 8]);
 
     let height = pickDifficultyValues(
       difficulty,
@@ -640,6 +668,18 @@ function formatNumber(value: number, lang: WorksheetLanguage): string {
     : rounded.toFixed(1);
 }
 
+function extractNumericValue(value: string): number | null {
+  const cleaned = value
+    .replace("cm²", "")
+    .replace("cm2", "")
+    .replace("cm", "")
+    .trim()
+    .replace(",", ".");
+
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
   if (lang === "nb") {
     if (figure.kind === "square" && figure.sideCm) {
@@ -648,7 +688,12 @@ function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
     if (figure.kind === "rectangle" && figure.widthCm && figure.heightCm) {
       return `Lengde: ${figure.widthCm} cm, bredde: ${figure.heightCm} cm`;
     }
-    if (figure.kind === "parallelogram" && figure.baseCm && figure.sideCm && figure.heightCm) {
+    if (
+      figure.kind === "parallelogram" &&
+      figure.baseCm &&
+      figure.sideCm &&
+      figure.heightCm
+    ) {
       return `Grunnlinje: ${figure.baseCm} cm, side: ${figure.sideCm} cm, høyde: ${figure.heightCm} cm`;
     }
     if (figure.kind === "rhombus" && figure.sideCm && figure.heightCm) {
@@ -701,7 +746,12 @@ function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
     if (figure.kind === "rectangle" && figure.widthCm && figure.heightCm) {
       return `Length: ${figure.widthCm} cm, width: ${figure.heightCm} cm`;
     }
-    if (figure.kind === "parallelogram" && figure.baseCm && figure.sideCm && figure.heightCm) {
+    if (
+      figure.kind === "parallelogram" &&
+      figure.baseCm &&
+      figure.sideCm &&
+      figure.heightCm
+    ) {
       return `Base: ${figure.baseCm} cm, side: ${figure.sideCm} cm, height: ${figure.heightCm} cm`;
     }
     if (figure.kind === "rhombus" && figure.sideCm && figure.heightCm) {
@@ -754,7 +804,12 @@ function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
     if (figure.kind === "rectangle" && figure.widthCm && figure.heightCm) {
       return `Comprimento: ${figure.widthCm} cm, largura: ${figure.heightCm} cm`;
     }
-    if (figure.kind === "parallelogram" && figure.baseCm && figure.sideCm && figure.heightCm) {
+    if (
+      figure.kind === "parallelogram" &&
+      figure.baseCm &&
+      figure.sideCm &&
+      figure.heightCm
+    ) {
       return `Base: ${figure.baseCm} cm, lado: ${figure.sideCm} cm, altura: ${figure.heightCm} cm`;
     }
     if (figure.kind === "rhombus" && figure.sideCm && figure.heightCm) {
@@ -805,11 +860,21 @@ function formatFigureMeta(figure: FigureSpec, lang: WorksheetLanguage): string {
 
 function buildFormula(figure: FigureSpec, lang: WorksheetLanguage): string {
   if (lang === "nb") {
-    if (figure.kind === "square") return "Omkrets: 4 × side\nAreal: side × side";
-    if (figure.kind === "rectangle") return "Omkrets: 2 × (lengde + bredde)\nAreal: lengde × bredde";
-    if (figure.kind === "parallelogram") return "Omkrets: 2 × (grunnlinje + side)\nAreal: grunnlinje × høyde";
-    if (figure.kind === "rhombus") return "Omkrets: 4 × side\nAreal: side × høyde";
-    if (figure.kind === "trapezoid") return "Omkrets: summen av alle sidene\nAreal: ((øvre grunnlinje + nedre grunnlinje) × høyde) / 2";
+    if (figure.kind === "square") {
+      return "Omkrets: 4 × side\nAreal: side × side";
+    }
+    if (figure.kind === "rectangle") {
+      return "Omkrets: 2 × (lengde + bredde)\nAreal: lengde × bredde";
+    }
+    if (figure.kind === "parallelogram") {
+      return "Omkrets: 2 × (grunnlinje + side)\nAreal: grunnlinje × høyde";
+    }
+    if (figure.kind === "rhombus") {
+      return "Omkrets: 4 × side\nAreal: side × høyde";
+    }
+    if (figure.kind === "trapezoid") {
+      return "Omkrets: summen av alle sidene\nAreal: ((øvre grunnlinje + nedre grunnlinje) × høyde) / 2";
+    }
     if (
       figure.kind === "triangle_right" ||
       figure.kind === "triangle_isosceles" ||
@@ -821,11 +886,21 @@ function buildFormula(figure: FigureSpec, lang: WorksheetLanguage): string {
   }
 
   if (lang === "en") {
-    if (figure.kind === "square") return "Perimeter: 4 × side\nArea: side × side";
-    if (figure.kind === "rectangle") return "Perimeter: 2 × (length + width)\nArea: length × width";
-    if (figure.kind === "parallelogram") return "Perimeter: 2 × (base + side)\nArea: base × height";
-    if (figure.kind === "rhombus") return "Perimeter: 4 × side\nArea: side × height";
-    if (figure.kind === "trapezoid") return "Perimeter: sum of all sides\nArea: ((top base + bottom base) × height) / 2";
+    if (figure.kind === "square") {
+      return "Perimeter: 4 × side\nArea: side × side";
+    }
+    if (figure.kind === "rectangle") {
+      return "Perimeter: 2 × (length + width)\nArea: length × width";
+    }
+    if (figure.kind === "parallelogram") {
+      return "Perimeter: 2 × (base + side)\nArea: base × height";
+    }
+    if (figure.kind === "rhombus") {
+      return "Perimeter: 4 × side\nArea: side × height";
+    }
+    if (figure.kind === "trapezoid") {
+      return "Perimeter: sum of all sides\nArea: ((top base + bottom base) × height) / 2";
+    }
     if (
       figure.kind === "triangle_right" ||
       figure.kind === "triangle_isosceles" ||
@@ -836,11 +911,21 @@ function buildFormula(figure: FigureSpec, lang: WorksheetLanguage): string {
     return "Perimeter: 2 × π × radius\nArea: π × radius × radius";
   }
 
-  if (figure.kind === "square") return "Perímetro: 4 × lado\nÁrea: lado × lado";
-  if (figure.kind === "rectangle") return "Perímetro: 2 × (comprimento + largura)\nÁrea: comprimento × largura";
-  if (figure.kind === "parallelogram") return "Perímetro: 2 × (base + lado)\nÁrea: base × altura";
-  if (figure.kind === "rhombus") return "Perímetro: 4 × lado\nÁrea: lado × altura";
-  if (figure.kind === "trapezoid") return "Perímetro: soma de todos os lados\nÁrea: ((base maior + base menor) × altura) / 2";
+  if (figure.kind === "square") {
+    return "Perímetro: 4 × lado\nÁrea: lado × lado";
+  }
+  if (figure.kind === "rectangle") {
+    return "Perímetro: 2 × (comprimento + largura)\nÁrea: comprimento × largura";
+  }
+  if (figure.kind === "parallelogram") {
+    return "Perímetro: 2 × (base + lado)\nÁrea: base × altura";
+  }
+  if (figure.kind === "rhombus") {
+    return "Perímetro: 4 × lado\nÁrea: lado × altura";
+  }
+  if (figure.kind === "trapezoid") {
+    return "Perímetro: soma de todos os lados\nÁrea: ((base maior + base menor) × altura) / 2";
+  }
   if (
     figure.kind === "triangle_right" ||
     figure.kind === "triangle_isosceles" ||
@@ -887,7 +972,12 @@ function solveFigure(
     };
   }
 
-  if (figure.kind === "parallelogram" && figure.baseCm && figure.sideCm && figure.heightCm) {
+  if (
+    figure.kind === "parallelogram" &&
+    figure.baseCm &&
+    figure.sideCm &&
+    figure.heightCm
+  ) {
     const perimeter = 2 * (figure.baseCm + figure.sideCm);
     const area = figure.baseCm * figure.heightCm;
 
@@ -1000,15 +1090,22 @@ function generateShapeTask(
   selectedShapes: FigureKind[]
 ): MathWorksheetTask {
   const figure = generateFigureSpec(difficulty, selectedShapes);
+  const shapeName = localizeShapeName(figure.kind, lang);
 
   return {
     id: makeId(index),
     type: "shape_name",
     prompt: `${localizePrompt(lang, "shape_name")} ${formatFigureMeta(figure, lang)}`,
     figure,
-    answer: localizeShapeName(figure.kind, lang),
+    answer: shapeName,
     hint: includeHints ? buildHint("shape_name", figure, lang) : undefined,
     formula: showFormulas ? buildFormula(figure, lang) : undefined,
+    inputMode: "shape_name",
+    expected: {
+      shapeName,
+      perimeterUnit: null,
+      areaUnit: null,
+    },
   };
 }
 
@@ -1032,6 +1129,12 @@ function generatePerimeterTask(
     explanation: solved.explanation,
     hint: includeHints ? buildHint("perimeter", figure, lang) : undefined,
     formula: showFormulas ? buildFormula(figure, lang) : undefined,
+    inputMode: "number_with_unit",
+    expected: {
+      perimeterValue: extractNumericValue(solved.perimeter),
+      perimeterUnit: "cm",
+      areaUnit: null,
+    },
   };
 }
 
@@ -1055,6 +1158,12 @@ function generateAreaTask(
     explanation: solved.explanation,
     hint: includeHints ? buildHint("area", figure, lang) : undefined,
     formula: showFormulas ? buildFormula(figure, lang) : undefined,
+    inputMode: "number_with_unit",
+    expected: {
+      areaValue: extractNumericValue(solved.area),
+      perimeterUnit: null,
+      areaUnit: "cm2",
+    },
   };
 }
 
@@ -1086,6 +1195,14 @@ function generateAllInOneTask(
     explanation: solved.explanation,
     hint: includeHints ? buildHint("all_in_one", figure, lang) : undefined,
     formula: showFormulas ? buildFormula(figure, lang) : undefined,
+    inputMode: "split_name_perimeter_area",
+    expected: {
+      shapeName: name,
+      perimeterValue: extractNumericValue(solved.perimeter),
+      areaValue: extractNumericValue(solved.area),
+      perimeterUnit: "cm",
+      areaUnit: "cm2",
+    },
   };
 }
 
@@ -1110,11 +1227,45 @@ function generateWorksheet(params: {
 }): MathWorksheet {
   const taskTypes = buildTaskTypes(params.topic);
 
-  const tasks: MathWorksheetTask[] = Array.from({ length: params.taskCount }, (_, index) => {
-    const type = randomFrom(taskTypes);
+  const tasks: MathWorksheetTask[] = Array.from(
+    { length: params.taskCount },
+    (_, index) => {
+      const type = randomFrom(taskTypes);
 
-    if (type === "shape_name") {
-      return generateShapeTask(
+      if (type === "shape_name") {
+        return generateShapeTask(
+          index,
+          params.language,
+          params.difficulty,
+          params.includeHints,
+          params.showFormulas,
+          params.selectedShapes
+        );
+      }
+
+      if (type === "perimeter") {
+        return generatePerimeterTask(
+          index,
+          params.language,
+          params.difficulty,
+          params.includeHints,
+          params.showFormulas,
+          params.selectedShapes
+        );
+      }
+
+      if (type === "area") {
+        return generateAreaTask(
+          index,
+          params.language,
+          params.difficulty,
+          params.includeHints,
+          params.showFormulas,
+          params.selectedShapes
+        );
+      }
+
+      return generateAllInOneTask(
         index,
         params.language,
         params.difficulty,
@@ -1123,38 +1274,7 @@ function generateWorksheet(params: {
         params.selectedShapes
       );
     }
-
-    if (type === "perimeter") {
-      return generatePerimeterTask(
-        index,
-        params.language,
-        params.difficulty,
-        params.includeHints,
-        params.showFormulas,
-        params.selectedShapes
-      );
-    }
-
-    if (type === "area") {
-      return generateAreaTask(
-        index,
-        params.language,
-        params.difficulty,
-        params.includeHints,
-        params.showFormulas,
-        params.selectedShapes
-      );
-    }
-
-    return generateAllInOneTask(
-      index,
-      params.language,
-      params.difficulty,
-      params.includeHints,
-      params.showFormulas,
-      params.selectedShapes
-    );
-  });
+  );
 
   return {
     title: getTitle(params.language, params.topic),
@@ -1172,14 +1292,25 @@ function generateWorksheet(params: {
 
 function normalizeRequest(body: GenerateMathWorksheetRequest) {
   const language = normalizeLanguage(body.language);
-  const level: GeometryLevel = isGeometryLevel(body.level) ? body.level : "grade_5_7";
-  const topic: GeometryTopic = isGeometryTopic(body.topic) ? body.topic : "all";
-  const difficulty: Difficulty = isDifficulty(body.difficulty) ? body.difficulty : "easy";
+  const level: GeometryLevel = isGeometryLevel(body.level)
+    ? body.level
+    : "grade_5_7";
+  const topic: GeometryTopic = isGeometryTopic(body.topic)
+    ? body.topic
+    : "all";
+  const difficulty: Difficulty = isDifficulty(body.difficulty)
+    ? body.difficulty
+    : "easy";
   const taskCount = clampTaskCount(body.taskCount);
-  const includeHints = typeof body.includeHints === "boolean" ? body.includeHints : true;
-  const showAnswerKey = typeof body.showAnswerKey === "boolean" ? body.showAnswerKey : false;
-  const showFormulas = typeof body.showFormulas === "boolean" ? body.showFormulas : false;
-  const answerSpace: AnswerSpace = isAnswerSpace(body.answerSpace) ? body.answerSpace : "medium";
+  const includeHints =
+    typeof body.includeHints === "boolean" ? body.includeHints : true;
+  const showAnswerKey =
+    typeof body.showAnswerKey === "boolean" ? body.showAnswerKey : false;
+  const showFormulas =
+    typeof body.showFormulas === "boolean" ? body.showFormulas : false;
+  const answerSpace: AnswerSpace = isAnswerSpace(body.answerSpace)
+    ? body.answerSpace
+    : "medium";
   const selectedShapes = normalizeSelectedShapes(body.selectedShapes);
 
   return {
@@ -1196,7 +1327,9 @@ function normalizeRequest(body: GenerateMathWorksheetRequest) {
   };
 }
 
-async function getRequestUserContext(req: Request): Promise<RequestUserContext | null> {
+async function getRequestUserContext(
+  req: Request
+): Promise<RequestUserContext | null> {
   const authHeader =
     req.headers.get("authorization") || req.headers.get("Authorization");
 
@@ -1229,14 +1362,22 @@ function mapStatusToResponse(
 ) {
   if (status.reason === "teacher_only") {
     return NextResponse.json(
-      { ok: false, error: "This feature is only available for teachers.", reason: status.reason },
+      {
+        ok: false,
+        error: "This feature is only available for teachers.",
+        reason: status.reason,
+      },
       { status: 403 }
     );
   }
 
   if (status.reason === "limit_reached") {
     return NextResponse.json(
-      { ok: false, error: "You have reached your monthly limit.", reason: status.reason },
+      {
+        ok: false,
+        error: "You have reached your monthly limit.",
+        reason: status.reason,
+      },
       { status: 403 }
     );
   }
@@ -1256,7 +1397,10 @@ export async function POST(req: Request) {
     const user = await getRequestUserContext(req);
 
     if (!user) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     const status = await getFeatureStatusAdmin({
@@ -1289,9 +1433,6 @@ export async function POST(req: Request) {
     const message =
       error instanceof Error ? error.message : "Failed to generate worksheet";
 
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

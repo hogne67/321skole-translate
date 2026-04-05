@@ -23,6 +23,60 @@ type Task = {
 
 type AnswersMap = Record<string, unknown>;
 
+type MathWorksheetTask = {
+  id?: string;
+  prompt?: string;
+  type?: string;
+  expected?: {
+    shapeName?: string;
+    perimeterValue?: number | null;
+    areaValue?: number | null;
+  } | null;
+};
+
+type MathWorksheet = {
+  title?: string;
+  level?: string;
+  topic?: string;
+  language?: string;
+  tasks?: MathWorksheetTask[];
+};
+
+type GeometryAnswerRow = {
+  taskId?: string;
+  shapeName?: string;
+  perimeterValue?: number | null;
+  areaValue?: number | null;
+};
+
+type GeometryTaskAuto = {
+  shapeName?: {
+    isCorrect?: boolean;
+    studentValue?: unknown;
+    expectedValue?: unknown;
+  };
+  perimeterValue?: {
+    isCorrect?: boolean;
+    studentValue?: unknown;
+    expectedValue?: unknown;
+  };
+  areaValue?: {
+    isCorrect?: boolean;
+    studentValue?: unknown;
+    expectedValue?: unknown;
+  };
+};
+
+type GeometryAutoResult = {
+  total?: number;
+  correct?: number;
+  partial?: number;
+  wrong?: number;
+  unanswered?: number;
+  percent?: number | null;
+  byTaskId?: Record<string, GeometryTaskAuto>;
+};
+
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
 }
@@ -61,6 +115,21 @@ function safeTasksArray(tasks: unknown): Task[] {
     }
   }
   return [];
+}
+
+function isMathWorksheet(value: unknown): value is MathWorksheet {
+  if (!value || typeof value !== "object") return false;
+  const v = value as { tasks?: unknown; title?: unknown };
+  return Array.isArray(v.tasks) && typeof v.title === "string";
+}
+
+function hasAssignmentSnapshotContent(a: Record<string, unknown> | null): boolean {
+  if (!a) return false;
+  const hasText = safeString(a.sourceText).trim().length > 0 || safeString(a.text).trim().length > 0;
+  const hasTasks = safeTasksArray(a.tasks).length > 0;
+  const hasImage = safeString(a.coverImageUrl).trim().length > 0;
+  const hasMathWorksheet = isMathWorksheet(a.mathWorksheet);
+  return hasText || hasTasks || hasImage || hasMathWorksheet;
 }
 
 function getStableTaskId(t: Task, idx: number): string {
@@ -137,23 +206,6 @@ function readRole(profile: unknown): Role | null {
   return readLegacyRole(profile);
 }
 
-function pickAnyAsText(obj: unknown, keys: string[]): string {
-  const rec = obj && typeof obj === "object" ? (obj as Record<string, unknown>) : null;
-  for (const k of keys) {
-    const v = rec?.[k];
-    if (typeof v === "string" && v.trim()) return v.trim();
-    if (v && typeof v === "object") {
-      try {
-        const jsonText = JSON.stringify(v, null, 2);
-        if (jsonText && jsonText !== "{}") return jsonText;
-      } catch {
-        // ignore
-      }
-    }
-  }
-  return "";
-}
-
 function normalizeLocale(raw: string): "no" | "en" | "pt" {
   const v = (raw || "").toLowerCase().trim();
   if (v === "en") return "en";
@@ -214,47 +266,20 @@ function buildReadingSystemPrompt(lang: "no" | "en" | "pt") {
       "Address the student directly using 'you'. Be supportive, clear, and motivating.",
       "Give short, precise, and helpful feedback on the student's work.",
       "Adapt your language and expectations to the provided CEFR level.",
+      "Do NOT write a full corrected version of the entire text.",
+      "Use: LOW / MEDIUM / HIGH achievement relative to CEFR.",
       "",
       "IMPORTANT:",
-      "- Do NOT write a full corrected version of the entire text.",
-      "- You MAY comment briefly on automatically graded reading tasks, but do not spend much space explaining each item.",
-      "- Focus first on reading result/understanding, then on any open/free-text answers if present.",
-      "- Use: LOW / MEDIUM / HIGH achievement (relative to the CEFR level).",
+      "- Base the reading assessment mainly on automatic results.",
+      "- Time is only a supportive signal, never proof by itself.",
+      "- If open answers exist, assess them briefly too.",
       "",
-      "ABOUT TIME / READING SPEED:",
-      "- Time is only a SUPPORTIVE signal.",
-      "- Never conclude quality from time alone.",
-      "- A high score + slow time may mean careful reading.",
-      "- A low score + very fast time may mean the student read too quickly.",
-      "- A high score + normal/fast time may suggest secure reading fluency.",
-      "- Be cautious and phrase time observations as indications, not facts.",
+      "Use these exact headings:",
+      "1) AUTORESULTAT, LESEFORSTÅELSE OG CEFR",
+      "2) ÅPNE OPPGAVER – FAGLIG VURDERING",
+      "3) NIVÅ OG VIDERE PROGRESJON (CEFR)",
       "",
-      "Answer using EXACT headings:",
-      "1) AUTO RESULT, READING COMPREHENSION AND CEFR",
-      "- Summarize the auto result.",
-      "- If timing data exists, comment briefly on what the time may indicate about reading pace and strategy.",
-      "- Link the result to CEFR reading skills at the given level.",
-      "- Give a short judgement (1–3 sentences) about reading comprehension based mainly on the auto result, and secondarily on time.",
-      "",
-      "2) OPEN ANSWERS – ACADEMIC ASSESSMENT",
-      "- If open answers exist, evaluate them.",
-      "- If there are no open answers, say that the assessment is mainly based on reading result and automatic scoring.",
-      "a) Does the student answer the task?",
-      "- 1–2 sentences.",
-      "b) Grammar and spelling (show error -> correction)",
-      '- List the most important issues as: "error" -> "correct" (max 6 bullets).',
-      "c) Punctuation",
-      "- Point out missing / incorrect punctuation and give 2–4 concrete tips.",
-      "",
-      "3) LEVEL AND NEXT-STEP PROGRESSION (CEFR)",
-      "- Choose one: LOW / MEDIUM / HIGH (relative to the stated CEFR level).",
-      "- Justify briefly with 2–3 bullets (reading result, language if relevant, pace/strategy if relevant).",
-      "",
-      "NEXT STEP:",
-      "- Give 1–2 realistic tips for the next natural step.",
-      "- Keep tips concrete, short, and doable.",
-      "",
-      "Keep it concise. No long theory explanations.",
+      "Keep it concise.",
     ].join("\n");
   }
 
@@ -262,93 +287,35 @@ function buildReadingSystemPrompt(lang: "no" | "en" | "pt") {
     return [
       "Você é um professor experiente de norueguês/língua.",
       "Fale diretamente com o aluno usando 'você'. Seja claro, encorajador e específico.",
-      "Dê um feedback curto, preciso e útil sobre o trabalho do aluno.",
-      "Adapte sua linguagem e exigências ao nível CEFR informado.",
+      "Dê um feedback curto, preciso e útil.",
+      "Adapte ao nível CEFR informado.",
+      "Não escreva uma versão corrigida completa do texto.",
       "",
-      "IMPORTANTE:",
-      "- NÃO faça uma versão completa corrigida do texto inteiro.",
-      "- Você PODE comentar brevemente o resultado automático das tarefas de leitura, mas sem explicar item por item.",
-      "- Foque primeiro no resultado de leitura/compreensão e depois nas respostas abertas, se existirem.",
-      "- Use: BAIXO / MÉDIO / ALTO desempenho (em relação ao nível CEFR).",
-      "",
-      "SOBRE TEMPO / VELOCIDADE DE LEITURA:",
-      "- O tempo é apenas um sinal de apoio.",
-      "- Nunca conclua a qualidade apenas pelo tempo.",
-      "- Pontuação alta + tempo lento pode indicar leitura cuidadosa.",
-      "- Pontuação baixa + tempo muito rápido pode indicar leitura rápida demais.",
-      "- Pontuação alta + tempo normal/rápido pode indicar fluência de leitura mais segura.",
-      "- Seja cauteloso e formule observações sobre tempo como indícios, não como fatos absolutos.",
-      "",
-      "Responda com estes títulos EXATOS:",
-      "1) RESULTADO AUTOMÁTICO, COMPREENSÃO DE LEITURA E CEFR",
-      "- Resuma o resultado automático.",
-      "- Se houver dados de tempo, comente brevemente o que o tempo pode indicar sobre ritmo e estratégia de leitura.",
-      "- Relacione o resultado ao nível CEFR.",
-      "- Dê uma avaliação curta (1–3 frases) baseada principalmente no resultado automático e, em segundo lugar, no tempo.",
-      "",
-      "2) RESPOSTAS ABERTAS – AVALIAÇÃO",
-      "- Se houver respostas abertas, avalie-as.",
-      "- Se não houver respostas abertas, diga que a avaliação se baseia principalmente no resultado de leitura e na correção automática.",
-      "a) O aluno responde à tarefa?",
-      "b) Gramática e ortografia (erro -> correto)",
-      "c) Pontuação",
-      "",
-      "3) NÍVEL E PRÓXIMO PASSO (CEFR)",
-      "- Escolha BAIXO / MÉDIO / ALTO.",
-      "- Justifique com 2–3 itens (resultado de leitura, linguagem se relevante, ritmo/estratégia se relevante).",
-      "",
-      "PRÓXIMO PASSO:",
-      "- Dê 1–2 dicas realistas e curtas.",
-      "",
-      "Seja conciso.",
+      "Use estes títulos exatos:",
+      "1) AUTORESULTAT, LESEFORSTÅELSE OG CEFR",
+      "2) ÅPNE OPPGAVER – FAGLIG VURDERING",
+      "3) NIVÅ OG VIDERE PROGRESJON (CEFR)",
     ].join("\n");
   }
 
   return [
-    "Du er en erfaren norsklærer/språklærer. Gi kort, presis og nyttig tilbakemelding på elevens arbeid.",
-    "Bruk dus-form og skriv direkte til eleven (bruk 'du'). Vær støttende, konkret og motiverende.",
-    "Tilpass språk og krav til CEFR-nivået som er oppgitt.",
+    "Du er en erfaren norsklærer/språklærer.",
+    "Skriv direkte til eleven med 'du'. Vær støttende, konkret og motiverende.",
+    "Gi kort, presis og nyttig tilbakemelding tilpasset oppgitt CEFR-nivå.",
+    "Ikke skriv en fullstendig korrigert versjon av hele teksten.",
+    "Bruk: LAV / MIDDELS / HØY målopnåelse i forhold til nivå.",
     "",
     "VIKTIG:",
-    "- IKKE lag en korrigert versjon av hele teksten.",
-    "- Du KAN kommentere kort på automatisk rettede leseoppgaver, men ikke bruk mye plass på å forklare hvert enkelt spørsmål.",
-    "- Fokuser først på leseresultat/leseforståelse, deretter på åpne svar hvis de finnes.",
-    "- Bruk begrepene: LAV / MIDDELS / HØY målopnåelse (i forhold til CEFR-nivå).",
+    "- Lesetest vurderes først og fremst ut fra autoresultat.",
+    "- Tidsbruk er bare et støttesignal.",
+    "- Hvis åpne svar finnes, vurder dem kort også.",
     "",
-    "OM TID / LESEFART:",
-    "- Tid er bare et STØTTESIGNAL.",
-    "- Du skal aldri konkludere kun ut fra tid.",
-    "- Høy score + lang tid kan tyde på grundig og strategisk lesing.",
-    "- Lav score + svært kort tid kan tyde på at eleven leste for raskt eller overflatisk.",
-    "- Høy score + normal/rask tid kan tyde på trygg leseflyt.",
-    "- Formuler alltid tidsvurderinger forsiktig som tegn/indikasjoner, ikke som sikre fakta.",
-    "",
-    "Svar i denne strukturen (bruk nøyaktige overskrifter):",
+    "Bruk nøyaktig disse overskriftene:",
     "1) AUTORESULTAT, LESEFORSTÅELSE OG CEFR",
-    "- Oppsummer autoresultatet.",
-    "- Hvis tidsdata finnes, kommenter kort hva tiden kan si om lesehastighet og strategi.",
-    "- Knytt resultatet til CEFR-leseforståelse for oppgitt nivå.",
-    "- Gi en kort vurdering (1–3 setninger) av leseforståelsen basert først og fremst på autoresultatet, og deretter på tid.",
-    "",
     "2) ÅPNE OPPGAVER – FAGLIG VURDERING",
-    "- Hvis det finnes åpne svar, vurder dem.",
-    "- Hvis det ikke finnes åpne svar, si tydelig at vurderingen hovedsakelig bygger på leseoppgavene og autoresultatet.",
-    "a) Svarer eleven på oppgaven?",
-    "- Gi 1–2 setninger.",
-    "b) Grammatikk og stavefeil (vis feil -> riktig)",
-    '- List opp de viktigste feilene som: "feil" -> "riktig" (maks 6 punkt).',
-    "c) Tegnsetting",
-    "- Pek på mangler i punktum/komma/spørsmålstegn, og gi 2–4 konkrete råd.",
-    "",
     "3) NIVÅ OG VIDERE PROGRESJON (CEFR)",
-    "- Sett én: LAV / MIDDELS / HØY (i forhold til oppgitt CEFR-nivå).",
-    "- Begrunn kort med 2–3 punkter (leseresultat, språk hvis relevant, tempo/strategi hvis relevant).",
     "",
-    "VIDERE PROGRESJON:",
-    "- Gi 1–2 konkrete og realistiske råd for neste naturlige steg.",
-    "- Rådene skal være korte, konkrete og gjennomførbare.",
-    "",
-    "Hold det konsist. Ikke bruk lange teoriforklaringer.",
+    "Hold det konsist.",
   ].join("\n");
 }
 
@@ -358,30 +325,13 @@ function buildGeneralSystemPrompt(lang: "no" | "en" | "pt") {
       "You are an experienced language teacher.",
       "Address the student directly using 'you'. Be supportive, clear, and motivating.",
       "Give short, precise, and useful feedback on the student's answers.",
-      "Adapt your language and expectations to the provided CEFR level.",
+      "Adapt to the provided CEFR level.",
+      "Do NOT write a full corrected version of the whole text.",
       "",
-      "IMPORTANT:",
-      "- This is NOT necessarily a reading test.",
-      "- Do NOT mention reading speed, timing, or reading pace unless timing data is clearly relevant.",
-      "- Do NOT pretend there is a reading comprehension score if there is none.",
-      "- Do NOT write a full corrected version of the entire text.",
-      "- Use: LOW / MEDIUM / HIGH achievement (relative to the CEFR level).",
-      "",
-      "If automatic scoring exists, you may mention it briefly, but do not turn the response into a reading-test evaluation.",
-      "",
-      "Answer using EXACT headings:",
-      "1) TASK RESPONSE AND CONTENT",
-      "- Does the student answer the task? What is good? What is missing?",
-      "",
-      "2) LANGUAGE",
-      "a) Grammar and spelling (show error -> correction)",
-      "b) Vocabulary",
-      "c) Punctuation",
-      "",
-      "3) LEVEL AND NEXT STEP (CEFR)",
-      "- Choose one: LOW / MEDIUM / HIGH.",
-      "- Justify briefly.",
-      "- Give 1–2 short next-step tips.",
+      "Use these exact headings:",
+      "1) OPPGAVELØSNING OG INNHOLD",
+      "2) SPRÅK",
+      "3) NIVÅ OG NESTE STEG (CEFR)",
       "",
       "Keep it concise.",
     ].join("\n");
@@ -390,76 +340,181 @@ function buildGeneralSystemPrompt(lang: "no" | "en" | "pt") {
   if (lang === "pt") {
     return [
       "Você é um professor experiente de língua.",
-      "Fale diretamente com o aluno usando 'você'. Seja claro, encorajador e específico.",
-      "Dê um feedback curto, preciso e útil sobre as respostas do aluno.",
-      "Adapte sua linguagem e exigências ao nível CEFR informado.",
+      "Fale diretamente com o aluno usando 'você'.",
+      "Dê um feedback curto, preciso e útil.",
+      "Adapte ao nível CEFR informado.",
+      "Não escreva uma versão completa corrigida do texto inteiro.",
       "",
-      "IMPORTANTE:",
-      "- Isto não é necessariamente um teste de leitura.",
-      "- NÃO mencione velocidade de leitura ou tempo, a menos que isso seja claramente relevante.",
-      "- NÃO finja que existe pontuação de compreensão de leitura se ela não existir.",
-      "- NÃO escreva uma versão completa corrigida do texto inteiro.",
-      "",
-      "Se houver correção automática, você pode mencioná-la brevemente, mas sem transformar a resposta em avaliação de teste de leitura.",
-      "",
-      "Responda com estes títulos EXATOS:",
-      "1) RESPOSTA À TAREFA E CONTEÚDO",
-      "2) LINGUAGEM",
-      "3) NÍVEL E PRÓXIMO PASSO (CEFR)",
-      "",
-      "Seja conciso.",
+      "Use estes títulos exatos:",
+      "1) OPPGAVELØSNING OG INNHOLD",
+      "2) SPRÅK",
+      "3) NIVÅ OG NESTE STEG (CEFR)",
     ].join("\n");
   }
 
   return [
-    "Du er en erfaren språk- og norsklærer. Gi kort, presis og nyttig tilbakemelding på elevens svar.",
-    "Bruk dus-form og skriv direkte til eleven. Vær støttende, konkret og motiverende.",
-    "Tilpass språk og krav til oppgitt CEFR-nivå.",
+    "Du er en erfaren språk- og norsklærer.",
+    "Skriv direkte til eleven med 'du'. Vær støttende, konkret og motiverende.",
+    "Gi kort, presis og nyttig tilbakemelding tilpasset oppgitt CEFR-nivå.",
+    "Ikke skriv en fullstendig korrigert versjon av hele teksten.",
     "",
-    "VIKTIG:",
-    "- Dette er ikke nødvendigvis en lesetest.",
-    "- Ikke nevn lesehastighet, tidsbruk eller leseflyt med mindre det er tydelig relevant.",
-    "- Ikke lat som om det finnes et autoresultat i leseforståelse hvis det ikke gjør det.",
-    "- IKKE lag en korrigert versjon av hele teksten.",
-    "- Bruk begrepene: LAV / MIDDELS / HØY målopnåelse.",
-    "",
-    "Hvis det finnes automatisk retting, kan du nevne det kort, men ikke gjør svaret om til en lesetestvurdering.",
-    "",
-    "Svar i denne strukturen (bruk nøyaktige overskrifter):",
+    "Bruk nøyaktig disse overskriftene:",
     "1) OPPGAVELØSNING OG INNHOLD",
-    "- Svarer eleven på oppgaven? Hva fungerer godt? Hva mangler eventuelt?",
-    "",
     "2) SPRÅK",
-    "a) Grammatikk og stavefeil (vis feil -> riktig)",
-    "b) Ordforråd",
-    "c) Tegnsetting",
-    "",
     "3) NIVÅ OG NESTE STEG (CEFR)",
-    "- Sett én: LAV / MIDDELS / HØY.",
-    "- Begrunn kort.",
-    "- Gi 1–2 korte råd for neste steg.",
     "",
     "Hold det konsist.",
   ].join("\n");
 }
 
-function readAutoGradeSummaryFromSubmission(subDoc: Record<string, unknown>): string {
-  const autoResultat = pickAnyAsText(subDoc, [
-    "autoResultat",
-    "autoResult",
-    "autoGradeSummary",
-    "autoGradeSummaryText",
-    "autoGradeDetails",
-    "autoGrade",
-    "autograde",
-    "autogradeSummary",
-    "autogradeText",
-    "result",
-    "score",
-    "auto",
-  ]);
+function buildGeometrySystemPrompt(lang: "no" | "en" | "pt") {
+  if (lang === "en") {
+    return [
+      "You are an experienced math teacher giving feedback to a student.",
+      "Write directly to the student using 'you'.",
+      "Be supportive, concrete, and short.",
+      "Use the geometry auto-check actively.",
+      "Mention what the student got right, what needs improvement, and what to practice next.",
+      "Do not invent scores that are not provided.",
+      "Do not explain every single task in detail.",
+      "",
+      "Use these exact headings:",
+      "1) DET DU HAR FÅTT TIL",
+      "2) DET DU BØR ØVE MER PÅ",
+      "3) NESTE STEG",
+      "",
+      "Keep it concise and teacher-like.",
+    ].join("\n");
+  }
 
-  return autoResultat;
+  if (lang === "pt") {
+    return [
+      "Você é um professor experiente de matemática dando feedback ao aluno.",
+      "Fale diretamente com o aluno usando 'você'.",
+      "Seja encorajador, concreto e breve.",
+      "Use ativamente o resultado da autocorreção de geometria.",
+      "",
+      "Use estes títulos exatos:",
+      "1) DET DU HAR FÅTT TIL",
+      "2) DET DU BØR ØVE MER PÅ",
+      "3) NESTE STEG",
+    ].join("\n");
+  }
+
+  return [
+    "Du er en erfaren matematikklærer som gir tilbakemelding til en elev.",
+    "Skriv direkte til eleven med 'du'.",
+    "Vær vennlig, konkret og kort.",
+    "Bruk geometry-autokorrekturen aktivt.",
+    "Trekk fram hva eleven har fått til, hva som bør forbedres, og hva neste øvingspunkt bør være.",
+    "Ikke forklar hver enkelt oppgave i detalj.",
+    "",
+    "Bruk nøyaktig disse overskriftene:",
+    "1) DET DU HAR FÅTT TIL",
+    "2) DET DU BØR ØVE MER PÅ",
+    "3) NESTE STEG",
+    "",
+    "Hold det kort og læreraktig.",
+  ].join("\n");
+}
+
+function summarizeAutoResult(auto: unknown): string {
+  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return "(not provided)";
+
+  const rec = auto as Record<string, unknown>;
+  const totalAuto = safeNumber(rec.totalAuto);
+  const correctAuto = safeNumber(rec.correctAuto);
+  const wrongAuto = safeNumber(rec.wrongAuto);
+  const unansweredAuto = safeNumber(rec.unansweredAuto);
+  const percentAuto = safeNumber(rec.percentAuto);
+
+  if (
+    totalAuto == null &&
+    correctAuto == null &&
+    wrongAuto == null &&
+    unansweredAuto == null &&
+    percentAuto == null
+  ) {
+    try {
+      return JSON.stringify(auto, null, 2);
+    } catch {
+      return "(not provided)";
+    }
+  }
+
+  return [
+    `total: ${totalAuto ?? "unknown"}`,
+    `correct: ${correctAuto ?? "unknown"}`,
+    `wrong: ${wrongAuto ?? "unknown"}`,
+    `unanswered: ${unansweredAuto ?? "unknown"}`,
+    `percent: ${percentAuto ?? "unknown"}`,
+  ].join("\n");
+}
+
+function summarizeGeometryAuto(auto: unknown): string {
+  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return "(not provided)";
+
+  const rec = auto as Record<string, unknown>;
+  const total = safeNumber(rec.total);
+  const correct = safeNumber(rec.correct);
+  const partial = safeNumber(rec.partial);
+  const wrong = safeNumber(rec.wrong);
+  const unanswered = safeNumber(rec.unanswered);
+  const percent = safeNumber(rec.percent);
+
+  return [
+    `total: ${total ?? "unknown"}`,
+    `correct: ${correct ?? "unknown"}`,
+    `partial: ${partial ?? "unknown"}`,
+    `wrong: ${wrong ?? "unknown"}`,
+    `unanswered: ${unanswered ?? "unknown"}`,
+    `percent: ${percent ?? "unknown"}`,
+  ].join("\n");
+}
+
+function summarizeGeometryWorksheet(
+  worksheet: MathWorksheet | null,
+  answersByTaskId: AnswersMap,
+  geometryAuto: GeometryAutoResult | null
+): string {
+  if (!worksheet || !Array.isArray(worksheet.tasks) || worksheet.tasks.length === 0) {
+    return "(No geometry worksheet tasks found.)";
+  }
+
+  return worksheet.tasks
+    .map((task, idx) => {
+      const taskId = safeString(task.id).trim() || `task_${idx + 1}`;
+      const answerRaw = answersByTaskId[taskId];
+      const answer =
+        answerRaw && typeof answerRaw === "object" && !Array.isArray(answerRaw)
+          ? (answerRaw as GeometryAnswerRow)
+          : {};
+
+      const autoByTask = geometryAuto?.byTaskId?.[taskId];
+
+      const lines = [
+        `#${idx + 1}`,
+        `Task id: ${taskId}`,
+        `Prompt: ${safeString(task.prompt) || "(no prompt)"}`,
+        `Expected shape: ${task.expected?.shapeName ?? "unknown"}`,
+        `Expected perimeter: ${task.expected?.perimeterValue ?? "unknown"}`,
+        `Expected area: ${task.expected?.areaValue ?? "unknown"}`,
+        `Student shape: ${answer.shapeName ?? "not answered"}`,
+        `Student perimeter: ${answer.perimeterValue ?? "not answered"}`,
+        `Student area: ${answer.areaValue ?? "not answered"}`,
+      ];
+
+      if (autoByTask) {
+        lines.push(
+          `Shape correct: ${safeBoolean(autoByTask.shapeName?.isCorrect) === true ? "yes" : safeBoolean(autoByTask.shapeName?.isCorrect) === false ? "no" : "unknown"}`,
+          `Perimeter correct: ${safeBoolean(autoByTask.perimeterValue?.isCorrect) === true ? "yes" : safeBoolean(autoByTask.perimeterValue?.isCorrect) === false ? "no" : "unknown"}`,
+          `Area correct: ${safeBoolean(autoByTask.areaValue?.isCorrect) === true ? "yes" : safeBoolean(autoByTask.areaValue?.isCorrect) === false ? "no" : "unknown"}`
+        );
+      }
+
+      return lines.join("\n");
+    })
+    .join("\n\n");
 }
 
 type Body = {
@@ -513,24 +568,94 @@ export async function POST(req: Request) {
     const subSnap = await subRef.get();
     if (!subSnap.exists) return json({ error: "Submission not found" }, 404);
     const subDoc = (subSnap.data() || {}) as Record<string, unknown>;
-    const answers = readAnswerMap(subDoc.answers);
 
     const aRef = db.collection("spaces").doc(spaceId).collection("lessons").doc(assignmentId);
     const aSnap = await aRef.get();
     const assignment = (aSnap.exists ? aSnap.data() || {} : {}) as Record<string, unknown>;
 
-    const sourceType = (safeString(assignment.sourceType) || "library") as SourceType;
-    const sourceId = safeString(assignment.sourceId).trim();
-    if (!sourceId) return json({ error: "Assignment missing sourceId" }, 400);
+    let lesson: Record<string, unknown> = {};
+    if (hasAssignmentSnapshotContent(assignment)) {
+      lesson = assignment;
+    } else {
+      const sourceType = (safeString(assignment.sourceType) || "library") as SourceType;
+      const sourceId = safeString(assignment.sourceId).trim();
 
-    const lessonRef =
-      sourceType === "library"
-        ? db.collection("published_lessons").doc(sourceId)
-        : db.collection("lessons").doc(sourceId);
+      if (!sourceId) {
+        return json({ error: "Assignment missing sourceId and no snapshot content" }, 400);
+      }
 
-    const lessonSnap = await lessonRef.get();
-    const lesson = (lessonSnap.exists ? lessonSnap.data() || {} : {}) as Record<string, unknown>;
+      const lessonRef =
+        sourceType === "library"
+          ? db.collection("published_lessons").doc(sourceId)
+          : db.collection("lessons").doc(sourceId);
+
+      const lessonSnap = await lessonRef.get();
+      lesson = (lessonSnap.exists ? lessonSnap.data() || {} : {}) as Record<string, unknown>;
+    }
+
+    const lessonTitle = safeString(lesson.title) || safeString(assignment.title) || "Oppgave";
+    const level = safeString(lesson.level) || safeString(assignment.level) || "A2";
+    const languageHint = safeString(lesson.language) || safeString(assignment.language) || "";
+
+    const lessonType = safeString(lesson.lessonType || assignment.lessonType).toLowerCase().trim();
+    const taskType = safeString(lesson.taskType || assignment.taskType).toLowerCase().trim();
+    const mathWorksheet = isMathWorksheet(lesson.mathWorksheet) ? (lesson.mathWorksheet as MathWorksheet) : null;
+
+    const isGeometry =
+      lessonType === "math_geometry" ||
+      taskType === "math_geometry" ||
+      !!mathWorksheet;
+
+    if (isGeometry) {
+      const answersByTaskId = readAnswerMap(subDoc.answersByTaskId);
+      const geometryAuto = (subDoc.auto ?? null) as GeometryAutoResult | null;
+
+      const systemPrompt = buildGeometrySystemPrompt(locale);
+      const userContent =
+        `Worksheet title: ${mathWorksheet?.title || lessonTitle}\n` +
+        `Level: ${level}\n` +
+        (languageHint ? `Language hint: ${languageHint}\n` : "") +
+        `Geometry auto summary:\n${summarizeGeometryAuto(geometryAuto)}\n\n` +
+        `Geometry tasks and student answers:\n${summarizeGeometryWorksheet(mathWorksheet, answersByTaskId, geometryAuto)}\n\n` +
+        `Instruction:\n` +
+        `Write teacher feedback for the student in the required structure. ` +
+        `Use the auto-check actively. Mention what the student understands, what is partly correct or wrong, and what should be practiced next.`;
+
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const model = pickModel();
+
+      const resp = await client.responses.create({
+        model,
+        temperature: 0.3,
+        input: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
+      });
+
+      const textOut = (resp.output_text || "").trim();
+      if (!textOut) return json({ error: "Empty AI response" }, 502);
+
+      const payload = {
+        aiFeedback: {
+          text: textOut,
+          updatedAt: FieldValue.serverTimestamp(),
+          teacherUid: uid,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+
+      const batch = db.batch();
+      batch.set(subRef, payload, { merge: true });
+      batch.set(db.collection("spaceSubmissions").doc(subId), payload, { merge: true });
+      await batch.commit();
+
+      return json({ text: textOut }, 200);
+    }
+
     const tasks = safeTasksArray(lesson.tasks);
+    const answers = readAnswerMap(subDoc.answers);
 
     const openItems = tasks
       .slice()
@@ -556,13 +681,10 @@ export async function POST(req: Request) {
       .sort((x, y) => Number(x?.order ?? 999) - Number(y?.order ?? 999))
       .filter((task) => isReadingTestType(safeString(task?.type)));
 
-    const lessonTitle = safeString(lesson.title) || safeString(assignment.title) || "Oppgave";
-    const level = safeString(lesson.level) || safeString(assignment.level) || "A2";
-    const languageHint = safeString(lesson.language) || safeString(assignment.language) || "";
     const sourceText = safeString(lesson.sourceText) || safeString(lesson.text) || "";
     const sourceWordCount = countWords(sourceText);
 
-    const autoResultat = readAutoGradeSummaryFromSubmission(subDoc);
+    const autoResultat = summarizeAutoResult(subDoc.auto);
 
     const readingTimeLimitSeconds = safeNumber(subDoc.readingTestTimeLimitSeconds);
     const readingTimeUsedSeconds =
@@ -622,17 +744,13 @@ export async function POST(req: Request) {
         (languageHint ? `Language hint: ${languageHint}\n` : "") +
         `Lesson title: ${lessonTitle}\n` +
         `Is reading test: yes\n\n` +
-        `Auto result (from automatic grading):\n${autoResultat || "(not provided)"}\n\n` +
-        `Reading text (context):\n${sourceText.trim() || "(not provided)"}\n\n` +
+        `Auto result:\n${autoResultat || "(not provided)"}\n\n` +
+        `Reading text:\n${sourceText.trim() || "(not provided)"}\n\n` +
         `${readingModeBlock}\n\n` +
         `All tasks and student answers:\n${taskOverviewBlock}\n\n` +
         `Open tasks and answers:\n${openTasksBlock}\n\n` +
         `Instruction:\n` +
-        `Write teacher feedback in the required structure. ` +
-        `Base the reading assessment mainly on the auto result. ` +
-        `Use time only as a cautious supporting signal. ` +
-        `If there are open answers, assess them too. ` +
-        `If there are no open answers, still give a useful reading-test evaluation based on auto result, CEFR and timing.\n`
+        `Write teacher feedback in the required structure. Base the reading assessment mainly on the auto result. Use time only as a cautious supporting signal.`
       : `CEFR level: ${level}\n` +
         (languageHint ? `Language hint: ${languageHint}\n` : "") +
         `Lesson title: ${lessonTitle}\n` +
@@ -642,10 +760,7 @@ export async function POST(req: Request) {
         `All tasks and student answers:\n${taskOverviewBlock}\n\n` +
         `Open tasks and answers:\n${openTasksBlock}\n\n` +
         `Instruction:\n` +
-        `Write teacher feedback in the required structure for a normal task. ` +
-        `Do not talk about reading speed, time use, or reading comprehension unless it is clearly relevant. ` +
-        `Focus on task response, language, accuracy, vocabulary, and next steps. ` +
-        `If automatic scoring exists, you may mention it briefly, but do not turn the response into a reading-test evaluation.\n`;
+        `Write teacher feedback in the required structure for a normal task. Focus on task response, language, accuracy, vocabulary, and next steps.`;
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const model = pickModel();
