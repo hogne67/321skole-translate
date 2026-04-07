@@ -1,7 +1,20 @@
+// app\api\math\geometry\save-attempt\route.ts
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
+
+type Body = {
+  attemptId?: string;
+  worksheet?: unknown;
+  answersByTaskId?: unknown;
+  auto?: unknown;
+  aiFeedback?: unknown;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 export async function POST(req: Request) {
   try {
@@ -22,32 +35,48 @@ export async function POST(req: Request) {
     const decoded = await auth.verifyIdToken(idToken);
     const uid = decoded.uid;
 
-    const body = await req.json();
-    const { worksheet, answersByTaskId, auto, aiFeedback } = body ?? {};
+    const body = (await req.json()) as Body;
+    const {
+      attemptId,
+      worksheet,
+      answersByTaskId,
+      auto,
+      aiFeedback,
+    } = body ?? {};
 
-    if (!worksheet || !answersByTaskId) {
+    if (!worksheet || !isRecord(worksheet) || !answersByTaskId || !isRecord(answersByTaskId)) {
       return NextResponse.json(
         { ok: false, error: "Missing data" },
         { status: 400 }
       );
     }
 
-    const ref = db
+    const attemptsRef = db
       .collection("users")
       .doc(uid)
-      .collection("geometryAttempts")
-      .doc();
+      .collection("geometryAttempts");
 
-    await ref.set({
-      ownerUid: uid,
-      mode: "practice",
-      worksheet,
-      answersByTaskId,
-      auto: auto ?? null,
-      aiFeedback: aiFeedback ?? null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    const ref =
+      typeof attemptId === "string" && attemptId.trim()
+        ? attemptsRef.doc(attemptId.trim())
+        : attemptsRef.doc();
+
+    const existingSnap = await ref.get();
+    const isNew = !existingSnap.exists;
+
+    await ref.set(
+      {
+        ownerUid: uid,
+        mode: "practice",
+        worksheet,
+        answersByTaskId,
+        auto: auto ?? null,
+        aiFeedback: aiFeedback ?? null,
+        updatedAt: new Date(),
+        ...(isNew ? { createdAt: new Date() } : {}),
+      },
+      { merge: true }
+    );
 
     return NextResponse.json({
       ok: true,

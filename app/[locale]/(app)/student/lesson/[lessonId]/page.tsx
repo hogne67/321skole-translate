@@ -1,4 +1,5 @@
 // app/[locale]/(app)/student/lesson/[lessonId]/page.tsx
+// app/[locale]/(app)/student/lesson/[lessonId]/page.tsx
 "use client";
 
 import { SearchableSelect } from "@/components/SearchableSelect";
@@ -29,6 +30,7 @@ const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
 }));
 
 type Lesson = {
+  ownerId?: string;
   title: string;
   level?: string;
   topic?: string;
@@ -41,8 +43,10 @@ type Lesson = {
   language?: string;
 
   coverImageUrl?: string;
-
   isActive?: boolean;
+
+  sourceCollection?: "published_lessons" | "lessons";
+  publishedLessonId?: string | null;
 };
 
 type AnswersMap = Record<string, unknown>;
@@ -55,7 +59,8 @@ type TranslatedTask = {
 
 type SubmissionDoc = {
   uid?: string;
-  publishedLessonId?: string;
+  lessonId?: string;
+  publishedLessonId?: string | null;
   answers?: Record<string, unknown>;
   status?: "draft" | "submitted";
   feedback?: string;
@@ -74,6 +79,19 @@ type PublishedLessonDoc = {
   tasks?: unknown;
   coverImageUrl?: string;
   isActive?: boolean;
+};
+
+type PrivateLessonDoc = {
+  ownerId?: string;
+  title?: string;
+  level?: string;
+  topic?: string;
+  language?: string;
+  sourceText?: string;
+  text?: string;
+  tasks?: unknown;
+  coverImageUrl?: string;
+  status?: "draft" | "published";
 };
 
 type TaskType = "mcq" | "truefalse" | "open";
@@ -124,6 +142,22 @@ function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
   };
 }
 
+function asPrivateLessonDoc(data: DocumentData): PrivateLessonDoc {
+  const d = data as Partial<PrivateLessonDoc>;
+  return {
+    ownerId: typeof d.ownerId === "string" ? d.ownerId : undefined,
+    title: typeof d.title === "string" ? d.title : undefined,
+    level: typeof d.level === "string" ? d.level : undefined,
+    topic: typeof d.topic === "string" ? d.topic : undefined,
+    language: typeof d.language === "string" ? d.language : undefined,
+    sourceText: typeof d.sourceText === "string" ? d.sourceText : undefined,
+    text: typeof d.text === "string" ? d.text : undefined,
+    tasks: d.tasks,
+    coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
+    status: d.status === "published" ? "published" : "draft",
+  };
+}
+
 function asSubmissionDoc(data: DocumentData): SubmissionDoc {
   const d = data as Partial<SubmissionDoc>;
   const answers =
@@ -133,8 +167,9 @@ function asSubmissionDoc(data: DocumentData): SubmissionDoc {
 
   return {
     uid: typeof d.uid === "string" ? d.uid : undefined,
+    lessonId: typeof d.lessonId === "string" ? d.lessonId : undefined,
     publishedLessonId:
-      typeof d.publishedLessonId === "string" ? d.publishedLessonId : undefined,
+      typeof d.publishedLessonId === "string" ? d.publishedLessonId : d.publishedLessonId === null ? null : undefined,
     answers,
     status: d.status === "draft" || d.status === "submitted" ? d.status : undefined,
     feedback: typeof d.feedback === "string" ? d.feedback : undefined,
@@ -780,51 +815,85 @@ export default function StudentLessonPage() {
         setUid(user.uid);
         setIsAnon(!!user.isAnonymous);
 
-        let lessonSnap;
+        let loadedLesson: Lesson | null = null;
+
         try {
-          lessonSnap = await getDoc(doc(db, "published_lessons", lessonId));
+          const publishedSnap = await getDoc(doc(db, "published_lessons", lessonId));
+
+          if (publishedSnap.exists()) {
+            const rawData = asPublishedLessonDoc(publishedSnap.data());
+
+            if (rawData?.isActive === false) {
+              setLesson(null);
+              setError(t("errors.notPublished"));
+              if (alive) setLoading(false);
+              return;
+            }
+
+            loadedLesson = {
+              title: rawData.title ?? t("fallback.lessonTitle"),
+              level: rawData.level,
+              topic: rawData.topic,
+              language: rawData.language,
+              tasks: rawData.tasks,
+              coverImageUrl: rawData.coverImageUrl,
+              isActive: rawData.isActive,
+              sourceText: (rawData.sourceText ?? rawData.text ?? "") as string,
+              text: rawData.text,
+              status: "published",
+              sourceCollection: "published_lessons",
+              publishedLessonId: lessonId,
+            };
+          }
         } catch (e: unknown) {
-          if (isPermissionDenied(e)) {
+          if (!isPermissionDenied(e)) throw e;
+        }
+
+        if (!loadedLesson) {
+          const privateSnap = await getDoc(doc(db, "lessons", lessonId));
+          if (!alive) return;
+
+          if (!privateSnap.exists()) {
             setLesson(null);
-            setError(t("errors.notPublished"));
+            setError(t("errors.notFound"));
             if (alive) setLoading(false);
             return;
           }
-          throw e;
+
+          const rawPrivate = asPrivateLessonDoc(privateSnap.data());
+
+          if (user.isAnonymous) {
+            setLesson(null);
+            setError(t("errors.noAccess"));
+            if (alive) setLoading(false);
+            return;
+          }
+
+          if (!rawPrivate.ownerId || rawPrivate.ownerId !== user.uid) {
+            setLesson(null);
+            setError(t("errors.noAccess"));
+            if (alive) setLoading(false);
+            return;
+          }
+
+          loadedLesson = {
+            ownerId: rawPrivate.ownerId,
+            title: rawPrivate.title ?? t("fallback.lessonTitle"),
+            level: rawPrivate.level,
+            topic: rawPrivate.topic,
+            language: rawPrivate.language,
+            tasks: rawPrivate.tasks,
+            coverImageUrl: rawPrivate.coverImageUrl,
+            sourceText: (rawPrivate.sourceText ?? rawPrivate.text ?? "") as string,
+            text: rawPrivate.text,
+            status: rawPrivate.status ?? "draft",
+            sourceCollection: "lessons",
+            publishedLessonId: null,
+          };
         }
 
-        if (!alive) return;
-
-        if (!lessonSnap.exists()) {
-          setLesson(null);
-          setError(t("errors.notFound"));
-          if (alive) setLoading(false);
-          return;
-        }
-
-        const rawData = asPublishedLessonDoc(lessonSnap.data());
-        if (rawData?.isActive === false) {
-          setLesson(null);
-          setError(t("errors.notPublished"));
-          if (alive) setLoading(false);
-          return;
-        }
-
-        const lessonData: Lesson = {
-          title: rawData.title ?? t("fallback.lessonTitle"),
-          level: rawData.level,
-          topic: rawData.topic,
-          language: rawData.language,
-          tasks: rawData.tasks,
-          coverImageUrl: rawData.coverImageUrl,
-          isActive: rawData.isActive,
-          sourceText: (rawData.sourceText ?? rawData.text ?? "") as string,
-          text: rawData.text,
-          status: "published",
-        };
-
-        setLesson(lessonData);
-        setImageUrl(lessonData.coverImageUrl ?? null);
+        setLesson(loadedLesson);
+        setImageUrl(loadedLesson.coverImageUrl ?? null);
 
         if (user.isAnonymous) {
           try {
@@ -932,7 +1001,7 @@ export default function StudentLessonPage() {
   }
 
   async function saveDraft() {
-    if (!lessonId || !uid) return;
+    if (!lessonId || !uid || !lesson) return;
 
     setSaving(true);
     setMsg(null);
@@ -949,15 +1018,21 @@ export default function StudentLessonPage() {
       }
 
       const stableId = `${uid}_${lessonId}`;
+      const publishedLessonId =
+        lesson.sourceCollection === "published_lessons" ? lessonId : null;
+      const source =
+        lesson.sourceCollection === "published_lessons" ? "library" : "my_content";
 
       const practiceRef = doc(db, "practiceSubmissions", stableId);
       await setDoc(
         practiceRef,
         {
           uid,
-          publishedLessonId: lessonId,
+          lessonId,
+          publishedLessonId,
           answers,
           status: "draft",
+          source,
           updatedAt: serverTimestamp(),
           createdAt: serverTimestamp(),
         },
@@ -970,10 +1045,11 @@ export default function StudentLessonPage() {
         {
           uid,
           lessonId,
-          publishedLessonId: lessonId,
+          publishedLessonId,
           answers,
           status: "draft",
           kind: "practice",
+          source,
           updatedAt: serverTimestamp(),
           createdAt: serverTimestamp(),
         },
@@ -981,8 +1057,7 @@ export default function StudentLessonPage() {
       );
 
       flash(t("flash.saved"));
-
-      router.push("/content");
+      router.push(`/${locale}/content`);
       return;
     } catch (e: unknown) {
       const m = (e as { message?: unknown })?.message;
@@ -1019,14 +1094,20 @@ export default function StudentLessonPage() {
     try {
       const stableId = `${uid}_${lessonId}`;
       const ref = doc(db, "practiceSubmissions", stableId);
+      const publishedLessonId =
+        lesson.sourceCollection === "published_lessons" ? lessonId : null;
+      const source =
+        lesson.sourceCollection === "published_lessons" ? "library" : "my_content";
 
       await setDoc(
         ref,
         {
           uid,
-          publishedLessonId: lessonId,
+          lessonId,
+          publishedLessonId,
           answers,
           status: "submitted",
+          source,
           updatedAt: serverTimestamp(),
           createdAt: serverTimestamp(),
         },
@@ -1205,7 +1286,7 @@ export default function StudentLessonPage() {
     return (
       <div style={{ padding: 16 }}>
         <p style={{ color: "crimson" }}>{error}</p>
-        <Link href="/content">← {t("nav.backToDashboard")}</Link>
+        <Link href={`/${locale}/content`}>← {t("nav.backToDashboard")}</Link>
       </div>
     );
   }
@@ -1214,7 +1295,7 @@ export default function StudentLessonPage() {
     return (
       <div style={{ padding: 16 }}>
         <p>{t("noData")}</p>
-        <Link href="/student">← {t("nav.backToDashboard")}</Link>
+        <Link href={`/${locale}/content`}>← {t("nav.backToDashboard")}</Link>
       </div>
     );
   }
@@ -1268,6 +1349,11 @@ export default function StudentLessonPage() {
     );
   };
 
+  const backHref =
+    lesson.sourceCollection === "published_lessons"
+      ? `/${locale}/lesson/${lessonId}`
+      : `/${locale}/content`;
+
   return (
     <main style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
       <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -1277,6 +1363,7 @@ export default function StudentLessonPage() {
             {lesson.level ? <span>{lesson.level}</span> : null}
             {lesson.language ? <span> • {lesson.language.toUpperCase()}</span> : null}
             {lesson.topic ? <span> • {lesson.topic}</span> : null}
+            {lesson.sourceCollection === "lessons" ? <span> • My Content</span> : null}
           </div>
 
           {isAnon ? (
@@ -1853,7 +1940,7 @@ export default function StudentLessonPage() {
       </section>
 
       <section style={{ marginTop: 18 }}>
-        <Link href={`/lesson/${lessonId}`} style={{ textDecoration: "none" }}>
+        <Link href={backHref} style={{ textDecoration: "none" }}>
           ← {t("nav.backToPreview")}
         </Link>
       </section>

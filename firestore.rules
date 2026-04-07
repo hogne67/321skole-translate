@@ -310,6 +310,11 @@ service cloud.firestore {
     allow create, update: if signedIn() && myUid() == uid;
     allow delete: if false;
   }
+
+  match /geometryAttempts/{attemptId} {
+    allow read, create, update: if signedIn() && myUid() == uid;
+    allow delete: if false;
+  }
 }
 
     /* =========================

@@ -324,14 +324,15 @@ function buildGeneralSystemPrompt(lang: "no" | "en" | "pt") {
     return [
       "You are an experienced language teacher.",
       "Address the student directly using 'you'. Be supportive, clear, and motivating.",
-      "Give short, precise, and useful feedback on the student's answers.",
-      "Adapt to the provided CEFR level.",
+      "Give short, precise, and useful feedback.",
+      "Focus on whether the tasks are answered correctly, reading comprehension according to autoscore, and whether open tasks are answered relevantly.",
+      "Assess language with particular attention to grammar, and point out concrete errors that should be corrected.",
       "Do NOT write a full corrected version of the whole text.",
       "",
       "Use these exact headings:",
       "1) OPPGAVELØSNING OG INNHOLD",
       "2) SPRÅK",
-      "3) NIVÅ OG NESTE STEG (CEFR)",
+      "3) NESTE STEG",
       "",
       "Keep it concise.",
     ].join("\n");
@@ -342,26 +343,29 @@ function buildGeneralSystemPrompt(lang: "no" | "en" | "pt") {
       "Você é um professor experiente de língua.",
       "Fale diretamente com o aluno usando 'você'.",
       "Dê um feedback curto, preciso e útil.",
-      "Adapte ao nível CEFR informado.",
+      "Foque se as tarefas foram respondidas corretamente, na compreensão de leitura de acordo com a pontuação automática, e se as tarefas abertas foram respondidas de forma relevante.",
+      "Avalie a linguagem com atenção especial à gramática e aponte erros concretos que devem ser corrigidos.",
       "Não escreva uma versão completa corrigida do texto inteiro.",
       "",
       "Use estes títulos exatos:",
       "1) OPPGAVELØSNING OG INNHOLD",
       "2) SPRÅK",
-      "3) NIVÅ OG NESTE STEG (CEFR)",
+      "3) NESTE STEG",
     ].join("\n");
   }
 
   return [
     "Du er en erfaren språk- og norsklærer.",
     "Skriv direkte til eleven med 'du'. Vær støttende, konkret og motiverende.",
-    "Gi kort, presis og nyttig tilbakemelding tilpasset oppgitt CEFR-nivå.",
+    "Gi kort, presis og nyttig tilbakemelding.",
+    "Fokuser på om oppgavene er besvart riktig, leseforståelse i henhold til autoscore, og om åpne oppgaver er besvart relevant.",
+    "Vurder språk med særlig fokus på grammatikk, og pek på konkrete feil som bør rettes.",
     "Ikke skriv en fullstendig korrigert versjon av hele teksten.",
     "",
     "Bruk nøyaktig disse overskriftene:",
     "1) OPPGAVELØSNING OG INNHOLD",
     "2) SPRÅK",
-    "3) NIVÅ OG NESTE STEG (CEFR)",
+    "3) NESTE STEG",
     "",
     "Hold det konsist.",
   ].join("\n");
@@ -751,16 +755,19 @@ export async function POST(req: Request) {
         `Open tasks and answers:\n${openTasksBlock}\n\n` +
         `Instruction:\n` +
         `Write teacher feedback in the required structure. Base the reading assessment mainly on the auto result. Use time only as a cautious supporting signal.`
-      : `CEFR level: ${level}\n` +
-        (languageHint ? `Language hint: ${languageHint}\n` : "") +
+      : (languageHint ? `Language hint: ${languageHint}\n` : "") +
         `Lesson title: ${lessonTitle}\n` +
-        `Is reading test: no\n\n` +
+        `Task type: normal task\n\n` +
         `Automatic result data:\n${autoResultat || "(not provided)"}\n\n` +
         `Source text / task context:\n${sourceText.trim() || "(not provided)"}\n\n` +
         `All tasks and student answers:\n${taskOverviewBlock}\n\n` +
         `Open tasks and answers:\n${openTasksBlock}\n\n` +
         `Instruction:\n` +
-        `Write teacher feedback in the required structure for a normal task. Focus on task response, language, accuracy, vocabulary, and next steps.`;
+        `Write short teacher feedback in the required structure. ` +
+        `Focus on whether the student has understood the task, answered relevantly, and responded to the open tasks. ` +
+        `Use automatic result data as support when it exists. ` +
+        `In the language section, comment on grammar and point out concrete errors that should be corrected. ` +
+        `Do not set a CEFR level.`;
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const model = pickModel();

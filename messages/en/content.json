@@ -51,6 +51,7 @@
     },
     "math": {
       "pdf": "Math PDF",
+      "openDigital": "Work digital",
       "hint": "Ready for PDF export. Generate a new worksheet if you want another version.",
       "subtypes": {
         "geometry": "Geometry",

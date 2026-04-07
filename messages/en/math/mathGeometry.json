@@ -118,6 +118,8 @@
       "rightSide": "right side",
       "radius": "radius"
     },
+    "openDigital": "Jobb digitalt",
+
     "autoSummaryTitle": "Auto correction",
     "score": "Score",
     "tasks": "Tasks",
@@ -126,6 +128,13 @@
     "wrong": "Wrong",
     "unanswered": "Unanswered",
     "autoSummaryText": "{correct} correct, {partial} partially correct, {wrong} wrong and {unanswered} unanswered out of {total} tasks.",
-    "autoSummaryEmpty": "No tasks to assess."
+    "autoSummaryEmpty": "No tasks to assess.",
+    "task": "Task",
+    "part": "Part",
+    "details": "Details",
+    "expectedAnswer": "Expected answer",
+    "studentAnswer": "Student answer",
+    "autoTaskResultsTitle": "Results by task",
+    "partialSingular": "Partially correct"
   }
 }

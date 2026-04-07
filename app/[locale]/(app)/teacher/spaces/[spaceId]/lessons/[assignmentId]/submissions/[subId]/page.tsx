@@ -1,3 +1,4 @@
+// app\[locale]\(app)\teacher\spaces\[spaceId]\lessons\[assignmentId]\submissions\[subId]\page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -1333,18 +1334,20 @@ function Inner() {
                 <div className="grid gap-4">
                   <div className="rounded-xl border border-slate-300 bg-white p-3">
                     <GeometryWorksheetPracticeView
-                      worksheet={geometryWorksheet}
-                      t={tGeometryAny}
-                      tBrand={tBrandAny}
-                      answersByTaskId={answersMap as GeometryAnswersByTaskId}
-                      onAnswerChange={() => {
-                        // read-only teacher view
-                      }}
-                      showExpectedAnswers={true}
-                      showIdentityFields={false}
-                      showFigureMeta={true}
-                      includeHints={true}
-                    />
+  worksheet={geometryWorksheet}
+  t={tGeometryAny}
+  tBrand={tBrandAny}
+  answersByTaskId={answersMap as GeometryAnswersByTaskId}
+  onAnswerChange={() => {
+    // read-only teacher view
+  }}
+  showExpectedAnswers={true}
+  showIdentityFields={false}
+  showFigureMeta={true}
+  includeHints={true}
+  auto={geometryAuto}
+  showInlineFeedback={!!geometryAuto}
+/>
                   </div>
 
                   {geometryAuto ? (

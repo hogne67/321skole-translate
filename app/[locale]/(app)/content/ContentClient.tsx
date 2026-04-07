@@ -861,6 +861,45 @@ export default function ContentClient() {
     }
   }
 
+  async function openMathAttemptFromLesson(lessonId: string) {
+    const key = `openMath:${lessonId}`;
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      const snap = await getDoc(doc(db, "lessons", lessonId));
+      if (!snap.exists()) throw new Error("Math worksheet not found");
+
+      const rawUnknown = snap.data() as unknown;
+      const raw = isRecord(rawUnknown) ? rawUnknown : {};
+      const worksheet = raw.mathWorksheet;
+
+      if (!worksheet || typeof worksheet !== "object") {
+        throw new Error("Missing math worksheet");
+      }
+
+      const res = await authedPost<{ ok?: boolean; id?: string }>(
+        "/api/math/geometry/save-attempt",
+        {
+          worksheet,
+          answersByTaskId: {},
+          auto: null,
+          aiFeedback: null,
+        }
+      );
+
+      if (!res?.id) {
+        throw new Error("Attempt was created without id");
+      }
+
+      router.push(`/${locale}/math/geometry/attempts/${res.id}`);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Failed to open math attempt");
+    } finally {
+      setBusy(key, false);
+    }
+  }
+
   function cleanMetaForCard(it: ContentItem): string {
     const meta = it.meta?.filter(Boolean) ?? [];
     const hasLessonTitle = meta.some((m) => typeof m === "string" && m.startsWith("Lesson: "));
@@ -1044,6 +1083,12 @@ export default function ContentClient() {
     if (isMathArchive) {
       return [
         ...restoreAction,
+        {
+          key: "openMath",
+          label: t("math.openDigital"),
+          disabled: busy,
+          onClick: () => openMathAttemptFromLesson(ls.id),
+        },
         ...(canPdf
           ? [
               {
@@ -1148,7 +1193,7 @@ export default function ContentClient() {
   function visibleDesktopActionKeys(it: ContentItem): string[] {
     if (it.type === "submission") return ["open", "edit", "shareToSpace"];
     if (it.type === "space") return ["open", "board", "copyCode", "shareLinkQr", "copyJoinLink"];
-    if (isMathArchiveItem(it)) return ["pdf", "delete", "restore"];
+    if (isMathArchiveItem(it)) return ["openMath", "pdf", "delete", "restore"];
     return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "pdf", "delete", "restore"];
   }
 

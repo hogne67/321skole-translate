@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -63,7 +63,13 @@ type Lesson = {
 };
 
 function uidNow() {
-  return getAuth().currentUser?.uid ?? null;
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) return null;
+  if (user.isAnonymous) return null;
+
+  return user.uid;
 }
 
 function newId() {
@@ -183,6 +189,7 @@ export default function ProducerLessonEditorPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [authResolved, setAuthResolved] = useState(false);
 
   const [err, setErr] = useState<string | null>(null);
   const [uid, setUid] = useState<string | null>(null);
@@ -268,19 +275,29 @@ export default function ProducerLessonEditorPage() {
   const myContentHref = `/${locale}/content`;
 
   useEffect(() => {
+    const unsub = onAuthStateChanged(getAuth(), () => {
+      setAuthResolved(true);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
     let alive = true;
 
-    (async () => {
+    async function load() {
       setErr(null);
       setLoading(true);
 
       try {
-        await ensureAnonymousUser();
-        const u = uidNow();
-        if (!u) throw new Error("No auth uid (anonymous auth not ready).");
+        const currentUid = getAuth().currentUser?.uid ?? null;
+        if (!currentUid) {
+          setErr(t("errors.noAuthUid"));
+          setLoading(false);
+          return;
+        }
         if (!alive) return;
 
-        setUid(u);
+        setUid(currentUid);
 
         const snap = await getDoc(doc(db, "lessons", lessonId));
         if (!alive) return;
@@ -293,7 +310,13 @@ export default function ProducerLessonEditorPage() {
 
         const data = (snap.data() as Lesson) ?? {};
 
-        if (data.ownerId && data.ownerId !== u) {
+        console.log("TEXT EDITOR DEBUG", {
+          lessonId,
+          currentUid,
+          ownerId: data.ownerId ?? null,
+        });
+
+        if (data.ownerId && data.ownerId !== currentUid) {
           setErr(t("errors.noAccessOwnerMismatch"));
           setLoading(false);
           return;
@@ -327,12 +350,15 @@ export default function ProducerLessonEditorPage() {
         setErr(localizeError(getErrorMessage(e) || t("errors.loadFailed")));
         setLoading(false);
       }
-    })();
+    }
+
+    if (!authResolved) return;
+    void load();
 
     return () => {
       alive = false;
     };
-  }, [lessonId, t, localizeError]);
+  }, [lessonId, authResolved, t, localizeError]);
 
   useEffect(() => {
     let alive = true;
@@ -360,8 +386,13 @@ export default function ProducerLessonEditorPage() {
     setUploadingCover(true);
 
     try {
-      await ensureAnonymousUser();
-      const u = uidNow();
+      let u = uidNow();
+
+      if (!u) {
+        await ensureAnonymousUser();
+        u = uidNow();
+      }
+
       if (!u) throw new Error("No auth uid.");
 
       if (!file.type.startsWith("image/")) {
@@ -397,11 +428,9 @@ export default function ProducerLessonEditorPage() {
     setGeneratingCover(true);
 
     try {
-      await ensureAnonymousUser();
-
       const auth = getAuth();
       const user = auth.currentUser;
-      const u = user?.uid ?? null;
+      const u = user && !user.isAnonymous ? user.uid : null;
 
       if (!user || !u) {
         throw new Error("No auth uid.");
@@ -473,9 +502,10 @@ export default function ProducerLessonEditorPage() {
     setSaving(true);
 
     try {
-      await ensureAnonymousUser();
-      const u = uidNow();
-      if (!u) throw new Error("No auth uid.");
+      const currentUid = getAuth().currentUser?.uid ?? null;
+      if (!currentUid) {
+        throw new Error("No auth uid.");
+      }
 
       const tags = parseTags(tagsText);
 
@@ -485,7 +515,7 @@ export default function ProducerLessonEditorPage() {
       }));
 
       await updateDoc(doc(db, "lessons", lessonId), {
-        ownerId: u,
+        ownerId: currentUid,
 
         title: title.trim(),
         level: level.trim(),
