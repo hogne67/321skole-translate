@@ -1,4 +1,3 @@
-// app/(app)/teacher/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -21,6 +20,10 @@ import {
 } from "@/lib/teacherStudentLimit";
 import { useUsage } from "@/lib/useUsage";
 import { useUserProfile } from "@/lib/useUserProfile";
+import {
+  getTeacherDashboardStats,
+  type SubmissionDashboardStats,
+} from "@/lib/dashboardSubmissionStats";
 
 function safeRole(role?: string): AppRole {
   if (role === "teacher") return "teacher";
@@ -160,6 +163,56 @@ function getRemaining(used: number, limit: number): number {
   return Math.max(0, limit - used);
 }
 
+function emptyStats(): SubmissionDashboardStats {
+  return {
+    total: 0,
+    draft: 0,
+    submitted: 0,
+    needsWork: 0,
+    approved: 0,
+    other: 0,
+  };
+}
+
+function getDashboardCopy(locale: string) {
+  if (locale === "pt") {
+    return {
+      badge: "Tarefas",
+      title: "Status das entregas",
+      description: "Veja rapidamente o que precisa de atenção agora.",
+      toReview: "Para avaliar",
+      needsFollowUp: "Acompanhar",
+      reviewed: "Concluídas",
+      openSpaces: "Abrir turmas",
+      spacesLabel: "Turmas",
+    };
+  }
+
+  if (locale === "en") {
+    return {
+      badge: "Assignments",
+      title: "Submission status",
+      description: "See at a glance what needs your attention right now.",
+      toReview: "To review",
+      needsFollowUp: "Needs follow-up",
+      reviewed: "Reviewed",
+      openSpaces: "Open classes",
+      spacesLabel: "Classes",
+    };
+  }
+
+  return {
+    badge: "Oppgaver",
+    title: "Innleveringsstatus",
+    description: "Se raskt hva som trenger oppmerksomhet akkurat nå.",
+    toReview: "Til vurdering",
+    needsFollowUp: "Følg opp",
+    reviewed: "Vurdert",
+    openSpaces: "Åpne klasserom",
+    spacesLabel: "Klasserom",
+  };
+}
+
 type StatCardProps = {
   title: string;
   used: number;
@@ -283,9 +336,126 @@ function StatCard({ title, used, limit, accent = "slate", t }: StatCardProps) {
   );
 }
 
+function SmallStatusCard({
+  title,
+  value,
+  href,
+}: {
+  title: string;
+  value: number;
+  href: string;
+}) {
+  function getStyle(title: string) {
+    const t = title.toLowerCase();
+
+    if (t.includes("opp") || t.includes("needs")) {
+      return {
+        bg: "rgba(245,158,11,0.12)",
+        border: "rgba(245,158,11,0.35)",
+        color: "rgba(180,83,9,1)",
+        badgeBg: "rgba(245,158,11,1)",
+      };
+    }
+
+    if (t.includes("vurdering") || t.includes("review") || t.includes("submitted")) {
+      return {
+        bg: "rgba(59,130,246,0.12)",
+        border: "rgba(59,130,246,0.35)",
+        color: "rgba(37,99,235,1)",
+        badgeBg: "rgba(59,130,246,1)",
+      };
+    }
+
+    if (t.includes("ferdig") || t.includes("approved")) {
+      return {
+        bg: "rgba(16,185,129,0.12)",
+        border: "rgba(16,185,129,0.35)",
+        color: "rgba(5,150,105,1)",
+        badgeBg: "rgba(16,185,129,1)",
+      };
+    }
+
+    return {
+      bg: "#ffffff",
+      border: "#e5e7eb",
+      color: "#64748b",
+      badgeBg: "rgba(100,116,139,1)",
+    };
+  }
+
+  const style = getStyle(title);
+
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "block",
+        textDecoration: "none",
+        borderRadius: 16,
+        padding: 14,
+        background: style.bg,
+        border: `1px solid ${style.border}`,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+        transition: "transform 120ms ease, box-shadow 120ms ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)";
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div style={{ fontSize: 13, fontWeight: 700, color: style.color }}>
+          {title}
+        </div>
+
+        {value > 0 ? (
+          <span
+            style={{
+              minWidth: 24,
+              height: 24,
+              padding: "0 8px",
+              borderRadius: 999,
+              background: style.badgeBg,
+              color: "#fff",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              fontWeight: 800,
+              lineHeight: 1,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.14)",
+              flexShrink: 0,
+            }}
+          >
+            {value}
+          </span>
+        ) : null}
+      </div>
+
+      <div
+        style={{
+          marginTop: 8,
+          fontSize: 30,
+          fontWeight: 800,
+          color: "#111827",
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </div>
+    </Link>
+  );
+}
+
 export default function TeacherPage() {
   const locale = useLocale();
   const t = useTranslations("teacherPage");
+  const dashCopy = useMemo(() => getDashboardCopy(locale), [locale]);
+
   const { user, profile, loading } = useUserProfile();
   const { usage, loading: usageLoading } = useUsage(user?.uid);
 
@@ -297,6 +467,10 @@ export default function TeacherPage() {
   const [busyStudentUid, setBusyStudentUid] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [studentsOpen, setStudentsOpen] = useState(false);
+
+  const [submissionStats, setSubmissionStats] = useState<SubmissionDashboardStats>(emptyStats());
+  const [submissionStatsLoading, setSubmissionStatsLoading] = useState(true);
+  const [teacherSpaceCount, setTeacherSpaceCount] = useState(0);
 
   const sourceProfile = profile ?? user ?? null;
   const isAnon = Boolean(user?.isAnonymous);
@@ -385,7 +559,48 @@ export default function TeacherPage() {
       }
     }
 
-    loadStudents();
+    void loadStudents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSubmissionStats() {
+      if (!user?.uid || !db) {
+        if (!cancelled) {
+          setSubmissionStats(emptyStats());
+          setTeacherSpaceCount(0);
+          setSubmissionStatsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setSubmissionStatsLoading(true);
+        const result = await getTeacherDashboardStats(db, user.uid);
+
+        if (!cancelled) {
+          setSubmissionStats(result.stats);
+          setTeacherSpaceCount(result.spaceCount);
+        }
+      } catch (error) {
+        console.error("Failed to load teacher submission stats", error);
+        if (!cancelled) {
+          setSubmissionStats(emptyStats());
+          setTeacherSpaceCount(0);
+        }
+      } finally {
+        if (!cancelled) {
+          setSubmissionStatsLoading(false);
+        }
+      }
+    }
+
+    void loadSubmissionStats();
 
     return () => {
       cancelled = true;
@@ -489,7 +704,9 @@ export default function TeacherPage() {
     }
   }
 
-  if (loading || usageLoading || studentsLoading || studentItemsLoading) return null;
+  if (loading || usageLoading || studentsLoading || studentItemsLoading || submissionStatsLoading) {
+    return null;
+  }
 
   const generatorsUsed = usage["premium_generators"] ?? 0;
   const generatorsLimit = getBucketLimit(role, effectivePlan, "premium_generators");
@@ -518,27 +735,27 @@ export default function TeacherPage() {
       }}
     >
       <DashboardIntro
-  userIsAnon={isAnon}
-  helloAnon={t("dashboardIntro.helloAnon")}
-  helloUser={t.raw("dashboardIntro.helloUser")}
-  guestLabel={t("dashboardIntro.guest")}
-  loggedInLabel={t("dashboardIntro.loggedIn")}
-  youAre={t.raw("dashboardIntro.youAre")}
-  activity={t.raw("dashboardIntro.activity")}
-  recommendRegister={t("dashboardIntro.recommendRegister")}
-  remainingLabel={t.raw("dashboardIntro.remaining")}
-  roleLabelStudent={t("dashboardIntro.roles.student")}
-  roleLabelTeacher={t("dashboardIntro.roles.teacher")}
-  roleLabelParent={t("dashboardIntro.roles.parent")}
-  roleFallback={t("dashboardIntro.roleFallback")}
-  planFree={t("dashboardIntro.plans.free")}
-  planBasic={t("dashboardIntro.plans.basic")}
-  planPlus={t("dashboardIntro.plans.plus")}
-  planPro={t("dashboardIntro.plans.pro")}
-  actionSeePlans={t("dashboardIntro.actions.seePlans")}
-  actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
-  actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
-/>
+        userIsAnon={isAnon}
+        helloAnon={t("dashboardIntro.helloAnon")}
+        helloUser={t.raw("dashboardIntro.helloUser")}
+        guestLabel={t("dashboardIntro.guest")}
+        loggedInLabel={t("dashboardIntro.loggedIn")}
+        youAre={t.raw("dashboardIntro.youAre")}
+        activity={t.raw("dashboardIntro.activity")}
+        recommendRegister={t("dashboardIntro.recommendRegister")}
+        remainingLabel={t.raw("dashboardIntro.remaining")}
+        roleLabelStudent={t("dashboardIntro.roles.student")}
+        roleLabelTeacher={t("dashboardIntro.roles.teacher")}
+        roleLabelParent={t("dashboardIntro.roles.parent")}
+        roleFallback={t("dashboardIntro.roleFallback")}
+        planFree={t("dashboardIntro.plans.free")}
+        planBasic={t("dashboardIntro.plans.basic")}
+        planPlus={t("dashboardIntro.plans.plus")}
+        planPro={t("dashboardIntro.plans.pro")}
+        actionSeePlans={t("dashboardIntro.actions.seePlans")}
+        actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
+        actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
+      />
 
       <section
         style={{
@@ -569,6 +786,144 @@ export default function TeacherPage() {
           accent="slate"
           t={t}
         />
+      </section>
+
+      <section
+        style={{
+          marginTop: 24,
+          border: "1px solid #cbd5e1",
+          borderRadius: 22,
+          background: "#f8fafc",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ padding: 16 }}>
+          <div
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 18,
+              background: "#ffffff",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <div style={{ minWidth: 0, flex: "1 1 420px" }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    border: "1px solid #bfdbfe",
+                    background: "#eff6ff",
+                    color: "#1d4ed8",
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {dashCopy.badge}
+                </div>
+
+                <h2
+                  style={{
+                    margin: "10px 0 0",
+                    fontSize: 24,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    lineHeight: 1.15,
+                  }}
+                >
+                  {dashCopy.title}
+                </h2>
+
+                <p
+                  style={{
+                    margin: "8px 0 0",
+                    fontSize: 14,
+                    color: "#475569",
+                    maxWidth: 720,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {dashCopy.description}
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#334155",
+                  borderRadius: 999,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {dashCopy.spacesLabel}: {teacherSpaceCount}
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
+                display: "grid",
+                gap: 12,
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              }}
+            >
+              <SmallStatusCard
+  title={dashCopy.toReview}
+  value={submissionStats.submitted}
+  href={withLocale(locale, "/teacher/spaces")}
+/>
+<SmallStatusCard
+  title={dashCopy.needsFollowUp}
+  value={submissionStats.needsWork}
+  href={withLocale(locale, "/teacher/spaces")}
+/>
+<SmallStatusCard
+  title={dashCopy.reviewed}
+  value={submissionStats.approved}
+  href={withLocale(locale, "/teacher/spaces")}
+/>
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <Link
+                href={withLocale(locale, "/teacher/spaces")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  border: "1px solid #cbd5e1",
+                }}
+              >
+                {dashCopy.openSpaces}
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section

@@ -23,6 +23,8 @@ export type GeometryPracticeAnswer = {
   shapeName?: string;
   perimeterValue?: number | null;
   areaValue?: number | null;
+  perimeterText?: string;
+  areaText?: string;
   updatedAt?: unknown;
 };
 
@@ -99,13 +101,31 @@ function toNullableNumber(value: string): number | null {
   if (!trimmed) return null;
 
   const normalized = trimmed
-    .replace(",", ".")
     .replace(/\s+/g, "")
+    .replace(/,/g, ".")
     .replace(/cm²|cm2|cm/gi, "");
+
+  if (!normalized) return null;
+  if (normalized === "-" || normalized === "." || normalized === "-.") return null;
 
   const parsed = Number(normalized);
 
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatNumberForInput(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "";
+  return String(value).replace(".", ",");
+}
+
+function getPerimeterInputValue(answer: GeometryPracticeAnswer): string {
+  if (typeof answer.perimeterText === "string") return answer.perimeterText;
+  return formatNumberForInput(answer.perimeterValue);
+}
+
+function getAreaInputValue(answer: GeometryPracticeAnswer): string {
+  if (typeof answer.areaText === "string") return answer.areaText;
+  return formatNumberForInput(answer.areaValue);
 }
 
 function isRawTranslationKey(value: string, key: string) {
@@ -208,8 +228,7 @@ function fieldStateClass(
     return {
       input:
         "border-emerald-400 bg-emerald-50 text-emerald-950 focus:border-emerald-500",
-      badge:
-        "border-emerald-200 bg-emerald-50 text-emerald-900",
+      badge: "border-emerald-200 bg-emerald-50 text-emerald-900",
       label: "correct",
     };
   }
@@ -218,8 +237,7 @@ function fieldStateClass(
     return {
       input:
         "border-red-400 bg-red-50 text-red-950 focus:border-red-500",
-      badge:
-        "border-red-200 bg-red-50 text-red-900",
+      badge: "border-red-200 bg-red-50 text-red-900",
       label: "wrong",
     };
   }
@@ -227,8 +245,7 @@ function fieldStateClass(
   return {
     input:
       "border-slate-300 bg-white text-slate-900 focus:border-slate-400",
-    badge:
-      "border-slate-200 bg-slate-50 text-slate-700",
+    badge: "border-slate-200 bg-slate-50 text-slate-700",
     label: "unanswered",
   };
 }
@@ -402,11 +419,12 @@ function renderTaskInputs({
           <input
             type="text"
             inputMode="decimal"
-            value={answer.perimeterValue ?? ""}
+            value={getPerimeterInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
             onChange={(e) =>
               onAnswerChange?.(task.id, {
                 taskId: task.id,
+                perimeterText: e.target.value,
                 perimeterValue: toNullableNumber(e.target.value),
                 updatedAt: Date.now(),
               })
@@ -434,11 +452,12 @@ function renderTaskInputs({
           <input
             type="text"
             inputMode="decimal"
-            value={answer.areaValue ?? ""}
+            value={getAreaInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
             onChange={(e) =>
               onAnswerChange?.(task.id, {
                 taskId: task.id,
+                areaText: e.target.value,
                 areaValue: toNullableNumber(e.target.value),
                 updatedAt: Date.now(),
               })
@@ -490,11 +509,12 @@ function renderTaskInputs({
           <input
             type="text"
             inputMode="decimal"
-            value={answer.perimeterValue ?? ""}
+            value={getPerimeterInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
             onChange={(e) =>
               onAnswerChange?.(task.id, {
                 taskId: task.id,
+                perimeterText: e.target.value,
                 perimeterValue: toNullableNumber(e.target.value),
                 updatedAt: Date.now(),
               })
@@ -517,11 +537,12 @@ function renderTaskInputs({
           <input
             type="text"
             inputMode="decimal"
-            value={answer.areaValue ?? ""}
+            value={getAreaInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
             onChange={(e) =>
               onAnswerChange?.(task.id, {
                 taskId: task.id,
+                areaText: e.target.value,
                 areaValue: toNullableNumber(e.target.value),
                 updatedAt: Date.now(),
               })
@@ -601,6 +622,7 @@ export default function GeometryWorksheetPracticeView({
   showFigureMeta = true,
   includeHints = true,
   showExpectedAnswers = false,
+  showExplanations = false,
   producerName,
   levelLabel,
   emptyStateKey = "generate",
@@ -616,6 +638,7 @@ export default function GeometryWorksheetPracticeView({
   showFigureMeta?: boolean;
   includeHints?: boolean;
   showExpectedAnswers?: boolean;
+  showExplanations?: boolean;
   producerName?: string;
   levelLabel?: string;
   emptyStateKey?: string;
@@ -769,7 +792,7 @@ export default function GeometryWorksheetPracticeView({
 
                         {showExpectedAnswers ? renderExpectedAnswer(task, t) : null}
 
-                        {task.explanation ? (
+                        {showExplanations && task.explanation ? (
                           <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
                             <span className="font-semibold">{getExplanationLabel(t)}:</span>{" "}
                             {task.explanation}

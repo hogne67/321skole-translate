@@ -250,64 +250,69 @@ export default function LessonPreviewPage() {
   const img = useMemo(() => (lesson ? pickImageUrl(lesson) : null), [lesson]);
 
   async function addToMyContent() {
-    if (!lessonId || !lesson) return;
+  if (!lessonId || !lesson) return;
 
-    setSaveMsg(null);
-    setSaveBusy(true);
+  setSaveMsg(null);
+  setSaveBusy(true);
 
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
 
-      if (!user || user.isAnonymous) {
-        router.push(`/${locale}/login`);
-        return;
-      }
-
-      const stableId = `${user.uid}_${lessonId}`;
-
-      await setDoc(
-        doc(db, "practiceSubmissions", stableId),
-        {
-          uid: user.uid,
-          lessonId,
-          publishedLessonId: lessonId,
-          title: lesson.title || t("untitledPlain"),
-          answers: {},
-          status: "draft",
-          kind: "practice",
-          source: "library",
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      await setDoc(
-        doc(db, "submissions", stableId),
-        {
-          uid: user.uid,
-          lessonId,
-          publishedLessonId: lessonId,
-          title: lesson.title || t("untitledPlain"),
-          answers: {},
-          status: "draft",
-          kind: "practice",
-          source: "library",
-          meta: ["practice"],
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      setSaveMsg(t("addedToMyContent", { title: lesson.title || t("untitledPlain") }));
-    } catch (e: unknown) {
-      setSaveMsg(getErrorInfo(e).message || t("saveFailed"));
-    } finally {
-      setSaveBusy(false);
+    if (!user) {
+      setSaveMsg(t("saveFailed"));
+      return;
     }
+
+    if (user.isAnonymous) {
+      router.push(`/${locale}/student/lesson/${lessonId}`);
+      return;
+    }
+
+    const stableId = `${user.uid}_${lessonId}`;
+
+    await setDoc(
+      doc(db, "practiceSubmissions", stableId),
+      {
+        uid: user.uid,
+        lessonId,
+        publishedLessonId: lessonId,
+        title: lesson.title || t("untitledPlain"),
+        answers: {},
+        status: "draft",
+        kind: "practice",
+        source: "library",
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    await setDoc(
+      doc(db, "submissions", stableId),
+      {
+        uid: user.uid,
+        lessonId,
+        publishedLessonId: lessonId,
+        title: lesson.title || t("untitledPlain"),
+        answers: {},
+        status: "draft",
+        kind: "practice",
+        source: "library",
+        meta: ["practice"],
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    setSaveMsg(t("addedToMyContent", { title: lesson.title || t("untitledPlain") }));
+  } catch (e: unknown) {
+    setSaveMsg(getErrorInfo(e).message || t("saveFailed"));
+  } finally {
+    setSaveBusy(false);
   }
+}
 
   if (loading) return <p style={{ padding: 16 }}>{t("loading")}</p>;
 

@@ -6,10 +6,11 @@
     },
     "actions": {
       "back": "← Voltar",
-      "submissions": "Entregas",
-      "setActive": "Definir como ativo",
+      "submissions": "Respostas",
+      "setActive": "Definir como ativa",
       "archive": "Arquivar",
-      "restore": "Restaurar"
+      "restore": "Restaurar",
+      "createNewLesson": "+ Criar nova atividade"
     },
     "access": {
       "mustBeSignedIn": "Você precisa estar conectado.",
@@ -19,12 +20,12 @@
     "denied": {
       "title": "Sem acesso",
       "subtitle": "Você não tem acesso a este space.",
-      "hint": "Para entrar, use o link/código de entrada ou peça ao proprietário para adicioná-lo.",
+      "hint": "Para entrar, use o link ou o código, ou peça ao responsável para adicionar você.",
       "joinCardTitle": "Entrar neste space",
       "joinLinkLabel": "Link de entrada:"
     },
     "overview": {
-      "subtitle": "Aqui você encontra códigos e links que pode enviar aos membros para que entrem no space.",
+      "subtitle": "Aqui você pode ver todas as atividades atribuídas no space e o status das respostas.",
       "code": "Código:",
       "copyCodeTitle": "Copiar código",
       "copied": "Copiado ✅",
@@ -33,44 +34,48 @@
       "no": "Não",
       "copyJoinLink": "Copiar link de entrada",
       "qr": "QR",
-      "activeForStudents": "Ativo para alunos:",
+      "activeForStudents": "Ativa para os alunos:",
       "clear": "Limpar"
     },
     "assignments": {
       "title": "Atividades",
-      "subtitle": "Atribua atividades do Meu conteúdo ou Biblioteca. Os alunos veem as atividades depois de entrar.",
-      "assignTask": "Atribuir atividade",
-      "showArchived": "Mostrar arquivados",
-      "hideArchived": "Ocultar arquivados",
-      "openSpace": "Abrir space",
-      "closeSpace": "Fechar space",
-      "emptyHtml": "Ainda não há atividades. Clique em <b>Atribuir atividade</b>."
+      "subtitle": "Atribua atividades de Meu conteúdo ou da Biblioteca. Os alunos veem as atividades atribuídas depois de entrarem no space.",
+      "assignTask": "Atribuir nova atividade",
+      "showArchived": "Mostrar atividades arquivadas",
+      "emptyHtml": "Ainda não há atividades. Clique em <b>Atribuir nova atividade</b>.",
+      "count": "{count} · {label}"
+    },
+    "spaceToggle": {
+      "openLabel": "O space está aberto",
+      "closedLabel": "O space está fechado",
+      "openDescription": "Os alunos podem entrar com código ou link.",
+      "closedDescription": "Novos alunos não podem entrar agora."
     },
     "labels": {
       "myContent": "Meu conteúdo",
       "library": "Biblioteca"
     },
     "badges": {
-      "active": "Ativo",
-      "archived": "Arquivado",
-      "noSubmissions": "Sem entregas",
-      "allReviewed": "Todos revisados",
-      "newCount": "{n} novos",
-      "submissionsCount": "{n} entregas",
-      "submissionsError": "Entregas: erro"
+      "active": "Ativa",
+      "archived": "Arquivada",
+      "noSubmissions": "Sem respostas",
+      "allReviewed": "Todas revisadas",
+      "newCount": "{n} nova resposta",
+      "submissionsCount": "{n} respostas",
+      "submissionsError": "Respostas: erro"
     },
     "assignModal": {
-      "title": "Atribuir atividade",
-      "subtitle": "Escolha do Meu conteúdo ou Biblioteca.",
+      "title": "Atribuir nova atividade",
+      "subtitle": "Escolha entre Meu conteúdo ou Biblioteca.",
       "close": "Fechar",
-      "searchPlaceholder": "Buscar título ou nível A1, A2 etc",
+      "searchPlaceholder": "Pesquisar por título ou nível A1, A2 etc.",
       "noResults": "Nenhum resultado.",
       "lessonId": "lessonId",
       "publishedLessonId": "publishedLessonId",
       "assign": "Atribuir",
       "paging": {
         "prev": "← Anterior",
-        "next": "Próximo →",
+        "next": "Próxima →",
         "showing": "Mostrando",
         "zero": "0 de 0",
         "range": "{start}-{end} de {total}"

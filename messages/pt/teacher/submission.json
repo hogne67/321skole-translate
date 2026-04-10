@@ -19,7 +19,15 @@
       "delivered": "Enviado:",
       "deliveredUnknown": "Enviado: (desconhecido)",
       "guest": "Visitante (não conectado)",
-      "loggedIn": "Conectado"
+      "loggedIn": "Conectado",
+      "quickOverviewTitle": "Visão geral",
+    "correctLabel": "Corretas",
+    "partialLabel": "Parcialmente corretas",
+    "wrongLabel": "Erradas",
+    "unansweredLabel": "Sem resposta",
+    "scoreLabel": "Pontuação",
+    "noAutoScore": "Ainda não há avaliação automática disponível.",
+    "noGeometryAutoScore": "Ainda não há avaliação automática disponível."
     },
     "status": {
       "submitted": "Enviado",

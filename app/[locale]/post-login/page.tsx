@@ -41,6 +41,15 @@ function homeForRole(role: AppRole, locale: string): string {
   return `/${locale}/student`;
 }
 
+function isOpenAppPath(path: string, locale: string): boolean {
+  return (
+    path === `/${locale}/321lessons` ||
+    path.startsWith(`/${locale}/lesson/`) ||
+    path === `/${locale}/join` ||
+    path.startsWith(`/${locale}/join?`)
+  );
+}
+
 function normalizeNext(raw: string | null, locale: string): string | null {
   if (!raw) return null;
 
@@ -81,19 +90,19 @@ function normalizeNext(raw: string | null, locale: string): string | null {
         ? `/${locale}/teacher`
         : withLocale.startsWith(`/${locale}/users`)
           ? `/${locale}/teacher`
-          : withLocale.startsWith(`/${locale}/321lessons`)
-            ? `/${locale}/teacher`
-            : withLocale;
+          : withLocale;
 
   const allowed =
     mapped.startsWith(`/${locale}/teacher`) ||
     mapped.startsWith(`/${locale}/student`) ||
-    mapped.startsWith(`/${locale}/parent`);
+    mapped.startsWith(`/${locale}/parent`) ||
+    isOpenAppPath(path, locale);
 
   return allowed ? mapped : null;
 }
 
 function nextMatchesRole(next: string, role: AppRole, locale: string): boolean {
+  if (isOpenAppPath(next, locale)) return true;
   if (role === "teacher") return next.startsWith(`/${locale}/teacher`);
   if (role === "parent") return next.startsWith(`/${locale}/parent`);
   return next.startsWith(`/${locale}/student`);

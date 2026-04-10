@@ -1,5 +1,4 @@
 // app/[locale]/(app)/student/lesson/[lessonId]/page.tsx
-// app/[locale]/(app)/student/lesson/[lessonId]/page.tsx
 "use client";
 
 import { SearchableSelect } from "@/components/SearchableSelect";

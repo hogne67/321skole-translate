@@ -223,32 +223,38 @@ function TeacherSpacesInner() {
         </div>
       </div>
 
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-4">
+            <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-4">
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <div className="text-base font-semibold text-slate-900">{t("controls.filters.label")}</div>
-            <div className="mt-1 break-words text-sm text-slate-600">
+            <div className="text-sm font-semibold text-slate-900">{t("controls.filters.label")}</div>
+            <div className="mt-1 break-words text-xs text-slate-600">
               {t("controls.filters.showing", { n: filtered.length })}
             </div>
           </div>
 
-          <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3">
+          <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(180px,0.8fr)_auto] lg:max-w-3xl">
             <div className="min-w-0">
-              <label className="text-sm font-medium text-slate-800">{t("controls.search.label")}</label>
+              <label className="sr-only" htmlFor="space-search">
+                {t("controls.search.label")}
+              </label>
               <input
+                id="space-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t("controls.search.placeholder")}
-                className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
               />
             </div>
 
             <div className="min-w-0">
-              <label className="text-sm font-medium text-slate-800">{t("controls.sort.label")}</label>
+              <label className="sr-only" htmlFor="space-sort">
+                {t("controls.sort.label")}
+              </label>
               <select
+                id="space-sort"
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value as SortKey)}
-                className="mt-2 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                className="w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
               >
                 <option value="newest">{t("controls.sort.options.newest")}</option>
                 <option value="oldest">{t("controls.sort.options.oldest")}</option>
@@ -257,19 +263,16 @@ function TeacherSpacesInner() {
               </select>
             </div>
 
-            <div className="min-w-0">
-              <label className="text-sm font-medium text-slate-800">{t("controls.filters.label")}</label>
-              <label className="mt-2 flex min-w-0 items-center gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2">
-                <input
-                  id="openOnly"
-                  type="checkbox"
-                  checked={openOnly}
-                  onChange={(e) => setOpenOnly(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-400"
-                />
-                <span className="min-w-0 break-words text-sm text-slate-700">{t("controls.filters.openOnly")}</span>
-              </label>
-            </div>
+            <label className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+              <input
+                id="openOnly"
+                type="checkbox"
+                checked={openOnly}
+                onChange={(e) => setOpenOnly(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-400"
+              />
+              <span className="whitespace-nowrap">{t("controls.filters.openOnly")}</span>
+            </label>
           </div>
         </div>
       </div>
@@ -277,8 +280,8 @@ function TeacherSpacesInner() {
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
         <div className="mb-4 min-w-0">
           <div className="text-base font-semibold text-slate-900">{t("title")}</div>
-          <div className="mt-1 break-words text-sm text-slate-600">
-            {filtered.length} {filtered.length === 1 ? "rom" : "rom"}
+                    <div className="mt-1 break-words text-sm text-slate-600">
+            {t("controls.filters.showing", { n: filtered.length })}
           </div>
         </div>
 

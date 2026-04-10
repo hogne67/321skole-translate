@@ -232,6 +232,51 @@ function matchesType(
   return implied.some((t) => candidates.some((c) => c === t || c.includes(t)));
 }
 
+function SpaceOpenSwitch({
+  checked,
+  disabled,
+  onChange,
+  label,
+  description,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+  description?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3">
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-slate-900">{label}</div>
+        {description ? <div className="mt-0.5 text-xs text-slate-600">{description}</div> : null}
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className={[
+          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition",
+          checked
+            ? "border-green-600 bg-green-600"
+            : "border-slate-300 bg-slate-300",
+          disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+        ].join(" ")}
+      >
+        <span
+          className={[
+            "inline-block h-5 w-5 rounded-full bg-white shadow transition-transform",
+            checked ? "translate-x-6" : "translate-x-1",
+          ].join(" ")}
+        />
+      </button>
+    </div>
+  );
+}
+
 export default function TeacherSpaceDetailPage() {
   return (
     <AuthGate>
@@ -787,7 +832,7 @@ function Inner() {
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
               <div className="mt-1 break-words text-sm text-slate-600">{t("assignments.subtitle")}</div>
@@ -796,58 +841,71 @@ function Inner() {
             {quotaErr && <div className="break-words text-xs text-slate-600">{quotaErr}</div>}
           </div>
 
-          <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            <button
-              type="button"
-              onClick={() => setAssignOpen(true)}
-              disabled={!canManage || saving}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-            >
-              {t("assignments.assignTask")}
-            </button>
+          <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
+            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setAssignOpen(true)}
+                disabled={!canManage || saving}
+                className="rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {t("assignments.assignTask")}
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setShowArchived((v) => !v)}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-            >
-              {showArchived ? t("assignments.hideArchived") : t("assignments.showArchived")}
-            </button>
+              <Link
+  href={withLocale(locale, "/tools")}
+  className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+>
+  {t("actions.createNewLesson")}
+</Link>
+            </div>
 
-            <button
-              type="button"
-              onClick={async () => {
-                setSaveErr(null);
-                if (!canManage) {
-                  setSaveErr(t("errors.noManageAccess"));
-                  return;
-                }
-                setSaving(true);
-                try {
-                  await setSpaceOpen(spaceId, !(space?.isOpen === true));
-                } catch (e: unknown) {
-                  setSaveErr(getErrorInfo(e).message || t("errors.updateSpaceFailed"));
-                } finally {
-                  setSaving(false);
-                }
-              }}
-              disabled={saving || !canManage}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50 sm:col-span-2 xl:col-span-1"
-            >
-              {space?.isOpen ? t("assignments.closeSpace") : t("assignments.openSpace")}
-            </button>
+            <SpaceOpenSwitch
+  checked={space?.isOpen === true}
+  disabled={saving || !canManage}
+  label={space?.isOpen ? t("spaceToggle.openLabel") : t("spaceToggle.closedLabel")}
+  description={space?.isOpen ? t("spaceToggle.openDescription") : t("spaceToggle.closedDescription")}
+  onChange={async (next) => {
+    setSaveErr(null);
+    if (!canManage) {
+      setSaveErr(t("errors.noManageAccess"));
+      return;
+    }
+    setSaving(true);
+    try {
+      await setSpaceOpen(spaceId, next);
+    } catch (e: unknown) {
+      setSaveErr(getErrorInfo(e).message || t("errors.updateSpaceFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }}
+/>
           </div>
         </div>
       </div>
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
             <div className="mt-1 break-words text-sm text-slate-600">
-              {visibleAssignments.length} {visibleAssignments.length === 1 ? "oppgave" : "oppgaver"}
-            </div>
+  {t("assignments.count", {
+    count: visibleAssignments.length,
+    label: t("assignments.title"),
+  })}
+</div>
           </div>
+
+          <label className="inline-flex select-none items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+            <span>{t("assignments.showArchived")}</span>
+          </label>
         </div>
 
         <div className="mt-4 grid min-w-0 gap-3">
@@ -1129,7 +1187,7 @@ function Inner() {
                                   })
                                 }
                                 disabled={saving || !canManage}
-                                className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
+                                className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto"
                               >
                                 {t("assignModal.assign")}
                               </button>
@@ -1175,7 +1233,7 @@ function Inner() {
                                   })
                                 }
                                 disabled={saving || !canManage}
-                                className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
+                                className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto"
                               >
                                 {t("assignModal.assign")}
                               </button>

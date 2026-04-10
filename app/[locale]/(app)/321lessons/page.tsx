@@ -536,69 +536,74 @@ export default function LessonsLandingPage() {
   }
 
   async function addToMyContent(lesson: PublishedLesson) {
-    if (!authReady) {
-      setSaveMsg(t("saveToMyContent.loadingUser"));
-      return;
-    }
-
-    if (!currentUser || currentUser.isAnonymous) {
-      router.push(`/${locale}/login`);
-      return;
-    }
-
-    setSaveMsg(null);
-    setSaveBusyId(lesson.id);
-
-    try {
-      const stableId = `${currentUser.uid}_${lesson.id}`;
-
-      const practiceRef = doc(db, "practiceSubmissions", stableId);
-      await setDoc(
-        practiceRef,
-        {
-          uid: currentUser.uid,
-          publishedLessonId: lesson.id,
-          lessonId: lesson.id,
-          title: lesson.title || "Untitled",
-          answers: {},
-          status: "draft",
-          kind: "practice",
-          source: "library",
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      const submissionRef = doc(db, "submissions", stableId);
-      await setDoc(
-        submissionRef,
-        {
-          uid: currentUser.uid,
-          lessonId: lesson.id,
-          publishedLessonId: lesson.id,
-          title: lesson.title || "Untitled",
-          answers: {},
-          status: "draft",
-          kind: "practice",
-          source: "library",
-          meta: ["practice"],
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      setSaveMsg(t("saveToMyContent.success", { title: lesson.title }));
-    } catch (err) {
-      console.error("addToMyContent failed", err);
-      const message =
-        err instanceof Error ? err.message : t("errors.saveToMyContentFailed");
-      setSaveMsg(message);
-    } finally {
-      setSaveBusyId(null);
-    }
+  if (!authReady) {
+    setSaveMsg(t("saveToMyContent.loadingUser"));
+    return;
   }
+
+  if (!currentUser) {
+    setSaveMsg(t("saveToMyContent.loadingUser"));
+    return;
+  }
+
+  if (currentUser.isAnonymous) {
+    router.push(`/${locale}/student/lesson/${lesson.id}`);
+    return;
+  }
+
+  setSaveMsg(null);
+  setSaveBusyId(lesson.id);
+
+  try {
+    const stableId = `${currentUser.uid}_${lesson.id}`;
+
+    const practiceRef = doc(db, "practiceSubmissions", stableId);
+    await setDoc(
+      practiceRef,
+      {
+        uid: currentUser.uid,
+        publishedLessonId: lesson.id,
+        lessonId: lesson.id,
+        title: lesson.title || "Untitled",
+        answers: {},
+        status: "draft",
+        kind: "practice",
+        source: "library",
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const submissionRef = doc(db, "submissions", stableId);
+    await setDoc(
+      submissionRef,
+      {
+        uid: currentUser.uid,
+        lessonId: lesson.id,
+        publishedLessonId: lesson.id,
+        title: lesson.title || "Untitled",
+        answers: {},
+        status: "draft",
+        kind: "practice",
+        source: "library",
+        meta: ["practice"],
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    setSaveMsg(t("saveToMyContent.success", { title: lesson.title }));
+  } catch (err) {
+    console.error("addToMyContent failed", err);
+    const message =
+      err instanceof Error ? err.message : t("errors.saveToMyContentFailed");
+    setSaveMsg(message);
+  } finally {
+    setSaveBusyId(null);
+  }
+}
 
   return (
     <main>

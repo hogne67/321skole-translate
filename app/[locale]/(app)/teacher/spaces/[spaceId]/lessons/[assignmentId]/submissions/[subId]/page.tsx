@@ -19,8 +19,6 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { useLocale, useTranslations } from "next-intl";
 import { authedPost } from "@/lib/authedPost";
 import GeometryWorksheetPracticeView from "@/components/generators/math/geometry/GeometryWorksheetPracticeView";
-import GeometryAutoCheckSummary from "@/components/generators/math/geometry/GeometryAutoCheckSummary";
-import GeometryAutoCheckTaskList from "@/components/generators/math/geometry/GeometryAutoCheckTaskList";
 import type { MathWorksheet } from "@/lib/math/geometry/types";
 import type {
   GeometryAnswersByTaskId,
@@ -29,7 +27,12 @@ import type {
 
 type Role = "student" | "teacher" | "admin" | "parent" | "creator";
 type ReviewStatus = "reviewed" | "needs_work";
-type SubmissionStatus = ReviewStatus | "draft" | "submitted" | "approved" | string;
+type SubmissionStatus =
+  | ReviewStatus
+  | "draft"
+  | "submitted"
+  | "approved"
+  | string;
 
 type SourceType = "myContent" | "library";
 type TaskType = "mcq" | "truefalse" | "open";
@@ -207,7 +210,13 @@ function readRole(profile: unknown): Role | null {
   if (!isRecord(profile)) return null;
 
   const r = profile["role"];
-  if (r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator") {
+  if (
+    r === "student" ||
+    r === "teacher" ||
+    r === "admin" ||
+    r === "parent" ||
+    r === "creator"
+  ) {
     return r;
   }
 
@@ -219,7 +228,8 @@ function getErrorInfo(err: unknown): { code?: string; message: string } {
   if (typeof err === "string") return { message: err };
   if (err && typeof err === "object") {
     const code = "code" in err ? (err as { code?: unknown }).code : undefined;
-    const message = "message" in err ? (err as { message?: unknown }).message : undefined;
+    const message =
+      "message" in err ? (err as { message?: unknown }).message : undefined;
     return {
       code: typeof code === "string" ? code : undefined,
       message: typeof message === "string" ? message : JSON.stringify(err),
@@ -254,20 +264,56 @@ function safeBoolean(v: unknown): boolean | null {
 }
 
 function formatDuration(totalSeconds: number | null | undefined): string {
-  if (typeof totalSeconds !== "number" || !Number.isFinite(totalSeconds)) return "—";
+  if (typeof totalSeconds !== "number" || !Number.isFinite(totalSeconds))
+    return "—";
   const secs = Math.max(0, Math.floor(totalSeconds));
   const hours = Math.floor(secs / 3600);
   const minutes = Math.floor((secs % 3600) / 60);
   const seconds = secs % 60;
 
   if (hours > 0) {
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
       2,
       "0"
-    )}`;
+    )}:${String(seconds).padStart(2, "0")}`;
   }
 
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+    2,
+    "0"
+  )}`;
+}
+
+function formatLessonLevel(value: string | null | undefined): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (raw === "grade_3_4") return "3.–4. trinn";
+  if (raw === "grade_5_7") return "5.–7. trinn";
+  if (raw === "grade_8_10") return "8.–10. trinn";
+  return raw.replace(/_/g, " ");
+}
+
+function getGeometryScoreKind(
+  percent: number | null
+): "neutral" | "good" | "warn" | "bad" {
+  if (percent == null) return "neutral";
+  if (percent >= 80) return "good";
+  if (percent >= 50) return "warn";
+  return "bad";
+}
+
+function isRawSubmissionKey(value: string, key: string) {
+  return value === key || value === `submission.${key}`;
+}
+
+function safeSubmissionT(
+  t: (key: string, values?: Record<string, unknown>) => string,
+  key: string,
+  fallback: string,
+  values?: Record<string, unknown>
+) {
+  const value = t(key, values);
+  return isRawSubmissionKey(value, key) ? fallback : value;
 }
 
 function readTeacherFeedbackText(sub: SubmissionDoc): string {
@@ -325,7 +371,8 @@ function getStableTaskId(t: Task, idx: number): string {
   if (t?.id != null && String(t.id).trim()) return String(t.id).trim();
 
   const orderPart = t?.order != null ? String(t.order) : "x";
-  const promptPart = typeof t?.prompt === "string" ? t.prompt.trim().slice(0, 80) : "";
+  const promptPart =
+    typeof t?.prompt === "string" ? t.prompt.trim().slice(0, 80) : "";
   if (promptPart) return `${orderPart}__${promptPart}`;
 
   return `${orderPart}__idx${idx}`;
@@ -344,7 +391,8 @@ function readAutoGrade(sub: SubmissionDoc | null): AutoGrade | null {
   const totalAuto = typeof r.totalAuto === "number" ? r.totalAuto : 0;
   const correctAuto = typeof r.correctAuto === "number" ? r.correctAuto : 0;
   const wrongAuto = typeof r.wrongAuto === "number" ? r.wrongAuto : 0;
-  const unansweredAuto = typeof r.unansweredAuto === "number" ? r.unansweredAuto : 0;
+  const unansweredAuto =
+    typeof r.unansweredAuto === "number" ? r.unansweredAuto : 0;
   const percentAuto = typeof r.percentAuto === "number" ? r.percentAuto : null;
   const byTask =
     r.byTask && typeof r.byTask === "object" && !Array.isArray(r.byTask)
@@ -362,7 +410,9 @@ function readGeometryAuto(sub: SubmissionDoc | null): GeometryAutoResult | null 
 
   const candidate = auto as Partial<GeometryAutoResult>;
   const hasTaskMap =
-    candidate.byTaskId && typeof candidate.byTaskId === "object" && !Array.isArray(candidate.byTaskId);
+    candidate.byTaskId &&
+    typeof candidate.byTaskId === "object" &&
+    !Array.isArray(candidate.byTaskId);
   const hasCounts =
     typeof candidate.total === "number" ||
     typeof candidate.correct === "number" ||
@@ -375,7 +425,10 @@ function readGeometryAuto(sub: SubmissionDoc | null): GeometryAutoResult | null 
   return auto as GeometryAutoResult;
 }
 
-function getAutoEntry(auto: AutoGrade | null, stableId: string): AutoGradeEntry | undefined {
+function getAutoEntry(
+  auto: AutoGrade | null,
+  stableId: string
+): AutoGradeEntry | undefined {
   const byTask = auto?.byTask;
   if (!byTask || typeof byTask !== "object") return undefined;
 
@@ -402,13 +455,65 @@ function withLocale(locale: string, href: string): string {
 
 function renderValue(v: unknown): string {
   if (v == null) return "";
-  if (typeof v === "string") return v;
-  if (typeof v === "number" || typeof v === "boolean") return String(v);
-  try {
-    return JSON.stringify(v, null, 2);
-  } catch {
+
+  if (typeof v === "string") {
+    return v.trim();
+  }
+
+  if (typeof v === "number" || typeof v === "boolean") {
     return String(v);
   }
+
+  if (Array.isArray(v)) {
+    const items = v
+      .map((item) => renderValue(item))
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    return items.join(", ");
+  }
+
+  if (typeof v === "object") {
+    const obj = v as Record<string, unknown>;
+
+    const preferredKeys = [
+      "text",
+      "answer",
+      "value",
+      "response",
+      "content",
+      "label",
+      "studentAnswer",
+    ];
+
+    for (const key of preferredKeys) {
+      const candidate = obj[key];
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate.trim();
+      }
+      if (typeof candidate === "number" || typeof candidate === "boolean") {
+        return String(candidate);
+      }
+    }
+
+    const entries = Object.entries(obj)
+      .filter(([, value]) => value != null && value !== "")
+      .map(([key, value]) => {
+        if (typeof value === "string") return `${key}: ${value}`;
+        if (typeof value === "number" || typeof value === "boolean")
+          return `${key}: ${String(value)}`;
+        return "";
+      })
+      .filter(Boolean);
+
+    if (entries.length > 0) {
+      return entries.join(" · ");
+    }
+
+    return "";
+  }
+
+  return String(v);
 }
 
 async function safeCopyToClipboard(text: string): Promise<boolean> {
@@ -437,8 +542,16 @@ async function safeCopyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-function isReadingTestLesson(assignment: AssignmentDoc | null, lesson: Lesson | null, tasks: Task[]): boolean {
-  const lessonType = String(lesson?.lessonType ?? assignment?.lessonType ?? "").trim().toLowerCase();
+function isReadingTestLesson(
+  assignment: AssignmentDoc | null,
+  lesson: Lesson | null,
+  tasks: Task[]
+): boolean {
+  const lessonType = String(
+    lesson?.lessonType ?? assignment?.lessonType ?? ""
+  )
+    .trim()
+    .toLowerCase();
   if (lessonType === "reading_test") return true;
 
   return tasks.some((task) => {
@@ -454,7 +567,9 @@ function isReadingTestLesson(assignment: AssignmentDoc | null, lesson: Lesson | 
 
 function readReadingTestMeta(sub: SubmissionDoc | null) {
   const limitSeconds = safeNumber(sub?.readingTestTimeLimitSeconds);
-  const usedSeconds = safeNumber(sub?.readingTestTimeUsedSeconds) ?? safeNumber(sub?.timeSpentSeconds);
+  const usedSeconds =
+    safeNumber(sub?.readingTestTimeUsedSeconds) ??
+    safeNumber(sub?.timeSpentSeconds);
   const timedOut = safeBoolean(sub?.readingTestTimedOut);
   const submittedManually = safeBoolean(sub?.readingTestSubmittedManually);
 
@@ -546,12 +661,28 @@ function Badge({
 }) {
   const styles =
     kind === "good"
-      ? { bg: "rgba(16,185,129,0.16)", bd: "rgba(16,185,129,0.45)", tx: "rgba(5,150,105,1)" }
+      ? {
+          bg: "rgba(16,185,129,0.16)",
+          bd: "rgba(16,185,129,0.45)",
+          tx: "rgba(5,150,105,1)",
+        }
       : kind === "bad"
-        ? { bg: "rgba(231,76,60,0.14)", bd: "rgba(231,76,60,0.40)", tx: "rgba(180,40,30,1)" }
+        ? {
+            bg: "rgba(231,76,60,0.14)",
+            bd: "rgba(231,76,60,0.40)",
+            tx: "rgba(180,40,30,1)",
+          }
         : kind === "warn"
-          ? { bg: "rgba(245,158,11,0.16)", bd: "rgba(245,158,11,0.45)", tx: "rgba(180,83,9,1)" }
-          : { bg: "rgba(0,0,0,0.04)", bd: "rgba(0,0,0,0.14)", tx: "rgba(0,0,0,0.75)" };
+          ? {
+              bg: "rgba(245,158,11,0.16)",
+              bd: "rgba(245,158,11,0.45)",
+              tx: "rgba(180,83,9,1)",
+            }
+          : {
+              bg: "rgba(0,0,0,0.04)",
+              bd: "rgba(0,0,0,0.14)",
+              tx: "rgba(0,0,0,0.75)",
+            };
 
   return (
     <span
@@ -575,34 +706,6 @@ function Badge({
   );
 }
 
-function AutoGradeBadge({
-  auto,
-  t,
-}: {
-  auto: AutoGrade | null;
-  t: (k: string, v?: Record<string, unknown>) => string;
-}) {
-  if (!auto) return null;
-
-  const pct = auto.percentAuto;
-  const pctText = pct == null ? "" : ` (${pct}%)`;
-
-  const main = t("auto.main", {
-    correct: auto.correctAuto,
-    total: auto.totalAuto,
-    pctText,
-  });
-
-  const kind = pct == null ? "neutral" : pct >= 80 ? "good" : pct >= 50 ? "warn" : "bad";
-
-  const details = t("auto.details", {
-    correct: auto.correctAuto,
-    wrong: auto.wrongAuto,
-    unanswered: auto.unansweredAuto,
-  });
-
-  return <Badge text={main} kind={kind} title={details} />;
-}
 
 function StatusToggle({
   value,
@@ -617,8 +720,18 @@ function StatusToggle({
 }) {
   const checked = value === "reviewed";
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 10, userSelect: "none", flexWrap: "wrap" }}>
-      <span style={{ fontSize: 13, opacity: 0.85 }}>{t("feedback.statusLabel")}</span>
+    <label
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        userSelect: "none",
+        flexWrap: "wrap",
+      }}
+    >
+      <span style={{ fontSize: 13, opacity: 0.85 }}>
+        {t("feedback.statusLabel")}
+      </span>
 
       <button
         type="button"
@@ -631,7 +744,9 @@ function StatusToggle({
           height: 32,
           borderRadius: 999,
           border: "1px solid rgba(0,0,0,0.18)",
-          background: checked ? "rgba(16,185,129,0.25)" : "rgba(245,158,11,0.25)",
+          background: checked
+            ? "rgba(16,185,129,0.25)"
+            : "rgba(245,158,11,0.25)",
           opacity: disabled ? 0.6 : 1,
           cursor: disabled ? "not-allowed" : "pointer",
           flex: "0 0 auto",
@@ -669,7 +784,10 @@ export default function TeacherSubmissionPage() {
 function Inner() {
   const locale = useLocale();
   const t = useTranslations("submission");
-  const tAny = t as unknown as (key: string, values?: Record<string, unknown>) => string;
+  const tAny = t as unknown as (
+    key: string,
+    values?: Record<string, unknown>
+  ) => string;
   const tCommon = useTranslations("common");
   const tGeometry = useTranslations("mathGeometry");
   const tBrand = useTranslations("brandLogo");
@@ -685,12 +803,21 @@ function Inner() {
   ) => string;
 
   const params = useParams();
-  const rawSpaceId = (params as Record<string, string | string[] | undefined>)["spaceId"];
-  const rawAssignmentId = (params as Record<string, string | string[] | undefined>)["assignmentId"];
-  const rawSubId = (params as Record<string, string | string[] | undefined>)["subId"];
+  const rawSpaceId = (params as Record<string, string | string[] | undefined>)[
+    "spaceId"
+  ];
+  const rawAssignmentId = (params as Record<
+    string,
+    string | string[] | undefined
+  >)["assignmentId"];
+  const rawSubId = (params as Record<string, string | string[] | undefined>)[
+    "subId"
+  ];
 
   const spaceId = Array.isArray(rawSpaceId) ? rawSpaceId[0] : rawSpaceId;
-  const assignmentId = Array.isArray(rawAssignmentId) ? rawAssignmentId[0] : rawAssignmentId;
+  const assignmentId = Array.isArray(rawAssignmentId)
+    ? rawAssignmentId[0]
+    : rawAssignmentId;
   const subId = Array.isArray(rawSubId) ? rawSubId[0] : rawSubId;
 
   const hasParams = Boolean(spaceId && assignmentId && subId);
@@ -698,7 +825,9 @@ function Inner() {
   const { user, profile, loading: profileLoading } = useUserProfile();
 
   const role = useMemo(() => readRole(profile), [profile]);
-  const canOperate = Boolean(user?.uid) && (role === "teacher" || role === "creator" || role === "admin");
+  const canOperate =
+    Boolean(user?.uid) &&
+    (role === "teacher" || role === "creator" || role === "admin");
 
   const [sub, setSub] = useState<SubmissionDoc | null>(null);
   const [assignment, setAssignment] = useState<AssignmentDoc | null>(null);
@@ -711,7 +840,8 @@ function Inner() {
 
   const [text, setText] = useState("");
   const [status, setStatus] = useState<ReviewStatus>("needs_work");
-  const [initialStatus, setInitialStatus] = useState<ReviewStatus>("needs_work");
+  const [initialStatus, setInitialStatus] =
+    useState<ReviewStatus>("needs_work");
 
   const [aiText, setAiText] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -722,14 +852,29 @@ function Inner() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
   const nestedRef = useMemo(
-    () => (hasParams ? doc(db, "spaces", spaceId!, "lessons", assignmentId!, "submissions", subId!) : null),
+    () =>
+      hasParams
+        ? doc(
+            db,
+            "spaces",
+            spaceId!,
+            "lessons",
+            assignmentId!,
+            "submissions",
+            subId!
+          )
+        : null,
     [hasParams, spaceId, assignmentId, subId]
   );
 
-  const indexRef = useMemo(() => (hasParams ? doc(db, "spaceSubmissions", subId!) : null), [hasParams, subId]);
+  const indexRef = useMemo(
+    () => (hasParams ? doc(db, "spaceSubmissions", subId!) : null),
+    [hasParams, subId]
+  );
 
   const assignmentRef = useMemo(
-    () => (hasParams ? doc(db, "spaces", spaceId!, "lessons", assignmentId!) : null),
+    () =>
+      hasParams ? doc(db, "spaces", spaceId!, "lessons", assignmentId!) : null,
     [hasParams, spaceId, assignmentId]
   );
 
@@ -740,8 +885,12 @@ function Inner() {
   const isGeometryAssignment = useMemo(() => {
     const lessonType = String(lesson?.lessonType ?? "").trim().toLowerCase();
     const lessonTaskType = String(lesson?.taskType ?? "").trim().toLowerCase();
-    const assignmentLessonType = String(assignment?.lessonType ?? "").trim().toLowerCase();
-    const assignmentTaskType = String(assignment?.taskType ?? "").trim().toLowerCase();
+    const assignmentLessonType = String(assignment?.lessonType ?? "")
+      .trim()
+      .toLowerCase();
+    const assignmentTaskType = String(assignment?.taskType ?? "")
+      .trim()
+      .toLowerCase();
 
     return (
       lessonType === "math_geometry" ||
@@ -790,7 +939,12 @@ function Inner() {
       (err) => {
         setLoading(false);
         const info = getErrorInfo(err as unknown);
-        console.log("[TEACHER] read submission ERROR =>", info.code, info.message, err);
+        console.log(
+          "[TEACHER] read submission ERROR =>",
+          info.code,
+          info.message,
+          err
+        );
         setSub(null);
       }
     );
@@ -807,10 +961,17 @@ function Inner() {
       try {
         const aSnap = await getDoc(assignmentRef);
         if (!alive) return;
-        setAssignment(aSnap.exists() ? ((aSnap.data() as AssignmentDoc) ?? {}) : null);
+        setAssignment(
+          aSnap.exists() ? ((aSnap.data() as AssignmentDoc) ?? {}) : null
+        );
       } catch (e) {
         const info = getErrorInfo(e);
-        console.log("[TEACHER] read assignment ERROR =>", info.code, info.message, e);
+        console.log(
+          "[TEACHER] read assignment ERROR =>",
+          info.code,
+          info.message,
+          e
+        );
         if (alive) setAssignment(null);
       }
     })();
@@ -847,7 +1008,9 @@ function Inner() {
 
         if (!alive) return;
 
-        const sourceLesson = lSnap.exists() ? ((lSnap.data() as Lesson) ?? {}) : null;
+        const sourceLesson = lSnap.exists()
+          ? ((lSnap.data() as Lesson) ?? {})
+          : null;
 
         if (!sourceLesson) {
           setLesson(null);
@@ -867,11 +1030,17 @@ function Inner() {
           isActive: sourceLesson.isActive,
           lessonType: assignment?.lessonType ?? sourceLesson.lessonType,
           taskType: assignment?.taskType ?? sourceLesson.taskType,
-          mathWorksheet: assignment?.mathWorksheet ?? sourceLesson.mathWorksheet ?? null,
+          mathWorksheet:
+            assignment?.mathWorksheet ?? sourceLesson.mathWorksheet ?? null,
         });
       } catch (e) {
         const info = getErrorInfo(e);
-        console.log("[TEACHER] read lesson ERROR =>", info.code, info.message, e);
+        console.log(
+          "[TEACHER] read lesson ERROR =>",
+          info.code,
+          info.message,
+          e
+        );
         if (alive) setLesson(null);
       } finally {
         if (alive) setLoadingLesson(false);
@@ -890,8 +1059,11 @@ function Inner() {
       if (!sub) return;
 
       const direct =
-        (typeof sub.studentName === "string" && sub.studentName.trim() ? sub.studentName.trim() : "") ||
-        (typeof sub.studentDisplayName === "string" && sub.studentDisplayName.trim()
+        (typeof sub.studentName === "string" && sub.studentName.trim()
+          ? sub.studentName.trim()
+          : "") ||
+        (typeof sub.studentDisplayName === "string" &&
+        sub.studentDisplayName.trim()
           ? sub.studentDisplayName.trim()
           : "");
 
@@ -962,8 +1134,17 @@ function Inner() {
       setAiMsg(t("ai.saved"));
     } catch (e: unknown) {
       const info = getErrorInfo(e);
-      console.log("[TEACHER] save ai feedback ERROR =>", info.code, info.message, e);
-      setAiMsg(t("ai.saveFailed", { msg: info.message || t("fallback.unknownError") }));
+      console.log(
+        "[TEACHER] save ai feedback ERROR =>",
+        info.code,
+        info.message,
+        e
+      );
+      setAiMsg(
+        t("ai.saveFailed", {
+          msg: info.message || t("fallback.unknownError"),
+        })
+      );
     } finally {
       setAiSaving(false);
       setTimeout(() => setAiMsg(null), 2200);
@@ -972,13 +1153,17 @@ function Inner() {
 
   const backLink = withLocale(
     locale,
-    hasParams ? `/teacher/spaces/${spaceId}/lessons/${assignmentId}` : "/teacher/spaces"
+    hasParams
+      ? `/teacher/spaces/${spaceId}/lessons/${assignmentId}`
+      : "/teacher/spaces"
   );
 
   if (!hasParams) {
     return (
       <div className="mx-auto box-border w-full max-w-6xl min-w-0 p-4">
-        <div className="text-sm text-slate-600">{t("errors.missingParams")}</div>
+        <div className="text-sm text-slate-600">
+          {t("errors.missingParams")}
+        </div>
       </div>
     );
   }
@@ -991,14 +1176,19 @@ function Inner() {
     return (
       <div className="mx-auto box-border w-full max-w-6xl min-w-0 p-4">
         <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
-          <h1 className="m-0 text-xl font-semibold text-slate-900">{t("missing.title")}</h1>
+          <h1 className="m-0 text-xl font-semibold text-slate-900">
+            {t("missing.title")}
+          </h1>
           <p className="mt-3 break-all text-sm text-slate-600">
             <code>
               spaces/{spaceId}/lessons/{assignmentId}/submissions/{subId}
             </code>
           </p>
           <div className="mt-4">
-            <Link href={backLink} className="text-sm font-medium text-slate-700 underline underline-offset-4">
+            <Link
+              href={backLink}
+              className="text-sm font-medium text-slate-700 underline underline-offset-4"
+            >
               {t("actions.back")}
             </Link>
           </div>
@@ -1011,10 +1201,12 @@ function Inner() {
   const authInfo = readAuth(sub);
 
   const rawStatus = readStatus(sub);
-  const isDraft = String(rawStatus).toLowerCase() === "draft";
+  const normalizedStatus = String(rawStatus).toLowerCase();
+  const isDraft = normalizedStatus === "draft";
 
   const lessonTitle = lesson?.title ?? assignment?.title ?? t("fallback.task");
   const lessonLevel = lesson?.level ?? assignment?.level ?? "";
+  const lessonLevelLabel = formatLessonLevel(lessonLevel);
   const sourceText = String(lesson?.sourceText ?? lesson?.text ?? "");
   const cover = String(lesson?.coverImageUrl ?? "").trim() || null;
 
@@ -1022,16 +1214,22 @@ function Inner() {
     .slice()
     .sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
 
-  const answersMap = readAnswerMap(isGeometryAssignment ? sub.answersByTaskId : sub.answers);
+  const answersMap = readAnswerMap(
+    isGeometryAssignment ? sub.answersByTaskId : sub.answers
+  );
   const auto = isGeometryAssignment ? null : readAutoGrade(sub);
   const geometryAuto = isGeometryAssignment ? readGeometryAuto(sub) : null;
 
   const geometryPercent =
-    geometryAuto && typeof geometryAuto.percent === "number" && Number.isFinite(geometryAuto.percent)
+    geometryAuto &&
+    typeof geometryAuto.percent === "number" &&
+    Number.isFinite(geometryAuto.percent)
       ? geometryAuto.percent
       : null;
   const geometryCorrect =
-    geometryAuto && typeof geometryAuto.correct === "number" && Number.isFinite(geometryAuto.correct)
+    geometryAuto &&
+    typeof geometryAuto.correct === "number" &&
+    Number.isFinite(geometryAuto.correct)
       ? geometryAuto.correct
       : 0;
   const geometryPartial =
@@ -1041,7 +1239,9 @@ function Inner() {
       ? geometryAuto.partial
       : 0;
   const geometryWrong =
-    geometryAuto && typeof geometryAuto.wrong === "number" && Number.isFinite(geometryAuto.wrong)
+    geometryAuto &&
+    typeof geometryAuto.wrong === "number" &&
+    Number.isFinite(geometryAuto.wrong)
       ? geometryAuto.wrong
       : 0;
   const geometryUnanswered =
@@ -1050,10 +1250,31 @@ function Inner() {
     Number.isFinite(geometryAuto.unanswered)
       ? geometryAuto.unanswered
       : 0;
-  const geometryTotal =
-    geometryAuto && typeof geometryAuto.total === "number" && Number.isFinite(geometryAuto.total)
-      ? geometryAuto.total
-      : 0;
+
+  const quickOverviewTitle = safeSubmissionT(
+    tAny,
+    "meta.quickOverviewTitle",
+    "Quick overview"
+  );
+  const correctLabel = safeSubmissionT(tAny, "meta.correctLabel", "Correct");
+  const partialLabel = safeSubmissionT(tAny, "meta.partialLabel", "Partially correct");
+  const wrongLabel = safeSubmissionT(tAny, "meta.wrongLabel", "Wrong");
+  const unansweredLabel = safeSubmissionT(
+    tAny,
+    "meta.unansweredLabel",
+    "Unanswered"
+  );
+  const scoreLabel = safeSubmissionT(tAny, "meta.scoreLabel", "Score");
+  const noAutoScoreLabel = safeSubmissionT(
+    tAny,
+    "meta.noAutoScore",
+    "No automatic assessment available yet."
+  );
+  const noGeometryAutoScoreLabel = safeSubmissionT(
+    tAny,
+    "meta.noGeometryAutoScore",
+    "No automatic assessment available yet."
+  );
 
   const isReadingTest = isReadingTestLesson(assignment, lesson, tasksOriginal);
   const readingMeta = readReadingTestMeta(sub);
@@ -1091,15 +1312,25 @@ function Inner() {
             <h1 className="mt-1 break-words text-2xl font-semibold text-slate-900">
               {studentName || (authInfo.isAnon ? t("fallback.guest") : authInfo.uid || "—")}
             </h1>
-            <div className="mt-2 break-words text-base text-slate-700">{lessonTitle}</div>
-            <div className="mt-2 text-sm text-slate-600">
-              {createdAt ? (
-                <>
-                  {t("meta.delivered")} <b>{createdAt}</b>
-                </>
-              ) : (
-                t("meta.deliveredUnknown")
-              )}
+            <div className="mt-2 break-words text-base text-slate-700">
+              {lessonTitle}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+              <span>
+                {createdAt ? (
+                  <>
+                    {t("meta.delivered")} <b>{createdAt}</b>
+                  </>
+                ) : (
+                  t("meta.deliveredUnknown")
+                )}
+              </span>
+
+              {(normalizedStatus === "needs_work" ||
+                normalizedStatus === "reviewed" ||
+                normalizedStatus === "approved") ? (
+                <StatusPill status={rawStatus} t={(k) => t(k)} />
+              ) : null}
             </div>
           </div>
 
@@ -1114,153 +1345,144 @@ function Inner() {
         </div>
       </div>
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-3">
-          <div className="text-base font-semibold text-slate-900">{t("meta.summaryTitle")}</div>
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {lessonLevelLabel ? <Badge text={lessonLevelLabel} /> : null}
 
-          <div className="flex flex-wrap gap-2">
-            <StatusPill status={rawStatus} t={(k) => t(k)} />
-            {!isGeometryAssignment ? <AutoGradeBadge auto={auto} t={tAny} /> : null}
-            {lessonLevel ? <Badge text={t("studentView.level", { v: lessonLevel })} /> : null}
-            {isGeometryAssignment ? (
-              <>
-                <Badge text={t("meta.geometryBadge")} kind="good" />
-                {geometryPercent != null ? (
-                  <Badge
-                    text={t("meta.geometryAutoBadge", { pct: geometryPercent })}
-                    kind={geometryPercent >= 80 ? "good" : geometryPercent >= 50 ? "warn" : "bad"}
-                    title={t("meta.geometryAutoBadgeTitle", {
-                      correct: geometryCorrect,
-                      partial: geometryPartial,
-                      wrong: geometryWrong,
-                      unanswered: geometryUnanswered,
-                    })}
-                  />
-                ) : null}
-              </>
+            {isGeometryAssignment && geometryPercent != null ? (
+              <Badge
+                text={`${scoreLabel}: ${geometryPercent}%`}
+                kind={getGeometryScoreKind(geometryPercent)}
+              />
             ) : null}
-            {authInfo.isAnon ? (
-              <Badge text={t("meta.guest")} />
+
+            {!isGeometryAssignment && auto?.percentAuto != null ? (
+              <Badge
+                text={`${scoreLabel}: ${auto.percentAuto}%`}
+                kind={
+                  auto.percentAuto >= 80
+                    ? "good"
+                    : auto.percentAuto >= 50
+                      ? "warn"
+                      : "bad"
+                }
+              />
+            ) : null}
+
+            {(normalizedStatus === "needs_work" ||
+              normalizedStatus === "reviewed" ||
+              normalizedStatus === "approved") ? (
+              <StatusPill status={rawStatus} t={(k) => t(k)} />
+            ) : null}
+          </div>
+
+          <div className="rounded-xl border border-slate-300 bg-white p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-900">
+              {quickOverviewTitle}
+            </div>
+
+            {isGeometryAssignment ? (
+              geometryAuto ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {correctLabel}
+                    </div>
+                    <div className="mt-1 text-2xl font-bold text-slate-900">
+                      {geometryCorrect}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {partialLabel}
+                    </div>
+                    <div className="mt-1 text-2xl font-bold text-slate-900">
+                      {geometryPartial}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {wrongLabel}
+                    </div>
+                    <div className="mt-1 text-2xl font-bold text-slate-900">
+                      {geometryWrong}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {unansweredLabel}
+                    </div>
+                    <div className="mt-1 text-2xl font-bold text-slate-900">
+                      {geometryUnanswered}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {scoreLabel}
+                    </div>
+                    <div className="mt-1 text-2xl font-bold text-slate-900">
+                      {geometryPercent ?? "—"}%
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-slate-600">
+                  {noGeometryAutoScoreLabel}
+                </div>
+              )
+            ) : auto ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {correctLabel}
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-slate-900">
+                    {auto.correctAuto}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {wrongLabel}
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-slate-900">
+                    {auto.wrongAuto}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {unansweredLabel}
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-slate-900">
+                    {auto.unansweredAuto}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {scoreLabel}
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-slate-900">
+                    {auto.percentAuto ?? "—"}%
+                  </div>
+                </div>
+              </div>
             ) : (
-              <Badge text={t("meta.loggedInWithUid", { uid: authInfo.uid ?? "—" })} />
+              <div className="text-sm text-slate-600">{noAutoScoreLabel}</div>
             )}
           </div>
 
-          {(isReadingTest || auto || isGeometryAssignment) && (
-            <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3">
-              {isReadingTest ? (
-                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                  <div className="text-sm font-semibold text-slate-900">{t("meta.readingTestDataTitle")}</div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge text={t("meta.timeLimit", { value: formatDuration(readingMeta.limitSeconds) })} />
-                    <Badge text={t("meta.timeUsed", { value: formatDuration(readingMeta.usedSeconds) })} kind="good" />
-                    {readingMeta.timedOut === true ? (
-                      <Badge text={t("meta.sentOnTimeout")} kind="warn" />
-                    ) : readingMeta.submittedManually === true ? (
-                      <Badge text={t("meta.submittedManually")} kind="good" />
-                    ) : (
-                      <Badge text={t("meta.deliveryMethodUnknown")} />
-                    )}
-                  </div>
-                  <div className="mt-3 text-sm text-slate-700">
-                    {readingMeta.timedOut === true
-                      ? t("meta.readingTimedOutDesc")
-                      : readingMeta.submittedManually === true
-                        ? t("meta.readingManualDesc")
-                        : t("meta.readingMissingMetaDesc")}
-                  </div>
-                </div>
-              ) : isGeometryAssignment ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                  <div className="text-sm font-semibold text-slate-900">{t("meta.geometryTitle")}</div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge text={t("meta.geometryAnswersLoaded")} kind="good" />
-                    <Badge
-                      text={geometryWorksheet ? t("meta.geometryWorksheetFound") : t("meta.geometryWorksheetMissing")}
-                      kind={geometryWorksheet ? "good" : "warn"}
-                    />
-                    {geometryPercent != null ? (
-                      <Badge
-                        text={t("meta.scoreValue", { value: geometryPercent })}
-                        kind={geometryPercent >= 80 ? "good" : geometryPercent >= 50 ? "warn" : "bad"}
-                      />
-                    ) : null}
-                  </div>
-                  <div className="mt-3 text-sm text-slate-700">
-                    {geometryAuto
-                      ? t("meta.geometrySummary", {
-                          correct: geometryCorrect,
-                          partial: geometryPartial,
-                          wrong: geometryWrong,
-                          unanswered: geometryUnanswered,
-                          total: geometryTotal,
-                        })
-                      : t("meta.geometrySummaryFallback")}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="rounded-xl border border-slate-300 bg-white p-4">
-                <div className="text-sm font-semibold text-slate-900">{t("meta.deliveryTitle")}</div>
-                <div className="mt-3 grid gap-2 text-sm text-slate-700">
-                  <div>
-                    <span className="font-medium">{t("meta.deliveredLabel")}</span> {createdAt || "—"}
-                  </div>
-                  <div>
-                    <span className="font-medium">{t("meta.studentLabel")}</span>{" "}
-                    {studentName || (authInfo.isAnon ? t("fallback.guest") : authInfo.uid || "—")}
-                  </div>
-                  <div>
-                    <span className="font-medium">{t("meta.statusLabel")}</span> {String(rawStatus || "—")}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-300 bg-white p-4">
-                <div className="text-sm font-semibold text-slate-900">{t("meta.autoScoreTitle")}</div>
-                {auto ? (
-                  <div className="mt-3 grid gap-2 text-sm text-slate-700">
-                    <div>
-                      <span className="font-medium">{t("meta.correctLabel")}</span> {auto.correctAuto}
-                    </div>
-                    <div>
-                      <span className="font-medium">{t("meta.wrongLabel")}</span> {auto.wrongAuto}
-                    </div>
-                    <div>
-                      <span className="font-medium">{t("meta.unansweredLabel")}</span> {auto.unansweredAuto}
-                    </div>
-                    <div>
-                      <span className="font-medium">{t("meta.scoreLabel")}</span> {auto.percentAuto ?? "—"}%
-                    </div>
-                  </div>
-                ) : isGeometryAssignment ? (
-                  geometryAuto ? (
-                    <div className="mt-3 grid gap-2 text-sm text-slate-700">
-                      <div>
-                        <span className="font-medium">{t("meta.correctLabel")}</span> {geometryCorrect}
-                      </div>
-                      <div>
-                        <span className="font-medium">{t("meta.partialLabel")}</span> {geometryPartial}
-                      </div>
-                      <div>
-                        <span className="font-medium">{t("meta.wrongLabel")}</span> {geometryWrong}
-                      </div>
-                      <div>
-                        <span className="font-medium">{t("meta.unansweredLabel")}</span> {geometryUnanswered}
-                      </div>
-                      <div>
-                        <span className="font-medium">{t("meta.scoreLabel")}</span> {geometryPercent ?? "—"}%
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-3 text-sm text-slate-600">{t("meta.noGeometryAutoScore")}</div>
-                  )
-                ) : (
-                  <div className="mt-3 text-sm text-slate-600">{t("meta.noAutoScore")}</div>
-                )}
-              </div>
+          {isReadingTest && readingSummaryText ? (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold leading-6 text-slate-800">
+              {readingSummaryText}
             </div>
-          )}
+          ) : null}
 
           {isDraft ? (
             <div className="rounded-xl border border-indigo-300 bg-indigo-50 p-3 text-sm font-semibold text-indigo-900">
@@ -1280,17 +1502,27 @@ function Inner() {
         <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <div className="text-base font-semibold text-slate-900">{t("studentView.title")}</div>
+              <div className="text-base font-semibold text-slate-900">
+                {t("studentView.title")}
+              </div>
               {loadingLesson ? (
-                <div className="mt-1 text-sm text-slate-600">{t("studentView.loadingLesson")}</div>
+                <div className="mt-1 text-sm text-slate-600">
+                  {t("studentView.loadingLesson")}
+                </div>
               ) : null}
             </div>
           </div>
 
           <div className="mt-4 grid gap-4">
             <div className="grid gap-1">
-              <div className="break-words text-lg font-semibold text-slate-900">{lessonTitle}</div>
-              {lessonLevel ? <div className="text-sm text-slate-600">{t("studentView.level", { v: lessonLevel })}</div> : null}
+              <div className="break-words text-lg font-semibold text-slate-900">
+                {lessonTitle}
+              </div>
+              {lessonLevel ? (
+                <div className="text-sm text-slate-600">
+                  {t("studentView.level", { v: lessonLevel })}
+                </div>
+              ) : null}
             </div>
 
             {!isGeometryAssignment ? (
@@ -1305,11 +1537,17 @@ function Inner() {
                       <img
                         src={cover}
                         alt={t("studentView.imageAlt")}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
                       />
                     ) : (
                       <div className="px-4 text-center text-sm text-slate-600">
-                        <div className="mb-1 font-semibold text-slate-800">{t("studentView.noImageTitle")}</div>
+                        <div className="mb-1 font-semibold text-slate-800">
+                          {t("studentView.noImageTitle")}
+                        </div>
                         <div>{t("studentView.noImageDesc")}</div>
                       </div>
                     )}
@@ -1318,8 +1556,12 @@ function Inner() {
 
                 {sourceText.trim() ? (
                   <div className="rounded-xl border border-slate-300 bg-white p-4">
-                    <div className="mb-2 text-xs text-slate-500">{t("studentView.textTitle")}</div>
-                    <div className="whitespace-pre-wrap leading-7 text-slate-800">{sourceText}</div>
+                    <div className="mb-2 text-xs text-slate-500">
+                      {t("studentView.textTitle")}
+                    </div>
+                    <div className="whitespace-pre-wrap leading-7 text-slate-800">
+                      {sourceText}
+                    </div>
                   </div>
                 ) : null}
               </>
@@ -1327,46 +1569,38 @@ function Inner() {
 
             <div>
               <div className="mb-3 text-base font-semibold text-slate-900">
-                {isGeometryAssignment ? t("studentView.geometryTitle") : t("studentView.tasksTitle")}
+                {isGeometryAssignment
+                  ? t("studentView.geometryTitle")
+                  : t("studentView.tasksTitle")}
               </div>
 
               {isGeometryAssignment && geometryWorksheet ? (
                 <div className="grid gap-4">
                   <div className="rounded-xl border border-slate-300 bg-white p-3">
                     <GeometryWorksheetPracticeView
-  worksheet={geometryWorksheet}
-  t={tGeometryAny}
-  tBrand={tBrandAny}
-  answersByTaskId={answersMap as GeometryAnswersByTaskId}
-  onAnswerChange={() => {
-    // read-only teacher view
-  }}
-  showExpectedAnswers={true}
-  showIdentityFields={false}
-  showFigureMeta={true}
-  includeHints={true}
-  auto={geometryAuto}
-  showInlineFeedback={!!geometryAuto}
-/>
+                      worksheet={geometryWorksheet}
+                      t={tGeometryAny}
+                      tBrand={tBrandAny}
+                      answersByTaskId={answersMap as GeometryAnswersByTaskId}
+                      onAnswerChange={() => {
+                        // read-only teacher view
+                      }}
+                      showExpectedAnswers={true}
+                      showIdentityFields={false}
+                      showFigureMeta={true}
+                      includeHints={true}
+                      auto={geometryAuto}
+                      showInlineFeedback={!!geometryAuto}
+                    />
                   </div>
-
-                  {geometryAuto ? (
-                    <>
-                      <GeometryAutoCheckSummary auto={geometryAuto} t={tGeometryAny} />
-                      <GeometryAutoCheckTaskList
-                        worksheet={geometryWorksheet}
-                        auto={geometryAuto}
-                        answersByTaskId={answersMap as GeometryAnswersByTaskId}
-                        t={tGeometryAny}
-                      />
-                    </>
-                  ) : null}
                 </div>
               ) : tasksOriginal.length === 0 ? (
                 <div className="text-sm text-slate-600">
                   {t("studentView.noTasks")}
                   <br />
-                  <span className="text-slate-500">{t("studentView.noTasksHint")}</span>
+                  <span className="text-slate-500">
+                    {t("studentView.noTasksHint")}
+                  </span>
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -1374,7 +1608,9 @@ function Inner() {
                     const stableId = getStableTaskId(task, idx);
                     const type = String(task?.type ?? "open").toLowerCase();
                     const prompt = String(task?.prompt ?? "");
-                    const options = Array.isArray(task?.options) ? (task.options as unknown[]) : [];
+                    const options = Array.isArray(task?.options)
+                      ? (task.options as unknown[])
+                      : [];
                     const val = answersMap[stableId];
 
                     const entry = getAutoEntry(auto, stableId);
@@ -1394,7 +1630,11 @@ function Inner() {
                           <Badge text={t("auto.taskCorrect")} kind="good" />
                         ) : (
                           <Badge
-                            text={val == null ? t("auto.taskUnanswered") : t("auto.taskWrong")}
+                            text={
+                              val == null
+                                ? t("auto.taskUnanswered")
+                                : t("auto.taskWrong")
+                            }
                             kind={val == null ? "neutral" : "bad"}
                           />
                         )
@@ -1403,25 +1643,35 @@ function Inner() {
                     const orderLabel = task?.order ?? idx + 1;
 
                     const selectedIndex =
-                      typeof val === "number" && Number.isFinite(val) ? Math.floor(val) : null;
+                      typeof val === "number" && Number.isFinite(val)
+                        ? Math.floor(val)
+                        : null;
                     const selectedText =
-                      selectedIndex != null && selectedIndex >= 0 && selectedIndex < options.length
+                      selectedIndex != null &&
+                      selectedIndex >= 0 &&
+                      selectedIndex < options.length
                         ? String(options[selectedIndex])
                         : typeof val === "string"
                           ? val
                           : "";
 
                     return (
-                      <div key={stableId} className="rounded-xl border border-slate-300 bg-white p-4">
+                      <div
+                        key={stableId}
+                        className="rounded-xl border border-slate-300 bg-white p-4"
+                      >
                         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
                           <span>{t("studentView.taskN", { n: orderLabel })}</span>
                           <span>• {type}</span>
                           {autoBadge}
                         </div>
 
-                        <div className="mb-3 whitespace-pre-wrap font-semibold leading-6 text-slate-900">{prompt}</div>
+                        <div className="mb-3 whitespace-pre-wrap font-semibold leading-6 text-slate-900">
+                          {prompt}
+                        </div>
 
-                        {(type === "word_choice" || type === "fill_in_word") && task?.sentence ? (
+                        {(type === "word_choice" || type === "fill_in_word") &&
+                        task?.sentence ? (
                           <div className="mb-3 whitespace-pre-wrap rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
                             {String(task.sentence)}
                           </div>
@@ -1444,25 +1694,44 @@ function Inner() {
                               const opt = String(o);
                               const checked = opt === selectedText;
 
-                              const correctOpt = entry?.correctAnswer != null ? String(entry.correctAnswer) : null;
-                              const isCorrectOption = correctOpt != null && opt === correctOpt;
+                              const correctOpt =
+                                entry?.correctAnswer != null
+                                  ? String(entry.correctAnswer)
+                                  : null;
+                              const isCorrectOption =
+                                correctOpt != null && opt === correctOpt;
 
                               return (
                                 <div
                                   key={i}
                                   className="flex gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2"
-                                  style={{ background: checked ? "rgba(46, 204, 113, 0.10)" : "white" }}
+                                  style={{
+                                    background: checked
+                                      ? "rgba(46, 204, 113, 0.10)"
+                                      : "white",
+                                  }}
                                 >
-                                  <input type="radio" checked={checked} readOnly style={{ marginTop: 3 }} />
+                                  <input
+                                    type="radio"
+                                    checked={checked}
+                                    readOnly
+                                    style={{ marginTop: 3 }}
+                                  />
                                   <div className="w-full min-w-0">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                       <div className="break-words text-slate-800">
                                         {opt}
                                         {isCorrectOption ? (
-                                          <span className="ml-2 text-xs text-slate-500">{t("studentView.correctTag")}</span>
+                                          <span className="ml-2 text-xs text-slate-500">
+                                            {t("studentView.correctTag")}
+                                          </span>
                                         ) : null}
                                       </div>
-                                      {checked ? <Badge text={t("studentView.selectedTag")} /> : null}
+                                      {checked ? (
+                                        <Badge
+                                          text={t("studentView.selectedTag")}
+                                        />
+                                      ) : null}
                                     </div>
                                   </div>
                                 </div>
@@ -1476,25 +1745,41 @@ function Inner() {
                             <div
                               className="rounded-xl border border-slate-300 px-3 py-2"
                               style={{
-                                background: val === true || val === "true" ? "rgba(46, 204, 113, 0.12)" : "white",
-                                fontWeight: val === true || val === "true" ? 800 : 600,
+                                background:
+                                  val === true || val === "true"
+                                    ? "rgba(46, 204, 113, 0.12)"
+                                    : "white",
+                                fontWeight:
+                                  val === true || val === "true" ? 800 : 600,
                               }}
                             >
-                              {t("studentView.true")} {val === true || val === "true" ? "✓" : ""}
-                              {entry?.correctAnswer === true || entry?.correctAnswer === "true" ? (
-                                <span className="ml-2 text-xs text-slate-500">{t("studentView.correctTag")}</span>
+                              {t("studentView.true")}{" "}
+                              {val === true || val === "true" ? "✓" : ""}
+                              {entry?.correctAnswer === true ||
+                              entry?.correctAnswer === "true" ? (
+                                <span className="ml-2 text-xs text-slate-500">
+                                  {t("studentView.correctTag")}
+                                </span>
                               ) : null}
                             </div>
                             <div
                               className="rounded-xl border border-slate-300 px-3 py-2"
                               style={{
-                                background: val === false || val === "false" ? "rgba(46, 204, 113, 0.12)" : "white",
-                                fontWeight: val === false || val === "false" ? 800 : 600,
+                                background:
+                                  val === false || val === "false"
+                                    ? "rgba(46, 204, 113, 0.12)"
+                                    : "white",
+                                fontWeight:
+                                  val === false || val === "false" ? 800 : 600,
                               }}
                             >
-                              {t("studentView.false")} {val === false || val === "false" ? "✓" : ""}
-                              {entry?.correctAnswer === false || entry?.correctAnswer === "false" ? (
-                                <span className="ml-2 text-xs text-slate-500">{t("studentView.correctTag")}</span>
+                              {t("studentView.false")}{" "}
+                              {val === false || val === "false" ? "✓" : ""}
+                              {entry?.correctAnswer === false ||
+                              entry?.correctAnswer === "false" ? (
+                                <span className="ml-2 text-xs text-slate-500">
+                                  {t("studentView.correctTag")}
+                                </span>
                               ) : null}
                             </div>
                           </div>
@@ -1511,8 +1796,16 @@ function Inner() {
                           "best_summary",
                           "fill_in_word",
                         ].includes(type) ? (
-                          <div className="w-full whitespace-pre-wrap rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
-                            {renderValue(val) || <span className="text-slate-500">{t("studentView.notAnswered")}</span>}
+                          <div className="w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
+                            {renderValue(val) ? (
+                              <div className="whitespace-pre-wrap leading-6">
+                                {renderValue(val)}
+                              </div>
+                            ) : (
+                              <span className="text-slate-500">
+                                {t("studentView.notAnswered")}
+                              </span>
+                            )}
                           </div>
                         ) : null}
                       </div>
@@ -1528,7 +1821,9 @@ function Inner() {
           <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
             <div className="flex min-w-0 flex-col gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-base font-semibold text-slate-900">{t("ai.title")}</div>
+                <div className="text-base font-semibold text-slate-900">
+                  {t("ai.title")}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     disabled={!canGenerateAi}
@@ -1537,12 +1832,15 @@ function Inner() {
                       setAiMsg(null);
 
                       try {
-                        const data = await authedPost<AiResp>("/api/teacher/ai-feedback", {
-                          spaceId,
-                          assignmentId,
-                          subId,
-                          locale,
-                        });
+                        const data = await authedPost<AiResp>(
+                          "/api/teacher/ai-feedback",
+                          {
+                            spaceId,
+                            assignmentId,
+                            subId,
+                            locale,
+                          }
+                        );
 
                         const newText = data.text || "";
                         setAiText(newText);
@@ -1555,8 +1853,17 @@ function Inner() {
                         }
                       } catch (e: unknown) {
                         const info = getErrorInfo(e);
-                        console.log("[TEACHER] generate ai feedback ERROR =>", info.code, info.message, e);
-                        setAiMsg(t("ai.generateFailed", { msg: info.message || t("fallback.unknownError") }));
+                        console.log(
+                          "[TEACHER] generate ai feedback ERROR =>",
+                          info.code,
+                          info.message,
+                          e
+                        );
+                        setAiMsg(
+                          t("ai.generateFailed", {
+                            msg: info.message || t("fallback.unknownError"),
+                          })
+                        );
                       } finally {
                         setAiGenerating(false);
                         setTimeout(() => setAiMsg(null), 2500);
@@ -1616,7 +1923,11 @@ function Inner() {
                 className="box-border w-full min-w-0 max-w-full resize-y rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm text-slate-900 disabled:opacity-65"
               />
 
-              {aiMsg && <div className="text-sm font-semibold text-slate-700">{aiMsg}</div>}
+              {aiMsg && (
+                <div className="text-sm font-semibold text-slate-700">
+                  {aiMsg}
+                </div>
+              )}
 
               <div className="text-xs text-slate-500">
                 {t("ai.rulesHint")} <code>aiFeedback</code>.
@@ -1625,7 +1936,9 @@ function Inner() {
           </div>
 
           <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
-            <div className="text-base font-semibold text-slate-900">{t("feedback.title")}</div>
+            <div className="text-base font-semibold text-slate-900">
+              {t("feedback.title")}
+            </div>
 
             {readingSummaryText ? (
               <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold leading-6 text-slate-800">
@@ -1634,7 +1947,12 @@ function Inner() {
             ) : null}
 
             <div className="mt-4">
-              <StatusToggle value={status} onChange={setStatus} disabled={!canOperate} t={(k) => t(k)} />
+              <StatusToggle
+                value={status}
+                onChange={setStatus}
+                disabled={!canOperate}
+                t={(k) => t(k)}
+              />
             </div>
 
             <textarea
@@ -1698,8 +2016,17 @@ function Inner() {
                     setSaveMsg(t("feedback.saved"));
                   } catch (e: unknown) {
                     const info = getErrorInfo(e);
-                    console.log("[TEACHER] save feedback ERROR =>", info.code, info.message, e);
-                    setSaveMsg(t("feedback.saveFailed", { msg: info.message || t("fallback.unknownError") }));
+                    console.log(
+                      "[TEACHER] save feedback ERROR =>",
+                      info.code,
+                      info.message,
+                      e
+                    );
+                    setSaveMsg(
+                      t("feedback.saveFailed", {
+                        msg: info.message || t("fallback.unknownError"),
+                      })
+                    );
                   } finally {
                     setSaving(false);
                     setTimeout(() => setSaveMsg(null), 2000);
@@ -1710,11 +2037,16 @@ function Inner() {
                 {saving ? t("feedback.saving") : t("feedback.saveButton")}
               </button>
 
-              {saveMsg ? <div className="self-center text-sm text-slate-700">{saveMsg}</div> : null}
+              {saveMsg ? (
+                <div className="self-center text-sm text-slate-700">
+                  {saveMsg}
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-3 text-xs text-slate-500">
-              {t("feedback.rulesHint")} <code>status</code> <code>teacherFeedback</code>.
+              {t("feedback.rulesHint")} <code>status</code>{" "}
+              <code>teacherFeedback</code>.
             </div>
           </div>
         </div>

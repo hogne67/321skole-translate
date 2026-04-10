@@ -47,7 +47,8 @@
       "scoreLabel": "Score:",
       "scoreValue": "Score: {value}%",
       "noGeometryAutoScore": "No geometry auto-correction saved yet.",
-      "noAutoScore": "No auto-score data."
+      "noAutoScore": "No auto-score data.",
+    "quickOverviewTitle": "Quick overview"
     },
     "status": {
       "submitted": "Submitted",
@@ -127,6 +128,6 @@
       "guest": "Guest",
       "task": "Task",
       "unknownError": "unknown error"
-    }
   }
 }
+  }

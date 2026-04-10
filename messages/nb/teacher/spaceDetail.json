@@ -2,49 +2,54 @@
   "spaceDetail": {
     "checking": {
       "title": "Space",
-      "subtitle": "Verifiserer tilgang…"
+      "subtitle": "Kontrollerer tilgang…"
     },
     "actions": {
       "back": "← Tilbake",
-      "submissions": "Innleveringer",
+      "submissions": "Besvarelser",
       "setActive": "Sett som aktiv",
       "archive": "Arkiver",
-      "restore": "Gjenopprett"
+      "restore": "Gjenopprett",
+      "createNewLesson": "+ Lag ny oppgave"
     },
     "access": {
       "mustBeSignedIn": "Du må være logget inn.",
       "notMember": "Du er ikke medlem av dette spacet.",
-      "verifyFailed": "Kunne ikke verifisere tilgang."
+      "verifyFailed": "Kunne ikke bekrefte tilgang."
     },
     "denied": {
       "title": "Ingen tilgang",
       "subtitle": "Du har ikke tilgang til dette spacet.",
-      "hint": "For å bli med, bruk bli-med-lenke/kode eller be eieren legge deg til.",
+      "hint": "For å bli med, bruk lenken eller koden, eller be eieren legge deg til.",
       "joinCardTitle": "Bli med i dette spacet",
-      "joinLinkLabel": "Bli-med-lenke:"
+      "joinLinkLabel": "Bli med-lenke:"
     },
     "overview": {
-      "subtitle": "Her finner du koder og lenker du kan sende til medlemmer, slik at de kan bli med i spacet.",
+      "subtitle": "Her kan du se alle tildelte oppgaver i spacet og status for besvarelsene.",
       "code": "Kode:",
       "copyCodeTitle": "Kopier kode",
       "copied": "Kopiert ✅",
       "openLabel": "Åpent:",
       "yes": "Ja",
       "no": "Nei",
-      "copyJoinLink": "Kopier bli-med-lenke",
+      "copyJoinLink": "Kopier bli med-lenke",
       "qr": "QR",
       "activeForStudents": "Aktiv for elever:",
-      "clear": "Tøm"
+      "clear": "Fjern"
     },
     "assignments": {
       "title": "Oppgaver",
-      "subtitle": "Tildel oppgaver fra Mitt innhold eller Bibliotek. Elever ser oppgavene etter at de har blitt med.",
-      "assignTask": "Tildel oppgave",
-      "showArchived": "Vis arkiverte",
-      "hideArchived": "Skjul arkiverte",
-      "openSpace": "Åpne space",
-      "closeSpace": "Lukk space",
-      "emptyHtml": "Ingen oppgaver ennå. Klikk <b>Tildel oppgave</b>."
+      "subtitle": "Tildel oppgaver fra Mitt innhold eller Biblioteket. Elevene ser oppgavene etter at de har blitt med i spacet.",
+      "assignTask": "Tildel ny oppgave",
+      "showArchived": "Vis arkiverte oppgaver",
+      "emptyHtml": "Ingen oppgaver ennå. Klikk på <b>Tildel ny oppgave</b>.",
+      "count": "{count} · {label}"
+    },
+    "spaceToggle": {
+      "openLabel": "Spacet er åpent",
+      "closedLabel": "Spacet er lukket",
+      "openDescription": "Elever kan bli med med kode eller lenke.",
+      "closedDescription": "Nye elever kan ikke bli med akkurat nå."
     },
     "labels": {
       "myContent": "Mitt innhold",
@@ -53,17 +58,17 @@
     "badges": {
       "active": "Aktiv",
       "archived": "Arkivert",
-      "noSubmissions": "Ingen innleveringer",
-      "allReviewed": "Alle vurdert",
-      "newCount": "{n} nye",
-      "submissionsCount": "{n} innleveringer",
-      "submissionsError": "Innleveringer: feil"
+      "noSubmissions": "Ingen besvarelser",
+      "allReviewed": "Alle er vurdert",
+      "newCount": "{n} ny besvarelse",
+      "submissionsCount": "{n} besvarelser",
+      "submissionsError": "Besvarelser: feil"
     },
     "assignModal": {
-      "title": "Tildel oppgave",
-      "subtitle": "Velg fra Mitt innhold eller Bibliotek.",
+      "title": "Tildel ny oppgave",
+      "subtitle": "Velg fra Mitt innhold eller Biblioteket.",
       "close": "Lukk",
-      "searchPlaceholder": "Søk tittel eller nivå A1, A2 osv",
+      "searchPlaceholder": "Søk etter tittel eller nivå A1, A2 osv.",
       "noResults": "Ingen resultater.",
       "lessonId": "lessonId",
       "publishedLessonId": "publishedLessonId",

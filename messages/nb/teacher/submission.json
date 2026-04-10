@@ -19,7 +19,15 @@
       "delivered": "Levert:",
       "deliveredUnknown": "Levert: (ukjent)",
       "guest": "Gjest (ikke logget inn)",
-      "loggedIn": "Logget inn"
+      "loggedIn": "Logget inn",
+      "quickOverviewTitle": "Kort oversikt",
+       "correctLabel": "Riktige",
+    "partialLabel": "Delvis riktige",
+    "wrongLabel": "Feil",
+    "unansweredLabel": "Ubesvart",
+    "scoreLabel": "Score",
+    "noAutoScore": "Ingen automatisk vurdering tilgjengelig ennå.",
+    "noGeometryAutoScore": "Ingen automatisk vurdering tilgjengelig ennå."
     },
     "status": {
       "submitted": "Levert",
