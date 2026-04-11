@@ -62,7 +62,19 @@
     "qrLabel": "QR code",
     "qrAlt": "QR code da aula compartilhada",
     "qrNotReady": "O QR code está sendo preparado",
-    "tipExtended": "Dica: copie primeiro o texto e depois compartilhe o link nas redes sociais."
+    "tipExtended": "Dica: copie primeiro o texto e depois compartilhe o link nas redes sociais.",
+    "defaultTitle": "Aula",
+    "level": "Nível: {level}",
+    "language": "Idioma: {language}",
+    "type": "Tipo: {type}",
+    "professionalNoDescription": "Aula pronta para usar: {title}{levelPart}{languagePart}{typePart}",
+    "friendlyTemplate": "Veja esta aula: {title}.\n\n{body}{typePart}",
+    "friendlyFallbackBody": "Uma aula clara e pronta para usar{levelPart}{languagePart}.",
+    "tones": {
+      "short": "Curto",
+      "professional": "Profissional",
+      "friendly": "Amigável"
   }
 }
+  }
   }

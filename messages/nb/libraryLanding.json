@@ -62,7 +62,19 @@
     "qrLabel": "QR-kode",
     "qrAlt": "QR-kode for delt opplegg",
     "qrNotReady": "QR-kode klargjøres",
-    "tipExtended": "Tips: Kopier teksten først, og del deretter lenken i sosiale medier."
+    "tipExtended": "Tips: Kopier teksten først, og del deretter lenken i sosiale medier.",
+    "defaultTitle": "Opplegg",
+    "level": "Nivå: {level}",
+    "language": "Språk: {language}",
+    "type": "Type: {type}",
+    "professionalNoDescription": "Klart til bruk: {title}{levelPart}{languagePart}{typePart}",
+    "friendlyTemplate": "Se på dette opplegget: {title}.\n\n{body}{typePart}",
+    "friendlyFallbackBody": "Et fint og klart undervisningsopplegg{levelPart}{languagePart}.",
+    "tones": {
+      "short": "Kort",
+      "professional": "Profesjonell",
+      "friendly": "Vennlig"
   }
 }
   }
+}

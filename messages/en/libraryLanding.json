@@ -62,7 +62,20 @@
     "qrLabel": "QR code",
     "qrAlt": "QR code for shared lesson",
     "qrNotReady": "QR code is being prepared",
-    "tipExtended": "Tip: copy the text first, then share the link in social media."
+    "tipExtended": "Tip: copy the text first, then share the link in social media.",
+    "defaultTitle": "Lesson",
+    "level": "Level: {level}",
+    "language": "Language: {language}",
+    "type": "Type: {type}",
+    "professionalNoDescription": "Ready-to-use lesson: {title}{levelPart}{languagePart}{typePart}",
+    "friendlyTemplate": "Take a look at this lesson: {title}.\n\n{body}{typePart}",
+    "friendlyFallbackBody": "A clear and ready-to-use lesson{levelPart}{languagePart}.",
+    "tones": {
+      "short": "Short",
+      "professional": "Professional",
+      "friendly": "Friendly"
   }
 }
   }
+}
+
