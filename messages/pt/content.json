@@ -52,6 +52,7 @@
     "math": {
       "pdf": "PDF de matemática",
       "hint": "Pronto para exportar em PDF. Gere uma nova ficha se quiser outra versão.",
+      "openDigital": "Abrir",
       "subtypes": {
         "geometry": "Geometria",
         "algebra": "Álgebra",
@@ -105,7 +106,8 @@
       "cannotPublishDeleted": "Esta tarefa foi excluída ou arquivada e não pode ser publicada.",
       "publishFailed": "Falha ao atualizar o status de publicação",
       "deleteFailed": "Falha ao excluir (arquivar) a tarefa",
-      "restoreFailed": "Não foi possível restaurar."
+      "restoreFailed": "Não foi possível restaurar.",
+      "aiShareFailed": "Não foi possível gerar o texto de compartilhamento com IA."
     },
     "titles": {
       "lesson": "Tarefa",
@@ -148,9 +150,6 @@
         "friendly": "Amigável",
       "aiGenerate": "✨ Gerar com IA",
     "aiLoading": "Gerando..."
-  },
-  "errors": {
-    "aiShareFailed": "Não foi possível gerar o texto de compartilhamento com IA."
       },
       "level": "Nível: {level}",
       "language": "Idioma: {language}",

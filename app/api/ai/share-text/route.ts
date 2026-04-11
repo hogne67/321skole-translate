@@ -121,17 +121,17 @@ export async function POST(req: Request) {
     const prompt = `
 Write exactly 4 different social media post suggestions in ${language}.
 
-The goal is to promote the platform "321skole", not just the specific shared item.
+The goal is to promote both the item and the platform "321skole", not just the specific shared item.
 
 ${toneInstruction}
 ${kindInstruction}
 
 Core benefits to highlight across the 4 variants:
-- create your own tasks and lessons
-- AI as assistant
-- AI feedback
+- create, share and give feedback in your own space.
+- Create and generate amazing lessons in minutes.
+- lessons with translation, audio and instant feedback.
 - learning platform for teachers, students and parents
-- Spaces for sharing and collaboration
+- Made by teachers for the best learning!
 
 Shared item title:
 "${title}"

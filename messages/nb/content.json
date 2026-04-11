@@ -52,6 +52,7 @@
     "math": {
       "pdf": "Matte PDF",
       "hint": "Klar for PDF-eksport. Generer et nytt ark hvis du vil ha en annen versjon.",
+      "openDigital": "Åpne oppgave",
       "subtypes": {
         "geometry": "Geometri",
         "algebra": "Algebra",
@@ -105,7 +106,8 @@
       "cannotPublishDeleted": "Denne oppgaven er slettet eller arkivert og kan ikke publiseres.",
       "publishFailed": "Kunne ikke oppdatere publiseringsstatus",
       "deleteFailed": "Kunne ikke slette (arkivere) oppgave",
-      "restoreFailed": "Kunne ikke gjenopprette."
+      "restoreFailed": "Kunne ikke gjenopprette.",
+      "aiShareFailed": "Kunne ikke lage delingstekst med KI."
     },
     "titles": {
       "lesson": "Oppgave",
@@ -142,15 +144,12 @@
       "qrNotReady": "QR-koden klargjøres",
       "shareUrlLabel": "Delingsadresse",
       "tipExtended": "Tips: Kopier gjerne teksten først, og del deretter lenken i sosiale medier.",
+      "aiGenerate": "✨ Lag med KI",
+      "aiLoading": "Lager..."},
       "tones": {
         "short": "Kort",
         "professional": "Profesjonell",
-        "friendly": "Vennlig",
-      "aiGenerate": "✨ Lag med KI",
-    "aiLoading": "Lager..."
-  },
-  "errors": {
-    "aiShareFailed": "Kunne ikke lage delingstekst med KI."
+        "friendly": "Vennlig"
       },
       "level": "Nivå: {level}",
       "language": "Språk: {language}",
@@ -173,4 +172,3 @@
       "untitledTask": "Oppgave uten tittel"
     }
   }
-}
