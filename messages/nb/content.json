@@ -1,7 +1,7 @@
 {
   "content": {
     "title": "Mitt innhold",
-    "subtitle": "Her kan du administrere alt: publisere, dele, PDF, redigere og mer.",
+    "subtitle": "Her kan du administrere alt: publisere, dele, laste ned PDF, redigere og mer.",
     "parent": {
       "title": "Familieinnhold",
       "subtitle": "Her finner du oppgaver du kan åpne, organisere og dele til barnas Spaces.",
@@ -10,8 +10,8 @@
       "canShareToChildren": "Kan deles til barnas Spaces"
     },
     "search": {
-      "placeholder": "Søk etter tittel, status, metadata…",
-      "parentPlaceholder": "Søk etter oppgaver, Spaces og besvarelser…"
+      "placeholder": "Søk i tittel, status, metadata…",
+      "parentPlaceholder": "Søk i oppgaver, Spaces og innleveringer…"
     },
     "filters": {
       "all": "Alle",
@@ -19,14 +19,14 @@
       "math": "MATTE",
       "lesson": "Oppgave",
       "lessons": "GENERERT",
-      "submission": "Besvarelse",
-      "submissions": "BESVARELSER",
+      "submission": "Innlevering",
+      "submissions": "INNLEVERINGER",
       "space": "Spaces",
       "spaces": "SPACES"
     },
     "filterHints": {
       "library": "Dine egne oppgaver fra biblioteket (øving)",
-      "math": "Kun elementer fra mattegeneratoren"
+      "math": "Bare innhold fra mattegeneratoren"
     },
     "toggles": {
       "showDeleted": "Vis slettede",
@@ -45,12 +45,12 @@
       "unpublished": "ikke publisert",
       "library": "Bibliotek",
       "teacherSubmission": "Lærer",
-      "readingTest": "Leseprøve",
+      "readingTest": "Lesetest",
       "readyForPdf": "Klar for PDF",
       "mathGenerator": "Mattegenerator"
     },
     "math": {
-      "pdf": "Matte PDF",
+      "pdf": "Matte-PDF",
       "hint": "Klar for PDF-eksport. Generer et nytt ark hvis du vil ha en annen versjon.",
       "openDigital": "Åpne oppgave",
       "subtypes": {
@@ -71,7 +71,7 @@
       "aiFeedbackCount": "{count} med KI-tilbakemelding",
       "reviewCount": "{count} vurdert av forelder",
       "progress": {
-        "completed": "🟢 Fullført av barn",
+        "completed": "🟢 Fullført av barnet",
         "started": "🟡 Startet",
         "notStarted": "⚪ Ikke startet"
       }
@@ -102,36 +102,36 @@
       "label": "Feil",
       "loadFailed": "Kunne ikke laste innhold",
       "assignFailed": "Kunne ikke dele til Spaces",
-      "lessonNotFound": "Oppgave ikke funnet",
+      "lessonNotFound": "Fant ikke oppgaven",
       "cannotPublishDeleted": "Denne oppgaven er slettet eller arkivert og kan ikke publiseres.",
       "publishFailed": "Kunne ikke oppdatere publiseringsstatus",
-      "deleteFailed": "Kunne ikke slette (arkivere) oppgave",
+      "deleteFailed": "Kunne ikke slette (arkivere) oppgaven",
       "restoreFailed": "Kunne ikke gjenopprette.",
       "aiShareFailed": "Kunne ikke lage delingstekst med KI."
     },
     "titles": {
       "lesson": "Oppgave",
       "space": "Spaces",
-      "submission": "Besvarelse",
-      "submissionWithLesson": "{lessonTitle} – Besvarelse",
-      "submissionWithId": "Besvarelse · {id}"
+      "submission": "Innlevering",
+      "submissionWithLesson": "{lessonTitle} – Innlevering",
+      "submissionWithId": "Innlevering · {id}"
     },
     "empty": {
       "guest": {
         "line1": "Du er i gjestemodus. Mitt innhold viser ikke lagrede elementer ennå.",
-        "line2": "Bruk <join>Bli med</join> for å åpne en oppgave eller et Space med kode, eller <login>logg inn</login> for å synkronisere innholdet ditt."
+        "line2": "Bruk <join>Bli med</join> for å åpne en oppgave eller Spaces med kode, eller <login>logg inn</login> for å synkronisere innholdet ditt."
       },
-      "authed": "Du har ingen elementer her ennå. Når du lager eller bruker oppgaver, Spaces eller besvarelser, vil de vises her."
+      "authed": "Du har ingen elementer her ennå. Når du lager eller bruker oppgaver, Spaces eller innleveringer, vil de vises her."
     },
     "footer": {
-      "joinViaCode": "Bli med via kode",
+      "joinViaCode": "Bli med med kode",
       "tools": "Verktøy"
     },
     "share": {
       "title": "Del",
       "button": "Del",
       "shareTextLabel": "Delingstekst",
-      "linkLabel": "Delingslenke",
+      "linkLabel": "Del lenke",
       "copyText": "Kopier tekst",
       "copiedText": "Tekst kopiert",
       "copyLink": "Kopier lenke",
@@ -142,22 +142,37 @@
       "qrLabel": "QR-kode",
       "qrAlt": "QR-kode",
       "qrNotReady": "QR-koden klargjøres",
-      "shareUrlLabel": "Delingsadresse",
-      "tipExtended": "Tips: Kopier gjerne teksten først, og del deretter lenken i sosiale medier.",
+      "shareUrlLabel": "Delingslenke",
+      "tipExtended": "Tips: Kopier teksten først, og del deretter lenken i sosiale medier.",
       "aiGenerate": "✨ Lag med KI",
-      "aiLoading": "Lager..."},
-      "tones": {
-        "short": "Kort",
-        "professional": "Profesjonell",
-        "friendly": "Vennlig"
+      "aiLoading": "Lager…",
+      "examples": {
+        "example1": {
+          "label": "Ex 1",
+          "text": "Lag gode oppgaver, del dem og få umiddelbar tilbakemelding med 321skole. Sjekk det ut. Det er gratis."
+        },
+        "example2": {
+          "label": "Ex 2",
+          "text": "En ny og revolusjonerende plattform for å skape, dele og mestre kunnskap. Sjekk det ut. Det er gratis."
+        },
+        "example3": {
+          "label": "Ex 3",
+          "text": "Skap mer, raskere og bedre med 321skole. Sjekk det ut. Det er gratis."
+        },
+        "example4": {
+          "label": "Ex 4",
+          "text": "Fremtidens læring starter her — med 321skole. Sjekk det ut. Det er gratis."
+        },
+        "example5": {
+          "label": "Ex 5",
+          "text": "Undervis, lær og del — alt på ett sted. Sjekk det ut. Det er gratis."
+        },
+        "example6": {
+          "label": "Ex 6",
+          "text": "Smartere oppgaver. Raskere arbeidsflyt. Bedre læring. Sjekk det ut. Det er gratis."
+        }
       },
-      "level": "Nivå: {level}",
-      "language": "Språk: {language}",
-      "type": "Type: {type}",
-      "professionalNoDescription": "Klar til bruk: {title}{levelPart}{languagePart}{typePart}",
-      "friendlyTemplate": "Se på dette opplegget: {title}.\n\n{body}{typePart}",
-      "friendlyFallbackBody": "Et fint og klart undervisningsopplegg{levelPart}{languagePart}.",
-      "defaultTitle": "Opplegg"
+      "defaultTitle": "Oppgave"
     },
     "shareToSpace": {
       "title": "Del til Spaces",
@@ -165,10 +180,11 @@
       "createsLabel": "Oppretter:"
     },
     "confirm": {
-      "deleteLesson": "Slette oppgave{title}?\n\nDette vil arkivere den.\nDen vil også forsøkes avpublisert.\n\nEn administrator kan gjenopprette den senere.",
+      "deleteLesson": "Slette oppgave{title}?\n\nDette vil arkivere den.\nDet vil også forsøke å avpublisere den.\n\nEn administrator kan gjenopprette den senere.",
       "restoreLesson": "Gjenopprette oppgave{title}?"
     },
     "fallback": {
       "untitledTask": "Oppgave uten tittel"
     }
   }
+}

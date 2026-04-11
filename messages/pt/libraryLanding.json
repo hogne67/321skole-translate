@@ -4,14 +4,14 @@
       "label": "Erro",
       "fetchFailed": "Não foi possível carregar as aulas publicadas.",
       "ratingSaveFailed": "Não foi possível salvar a avaliação.",
-      "saveToMyContentFailed": "Não foi possível adicionar a Meus conteúdos."
+      "saveToMyContentFailed": "Não foi possível adicionar em Meu conteúdo."
     },
     "filters": {
       "searchPlaceholder": "Buscar: título, texto, tipo…",
       "textTypeAll": "Tipo de texto",
       "languagePlaceholder": "Buscar idioma…",
       "levelAll": "Nível",
-      "reset": "Limpar"
+      "reset": "Redefinir"
     },
     "status": {
       "loading": "Carregando aulas publicadas…",
@@ -19,7 +19,7 @@
       "range": "({from}–{to})"
     },
     "empty": {
-      "noResults": "Nenhuma aula publicada encontrada. Tente limpar os filtros ou buscar outra coisa."
+      "noResults": "Nenhuma aula publicada foi encontrada. Tente limpar os filtros ou buscar outra coisa."
     },
     "card": {
       "imageFallback": "Imagem"
@@ -30,7 +30,7 @@
     },
     "pagination": {
       "prev": "Anterior",
-      "next": "Próximo",
+      "next": "Próxima",
       "page": "Página",
       "perPage": "Por página"
     },
@@ -38,43 +38,58 @@
       "ariaLabel": "Avaliação {value} de 5",
       "rateStar": "Dar {star} estrelas",
       "saving": "Salvando…",
-      "loginRequired": "Você precisa estar logado para avaliar."
+      "loginRequired": "Você precisa estar conectado para avaliar."
     },
     "saveToMyContent": {
       "loadingUser": "Aguarde enquanto seu usuário é carregado.",
       "loading": "Carregando…",
       "saving": "Salvando…",
-      "button": "Adicionar a Meus conteúdos",
-      "success": "\"{title}\" foi adicionado a Meus conteúdos."
+      "button": "Adicionar em Meu conteúdo",
+      "success": "\"{title}\" foi adicionada em Meu conteúdo."
     },
-  "share": {
-    "button": "Compartilhar",
-    "title": "Compartilhar aula",
-    "shareTextLabel": "Texto de compartilhamento",
-    "copyText": "Copiar texto",
-    "copiedText": "Texto copiado",
-    "facebook": "Facebook",
-    "linkedin": "LinkedIn",
-    "linkLabel": "Link de compartilhamento",
-    "copyLink": "Copiar link",
-    "copied": "Copiado",
-    "openLink": "Abrir link",
-    "qrLabel": "QR code",
-    "qrAlt": "QR code da aula compartilhada",
-    "qrNotReady": "O QR code está sendo preparado",
-    "tipExtended": "Dica: copie primeiro o texto e depois compartilhe o link nas redes sociais.",
-    "defaultTitle": "Aula",
-    "level": "Nível: {level}",
-    "language": "Idioma: {language}",
-    "type": "Tipo: {type}",
-    "professionalNoDescription": "Aula pronta para usar: {title}{levelPart}{languagePart}{typePart}",
-    "friendlyTemplate": "Veja esta aula: {title}.\n\n{body}{typePart}",
-    "friendlyFallbackBody": "Uma aula clara e pronta para usar{levelPart}{languagePart}.",
-    "tones": {
-      "short": "Curto",
-      "professional": "Profissional",
-      "friendly": "Amigável"
+    "share": {
+      "button": "Compartilhar",
+      "title": "Compartilhar aula",
+      "shareTextLabel": "Texto de compartilhamento",
+      "copyText": "Copiar texto",
+      "copiedText": "Texto copiado",
+      "facebook": "Facebook",
+      "linkedin": "LinkedIn",
+      "linkLabel": "Link de compartilhamento",
+      "copyLink": "Copiar link",
+      "copied": "Copiado",
+      "openLink": "Abrir link",
+      "qrLabel": "QR code",
+      "qrAlt": "QR code da aula compartilhada",
+      "qrNotReady": "O QR code está sendo preparado",
+      "tipExtended": "Dica: copie o texto primeiro e depois compartilhe o link nas redes sociais.",
+      "defaultTitle": "Aula",
+      "examples": {
+        "example1": {
+          "label": "Ex 1",
+          "text": "Crie aulas poderosas, compartilhe e receba feedback imediato com o 321escola. Confira. É grátis."
+        },
+        "example2": {
+          "label": "Ex 2",
+          "text": "Uma plataforma nova e revolucionária para criar, compartilhar e dominar o conhecimento. Confira. É grátis."
+        },
+        "example3": {
+          "label": "Ex 3",
+          "text": "Crie mais, mais rápido e melhor com o 321escola. Confira. É grátis."
+        },
+        "example4": {
+          "label": "Ex 4",
+          "text": "O futuro da aprendizagem começa aqui — no 321escola. Confira. É grátis."
+        },
+        "example5": {
+          "label": "Ex 5",
+          "text": "Ensine, aprenda e compartilhe — tudo em um só lugar. Confira. É grátis."
+        },
+        "example6": {
+          "label": "Ex 6",
+          "text": "Aulas mais inteligentes. Fluxo de trabalho mais rápido. Aprendizagem melhor. Confira. É grátis."
+        }
+      }
+    }
   }
 }
-  }
-  }

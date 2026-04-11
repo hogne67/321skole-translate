@@ -47,35 +47,49 @@
       "button": "Add to My content",
       "success": "\"{title}\" was added to My content."
     },
-  "share": {
-    "button": "Share",
-    "title": "Share lesson",
-    "shareTextLabel": "Share text",
-    "copyText": "Copy text",
-    "copiedText": "Text copied",
-    "facebook": "Facebook",
-    "linkedin": "LinkedIn",
-    "linkLabel": "Share link",
-    "copyLink": "Copy link",
-    "copied": "Copied",
-    "openLink": "Open link",
-    "qrLabel": "QR code",
-    "qrAlt": "QR code for shared lesson",
-    "qrNotReady": "QR code is being prepared",
-    "tipExtended": "Tip: copy the text first, then share the link in social media.",
-    "defaultTitle": "Lesson",
-    "level": "Level: {level}",
-    "language": "Language: {language}",
-    "type": "Type: {type}",
-    "professionalNoDescription": "Ready-to-use lesson: {title}{levelPart}{languagePart}{typePart}",
-    "friendlyTemplate": "Take a look at this lesson: {title}.\n\n{body}{typePart}",
-    "friendlyFallbackBody": "A clear and ready-to-use lesson{levelPart}{languagePart}.",
-    "tones": {
-      "short": "Short",
-      "professional": "Professional",
-      "friendly": "Friendly"
+    "share": {
+      "button": "Share",
+      "title": "Share lesson",
+      "shareTextLabel": "Share text",
+      "copyText": "Copy text",
+      "copiedText": "Text copied",
+      "facebook": "Facebook",
+      "linkedin": "LinkedIn",
+      "linkLabel": "Share link",
+      "copyLink": "Copy link",
+      "copied": "Copied",
+      "openLink": "Open link",
+      "qrLabel": "QR code",
+      "qrAlt": "QR code for shared lesson",
+      "qrNotReady": "QR code is being prepared",
+      "tipExtended": "Tip: copy the text first, then share the link in social media.",
+      "defaultTitle": "Lesson",
+      "examples": {
+        "example1": {
+          "label": "Ex 1",
+          "text": "Create powerful lessons, share them, and get instant feedback with 321school. Check it out. It’s free."
+        },
+        "example2": {
+          "label": "Ex 2",
+          "text": "A new, revolutionary platform to create, share, and master knowledge. Check it out. It’s free."
+        },
+        "example3": {
+          "label": "Ex 3",
+          "text": "Create more, faster, and better with 321school. Check it out. It’s free."
+        },
+        "example4": {
+          "label": "Ex 4",
+          "text": "The future of learning starts here — at 321school. Check it out. It’s free."
+        },
+        "example5": {
+          "label": "Ex 5",
+          "text": "Teach, learn, and share — all in one place. Check it out. It’s free."
+        },
+        "example6": {
+          "label": "Ex 6",
+          "text": "Smarter lessons. Faster workflow. Better learning. Check it out. It’s free."
+        }
+      }
+    }
   }
 }
-  }
-}
-

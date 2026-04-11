@@ -54,6 +54,13 @@ type PublishedLesson = {
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
 const PAGE_SIZES = [25, 50, 100] as const;
 type PageSize = (typeof PAGE_SIZES)[number];
+type SharePreset =
+  | "example1"
+  | "example2"
+  | "example3"
+  | "example4"
+  | "example5"
+  | "example6";
 
 function normLang(code?: string) {
   return (code || "").trim().toLowerCase();
@@ -170,7 +177,6 @@ type LoadState =
   | { status: "error"; error: string };
 
 type LooseT = (key: string, values?: Record<string, unknown>) => string;
-type ShareTone = "short" | "professional" | "friendly";
 
 function StarRating({
   value,
@@ -284,8 +290,7 @@ export default function LessonsLandingPage() {
   const [shareTitle, setShareTitle] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [shareText, setShareText] = useState("");
-  const [shareLesson, setShareLesson] = useState<PublishedLesson | null>(null);
-  const [shareTone, setShareTone] = useState<ShareTone>("professional");
+  const [sharePreset, setSharePreset] = useState<SharePreset>("example1");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
@@ -310,192 +315,30 @@ export default function LessonsLandingPage() {
     return typeof window !== "undefined" ? window.location.origin : "";
   }
 
-  function buildProfessionalShareText(
-    title: string,
-    levelText: string,
-    languageText: string,
-    typeText: string,
-    descriptionText: string
-  ) {
-    if (locale === "nb") {
-      if (descriptionText) {
-        return `${title}\n\n${descriptionText}\n\n${
-          levelText ? safeMsg("share.level", "Nivå: {level}", { level: levelText }) : ""
-        }${levelText && languageText ? " · " : ""}${
-          languageText ? safeMsg("share.language", "Språk: {language}", { language: languageText }) : ""
-        }${(levelText || languageText) && typeText ? " · " : ""}${
-          typeText ? safeMsg("share.type", "Type: {type}", { type: typeText }) : ""
-        }`;
-      }
-
-      return safeMsg(
-        "share.professionalNoDescription",
-        "Klar til bruk: {title}{levelPart}{languagePart}{typePart}",
-        {
-          title,
-          levelPart: levelText ? ` for nivå ${levelText}` : "",
-          languagePart: languageText ? ` på ${languageText}` : "",
-          typePart: typeText ? ` Teksttype: ${typeText}.` : "",
-        }
-      );
-    }
-
-    if (locale === "pt") {
-      if (descriptionText) {
-        return `${title}\n\n${descriptionText}\n\n${
-          levelText ? safeMsg("share.level", "Nível: {level}", { level: levelText }) : ""
-        }${levelText && languageText ? " · " : ""}${
-          languageText ? safeMsg("share.language", "Idioma: {language}", { language: languageText }) : ""
-        }${(levelText || languageText) && typeText ? " · " : ""}${
-          typeText ? safeMsg("share.type", "Tipo: {type}", { type: typeText }) : ""
-        }`;
-      }
-
-      return safeMsg(
-        "share.professionalNoDescription",
-        "Aula pronta para usar: {title}{levelPart}{languagePart}{typePart}",
-        {
-          title,
-          levelPart: levelText ? ` para o nível ${levelText}` : "",
-          languagePart: languageText ? ` em ${languageText}` : "",
-          typePart: typeText ? ` Tipo de texto: ${typeText}.` : "",
-        }
-      );
-    }
-
-    if (descriptionText) {
-      return `${title}\n\n${descriptionText}\n\n${
-        levelText ? safeMsg("share.level", "Level: {level}", { level: levelText }) : ""
-      }${levelText && languageText ? " · " : ""}${
-        languageText ? safeMsg("share.language", "Language: {language}", { language: languageText }) : ""
-      }${(levelText || languageText) && typeText ? " · " : ""}${
-        typeText ? safeMsg("share.type", "Type: {type}", { type: typeText }) : ""
-      }`;
-    }
-
-    return safeMsg(
-      "share.professionalNoDescription",
-      "Ready-to-use lesson: {title}{levelPart}{languagePart}{typePart}",
-      {
-        title,
-        levelPart: levelText ? ` for level ${levelText}` : "",
-        languagePart: languageText ? ` in ${languageText}` : "",
-        typePart: typeText ? ` Text type: ${typeText}.` : "",
-      }
-    );
+  function getSharePresetText(preset: SharePreset) {
+    return safeMsg(`share.examples.${preset}.text`, "");
   }
 
-  function buildShortShareText(
-    title: string,
-    levelText: string,
-    languageText: string,
-    typeText: string,
-    descriptionText: string
-  ) {
-    const meta = [levelText, languageText, typeText].filter(Boolean).join(" · ");
-    return `${title}${meta ? ` · ${meta}` : ""}${descriptionText ? `\n\n${descriptionText}` : ""}`;
+  function getSharePresetLabel(preset: SharePreset) {
+    return safeMsg(`share.examples.${preset}.label`, preset);
   }
 
-  function buildFriendlyShareText(
-    title: string,
-    levelText: string,
-    languageText: string,
-    typeText: string,
-    descriptionText: string
-  ) {
-    if (locale === "nb") {
-      return safeMsg(
-        "share.friendlyTemplate",
-        "Se på dette opplegget: {title}.\n\n{body}{typePart}",
-        {
-          title,
-          body:
-            descriptionText ||
-            safeMsg(
-              "share.friendlyFallbackBody",
-              "Et fint og klart undervisningsopplegg{levelPart}{languagePart}.",
-              {
-                levelPart: levelText ? ` for nivå ${levelText}` : "",
-                languagePart: languageText ? ` på ${languageText}` : "",
-              }
-            ),
-          typePart: typeText ? `\n\n${safeMsg("share.type", "Type: {type}", { type: typeText })}.` : "",
-        }
-      );
-    }
-
-    if (locale === "pt") {
-      return safeMsg(
-        "share.friendlyTemplate",
-        "Veja esta aula: {title}.\n\n{body}{typePart}",
-        {
-          title,
-          body:
-            descriptionText ||
-            safeMsg(
-              "share.friendlyFallbackBody",
-              "Uma aula clara e pronta para usar{levelPart}{languagePart}.",
-              {
-                levelPart: levelText ? ` para o nível ${levelText}` : "",
-                languagePart: languageText ? ` em ${languageText}` : "",
-              }
-            ),
-          typePart: typeText ? `\n\n${safeMsg("share.type", "Tipo: {type}", { type: typeText })}.` : "",
-        }
-      );
-    }
-
-    return safeMsg(
-      "share.friendlyTemplate",
-      "Take a look at this lesson: {title}.\n\n{body}{typePart}",
-      {
-        title,
-        body:
-          descriptionText ||
-          safeMsg(
-            "share.friendlyFallbackBody",
-            "A clear and ready-to-use lesson{levelPart}{languagePart}.",
-            {
-              levelPart: levelText ? ` for level ${levelText}` : "",
-              languagePart: languageText ? ` in ${languageText}` : "",
-            }
-          ),
-        typePart: typeText ? `\n\n${safeMsg("share.type", "Type: {type}", { type: typeText })}.` : "",
-      }
-    );
-  }
-
-  function buildShareText(lesson: PublishedLesson, tone: ShareTone) {
-    const title = (lesson.title || safeMsg("share.defaultTitle", "Lesson")).trim();
-    const levelText = lesson.level ? lesson.level.trim() : "";
-    const languageText = lesson.language ? lesson.language.toUpperCase().trim() : "";
-    const typeText = coerceTextType(lesson).trim();
-    const descriptionText = (lesson.description || "").trim();
-
-    if (tone === "short") {
-      return buildShortShareText(title, levelText, languageText, typeText, descriptionText);
-    }
-
-    if (tone === "friendly") {
-      return buildFriendlyShareText(title, levelText, languageText, typeText, descriptionText);
-    }
-
-    return buildProfessionalShareText(title, levelText, languageText, typeText, descriptionText);
+  function applySharePreset(preset: SharePreset) {
+    setSharePreset(preset);
+    setShareText(getSharePresetText(preset));
   }
 
   async function openShareModal(lesson: PublishedLesson) {
     const url = `${getOrigin()}/${locale}/share/lesson/${lesson.id}`;
-    const defaultTone: ShareTone = "professional";
-    const defaultText = buildShareText(lesson, defaultTone);
+    const defaultPreset: SharePreset = "example1";
 
     setCopied(false);
     setCopiedText(false);
     setQrDataUrl("");
-    setShareLesson(lesson);
-    setShareTone(defaultTone);
+    setSharePreset(defaultPreset);
     setShareTitle(lesson.title);
     setShareUrl(url);
-    setShareText(defaultText);
+    setShareText(getSharePresetText(defaultPreset));
     setShareOpen(true);
 
     try {
@@ -512,8 +355,7 @@ export default function LessonsLandingPage() {
 
   function closeShare() {
     setShareOpen(false);
-    setShareLesson(null);
-    setShareTone("professional");
+    setSharePreset("example1");
     setShareTitle("");
     setShareUrl("");
     setShareText("");
@@ -540,12 +382,6 @@ export default function LessonsLandingPage() {
     } catch {
       setCopiedText(false);
     }
-  }
-
-  function applyShareTone(nextTone: ShareTone) {
-    if (!shareLesson) return;
-    setShareTone(nextTone);
-    setShareText(buildShareText(shareLesson, nextTone));
   }
 
   const facebookShareHref = useMemo(() => {
@@ -1093,7 +929,7 @@ export default function LessonsLandingPage() {
           cursor: default;
         }
 
-        .shareToneBtn {
+        .sharePresetBtn {
           padding: 6px 10px;
           border-radius: 999px;
           border: 1px solid rgba(0, 0, 0, 0.16);
@@ -1106,7 +942,7 @@ export default function LessonsLandingPage() {
           white-space: nowrap;
         }
 
-        .shareToneBtnActive {
+        .sharePresetBtnActive {
           background: rgba(0, 0, 0, 0.08);
           border-color: rgba(0, 0, 0, 0.28);
         }
@@ -1517,29 +1353,18 @@ export default function LessonsLandingPage() {
                 </div>
 
                 <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    className={`shareToneBtn ${shareTone === "short" ? "shareToneBtnActive" : ""}`}
-                    onClick={() => applyShareTone("short")}
-                  >
-                    {safeMsg("share.tones.short", "Short")}
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`shareToneBtn ${shareTone === "professional" ? "shareToneBtnActive" : ""}`}
-                    onClick={() => applyShareTone("professional")}
-                  >
-                    {safeMsg("share.tones.professional", "Professional")}
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`shareToneBtn ${shareTone === "friendly" ? "shareToneBtnActive" : ""}`}
-                    onClick={() => applyShareTone("friendly")}
-                  >
-                    {safeMsg("share.tones.friendly", "Friendly")}
-                  </button>
+                  {(
+                    ["example1", "example2", "example3", "example4", "example5", "example6"] as SharePreset[]
+                  ).map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={`sharePresetBtn ${sharePreset === preset ? "sharePresetBtnActive" : ""}`}
+                      onClick={() => applySharePreset(preset)}
+                    >
+                      {getSharePresetLabel(preset)}
+                    </button>
+                  ))}
                 </div>
 
                 <textarea

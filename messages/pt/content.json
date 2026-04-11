@@ -1,31 +1,31 @@
 {
   "content": {
     "title": "Meu conteúdo",
-    "subtitle": "Aqui você pode gerenciar tudo: publicar, compartilhar, PDF, editar e muito mais.",
+    "subtitle": "Aqui você pode gerenciar tudo: publicar, compartilhar, baixar PDF, editar e muito mais.",
     "parent": {
       "title": "Conteúdo da família",
-      "subtitle": "Aqui você encontrará tarefas que pode abrir, organizar e compartilhar com os Spaces dos seus filhos.",
+      "subtitle": "Aqui você encontra atividades que pode abrir, organizar e compartilhar com os Spaces dos seus filhos.",
       "contentTitle": "Conteúdo",
       "shareReady": "Pronto para compartilhar",
-      "canShareToChildren": "Pode ser compartilhado com os Spaces dos filhos"
+      "canShareToChildren": "Pode ser compartilhado com os Spaces dos seus filhos"
     },
     "search": {
-      "placeholder": "Pesquisar título, status, metadados…",
-      "parentPlaceholder": "Pesquisar tarefas, Spaces e envios…"
+      "placeholder": "Buscar título, status, metadados…",
+      "parentPlaceholder": "Buscar atividades, Spaces e envios…"
     },
     "filters": {
       "all": "Todos",
       "library": "BIBLIOTECA",
       "math": "MATEMÁTICA",
-      "lesson": "Tarefa",
-      "lessons": "GERADOS",
+      "lesson": "Atividade",
+      "lessons": "GERADO",
       "submission": "Envio",
       "submissions": "ENVIOS",
       "space": "Spaces",
       "spaces": "SPACES"
     },
     "filterHints": {
-      "library": "Suas próprias tarefas da biblioteca (prática)",
+      "library": "Suas próprias atividades da biblioteca (prática)",
       "math": "Somente itens do gerador de matemática"
     },
     "toggles": {
@@ -34,7 +34,7 @@
     },
     "labels": {
       "deleted": "Excluído",
-      "deletedAt": "Excluído em",
+      "deletedAt": "Excluído",
       "items": "itens"
     },
     "states": {
@@ -51,8 +51,8 @@
     },
     "math": {
       "pdf": "PDF de matemática",
-      "hint": "Pronto para exportar em PDF. Gere uma nova ficha se quiser outra versão.",
-      "openDigital": "Abrir",
+      "hint": "Pronto para exportar em PDF. Gere uma nova folha se quiser outra versão.",
+      "openDigital": "Abrir atividade",
       "subtypes": {
         "geometry": "Geometria",
         "algebra": "Álgebra",
@@ -64,12 +64,12 @@
       }
     },
     "parentSpace": {
-      "tasksCount": "{count} tarefas",
+      "tasksCount": "{count} atividades",
       "active": "Ativa: {title}",
-      "submittedCount": "{count} enviadas",
-      "draftCount": "{count} iniciadas",
+      "submittedCount": "{count} enviados",
+      "draftCount": "{count} iniciados",
       "aiFeedbackCount": "{count} com feedback de IA",
-      "reviewCount": "{count} revisadas pelos pais",
+      "reviewCount": "{count} revisados pelos pais",
       "progress": {
         "completed": "🟢 Concluído pela criança",
         "started": "🟡 Iniciado",
@@ -80,10 +80,10 @@
       "open": "Abrir",
       "edit": "Editar",
       "editAnswers": "Editar respostas",
-      "openLesson": "Abrir tarefa",
+      "openLesson": "Abrir atividade",
       "openSpace": "Abrir Spaces",
       "publish": "Publicar",
-      "unpublish": "Cancelar publicação",
+      "unpublish": "Despublicar",
       "working": "Trabalhando…",
       "share": "Compartilhar",
       "shareTitle": "Compartilhar (link + QR)",
@@ -93,8 +93,8 @@
       "restore": "Restaurar",
       "refresh": "Atualizar",
       "loading": "Carregando…",
-      "copyJoinCode": "Copiar código de acesso",
-      "copyJoinLink": "Copiar link de acesso",
+      "copyJoinCode": "Copiar código",
+      "copyJoinLink": "Copiar link",
       "shareLinkQr": "Compartilhar (link + QR)",
       "board": "Quadro"
     },
@@ -102,15 +102,15 @@
       "label": "Erro",
       "loadFailed": "Falha ao carregar o conteúdo",
       "assignFailed": "Falha ao compartilhar com Spaces",
-      "lessonNotFound": "Tarefa não encontrada",
-      "cannotPublishDeleted": "Esta tarefa foi excluída ou arquivada e não pode ser publicada.",
+      "lessonNotFound": "Atividade não encontrada",
+      "cannotPublishDeleted": "Esta atividade foi excluída ou arquivada e não pode ser publicada.",
       "publishFailed": "Falha ao atualizar o status de publicação",
-      "deleteFailed": "Falha ao excluir (arquivar) a tarefa",
+      "deleteFailed": "Falha ao excluir (arquivar) a atividade",
       "restoreFailed": "Não foi possível restaurar.",
-      "aiShareFailed": "Não foi possível gerar o texto de compartilhamento com IA."
+      "aiShareFailed": "Não foi possível gerar texto de compartilhamento com IA."
     },
     "titles": {
-      "lesson": "Tarefa",
+      "lesson": "Atividade",
       "space": "Spaces",
       "submission": "Envio",
       "submissionWithLesson": "{lessonTitle} – Envio",
@@ -118,10 +118,10 @@
     },
     "empty": {
       "guest": {
-        "line1": "Você está no modo visitante. Meu conteúdo ainda não mostra itens salvos aqui.",
-        "line2": "Use <join>Entrar</join> para abrir uma tarefa ou um Space com um código, ou <login>faça login</login> para sincronizar seu conteúdo."
+        "line1": "Você está no modo visitante. Meu conteúdo ainda não mostra itens salvos.",
+        "line2": "Use <join>Entrar</join> para abrir uma atividade ou Spaces com um código, ou <login>faça login</login> para sincronizar seu conteúdo."
       },
-      "authed": "Você ainda não tem itens aqui. Quando criar ou usar tarefas, Spaces ou envios, eles aparecerão aqui."
+      "authed": "Você ainda não tem itens aqui. Quando criar ou usar atividades, Spaces ou envios, eles aparecerão aqui."
     },
     "footer": {
       "joinViaCode": "Entrar com código",
@@ -130,8 +130,8 @@
     "share": {
       "title": "Compartilhar",
       "button": "Compartilhar",
-      "shareTextLabel": "Texto para compartilhar",
-      "linkLabel": "Link para compartilhar",
+      "shareTextLabel": "Texto de compartilhamento",
+      "linkLabel": "Link de compartilhamento",
       "copyText": "Copiar texto",
       "copiedText": "Texto copiado",
       "copyLink": "Copiar link",
@@ -142,22 +142,37 @@
       "qrLabel": "QR code",
       "qrAlt": "QR code",
       "qrNotReady": "O QR code está sendo preparado",
-      "shareUrlLabel": "Endereço de compartilhamento",
-      "tipExtended": "Dica: copie primeiro o texto e depois compartilhe o link nas redes sociais.",
-      "tones": {
-        "short": "Curto",
-        "professional": "Profissional",
-        "friendly": "Amigável",
+      "shareUrlLabel": "URL de compartilhamento",
+      "tipExtended": "Dica: copie o texto primeiro e depois compartilhe o link nas redes sociais.",
       "aiGenerate": "✨ Gerar com IA",
-    "aiLoading": "Gerando..."
+      "aiLoading": "Gerando...",
+      "examples": {
+        "example1": {
+          "label": "Ex 1",
+          "text": "Crie aulas poderosas, compartilhe e receba feedback imediato com o 321escola. Confira. É grátis."
+        },
+        "example2": {
+          "label": "Ex 2",
+          "text": "Uma plataforma nova e revolucionária para criar, compartilhar e dominar o conhecimento. Confira. É grátis."
+        },
+        "example3": {
+          "label": "Ex 3",
+          "text": "Crie mais, mais rápido e melhor com o 321escola. Confira. É grátis."
+        },
+        "example4": {
+          "label": "Ex 4",
+          "text": "O futuro da aprendizagem começa aqui — no 321escola. Confira. É grátis."
+        },
+        "example5": {
+          "label": "Ex 5",
+          "text": "Ensine, aprenda e compartilhe — tudo em um só lugar. Confira. É grátis."
+        },
+        "example6": {
+          "label": "Ex 6",
+          "text": "Aulas mais inteligentes. Fluxo de trabalho mais rápido. Aprendizagem melhor. Confira. É grátis."
+        }
       },
-      "level": "Nível: {level}",
-      "language": "Idioma: {language}",
-      "type": "Tipo: {type}",
-      "professionalNoDescription": "Aula pronta para usar: {title}{levelPart}{languagePart}{typePart}",
-      "friendlyTemplate": "Veja esta aula: {title}.\n\n{body}{typePart}",
-      "friendlyFallbackBody": "Uma aula clara e pronta para usar{levelPart}{languagePart}.",
-      "defaultTitle": "Aula"
+      "defaultTitle": "Atividade"
     },
     "shareToSpace": {
       "title": "Compartilhar com Spaces",
@@ -165,11 +180,11 @@
       "createsLabel": "Cria:"
     },
     "confirm": {
-      "deleteLesson": "Excluir tarefa{title}?\n\nIsso irá arquivá-la.\nTambém tentará cancelar a publicação.\n\nUm administrador poderá restaurá-la depois.",
-      "restoreLesson": "Restaurar tarefa{title}?"
+      "deleteLesson": "Excluir atividade{title}?\n\nIsso irá arquivá-la.\nTambém tentará despublicá-la.\n\nUm administrador poderá restaurá-la depois.",
+      "restoreLesson": "Restaurar atividade{title}?"
     },
     "fallback": {
-      "untitledTask": "Tarefa sem título"
+      "untitledTask": "Atividade sem título"
     }
   }
 }

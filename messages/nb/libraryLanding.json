@@ -9,9 +9,9 @@
     "filters": {
       "searchPlaceholder": "Søk: tittel, tekst, type…",
       "textTypeAll": "Teksttype",
-      "languagePlaceholder": "Søk etter språk…",
+      "languagePlaceholder": "Søk språk…",
       "levelAll": "Nivå",
-      "reset": "Tilbakestill"
+      "reset": "Nullstill"
     },
     "status": {
       "loading": "Laster publiserte oppgaver…",
@@ -19,7 +19,7 @@
       "range": "({from}–{to})"
     },
     "empty": {
-      "noResults": "Ingen publiserte oppgaver funnet. Prøv å fjerne filtre eller søk etter noe annet."
+      "noResults": "Fant ingen publiserte oppgaver. Prøv å nullstille filtrene eller søk etter noe annet."
     },
     "card": {
       "imageFallback": "Bilde"
@@ -41,40 +41,55 @@
       "loginRequired": "Du må være logget inn for å gi vurdering."
     },
     "saveToMyContent": {
-      "loadingUser": "Vennligst vent mens brukeren lastes.",
+      "loadingUser": "Vent mens brukeren din lastes inn.",
       "loading": "Laster…",
       "saving": "Lagrer…",
       "button": "Legg til i Mitt innhold",
       "success": "\"{title}\" ble lagt til i Mitt innhold."
     },
-  "share": {
-    "button": "Del",
-    "title": "Del opplegg",
-    "shareTextLabel": "Delingstekst",
-    "copyText": "Kopier tekst",
-    "copiedText": "Tekst kopiert",
-    "facebook": "Facebook",
-    "linkedin": "LinkedIn",
-    "linkLabel": "Delingslenke",
-    "copyLink": "Kopier lenke",
-    "copied": "Kopiert",
-    "openLink": "Åpne lenke",
-    "qrLabel": "QR-kode",
-    "qrAlt": "QR-kode for delt opplegg",
-    "qrNotReady": "QR-kode klargjøres",
-    "tipExtended": "Tips: Kopier teksten først, og del deretter lenken i sosiale medier.",
-    "defaultTitle": "Opplegg",
-    "level": "Nivå: {level}",
-    "language": "Språk: {language}",
-    "type": "Type: {type}",
-    "professionalNoDescription": "Klart til bruk: {title}{levelPart}{languagePart}{typePart}",
-    "friendlyTemplate": "Se på dette opplegget: {title}.\n\n{body}{typePart}",
-    "friendlyFallbackBody": "Et fint og klart undervisningsopplegg{levelPart}{languagePart}.",
-    "tones": {
-      "short": "Kort",
-      "professional": "Profesjonell",
-      "friendly": "Vennlig"
-  }
-}
+    "share": {
+      "button": "Del",
+      "title": "Del oppgave",
+      "shareTextLabel": "Delingstekst",
+      "copyText": "Kopier tekst",
+      "copiedText": "Tekst kopiert",
+      "facebook": "Facebook",
+      "linkedin": "LinkedIn",
+      "linkLabel": "Del lenke",
+      "copyLink": "Kopier lenke",
+      "copied": "Kopiert",
+      "openLink": "Åpne lenke",
+      "qrLabel": "QR-kode",
+      "qrAlt": "QR-kode for delt oppgave",
+      "qrNotReady": "QR-koden klargjøres",
+      "tipExtended": "Tips: Kopier teksten først, og del deretter lenken i sosiale medier.",
+      "defaultTitle": "Oppgave",
+      "examples": {
+        "example1": {
+          "label": "Ex 1",
+          "text": "Lag gode oppgaver, del dem og få umiddelbar tilbakemelding med 321skole. Sjekk det ut. Det er gratis."
+        },
+        "example2": {
+          "label": "Ex 2",
+          "text": "En ny og banebrytende plattform for å skape, dele og mestre kunnskap. Sjekk det ut. Det er gratis."
+        },
+        "example3": {
+          "label": "Ex 3",
+          "text": "Skap mer, raskere og bedre med 321skole. Sjekk det ut. Det er gratis."
+        },
+        "example4": {
+          "label": "Ex 4",
+          "text": "Fremtidens læring starter her — med 321skole. Sjekk det ut. Det er gratis."
+        },
+        "example5": {
+          "label": "Ex 5",
+          "text": "Undervis, lær og del — alt på ett sted. Sjekk det ut. Det er gratis."
+        },
+        "example6": {
+          "label": "Ex 6",
+          "text": "Bedre oppgaver. Raskere arbeidsflyt. Bedre læring. Sjekk det ut. Det er gratis."
+        }
+      }
+    }
   }
 }
