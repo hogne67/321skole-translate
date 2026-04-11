@@ -50,13 +50,19 @@
   "share": {
     "button": "Del",
     "title": "Del opplegg",
+    "shareTextLabel": "Delingstekst",
+    "copyText": "Kopier tekst",
+    "copiedText": "Tekst kopiert",
+    "facebook": "Facebook",
+    "linkedin": "LinkedIn",
     "linkLabel": "Delingslenke",
     "copyLink": "Kopier lenke",
     "copied": "Kopiert",
     "openLink": "Åpne lenke",
     "qrLabel": "QR-kode",
     "qrAlt": "QR-kode for delt opplegg",
-    "qrNotReady": "QR-kode klargjøres"
+    "qrNotReady": "QR-kode klargjøres",
+    "tipExtended": "Tips: Kopier teksten først, og del deretter lenken i sosiale medier."
   }
 }
   }

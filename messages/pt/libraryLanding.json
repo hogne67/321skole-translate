@@ -50,13 +50,19 @@
   "share": {
     "button": "Compartilhar",
     "title": "Compartilhar aula",
+    "shareTextLabel": "Texto de compartilhamento",
+    "copyText": "Copiar texto",
+    "copiedText": "Texto copiado",
+    "facebook": "Facebook",
+    "linkedin": "LinkedIn",
     "linkLabel": "Link de compartilhamento",
     "copyLink": "Copiar link",
     "copied": "Copiado",
     "openLink": "Abrir link",
     "qrLabel": "QR code",
     "qrAlt": "QR code da aula compartilhada",
-    "qrNotReady": "O QR code está sendo preparado"
+    "qrNotReady": "O QR code está sendo preparado",
+    "tipExtended": "Dica: copie primeiro o texto e depois compartilhe o link nas redes sociais."
   }
 }
   }

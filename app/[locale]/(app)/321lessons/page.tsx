@@ -23,6 +23,7 @@ import { LANGUAGES } from "@/lib/languages";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { useLocale, useTranslations } from "next-intl";
 
+
 type FirestoreTimestampLike = { seconds?: number } | null | undefined;
 
 type PublishedLesson = {
@@ -293,6 +294,9 @@ export default function LessonsLandingPage() {
   const [pageSize, setPageSize] = useState<PageSize>(25);
   const [page, setPage] = useState<number>(1);
 
+  const [shareText, setShareText] = useState("");
+const [copiedText, setCopiedText] = useState(false);
+
   function safeMsg(key: string, fallback: string, values?: Record<string, unknown>) {
     try {
       return tLoose(key, values);
@@ -301,36 +305,76 @@ export default function LessonsLandingPage() {
     }
   }
 
+  function buildDefaultShareText(lesson: PublishedLesson) {
+  const bits = [
+    lesson.title?.trim() || "Lesson",
+    lesson.level ? `Level: ${lesson.level}` : "",
+    lesson.language ? `Language: ${lesson.language.toUpperCase()}` : "",
+    coerceTextType(lesson) ? `Type: ${coerceTextType(lesson)}` : "",
+  ].filter(Boolean);
+
+  return bits.join(" · ");
+}
+
+const facebookShareHref = useMemo(() => {
+  return shareUrl
+    ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+    : "#";
+}, [shareUrl]);
+
+const linkedInShareHref = useMemo(() => {
+  return shareUrl
+    ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
+    : "#";
+}, [shareUrl]);
+
+async function copyShareText() {
+  try {
+    await navigator.clipboard.writeText(shareText);
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 1200);
+  } catch {
+    setCopiedText(false);
+  }
+}
+
   function getOrigin() {
     return typeof window !== "undefined" ? window.location.origin : "";
   }
 
-  async function openShareModal(title: string, url: string) {
-    setCopied(false);
-    setQrDataUrl("");
-    setShareTitle(title);
-    setShareUrl(url);
-    setShareOpen(true);
+  async function openShareModal(lesson: PublishedLesson) {
+  const url = `${getOrigin()}/${locale}/share/lesson/${lesson.id}`;
+  const defaultText = buildDefaultShareText(lesson);
 
-    try {
-      const dataUrl = await QRCode.toDataURL(url, {
-        margin: 1,
-        scale: 7,
-        errorCorrectionLevel: "M",
-      });
-      setQrDataUrl(dataUrl);
-    } catch {
-      setQrDataUrl("");
-    }
+  setCopied(false);
+  setCopiedText(false);
+  setQrDataUrl("");
+  setShareTitle(lesson.title);
+  setShareUrl(url);
+  setShareText(defaultText);
+  setShareOpen(true);
+
+  try {
+    const dataUrl = await QRCode.toDataURL(url, {
+      margin: 1,
+      scale: 7,
+      errorCorrectionLevel: "M",
+    });
+    setQrDataUrl(dataUrl);
+  } catch {
+    setQrDataUrl("");
   }
+}
 
   function closeShare() {
-    setShareOpen(false);
-    setShareTitle("");
-    setShareUrl("");
-    setQrDataUrl("");
-    setCopied(false);
-  }
+  setShareOpen(false);
+  setShareTitle("");
+  setShareUrl("");
+  setShareText("");
+  setQrDataUrl("");
+  setCopied(false);
+  setCopiedText(false);
+}
 
   async function copyShareUrl() {
     try {
@@ -1075,6 +1119,18 @@ export default function LessonsLandingPage() {
             const ratingCount = l.ratingCount ?? 0;
             const lessonHref = `/${locale}/lesson/${l.id}`;
 
+            <button
+  type="button"
+  className="libraryBtn"
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    void openShareModal(l);
+  }}
+>
+  {t("share.button")}
+</button>
+
             return (
               <div
                 key={l.id}
@@ -1131,20 +1187,7 @@ export default function LessonsLandingPage() {
                       />
 
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button
-                          type="button"
-                          className="shareBtn"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            void openShareModal(
-                              l.title,
-                              `${getOrigin()}/${locale}/share/lesson/${l.id}`
-                            );
-                          }}
-                        >
-                          {safeMsg("share.button", "Share")}
-                        </button>
+                        className="shareBtn"
 
                         <button
                           type="button"
@@ -1217,138 +1260,106 @@ export default function LessonsLandingPage() {
       ) : null}
 
       {shareOpen ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={closeShare}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 50,
-            display: "grid",
-            placeItems: "center",
-            background: "rgba(0,0,0,0.4)",
-            padding: 16,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              maxWidth: 820,
-              overflow: "hidden",
-              borderRadius: 16,
-              border: "1px solid rgba(0,0,0,0.12)",
-              background: "white",
-              boxShadow: "0 20px 50px rgba(0,0,0,0.20)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                borderBottom: "1px solid rgba(0,0,0,0.08)",
-                padding: 16,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 900 }}>{safeMsg("share.title", "Share lesson")}</div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    opacity: 0.7,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {shareTitle}
-                </div>
-              </div>
+  <div
+    role="dialog"
+    aria-modal="true"
+    onClick={closeShare}
+    style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 50,
+      display: "grid",
+      placeItems: "center",
+      background: "rgba(0,0,0,0.4)",
+      padding: 16,
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: "100%",
+        maxWidth: 920,
+        borderRadius: 16,
+        border: "1px solid rgba(0,0,0,0.12)",
+        background: "white",
+        boxShadow: "0 20px 50px rgba(0,0,0,0.20)",
+        padding: 16,
+      }}
+    >
+      <div style={{ marginBottom: 12 }}>
+        <strong>{safeMsg("share.title", "Share lesson")}</strong>
+        <div style={{ fontSize: 13, opacity: 0.7 }}>{shareTitle}</div>
+      </div>
 
-              <button type="button" onClick={closeShare} className="shareBtn">
-                ✕
-              </button>
-            </div>
+      {/* TEXT */}
+      <div style={{ marginBottom: 10, fontWeight: 800 }}>
+        {safeMsg("share.shareTextLabel", "Share text")}
+      </div>
 
-            <div className="shareModalGrid">
-              <div>
-                <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 900 }}>
-                  {safeMsg("share.linkLabel", "Share link")}
-                </div>
+      <textarea
+        value={shareText}
+        onChange={(e) => setShareText(e.target.value)}
+        rows={4}
+        style={{
+          width: "100%",
+          padding: 10,
+          borderRadius: 10,
+          border: "1px solid rgba(0,0,0,0.2)",
+        }}
+      />
 
-                <input
-                  value={shareUrl}
-                  readOnly
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.16)",
-                  }}
-                />
+      <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="shareBtn" onClick={copyShareText}>
+          {copiedText ? "Copied text" : "Copy text"}
+        </button>
 
-                <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button type="button" className="shareBtn" onClick={copyShareUrl}>
-                    {copied
-                      ? safeMsg("share.copied", "Copied")
-                      : safeMsg("share.copyLink", "Copy link")}
-                  </button>
+        <a href={facebookShareHref} target="_blank" className="shareBtn">
+          Facebook
+        </a>
 
-                  <a
-                    href={shareUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shareBtn"
-                    style={{
-                      textDecoration: "none",
-                      display: "inline-flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    {safeMsg("share.openLink", "Open link")}
-                  </a>
-                </div>
-              </div>
+        <a href={linkedInShareHref} target="_blank" className="shareBtn">
+          LinkedIn
+        </a>
+      </div>
 
-              <div>
-                <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 900 }}>
-                  {safeMsg("share.qrLabel", "QR code")}
-                </div>
+      {/* LINK */}
+      <div style={{ marginTop: 16, marginBottom: 6, fontWeight: 800 }}>
+        {safeMsg("share.linkLabel", "Share link")}
+      </div>
 
-                <div
-                  style={{
-                    width: 220,
-                    height: 220,
-                    maxWidth: "100%",
-                    borderRadius: 16,
-                    border: "1px solid rgba(0,0,0,0.12)",
-                    display: "grid",
-                    placeItems: "center",
-                    overflow: "hidden",
-                    background: "white",
-                  }}
-                >
-                  {qrDataUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={qrDataUrl}
-                      alt={safeMsg("share.qrAlt", "QR code")}
-                      style={{ width: "100%", height: "100%" }}
-                    />
-                  ) : (
-                    <div style={{ padding: 12, textAlign: "center", opacity: 0.6 }}>
-                      {safeMsg("share.qrNotReady", "QR code is being prepared")}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+      <input
+        value={shareUrl}
+        readOnly
+        style={{
+          width: "100%",
+          padding: 10,
+          borderRadius: 10,
+          border: "1px solid rgba(0,0,0,0.2)",
+        }}
+      />
+
+      <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+        <button className="shareBtn" onClick={copyShareUrl}>
+          {copied ? "Copied" : "Copy link"}
+        </button>
+      </div>
+
+      {/* QR */}
+      <div style={{ marginTop: 18 }}>
+        <strong>{safeMsg("share.qrLabel", "QR code")}</strong>
+
+        <div style={{ marginTop: 10 }}>
+          {qrDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={qrDataUrl} style={{ width: 160 }} />
+          ) : (
+            <div>Loading QR…</div>
+          )}
         </div>
-      ) : null}
+      </div>
+    </div>
+  </div>
+) : null}
     </main>
   );
 }

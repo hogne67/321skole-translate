@@ -50,13 +50,19 @@
   "share": {
     "button": "Share",
     "title": "Share lesson",
+    "shareTextLabel": "Share text",
+    "copyText": "Copy text",
+    "copiedText": "Text copied",
+    "facebook": "Facebook",
+    "linkedin": "LinkedIn",
     "linkLabel": "Share link",
     "copyLink": "Copy link",
     "copied": "Copied",
     "openLink": "Open link",
     "qrLabel": "QR code",
     "qrAlt": "QR code for shared lesson",
-    "qrNotReady": "QR code is being prepared"
+    "qrNotReady": "QR code is being prepared",
+    "tipExtended": "Tip: copy the text first, then share the link in social media."
   }
 }
   }
