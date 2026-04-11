@@ -58,7 +58,8 @@
       "levelOptional": "Level",
       "language": "Language",
       "producerName": "Producer name",
-      "topic": "Topic",
+      "topic": "Intro / explanation",
+      "topicHelp": "You can add an intro or short explanation here. Leave it empty if you do not want anything shown.",
       "tags": "Tags",
       "tagsHelp": "Separate tags with commas.",
       "estimatedMinutes": "Estimated minutes",
@@ -88,7 +89,7 @@
     "placeholdersExtra": {
       "producerName": "Your name (from profile)",
       "textType": "e.g. article, email, dialogue…",
-      "topic": "Optional. Leave empty to avoid showing the AI prompt.",
+      "topic": "Optional",
       "customPrompt": "Example: A calm classroom scene with students reading, warm light, detailed, clean composition"
     },
     "help": {

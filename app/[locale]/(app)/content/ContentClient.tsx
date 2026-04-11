@@ -671,7 +671,7 @@ export default function ContentClient() {
       }
     }
 
-    const url = `${getOrigin()}/${locale}/lesson/${pid}`;
+    const url = `${getOrigin()}/${locale}/share/lesson/${pid}`;
     await openShareModal(titleForCard(it), url);
   }
 

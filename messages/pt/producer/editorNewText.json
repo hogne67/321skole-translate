@@ -59,6 +59,7 @@
       "language": "Idioma",
       "producerName": "Nome do produtor",
       "topic": "Tema",
+      "topicHelp": "Você pode adicionar uma introdução ou uma breve explicação aqui. Deixe em branco se não quiser que nada seja exibido.",
       "tags": "Tags",
       "tagsHelp": "Separe as tags com vírgulas.",
       "estimatedMinutes": "Minutos estimados",

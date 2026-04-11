@@ -59,6 +59,7 @@
       "language": "Språk",
       "producerName": "Produsentnavn",
       "topic": "Tema",
+      "topicHelp": "Du kan legge til en introduksjon eller kort forklaring her. La det stå tomt hvis du ikke vil at noe skal vises.",
       "tags": "Tagger",
       "tagsHelp": "Skill tagger med komma.",
       "estimatedMinutes": "Estimert antall minutter",

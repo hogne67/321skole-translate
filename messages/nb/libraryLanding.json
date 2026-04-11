@@ -46,6 +46,17 @@
       "saving": "Lagrer…",
       "button": "Legg til i Mitt innhold",
       "success": "\"{title}\" ble lagt til i Mitt innhold."
-    }
+    },
+  "share": {
+    "button": "Del",
+    "title": "Del opplegg",
+    "linkLabel": "Delingslenke",
+    "copyLink": "Kopier lenke",
+    "copied": "Kopiert",
+    "openLink": "Åpne lenke",
+    "qrLabel": "QR-kode",
+    "qrAlt": "QR-kode for delt opplegg",
+    "qrNotReady": "QR-kode klargjøres"
   }
 }
+  }

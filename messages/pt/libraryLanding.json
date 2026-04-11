@@ -46,6 +46,17 @@
       "saving": "Salvando…",
       "button": "Adicionar a Meus conteúdos",
       "success": "\"{title}\" foi adicionado a Meus conteúdos."
-    }
+    },
+  "share": {
+    "button": "Compartilhar",
+    "title": "Compartilhar aula",
+    "linkLabel": "Link de compartilhamento",
+    "copyLink": "Copiar link",
+    "copied": "Copiado",
+    "openLink": "Abrir link",
+    "qrLabel": "QR code",
+    "qrAlt": "QR code da aula compartilhada",
+    "qrNotReady": "O QR code está sendo preparado"
   }
 }
+  }

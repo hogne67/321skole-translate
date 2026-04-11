@@ -17,6 +17,7 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
+import QRCode from "qrcode";
 import { db } from "@/lib/firebase";
 import { LANGUAGES } from "@/lib/languages";
 import { SearchableSelect } from "@/components/SearchableSelect";
@@ -278,6 +279,12 @@ export default function LessonsLandingPage() {
   const [saveBusyId, setSaveBusyId] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareTitle, setShareTitle] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+
   const [qText, setQText] = useState("");
   const [level, setLevel] = useState<string>("all");
   const [lang, setLang] = useState<string>("all");
@@ -291,6 +298,47 @@ export default function LessonsLandingPage() {
       return tLoose(key, values);
     } catch {
       return fallback;
+    }
+  }
+
+  function getOrigin() {
+    return typeof window !== "undefined" ? window.location.origin : "";
+  }
+
+  async function openShareModal(title: string, url: string) {
+    setCopied(false);
+    setQrDataUrl("");
+    setShareTitle(title);
+    setShareUrl(url);
+    setShareOpen(true);
+
+    try {
+      const dataUrl = await QRCode.toDataURL(url, {
+        margin: 1,
+        scale: 7,
+        errorCorrectionLevel: "M",
+      });
+      setQrDataUrl(dataUrl);
+    } catch {
+      setQrDataUrl("");
+    }
+  }
+
+  function closeShare() {
+    setShareOpen(false);
+    setShareTitle("");
+    setShareUrl("");
+    setQrDataUrl("");
+    setCopied(false);
+  }
+
+  async function copyShareUrl() {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setCopied(false);
     }
   }
 
@@ -536,74 +584,74 @@ export default function LessonsLandingPage() {
   }
 
   async function addToMyContent(lesson: PublishedLesson) {
-  if (!authReady) {
-    setSaveMsg(t("saveToMyContent.loadingUser"));
-    return;
+    if (!authReady) {
+      setSaveMsg(t("saveToMyContent.loadingUser"));
+      return;
+    }
+
+    if (!currentUser) {
+      setSaveMsg(t("saveToMyContent.loadingUser"));
+      return;
+    }
+
+    if (currentUser.isAnonymous) {
+      router.push(`/${locale}/student/lesson/${lesson.id}`);
+      return;
+    }
+
+    setSaveMsg(null);
+    setSaveBusyId(lesson.id);
+
+    try {
+      const stableId = `${currentUser.uid}_${lesson.id}`;
+
+      const practiceRef = doc(db, "practiceSubmissions", stableId);
+      await setDoc(
+        practiceRef,
+        {
+          uid: currentUser.uid,
+          publishedLessonId: lesson.id,
+          lessonId: lesson.id,
+          title: lesson.title || "Untitled",
+          answers: {},
+          status: "draft",
+          kind: "practice",
+          source: "library",
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      const submissionRef = doc(db, "submissions", stableId);
+      await setDoc(
+        submissionRef,
+        {
+          uid: currentUser.uid,
+          lessonId: lesson.id,
+          publishedLessonId: lesson.id,
+          title: lesson.title || "Untitled",
+          answers: {},
+          status: "draft",
+          kind: "practice",
+          source: "library",
+          meta: ["practice"],
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setSaveMsg(t("saveToMyContent.success", { title: lesson.title }));
+    } catch (err) {
+      console.error("addToMyContent failed", err);
+      const message =
+        err instanceof Error ? err.message : t("errors.saveToMyContentFailed");
+      setSaveMsg(message);
+    } finally {
+      setSaveBusyId(null);
+    }
   }
-
-  if (!currentUser) {
-    setSaveMsg(t("saveToMyContent.loadingUser"));
-    return;
-  }
-
-  if (currentUser.isAnonymous) {
-    router.push(`/${locale}/student/lesson/${lesson.id}`);
-    return;
-  }
-
-  setSaveMsg(null);
-  setSaveBusyId(lesson.id);
-
-  try {
-    const stableId = `${currentUser.uid}_${lesson.id}`;
-
-    const practiceRef = doc(db, "practiceSubmissions", stableId);
-    await setDoc(
-      practiceRef,
-      {
-        uid: currentUser.uid,
-        publishedLessonId: lesson.id,
-        lessonId: lesson.id,
-        title: lesson.title || "Untitled",
-        answers: {},
-        status: "draft",
-        kind: "practice",
-        source: "library",
-        updatedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    const submissionRef = doc(db, "submissions", stableId);
-    await setDoc(
-      submissionRef,
-      {
-        uid: currentUser.uid,
-        lessonId: lesson.id,
-        publishedLessonId: lesson.id,
-        title: lesson.title || "Untitled",
-        answers: {},
-        status: "draft",
-        kind: "practice",
-        source: "library",
-        meta: ["practice"],
-        updatedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    setSaveMsg(t("saveToMyContent.success", { title: lesson.title }));
-  } catch (err) {
-    console.error("addToMyContent failed", err);
-    const message =
-      err instanceof Error ? err.message : t("errors.saveToMyContentFailed");
-    setSaveMsg(message);
-  } finally {
-    setSaveBusyId(null);
-  }
-}
 
   return (
     <main>
@@ -805,6 +853,24 @@ export default function LessonsLandingPage() {
           cursor: default;
         }
 
+        .shareBtn {
+          padding: 6px 10px;
+          border-radius: 9px;
+          border: 1px solid rgba(0, 0, 0, 0.18);
+          background: white;
+          color: black;
+          font-weight: 700;
+          font-size: 12px;
+          line-height: 1.2;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        .shareBtn:disabled {
+          opacity: 0.6;
+          cursor: default;
+        }
+
         .pagerRow {
           margin-top: 14px;
           padding: 12px;
@@ -838,6 +904,19 @@ export default function LessonsLandingPage() {
           border: 1px solid rgba(0, 0, 0, 0.2);
           background: white;
           font-weight: 700;
+        }
+
+        .shareModalGrid {
+          display: grid;
+          gap: 16px;
+          padding: 16px;
+          grid-template-columns: 1.3fr 0.7fr;
+        }
+
+        @media (max-width: 700px) {
+          .shareModalGrid {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
 
@@ -1051,22 +1130,39 @@ export default function LessonsLandingPage() {
                         savingLabel={t("rating.saving")}
                       />
 
-                      <button
-                        type="button"
-                        className="libraryBtn"
-                        disabled={!authReady || saveBusyId === l.id}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          void addToMyContent(l);
-                        }}
-                      >
-                        {!authReady
-                          ? t("saveToMyContent.loading")
-                          : saveBusyId === l.id
-                            ? t("saveToMyContent.saving")
-                            : t("saveToMyContent.button")}
-                      </button>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className="shareBtn"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void openShareModal(
+                              l.title,
+                              `${getOrigin()}/${locale}/share/lesson/${l.id}`
+                            );
+                          }}
+                        >
+                          {safeMsg("share.button", "Share")}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="libraryBtn"
+                          disabled={!authReady || saveBusyId === l.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void addToMyContent(l);
+                          }}
+                        >
+                          {!authReady
+                            ? t("saveToMyContent.loading")
+                            : saveBusyId === l.id
+                              ? t("saveToMyContent.saving")
+                              : t("saveToMyContent.button")}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1116,6 +1212,140 @@ export default function LessonsLandingPage() {
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+      ) : null}
+
+      {shareOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closeShare}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "grid",
+            placeItems: "center",
+            background: "rgba(0,0,0,0.4)",
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 820,
+              overflow: "hidden",
+              borderRadius: 16,
+              border: "1px solid rgba(0,0,0,0.12)",
+              background: "white",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.20)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                borderBottom: "1px solid rgba(0,0,0,0.08)",
+                padding: 16,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 900 }}>{safeMsg("share.title", "Share lesson")}</div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    opacity: 0.7,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {shareTitle}
+                </div>
+              </div>
+
+              <button type="button" onClick={closeShare} className="shareBtn">
+                ✕
+              </button>
+            </div>
+
+            <div className="shareModalGrid">
+              <div>
+                <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 900 }}>
+                  {safeMsg("share.linkLabel", "Share link")}
+                </div>
+
+                <input
+                  value={shareUrl}
+                  readOnly
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.16)",
+                  }}
+                />
+
+                <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" className="shareBtn" onClick={copyShareUrl}>
+                    {copied
+                      ? safeMsg("share.copied", "Copied")
+                      : safeMsg("share.copyLink", "Copy link")}
+                  </button>
+
+                  <a
+                    href={shareUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shareBtn"
+                    style={{
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {safeMsg("share.openLink", "Open link")}
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ marginBottom: 8, fontSize: 14, fontWeight: 900 }}>
+                  {safeMsg("share.qrLabel", "QR code")}
+                </div>
+
+                <div
+                  style={{
+                    width: 220,
+                    height: 220,
+                    maxWidth: "100%",
+                    borderRadius: 16,
+                    border: "1px solid rgba(0,0,0,0.12)",
+                    display: "grid",
+                    placeItems: "center",
+                    overflow: "hidden",
+                    background: "white",
+                  }}
+                >
+                  {qrDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={qrDataUrl}
+                      alt={safeMsg("share.qrAlt", "QR code")}
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  ) : (
+                    <div style={{ padding: 12, textAlign: "center", opacity: 0.6 }}>
+                      {safeMsg("share.qrNotReady", "QR code is being prepared")}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}

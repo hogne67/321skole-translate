@@ -4,9 +4,8 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
-import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useLocale, useTranslations } from "next-intl";
@@ -60,6 +59,13 @@ type Lesson = {
   aiCoverPrompt?: string;
 
   activePublishedId?: string | null;
+
+  // Mulige legacy-/generatorfelt som kan ha samme verdi som topic
+  prompt?: string;
+  generationPrompt?: string;
+  sourcePrompt?: string;
+  requestPrompt?: string;
+  userPrompt?: string;
 };
 
 function uidNow() {
@@ -166,6 +172,25 @@ function safePlan(plan?: string): PlanKey {
   if (plan === "plus") return "plus";
   if (plan === "pro") return "pro";
   return "free";
+}
+
+function normalizeTopicFromLesson(data: Lesson): string {
+  const rawTopic = readString(data.topic).trim();
+  if (!rawTopic) return "";
+
+  const possiblePrompts = [
+    readString(data.prompt).trim(),
+    readString(data.generationPrompt).trim(),
+    readString(data.sourcePrompt).trim(),
+    readString(data.requestPrompt).trim(),
+    readString(data.userPrompt).trim(),
+  ].filter(Boolean);
+
+  if (possiblePrompts.some((p) => p === rawTopic)) {
+    return "";
+  }
+
+  return rawTopic;
 }
 
 type GenerateCoverResponse = {
@@ -275,7 +300,8 @@ export default function ProducerLessonEditorPage() {
   const myContentHref = `/${locale}/content`;
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(getAuth(), () => {
+    const unsub = onAuthStateChanged(getAuth(), (user) => {
+      setUid(user && !user.isAnonymous ? user.uid : null);
       setAuthResolved(true);
     });
     return () => unsub();
@@ -290,7 +316,9 @@ export default function ProducerLessonEditorPage() {
 
       try {
         const currentUid = getAuth().currentUser?.uid ?? null;
-        if (!currentUid) {
+        const currentUser = getAuth().currentUser;
+
+        if (!currentUid || !currentUser || currentUser.isAnonymous) {
           setErr(t("errors.noAuthUid"));
           setLoading(false);
           return;
@@ -310,12 +338,6 @@ export default function ProducerLessonEditorPage() {
 
         const data = (snap.data() as Lesson) ?? {};
 
-        console.log("TEXT EDITOR DEBUG", {
-          lessonId,
-          currentUid,
-          ownerId: data.ownerId ?? null,
-        });
-
         if (data.ownerId && data.ownerId !== currentUid) {
           setErr(t("errors.noAccessOwnerMismatch"));
           setLoading(false);
@@ -328,7 +350,7 @@ export default function ProducerLessonEditorPage() {
         setStatus(normalizeStatus(data.status));
         setTasks(Array.isArray(data.tasks) ? (data.tasks as Task[]) : []);
 
-        setTopic(typeof data.topic === "string" ? data.topic : "");
+        setTopic(normalizeTopicFromLesson(data));
         setTextType(typeof data.textType === "string" ? data.textType : "");
         setTagsText(Array.isArray(data.tags) ? data.tags.join(", ") : "");
         setLanguage(typeof data.language === "string" ? data.language : t("defaults.language"));
@@ -386,12 +408,7 @@ export default function ProducerLessonEditorPage() {
     setUploadingCover(true);
 
     try {
-      let u = uidNow();
-
-      if (!u) {
-        await ensureAnonymousUser();
-        u = uidNow();
-      }
+      const u = uidNow();
 
       if (!u) throw new Error("No auth uid.");
 
@@ -497,13 +514,15 @@ export default function ProducerLessonEditorPage() {
     }
   }
 
-  async function saveAndGoToMyContent() {
+  async function persistLesson(goToMyContent = false) {
     setErr(null);
     setSaving(true);
 
     try {
-      const currentUid = getAuth().currentUser?.uid ?? null;
-      if (!currentUid) {
+      const currentUser = getAuth().currentUser;
+      const currentUid = currentUser?.uid ?? null;
+
+      if (!currentUid || !currentUser || currentUser.isAnonymous) {
         throw new Error("No auth uid.");
       }
 
@@ -514,41 +533,52 @@ export default function ProducerLessonEditorPage() {
         order: idx + 1,
       }));
 
-      await updateDoc(doc(db, "lessons", lessonId), {
-        ownerId: currentUid,
+      await setDoc(
+        doc(db, "lessons", lessonId),
+        {
+          ownerId: currentUid,
 
-        title: title.trim(),
-        level: level.trim(),
-        sourceText,
-        status,
-        tasks: normalized,
+          title: title.trim(),
+          level: level.trim(),
+          sourceText,
+          status,
+          tasks: normalized,
 
-        topic: topic.trim(),
-        textType: textType.trim(),
-        tags,
-        language: language.trim(),
-        estimatedMinutes: Number.isFinite(estimatedMinutes) ? Number(estimatedMinutes) : 20,
-        releaseMode,
+          topic: topic.trim(),
+          textType: textType.trim(),
+          tags,
+          language: language.trim(),
+          estimatedMinutes: Number.isFinite(estimatedMinutes) ? Number(estimatedMinutes) : 20,
+          releaseMode,
 
-        producerName: producerName.trim(),
-        coverImageUrl: coverImageUrl.trim(),
-        coverImageFormat,
+          producerName: producerName.trim(),
+          coverImageUrl: coverImageUrl.trim(),
+          coverImageFormat,
 
-        coverImageSource,
-        aiCoverStyle,
-        aiCoverPromptMode,
-        aiCoverPrompt: aiCoverPrompt.trim(),
+          coverImageSource,
+          aiCoverStyle,
+          aiCoverPromptMode,
+          aiCoverPrompt: aiCoverPrompt.trim(),
 
-        updatedAt: serverTimestamp(),
-      });
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
 
       setTasks(normalized);
-      router.push(myContentHref);
+
+      if (goToMyContent) {
+        router.push(myContentHref);
+      }
     } catch (e: unknown) {
       setErr(localizeError(getErrorMessage(e) || t("errors.saveFailed")));
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveAndGoToMyContent() {
+    await persistLesson(true);
   }
 
   function addTask(type: TaskType) {
@@ -676,48 +706,51 @@ export default function ProducerLessonEditorPage() {
   }
 
   return (
-    <>
-      <main
+  <>
+    <main
+      style={{
+        paddingTop: 20,
+        paddingRight: 20,
+        paddingBottom: 110,
+        paddingLeft: 20,
+        maxWidth: 980,
+        margin: "0 auto",
+      }}
+    >
+      <div
         style={{
-          paddingTop: 20,
-          paddingRight: 20,
-          paddingBottom: 110,
-          paddingLeft: 20,
-          maxWidth: 980,
-          margin: "0 auto",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          flexWrap: "wrap",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <Link href={backHref}>{t("nav.back")}</Link>
-            <h1 style={{ fontSize: 26, fontWeight: 900, marginTop: 10 }}>{t("pageTitle")}</h1>
-            <div style={{ fontSize: 13, opacity: 0.7, marginTop: 4 }}>
-              {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
-            </div>
-            <div style={{ fontSize: 14, opacity: 0.78, marginTop: 8 }}>
-              {t("intro.finishLesson")}
-            </div>
+        <div>
+          <Link href={backHref}>{t("nav.back")}</Link>
+          <h1 style={{ fontSize: 26, fontWeight: 900, marginTop: 10 }}>
+            {t("pageTitle")}
+          </h1>
+          <div style={{ fontSize: 13, opacity: 0.7, marginTop: 4 }}>
+            {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
           </div>
-
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <button
-              onClick={saveAndGoToMyContent}
-              disabled={saving}
-              style={primaryButton}
-              title={t("buttons.saveToMyContent")}
-            >
-              {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
-            </button>
+          <div style={{ fontSize: 14, opacity: 0.78, marginTop: 8 }}>
+            {t("intro.finishLesson")}
           </div>
         </div>
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={saveAndGoToMyContent}
+            disabled={saving}
+            style={primaryButton}
+            title={t("buttons.saveToMyContent")}
+          >
+            {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
+          </button>
+        </div>
+      </div>
 
         <section
           style={{
@@ -843,14 +876,15 @@ export default function ProducerLessonEditorPage() {
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 800 }}>{t("fields.topic")}</div>
-              <input
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                style={fieldStyle}
-                placeholder={t("placeholdersExtra.topic")}
-              />
-            </label>
+  <div style={{ fontWeight: 800 }}>{t("fields.topic")}</div>
+  <input
+    value={topic}
+    onChange={(e) => setTopic(e.target.value)}
+    style={fieldStyle}
+    placeholder={t("placeholdersExtra.topic")}
+  />
+  <div style={smallHelpStyle}>{t("fields.topicHelp")}</div>
+</label>
 
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 800 }}>{t("fields.tags")}</div>
@@ -946,7 +980,7 @@ export default function ProducerLessonEditorPage() {
                       disabled={uploadingCover}
                       onChange={(e) => {
                         const f = e.target.files?.[0];
-                        if (f) uploadCover(f);
+                        if (f) void uploadCover(f);
                         e.currentTarget.value = "";
                       }}
                     />
@@ -1271,13 +1305,13 @@ export default function ProducerLessonEditorPage() {
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={() => addTask("truefalse")} style={{ padding: "8px 10px" }}>
+              <button type="button" onClick={() => addTask("truefalse")} style={{ padding: "8px 10px" }}>
                 {t("tasks.add.trueFalse")}
               </button>
-              <button onClick={() => addTask("mcq")} style={{ padding: "8px 10px" }}>
+              <button type="button" onClick={() => addTask("mcq")} style={{ padding: "8px 10px" }}>
                 {t("tasks.add.mcq")}
               </button>
-              <button onClick={() => addTask("open")} style={{ padding: "8px 10px" }}>
+              <button type="button" onClick={() => addTask("open")} style={{ padding: "8px 10px" }}>
                 {t("tasks.add.open")}
               </button>
             </div>
@@ -1303,13 +1337,17 @@ export default function ProducerLessonEditorPage() {
                         {t("tasks.headerLine", { n: idx + 1, type: task.type.toUpperCase(), id: task.id })}
                       </div>
                       <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button onClick={() => moveTask(task.id, -1)} disabled={idx === 0}>
+                        <button type="button" onClick={() => moveTask(task.id, -1)} disabled={idx === 0}>
                           ↑
                         </button>
-                        <button onClick={() => moveTask(task.id, +1)} disabled={idx === sortedTasks.length - 1}>
+                        <button
+                          type="button"
+                          onClick={() => moveTask(task.id, +1)}
+                          disabled={idx === sortedTasks.length - 1}
+                        >
                           ↓
                         </button>
-                        <button onClick={() => removeTask(task.id)} title={t("tasks.deleteTitle")}>
+                        <button type="button" onClick={() => removeTask(task.id)} title={t("tasks.deleteTitle")}>
                           {t("tasks.delete")}
                         </button>
                       </div>
@@ -1418,36 +1456,37 @@ export default function ProducerLessonEditorPage() {
       </main>
 
       <div
-        style={{
-          position: "fixed",
-          left: "50%",
-          transform: "translateX(-50%)",
-          bottom: 16,
-          zIndex: 1000,
-          pointerEvents: "none",
-        }}
-      >
-        <button
-          onClick={saveAndGoToMyContent}
-          disabled={saving}
-          style={{
-            pointerEvents: "auto",
-            padding: "12px 16px",
-            borderRadius: 14,
-            border: "1px solid #86efac",
-            background: "#16a34a",
-            color: "white",
-            fontWeight: 900,
-            cursor: saving ? "not-allowed" : "pointer",
-            opacity: saving ? 0.92 : 1,
-            boxShadow: "0 10px 24px rgba(22,163,74,0.28)",
-            whiteSpace: "nowrap",
-          }}
-          title={t("buttons.saveToMyContent")}
-        >
-          {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
-        </button>
-      </div>
+  style={{
+    position: "fixed",
+    left: "50%",
+    transform: "translateX(-50%)",
+    bottom: 16,
+    zIndex: 1000,
+    pointerEvents: "none",
+  }}
+>
+  <button
+    type="button"
+    onClick={saveAndGoToMyContent}
+    disabled={saving}
+    style={{
+      pointerEvents: "auto",
+      padding: "12px 16px",
+      borderRadius: 14,
+      border: "1px solid #86efac",
+      background: "#16a34a",
+      color: "white",
+      fontWeight: 900,
+      cursor: saving ? "not-allowed" : "pointer",
+      opacity: saving ? 0.92 : 1,
+      boxShadow: "0 10px 24px rgba(22,163,74,0.28)",
+      whiteSpace: "nowrap",
+    }}
+    title={t("buttons.saveToMyContent")}
+  >
+    {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
+  </button>
+</div>
     </>
   );
 }
