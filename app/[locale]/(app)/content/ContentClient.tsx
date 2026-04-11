@@ -25,6 +25,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 type LessonStatus = "draft" | "published";
 type FilterType = "all" | "library" | "math" | "lesson" | "submission" | "space";
+type ShareTone = "short" | "professional" | "friendly";
 
 type AssignmentDoc = {
   title?: string;
@@ -58,6 +59,8 @@ type ParentSpaceMeta = {
   activeLessonTitle: string | null;
   activeSubmissionStatus: string | null;
 };
+
+type LooseT = (key: string, values?: Record<string, unknown>) => string;
 
 function fmtDate(d: Date | null | undefined, locale: string) {
   if (!d) return "";
@@ -303,6 +306,7 @@ export default function ContentClient() {
   const isTeacherApproved = isTeacher;
 
   const t = useTranslations("content");
+  const tLoose = t as unknown as LooseT;
   const locale = useLocale();
 
   const [items, setItems] = useState<ContentItem[]>([]);
@@ -320,8 +324,18 @@ export default function ContentClient() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareTitle, setShareTitle] = useState("");
   const [shareUrl, setShareUrl] = useState("");
+  const [shareText, setShareText] = useState("");
+  const [shareTone, setShareTone] = useState<ShareTone>("professional");
+  const [shareKind, setShareKind] = useState<"lesson" | "space" | "generic">("generic");
+  const [shareSourceLesson, setShareSourceLesson] =
+    useState<Extract<ContentItem, { type: "lesson" }> | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedText, setCopiedText] = useState(false);
+
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiVariants, setAiVariants] = useState<string[]>([]);
 
   const [pickSpaceOpen, setPickSpaceOpen] = useState(false);
   const [pickLesson, setPickLesson] = useState<{ lessonId: string; title: string } | null>(null);
@@ -329,6 +343,14 @@ export default function ContentClient() {
   const [parentSpaceMeta, setParentSpaceMeta] = useState<Record<string, ParentSpaceMeta>>({});
 
   const mySpaces = useMemo(() => items.filter((x) => x.type === "space"), [items]);
+
+  function safeMsg(key: string, fallback: string, values?: Record<string, unknown>) {
+    try {
+      return tLoose(key, values);
+    } catch {
+      return fallback;
+    }
+  }
 
   function setBusy(key: string, v: boolean) {
     setBusyByKey((m) => ({ ...m, [key]: v }));
@@ -443,6 +465,223 @@ export default function ContentClient() {
     },
     [t]
   );
+
+  function getLessonShareMeta(it: Extract<ContentItem, { type: "lesson" }>) {
+    const anyIt = it as unknown as Record<string, unknown>;
+
+    const levelText = typeof anyIt.level === "string" ? anyIt.level.trim() : "";
+    const languageRaw = typeof anyIt.language === "string" ? anyIt.language.trim() : "";
+    const languageText = languageRaw ? languageRaw.toUpperCase() : "";
+
+    const textType =
+      typeof anyIt.textType === "string" && anyIt.textType.trim()
+        ? anyIt.textType.trim()
+        : typeof anyIt.texttype === "string" && anyIt.texttype.trim()
+          ? anyIt.texttype.trim()
+          : typeof anyIt.lessonType === "string" &&
+              anyIt.lessonType.trim() &&
+              anyIt.lessonType !== "reading_test"
+            ? anyIt.lessonType.trim()
+            : "";
+
+    const descriptionText = typeof anyIt.description === "string" ? anyIt.description.trim() : "";
+
+    return {
+      title: titleForCard(it),
+      levelText,
+      languageText,
+      typeText: textType,
+      descriptionText,
+    };
+  }
+
+  function buildProfessionalLessonShareText(
+    title: string,
+    levelText: string,
+    languageText: string,
+    typeText: string,
+    descriptionText: string
+  ) {
+    if (locale === "nb") {
+      if (descriptionText) {
+        return `${title}\n\n${descriptionText}\n\n${
+          levelText ? safeMsg("share.level", "Nivå: {level}", { level: levelText }) : ""
+        }${levelText && languageText ? " · " : ""}${
+          languageText ? safeMsg("share.language", "Språk: {language}", { language: languageText }) : ""
+        }${(levelText || languageText) && typeText ? " · " : ""}${
+          typeText ? safeMsg("share.type", "Type: {type}", { type: typeText }) : ""
+        }`;
+      }
+
+      return safeMsg(
+        "share.professionalNoDescription",
+        "Klar til bruk: {title}{levelPart}{languagePart}{typePart}",
+        {
+          title,
+          levelPart: levelText ? ` for nivå ${levelText}` : "",
+          languagePart: languageText ? ` på ${languageText}` : "",
+          typePart: typeText ? ` Type: ${typeText}.` : "",
+        }
+      );
+    }
+
+    if (locale === "pt") {
+      if (descriptionText) {
+        return `${title}\n\n${descriptionText}\n\n${
+          levelText ? safeMsg("share.level", "Nível: {level}", { level: levelText }) : ""
+        }${levelText && languageText ? " · " : ""}${
+          languageText ? safeMsg("share.language", "Idioma: {language}", { language: languageText }) : ""
+        }${(levelText || languageText) && typeText ? " · " : ""}${
+          typeText ? safeMsg("share.type", "Tipo: {type}", { type: typeText }) : ""
+        }`;
+      }
+
+      return safeMsg(
+        "share.professionalNoDescription",
+        "Aula pronta para usar: {title}{levelPart}{languagePart}{typePart}",
+        {
+          title,
+          levelPart: levelText ? ` para o nível ${levelText}` : "",
+          languagePart: languageText ? ` em ${languageText}` : "",
+          typePart: typeText ? ` Tipo: ${typeText}.` : "",
+        }
+      );
+    }
+
+    if (descriptionText) {
+      return `${title}\n\n${descriptionText}\n\n${
+        levelText ? safeMsg("share.level", "Level: {level}", { level: levelText }) : ""
+      }${levelText && languageText ? " · " : ""}${
+        languageText ? safeMsg("share.language", "Language: {language}", { language: languageText }) : ""
+      }${(levelText || languageText) && typeText ? " · " : ""}${
+        typeText ? safeMsg("share.type", "Type: {type}", { type: typeText }) : ""
+      }`;
+    }
+
+    return safeMsg(
+      "share.professionalNoDescription",
+      "Ready-to-use lesson: {title}{levelPart}{languagePart}{typePart}",
+      {
+        title,
+        levelPart: levelText ? ` for level ${levelText}` : "",
+        languagePart: languageText ? ` in ${languageText}` : "",
+        typePart: typeText ? ` Type: ${typeText}.` : "",
+      }
+    );
+  }
+
+  function buildShortLessonShareText(
+    title: string,
+    levelText: string,
+    languageText: string,
+    typeText: string,
+    descriptionText: string
+  ) {
+    const meta = [levelText, languageText, typeText].filter(Boolean).join(" · ");
+    return `${title}${meta ? ` · ${meta}` : ""}${descriptionText ? `\n\n${descriptionText}` : ""}`;
+  }
+
+  function buildFriendlyLessonShareText(
+    title: string,
+    levelText: string,
+    languageText: string,
+    typeText: string,
+    descriptionText: string
+  ) {
+    if (locale === "nb") {
+      return safeMsg(
+        "share.friendlyTemplate",
+        "Se på dette opplegget: {title}.\n\n{body}{typePart}",
+        {
+          title,
+          body:
+            descriptionText ||
+            safeMsg(
+              "share.friendlyFallbackBody",
+              "Et fint og klart undervisningsopplegg{levelPart}{languagePart}.",
+              {
+                levelPart: levelText ? ` for nivå ${levelText}` : "",
+                languagePart: languageText ? ` på ${languageText}` : "",
+              }
+            ),
+          typePart: typeText ? `\n\n${safeMsg("share.type", "Type: {type}", { type: typeText })}.` : "",
+        }
+      );
+    }
+
+    if (locale === "pt") {
+      return safeMsg(
+        "share.friendlyTemplate",
+        "Veja esta aula: {title}.\n\n{body}{typePart}",
+        {
+          title,
+          body:
+            descriptionText ||
+            safeMsg(
+              "share.friendlyFallbackBody",
+              "Uma aula clara e pronta para usar{levelPart}{languagePart}.",
+              {
+                levelPart: levelText ? ` para o nível ${levelText}` : "",
+                languagePart: languageText ? ` em ${languageText}` : "",
+              }
+            ),
+          typePart: typeText ? `\n\n${safeMsg("share.type", "Tipo: {type}", { type: typeText })}.` : "",
+        }
+      );
+    }
+
+    return safeMsg(
+      "share.friendlyTemplate",
+      "Take a look at this lesson: {title}.\n\n{body}{typePart}",
+      {
+        title,
+        body:
+          descriptionText ||
+          safeMsg(
+            "share.friendlyFallbackBody",
+            "A clear and ready-to-use lesson{levelPart}{languagePart}.",
+            {
+              levelPart: levelText ? ` for level ${levelText}` : "",
+              languagePart: languageText ? ` in ${languageText}` : "",
+            }
+          ),
+        typePart: typeText ? `\n\n${safeMsg("share.type", "Type: {type}", { type: typeText })}.` : "",
+      }
+    );
+  }
+
+  function buildLessonShareText(it: Extract<ContentItem, { type: "lesson" }>, tone: ShareTone) {
+    const { title, levelText, languageText, typeText, descriptionText } = getLessonShareMeta(it);
+
+    if (tone === "short") {
+      return buildShortLessonShareText(title, levelText, languageText, typeText, descriptionText);
+    }
+
+    if (tone === "friendly") {
+      return buildFriendlyLessonShareText(title, levelText, languageText, typeText, descriptionText);
+    }
+
+    return buildProfessionalLessonShareText(title, levelText, languageText, typeText, descriptionText);
+  }
+
+  function buildSpaceShareText(it: Extract<ContentItem, { type: "space" }>) {
+    const title = titleForCard(it);
+    const code = it.joinCode ? it.joinCode.trim() : "";
+
+    if (locale === "nb") {
+      return code
+        ? `Bli med i "${title}".\n\nBruk koden: ${code}`
+        : `Bli med i "${title}".`;
+    }
+
+    if (locale === "pt") {
+      return code
+        ? `Entre em "${title}".\n\nUse o código: ${code}`
+        : `Entre em "${title}".`;
+    }
+
+    return code ? `Join "${title}".\n\nUse code: ${code}` : `Join "${title}".`;
+  }
 
   async function refresh() {
     setLoading(true);
@@ -612,15 +851,30 @@ export default function ContentClient() {
     return <p className="opacity-85">{t("empty.authed")}</p>;
   }, [isAnon, t, locale]);
 
-  async function openShareModal(title: string, url: string) {
+  async function openShareModal(opts: {
+    title: string;
+    url: string;
+    text?: string;
+    kind?: "lesson" | "space" | "generic";
+    lesson?: Extract<ContentItem, { type: "lesson" }> | null;
+    tone?: ShareTone;
+  }) {
     setCopied(false);
+    setCopiedText(false);
     setQrDataUrl("");
-    setShareTitle(title);
-    setShareUrl(url);
+    setShareTitle(opts.title);
+    setShareUrl(opts.url);
+    setShareText(opts.text || "");
+    setShareKind(opts.kind || "generic");
+    setShareSourceLesson(opts.lesson ?? null);
+    setShareTone(opts.tone || "professional");
+    setAiBusy(false);
+    setAiError(null);
+    setAiVariants([]);
     setShareOpen(true);
 
     try {
-      const dataUrl = await QRCode.toDataURL(url, {
+      const dataUrl = await QRCode.toDataURL(opts.url, {
         margin: 1,
         scale: 7,
         errorCorrectionLevel: "M",
@@ -635,8 +889,16 @@ export default function ContentClient() {
     setShareOpen(false);
     setShareTitle("");
     setShareUrl("");
+    setShareText("");
+    setShareTone("professional");
+    setShareKind("generic");
+    setShareSourceLesson(null);
     setQrDataUrl("");
     setCopied(false);
+    setCopiedText(false);
+    setAiBusy(false);
+    setAiError(null);
+    setAiVariants([]);
   }
 
   async function copyShareUrl() {
@@ -649,30 +911,95 @@ export default function ContentClient() {
     }
   }
 
-  async function openShareForLesson(it: Extract<ContentItem, { type: "lesson" }>) {
-    if (isReadingTestLesson(it)) {
-      const url = `${getOrigin()}/${locale}/reading-tests/${it.id}`;
-      await openShareModal(titleForCard(it), url);
-      return;
+  async function copyShareText() {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 1200);
+    } catch {
+      setCopiedText(false);
     }
+  }
 
-    let pid = it.activePublishedId || it.id;
+  function applyShareTone(nextTone: ShareTone) {
+    if (!shareSourceLesson) return;
+    setShareTone(nextTone);
+    setShareText(buildLessonShareText(shareSourceLesson, nextTone));
+  }
 
-    if (!it.activePublishedId) {
-      try {
-        const snap = await getDoc(doc(db, "lessons", it.id));
-        const dUnknown = snap.data() as unknown;
-        const d = isRecord(dUnknown) ? dUnknown : {};
-        if (typeof d.activePublishedId === "string" && d.activePublishedId) {
-          pid = d.activePublishedId;
-        }
-      } catch {
-        // ignore
+  async function generateShareTextAI() {
+    if (!shareTitle) return;
+
+    setAiBusy(true);
+    setAiError(null);
+
+    try {
+      const res = await authedPost<{ variants?: string[] }>("/api/ai/share-text", {
+        title: shareTitle,
+        tone: shareTone,
+        locale,
+        kind: shareKind,
+        url: shareUrl,
+      });
+
+      if (res?.variants?.length) {
+        setAiVariants(res.variants);
+        setShareText(res.variants[0]);
+      } else {
+        throw new Error("No variants returned");
       }
+    } catch (e: unknown) {
+      setAiError(e instanceof Error ? e.message : safeMsg("errors.aiShareFailed", "AI failed"));
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  const facebookShareHref = useMemo(() => {
+    return shareUrl
+      ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+      : "#";
+  }, [shareUrl]);
+
+  const linkedInShareHref = useMemo(() => {
+    return shareUrl
+      ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
+      : "#";
+  }, [shareUrl]);
+
+  async function openShareForLesson(it: Extract<ContentItem, { type: "lesson" }>) {
+    let url = "";
+    const title = titleForCard(it);
+
+    if (isReadingTestLesson(it)) {
+      url = `${getOrigin()}/${locale}/reading-tests/${it.id}`;
+    } else {
+      let pid = it.activePublishedId || it.id;
+
+      if (!it.activePublishedId) {
+        try {
+          const snap = await getDoc(doc(db, "lessons", it.id));
+          const dUnknown = snap.data() as unknown;
+          const d = isRecord(dUnknown) ? dUnknown : {};
+          if (typeof d.activePublishedId === "string" && d.activePublishedId) {
+            pid = d.activePublishedId;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      url = `${getOrigin()}/${locale}/share/lesson/${pid}`;
     }
 
-    const url = `${getOrigin()}/${locale}/share/lesson/${pid}`;
-    await openShareModal(titleForCard(it), url);
+    await openShareModal({
+      title,
+      url,
+      text: buildLessonShareText(it, "professional"),
+      kind: "lesson",
+      lesson: it,
+      tone: "professional",
+    });
   }
 
   async function openShareForSpace(it: Extract<ContentItem, { type: "space" }>) {
@@ -680,7 +1007,15 @@ export default function ContentClient() {
     const url = code
       ? `${getOrigin()}/${locale}/join?code=${code}`
       : `${getOrigin()}${itemOpenHref(it)}`;
-    await openShareModal(titleForCard(it), url);
+
+    await openShareModal({
+      title: titleForCard(it),
+      url,
+      text: buildSpaceShareText(it),
+      kind: "space",
+      lesson: null,
+      tone: "professional",
+    });
   }
 
   function openPickSpace(lessonId: string, title: string) {
@@ -1454,7 +1789,10 @@ export default function ContentClient() {
                   } else if (isMathArchiveItem(it)) {
                     pill = <StatusPill label={t("pills.readyForPdf")} variant="green" />;
                   } else {
-                    const s = ((it.status ?? "draft") as LessonStatus) === "published" ? "published" : "unpublished";
+                    const s =
+                      ((it.status ?? "draft") as LessonStatus) === "published"
+                        ? "published"
+                        : "unpublished";
                     pill =
                       s === "published" ? (
                         <StatusPill label={t("pills.published")} variant="green" />
@@ -1511,9 +1849,7 @@ export default function ContentClient() {
                         </div>
 
                         {mathHint ? (
-                          <div className="mt-2 text-xs font-semibold text-amber-700">
-                            {mathHint}
-                          </div>
+                          <div className="mt-2 text-xs font-semibold text-amber-700">{mathHint}</div>
                         ) : null}
 
                         {isParent && it.type === "lesson" && !isMathArchiveItem(it) ? (
@@ -1625,11 +1961,11 @@ export default function ContentClient() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl"
+            className="w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl"
           >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
               <div className="min-w-0">
-                <div className="font-black text-slate-900">{t("share.title")}</div>
+                <div className="font-black text-slate-900">{safeMsg("share.title", "Share")}</div>
                 <div className="truncate text-sm text-slate-600">{shareTitle}</div>
               </div>
               <button
@@ -1642,7 +1978,108 @@ export default function ContentClient() {
 
             <div className="grid gap-4 p-4 sm:grid-cols-[1.3fr_0.7fr]">
               <div>
-                <div className="mb-2 text-sm font-black text-slate-900">{t("share.linkLabel")}</div>
+                <div className="mb-2 text-sm font-black text-slate-900">
+                  {safeMsg("share.shareTextLabel", "Share text")}
+                </div>
+
+                {shareKind === "lesson" ? (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => applyShareTone("short")}
+                      className={[
+                        "rounded-full border px-3 py-2 text-xs font-extrabold",
+                        shareTone === "short"
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-300 bg-white text-slate-800 hover:bg-zinc-50",
+                      ].join(" ")}
+                    >
+                      {safeMsg("share.tones.short", "Short")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyShareTone("professional")}
+                      className={[
+                        "rounded-full border px-3 py-2 text-xs font-extrabold",
+                        shareTone === "professional"
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-300 bg-white text-slate-800 hover:bg-zinc-50",
+                      ].join(" ")}
+                    >
+                      {safeMsg("share.tones.professional", "Professional")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyShareTone("friendly")}
+                      className={[
+                        "rounded-full border px-3 py-2 text-xs font-extrabold",
+                        shareTone === "friendly"
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-300 bg-white text-slate-800 hover:bg-zinc-50",
+                      ].join(" ")}
+                    >
+                      {safeMsg("share.tones.friendly", "Friendly")}
+                    </button>
+                  </div>
+                ) : null}
+
+                <textarea
+                  value={shareText}
+                  onChange={(e) => setShareText(e.target.value)}
+                  rows={5}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-3 font-semibold text-slate-900"
+                  style={{ resize: "vertical" }}
+                />
+
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <PrimaryButton onClick={generateShareTextAI} disabled={aiBusy}>
+                    {aiBusy
+                      ? safeMsg("share.aiLoading", "Generating...")
+                      : safeMsg("share.aiGenerate", "✨ Generate with AI")}
+                  </PrimaryButton>
+                </div>
+
+                {aiError ? (
+                  <div className="mt-2 text-xs text-red-600">{aiError}</div>
+                ) : null}
+
+                {aiVariants.length > 0 ? (
+                  <div className="mt-3 grid gap-2">
+                    {aiVariants.map((variant, i) => (
+                      <button
+                        key={`${i}-${variant.slice(0, 24)}`}
+                        type="button"
+                        onClick={() => setShareText(variant)}
+                        className="rounded-xl border border-slate-300 bg-white p-3 text-left text-sm text-slate-800 hover:bg-slate-50"
+                      >
+                        {variant}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <PrimaryButton onClick={copyShareText}>
+                    {copiedText
+                      ? safeMsg("share.copiedText", "Text copied")
+                      : safeMsg("share.copyText", "Copy text")}
+                  </PrimaryButton>
+
+                  <GhostLink href={facebookShareHref} target="_blank" rel="noreferrer">
+                    {safeMsg("share.facebook", "Facebook")}
+                  </GhostLink>
+
+                  <GhostLink href={linkedInShareHref} target="_blank" rel="noreferrer">
+                    {safeMsg("share.linkedin", "LinkedIn")}
+                  </GhostLink>
+                </div>
+
+                <div className="mt-5 mb-2 text-sm font-black text-slate-900">
+                  {safeMsg("share.linkLabel", "Share link")}
+                </div>
+
                 <input
                   value={shareUrl}
                   readOnly
@@ -1651,31 +2088,39 @@ export default function ContentClient() {
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   <PrimaryButton onClick={copyShareUrl}>
-                    {copied ? t("share.copied") : t("share.copyLink")}
+                    {copied
+                      ? safeMsg("share.copied", "Copied")
+                      : safeMsg("share.copyLink", "Copy link")}
                   </PrimaryButton>
+
                   <GhostLink href={shareUrl} target="_blank" rel="noreferrer">
-                    {t("share.openLink")}
+                    {safeMsg("share.openLink", "Open link")}
                   </GhostLink>
                 </div>
 
-                <div className="mt-3 text-sm text-slate-500">{t("share.tip")}</div>
+                <div className="mt-3 text-sm text-slate-500">
+                  {safeMsg(
+                    "share.tipExtended",
+                    "Tip: copy the text first, then share the link in social media."
+                  )}
+                </div>
               </div>
 
-              <div className="grid place-items-center">
+              <div className="grid place-items-start sm:place-items-center">
                 <div className="mb-2 w-full text-left text-sm font-black text-slate-900">
-                  {t("share.qrLabel")}
+                  {safeMsg("share.qrLabel", "QR code")}
                 </div>
                 <div className="grid h-56 w-56 place-items-center overflow-hidden rounded-2xl border border-slate-300 bg-white">
                   {qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={qrDataUrl}
-                      alt={t("share.qrAlt")}
+                      alt={safeMsg("share.qrAlt", "QR code")}
                       style={{ width: "100%", height: "100%" }}
                     />
                   ) : (
                     <div className="p-3 text-center text-sm text-slate-500">
-                      {t("share.qrNotReady")}
+                      {safeMsg("share.qrNotReady", "QR code is being prepared")}
                     </div>
                   )}
                 </div>
@@ -1683,7 +2128,8 @@ export default function ContentClient() {
             </div>
 
             <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
-              {t("share.shareUrlLabel")} <code className="break-all">{shareUrl}</code>
+              {safeMsg("share.shareUrlLabel", "Share URL")}{" "}
+              <code className="break-all">{shareUrl}</code>
             </div>
           </div>
         </div>

@@ -3,30 +3,30 @@
     "title": "My content",
     "subtitle": "Here you can manage everything: publish, share, PDF, edit and more.",
     "parent": {
-      "title": "My family content",
-      "subtitle": "Here you will find tasks you can open, organize, and share to your children’s spaces.",
+      "title": "Family content",
+      "subtitle": "Here you will find tasks you can open, organize, and share to your children’s Spaces.",
       "contentTitle": "Content",
       "shareReady": "Ready to share",
-      "canShareToChildren": "Can be shared to children’s spaces"
+      "canShareToChildren": "Can be shared to children’s Spaces"
     },
     "search": {
       "placeholder": "Search title, status, metadata…",
-      "parentPlaceholder": "Search tasks, spaces, and submissions…"
+      "parentPlaceholder": "Search tasks, Spaces and submissions…"
     },
     "filters": {
-  "all": "All",
-  "library": "LIBRARY",
-  "math": "MATH",
-  "lesson": "Lesson",
-  "lessons": "GENERATED",
-  "submission": "Submission",
-  "submissions": "SUBMISSIONS",
-  "space": "Space",
-  "spaces": "SPACES"
-},
+      "all": "All",
+      "library": "LIBRARY",
+      "math": "MATH",
+      "lesson": "Task",
+      "lessons": "GENERATED",
+      "submission": "Submission",
+      "submissions": "SUBMISSIONS",
+      "space": "Spaces",
+      "spaces": "SPACES"
+    },
     "filterHints": {
       "library": "Your own tasks from the library (practice)",
-      "math": "Only items marked from the math generator"
+      "math": "Only items from the math generator"
     },
     "toggles": {
       "showDeleted": "Show deleted",
@@ -34,7 +34,7 @@
     },
     "labels": {
       "deleted": "Deleted",
-      "deletedAt": "Deleted at",
+      "deletedAt": "Deleted",
       "items": "items"
     },
     "states": {
@@ -51,7 +51,6 @@
     },
     "math": {
       "pdf": "Math PDF",
-      "openDigital": "Work digital",
       "hint": "Ready for PDF export. Generate a new worksheet if you want another version.",
       "subtypes": {
         "geometry": "Geometry",
@@ -80,14 +79,14 @@
       "open": "Open",
       "edit": "Edit",
       "editAnswers": "Edit answers",
-      "openLesson": "Open lesson",
-      "openSpace": "Open space",
+      "openLesson": "Open task",
+      "openSpace": "Open Spaces",
       "publish": "Publish",
       "unpublish": "Unpublish",
       "working": "Working…",
       "share": "Share",
       "shareTitle": "Share (link + QR)",
-      "shareToSpace": "Share to space",
+      "shareToSpace": "Share to Spaces",
       "pdf": "PDF",
       "delete": "Delete",
       "restore": "Restore",
@@ -101,26 +100,26 @@
     "errors": {
       "label": "Error",
       "loadFailed": "Failed to load content",
-      "assignFailed": "Failed to assign to space",
-      "lessonNotFound": "Lesson not found",
-      "cannotPublishDeleted": "This lesson is deleted/archived and cannot be published.",
+      "assignFailed": "Failed to share to Spaces",
+      "lessonNotFound": "Task not found",
+      "cannotPublishDeleted": "This task is deleted or archived and cannot be published.",
       "publishFailed": "Failed to update publish status",
-      "deleteFailed": "Failed to delete (archive) lesson",
+      "deleteFailed": "Failed to delete (archive) task",
       "restoreFailed": "Could not restore."
     },
     "titles": {
-      "lesson": "Lesson",
-      "space": "Space",
+      "lesson": "Task",
+      "space": "Spaces",
       "submission": "Submission",
       "submissionWithLesson": "{lessonTitle} – Submission",
       "submissionWithId": "Submission · {id}"
     },
     "empty": {
       "guest": {
-        "line1": "You’re in guest mode. My content does not show saved items here yet.",
-        "line2": "Use <join>Join</join> to open a lesson/space with a code, or <login>log in</login> to sync your content."
+        "line1": "You are in guest mode. My content does not show saved items yet.",
+        "line2": "Use <join>Join</join> to open a task or Spaces with a code, or <login>log in</login> to sync your content."
       },
-      "authed": "You don’t have any items in your feed yet. When you create/use lessons, spaces or submissions, they will appear here."
+      "authed": "You don’t have any items here yet. When you create or use tasks, Spaces or submissions, they will appear here."
     },
     "footer": {
       "joinViaCode": "Join via code",
@@ -128,24 +127,47 @@
     },
     "share": {
       "title": "Share",
-      "linkLabel": "Link",
+      "button": "Share",
+      "shareTextLabel": "Share text",
+      "linkLabel": "Share link",
+      "copyText": "Copy text",
+      "copiedText": "Text copied",
       "copyLink": "Copy link",
-      "copied": "Copied!",
+      "copied": "Copied",
       "openLink": "Open link",
-      "tip": "Tip: Share the QR on screen or print it.",
-      "qrLabel": "QR",
+      "facebook": "Facebook",
+      "linkedin": "LinkedIn",
+      "qrLabel": "QR code",
       "qrAlt": "QR code",
-      "qrNotReady": "QR not ready (link works).",
-      "shareUrlLabel": "Share URL:"
+      "qrNotReady": "QR code is being prepared",
+      "shareUrlLabel": "Share URL",
+      "tipExtended": "Tip: copy the text first, then share the link in social media.",
+      "tones": {
+        "short": "Short",
+        "professional": "Professional",
+        "friendly": "Friendly",
+      "aiGenerate": "✨ Generate with AI",
+    "aiLoading": "Generating..."
+  },
+  "errors": {
+    "aiShareFailed": "Could not generate share text with AI."
+      },
+      "level": "Level: {level}",
+      "language": "Language: {language}",
+      "type": "Type: {type}",
+      "professionalNoDescription": "Ready-to-use lesson: {title}{levelPart}{languagePart}{typePart}",
+      "friendlyTemplate": "Take a look at this lesson: {title}.\n\n{body}{typePart}",
+      "friendlyFallbackBody": "A clear and ready-to-use lesson{levelPart}{languagePart}.",
+      "defaultTitle": "Lesson"
     },
     "shareToSpace": {
-      "title": "Share to space",
-      "noSpaces": "You don’t have any spaces yet.",
+      "title": "Share to Spaces",
+      "noSpaces": "You don’t have any Spaces yet.",
       "createsLabel": "Creates:"
     },
     "confirm": {
-      "deleteLesson": "Delete lesson{title}?\n\nThis will archive it (soft delete).\nIt will also attempt to unpublish via server.\n\nAn admin can restore it later.",
-      "restoreLesson": "Restore lesson{title}?"
+      "deleteLesson": "Delete task{title}?\n\nThis will archive it.\nIt will also attempt to unpublish it.\n\nAn admin can restore it later.",
+      "restoreLesson": "Restore task{title}?"
     },
     "fallback": {
       "untitledTask": "Untitled task"
