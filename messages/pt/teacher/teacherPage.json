@@ -85,6 +85,52 @@
         "registerLogin": "Criar conta / Entrar",
         "openLibrary": "Abrir biblioteca"
       }
+    },
+    "billing": {
+    "badge": "Plano e cobrança",
+    "title": "Sua assinatura",
+    "description": "Veja seu plano atual, status da assinatura e próximos passos.",
+    "fields": {
+      "plan": "Plano",
+      "usagePlan": "Plano efetivo",
+      "role": "Função",
+      "status": "Status"
+    },
+    "plans": {
+      "free": "Grátis",
+      "basic": "Basic",
+      "plus": "Plus",
+      "pro": "Pro"
+    },
+    "statuses": {
+      "active": "Ativo",
+      "trialing": "Período de teste",
+      "pastDue": "Pagamento em atraso",
+      "canceled": "Cancelado",
+      "incomplete": "Incompleto",
+      "unpaid": "Não pago",
+      "none": "Sem assinatura"
+    },
+    "messages": {
+      "activeSubscription": "Sua assinatura está ativa. Você pode gerenciar pagamentos e alterar o plano.",
+      "noSubscription": "Você está usando o plano gratuito no momento. Faça upgrade quando precisar de mais capacidade."
+    },
+    "actions": {
+      "seePlans": "Ver planos",
+      "manage": "Gerenciar assinatura"
     }
+  },
+  "submissions": {
+    "badge": "Tarefas",
+    "title": "Status das entregas",
+    "description": "Veja rapidamente o que precisa da sua atenção agora.",
+    "toReview": "Para avaliar",
+    "needsFollowUp": "Acompanhar",
+    "reviewed": "Concluídas",
+    "spacesLabel": "Turmas",
+    "actions": {
+      "openSpaces": "Abrir turmas"
+    }
+  }
   }
 }

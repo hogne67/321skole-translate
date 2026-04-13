@@ -4,18 +4,20 @@
     "subtitle": "Steg 1: generer tekst → Steg 2: generer oppgaver → rediger → lagre kladd.",
     "defaults": {
       "title": "Ny oppgave",
-      "prompt": "Å flytte til et nytt land"
+      "prompt": "Eksempel: Lag en fortelling om Edvard Munch og bildet Skrik. Ta med litt om bildet og livet hans "
     },
     "fields": {
       "level": "Nivå",
       "language": "Velg språk for oppgaven",
       "languageSearchPlaceholder": "Søk etter språk (f.eks. norsk, somali, ti, pt-BR...)",
       "languageCount": "Viser {count} språk",
-      "prompt": "Prompt / instruksjoner",
-      "promptTip": "Tips: Dette feltet er hovedprompten som styrer KI-genereringen.",
+      "prompt": "Her skriver du instruksjoner til AI",
+      "promptTip": "Tips: Skriv hvilket tema og spesifiser gjerne hvilket innhold du ønsker. Presiser gjerne nivå og språk",
       "textType": "Teksttype",
       "textTypeOtherPlaceholder": "Beskriv teksttypen...",
-      "textLength": "Tekstlengde (ord)"
+      "textLength": "Tekstlengde (ord)",
+    "sharedSettingsTitle": "Tekstinnstillinger"
+    
     },
     "textTypes": {
       "everydayStory": "Hverdagsfortelling",
@@ -72,12 +74,15 @@
       "loadingQuota": "Laster kvote...",
       "quotaUsed": "Du har brukt {used} av {limit} denne måneden",
       "quotaExceeded": "Du har brukt {used} av {limit} denne måneden. Du kan ikke lage flere akkurat nå.",
-      "featureUnavailable": "Denne funksjonen er ikke tilgjengelig for deg."
+      "featureUnavailable": "Denne funksjonen er ikke tilgjengelig for deg.",
+       "tasksGeneratedUsageUpdated": "Oppgavene er laget. AI-bruk er oppdatert.",
+    "tasksGeneratedQuotaUsed": "Oppgavene er laget. Bruk: {used}/{limit}."
     },
     "builder": {
-      "lessonTitle": "Tittel",
-      "text": "Tekst",
-      "textHelp": "Du kan generere tekst med KI eller lime inn / skrive teksten selv."
+      "lessonTitle": "Tittel",  
+      "text": "Egen eller generert tekst",
+      "textHelp": "Du kan generere tekst med KI eller lime inn / skrive teksten selv.",
+    "wordCount": "Ordtelling: {count}"
     },
     "editor": {
       "title": "Oppgaveredigering",

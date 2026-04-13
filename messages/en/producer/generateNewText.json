@@ -4,18 +4,19 @@
     "subtitle": "Step 1: generate text → Step 2: generate tasks → edit → save draft.",
     "defaults": {
       "title": "New lesson",
-      "prompt": "Moving to a New Country"
+      "prompt": "Example: Write a story about Edvard Munch and the painting The Scream. Include some facts about the painting and his life."
     },
     "fields": {
       "level": "Level",
       "language": "Choose lesson language",
       "languageSearchPlaceholder": "Search language (e.g. Norwegian, Somali, ti, pt-BR...)",
       "languageCount": "Showing {count} languages",
-      "prompt": "Prompt / instructions",
+      "prompt": "Here you write instructions for the AI",
       "promptTip": "Tip: This field is the main prompt that drives the AI generation.",
       "textType": "Text type",
       "textTypeOtherPlaceholder": "Describe the text type...",
-      "textLength": "Text length (words)"
+      "textLength": "Text length (words)",
+      "sharedSettingsTitle": "Text settings"
     },
     "textTypes": {
       "everydayStory": "Everyday story",
@@ -72,12 +73,15 @@
       "loadingQuota": "Loading quota...",
       "quotaUsed": "You have used {used} of {limit} this month",
       "quotaExceeded": "You have used {used} of {limit} this month. You cannot create more right now.",
-      "featureUnavailable": "This feature is not available for you."
+      "featureUnavailable": "This feature is not available for you.",
+      "tasksGeneratedUsageUpdated": "Tasks created successfully.",
+    "tasksGeneratedQuotaUsed": "Tasks created successfully. Usage updated ({used}/{limit})."
     },
     "builder": {
       "lessonTitle": "Title",
-      "text": "Text",
-      "textHelp": "You can generate text with AI or paste / write the text yourself."
+      "text": "Your own or generated text",
+      "textHelp": "You can generate text with AI or paste / write the text yourself.",
+      "wordCount": "Word count: {count}"
     },
     "editor": {
       "title": "Tasks editor",

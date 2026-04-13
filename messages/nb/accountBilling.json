@@ -1,19 +1,25 @@
 {
   "accountBilling": {
     "title": "Abonnement",
-    "subtitle": "Her kan du se planen din, status og administrere Stripe-abonnementet.",
+    "subtitle": "Her kan du se planen din, status og administrere Stripe-abonnementet ditt.",
     "loadingAuth": "Laster innlogging ...",
     "mustBeSignedIn": "Du må være logget inn for å se abonnementet ditt.",
     "currentStatus": "Nåværende status",
-    "upgradeSection": "Oppgrader eller endre plan",
+    "upgradeSection": "Oppgrader eller bytt plan",
+    "technicalSection": "Tekniske detaljer",
     "noPlansForUser": "Fant ingen gyldige planer for denne brukeren.",
     "fields": {
       "role": "Rolle",
       "plan": "Plan",
+      "subscriptionPlan": "Abonnementsplan",
       "billingStatus": "Betalingsstatus",
       "renewsOrEnds": "Fornyes / avsluttes",
-      "cancelAtPeriodEnd": "Avsluttes ved periode slutt",
-      "provider": "Leverandør"
+      "cancelAtPeriodEnd": "Avsluttes ved periodeslutt",
+      "provider": "Leverandør",
+      "roleProduct": "Rolleprodukt",
+      "customerId": "Customer ID",
+      "subscriptionId": "Subscription ID",
+      "priceId": "Price ID"
     },
     "common": {
       "yes": "Ja",
@@ -30,11 +36,11 @@
     "plans": {
       "free": "Gratis",
       "basic": "Basis",
-      "plus": "Pluss",
+      "plus": "Plus",
       "pro": "Pro",
-      "basicDescription": "Et godt startnivå for jevnlig bruk.",
-      "plusDescription": "Mer kapasitet og flere premiumfunksjoner.",
-      "proDescription": "Best egnet for lærere med større behov."
+      "basicDescription": "Et godt startnivå for vanlig bruk.",
+      "plusDescription": "Mer kapasitet og flere premium-funksjoner.",
+      "proDescription": "Mest relevant for lærere med større behov."
     },
     "statuses": {
       "active": "Aktiv",
@@ -42,15 +48,20 @@
       "past_due": "Forfalt",
       "canceled": "Avsluttet",
       "unpaid": "Ubetalt",
-      "incomplete": "Ufullstendig",
+      "incomplete": "Ufullført",
       "inactive": "Ikke aktiv"
+    },
+    "statusBox": {
+      "active": "Abonnementet ditt er aktivt. Du kan administrere betalingsdetaljer og endre plan i betalingsportalen.",
+      "paymentIssue": "Det er et betalingsproblem på abonnementet ditt. Åpne betalingsportalen og kontroller betalingsinformasjonen.",
+      "inactive": "Du har ikke et aktivt betalt abonnement akkurat nå. Du kan velge en ny plan nedenfor."
     },
     "errors": {
       "mustBeSignedIn": "Du må være logget inn.",
-      "checkoutFailed": "Betaling feilet ({status})",
-      "portalFailed": "Portal feilet ({status})",
-      "checkoutMissingUrl": "Betaling returnerte uten URL.",
-      "portalMissingUrl": "Portal returnerte uten URL.",
+      "checkoutFailed": "Checkout mislyktes ({status})",
+      "portalFailed": "Portalen mislyktes ({status})",
+      "checkoutMissingUrl": "Checkout returnerte uten URL.",
+      "portalMissingUrl": "Portalen returnerte uten URL.",
       "generic": "Noe gikk galt."
     }
   }

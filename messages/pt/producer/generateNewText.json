@@ -4,18 +4,19 @@
     "subtitle": "Etapa 1: gerar texto → Etapa 2: gerar atividades → editar → salvar rascunho.",
     "defaults": {
       "title": "Nova atividade",
-      "prompt": "Mudando para um novo país"
+      "prompt": "Exemplo: Escreva uma história sobre Edvard Munch e a pintura O Grito. Inclua algumas informações sobre a obra e a vida dele."
     },
     "fields": {
       "level": "Nível",
       "language": "Escolha o idioma da atividade",
       "languageSearchPlaceholder": "Buscar idioma (ex.: norueguês, somali, ti, pt-BR...)",
       "languageCount": "Mostrando {count} idiomas",
-      "prompt": "Prompt / instruções",
-      "promptTip": "Dica: este campo é o prompt principal que orienta a geração por IA.",
+      "prompt": "Aqui você escreve as instruções para a IA.",
+      "promptTip": "Dica: Escreva o tópico e especifique o conteúdo desejado. Por favor, especifique o nível e o idioma.",
       "textType": "Tipo de texto",
       "textTypeOtherPlaceholder": "Descreva o tipo de texto...",
-      "textLength": "Tamanho do texto (palavras)"
+      "textLength": "Tamanho do texto (palavras)",
+      "sharedSettingsTitle": "Configurações do texto"
     },
     "textTypes": {
       "everydayStory": "História do cotidiano",
@@ -72,12 +73,15 @@
       "loadingQuota": "Carregando cota...",
       "quotaUsed": "Você usou {used} de {limit} neste mês",
       "quotaExceeded": "Você usou {used} de {limit} neste mês. Não é possível criar mais agora.",
-      "featureUnavailable": "Este recurso não está disponível para você."
+      "featureUnavailable": "Este recurso não está disponível para você.",
+      "tasksGeneratedUsageUpdated": "As tarefas foram criadas. O uso de IA foi atualizado.",
+    "tasksGeneratedQuotaUsed": "As tarefas foram criadas. Uso: {used}/{limit}."
     },
     "builder": {
       "lessonTitle": "Título",
-      "text": "Texto",
-      "textHelp": "Você pode gerar texto com IA ou colar / escrever o texto manualmente."
+      "text": "Texto próprio ou gerado por IA.",
+      "textHelp": "Você pode gerar texto com IA ou colar / escrever o texto manualmente.",
+      "wordCount": "Contagem de palavras: {count}"
     },
     "editor": {
       "title": "Editor de atividades",

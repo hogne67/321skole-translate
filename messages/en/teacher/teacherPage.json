@@ -85,6 +85,52 @@
         "registerLogin": "Register / log in",
         "openLibrary": "Open Library"
       }
+    },
+    "billing": {
+    "badge": "Plan and billing",
+    "title": "Your subscription",
+    "description": "See your current plan, subscription status, and next steps.",
+    "fields": {
+      "plan": "Plan",
+      "usagePlan": "Effective plan",
+      "role": "Role",
+      "status": "Status"
+    },
+    "plans": {
+      "free": "Free",
+      "basic": "Basic",
+      "plus": "Plus",
+      "pro": "Pro"
+    },
+    "statuses": {
+      "active": "Active",
+      "trialing": "Trial",
+      "pastDue": "Past due",
+      "canceled": "Canceled",
+      "incomplete": "Incomplete",
+      "unpaid": "Unpaid",
+      "none": "No subscription"
+    },
+    "messages": {
+      "activeSubscription": "Your subscription is active. You can manage payments and plan changes.",
+      "noSubscription": "You are currently using the free plan. Upgrade when you need more capacity."
+    },
+    "actions": {
+      "seePlans": "See plans",
+      "manage": "Manage subscription"
     }
+  },
+  "submissions": {
+    "badge": "Assignments",
+    "title": "Submission status",
+    "description": "See at a glance what needs your attention right now.",
+    "toReview": "To review",
+    "needsFollowUp": "Needs follow-up",
+    "reviewed": "Reviewed",
+    "spacesLabel": "Classes",
+    "actions": {
+      "openSpaces": "Open classes"
   }
+  }
+}
 }

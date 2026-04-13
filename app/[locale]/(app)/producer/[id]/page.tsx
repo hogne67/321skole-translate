@@ -633,10 +633,10 @@ export default function ProducerLessonEditorPage() {
 
   const sectionStyle: React.CSSProperties = {
     marginTop: 16,
-    border: "1px solid #e5e7eb",
+    border: "1px solid #cbd2e1ce",
     borderRadius: 16,
     padding: 16,
-    background: "#fff",
+    background: "#e3edf1e9",
     boxShadow: "0 4px 18px rgba(15, 23, 42, 0.04)",
   };
 
@@ -646,7 +646,7 @@ export default function ProducerLessonEditorPage() {
     borderRadius: 12,
     width: "100%",
     boxSizing: "border-box",
-    background: "#fff",
+    background: "#f3f6e7f6",
   };
 
   const smallHelpStyle: React.CSSProperties = {
@@ -755,7 +755,7 @@ export default function ProducerLessonEditorPage() {
         <section
           style={{
             ...sectionStyle,
-            background: "#f8fafc",
+            background: "#d6d9edef",
             display: "grid",
             gap: 10,
           }}

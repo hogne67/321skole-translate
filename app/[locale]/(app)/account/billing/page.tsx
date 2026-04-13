@@ -1,4 +1,3 @@
-//\(app)\account\billing\page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -52,7 +51,11 @@ function resolveRole(data: UserDocData | null): BillingRole | null {
     return data.mode;
   }
 
-  if (data.org?.role === "student" || data.org?.role === "teacher" || data.org?.role === "parent") {
+  if (
+    data.org?.role === "student" ||
+    data.org?.role === "teacher" ||
+    data.org?.role === "parent"
+  ) {
     return data.org.role;
   }
 
@@ -73,6 +76,43 @@ function allowedPlansForRole(role: BillingRole | null): CheckoutPlan[] {
 function capitalize(value: string): string {
   if (!value) return value;
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function getStatusTone(status: BillingStatus | null | undefined): {
+  background: string;
+  border: string;
+  color: string;
+} {
+  switch (status) {
+    case "active":
+      return {
+        background: "#ecfdf5",
+        border: "#a7f3d0",
+        color: "#047857",
+      };
+    case "trialing":
+      return {
+        background: "#eff6ff",
+        border: "#bfdbfe",
+        color: "#1d4ed8",
+      };
+    case "past_due":
+    case "unpaid":
+    case "incomplete":
+      return {
+        background: "#fff7ed",
+        border: "#fdba74",
+        color: "#c2410c",
+      };
+    case "canceled":
+    case "inactive":
+    default:
+      return {
+        background: "#f8fafc",
+        border: "#cbd5e1",
+        color: "#475569",
+      };
+  }
 }
 
 export default function BillingPage() {
@@ -117,13 +157,14 @@ export default function BillingPage() {
   const effectivePlan = userData?.plan ?? "free";
   const billing = userData?.billing ?? null;
   const status = billing?.status ?? "inactive";
+  const statusTone = getStatusTone(status);
 
   function labelForPlan(plan: BillingPlan | null | undefined) {
     return t(`plans.${plan ?? "free"}`);
   }
 
-  function labelForStatus(status: BillingStatus | null | undefined) {
-    return t(`statuses.${status ?? "inactive"}`);
+  function labelForStatus(statusValue: BillingStatus | null | undefined) {
+    return t(`statuses.${statusValue ?? "inactive"}`);
   }
 
   function formatDate(iso?: string | null) {
@@ -238,15 +279,23 @@ export default function BillingPage() {
     }
   }
 
+  function getStatusMessage() {
+    if (status === "active" || status === "trialing") {
+      return t("statusBox.active");
+    }
+
+    if (status === "past_due" || status === "unpaid" || status === "incomplete") {
+      return t("statusBox.paymentIssue");
+    }
+
+    return t("statusBox.inactive");
+  }
+
   return (
     <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
-        {t("title")}
-      </h1>
+      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>{t("title")}</h1>
 
-      <p style={{ color: "#475569", marginBottom: 24 }}>
-        {t("subtitle")}
-      </p>
+      <p style={{ color: "#475569", marginBottom: 24 }}>{t("subtitle")}</p>
 
       {!authReady ? (
         <div style={cardStyle}>{t("loadingAuth")}</div>
@@ -255,12 +304,62 @@ export default function BillingPage() {
       ) : (
         <>
           <section style={cardStyle}>
-            <h2 style={sectionTitleStyle}>{t("currentStatus")}</h2>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 12,
+                flexWrap: "wrap",
+                marginBottom: 16,
+              }}
+            >
+              <h2 style={sectionTitleStyle}>{t("currentStatus")}</h2>
+
+              <span
+                style={{
+                  borderRadius: 999,
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: statusTone.background,
+                  border: `1px solid ${statusTone.border}`,
+                  color: statusTone.color,
+                }}
+              >
+                {labelForStatus(status)}
+              </span>
+            </div>
+
+            <div
+              style={{
+                marginBottom: 18,
+                padding: 14,
+                borderRadius: 14,
+                border: `1px solid ${statusTone.border}`,
+                background: statusTone.background,
+                color: statusTone.color,
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              {getStatusMessage()}
+            </div>
 
             <div style={gridStyle}>
-              <InfoItem label={t("fields.role")} value={role ? capitalize(role) : t("common.empty")} />
+              <InfoItem
+                label={t("fields.role")}
+                value={role ? capitalize(role) : t("common.empty")}
+              />
               <InfoItem label={t("fields.plan")} value={labelForPlan(effectivePlan)} />
-              <InfoItem label={t("fields.billingStatus")} value={labelForStatus(status)} />
+              <InfoItem
+                label={t("fields.subscriptionPlan")}
+                value={labelForPlan(billing?.plan ?? "free")}
+              />
+              <InfoItem
+                label={t("fields.billingStatus")}
+                value={labelForStatus(status)}
+              />
               <InfoItem label={t("fields.renewsOrEnds")} value={renewalText} />
               <InfoItem
                 label={t("fields.cancelAtPeriodEnd")}
@@ -270,9 +369,13 @@ export default function BillingPage() {
                 label={t("fields.provider")}
                 value={billing?.provider ? String(billing.provider) : t("common.empty")}
               />
+              <InfoItem
+                label={t("fields.roleProduct")}
+                value={billing?.roleProduct ? capitalize(String(billing.roleProduct)) : t("common.empty")}
+              />
             </div>
 
-            <div style={{ marginTop: 20 }}>
+            <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 10 }}>
               <button
                 onClick={openPortal}
                 disabled={portalLoading || !billing?.customerId}
@@ -312,8 +415,8 @@ export default function BillingPage() {
                           {isCurrent
                             ? t("buttons.currentPlan")
                             : checkoutLoading === plan
-                            ? t("buttons.loading")
-                            : t("buttons.choosePlan", { plan: labelForPlan(plan) })}
+                              ? t("buttons.loading")
+                              : t("buttons.choosePlan", { plan: labelForPlan(plan) })}
                         </button>
                       </div>
                     </div>
@@ -323,9 +426,26 @@ export default function BillingPage() {
             )}
           </section>
 
-          {message ? (
-            <div style={messageStyle}>{message}</div>
-          ) : null}
+          <section style={cardStyle}>
+            <h2 style={sectionTitleStyle}>{t("technicalSection")}</h2>
+
+            <div style={gridStyle}>
+              <InfoItem
+                label={t("fields.customerId")}
+                value={billing?.customerId || t("common.empty")}
+              />
+              <InfoItem
+                label={t("fields.subscriptionId")}
+                value={billing?.subscriptionId || t("common.empty")}
+              />
+              <InfoItem
+                label={t("fields.priceId")}
+                value={billing?.priceId || t("common.empty")}
+              />
+            </div>
+          </section>
+
+          {message ? <div style={messageStyle}>{message}</div> : null}
         </>
       )}
     </main>
@@ -336,7 +456,7 @@ function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div style={infoItemStyle}>
       <div style={{ fontSize: 13, color: "#64748b", marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 600 }}>{value}</div>
+      <div style={{ fontSize: 16, fontWeight: 600, wordBreak: "break-word" }}>{value}</div>
     </div>
   );
 }
@@ -352,7 +472,7 @@ const cardStyle: React.CSSProperties = {
 const sectionTitleStyle: React.CSSProperties = {
   fontSize: 20,
   fontWeight: 700,
-  marginBottom: 16,
+  margin: 0,
 };
 
 const gridStyle: React.CSSProperties = {

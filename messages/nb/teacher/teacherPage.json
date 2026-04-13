@@ -85,6 +85,52 @@
         "registerLogin": "Registrer / logg inn",
         "openLibrary": "Åpne bibliotek"
       }
+    },
+    "billing": {
+    "badge": "Plan og betaling",
+    "title": "Ditt abonnement",
+    "description": "Se planen din, abonnementsstatus og hva du kan gjøre videre.",
+    "fields": {
+      "plan": "Plan",
+      "usagePlan": "Aktiv plan",
+      "role": "Rolle",
+      "status": "Status"
+    },
+    "plans": {
+      "free": "Gratis",
+      "basic": "Basis",
+      "plus": "Plus",
+      "pro": "Pro"
+    },
+    "statuses": {
+      "active": "Aktiv",
+      "trialing": "Prøveperiode",
+      "pastDue": "Forfalt",
+      "canceled": "Avsluttet",
+      "incomplete": "Ufullført",
+      "unpaid": "Ubetalt",
+      "none": "Ingen abonnement"
+    },
+    "messages": {
+      "activeSubscription": "Abonnementet ditt er aktivt. Du kan administrere betaling og endre plan.",
+      "noSubscription": "Du bruker gratisplanen akkurat nå. Oppgrader når du trenger mer kapasitet."
+    },
+    "actions": {
+      "seePlans": "Se planer",
+      "manage": "Administrer abonnement"
     }
+  },
+  "submissions": {
+    "badge": "Oppgaver",
+    "title": "Innleveringsstatus",
+    "description": "Se raskt hva som trenger oppmerksomhet akkurat nå.",
+    "toReview": "Til vurdering",
+    "needsFollowUp": "Følg opp",
+    "reviewed": "Vurdert",
+    "spacesLabel": "Klasserom",
+    "actions": {
+      "openSpaces": "Åpne klasserom"
+    }
+  }
   }
 }

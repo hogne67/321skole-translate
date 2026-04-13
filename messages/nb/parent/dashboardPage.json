@@ -44,6 +44,51 @@
         "limitReached": "Du har nådd grensen.",
         "upgrade": "Oppgrader"
       }
+    },
+  "billing": {
+    "badge": "Plan og betaling",
+    "title": "Ditt abonnement",
+    "description": "Se planen din, abonnementsstatus og hva du kan gjøre videre.",
+    "fields": {
+      "plan": "Plan",
+      "usagePlan": "Aktiv plan",
+      "role": "Rolle",
+      "parentRole": "Forelder",
+      "status": "Status"
+    },
+    "plans": {
+      "free": "Gratis",
+      "basic": "Basis",
+      "plus": "Plus",
+      "pro": "Pro"
+    },
+    "statuses": {
+      "active": "Aktiv",
+      "trialing": "Prøveperiode",
+      "pastDue": "Forfalt",
+      "canceled": "Avsluttet",
+      "incomplete": "Ufullført",
+      "unpaid": "Ubetalt",
+      "none": "Ingen abonnement"
+    },
+    "messages": {
+      "activeSubscription": "Abonnementet ditt er aktivt. Du kan administrere betaling og endre plan.",
+      "noSubscription": "Du bruker gratisplanen akkurat nå. Oppgrader når du trenger mer kapasitet."
+    },
+    "actions": {
+      "seePlans": "Se planer",
+      "manage": "Administrer abonnement"
     }
+  },
+  "status": {
+    "unavailable": "Ikke tilgjengelig",
+    "limitReached": "Grense nådd",
+    "almostFull": "Nesten fullt",
+    "gettingBusy": "Begynner å fylles opp",
+    "good": "Bra"
+  },
+  "stats": {
+    "percentUsed": "{percent}% brukt"
   }
 }
+  }

@@ -6,14 +6,20 @@
     "mustBeSignedIn": "You must be signed in to view your subscription.",
     "currentStatus": "Current status",
     "upgradeSection": "Upgrade or change plan",
+    "technicalSection": "Technical details",
     "noPlansForUser": "No valid plans were found for this user.",
     "fields": {
       "role": "Role",
       "plan": "Plan",
+      "subscriptionPlan": "Subscription plan",
       "billingStatus": "Billing status",
       "renewsOrEnds": "Renews / ends",
       "cancelAtPeriodEnd": "Ends at period end",
-      "provider": "Provider"
+      "provider": "Provider",
+      "roleProduct": "Role product",
+      "customerId": "Customer ID",
+      "subscriptionId": "Subscription ID",
+      "priceId": "Price ID"
     },
     "common": {
       "yes": "Yes",
@@ -44,6 +50,11 @@
       "unpaid": "Unpaid",
       "incomplete": "Incomplete",
       "inactive": "Not active"
+    },
+    "statusBox": {
+      "active": "Your subscription is active. You can manage payment details and plan changes in the billing portal.",
+      "paymentIssue": "There is a payment issue on this subscription. Please open the billing portal and review the payment details.",
+      "inactive": "You do not currently have an active paid subscription. You can choose a new plan below."
     },
     "errors": {
       "mustBeSignedIn": "You must be signed in.",

@@ -296,7 +296,7 @@ export default function LoginClient() {
     minHeight: 54,
     borderRadius: 16,
     border: "1px solid rgba(15,23,42,0.10)",
-    background: "#c6d1e8b7",
+    background: "#d0ddc6d3",
     color: "#0f172a",
     fontWeight: 900,
     fontSize: 15,
@@ -363,13 +363,13 @@ export default function LoginClient() {
 
   const inputStyle: React.CSSProperties = {
     width: "95%",
-    minHeight: 50,
+    minHeight: 40,
     padding: "12px 14px",
     borderRadius: 14,
     border: "1px solid rgba(15,23,42,0.14)",
     outline: "none",
-    fontSize: 15,
-    background: "#fff",
+    fontSize: 14,
+    background: "#dbe6ebed",
   };
 
   const helperRowStyle: React.CSSProperties = {

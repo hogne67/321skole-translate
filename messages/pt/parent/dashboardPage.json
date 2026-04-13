@@ -44,6 +44,51 @@
         "limitReached": "Você atingiu seu limite.",
         "upgrade": "Atualizar plano"
       }
+    },
+  "billing": {
+    "badge": "Plano e cobrança",
+    "title": "Sua assinatura",
+    "description": "Veja seu plano atual, status da assinatura e próximos passos.",
+    "fields": {
+      "plan": "Plano",
+      "usagePlan": "Plano efetivo",
+      "role": "Função",
+      "parentRole": "Responsável",
+      "status": "Status"
+    },
+    "plans": {
+      "free": "Grátis",
+      "basic": "Basic",
+      "plus": "Plus",
+      "pro": "Pro"
+    },
+    "statuses": {
+      "active": "Ativo",
+      "trialing": "Período de teste",
+      "pastDue": "Pagamento em atraso",
+      "canceled": "Cancelado",
+      "incomplete": "Incompleto",
+      "unpaid": "Não pago",
+      "none": "Sem assinatura"
+    },
+    "messages": {
+      "activeSubscription": "Sua assinatura está ativa. Você pode gerenciar pagamentos e alterar o plano.",
+      "noSubscription": "Você está usando o plano gratuito no momento. Faça upgrade quando precisar de mais capacidade."
+    },
+    "actions": {
+      "seePlans": "Ver planos",
+      "manage": "Gerenciar assinatura"
     }
+  },
+  "status": {
+    "unavailable": "Indisponível",
+    "limitReached": "Limite atingido",
+    "almostFull": "Quase cheio",
+    "gettingBusy": "Começando a encher",
+    "good": "Bom"
+  },
+  "stats": {
+    "percentUsed": "{percent}% usado"
   }
 }
+  }

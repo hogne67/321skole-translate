@@ -1,4 +1,3 @@
-// app/[locale]/(app)/producer/texts/new/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -45,8 +44,25 @@ type LessonTask = {
   correctAnswer?: unknown;
 };
 
-type GenerateTextResp = { title?: string; text?: string; error?: string; raw?: string };
-type GenerateTasksResp = { tasks?: ContentPack["tasks"]; error?: string; raw?: string };
+type GenerateTextResp = {
+  title?: string;
+  text?: string;
+  error?: string;
+  raw?: string;
+};
+type GenerateTasksResp = {
+  ok?: boolean;
+  tasks?: ContentPack["tasks"];
+  error?: string;
+  raw?: string;
+  quota?: {
+    feature?: string;
+    bucket?: string;
+    limit?: number;
+    used?: number;
+    remaining?: number;
+  };
+};
 
 function newId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(2, 6);
@@ -165,7 +181,7 @@ export default function NewTextPage() {
     marginTop: 6,
     border: "1px solid #e2e8f0",
     borderRadius: 12,
-    background: "#ffffffe0",
+    background: "#ffffffef",
     boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
     outline: "none",
     fontSize: 14,
@@ -179,7 +195,7 @@ export default function NewTextPage() {
   const cardStyle: CSSProperties = {
     border: "1px solid #cbd5e1",
     borderRadius: 20,
-    background: "#ffffff",
+    background: "#e6eef0f1",
     boxShadow: "0 10px 30px rgba(15, 23, 42, 0.10)",
     padding: 18,
   };
@@ -187,7 +203,7 @@ export default function NewTextPage() {
   const mutedCardStyle: CSSProperties = {
     ...cardStyle,
     opacity: 0.68,
-    background: "#fafafa",
+    background: "#e3e4d8f3",
   };
 
   const sectionTitleStyle: CSSProperties = {
@@ -249,7 +265,7 @@ export default function NewTextPage() {
     fontSize: 13,
     fontWeight: 800,
     border: "1px solid #cbd5e1",
-    background: done ? "#dcfce7" : active ? "#dbeafe" : "#f8fafc",
+    background: done ? "#deede3" : active ? "#dbeafe" : "#f8fafc",
     color: "#0f172a",
   });
 
@@ -264,7 +280,7 @@ export default function NewTextPage() {
   const [level, setLevel] = useState<LevelKey>("A2");
   const [language, setLanguage] = useState("nb");
   const [languageSearch, setLanguageSearch] = useState("");
-  const [prompt, setPrompt] = useState(t("defaults.prompt"));
+  const [prompt, setPrompt] = useState("");
   const [textTypePreset, setTextTypePreset] = useState<TextTypeKey>("everydayStory");
   const [textTypeOther, setTextTypeOther] = useState("");
   const textTypeLabel = useMemo(() => {
@@ -280,7 +296,7 @@ export default function NewTextPage() {
   const [factsCount, setFactsCount] = useState<number>(LEVEL_DEFAULTS.A2.facts);
   const [reflectionCount, setReflectionCount] = useState<number>(LEVEL_DEFAULTS.A2.reflection);
 
-  const [title, setTitle] = useState<string>(t("defaults.title"));
+  const [title, setTitle] = useState<string>("");
   const [sourceText, setSourceText] = useState<string>("");
   const [lessonTasks, setLessonTasks] = useState<LessonTask[]>([]);
   const [pack, setPack] = useState<ContentPack | null>(null);
@@ -291,6 +307,7 @@ export default function NewTextPage() {
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [tasksDirty, setTasksDirty] = useState(false);
+  const [taskUsageMessage, setTaskUsageMessage] = useState<string | null>(null);
 
   const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -310,6 +327,13 @@ export default function NewTextPage() {
   const role = useMemo(() => resolveRoleFromProfile(profile), [profile]);
   const plan = useMemo(() => safePlan(planValue), [planValue]);
   const billing = useMemo(() => getBillingSnapshot(profile), [profile]);
+
+  const sourceWordCount = useMemo(() => {
+    return sourceText
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
+  }, [sourceText]);
 
   useEffect(() => {
     const d = LEVEL_DEFAULTS[level];
@@ -559,7 +583,7 @@ export default function NewTextPage() {
         body: JSON.stringify({
           level,
           language,
-          topic: prompt,
+          topic: prompt.trim(),
           textType: textTypeLabel,
           textLength,
         }),
@@ -592,7 +616,7 @@ export default function NewTextPage() {
 
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
 
-      const nextTitle = String(data.title || t("defaults.title")).trim() || t("defaults.title");
+      const nextTitle = String(data.title || "").trim();
       const nextText = String(data.text || "").trim();
       if (!nextText) throw new Error("Missing text in response.");
 
@@ -611,9 +635,10 @@ export default function NewTextPage() {
   }
 
   async function generateTasksOnly() {
-    setLoadingTasks(true);
-    setError(null);
-    setSavedId(null);
+  setLoadingTasks(true);
+  setError(null);
+  setSavedId(null);
+  setTaskUsageMessage(null);
 
     try {
       if (!sourceText.trim()) throw new Error("Generate or write text first.");
@@ -632,7 +657,7 @@ export default function NewTextPage() {
         body: JSON.stringify({
           level,
           language,
-          topic: prompt,
+          topic: prompt.trim(),
           textType: textTypeLabel,
           text: sourceText,
           tasks: {
@@ -648,27 +673,56 @@ export default function NewTextPage() {
       if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
 
       let data: GenerateTasksResp;
-      try {
-        data = JSON.parse(raw) as GenerateTasksResp;
-      } catch {
-        throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
-      }
+try {
+  data = JSON.parse(raw) as GenerateTasksResp;
+} catch {
+  throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
+}
 
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      if (!data?.tasks) throw new Error(t("errors.missingTasksInResponse"));
+if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+if (!data?.tasks) throw new Error(t("errors.missingTasksInResponse"));
 
-      const fakePack: ContentPack = {
-        title: title || t("defaults.title"),
-        level,
-        language,
-        topic: prompt,
-        text: sourceText,
-        tasks: data.tasks,
-      };
+const fakePack: ContentPack = {
+  title: title || t("defaults.title"),
+  level,
+  language,
+  topic: prompt,
+  text: sourceText,
+  tasks: data.tasks,
+};
 
-      setLessonTasks(packToLessonTasks(fakePack));
-      setPack(fakePack);
-      setTasksDirty(false);
+setLessonTasks(packToLessonTasks(fakePack));
+setPack(fakePack);
+setTasksDirty(false);
+
+if (data.quota) {
+  setFeatureStatus((prev) => {
+    if (!prev) return prev;
+    return {
+      ...prev,
+      used: typeof data.quota?.used === "number" ? data.quota.used : prev.used,
+      limit: typeof data.quota?.limit === "number" ? data.quota.limit : prev.limit,
+      remaining:
+        typeof data.quota?.remaining === "number" ? data.quota.remaining : prev.remaining,
+    };
+  });
+
+  if (
+    typeof data.quota.used === "number" &&
+    typeof data.quota.limit === "number"
+  ) {
+    setTaskUsageMessage(
+      t("status.tasksGeneratedQuotaUsed", {
+        used: data.quota.used,
+        limit: data.quota.limit,
+      })
+    );
+  } else {
+    setTaskUsageMessage(t("status.tasksGeneratedUsageUpdated"));
+  }
+} else {
+  setTaskUsageMessage(t("status.tasksGeneratedUsageUpdated"));
+}
     } catch (e: unknown) {
       setError(localizeError(getErrorMessage(e)));
     } finally {
@@ -677,7 +731,6 @@ export default function NewTextPage() {
   }
 
   async function saveLesson(): Promise<string> {
-    if (!title.trim()) throw new Error("Title is required.");
     if (!sourceText.trim()) throw new Error("Source text is empty.");
 
     const user = getAuth().currentUser;
@@ -703,11 +756,11 @@ export default function NewTextPage() {
         authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        title: title || t("defaults.title"),
+        title: title.trim() || t("defaults.title"),
         level,
         language,
-        prompt,
-        topic: prompt,
+        prompt: prompt.trim(),
+        topic: prompt.trim(),
         textType: textTypeLabel,
         sourceText: sourceText || "",
         tasks: renumberOrders(lessonTasks),
@@ -807,21 +860,23 @@ export default function NewTextPage() {
       className="pageWrap"
       style={{
         width: "100%",
-        maxWidth: 980,
+        maxWidth: 1180,
         margin: "0 auto",
         padding: "8px 12px 60px",
         boxSizing: "border-box",
       }}
     >
       <div className="pageCard" style={{ ...cardStyle, padding: 20 }}>
-        <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 26, fontWeight: 800 }}>{t("title")}</h1>
+        <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 26, fontWeight: 800 }}>
+          {t("title")}
+        </h1>
         <p style={{ marginTop: 0, marginBottom: 10, opacity: 0.8 }}>{t("subtitle")}</p>
 
         <section
           style={{
             ...cardStyle,
             marginBottom: 16,
-            background: "#f8fafc",
+            background: "#eaedf1f3",
             display: "grid",
             gap: 10,
           }}
@@ -838,7 +893,7 @@ export default function NewTextPage() {
                 border: "1px solid #e2e8f0",
                 borderRadius: 16,
                 padding: 12,
-                background: "#fff",
+                background: "#eaeddbf2",
               }}
             >
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
@@ -855,7 +910,7 @@ export default function NewTextPage() {
                 border: "1px solid #e2e8f0",
                 borderRadius: 16,
                 padding: 12,
-                background: "#fff",
+                background: "#eee4e4f4",
               }}
             >
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
@@ -876,7 +931,7 @@ export default function NewTextPage() {
                 border: "1px solid #e2e8f0",
                 borderRadius: 16,
                 padding: 12,
-                background: "#fff",
+                background: "#e5e6eff5",
               }}
             >
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
@@ -902,16 +957,9 @@ export default function NewTextPage() {
           </div>
         </section>
 
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
-            gap: 12,
-            marginTop: 14,
-          }}
-        >
-          <div style={{ gridColumn: "1 / -1", ...cardStyle }}>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+        <section style={{ marginTop: 14 }}>
+          <div style={{ ...cardStyle }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
               <span style={stepBadgeStyle(!step1Done, step1Done)}>1</span>
               <div>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
@@ -925,142 +973,212 @@ export default function NewTextPage() {
 
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
-                gap: 12,
+                border: "1px solid #e2e8f0",
+                borderRadius: 16,
+                padding: 14,
+                background: "#e2e8eef8",
+                marginBottom: 14,
               }}
             >
-              <label>
-                {t("fields.level")}
-                <select value={level} onChange={(e) => setLevel(e.target.value as LevelKey)} style={fieldStyle}>
-                  <option value="A1">A1</option>
-                  <option value="A2">A2</option>
-                  <option value="B1">B1</option>
-                  <option value="B2">B2</option>
-                  <option value="C1">C1</option>
-                  <option value="C2">C2</option>
-                </select>
-              </label>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>
+                {t("fields.sharedSettingsTitle")}
+              </div>
 
-              <label>
-                {t("fields.language")}
-                <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
-                  <input
-                    value={languageSearch}
-                    onChange={(e) => setLanguageSearch(e.target.value)}
-                    placeholder={t("fields.languageSearchPlaceholder")}
-                    style={fieldStyleCompact}
-                  />
-                  <select value={language} onChange={(e) => setLanguage(e.target.value)} style={fieldStyle}>
-                    {filteredLanguages.map((l) => (
-                      <option key={l.code} value={l.code}>
-                        {l.label} ({l.code})
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(4, minmax(0, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <label>
+                  {t("fields.level")}
+                  <select value={level} onChange={(e) => setLevel(e.target.value as LevelKey)} style={fieldStyle}>
+                    <option value="A1">A1</option>
+                    <option value="A2">A2</option>
+                    <option value="B1">B1</option>
+                    <option value="B2">B2</option>
+                    <option value="C1">C1</option>
+                    <option value="C2">C2</option>
+                  </select>
+                </label>
+
+                <label>
+                  {t("fields.language")}
+                  <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
+                    <input
+                      value={languageSearch}
+                      onChange={(e) => setLanguageSearch(e.target.value)}
+                      placeholder={t("fields.languageSearchPlaceholder")}
+                      style={fieldStyleCompact}
+                    />
+                    <select value={language} onChange={(e) => setLanguage(e.target.value)} style={fieldStyle}>
+                      {filteredLanguages.map((l) => (
+                        <option key={l.code} value={l.code}>
+                          {l.label} ({l.code})
+                        </option>
+                      ))}
+                    </select>
+                    <div style={{ fontSize: 12, opacity: 0.75 }}>
+                      {t("fields.languageCount", { count: filteredLanguages.length })}
+                    </div>
+                  </div>
+                </label>
+
+                <label>
+                  {t("fields.textType")}
+                  <select
+                    value={textTypePreset}
+                    onChange={(e) => setTextTypePreset(e.target.value as TextTypeKey)}
+                    style={fieldStyle}
+                  >
+                    {TEXT_TYPE_KEYS.map((k) => (
+                      <option key={k} value={k}>
+                        {t(`textTypes.${k}`)}
                       </option>
                     ))}
                   </select>
-                  <div style={{ fontSize: 12, opacity: 0.75 }}>
-                    {t("fields.languageCount", { count: filteredLanguages.length })}
-                  </div>
-                </div>
-              </label>
 
-              <label style={{ gridColumn: "1 / -1" }}>
-                {t("fields.prompt")}
-                <textarea
-                  value={prompt}
-                  onChange={(e) => {
-                    setPrompt(e.target.value);
-                    autoGrow(e.currentTarget);
-                  }}
-                  onInput={(e) => autoGrow(e.currentTarget as HTMLTextAreaElement)}
-                  rows={4}
-                  style={{
-                    ...fieldStyle,
-                    resize: "vertical",
-                    minHeight: 90,
-                    lineHeight: 1.35,
-                    fontFamily: "inherit",
-                  }}
-                />
-                <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>{t("fields.promptTip")}</div>
-              </label>
+                  {textTypePreset === "other" && (
+                    <input
+                      value={textTypeOther}
+                      onChange={(e) => setTextTypeOther(e.target.value)}
+                      placeholder={t("fields.textTypeOtherPlaceholder")}
+                      style={{ ...fieldStyle, marginTop: 8 }}
+                    />
+                  )}
+                </label>
 
-              <label>
-                {t("fields.textType")}
-                <select
-                  value={textTypePreset}
-                  onChange={(e) => setTextTypePreset(e.target.value as TextTypeKey)}
-                  style={fieldStyle}
-                >
-                  {TEXT_TYPE_KEYS.map((k) => (
-                    <option key={k} value={k}>
-                      {t(`textTypes.${k}`)}
-                    </option>
-                  ))}
-                </select>
-
-                {textTypePreset === "other" && (
+                <label>
+                  {t("fields.textLength")}
                   <input
-                    value={textTypeOther}
-                    onChange={(e) => setTextTypeOther(e.target.value)}
-                    placeholder={t("fields.textTypeOtherPlaceholder")}
-                    style={{ ...fieldStyle, marginTop: 8 }}
+                    type="number"
+                    value={textLength}
+                    onChange={(e) => setTextLength(Number(e.target.value))}
+                    style={fieldStyle}
+                    min={60}
+                    max={900}
                   />
-                )}
-              </label>
+                </label>
+              </div>
+            </div>
 
-              <label>
-                {t("fields.textLength")}
-                <input
-                  type="number"
-                  value={textLength}
-                  onChange={(e) => setTextLength(Number(e.target.value))}
-                  style={fieldStyle}
-                  min={60}
-                  max={900}
-                />
-              </label>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
+                gap: 14,
+                alignItems: "start",
+              }}
+            >
+              <div
+                style={{
+                  border: "1px solid #dbeafe",
+                  borderRadius: 16,
+                  padding: 14,
+                  background: "#f8fbff",
+                }}
+              >
+                <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 16, fontWeight: 800 }}>
+                  {t("buttons.generateText")}
+                </h3>
 
-              <div style={{ gridColumn: "1 / -1" }}>
-                <button
-                  className="actionBtn"
-                  onClick={generateTextOnly}
-                  disabled={busy}
-                  style={{
-                    ...buttonPrimary,
-                    width: isNarrow ? "100%" : "auto",
-                    opacity: busy ? 0.7 : 1,
-                    cursor: busy ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {loadingText ? t("buttons.generatingText") : t("buttons.generateText")}
-                </button>
+                <label>
+                  {t("fields.prompt")}
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      autoGrow(e.currentTarget);
+                    }}
+                    onInput={(e) => autoGrow(e.currentTarget as HTMLTextAreaElement)}
+                    rows={5}
+                    placeholder={t("defaults.prompt")}
+                    style={{
+                      ...fieldStyle,
+                      resize: "vertical",
+                      minHeight: 110,
+                      lineHeight: 1.35,
+                      fontFamily: "inherit",
+                    }}
+                  />
+                  <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+                    {t("fields.promptTip")}
+                  </div>
+                </label>
+
+                <div style={{ marginTop: 12 }}>
+                  <button
+                    className="actionBtn"
+                    onClick={generateTextOnly}
+                    disabled={busy}
+                    style={{
+                      ...buttonPrimary,
+                      width: isNarrow ? "100%" : "auto",
+                      opacity: busy ? 0.7 : 1,
+                      cursor: busy ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {loadingText ? t("buttons.generatingText") : t("buttons.generateText")}
+                  </button>
+                </div>
               </div>
 
-              <label style={{ gridColumn: "1 / -1" }}>
-                {t("builder.lessonTitle")}
-                <input value={title} onChange={(e) => setTitle(e.target.value)} style={fieldStyle} />
-              </label>
+              <div
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 16,
+                  padding: 14,
+                  background: "#fff",
+                }}
+              >
+                <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 16, fontWeight: 800 }}>
+                  {t("builder.text")}
+                </h3>
 
-              <label style={{ gridColumn: "1 / -1" }}>
-                {t("builder.text")}
-                <textarea
-                  value={sourceText}
-                  onChange={(e) => {
-                    setSourceText(e.target.value);
-                    if (lessonTasks.length > 0) setTasksDirty(true);
-                  }}
-                  rows={10}
-                  style={{ ...fieldStyle, resize: "vertical" }}
-                />
-                <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                  {t("builder.textHelp")}
-                </div>
-              </label>
+                <label style={{ display: "block" }}>
+                  {t("builder.lessonTitle")}
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={t("defaults.title")}
+                    style={fieldStyle}
+                  />
+                </label>
+
+                <label style={{ display: "block", marginTop: 10 }}>
+                  {t("builder.text")}
+                  <textarea
+                    value={sourceText}
+                    onChange={(e) => {
+                      setSourceText(e.target.value);
+                      if (lessonTasks.length > 0) setTasksDirty(true);
+                    }}
+                    rows={14}
+                    style={{ ...fieldStyle, resize: "vertical" }}
+                  />
+                  <div
+                    style={{
+                      marginTop: 6,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      flexWrap: "wrap",
+                      fontSize: 12,
+                      opacity: 0.75,
+                    }}
+                  >
+                    <span>{t("builder.textHelp")}</span>
+                    <span>{t("builder.wordCount", { count: sourceWordCount })}</span>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div style={{ gridColumn: "1 / -1", ...(hasText ? cardStyle : mutedCardStyle) }}>
+        <section style={{ marginTop: 16 }}>
+          <div style={{ ...(hasText ? cardStyle : mutedCardStyle) }}>
             <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
               <span style={stepBadgeStyle(step2Active && !step2Done, step2Done)}>2</span>
               <div>
@@ -1150,35 +1268,43 @@ export default function NewTextPage() {
             </div>
 
             {hasText && (
-              <div
-                className="actionRow"
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  marginTop: 14,
-                }}
-              >
-                <button
-                  className="actionBtn"
-                  onClick={generateTasksOnly}
-                  disabled={busy || !sourceText.trim()}
-                  style={{
-                    ...buttonPrimary,
-                    opacity: busy || !sourceText.trim() ? 0.55 : 1,
-                    cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
-                  }}
-                  title={!sourceText.trim() ? t("hints.generateTextFirst") : t("hints.generateTasks")}
-                >
-                  {loadingTasks ? t("buttons.generatingTasks") : t("buttons.generateTasks")}
-                </button>
+  <div
+    className="actionRow"
+    style={{
+      display: "flex",
+      gap: 10,
+      alignItems: "center",
+      flexWrap: "wrap",
+      marginTop: 14,
+    }}
+  >
+    <button
+      className="actionBtn"
+      onClick={generateTasksOnly}
+      disabled={busy || !sourceText.trim()}
+      style={{
+        ...buttonPrimary,
+        opacity: busy || !sourceText.trim() ? 0.55 : 1,
+        cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
+      }}
+      title={!sourceText.trim() ? t("hints.generateTextFirst") : t("hints.generateTasks")}
+    >
+      {loadingTasks ? t("buttons.generatingTasks") : t("buttons.generateTasks")}
+    </button>
 
-                {tasksDirty && sourceText.trim() && (
-                  <span style={{ color: "#b45309", fontWeight: 700 }}>{t("warnings.checkTextBeforeTasks")}</span>
-                )}
-              </div>
-            )}
+    {tasksDirty && sourceText.trim() && (
+      <span style={{ color: "#b45309", fontWeight: 700 }}>
+        {t("warnings.checkTextBeforeTasks")}
+      </span>
+    )}
+
+    {taskUsageMessage && (
+      <span style={{ color: "#15803d", fontWeight: 700 }}>
+        {taskUsageMessage}
+      </span>
+    )}
+  </div>
+)}
           </div>
         </section>
 
@@ -1309,7 +1435,9 @@ export default function NewTextPage() {
                           <strong style={{ minWidth: 110 }}>
                             {idx + 1}. {task.type.toUpperCase()}
                           </strong>
-                          <span style={{ opacity: 0.7, fontSize: 13 }}>{t("editor.taskId", { id: task.id })}</span>
+                          <span style={{ opacity: 0.7, fontSize: 13 }}>
+                            {t("editor.taskId", { id: task.id })}
+                          </span>
                         </div>
 
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1360,7 +1488,9 @@ export default function NewTextPage() {
                             value={String(task.correctAnswer ?? "true")}
                             onChange={(e) => {
                               const v = e.target.value;
-                              setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x)));
+                              setLessonTasks((prev) =>
+                                prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x))
+                              );
                             }}
                             style={fieldStyle}
                           >
@@ -1405,7 +1535,9 @@ export default function NewTextPage() {
                               value={typeof task.correctAnswer === "string" ? task.correctAnswer : ""}
                               onChange={(e) => {
                                 const v = e.target.value;
-                                setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x)));
+                                setLessonTasks((prev) =>
+                                  prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x))
+                                );
                               }}
                               style={fieldStyle}
                             />
@@ -1414,7 +1546,9 @@ export default function NewTextPage() {
                       )}
 
                       {task.type === "open" && (
-                        <p style={{ marginTop: 10, opacity: 0.75, marginBottom: 0 }}>{t("editor.openHint")}</p>
+                        <p style={{ marginTop: 10, opacity: 0.75, marginBottom: 0 }}>
+                          {t("editor.openHint")}
+                        </p>
                       )}
                     </div>
                   ))}
@@ -1479,7 +1613,9 @@ export default function NewTextPage() {
                 }}
               >
                 {quotaBadgeText}
-                {featureStatus.remaining <= 2 && featureStatus.remaining > 0 ? ` ${t("warnings.soonEmpty")}` : ""}
+                {featureStatus.remaining <= 2 && featureStatus.remaining > 0
+                  ? ` ${t("warnings.soonEmpty")}`
+                  : ""}
               </span>
             )}
 
@@ -1494,7 +1630,7 @@ export default function NewTextPage() {
             <pre
               style={{
                 whiteSpace: "pre-wrap",
-                background: "#f7f7f742",
+                background: "#ead9d9ed",
                 border: "1px solid #eee",
                 borderRadius: 10,
                 padding: 12,

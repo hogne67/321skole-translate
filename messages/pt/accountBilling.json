@@ -3,17 +3,23 @@
     "title": "Assinatura",
     "subtitle": "Aqui você pode ver seu plano, status e gerenciar sua assinatura Stripe.",
     "loadingAuth": "Carregando login ...",
-    "mustBeSignedIn": "Você precisa estar logado para ver sua assinatura.",
+    "mustBeSignedIn": "Você precisa estar conectado para ver sua assinatura.",
     "currentStatus": "Status atual",
-    "upgradeSection": "Atualizar ou mudar plano",
+    "upgradeSection": "Fazer upgrade ou mudar de plano",
+    "technicalSection": "Detalhes técnicos",
     "noPlansForUser": "Nenhum plano válido foi encontrado para este usuário.",
     "fields": {
-      "role": "Perfil",
+      "role": "Função",
       "plan": "Plano",
-      "billingStatus": "Status de pagamento",
+      "subscriptionPlan": "Plano da assinatura",
+      "billingStatus": "Status de cobrança",
       "renewsOrEnds": "Renova / termina",
       "cancelAtPeriodEnd": "Termina no fim do período",
-      "provider": "Provedor"
+      "provider": "Provedor",
+      "roleProduct": "Produto da função",
+      "customerId": "Customer ID",
+      "subscriptionId": "Subscription ID",
+      "priceId": "Price ID"
     },
     "common": {
       "yes": "Sim",
@@ -29,28 +35,33 @@
     },
     "plans": {
       "free": "Grátis",
-      "basic": "Básico",
+      "basic": "Basic",
       "plus": "Plus",
       "pro": "Pro",
       "basicDescription": "Um bom nível inicial para uso regular.",
       "plusDescription": "Mais capacidade e mais recursos premium.",
-      "proDescription": "Mais indicado para professores com maiores necessidades."
+      "proDescription": "Mais relevante para professores com necessidades maiores."
     },
     "statuses": {
-      "active": "Ativo",
+      "active": "Ativa",
       "trialing": "Período de teste",
-      "past_due": "Atrasado",
-      "canceled": "Cancelado",
-      "unpaid": "Não pago",
-      "incomplete": "Incompleto",
-      "inactive": "Inativo"
+      "past_due": "Pagamento em atraso",
+      "canceled": "Cancelada",
+      "unpaid": "Não paga",
+      "incomplete": "Incompleta",
+      "inactive": "Não ativa"
+    },
+    "statusBox": {
+      "active": "Sua assinatura está ativa. Você pode gerenciar os dados de pagamento e mudar de plano no portal de cobrança.",
+      "paymentIssue": "Há um problema de pagamento na sua assinatura. Abra o portal de cobrança e revise as informações de pagamento.",
+      "inactive": "Você não tem uma assinatura paga ativa no momento. Você pode escolher um novo plano abaixo."
     },
     "errors": {
-      "mustBeSignedIn": "Você precisa estar logado.",
-      "checkoutFailed": "Pagamento falhou ({status})",
-      "portalFailed": "Portal falhou ({status})",
-      "checkoutMissingUrl": "Pagamento retornou sem URL.",
-      "portalMissingUrl": "Portal retornou sem URL.",
+      "mustBeSignedIn": "Você precisa estar conectado.",
+      "checkoutFailed": "O checkout falhou ({status})",
+      "portalFailed": "O portal falhou ({status})",
+      "checkoutMissingUrl": "O checkout retornou sem URL.",
+      "portalMissingUrl": "O portal retornou sem URL.",
       "generic": "Algo deu errado."
     }
   }

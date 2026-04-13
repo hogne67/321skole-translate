@@ -1,3 +1,4 @@
+// app/[locale]/(app)/teacher/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -174,43 +175,69 @@ function emptyStats(): SubmissionDashboardStats {
   };
 }
 
-function getDashboardCopy(locale: string) {
-  if (locale === "pt") {
+function getBillingTone(status?: string | null): {
+  bg: string;
+  color: string;
+  border: string;
+} {
+  const value = (status ?? "").toLowerCase();
+
+  if (value === "active") {
     return {
-      badge: "Tarefas",
-      title: "Status das entregas",
-      description: "Veja rapidamente o que precisa de atenção agora.",
-      toReview: "Para avaliar",
-      needsFollowUp: "Acompanhar",
-      reviewed: "Concluídas",
-      openSpaces: "Abrir turmas",
-      spacesLabel: "Turmas",
+      bg: "#ecfdf5",
+      color: "#047857",
+      border: "#a7f3d0",
     };
   }
 
-  if (locale === "en") {
+  if (value === "trialing") {
     return {
-      badge: "Assignments",
-      title: "Submission status",
-      description: "See at a glance what needs your attention right now.",
-      toReview: "To review",
-      needsFollowUp: "Needs follow-up",
-      reviewed: "Reviewed",
-      openSpaces: "Open classes",
-      spacesLabel: "Classes",
+      bg: "#eff6ff",
+      color: "#1d4ed8",
+      border: "#bfdbfe",
+    };
+  }
+
+  if (value === "past_due" || value === "unpaid" || value === "incomplete") {
+    return {
+      bg: "#fff7ed",
+      color: "#c2410c",
+      border: "#fdba74",
     };
   }
 
   return {
-    badge: "Oppgaver",
-    title: "Innleveringsstatus",
-    description: "Se raskt hva som trenger oppmerksomhet akkurat nå.",
-    toReview: "Til vurdering",
-    needsFollowUp: "Følg opp",
-    reviewed: "Vurdert",
-    openSpaces: "Åpne klasserom",
-    spacesLabel: "Klasserom",
+    bg: "#f8fafc",
+    color: "#475569",
+    border: "#cbd5e1",
   };
+}
+
+function formatPlanLabel(
+  plan: string | null | undefined,
+  t: ReturnType<typeof useTranslations>
+): string {
+  const value = (plan ?? "free").toLowerCase();
+
+  if (value === "basic") return t("billing.plans.basic");
+  if (value === "plus") return t("billing.plans.plus");
+  if (value === "pro") return t("billing.plans.pro");
+  return t("billing.plans.free");
+}
+
+function formatBillingStatus(
+  status: string | null | undefined,
+  t: ReturnType<typeof useTranslations>
+): string {
+  const value = (status ?? "").toLowerCase();
+
+  if (value === "active") return t("billing.statuses.active");
+  if (value === "trialing") return t("billing.statuses.trialing");
+  if (value === "past_due") return t("billing.statuses.pastDue");
+  if (value === "canceled") return t("billing.statuses.canceled");
+  if (value === "incomplete") return t("billing.statuses.incomplete");
+  if (value === "unpaid") return t("billing.statuses.unpaid");
+  return t("billing.statuses.none");
 }
 
 type StatCardProps = {
@@ -340,50 +367,41 @@ function SmallStatusCard({
   title,
   value,
   href,
+  tone = "neutral",
 }: {
   title: string;
   value: number;
   href: string;
+  tone?: "warning" | "info" | "success" | "neutral";
 }) {
-  function getStyle(title: string) {
-    const t = title.toLowerCase();
-
-    if (t.includes("opp") || t.includes("needs")) {
-      return {
-        bg: "rgba(245,158,11,0.12)",
-        border: "rgba(245,158,11,0.35)",
-        color: "rgba(180,83,9,1)",
-        badgeBg: "rgba(245,158,11,1)",
-      };
-    }
-
-    if (t.includes("vurdering") || t.includes("review") || t.includes("submitted")) {
-      return {
-        bg: "rgba(59,130,246,0.12)",
-        border: "rgba(59,130,246,0.35)",
-        color: "rgba(37,99,235,1)",
-        badgeBg: "rgba(59,130,246,1)",
-      };
-    }
-
-    if (t.includes("ferdig") || t.includes("approved")) {
-      return {
-        bg: "rgba(16,185,129,0.12)",
-        border: "rgba(16,185,129,0.35)",
-        color: "rgba(5,150,105,1)",
-        badgeBg: "rgba(16,185,129,1)",
-      };
-    }
-
-    return {
-      bg: "#ffffff",
-      border: "#e5e7eb",
-      color: "#64748b",
-      badgeBg: "rgba(100,116,139,1)",
-    };
-  }
-
-  const style = getStyle(title);
+  const style =
+    tone === "warning"
+      ? {
+          bg: "rgba(245,158,11,0.12)",
+          border: "rgba(245,158,11,0.35)",
+          color: "rgba(180,83,9,1)",
+          badgeBg: "rgba(245,158,11,1)",
+        }
+      : tone === "info"
+        ? {
+            bg: "rgba(59,130,246,0.12)",
+            border: "rgba(59,130,246,0.35)",
+            color: "rgba(37,99,235,1)",
+            badgeBg: "rgba(59,130,246,1)",
+          }
+        : tone === "success"
+          ? {
+              bg: "rgba(16,185,129,0.12)",
+              border: "rgba(16,185,129,0.35)",
+              color: "rgba(5,150,105,1)",
+              badgeBg: "rgba(16,185,129,1)",
+            }
+          : {
+              bg: "#ffffff",
+              border: "#e5e7eb",
+              color: "#64748b",
+              badgeBg: "rgba(100,116,139,1)",
+            };
 
   return (
     <Link
@@ -408,9 +426,7 @@ function SmallStatusCard({
       }}
     >
       <div className="flex items-start justify-between gap-3">
-        <div style={{ fontSize: 13, fontWeight: 700, color: style.color }}>
-          {title}
-        </div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: style.color }}>{title}</div>
 
         {value > 0 ? (
           <span
@@ -454,7 +470,6 @@ function SmallStatusCard({
 export default function TeacherPage() {
   const locale = useLocale();
   const t = useTranslations("teacherPage");
-  const dashCopy = useMemo(() => getDashboardCopy(locale), [locale]);
 
   const { user, profile, loading } = useUserProfile();
   const { usage, loading: usageLoading } = useUsage(user?.uid);
@@ -487,6 +502,17 @@ export default function TeacherPage() {
     plan: planValue,
     billing,
   });
+
+  const rawBillingPlan = billing?.plan ?? planValue ?? null;
+  const rawBillingStatus = billing?.status ?? null;
+
+  const billingPlanLabel = formatPlanLabel(rawBillingPlan, t);
+  const effectivePlanLabel = formatPlanLabel(effectivePlan, t);
+  const billingStatusLabel = formatBillingStatus(rawBillingStatus, t);
+  const billingTone = getBillingTone(rawBillingStatus);
+
+  const hasActiveSubscription =
+    rawBillingStatus === "active" || rawBillingStatus === "trialing";
 
   async function reloadStudents(currentUid?: string) {
     if (!currentUid || !db) {
@@ -760,6 +786,234 @@ export default function TeacherPage() {
       <section
         style={{
           marginTop: 20,
+          border: "1px solid #cbd5e1",
+          borderRadius: 22,
+          background: "#f8fafc",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ padding: 16 }}>
+          <div
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 18,
+              background:
+                "linear-gradient(180deg, rgba(239,246,255,0.92) 0%, rgba(255,255,255,1) 120px)",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <div style={{ minWidth: 0, flex: "1 1 420px" }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    border: "1px solid #bfdbfe",
+                    background: "#eff6ff",
+                    color: "#1d4ed8",
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {t("billing.badge")}
+                </div>
+
+                <h2
+                  style={{
+                    margin: "10px 0 0",
+                    fontSize: 24,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    lineHeight: 1.15,
+                  }}
+                >
+                  {t("billing.title")}
+                </h2>
+
+                <p
+                  style={{
+                    margin: "8px 0 0",
+                    fontSize: 14,
+                    color: "#475569",
+                    maxWidth: 720,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {t("billing.description")}
+                </p>
+              </div>
+
+              <span
+                style={{
+                  borderRadius: 999,
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: billingTone.bg,
+                  color: billingTone.color,
+                  border: `1px solid ${billingTone.border}`,
+                }}
+              >
+                {billingStatusLabel}
+              </span>
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
+                display: "grid",
+                gap: 12,
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              }}
+            >
+              <div
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 16,
+                  background: "#ffffff",
+                  padding: 14,
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
+                  {t("billing.fields.plan")}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 24, fontWeight: 800, color: "#111827" }}>
+                  {billingPlanLabel}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 16,
+                  background: "#ffffff",
+                  padding: 14,
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
+                  {t("billing.fields.usagePlan")}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 24, fontWeight: 800, color: "#111827" }}>
+                  {effectivePlanLabel}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 16,
+                  background: "#ffffff",
+                  padding: 14,
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
+                  {t("billing.fields.role")}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 24, fontWeight: 800, color: "#111827" }}>
+                  {role}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 16,
+                  background: "#ffffff",
+                  padding: 14,
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
+                  {t("billing.fields.status")}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 24, fontWeight: 800, color: "#111827" }}>
+                  {billingStatusLabel}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
+                border: `1px solid ${billingTone.border}`,
+                background: billingTone.bg,
+                color: billingTone.color,
+                borderRadius: 16,
+                padding: "14px 16px",
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              {hasActiveSubscription
+                ? t("billing.messages.activeSubscription")
+                : t("billing.messages.noSubscription")}
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              <Link
+                href={withLocale(locale, "/pricing")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                }}
+              >
+                {t("billing.actions.seePlans")}
+              </Link>
+
+              <Link
+                href={withLocale(locale, "/account/billing")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  border: "1px solid #cbd5e1",
+                }}
+              >
+                {t("billing.actions.manage")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        style={{
+          marginTop: 20,
           display: "grid",
           gap: 12,
           gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -832,7 +1086,7 @@ export default function TeacherPage() {
                     fontWeight: 700,
                   }}
                 >
-                  {dashCopy.badge}
+                  {t("submissions.badge")}
                 </div>
 
                 <h2
@@ -844,7 +1098,7 @@ export default function TeacherPage() {
                     lineHeight: 1.15,
                   }}
                 >
-                  {dashCopy.title}
+                  {t("submissions.title")}
                 </h2>
 
                 <p
@@ -856,7 +1110,7 @@ export default function TeacherPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  {dashCopy.description}
+                  {t("submissions.description")}
                 </p>
               </div>
 
@@ -873,7 +1127,7 @@ export default function TeacherPage() {
                   fontWeight: 700,
                 }}
               >
-                {dashCopy.spacesLabel}: {teacherSpaceCount}
+                {t("submissions.spacesLabel")}: {teacherSpaceCount}
               </div>
             </div>
 
@@ -886,20 +1140,23 @@ export default function TeacherPage() {
               }}
             >
               <SmallStatusCard
-  title={dashCopy.toReview}
-  value={submissionStats.submitted}
-  href={withLocale(locale, "/teacher/spaces")}
-/>
-<SmallStatusCard
-  title={dashCopy.needsFollowUp}
-  value={submissionStats.needsWork}
-  href={withLocale(locale, "/teacher/spaces")}
-/>
-<SmallStatusCard
-  title={dashCopy.reviewed}
-  value={submissionStats.approved}
-  href={withLocale(locale, "/teacher/spaces")}
-/>
+                title={t("submissions.toReview")}
+                value={submissionStats.submitted}
+                href={withLocale(locale, "/teacher/spaces")}
+                tone="info"
+              />
+              <SmallStatusCard
+                title={t("submissions.needsFollowUp")}
+                value={submissionStats.needsWork}
+                href={withLocale(locale, "/teacher/spaces")}
+                tone="warning"
+              />
+              <SmallStatusCard
+                title={t("submissions.reviewed")}
+                value={submissionStats.approved}
+                href={withLocale(locale, "/teacher/spaces")}
+                tone="success"
+              />
             </div>
 
             <div style={{ marginTop: 16 }}>
@@ -919,7 +1176,7 @@ export default function TeacherPage() {
                   border: "1px solid #cbd5e1",
                 }}
               >
-                {dashCopy.openSpaces}
+                {t("submissions.actions.openSpaces")}
               </Link>
             </div>
           </div>
