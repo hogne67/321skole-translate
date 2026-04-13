@@ -218,6 +218,12 @@
       "privacy": "Personvern",
       "contact": "Kontakt",
       "rights": "Alle rettigheter reservert."
-    }
+    },
+    "libraryStrip": {
+  "eyebrow": "Fra biblioteket",
+  "title": "Ferdige opplegg du kan bruke med én gang",
+  "description": "Bruk ferdige undervisningsopplegg, eller lag dine egne på sekunder med AI.",
+  "cta": "Utforsk og lag egne opplegg"
+}
   }
 }
