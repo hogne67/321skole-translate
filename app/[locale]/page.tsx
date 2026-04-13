@@ -612,12 +612,12 @@ export default async function HomePage() {
 }
 
         .marquee-left {
-  animation: marqueeLeft 120s linear infinite;
-}
+          animation: marqueeLeft 78s linear infinite;
+        }
 
-.marquee-right {
-  animation: marqueeRight 140s linear infinite;
-}
+        .marquee-right {
+          animation: marqueeRight 88s linear infinite;
+        }
 
         .marquee-wrap:hover .marquee-left,
         .marquee-wrap:hover .marquee-right {

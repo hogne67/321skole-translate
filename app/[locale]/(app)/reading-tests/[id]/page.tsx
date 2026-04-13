@@ -256,14 +256,15 @@ export default function ReadingTestPlayPage() {
   const fieldStyle: CSSProperties = {
     boxSizing: "border-box",
     width: "100%",
-    padding: 10,
+    padding: "12px 14px",
     marginTop: 6,
     border: "1px solid #e2e8f0",
     borderRadius: 12,
     background: "#ffffffe0",
     boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
     outline: "none",
-    fontSize: 14,
+    fontSize: 16,
+    lineHeight: 1.7,
   };
 
   const cardStyle: CSSProperties = {
@@ -292,6 +293,40 @@ export default function ReadingTestPlayPage() {
     color: "#0f172a",
     fontWeight: 700,
     cursor: "pointer",
+  };
+
+  const optionBaseStyle: CSSProperties = {
+    display: "flex",
+    gap: 12,
+    alignItems: "flex-start",
+    border: "1px solid #d9e1ea",
+    borderRadius: 14,
+    padding: "14px 16px",
+    background: "#fff",
+    cursor: "pointer",
+    fontSize: 16,
+    lineHeight: 1.75,
+    transition: "all 0.15s ease",
+  };
+
+  const optionSelectedStyle: CSSProperties = {
+    ...optionBaseStyle,
+    border: "2px solid #64748b",
+    background: "#e5e7eb",
+    boxShadow: "0 0 0 1px rgba(100, 116, 139, 0.08)",
+  };
+
+  const selectedBadgeStyle: CSSProperties = {
+    marginLeft: "auto",
+    fontSize: 12,
+    fontWeight: 800,
+    padding: "5px 9px",
+    borderRadius: 999,
+    background: "#fff",
+    border: "1px solid #94a3b8",
+    color: "#334155",
+    flexShrink: 0,
+    alignSelf: "center",
   };
 
   const [authResolved, setAuthResolved] = useState(false);
@@ -586,8 +621,8 @@ export default function ReadingTestPlayPage() {
             style={{
               marginTop: 14,
               whiteSpace: "pre-wrap",
-              lineHeight: 1.7,
-              fontSize: 16,
+              lineHeight: 1.9,
+              fontSize: 17,
             }}
           >
             {sourceText}
@@ -623,27 +658,51 @@ export default function ReadingTestPlayPage() {
                     style={{
                       border: "1px solid #e2e8f0",
                       borderRadius: 14,
-                      padding: 14,
+                      padding: 16,
                       marginBottom: 12,
                       background: "#fff",
                     }}
                   >
-                    <div style={{ fontWeight: 800, marginBottom: 8 }}>
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        marginBottom: 10,
+                        fontSize: 18,
+                        lineHeight: 1.7,
+                      }}
+                    >
                       {idx + 1}. {task.prompt}
                     </div>
 
                     {(task.type === "word_choice" || task.type === "fill_in_word") && task.sentence ? (
-                      <div style={{ marginBottom: 10, opacity: 0.88 }}>{task.sentence}</div>
+                      <div
+                        style={{
+                          marginBottom: 12,
+                          opacity: 0.9,
+                          fontSize: 16,
+                          lineHeight: 1.8,
+                        }}
+                      >
+                        {task.sentence}
+                      </div>
                     ) : null}
 
                     {task.type === "sentence_placement" && task.textWithGap ? (
-                      <div style={{ marginBottom: 10, whiteSpace: "pre-wrap", opacity: 0.88 }}>
+                      <div
+                        style={{
+                          marginBottom: 12,
+                          whiteSpace: "pre-wrap",
+                          opacity: 0.9,
+                          fontSize: 16,
+                          lineHeight: 1.8,
+                        }}
+                      >
                         {task.textWithGap}
                       </div>
                     ) : null}
 
                     {(task.options ?? []).length > 0 ? (
-                      <div style={{ display: "grid", gap: 8 }}>
+                      <div style={{ display: "grid", gap: 10 }}>
                         {(task.options ?? []).map((opt, optIdx) => {
                           const checked =
                             typeof currentAnswer === "string" ? currentAnswer === opt : false;
@@ -651,15 +710,7 @@ export default function ReadingTestPlayPage() {
                           return (
                             <label
                               key={`${task.id}_${optIdx}`}
-                              style={{
-                                display: "flex",
-                                gap: 10,
-                                alignItems: "flex-start",
-                                border: "1px solid #e2e8f0",
-                                borderRadius: 12,
-                                padding: 10,
-                                background: "#fff",
-                              }}
+                              style={checked ? optionSelectedStyle : optionBaseStyle}
                             >
                               <input
                                 type="radio"
@@ -667,37 +718,47 @@ export default function ReadingTestPlayPage() {
                                 checked={checked}
                                 disabled={submitted}
                                 onChange={() => setAnswer(task.id, opt)}
+                                style={{
+                                  marginTop: 4,
+                                  transform: "scale(1.18)",
+                                  flexShrink: 0,
+                                }}
                               />
-                              <span>{opt}</span>
+                              <span style={{ flex: 1 }}>{opt}</span>
+                              {checked ? <span style={selectedBadgeStyle}>Ditt valg</span> : null}
                             </label>
                           );
                         })}
                       </div>
                     ) : task.type === "true_false" ? (
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        {[true, false].map((value) => (
-                          <label
-                            key={`${task.id}_${String(value)}`}
-                            style={{
-                              display: "flex",
-                              gap: 8,
-                              alignItems: "center",
-                              border: "1px solid #e2e8f0",
-                              borderRadius: 12,
-                              padding: "10px 12px",
-                              background: "#fff",
-                            }}
-                          >
-                            <input
-                              type="radio"
-                              name={task.id}
-                              checked={currentAnswer === value}
-                              disabled={submitted}
-                              onChange={() => setAnswer(task.id, value)}
-                            />
-                            <span>{value ? t("questions.true") : t("questions.false")}</span>
-                          </label>
-                        ))}
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {[true, false].map((value) => {
+                          const checked = currentAnswer === value;
+
+                          return (
+                            <label
+                              key={`${task.id}_${String(value)}`}
+                              style={checked ? optionSelectedStyle : optionBaseStyle}
+                            >
+                              <input
+                                type="radio"
+                                name={task.id}
+                                checked={checked}
+                                disabled={submitted}
+                                onChange={() => setAnswer(task.id, value)}
+                                style={{
+                                  marginTop: 4,
+                                  transform: "scale(1.18)",
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <span style={{ flex: 1 }}>
+                                {value ? t("questions.true") : t("questions.false")}
+                              </span>
+                              {checked ? <span style={selectedBadgeStyle}>Ditt valg</span> : null}
+                            </label>
+                          );
+                        })}
                       </div>
                     ) : (
                       <textarea

@@ -70,6 +70,7 @@
     "noneDesc": "This lesson has no cover image."
   },
   "translate": {
+    "title": "Translation",
     "to": "Translate to",
     "searchPlaceholder": "Search language…",
     "text": "Translate text",
@@ -95,6 +96,7 @@
     "anonTitle": "Guests can submit too (anonymous auth)"
   },
   "tts": {
+    "title": "Audio",
     "speed": "Speed",
     "playOriginal": "🔊 Play original",
     "playTranslation": "🔊 Play translation",

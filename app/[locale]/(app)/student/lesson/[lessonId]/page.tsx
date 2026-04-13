@@ -578,6 +578,7 @@ export default function StudentLessonPage() {
 
   const [activeTextMode, setActiveTextMode] = useState<null | "original" | "translation">(null);
   const [activeSentenceIndex, setActiveSentenceIndex] = useState<number | null>(null);
+  const [audioTarget, setAudioTarget] = useState<"original" | "translation">("original");
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -668,6 +669,20 @@ export default function StudentLessonPage() {
     } finally {
       setTtsBusy(null);
     }
+  }
+
+  async function playSelectedAudio() {
+    const originalText = (sourceTextSafe || "").trim();
+    const translationText = (translatedText || "").trim();
+
+    if (audioTarget === "translation") {
+      if (!translationText) return;
+      await playTTS(translationText, translationLangForTTS, "translation");
+      return;
+    }
+
+    if (!originalText) return;
+    await playTTS(originalText, originalLangForTTS, "original");
   }
 
   useEffect(() => {
@@ -935,6 +950,7 @@ export default function StudentLessonPage() {
         setTranslatedTasks(null);
         setTranslateErr(null);
         setTaskTranslationOpen({});
+        setAudioTarget("original");
 
         setTranslatedFeedback(null);
         setFeedbackTranslateErr(null);
@@ -976,6 +992,13 @@ export default function StudentLessonPage() {
     setTranslateErr(null);
     setFeedbackTranslateErr(null);
   }, [targetLang]);
+
+  useEffect(() => {
+    if (!translatedText && audioTarget === "translation") {
+      setAudioTarget("original");
+      stopAudio();
+    }
+  }, [translatedText, audioTarget]);
 
   function flash(text: string) {
     setMsg(text);
@@ -1324,7 +1347,7 @@ export default function StudentLessonPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {segs.map((s, i) => {
           const isActive = activeTextMode === mode && activeSentenceIndex === i;
-          const canSeek = !!audioRef.current;
+          const canSeek = !!audioRef.current && activeTextMode === mode;
 
           return (
             <span
@@ -1332,7 +1355,7 @@ export default function StudentLessonPage() {
               onClick={() => (canSeek ? seekToSentence(mode, i) : undefined)}
               style={{
                 cursor: canSeek ? "pointer" : "default",
-                padding: "2px 6px",
+                padding: "3px 8px",
                 borderRadius: 8,
                 background: isActive ? "rgba(255, 230, 120, 0.65)" : "transparent",
                 transition: "background 120ms ease",
@@ -1420,10 +1443,7 @@ export default function StudentLessonPage() {
             onClick={saveDraft}
             disabled={saving || !uid}
             style={{
-              ...btnStyle,
-              background: "#afc8fd",
-              borderColor: "#2563eb",
-              color: "black",
+              ...blueBtnStyle,
               fontWeight: 600,
               opacity: saving ? 0.6 : 1,
             }}
@@ -1447,7 +1467,7 @@ export default function StudentLessonPage() {
           <button
             onClick={onTranslateText}
             disabled={translating === "text" || !(sourceTextSafe || "").trim()}
-            style={{ ...btnStyle, opacity: translating === "text" ? 0.6 : 1 }}
+            style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1 }}
           >
             {translating === "text" ? t("translate.translating") : t("translate.translateText")}
           </button>
@@ -1455,7 +1475,7 @@ export default function StudentLessonPage() {
           <button
             onClick={onTranslateTasks}
             disabled={translating === "tasks" || tasksOriginal.length === 0}
-            style={{ ...btnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
+            style={{ ...blueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
           >
             {translating === "tasks" ? t("translate.translating") : t("translate.translateTasks")}
           </button>
@@ -1468,6 +1488,8 @@ export default function StudentLessonPage() {
               setTranslateErr(null);
               setFeedbackTranslateErr(null);
               setTaskTranslationOpen({});
+              setAudioTarget("original");
+              stopAudio();
             }}
             style={btnStyle}
           >
@@ -1479,9 +1501,17 @@ export default function StudentLessonPage() {
         {feedbackTranslateErr ? <p style={{ marginTop: 10, color: "crimson" }}>{feedbackTranslateErr}</p> : null}
       </section>
 
-      <section style={{ marginTop: 14 }}>
+      <section
+        style={{
+          marginTop: 14,
+          padding: 12,
+          border: "1px solid rgba(0,0,0,0.12)",
+          borderRadius: 12,
+          background: "rgba(0,0,0,0.02)",
+        }}
+      >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <h2 style={{ marginBottom: 8 }}>{t("text.title")}</h2>
+          <h2 style={{ margin: 0 }}>Audio</h2>
 
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1496,77 +1526,99 @@ export default function StudentLessonPage() {
               />
               <span style={{ width: 46, textAlign: "right" }}>{playbackRate.toFixed(2)}x</span>
             </label>
-
-            <button
-              type="button"
-              style={{ ...btnStyle, opacity: ttsBusy === "original" ? 0.6 : 1 }}
-              disabled={ttsBusy !== null || !(sourceTextSafe || "").trim()}
-              onClick={() => playTTS(sourceTextSafe || "", originalLangForTTS, "original")}
-            >
-              {ttsBusy === "original" ? t("text.generating") : t("text.playOriginal")}
-            </button>
-
-            <button type="button" style={btnStyle} onClick={stopAudio} disabled={!audioRef.current}>
-              {t("text.stop")}
-            </button>
-
-            {audioRef.current ? (
-              <>
-                <button type="button" style={btnStyle} onClick={isPlaying ? pauseAudio : resumeAudio}>
-                  {isPlaying ? t("text.pause") : t("text.continue")}
-                </button>
-                <button type="button" style={btnStyle} onClick={replaySentence}>
-                  {t("text.replaySentence")}
-                </button>
-                <button type="button" style={btnStyle} onClick={prevSentence}>
-                  {t("text.prev")}
-                </button>
-                <button type="button" style={btnStyle} onClick={nextSentence}>
-                  {t("text.next")}
-                </button>
-
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, opacity: 0.75, width: 48 }}>{fmtTime(currentTime)}</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={Math.max(0.01, duration || 0)}
-                    step={0.05}
-                    value={Math.min(currentTime, duration || currentTime)}
-                    onChange={(e) => {
-                      const a = audioRef.current;
-                      if (!a) return;
-                      const v = Number(e.target.value);
-                      a.currentTime = v;
-                      setCurrentTime(v);
-                    }}
-                    style={{ width: 240 }}
-                  />
-                  <span style={{ fontSize: 12, opacity: 0.75, width: 48 }}>{fmtTime(duration)}</span>
-                </div>
-              </>
-            ) : null}
-
-            {translatedText ? (
-              <button type="button" style={btnStyle} onClick={() => setShowTextTranslation((v) => !v)}>
-                {showTextTranslation ? t("text.hideTranslation") : t("text.showTranslation")}
-              </button>
-            ) : null}
-
-            {translatedText ? (
-              <button
-                type="button"
-                style={{ ...btnStyle, opacity: ttsBusy === "translation" ? 0.6 : 1 }}
-                disabled={ttsBusy !== null || !(translatedText || "").trim()}
-                onClick={() => playTTS(translatedText || "", translationLangForTTS, "translation")}
-              >
-                {ttsBusy === "translation" ? t("text.generating") : t("text.playTranslation")}
-              </button>
-            ) : null}
           </div>
         </div>
 
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+          <button
+            type="button"
+            onClick={() => setAudioTarget("original")}
+            style={{
+              ...(audioTarget === "original" ? blueBtnActiveStyle : blueBtnStyle),
+              fontWeight: 600,
+            }}
+          >
+            {t("text.playOriginal")}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAudioTarget("translation")}
+            disabled={!translatedText}
+            style={{
+              ...(audioTarget === "translation" ? blueBtnActiveStyle : blueBtnStyle),
+              opacity: translatedText ? 1 : 0.45,
+              fontWeight: 600,
+            }}
+          >
+            {t("text.playTranslation")}
+          </button>
+
+          <button
+            type="button"
+            style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.65 : 1 }}
+            disabled={ttsBusy !== null || (audioTarget === "original" ? !(sourceTextSafe || "").trim() : !(translatedText || "").trim())}
+            onClick={playSelectedAudio}
+          >
+            {ttsBusy ? t("text.generating") : audioTarget === "translation" ? t("text.playTranslation") : t("text.playOriginal")}
+          </button>
+
+          <button type="button" style={redBtnStyle} onClick={stopAudio} disabled={!audioRef.current}>
+            {t("text.stop")}
+          </button>
+
+          {audioRef.current ? (
+            <>
+              <button type="button" style={yellowBtnStyle} onClick={isPlaying ? pauseAudio : resumeAudio}>
+                {isPlaying ? t("text.pause") : t("text.continue")}
+              </button>
+
+              <button type="button" style={btnStyle} onClick={replaySentence}>
+                {t("text.replaySentence")}
+              </button>
+              <button type="button" style={btnStyle} onClick={prevSentence}>
+                {t("text.prev")}
+              </button>
+              <button type="button" style={btnStyle} onClick={nextSentence}>
+                {t("text.next")}
+              </button>
+
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ fontSize: 12, opacity: 0.75, width: 48 }}>{fmtTime(currentTime)}</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(0.01, duration || 0)}
+                  step={0.05}
+                  value={Math.min(currentTime, duration || currentTime)}
+                  onChange={(e) => {
+                    const a = audioRef.current;
+                    if (!a) return;
+                    const v = Number(e.target.value);
+                    a.currentTime = v;
+                    setCurrentTime(v);
+                  }}
+                  style={{ width: 240 }}
+                />
+                <span style={{ fontSize: 12, opacity: 0.75, width: 48 }}>{fmtTime(duration)}</span>
+              </div>
+            </>
+          ) : null}
+        </div>
+
         {ttsErr ? <div style={{ marginTop: 8, color: "crimson" }}>{ttsErr}</div> : null}
+      </section>
+
+      <section style={{ marginTop: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <h2 style={{ marginBottom: 8 }}>{t("text.title")}</h2>
+
+          {translatedText ? (
+            <button type="button" style={blueBtnStyle} onClick={() => setShowTextTranslation((v) => !v)}>
+              {showTextTranslation ? t("text.hideTranslation") : t("text.showTranslation")}
+            </button>
+          ) : null}
+        </div>
 
         <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
           {renderFollowText("original", originalSegs, (sourceTextSafe ?? "").trim())}
@@ -1577,10 +1629,10 @@ export default function StudentLessonPage() {
             style={{
               marginTop: 10,
               padding: 12,
-              border: "1px solid rgba(0,0,0,0.12)",
+              border: "1px solid rgba(59,130,246,0.22)",
               borderRadius: 12,
               lineHeight: 1.55,
-              background: "rgba(0,0,0,0.02)",
+              background: "rgba(59,130,246,0.05)",
             }}
           >
             <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translate.translatedLabel")}</div>
@@ -1590,34 +1642,36 @@ export default function StudentLessonPage() {
       </section>
 
       <section style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
           <h2 style={{ margin: 0 }}>{t("tasks.title")}</h2>
 
-          <button type="button" onClick={() => setShowAnswers((v) => !v)} style={btnStyle}>
-            {showAnswers ? t("tasks.hideAnswers") : t("tasks.showAnswers")}
-          </button>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => setShowAnswers((v) => !v)} style={btnStyle}>
+              {showAnswers ? t("tasks.hideAnswers") : t("tasks.showAnswers")}
+            </button>
 
-          <button
-            onClick={() => {
-              setAnswers({});
-              if (lessonId && isAnon) {
-                try {
-                  localStorage.removeItem(lsKey(lessonId));
-                } catch {
-                  // ignore
+            <button
+              onClick={() => {
+                setAnswers({});
+                if (lessonId && isAnon) {
+                  try {
+                    localStorage.removeItem(lsKey(lessonId));
+                  } catch {
+                    // ignore
+                  }
                 }
-              }
-              flash(t("flash.clearedAnswers"));
-            }}
-            style={btnStyle}
-          >
-            {t("tasks.clearAnswers")}
-          </button>
+                flash(t("flash.clearedAnswers"));
+              }}
+              style={btnStyle}
+            >
+              {t("tasks.clearAnswers")}
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
           {(translatedTasks ?? []).length > 0 ? (
-            <button type="button" style={btnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
+            <button type="button" style={blueBtnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
               {showTaskTranslations ? t("tasks.hideAllTranslations") : t("tasks.showAllTranslations")}
             </button>
           ) : null}
@@ -1700,7 +1754,7 @@ export default function StudentLessonPage() {
                     </div>
 
                     {hasThisTranslation ? (
-                      <button type="button" style={btnStyle} onClick={() => toggleTaskTranslation(stableId)}>
+                      <button type="button" style={blueBtnStyle} onClick={() => toggleTaskTranslation(stableId)}>
                         {showThisTranslation ? t("tasks.hideTranslation") : t("tasks.showTranslation")}
                       </button>
                     ) : null}
@@ -1715,8 +1769,8 @@ export default function StudentLessonPage() {
                         marginBottom: 10,
                         padding: 10,
                         borderRadius: 10,
-                        border: "1px solid rgba(0,0,0,0.10)",
-                        background: "rgba(0,0,0,0.02)",
+                        border: "1px solid rgba(59,130,246,0.22)",
+                        background: "rgba(59,130,246,0.05)",
                         whiteSpace: "pre-wrap",
                         lineHeight: 1.45,
                       }}
@@ -1736,17 +1790,25 @@ export default function StudentLessonPage() {
                         const isOptionCorrect = showAnswers && mcqCorrectText != null && opt === mcqCorrectText;
                         const isOptionChosenWrong = showAnswers && checked && mcqCorrectText != null && opt !== mcqCorrectText;
 
-                        const borderColor = isOptionCorrect
-                          ? "rgba(46, 204, 113, 0.85)"
-                          : isOptionChosenWrong
-                            ? "rgba(231, 76, 60, 0.85)"
-                            : "rgba(0,0,0,0.12)";
+                        let borderColor = "rgba(0,0,0,0.12)";
+                        let background = "white";
+                        let boxShadow = "none";
 
-                        const background = isOptionCorrect
-                          ? "rgba(46, 204, 113, 0.12)"
-                          : isOptionChosenWrong
-                            ? "rgba(231, 76, 60, 0.12)"
-                            : "white";
+                        if (checked) {
+                          borderColor = "rgba(37, 99, 235, 0.9)";
+                          background = "rgba(59, 130, 246, 0.10)";
+                          boxShadow = "0 0 0 2px rgba(59,130,246,0.12)";
+                        }
+
+                        if (isOptionCorrect) {
+                          borderColor = "rgba(46, 204, 113, 0.85)";
+                          background = checked ? "rgba(46, 204, 113, 0.18)" : "rgba(46, 204, 113, 0.12)";
+                          boxShadow = checked ? "0 0 0 2px rgba(46, 204, 113, 0.16)" : "none";
+                        } else if (isOptionChosenWrong) {
+                          borderColor = "rgba(231, 76, 60, 0.85)";
+                          background = "rgba(231, 76, 60, 0.14)";
+                          boxShadow = "0 0 0 2px rgba(231, 76, 60, 0.12)";
+                        }
 
                         return (
                           <label
@@ -1755,11 +1817,13 @@ export default function StudentLessonPage() {
                               display: "flex",
                               gap: 10,
                               alignItems: "flex-start",
-                              padding: "8px 10px",
-                              border: `1px solid ${borderColor}`,
-                              borderRadius: 10,
+                              padding: "10px 12px",
+                              border: checked ? `2px solid ${borderColor}` : `1px solid ${borderColor}`,
+                              borderRadius: 12,
                               cursor: "pointer",
                               background,
+                              boxShadow,
+                              transition: "all 120ms ease",
                             }}
                           >
                             <input
@@ -1767,17 +1831,17 @@ export default function StudentLessonPage() {
                               name={stableId}
                               checked={checked}
                               onChange={() => setAnswer(stableId, opt)}
-                              style={{ marginTop: 3 }}
+                              style={{ marginTop: 3, accentColor: "#2563eb", transform: "scale(1.05)" }}
                             />
 
                             <div style={{ width: "100%" }}>
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                                <div>{opt}</div>
+                                <div style={{ fontWeight: checked ? 700 : 500 }}>{opt}</div>
                                 {checked ? <Pill text={t("tasks.yourAnswer")} /> : null}
                               </div>
 
                               {showThisTranslation && optT ? (
-                                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{optT}</div>
+                                <div style={{ fontSize: 12, opacity: 0.72, marginTop: 4 }}>{optT}</div>
                               ) : null}
                             </div>
                           </label>
@@ -1794,12 +1858,8 @@ export default function StudentLessonPage() {
                           onClick={() => setAnswer(stableId, true)}
                           aria-pressed={val === true}
                           style={{
-                            ...btnStyle,
-                            borderColor: val === true ? "rgba(0,0,0,0.25)" : "#ddd",
-                            background: val === true ? "rgba(0,0,0,0.08)" : "white",
-                            color: "black",
-                            fontWeight: val === true ? 600 : 400,
-                            boxShadow: "none",
+                            ...(val === true ? blueBtnActiveStyle : blueBtnStyle),
+                            fontWeight: val === true ? 700 : 500,
                           }}
                         >
                           {t("tasks.true")}
@@ -1810,12 +1870,8 @@ export default function StudentLessonPage() {
                           onClick={() => setAnswer(stableId, false)}
                           aria-pressed={val === false}
                           style={{
-                            ...btnStyle,
-                            borderColor: val === false ? "rgba(0,0,0,0.25)" : "#ddd",
-                            background: val === false ? "rgba(0,0,0,0.08)" : "white",
-                            color: "black",
-                            fontWeight: val === false ? 600 : 400,
-                            boxShadow: "none",
+                            ...(val === false ? blueBtnActiveStyle : blueBtnStyle),
+                            fontWeight: val === false ? 700 : 500,
                           }}
                         >
                           {t("tasks.false")}
@@ -1861,10 +1917,7 @@ export default function StudentLessonPage() {
               onClick={submitForFeedback}
               disabled={submitting || !uid || feedbackLimitReached}
               style={{
-                ...btnStyle,
-                background: "#bef7c0",
-                borderColor: "#2563eb",
-                color: "black",
+                ...greenBtnStyle,
                 fontWeight: 600,
                 opacity: submitting || feedbackLimitReached ? 0.6 : 1,
               }}
@@ -1889,10 +1942,7 @@ export default function StudentLessonPage() {
               onClick={onTranslateFeedback}
               disabled={feedbackTranslating || !(feedback || "").trim()}
               style={{
-                ...btnStyle,
-                background: "#eaf3b6",
-                borderColor: "#2563eb",
-                color: "black",
+                ...blueBtnStyle,
                 fontWeight: 600,
                 opacity: feedbackTranslating ? 0.6 : 1,
               }}
@@ -1925,11 +1975,11 @@ export default function StudentLessonPage() {
             style={{
               marginTop: 10,
               padding: 12,
-              border: "1px solid rgba(0,0,0,0.12)",
+              border: "1px solid rgba(59,130,246,0.22)",
               borderRadius: 12,
               whiteSpace: "pre-wrap",
               lineHeight: 1.55,
-              background: "rgba(0,0,0,0.02)",
+              background: "rgba(59,130,246,0.05)",
             }}
           >
             <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("feedback.translatedFeedbackLabel")}</div>
@@ -1948,9 +1998,46 @@ export default function StudentLessonPage() {
 }
 
 const btnStyle: React.CSSProperties = {
-  border: "1px solid #ddd",
+  border: "1px solid #d1d5db",
   borderRadius: 10,
   padding: "8px 12px",
   background: "white",
   cursor: "pointer",
+  color: "#111827",
+};
+
+const blueBtnStyle: React.CSSProperties = {
+  ...btnStyle,
+  border: "1px solid rgba(37,99,235,0.38)",
+  background: "rgba(59,130,246,0.10)",
+  color: "#1d4ed8",
+};
+
+const blueBtnActiveStyle: React.CSSProperties = {
+  ...btnStyle,
+  border: "2px solid rgba(37,99,235,0.95)",
+  background: "rgba(59,130,246,0.16)",
+  color: "#1d4ed8",
+  boxShadow: "0 0 0 2px rgba(59,130,246,0.10)",
+};
+
+const greenBtnStyle: React.CSSProperties = {
+  ...btnStyle,
+  border: "1px solid rgba(22,163,74,0.45)",
+  background: "rgba(34,197,94,0.16)",
+  color: "#166534",
+};
+
+const yellowBtnStyle: React.CSSProperties = {
+  ...btnStyle,
+  border: "1px solid rgba(202,138,4,0.45)",
+  background: "rgba(250,204,21,0.18)",
+  color: "#854d0e",
+};
+
+const redBtnStyle: React.CSSProperties = {
+  ...btnStyle,
+  border: "1px solid rgba(220,38,38,0.42)",
+  background: "rgba(239,68,68,0.14)",
+  color: "#b91c1c",
 };

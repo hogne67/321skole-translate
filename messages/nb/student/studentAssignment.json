@@ -70,6 +70,7 @@
       "noneDesc": "Denne oppgaven har ikke forsidebilde."
     },
     "translate": {
+      "title": "Oversettelse",
       "to": "Oversett til",
       "searchPlaceholder": "Søk språk…",
       "text": "Oversett tekst",
@@ -95,6 +96,7 @@
       "anonTitle": "Gjester kan også sende inn (anonym innlogging)"
     },
     "tts": {
+      "title": "Lyd",
       "speed": "Hastighet",
       "playOriginal": "🔊 Spill av original",
       "playTranslation": "🔊 Spill av oversettelse",

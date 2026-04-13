@@ -1905,7 +1905,7 @@ export default function StudentAssignmentPage() {
               onClick={() => (audioRef.current ? seekToSentence(mode, i) : undefined)}
               style={{
                 cursor: audioRef.current ? "pointer" : "default",
-                padding: "2px 6px",
+                padding: "4px 8px",
                 borderRadius: 8,
                 background: isActive ? "rgba(255, 230, 120, 0.65)" : "transparent",
                 transition: "background 120ms ease",
@@ -1962,20 +1962,20 @@ export default function StudentAssignmentPage() {
       <div
         key={stableId}
         style={{
-          border: "1px solid rgba(0,0,0,0.12)",
-          borderRadius: 12,
-          padding: 12,
+          border: "1px solid rgba(0,0,0,0.10)",
+          borderRadius: 14,
+          padding: 14,
           background: "white",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-          <div style={{ fontWeight: 800, lineHeight: 1.4 }}>{promptShownClean || t("tasks.noPrompt")}</div>
+          <div style={{ fontWeight: 800, lineHeight: 1.45 }}>{promptShownClean || t("tasks.noPrompt")}</div>
 
           {!!(tr?.translatedPrompt || tr?.translatedOptions?.length) && (
             <button
               type="button"
               onClick={() => toggleTaskTranslation(stableId)}
-              style={{ ...btnStyle, padding: "6px 10px" }}
+              style={{ ...softBlueButtonStyle, padding: "6px 10px" }}
               title={t("translate.toggleTask")}
             >
               {showTr ? t("translate.hide") : t("translate.show")}
@@ -1984,10 +1984,23 @@ export default function StudentAssignmentPage() {
         </div>
 
         {showPromptOther ? (
-          <div style={{ marginTop: 6, opacity: 0.75, fontSize: 13, lineHeight: 1.5 }}>{promptOtherClean}</div>
+          <div
+            style={{
+              marginTop: 8,
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: "rgba(0,0,0,0.72)",
+              background: "rgba(59,130,246,0.08)",
+              border: "1px solid rgba(59,130,246,0.18)",
+              borderRadius: 10,
+              padding: "8px 10px",
+            }}
+          >
+            {promptOtherClean}
+          </div>
         ) : null}
 
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 12 }}>
           {type === "mcq" && Array.isArray(tk.options) ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {(() => {
@@ -2007,12 +2020,12 @@ export default function StudentAssignmentPage() {
                         display: "flex",
                         gap: 10,
                         alignItems: "center",
-                        border: checked ? "2px solid rgba(16,185,129,0.70)" : "1px solid rgba(0,0,0,0.10)",
+                        border: checked ? "2px solid rgba(59,130,246,0.60)" : "1px solid rgba(59,130,246,0.18)",
                         borderRadius: 12,
                         padding: checked ? "9px 11px" : "10px 12px",
                         cursor: locked ? "not-allowed" : "pointer",
                         opacity: locked ? 0.7 : 1,
-                        background: checked ? "rgba(16,185,129,0.10)" : "white",
+                        background: checked ? "rgba(59,130,246,0.16)" : "rgba(59,130,246,0.06)",
                         transition: "all 120ms ease",
                       }}
                     >
@@ -2037,13 +2050,9 @@ export default function StudentAssignmentPage() {
                 disabled={locked}
                 onClick={() => setAnswer(stableId, true)}
                 style={{
-                  ...btnStyle,
-                  background: isTrueSelected(stableId, true) ? "rgba(16,185,129,0.14)" : "white",
-                  borderColor: isTrueSelected(stableId, true)
-                    ? "rgba(16,185,129,0.55)"
-                    : "rgba(0,0,0,0.16)",
-                  fontWeight: isTrueSelected(stableId, true) ? 900 : 700,
+                  ...(isTrueSelected(stableId, true) ? blueButtonActiveStyle : softBlueButtonStyle),
                   opacity: locked ? 0.7 : 1,
+                  fontWeight: isTrueSelected(stableId, true) ? 900 : 700,
                 }}
               >
                 {t("tasks.true")}
@@ -2053,13 +2062,9 @@ export default function StudentAssignmentPage() {
                 disabled={locked}
                 onClick={() => setAnswer(stableId, false)}
                 style={{
-                  ...btnStyle,
-                  background: isTrueSelected(stableId, false) ? "rgba(16,185,129,0.14)" : "white",
-                  borderColor: isTrueSelected(stableId, false)
-                    ? "rgba(16,185,129,0.55)"
-                    : "rgba(0,0,0,0.16)",
-                  fontWeight: isTrueSelected(stableId, false) ? 900 : 700,
+                  ...(isTrueSelected(stableId, false) ? blueButtonActiveStyle : softBlueButtonStyle),
                   opacity: locked ? 0.7 : 1,
+                  fontWeight: isTrueSelected(stableId, false) ? 900 : 700,
                 }}
               >
                 {t("tasks.false")}
@@ -2073,11 +2078,12 @@ export default function StudentAssignmentPage() {
               rows={4}
               style={{
                 width: "100%",
-                border: "1px solid rgba(0,0,0,0.12)",
+                border: "1px solid rgba(59,130,246,0.18)",
                 borderRadius: 10,
                 padding: 10,
                 outline: "none",
                 opacity: locked ? 0.7 : 1,
+                background: "rgba(59,130,246,0.04)",
               }}
               placeholder={t("tasks.writeAnswer")}
             />
@@ -2125,7 +2131,7 @@ export default function StudentAssignmentPage() {
   const lock = isLockedByTeacher();
 
   const mainTitle = String(assignment?.title ?? lesson.title ?? t("fallback.title") ?? "Oppgave").trim();
-  const metaLine = [assignment?.level ?? lesson.level, assignment?.language ?? lesson.language, assignment?.topic ?? lesson.topic]
+  const metaLine = [assignment?.level ?? lesson.level, assignment?.language ?? lesson.language]
     .map((x) => String(x ?? "").trim())
     .filter(Boolean)
     .join(" · ");
@@ -2223,43 +2229,6 @@ export default function StudentAssignmentPage() {
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          {!isReadingTest && !isGeometryAssignment && (
-            <>
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontWeight: 800 }}>{t("translate.targetLang")}</span>
-                <select
-                  value={targetLang}
-                  onChange={(e) => setTargetLang(e.target.value)}
-                  style={{ ...btnStyle, padding: "8px 10px" }}
-                >
-                  {LANGUAGE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <button
-                type="button"
-                onClick={onTranslateText}
-                disabled={translating != null || !sourceTextSafe.trim()}
-                style={{ ...btnStyle, opacity: translating != null ? 0.7 : 1 }}
-              >
-                {translating === "text" ? t("translate.working") : t("translate.text")}
-              </button>
-
-              <button
-                type="button"
-                onClick={onTranslateTasks}
-                disabled={translating != null || tasksOriginal.length === 0}
-                style={{ ...btnStyle, opacity: translating != null ? 0.7 : 1 }}
-              >
-                {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
-              </button>
-            </>
-          )}
-
           <DraftButton />
           {!isReadingTest ? <SubmitButton /> : null}
         </div>
@@ -2345,7 +2314,15 @@ export default function StudentAssignmentPage() {
           ) : null}
 
           {liveTeacherText ? (
-            <div style={{ marginTop: 10 }}>
+            <div
+              style={{
+                marginTop: 12,
+                padding: 12,
+                borderRadius: 12,
+                border: "1px solid rgba(59,130,246,0.16)",
+                background: "rgba(59,130,246,0.06)",
+              }}
+            >
               <div style={{ fontWeight: 900 }}>{t("teacherFeedback.title")}</div>
               <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{liveTeacherText}</div>
               {liveTeacherUpdatedAt ? (
@@ -2365,43 +2342,112 @@ export default function StudentAssignmentPage() {
       ) : null}
 
       {!isReadingTest && !isGeometryAssignment && (
-        <section style={{ marginTop: 18 }}>
+        <section style={{ marginTop: 18, display: "grid", gap: 14 }}>
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 10,
-              flexWrap: "wrap",
-              alignItems: "center",
+              border: "1px solid rgba(59,130,246,0.14)",
+              borderRadius: 16,
+              background: "rgba(59,130,246,0.04)",
+              padding: 14,
             }}
           >
-            <h2 style={{ margin: 0, fontSize: 18 }}>{t("text.title")}</h2>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 10,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <h2 style={{ margin: 0, fontSize: 18 }}>{t("translate.title")}</h2>
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button type="button" onClick={() => setShowTextTranslation((v) => !v)} style={btnStyle}>
-                {showTextTranslation ? t("translate.hide") : t("translate.show")}
-              </button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <label style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 800 }}>{t("translate.targetLang")}</span>
+                  <select
+                    value={targetLang}
+                    onChange={(e) => setTargetLang(e.target.value)}
+                    style={{ ...softBlueButtonStyle, padding: "8px 10px" }}
+                  >
+                    {LANGUAGE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontWeight: 800 }}>{t("tts.speed")}</span>
-                <select
-                  value={String(playbackRate)}
-                  onChange={(e) => setPlaybackRate(Number(e.target.value))}
-                  style={{ ...btnStyle, padding: "8px 10px" }}
+                <button
+                  type="button"
+                  onClick={onTranslateText}
+                  disabled={translating != null || !sourceTextSafe.trim()}
+                  style={{ ...softBlueButtonStyle, opacity: translating != null ? 0.7 : 1 }}
                 >
-                  {[0.75, 1.0, 1.25, 1.5].map((r) => (
-                    <option key={r} value={String(r)}>
-                      {r}x
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  {translating === "text" ? t("translate.working") : t("translate.text")}
+                </button>
 
+                <button
+                  type="button"
+                  onClick={onTranslateTasks}
+                  disabled={translating != null || tasksOriginal.length === 0}
+                  style={{ ...softBlueButtonStyle, opacity: translating != null ? 0.7 : 1 }}
+                >
+                  {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowTextTranslation((v) => !v)}
+                  style={softBlueButtonStyle}
+                >
+                  {showTextTranslation ? t("translate.hide") : t("translate.show")}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid rgba(0,0,0,0.08)",
+              borderRadius: 16,
+              background: "white",
+              padding: 14,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 10,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <h2 style={{ margin: 0, fontSize: 18 }}>{t("tts.title")}</h2>
+
+              <div style={{ minWidth: 220, display: "grid", gap: 6 }}>
+                <label style={{ fontWeight: 800 }}>{t("tts.speed")}: {playbackRate}x</label>
+                <input
+                  type="range"
+                  min={0.75}
+                  max={1.5}
+                  step={0.25}
+                  value={playbackRate}
+                  onChange={(e) => setPlaybackRate(Number(e.target.value))}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+
+            {ttsErr ? <div style={{ marginTop: 8, color: "crimson", whiteSpace: "pre-wrap" }}>{ttsErr}</div> : null}
+
+            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <button
                 type="button"
                 onClick={() => playTTS(sourceTextSafe, originalLangForTTS, "original")}
                 disabled={!sourceTextSafe.trim() || ttsBusy != null}
-                style={btnStyle}
+                style={{ ...softBlueButtonStyle, opacity: !sourceTextSafe.trim() || ttsBusy != null ? 0.7 : 1 }}
               >
                 {ttsBusy === "original" ? t("tts.working") : t("tts.playOriginal")}
               </button>
@@ -2410,39 +2456,39 @@ export default function StudentAssignmentPage() {
                 type="button"
                 onClick={() => playTTS(String(translatedText ?? ""), translationLangForTTS, "translation")}
                 disabled={!String(translatedText ?? "").trim() || ttsBusy != null}
-                style={btnStyle}
+                style={{
+                  ...softBlueButtonStyle,
+                  opacity: !String(translatedText ?? "").trim() || ttsBusy != null ? 0.7 : 1,
+                }}
               >
                 {ttsBusy === "translation" ? t("tts.working") : t("tts.playTranslation")}
               </button>
 
-              <button type="button" onClick={stopAudio} disabled={!audioRef.current} style={btnStyle}>
-                {t("tts.stop")}
-              </button>
-            </div>
-          </div>
-
-          {ttsErr ? <div style={{ marginTop: 8, color: "crimson", whiteSpace: "pre-wrap" }}>{ttsErr}</div> : null}
-
-          {audioRef.current ? (
-            <div
-              style={{
-                marginTop: 10,
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <button type="button" onClick={isPlaying ? pauseAudio : resumeAudio} style={btnStyle}>
+              <button
+                type="button"
+                onClick={isPlaying ? pauseAudio : resumeAudio}
+                disabled={!audioRef.current}
+                style={isPlaying ? pauseButtonStyle : playButtonStyle}
+              >
                 {isPlaying ? t("tts.pause") : t("tts.resume")}
               </button>
-              <button type="button" onClick={prevSentence} style={btnStyle}>
+
+              <button
+                type="button"
+                onClick={stopAudio}
+                disabled={!audioRef.current}
+                style={stopButtonStyle}
+              >
+                {t("tts.stop")}
+              </button>
+
+              <button type="button" onClick={prevSentence} disabled={!audioRef.current} style={softBlueButtonStyle}>
                 {t("tts.prev")}
               </button>
-              <button type="button" onClick={replaySentence} style={btnStyle}>
+              <button type="button" onClick={replaySentence} disabled={!audioRef.current} style={softBlueButtonStyle}>
                 {t("tts.replay")}
               </button>
-              <button type="button" onClick={nextSentence} style={btnStyle}>
+              <button type="button" onClick={nextSentence} disabled={!audioRef.current} style={softBlueButtonStyle}>
                 {t("tts.next")}
               </button>
 
@@ -2450,9 +2496,9 @@ export default function StudentAssignmentPage() {
                 {t("tts.time", { cur: Math.round(currentTime), dur: Math.round(duration) })}
               </div>
             </div>
-          ) : null}
+          </div>
 
-          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
             <div>
               <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.original")}</div>
               <div
@@ -2472,10 +2518,10 @@ export default function StudentAssignmentPage() {
                 <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.translation")}</div>
                 <div
                   style={{
-                    border: "1px solid rgba(0,0,0,0.10)",
+                    border: "1px solid rgba(59,130,246,0.18)",
                     borderRadius: 12,
                     padding: 12,
-                    background: "white",
+                    background: "rgba(59,130,246,0.08)",
                   }}
                 >
                   {renderFollowText("translation", translationSegs, String(translatedText ?? ""))}
@@ -2646,7 +2692,7 @@ export default function StudentAssignmentPage() {
               showFigureMeta={true}
               includeHints={true}
               auto={liveGeometryAuto}
-  showInlineFeedback={showGeometryAutoTop}
+              showInlineFeedback={showGeometryAutoTop}
             />
 
             {showGeometryAutoTop ? (
@@ -2674,7 +2720,7 @@ export default function StudentAssignmentPage() {
               <button
                 type="button"
                 onClick={() => setShowTaskTranslations((v) => !v)}
-                style={btnStyle}
+                style={softBlueButtonStyle}
               >
                 {showTaskTranslations ? t("translate.hide") : t("translate.show")}
               </button>
@@ -2724,6 +2770,46 @@ const btnStyle: React.CSSProperties = {
   padding: "8px 12px",
   background: "white",
   cursor: "pointer",
+};
+
+const softBlueButtonStyle: React.CSSProperties = {
+  ...btnStyle,
+  background: "rgba(59,130,246,0.08)",
+  border: "1px solid rgba(59,130,246,0.22)",
+  color: "rgba(30,64,175,1)",
+  fontWeight: 800,
+};
+
+const blueButtonActiveStyle: React.CSSProperties = {
+  ...btnStyle,
+  background: "rgba(59,130,246,0.18)",
+  border: "1px solid rgba(59,130,246,0.42)",
+  color: "rgba(30,64,175,1)",
+  fontWeight: 900,
+};
+
+const playButtonStyle: React.CSSProperties = {
+  ...btnStyle,
+  background: "rgba(34,197,94,0.14)",
+  border: "1px solid rgba(34,197,94,0.40)",
+  color: "rgba(21,128,61,1)",
+  fontWeight: 900,
+};
+
+const pauseButtonStyle: React.CSSProperties = {
+  ...btnStyle,
+  background: "rgba(250,204,21,0.20)",
+  border: "1px solid rgba(234,179,8,0.42)",
+  color: "rgba(161,98,7,1)",
+  fontWeight: 900,
+};
+
+const stopButtonStyle: React.CSSProperties = {
+  ...btnStyle,
+  background: "rgba(239,68,68,0.14)",
+  border: "1px solid rgba(239,68,68,0.38)",
+  color: "rgba(185,28,28,1)",
+  fontWeight: 900,
 };
 
 const primarySubmitStyle: React.CSSProperties = {

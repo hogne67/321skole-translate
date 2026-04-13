@@ -70,6 +70,7 @@
       "noneDesc": "Esta lição não tem imagem de capa."
     },
     "translate": {
+      "title": "tradução",
       "to": "Traduzir para",
       "searchPlaceholder": "Buscar idioma…",
       "text": "Traduzir texto",
@@ -95,6 +96,7 @@
       "anonTitle": "Visitantes também podem enviar"
     },
     "tts": {
+      "title": "áudio",
       "speed": "Velocidade",
       "playOriginal": "🔊 Reproduzir original",
       "playTranslation": "🔊 Reproduzir tradução",
