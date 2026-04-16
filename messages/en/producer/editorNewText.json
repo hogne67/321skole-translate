@@ -66,7 +66,8 @@
       "releaseMode": "Release mode",
       "releaseModeHelp": "Choose whether text and tasks should be shown together or text first.",
       "status": "Status",
-      "text": "Text"
+      "text": "Text",
+      "coverImageCredit": "Image source"
     },
     "fieldsExtra": {
       "textType": "Text type",
@@ -84,7 +85,8 @@
       "tags": "For example school, grammar, reading",
       "sourceText": "Paste or write the lesson text here…",
       "taskPrompt": "Write the task prompt here…",
-      "mcqCorrectAnswer": "Write the correct answer"
+      "mcqCorrectAnswer": "Write the correct answer",
+      "coverImageCredit": "E.g. Photo: John Doe / Unsplash / Own image"
     },
     "placeholdersExtra": {
       "producerName": "Your name (from profile)",
@@ -98,7 +100,8 @@
       "fromTextPrompt": "The system will use the lesson title and text as inspiration for the image.",
       "imageLimit": "Image generation: {used} / {limit} used • {remaining} left",
       "generatedLandscape": "The generated image should be landscape in 16:9.",
-      "rememberSaveImage": "Remember to save the lesson after selecting or generating an image."
+      "rememberSaveImage": "Remember to save the lesson after selecting or generating an image.",
+      "coverImageCredit": "Use this field to add a source or credit for an uploaded image."
     },
     "cover": {
       "uploadImage": "Upload image",

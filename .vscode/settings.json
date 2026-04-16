@@ -1,0 +1,36 @@
+{
+  // Tailwind / CSS
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+
+  // Tailwind IntelliSense (viktig)
+  "tailwindCSS.includeLanguages": {
+    "typescript": "html",
+    "typescriptreact": "html"
+  },
+
+  // Sørger for at Tailwind finner klassene dine
+  "tailwindCSS.experimental.classRegex": [
+    ["className=\"([^\"]*)\"", 1],
+    ["className={`([^`]*)`}", 1],
+    ["className={\"([^\"]*)\"}", 1]
+  ],
+
+  // TypeScript / prosjektstabilitet
+  "typescript.tsserver.maxTsServerMemory": 4096,
+
+  // Unngå støy fra node_modules
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.next": true
+  },
+
+  // Formattering (valgfritt men ryddig)
+  "editor.formatOnSave": true,
+
+  // ESLint
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  }
+}

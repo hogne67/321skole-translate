@@ -22,7 +22,8 @@
       "noResults": "Fant ingen publiserte oppgaver. Prøv å nullstille filtrene eller søk etter noe annet."
     },
     "card": {
-      "imageFallback": "Bilde"
+      "imageFallback": "Bilde",
+      "author": "Forfatter"
     },
     "languages": {
       "all": "Alle språk",

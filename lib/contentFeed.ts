@@ -16,51 +16,53 @@ export type PublishVisibility = "public" | "unlisted" | "private";
 
 export type ContentItem =
   | {
-      type: "lesson";
-      id: string;
-      title: string;
-      status?: string;
-      updatedAt?: Date | null;
-      href: string;
-      meta?: string[];
-      ownerId?: string;
-      activePublishedId?: string | null;
-      visibility?: PublishVisibility;
-      publishVisibility?: PublishVisibility;
-      showInLibrary?: boolean;
-      lessonType?: string;
-      textType?: string;
-      texttype?: string;
-      language?: string;
-      level?: string;
-      deletedAt?: Date | null;
-    }
+    type: "lesson";
+    id: string;
+    title: string;
+    status?: string;
+    updatedAt?: Date | null;
+    href: string;
+    meta?: string[];
+    ownerId?: string;
+    activePublishedId?: string | null;
+    visibility?: PublishVisibility;
+    publishVisibility?: PublishVisibility;
+    showInLibrary?: boolean;
+    lessonType?: string;
+    textType?: string;
+    texttype?: string;
+    language?: string;
+    level?: string;
+    authorName?: string;
+    deletedAt?: Date | null;
+  }
   | {
-      type: "submission";
-      id: string;
-      title: string;
-      status?: string;
-      updatedAt?: Date | null;
-      href: string;
-      meta?: string[];
-      uid?: string | null;
-      lessonId?: string;
-      spaceId?: string;
-      assignmentId?: string;
-      deletedAt?: Date | null;
-    }
+    type: "submission";
+    id: string;
+    title: string;
+    status?: string;
+    updatedAt?: Date | null;
+    href: string;
+    meta?: string[];
+    uid?: string | null;
+    lessonId?: string;
+    spaceId?: string;
+    assignmentId?: string;
+    authorName?: string;
+    deletedAt?: Date | null;
+  }
   | {
-      type: "space";
-      id: string;
-      title: string;
-      status?: string;
-      updatedAt?: Date | null;
-      href: string;
-      meta?: string[];
-      ownerUid?: string;
-      joinCode?: string;
-      deletedAt?: Date | null;
-    };
+    type: "space";
+    id: string;
+    title: string;
+    status?: string;
+    updatedAt?: Date | null;
+    href: string;
+    meta?: string[];
+    ownerUid?: string;
+    joinCode?: string;
+    deletedAt?: Date | null;
+  };
 
 function toDateSafe(v: unknown): Date | null {
   if (!v) return null;
@@ -137,6 +139,25 @@ function pickLanguage(d: unknown): string | undefined {
   const x = d as Record<string, unknown> | null;
   const v = x?.language || x?.lang;
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
+
+function pickAuthorName(d: unknown): string | undefined {
+  const x = d as Record<string, unknown> | null;
+
+  const candidates = [
+    x?.producerName,
+    x?.authorName,
+    x?.ownerName,
+    x?.createdByName,
+    x?.publisherName,
+    x?.displayName,
+  ];
+
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c.trim();
+  }
+
+  return undefined;
 }
 
 function normalizeMetaValue(v: unknown): string | null {
@@ -296,6 +317,7 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode, locale:
         texttype: pickTexttype(d),
         language: pickLanguage(d),
         level: pickLevel(d) || undefined,
+        authorName: pickAuthorName(d),
         deletedAt: toDateSafe(d.deletedAt),
       });
     });
@@ -314,6 +336,7 @@ type LessonMeta = {
   textType?: string;
   texttype?: string;
   meta?: string[];
+  authorName?: string;
 };
 
 async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
@@ -336,6 +359,7 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
         const textType = pickTextType(d);
         const texttype = pickTexttype(d);
         const meta = safeMeta(d);
+        const authorName = pickAuthorName(d);
 
         metaById.set(docSnap.id, {
           title: title || "",
@@ -345,6 +369,7 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
           textType,
           texttype,
           meta,
+          authorName,
         });
       });
     } catch {
@@ -459,6 +484,7 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
         uid: typeof d.uid === "string" ? d.uid : null,
         lessonId,
         spaceId,
+        authorName: lessonMeta?.authorName,
         deletedAt: toDateSafe((d as Record<string, unknown>).deletedAt),
       });
     }
@@ -540,6 +566,7 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: st
         uid,
         lessonId,
         spaceId: undefined,
+        authorName: lessonMeta?.authorName,
         deletedAt: toDateSafe(d.deletedAt),
       });
     }

@@ -1,3 +1,4 @@
+// app\[locale]\(app)\content\ContentClient.tsx
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -87,6 +88,11 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 function safeString(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+
+function authorNameFromItem(it: ContentItem): string | null {
+  return safeString((it as { authorName?: unknown }).authorName) || null;
 }
 
 function buildParentSubmissionId(spaceId: string, assignmentId: string, uid: string) {
@@ -337,7 +343,12 @@ export default function ContentClient() {
   const [aiVariants, setAiVariants] = useState<string[]>([]);
 
   const [pickSpaceOpen, setPickSpaceOpen] = useState(false);
-  const [pickLesson, setPickLesson] = useState<{ lessonId: string; title: string } | null>(null);
+  const [pickLesson, setPickLesson] = useState<{
+    lessonId: string;
+    title: string;
+    sourceType: "myContent" | "library";
+    sourceId: string;
+  } | null>(null);
 
   const [parentSpaceMeta, setParentSpaceMeta] = useState<Record<string, ParentSpaceMeta>>({});
 
@@ -613,7 +624,7 @@ export default function ContentClient() {
 
                 push(lessons.length, activeLessonTitle, activeLessonId);
               },
-              () => {}
+              () => { }
             );
 
             const unsubReview = onSnapshot(
@@ -622,13 +633,13 @@ export default function ContentClient() {
                 reviewState[lesson.id] = reviewSnap.exists();
                 push(lessons.length, activeLessonTitle, activeLessonId);
               },
-              () => {}
+              () => { }
             );
 
             innerUnsubs.push(unsubSubmission, unsubReview);
           }
         },
-        () => {}
+        () => { }
       );
 
       allUnsubs.push(unsubLessons);
@@ -828,8 +839,13 @@ export default function ContentClient() {
     });
   }
 
-  function openPickSpace(lessonId: string, title: string) {
-    setPickLesson({ lessonId, title });
+  function openPickSpace(opts: {
+    lessonId: string;
+    title: string;
+    sourceType: "myContent" | "library";
+    sourceId: string;
+  }) {
+    setPickLesson(opts);
     setPickSpaceOpen(true);
   }
 
@@ -841,8 +857,7 @@ export default function ContentClient() {
   async function assignLessonToSpace(spaceId: string) {
     if (!pickLesson) return;
 
-    const lessonId = pickLesson.lessonId;
-    const key = `shareToSpace:${spaceId}:${lessonId}`;
+    const key = `shareToSpace:${spaceId}:${pickLesson.sourceType}:${pickLesson.sourceId}`;
     setErr(null);
     setBusy(key, true);
 
@@ -853,8 +868,8 @@ export default function ContentClient() {
           : `/api/teacher/spaces/${spaceId}/assign`;
 
       await authedPost(apiPath, {
-        sourceType: "myContent",
-        sourceId: lessonId,
+        sourceType: pickLesson.sourceType,
+        sourceId: pickLesson.sourceId,
         title: pickLesson.title || t("fallback.untitledTask"),
       });
 
@@ -914,7 +929,7 @@ export default function ContentClient() {
       } else {
         const publishedId =
           typeof (data as { activePublishedId?: unknown }).activePublishedId === "string" &&
-          (data as { activePublishedId?: string }).activePublishedId
+            (data as { activePublishedId?: string }).activePublishedId
             ? (data as { activePublishedId?: string }).activePublishedId!
             : lessonId;
 
@@ -952,7 +967,7 @@ export default function ContentClient() {
         const d = isRecord(dUnknown) ? dUnknown : {};
         const publishedId =
           typeof (d as { activePublishedId?: unknown }).activePublishedId === "string" &&
-          (d as { activePublishedId?: string }).activePublishedId
+            (d as { activePublishedId?: string }).activePublishedId
             ? (d as { activePublishedId?: string }).activePublishedId!
             : lessonId;
 
@@ -1103,6 +1118,20 @@ export default function ContentClient() {
         !!ss.lessonId &&
         !isTeacherSpaceSubmission(ss);
 
+      const publishedShareId =
+        typeof (ss as { publishedLessonId?: unknown }).publishedLessonId === "string" &&
+          (ss as { publishedLessonId?: string }).publishedLessonId
+          ? (ss as { publishedLessonId?: string }).publishedLessonId!
+          : typeof (ss as { sourceId?: unknown }).sourceId === "string" &&
+            (ss as { sourceId?: string }).sourceId
+            ? (ss as { sourceId?: string }).sourceId!
+            : ss.lessonId || "";
+
+      const canShareSubmissionPublic =
+        isTeacher && isLibraryPractice(ss) && !!publishedShareId;
+
+      const canShowEditDisabled = isTeacher && isLibraryPractice(ss);
+
       return [
         {
           key: "open",
@@ -1110,25 +1139,60 @@ export default function ContentClient() {
           disabled: busy,
           onClick: () => router.push(itemOpenHref(ss)),
         },
+
         ...(canEditSubmission
           ? [
+            {
+              key: "edit",
+              label: t("actions.editAnswers"),
+              disabled: busy,
+              onClick: () => router.push(itemOpenHref(ss)),
+            },
+          ]
+          : canShowEditDisabled
+            ? [
               {
                 key: "edit",
-                label: t("actions.editAnswers"),
-                disabled: busy,
-                onClick: () => router.push(itemOpenHref(ss)),
+                label: t("actions.edit"),
+                disabled: true,
+                onClick: () => { },
               },
             ]
+            : []),
+
+        ...(canShareSubmissionPublic
+          ? [
+            {
+              key: "share",
+              label: t("actions.share"),
+              disabled: busy,
+              onClick: () =>
+                openShareModal({
+                  title: titleForCard(ss),
+                  url: `${getOrigin()}/${locale}/share/lesson/${publishedShareId}`,
+                  text: getSharePresetText("example1"),
+                  kind: "lesson",
+                  tone: "professional",
+                }),
+            },
+          ]
           : []),
+
         ...(canShareSubmissionToSpace
           ? [
-              {
-                key: "shareToSpace",
-                label: t("actions.shareToSpace"),
-                disabled: busy,
-                onClick: () => openPickSpace(ss.lessonId!, titleForCard(ss)),
-              },
-            ]
+            {
+              key: "shareToSpace",
+              label: t("actions.shareToSpace"),
+              disabled: busy,
+              onClick: () =>
+                openPickSpace({
+                  lessonId: ss.lessonId || "",
+                  title: titleForCard(ss),
+                  sourceType: isLibraryPractice(ss) ? "library" : "myContent",
+                  sourceId: ss.lessonId || "",
+                }),
+            },
+          ]
           : []),
       ];
     }
@@ -1149,43 +1213,43 @@ export default function ContentClient() {
         },
         ...(!isParent
           ? [
-              {
-                key: "board",
-                label: t("actions.board"),
-                disabled: busy,
-                onClick: () => router.push(spaceBoardHref(sp.id)),
-              },
-            ]
+            {
+              key: "board",
+              label: t("actions.board"),
+              disabled: busy,
+              onClick: () => router.push(spaceBoardHref(sp.id)),
+            },
+          ]
           : []),
         ...(canShareSpace && code
           ? [
-              {
-                key: "copyCode",
-                label: t("actions.copyJoinCode"),
-                disabled: busy,
-                onClick: () => copyText(code),
-              },
-            ]
+            {
+              key: "copyCode",
+              label: t("actions.copyJoinCode"),
+              disabled: busy,
+              onClick: () => copyText(code),
+            },
+          ]
           : []),
         ...(canShareSpace
           ? [
-              {
-                key: "share",
-                label: t("actions.shareLinkQr"),
-                disabled: busy,
-                onClick: () => openShareForSpace(sp),
-              },
-            ]
+            {
+              key: "share",
+              label: t("actions.shareLinkQr"),
+              disabled: busy,
+              onClick: () => openShareForSpace(sp),
+            },
+          ]
           : []),
         ...(canShareSpace && joinUrl
           ? [
-              {
-                key: "copyJoinLink",
-                label: t("actions.copyJoinLink"),
-                disabled: busy,
-                onClick: () => copyText(joinUrl),
-              },
-            ]
+            {
+              key: "copyJoinLink",
+              label: t("actions.copyJoinLink"),
+              disabled: busy,
+              onClick: () => copyText(joinUrl),
+            },
+          ]
           : []),
       ];
     }
@@ -1216,13 +1280,13 @@ export default function ContentClient() {
     const restoreAction: ActionItem[] =
       showDeleted && isDeleted && (isTeacher || isParent)
         ? [
-            {
-              key: "restore",
-              label: t("actions.restore"),
-              disabled: busy,
-              onClick: () => restoreLesson(ls.id, titleForCard(ls)),
-            },
-          ]
+          {
+            key: "restore",
+            label: t("actions.restore"),
+            disabled: busy,
+            onClick: () => restoreLesson(ls.id, titleForCard(ls)),
+          },
+        ]
         : [];
 
     if (isMathArchive) {
@@ -1236,16 +1300,16 @@ export default function ContentClient() {
         },
         ...(canPdf
           ? [
-              {
-                key: "pdf",
-                label:
-                  mathSubtypeText && mathSubtype !== "math"
-                    ? `${mathSubtypeText}-PDF`
-                    : t("math.pdf"),
-                disabled: busy,
-                onClick: () => router.push(pdfHref),
-              },
-            ]
+            {
+              key: "pdf",
+              label:
+                mathSubtypeText && mathSubtype !== "math"
+                  ? `${mathSubtypeText}-PDF`
+                  : t("math.pdf"),
+              disabled: busy,
+              onClick: () => router.push(pdfHref),
+            },
+          ]
           : []),
         {
           key: "delete",
@@ -1268,61 +1332,67 @@ export default function ContentClient() {
 
       ...(canEdit
         ? [
-            {
-              key: "edit",
-              label: t("actions.edit"),
-              disabled: busy,
-              onClick: () => router.push(editHref),
-            },
-          ]
+          {
+            key: "edit",
+            label: t("actions.edit"),
+            disabled: busy,
+            onClick: () => router.push(editHref),
+          },
+        ]
         : []),
 
       ...(isTeacher
         ? [
-            {
-              key: isPublished ? "unpublish" : "publish",
-              label: busy
-                ? t("actions.working")
-                : isPublished
-                  ? t("actions.unpublish")
-                  : t("actions.publish"),
-              disabled: busy || !canPublish,
-              onClick: () => setPublished(ls.id, !isPublished),
-            },
-          ]
+          {
+            key: isPublished ? "unpublish" : "publish",
+            label: busy
+              ? t("actions.working")
+              : isPublished
+                ? t("actions.unpublish")
+                : t("actions.publish"),
+            disabled: busy || !canPublish,
+            onClick: () => setPublished(ls.id, !isPublished),
+          },
+        ]
         : []),
 
       ...((canSharePublic || canShareReadingTest)
         ? [
-            {
-              key: "share",
-              label: t("actions.share"),
-              disabled: busy,
-              onClick: () => openShareForLesson(ls),
-            },
-          ]
+          {
+            key: "share",
+            label: t("actions.share"),
+            disabled: busy,
+            onClick: () => openShareForLesson(ls),
+          },
+        ]
         : []),
 
       {
         key: "shareToSpace",
         label: t("actions.shareToSpace"),
         disabled: busy || !canShareToSpace,
-        onClick: () => openPickSpace(ls.id, titleForCard(ls)),
+        onClick: () =>
+          openPickSpace({
+            lessonId: ls.id,
+            title: titleForCard(ls),
+            sourceType: "myContent",
+            sourceId: ls.id,
+          }),
       },
 
       ...(isTeacher
         ? [
-            {
-              key: "pdf",
-              label: isMath
-                ? mathSubtypeText && mathSubtype !== "math"
-                  ? `${mathSubtypeText}-PDF`
-                  : t("math.pdf")
-                : t("actions.pdf"),
-              disabled: busy || !canPdf,
-              onClick: () => router.push(pdfHref),
-            },
-          ]
+          {
+            key: "pdf",
+            label: isMath
+              ? mathSubtypeText && mathSubtype !== "math"
+                ? `${mathSubtypeText}-PDF`
+                : t("math.pdf")
+              : t("actions.pdf"),
+            disabled: busy || !canPdf,
+            onClick: () => router.push(pdfHref),
+          },
+        ]
         : []),
 
       {
@@ -1336,8 +1406,8 @@ export default function ContentClient() {
   }
 
   function visibleDesktopActionKeys(it: ContentItem): string[] {
-    if (it.type === "submission") return ["open", "edit", "shareToSpace"];
-    if (it.type === "space") return ["open", "board", "copyCode", "shareLinkQr", "copyJoinLink"];
+    if (it.type === "submission") return ["open", "edit", "share", "shareToSpace"];
+    if (it.type === "space") return ["open", "board", "copyCode", "share", "copyJoinLink"];
     if (isMathArchiveItem(it)) return ["openMath", "pdf", "delete", "restore"];
     return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "pdf", "delete", "restore"];
   }
@@ -1389,7 +1459,14 @@ export default function ContentClient() {
         const tt = titleForCard(it).toLowerCase();
         const meta = (it.meta || []).join(" ").toLowerCase();
         const st = (it.status || "").toLowerCase();
-        return tt.includes(qq) || meta.includes(qq) || st.includes(qq);
+        const author = authorNameFromItem(it)?.toLowerCase() || "";
+
+        return (
+          tt.includes(qq) ||
+          meta.includes(qq) ||
+          st.includes(qq) ||
+          author.includes(qq)
+        );
       })
       .slice()
       .sort((a, b) => {
@@ -1567,188 +1644,198 @@ export default function ContentClient() {
 
           {!loading
             ? filtered.map((it) => {
-                const key = `${it.type}:${it.id}`;
-                const actions = buildActions(it);
-                const desktopMainActions = desktopActions(it, actions);
-                const desktopExtraActions = desktopOverflowActions(it, actions);
+              const key = `${it.type}:${it.id}`;
+              const actions = buildActions(it);
+              const desktopMainActions = desktopActions(it, actions);
+              const desktopExtraActions = desktopOverflowActions(it, actions);
 
-                const title = titleForCard(it);
-                const deletedAt = getDeletedAt(it);
-                const mathItem = isMathContent(it);
-                const mathSubtype = getMathSubtype(it);
-                const mathSubtypeText = mathSubtypeLabel(mathSubtype);
+              const title = titleForCard(it);
+              const deletedAt = getDeletedAt(it);
+              const mathItem = isMathContent(it);
+              const mathSubtype = getMathSubtype(it);
+              const mathSubtypeText = mathSubtypeLabel(mathSubtype);
 
-                let pill: React.ReactNode = null;
+              let pill: React.ReactNode = null;
 
-                const extraPill =
-                  it.type === "submission"
-                    ? isLibraryPractice(it)
-                      ? <StatusPill label={t("pills.library")} variant="gray" />
-                      : isTeacherSpaceSubmission(it)
-                        ? <StatusPill label={t("pills.teacherSubmission")} variant="gray" />
-                        : null
-                    : null;
+              const extraPill =
+                it.type === "submission"
+                  ? isLibraryPractice(it)
+                    ? <StatusPill label={t("pills.library")} variant="gray" />
+                    : isTeacherSpaceSubmission(it)
+                      ? <StatusPill label={t("pills.teacherSubmission")} variant="gray" />
+                      : null
+                  : null;
 
-                if (isDeletedItem(it)) {
-                  pill = <StatusPill label={deletedLabel} variant="amber" />;
-                } else if (it.type === "lesson") {
-                  if (isReadingTestLesson(it)) {
-                    pill = <StatusPill label={t("pills.readingTest")} variant="gray" />;
-                  } else if (isParent) {
-                    pill = <StatusPill label={t("parent.shareReady")} variant="green" />;
-                  } else if (isMathArchiveItem(it)) {
-                    pill = <StatusPill label={t("pills.readyForPdf")} variant="green" />;
-                  } else {
-                    const s =
-                      ((it.status ?? "draft") as LessonStatus) === "published"
-                        ? "published"
-                        : "unpublished";
-                    pill =
-                      s === "published" ? (
-                        <StatusPill label={t("pills.published")} variant="green" />
-                      ) : (
-                        <StatusPill label={t("pills.unpublished")} variant="red" />
-                      );
-                  }
-                } else if (it.status) {
-                  pill = <StatusPill label={it.status} variant="gray" />;
+              if (isDeletedItem(it)) {
+                pill = <StatusPill label={deletedLabel} variant="amber" />;
+              } else if (it.type === "lesson") {
+                if (isReadingTestLesson(it)) {
+                  pill = <StatusPill label={t("pills.readingTest")} variant="gray" />;
+                } else if (isParent) {
+                  pill = <StatusPill label={t("parent.shareReady")} variant="green" />;
+                } else if (isMathArchiveItem(it)) {
+                  pill = <StatusPill label={t("pills.readyForPdf")} variant="green" />;
+                } else {
+                  const s =
+                    ((it.status ?? "draft") as LessonStatus) === "published"
+                      ? "published"
+                      : "unpublished";
+                  pill =
+                    s === "published" ? (
+                      <StatusPill label={t("pills.published")} variant="green" />
+                    ) : (
+                      <StatusPill label={t("pills.unpublished")} variant="red" />
+                    );
                 }
+              } else if (it.status) {
+                pill = <StatusPill label={it.status} variant="gray" />;
+              }
 
-                const metaLine = cleanMetaForCard(it);
-                const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
-                const mathHint = mathItem && it.type === "lesson" ? t("math.hint") : null;
+              const metaLine = cleanMetaForCard(it);
+              const authorName = authorNameFromItem(it);
+              const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
+              const mathHint = mathItem && it.type === "lesson" ? t("math.hint") : null;
 
-                return (
-                  <div
-                    key={key}
-                    className="box-border block w-full max-w-full min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm"
-                  >
-                    <div className="flex min-w-0 max-w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 max-w-full flex-1">
-                        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
-                          <div className="min-w-0 max-w-full break-words text-base font-black leading-tight text-slate-900">
-                            {title}
-                          </div>
-
-                          {pill}
-                          {extraPill}
-
-                          {mathItem ? (
-                            <StatusPill label={t("pills.mathGenerator")} variant="amber" />
-                          ) : null}
-
-                          {mathItem && mathSubtypeText && mathSubtype !== "math" ? (
-                            <StatusPill label={mathSubtypeText} variant="gray" />
-                          ) : null}
+              return (
+                <div
+                  key={key}
+                  className="box-border block w-full max-w-full min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex min-w-0 max-w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 max-w-full flex-1">
+                      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+                        <div className="min-w-0 max-w-full break-words text-base font-black leading-tight text-slate-900">
+                          {title}
                         </div>
 
-                        <div className="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs text-slate-500">
-                          {it.updatedAt ? <span>{fmtDate(it.updatedAt, locale)}</span> : null}
+                        {pill}
+                        {extraPill}
 
-                          {deletedAt ? (
-                            <>
-                              <span className="opacity-60">•</span>
-                              <span>
-                                {deletedAtLabel}: {fmtDate(deletedAt, locale)}
-                              </span>
-                            </>
-                          ) : null}
-
-                          {metaLine ? <span className="opacity-60">•</span> : null}
-                          {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
-                        </div>
-
-                        {mathHint ? (
-                          <div className="mt-2 text-xs font-semibold text-amber-700">{mathHint}</div>
+                        {mathItem ? (
+                          <StatusPill label={t("pills.mathGenerator")} variant="amber" />
                         ) : null}
 
-                        {isParent && it.type === "lesson" && !isMathArchiveItem(it) ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <StatusPill label={t("parent.canShareToChildren")} variant="gray" />
-                          </div>
+                        {mathItem && mathSubtypeText && mathSubtype !== "math" ? (
+                          <StatusPill label={mathSubtypeText} variant="gray" />
                         ) : null}
-
-                        {parentMeta ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <StatusPill
-                              label={t("parentSpace.tasksCount", { count: parentMeta.lessonCount })}
-                              variant="gray"
-                            />
-                            {parentMeta.activeLessonTitle ? (
-                              <StatusPill
-                                label={t("parentSpace.active", { title: parentMeta.activeLessonTitle })}
-                                variant="gray"
-                              />
-                            ) : null}
-                            <StatusPill
-                              label={parentChildProgressLabel(parentMeta.activeSubmissionStatus)}
-                              variant={parentChildProgressVariant(parentMeta.activeSubmissionStatus)}
-                            />
-                            {parentMeta.submittedCount > 0 ? (
-                              <StatusPill
-                                label={t("parentSpace.submittedCount", { count: parentMeta.submittedCount })}
-                                variant="green"
-                              />
-                            ) : null}
-                            {parentMeta.draftCount > 0 ? (
-                              <StatusPill
-                                label={t("parentSpace.draftCount", { count: parentMeta.draftCount })}
-                                variant="amber"
-                              />
-                            ) : null}
-                            {parentMeta.aiFeedbackCount > 0 ? (
-                              <StatusPill
-                                label={t("parentSpace.aiFeedbackCount", { count: parentMeta.aiFeedbackCount })}
-                                variant="green"
-                              />
-                            ) : null}
-                            {parentMeta.reviewCount > 0 ? (
-                              <StatusPill
-                                label={t("parentSpace.reviewCount", { count: parentMeta.reviewCount })}
-                                variant="green"
-                              />
-                            ) : null}
-                          </div>
-                        ) : null}
-
-                        <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
-                          {desktopMainActions.map((a) => {
-                            if (a.key === "delete") {
-                              return (
-                                <DangerButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
-                                  {a.label}
-                                </DangerButton>
-                              );
-                            }
-                            if (a.key === "restore") {
-                              return (
-                                <SuccessButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
-                                  {a.label}
-                                </SuccessButton>
-                              );
-                            }
-                            return (
-                              <PrimaryButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
-                                {a.label}
-                              </PrimaryButton>
-                            );
-                          })}
-                        </div>
                       </div>
 
-                      <div className="flex min-w-0 w-full justify-end sm:w-auto">
-                        <div className="ml-2 shrink-0 sm:hidden">
-                          <ActionMenu items={actions} />
-                        </div>
+                      <div className="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs text-slate-500">
+                        {it.updatedAt ? <span>{fmtDate(it.updatedAt, locale)}</span> : null}
 
-                        <div className="ml-2 hidden shrink-0 sm:block">
-                          {desktopExtraActions.length > 0 ? <ActionMenu items={desktopExtraActions} /> : null}
+                        {authorName ? (
+                          <>
+                            <span className="opacity-60">•</span>
+                            <span className="min-w-0 max-w-full break-words">
+                              {t("labels.author")}: {authorName}
+                            </span>
+                          </>
+                        ) : null}
+
+                        {deletedAt ? (
+                          <>
+                            <span className="opacity-60">•</span>
+                            <span>
+                              {deletedAtLabel}: {fmtDate(deletedAt, locale)}
+                            </span>
+                          </>
+                        ) : null}
+
+                        {metaLine ? <span className="opacity-60">•</span> : null}
+                        {metaLine ? <span className="min-w-0 max-w-full break-words">{metaLine}</span> : null}
+                      </div>
+
+                      {mathHint ? (
+                        <div className="mt-2 text-xs font-semibold text-amber-700">{mathHint}</div>
+                      ) : null}
+
+                      {isParent && it.type === "lesson" && !isMathArchiveItem(it) ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <StatusPill label={t("parent.canShareToChildren")} variant="gray" />
                         </div>
+                      ) : null}
+
+                      {parentMeta ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <StatusPill
+                            label={t("parentSpace.tasksCount", { count: parentMeta.lessonCount })}
+                            variant="gray"
+                          />
+                          {parentMeta.activeLessonTitle ? (
+                            <StatusPill
+                              label={t("parentSpace.active", { title: parentMeta.activeLessonTitle })}
+                              variant="gray"
+                            />
+                          ) : null}
+                          <StatusPill
+                            label={parentChildProgressLabel(parentMeta.activeSubmissionStatus)}
+                            variant={parentChildProgressVariant(parentMeta.activeSubmissionStatus)}
+                          />
+                          {parentMeta.submittedCount > 0 ? (
+                            <StatusPill
+                              label={t("parentSpace.submittedCount", { count: parentMeta.submittedCount })}
+                              variant="green"
+                            />
+                          ) : null}
+                          {parentMeta.draftCount > 0 ? (
+                            <StatusPill
+                              label={t("parentSpace.draftCount", { count: parentMeta.draftCount })}
+                              variant="amber"
+                            />
+                          ) : null}
+                          {parentMeta.aiFeedbackCount > 0 ? (
+                            <StatusPill
+                              label={t("parentSpace.aiFeedbackCount", { count: parentMeta.aiFeedbackCount })}
+                              variant="green"
+                            />
+                          ) : null}
+                          {parentMeta.reviewCount > 0 ? (
+                            <StatusPill
+                              label={t("parentSpace.reviewCount", { count: parentMeta.reviewCount })}
+                              variant="green"
+                            />
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
+                        {desktopMainActions.map((a) => {
+                          if (a.key === "delete") {
+                            return (
+                              <DangerButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                {a.label}
+                              </DangerButton>
+                            );
+                          }
+                          if (a.key === "restore") {
+                            return (
+                              <SuccessButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                                {a.label}
+                              </SuccessButton>
+                            );
+                          }
+                          return (
+                            <PrimaryButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
+                              {a.label}
+                            </PrimaryButton>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex min-w-0 w-full justify-end sm:w-auto">
+                      <div className="ml-2 shrink-0 sm:hidden">
+                        <ActionMenu items={actions} />
+                      </div>
+
+                      <div className="ml-2 hidden shrink-0 sm:block">
+                        {desktopExtraActions.length > 0 ? <ActionMenu items={desktopExtraActions} /> : null}
                       </div>
                     </div>
                   </div>
-                );
-              })
+                </div>
+              );
+            })
             : null}
         </div>
       </section>

@@ -22,7 +22,8 @@
       "noResults": "Nenhuma aula publicada foi encontrada. Tente limpar os filtros ou buscar outra coisa."
     },
     "card": {
-      "imageFallback": "Imagem"
+      "imageFallback": "Imagem",
+      "author": "Autor"
     },
     "languages": {
       "all": "Todos os idiomas",

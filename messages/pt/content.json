@@ -35,7 +35,8 @@
     "labels": {
       "deleted": "Excluído",
       "deletedAt": "Excluído",
-      "items": "itens"
+      "items": "itens",
+      "author": "Autor"
     },
     "states": {
       "loadingContent": "Carregando conteúdo…"

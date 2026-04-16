@@ -1,4 +1,4 @@
-// app/page.tsx
+// app/[locale]/page.tsx
 import Link from "next/link";
 import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -303,6 +303,7 @@ export default async function HomePage() {
   const locale = (await getLocale()) as string;
   const t = await getTranslations("landing");
   const tr = await getTranslations();
+  const currentYear = new Date().getUTCFullYear();
 
   const libraryCopy = getLibraryStripCopy(locale);
   const featured = await getFeaturedLessons(locale);
@@ -312,7 +313,7 @@ export default async function HomePage() {
   const secondRow = featured.slice(midpoint);
 
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-white text-slate-900">
       <PublicHeader
         locale={locale}
         schoolLabel={tr("brandLogo.school")}
@@ -382,8 +383,16 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-8 space-y-4 overflow-hidden">
-            <MarqueeRow items={firstRow.length ? firstRow : featured} locale={locale} reverse={false} />
-            <MarqueeRow items={secondRow.length ? secondRow : featured} locale={locale} reverse />
+            <MarqueeRow
+              items={firstRow.length ? firstRow : featured}
+              locale={locale}
+              reverse={false}
+            />
+            <MarqueeRow
+              items={secondRow.length ? secondRow : featured}
+              locale={locale}
+              reverse
+            />
           </div>
 
           <div className="mt-8 px-6 text-center">
@@ -588,43 +597,11 @@ export default async function HomePage() {
             </div>
           </div>
           <p className="mt-6 text-xs text-slate-500">
-            © {new Date().getFullYear()} {brand.name}. {t("footer.rights")}
+            © {currentYear} {brand.name}. {t("footer.rights")}
           </p>
         </div>
       </footer>
-
-      <style>{`
-        @keyframes marqueeLeft {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-
-        @keyframes marqueeRight {
-          0% { transform: translateX(-50%); }
-          100% { transform: translateX(0); }
-        }
-
-        .marquee-track {
-  width: max-content;
-  display: flex;
-  gap: 10px;
-  will-change: transform;
-}
-
-        .marquee-left {
-          animation: marqueeLeft 78s linear infinite;
-        }
-
-        .marquee-right {
-          animation: marqueeRight 88s linear infinite;
-        }
-
-        .marquee-wrap:hover .marquee-left,
-        .marquee-wrap:hover .marquee-right {
-          animation-play-state: paused;
-        }
-      `}</style>
-    </main>
+    </div>
   );
 }
 
@@ -667,11 +644,10 @@ function PublicHeader(props: {
                 <Link
                   key={l.code}
                   href={`/${l.code}`}
-                  className={`block px-3 py-2 text-xs hover:bg-slate-50 ${
-                    l.code === localeNow
+                  className={`block px-3 py-2 text-xs hover:bg-slate-50 ${l.code === localeNow
                       ? "font-semibold text-slate-900"
                       : "text-slate-700"
-                  }`}
+                    }`}
                 >
                   {l.label}
                 </Link>
@@ -752,12 +728,12 @@ function LibraryCard(props: { item: FeaturedLesson; href: string }) {
 
       <div className="p-3">
         <p className="line-clamp-2 text-[13px] font-semibold leading-[1.2] text-slate-900 no-underline">
-  {item.title}
-</p>
+          {item.title}
+        </p>
 
-<p className="mt-0.5 text-[11px] leading-[1.2] text-slate-500 no-underline">
-  {item.textType ? item.textType.replaceAll("_", " ") : "undervisningsopplegg"}
-</p>
+        <p className="mt-0.5 text-[11px] leading-[1.2] text-slate-500 no-underline">
+          {item.textType ? item.textType.replaceAll("_", " ") : "undervisningsopplegg"}
+        </p>
       </div>
     </Link>
   );
@@ -777,9 +753,8 @@ function FeatureSection(props: {
     <section id={props.id} className="bg-white">
       <div className="mx-auto max-w-6xl px-6 py-16">
         <div
-          className={`grid grid-cols-1 items-center gap-10 md:grid-cols-2 ${
-            props.flip ? "md:[&>*:first-child]:order-2" : ""
-          }`}
+          className={`grid grid-cols-1 items-center gap-10 md:grid-cols-2 ${props.flip ? "md:[&>*:first-child]:order-2" : ""
+            }`}
         >
           <div>
             <p className="text-sm font-semibold text-slate-600">{props.eyebrow}</p>
@@ -833,9 +808,8 @@ function CheckRow(props: { text: string; dark?: boolean }) {
   return (
     <div className={`flex gap-3 ${props.dark ? "text-white/85" : "text-slate-700"}`}>
       <span
-        className={`mt-0.5 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full ${
-          props.dark ? "bg-white/15 text-white" : "bg-emerald-100 text-emerald-700"
-        }`}
+        className={`mt-0.5 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full ${props.dark ? "bg-white/15 text-white" : "bg-emerald-100 text-emerald-700"
+          }`}
       >
         ✓
       </span>

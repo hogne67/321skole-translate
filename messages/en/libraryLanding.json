@@ -22,7 +22,8 @@
       "noResults": "No published lessons found. Try clearing filters or searching for something else."
     },
     "card": {
-      "imageFallback": "Image"
+      "imageFallback": "Image",
+      "author": "Author"
     },
     "languages": {
       "all": "All languages",

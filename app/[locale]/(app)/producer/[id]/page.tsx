@@ -52,6 +52,7 @@ type Lesson = {
   producerName?: string;
   coverImageUrl?: string;
   coverImageFormat?: CoverFormat;
+  coverImageCredit?: string;
 
   coverImageSource?: CoverImageSource;
   aiCoverStyle?: CoverImageStyle;
@@ -151,9 +152,11 @@ function readUserDisplayName(d: unknown): string {
   if (!d || typeof d !== "object") return "";
   const x = d as Record<string, unknown>;
   return (
+    readString(x.producerName).trim() ||
     readString(x.displayName).trim() ||
     readString(x.fullName).trim() ||
     readString(x.name).trim() ||
+    readString(x.companyName).trim() ||
     ""
   );
 }
@@ -248,6 +251,7 @@ export default function ProducerLessonEditorPage() {
 
   const [producerName, setProducerName] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [coverImageCredit, setCoverImageCredit] = useState("");
   const [coverImageFormat, setCoverImageFormat] = useState<CoverFormat>("16:9");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [generatingCover, setGeneratingCover] = useState(false);
@@ -357,9 +361,12 @@ export default function ProducerLessonEditorPage() {
         setEstimatedMinutes(typeof data.estimatedMinutes === "number" ? data.estimatedMinutes : 20);
         setReleaseMode(normalizeReleaseMode(data.releaseMode));
 
-        setProducerName(typeof data.producerName === "string" ? data.producerName : "");
+        if (typeof data.producerName === "string" && data.producerName.trim()) {
+          setProducerName(data.producerName.trim());
+        }
         setCoverImageUrl(typeof data.coverImageUrl === "string" ? data.coverImageUrl : "");
         setCoverImageFormat(normalizeCoverFormat(data.coverImageFormat));
+        setCoverImageCredit(typeof data.coverImageCredit === "string" ? data.coverImageCredit : "");
 
         setCoverImageSource(normalizeCoverImageSource(data.coverImageSource));
         setAiCoverStyle(normalizeCoverImageStyle(data.aiCoverStyle));
@@ -388,20 +395,33 @@ export default function ProducerLessonEditorPage() {
     (async () => {
       if (!uid) return;
 
+      const profileName = readUserDisplayName(profile);
+      const authName = readString(getAuth().currentUser?.displayName).trim();
+
+      if (profileName) {
+        setProducerName(profileName);
+        return;
+      }
+
+      if (authName) {
+        setProducerName(authName);
+        return;
+      }
+
       try {
         const snap = await getDoc(doc(db, "users", uid));
         if (!alive) return;
-        const name = snap.exists() ? readUserDisplayName(snap.data()) : "";
-        if (name) setProducerName(name);
-      } catch {
-        // ignore
+        const dbName = snap.exists() ? readUserDisplayName(snap.data()) : "";
+        if (dbName) setProducerName(dbName);
+      } catch (err) {
+        console.error("Failed to fetch producer name:", err);
       }
     })();
 
     return () => {
       alive = false;
     };
-  }, [uid]);
+  }, [uid, profile]);
 
   async function uploadCover(file: File) {
     setErr(null);
@@ -553,6 +573,7 @@ export default function ProducerLessonEditorPage() {
 
           producerName: producerName.trim(),
           coverImageUrl: coverImageUrl.trim(),
+          coverImageCredit: coverImageCredit.trim(),
           coverImageFormat,
 
           coverImageSource,
@@ -706,51 +727,51 @@ export default function ProducerLessonEditorPage() {
   }
 
   return (
-  <>
-    <main
-      style={{
-        paddingTop: 20,
-        paddingRight: 20,
-        paddingBottom: 110,
-        paddingLeft: 20,
-        maxWidth: 980,
-        margin: "0 auto",
-      }}
-    >
-      <div
+    <>
+      <main
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 12,
-          flexWrap: "wrap",
+          paddingTop: 20,
+          paddingRight: 20,
+          paddingBottom: 110,
+          paddingLeft: 20,
+          maxWidth: 980,
+          margin: "0 auto",
         }}
       >
-        <div>
-          <Link href={backHref}>{t("nav.back")}</Link>
-          <h1 style={{ fontSize: 26, fontWeight: 900, marginTop: 10 }}>
-            {t("pageTitle")}
-          </h1>
-          <div style={{ fontSize: 13, opacity: 0.7, marginTop: 4 }}>
-            {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <Link href={backHref}>{t("nav.back")}</Link>
+            <h1 style={{ fontSize: 26, fontWeight: 900, marginTop: 10 }}>
+              {t("pageTitle")}
+            </h1>
+            <div style={{ fontSize: 13, opacity: 0.7, marginTop: 4 }}>
+              {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
+            </div>
+            <div style={{ fontSize: 14, opacity: 0.78, marginTop: 8 }}>
+              {t("intro.finishLesson")}
+            </div>
           </div>
-          <div style={{ fontSize: 14, opacity: 0.78, marginTop: 8 }}>
-            {t("intro.finishLesson")}
-          </div>
-        </div>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={saveAndGoToMyContent}
-            disabled={saving}
-            style={primaryButton}
-            title={t("buttons.saveToMyContent")}
-          >
-            {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
-          </button>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={saveAndGoToMyContent}
+              disabled={saving}
+              style={primaryButton}
+              title={t("buttons.saveToMyContent")}
+            >
+              {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
+            </button>
+          </div>
         </div>
-      </div>
 
         <section
           style={{
@@ -858,6 +879,16 @@ export default function ProducerLessonEditorPage() {
               <div style={smallHelpStyle}>
                 {t("help.producerName", { uid: uid ?? "uid" })}
               </div>
+              <label style={{ display: "grid", gap: 6, maxWidth: 560 }}>
+                <div style={{ fontWeight: 800 }}>{t("fields.coverImageCredit")}</div>
+                <input
+                  value={coverImageCredit}
+                  onChange={(e) => setCoverImageCredit(e.target.value)}
+                  style={fieldStyle}
+                  placeholder={t("placeholders.coverImageCredit")}
+                />
+                <div style={smallHelpStyle}>{t("help.coverImageCredit")}</div>
+              </label>
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
@@ -876,15 +907,15 @@ export default function ProducerLessonEditorPage() {
             </label>
 
             <label style={{ display: "grid", gap: 6 }}>
-  <div style={{ fontWeight: 800 }}>{t("fields.topic")}</div>
-  <input
-    value={topic}
-    onChange={(e) => setTopic(e.target.value)}
-    style={fieldStyle}
-    placeholder={t("placeholdersExtra.topic")}
-  />
-  <div style={smallHelpStyle}>{t("fields.topicHelp")}</div>
-</label>
+              <div style={{ fontWeight: 800 }}>{t("fields.topic")}</div>
+              <input
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                style={fieldStyle}
+                placeholder={t("placeholdersExtra.topic")}
+              />
+              <div style={smallHelpStyle}>{t("fields.topicHelp")}</div>
+            </label>
 
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 800 }}>{t("fields.tags")}</div>
@@ -988,7 +1019,10 @@ export default function ProducerLessonEditorPage() {
 
                   <button
                     type="button"
-                    onClick={() => setCoverImageUrl("")}
+                    onClick={() => {
+                      setCoverImageUrl("");
+                      setCoverImageCredit("");
+                    }}
                     style={{
                       padding: "10px 12px",
                       border: "1px solid #ddd",
@@ -1146,7 +1180,10 @@ export default function ProducerLessonEditorPage() {
 
                   <button
                     type="button"
-                    onClick={() => setCoverImageUrl("")}
+                    onClick={() => {
+                      setCoverImageUrl("");
+                      setCoverImageCredit("");
+                    }}
                     style={{
                       padding: "10px 14px",
                       borderRadius: 10,
@@ -1456,37 +1493,37 @@ export default function ProducerLessonEditorPage() {
       </main>
 
       <div
-  style={{
-    position: "fixed",
-    left: "50%",
-    transform: "translateX(-50%)",
-    bottom: 16,
-    zIndex: 1000,
-    pointerEvents: "none",
-  }}
->
-  <button
-    type="button"
-    onClick={saveAndGoToMyContent}
-    disabled={saving}
-    style={{
-      pointerEvents: "auto",
-      padding: "12px 16px",
-      borderRadius: 14,
-      border: "1px solid #86efac",
-      background: "#16a34a",
-      color: "white",
-      fontWeight: 900,
-      cursor: saving ? "not-allowed" : "pointer",
-      opacity: saving ? 0.92 : 1,
-      boxShadow: "0 10px 24px rgba(22,163,74,0.28)",
-      whiteSpace: "nowrap",
-    }}
-    title={t("buttons.saveToMyContent")}
-  >
-    {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
-  </button>
-</div>
+        style={{
+          position: "fixed",
+          left: "50%",
+          transform: "translateX(-50%)",
+          bottom: 16,
+          zIndex: 1000,
+          pointerEvents: "none",
+        }}
+      >
+        <button
+          type="button"
+          onClick={saveAndGoToMyContent}
+          disabled={saving}
+          style={{
+            pointerEvents: "auto",
+            padding: "12px 16px",
+            borderRadius: 14,
+            border: "1px solid #86efac",
+            background: "#16a34a",
+            color: "white",
+            fontWeight: 900,
+            cursor: saving ? "not-allowed" : "pointer",
+            opacity: saving ? 0.92 : 1,
+            boxShadow: "0 10px 24px rgba(22,163,74,0.28)",
+            whiteSpace: "nowrap",
+          }}
+          title={t("buttons.saveToMyContent")}
+        >
+          {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
+        </button>
+      </div>
     </>
   );
-}
+}  

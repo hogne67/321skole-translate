@@ -66,7 +66,8 @@
       "releaseMode": "Visningsmodus",
       "releaseModeHelp": "Velg om tekst og oppgaver skal vises sammen eller tekst først.",
       "status": "Status",
-      "text": "Tekst"
+      "text": "Tekst",
+      "coverImageCredit": "Bildekilde"
     },
     "fieldsExtra": {
       "textType": "Teksttype",
@@ -84,7 +85,8 @@
       "tags": "For eksempel skole, grammatikk, lesing",
       "sourceText": "Lim inn eller skriv oppgaveteksten her…",
       "taskPrompt": "Skriv oppgaveteksten her…",
-      "mcqCorrectAnswer": "Skriv riktig svar"
+      "mcqCorrectAnswer": "Skriv riktig svar",
+      "coverImageCredit": "F.eks. Foto: John Doe / Unsplash / Eget bilde"
     },
     "placeholdersExtra": {
       "producerName": "Ditt navn (fra profil)",
@@ -98,7 +100,9 @@
       "fromTextPrompt": "Systemet vil bruke oppgavetittel og tekst som inspirasjon for bildet.",
       "imageLimit": "Bildegenerering: {used} / {limit} brukt • {remaining} igjen",
       "generatedLandscape": "Det genererte bildet skal være liggende i 16:9.",
-      "rememberSaveImage": "Husk å lagre oppgaven etter at du har valgt eller generert et bilde."
+      "rememberSaveImage": "Husk å lagre oppgaven etter at du har valgt eller generert et bilde.",
+      "coverImageCredit": "Bruk dette feltet for å oppgi kilde eller kreditering for opplastet bilde."
+
     },
     "cover": {
       "uploadImage": "Last opp bilde",

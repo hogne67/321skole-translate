@@ -35,7 +35,8 @@
     "labels": {
       "deleted": "Deleted",
       "deletedAt": "Deleted",
-      "items": "items"
+      "items": "items",
+      "author": "Author"
     },
     "states": {
       "loadingContent": "Loading content…"
@@ -52,7 +53,7 @@
     "math": {
       "pdf": "Math PDF",
       "hint": "Ready for PDF export. Generate a new worksheet if you want another version.",
-      "openDigital" : "Open Task",
+      "openDigital": "Open Task",
       "subtypes": {
         "geometry": "Geometry",
         "algebra": "Algebra",
@@ -128,52 +129,52 @@
       "tools": "Tools"
     },
     "share": {
-  "title": "Share",
-  "button": "Share",
-  "shareTextLabel": "Share text",
-  "linkLabel": "Share link",
-  "copyText": "Copy text",
-  "copiedText": "Text copied",
-  "copyLink": "Copy link",
-  "copied": "Copied",
-  "openLink": "Open link",
-  "facebook": "Facebook",
-  "linkedin": "LinkedIn",
-  "qrLabel": "QR code",
-  "qrAlt": "QR code",
-  "qrNotReady": "QR code is being prepared",
-  "shareUrlLabel": "Share URL",
-  "tipExtended": "Tip: copy the text first, then share the link in social media.",
-  "aiGenerate": "✨ Generate with AI",
-  "aiLoading": "Generating...",
-  "examples": {
-    "example1": {
-      "label": "Ex 1",
-      "text": "Create powerful lessons, share them, and get instant feedback with 321school. Check it out. It’s free."
+      "title": "Share",
+      "button": "Share",
+      "shareTextLabel": "Share text",
+      "linkLabel": "Share link",
+      "copyText": "Copy text",
+      "copiedText": "Text copied",
+      "copyLink": "Copy link",
+      "copied": "Copied",
+      "openLink": "Open link",
+      "facebook": "Facebook",
+      "linkedin": "LinkedIn",
+      "qrLabel": "QR code",
+      "qrAlt": "QR code",
+      "qrNotReady": "QR code is being prepared",
+      "shareUrlLabel": "Share URL",
+      "tipExtended": "Tip: copy the text first, then share the link in social media.",
+      "aiGenerate": "✨ Generate with AI",
+      "aiLoading": "Generating...",
+      "examples": {
+        "example1": {
+          "label": "Ex 1",
+          "text": "Create powerful lessons, share them, and get instant feedback with 321school. Check it out. It’s free."
+        },
+        "example2": {
+          "label": "Ex 2",
+          "text": "A new, revolutionary platform to create, share, and master knowledge. Check it out. It’s free."
+        },
+        "example3": {
+          "label": "Ex 3",
+          "text": "Create more, faster, and better with 321school. Check it out. It’s free."
+        },
+        "example4": {
+          "label": "Ex 4",
+          "text": "The future of learning starts here — at 321school. Check it out. It’s free."
+        },
+        "example5": {
+          "label": "Ex 5",
+          "text": "Teach, learn, and share — all in one place. Check it out. It’s free."
+        },
+        "example6": {
+          "label": "Ex 6",
+          "text": "Smarter lessons. Faster workflow. Better learning. Check it out. It’s free."
+        }
+      },
+      "defaultTitle": "Lesson"
     },
-    "example2": {
-      "label": "Ex 2",
-      "text": "A new, revolutionary platform to create, share, and master knowledge. Check it out. It’s free."
-    },
-    "example3": {
-      "label": "Ex 3",
-      "text": "Create more, faster, and better with 321school. Check it out. It’s free."
-    },
-    "example4": {
-      "label": "Ex 4",
-      "text": "The future of learning starts here — at 321school. Check it out. It’s free."
-    },
-    "example5": {
-      "label": "Ex 5",
-      "text": "Teach, learn, and share — all in one place. Check it out. It’s free."
-    },
-    "example6": {
-      "label": "Ex 6",
-      "text": "Smarter lessons. Faster workflow. Better learning. Check it out. It’s free."
-    }
-  },
-  "defaultTitle": "Lesson"
-},
     "shareToSpace": {
       "title": "Share to Spaces",
       "noSpaces": "You don’t have any Spaces yet.",

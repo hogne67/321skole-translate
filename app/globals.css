@@ -34,6 +34,7 @@
    Base styles
    ========================= */
 @layer base {
+
   html,
   body {
     height: 100%;
@@ -147,7 +148,8 @@
     color: #ffffff !important;
     border-radius: 12px !important;
     font-weight: 700 !important;
-    font-size: 14px !important; /* litt mindre */
+    font-size: 14px !important;
+    /* litt mindre */
     line-height: 1.2 !important;
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12) !important;
     cursor: pointer !important;
@@ -158,20 +160,24 @@
     cursor: not-allowed !important;
   }
 
- /* Plain links (opt-in) */
-.plain-scope a {
-  color: inherit;
-  text-decoration: none;
-}
-/* super-spiker hvis nødvendig */
-.plain-scope a.cardLink,
-.plain-scope a.cardLink * { color: inherit !important; text-decoration: none !important; }
+  /* Plain links (opt-in) */
+  .plain-scope a {
+    color: inherit;
+    text-decoration: none;
+  }
 
-/* Default: links inside plain-scope inherit like normal text */
-.plain-scope a {
-  color: inherit;
-  text-decoration: none;
-}
+  /* super-spiker hvis nødvendig */
+  .plain-scope a.cardLink,
+  .plain-scope a.cardLink * {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  /* Default: links inside plain-scope inherit like normal text */
+  .plain-scope a {
+    color: inherit;
+    text-decoration: none;
+  }
 
   /* Plain "card" helper (opt-in) */
   .plain-card {
@@ -180,5 +186,45 @@
     background: #e5dfdf;
     box-shadow: 0 20px 30px rgba(15, 23, 42, 0.1);
     padding: 18px;
+  }
+
+  @keyframes marqueeLeft {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  @keyframes marqueeRight {
+    0% {
+      transform: translateX(-50%);
+    }
+
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  .marquee-track {
+    width: max-content;
+    display: flex;
+    gap: 10px;
+    will-change: transform;
+  }
+
+  .marquee-left {
+    animation: marqueeLeft 98s linear infinite;
+  }
+
+  .marquee-right {
+    animation: marqueeRight 108s linear infinite;
+  }
+
+  .marquee-wrap:hover .marquee-left,
+  .marquee-wrap:hover .marquee-right {
+    animation-play-state: paused;
   }
 }

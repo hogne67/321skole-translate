@@ -49,6 +49,8 @@ type PublishedLesson = {
   publishVisibility?: string;
   visibility?: string;
   showInLibrary?: boolean;
+  authorName?: string;
+  producerName?: string;
 };
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
@@ -168,6 +170,8 @@ function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson 
     publishVisibility: toStringSafe(obj.publishVisibility) || undefined,
     visibility: toStringSafe(obj.visibility) || undefined,
     showInLibrary: toBooleanSafe(obj.showInLibrary),
+    authorName: toStringSafe(obj.authorName) || undefined,
+    producerName: toStringSafe(obj.producerName) || undefined,
   };
 }
 
@@ -493,9 +497,8 @@ export default function LessonsLandingPage() {
 
       const hay = (
         l.searchText ||
-        `${l.title ?? ""} ${l.description ?? ""} ${tt} ${(l.level || "").toUpperCase()} ${
-          l.language || ""
-        }`
+        `${l.title ?? ""} ${l.description ?? ""} ${tt} ${(l.level || "").toUpperCase()} ${l.language || ""
+        } ${l.authorName || ""} ${l.producerName || ""}`
       ).toLowerCase();
 
       return hay.includes(qt);
@@ -1147,6 +1150,7 @@ export default function LessonsLandingPage() {
             const langLabel = langLabelByCode.get(langCode) || (l.language ? l.language : "");
             const tt = coerceTextType(l);
             const img = pickImageUrl(l);
+            const author = (l.authorName || l.producerName || "").trim();
             const ratingAverage = l.ratingAverage ?? 0;
             const ratingCount = l.ratingCount ?? 0;
             const lessonHref = `/${locale}/lesson/${l.id}`;
@@ -1188,6 +1192,12 @@ export default function LessonsLandingPage() {
                       {langLabel && tt ? <span className="dot">•</span> : null}
                       {tt ? <span>{tt}</span> : null}
                     </div>
+
+                    {author ? (
+                      <div className="meta">
+                        <span>{t("card.author")}: {author}</span>
+                      </div>
+                    ) : null}
 
                     {l.description ? <p className="desc">{l.description}</p> : null}
 

@@ -66,7 +66,8 @@
       "releaseMode": "Modo de exibição",
       "releaseModeHelp": "Escolha se o texto e as atividades devem aparecer juntos ou o texto primeiro.",
       "status": "Status",
-      "text": "Texto"
+      "text": "Texto",
+      "coverImageCredit": "Fonte da imagem"
     },
     "fieldsExtra": {
       "textType": "Tipo de texto",
@@ -84,7 +85,8 @@
       "tags": "Por exemplo escola, gramática, leitura",
       "sourceText": "Cole ou escreva o texto da atividade aqui…",
       "taskPrompt": "Escreva o enunciado da atividade aqui…",
-      "mcqCorrectAnswer": "Escreva a resposta correta"
+      "mcqCorrectAnswer": "Escreva a resposta correta",
+      "coverImageCredit": "Ex.: Foto: John Doe / Unsplash / Imagem própria"
     },
     "placeholdersExtra": {
       "producerName": "Seu nome (do perfil)",
@@ -98,7 +100,8 @@
       "fromTextPrompt": "O sistema usará o título e o texto da atividade como inspiração para a imagem.",
       "imageLimit": "Geração de imagens: {used} / {limit} usadas • {remaining} restantes",
       "generatedLandscape": "A imagem gerada deve ser horizontal em 16:9.",
-      "rememberSaveImage": "Lembre-se de salvar a atividade depois de escolher ou gerar uma imagem."
+      "rememberSaveImage": "Lembre-se de salvar a atividade depois de escolher ou gerar uma imagem.",
+      "coverImageCredit": "Use este campo para informar a fonte ou os créditos de uma imagem enviada."
     },
     "cover": {
       "uploadImage": "Enviar imagem",
