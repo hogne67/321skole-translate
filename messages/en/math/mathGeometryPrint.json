@@ -31,14 +31,21 @@
     "measurements": {
       "length": "length",
       "width": "width",
-      "side": "side",
-      "base": "base",
       "height": "height",
+      "side": "side",
+      "sides": "sides",
+      "sideA": "side A",
+      "sideB": "side B",
+      "sideC": "side C",
+      "base": "base",
       "topBase": "top base",
+      "bottomBase": "bottom base",
       "leftSide": "left side",
       "rightSide": "right side",
       "radius": "radius",
-      "sides": "Sides"
+      "diameter": "diameter",
+      "leg": "leg",
+      "hypotenuse": "hypotenuse"
     }
   }
 }

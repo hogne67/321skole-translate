@@ -1,7 +1,7 @@
 {
   "mathGeometryPrint": {
     "pageTitle": "Geometriark – utskrift",
-    "worksheet": "Oppgaver",
+    "worksheet": "Arbeidsark",
     "answerKeyTitle": "Fasit",
     "name": "Navn",
     "date": "Dato",
@@ -12,8 +12,8 @@
     "formula": "Formel",
     "print": "Skriv ut / lagre som PDF",
     "backToEditor": "Tilbake",
-    "saveAsPdf": "Bruk nettleserens utskrift og velg Lagre som PDF.",
-    "loading": "Laster geometriark...",
+    "saveAsPdf": "Bruk nettleserens utskriftsdialog og velg Lagre som PDF.",
+    "loading": "Laster arbeidsark ...",
     "readyForPrint": "Klar for PDF",
     "producer": "Produsent",
     "level": "Nivå",
@@ -21,24 +21,31 @@
     "task": "Oppgave",
     "taskLabel": "Oppgave",
     "instructionsTitle": "Instruksjoner",
-    "shapeNameLabel": "Figurnavn",
+    "shapeNameLabel": "Navn på figur",
     "errorTitle": "Feil",
     "errors": {
-      "notFound": "Fant ikke geometriarket.",
-      "noAccess": "Du har ikke tilgang til dette geometriarket.",
-      "invalidWorksheet": "Dette dokumentet inneholder ikke et gyldig geometriark."
+      "notFound": "Arbeidsarket ble ikke funnet.",
+      "noAccess": "Du har ikke tilgang til dette arbeidsarket.",
+      "invalidWorksheet": "Dette dokumentet inneholder ikke et gyldig matteark."
     },
     "measurements": {
       "length": "lengde",
       "width": "bredde",
-      "side": "side",
-      "base": "grunnlinje",
       "height": "høyde",
+      "side": "side",
+      "sides": "sider",
+      "sideA": "side A",
+      "sideB": "side B",
+      "sideC": "side C",
+      "base": "grunnlinje",
       "topBase": "øvre grunnlinje",
+      "bottomBase": "nedre grunnlinje",
       "leftSide": "venstre side",
       "rightSide": "høyre side",
       "radius": "radius",
-      "sides": "Sider"
+      "diameter": "diameter",
+      "leg": "katet",
+      "hypotenuse": "hypotenus"
     }
   }
 }

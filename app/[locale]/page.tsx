@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import NorwayLegacyNotice from "@/components/domain/NorwayLegacyNotice";
 
 const brand = {
   name: "321skole",
@@ -30,7 +31,7 @@ function localizedPath(locale: string, path: string) {
 function pickLocalizedText(value: unknown, locale: string): string {
   if (!value) return "";
 
-  if (typeof value === "string") return value.trim();
+  if (typeof value === 'string') return value.trim();
 
   if (typeof value === "object" && value !== null) {
     const obj = value as Record<string, unknown>;
@@ -324,6 +325,8 @@ export default async function HomePage() {
         schoolLabel={tr("brandLogo.school")}
         loginLabel={t("common.login")}
       />
+
+      <NorwayLegacyNotice />
 
       <section className="w-full overflow-hidden bg-gradient-to-b from-sky-950 via-sky-800 to-sky-600 text-white">
         <div className="w-full py-8 md:py-10">

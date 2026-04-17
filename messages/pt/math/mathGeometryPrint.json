@@ -1,7 +1,7 @@
 {
   "mathGeometryPrint": {
-    "pageTitle": "Ficha de geometria – imprimir",
-    "worksheet": "Tarefas",
+    "pageTitle": "Folha de geometria – impressão",
+    "worksheet": "Folha",
     "answerKeyTitle": "Gabarito",
     "name": "Nome",
     "date": "Data",
@@ -10,35 +10,42 @@
     "explanation": "Explicação",
     "hint": "Dica",
     "formula": "Fórmula",
-    "print": "Imprimir / guardar em PDF",
+    "print": "Imprimir / salvar como PDF",
     "backToEditor": "Voltar",
-    "saveAsPdf": "Usa a impressão do navegador e escolhe Guardar em PDF.",
-    "loading": "A carregar ficha de geometria...",
+    "saveAsPdf": "Use a janela de impressão do navegador e escolha Salvar como PDF.",
+    "loading": "Carregando folha...",
     "readyForPrint": "Pronto para PDF",
     "producer": "Produtor",
     "level": "Nível",
-    "geometryWorksheet": "Ficha de geometria",
+    "geometryWorksheet": "Folha de geometria",
     "task": "Tarefa",
     "taskLabel": "Tarefa",
     "instructionsTitle": "Instruções",
     "shapeNameLabel": "Nome da figura",
     "errorTitle": "Erro",
     "errors": {
-      "notFound": "Ficha de geometria não encontrada.",
-      "noAccess": "Não tens acesso a esta ficha de geometria.",
-      "invalidWorksheet": "Este documento não contém uma ficha de geometria válida."
+      "notFound": "Folha não encontrada.",
+      "noAccess": "Você não tem acesso a esta folha.",
+      "invalidWorksheet": "Este documento não contém uma folha de matemática válida."
     },
     "measurements": {
       "length": "comprimento",
       "width": "largura",
-      "side": "lado",
-      "base": "base",
       "height": "altura",
+      "side": "lado",
+      "sides": "lados",
+      "sideA": "lado A",
+      "sideB": "lado B",
+      "sideC": "lado C",
+      "base": "base",
       "topBase": "base superior",
+      "bottomBase": "base inferior",
       "leftSide": "lado esquerdo",
       "rightSide": "lado direito",
       "radius": "raio",
-      "sides": "Lados"
+      "diameter": "diâmetro",
+      "leg": "cateto",
+      "hypotenuse": "hipotenusa"
     }
   }
 }

@@ -471,26 +471,28 @@ export default function MathWorksheetPrintPage() {
         instructionsTitle: t("instructionsTitle"),
         shapeNameLabel: t("shapeNameLabel"),
 
-        // figure meta / mål
-        width: t("width"),
-        height: t("height"),
-        length: t("length"),
-        base: t("base"),
-        side: t("side"),
-        sideA: t("sideA"),
-        sideB: t("sideB"),
-        sideC: t("sideC"),
-        radius: t("radius"),
-        diameter: t("diameter"),
-        topBase: t("topBase"),
-        bottomBase: t("bottomBase"),
-        leftSide: t("leftSide"),
-        rightSide: t("rightSide"),
-        leg: t("leg"),
-        hypotenuse: t("hypotenuse"),
+        // hvis key kommer som "width"
+        width: t("measurements.width"),
+        height: t("measurements.height"),
+        length: t("measurements.length"),
+        side: t("measurements.side"),
+        sides: t("measurements.sides"),
+        sideA: t("measurements.sideA"),
+        sideB: t("measurements.sideB"),
+        sideC: t("measurements.sideC"),
+        base: t("measurements.base"),
+        topBase: t("measurements.topBase"),
+        bottomBase: t("measurements.bottomBase"),
+        leftSide: t("measurements.leftSide"),
+        rightSide: t("measurements.rightSide"),
+        radius: t("measurements.radius"),
+        diameter: t("measurements.diameter"),
+        leg: t("measurements.leg"),
+        hypotenuse: t("measurements.hypotenuse"),
       };
 
-      return map[key] ?? key;
+      // 🔥 dette er nøkkelen
+      return map[key] ?? t(key) ?? key;
     },
     [t]
   );
