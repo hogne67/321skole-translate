@@ -222,8 +222,7 @@ async function translateOne(text: string, targetLang: string) {
   const out = String(d?.translatedText ?? d?.translation ?? d?.text ?? "").trim();
   if (!out) {
     throw new Error(
-      `Translate returned empty (HTTP ${res.status}). Keys: ${
-        Object.keys(d as object).join(", ") || "(no keys)"
+      `Translate returned empty (HTTP ${res.status}). Keys: ${Object.keys(d as object).join(", ") || "(no keys)"
       }`
     );
   }
@@ -326,14 +325,14 @@ function Pill({ text, kind = "neutral" }: { text: string; kind?: "neutral" | "go
     kind === "good"
       ? "rgba(46, 204, 113, 0.95)"
       : kind === "bad"
-      ? "rgba(231, 76, 60, 0.95)"
-      : "rgba(0,0,0,0.05)";
+        ? "rgba(231, 76, 60, 0.95)"
+        : "rgba(0,0,0,0.05)";
   const brd =
     kind === "good"
       ? "rgba(46, 204, 113, 0.75)"
       : kind === "bad"
-      ? "rgba(231, 76, 60, 0.75)"
-      : "rgba(0,0,0,0.14)";
+        ? "rgba(231, 76, 60, 0.75)"
+        : "rgba(0,0,0,0.14)";
   const col = kind === "good" || kind === "bad" ? "white" : "rgba(0,0,0,0.75)";
 
   return (
@@ -602,7 +601,7 @@ export default function StudentLessonPage() {
   function resumeAudio() {
     const a = audioRef.current;
     if (!a) return;
-    a.play().catch(() => {});
+    a.play().catch(() => { });
   }
 
   async function playTTS(text: string, lang: TtsLang, mode: "original" | "translation") {
@@ -772,7 +771,7 @@ export default function StudentLessonPage() {
     setActiveTextMode(mode);
     setActiveSentenceIndex(idx);
 
-    if (a.paused) a.play().catch(() => {});
+    if (a.paused) a.play().catch(() => { });
   }
 
   function replaySentence() {
@@ -783,7 +782,7 @@ export default function StudentLessonPage() {
       seekToSentence(activeTextMode, activeSentenceIndex);
     } else {
       a.currentTime = Math.max(0, a.currentTime - 2.0);
-      a.play().catch(() => {});
+      a.play().catch(() => { });
     }
   }
 
@@ -808,6 +807,28 @@ export default function StudentLessonPage() {
     const nextIdx = Math.min(segs.length - 1, (activeSentenceIndex ?? 0) + 1);
     seekToSentence(activeTextMode, nextIdx);
   }
+
+  useEffect(() => {
+    if (!lessonId) return;
+
+    const scrollNow = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    scrollNow();
+
+    const r1 = requestAnimationFrame(scrollNow);
+    const r2 = requestAnimationFrame(() => {
+      requestAnimationFrame(scrollNow);
+    });
+
+    return () => {
+      cancelAnimationFrame(r1);
+      cancelAnimationFrame(r2);
+    };
+  }, [lessonId]);
 
   useEffect(() => {
     let alive = true;

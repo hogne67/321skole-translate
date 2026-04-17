@@ -1,7 +1,7 @@
 // components/AppShell.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import TopNav from "@/components/TopNav";
 import LibraryBar from "@/components/LibraryBar";
@@ -27,6 +27,28 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const { user, profile } = useUserProfile();
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (!pathname) return;
+
+    const scrollNow = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    scrollNow();
+
+    const r1 = requestAnimationFrame(scrollNow);
+    const r2 = requestAnimationFrame(() => {
+      requestAnimationFrame(scrollNow);
+    });
+
+    return () => {
+      cancelAnimationFrame(r1);
+      cancelAnimationFrame(r2);
+    };
+  }, [pathname]);
 
   const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous);
 

@@ -470,6 +470,24 @@ export default function MathWorksheetPrintPage() {
         errorTitle: t("errorTitle"),
         instructionsTitle: t("instructionsTitle"),
         shapeNameLabel: t("shapeNameLabel"),
+
+        // figure meta / mål
+        width: t("width"),
+        height: t("height"),
+        length: t("length"),
+        base: t("base"),
+        side: t("side"),
+        sideA: t("sideA"),
+        sideB: t("sideB"),
+        sideC: t("sideC"),
+        radius: t("radius"),
+        diameter: t("diameter"),
+        topBase: t("topBase"),
+        bottomBase: t("bottomBase"),
+        leftSide: t("leftSide"),
+        rightSide: t("rightSide"),
+        leg: t("leg"),
+        hypotenuse: t("hypotenuse"),
       };
 
       return map[key] ?? key;

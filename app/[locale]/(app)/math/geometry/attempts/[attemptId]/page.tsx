@@ -64,6 +64,40 @@ export default function GeometryAttemptPage() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
 
+  useEffect(() => {
+    if (!attemptId) return;
+
+    const scrollNow = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    scrollNow();
+
+    const r1 = requestAnimationFrame(scrollNow);
+    const r2 = requestAnimationFrame(() => {
+      requestAnimationFrame(scrollNow);
+    });
+
+    return () => {
+      cancelAnimationFrame(r1);
+      cancelAnimationFrame(r2);
+    };
+  }, [attemptId]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const id = window.setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 0);
+
+    return () => window.clearTimeout(id);
+  }, [loading, attemptId]);
+
   async function resolveUser(): Promise<User> {
     if (auth.currentUser) return auth.currentUser;
 

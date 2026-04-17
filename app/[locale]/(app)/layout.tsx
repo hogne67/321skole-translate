@@ -1,4 +1,4 @@
-// app/(app)/layout.tsx
+// app\[locale]\(app)\layout.tsx
 "use client";
 
 import AuthGate from "@/components/AuthGate";

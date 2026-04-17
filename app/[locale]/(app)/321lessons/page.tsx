@@ -1166,11 +1166,11 @@ export default function LessonsLandingPage() {
                 aria-label={l.title}
                 role="link"
                 tabIndex={0}
-                onClick={() => router.push(lessonHref)}
+                onClick={() => router.push(lessonHref, { scroll: true })}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    router.push(lessonHref);
+                    router.push(lessonHref, { scroll: true });
                   }
                 }}
               >
