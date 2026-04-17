@@ -55,6 +55,14 @@ function withLocale(locale: string, href: string): string {
   return `/${locale}${href}`;
 }
 
+function getOrigin() {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+}
+
 export default function TeacherSpacesPage() {
   return (
     <AuthGate>
@@ -64,7 +72,7 @@ export default function TeacherSpacesPage() {
 }
 
 function TeacherSpacesInner() {
-  const t = useTranslations("spaces")
+  const t = useTranslations("spaces");
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
@@ -175,7 +183,7 @@ function TeacherSpacesInner() {
     try {
       const QRCode = (await import("qrcode")).default;
       const joinPath = withLocale(locale, `/join?code=${encodeURIComponent(code)}`);
-      const url = `${window.location.origin}${joinPath}`;
+      const url = `${getOrigin()}${joinPath}`;
       const dataUrl = await QRCode.toDataURL(url, { margin: 1, scale: 6 });
       setQrDataUrl(dataUrl);
     } catch {
@@ -192,6 +200,11 @@ function TeacherSpacesInner() {
     setQrBusy(false);
     setQrErr(null);
   }
+
+  const qrUrl = `${getOrigin()}${withLocale(
+    locale,
+    `/join?code=${encodeURIComponent(qrFor?.code ?? "")}`
+  )}`;
 
   if (loading) {
     return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
@@ -223,7 +236,7 @@ function TeacherSpacesInner() {
         </div>
       </div>
 
-            <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-4">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-4">
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             <div className="text-sm font-semibold text-slate-900">{t("controls.filters.label")}</div>
@@ -280,7 +293,7 @@ function TeacherSpacesInner() {
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
         <div className="mb-4 min-w-0">
           <div className="text-base font-semibold text-slate-900">{t("title")}</div>
-                    <div className="mt-1 break-words text-sm text-slate-600">
+          <div className="mt-1 break-words text-sm text-slate-600">
             {t("controls.filters.showing", { n: filtered.length })}
           </div>
         </div>
@@ -341,7 +354,7 @@ function TeacherSpacesInner() {
                         type="button"
                         onClick={() => {
                           const joinPath = withLocale(locale, `/join?code=${encodeURIComponent(code)}`);
-                          const url = `${window.location.origin}${joinPath}`;
+                          const url = `${getOrigin()}${joinPath}`;
                           copyToClipboard(url, `url_${r.id}`);
                         }}
                         className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
@@ -448,15 +461,7 @@ function TeacherSpacesInner() {
                     className="h-auto max-w-full rounded-lg border border-slate-300"
                   />
                   <div className="break-all text-center text-xs text-slate-600">
-                    {t("qr.pointsTo")}{" "}
-                    <b className="text-slate-900">
-                      {typeof window !== "undefined"
-                        ? `${window.location.origin}${withLocale(
-                            locale,
-                            `/join?code=${encodeURIComponent(qrFor?.code ?? "")}`
-                          )}`
-                        : withLocale(locale, "/join?code=…")}
-                    </b>
+                    {t("qr.pointsTo")} <b className="text-slate-900">{qrUrl}</b>
                   </div>
                 </div>
               )}

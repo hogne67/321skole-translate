@@ -60,6 +60,11 @@
         "subtitle": "Teacher leads · AI assists"
       }
     },
+    "topStrip": {
+      "title": "Create your own lessons in 321",
+      "description": "Or just pick one from the library. It’s free.",
+      "badge": "{count} lessons ready right now"
+    },
     "trustLine": "Ready for schools, courses, and adult education—without heavy LMS friction.",
     "teachers": {
       "eyebrow": "For teachers",
@@ -217,7 +222,8 @@
       "about": "About",
       "privacy": "Privacy",
       "contact": "Contact",
-      "rights": "All rights reserved."
+      "rights": "All rights reserved.",
+      "tagline": "AI-powered language learning – built for teachers, loved by students"
     }
   }
 }

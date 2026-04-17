@@ -60,6 +60,11 @@
         "subtitle": "Lærer styrer · KI hjelper"
       }
     },
+    "topStrip": {
+      "title": "Lag dine egne opplegg på 321..",
+      "description": "Eller bare velg ett fra biblioteket. Det er gratis.",
+      "badge": "{count} opplegg klare akkurat nå"
+    },
     "trustLine": "Klar for skoler, kurs og voksenopplæring – uten tung LMS-friksjon.",
     "teachers": {
       "eyebrow": "For lærere",
@@ -217,13 +222,14 @@
       "about": "Om oss",
       "privacy": "Personvern",
       "contact": "Kontakt",
-      "rights": "Alle rettigheter reservert."
+      "rights": "Alle rettigheter reservert.",
+      "tagline": "AI-støttet språklæring – bygget for lærere, elsket av studenter"
     },
     "libraryStrip": {
-  "eyebrow": "Fra biblioteket",
-  "title": "Ferdige opplegg du kan bruke med én gang",
-  "description": "Bruk ferdige undervisningsopplegg, eller lag dine egne på sekunder med AI.",
-  "cta": "Utforsk og lag egne opplegg"
-}
+      "eyebrow": "Fra biblioteket",
+      "title": "Ferdige opplegg du kan bruke med én gang",
+      "description": "Bruk ferdige undervisningsopplegg, eller lag dine egne på sekunder med AI.",
+      "cta": "Utforsk og lag egne opplegg"
+    }
   }
 }

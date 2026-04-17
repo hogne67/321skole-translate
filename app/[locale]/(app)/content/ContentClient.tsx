@@ -22,6 +22,7 @@ import { loadMyContent, type ContentItem } from "@/lib/contentFeed";
 import ActionMenu, { type ActionItem } from "@/components/ActionMenu";
 import { authedPost } from "@/lib/authedPost";
 import { useLocale, useTranslations } from "next-intl";
+import { getOrigin } from "@/lib/url";
 
 type LessonStatus = "draft" | "published";
 type FilterType = "all" | "library" | "math" | "lesson" | "submission" | "space";
@@ -76,10 +77,6 @@ function fmtDate(d: Date | null | undefined, locale: string) {
   } catch {
     return "";
   }
-}
-
-function getOrigin() {
-  return typeof window !== "undefined" ? window.location.origin : "";
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {

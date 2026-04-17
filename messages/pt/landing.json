@@ -60,6 +60,11 @@
         "subtitle": "Professor lidera · IA ajuda"
       }
     },
+    "topStrip": {
+      "title": "Crie suas próprias aulas em 321",
+      "description": "Ou simplesmente escolha uma da biblioteca. É grátis.",
+      "badge": "{count} aulas prontas agora"
+    },
     "trustLine": "Pronto para escolas, cursos e educação de adultos — sem a complexidade de um LMS pesado.",
     "teachers": {
       "eyebrow": "Para professores",
@@ -217,7 +222,8 @@
       "about": "Sobre",
       "privacy": "Privacidade",
       "contact": "Contato",
-      "rights": "Todos os direitos reservados."
+      "rights": "Todos os direitos reservados.",
+      "tagline": "Aprendizagem com IA — feita para professores, amada por alunos"
     }
   }
 }

@@ -16,6 +16,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getOrigin } from "@/lib/url";
 import QRCode from "qrcode";
 import type { CSSProperties } from "react";
 import { useLocale } from "next-intl";
@@ -69,10 +70,10 @@ function formatMaybeDate(v: FirestoreTimestampLike) {
       v && typeof v === "object" && typeof (v as { toDate?: unknown }).toDate === "function"
         ? (v as { toDate: () => Date }).toDate()
         : v instanceof Date
-        ? v
-        : typeof v === "number"
-        ? new Date(v)
-        : null;
+          ? v
+          : typeof v === "number"
+            ? new Date(v)
+            : null;
 
     if (!d || Number.isNaN(d.getTime())) return "—";
 
@@ -313,11 +314,11 @@ export default function ProducerTextsPage() {
       prev.map((l) =>
         l.id === lessonId
           ? {
-              ...l,
-              status: nextPublished ? "published" : "draft",
-              activePublishedId: nextPublished ? l.activePublishedId ?? null : null,
-              updatedAt: new Date(),
-            }
+            ...l,
+            status: nextPublished ? "published" : "draft",
+            activePublishedId: nextPublished ? l.activePublishedId ?? null : null,
+            updatedAt: new Date(),
+          }
           : l
       )
     );
@@ -375,9 +376,9 @@ export default function ProducerTextsPage() {
   async function deleteLesson(lessonId: string, title?: string) {
     const ok = confirm(
       `Delete lesson${title ? `: "${title}"` : ""}?\n\n` +
-        `This will archive it (soft delete).\n` +
-        `It will also attempt to unpublish via server.\n\n` +
-        `An admin can restore it later.`
+      `This will archive it (soft delete).\n` +
+      `It will also attempt to unpublish via server.\n\n` +
+      `An admin can restore it later.`
     );
     if (!ok) return;
 
@@ -420,7 +421,7 @@ export default function ProducerTextsPage() {
     setQrDataUrl("");
     setShareLesson(l);
 
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const origin = getOrigin();
     const pid = l.activePublishedId || l.id;
 
     // ✅ locale-aware share link

@@ -41,14 +41,14 @@
   }
 
   body {
-    font-family: var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto,
-      Arial, sans-serif;
+    font-family: var(--font-geist-sans), system-ui, -apple-system, Segoe UI,
+      Roboto, Arial, sans-serif;
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     line-height: 1.5;
   }
 
-  /* Typography (global) */
+  /* Typography */
   h1 {
     font-size: 28px;
     line-height: 1.15;
@@ -78,14 +78,12 @@
     display: block;
   }
 
-  /* Keep this harmless globally */
   button {
     font: inherit;
   }
 
   /* =========================
-     App look (inside AppShell)
-     (inputs only - do NOT style buttons globally)
+     App scope inputs
      ========================= */
   .app-scope input,
   .app-scope select,
@@ -94,7 +92,6 @@
     border: 1px solid hsl(var(--input));
     border-radius: 12px;
     color: inherit;
-    -webkit-appearance: none;
     appearance: none;
   }
 
@@ -110,23 +107,16 @@
   }
 
   /* =========================
-     Plain look (opt-in scope)
-     (wins over .app-scope for inputs)
+     Plain scope
      ========================= */
   .plain-scope input,
   .plain-scope select,
   .plain-scope textarea {
     background-color: #fff !important;
-    background-image: none !important;
-
     border: 1px solid #cbd5e1 !important;
     border-radius: 12px !important;
-
     color: #0f172a !important;
-
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1) !important;
-
-    -webkit-appearance: none !important;
     appearance: none !important;
   }
 
@@ -141,7 +131,7 @@
     color: rgba(15, 23, 42, 0.45) !important;
   }
 
-  /* ✅ Buttons opt-in only */
+  /* Buttons */
   .plain-scope .plain-btn {
     border: 1px solid #cbd5e1 !important;
     background: #250f2a !important;
@@ -149,7 +139,6 @@
     border-radius: 12px !important;
     font-weight: 700 !important;
     font-size: 14px !important;
-    /* litt mindre */
     line-height: 1.2 !important;
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12) !important;
     cursor: pointer !important;
@@ -160,26 +149,19 @@
     cursor: not-allowed !important;
   }
 
-  /* Plain links (opt-in) */
+  /* Links */
   .plain-scope a {
     color: inherit;
     text-decoration: none;
   }
 
-  /* super-spiker hvis nødvendig */
   .plain-scope a.cardLink,
   .plain-scope a.cardLink * {
     color: inherit !important;
     text-decoration: none !important;
   }
 
-  /* Default: links inside plain-scope inherit like normal text */
-  .plain-scope a {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  /* Plain "card" helper (opt-in) */
+  /* Card helper */
   .plain-card {
     border: 1px solid #cbd5e1;
     border-radius: 20px;
@@ -187,6 +169,10 @@
     box-shadow: 0 20px 30px rgba(15, 23, 42, 0.1);
     padding: 18px;
   }
+
+  /* =========================
+     🎬 MARQUEE (Netflix feel)
+     ========================= */
 
   @keyframes marqueeLeft {
     0% {
@@ -211,20 +197,76 @@
   .marquee-track {
     width: max-content;
     display: flex;
-    gap: 10px;
+    gap: 16px;
     will-change: transform;
   }
 
   .marquee-left {
-    animation: marqueeLeft 98s linear infinite;
+    animation: marqueeLeft 140s linear infinite;
   }
 
   .marquee-right {
-    animation: marqueeRight 108s linear infinite;
+    animation: marqueeRight 155s linear infinite;
   }
 
   .marquee-wrap:hover .marquee-left,
   .marquee-wrap:hover .marquee-right {
     animation-play-state: paused;
+  }
+
+  /* =========================
+     🎬 LIBRARY CARDS (2:3)
+     ========================= */
+
+  .library-card {
+    min-width: 162px;
+    max-width: 162px;
+  }
+
+  .library-card-inner {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #111;
+    transition: transform 0.3s ease;
+  }
+
+  .library-card:hover .library-card-inner {
+    transform: scale(1.05);
+  }
+
+  .library-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .library-card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top,
+        rgba(0, 0, 0, 0.75) 0%,
+        rgba(0, 0, 0, 0.2) 40%,
+        rgba(0, 0, 0, 0) 70%);
+  }
+
+  .library-card-content {
+    position: absolute;
+    bottom: 0;
+    padding: 10px;
+    color: white;
+  }
+
+  .library-card-title {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .library-card-type {
+    font-size: 10px;
+    opacity: 0.8;
   }
 }

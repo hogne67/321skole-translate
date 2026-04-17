@@ -1,4 +1,3 @@
-// app/[locale]/page.tsx
 import Link from "next/link";
 import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -6,7 +5,6 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 
 const brand = {
   name: "321skole",
-  tagline: "AI-støttet språklæring – bygget for lærere, elsket av studenter",
 };
 
 const LOCALES: Array<{ code: string; label: string }> = [
@@ -24,42 +22,6 @@ type FeaturedLesson = {
   image?: string;
 };
 
-type LibraryStripCopy = {
-  eyebrow: string;
-  title: string;
-  description: string;
-  cta: string;
-};
-
-function getLibraryStripCopy(locale: string): LibraryStripCopy {
-  if (locale === "en") {
-    return {
-      eyebrow: "From the library",
-      title: "Ready-made lessons you can use right away",
-      description:
-        "Use ready-made lessons and activities, or create your own in seconds with AI.",
-      cta: "Explore lessons and create your own",
-    };
-  }
-
-  if (locale === "pt") {
-    return {
-      eyebrow: "Da biblioteca",
-      title: "Aulas prontas para usar imediatamente",
-      description: "Use materiais prontos ou crie os seus em segundos com IA.",
-      cta: "Explorar materiais e criar os seus",
-    };
-  }
-
-  return {
-    eyebrow: "Fra biblioteket",
-    title: "Ferdige opplegg du kan bruke med én gang",
-    description:
-      "Bruk ferdige undervisningsopplegg og oppgaver, eller lag dine egne på sekunder med AI.",
-    cta: "Utforsk opplegg og lag egne",
-  };
-}
-
 function localizedPath(locale: string, path: string) {
   const clean = path.startsWith("/") ? path : `/${path}`;
   return `/${locale}${clean}`;
@@ -72,9 +34,7 @@ function pickLocalizedText(value: unknown, locale: string): string {
 
   if (typeof value === "object" && value !== null) {
     const obj = value as Record<string, unknown>;
-
-    const direct =
-      obj[locale] ?? obj.nb ?? obj.en ?? obj.pt ?? obj.no ?? obj.title;
+    const direct = obj[locale] ?? obj.nb ?? obj.en ?? obj.pt ?? obj.no ?? obj.title;
 
     if (typeof direct === "string") return direct.trim();
   }
@@ -147,6 +107,34 @@ function pickLessonImage(data: Record<string, unknown>, locale: string): string 
   return "";
 }
 
+async function getPublishedLessonCount(): Promise<number> {
+  try {
+    const { db } = getAdmin();
+    const snap = await db.collection("published_lessons").get();
+
+    let count = 0;
+
+    for (const doc of snap.docs) {
+      const data = doc.data() as Record<string, unknown>;
+      const visibility = String(data.visibility ?? "");
+      const type = String(data.type ?? data.textType ?? "");
+      const archived = Boolean(data.archived);
+      const isActive = data.isActive !== false;
+
+      if (visibility === "private") continue;
+      if (type === "reading_test") continue;
+      if (archived) continue;
+      if (!isActive) continue;
+
+      count += 1;
+    }
+
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
 async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
   try {
     const { db } = getAdmin();
@@ -154,7 +142,7 @@ async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
     const snap = await db
       .collection("published_lessons")
       .orderBy("createdAt", "desc")
-      .limit(30)
+      .limit(40)
       .get();
 
     const items: FeaturedLesson[] = [];
@@ -165,8 +153,9 @@ async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
       const visibility = String(data.visibility ?? "");
       const type = String(data.type ?? data.textType ?? "");
       const archived = Boolean(data.archived);
+      const isActive = data.isActive !== false;
 
-      if (visibility === "private" || type === "reading_test" || archived) {
+      if (visibility === "private" || type === "reading_test" || archived || !isActive) {
         continue;
       }
 
@@ -190,7 +179,19 @@ async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
       });
     }
 
-    if (items.length > 0) return items;
+    const seen = new Set<string>();
+    const unique = items.filter((item) => {
+      const normalizedTitle = item.title.trim().toLowerCase();
+      const normalizedLanguage = (item.language ?? "").trim().toLowerCase();
+      const normalizedType = (item.textType ?? "").trim().toLowerCase();
+      const key = `${normalizedTitle}__${normalizedLanguage}__${normalizedType}`;
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    if (unique.length > 0) return unique;
 
     return getFallbackLessons();
   } catch {
@@ -305,84 +306,38 @@ export default async function HomePage() {
   const tr = await getTranslations();
   const currentYear = new Date().getUTCFullYear();
 
-  const libraryCopy = getLibraryStripCopy(locale);
-  const featured = await getFeaturedLessons(locale);
+  const [featured, totalLessonCount] = await Promise.all([
+    getFeaturedLessons(locale),
+    getPublishedLessonCount(),
+  ]);
+
+  const lessonCountLabel = new Intl.NumberFormat(locale).format(totalLessonCount);
 
   const midpoint = Math.ceil(featured.length / 2);
   const firstRow = featured.slice(0, midpoint);
   const secondRow = featured.slice(midpoint);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen text-slate-900">
       <PublicHeader
         locale={locale}
         schoolLabel={tr("brandLogo.school")}
         loginLabel={t("common.login")}
       />
 
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-sky-200/50 blur-3xl" />
-          <div className="absolute -bottom-40 -right-40 h-[520px] w-[520px] rounded-full bg-emerald-200/50 blur-3xl" />
-        </div>
+      <section className="w-full overflow-hidden bg-gradient-to-b from-sky-950 via-sky-800 to-sky-600 text-white">
+        <div className="w-full py-8 md:py-10">
+          <div className="mx-auto max-w-5xl px-6 text-center">
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-5xl">
+              {t("topStrip.title")}
+            </h2>
 
-        <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-          <div className="flex justify-center">
-            <p className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {t("hero.badge")}
+            <p className="mt-3 text-lg text-white/75 md:text-xl">
+              {t("topStrip.description")}
             </p>
           </div>
 
-          <h1 className="mx-auto mt-5 max-w-4xl text-center text-4xl font-semibold tracking-tight md:text-6xl">
-            {t("hero.title")}
-          </h1>
-
-          <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-slate-700 md:text-xl">
-            {t("hero.lead")}
-          </p>
-
-          <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href={localizedPath(locale, "/login")}
-              className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
-            >
-              {t("hero.ctaPrimary")}
-            </Link>
-
-            <Link
-              href={localizedPath(locale, "/login")}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
-            >
-              {t("hero.ctaSecondary")}
-            </Link>
-          </div>
-
-          <div className="mt-10 rounded-3xl border border-slate-200 bg-white/85 p-3 shadow-sm backdrop-blur">
-            <div className="relative aspect-[21/9] w-full overflow-hidden rounded-2xl bg-slate-100">
-              <Image
-                src="/landing/hero1_1.png"
-                alt={t("hero.imageAlt")}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-slate-100 bg-slate-50/70">
-        <div className="mx-auto max-w-7xl px-0 py-10 md:py-12">
-          <div className="mx-auto max-w-4xl px-6 text-center">
-            <p className="text-sm font-semibold text-sky-700">{libraryCopy.eyebrow}</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
-              {libraryCopy.title}
-            </h2>
-            <p className="mt-4 text-lg text-slate-700">{libraryCopy.description}</p>
-          </div>
-
-          <div className="mt-8 space-y-4 overflow-hidden">
+          <div className="mx-auto mt-8 w-[90vw] max-w-[1800px] space-y-5 overflow-hidden py-2">
             <MarqueeRow
               items={firstRow.length ? firstRow : featured}
               locale={locale}
@@ -395,20 +350,36 @@ export default async function HomePage() {
             />
           </div>
 
-          <div className="mt-8 px-6 text-center">
-            <Link
-              href={localizedPath(locale, "/321lessons")}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
-            >
-              {libraryCopy.cta}
-            </Link>
+          <div className="mt-6 px-6 text-center">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              {t("topStrip.badge", { count: lessonCountLabel })}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="border-b border-slate-100 bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-8">
-          <p className="text-center text-sm text-slate-600">{t("trustLine")}</p>
+      <section className="relative overflow-hidden bg-sky-600">
+        <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+          <h1 className="mx-auto max-w-4xl text-center text-4xl font-semibold tracking-tight text-white md:text-6xl">
+            {t("hero.title")}
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-white/85 md:text-xl">
+            {t("hero.lead")}
+          </p>
+
+          <div className="mt-10 rounded-3xl border border-white/20 bg-white/10 p-3 shadow-sm backdrop-blur">
+            <div className="relative aspect-[21/9] w-full overflow-hidden rounded-2xl bg-slate-100">
+              <Image
+                src="/landing/hero1_1.png"
+                alt={t("hero.imageAlt")}
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -445,7 +416,7 @@ export default async function HomePage() {
           t("students.bullets.5"),
         ]}
         cta={{ href: localizedPath(locale, "/login"), label: t("students.cta") }}
-        flip={true}
+        flip
       />
 
       <FeatureSection
@@ -582,16 +553,25 @@ export default async function HomePage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-semibold">{brand.name}</p>
-              <p className="mt-1 text-sm text-slate-600">{brand.tagline}</p>
+              <p className="mt-1 text-sm text-slate-600">{t("footer.tagline")}</p>
             </div>
             <div className="flex flex-wrap gap-3 text-sm">
-              <Link className="text-slate-700 hover:text-slate-900" href={localizedPath(locale, "/about")}>
+              <Link
+                className="text-slate-700 hover:text-slate-900"
+                href={localizedPath(locale, "/about")}
+              >
                 {t("footer.about")}
               </Link>
-              <Link className="text-slate-700 hover:text-slate-900" href={localizedPath(locale, "/privacy")}>
+              <Link
+                className="text-slate-700 hover:text-slate-900"
+                href={localizedPath(locale, "/privacy")}
+              >
                 {t("footer.privacy")}
               </Link>
-              <Link className="text-slate-700 hover:text-slate-900" href={localizedPath(locale, "/contact")}>
+              <Link
+                className="text-slate-700 hover:text-slate-900"
+                href={localizedPath(locale, "/contact")}
+              >
                 {t("footer.contact")}
               </Link>
             </div>
@@ -616,19 +596,20 @@ function PublicHeader(props: {
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2.5">
         <Link href={localizedPath(props.locale, "/")} className="flex items-center gap-3">
           <Image
             src="/logo321ny.png"
             alt="321"
-            width={42}
-            height={42}
+            width={36}
+            height={36}
             priority
-            className="h-10 w-auto object-contain"
+            className="h-8 w-auto object-contain"
           />
+
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-extrabold text-slate-900">321</span>
-            <span className="text-2xl font-semibold text-sky-400">
+            <span className="text-xl font-bold text-slate-900">321</span>
+            <span className="text-xl font-semibold text-sky-500">
               {props.schoolLabel}
             </span>
           </div>
@@ -644,9 +625,7 @@ function PublicHeader(props: {
                 <Link
                   key={l.code}
                   href={`/${l.code}`}
-                  className={`block px-3 py-2 text-xs hover:bg-slate-50 ${l.code === localeNow
-                      ? "font-semibold text-slate-900"
-                      : "text-slate-700"
+                  className={`block px-3 py-2 text-xs hover:bg-slate-50 ${l.code === localeNow ? "font-semibold text-slate-900" : "text-slate-700"
                     }`}
                 >
                   {l.label}
@@ -678,62 +657,39 @@ function MarqueeRow(props: {
     <div className="marquee-wrap overflow-hidden">
       <div className={`marquee-track ${props.reverse ? "marquee-right" : "marquee-left"}`}>
         {duplicated.map((item, index) => (
-          <LibraryCard
-            key={`${item.id}-${index}`}
-            item={item}
-            href={localizedPath(props.locale, "/321lessons")}
-          />
+          <LibraryCard key={`${item.id}-${index}`} item={item} locale={props.locale} />
         ))}
       </div>
     </div>
   );
 }
 
-function LibraryCard(props: { item: FeaturedLesson; href: string }) {
-  const { item, href } = props;
+function LibraryCard(props: { item: FeaturedLesson; locale: string }) {
+  const { item, locale } = props;
+  const lessonLocale =
+    item.language === "nb" || item.language === "en" || item.language === "pt"
+      ? item.language
+      : locale;
 
   return (
-    <Link
-      href={href}
-      className="block min-w-[240px] max-w-[240px] no-underline overflow-hidden rounded-xl border border-slate-200/80 bg-sky-50 shadow-sm transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-md"
-    >
-      <div className="relative h-28 w-full overflow-hidden bg-slate-100">
+    <Link href={`/${lessonLocale}/student/lesson/${item.id}`} className="library-card">
+      <div className="library-card-inner">
         {item.image ? (
-          <img
-            src={item.image}
-            alt={item.title}
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
+          <img src={item.image} alt={item.title} loading="lazy" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 to-emerald-100 text-xs font-semibold text-slate-600">
-            321skole
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-sky-200 to-emerald-200 text-xs font-semibold text-slate-700">
+            321
           </div>
         )}
 
-        <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
-          {item.language ? (
-            <span className="rounded-full bg-slate-900/75 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur">
-              {item.language}
-            </span>
-          ) : null}
+        <div className="library-card-overlay" />
 
-          {item.level ? (
-            <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-900 backdrop-blur">
-              {item.level}
-            </span>
-          ) : null}
+        <div className="library-card-content">
+          <p className="library-card-title">{item.title}</p>
+          <p className="library-card-type">
+            {item.textType?.replaceAll("_", " ") || "lesson"}
+          </p>
         </div>
-      </div>
-
-      <div className="p-3">
-        <p className="line-clamp-2 text-[13px] font-semibold leading-[1.2] text-slate-900 no-underline">
-          {item.title}
-        </p>
-
-        <p className="mt-0.5 text-[11px] leading-[1.2] text-slate-500 no-underline">
-          {item.textType ? item.textType.replaceAll("_", " ") : "undervisningsopplegg"}
-        </p>
       </div>
     </Link>
   );
