@@ -43,7 +43,9 @@
       "text": "Digite seu e-mail e enviaremos um link para criar uma nova senha."
     },
     "messages": {
-      "resetSent": "Enviamos um e-mail com um link para redefinir sua senha."
+      "resetSent": "Enviamos um e-mail com um link para redefinir sua senha.",
+      "checkEmail": "Conta criada! Verifique seu e-mail para confirmar a conta.",
+      "verified": "E-mail verificado. Agora você pode entrar."
     },
     "hints": {
       "anonSignup": "Dica: Se este e-mail já existir, escolha <b>Já tenho uma conta</b>.",
@@ -69,6 +71,13 @@
       "tooManyRequests": "Muitas tentativas. Tente novamente mais tarde.",
       "popupClosed": "O login foi cancelado.",
       "generic": "Não foi possível continuar. Tente novamente."
+    },
+    "legal": {
+      "prefix": "Ao continuar, você aceita nossos",
+      "terms": "Termos",
+      "and": "e",
+      "privacy": "Política de Privacidade",
+      "close": "Fechar"
     }
   }
 }

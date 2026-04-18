@@ -64,6 +64,10 @@ export default function AdminPage() {
     return <main style={{ padding: 20 }}>Laster…</main>;
   }
 
+  const isAdmin = profile?.roles?.admin === true;
+  const role = String(profile?.role ?? "—");
+  const adminLevel = String(profile?.adminLevel ?? "—");
+
   return (
     <main style={{ display: "grid", gap: 16 }}>
       <section
@@ -80,6 +84,23 @@ export default function AdminPage() {
           Dette området er skilt fra student- og lærerflyt, og brukes til kontroll,
           moderering, statistikk og drift.
         </p>
+
+        <div
+          style={{
+            marginTop: 12,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 12px",
+            borderRadius: 999,
+            fontWeight: 800,
+            fontSize: 13,
+            background: isAdmin ? "rgba(22,163,74,0.12)" : "rgba(220,38,38,0.10)",
+            color: isAdmin ? "rgb(21,128,61)" : "rgb(185,28,28)",
+          }}
+        >
+          {isAdmin ? "Admin access aktiv" : "Ikke admin"}
+        </div>
       </section>
 
       <section
@@ -95,10 +116,15 @@ export default function AdminPage() {
         <div style={{ marginTop: 8 }}>
           <InfoRow label="Innlogget" value={user ? "Ja" : "Nei"} />
           <InfoRow label="UID" value={user?.uid ?? "—"} />
-          <InfoRow label="Role" value={String(profile?.role ?? "—")} />
-          <InfoRow label="Admin level" value={String(profile?.adminLevel ?? "—")} />
+          <InfoRow label="Role" value={role} />
+          <InfoRow label="Admin flag" value={String(profile?.roles?.admin ?? false)} />
+          <InfoRow label="Teacher flag" value={String(profile?.roles?.teacher ?? false)} />
+          <InfoRow label="Admin level" value={adminLevel} />
           <InfoRow label="Display name" value={String(profile?.displayName ?? "—")} />
           <InfoRow label="E-post" value={String(profile?.email ?? "—")} />
+          <InfoRow label="Plan" value={String(profile?.plan ?? "—")} />
+          <InfoRow label="Institution" value={String(profile?.institutionType ?? "—")} />
+          <InfoRow label="Municipality" value={String(profile?.municipality ?? profile?.org?.municipality ?? "—")} />
         </div>
       </section>
 
@@ -133,10 +159,10 @@ export default function AdminPage() {
             text="Se slettede lessons og gjenopprett ved behov."
           />
           <Card
-  href={`/${locale}/admin/billing`}
-  title="Billing"
-  text="Resync Stripe-abonnement og feilsøk betalinger."
-/>
+            href={`/${locale}/admin/billing`}
+            title="Billing"
+            text="Resync Stripe-abonnement og feilsøk betalinger."
+          />
         </div>
       </section>
     </main>

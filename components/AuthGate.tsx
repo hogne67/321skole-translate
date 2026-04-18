@@ -14,27 +14,34 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
-function readLegacyRole(profile: Record<string, unknown>): Role | null {
-  const roles = profile["roles"];
-  if (!isRecord(roles)) return null;
+function hasRequiredRole(profile: unknown, requireRole: Role): boolean {
+  if (!isRecord(profile)) return false;
+  if (profile["disabled"] === true) return false;
 
-  if (roles["admin"] === true) return "admin";
-  if (roles["teacher"] === true) return "teacher";
-  if (roles["creator"] === true) return "creator";
-  if (roles["parent"] === true) return "parent";
-  if (roles["student"] === true) return "student";
-  return null;
-}
+  const role = profile["role"];
+  const roles = isRecord(profile["roles"]) ? profile["roles"] : null;
 
-function readRole(profile: unknown): Role | null {
-  if (!isRecord(profile)) return null;
-
-  const r = profile["role"];
-  if (r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator") {
-    return r;
+  if (requireRole === "admin") {
+    return roles?.["admin"] === true || role === "admin";
   }
 
-  return readLegacyRole(profile);
+  if (requireRole === "teacher") {
+    return roles?.["teacher"] === true || role === "teacher";
+  }
+
+  if (requireRole === "creator") {
+    return roles?.["creator"] === true || role === "creator";
+  }
+
+  if (requireRole === "parent") {
+    return roles?.["parent"] === true || role === "parent";
+  }
+
+  if (requireRole === "student") {
+    return roles?.["student"] === true || role === "student";
+  }
+
+  return false;
 }
 
 export default function AuthGate({
@@ -66,7 +73,6 @@ export default function AuthGate({
       userUid: user?.uid ?? null,
       isAnonymous: user?.isAnonymous ?? null,
       profile,
-      profileRole: isRecord(profile) ? profile["role"] : null,
       requireRole,
       pathname,
     });
@@ -108,7 +114,12 @@ export default function AuthGate({
     }
 
     if (user.isAnonymous) {
-      if (requireRole === "teacher" || requireRole === "admin" || requireRole === "creator") {
+      if (
+        requireRole === "teacher" ||
+        requireRole === "admin" ||
+        requireRole === "creator" ||
+        requireRole === "parent"
+      ) {
         router.replace(nextUrl);
         return;
       }
@@ -117,16 +128,27 @@ export default function AuthGate({
 
     if (!profile) return;
 
-    const role = readRole(profile);
+    const hasRole = requireRole ? hasRequiredRole(profile, requireRole) : true;
 
-    if (!role) {
-      if (!isAuthRoute) router.replace(onboardingUrl);
+    if (!requireRole) {
       return;
     }
 
-    if (requireRole && role !== requireRole) {
+    if (!hasRole) {
+      const profileRole = isRecord(profile) ? profile["role"] : null;
+      const hasAnyKnownRole =
+        hasRequiredRole(profile, "student") ||
+        hasRequiredRole(profile, "teacher") ||
+        hasRequiredRole(profile, "admin") ||
+        hasRequiredRole(profile, "parent") ||
+        hasRequiredRole(profile, "creator");
+
+      if (!profileRole && !hasAnyKnownRole) {
+        if (!isAuthRoute) router.replace(onboardingUrl);
+        return;
+      }
+
       router.replace(unauthorizedUrl);
-      return;
     }
   }, [
     loading,
@@ -151,7 +173,13 @@ export default function AuthGate({
 
   if (!user && !allowAnonymous) return null;
 
-  if (user?.isAnonymous && (requireRole === "teacher" || requireRole === "admin" || requireRole === "creator")) {
+  if (
+    user?.isAnonymous &&
+    (requireRole === "teacher" ||
+      requireRole === "admin" ||
+      requireRole === "creator" ||
+      requireRole === "parent")
+  ) {
     return null;
   }
 

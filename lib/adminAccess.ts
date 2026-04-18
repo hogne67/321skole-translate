@@ -1,12 +1,12 @@
 import type { AdminLevel, UserProfile } from "@/lib/userProfile";
 
 type AdminProfileLike =
-  | Pick<UserProfile, "role" | "adminLevel" | "disabled">
+  | Pick<UserProfile, "role" | "roles" | "adminLevel" | "disabled">
   | null
   | undefined;
 
 export function isAdmin(profile: AdminProfileLike): boolean {
-  return profile?.role === "admin" && profile?.disabled !== true;
+  return profile?.roles?.admin === true && profile?.disabled !== true;
 }
 
 export function isModerator(profile: AdminProfileLike): boolean {

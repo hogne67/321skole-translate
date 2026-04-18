@@ -1,4 +1,5 @@
 // lib\userProfile.ts
+// lib/userProfile.ts
 "use client";
 
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -29,6 +30,10 @@ export type UserProfile = {
 
   onboardingComplete?: boolean;
   disabled?: boolean;
+
+  plan?: string;
+  institutionType?: string;
+  municipality?: string;
 
   // ✅ legacy-felt beholdes som optional for gamle docs
   teacherStatus?: TeacherStatus;
@@ -88,7 +93,12 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
       onboardingComplete: patch?.onboardingComplete ?? false,
       disabled: patch?.disabled ?? false,
 
+      plan: patch?.plan,
+      institutionType: patch?.institutionType,
+      municipality: patch?.municipality,
+
       // legacy optional
+      teacherStatus: patch?.teacherStatus,
       creatorStatus: patch?.creatorStatus,
       roles: patch?.roles,
       org: patch?.org,

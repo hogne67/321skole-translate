@@ -43,7 +43,9 @@
       "text": "Skriv inn e-posten din, så sender vi deg en lenke for å lage et nytt passord."
     },
     "messages": {
-      "resetSent": "Vi har sendt deg en e-post med en lenke for å tilbakestille passordet."
+      "resetSent": "Vi har sendt deg en e-post med en lenke for å tilbakestille passordet.",
+      "checkEmail": "Konto opprettet! Sjekk e-posten din for å bekrefte kontoen.",
+      "verified": "E-posten er bekreftet. Du kan nå logge inn."
     },
     "hints": {
       "anonSignup": "Tips: Hvis e-posten allerede finnes, velg <b>Jeg har allerede en konto</b> i stedet.",
@@ -69,6 +71,13 @@
       "tooManyRequests": "For mange forsøk. Prøv igjen senere.",
       "popupClosed": "Innloggingen ble avbrutt.",
       "generic": "Kunne ikke fortsette. Prøv igjen."
+    },
+    "legal": {
+      "prefix": "Ved å fortsette godtar du våre",
+      "terms": "vilkår",
+      "and": "og",
+      "privacy": "personvernregler",
+      "close": "Lukk"
     }
   }
 }

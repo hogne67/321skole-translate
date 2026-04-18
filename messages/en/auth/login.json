@@ -1,74 +1,83 @@
 {
-    "login": {
-      "title": {
-        "signin": "Welcome back",
-        "signup": "Create your account"
-      },
-      "intro": {
-        "anon": "You are using a temporary account. Sign in or create an account now to keep your work.",
-        "normal": "Choose how you want to log in.",
-        "signup": "Start as a student, teacher or parent in just a minute."
-      },
-      "tabs": {
-        "signin": "I already have an account",
-        "signup": "I’m new here"
-      },
-      "separator": "or",
-      "fields": {
-        "displayNameLabel": "Full name",
-        "displayNamePlaceholder": "Full name",
-        "emailLabel": "Email",
-        "emailPlaceholder": "Email",
-        "passwordLabel": "Password",
-        "passwordPlaceholder": "Password",
-        "rememberMe": "Remember me on this device"
-      },
-      "buttons": {
-        "working": "Working…",
-        "sending": "Sending…",
-        "upgradeGoogle": "Save and continue with Google",
-        "signinGoogle": "Log in with Google",
-        "signupGoogle": "Create account with Google",
-        "useEmailSignin": "Use email and password",
-        "useEmailSignup": "Create account with email",
-        "signinEmail": "Log in",
-        "upgradeAccount": "Save anonymous account",
-        "createAccount": "Create account",
-        "forgotPassword": "Forgot password?",
-        "sendReset": "Send reset email",
-        "backToOptions": "Back to login options"
-      },
-      "forgot": {
-        "title": "Reset password",
-        "text": "Enter your email and we will send you a link to create a new password."
-      },
-      "messages": {
-        "resetSent": "We sent you an email with a link to reset your password."
-      },
-      "hints": {
-        "anonSignup": "Tip: If this email already exists, choose <b>I already have an account</b> instead.",
-        "methodSignin": "Use Google if you signed up with Google before. Otherwise choose email.",
-        "methodSignup": "Choose Google for the fastest start, or email if you prefer password login."
-      },
-      "footer": {
-        "noAccount": "Don’t have an account?",
-        "signupLink": "Create one here",
-        "hasAccount": "Already registered?",
-        "signinLink": "Log in here"
-      },
-      "errors": {
-        "missingEmail": "Enter your email.",
-        "missingPassword": "Enter your password.",
-        "missingName": "Enter your name.",
-        "invalidCredential": "Wrong email or password.",
-        "userNotFound": "No user found with that email.",
-        "emailAlreadyInUse": "That email is already in use.",
-        "emailAlreadyInUseLoginInstead": "That email is already in use. Log in instead.",
-        "weakPassword": "Password is too weak (minimum 6 characters).",
-        "invalidEmail": "Invalid email address.",
-        "tooManyRequests": "Too many attempts. Please try again later.",
-        "popupClosed": "Sign-in was cancelled.",
-        "generic": "Could not continue. Please try again."
-      }
+  "login": {
+    "title": {
+      "signin": "Welcome back",
+      "signup": "Create your account"
+    },
+    "intro": {
+      "anon": "You are using a temporary account. Sign in or create an account now to keep your work.",
+      "normal": "Choose how you want to log in.",
+      "signup": "Start as a student, teacher or parent in just a minute."
+    },
+    "tabs": {
+      "signin": "I already have an account",
+      "signup": "I’m new here"
+    },
+    "separator": "or",
+    "fields": {
+      "displayNameLabel": "Full name",
+      "displayNamePlaceholder": "Full name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Password",
+      "rememberMe": "Remember me on this device"
+    },
+    "buttons": {
+      "working": "Working…",
+      "sending": "Sending…",
+      "upgradeGoogle": "Save and continue with Google",
+      "signinGoogle": "Log in with Google",
+      "signupGoogle": "Create account with Google",
+      "useEmailSignin": "Use email and password",
+      "useEmailSignup": "Create account with email",
+      "signinEmail": "Log in",
+      "upgradeAccount": "Save anonymous account",
+      "createAccount": "Create account",
+      "forgotPassword": "Forgot password?",
+      "sendReset": "Send reset email",
+      "backToOptions": "Back to login options"
+    },
+    "forgot": {
+      "title": "Reset password",
+      "text": "Enter your email and we will send you a link to create a new password."
+    },
+    "messages": {
+      "resetSent": "We sent you an email with a link to reset your password.",
+      "checkEmail": "Account created! Check your email to verify your account.",
+      "verified": "Your email is verified. You can now log in."
+    },
+    "hints": {
+      "anonSignup": "Tip: If this email already exists, choose <b>I already have an account</b> instead.",
+      "methodSignin": "Use Google if you signed up with Google before. Otherwise choose email.",
+      "methodSignup": "Choose Google for the fastest start, or email if you prefer password login."
+    },
+    "footer": {
+      "noAccount": "Don’t have an account?",
+      "signupLink": "Create one here",
+      "hasAccount": "Already registered?",
+      "signinLink": "Log in here"
+    },
+    "errors": {
+      "missingEmail": "Enter your email.",
+      "missingPassword": "Enter your password.",
+      "missingName": "Enter your name.",
+      "invalidCredential": "Wrong email or password.",
+      "userNotFound": "No user found with that email.",
+      "emailAlreadyInUse": "That email is already in use.",
+      "emailAlreadyInUseLoginInstead": "That email is already in use. Log in instead.",
+      "weakPassword": "Password is too weak (minimum 6 characters).",
+      "invalidEmail": "Invalid email address.",
+      "tooManyRequests": "Too many attempts. Please try again later.",
+      "popupClosed": "Sign-in was cancelled.",
+      "generic": "Could not continue. Please try again."
+    },
+    "legal": {
+      "prefix": "By continuing, you accept our",
+      "terms": "Terms",
+      "and": "and",
+      "privacy": "Privacy Policy",
+      "close": "Close"
     }
   }
+}
