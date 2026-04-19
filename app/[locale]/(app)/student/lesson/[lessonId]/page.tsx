@@ -1428,10 +1428,14 @@ export default function StudentLessonPage() {
   return (
     <main
       style={{
-        width: "min(980px, calc(100vw - 20px))",
+        width: "100%",
+        maxWidth: 980,
         margin: "0 auto",
         paddingTop: 12,
+        paddingLeft: 12,
+        paddingRight: 12,
         paddingBottom: 120,
+        boxSizing: "border-box",
       }}
     >
       <header
@@ -1493,8 +1497,8 @@ export default function StudentLessonPage() {
                 maxWidth: 340,
                 padding: "12px 14px",
                 borderRadius: 14,
-                border: "1px solid rgba(37,99,235,0.18)",
-                background: "rgba(59,130,246,0.08)",
+                border: "1px solid rgba(37,99,235,0.22)",
+                background: "linear-gradient(180deg, rgba(59,130,246,0.10), rgba(59,130,246,0.06))",
               }}
             >
               <div style={{ fontWeight: 700, color: "#1d4ed8", marginBottom: 6 }}>
@@ -2322,14 +2326,16 @@ const sectionHeadingStyle: React.CSSProperties = {
   margin: "0 0 8px",
   fontSize: 22,
   lineHeight: 1.15,
+  letterSpacing: "-0.02em",
+  color: "#0f172a",
 };
 
 const cardStyle: React.CSSProperties = {
-  border: "1px solid rgba(0,0,0,0.10)",
-  borderRadius: 16,
+  border: "1px solid rgba(0,0,0,0.08)",
+  borderRadius: 18,
   padding: 14,
-  background: "rgba(15,23,42,0.045)",
-  boxShadow: "0 8px 24px rgba(15,23,42,0.035)",
+  background: "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.92))",
+  boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
 };
 
 const btnStyle: React.CSSProperties = {
