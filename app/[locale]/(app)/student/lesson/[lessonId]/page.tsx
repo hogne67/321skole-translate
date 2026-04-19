@@ -617,6 +617,9 @@ export default function StudentLessonPage() {
     return `/${locale}/login?next=${encodeURIComponent(next)}`;
   }, [locale, lessonId]);
 
+  const anonTopTitle = t("feedback.loginForFeedback");
+  const anonTopBody = `${t("anon.savedLocally")} ${t("feedback.anonHint")} ${t("text.loginToPlayAudio")}.`;
+
   function stopAudio() {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -1174,7 +1177,7 @@ export default function StudentLessonPage() {
     setSubmitting(true);
     setMsg(null);
 
-    setFeedback("⏳ Genererer ny tilbakemelding…");
+    setFeedback(t("feedback.generatingNew"));
     setTranslatedFeedback(null);
 
     try {
@@ -1432,8 +1435,8 @@ export default function StudentLessonPage() {
         maxWidth: 980,
         margin: "0 auto",
         paddingTop: 12,
-        paddingLeft: 12,
-        paddingRight: 12,
+        paddingLeft: 8,
+        paddingRight: 8,
         paddingBottom: 120,
         boxSizing: "border-box",
       }}
@@ -1467,7 +1470,6 @@ export default function StudentLessonPage() {
             {lesson.level ? <Pill text={lesson.level} /> : null}
             {lesson.language ? <Pill text={lesson.language.toUpperCase()} /> : null}
             {lesson.topic ? <Pill text={lesson.topic} /> : null}
-            {lesson.sourceCollection === "lessons" ? <Pill text="My Content" /> : null}
           </div>
 
           {isAnon ? (
@@ -1502,18 +1504,14 @@ export default function StudentLessonPage() {
               }}
             >
               <div style={{ fontWeight: 700, color: "#1d4ed8", marginBottom: 6 }}>
-                {locale === "en" ? "Guest mode" : locale === "pt" ? "Modo visitante" : "Gjestemodus"}
+                {anonTopTitle}
               </div>
               <div style={{ fontSize: 13, lineHeight: 1.45, color: "#334155", marginBottom: 10 }}>
-                {locale === "en"
-                  ? "You can read, translate and answer now. Log in to get AI feedback and audio."
-                  : locale === "pt"
-                    ? "Você pode ler, traduzir e responder agora. Faça login para receber feedback com IA e áudio."
-                    : "Du kan lese, oversette og svare nå. Logg inn for å få AI-tilbakemelding og lyd."}
+                {anonTopBody}
               </div>
               <Link href={loginHref} style={{ textDecoration: "none" }}>
                 <span style={{ ...blueBtnStyle, display: "inline-flex", fontWeight: 700 }}>
-                  {locale === "en" ? "Log in" : locale === "pt" ? "Entrar" : "Logg inn"}
+                  {t("feedback.loginForFeedback")}
                 </span>
               </Link>
             </div>
@@ -1582,7 +1580,7 @@ export default function StudentLessonPage() {
             minWidth: 120,
           }}
         >
-          {saving ? t("actions.saving") : locale === "en" ? "SAVE" : "LAGRE"}
+          {saving ? t("actions.saving") : t("actions.save")}
         </button>
       </div>
 
@@ -1607,13 +1605,7 @@ export default function StudentLessonPage() {
               style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
               title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
             >
-              {isAnon
-                ? locale === "en"
-                  ? "Audio · log in"
-                  : locale === "pt"
-                    ? "Áudio · entrar"
-                    : "Lyd · logg inn"
-                : t("text.playAudio")}
+              {t("text.playAudio")}
             </button>
 
             <span style={{ opacity: 0.75 }}>{t("translate.label")}</span>
@@ -1632,7 +1624,7 @@ export default function StudentLessonPage() {
               disabled={translating === "text" || !(sourceTextSafe || "").trim()}
               style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1, fontWeight: 600 }}
             >
-              {translating === "text" ? t("translate.translating") : t("translate.go")}
+              {translating === "text" ? t("translate.translating") : t("translate.translateText")}
             </button>
           </div>
         </div>
@@ -1664,13 +1656,7 @@ export default function StudentLessonPage() {
                 style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
                 title={isAnon ? t("text.loginToPlayAudio") : t("text.playTranslation")}
               >
-                {isAnon
-                  ? locale === "en"
-                    ? "Audio · log in"
-                    : locale === "pt"
-                      ? "Áudio · entrar"
-                      : "Lyd · logg inn"
-                  : t("text.playAudio")}
+                {t("text.playAudio")}
               </button>
 
               <button type="button" style={btnStyle} onClick={() => setShowTextTranslation((v) => !v)}>
@@ -1754,7 +1740,7 @@ export default function StudentLessonPage() {
               disabled={translating === "tasks" || tasksOriginal.length === 0}
               style={{ ...blueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1, fontWeight: 600 }}
             >
-              {translating === "tasks" ? t("translate.translating") : t("translate.go")}
+              {translating === "tasks" ? t("translate.translating") : t("translate.translateTasks")}
             </button>
 
             {(translatedTasks ?? []).length > 0 ? (
@@ -2052,16 +2038,12 @@ export default function StudentLessonPage() {
             }}
           >
             <div style={{ fontSize: 14, lineHeight: 1.45, color: "#334155" }}>
-              {locale === "en"
-                ? "Want AI feedback and audio? Log in to unlock the full lesson experience."
-                : locale === "pt"
-                  ? "Quer feedback com IA e áudio? Faça login para liberar a experiência completa."
-                  : "Vil du ha AI-tilbakemelding og lyd? Logg inn for å åpne hele opplevelsen."}
+              {anonTopBody}
             </div>
 
             <Link href={loginHref} style={{ textDecoration: "none" }}>
               <span style={{ ...blueBtnStyle, display: "inline-flex", fontWeight: 700 }}>
-                {locale === "en" ? "Log in now" : locale === "pt" ? "Entrar agora" : "Logg inn nå"}
+                {t("feedback.loginForFeedback")}
               </span>
             </Link>
           </div>
@@ -2105,7 +2087,7 @@ export default function StudentLessonPage() {
               opacity: feedbackTranslating || !(feedback || "").trim() ? 0.6 : 1,
             }}
           >
-            {feedbackTranslating ? t("feedback.translating") : t("translate.go")}
+            {feedbackTranslating ? t("feedback.translating") : t("feedback.translateFeedback")}
           </button>
 
           <button
@@ -2119,13 +2101,7 @@ export default function StudentLessonPage() {
             }}
             title={isAnon ? t("text.loginToPlayAudio") : t("feedback.playAudio")}
           >
-            {isAnon
-              ? locale === "en"
-                ? "Audio · log in"
-                : locale === "pt"
-                  ? "Áudio · entrar"
-                  : "Lyd · logg inn"
-              : t("text.playAudio")}
+            {t("feedback.playAudio")}
           </button>
         </div>
 
@@ -2191,13 +2167,7 @@ export default function StudentLessonPage() {
                 style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 700 }}
                 title={isAnon ? t("text.loginToPlayAudio") : t("feedback.playAudio")}
               >
-                {isAnon
-                  ? locale === "en"
-                    ? "Audio · log in"
-                    : locale === "pt"
-                      ? "Áudio · entrar"
-                      : "Lyd · logg inn"
-                  : t("text.playAudio")}
+                {t("feedback.playAudio")}
               </button>
             </div>
 
