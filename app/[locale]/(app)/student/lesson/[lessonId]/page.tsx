@@ -33,17 +33,13 @@ type Lesson = {
   title: string;
   level?: string;
   topic?: string;
-
   sourceText?: string;
   text?: string;
-
   tasks?: unknown;
   status?: "draft" | "published";
   language?: string;
-
   coverImageUrl?: string;
   isActive?: boolean;
-
   sourceCollection?: "published_lessons" | "lessons";
   publishedLessonId?: string | null;
 };
@@ -105,6 +101,22 @@ type Task = {
 };
 
 type Role = "student" | "teacher" | "parent";
+
+type AudioMode =
+  | "text_original"
+  | "text_translation"
+  | "feedback_original"
+  | "feedback_translation";
+
+type TtsLang = "no" | "en" | "pt-BR";
+
+type SentenceSeg = {
+  text: string;
+  startChar: number;
+  endChar: number;
+  startRatio: number;
+  endRatio: number;
+};
 
 function safeRole(role: unknown): Role {
   if (role === "teacher") return "teacher";
@@ -168,7 +180,11 @@ function asSubmissionDoc(data: DocumentData): SubmissionDoc {
     uid: typeof d.uid === "string" ? d.uid : undefined,
     lessonId: typeof d.lessonId === "string" ? d.lessonId : undefined,
     publishedLessonId:
-      typeof d.publishedLessonId === "string" ? d.publishedLessonId : d.publishedLessonId === null ? null : undefined,
+      typeof d.publishedLessonId === "string"
+        ? d.publishedLessonId
+        : d.publishedLessonId === null
+          ? null
+          : undefined,
     answers,
     status: d.status === "draft" || d.status === "submitted" ? d.status : undefined,
     feedback: typeof d.feedback === "string" ? d.feedback : undefined,
@@ -204,9 +220,7 @@ async function translateOne(text: string, targetLang: string) {
   try {
     data = raw ? JSON.parse(raw) : {};
   } catch {
-    throw new Error(
-      `Translate API returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 200)}`
-    );
+    throw new Error(`Translate API returned non-JSON (HTTP ${res.status}): ${raw.slice(0, 200)}`);
   }
 
   const d = data as {
@@ -252,21 +266,12 @@ function getStableTaskId(t: Task, idx: number): string {
   return `${orderPart}__idx${idx}`;
 }
 
-type TtsLang = "no" | "en" | "pt-BR";
 function toTtsLang(lang: string): TtsLang {
   const v = (lang || "").toLowerCase().trim();
   if (v === "pt" || v === "pt-br" || v === "pt_br") return "pt-BR";
   if (v === "en") return "en";
   return "no";
 }
-
-type SentenceSeg = {
-  text: string;
-  startChar: number;
-  endChar: number;
-  startRatio: number;
-  endRatio: number;
-};
 
 function segmentSentences(fullText: string): { clean: string; segs: SentenceSeg[] } {
   const clean = (fullText || "").replace(/\r\n/g, "\n").trim();
@@ -421,11 +426,15 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
     if (!isCorrect) {
       if (type === "mcq") {
         wrongLines.push(
-          `- Oppgave ${order} (MCQ): "${prompt}" | Elev: "${String(val)}" | Fasit: "${String(mcqCorrectText)}"`
+          `- Oppgave ${order} (MCQ): "${prompt}" | Elev: "${String(val)}" | Fasit: "${String(
+            mcqCorrectText
+          )}"`
         );
       } else {
         wrongLines.push(
-          `- Oppgave ${order} (True/False): "${prompt}" | Elev: ${String(val)} | Fasit: ${String(tfCorrectBool)}`
+          `- Oppgave ${order} (True/False): "${prompt}" | Elev: ${String(val)} | Fasit: ${String(
+            tfCorrectBool
+          )}`
         );
       }
     }
@@ -523,11 +532,9 @@ export default function StudentLessonPage() {
   const [isAnon, setIsAnon] = useState<boolean>(true);
 
   const [answers, setAnswers] = useState<AnswersMap>({});
-
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const [targetLang, setTargetLang] = useState("no");
@@ -535,19 +542,18 @@ export default function StudentLessonPage() {
   const [translatedTasks, setTranslatedTasks] = useState<TranslatedTask[] | null>(null);
 
   const [translating, setTranslating] = useState<null | "text" | "tasks">(null);
-  const [translateErr, setTranslateErr] = useState<string | null>(null);
 
   const [showTextTranslation, setShowTextTranslation] = useState(true);
   const [showTaskTranslations, setShowTaskTranslations] = useState(true);
   const [taskTranslationOpen, setTaskTranslationOpen] = useState<Record<string, boolean>>({});
-
-  const hasAnswers = useMemo(() => Object.keys(answers).length > 0, [answers]);
 
   const [translatedFeedback, setTranslatedFeedback] = useState<string | null>(null);
   const [feedbackTranslating, setFeedbackTranslating] = useState(false);
   const [feedbackTranslateErr, setFeedbackTranslateErr] = useState<string | null>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  const hasAnswers = useMemo(() => Object.keys(answers).length > 0, [answers]);
 
   const role: Role = isAnon ? "student" : safeRole(readStringField(profile, "role"));
   const plan: PlanKey = isAnon ? "free" : safePlan(readStringField(profile, "plan"));
@@ -567,19 +573,47 @@ export default function StudentLessonPage() {
   }, [feedback]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [ttsBusy, setTtsBusy] = useState<null | "original" | "translation">(null);
-  const [ttsErr, setTtsErr] = useState<string | null>(null);
+  const [ttsBusy, setTtsBusy] = useState<null | AudioMode>(null);
   const [playbackRate, setPlaybackRate] = useState(1.0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  const [activeTextMode, setActiveTextMode] = useState<null | "original" | "translation">(null);
+  const [activeTextMode, setActiveTextMode] = useState<AudioMode | null>(null);
   const [activeSentenceIndex, setActiveSentenceIndex] = useState<number | null>(null);
-  const [audioTarget, setAudioTarget] = useState<"original" | "translation">("original");
 
-  const stopAudio = () => {
+  const sourceTextSafe = useMemo(() => {
+    const txt = (lesson?.sourceText ?? lesson?.text ?? "").toString();
+    return txt;
+  }, [lesson?.sourceText, lesson?.text]);
+
+  const textFollow = useMemo(() => {
+    const original = segmentSentences(sourceTextSafe || "");
+    const translation = segmentSentences(translatedText || "");
+    return { original, translation };
+  }, [sourceTextSafe, translatedText]);
+
+  const originalLangForTTS: TtsLang = toTtsLang(lesson?.language || "no");
+  const translationLangForTTS: TtsLang = toTtsLang(targetLang);
+
+  const originalSegs = textFollow.original.segs;
+  const translationSegs = textFollow.translation.segs;
+
+  const tMap = useMemo(() => {
+    const m = new Map<string, TranslatedTask>();
+    (translatedTasks ?? []).forEach((tt) => m.set(tt.stableId, tt));
+    return m;
+  }, [translatedTasks]);
+
+  const stickyAudioLabel =
+    activeTextMode === "text_translation" || activeTextMode === "feedback_translation"
+      ? t("text.audioSourceTranslation")
+      : activeTextMode === "feedback_original"
+        ? t("feedback.title")
+        : t("text.audioSourceOriginal");
+
+  function stopAudio() {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -590,7 +624,7 @@ export default function StudentLessonPage() {
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
-  };
+  }
 
   function pauseAudio() {
     const a = audioRef.current;
@@ -604,12 +638,18 @@ export default function StudentLessonPage() {
     a.play().catch(() => { });
   }
 
-  async function playTTS(text: string, lang: TtsLang, mode: "original" | "translation") {
+  function requireAudioLogin() {
+    if (isAnon) {
+      flash(t("text.loginToPlayAudio"));
+      return false;
+    }
+    return true;
+  }
+
+  async function playTTS(text: string, lang: TtsLang, mode: AudioMode) {
     if (!lessonId) return;
     const clean = (text || "").trim();
     if (!clean) return;
-
-    setTtsErr(null);
     setTtsBusy(mode);
 
     try {
@@ -650,7 +690,6 @@ export default function StudentLessonPage() {
 
       setActiveTextMode(mode);
       setActiveSentenceIndex(0);
-
       setCurrentTime(0);
       setDuration(0);
 
@@ -661,8 +700,7 @@ export default function StudentLessonPage() {
 
       await a.play();
     } catch (e: unknown) {
-      const m = (e as { message?: unknown })?.message;
-      setTtsErr(typeof m === "string" ? m : t("tts.failed"));
+      console.error("TTS error:", e);
       setActiveSentenceIndex(null);
       setActiveTextMode(null);
     } finally {
@@ -670,34 +708,37 @@ export default function StudentLessonPage() {
     }
   }
 
-  async function playSelectedAudio() {
-    const originalText = (sourceTextSafe || "").trim();
-    const translationText = (translatedText || "").trim();
+  async function playOriginalTextAudio() {
+    if (!requireAudioLogin()) return;
+    const txt = (sourceTextSafe || "").trim();
+    if (!txt) return;
+    await playTTS(txt, originalLangForTTS, "text_original");
+  }
 
-    if (audioTarget === "translation") {
-      if (!translationText) return;
-      await playTTS(translationText, translationLangForTTS, "translation");
-      return;
-    }
+  async function playTranslatedTextAudio() {
+    if (!requireAudioLogin()) return;
+    const txt = (translatedText || "").trim();
+    if (!txt) return;
+    await playTTS(txt, translationLangForTTS, "text_translation");
+  }
 
-    if (!originalText) return;
-    await playTTS(originalText, originalLangForTTS, "original");
+  async function playFeedbackAudio() {
+    if (!requireAudioLogin()) return;
+    const txt = (feedback || "").trim();
+    if (!txt) return;
+    await playTTS(txt, toTtsLang(targetLang || lesson?.language || "no"), "feedback_original");
+  }
+
+  async function playTranslatedFeedbackAudio() {
+    if (!requireAudioLogin()) return;
+    const txt = (translatedFeedback || "").trim();
+    if (!txt) return;
+    await playTTS(txt, translationLangForTTS, "feedback_translation");
   }
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = playbackRate;
   }, [playbackRate]);
-
-  const sourceTextSafe = useMemo(() => {
-    const txt = (lesson?.sourceText ?? lesson?.text ?? "").toString();
-    return txt;
-  }, [lesson?.sourceText, lesson?.text]);
-
-  const textFollow = useMemo(() => {
-    const original = segmentSentences(sourceTextSafe || "");
-    const translation = segmentSentences(translatedText || "");
-    return { original, translation };
-  }, [sourceTextSafe, translatedText]);
 
   useEffect(() => {
     const a = audioRef.current;
@@ -743,7 +784,10 @@ export default function StudentLessonPage() {
       const ratio = Math.max(0, Math.min(1, tt / d));
 
       const segs =
-        activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+        activeTextMode === "text_translation"
+          ? textFollow.translation.segs
+          : textFollow.original.segs;
+
       if (!segs || segs.length === 0) return;
 
       let idx = segs.findIndex((s) => ratio >= s.startRatio && ratio < s.endRatio);
@@ -756,11 +800,17 @@ export default function StudentLessonPage() {
     return () => a.removeEventListener("timeupdate", onTime);
   }, [activeTextMode, textFollow.original.segs, textFollow.translation.segs]);
 
-  function seekToSentence(mode: "original" | "translation", idx: number) {
+  function seekToSentence(mode: AudioMode, idx: number) {
     const a = audioRef.current;
     if (!a) return;
 
-    const segs = mode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs =
+      mode === "text_translation"
+        ? textFollow.translation.segs
+        : mode === "text_original"
+          ? textFollow.original.segs
+          : [];
+
     if (!segs || !segs[idx]) return;
 
     const d = a.duration;
@@ -774,23 +824,16 @@ export default function StudentLessonPage() {
     if (a.paused) a.play().catch(() => { });
   }
 
-  function replaySentence() {
-    const a = audioRef.current;
-    if (!a) return;
-
-    if (activeTextMode && activeSentenceIndex != null) {
-      seekToSentence(activeTextMode, activeSentenceIndex);
-    } else {
-      a.currentTime = Math.max(0, a.currentTime - 2.0);
-      a.play().catch(() => { });
-    }
-  }
-
   function prevSentence() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
+    if (activeTextMode !== "text_original" && activeTextMode !== "text_translation") return;
 
-    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs =
+      activeTextMode === "text_translation"
+        ? textFollow.translation.segs
+        : textFollow.original.segs;
+
     if (!segs.length) return;
 
     const nextIdx = Math.max(0, (activeSentenceIndex ?? 0) - 1);
@@ -800,8 +843,13 @@ export default function StudentLessonPage() {
   function nextSentence() {
     if (!audioRef.current) return;
     if (!activeTextMode) return;
+    if (activeTextMode !== "text_original" && activeTextMode !== "text_translation") return;
 
-    const segs = activeTextMode === "translation" ? textFollow.translation.segs : textFollow.original.segs;
+    const segs =
+      activeTextMode === "text_translation"
+        ? textFollow.translation.segs
+        : textFollow.original.segs;
+
     if (!segs.length) return;
 
     const nextIdx = Math.min(segs.length - 1, (activeSentenceIndex ?? 0) + 1);
@@ -954,6 +1002,7 @@ export default function StudentLessonPage() {
             if (subDoc.exists()) {
               const data = asSubmissionDoc(subDoc.data());
               if (data?.answers) setAnswers(data.answers);
+              else setAnswers({});
               if (typeof data?.feedback === "string") setFeedback(data.feedback);
               else setFeedback(null);
             } else {
@@ -969,14 +1018,9 @@ export default function StudentLessonPage() {
 
         setTranslatedText(null);
         setTranslatedTasks(null);
-        setTranslateErr(null);
         setTaskTranslationOpen({});
-        setAudioTarget("original");
-
         setTranslatedFeedback(null);
         setFeedbackTranslateErr(null);
-
-        setTtsErr(null);
         setTtsBusy(null);
         stopAudio();
       } catch (e: unknown) {
@@ -1010,16 +1054,8 @@ export default function StudentLessonPage() {
   }, [answers, isAnon, lessonId]);
 
   useEffect(() => {
-    setTranslateErr(null);
     setFeedbackTranslateErr(null);
   }, [targetLang]);
-
-  useEffect(() => {
-    if (!translatedText && audioTarget === "translation") {
-      setAudioTarget("original");
-      stopAudio();
-    }
-  }, [translatedText, audioTarget]);
 
   function flash(text: string) {
     setMsg(text);
@@ -1052,7 +1088,10 @@ export default function StudentLessonPage() {
     try {
       if (isAnon) {
         try {
-          localStorage.setItem(lsKey(lessonId), JSON.stringify({ answers, updatedAt: Date.now() }));
+          localStorage.setItem(
+            lsKey(lessonId),
+            JSON.stringify({ answers, updatedAt: Date.now() })
+          );
         } catch {
           // ignore
         }
@@ -1163,7 +1202,7 @@ export default function StudentLessonPage() {
       const autoResultat = buildAutoResultat(lesson, answers);
 
       if (!svar && !autoResultat) {
-        throw new Error("Du må svare på minst én oppgave før du ber om tilbakemelding.");
+        throw new Error(t("feedback.errors.answerAtLeastOne"));
       }
 
       const baseLevel = (lesson.level ?? "A2").toString();
@@ -1220,7 +1259,6 @@ export default function StudentLessonPage() {
     const base = (lesson?.sourceText ?? lesson?.text ?? "").toString();
     if (!base.trim()) return;
 
-    setTranslateErr(null);
     setTranslating("text");
 
     try {
@@ -1228,8 +1266,7 @@ export default function StudentLessonPage() {
       setTranslatedText(out);
       setShowTextTranslation(true);
     } catch (e: unknown) {
-      const m = (e as { message?: unknown })?.message;
-      setTranslateErr(typeof m === "string" ? m : t("translate.failed"));
+      console.error("Translate text error:", e);
       setTranslatedText(null);
     } finally {
       setTranslating(null);
@@ -1241,7 +1278,6 @@ export default function StudentLessonPage() {
     const tasksArr = safeTasksArray(lesson.tasks);
     if (tasksArr.length === 0) return;
 
-    setTranslateErr(null);
     setTranslating("tasks");
 
     try {
@@ -1260,20 +1296,18 @@ export default function StudentLessonPage() {
           try {
             translatedPrompt = await translateOne(promptOrig, targetLang);
           } catch (e: unknown) {
-            const m = (e as { message?: unknown })?.message;
-            setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : t("translate.failed")));
+            console.error("Translate task prompt error:", e);
           }
         }
 
         let translatedOptions: string[] = [];
+
         if (optionsOrig.length > 0) {
           translatedOptions = await Promise.all(
             optionsOrig.map(async (o) => {
               try {
                 return await translateOne(String(o), targetLang);
-              } catch (e: unknown) {
-                const m = (e as { message?: unknown })?.message;
-                setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : t("translate.failed")));
+              } catch {
                 return "";
               }
             })
@@ -1291,8 +1325,7 @@ export default function StudentLessonPage() {
       setShowTaskTranslations(true);
       setTaskTranslationOpen({});
     } catch (e: unknown) {
-      const m = (e as { message?: unknown })?.message;
-      setTranslateErr(typeof m === "string" ? m : t("translate.failed"));
+      console.error("Translate error:", e);
     } finally {
       setTranslating(null);
     }
@@ -1316,12 +1349,6 @@ export default function StudentLessonPage() {
       setFeedbackTranslating(false);
     }
   }
-
-  const tMap = useMemo(() => {
-    const m = new Map<string, TranslatedTask>();
-    (translatedTasks ?? []).forEach((tt) => m.set(tt.stableId, tt));
-    return m;
-  }, [translatedTasks]);
 
   if (loading) return <p style={{ padding: 16 }}>{t("loading")}</p>;
 
@@ -1347,14 +1374,8 @@ export default function StudentLessonPage() {
     .slice()
     .sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
 
-  const originalLangForTTS: TtsLang = toTtsLang(lesson.language || "no");
-  const translationLangForTTS: TtsLang = toTtsLang(targetLang);
-
-  const originalSegs = textFollow.original.segs;
-  const translationSegs = textFollow.translation.segs;
-
   const renderFollowText = (
-    mode: "original" | "translation",
+    mode: AudioMode,
     segs: SentenceSeg[],
     fallbackText: string
   ) => {
@@ -1368,7 +1389,10 @@ export default function StudentLessonPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {segs.map((s, i) => {
           const isActive = activeTextMode === mode && activeSentenceIndex === i;
-          const canSeek = !!audioRef.current && activeTextMode === mode;
+          const canSeek =
+            !!audioRef.current &&
+            activeTextMode === mode &&
+            (mode === "text_original" || mode === "text_translation");
 
           return (
             <span
@@ -1398,7 +1422,7 @@ export default function StudentLessonPage() {
       : `/${locale}/content`;
 
   return (
-    <main style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
+    <main style={{ maxWidth: 920, margin: "0 auto", padding: 16, paddingBottom: 120 }}>
       <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ margin: "0 0 6px" }}>{lesson.title}</h1>
@@ -1458,24 +1482,47 @@ export default function StudentLessonPage() {
         </div>
       </section>
 
-      <section style={{ marginTop: 18, padding: 12, border: "1px solid rgba(0, 0, 0, 0.12)", borderRadius: 12 }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
-          <button
-            onClick={saveDraft}
-            disabled={saving || !uid}
-            style={{
-              ...blueBtnStyle,
-              fontWeight: 600,
-              opacity: saving ? 0.6 : 1,
-            }}
-          >
-            {saving ? t("actions.saving") : locale === "en" ? "SAVE" : "LAGRE"}
-          </button>
-        </div>
+      <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+        <button
+          onClick={saveDraft}
+          disabled={saving || !uid}
+          style={{
+            ...greenBtnStyle,
+            fontWeight: 600,
+            opacity: saving ? 0.6 : 1,
+          }}
+        >
+          {saving ? t("actions.saving") : locale === "en" ? "SAVE" : "LAGRE"}
+        </button>
+      </div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+
+      <section style={{ marginTop: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            marginBottom: 8,
+          }}
+        >
+          <h2 style={{ margin: 0 }}>{t("text.title")}</h2>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={playOriginalTextAudio}
+              disabled={isAnon || ttsBusy !== null || !(sourceTextSafe || "").trim()}
+              style={{ ...greenBtnStyle, opacity: isAnon || ttsBusy !== null ? 0.6 : 1 }}
+              title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
+            >
+              {t("text.playAudio")}
+            </button>
+
             <span style={{ opacity: 0.75 }}>{t("translate.label")}</span>
+
             <SearchableSelect
               label=""
               value={targetLang}
@@ -1483,184 +1530,69 @@ export default function StudentLessonPage() {
               onChange={setTargetLang}
               placeholder={t("translate.searchPlaceholder")}
             />
-          </label>
 
-          <button
-            onClick={onTranslateText}
-            disabled={translating === "text" || !(sourceTextSafe || "").trim()}
-            style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1 }}
-          >
-            {translating === "text" ? t("translate.translating") : t("translate.translateText")}
-          </button>
-
-          <button
-            onClick={onTranslateTasks}
-            disabled={translating === "tasks" || tasksOriginal.length === 0}
-            style={{ ...blueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
-          >
-            {translating === "tasks" ? t("translate.translating") : t("translate.translateTasks")}
-          </button>
-
-          <button
-            onClick={() => {
-              setTranslatedText(null);
-              setTranslatedTasks(null);
-              setTranslatedFeedback(null);
-              setTranslateErr(null);
-              setFeedbackTranslateErr(null);
-              setTaskTranslationOpen({});
-              setAudioTarget("original");
-              stopAudio();
-            }}
-            style={btnStyle}
-          >
-            {t("translate.reset")}
-          </button>
-        </div>
-
-        {translateErr ? <p style={{ marginTop: 10, color: "crimson" }}>{translateErr}</p> : null}
-        {feedbackTranslateErr ? <p style={{ marginTop: 10, color: "crimson" }}>{feedbackTranslateErr}</p> : null}
-      </section>
-
-      <section
-        style={{
-          marginTop: 14,
-          padding: 12,
-          border: "1px solid rgba(0,0,0,0.12)",
-          borderRadius: 12,
-          background: "rgba(0,0,0,0.02)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <h2 style={{ margin: 0 }}>Audio</h2>
-
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ opacity: 0.75 }}>{t("text.speed")}</span>
-              <input
-                type="range"
-                min="0.75"
-                max="1.5"
-                step="0.05"
-                value={playbackRate}
-                onChange={(e) => setPlaybackRate(Number(e.target.value))}
-              />
-              <span style={{ width: 46, textAlign: "right" }}>{playbackRate.toFixed(2)}x</span>
-            </label>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
-          <button
-            type="button"
-            onClick={() => setAudioTarget("original")}
-            style={{
-              ...(audioTarget === "original" ? blueBtnActiveStyle : blueBtnStyle),
-              fontWeight: 600,
-            }}
-          >
-            {t("text.playOriginal")}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setAudioTarget("translation")}
-            disabled={!translatedText}
-            style={{
-              ...(audioTarget === "translation" ? blueBtnActiveStyle : blueBtnStyle),
-              opacity: translatedText ? 1 : 0.45,
-              fontWeight: 600,
-            }}
-          >
-            {t("text.playTranslation")}
-          </button>
-
-          <button
-            type="button"
-            style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.65 : 1 }}
-            disabled={ttsBusy !== null || (audioTarget === "original" ? !(sourceTextSafe || "").trim() : !(translatedText || "").trim())}
-            onClick={playSelectedAudio}
-          >
-            {ttsBusy ? t("text.generating") : audioTarget === "translation" ? t("text.playTranslation") : t("text.playOriginal")}
-          </button>
-
-          <button type="button" style={redBtnStyle} onClick={stopAudio} disabled={!audioRef.current}>
-            {t("text.stop")}
-          </button>
-
-          {audioRef.current ? (
-            <>
-              <button type="button" style={yellowBtnStyle} onClick={isPlaying ? pauseAudio : resumeAudio}>
-                {isPlaying ? t("text.pause") : t("text.continue")}
-              </button>
-
-              <button type="button" style={btnStyle} onClick={replaySentence}>
-                {t("text.replaySentence")}
-              </button>
-              <button type="button" style={btnStyle} onClick={prevSentence}>
-                {t("text.prev")}
-              </button>
-              <button type="button" style={btnStyle} onClick={nextSentence}>
-                {t("text.next")}
-              </button>
-
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 12, opacity: 0.75, width: 48 }}>{fmtTime(currentTime)}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(0.01, duration || 0)}
-                  step={0.05}
-                  value={Math.min(currentTime, duration || currentTime)}
-                  onChange={(e) => {
-                    const a = audioRef.current;
-                    if (!a) return;
-                    const v = Number(e.target.value);
-                    a.currentTime = v;
-                    setCurrentTime(v);
-                  }}
-                  style={{ width: 240 }}
-                />
-                <span style={{ fontSize: 12, opacity: 0.75, width: 48 }}>{fmtTime(duration)}</span>
-              </div>
-            </>
-          ) : null}
-        </div>
-
-        {ttsErr ? <div style={{ marginTop: 8, color: "crimson" }}>{ttsErr}</div> : null}
-      </section>
-
-      <section style={{ marginTop: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <h2 style={{ marginBottom: 8 }}>{t("text.title")}</h2>
-
-          {translatedText ? (
-            <button type="button" style={blueBtnStyle} onClick={() => setShowTextTranslation((v) => !v)}>
-              {showTextTranslation ? t("text.hideTranslation") : t("text.showTranslation")}
+            <button
+              type="button"
+              onClick={onTranslateText}
+              disabled={translating === "text" || !(sourceTextSafe || "").trim()}
+              style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1 }}
+            >
+              {translating === "text" ? t("translate.translating") : t("translate.go")}
             </button>
-          ) : null}
+          </div>
         </div>
 
         <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
-          {renderFollowText("original", originalSegs, (sourceTextSafe ?? "").trim())}
+          {renderFollowText("text_original", originalSegs, (sourceTextSafe ?? "").trim())}
         </div>
+      </section>
 
-        {translatedText && showTextTranslation ? (
+      {translatedText ? (
+        <section style={{ marginTop: 14 }}>
           <div
             style={{
-              marginTop: 10,
-              padding: 12,
-              border: "1px solid rgba(59,130,246,0.22)",
-              borderRadius: 12,
-              lineHeight: 1.55,
-              background: "rgba(59,130,246,0.05)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+              marginBottom: 8,
             }}
           >
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translate.translatedLabel")}</div>
-            {renderFollowText("translation", translationSegs, translatedText)}
+            <h2 style={{ margin: 0 }}>{t("translate.title")}</h2>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={playTranslatedTextAudio}
+                disabled={isAnon || ttsBusy !== null || !translatedText.trim()}
+                style={{ ...greenBtnStyle, opacity: isAnon || ttsBusy !== null ? 0.6 : 1 }}
+                title={isAnon ? t("text.loginToPlayAudio") : t("text.playTranslation")}
+              >
+                {t("text.playAudio")}
+              </button>
+
+              <button type="button" style={btnStyle} onClick={() => setShowTextTranslation((v) => !v)}>
+                {showTextTranslation ? t("text.hideTranslation") : t("text.showTranslation")}
+              </button>
+            </div>
           </div>
-        ) : null}
-      </section>
+
+          {showTextTranslation ? (
+            <div
+              style={{
+                padding: 12,
+                border: "1px solid rgba(59,130,246,0.22)",
+                borderRadius: 12,
+                lineHeight: 1.55,
+                background: "rgba(59,130,246,0.05)",
+              }}
+            >
+              {renderFollowText("text_translation", translationSegs, translatedText)}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       <section style={{ marginTop: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
@@ -1691,6 +1623,25 @@ export default function StudentLessonPage() {
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
+          <span style={{ opacity: 0.75 }}>{t("tasks.translateTo")}</span>
+
+          <SearchableSelect
+            label=""
+            value={targetLang}
+            options={LANGUAGE_OPTIONS}
+            onChange={setTargetLang}
+            placeholder={t("translate.searchPlaceholder")}
+          />
+
+          <button
+            type="button"
+            onClick={onTranslateTasks}
+            disabled={translating === "tasks" || tasksOriginal.length === 0}
+            style={{ ...blueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
+          >
+            {translating === "tasks" ? t("translate.translating") : t("translate.go")}
+          </button>
+
           {(translatedTasks ?? []).length > 0 ? (
             <button type="button" style={blueBtnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
               {showTaskTranslations ? t("tasks.hideAllTranslations") : t("tasks.showAllTranslations")}
@@ -1760,11 +1711,7 @@ export default function StudentLessonPage() {
                     }}
                   >
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.9, alignItems: "center" }}>
-                      <span>
-                        {t("tasks.taskLabel", {
-                          n: String(tt?.order ?? idx + 1),
-                        })}
-                      </span>
+                      <span>{t("tasks.taskLabel", { n: String(tt?.order ?? idx + 1) })}</span>
                       <span>• {type}</span>
 
                       {showAnswers && hasCorrect && val != null ? (
@@ -1923,88 +1870,183 @@ export default function StudentLessonPage() {
         )}
       </section>
 
-      <section style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <h2 style={{ marginBottom: 8 }}>{t("feedback.title")}</h2>
+      <section
+        style={{
+          marginTop: 16,
+          padding: 14,
+          border: "1px solid rgba(0,0,0,0.12)",
+          borderRadius: 14,
+          background: "rgba(0,0,0,0.02)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "wrap",
+            marginBottom: 10,
+          }}
+        >
+          <div>
+            <h2 style={{ margin: 0 }}>{t("feedback.title")}</h2>
+            <div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>
+              {t("feedback.subtitle")}
+            </div>
+          </div>
 
           {!isAnon && feedbackLimit > 0 ? (
             <div style={{ fontSize: 13, opacity: 0.8 }}>
-              AI feedback: {feedbackUsed} / {feedbackLimit} brukt • {feedbackRemaining} igjen
+              {t("feedback.usage", {
+                used: String(feedbackUsed),
+                limit: String(feedbackLimit),
+                remaining: String(feedbackRemaining),
+              })}
             </div>
           ) : null}
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <button
-              onClick={submitForFeedback}
-              disabled={submitting || !uid || feedbackLimitReached}
-              style={{
-                ...greenBtnStyle,
-                fontWeight: 600,
-                opacity: submitting || feedbackLimitReached ? 0.6 : 1,
-              }}
-              title={
-                isAnon
-                  ? t("feedback.loginToGetFeedback")
-                  : feedbackLimitReached
-                    ? t("feedback.limitReached")
-                    : t("feedback.generate")
-              }
-            >
-              {submitting
-                ? t("feedback.submitting")
-                : isAnon
-                  ? t("feedback.loginForFeedback")
-                  : feedbackLimitReached
-                    ? t("feedback.limitReachedShort")
-                    : t("feedback.getFeedback")}
-            </button>
-
-            <button
-              onClick={onTranslateFeedback}
-              disabled={feedbackTranslating || !(feedback || "").trim()}
-              style={{
-                ...blueBtnStyle,
-                fontWeight: 600,
-                opacity: feedbackTranslating ? 0.6 : 1,
-              }}
-              title={t("feedback.translateButtonTitle")}
-            >
-              {feedbackTranslating ? t("feedback.translating") : t("feedback.translateFeedback")}
-            </button>
-          </div>
         </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            onClick={submitForFeedback}
+            disabled={submitting || !uid}
+            style={{
+              ...greenBtnStyle,
+              fontWeight: 600,
+              opacity: submitting ? 0.6 : 1,
+            }}
+          >
+            {submitting
+              ? t("feedback.submitting")
+              : isAnon
+                ? t("feedback.loginForFeedback")
+                : feedbackLimitReached
+                  ? t("feedback.limitReachedShort")
+                  : t("feedback.getFeedback")}
+          </button>
+
+          {/* 🔽 NY: språkvalg for feedback */}
+          <span style={{ opacity: 0.75 }}>{t("feedback.translateTo")}</span>
+
+          <SearchableSelect
+            label=""
+            value={targetLang}
+            options={LANGUAGE_OPTIONS}
+            onChange={setTargetLang}
+            placeholder={t("translate.searchPlaceholder")}
+          />
+
+          <button
+            onClick={onTranslateFeedback}
+            disabled={feedbackTranslating || !(feedback || "").trim()}
+            style={{
+              ...blueBtnStyle,
+              fontWeight: 600,
+              opacity: feedbackTranslating || !(feedback || "").trim() ? 0.6 : 1,
+            }}
+          >
+            {feedbackTranslating ? t("feedback.translating") : t("translate.go")}
+          </button>
+
+          <button
+            type="button"
+            onClick={playFeedbackAudio}
+            disabled={isAnon || ttsBusy !== null || !(feedback || "").trim()}
+            style={{
+              ...greenBtnStyle,
+              fontWeight: 600,
+              opacity: isAnon || ttsBusy !== null || !(feedback || "").trim() ? 0.6 : 1,
+            }}
+          >
+            {t("text.playAudio")}
+          </button>
+        </div>
+
+        {msg ? (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(220,38,38,0.24)",
+              background: "rgba(239,68,68,0.08)",
+              color: "#b91c1c",
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            {msg}
+          </div>
+        ) : null}
+
+        {feedbackTranslateErr ? (
+          <div style={{ marginTop: 8, color: "crimson", fontSize: 14 }}>
+            {feedbackTranslateErr}
+          </div>
+        ) : null}
 
         <div
           style={{
-            padding: 12,
-            border: "1px solid rgba(0,0,0,0.12)",
+            marginTop: 12,
+            padding: 14,
+            border: "1px solid rgba(0,0,0,0.10)",
             borderRadius: 12,
-            whiteSpace: "pre-wrap",
-            lineHeight: 1.55,
-            minHeight: 80,
+            background: "white",
+            minHeight: 120,
           }}
         >
-          {feedback ? (
-            feedback
-          ) : (
-            <span style={{ opacity: 0.6 }}>{isAnon ? t("feedback.anonHint") : t("feedback.noFeedbackYet")}</span>
-          )}
+          <div style={{ fontSize: 12, opacity: 0.65, marginBottom: 8 }}>
+            {t("feedback.resultLabel")}
+          </div>
+
+          <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+            {feedback ? (
+              feedback
+            ) : (
+              <span style={{ opacity: 0.6 }}>
+                {isAnon ? t("feedback.anonHint") : t("feedback.noFeedbackYet")}
+              </span>
+            )}
+          </div>
         </div>
 
         {translatedFeedback ? (
           <div
             style={{
-              marginTop: 10,
-              padding: 12,
+              marginTop: 12,
+              padding: 14,
               border: "1px solid rgba(59,130,246,0.22)",
               borderRadius: 12,
-              whiteSpace: "pre-wrap",
-              lineHeight: 1.55,
               background: "rgba(59,130,246,0.05)",
             }}
           >
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("feedback.translatedFeedbackLabel")}</div>
-            {translatedFeedback}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {t("feedback.translatedFeedbackLabel")}
+              </div>
+
+              <button
+                type="button"
+                onClick={playTranslatedFeedbackAudio}
+                disabled={isAnon || ttsBusy !== null || !translatedFeedback.trim()}
+                style={{ ...greenBtnStyle, opacity: isAnon || ttsBusy !== null ? 0.6 : 1 }}
+                title={isAnon ? t("text.loginToPlayAudio") : t("feedback.playAudio")}
+              >
+                {t("text.playAudio")}
+              </button>
+            </div>
+
+            <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{translatedFeedback}</div>
           </div>
         ) : null}
       </section>
@@ -2014,6 +2056,113 @@ export default function StudentLessonPage() {
           ← {t("nav.backToPreview")}
         </Link>
       </section>
+
+      {audioRef.current ? (
+        <div
+          style={{
+            position: "fixed",
+            left: 12,
+            right: 12,
+            bottom: 12,
+            zIndex: 60,
+            padding: 12,
+            borderRadius: 16,
+            border: "1px solid rgba(0,0,0,0.14)",
+            background: "rgba(255,255,255,0.96)",
+            boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              flexWrap: "wrap",
+              marginBottom: 8,
+            }}
+          >
+            <div style={{ fontSize: 13, opacity: 0.8, fontWeight: 600 }}>
+              {t("text.nowPlaying")}: {stickyAudioLabel}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button
+                type="button"
+                style={btnStyle}
+                onClick={() => setPlaybackRate((v) => Math.max(0.75, Number((v - 0.1).toFixed(2))))}
+              >
+                −
+              </button>
+              <span style={{ fontSize: 12, minWidth: 44, textAlign: "center", opacity: 0.8 }}>
+                {playbackRate.toFixed(2)}x
+              </span>
+              <button
+                type="button"
+                style={btnStyle}
+                onClick={() => setPlaybackRate((v) => Math.min(1.5, Number((v + 0.1).toFixed(2))))}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" style={{ ...btnStyle, minWidth: 44 }} onClick={prevSentence} title={t("text.prev")}>
+              ⏮
+            </button>
+
+            <button
+              type="button"
+              style={{ ...yellowBtnStyle, minWidth: 52, fontWeight: 700 }}
+              onClick={isPlaying ? pauseAudio : resumeAudio}
+              title={isPlaying ? t("text.pause") : t("text.continue")}
+            >
+              {isPlaying ? "⏸" : "▶"}
+            </button>
+
+            <button type="button" style={{ ...redBtnStyle, minWidth: 44 }} onClick={stopAudio} title={t("text.stop")}>
+              ⏹
+            </button>
+
+            <button type="button" style={{ ...btnStyle, minWidth: 44 }} onClick={nextSentence} title={t("text.next")}>
+              ⏭
+            </button>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flex: "1 1 280px",
+                minWidth: 220,
+                marginLeft: 4,
+              }}
+            >
+              <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(currentTime)}</span>
+
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0.01, duration || 0)}
+                step={0.05}
+                value={Math.min(currentTime, duration || currentTime)}
+                onChange={(e) => {
+                  const a = audioRef.current;
+                  if (!a) return;
+                  const v = Number(e.target.value);
+                  a.currentTime = v;
+                  setCurrentTime(v);
+                }}
+                style={{ flex: 1 }}
+              />
+
+              <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(duration)}</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

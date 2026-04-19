@@ -30,7 +30,10 @@
       "translating": "Translating…",
       "reset": "Reset",
       "translatedLabel": "Translation",
-      "failed": "Could not translate."
+      "failed": "Could not translate.",
+      "title": "Translation",
+      "subtitle": "Translate the text, tasks, and feedback into your chosen language.",
+      "go": "Translate now"
     },
     "text": {
       "title": "Text",
@@ -49,7 +52,14 @@
       "hideTranslation": "Hide translation",
       "showTranslation": "Show translation",
       "noAudio": "No audio available.",
-      "failed": "Could not generate audio."
+      "failed": "Could not generate audio.",
+      "audioSourceOriginal": "Original text",
+      "audioSourceTranslation": "Translation",
+      "nowPlaying": "Now playing",
+      "subtitle": "Get an evaluation of your answers and clear advice on what to improve next.",
+      "resultLabel": "AI feedback",
+      "playAudio": "Play audio",
+      "loginToPlayAudio": "Log in to play audio"
     },
     "tasks": {
       "title": "Tasks",
@@ -67,27 +77,37 @@
       "showTranslation": "Show translation",
       "true": "True",
       "false": "False",
-      "writeAnswerPlaceholder": "Write your answer here…"
+      "writeAnswerPlaceholder": "Write your answer here…",
+      "translateTo": "Translate tasks"
     },
     "feedback": {
       "title": "Feedback",
+      "subtitle": "Get an evaluation of your answers and clear advice on what to improve next.",
       "usage": "AI feedback: {used} / {limit} used • {remaining} left",
-      "generate": "Get AI feedback",
+      "generate": "Generate feedback",
       "getFeedback": "Get feedback",
-      "submitting": "Submitting…",
-      "loginForFeedback": "Log in for feedback",
-      "loginToGetFeedback": "Log in to get feedback.",
-      "limitReached": "You have reached your AI feedback limit.",
-      "limitReachedShort": "Limit reached",
+      "submitting": "Generating…",
+      "generating": "Generating feedback…",
+      "ready": "Your feedback is ready.",
       "translateFeedback": "Translate feedback",
-      "translateButtonTitle": "Translate feedback",
+      "translateButtonTitle": "Translate the feedback",
       "translating": "Translating…",
       "translatedFeedbackLabel": "Translated feedback",
       "translateFailed": "Could not translate feedback.",
+      "resultLabel": "AI feedback",
       "anonHint": "Log in to get AI feedback.",
       "noFeedbackYet": "No feedback yet.",
-      "generatingNew": "⏳ Generating new feedback…",
-      "answerAtLeastOne": "You must answer at least one task before requesting feedback."
+      "loginForFeedback": "Log in for feedback",
+      "loginToGetFeedback": "You need to log in to get feedback.",
+      "limitReached": "You have reached your AI feedback limit.",
+      "limitReachedShort": "Limit reached",
+      "generatingNew": "⏳ Generating new feedback.",
+      "answerAtLeastOne": "You must answer at least one task before requesting feedback.",
+      "playAudio": "Listen",
+      "translateTo": "Translate feedback",
+      "errors": {
+        "answerAtLeastOne": "You need to answer at least one task before you can get feedback."
+      }
     },
     "flash": {
       "saved": "Saved.",

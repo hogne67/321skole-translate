@@ -225,7 +225,9 @@ export async function POST(req: Request) {
 
     if (!lesetekst) return Response.json({ error: "Mangler lesetekst." }, { status: 400 });
     if (!oppgave) return Response.json({ error: "Mangler oppgave." }, { status: 400 });
-    if (!svar) return Response.json({ error: "Mangler svar." }, { status: 400 });
+    if (!svar && !autoResultat) {
+      return Response.json({ error: "Mangler svar." }, { status: 400 });
+    }
 
     const systemPrompt = buildSystemPrompt(locale);
 

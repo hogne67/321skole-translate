@@ -14,9 +14,9 @@
     },
     "image": {
       "title": "Bilde",
-      "alt": "Bilde til leksjonen",
+      "alt": "Leksjonsbilde",
       "noImageTitle": "Ingen bilde",
-      "noImageHint": "Denne leksjonen har ikke noe bilde."
+      "noImageHint": "Denne leksjonen har ikke bilde."
     },
     "actions": {
       "save": "Lagre",
@@ -24,22 +24,24 @@
     },
     "translate": {
       "label": "Oversett til",
-      "searchPlaceholder": "Søk språk…",
+      "searchPlaceholder": "Søk etter språk…",
       "translateText": "Oversett tekst",
       "translateTasks": "Oversett oppgaver",
       "translating": "Oversetter…",
-      "reset": "Tilbakestill",
+      "reset": "Nullstill",
       "translatedLabel": "Oversettelse",
-      "failed": "Kunne ikke oversette."
+      "failed": "Kunne ikke oversette.",
+      "title": "Oversettelse",
+      "subtitle": "Oversett tekst, oppgaver og tilbakemelding til ønsket språk."
     },
     "text": {
       "title": "Tekst",
       "noText": "Ingen tekst tilgjengelig.",
-      "clickToSeek": "Klikk for å hoppe til dette stedet i lyden",
+      "clickToSeek": "Klikk for å hoppe hit i lyden",
       "speed": "Hastighet",
       "generating": "Genererer lyd…",
-      "playOriginal": "Spill av original",
-      "playTranslation": "Spill av oversettelse",
+      "playOriginal": "Spill original",
+      "playTranslation": "Spill oversettelse",
       "stop": "Stopp",
       "pause": "Pause",
       "continue": "Fortsett",
@@ -49,13 +51,16 @@
       "hideTranslation": "Skjul oversettelse",
       "showTranslation": "Vis oversettelse",
       "noAudio": "Ingen lyd tilgjengelig.",
-      "failed": "Kunne ikke generere lyd."
+      "failed": "Kunne ikke generere lyd.",
+      "audioSourceOriginal": "Originaltekst",
+      "audioSourceTranslation": "Oversettelse",
+      "nowPlaying": "Spiller nå"
     },
     "tasks": {
       "title": "Oppgaver",
       "showAnswers": "Vis svar",
       "hideAnswers": "Skjul svar",
-      "clearAnswers": "Fjern svar",
+      "clearAnswers": "Tøm svar",
       "hideAllTranslations": "Skjul alle oversettelser",
       "showAllTranslations": "Vis alle oversettelser",
       "noTasks": "Fant ingen oppgaver.",
@@ -71,28 +76,35 @@
     },
     "feedback": {
       "title": "Tilbakemelding",
+      "subtitle": "Få vurdering av svarene dine og konkrete råd om hva du bør jobbe videre med.",
       "usage": "AI-tilbakemelding: {used} / {limit} brukt • {remaining} igjen",
-      "generate": "Få AI-tilbakemelding",
+      "generate": "Generer tilbakemelding",
       "getFeedback": "Få tilbakemelding",
-      "submitting": "Sender…",
-      "loginForFeedback": "Logg inn for tilbakemelding",
-      "loginToGetFeedback": "Logg inn for å få tilbakemelding.",
-      "limitReached": "Du har nådd grensen for AI-tilbakemelding.",
-      "limitReachedShort": "Grense nådd",
+      "submitting": "Genererer…",
+      "generating": "Genererer tilbakemelding…",
+      "ready": "Tilbakemeldingen er klar.",
       "translateFeedback": "Oversett tilbakemelding",
-      "translateButtonTitle": "Oversett tilbakemelding",
+      "translateButtonTitle": "Oversett tilbakemeldingen",
       "translating": "Oversetter…",
       "translatedFeedbackLabel": "Oversatt tilbakemelding",
-      "translateFailed": "Kunne ikke oversette tilbakemelding.",
+      "translateFailed": "Kunne ikke oversette tilbakemeldingen.",
+      "resultLabel": "AI-tilbakemelding",
       "anonHint": "Logg inn for å få AI-tilbakemelding.",
       "noFeedbackYet": "Ingen tilbakemelding ennå.",
-      "generatingNew": "⏳ Genererer ny tilbakemelding…",
-      "answerAtLeastOne": "Du må svare på minst én oppgave før du ber om tilbakemelding."
+      "loginForFeedback": "Logg inn for tilbakemelding",
+      "loginToGetFeedback": "Du må logge inn for å få tilbakemelding.",
+      "limitReached": "Du har brukt opp kvoten for AI-tilbakemelding.",
+      "limitReachedShort": "Kvoten er brukt opp",
+      "generatingNew": "⏳ Genererer ny tilbakemelding.",
+      "answerAtLeastOne": "Du må svare på minst én oppgave før du ber om tilbakemelding.",
+      "errors": {
+        "answerAtLeastOne": "Du må svare på minst én oppgave før du kan få tilbakemelding."
+      }
     },
     "flash": {
       "saved": "Lagret.",
       "submitted": "Sendt inn.",
-      "clearedAnswers": "Svar slettet.",
+      "clearedAnswers": "Svarene er tømt.",
       "answerAtLeastOne": "Svar på minst én oppgave først.",
       "loginToGetFeedback": "Logg inn for å få tilbakemelding."
     },
