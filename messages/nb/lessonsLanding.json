@@ -32,7 +32,8 @@
       "translatedLabel": "Oversettelse",
       "failed": "Kunne ikke oversette.",
       "title": "Oversettelse",
-      "subtitle": "Oversett tekst, oppgaver og tilbakemelding til ønsket språk."
+      "subtitle": "Oversett tekst, oppgaver og tilbakemelding til ønsket språk.",
+      "go": "Gå"
     },
     "text": {
       "title": "Tekst",
@@ -45,7 +46,7 @@
       "stop": "Stopp",
       "pause": "Pause",
       "continue": "Fortsett",
-      "replaySentence": "Spill setning på nytt",
+      "replaySentence": "Spill setningen på nytt",
       "prev": "Forrige",
       "next": "Neste",
       "hideTranslation": "Skjul oversettelse",
@@ -54,7 +55,9 @@
       "failed": "Kunne ikke generere lyd.",
       "audioSourceOriginal": "Originaltekst",
       "audioSourceTranslation": "Oversettelse",
-      "nowPlaying": "Spiller nå"
+      "nowPlaying": "Spiller nå",
+      "playAudio": "Spill lyd",
+      "loginToPlayAudio": "Logg inn for å spille lyd"
     },
     "tasks": {
       "title": "Oppgaver",
@@ -72,11 +75,12 @@
       "showTranslation": "Vis oversettelse",
       "true": "Sant",
       "false": "Usant",
-      "writeAnswerPlaceholder": "Skriv svaret ditt her…"
+      "writeAnswerPlaceholder": "Skriv svaret ditt her…",
+      "translateTo": "Oversett oppgaver til"
     },
     "feedback": {
       "title": "Tilbakemelding",
-      "subtitle": "Få vurdering av svarene dine og konkrete råd om hva du bør jobbe videre med.",
+      "subtitle": "Få en vurdering av svarene dine og konkrete råd om hva du bør jobbe videre med.",
       "usage": "AI-tilbakemelding: {used} / {limit} brukt • {remaining} igjen",
       "generate": "Generer tilbakemelding",
       "getFeedback": "Få tilbakemelding",
@@ -97,6 +101,8 @@
       "limitReachedShort": "Kvoten er brukt opp",
       "generatingNew": "⏳ Genererer ny tilbakemelding.",
       "answerAtLeastOne": "Du må svare på minst én oppgave før du ber om tilbakemelding.",
+      "playAudio": "Lytt",
+      "translateTo": "Oversett tilbakemelding til",
       "errors": {
         "answerAtLeastOne": "Du må svare på minst én oppgave før du kan få tilbakemelding."
       }
@@ -104,7 +110,7 @@
     "flash": {
       "saved": "Lagret.",
       "submitted": "Sendt inn.",
-      "clearedAnswers": "Svarene er tømt.",
+      "clearedAnswers": "Svarene er slettet.",
       "answerAtLeastOne": "Svar på minst én oppgave først.",
       "loginToGetFeedback": "Logg inn for å få tilbakemelding."
     },

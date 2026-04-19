@@ -7,7 +7,7 @@
     },
     "nav": {
       "backToDashboard": "Voltar",
-      "backToPreview": "Voltar para a pré-visualização"
+      "backToPreview": "Voltar para a visualização"
     },
     "anon": {
       "savedLocally": "Suas respostas foram salvas localmente neste dispositivo."
@@ -32,7 +32,8 @@
       "translatedLabel": "Tradução",
       "failed": "Não foi possível traduzir.",
       "title": "Tradução",
-      "subtitle": "Traduza o texto, as tarefas e o feedback para o idioma desejado."
+      "subtitle": "Traduza o texto, as tarefas e o feedback para o idioma desejado.",
+      "go": "Ir"
     },
     "text": {
       "title": "Texto",
@@ -54,7 +55,9 @@
       "failed": "Não foi possível gerar o áudio.",
       "audioSourceOriginal": "Texto original",
       "audioSourceTranslation": "Tradução",
-      "nowPlaying": "Tocando agora"
+      "nowPlaying": "Tocando agora",
+      "playAudio": "Reproduzir áudio",
+      "loginToPlayAudio": "Faça login para reproduzir áudio"
     },
     "tasks": {
       "title": "Tarefas",
@@ -72,11 +75,12 @@
       "showTranslation": "Mostrar tradução",
       "true": "Verdadeiro",
       "false": "Falso",
-      "writeAnswerPlaceholder": "Escreva sua resposta aqui…"
+      "writeAnswerPlaceholder": "Escreva sua resposta aqui…",
+      "translateTo": "Traduzir tarefas para"
     },
     "feedback": {
       "title": "Feedback",
-      "subtitle": "Receba uma avaliação das suas respostas e conselhos claros sobre o que melhorar a seguir.",
+      "subtitle": "Receba uma avaliação das suas respostas e orientações claras sobre o que melhorar em seguida.",
       "usage": "Feedback de IA: {used} / {limit} usados • {remaining} restantes",
       "generate": "Gerar feedback",
       "getFeedback": "Obter feedback",
@@ -97,6 +101,8 @@
       "limitReachedShort": "Limite atingido",
       "generatingNew": "⏳ Gerando novo feedback.",
       "answerAtLeastOne": "Você precisa responder pelo menos uma tarefa antes de solicitar feedback.",
+      "playAudio": "Ouvir",
+      "translateTo": "Traduzir feedback para",
       "errors": {
         "answerAtLeastOne": "Você precisa responder pelo menos uma tarefa antes de receber feedback."
       }

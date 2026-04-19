@@ -33,7 +33,7 @@
       "failed": "Could not translate.",
       "title": "Translation",
       "subtitle": "Translate the text, tasks, and feedback into your chosen language.",
-      "go": "Translate now"
+      "go": "Go"
     },
     "text": {
       "title": "Text",
@@ -56,8 +56,6 @@
       "audioSourceOriginal": "Original text",
       "audioSourceTranslation": "Translation",
       "nowPlaying": "Now playing",
-      "subtitle": "Get an evaluation of your answers and clear advice on what to improve next.",
-      "resultLabel": "AI feedback",
       "playAudio": "Play audio",
       "loginToPlayAudio": "Log in to play audio"
     },
@@ -78,7 +76,7 @@
       "true": "True",
       "false": "False",
       "writeAnswerPlaceholder": "Write your answer here…",
-      "translateTo": "Translate tasks"
+      "translateTo": "Translate tasks to"
     },
     "feedback": {
       "title": "Feedback",
@@ -104,7 +102,7 @@
       "generatingNew": "⏳ Generating new feedback.",
       "answerAtLeastOne": "You must answer at least one task before requesting feedback.",
       "playAudio": "Listen",
-      "translateTo": "Translate feedback",
+      "translateTo": "Translate feedback to",
       "errors": {
         "answerAtLeastOne": "You need to answer at least one task before you can get feedback."
       }

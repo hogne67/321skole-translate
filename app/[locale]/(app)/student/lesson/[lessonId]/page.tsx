@@ -236,8 +236,7 @@ async function translateOne(text: string, targetLang: string) {
   const out = String(d?.translatedText ?? d?.translation ?? d?.text ?? "").trim();
   if (!out) {
     throw new Error(
-      `Translate returned empty (HTTP ${res.status}). Keys: ${Object.keys(d as object).join(", ") || "(no keys)"
-      }`
+      `Translate returned empty (HTTP ${res.status}). Keys: ${Object.keys(d as object).join(", ") || "(no keys)"}`
     );
   }
   return out;
@@ -613,6 +612,11 @@ export default function StudentLessonPage() {
         ? t("feedback.title")
         : t("text.audioSourceOriginal");
 
+  const loginHref = useMemo(() => {
+    const next = `/${locale}/student/lesson/${lessonId}`;
+    return `/${locale}/login?next=${encodeURIComponent(next)}`;
+  }, [locale, lessonId]);
+
   function stopAudio() {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -636,6 +640,11 @@ export default function StudentLessonPage() {
     const a = audioRef.current;
     if (!a) return;
     a.play().catch(() => { });
+  }
+
+  function flash(text: string) {
+    setMsg(text);
+    setTimeout(() => setMsg(null), 2600);
   }
 
   function requireAudioLogin() {
@@ -1057,11 +1066,6 @@ export default function StudentLessonPage() {
     setFeedbackTranslateErr(null);
   }, [targetLang]);
 
-  function flash(text: string) {
-    setMsg(text);
-    setTimeout(() => setMsg(null), 1800);
-  }
-
   function setAnswer(taskId: string, value: unknown) {
     setAnswers((prev) => ({ ...prev, [taskId]: value }));
   }
@@ -1422,46 +1426,123 @@ export default function StudentLessonPage() {
       : `/${locale}/content`;
 
   return (
-    <main style={{ maxWidth: 920, margin: "0 auto", padding: 16, paddingBottom: 120 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+    <main
+      style={{
+        width: "min(980px, calc(100vw - 20px))",
+        margin: "0 auto",
+        paddingTop: 12,
+        paddingBottom: 120,
+      }}
+    >
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          padding: "14px 14px 10px",
+          borderRadius: 18,
+          border: "1px solid rgba(0,0,0,0.08)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98))",
+          boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
+        }}
+      >
         <div>
-          <h1 style={{ margin: "0 0 6px" }}>{lesson.title}</h1>
-          <div style={{ opacity: 0.75 }}>
-            {lesson.level ? <span>{lesson.level}</span> : null}
-            {lesson.language ? <span> • {lesson.language.toUpperCase()}</span> : null}
-            {lesson.topic ? <span> • {lesson.topic}</span> : null}
-            {lesson.sourceCollection === "lessons" ? <span> • My Content</span> : null}
+          <h1 style={{ margin: "0 0 8px", fontSize: "clamp(1.5rem, 3.5vw, 2.2rem)", lineHeight: 1.1 }}>
+            {lesson.title}
+          </h1>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              opacity: 0.88,
+            }}
+          >
+            {lesson.level ? <Pill text={lesson.level} /> : null}
+            {lesson.language ? <Pill text={lesson.language.toUpperCase()} /> : null}
+            {lesson.topic ? <Pill text={lesson.topic} /> : null}
+            {lesson.sourceCollection === "lessons" ? <Pill text="My Content" /> : null}
           </div>
 
           {isAnon ? (
-            <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>{t("anon.savedLocally")}</div>
+            <div
+              style={{
+                marginTop: 10,
+                fontSize: 13,
+                color: "#475569",
+              }}
+            >
+              {t("anon.savedLocally")}
+            </div>
           ) : null}
         </div>
+
+        {isAnon ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "flex-end",
+              flex: "1 1 240px",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: 340,
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: "1px solid rgba(37,99,235,0.18)",
+                background: "rgba(59,130,246,0.08)",
+              }}
+            >
+              <div style={{ fontWeight: 700, color: "#1d4ed8", marginBottom: 6 }}>
+                {locale === "en" ? "Guest mode" : locale === "pt" ? "Modo visitante" : "Gjestemodus"}
+              </div>
+              <div style={{ fontSize: 13, lineHeight: 1.45, color: "#334155", marginBottom: 10 }}>
+                {locale === "en"
+                  ? "You can read, translate and answer now. Log in to get AI feedback and audio."
+                  : locale === "pt"
+                    ? "Você pode ler, traduzir e responder agora. Faça login para receber feedback com IA e áudio."
+                    : "Du kan lese, oversette og svare nå. Logg inn for å få AI-tilbakemelding og lyd."}
+              </div>
+              <Link href={loginHref} style={{ textDecoration: "none" }}>
+                <span style={{ ...blueBtnStyle, display: "inline-flex", fontWeight: 700 }}>
+                  {locale === "en" ? "Log in" : locale === "pt" ? "Entrar" : "Logg inn"}
+                </span>
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </header>
 
       {msg ? (
-        <div style={{ marginTop: 10, padding: 10, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
+        <div
+          style={{
+            marginTop: 12,
+            padding: "12px 14px",
+            border: "1px solid rgba(37,99,235,0.18)",
+            borderRadius: 14,
+            background: "rgba(59,130,246,0.08)",
+            color: "#1e3a8a",
+            fontWeight: 500,
+          }}
+        >
           {msg}
         </div>
       ) : null}
 
       <section style={{ marginTop: 14 }}>
-        <h2 style={{ marginBottom: 8 }}>{t("image.title")}</h2>
+        <h2 style={sectionHeadingStyle}>{t("image.title")}</h2>
 
-        <div
-          style={{
-            border: "1px solid rgba(0,0,0,0.12)",
-            borderRadius: 12,
-            padding: 12,
-            background: "rgba(0,0,0,0.02)",
-          }}
-        >
+        <div style={cardStyle}>
           <div
             style={{
               width: "100%",
               aspectRatio: "16 / 9",
-              borderRadius: 12,
-              border: "1px dashed rgba(0,0,0,0.18)",
+              borderRadius: 14,
+              border: "1px dashed rgba(0,0,0,0.16)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1471,7 +1552,11 @@ export default function StudentLessonPage() {
           >
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt={t("image.alt")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img
+                src={imageUrl}
+                alt={t("image.alt")}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
             ) : (
               <div style={{ textAlign: "center", padding: 16, opacity: 0.7 }}>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>{t("image.noImageTitle")}</div>
@@ -1488,14 +1573,14 @@ export default function StudentLessonPage() {
           disabled={saving || !uid}
           style={{
             ...greenBtnStyle,
-            fontWeight: 600,
+            fontWeight: 700,
             opacity: saving ? 0.6 : 1,
+            minWidth: 120,
           }}
         >
           {saving ? t("actions.saving") : locale === "en" ? "SAVE" : "LAGRE"}
         </button>
       </div>
-
 
       <section style={{ marginTop: 14 }}>
         <div
@@ -1508,17 +1593,23 @@ export default function StudentLessonPage() {
             marginBottom: 8,
           }}
         >
-          <h2 style={{ margin: 0 }}>{t("text.title")}</h2>
+          <h2 style={sectionHeadingStyle}>{t("text.title")}</h2>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <button
               type="button"
               onClick={playOriginalTextAudio}
-              disabled={isAnon || ttsBusy !== null || !(sourceTextSafe || "").trim()}
-              style={{ ...greenBtnStyle, opacity: isAnon || ttsBusy !== null ? 0.6 : 1 }}
+              disabled={ttsBusy !== null || !(sourceTextSafe || "").trim()}
+              style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
               title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
             >
-              {t("text.playAudio")}
+              {isAnon
+                ? locale === "en"
+                  ? "Audio · log in"
+                  : locale === "pt"
+                    ? "Áudio · entrar"
+                    : "Lyd · logg inn"
+                : t("text.playAudio")}
             </button>
 
             <span style={{ opacity: 0.75 }}>{t("translate.label")}</span>
@@ -1535,14 +1626,14 @@ export default function StudentLessonPage() {
               type="button"
               onClick={onTranslateText}
               disabled={translating === "text" || !(sourceTextSafe || "").trim()}
-              style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1 }}
+              style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1, fontWeight: 600 }}
             >
               {translating === "text" ? t("translate.translating") : t("translate.go")}
             </button>
           </div>
         </div>
 
-        <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, lineHeight: 1.55 }}>
+        <div style={cardStyle}>
           {renderFollowText("text_original", originalSegs, (sourceTextSafe ?? "").trim())}
         </div>
       </section>
@@ -1559,17 +1650,23 @@ export default function StudentLessonPage() {
               marginBottom: 8,
             }}
           >
-            <h2 style={{ margin: 0 }}>{t("translate.title")}</h2>
+            <h2 style={sectionHeadingStyle}>{t("translate.title")}</h2>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
                 type="button"
                 onClick={playTranslatedTextAudio}
-                disabled={isAnon || ttsBusy !== null || !translatedText.trim()}
-                style={{ ...greenBtnStyle, opacity: isAnon || ttsBusy !== null ? 0.6 : 1 }}
+                disabled={ttsBusy !== null || !translatedText.trim()}
+                style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
                 title={isAnon ? t("text.loginToPlayAudio") : t("text.playTranslation")}
               >
-                {t("text.playAudio")}
+                {isAnon
+                  ? locale === "en"
+                    ? "Audio · log in"
+                    : locale === "pt"
+                      ? "Áudio · entrar"
+                      : "Lyd · logg inn"
+                  : t("text.playAudio")}
               </button>
 
               <button type="button" style={btnStyle} onClick={() => setShowTextTranslation((v) => !v)}>
@@ -1581,11 +1678,9 @@ export default function StudentLessonPage() {
           {showTextTranslation ? (
             <div
               style={{
-                padding: 12,
-                border: "1px solid rgba(59,130,246,0.22)",
-                borderRadius: 12,
-                lineHeight: 1.55,
-                background: "rgba(59,130,246,0.05)",
+                ...cardStyle,
+                border: "1px solid rgba(59,130,246,0.20)",
+                background: "rgba(59,130,246,0.09)",
               }}
             >
               {renderFollowText("text_translation", translationSegs, translatedText)}
@@ -1595,8 +1690,16 @@ export default function StudentLessonPage() {
       ) : null}
 
       <section style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-          <h2 style={{ margin: 0 }}>{t("tasks.title")}</h2>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <h2 style={sectionHeadingStyle}>{t("tasks.title")}</h2>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button type="button" onClick={() => setShowAnswers((v) => !v)} style={btnStyle}>
@@ -1622,31 +1725,40 @@ export default function StudentLessonPage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
-          <span style={{ opacity: 0.75 }}>{t("tasks.translateTo")}</span>
+        <div
+          style={{
+            ...cardStyle,
+            marginTop: 10,
+            paddingTop: 12,
+            paddingBottom: 12,
+          }}
+        >
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ opacity: 0.75 }}>{t("tasks.translateTo")}</span>
 
-          <SearchableSelect
-            label=""
-            value={targetLang}
-            options={LANGUAGE_OPTIONS}
-            onChange={setTargetLang}
-            placeholder={t("translate.searchPlaceholder")}
-          />
+            <SearchableSelect
+              label=""
+              value={targetLang}
+              options={LANGUAGE_OPTIONS}
+              onChange={setTargetLang}
+              placeholder={t("translate.searchPlaceholder")}
+            />
 
-          <button
-            type="button"
-            onClick={onTranslateTasks}
-            disabled={translating === "tasks" || tasksOriginal.length === 0}
-            style={{ ...blueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
-          >
-            {translating === "tasks" ? t("translate.translating") : t("translate.go")}
-          </button>
-
-          {(translatedTasks ?? []).length > 0 ? (
-            <button type="button" style={blueBtnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
-              {showTaskTranslations ? t("tasks.hideAllTranslations") : t("tasks.showAllTranslations")}
+            <button
+              type="button"
+              onClick={onTranslateTasks}
+              disabled={translating === "tasks" || tasksOriginal.length === 0}
+              style={{ ...blueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1, fontWeight: 600 }}
+            >
+              {translating === "tasks" ? t("translate.translating") : t("translate.go")}
             </button>
-          ) : null}
+
+            {(translatedTasks ?? []).length > 0 ? (
+              <button type="button" style={blueBtnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
+                {showTaskTranslations ? t("tasks.hideAllTranslations") : t("tasks.showAllTranslations")}
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {tasksOriginal.length === 0 ? (
@@ -1699,7 +1811,14 @@ export default function StudentLessonPage() {
                     : null;
 
               return (
-                <div key={stableId} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: 12, padding: 12 }}>
+                <div
+                  key={stableId}
+                  style={{
+                    ...cardStyle,
+                    padding: 14,
+                    borderRadius: 16,
+                  }}
+                >
                   <div
                     style={{
                       display: "flex",
@@ -1707,10 +1826,10 @@ export default function StudentLessonPage() {
                       gap: 12,
                       flexWrap: "wrap",
                       marginBottom: 8,
-                      opacity: 0.85,
+                      opacity: 0.9,
                     }}
                   >
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.9, alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.95, alignItems: "center" }}>
                       <span>{t("tasks.taskLabel", { n: String(tt?.order ?? idx + 1) })}</span>
                       <span>• {type}</span>
 
@@ -1728,7 +1847,9 @@ export default function StudentLessonPage() {
                     ) : null}
                   </div>
 
-                  <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, marginBottom: 10 }}>{prompt}</div>
+                  <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, marginBottom: 10, fontSize: 16 }}>
+                    {prompt}
+                  </div>
 
                   {showThisTranslation && tr?.translatedPrompt ? (
                     <div
@@ -1736,9 +1857,9 @@ export default function StudentLessonPage() {
                         marginTop: -4,
                         marginBottom: 10,
                         padding: 10,
-                        borderRadius: 10,
+                        borderRadius: 12,
                         border: "1px solid rgba(59,130,246,0.22)",
-                        background: "rgba(59,130,246,0.05)",
+                        background: "rgba(59,130,246,0.08)",
                         whiteSpace: "pre-wrap",
                         lineHeight: 1.45,
                       }}
@@ -1749,7 +1870,7 @@ export default function StudentLessonPage() {
                   ) : null}
 
                   {type === "mcq" && options.length > 0 ? (
-                    <div style={{ display: "grid", gap: 8 }}>
+                    <div style={{ display: "grid", gap: 9 }}>
                       {options.map((o, i) => {
                         const opt = String(o);
                         const checked = val === opt;
@@ -1758,22 +1879,22 @@ export default function StudentLessonPage() {
                         const isOptionCorrect = showAnswers && mcqCorrectText != null && opt === mcqCorrectText;
                         const isOptionChosenWrong = showAnswers && checked && mcqCorrectText != null && opt !== mcqCorrectText;
 
-                        let borderColor = "rgba(0,0,0,0.12)";
-                        let background = "white";
+                        let borderColor = "rgba(0,0,0,0.10)";
+                        let background = "rgba(255,255,255,0.95)";
                         let boxShadow = "none";
 
                         if (checked) {
-                          borderColor = "rgba(37, 99, 235, 0.9)";
-                          background = "rgba(59, 130, 246, 0.10)";
-                          boxShadow = "0 0 0 2px rgba(59,130,246,0.12)";
+                          borderColor = "rgba(37, 99, 235, 0.95)";
+                          background = "rgba(59, 130, 246, 0.14)";
+                          boxShadow = "0 0 0 2px rgba(59,130,246,0.14)";
                         }
 
                         if (isOptionCorrect) {
-                          borderColor = "rgba(46, 204, 113, 0.85)";
-                          background = checked ? "rgba(46, 204, 113, 0.18)" : "rgba(46, 204, 113, 0.12)";
+                          borderColor = "rgba(46, 204, 113, 0.88)";
+                          background = checked ? "rgba(46, 204, 113, 0.20)" : "rgba(46, 204, 113, 0.12)";
                           boxShadow = checked ? "0 0 0 2px rgba(46, 204, 113, 0.16)" : "none";
                         } else if (isOptionChosenWrong) {
-                          borderColor = "rgba(231, 76, 60, 0.85)";
+                          borderColor = "rgba(231, 76, 60, 0.88)";
                           background = "rgba(231, 76, 60, 0.14)";
                           boxShadow = "0 0 0 2px rgba(231, 76, 60, 0.12)";
                         }
@@ -1785,9 +1906,9 @@ export default function StudentLessonPage() {
                               display: "flex",
                               gap: 10,
                               alignItems: "flex-start",
-                              padding: "10px 12px",
+                              padding: "11px 12px",
                               border: checked ? `2px solid ${borderColor}` : `1px solid ${borderColor}`,
-                              borderRadius: 12,
+                              borderRadius: 14,
                               cursor: "pointer",
                               background,
                               boxShadow,
@@ -1799,7 +1920,7 @@ export default function StudentLessonPage() {
                               name={stableId}
                               checked={checked}
                               onChange={() => setAnswer(stableId, opt)}
-                              style={{ marginTop: 3, accentColor: "#2563eb", transform: "scale(1.05)" }}
+                              style={{ marginTop: 3, accentColor: "#2563eb", transform: "scale(1.08)" }}
                             />
 
                             <div style={{ width: "100%" }}>
@@ -1828,6 +1949,7 @@ export default function StudentLessonPage() {
                           style={{
                             ...(val === true ? blueBtnActiveStyle : blueBtnStyle),
                             fontWeight: val === true ? 700 : 500,
+                            minWidth: 110,
                           }}
                         >
                           {t("tasks.true")}
@@ -1840,6 +1962,7 @@ export default function StudentLessonPage() {
                           style={{
                             ...(val === false ? blueBtnActiveStyle : blueBtnStyle),
                             fontWeight: val === false ? 700 : 500,
+                            minWidth: 110,
                           }}
                         >
                           {t("tasks.false")}
@@ -1856,10 +1979,11 @@ export default function StudentLessonPage() {
                       rows={4}
                       style={{
                         width: "100%",
-                        padding: 10,
-                        borderRadius: 10,
-                        border: "1px solid rgba(0,0,0,0.2)",
+                        padding: 12,
+                        borderRadius: 12,
+                        border: "1px solid rgba(0,0,0,0.16)",
                         resize: "vertical",
+                        background: "rgba(255,255,255,0.98)",
                       }}
                     />
                   ) : null}
@@ -1874,9 +1998,10 @@ export default function StudentLessonPage() {
         style={{
           marginTop: 16,
           padding: 14,
-          border: "1px solid rgba(0,0,0,0.12)",
-          borderRadius: 14,
-          background: "rgba(0,0,0,0.02)",
+          border: "1px solid rgba(0,0,0,0.10)",
+          borderRadius: 16,
+          background: "rgba(15,23,42,0.045)",
+          boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
         }}
       >
         <div
@@ -1907,13 +2032,44 @@ export default function StudentLessonPage() {
           ) : null}
         </div>
 
+        {isAnon ? (
+          <div
+            style={{
+              marginBottom: 12,
+              padding: "12px 14px",
+              borderRadius: 14,
+              border: "1px solid rgba(37,99,235,0.18)",
+              background: "rgba(59,130,246,0.08)",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontSize: 14, lineHeight: 1.45, color: "#334155" }}>
+              {locale === "en"
+                ? "Want AI feedback and audio? Log in to unlock the full lesson experience."
+                : locale === "pt"
+                  ? "Quer feedback com IA e áudio? Faça login para liberar a experiência completa."
+                  : "Vil du ha AI-tilbakemelding og lyd? Logg inn for å åpne hele opplevelsen."}
+            </div>
+
+            <Link href={loginHref} style={{ textDecoration: "none" }}>
+              <span style={{ ...blueBtnStyle, display: "inline-flex", fontWeight: 700 }}>
+                {locale === "en" ? "Log in now" : locale === "pt" ? "Entrar agora" : "Logg inn nå"}
+              </span>
+            </Link>
+          </div>
+        ) : null}
+
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <button
             onClick={submitForFeedback}
             disabled={submitting || !uid}
             style={{
               ...greenBtnStyle,
-              fontWeight: 600,
+              fontWeight: 700,
               opacity: submitting ? 0.6 : 1,
             }}
           >
@@ -1926,7 +2082,6 @@ export default function StudentLessonPage() {
                   : t("feedback.getFeedback")}
           </button>
 
-          {/* 🔽 NY: språkvalg for feedback */}
           <span style={{ opacity: 0.75 }}>{t("feedback.translateTo")}</span>
 
           <SearchableSelect
@@ -1942,7 +2097,7 @@ export default function StudentLessonPage() {
             disabled={feedbackTranslating || !(feedback || "").trim()}
             style={{
               ...blueBtnStyle,
-              fontWeight: 600,
+              fontWeight: 700,
               opacity: feedbackTranslating || !(feedback || "").trim() ? 0.6 : 1,
             }}
           >
@@ -1952,33 +2107,23 @@ export default function StudentLessonPage() {
           <button
             type="button"
             onClick={playFeedbackAudio}
-            disabled={isAnon || ttsBusy !== null || !(feedback || "").trim()}
+            disabled={ttsBusy !== null || !(feedback || "").trim()}
             style={{
               ...greenBtnStyle,
-              fontWeight: 600,
-              opacity: isAnon || ttsBusy !== null || !(feedback || "").trim() ? 0.6 : 1,
+              fontWeight: 700,
+              opacity: ttsBusy !== null || !(feedback || "").trim() ? 0.6 : 1,
             }}
+            title={isAnon ? t("text.loginToPlayAudio") : t("feedback.playAudio")}
           >
-            {t("text.playAudio")}
+            {isAnon
+              ? locale === "en"
+                ? "Audio · log in"
+                : locale === "pt"
+                  ? "Áudio · entrar"
+                  : "Lyd · logg inn"
+              : t("text.playAudio")}
           </button>
         </div>
-
-        {msg ? (
-          <div
-            style={{
-              marginTop: 10,
-              padding: "10px 12px",
-              borderRadius: 10,
-              border: "1px solid rgba(220,38,38,0.24)",
-              background: "rgba(239,68,68,0.08)",
-              color: "#b91c1c",
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
-            {msg}
-          </div>
-        ) : null}
 
         {feedbackTranslateErr ? (
           <div style={{ marginTop: 8, color: "crimson", fontSize: 14 }}>
@@ -1990,9 +2135,9 @@ export default function StudentLessonPage() {
           style={{
             marginTop: 12,
             padding: 14,
-            border: "1px solid rgba(0,0,0,0.10)",
-            borderRadius: 12,
-            background: "white",
+            border: "1px solid rgba(0,0,0,0.08)",
+            borderRadius: 14,
+            background: "rgba(255,255,255,0.96)",
             minHeight: 120,
           }}
         >
@@ -2017,8 +2162,8 @@ export default function StudentLessonPage() {
               marginTop: 12,
               padding: 14,
               border: "1px solid rgba(59,130,246,0.22)",
-              borderRadius: 12,
-              background: "rgba(59,130,246,0.05)",
+              borderRadius: 14,
+              background: "rgba(59,130,246,0.08)",
             }}
           >
             <div
@@ -2038,11 +2183,17 @@ export default function StudentLessonPage() {
               <button
                 type="button"
                 onClick={playTranslatedFeedbackAudio}
-                disabled={isAnon || ttsBusy !== null || !translatedFeedback.trim()}
-                style={{ ...greenBtnStyle, opacity: isAnon || ttsBusy !== null ? 0.6 : 1 }}
+                disabled={ttsBusy !== null || !translatedFeedback.trim()}
+                style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 700 }}
                 title={isAnon ? t("text.loginToPlayAudio") : t("feedback.playAudio")}
               >
-                {t("text.playAudio")}
+                {isAnon
+                  ? locale === "en"
+                    ? "Audio · log in"
+                    : locale === "pt"
+                      ? "Áudio · entrar"
+                      : "Lyd · logg inn"
+                  : t("text.playAudio")}
               </button>
             </div>
 
@@ -2167,10 +2318,24 @@ export default function StudentLessonPage() {
   );
 }
 
+const sectionHeadingStyle: React.CSSProperties = {
+  margin: "0 0 8px",
+  fontSize: 22,
+  lineHeight: 1.15,
+};
+
+const cardStyle: React.CSSProperties = {
+  border: "1px solid rgba(0,0,0,0.10)",
+  borderRadius: 16,
+  padding: 14,
+  background: "rgba(15,23,42,0.045)",
+  boxShadow: "0 8px 24px rgba(15,23,42,0.035)",
+};
+
 const btnStyle: React.CSSProperties = {
   border: "1px solid #d1d5db",
-  borderRadius: 10,
-  padding: "8px 12px",
+  borderRadius: 12,
+  padding: "9px 13px",
   background: "white",
   cursor: "pointer",
   color: "#111827",
@@ -2179,14 +2344,14 @@ const btnStyle: React.CSSProperties = {
 const blueBtnStyle: React.CSSProperties = {
   ...btnStyle,
   border: "1px solid rgba(37,99,235,0.38)",
-  background: "rgba(59,130,246,0.10)",
+  background: "rgba(59,130,246,0.12)",
   color: "#1d4ed8",
 };
 
 const blueBtnActiveStyle: React.CSSProperties = {
   ...btnStyle,
   border: "2px solid rgba(37,99,235,0.95)",
-  background: "rgba(59,130,246,0.16)",
+  background: "rgba(59,130,246,0.18)",
   color: "#1d4ed8",
   boxShadow: "0 0 0 2px rgba(59,130,246,0.10)",
 };
@@ -2194,20 +2359,20 @@ const blueBtnActiveStyle: React.CSSProperties = {
 const greenBtnStyle: React.CSSProperties = {
   ...btnStyle,
   border: "1px solid rgba(22,163,74,0.45)",
-  background: "rgba(34,197,94,0.16)",
+  background: "rgba(34,197,94,0.18)",
   color: "#166534",
 };
 
 const yellowBtnStyle: React.CSSProperties = {
   ...btnStyle,
   border: "1px solid rgba(202,138,4,0.45)",
-  background: "rgba(250,204,21,0.18)",
+  background: "rgba(250,204,21,0.20)",
   color: "#854d0e",
 };
 
 const redBtnStyle: React.CSSProperties = {
   ...btnStyle,
   border: "1px solid rgba(220,38,38,0.42)",
-  background: "rgba(239,68,68,0.14)",
+  background: "rgba(239,68,68,0.16)",
   color: "#b91c1c",
 };
