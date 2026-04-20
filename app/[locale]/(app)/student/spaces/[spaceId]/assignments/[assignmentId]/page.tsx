@@ -12,6 +12,7 @@ import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { LANGUAGES } from "@/lib/languages";
 import Image from "next/image";
+import { SearchableSelect } from "@/components/SearchableSelect";
 import ReadingTestPlayer, {
   type ReadingLessonTask,
   type ReadingTestConfig,
@@ -879,6 +880,11 @@ export default function StudentAssignmentPage() {
   const originalLangForTTS: TtsLang = toTtsLang(lesson?.language || assignment?.language || "no");
   const translationLangForTTS: TtsLang = toTtsLang(targetLang);
 
+  const stickyAudioLabel =
+    activeTextMode === "translation"
+      ? t("text.translation")
+      : t("text.original");
+
   const readingTestTotalSeconds = useMemo(() => {
     const cfg = lesson?.readingTestConfig;
     if (!cfg?.timerEnabled) return null;
@@ -933,7 +939,7 @@ export default function StudentAssignmentPage() {
   function resumeAudio() {
     const a = audioRef.current;
     if (!a) return;
-    a.play().catch(() => {});
+    a.play().catch(() => { });
   }
 
   function seekToSentence(mode: "original" | "translation", idx: number) {
@@ -951,7 +957,7 @@ export default function StudentAssignmentPage() {
     setActiveTextMode(mode);
     setActiveSentenceIndex(idx);
 
-    if (a.paused) a.play().catch(() => {});
+    if (a.paused) a.play().catch(() => { });
   }
 
   function replaySentence() {
@@ -962,7 +968,7 @@ export default function StudentAssignmentPage() {
       seekToSentence(activeTextMode, activeSentenceIndex);
     } else {
       a.currentTime = Math.max(0, a.currentTime - 2.0);
-      a.play().catch(() => {});
+      a.play().catch(() => { });
     }
   }
 
@@ -1277,10 +1283,10 @@ export default function StudentAssignmentPage() {
             const nextAnswers = isGeometryResolved
               ? (normalizeGeometryAnswersByTaskId(sd.answersByTaskId) as unknown as AnswersMap)
               : (
-                  sd.answers && typeof sd.answers === "object" && !Array.isArray(sd.answers)
-                    ? (sd.answers as AnswersMap)
-                    : {}
-                );
+                sd.answers && typeof sd.answers === "object" && !Array.isArray(sd.answers)
+                  ? (sd.answers as AnswersMap)
+                  : {}
+              );
 
             if (Object.keys(nextAnswers).length > 0) {
               setAnswers(nextAnswers);
@@ -1335,10 +1341,10 @@ export default function StudentAssignmentPage() {
             const nextAnswers = isGeometryResolved
               ? (normalizeGeometryAnswersByTaskId(sd.answersByTaskId) as unknown as AnswersMap)
               : (
-                  sd.answers && typeof sd.answers === "object" && !Array.isArray(sd.answers)
-                    ? (sd.answers as AnswersMap)
-                    : {}
-                );
+                sd.answers && typeof sd.answers === "object" && !Array.isArray(sd.answers)
+                  ? (sd.answers as AnswersMap)
+                  : {}
+              );
 
             if (Object.keys(nextAnswers).length > 0) {
               setAnswers(nextAnswers);
@@ -1437,7 +1443,7 @@ export default function StudentAssignmentPage() {
           setReadingTestRuntimeActive(false);
         }
       },
-      () => {}
+      () => { }
     );
 
     return () => unsub();
@@ -1899,19 +1905,21 @@ export default function StudentAssignmentPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {segs.map((s, i) => {
           const isActive = activeTextMode === mode && activeSentenceIndex === i;
+          const canSeek = !!audioRef.current && activeTextMode === mode;
+
           return (
             <span
               key={`${mode}_${i}_${s.startChar}`}
-              onClick={() => (audioRef.current ? seekToSentence(mode, i) : undefined)}
+              onClick={() => (canSeek ? seekToSentence(mode, i) : undefined)}
               style={{
-                cursor: audioRef.current ? "pointer" : "default",
+                cursor: canSeek ? "pointer" : "default",
                 padding: "4px 8px",
                 borderRadius: 8,
                 background: isActive ? "rgba(255, 230, 120, 0.65)" : "transparent",
                 transition: "background 120ms ease",
                 lineHeight: 1.6,
               }}
-              title={audioRef.current ? t("text.clickToSeek") : undefined}
+              title={canSeek ? t("text.clickToSeek") : undefined}
             >
               {s.text}
             </span>
@@ -2221,7 +2229,7 @@ export default function StudentAssignmentPage() {
   }
 
   return (
-    <main style={{ maxWidth: 920, margin: "0 auto", padding: 16 }}>
+    <main style={{ width: "100%", maxWidth: 980, margin: "0 auto", padding: "12px 8px 120px", boxSizing: "border-box" }}>
       <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>{mainTitle}</h1>
@@ -2340,197 +2348,6 @@ export default function StudentAssignmentPage() {
           {lock ? <div style={{ marginTop: 10, fontWeight: 800 }}>{t("messages.lockedByTeacher")}</div> : null}
         </section>
       ) : null}
-
-      {!isReadingTest && !isGeometryAssignment && (
-        <section style={{ marginTop: 18, display: "grid", gap: 14 }}>
-          <div
-            style={{
-              border: "1px solid rgba(59,130,246,0.14)",
-              borderRadius: 16,
-              background: "rgba(59,130,246,0.04)",
-              padding: 14,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 10,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: 18 }}>{t("translate.title")}</h2>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                <label style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 800 }}>{t("translate.targetLang")}</span>
-                  <select
-                    value={targetLang}
-                    onChange={(e) => setTargetLang(e.target.value)}
-                    style={{ ...softBlueButtonStyle, padding: "8px 10px" }}
-                  >
-                    {LANGUAGE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <button
-                  type="button"
-                  onClick={onTranslateText}
-                  disabled={translating != null || !sourceTextSafe.trim()}
-                  style={{ ...softBlueButtonStyle, opacity: translating != null ? 0.7 : 1 }}
-                >
-                  {translating === "text" ? t("translate.working") : t("translate.text")}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onTranslateTasks}
-                  disabled={translating != null || tasksOriginal.length === 0}
-                  style={{ ...softBlueButtonStyle, opacity: translating != null ? 0.7 : 1 }}
-                >
-                  {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowTextTranslation((v) => !v)}
-                  style={softBlueButtonStyle}
-                >
-                  {showTextTranslation ? t("translate.hide") : t("translate.show")}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              border: "1px solid rgba(0,0,0,0.08)",
-              borderRadius: 16,
-              background: "white",
-              padding: 14,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 10,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: 18 }}>{t("tts.title")}</h2>
-
-              <div style={{ minWidth: 220, display: "grid", gap: 6 }}>
-                <label style={{ fontWeight: 800 }}>{t("tts.speed")}: {playbackRate}x</label>
-                <input
-                  type="range"
-                  min={0.75}
-                  max={1.5}
-                  step={0.25}
-                  value={playbackRate}
-                  onChange={(e) => setPlaybackRate(Number(e.target.value))}
-                  style={{ width: "100%" }}
-                />
-              </div>
-            </div>
-
-            {ttsErr ? <div style={{ marginTop: 8, color: "crimson", whiteSpace: "pre-wrap" }}>{ttsErr}</div> : null}
-
-            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={() => playTTS(sourceTextSafe, originalLangForTTS, "original")}
-                disabled={!sourceTextSafe.trim() || ttsBusy != null}
-                style={{ ...softBlueButtonStyle, opacity: !sourceTextSafe.trim() || ttsBusy != null ? 0.7 : 1 }}
-              >
-                {ttsBusy === "original" ? t("tts.working") : t("tts.playOriginal")}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => playTTS(String(translatedText ?? ""), translationLangForTTS, "translation")}
-                disabled={!String(translatedText ?? "").trim() || ttsBusy != null}
-                style={{
-                  ...softBlueButtonStyle,
-                  opacity: !String(translatedText ?? "").trim() || ttsBusy != null ? 0.7 : 1,
-                }}
-              >
-                {ttsBusy === "translation" ? t("tts.working") : t("tts.playTranslation")}
-              </button>
-
-              <button
-                type="button"
-                onClick={isPlaying ? pauseAudio : resumeAudio}
-                disabled={!audioRef.current}
-                style={isPlaying ? pauseButtonStyle : playButtonStyle}
-              >
-                {isPlaying ? t("tts.pause") : t("tts.resume")}
-              </button>
-
-              <button
-                type="button"
-                onClick={stopAudio}
-                disabled={!audioRef.current}
-                style={stopButtonStyle}
-              >
-                {t("tts.stop")}
-              </button>
-
-              <button type="button" onClick={prevSentence} disabled={!audioRef.current} style={softBlueButtonStyle}>
-                {t("tts.prev")}
-              </button>
-              <button type="button" onClick={replaySentence} disabled={!audioRef.current} style={softBlueButtonStyle}>
-                {t("tts.replay")}
-              </button>
-              <button type="button" onClick={nextSentence} disabled={!audioRef.current} style={softBlueButtonStyle}>
-                {t("tts.next")}
-              </button>
-
-              <div style={{ opacity: 0.75 }}>
-                {t("tts.time", { cur: Math.round(currentTime), dur: Math.round(duration) })}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
-            <div>
-              <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.original")}</div>
-              <div
-                style={{
-                  border: "1px solid rgba(0,0,0,0.10)",
-                  borderRadius: 12,
-                  padding: 12,
-                  background: "white",
-                }}
-              >
-                {renderFollowText("original", originalSegs, sourceTextSafe)}
-              </div>
-            </div>
-
-            {showTextTranslation ? (
-              <div>
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>{t("text.translation")}</div>
-                <div
-                  style={{
-                    border: "1px solid rgba(59,130,246,0.18)",
-                    borderRadius: 12,
-                    padding: 12,
-                    background: "rgba(59,130,246,0.08)",
-                  }}
-                >
-                  {renderFollowText("translation", translationSegs, String(translatedText ?? ""))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </section>
-      )}
 
       <section style={{ marginTop: 18 }}>
         {isReadingTest ? (
@@ -2705,35 +2522,178 @@ export default function StudentAssignmentPage() {
             ) : null}
           </div>
         ) : (
-          <>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 10,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: 18 }}>{t("tasks.title")}</h2>
+          <div style={{ display: "grid", gap: 18 }}>
+            <section style={{ display: "grid", gap: 14 }}>
+              <section>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    marginBottom: 8,
+                  }}
+                >
+                  <h2 style={{ margin: 0, fontSize: 18 }}>{t("text.original")}</h2>
 
-              <button
-                type="button"
-                onClick={() => setShowTaskTranslations((v) => !v)}
-                style={softBlueButtonStyle}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <button
+                      type="button"
+                      onClick={() => playTTS(sourceTextSafe, originalLangForTTS, "original")}
+                      disabled={!sourceTextSafe.trim() || ttsBusy != null}
+                      style={{ ...playButtonStyle, opacity: !sourceTextSafe.trim() || ttsBusy != null ? 0.7 : 1 }}
+                    >
+                      {ttsBusy === "original" ? t("tts.working") : t("tts.playOriginal")}
+                    </button>
+
+                    <span style={{ opacity: 0.75 }}>{t("translate.targetLang")}</span>
+
+                    <div style={{ minWidth: 190 }}>
+                      <SearchableSelect
+                        label=""
+                        value={targetLang}
+                        options={LANGUAGE_OPTIONS}
+                        onChange={setTargetLang}
+                        placeholder={t("translate.targetLang")}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={onTranslateText}
+                      disabled={translating === "text" || !sourceTextSafe.trim()}
+                      style={{ ...softBlueButtonStyle, opacity: translating === "text" ? 0.7 : 1 }}
+                    >
+                      {translating === "text" ? t("translate.working") : t("translate.text")}
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid rgba(0,0,0,0.10)",
+                    borderRadius: 12,
+                    padding: 12,
+                    background: "white",
+                  }}
+                >
+                  {renderFollowText("original", originalSegs, sourceTextSafe)}
+                </div>
+              </section>
+
+              {translatedText ? (
+                <section>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <h2 style={{ margin: 0, fontSize: 18 }}>{t("text.translation")}</h2>
+
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => playTTS(String(translatedText ?? ""), translationLangForTTS, "translation")}
+                        disabled={!String(translatedText ?? "").trim() || ttsBusy != null}
+                        style={{
+                          ...playButtonStyle,
+                          opacity: !String(translatedText ?? "").trim() || ttsBusy != null ? 0.7 : 1,
+                        }}
+                      >
+                        {ttsBusy === "translation" ? t("tts.working") : t("tts.playTranslation")}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowTextTranslation((v) => !v)}
+                        style={softBlueButtonStyle}
+                      >
+                        {showTextTranslation ? t("translate.hide") : t("translate.show")}
+                      </button>
+                    </div>
+                  </div>
+
+                  {showTextTranslation ? (
+                    <div
+                      style={{
+                        border: "1px solid rgba(59,130,246,0.18)",
+                        borderRadius: 12,
+                        padding: 12,
+                        background: "rgba(59,130,246,0.08)",
+                      }}
+                    >
+                      {renderFollowText("translation", translationSegs, String(translatedText ?? ""))}
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
+
+              {ttsErr ? (
+                <div style={{ color: "crimson", whiteSpace: "pre-wrap" }}>{ttsErr}</div>
+              ) : null}
+            </section>
+
+            <section>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
               >
-                {showTaskTranslations ? t("translate.hide") : t("translate.show")}
-              </button>
-            </div>
+                <h2 style={{ margin: 0, fontSize: 18 }}>{t("tasks.title")}</h2>
 
-            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
-              {tasksOriginal.length === 0 ? (
-                <div style={{ opacity: 0.75 }}>{t("tasks.none")}</div>
-              ) : (
-                tasksOriginal.map((tk, idx) => renderTask(tk, idx))
-              )}
-            </div>
-          </>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ opacity: 0.75 }}>{t("translate.targetLang")}</span>
+
+                  <div style={{ minWidth: 190 }}>
+                    <SearchableSelect
+                      label=""
+                      value={targetLang}
+                      options={LANGUAGE_OPTIONS}
+                      onChange={setTargetLang}
+                      placeholder={t("translate.targetLang")}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={onTranslateTasks}
+                    disabled={translating === "tasks" || tasksOriginal.length === 0}
+                    style={{ ...softBlueButtonStyle, opacity: translating === "tasks" ? 0.7 : 1 }}
+                  >
+                    {translating === "tasks" ? t("translate.working") : t("translate.tasks")}
+                  </button>
+
+                  {(translatedTasks ?? []).length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowTaskTranslations((v) => !v)}
+                      style={softBlueButtonStyle}
+                    >
+                      {showTaskTranslations ? t("translate.hide") : t("translate.show")}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
+                {tasksOriginal.length === 0 ? (
+                  <div style={{ opacity: 0.75 }}>{t("tasks.none")}</div>
+                ) : (
+                  tasksOriginal.map((tk, idx) => renderTask(tk, idx))
+                )}
+              </div>
+            </section>
+          </div>
         )}
       </section>
 
@@ -2760,6 +2720,117 @@ export default function StudentAssignmentPage() {
           </Link>
         </div>
       </section>
+
+      {audioRef.current ? (
+        <div
+          style={{
+            position: "fixed",
+            left: 12,
+            right: 12,
+            bottom: 12,
+            zIndex: 60,
+            padding: 12,
+            borderRadius: 16,
+            border: "1px solid rgba(0,0,0,0.14)",
+            background: "rgba(255,255,255,0.96)",
+            boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              flexWrap: "wrap",
+              marginBottom: 8,
+            }}
+          >
+            <div style={{ fontSize: 13, opacity: 0.8, fontWeight: 600 }}>
+              {t("tts.title")}: {stickyAudioLabel}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button
+                type="button"
+                style={btnStyle}
+                onClick={() => setPlaybackRate((v) => Math.max(0.75, Number((v - 0.1).toFixed(2))))}
+              >
+                −
+              </button>
+              <span style={{ fontSize: 12, minWidth: 44, textAlign: "center", opacity: 0.8 }}>
+                {playbackRate.toFixed(2)}x
+              </span>
+              <button
+                type="button"
+                style={btnStyle}
+                onClick={() => setPlaybackRate((v) => Math.min(1.5, Number((v + 0.1).toFixed(2))))}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" style={{ ...softBlueButtonStyle, minWidth: 44 }} onClick={prevSentence} title={t("tts.prev")}>
+              ⏮
+            </button>
+
+            <button
+              type="button"
+              style={{ ...(isPlaying ? pauseButtonStyle : playButtonStyle), minWidth: 52, fontWeight: 900 }}
+              onClick={isPlaying ? pauseAudio : resumeAudio}
+              title={isPlaying ? t("tts.pause") : t("tts.resume")}
+            >
+              {isPlaying ? "⏸" : "▶"}
+            </button>
+
+            <button type="button" style={{ ...stopButtonStyle, minWidth: 44 }} onClick={stopAudio} title={t("tts.stop")}>
+              ⏹
+            </button>
+
+            <button type="button" style={{ ...softBlueButtonStyle, minWidth: 44 }} onClick={replaySentence} title={t("tts.replay")}>
+              ↺
+            </button>
+
+            <button type="button" style={{ ...softBlueButtonStyle, minWidth: 44 }} onClick={nextSentence} title={t("tts.next")}>
+              ⏭
+            </button>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flex: "1 1 280px",
+                minWidth: 220,
+                marginLeft: 4,
+              }}
+            >
+              <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{formatSeconds(currentTime)}</span>
+
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0.01, duration || 0)}
+                step={0.05}
+                value={Math.min(currentTime, duration || currentTime)}
+                onChange={(e) => {
+                  const a = audioRef.current;
+                  if (!a) return;
+                  const v = Number(e.target.value);
+                  a.currentTime = v;
+                  setCurrentTime(v);
+                }}
+                style={{ flex: 1 }}
+              />
+
+              <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{formatSeconds(duration)}</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
