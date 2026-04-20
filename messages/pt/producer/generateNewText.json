@@ -37,6 +37,7 @@
       "facts": "Fatos",
       "reflection": "Reflexão",
       "factsSingleBoxHelp": "As frases de fatos são escritas em uma única caixa.",
+      "factsPrompt": "Escreva {count} frases com fatos do texto. Use suas próprias palavras e mantenha-se nos fatos.",
       "defaults": {
         "mcqPrompt": "Nova pergunta de múltipla escolha",
         "tfPrompt": "Nova afirmação de verdadeiro / falso",
@@ -75,7 +76,7 @@
       "quotaExceeded": "Você usou {used} de {limit} neste mês. Não é possível criar mais agora.",
       "featureUnavailable": "Este recurso não está disponível para você.",
       "tasksGeneratedUsageUpdated": "As tarefas foram criadas. O uso de IA foi atualizado.",
-    "tasksGeneratedQuotaUsed": "As tarefas foram criadas. Uso: {used}/{limit}."
+      "tasksGeneratedQuotaUsed": "As tarefas foram criadas. Uso: {used}/{limit}."
     },
     "builder": {
       "lessonTitle": "Título",

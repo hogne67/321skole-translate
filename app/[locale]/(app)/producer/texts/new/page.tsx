@@ -1,3 +1,4 @@
+// app\[locale]\(app)\producer\texts\new\page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -424,23 +425,9 @@ export default function NewTextPage() {
     };
   }, [profileUid, role, plan, billing]);
 
-  function buildFactsPrompt(count: number, suggestions: string[]) {
+  function buildFactsPrompt(count: number) {
     if (count <= 0) return "";
-
-    const tips = [
-      "Bruk egne ord.",
-      "Hold deg til fakta (ingen meninger).",
-      "Du kan bruke fakta fra teksten – og gjerne legge til relevante fakta om temaet.",
-    ];
-
-    const insp = (suggestions || [])
-      .map((s) => String(s || "").trim())
-      .filter(Boolean)
-      .slice(0, 5);
-
-    const inspPart = insp.length ? ` Inspirasjon: ${insp.join(" • ")}` : "";
-
-    return `Faktasetninger (${count}): Skriv ${count} faktasetninger til teksten. ${tips.join(" ")}${inspPart}`;
+    return t("tasks.factsPrompt", { count });
   }
 
   function packToLessonTasks(p: ContentPack): LessonTask[] {
@@ -469,15 +456,13 @@ export default function NewTextPage() {
         correctAnswer: correct,
       });
     }
-
-    const factsSuggestions = p.tasks?.writeFacts ?? [];
-    const factsN = Math.max(0, Math.min(10, factsSuggestions.length));
+    const factsN = Math.max(0, Math.min(10, factsCount));
     if (factsN > 0) {
       tasks.push({
         id: newId(),
         order: order++,
         type: "open",
-        prompt: buildFactsPrompt(factsN, factsSuggestions),
+        prompt: buildFactsPrompt(factsN),
       });
     }
 
@@ -503,24 +488,24 @@ export default function NewTextPage() {
         ...prev,
         type === "mcq"
           ? {
-              id: newId(),
-              type: "mcq",
-              prompt: t("tasks.defaults.mcqPrompt"),
-              options: [
-                t("tasks.defaults.option1"),
-                t("tasks.defaults.option2"),
-                t("tasks.defaults.option3"),
-                t("tasks.defaults.option4"),
-              ],
-              correctAnswer: t("tasks.defaults.option1"),
-            }
+            id: newId(),
+            type: "mcq",
+            prompt: t("tasks.defaults.mcqPrompt"),
+            options: [
+              t("tasks.defaults.option1"),
+              t("tasks.defaults.option2"),
+              t("tasks.defaults.option3"),
+              t("tasks.defaults.option4"),
+            ],
+            correctAnswer: t("tasks.defaults.option1"),
+          }
           : type === "truefalse"
             ? {
-                id: newId(),
-                type: "truefalse",
-                prompt: t("tasks.defaults.tfPrompt"),
-                correctAnswer: "true",
-              }
+              id: newId(),
+              type: "truefalse",
+              prompt: t("tasks.defaults.tfPrompt"),
+              correctAnswer: "true",
+            }
             : { id: newId(), type: "open", prompt: t("tasks.defaults.openPrompt") },
       ];
       return renumberOrders(next);
@@ -635,10 +620,10 @@ export default function NewTextPage() {
   }
 
   async function generateTasksOnly() {
-  setLoadingTasks(true);
-  setError(null);
-  setSavedId(null);
-  setTaskUsageMessage(null);
+    setLoadingTasks(true);
+    setError(null);
+    setSavedId(null);
+    setTaskUsageMessage(null);
 
     try {
       if (!sourceText.trim()) throw new Error("Generate or write text first.");
@@ -673,56 +658,56 @@ export default function NewTextPage() {
       if (!raw) throw new Error(`Empty response from server. HTTP ${res.status}`);
 
       let data: GenerateTasksResp;
-try {
-  data = JSON.parse(raw) as GenerateTasksResp;
-} catch {
-  throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
-}
+      try {
+        data = JSON.parse(raw) as GenerateTasksResp;
+      } catch {
+        throw new Error(`Not JSON. HTTP ${res.status}. First chars: ${raw.slice(0, 200)}`);
+      }
 
-if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-if (!data?.tasks) throw new Error(t("errors.missingTasksInResponse"));
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      if (!data?.tasks) throw new Error(t("errors.missingTasksInResponse"));
 
-const fakePack: ContentPack = {
-  title: title || t("defaults.title"),
-  level,
-  language,
-  topic: prompt,
-  text: sourceText,
-  tasks: data.tasks,
-};
+      const fakePack: ContentPack = {
+        title: title || t("defaults.title"),
+        level,
+        language,
+        topic: prompt,
+        text: sourceText,
+        tasks: data.tasks,
+      };
 
-setLessonTasks(packToLessonTasks(fakePack));
-setPack(fakePack);
-setTasksDirty(false);
+      setLessonTasks(packToLessonTasks(fakePack));
+      setPack(fakePack);
+      setTasksDirty(false);
 
-if (data.quota) {
-  setFeatureStatus((prev) => {
-    if (!prev) return prev;
-    return {
-      ...prev,
-      used: typeof data.quota?.used === "number" ? data.quota.used : prev.used,
-      limit: typeof data.quota?.limit === "number" ? data.quota.limit : prev.limit,
-      remaining:
-        typeof data.quota?.remaining === "number" ? data.quota.remaining : prev.remaining,
-    };
-  });
+      if (data.quota) {
+        setFeatureStatus((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            used: typeof data.quota?.used === "number" ? data.quota.used : prev.used,
+            limit: typeof data.quota?.limit === "number" ? data.quota.limit : prev.limit,
+            remaining:
+              typeof data.quota?.remaining === "number" ? data.quota.remaining : prev.remaining,
+          };
+        });
 
-  if (
-    typeof data.quota.used === "number" &&
-    typeof data.quota.limit === "number"
-  ) {
-    setTaskUsageMessage(
-      t("status.tasksGeneratedQuotaUsed", {
-        used: data.quota.used,
-        limit: data.quota.limit,
-      })
-    );
-  } else {
-    setTaskUsageMessage(t("status.tasksGeneratedUsageUpdated"));
-  }
-} else {
-  setTaskUsageMessage(t("status.tasksGeneratedUsageUpdated"));
-}
+        if (
+          typeof data.quota.used === "number" &&
+          typeof data.quota.limit === "number"
+        ) {
+          setTaskUsageMessage(
+            t("status.tasksGeneratedQuotaUsed", {
+              used: data.quota.used,
+              limit: data.quota.limit,
+            })
+          );
+        } else {
+          setTaskUsageMessage(t("status.tasksGeneratedUsageUpdated"));
+        }
+      } else {
+        setTaskUsageMessage(t("status.tasksGeneratedUsageUpdated"));
+      }
     } catch (e: unknown) {
       setError(localizeError(getErrorMessage(e)));
     } finally {
@@ -740,9 +725,9 @@ if (data.quota) {
       throw new Error(
         featureStatus.reason === "limit_reached"
           ? t("status.quotaExceeded", {
-              used: featureStatus.used,
-              limit: featureStatus.limit,
-            })
+            used: featureStatus.used,
+            limit: featureStatus.limit,
+          })
           : t("status.featureUnavailable")
       );
     }
@@ -836,24 +821,24 @@ if (data.quota) {
 
   const stepStatus = !hasText
     ? {
-        title: t("stepStatus.step1Title"),
-        body: t("stepStatus.step1Body"),
-        tone: "#eff6ff",
-        border: "#bfdbfe",
-      }
+      title: t("stepStatus.step1Title"),
+      body: t("stepStatus.step1Body"),
+      tone: "#eff6ff",
+      border: "#bfdbfe",
+    }
     : !hasTasks
       ? {
-          title: t("stepStatus.textReadyTitle"),
-          body: t("stepStatus.textReadyBody"),
-          tone: "#fffbeb",
-          border: "#fde68a",
-        }
+        title: t("stepStatus.textReadyTitle"),
+        body: t("stepStatus.textReadyBody"),
+        tone: "#fffbeb",
+        border: "#fde68a",
+      }
       : {
-          title: t("stepStatus.tasksReadyTitle"),
-          body: t("stepStatus.tasksReadyBody"),
-          tone: "#ecfdf5",
-          border: "#86efac",
-        };
+        title: t("stepStatus.tasksReadyTitle"),
+        body: t("stepStatus.tasksReadyBody"),
+        tone: "#ecfdf5",
+        border: "#86efac",
+      };
 
   return (
     <main
@@ -1268,43 +1253,43 @@ if (data.quota) {
             </div>
 
             {hasText && (
-  <div
-    className="actionRow"
-    style={{
-      display: "flex",
-      gap: 10,
-      alignItems: "center",
-      flexWrap: "wrap",
-      marginTop: 14,
-    }}
-  >
-    <button
-      className="actionBtn"
-      onClick={generateTasksOnly}
-      disabled={busy || !sourceText.trim()}
-      style={{
-        ...buttonPrimary,
-        opacity: busy || !sourceText.trim() ? 0.55 : 1,
-        cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
-      }}
-      title={!sourceText.trim() ? t("hints.generateTextFirst") : t("hints.generateTasks")}
-    >
-      {loadingTasks ? t("buttons.generatingTasks") : t("buttons.generateTasks")}
-    </button>
+              <div
+                className="actionRow"
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  marginTop: 14,
+                }}
+              >
+                <button
+                  className="actionBtn"
+                  onClick={generateTasksOnly}
+                  disabled={busy || !sourceText.trim()}
+                  style={{
+                    ...buttonPrimary,
+                    opacity: busy || !sourceText.trim() ? 0.55 : 1,
+                    cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
+                  }}
+                  title={!sourceText.trim() ? t("hints.generateTextFirst") : t("hints.generateTasks")}
+                >
+                  {loadingTasks ? t("buttons.generatingTasks") : t("buttons.generateTasks")}
+                </button>
 
-    {tasksDirty && sourceText.trim() && (
-      <span style={{ color: "#b45309", fontWeight: 700 }}>
-        {t("warnings.checkTextBeforeTasks")}
-      </span>
-    )}
+                {tasksDirty && sourceText.trim() && (
+                  <span style={{ color: "#b45309", fontWeight: 700 }}>
+                    {t("warnings.checkTextBeforeTasks")}
+                  </span>
+                )}
 
-    {taskUsageMessage && (
-      <span style={{ color: "#15803d", fontWeight: 700 }}>
-        {taskUsageMessage}
-      </span>
-    )}
-  </div>
-)}
+                {taskUsageMessage && (
+                  <span style={{ color: "#15803d", fontWeight: 700 }}>
+                    {taskUsageMessage}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -1346,9 +1331,9 @@ if (data.quota) {
                     title={
                       quotaBlocked && featureStatus
                         ? t("status.quotaUsed", {
-                            used: featureStatus.used,
-                            limit: featureStatus.limit,
-                          })
+                          used: featureStatus.used,
+                          limit: featureStatus.limit,
+                        })
                         : t("buttons.saveAndGoToFinishing")
                     }
                   >
@@ -1582,9 +1567,9 @@ if (data.quota) {
                   ? t("hints.enterTextFirst")
                   : quotaBlocked && featureStatus
                     ? t("status.quotaUsed", {
-                        used: featureStatus.used,
-                        limit: featureStatus.limit,
-                      })
+                      used: featureStatus.used,
+                      limit: featureStatus.limit,
+                    })
                     : tasksDirty
                       ? t("hints.tasksDirty")
                       : t("hints.saveDraft")

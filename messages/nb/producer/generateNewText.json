@@ -16,8 +16,7 @@
       "textType": "Teksttype",
       "textTypeOtherPlaceholder": "Beskriv teksttypen...",
       "textLength": "Tekstlengde (ord)",
-    "sharedSettingsTitle": "Tekstinnstillinger"
-    
+      "sharedSettingsTitle": "Tekstinnstillinger"
     },
     "textTypes": {
       "everydayStory": "Hverdagsfortelling",
@@ -38,6 +37,7 @@
       "facts": "Fakta",
       "reflection": "Refleksjon",
       "factsSingleBoxHelp": "Faktasetninger skrives i én boks.",
+      "factsPrompt": "Skriv {count} faktasetninger fra teksten. Bruk egne ord og hold deg til fakta.",
       "defaults": {
         "mcqPrompt": "Nytt flervalgsspørsmål",
         "tfPrompt": "Nytt sant / usant-utsagn",
@@ -75,14 +75,14 @@
       "quotaUsed": "Du har brukt {used} av {limit} denne måneden",
       "quotaExceeded": "Du har brukt {used} av {limit} denne måneden. Du kan ikke lage flere akkurat nå.",
       "featureUnavailable": "Denne funksjonen er ikke tilgjengelig for deg.",
-       "tasksGeneratedUsageUpdated": "Oppgavene er laget. AI-bruk er oppdatert.",
-    "tasksGeneratedQuotaUsed": "Oppgavene er laget. Bruk: {used}/{limit}."
+      "tasksGeneratedUsageUpdated": "Oppgavene er laget. AI-bruk er oppdatert.",
+      "tasksGeneratedQuotaUsed": "Oppgavene er laget. Bruk: {used}/{limit}."
     },
     "builder": {
-      "lessonTitle": "Tittel",  
+      "lessonTitle": "Tittel",
       "text": "Egen eller generert tekst",
       "textHelp": "Du kan generere tekst med KI eller lime inn / skrive teksten selv.",
-    "wordCount": "Ordtelling: {count}"
+      "wordCount": "Ordtelling: {count}"
     },
     "editor": {
       "title": "Oppgaveredigering",

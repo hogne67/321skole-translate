@@ -37,6 +37,7 @@
       "facts": "Facts",
       "reflection": "Reflection",
       "factsSingleBoxHelp": "Fact sentences are written in one box.",
+      "factsPrompt": "Write {count} factual sentences from the text. Use your own words and stick to facts.",
       "defaults": {
         "mcqPrompt": "New multiple choice question",
         "tfPrompt": "New true / false statement",
@@ -75,7 +76,7 @@
       "quotaExceeded": "You have used {used} of {limit} this month. You cannot create more right now.",
       "featureUnavailable": "This feature is not available for you.",
       "tasksGeneratedUsageUpdated": "Tasks created successfully.",
-    "tasksGeneratedQuotaUsed": "Tasks created successfully. Usage updated ({used}/{limit})."
+      "tasksGeneratedQuotaUsed": "Tasks created successfully. Usage updated ({used}/{limit})."
     },
     "builder": {
       "lessonTitle": "Title",
