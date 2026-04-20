@@ -77,6 +77,8 @@ type GeometryAutoResult = {
   byTaskId?: Record<string, GeometryTaskAuto>;
 };
 
+type Lang = "no" | "en" | "pt";
+
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
 }
@@ -206,7 +208,7 @@ function readRole(profile: unknown): Role | null {
   return readLegacyRole(profile);
 }
 
-function normalizeLocale(raw: string): "no" | "en" | "pt" {
+function normalizeLocale(raw: string): Lang {
   const v = (raw || "").toLowerCase().trim();
   if (v === "en") return "en";
   if (v === "pt" || v === "pt-br" || v === "pt_br") return "pt";
@@ -259,7 +261,275 @@ function buildTimeSignal(wordCount: number, usedSeconds: number | null): {
   };
 }
 
-function buildReadingSystemPrompt(lang: "no" | "en" | "pt") {
+function cleanAiFeedback(text: string): string {
+  return text
+    .replace(/^\s{0,3}#{1,6}\s*/gm, "")
+    .replace(/^\s*\d+\)\s*/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function getReadingHeadings(lang: Lang) {
+  if (lang === "en") {
+    return {
+      h1: "AUTORESULTS, READING COMPREHENSION AND CEFR",
+      h2: "OPEN TASKS – SUBJECT ASSESSMENT",
+      h3: "LEVEL AND NEXT STEPS (CEFR)",
+    };
+  }
+
+  if (lang === "pt") {
+    return {
+      h1: "RESULTADOS AUTOMÁTICOS, COMPREENSÃO DE LEITURA E CEFR",
+      h2: "TAREFAS ABERTAS – AVALIAÇÃO ACADÊMICA",
+      h3: "NÍVEL E PRÓXIMOS PASSOS (CEFR)",
+    };
+  }
+
+  return {
+    h1: "AUTORESULTAT, LESEFORSTÅELSE OG CEFR",
+    h2: "ÅPNE OPPGAVER – FAGLIG VURDERING",
+    h3: "NIVÅ OG VIDERE PROGRESJON (CEFR)",
+  };
+}
+
+function getGeneralHeadings(lang: Lang) {
+  if (lang === "en") {
+    return {
+      h1: "TASK COMPLETION AND CONTENT",
+      h2: "LANGUAGE",
+      h3: "NEXT STEPS",
+    };
+  }
+
+  if (lang === "pt") {
+    return {
+      h1: "RESOLUÇÃO DAS TAREFAS E CONTEÚDO",
+      h2: "LINGUAGEM",
+      h3: "PRÓXIMOS PASSOS",
+    };
+  }
+
+  return {
+    h1: "OPPGAVELØSNING OG INNHOLD",
+    h2: "SPRÅK",
+    h3: "NESTE STEG",
+  };
+}
+
+function getGeometryHeadings(lang: Lang) {
+  if (lang === "en") {
+    return {
+      h1: "WHAT YOU DID WELL",
+      h2: "WHAT YOU SHOULD PRACTISE MORE",
+      h3: "NEXT STEPS",
+    };
+  }
+
+  if (lang === "pt") {
+    return {
+      h1: "O QUE VOCÊ CONSEGUIU FAZER BEM",
+      h2: "O QUE VOCÊ DEVE PRATICAR MAIS",
+      h3: "PRÓXIMOS PASSOS",
+    };
+  }
+
+  return {
+    h1: "DET DU HAR FÅTT TIL",
+    h2: "DET DU BØR ØVE MER PÅ",
+    h3: "NESTE STEG",
+  };
+}
+
+function getPromptText(lang: Lang) {
+  if (lang === "en") {
+    return {
+      unknown: "unknown",
+      notProvided: "(not provided)",
+      noPrompt: "(no prompt)",
+      notAnswered: "(not answered)",
+      noOpenAnswers: "(No open answers in this submission.)",
+      noTasksFound: "(No tasks found.)",
+      noGeometryTasks: "(No geometry worksheet tasks found.)",
+      yes: "yes",
+      no: "no",
+
+      lessonTitle: "Lesson title",
+      level: "Level",
+      languageHint: "Language hint",
+      cefrLevel: "CEFR level",
+      isReadingTest: "Is reading test",
+      taskType: "Task type",
+      normalTask: "normal task",
+      autoResult: "Automatic result data",
+      readingText: "Reading text",
+      sourceContext: "Source text / task context",
+      geometryAutoSummary: "Geometry auto summary",
+      geometryTasksAndAnswers: "Geometry tasks and student answers",
+      allTasksAndAnswers: "All tasks and student answers",
+      openTasksAndAnswers: "Open tasks and answers",
+      instruction: "Instruction",
+      readingMetadata: "Reading test metadata",
+
+      wordCount: "Reading text word count",
+      timeLimit: "Time limit",
+      timeUsed: "Time used",
+      submittedManually: "Submitted manually",
+      timedOut: "Timed out",
+
+      task: "TASK",
+      answer: "ANSWER",
+
+      worksheetTitle: "Worksheet title",
+      taskId: "Task id",
+      prompt: "Prompt",
+      expectedShape: "Expected shape",
+      expectedPerimeter: "Expected perimeter",
+      expectedArea: "Expected area",
+      studentShape: "Student shape",
+      studentPerimeter: "Student perimeter",
+      studentArea: "Student area",
+      shapeCorrect: "Shape correct",
+      perimeterCorrect: "Perimeter correct",
+      areaCorrect: "Area correct",
+
+      geometryInstruction:
+        "Write teacher feedback for the student in the required structure. Use the auto-check actively. Mention what the student understands, what is partly correct or wrong, and what should be practised next. Write the headings in the same language as the chosen locale.",
+
+      readingInstruction:
+        "Write teacher feedback in the required structure. Base the reading assessment mainly on the auto result. Use time only as a cautious supporting signal. Evaluate whether short open answers are sufficient for the task itself, and when they are too thin, give concrete advice for how the student can improve them. Write the headings in the same language as the chosen locale.",
+
+      generalInstruction:
+        "Write short teacher feedback in the required structure. Focus on whether the student has understood the task, answered relevantly, and responded to the open tasks. Use automatic result data as support when it exists. In the language section, comment on grammar and point out concrete errors that should be corrected. Judge short answers in light of what the task asks for. If short answers are acceptable for that task, say so. If the answer is too thin for the task, explain what is missing and give concrete advice on how the student can expand or improve it. Write the headings in the same language as the chosen locale. Do not set a CEFR level.",
+    };
+  }
+
+  if (lang === "pt") {
+    return {
+      unknown: "desconhecido",
+      notProvided: "(não informado)",
+      noPrompt: "(sem enunciado)",
+      notAnswered: "(não respondido)",
+      noOpenAnswers: "(Não há respostas abertas nesta entrega.)",
+      noTasksFound: "(Nenhuma tarefa encontrada.)",
+      noGeometryTasks: "(Nenhuma tarefa de geometria encontrada.)",
+      yes: "sim",
+      no: "não",
+
+      lessonTitle: "Título da atividade",
+      level: "Nível",
+      languageHint: "Indicação de idioma",
+      cefrLevel: "Nível CEFR",
+      isReadingTest: "É teste de leitura",
+      taskType: "Tipo de tarefa",
+      normalTask: "tarefa normal",
+      autoResult: "Dados do resultado automático",
+      readingText: "Texto de leitura",
+      sourceContext: "Texto-base / contexto da tarefa",
+      geometryAutoSummary: "Resumo da autocorreção de geometria",
+      geometryTasksAndAnswers: "Tarefas de geometria e respostas do aluno",
+      allTasksAndAnswers: "Todas as tarefas e respostas do aluno",
+      openTasksAndAnswers: "Tarefas abertas e respostas",
+      instruction: "Instrução",
+      readingMetadata: "Metadados do teste de leitura",
+
+      wordCount: "Número de palavras do texto de leitura",
+      timeLimit: "Tempo limite",
+      timeUsed: "Tempo usado",
+      submittedManually: "Enviado manualmente",
+      timedOut: "Tempo esgotado",
+
+      task: "TAREFA",
+      answer: "RESPOSTA",
+
+      worksheetTitle: "Título da ficha",
+      taskId: "ID da tarefa",
+      prompt: "Enunciado",
+      expectedShape: "Forma esperada",
+      expectedPerimeter: "Perímetro esperado",
+      expectedArea: "Área esperada",
+      studentShape: "Forma do aluno",
+      studentPerimeter: "Perímetro do aluno",
+      studentArea: "Área do aluno",
+      shapeCorrect: "Forma correta",
+      perimeterCorrect: "Perímetro correto",
+      areaCorrect: "Área correta",
+
+      geometryInstruction:
+        "Escreva um feedback do professor para o aluno na estrutura exigida. Use ativamente a autocorreção. Diga o que o aluno compreende, o que está parcialmente correto ou errado e o que deve praticar a seguir. Escreva os títulos no mesmo idioma do locale escolhido.",
+
+      readingInstruction:
+        "Escreva um feedback do professor na estrutura exigida. Baseie a avaliação de leitura principalmente no resultado automático. Use o tempo apenas como um sinal de apoio cuidadoso. Avalie se respostas abertas curtas são suficientes para a própria tarefa e, quando forem curtas demais, dê conselhos concretos sobre como o aluno pode melhorá-las. Escreva os títulos no mesmo idioma do locale escolhido.",
+
+      generalInstruction:
+        "Escreva um feedback curto do professor na estrutura exigida. Foque se o aluno compreendeu a tarefa, respondeu de forma relevante e respondeu às tarefas abertas. Use dados automáticos como apoio quando existirem. Na parte de linguagem, comente a gramática e aponte erros concretos que devem ser corrigidos. Julgue respostas curtas de acordo com o que a tarefa pede. Se respostas curtas forem aceitáveis para aquela tarefa, diga isso. Se a resposta estiver pobre demais para a tarefa, explique o que falta e dê conselhos concretos sobre como o aluno pode ampliar ou melhorar a resposta. Escreva os títulos no mesmo idioma do locale escolhido. Não defina nível CEFR.",
+    };
+  }
+
+  return {
+    unknown: "ukjent",
+    notProvided: "(ikke oppgitt)",
+    noPrompt: "(ingen prompt)",
+    notAnswered: "(ikke besvart)",
+    noOpenAnswers: "(Ingen åpne svar i denne innleveringen.)",
+    noTasksFound: "(Ingen oppgaver funnet.)",
+    noGeometryTasks: "(Ingen geometrioppgaver funnet.)",
+    yes: "ja",
+    no: "nei",
+
+    lessonTitle: "Tittel",
+    level: "Nivå",
+    languageHint: "Språkhint",
+    cefrLevel: "CEFR-nivå",
+    isReadingTest: "Er lesetest",
+    taskType: "Oppgavetype",
+    normalTask: "vanlig oppgave",
+    autoResult: "Automatiske resultatdata",
+    readingText: "Lesetekst",
+    sourceContext: "Kildetekst / oppgavekontekst",
+    geometryAutoSummary: "Oppsummering av geometry-autokorrektur",
+    geometryTasksAndAnswers: "Geometrioppgaver og elevsvar",
+    allTasksAndAnswers: "Alle oppgaver og elevsvar",
+    openTasksAndAnswers: "Åpne oppgaver og svar",
+    instruction: "Instruksjon",
+    readingMetadata: "Metadata for lesetest",
+
+    wordCount: "Antall ord i leseteksten",
+    timeLimit: "Tidsgrense",
+    timeUsed: "Brukt tid",
+    submittedManually: "Levert manuelt",
+    timedOut: "Tiden gikk ut",
+
+    task: "OPPGAVE",
+    answer: "SVAR",
+
+    worksheetTitle: "Tittel på arbeidsark",
+    taskId: "Oppgave-ID",
+    prompt: "Oppgavetekst",
+    expectedShape: "Forventet figur",
+    expectedPerimeter: "Forventet omkrets",
+    expectedArea: "Forventet areal",
+    studentShape: "Elevens figur",
+    studentPerimeter: "Elevens omkrets",
+    studentArea: "Elevens areal",
+    shapeCorrect: "Figur riktig",
+    perimeterCorrect: "Omkrets riktig",
+    areaCorrect: "Areal riktig",
+
+    geometryInstruction:
+      "Skriv lærerfeedback til eleven i den påkrevde strukturen. Bruk autokorrekturen aktivt. Nevn hva eleven forstår, hva som er delvis riktig eller feil, og hva eleven bør øve på videre. Skriv overskriftene på samme språk som valgt locale.",
+
+    readingInstruction:
+      "Skriv lærerfeedback i den påkrevde strukturen. Basér lesevurderingen hovedsakelig på autoresultatet. Bruk tid bare som et forsiktig støttesignal. Vurder om korte åpne svar er tilstrekkelige for selve oppgaven, og når de er for tynne, gi konkrete råd om hvordan eleven kan forbedre dem. Skriv overskriftene på samme språk som valgt locale.",
+
+    generalInstruction:
+      "Skriv kort lærerfeedback i den påkrevde strukturen. Fokuser på om eleven har forstått oppgaven, svart relevant og besvart de åpne oppgavene. Bruk automatiske resultatdata som støtte når de finnes. I språkseksjonen skal du kommentere grammatikk og peke på konkrete feil som bør rettes. Vurder korte svar ut fra hva oppgaven ber om. Hvis korte svar er akseptable for den oppgaven, si det. Hvis svaret er for tynt i forhold til oppgaven, forklar hva som mangler og gi konkrete råd om hvordan eleven kan utvide eller forbedre svaret. Skriv overskriftene på samme språk som valgt locale. Ikke sett CEFR-nivå.",
+  };
+}
+
+function buildReadingSystemPrompt(lang: Lang) {
+  const headings = getReadingHeadings(lang);
+
   if (lang === "en") {
     return [
       "You are an experienced Norwegian language teacher.",
@@ -273,11 +543,21 @@ function buildReadingSystemPrompt(lang: "no" | "en" | "pt") {
       "- Base the reading assessment mainly on automatic results.",
       "- Time is only a supportive signal, never proof by itself.",
       "- If open answers exist, assess them briefly too.",
+      "- Evaluate short open answers in light of what the task actually asks for.",
+      "- Short answers can be fully acceptable when the task asks for facts, simple information, keywords, or a fixed number of short sentences.",
+      "- Expect more development when the task asks the student to explain, justify, compare, reflect, or write more connected content.",
+      "- If an answer is too short for the task, say so clearly but kindly, and give concrete advice on how to improve it.",
+      "- Give practical advice such as: read the task carefully again, check whether the task asks for more than one point, find more details from the text, explain a little more, or answer all parts of the question.",
+      "",
+      "FORMATTING:",
+      "- Use plain text headings only.",
+      "- Do not use markdown.",
+      "- Do not use ###, ##, #, bullet markers, or numbered heading formatting.",
       "",
       "Use these exact headings:",
-      "1) AUTORESULTAT, LESEFORSTÅELSE OG CEFR",
-      "2) ÅPNE OPPGAVER – FAGLIG VURDERING",
-      "3) NIVÅ OG VIDERE PROGRESJON (CEFR)",
+      headings.h1,
+      headings.h2,
+      headings.h3,
       "",
       "Keep it concise.",
     ].join("\n");
@@ -291,10 +571,27 @@ function buildReadingSystemPrompt(lang: "no" | "en" | "pt") {
       "Adapte ao nível CEFR informado.",
       "Não escreva uma versão corrigida completa do texto.",
       "",
+      "IMPORTANTE:",
+      "- Baseie a avaliação de leitura principalmente no resultado automático.",
+      "- O tempo é apenas um sinal de apoio, nunca uma prova por si só.",
+      "- Se houver respostas abertas, avalie-as brevemente também.",
+      "- Avalie respostas curtas de acordo com o que a tarefa realmente pede.",
+      "- Respostas curtas podem ser totalmente adequadas quando a tarefa pede fatos, informações simples, palavras-chave ou um número fixo de frases curtas.",
+      "- Espere mais desenvolvimento quando a tarefa pedir explicação, justificativa, comparação, reflexão ou um texto mais conectado.",
+      "- Se a resposta estiver curta demais para a tarefa, diga isso com clareza e gentileza, e dê conselhos concretos sobre como melhorar.",
+      "- Dê conselhos práticos como: leia a tarefa com atenção outra vez, veja se a tarefa pede mais de um ponto, encontre mais detalhes no texto, explique um pouco mais ou responda todas as partes da pergunta.",
+      "",
+      "FORMATAÇÃO:",
+      "- Use títulos em texto simples.",
+      "- Não use markdown.",
+      "- Não use ###, ##, #, marcadores ou numeração de headings.",
+      "",
       "Use estes títulos exatos:",
-      "1) AUTORESULTAT, LESEFORSTÅELSE OG CEFR",
-      "2) ÅPNE OPPGAVER – FAGLIG VURDERING",
-      "3) NIVÅ OG VIDERE PROGRESJON (CEFR)",
+      headings.h1,
+      headings.h2,
+      headings.h3,
+      "",
+      "Seja conciso.",
     ].join("\n");
   }
 
@@ -309,17 +606,29 @@ function buildReadingSystemPrompt(lang: "no" | "en" | "pt") {
     "- Lesetest vurderes først og fremst ut fra autoresultat.",
     "- Tidsbruk er bare et støttesignal.",
     "- Hvis åpne svar finnes, vurder dem kort også.",
+    "- Vurder korte åpne svar ut fra hva oppgaven faktisk ber om.",
+    "- Korte svar kan være helt gode nok når oppgaven ber om fakta, enkle opplysninger, nøkkelord eller et fast antall korte setninger.",
+    "- Forvent mer utviklede svar når oppgaven ber om å forklare, begrunne, sammenligne, reflektere eller skrive mer sammenhengende.",
+    "- Hvis et svar er for kort i forhold til oppgaven, si det tydelig, men vennlig, og gi konkrete råd om hvordan eleven kan utvide svaret.",
+    "- Gi praktiske råd som: les oppgaven nøye en gang til, se om oppgaven spør om flere ting, finn flere detaljer i teksten, forklar litt mer, eller svar på alle deler av spørsmålet.",
+    "",
+    "FORMATERING:",
+    "- Bruk rene overskrifter som vanlig tekst.",
+    "- Ikke bruk markdown.",
+    "- Ikke bruk ###, ##, #, punktlister eller nummererte overskrifter.",
     "",
     "Bruk nøyaktig disse overskriftene:",
-    "1) AUTORESULTAT, LESEFORSTÅELSE OG CEFR",
-    "2) ÅPNE OPPGAVER – FAGLIG VURDERING",
-    "3) NIVÅ OG VIDERE PROGRESJON (CEFR)",
+    headings.h1,
+    headings.h2,
+    headings.h3,
     "",
     "Hold det konsist.",
   ].join("\n");
 }
 
-function buildGeneralSystemPrompt(lang: "no" | "en" | "pt") {
+function buildGeneralSystemPrompt(lang: Lang) {
+  const headings = getGeneralHeadings(lang);
+
   if (lang === "en") {
     return [
       "You are an experienced language teacher.",
@@ -329,10 +638,23 @@ function buildGeneralSystemPrompt(lang: "no" | "en" | "pt") {
       "Assess language with particular attention to grammar, and point out concrete errors that should be corrected.",
       "Do NOT write a full corrected version of the whole text.",
       "",
+      "IMPORTANT:",
+      "- Evaluate open answers in light of what the task actually asks for.",
+      "- Short answers can be good enough when the task asks for facts, simple statements, keywords, or a limited number of short sentences.",
+      "- Expect more content when the task asks the student to explain, justify, compare, reflect, describe causes and consequences, or write more connected text.",
+      "- Do not criticize an answer just for being short. Judge whether it is sufficient for that exact task.",
+      "- If the answer is too thin for the task, explain this clearly and kindly.",
+      "- Give concrete improvement advice, for example: read the task carefully again, check whether all parts of the task are answered, find more relevant details, explain ideas more clearly, or add more examples from the text or topic.",
+      "",
+      "FORMATTING:",
+      "- Use plain text headings only.",
+      "- Do not use markdown.",
+      "- Do not use ###, ##, #, bullet markers, or numbered heading formatting.",
+      "",
       "Use these exact headings:",
-      "1) OPPGAVELØSNING OG INNHOLD",
-      "2) SPRÅK",
-      "3) NESTE STEG",
+      headings.h1,
+      headings.h2,
+      headings.h3,
       "",
       "Keep it concise.",
     ].join("\n");
@@ -347,10 +669,25 @@ function buildGeneralSystemPrompt(lang: "no" | "en" | "pt") {
       "Avalie a linguagem com atenção especial à gramática e aponte erros concretos que devem ser corrigidos.",
       "Não escreva uma versão completa corrigida do texto inteiro.",
       "",
+      "IMPORTANTE:",
+      "- Avalie respostas abertas de acordo com o que a tarefa realmente pede.",
+      "- Respostas curtas podem ser suficientes quando a tarefa pede fatos, frases simples, palavras-chave ou um número limitado de frases curtas.",
+      "- Espere mais conteúdo quando a tarefa pedir explicação, justificativa, comparação, reflexão, causas e consequências ou um texto mais conectado.",
+      "- Não critique uma resposta apenas por ser curta. Avalie se ela é suficiente para aquela tarefa específica.",
+      "- Se a resposta estiver pobre demais para a tarefa, explique isso com clareza e gentileza.",
+      "- Dê conselhos concretos, por exemplo: leia a tarefa com atenção outra vez, veja se todas as partes da tarefa foram respondidas, encontre mais detalhes relevantes, explique melhor as ideias ou acrescente mais exemplos do texto ou do tema.",
+      "",
+      "FORMATAÇÃO:",
+      "- Use títulos em texto simples.",
+      "- Não use markdown.",
+      "- Não use ###, ##, #, marcadores ou numeração de headings.",
+      "",
       "Use estes títulos exatos:",
-      "1) OPPGAVELØSNING OG INNHOLD",
-      "2) SPRÅK",
-      "3) NESTE STEG",
+      headings.h1,
+      headings.h2,
+      headings.h3,
+      "",
+      "Seja conciso.",
     ].join("\n");
   }
 
@@ -362,16 +699,31 @@ function buildGeneralSystemPrompt(lang: "no" | "en" | "pt") {
     "Vurder språk med særlig fokus på grammatikk, og pek på konkrete feil som bør rettes.",
     "Ikke skriv en fullstendig korrigert versjon av hele teksten.",
     "",
+    "VIKTIG:",
+    "- Vurder åpne svar ut fra hva oppgaven faktisk ber om.",
+    "- Korte svar kan være gode nok når oppgaven ber om fakta, enkle setninger, nøkkelord eller et begrenset antall korte svar.",
+    "- Forvent mer innhold når oppgaven ber eleven forklare, begrunne, sammenligne, reflektere, beskrive årsaker og virkninger eller skrive mer sammenhengende tekst.",
+    "- Ikke kritiser et svar bare fordi det er kort. Vurder om det er tilstrekkelig for akkurat den oppgaven.",
+    "- Hvis svaret er for tynt i forhold til oppgaven, forklar det tydelig og vennlig.",
+    "- Gi konkrete råd, for eksempel: les oppgaven nøye en gang til, sjekk om alle delene av oppgaven er besvart, finn flere relevante detaljer, forklar tankene tydeligere, eller ta med flere eksempler fra teksten eller temaet.",
+    "",
+    "FORMATERING:",
+    "- Bruk rene overskrifter som vanlig tekst.",
+    "- Ikke bruk markdown.",
+    "- Ikke bruk ###, ##, #, punktlister eller nummererte overskrifter.",
+    "",
     "Bruk nøyaktig disse overskriftene:",
-    "1) OPPGAVELØSNING OG INNHOLD",
-    "2) SPRÅK",
-    "3) NESTE STEG",
+    headings.h1,
+    headings.h2,
+    headings.h3,
     "",
     "Hold det konsist.",
   ].join("\n");
 }
 
-function buildGeometrySystemPrompt(lang: "no" | "en" | "pt") {
+function buildGeometrySystemPrompt(lang: Lang) {
+  const headings = getGeometryHeadings(lang);
+
   if (lang === "en") {
     return [
       "You are an experienced math teacher giving feedback to a student.",
@@ -382,10 +734,15 @@ function buildGeometrySystemPrompt(lang: "no" | "en" | "pt") {
       "Do not invent scores that are not provided.",
       "Do not explain every single task in detail.",
       "",
+      "FORMATTING:",
+      "- Use plain text headings only.",
+      "- Do not use markdown.",
+      "- Do not use ###, ##, #, bullet markers, or numbered heading formatting.",
+      "",
       "Use these exact headings:",
-      "1) DET DU HAR FÅTT TIL",
-      "2) DET DU BØR ØVE MER PÅ",
-      "3) NESTE STEG",
+      headings.h1,
+      headings.h2,
+      headings.h3,
       "",
       "Keep it concise and teacher-like.",
     ].join("\n");
@@ -398,10 +755,17 @@ function buildGeometrySystemPrompt(lang: "no" | "en" | "pt") {
       "Seja encorajador, concreto e breve.",
       "Use ativamente o resultado da autocorreção de geometria.",
       "",
+      "FORMATAÇÃO:",
+      "- Use títulos em texto simples.",
+      "- Não use markdown.",
+      "- Não use ###, ##, #, marcadores ou numeração de headings.",
+      "",
       "Use estes títulos exatos:",
-      "1) DET DU HAR FÅTT TIL",
-      "2) DET DU BØR ØVE MER PÅ",
-      "3) NESTE STEG",
+      headings.h1,
+      headings.h2,
+      headings.h3,
+      "",
+      "Seja conciso.",
     ].join("\n");
   }
 
@@ -413,17 +777,24 @@ function buildGeometrySystemPrompt(lang: "no" | "en" | "pt") {
     "Trekk fram hva eleven har fått til, hva som bør forbedres, og hva neste øvingspunkt bør være.",
     "Ikke forklar hver enkelt oppgave i detalj.",
     "",
+    "FORMATERING:",
+    "- Bruk rene overskrifter som vanlig tekst.",
+    "- Ikke bruk markdown.",
+    "- Ikke bruk ###, ##, #, punktlister eller nummererte overskrifter.",
+    "",
     "Bruk nøyaktig disse overskriftene:",
-    "1) DET DU HAR FÅTT TIL",
-    "2) DET DU BØR ØVE MER PÅ",
-    "3) NESTE STEG",
+    headings.h1,
+    headings.h2,
+    headings.h3,
     "",
     "Hold det kort og læreraktig.",
   ].join("\n");
 }
 
-function summarizeAutoResult(auto: unknown): string {
-  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return "(not provided)";
+function summarizeAutoResult(auto: unknown, lang: Lang): string {
+  const t = getPromptText(lang);
+
+  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return t.notProvided;
 
   const rec = auto as Record<string, unknown>;
   const totalAuto = safeNumber(rec.totalAuto);
@@ -442,21 +813,23 @@ function summarizeAutoResult(auto: unknown): string {
     try {
       return JSON.stringify(auto, null, 2);
     } catch {
-      return "(not provided)";
+      return t.notProvided;
     }
   }
 
   return [
-    `total: ${totalAuto ?? "unknown"}`,
-    `correct: ${correctAuto ?? "unknown"}`,
-    `wrong: ${wrongAuto ?? "unknown"}`,
-    `unanswered: ${unansweredAuto ?? "unknown"}`,
-    `percent: ${percentAuto ?? "unknown"}`,
+    `total: ${totalAuto ?? t.unknown}`,
+    `correct: ${correctAuto ?? t.unknown}`,
+    `wrong: ${wrongAuto ?? t.unknown}`,
+    `unanswered: ${unansweredAuto ?? t.unknown}`,
+    `percent: ${percentAuto ?? t.unknown}`,
   ].join("\n");
 }
 
-function summarizeGeometryAuto(auto: unknown): string {
-  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return "(not provided)";
+function summarizeGeometryAuto(auto: unknown, lang: Lang): string {
+  const t = getPromptText(lang);
+
+  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return t.notProvided;
 
   const rec = auto as Record<string, unknown>;
   const total = safeNumber(rec.total);
@@ -467,22 +840,25 @@ function summarizeGeometryAuto(auto: unknown): string {
   const percent = safeNumber(rec.percent);
 
   return [
-    `total: ${total ?? "unknown"}`,
-    `correct: ${correct ?? "unknown"}`,
-    `partial: ${partial ?? "unknown"}`,
-    `wrong: ${wrong ?? "unknown"}`,
-    `unanswered: ${unanswered ?? "unknown"}`,
-    `percent: ${percent ?? "unknown"}`,
+    `total: ${total ?? t.unknown}`,
+    `correct: ${correct ?? t.unknown}`,
+    `partial: ${partial ?? t.unknown}`,
+    `wrong: ${wrong ?? t.unknown}`,
+    `unanswered: ${unanswered ?? t.unknown}`,
+    `percent: ${percent ?? t.unknown}`,
   ].join("\n");
 }
 
 function summarizeGeometryWorksheet(
   worksheet: MathWorksheet | null,
   answersByTaskId: AnswersMap,
-  geometryAuto: GeometryAutoResult | null
+  geometryAuto: GeometryAutoResult | null,
+  lang: Lang
 ): string {
+  const t = getPromptText(lang);
+
   if (!worksheet || !Array.isArray(worksheet.tasks) || worksheet.tasks.length === 0) {
-    return "(No geometry worksheet tasks found.)";
+    return t.noGeometryTasks;
   }
 
   return worksheet.tasks
@@ -498,27 +874,101 @@ function summarizeGeometryWorksheet(
 
       const lines = [
         `#${idx + 1}`,
-        `Task id: ${taskId}`,
-        `Prompt: ${safeString(task.prompt) || "(no prompt)"}`,
-        `Expected shape: ${task.expected?.shapeName ?? "unknown"}`,
-        `Expected perimeter: ${task.expected?.perimeterValue ?? "unknown"}`,
-        `Expected area: ${task.expected?.areaValue ?? "unknown"}`,
-        `Student shape: ${answer.shapeName ?? "not answered"}`,
-        `Student perimeter: ${answer.perimeterValue ?? "not answered"}`,
-        `Student area: ${answer.areaValue ?? "not answered"}`,
+        `${t.taskId}: ${taskId}`,
+        `${t.prompt}: ${safeString(task.prompt) || t.noPrompt}`,
+        `${t.expectedShape}: ${task.expected?.shapeName ?? t.unknown}`,
+        `${t.expectedPerimeter}: ${task.expected?.perimeterValue ?? t.unknown}`,
+        `${t.expectedArea}: ${task.expected?.areaValue ?? t.unknown}`,
+        `${t.studentShape}: ${answer.shapeName ?? t.notAnswered}`,
+        `${t.studentPerimeter}: ${answer.perimeterValue ?? t.notAnswered}`,
+        `${t.studentArea}: ${answer.areaValue ?? t.notAnswered}`,
       ];
 
       if (autoByTask) {
         lines.push(
-          `Shape correct: ${safeBoolean(autoByTask.shapeName?.isCorrect) === true ? "yes" : safeBoolean(autoByTask.shapeName?.isCorrect) === false ? "no" : "unknown"}`,
-          `Perimeter correct: ${safeBoolean(autoByTask.perimeterValue?.isCorrect) === true ? "yes" : safeBoolean(autoByTask.perimeterValue?.isCorrect) === false ? "no" : "unknown"}`,
-          `Area correct: ${safeBoolean(autoByTask.areaValue?.isCorrect) === true ? "yes" : safeBoolean(autoByTask.areaValue?.isCorrect) === false ? "no" : "unknown"}`
+          `${t.shapeCorrect}: ${safeBoolean(autoByTask.shapeName?.isCorrect) === true ? t.yes : safeBoolean(autoByTask.shapeName?.isCorrect) === false ? t.no : t.unknown}`,
+          `${t.perimeterCorrect}: ${safeBoolean(autoByTask.perimeterValue?.isCorrect) === true ? t.yes : safeBoolean(autoByTask.perimeterValue?.isCorrect) === false ? t.no : t.unknown}`,
+          `${t.areaCorrect}: ${safeBoolean(autoByTask.areaValue?.isCorrect) === true ? t.yes : safeBoolean(autoByTask.areaValue?.isCorrect) === false ? t.no : t.unknown}`
         );
       }
 
       return lines.join("\n");
     })
     .join("\n\n");
+}
+
+function buildGeometryUserContent(args: {
+  lang: Lang;
+  lessonTitle: string;
+  level: string;
+  languageHint: string;
+  mathWorksheet: MathWorksheet | null;
+  geometryAuto: GeometryAutoResult | null;
+  answersByTaskId: AnswersMap;
+}) {
+  const { lang, lessonTitle, level, languageHint, mathWorksheet, geometryAuto, answersByTaskId } = args;
+  const t = getPromptText(lang);
+
+  return (
+    `${t.worksheetTitle}: ${mathWorksheet?.title || lessonTitle}\n` +
+    `${t.level}: ${level}\n` +
+    (languageHint ? `${t.languageHint}: ${languageHint}\n` : "") +
+    `${t.geometryAutoSummary}:\n${summarizeGeometryAuto(geometryAuto, lang)}\n\n` +
+    `${t.geometryTasksAndAnswers}:\n${summarizeGeometryWorksheet(mathWorksheet, answersByTaskId, geometryAuto, lang)}\n\n` +
+    `${t.instruction}:\n${t.geometryInstruction}`
+  );
+}
+
+function buildReadingUserContent(args: {
+  lang: Lang;
+  level: string;
+  languageHint: string;
+  lessonTitle: string;
+  autoResultat: string;
+  sourceText: string;
+  readingModeBlock: string;
+  taskOverviewBlock: string;
+  openTasksBlock: string;
+}) {
+  const { lang, level, languageHint, lessonTitle, autoResultat, sourceText, readingModeBlock, taskOverviewBlock, openTasksBlock } = args;
+  const t = getPromptText(lang);
+
+  return (
+    `${t.cefrLevel}: ${level}\n` +
+    (languageHint ? `${t.languageHint}: ${languageHint}\n` : "") +
+    `${t.lessonTitle}: ${lessonTitle}\n` +
+    `${t.isReadingTest}: ${lang === "pt" ? "sim" : lang === "en" ? "yes" : "ja"}\n\n` +
+    `${t.autoResult}:\n${autoResultat || t.notProvided}\n\n` +
+    `${t.readingText}:\n${sourceText.trim() || t.notProvided}\n\n` +
+    `${readingModeBlock}\n\n` +
+    `${t.allTasksAndAnswers}:\n${taskOverviewBlock}\n\n` +
+    `${t.openTasksAndAnswers}:\n${openTasksBlock}\n\n` +
+    `${t.instruction}:\n${t.readingInstruction}`
+  );
+}
+
+function buildGeneralUserContent(args: {
+  lang: Lang;
+  languageHint: string;
+  lessonTitle: string;
+  autoResultat: string;
+  sourceText: string;
+  taskOverviewBlock: string;
+  openTasksBlock: string;
+}) {
+  const { lang, languageHint, lessonTitle, autoResultat, sourceText, taskOverviewBlock, openTasksBlock } = args;
+  const t = getPromptText(lang);
+
+  return (
+    (languageHint ? `${t.languageHint}: ${languageHint}\n` : "") +
+    `${t.lessonTitle}: ${lessonTitle}\n` +
+    `${t.taskType}: ${t.normalTask}\n\n` +
+    `${t.autoResult}:\n${autoResultat || t.notProvided}\n\n` +
+    `${t.sourceContext}:\n${sourceText.trim() || t.notProvided}\n\n` +
+    `${t.allTasksAndAnswers}:\n${taskOverviewBlock}\n\n` +
+    `${t.openTasksAndAnswers}:\n${openTasksBlock}\n\n` +
+    `${t.instruction}:\n${t.generalInstruction}`
+  );
 }
 
 type Body = {
@@ -615,15 +1065,15 @@ export async function POST(req: Request) {
       const geometryAuto = (subDoc.auto ?? null) as GeometryAutoResult | null;
 
       const systemPrompt = buildGeometrySystemPrompt(locale);
-      const userContent =
-        `Worksheet title: ${mathWorksheet?.title || lessonTitle}\n` +
-        `Level: ${level}\n` +
-        (languageHint ? `Language hint: ${languageHint}\n` : "") +
-        `Geometry auto summary:\n${summarizeGeometryAuto(geometryAuto)}\n\n` +
-        `Geometry tasks and student answers:\n${summarizeGeometryWorksheet(mathWorksheet, answersByTaskId, geometryAuto)}\n\n` +
-        `Instruction:\n` +
-        `Write teacher feedback for the student in the required structure. ` +
-        `Use the auto-check actively. Mention what the student understands, what is partly correct or wrong, and what should be practiced next.`;
+      const userContent = buildGeometryUserContent({
+        lang: locale,
+        lessonTitle,
+        level,
+        languageHint,
+        mathWorksheet,
+        geometryAuto,
+        answersByTaskId,
+      });
 
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const model = pickModel();
@@ -637,7 +1087,7 @@ export async function POST(req: Request) {
         ],
       });
 
-      const textOut = (resp.output_text || "").trim();
+      const textOut = cleanAiFeedback((resp.output_text || "").trim());
       if (!textOut) return json({ error: "Empty AI response" }, 502);
 
       const payload = {
@@ -658,6 +1108,7 @@ export async function POST(req: Request) {
       return json({ text: textOut }, 200);
     }
 
+    const t = getPromptText(locale);
     const tasks = safeTasksArray(lesson.tasks);
     const answers = readAnswerMap(subDoc.answers);
 
@@ -688,7 +1139,7 @@ export async function POST(req: Request) {
     const sourceText = safeString(lesson.sourceText) || safeString(lesson.text) || "";
     const sourceWordCount = countWords(sourceText);
 
-    const autoResultat = summarizeAutoResult(subDoc.auto);
+    const autoResultat = summarizeAutoResult(subDoc.auto, locale);
 
     const readingTimeLimitSeconds = safeNumber(subDoc.readingTestTimeLimitSeconds);
     const readingTimeUsedSeconds =
@@ -707,67 +1158,63 @@ export async function POST(req: Request) {
     const openTasksBlock =
       openItems.length > 0
         ? openItems
-            .map(
-              (x) =>
-                `#${x.n}\n` +
-                `OPPGAVE: ${x.prompt || "(ingen prompt)"}\n` +
-                `SVAR: ${x.answer || "(ikke besvart)"}`
-            )
-            .join("\n\n")
-        : "(Ingen åpne svar i denne innleveringen.)";
+          .map(
+            (x) =>
+              `#${x.n}\n` +
+              `${t.task}: ${x.prompt || t.noPrompt}\n` +
+              `${t.answer}: ${x.answer || t.notAnswered}`
+          )
+          .join("\n\n")
+        : t.noOpenAnswers;
 
     const readingModeBlock = isReadingTest
       ? [
-          "Reading test metadata:",
-          `- Reading text word count: ${sourceWordCount || "unknown"}`,
-          `- Time limit: ${readingTimeLimitSeconds != null ? `${readingTimeLimitSeconds} seconds (${formatDuration(readingTimeLimitSeconds)})` : "unknown"}`,
-          `- Time used: ${readingTimeUsedSeconds != null ? `${readingTimeUsedSeconds} seconds (${formatDuration(readingTimeUsedSeconds)})` : "unknown"}`,
-          `- Submitted manually: ${readingSubmittedManually === true ? "yes" : readingSubmittedManually === false ? "no" : "unknown"}`,
-          `- Timed out: ${readingTimedOut === true ? "yes" : readingTimedOut === false ? "no" : "unknown"}`,
-          `- ${timeSignal.summary}`,
-        ].join("\n")
+        `${t.readingMetadata}:`,
+        `- ${t.wordCount}: ${sourceWordCount || t.unknown}`,
+        `- ${t.timeLimit}: ${readingTimeLimitSeconds != null ? `${readingTimeLimitSeconds} (${formatDuration(readingTimeLimitSeconds)})` : t.unknown}`,
+        `- ${t.timeUsed}: ${readingTimeUsedSeconds != null ? `${readingTimeUsedSeconds} (${formatDuration(readingTimeUsedSeconds)})` : t.unknown}`,
+        `- ${t.submittedManually}: ${readingSubmittedManually === true ? t.yes : readingSubmittedManually === false ? t.no : t.unknown}`,
+        `- ${t.timedOut}: ${readingTimedOut === true ? t.yes : readingTimedOut === false ? t.no : t.unknown}`,
+        `- ${timeSignal.summary}`,
+      ].join("\n")
       : "";
 
     const taskOverviewBlock =
       tasks.length > 0
         ? tasks
-            .slice()
-            .sort((x, y) => Number(x?.order ?? 999) - Number(y?.order ?? 999))
-            .map((task, idx) => {
-              const type = safeString(task.type || "open");
-              const stableId = getStableTaskId(task, idx);
-              const prompt = safeString(task.prompt);
-              const answer = asText(answers[stableId]).trim() || "(ikke besvart)";
-              return `#${task.order ?? idx + 1} [${type}] ${prompt || "(ingen prompt)"}\nSVAR: ${answer}`;
-            })
-            .join("\n\n")
-        : "(Ingen oppgaver funnet.)";
+          .slice()
+          .sort((x, y) => Number(x?.order ?? 999) - Number(y?.order ?? 999))
+          .map((task, idx) => {
+            const type = safeString(task.type || "open");
+            const stableId = getStableTaskId(task, idx);
+            const prompt = safeString(task.prompt);
+            const answer = asText(answers[stableId]).trim() || t.notAnswered;
+            return `#${task.order ?? idx + 1} [${type}] ${prompt || t.noPrompt}\n${t.answer}: ${answer}`;
+          })
+          .join("\n\n")
+        : t.noTasksFound;
 
     const userContent = isReadingTest
-      ? `CEFR level: ${level}\n` +
-        (languageHint ? `Language hint: ${languageHint}\n` : "") +
-        `Lesson title: ${lessonTitle}\n` +
-        `Is reading test: yes\n\n` +
-        `Auto result:\n${autoResultat || "(not provided)"}\n\n` +
-        `Reading text:\n${sourceText.trim() || "(not provided)"}\n\n` +
-        `${readingModeBlock}\n\n` +
-        `All tasks and student answers:\n${taskOverviewBlock}\n\n` +
-        `Open tasks and answers:\n${openTasksBlock}\n\n` +
-        `Instruction:\n` +
-        `Write teacher feedback in the required structure. Base the reading assessment mainly on the auto result. Use time only as a cautious supporting signal.`
-      : (languageHint ? `Language hint: ${languageHint}\n` : "") +
-        `Lesson title: ${lessonTitle}\n` +
-        `Task type: normal task\n\n` +
-        `Automatic result data:\n${autoResultat || "(not provided)"}\n\n` +
-        `Source text / task context:\n${sourceText.trim() || "(not provided)"}\n\n` +
-        `All tasks and student answers:\n${taskOverviewBlock}\n\n` +
-        `Open tasks and answers:\n${openTasksBlock}\n\n` +
-        `Instruction:\n` +
-        `Write short teacher feedback in the required structure. ` +
-        `Focus on whether the student has understood the task, answered relevantly, and responded to the open tasks. ` +
-        `Use automatic result data as support when it exists. ` +
-        `In the language section, comment on grammar and point out concrete errors that should be corrected. ` +
-        `Do not set a CEFR level.`;
+      ? buildReadingUserContent({
+        lang: locale,
+        level,
+        languageHint,
+        lessonTitle,
+        autoResultat,
+        sourceText,
+        readingModeBlock,
+        taskOverviewBlock,
+        openTasksBlock,
+      })
+      : buildGeneralUserContent({
+        lang: locale,
+        languageHint,
+        lessonTitle,
+        autoResultat,
+        sourceText,
+        taskOverviewBlock,
+        openTasksBlock,
+      });
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const model = pickModel();
@@ -781,7 +1228,7 @@ export async function POST(req: Request) {
       ],
     });
 
-    const textOut = (resp.output_text || "").trim();
+    const textOut = cleanAiFeedback((resp.output_text || "").trim());
     if (!textOut) return json({ error: "Empty AI response" }, 502);
 
     const payload = {

@@ -4,6 +4,8 @@ import OpenAI from "openai";
 export const runtime = "nodejs";
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+type Lang = "no" | "en" | "pt";
+
 function toErrorString(err: unknown): string {
   if (!err) return "Feedback failed";
   if (typeof err === "string") return err;
@@ -29,7 +31,6 @@ function pickString(obj: unknown, keys: string[]) {
   return "";
 }
 
-// Try to stringify unknown structured objects (e.g., autograde maps) into readable text.
 function pickAnyAsText(obj: unknown, keys: string[]): string {
   const rec = obj && typeof obj === "object" ? (obj as Record<string, unknown>) : null;
   for (const k of keys) {
@@ -47,154 +48,270 @@ function pickAnyAsText(obj: unknown, keys: string[]): string {
   return "";
 }
 
-function normalizeLocale(raw: string): "no" | "en" | "pt" {
+function normalizeLocale(raw: string): Lang {
   const v = (raw || "").toLowerCase().trim();
   if (v === "en") return "en";
   if (v === "pt" || v === "pt-br" || v === "pt_br") return "pt";
   return "no";
 }
 
-function buildSystemPrompt(lang: "no" | "en" | "pt") {
+function cleanAiFeedback(text: string): string {
+  return text
+    .replace(/^\s{0,3}#{1,6}\s*/gm, "")
+    .replace(/^\s*\d+\)\s*/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function getHeadings(lang: Lang) {
+  if (lang === "en") {
+    return {
+      h1: "AUTO RESULTS AND READING COMPREHENSION",
+      h2: "RESPONSE TO THE TASK",
+      h3: "GRAMMAR AND LANGUAGE",
+      h4: "NEXT STEPS",
+    };
+  }
+
+  if (lang === "pt") {
+    return {
+      h1: "RESULTADOS AUTOMÁTICOS E COMPREENSÃO DE LEITURA",
+      h2: "RESPOSTA À TAREFA",
+      h3: "GRAMÁTICA E LINGUAGEM",
+      h4: "PRÓXIMOS PASSOS",
+    };
+  }
+
+  return {
+    h1: "AUTORESULTAT OG LESEFORSTÅELSE",
+    h2: "SVAR PÅ OPPGAVEN",
+    h3: "GRAMMATIKK OG SPRÅK",
+    h4: "NESTE STEG",
+  };
+}
+
+function getPromptText(lang: Lang) {
+  if (lang === "en") {
+    return {
+      notProvided: "(not provided)",
+      lessonText: "Reading text (context)",
+      task: "Task",
+      studentAnswer: "Student answer",
+      autoResult: "Automatic result",
+      level: "Level",
+      taskType: "Task type hint",
+      instruction: "Instruction",
+
+      guidance:
+        "Write short, supportive, and concrete feedback directly to the student using 'you'. Use plain text headings only. Do not use markdown, ###, bullet points, or numbered headings. Do not write a full corrected version of the whole answer. Do not act like an official examiner or give a final CEFR judgement. Use the stated CEFR level only as background guidance for expectations.",
+
+      autoRule:
+        "If automatic result data exists, use it actively. Summarize what the student appears to understand from multiple-choice, true/false, gap tasks, and other auto-graded tasks. Connect this carefully to reading comprehension, but do not overclaim. Treat automatic results as a strong signal for reading understanding, not as the whole picture.",
+
+      taskClassificationRule:
+        "Before you evaluate the answer, identify what kind of task this is. Use one of these internal categories: FACT, EXPLANATION, REFLECTION, or PROCEDURE. Adapt the feedback to that task type.",
+
+      taskTypeGuidance:
+        "If the task is FACT, judge correctness, relevance, and whether the answer stays within the required number or format. Do not ask for long explanations. If the task is EXPLANATION, look for clear reasoning and understanding. If the task is REFLECTION, look for relevance and support for the student's thinking. If the task is PROCEDURE, look for whether the student shows a sensible method or sequence.",
+
+      taskRule:
+        "Judge the student's answer in light of what the task actually asks for. Before commenting on length, first check the task requirement carefully.",
+
+      lengthRule:
+        "Respect the exact scope of the task. If the task asks for two sentences, three examples, five facts, a short answer, keywords, or another limited format, do not tell the student to write more than the task requires. Only ask for more development when the task itself asks for explanation, justification, comparison, reflection, or a more connected text.",
+
+      relevanceRule:
+        "Say clearly whether the student answers the task relevantly and within the required format. If something is missing, explain exactly what is missing: for example one missing point, unclear wording, or that only part of the task is answered.",
+
+      grammarRule:
+        "Use a separate grammar section. Give concrete and limited feedback on grammar, spelling, word order, verb forms, and punctuation when relevant. Point out only the most important issues. Choose a maximum of 3 to 5 important issues, and prioritize errors that affect understanding. Show short examples in the format: 'error' -> 'better form'. Do not overload the student.",
+
+      nextStepRule:
+        "Give 1 to 3 realistic next-step tips. These must fit the actual task type. For FACT tasks, focus on precision and correct language. For EXPLANATION tasks, focus on explaining more clearly and developing the answer when the task asks for it. For REFLECTION tasks, focus on relevance and support for ideas. For PROCEDURE tasks, focus on steps and structure. Do not tell the student to write longer answers if the task asked for short or limited answers.",
+
+      finalInstruction:
+        "Use these exact headings in the same language as the chosen locale. Keep the feedback concise, concrete, and fair.",
+    };
+  }
+
+  if (lang === "pt") {
+    return {
+      notProvided: "(não informado)",
+      lessonText: "Texto de leitura (contexto)",
+      task: "Tarefa",
+      studentAnswer: "Resposta do aluno",
+      autoResult: "Resultado automático",
+      level: "Nível",
+      taskType: "Indicação do tipo de tarefa",
+      instruction: "Instrução",
+
+      guidance:
+        "Escreva um feedback curto, encorajador e concreto diretamente para o aluno usando 'você'. Use apenas títulos em texto simples. Não use markdown, ###, marcadores ou títulos numerados. Não escreva uma versão totalmente corrigida da resposta. Não aja como um examinador oficial nem dê um julgamento final de CEFR. Use o nível CEFR informado apenas como orientação de fundo.",
+
+      autoRule:
+        "Se houver resultado automático, use-o ativamente. Resuma o que o aluno parece compreender a partir de múltipla escolha, verdadeiro/falso, lacunas e outras tarefas corrigidas automaticamente. Relacione isso com a compreensão de leitura de forma cuidadosa, sem exagerar. Trate os resultados automáticos como um sinal forte de compreensão de leitura, mas não como o quadro inteiro.",
+
+      taskClassificationRule:
+        "Antes de avaliar a resposta, identifique que tipo de tarefa é esta. Use internamente uma destas categorias: FATO, EXPLICAÇÃO, REFLEXÃO ou PROCEDIMENTO. Adapte o feedback ao tipo de tarefa.",
+
+      taskTypeGuidance:
+        "Se a tarefa for de FATO, avalie correção, relevância e se a resposta fica dentro do número ou formato pedido. Não peça explicações longas. Se a tarefa for de EXPLICAÇÃO, procure raciocínio claro e compreensão. Se a tarefa for de REFLEXÃO, procure relevância e apoio para as ideias do aluno. Se a tarefa for de PROCEDIMENTO, procure se o aluno mostra um método ou sequência adequada.",
+
+      taskRule:
+        "Julgue a resposta do aluno de acordo com o que a tarefa realmente pede. Antes de comentar o tamanho da resposta, verifique com cuidado a exigência da tarefa.",
+
+      lengthRule:
+        "Respeite exatamente o formato e a extensão pedidos pela tarefa. Se a tarefa pedir duas frases, três exemplos, cinco fatos, uma resposta curta, palavras-chave ou outro formato limitado, não diga ao aluno para escrever mais do que a tarefa exige. Peça mais desenvolvimento apenas quando a própria tarefa pedir explicação, justificativa, comparação, reflexão ou um texto mais conectado.",
+
+      relevanceRule:
+        "Diga com clareza se o aluno responde à tarefa de forma relevante e dentro do formato pedido. Se faltar algo, explique exatamente o que falta: por exemplo um ponto ausente, formulação pouco clara ou que apenas parte da tarefa foi respondida.",
+
+      grammarRule:
+        "Use uma seção separada de gramática. Dê feedback concreto e limitado sobre gramática, ortografia, ordem das palavras, formas verbais e pontuação quando for relevante. Aponte apenas os problemas mais importantes. Escolha no máximo 3 a 5 pontos importantes e priorize erros que prejudiquem a compreensão. Mostre exemplos curtos no formato: 'erro' -> 'forma melhor'. Não sobrecarregue o aluno.",
+
+      nextStepRule:
+        "Dê de 1 a 3 dicas realistas para o próximo passo. Elas devem combinar com o tipo real da tarefa. Para tarefas de FATO, foque em precisão e linguagem correta. Para tarefas de EXPLICAÇÃO, foque em explicar com mais clareza e desenvolver a resposta quando a tarefa pedir isso. Para tarefas de REFLEXÃO, foque em relevância e apoio para as ideias. Para tarefas de PROCEDIMENTO, foque em passos e estrutura. Não diga ao aluno para escrever respostas mais longas se a tarefa pedia respostas curtas ou limitadas.",
+
+      finalInstruction:
+        "Use estes títulos exatos no mesmo idioma do locale escolhido. Mantenha o feedback conciso, concreto e justo.",
+    };
+  }
+
+  return {
+    notProvided: "(ikke oppgitt)",
+    lessonText: "Lesetekst (kontekst)",
+    task: "Oppgave",
+    studentAnswer: "Elevsvar",
+    autoResult: "Autoresultat",
+    level: "Nivå",
+    taskType: "Hint om oppgavetype",
+    instruction: "Instruksjon",
+
+    guidance:
+      "Skriv kort, støttende og konkret tilbakemelding direkte til eleven med 'du'. Bruk bare rene overskrifter som vanlig tekst. Ikke bruk markdown, ###, punktlister eller nummererte overskrifter. Ikke skriv en fullstendig korrigert versjon av hele svaret. Ikke opptre som en offisiell sensor og ikke gi en endelig CEFR-dom. Bruk oppgitt CEFR-nivå bare som en bakgrunn for forventninger.",
+
+    autoRule:
+      "Hvis autoresultat finnes, bruk det aktivt. Oppsummer hva eleven ser ut til å forstå ut fra flervalg, true/false, hulloppgaver og andre automatisk rettede oppgaver. Knytt dette forsiktig til leseforståelse, men uten å overtolke. Automatiske resultater skal regnes som et sterkt signal om leseforståelse, men ikke hele bildet.",
+
+    taskClassificationRule:
+      "Før du vurderer svaret, må du identifisere hvilken type oppgave dette er. Bruk internt én av disse kategoriene: FAKTA, FORKLARING, REFLEKSJON eller PROSEDYRE. Tilpass vurderingen etter oppgavetype.",
+
+    taskTypeGuidance:
+      "Hvis oppgaven er av typen FAKTA, skal du vurdere om svarene er korrekte, relevante og innenfor antall eller format. Du skal ikke kreve lange forklaringer. Hvis oppgaven er FORKLARING, skal du se etter om eleven forklarer sammenheng og viser forståelse. Hvis oppgaven er REFLEKSJON, skal du vurdere relevans og begrunnelse, ikke fasitsvar. Hvis oppgaven er PROSEDYRE, skal du vurdere om eleven viser en fornuftig framgangsmåte eller rekkefølge.",
+
+    taskRule:
+      "Vurder elevens svar ut fra hva oppgaven faktisk ber om. Før du kommenterer lengde, må du først sjekke oppgavekravet nøye.",
+
+    lengthRule:
+      "Respekter oppgavens nøyaktige ramme. Hvis oppgaven ber om to setninger, tre eksempler, fem fakta, et kort svar, nøkkelord eller et annet avgrenset format, skal du ikke be eleven skrive mer enn oppgaven krever. Be bare om mer utvikling når oppgaven selv ber om forklaring, begrunnelse, sammenligning, refleksjon eller mer sammenhengende tekst.",
+
+    relevanceRule:
+      "Si tydelig om eleven svarer relevant på oppgaven og innenfor formatet som er bedt om. Hvis noe mangler, forklar nøyaktig hva som mangler: for eksempel ett manglende poeng, uklar formulering eller at bare deler av oppgaven er besvart.",
+
+    grammarRule:
+      "Bruk et eget punkt for grammatikk. Gi konkret og begrenset tilbakemelding på grammatikk, rettskriving, ordstilling, verbformer og tegnsetting når det er relevant. Pek bare på de viktigste tingene. Velg maks 3 til 5 viktige feil, og prioriter feil som påvirker forståelsen. Vis korte eksempler i formatet: 'feil' -> 'bedre form'. Ikke overless eleven.",
+
+    nextStepRule:
+      "Gi 1 til 3 realistiske råd om neste steg. Rådene må passe til den faktiske oppgavetypen. For FAKTA-oppgaver skal rådene handle om presisjon og korrekt språk. For FORKLARING skal rådene handle om å forklare tydeligere og utdype når oppgaven ber om det. For REFLEKSJON skal rådene handle om relevans og begrunnelse. For PROSEDYRE skal rådene handle om steg og struktur. Ikke be eleven skrive lengre svar hvis oppgaven ba om korte eller avgrensede svar.",
+
+    finalInstruction:
+      "Bruk nøyaktig disse overskriftene på samme språk som valgt locale. Hold tilbakemeldingen kort, konkret og rettferdig.",
+  };
+}
+
+function buildSystemPrompt(lang: Lang) {
+  const headings = getHeadings(lang);
+  const t = getPromptText(lang);
+
   if (lang === "en") {
     return [
-      "You are an experienced Norwegian language teacher.",
-      "Address the student directly using 'you'. Be supportive, clear, and motivating.",
-      "Give short, precise, and helpful feedback on the student's work.",
-      "Adapt your language and expectations to the provided CEFR level.",
+      "You are an experienced language teacher.",
+      t.guidance,
       "",
       "IMPORTANT:",
-      "- Do NOT write a full corrected version of the entire text.",
-      "- Do NOT explain or correct multiple-choice / true-false; those are auto-graded.",
-      "- Focus on open/free-text answers (the student's writing).",
-      "- Use: LOW / MEDIUM / HIGH achievement (relative to the CEFR level).",
+      t.autoRule,
+      t.taskClassificationRule,
+      t.taskTypeGuidance,
+      t.taskRule,
+      t.lengthRule,
+      t.relevanceRule,
+      t.grammarRule,
+      t.nextStepRule,
       "",
-      "Answer using EXACT headings:",
-      "1) AUTO RESULT, READING COMPREHENSION AND CEFR",
-      "- Summarize the auto result (if present).",
-      "- Link the result to CEFR reading skills at the given level:",
-      '  • A1–A2: understands very simple information and key words/short sentences.',
-      '  • B1: understands main points and important details in clear, simple texts.',
-      '  • B2: understands most details, implicit meaning and connections in more complex texts.',
-      '  • C1–C2: understands nuanced meaning, tone, and complex/long texts with high precision.',
-      "- Give a short judgement (1–2 sentences) about reading comprehension based on the auto result.",
+      "Use these exact headings:",
+      headings.h1,
+      headings.h2,
+      headings.h3,
+      headings.h4,
       "",
-      "2) OPEN ANSWERS – ACADEMIC ASSESSMENT",
-      "a) Does the student answer the question?",
-      "- 1–2 sentences.",
-      "b) Grammar and spelling (show error -> correction)",
-      '- List the most important issues as: "error" -> "correct" (max 6 bullets).',
-      "c) Punctuation",
-      "- Point out missing / incorrect punctuation and give 2–4 concrete tips.",
+      "Section guidance:",
+      `${headings.h1}: Briefly summarize the auto result and what it suggests about reading comprehension.`,
+      `${headings.h2}: Say whether the student answers the task relevantly and within the required scope.`,
+      `${headings.h3}: Give concrete grammar and language feedback with a few short examples.`,
+      `${headings.h4}: Give 1 to 3 realistic next-step tips that match the actual task.`,
       "",
-      "3) LEVEL AND NEXT-STEP PROGRESSION (CEFR)",
-      "- Choose one: LOW / MEDIUM / HIGH (relative to the stated CEFR level).",
-      "- Justify briefly with 2–3 bullets (content, language/grammar, coherence).",
-      "",
-      "NEXT STEP:",
-      "- Give 1–2 realistic tips for the NEXT natural step above the student's current level:",
-      "  • A1 → A2: simple full sentences, correct present tense, basic word order.",
-      "  • A2 → B1: more varied vocabulary, correct verb tenses, better linking words.",
-      "  • B1 → B2: more precise grammar, varied sentence structure, clearer structure.",
-      "  • B2 → C1: nuance, more complex sentences, precise punctuation and tense use.",
-      "  • C1: precision, idiomatic usage, stylistic control and natural flow.",
-      "- Keep tips concrete, short, and doable.",
-      "",
-      "Keep it concise. No long theory explanations.",
+      t.finalInstruction,
     ].join("\n");
   }
 
   if (lang === "pt") {
     return [
-      "Você é um professor experiente de norueguês/língua.",
-      "Fale diretamente com o aluno usando 'você'. Seja claro, encorajador e específico.",
-      "Dê um feedback curto, preciso e útil sobre o trabalho do aluno.",
-      "Adapte sua linguagem e exigências ao nível CEFR informado.",
+      "Você é um professor experiente de língua.",
+      t.guidance,
       "",
       "IMPORTANTE:",
-      "- NÃO faça uma versão completa “corrigida” do texto inteiro.",
-      "- NÃO explique nem corrija múltipla escolha / verdadeiro-falso; isso é corrigido automaticamente.",
-      "- Foque nas respostas abertas (texto livre).",
-      "- Use: BAIXO / MÉDIO / ALTO desempenho (em relação ao CEFR).",
+      t.autoRule,
+      t.taskClassificationRule,
+      t.taskTypeGuidance,
+      t.taskRule,
+      t.lengthRule,
+      t.relevanceRule,
+      t.grammarRule,
+      t.nextStepRule,
       "",
-      "Responda com estes títulos EXATOS:",
-      "1) RESULTADO AUTOMÁTICO, COMPREENSÃO DE LEITURA E CEFR",
-      "- Resuma o resultado automático (se existir).",
-      "- Relacione o resultado às habilidades de leitura no CEFR do nível informado:",
-      "  • A1–A2: entende informação muito simples, palavras-chave e frases curtas.",
-      "  • B1: entende ideias principais e detalhes importantes em textos claros e simples.",
-      "  • B2: entende a maioria dos detalhes, sentidos implícitos e conexões em textos mais complexos.",
-      "  • C1–C2: entende nuances, tom e textos longos/complexos com alta precisão.",
-      "- Dê um julgamento curto (1–2 frases) sobre a compreensão de leitura com base no resultado.",
+      "Use estes títulos exatos:",
+      headings.h1,
+      headings.h2,
+      headings.h3,
+      headings.h4,
       "",
-      "2) RESPOSTAS ABERTAS – AVALIAÇÃO",
-      "a) O aluno responde à tarefa?",
-      "- 1–2 frases.",
-      "b) Gramática e ortografia (mostrar erro -> correto)",
-      '- Liste os pontos principais como: "erro" -> "correto" (máx. 6 itens).',
-      "c) Pontuação",
-      "- Mostre onde falta/erra pontuação e dê 2–4 dicas concretas.",
+      "Orientação das seções:",
+      `${headings.h1}: Resuma brevemente o resultado automático e o que ele sugere sobre a compreensão de leitura.`,
+      `${headings.h2}: Diga se o aluno responde à tarefa de forma relevante e dentro do formato pedido.`,
+      `${headings.h3}: Dê feedback concreto de gramática e linguagem com alguns exemplos curtos.`,
+      `${headings.h4}: Dê de 1 a 3 dicas realistas para o próximo passo de acordo com a tarefa real.`,
       "",
-      "3) NÍVEL E PRÓXIMO PASSO (CEFR)",
-      "- Escolha um: BAIXO / MÉDIO / ALTO (em relação ao nível informado).",
-      "- Justifique com 2–3 itens (conteúdo, linguagem/gramática, coesão).",
-      "",
-      "PRÓXIMO PASSO:",
-      "- Dê 1–2 dicas realistas para o PRÓXIMO passo natural acima do nível atual:",
-      "  • A1 → A2: frases simples completas, presente correto, ordem básica das palavras.",
-      "  • A2 → B1: vocabulário mais variado, tempos verbais corretos, conectores melhores.",
-      "  • B1 → B2: gramática mais precisa, variedade de estruturas, texto mais bem organizado.",
-      "  • B2 → C1: nuances, frases mais complexas, pontuação e tempos mais precisos.",
-      "  • C1: precisão, expressões idiomáticas, controle estilístico e fluidez natural.",
-      "- Dicas devem ser concretas, curtas e realizáveis.",
-      "",
-      "Seja conciso. Sem explicações longas de teoria.",
+      t.finalInstruction,
     ].join("\n");
   }
 
-  // no (default)
   return [
-    "Du er en erfaren norsklærer/språklærer. Gi kort, presis og nyttig tilbakemelding på elevens arbeid.",
-    "Bruk dus-form og skriv direkte til eleven (bruk 'du'). Vær støttende, konkret og motiverende.",
-    "Tilpass språk og krav til CEFR-nivået som er oppgitt.",
+    "Du er en erfaren norsklærer/språklærer.",
+    t.guidance,
     "",
     "VIKTIG:",
-    "- IKKE lag en 'korrigert versjon' av hele teksten.",
-    "- IKKE forklar eller rett flervalg/true-false; de rettes automatisk.",
-    "- Fokuser på åpne oppgaver (elevens fritekstsvar).",
-    "- Bruk begrepene: LAV / MIDDELS / HØY målopnåelse (i forhold til CEFR-nivå).",
+    t.autoRule,
+    t.taskClassificationRule,
+    t.taskTypeGuidance,
+    t.taskRule,
+    t.lengthRule,
+    t.relevanceRule,
+    t.grammarRule,
+    t.nextStepRule,
     "",
-    "Svar i denne strukturen (bruk nøyaktige overskrifter):",
-    "1) AUTORESULTAT, LESEFORSTÅELSE OG CEFR",
-    "- Oppsummer autoresultatet (hvis det finnes).",
-    "- Knytt resultatet til CEFR-leseforståelse for oppgitt nivå:",
-    "  • A1–A2: forstår svært enkel informasjon, nøkkelord og korte setninger.",
-    "  • B1: forstår hovedpoeng og viktige detaljer i klare, enkle tekster.",
-    "  • B2: forstår de fleste detaljer, antydninger og sammenhenger i mer komplekse tekster.",
-    "  • C1–C2: forstår nyanser, tone og komplekse/lange tekster med høy presisjon.",
-    "- Gi en kort vurdering (1–2 setninger) av leseforståelsen basert på autoresultatet.",
+    "Bruk nøyaktig disse overskriftene:",
+    headings.h1,
+    headings.h2,
+    headings.h3,
+    headings.h4,
     "",
-    "2) ÅPNE OPPGAVER – FAGLIG VURDERING",
-    "a) Svarer eleven på oppgaven?",
-    "- Gi 1–2 setninger.",
-    "b) Grammatikk og stavefeil (vis feil -> riktig)",
-    '- List opp de viktigste feilene som: "feil" -> "riktig" (maks 6 punkt).',
-    "c) Tegnsetting",
-    "- Pek på hvor det mangler punktum/komma/spørsmålstegn, og gi 2–4 konkrete råd.",
+    "Veiledning for delene:",
+    `${headings.h1}: Oppsummer kort autoresultatet og hva det tyder på om leseforståelsen.`,
+    `${headings.h2}: Si om eleven svarer relevant på oppgaven og innenfor rammen som er bedt om.`,
+    `${headings.h3}: Gi konkret grammatikk- og språkhjelp med noen få korte eksempler.`,
+    `${headings.h4}: Gi 1 til 3 realistiske råd om neste steg som passer den faktiske oppgaven.`,
     "",
-    "3) NIVÅ OG VIDERE PROGRESJON (CEFR)",
-    "- Sett én: LAV / MIDDELS / HØY (i forhold til oppgitt CEFR-nivå).",
-    "- Begrunn kort med 2–3 punkter (innhold, språk/grammatikk, sammenheng).",
-    "",
-    "VIDERE PROGRESJON:",
-    "- Gi 1–2 konkrete og realistiske råd for neste naturlige nivå over elevens nåværende nivå:",
-    "  • A1 → fokus på enkle hele setninger, riktig verb i presens, grunnleggende ordstilling.",
-    "  • A2 → mer variert ordforråd, riktig bøying av verb i ulike tider, bedre setningsbinding.",
-    "  • B1 → mer presis grammatikk, variert setningsstruktur, sammenhengende tekst med tydelig struktur.",
-    "  • B2 → nyansering, mer komplekse setninger, korrekt tegnsetting og presis bruk av tider.",
-    "  • C1 → presist og variert språk, idiomatiske uttrykk, stilistisk kontroll og naturlig flyt.",
-    "- Rådene skal være konkrete, korte og gjennomførbare.",
-    "",
-    "Hold det konsist. Ikke bruk lange teoriforklaringer.",
+    t.finalInstruction,
   ].join("\n");
 }
 
@@ -207,7 +324,6 @@ export async function POST(req: Request) {
     const svar = pickString(body, ["svar", "answer"]);
     const nivå = pickString(body, ["nivå", "level"]) || "A2";
 
-    // NEW: locale from client
     const localeRaw = pickString(body, ["locale", "lang", "language", "uiLocale"]) || "no";
     const locale = normalizeLocale(localeRaw);
 
@@ -229,27 +345,27 @@ export async function POST(req: Request) {
       return Response.json({ error: "Mangler svar." }, { status: 400 });
     }
 
+    const t = getPromptText(locale);
     const systemPrompt = buildSystemPrompt(locale);
 
     const userContent =
-      `CEFR level: ${nivå}\n` +
-      (oppgaveType ? `Task type (hint): ${oppgaveType}\n` : "") +
-      (autoResultat
-        ? `\nAuto result (from automatic grading):\n${autoResultat}\n`
-        : "\nAuto result: (not provided)\n") +
-      `\nReading text (context):\n${lesetekst}\n\n` +
-      `Task:\n${oppgave}\n\n` +
-      `Student open answer:\n${svar}\n`;
+      `${t.level}: ${nivå}\n` +
+      (oppgaveType ? `${t.taskType}: ${oppgaveType}\n` : "") +
+      `\n${t.autoResult}:\n${autoResultat || t.notProvided}\n` +
+      `\n${t.lessonText}:\n${lesetekst}\n\n` +
+      `${t.task}:\n${oppgave}\n\n` +
+      `${t.studentAnswer}:\n${svar || t.notProvided}\n`;
 
     const r = await client.responses.create({
-      model: "gpt-4o-mini",
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      temperature: 0.3,
       input: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userContent },
       ],
     });
 
-    const feedback = r.output_text?.trim() ?? "";
+    const feedback = cleanAiFeedback(r.output_text?.trim() ?? "");
     return Response.json({ feedback, locale });
   } catch (err: unknown) {
     console.error("Feedback route error:", err);
