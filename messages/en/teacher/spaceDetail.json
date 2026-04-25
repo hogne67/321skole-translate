@@ -80,6 +80,19 @@
         "zero": "0 of 0",
         "range": "{start}-{end} of {total}"
       }
+    },
+    "studentMessage": {
+      "label": "Message to students",
+      "placeholder": "For example: Homework for Monday. Do tasks 1–5.",
+      "save": "Save message",
+      "saving": "Saving…",
+      "saved": "Message saved",
+      "editHint": "You can edit the text and save again.",
+      "unsavedHint": "You have unsaved changes.",
+      "lastSaved": "Last saved"
+    },
+    "due": {
+      "label": "Due date"
     }
   }
 }

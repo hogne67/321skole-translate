@@ -80,6 +80,19 @@
         "zero": "0 de 0",
         "range": "{start}-{end} de {total}"
       }
+    },
+    "studentMessage": {
+      "label": "Mensagem para os alunos",
+      "placeholder": "Por exemplo: Tarefa para segunda-feira. Faça as atividades 1–5.",
+      "save": "Salvar mensagem",
+      "saving": "Salvando…",
+      "saved": "Mensagem salva",
+      "editHint": "Você pode alterar o texto e salvar novamente.",
+      "unsavedHint": "Você tem alterações que ainda não foram salvas.",
+      "lastSaved": "Salvo pela última vez"
+    },
+    "due": {
+      "label": "Prazo"
     }
   }
 }

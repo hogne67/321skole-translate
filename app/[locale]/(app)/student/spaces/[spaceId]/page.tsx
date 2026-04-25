@@ -148,6 +148,9 @@ type AssignmentDoc = {
   sourceType?: string;
   level?: string;
   language?: string;
+  studentMessage?: string;
+  studentMessageUpdatedAt?: unknown;
+  dueAt?: unknown;
   [k: string]: unknown;
 };
 
@@ -237,6 +240,62 @@ export default function StudentSpaceDetailPage() {
     }
   }
 
+  function fmtDueDate(v: unknown) {
+    try {
+      if (!v || typeof v !== "object" || !("toDate" in v)) return null;
+
+      const d = (v as { toDate: () => Date }).toDate();
+
+      return new Intl.DateTimeFormat(dateLocale, {
+        weekday: "long",
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(d);
+    } catch {
+      return null;
+    }
+  }
+
+  function dueStatus(v: unknown): "none" | "overdue" | "soon" | "ok" {
+    try {
+      if (!v || typeof v !== "object" || !("toDate" in v)) return "none";
+
+      const d = (v as { toDate: () => Date }).toDate();
+      const now = new Date();
+
+      const diffMs = d.getTime() - now.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      if (diffMs < 0) return "overdue";
+      if (diffHours <= 48) return "soon";
+      return "ok";
+    } catch {
+      return "none";
+    }
+  }
+
+  function DueBadge({ status }: { status: ReturnType<typeof dueStatus> }) {
+    if (status === "overdue") {
+      return (
+        <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+          {t("due.overdue")}
+        </span>
+      );
+    }
+
+    if (status === "soon") {
+      return (
+        <span className="rounded-full border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-xs font-semibold text-yellow-800">
+          {t("due.soon")}
+        </span>
+      );
+    }
+
+    return null;
+  }
+
   function statusUi(st: ReturnType<typeof normalizeStatus>) {
     switch (st) {
       case "submitted":
@@ -310,7 +369,7 @@ export default function StudentSpaceDetailPage() {
     if (!uid) {
       setSubsLoading(false);
       setSubs([]);
-      return () => {};
+      return () => { };
     }
 
     let unsub: (() => void) | null = null;
@@ -382,17 +441,35 @@ export default function StudentSpaceDetailPage() {
     return () => unsub?.();
   }, [spaceId, uid, t]);
 
-  const activeAssignmentId = useMemo(() => (space?.activeLessonId ?? null) as string | null, [space]);
+  const visibleAssignments = useMemo(() => {
+    const list = showArchived ? assignments : assignments.filter((x) => !isArchived(x.data));
 
-  const activeAssignmentDoc = useMemo(() => {
-    if (!activeAssignmentId) return null;
-    return assignments.find((a) => a.id === activeAssignmentId)?.data ?? null;
-  }, [assignments, activeAssignmentId]);
+    return [...list].sort((a, b) => {
+      const getDue = (d: unknown) => {
+        if (!d || typeof d !== "object" || !("toDate" in d)) return null;
+        return (d as { toDate: () => Date }).toDate().getTime();
+      };
 
-  const visibleAssignments = useMemo(
-    () => (showArchived ? assignments : assignments.filter((x) => !isArchived(x.data))),
-    [assignments, showArchived]
-  );
+      const da = getDue(a.data.dueAt);
+      const db = getDue(b.data.dueAt);
+
+      const now = Date.now();
+
+      const score = (time: number | null) => {
+        if (!time) return 3;
+        if (time < now) return 0;
+        if (time - now < 48 * 60 * 60 * 1000) return 1;
+        return 2;
+      };
+
+      const sa = score(da);
+      const sb = score(db);
+
+      if (sa !== sb) return sa - sb;
+
+      return (db ?? 0) - (da ?? 0);
+    });
+  }, [assignments, showArchived]);
 
   const latestByAssignment = useMemo(() => {
     const m = new Map<string, SpaceSubRow>();
@@ -409,7 +486,6 @@ export default function StudentSpaceDetailPage() {
     return out;
   }, [latestByAssignment]);
 
-  const activeSubs = useMemo(() => grouped.filter((g) => g.latest.studentArchived !== true), [grouped]);
   const archivedSubs = useMemo(() => grouped.filter((g) => g.latest.studentArchived === true), [grouped]);
 
   function titleFor(assignmentId: string) {
@@ -423,24 +499,8 @@ export default function StudentSpaceDetailPage() {
     return parts.length ? parts.join(" • ") : null;
   }
 
-  const activeMine = useMemo(() => {
-    if (!activeAssignmentId) return null;
-    return latestByAssignment.get(activeAssignmentId) ?? null;
-  }, [activeAssignmentId, latestByAssignment]);
-
-  const shouldShowActiveAssignment = useMemo(() => {
-    if (!activeAssignmentId) return false;
-    if (!uid) return true;
-    return !activeMine;
-  }, [activeAssignmentId, uid, activeMine]);
-
-  const activeAssignmentHref = activeAssignmentId
-    ? `/student/spaces/${spaceId}/assignments/${activeAssignmentId}`
-    : null;
-
   const spaceRec: Record<string, unknown> = isRecord(space) ? (space as Record<string, unknown>) : {};
   const spaceCode = safeString(spaceRec.code);
-  const activeLessonTitleFromSpace = safeString(spaceRec.activeLessonTitle);
 
   async function moveToArchive(subId: string) {
     if (!uid) return;
@@ -560,202 +620,6 @@ export default function StudentSpaceDetailPage() {
         </div>
       ) : null}
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
-        <div className="text-base font-semibold text-slate-900">{t("active.title")}</div>
-
-        {activeAssignmentId && shouldShowActiveAssignment && activeAssignmentHref ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
-            <div className="break-words text-lg font-semibold text-slate-900">
-              {activeLessonTitleFromSpace ??
-                safeString(activeAssignmentDoc?.title) ??
-                titleFor(activeAssignmentId)}
-            </div>
-
-            {safeString(activeAssignmentDoc?.level) || safeString(activeAssignmentDoc?.language) ? (
-              <div className="mt-2 text-sm text-slate-600">
-                {[safeString(activeAssignmentDoc?.level), safeString(activeAssignmentDoc?.language)]
-                  .filter(Boolean)
-                  .join(" • ")}
-              </div>
-            ) : null}
-
-            <div className="mt-4">
-              <Link
-                href={activeAssignmentHref}
-                className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800"
-              >
-                {t("active.open")}
-              </Link>
-            </div>
-
-            <div className="mt-3 text-sm text-slate-500">{t("active.hint")}</div>
-          </div>
-        ) : (
-          <div className="mt-3 text-sm text-slate-600">{t("active.none")}</div>
-        )}
-      </div>
-
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <div className="text-base font-semibold text-slate-900">{t("mine.title")}</div>
-            <div className="mt-1 text-sm text-slate-600">{t("mine.subtitle")}</div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => location.reload()}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
-          >
-            {t("mine.refresh")}
-          </button>
-        </div>
-
-        {!uid ? (
-          <div className="mt-4 text-sm text-slate-600">{t("mine.loginToSee")}</div>
-        ) : subsLoading ? (
-          <div className="mt-4 text-sm text-slate-600">{t("loading")}</div>
-        ) : subsErr ? (
-          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{subsErr}</div>
-        ) : activeSubs.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
-            {t("mine.none")}
-          </div>
-        ) : (
-          <div className="mt-4 grid min-w-0 gap-3">
-            {activeSubs.map((g) => {
-              const r = g.latest;
-              const href = `/student/spaces/${spaceId}/assignments/${g.assignmentId}?sid=${r.id}`;
-              const dateStr = fmtDate(r.updatedAtMs || r.createdAtMs);
-              const ui = statusUi(r.status);
-
-              return (
-                <div
-                  key={g.assignmentId}
-                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
-                >
-                  <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="break-words text-base font-semibold text-slate-900">
-                        {r.title ?? titleFor(g.assignmentId)}
-                      </div>
-
-                      {metaForRow(r) ? (
-                        <div className="mt-2 text-sm text-slate-600">{metaForRow(r)}</div>
-                      ) : null}
-
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <StatusPill status={r.status} label={ui.label} hint={ui.hint} />
-                        {dateStr ? <span className="text-xs text-slate-500">{dateStr}</span> : null}
-                        {r.hasTeacherMessage ? (
-                          <span className="text-xs font-medium text-slate-700">{t("mine.teacherMessage")}</span>
-                        ) : null}
-                      </div>
-
-                      {r.status === "needs_work" ? (
-                        <div className="mt-3 text-sm text-slate-700">{t("mine.openForImprovement")}</div>
-                      ) : null}
-                    </div>
-
-                    <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:min-w-[320px]">
-                      {r.status === "approved" ? (
-                        <button
-                          type="button"
-                          onClick={() => moveToArchive(r.id)}
-                          disabled={archivingId === r.id}
-                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-                          title={t("mine.archiveHint")}
-                        >
-                          {archivingId === r.id ? t("mine.archiving") : t("mine.moveToArchive")}
-                        </button>
-                      ) : (
-                        <div className="hidden sm:block" />
-                      )}
-
-                      <Link
-                        href={href}
-                        className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800"
-                      >
-                        {t("actions.open")}
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
-        <div className="text-base font-semibold text-slate-900">{t("archive.title")}</div>
-
-        {!uid ? (
-          <div className="mt-4 text-sm text-slate-600">{t("archive.loginToSee")}</div>
-        ) : subsLoading ? (
-          <div className="mt-4 text-sm text-slate-600">{t("loading")}</div>
-        ) : archivedSubs.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
-            {t("archive.none")}
-          </div>
-        ) : (
-          <div className="mt-4 grid min-w-0 gap-3">
-            {archivedSubs.map((g) => {
-              const r = g.latest;
-              const href = `/student/spaces/${spaceId}/assignments/${g.assignmentId}?sid=${r.id}`;
-              const dateStr = fmtDate(r.studentArchivedAtMs || r.updatedAtMs || r.createdAtMs);
-              const ui = statusUi(r.status);
-
-              return (
-                <div
-                  key={g.assignmentId}
-                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
-                >
-                  <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="break-words text-base font-semibold text-slate-900">
-                        {r.title ?? titleFor(g.assignmentId)}
-                      </div>
-
-                      {metaForRow(r) ? (
-                        <div className="mt-2 text-sm text-slate-600">{metaForRow(r)}</div>
-                      ) : null}
-
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <StatusPill status={r.status} label={ui.label} hint={ui.hint} />
-                        {dateStr ? <span className="text-xs text-slate-500">{dateStr}</span> : null}
-                        {r.hasTeacherMessage ? (
-                          <span className="text-xs font-medium text-slate-700">{t("archive.message")}</span>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:min-w-[320px]">
-                      <button
-                        type="button"
-                        onClick={() => restoreFromArchive(r.id)}
-                        disabled={archivingId === r.id}
-                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-                        title={t("archive.restoreHint")}
-                      >
-                        {archivingId === r.id ? t("archive.restoring") : t("archive.restore")}
-                      </button>
-
-                      <Link
-                        href={href}
-                        className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800"
-                      >
-                        {t("actions.open")}
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-base font-semibold text-slate-900">{t("all.title")}</div>
@@ -778,6 +642,7 @@ export default function StudentSpaceDetailPage() {
               const title = safeString(it.data.title) ?? it.id;
               const snippet = assignmentSnippet(it.data);
               const archived = isArchived(it.data);
+              const due = dueStatus(it.data.dueAt);
 
               const mine = uid ? latestByAssignment.get(it.id) : null;
 
@@ -793,37 +658,140 @@ export default function StudentSpaceDetailPage() {
                   key={it.id}
                   className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
                 >
-                  <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="break-words text-base font-semibold text-slate-900">
-                        {title}{" "}
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex flex-wrap items-center gap-2">
+                        <div className="break-words text-base font-semibold text-slate-900">{title}</div>
+
+                        <DueBadge status={due} />
+
                         {archived ? (
                           <span className="text-sm font-medium text-slate-500">{t("all.archivedTag")}</span>
                         ) : null}
                       </div>
 
-                      {mine ? (
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-slate-500">{t("all.yourStatus")}</span>
-                          <StatusPill status={mine.status} label={mineUi!.label} hint={mineUi!.hint} />
-                          {mine.hasTeacherMessage ? (
-                            <span className="text-xs font-medium text-slate-700">{t("all.message")}</span>
-                          ) : null}
-                          {mineDate ? <span className="text-xs text-slate-500">{mineDate}</span> : null}
-                        </div>
-                      ) : (
-                        <div className="mt-3 text-xs text-slate-500">{t("all.notSubmitted")}</div>
-                      )}
+                      <div className="flex shrink-0 flex-row flex-wrap gap-2 sm:justify-end">
+                        <Link
+                          href={href}
+                          className="inline-flex items-center justify-center rounded-xl bg-green-600 px-3 py-1.5 text-sm font-semibold text-white no-underline hover:bg-green-700"
+                        >
+                          {t("actions.open")}
+                        </Link>
 
-                      {snippet ? (
-                        <div className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{snippet}</div>
-                      ) : null}
+                        {mine ? (
+                          <button
+                            type="button"
+                            onClick={() => moveToArchive(mine.id)}
+                            disabled={archivingId === mine.id}
+                            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+                            title={t("mine.archiveHint")}
+                          >
+                            {archivingId === mine.id ? t("mine.archiving") : t("mine.moveToArchive")}
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
 
-                    <div className="w-full min-w-0 sm:w-auto">
+                    {safeString(it.data.studentMessage) || it.data.dueAt ? (
+                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                        {safeString(it.data.studentMessage) ? <div>{safeString(it.data.studentMessage)}</div> : null}
+
+                        {fmtDueDate(it.data.dueAt) ? (
+                          <div
+                            className={[
+                              "mt-2 text-xs font-semibold",
+                              due === "overdue"
+                                ? "text-red-700"
+                                : due === "soon"
+                                  ? "text-yellow-800"
+                                  : "text-amber-800",
+                            ].join(" ")}
+                          >
+                            {t("due.label")}: {fmtDueDate(it.data.dueAt)}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {mine ? (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-slate-500">{t("all.yourStatus")}</span>
+                        <StatusPill status={mine.status} label={mineUi!.label} hint={mineUi!.hint} />
+                        {mine.hasTeacherMessage ? (
+                          <span className="text-xs font-medium text-slate-700">{t("all.message")}</span>
+                        ) : null}
+                        {mineDate ? <span className="text-xs text-slate-500">{mineDate}</span> : null}
+                      </div>
+                    ) : (
+                      <div className="mt-3 text-xs text-slate-500">{t("all.notSubmitted")}</div>
+                    )}
+
+                    {snippet ? <div className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{snippet}</div> : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <div className="text-base font-semibold text-slate-900">{t("archive.title")}</div>
+
+        {!uid ? (
+          <div className="mt-4 text-sm text-slate-600">{t("archive.loginToSee")}</div>
+        ) : subsLoading ? (
+          <div className="mt-4 text-sm text-slate-600">{t("loading")}</div>
+        ) : subsErr ? (
+          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{subsErr}</div>
+        ) : archivedSubs.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+            {t("archive.none")}
+          </div>
+        ) : (
+          <div className="mt-4 grid min-w-0 gap-3">
+            {archivedSubs.map((g) => {
+              const r = g.latest;
+              const href = `/student/spaces/${spaceId}/assignments/${g.assignmentId}?sid=${r.id}`;
+              const dateStr = fmtDate(r.studentArchivedAtMs || r.updatedAtMs || r.createdAtMs);
+              const ui = statusUi(r.status);
+
+              return (
+                <div
+                  key={g.assignmentId}
+                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="break-words text-base font-semibold text-slate-900">
+                        {r.title ?? titleFor(g.assignmentId)}
+                      </div>
+
+                      {metaForRow(r) ? <div className="mt-2 text-sm text-slate-600">{metaForRow(r)}</div> : null}
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <StatusPill status={r.status} label={ui.label} hint={ui.hint} />
+                        {dateStr ? <span className="text-xs text-slate-500">{dateStr}</span> : null}
+                        {r.hasTeacherMessage ? (
+                          <span className="text-xs font-medium text-slate-700">{t("archive.message")}</span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 flex-row flex-wrap gap-2 sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => restoreFromArchive(r.id)}
+                        disabled={archivingId === r.id}
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+                        title={t("archive.restoreHint")}
+                      >
+                        {archivingId === r.id ? t("archive.restoring") : t("archive.restore")}
+                      </button>
+
                       <Link
                         href={href}
-                        className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white no-underline hover:bg-slate-800 sm:w-auto"
+                        className="inline-flex items-center justify-center rounded-xl bg-green-600 px-3 py-1.5 text-sm font-semibold text-white no-underline hover:bg-green-700"
                       >
                         {t("actions.open")}
                       </Link>

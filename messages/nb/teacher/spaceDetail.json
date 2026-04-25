@@ -80,6 +80,19 @@
         "zero": "0 av 0",
         "range": "{start}-{end} av {total}"
       }
+    },
+    "studentMessage": {
+      "label": "Beskjed til elever",
+      "placeholder": "F.eks. Lekse til mandag. Gjør oppgave 1–5.",
+      "save": "Lagre beskjed",
+      "saving": "Lagrer…",
+      "saved": "Beskjed lagret",
+      "editHint": "Du kan endre teksten og lagre på nytt.",
+      "unsavedHint": "Du har endringer som ikke er lagret.",
+      "lastSaved": "Sist lagret"
+    },
+    "due": {
+      "label": "Frist"
     }
   }
 }

@@ -1,4 +1,4 @@
-// app\[locale]\(app)\teacher\spaces\[spaceId]\page.tsx
+// app/[locale]/(app)/teacher/spaces/[spaceId]/page.tsx
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -41,6 +41,9 @@ type AssignmentDoc = {
   assignedAt?: unknown;
   assignedByUid?: string;
   updatedAt?: unknown;
+  studentMessage?: string;
+  studentMessageUpdatedAt?: unknown;
+  dueAt?: unknown;
 };
 
 type AssignmentRow = { id: string; data: AssignmentDoc };
@@ -74,8 +77,6 @@ type SpaceDocSafe = SpaceDoc & {
   ownerId?: unknown;
   code?: unknown;
   isOpen?: unknown;
-  activeLessonId?: unknown;
-  activeLessonTitle?: unknown;
   title?: unknown;
 };
 
@@ -260,9 +261,7 @@ function SpaceOpenSwitch({
         onClick={() => onChange(!checked)}
         className={[
           "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition",
-          checked
-            ? "border-green-600 bg-green-600"
-            : "border-slate-300 bg-slate-300",
+          checked ? "border-green-600 bg-green-600" : "border-slate-300 bg-slate-300",
           disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
         ].join(" ")}
       >
@@ -309,9 +308,10 @@ function Inner() {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [showArchived, setShowArchived] = useState(false);
 
-  const [subSummaryByAssignment, setSubSummaryByAssignment] = useState<Record<string, { total: number; newCount: number }>>(
-    {}
-  );
+  const [messageDrafts, setMessageDrafts] = useState<Record<string, string>>({});
+  const [messageSavingId, setMessageSavingId] = useState<string | null>(null);
+
+  const [subSummaryByAssignment, setSubSummaryByAssignment] = useState<Record<string, { total: number; newCount: number }>>({});
   const [subSummaryErrByAssignment, setSubSummaryErrByAssignment] = useState<Record<string, string | null>>({});
   const [subSummaryUnsubByAssignment, setSubSummaryUnsubByAssignment] = useState<Record<string, Unsubscribe>>({});
 
@@ -451,11 +451,6 @@ function Inner() {
     void loadQuota();
   }, [assignOpen, access, loadQuota]);
 
-  const activeForStudentsId = useMemo(() => {
-    const v = space?.activeLessonId;
-    return typeof v === "string" && v.trim() ? v : null;
-  }, [space]);
-
   useEffect(() => {
     if (access !== "allowed") return;
 
@@ -465,7 +460,16 @@ function Inner() {
         id: d.id,
         data: (d.data() as AssignmentDoc) ?? ({} as AssignmentDoc),
       }));
+
       setAssignments(next);
+
+      setMessageDrafts((current) => {
+        const copy = { ...current };
+        for (const row of next) {
+          if (!(row.id in copy)) copy[row.id] = row.data.studentMessage ?? "";
+        }
+        return copy;
+      });
     });
   }, [access, spaceId]);
 
@@ -696,28 +700,32 @@ function Inner() {
     }
   }
 
-  async function setActiveForStudents(assignmentId: string | null) {
+  async function saveStudentMessage(assignmentId: string) {
     setSaveErr(null);
 
     if (access !== "allowed") {
       setSaveErr(t("errors.noManageAccess"));
       return;
     }
-    if (!user?.uid) return;
 
-    const title = assignmentId ? assignments.find((a) => a.id === assignmentId)?.data?.title ?? null : null;
+    if (!canManage) {
+      setSaveErr(t("errors.noManageAccess"));
+      return;
+    }
 
-    setSaving(true);
+    const text = (messageDrafts[assignmentId] ?? "").trim();
+
+    setMessageSavingId(assignmentId);
     try {
-      await updateDoc(doc(db, "spaces", spaceId), {
-        activeLessonId: assignmentId,
-        activeLessonTitle: title,
-        activeUpdatedAt: Timestamp.now(),
+      await updateDoc(doc(db, "spaces", spaceId, "lessons", assignmentId), {
+        studentMessage: text,
+        studentMessageUpdatedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       });
     } catch (e: unknown) {
-      setSaveErr(getErrorInfo(e).message || t("errors.setActiveFailed"));
+      setSaveErr(getErrorInfo(e).message || t("errors.updateAssignmentFailed"));
     } finally {
-      setSaving(false);
+      setMessageSavingId(null);
     }
   }
 
@@ -735,24 +743,6 @@ function Inner() {
         status,
         updatedAt: Timestamp.now(),
       });
-
-      if (status === "archived" && activeForStudentsId === assignmentId) {
-        const nextActive = assignments.find((a) => a.id !== assignmentId && a.data.status !== "archived");
-        await updateDoc(doc(db, "spaces", spaceId), {
-          activeLessonId: nextActive ? nextActive.id : null,
-          activeLessonTitle: nextActive ? (nextActive.data.title ?? null) : null,
-          activeUpdatedAt: Timestamp.now(),
-        });
-      }
-
-      if (status === "active" && !activeForStudentsId) {
-        const restoredTitle = assignments.find((a) => a.id === assignmentId)?.data?.title ?? null;
-        await updateDoc(doc(db, "spaces", spaceId), {
-          activeLessonId: assignmentId,
-          activeLessonTitle: restoredTitle,
-          activeUpdatedAt: Timestamp.now(),
-        });
-      }
     } catch (e: unknown) {
       setSaveErr(getErrorInfo(e).message || t("errors.updateAssignmentFailed"));
     } finally {
@@ -853,34 +843,34 @@ function Inner() {
               </button>
 
               <Link
-  href={withLocale(locale, "/tools")}
-  className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
->
-  {t("actions.createNewLesson")}
-</Link>
+                href={withLocale(locale, "/tools")}
+                className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              >
+                {t("actions.createNewLesson")}
+              </Link>
             </div>
 
             <SpaceOpenSwitch
-  checked={space?.isOpen === true}
-  disabled={saving || !canManage}
-  label={space?.isOpen ? t("spaceToggle.openLabel") : t("spaceToggle.closedLabel")}
-  description={space?.isOpen ? t("spaceToggle.openDescription") : t("spaceToggle.closedDescription")}
-  onChange={async (next) => {
-    setSaveErr(null);
-    if (!canManage) {
-      setSaveErr(t("errors.noManageAccess"));
-      return;
-    }
-    setSaving(true);
-    try {
-      await setSpaceOpen(spaceId, next);
-    } catch (e: unknown) {
-      setSaveErr(getErrorInfo(e).message || t("errors.updateSpaceFailed"));
-    } finally {
-      setSaving(false);
-    }
-  }}
-/>
+              checked={space?.isOpen === true}
+              disabled={saving || !canManage}
+              label={space?.isOpen ? t("spaceToggle.openLabel") : t("spaceToggle.closedLabel")}
+              description={space?.isOpen ? t("spaceToggle.openDescription") : t("spaceToggle.closedDescription")}
+              onChange={async (next) => {
+                setSaveErr(null);
+                if (!canManage) {
+                  setSaveErr(t("errors.noManageAccess"));
+                  return;
+                }
+                setSaving(true);
+                try {
+                  await setSpaceOpen(spaceId, next);
+                } catch (e: unknown) {
+                  setSaveErr(getErrorInfo(e).message || t("errors.updateSpaceFailed"));
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            />
           </div>
         </div>
       </div>
@@ -890,11 +880,11 @@ function Inner() {
           <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
             <div className="mt-1 break-words text-sm text-slate-600">
-  {t("assignments.count", {
-    count: visibleAssignments.length,
-    label: t("assignments.title"),
-  })}
-</div>
+              {t("assignments.count", {
+                count: visibleAssignments.length,
+                label: t("assignments.title"),
+              })}
+            </div>
           </div>
 
           <label className="inline-flex select-none items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800">
@@ -918,13 +908,14 @@ function Inner() {
               const assignedAt = formatMaybeDate(a.data.assignedAt || a.data.createdAt);
               const status = a.data.status ?? "active";
               const sourceLabel = a.data.sourceType === "library" ? t("labels.library") : t("labels.myContent");
-              const isActiveForStudents = activeForStudentsId === a.id;
 
               const summary = subSummaryByAssignment[a.id] ?? { total: 0, newCount: 0 };
               const sumErr = subSummaryErrByAssignment[a.id] ?? null;
 
               const allReviewed = summary.total > 0 && summary.newCount === 0;
               const hasNew = summary.newCount > 0;
+              const currentMessage = messageDrafts[a.id] ?? a.data.studentMessage ?? "";
+              const messageSaved = currentMessage.trim() === (a.data.studentMessage ?? "").trim();
 
               return (
                 <div key={a.id} className="min-w-0 rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4">
@@ -934,12 +925,6 @@ function Inner() {
                         <div className="break-words font-semibold text-slate-900">
                           {a.data.title || t("fallback.untitledTask")}
                         </div>
-
-                        {isActiveForStudents && (
-                          <span className="rounded-full border border-slate-300 bg-slate-900 px-2 py-0.5 text-xs font-medium text-white">
-                            {t("badges.active")}
-                          </span>
-                        )}
 
                         {status === "archived" && (
                           <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
@@ -980,29 +965,104 @@ function Inner() {
                         {a.data.language ? ` · ${a.data.language}` : ""}
                         {assignedAt ? ` · ${assignedAt}` : ""}
                       </div>
+
+                      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                        <div className="grid gap-3 lg:grid-cols-[1fr_260px]">
+                          <div>
+                            <label className="block text-sm font-semibold text-amber-950">
+                              {t("studentMessage.label")}
+                            </label>
+
+                            <textarea
+                              value={currentMessage}
+                              onChange={(e) =>
+                                setMessageDrafts((m) => ({
+                                  ...m,
+                                  [a.id]: e.target.value,
+                                }))
+                              }
+                              disabled={!canManage || status === "archived"}
+                              rows={2}
+                              placeholder={t("studentMessage.placeholder")}
+                              className="mt-2 w-full resize-y rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-amber-950">
+                              {t("due.label")}
+                            </label>
+
+                            <input
+                              type="datetime-local"
+                              value={
+                                a.data.dueAt && typeof a.data.dueAt === "object" && "toDate" in a.data.dueAt
+                                  ? new Date((a.data.dueAt as { toDate: () => Date }).toDate()).toISOString().slice(0, 16)
+                                  : ""
+                              }
+                              onChange={async (e) => {
+                                const val = e.target.value;
+
+                                if (!val) {
+                                  await updateDoc(doc(db, "spaces", spaceId, "lessons", a.id), {
+                                    dueAt: null,
+                                    updatedAt: Timestamp.now(),
+                                  });
+                                  return;
+                                }
+
+                                const date = new Date(val);
+
+                                await updateDoc(doc(db, "spaces", spaceId, "lessons", a.id), {
+                                  dueAt: Timestamp.fromDate(date),
+                                  updatedAt: Timestamp.now(),
+                                });
+                              }}
+                              disabled={!canManage || status === "archived"}
+                              className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => saveStudentMessage(a.id)}
+                            disabled={!canManage || status === "archived" || messageSavingId === a.id || messageSaved}
+                            className={[
+                              "rounded-xl px-3 py-2 text-sm font-semibold disabled:opacity-50",
+                              messageSaved
+                                ? "border border-amber-300 bg-white text-amber-900"
+                                : "bg-amber-600 text-white hover:bg-amber-700",
+                            ].join(" ")}
+                          >
+                            {messageSavingId === a.id
+                              ? t("studentMessage.saving")
+                              : messageSaved
+                                ? t("studentMessage.saved")
+                                : t("studentMessage.save")}
+                          </button>
+
+                          <span className="text-xs text-amber-900">
+                            {messageSaved ? t("studentMessage.editHint") : t("studentMessage.unsavedHint")}
+                          </span>
+
+                          {a.data.studentMessageUpdatedAt ? (
+                            <span className="text-xs text-amber-900">
+                              {t("studentMessage.lastSaved")}: {formatMaybeDate(a.data.studentMessageUpdatedAt)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:min-w-[340px]">
                       <button
                         type="button"
                         onClick={() => router.push(withLocale(locale, `/teacher/spaces/${spaceId}/lessons/${a.id}`))}
-                        className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                        className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 sm:col-span-2"
                       >
                         {t("actions.submissions")}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setActiveForStudents(a.id)}
-                        disabled={saving || !canManage || status === "archived"}
-                        className={[
-                          "rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50",
-                          isActiveForStudents
-                            ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800"
-                            : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
-                        ].join(" ")}
-                      >
-                        {t("actions.setActive")}
                       </button>
 
                       {status !== "archived" ? (

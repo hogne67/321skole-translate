@@ -7,8 +7,9 @@ import OpenAI from "openai";
 import { FieldValue } from "firebase-admin/firestore";
 
 type SourceType = "myContent" | "library";
-type TaskType = "mcq" | "truefalse" | "open";
+type TaskType = "mcq" | "truefalse" | "open" | "multiple_choice" | "text" | "writing" | "short_answer";
 type Role = "student" | "teacher" | "admin" | "parent" | "creator";
+type Lang = "no" | "en" | "pt";
 
 type Task = {
   id?: string;
@@ -77,7 +78,12 @@ type GeometryAutoResult = {
   byTaskId?: Record<string, GeometryTaskAuto>;
 };
 
-type Lang = "no" | "en" | "pt";
+type Body = {
+  spaceId: string;
+  assignmentId: string;
+  subId: string;
+  locale?: string;
+};
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
@@ -91,7 +97,7 @@ function getBearerToken(req: Request): string | null {
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
+  return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
 function safeString(v: unknown): string {
@@ -120,9 +126,8 @@ function safeTasksArray(tasks: unknown): Task[] {
 }
 
 function isMathWorksheet(value: unknown): value is MathWorksheet {
-  if (!value || typeof value !== "object") return false;
-  const v = value as { tasks?: unknown; title?: unknown };
-  return Array.isArray(v.tasks) && typeof v.title === "string";
+  if (!isRecord(value)) return false;
+  return Array.isArray(value.tasks) && typeof value.title === "string";
 }
 
 function hasAssignmentSnapshotContent(a: Record<string, unknown> | null): boolean {
@@ -145,7 +150,7 @@ function getStableTaskId(t: Task, idx: number): string {
 }
 
 function readAnswerMap(a: unknown): AnswersMap {
-  if (a && typeof a === "object" && !Array.isArray(a)) return a as AnswersMap;
+  if (isRecord(a)) return a;
   return {};
 }
 
@@ -160,9 +165,30 @@ function asText(v: unknown): string {
   }
 }
 
+function normalizeLocale(raw: string): Lang {
+  const v = (raw || "").toLowerCase().trim();
+  if (v === "en") return "en";
+  if (v === "pt" || v === "pt-br" || v === "pt_br") return "pt";
+  return "no";
+}
+
+function normalizeContentLanguage(raw: string): string {
+  const v = (raw || "").toLowerCase().trim();
+  if (!v) return "unknown";
+  if (v === "nb" || v === "nn" || v === "no" || v.includes("norsk") || v.includes("norwegian")) return "Norwegian";
+  if (v === "en" || v.includes("english")) return "English";
+  if (v === "pt" || v === "pt-br" || v === "pt_br" || v.includes("portugu")) return "Portuguese";
+  return raw;
+}
+
 function isOpenLike(type: string): boolean {
   const t = type.toLowerCase();
   return t === "open" || t === "text" || t === "writing" || t === "short_answer";
+}
+
+function isClosedChoiceLike(type: string): boolean {
+  const t = type.toLowerCase();
+  return t === "mcq" || t === "multiple_choice" || t === "truefalse" || t === "true_false";
 }
 
 function isReadingTestType(type: string): boolean {
@@ -173,6 +199,67 @@ function isReadingTestType(type: string): boolean {
     t === "best_summary" ||
     t === "fill_in_word"
   );
+}
+
+function readTaskAnswer(args: {
+  answers: AnswersMap;
+  answersByTaskId: AnswersMap;
+  task: Task;
+  stableId: string;
+  idx: number;
+}): string {
+  const { answers, answersByTaskId, task, stableId, idx } = args;
+
+  const id = task.id ? String(task.id).trim() : "";
+  const order = task.order != null ? String(task.order).trim() : "";
+
+  const candidates = [
+    answers[stableId],
+    answersByTaskId[stableId],
+    id ? answers[id] : undefined,
+    id ? answersByTaskId[id] : undefined,
+    order ? answers[order] : undefined,
+    order ? answersByTaskId[order] : undefined,
+    answers[`task_${idx + 1}`],
+    answersByTaskId[`task_${idx + 1}`],
+  ];
+
+  const raw = candidates.find((v) => v !== undefined && v !== null && asText(v).trim() !== "");
+  if (raw === undefined || raw === null) return "";
+
+  if (isRecord(raw)) {
+    const picked =
+      raw.answer ??
+      raw.value ??
+      raw.selected ??
+      raw.selectedAnswer ??
+      raw.selectedOption ??
+      raw.selectedOptionId ??
+      raw.optionId ??
+      raw.choice ??
+      raw.choiceId ??
+      raw.text;
+
+    return asText(picked ?? raw).trim();
+  }
+
+  return asText(raw).trim();
+}
+
+function summarizeChoiceTask(task: Task, rawAnswer: string, lang: Lang): string {
+  const t = getPromptText(lang);
+  const answer = rawAnswer.trim();
+  if (answer) return answer;
+
+  // Important: For closed tasks, missing text in this overview must not make AI claim the task was unanswered.
+  // The automatic result block is the source of truth for whether closed tasks were answered/correct.
+  if (isClosedChoiceLike(safeString(task.type))) {
+    if (lang === "pt") return "(respondido; veja os dados do resultado automático)";
+    if (lang === "en") return "(answered; see automatic result data)";
+    return "(besvart; se automatiske resultatdata)";
+  }
+
+  return t.notAnswered;
 }
 
 function pickModel(): string {
@@ -186,33 +273,26 @@ function requireEnv() {
 }
 
 function readLegacyRole(profile: Record<string, unknown>): Role | null {
-  const roles = profile["roles"];
+  const roles = profile.roles;
   if (!isRecord(roles)) return null;
 
-  if (roles["admin"] === true) return "admin";
-  if (roles["teacher"] === true) return "teacher";
-  if (roles["creator"] === true) return "creator";
-  if (roles["parent"] === true) return "parent";
-  if (roles["student"] === true) return "student";
+  if (roles.admin === true) return "admin";
+  if (roles.teacher === true) return "teacher";
+  if (roles.creator === true) return "creator";
+  if (roles.parent === true) return "parent";
+  if (roles.student === true) return "student";
   return null;
 }
 
 function readRole(profile: unknown): Role | null {
   if (!isRecord(profile)) return null;
 
-  const r = profile["role"];
+  const r = profile.role;
   if (r === "student" || r === "teacher" || r === "admin" || r === "parent" || r === "creator") {
     return r;
   }
 
   return readLegacyRole(profile);
-}
-
-function normalizeLocale(raw: string): Lang {
-  const v = (raw || "").toLowerCase().trim();
-  if (v === "en") return "en";
-  if (v === "pt" || v === "pt-br" || v === "pt_br") return "pt";
-  return "no";
 }
 
 function countWords(text: string): number {
@@ -356,6 +436,8 @@ function getPromptText(lang: Lang) {
 
       lessonTitle: "Lesson title",
       level: "Level",
+      feedbackLanguage: "Feedback language",
+      contentLanguage: "Task/content language",
       languageHint: "Language hint",
       cefrLevel: "CEFR level",
       isReadingTest: "Is reading test",
@@ -393,14 +475,19 @@ function getPromptText(lang: Lang) {
       perimeterCorrect: "Perimeter correct",
       areaCorrect: "Area correct",
 
+      languageSafetyInstruction:
+        "The interface/feedback language may differ from the task/content language. Do not treat language mismatch as missing, wrong, or unanswered work.",
+      closedTaskSafetyInstruction:
+        "If automatic result data shows that closed tasks were answered, do not claim that multiple-choice or true/false tasks were unanswered, even if detailed answer text is missing from the task overview.",
+
       geometryInstruction:
-        "Write teacher feedback for the student in the required structure. Use the auto-check actively. Mention what the student understands, what is partly correct or wrong, and what should be practised next. Write the headings in the same language as the chosen locale.",
+        "Write teacher feedback for the student in the required structure. Use the auto-check actively. Mention what the student understands, what is partly correct or wrong, and what should be practised next. Write the headings in the same language as the feedback language.",
 
       readingInstruction:
-        "Write teacher feedback in the required structure. Base the reading assessment mainly on the auto result. Use time only as a cautious supporting signal. Evaluate whether short open answers are sufficient for the task itself, and when they are too thin, give concrete advice for how the student can improve them. Write the headings in the same language as the chosen locale.",
+        "Write teacher feedback in the required structure. Base the reading assessment mainly on the auto result. Use time only as a cautious supporting signal. Evaluate whether short open answers are sufficient for the task itself, and when they are too thin, give concrete advice for how the student can improve them. Write the headings in the same language as the feedback language.",
 
       generalInstruction:
-        "Write short teacher feedback in the required structure. Focus on whether the student has understood the task, answered relevantly, and responded to the open tasks. Use automatic result data as support when it exists. In the language section, comment on grammar and point out concrete errors that should be corrected. Judge short answers in light of what the task asks for. If short answers are acceptable for that task, say so. If the answer is too thin for the task, explain what is missing and give concrete advice on how the student can expand or improve it. Write the headings in the same language as the chosen locale. Do not set a CEFR level.",
+        "Write short teacher feedback in the required structure. Focus on whether the student has understood the task, answered relevantly, and responded to the open tasks. Use automatic result data as support when it exists. In the language section, comment on grammar and point out concrete errors that should be corrected. Judge short answers in light of what the task asks for. If short answers are acceptable for that task, say so. If the answer is too thin for the task, explain what is missing and give concrete advice on how the student can expand or improve it. Write the headings in the same language as the feedback language. Do not set a CEFR level.",
     };
   }
 
@@ -418,6 +505,8 @@ function getPromptText(lang: Lang) {
 
       lessonTitle: "Título da atividade",
       level: "Nível",
+      feedbackLanguage: "Idioma do feedback",
+      contentLanguage: "Idioma da tarefa/do conteúdo",
       languageHint: "Indicação de idioma",
       cefrLevel: "Nível CEFR",
       isReadingTest: "É teste de leitura",
@@ -455,14 +544,19 @@ function getPromptText(lang: Lang) {
       perimeterCorrect: "Perímetro correto",
       areaCorrect: "Área correta",
 
+      languageSafetyInstruction:
+        "O idioma da interface/do feedback pode ser diferente do idioma da tarefa/do conteúdo. Não trate diferença de idioma como resposta ausente, errada ou não respondida.",
+      closedTaskSafetyInstruction:
+        "Se os dados do resultado automático mostram que as tarefas fechadas foram respondidas, não diga que tarefas de múltipla escolha ou verdadeiro/falso ficaram sem resposta, mesmo que o texto detalhado da resposta esteja ausente na visão geral das tarefas.",
+
       geometryInstruction:
-        "Escreva um feedback do professor para o aluno na estrutura exigida. Use ativamente a autocorreção. Diga o que o aluno compreende, o que está parcialmente correto ou errado e o que deve praticar a seguir. Escreva os títulos no mesmo idioma do locale escolhido.",
+        "Escreva um feedback do professor para o aluno na estrutura exigida. Use ativamente a autocorreção. Diga o que o aluno compreende, o que está parcialmente correto ou errado e o que deve praticar a seguir. Escreva os títulos no mesmo idioma do feedback.",
 
       readingInstruction:
-        "Escreva um feedback do professor na estrutura exigida. Baseie a avaliação de leitura principalmente no resultado automático. Use o tempo apenas como um sinal de apoio cuidadoso. Avalie se respostas abertas curtas são suficientes para a própria tarefa e, quando forem curtas demais, dê conselhos concretos sobre como o aluno pode melhorá-las. Escreva os títulos no mesmo idioma do locale escolhido.",
+        "Escreva um feedback do professor na estrutura exigida. Baseie a avaliação de leitura principalmente no resultado automático. Use o tempo apenas como um sinal de apoio cuidadoso. Avalie se respostas abertas curtas são suficientes para a própria tarefa e, quando forem curtas demais, dê conselhos concretos sobre como o aluno pode melhorá-las. Escreva os títulos no mesmo idioma do feedback.",
 
       generalInstruction:
-        "Escreva um feedback curto do professor na estrutura exigida. Foque se o aluno compreendeu a tarefa, respondeu de forma relevante e respondeu às tarefas abertas. Use dados automáticos como apoio quando existirem. Na parte de linguagem, comente a gramática e aponte erros concretos que devem ser corrigidos. Julgue respostas curtas de acordo com o que a tarefa pede. Se respostas curtas forem aceitáveis para aquela tarefa, diga isso. Se a resposta estiver pobre demais para a tarefa, explique o que falta e dê conselhos concretos sobre como o aluno pode ampliar ou melhorar a resposta. Escreva os títulos no mesmo idioma do locale escolhido. Não defina nível CEFR.",
+        "Escreva um feedback curto do professor na estrutura exigida. Foque se o aluno compreendeu a tarefa, respondeu de forma relevante e respondeu às tarefas abertas. Use dados automáticos como apoio quando existirem. Na parte de linguagem, comente a gramática e aponte erros concretos que devem ser corrigidos. Julgue respostas curtas de acordo com o que a tarefa pede. Se respostas curtas forem aceitáveis para aquela tarefa, diga isso. Se a resposta estiver pobre demais para a tarefa, explique o que falta e dê conselhos concretos sobre como o aluno pode ampliar ou melhorar a resposta. Escreva os títulos no mesmo idioma do feedback. Não defina nível CEFR.",
     };
   }
 
@@ -479,6 +573,8 @@ function getPromptText(lang: Lang) {
 
     lessonTitle: "Tittel",
     level: "Nivå",
+    feedbackLanguage: "Feedbackspråk",
+    contentLanguage: "Oppgave-/innholdsspråk",
     languageHint: "Språkhint",
     cefrLevel: "CEFR-nivå",
     isReadingTest: "Er lesetest",
@@ -516,19 +612,34 @@ function getPromptText(lang: Lang) {
     perimeterCorrect: "Omkrets riktig",
     areaCorrect: "Areal riktig",
 
+    languageSafetyInstruction:
+      "Språket i grensesnittet/feedbacken kan være forskjellig fra språket i oppgaven/innholdet. Ikke tolk språkforskjell som manglende, feil eller ubesvart arbeid.",
+    closedTaskSafetyInstruction:
+      "Hvis automatiske resultatdata viser at lukkede oppgaver er besvart, skal du ikke si at flervalg eller sant/usant er ubesvart, selv om detaljert svartekst mangler i oppgaveoversikten.",
+
     geometryInstruction:
-      "Skriv lærerfeedback til eleven i den påkrevde strukturen. Bruk autokorrekturen aktivt. Nevn hva eleven forstår, hva som er delvis riktig eller feil, og hva eleven bør øve på videre. Skriv overskriftene på samme språk som valgt locale.",
+      "Skriv lærerfeedback til eleven i den påkrevde strukturen. Bruk autokorrekturen aktivt. Nevn hva eleven forstår, hva som er delvis riktig eller feil, og hva eleven bør øve på videre. Skriv overskriftene på samme språk som feedbackspråket.",
 
     readingInstruction:
-      "Skriv lærerfeedback i den påkrevde strukturen. Basér lesevurderingen hovedsakelig på autoresultatet. Bruk tid bare som et forsiktig støttesignal. Vurder om korte åpne svar er tilstrekkelige for selve oppgaven, og når de er for tynne, gi konkrete råd om hvordan eleven kan forbedre dem. Skriv overskriftene på samme språk som valgt locale.",
+      "Skriv lærerfeedback i den påkrevde strukturen. Basér lesevurderingen hovedsakelig på autoresultatet. Bruk tid bare som et forsiktig støttesignal. Vurder om korte åpne svar er tilstrekkelige for selve oppgaven, og når de er for tynne, gi konkrete råd om hvordan eleven kan forbedre dem. Skriv overskriftene på samme språk som feedbackspråket.",
 
     generalInstruction:
-      "Skriv kort lærerfeedback i den påkrevde strukturen. Fokuser på om eleven har forstått oppgaven, svart relevant og besvart de åpne oppgavene. Bruk automatiske resultatdata som støtte når de finnes. I språkseksjonen skal du kommentere grammatikk og peke på konkrete feil som bør rettes. Vurder korte svar ut fra hva oppgaven ber om. Hvis korte svar er akseptable for den oppgaven, si det. Hvis svaret er for tynt i forhold til oppgaven, forklar hva som mangler og gi konkrete råd om hvordan eleven kan utvide eller forbedre svaret. Skriv overskriftene på samme språk som valgt locale. Ikke sett CEFR-nivå.",
+      "Skriv kort lærerfeedback i den påkrevde strukturen. Fokuser på om eleven har forstått oppgaven, svart relevant og besvart de åpne oppgavene. Bruk automatiske resultatdata som støtte når de finnes. I språkseksjonen skal du kommentere grammatikk og peke på konkrete feil som bør rettes. Vurder korte svar ut fra hva oppgaven ber om. Hvis korte svar er akseptable for den oppgaven, si det. Hvis svaret er for tynt i forhold til oppgaven, forklar hva som mangler og gi konkrete råd om hvordan eleven kan utvide eller forbedre svaret. Skriv overskriftene på samme språk som feedbackspråket. Ikke sett CEFR-nivå.",
   };
+}
+
+function buildCommonSafetyLines(lang: Lang): string[] {
+  const t = getPromptText(lang);
+  return [
+    `- ${t.languageSafetyInstruction}`,
+    `- ${t.closedTaskSafetyInstruction}`,
+    "- Automatic result data is the source of truth for closed tasks such as multiple-choice and true/false.",
+  ];
 }
 
 function buildReadingSystemPrompt(lang: Lang) {
   const headings = getReadingHeadings(lang);
+  const safety = buildCommonSafetyLines(lang);
 
   if (lang === "en") {
     return [
@@ -541,6 +652,7 @@ function buildReadingSystemPrompt(lang: Lang) {
       "",
       "IMPORTANT:",
       "- Base the reading assessment mainly on automatic results.",
+      ...safety,
       "- Time is only a supportive signal, never proof by itself.",
       "- If open answers exist, assess them briefly too.",
       "- Evaluate short open answers in light of what the task actually asks for.",
@@ -573,6 +685,7 @@ function buildReadingSystemPrompt(lang: Lang) {
       "",
       "IMPORTANTE:",
       "- Baseie a avaliação de leitura principalmente no resultado automático.",
+      ...safety,
       "- O tempo é apenas um sinal de apoio, nunca uma prova por si só.",
       "- Se houver respostas abertas, avalie-as brevemente também.",
       "- Avalie respostas curtas de acordo com o que a tarefa realmente pede.",
@@ -604,6 +717,7 @@ function buildReadingSystemPrompt(lang: Lang) {
     "",
     "VIKTIG:",
     "- Lesetest vurderes først og fremst ut fra autoresultat.",
+    ...safety,
     "- Tidsbruk er bare et støttesignal.",
     "- Hvis åpne svar finnes, vurder dem kort også.",
     "- Vurder korte åpne svar ut fra hva oppgaven faktisk ber om.",
@@ -628,6 +742,7 @@ function buildReadingSystemPrompt(lang: Lang) {
 
 function buildGeneralSystemPrompt(lang: Lang) {
   const headings = getGeneralHeadings(lang);
+  const safety = buildCommonSafetyLines(lang);
 
   if (lang === "en") {
     return [
@@ -639,6 +754,7 @@ function buildGeneralSystemPrompt(lang: Lang) {
       "Do NOT write a full corrected version of the whole text.",
       "",
       "IMPORTANT:",
+      ...safety,
       "- Evaluate open answers in light of what the task actually asks for.",
       "- Short answers can be good enough when the task asks for facts, simple statements, keywords, or a limited number of short sentences.",
       "- Expect more content when the task asks the student to explain, justify, compare, reflect, describe causes and consequences, or write more connected text.",
@@ -670,6 +786,7 @@ function buildGeneralSystemPrompt(lang: Lang) {
       "Não escreva uma versão completa corrigida do texto inteiro.",
       "",
       "IMPORTANTE:",
+      ...safety,
       "- Avalie respostas abertas de acordo com o que a tarefa realmente pede.",
       "- Respostas curtas podem ser suficientes quando a tarefa pede fatos, frases simples, palavras-chave ou um número limitado de frases curtas.",
       "- Espere mais conteúdo quando a tarefa pedir explicação, justificativa, comparação, reflexão, causas e consequências ou um texto mais conectado.",
@@ -700,6 +817,7 @@ function buildGeneralSystemPrompt(lang: Lang) {
     "Ikke skriv en fullstendig korrigert versjon av hele teksten.",
     "",
     "VIKTIG:",
+    ...safety,
     "- Vurder åpne svar ut fra hva oppgaven faktisk ber om.",
     "- Korte svar kan være gode nok når oppgaven ber om fakta, enkle setninger, nøkkelord eller et begrenset antall korte svar.",
     "- Forvent mer innhold når oppgaven ber eleven forklare, begrunne, sammenligne, reflektere, beskrive årsaker og virkninger eller skrive mer sammenhengende tekst.",
@@ -723,6 +841,7 @@ function buildGeneralSystemPrompt(lang: Lang) {
 
 function buildGeometrySystemPrompt(lang: Lang) {
   const headings = getGeometryHeadings(lang);
+  const safety = buildCommonSafetyLines(lang);
 
   if (lang === "en") {
     return [
@@ -733,6 +852,9 @@ function buildGeometrySystemPrompt(lang: Lang) {
       "Mention what the student got right, what needs improvement, and what to practice next.",
       "Do not invent scores that are not provided.",
       "Do not explain every single task in detail.",
+      "",
+      "IMPORTANT:",
+      ...safety,
       "",
       "FORMATTING:",
       "- Use plain text headings only.",
@@ -754,6 +876,9 @@ function buildGeometrySystemPrompt(lang: Lang) {
       "Fale diretamente com o aluno usando 'você'.",
       "Seja encorajador, concreto e breve.",
       "Use ativamente o resultado da autocorreção de geometria.",
+      "",
+      "IMPORTANTE:",
+      ...safety,
       "",
       "FORMATAÇÃO:",
       "- Use títulos em texto simples.",
@@ -777,6 +902,9 @@ function buildGeometrySystemPrompt(lang: Lang) {
     "Trekk fram hva eleven har fått til, hva som bør forbedres, og hva neste øvingspunkt bør være.",
     "Ikke forklar hver enkelt oppgave i detalj.",
     "",
+    "VIKTIG:",
+    ...safety,
+    "",
     "FORMATERING:",
     "- Bruk rene overskrifter som vanlig tekst.",
     "- Ikke bruk markdown.",
@@ -794,14 +922,13 @@ function buildGeometrySystemPrompt(lang: Lang) {
 function summarizeAutoResult(auto: unknown, lang: Lang): string {
   const t = getPromptText(lang);
 
-  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return t.notProvided;
+  if (!isRecord(auto)) return t.notProvided;
 
-  const rec = auto as Record<string, unknown>;
-  const totalAuto = safeNumber(rec.totalAuto);
-  const correctAuto = safeNumber(rec.correctAuto);
-  const wrongAuto = safeNumber(rec.wrongAuto);
-  const unansweredAuto = safeNumber(rec.unansweredAuto);
-  const percentAuto = safeNumber(rec.percentAuto);
+  const totalAuto = safeNumber(auto.totalAuto);
+  const correctAuto = safeNumber(auto.correctAuto);
+  const wrongAuto = safeNumber(auto.wrongAuto);
+  const unansweredAuto = safeNumber(auto.unansweredAuto);
+  const percentAuto = safeNumber(auto.percentAuto);
 
   if (
     totalAuto == null &&
@@ -829,15 +956,14 @@ function summarizeAutoResult(auto: unknown, lang: Lang): string {
 function summarizeGeometryAuto(auto: unknown, lang: Lang): string {
   const t = getPromptText(lang);
 
-  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return t.notProvided;
+  if (!isRecord(auto)) return t.notProvided;
 
-  const rec = auto as Record<string, unknown>;
-  const total = safeNumber(rec.total);
-  const correct = safeNumber(rec.correct);
-  const partial = safeNumber(rec.partial);
-  const wrong = safeNumber(rec.wrong);
-  const unanswered = safeNumber(rec.unanswered);
-  const percent = safeNumber(rec.percent);
+  const total = safeNumber(auto.total);
+  const correct = safeNumber(auto.correct);
+  const partial = safeNumber(auto.partial);
+  const wrong = safeNumber(auto.wrong);
+  const unanswered = safeNumber(auto.unanswered);
+  const percent = safeNumber(auto.percent);
 
   return [
     `total: ${total ?? t.unknown}`,
@@ -865,11 +991,7 @@ function summarizeGeometryWorksheet(
     .map((task, idx) => {
       const taskId = safeString(task.id).trim() || `task_${idx + 1}`;
       const answerRaw = answersByTaskId[taskId];
-      const answer =
-        answerRaw && typeof answerRaw === "object" && !Array.isArray(answerRaw)
-          ? (answerRaw as GeometryAnswerRow)
-          : {};
-
+      const answer = isRecord(answerRaw) ? (answerRaw as GeometryAnswerRow) : {};
       const autoByTask = geometryAuto?.byTaskId?.[taskId];
 
       const lines = [
@@ -897,8 +1019,28 @@ function summarizeGeometryWorksheet(
     .join("\n\n");
 }
 
+function buildLanguageContextBlock(args: {
+  lang: Lang;
+  contentLanguage: string;
+  languageHint: string;
+}): string {
+  const { lang, contentLanguage, languageHint } = args;
+  const t = getPromptText(lang);
+
+  return [
+    `${t.feedbackLanguage}: ${lang}`,
+    `${t.contentLanguage}: ${contentLanguage}`,
+    languageHint ? `${t.languageHint}: ${languageHint}` : "",
+    `IMPORTANT: ${t.languageSafetyInstruction}`,
+    `IMPORTANT: ${t.closedTaskSafetyInstruction}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function buildGeometryUserContent(args: {
   lang: Lang;
+  contentLanguage: string;
   lessonTitle: string;
   level: string;
   languageHint: string;
@@ -906,13 +1048,13 @@ function buildGeometryUserContent(args: {
   geometryAuto: GeometryAutoResult | null;
   answersByTaskId: AnswersMap;
 }) {
-  const { lang, lessonTitle, level, languageHint, mathWorksheet, geometryAuto, answersByTaskId } = args;
+  const { lang, contentLanguage, lessonTitle, level, languageHint, mathWorksheet, geometryAuto, answersByTaskId } = args;
   const t = getPromptText(lang);
 
   return (
+    `${buildLanguageContextBlock({ lang, contentLanguage, languageHint })}\n\n` +
     `${t.worksheetTitle}: ${mathWorksheet?.title || lessonTitle}\n` +
-    `${t.level}: ${level}\n` +
-    (languageHint ? `${t.languageHint}: ${languageHint}\n` : "") +
+    `${t.level}: ${level}\n\n` +
     `${t.geometryAutoSummary}:\n${summarizeGeometryAuto(geometryAuto, lang)}\n\n` +
     `${t.geometryTasksAndAnswers}:\n${summarizeGeometryWorksheet(mathWorksheet, answersByTaskId, geometryAuto, lang)}\n\n` +
     `${t.instruction}:\n${t.geometryInstruction}`
@@ -921,6 +1063,7 @@ function buildGeometryUserContent(args: {
 
 function buildReadingUserContent(args: {
   lang: Lang;
+  contentLanguage: string;
   level: string;
   languageHint: string;
   lessonTitle: string;
@@ -930,12 +1073,23 @@ function buildReadingUserContent(args: {
   taskOverviewBlock: string;
   openTasksBlock: string;
 }) {
-  const { lang, level, languageHint, lessonTitle, autoResultat, sourceText, readingModeBlock, taskOverviewBlock, openTasksBlock } = args;
+  const {
+    lang,
+    contentLanguage,
+    level,
+    languageHint,
+    lessonTitle,
+    autoResultat,
+    sourceText,
+    readingModeBlock,
+    taskOverviewBlock,
+    openTasksBlock,
+  } = args;
   const t = getPromptText(lang);
 
   return (
+    `${buildLanguageContextBlock({ lang, contentLanguage, languageHint })}\n\n` +
     `${t.cefrLevel}: ${level}\n` +
-    (languageHint ? `${t.languageHint}: ${languageHint}\n` : "") +
     `${t.lessonTitle}: ${lessonTitle}\n` +
     `${t.isReadingTest}: ${lang === "pt" ? "sim" : lang === "en" ? "yes" : "ja"}\n\n` +
     `${t.autoResult}:\n${autoResultat || t.notProvided}\n\n` +
@@ -949,6 +1103,7 @@ function buildReadingUserContent(args: {
 
 function buildGeneralUserContent(args: {
   lang: Lang;
+  contentLanguage: string;
   languageHint: string;
   lessonTitle: string;
   autoResultat: string;
@@ -956,11 +1111,11 @@ function buildGeneralUserContent(args: {
   taskOverviewBlock: string;
   openTasksBlock: string;
 }) {
-  const { lang, languageHint, lessonTitle, autoResultat, sourceText, taskOverviewBlock, openTasksBlock } = args;
+  const { lang, contentLanguage, languageHint, lessonTitle, autoResultat, sourceText, taskOverviewBlock, openTasksBlock } = args;
   const t = getPromptText(lang);
 
   return (
-    (languageHint ? `${t.languageHint}: ${languageHint}\n` : "") +
+    `${buildLanguageContextBlock({ lang, contentLanguage, languageHint })}\n\n` +
     `${t.lessonTitle}: ${lessonTitle}\n` +
     `${t.taskType}: ${t.normalTask}\n\n` +
     `${t.autoResult}:\n${autoResultat || t.notProvided}\n\n` +
@@ -970,13 +1125,6 @@ function buildGeneralUserContent(args: {
     `${t.instruction}:\n${t.generalInstruction}`
   );
 }
-
-type Body = {
-  spaceId: string;
-  assignmentId: string;
-  subId: string;
-  locale?: string;
-};
 
 export async function POST(req: Request) {
   try {
@@ -989,6 +1137,8 @@ export async function POST(req: Request) {
     const spaceId = safeString(body.spaceId).trim();
     const assignmentId = safeString(body.assignmentId).trim();
     const subId = safeString(body.subId).trim();
+
+    // This is the UI/feedback language, not necessarily the language of the task/content.
     const locale = normalizeLocale(safeString(body.locale || "no"));
 
     if (!spaceId || !assignmentId || !subId) {
@@ -1050,15 +1200,16 @@ export async function POST(req: Request) {
     const lessonTitle = safeString(lesson.title) || safeString(assignment.title) || "Oppgave";
     const level = safeString(lesson.level) || safeString(assignment.level) || "A2";
     const languageHint = safeString(lesson.language) || safeString(assignment.language) || "";
+    const contentLanguage = normalizeContentLanguage(languageHint || safeString(lesson.locale) || safeString(assignment.locale) || "");
 
     const lessonType = safeString(lesson.lessonType || assignment.lessonType).toLowerCase().trim();
     const taskType = safeString(lesson.taskType || assignment.taskType).toLowerCase().trim();
     const mathWorksheet = isMathWorksheet(lesson.mathWorksheet) ? (lesson.mathWorksheet as MathWorksheet) : null;
 
-    const isGeometry =
-      lessonType === "math_geometry" ||
-      taskType === "math_geometry" ||
-      !!mathWorksheet;
+    const isGeometry = lessonType === "math_geometry" || taskType === "math_geometry" || !!mathWorksheet;
+
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const model = pickModel();
 
     if (isGeometry) {
       const answersByTaskId = readAnswerMap(subDoc.answersByTaskId);
@@ -1067,6 +1218,7 @@ export async function POST(req: Request) {
       const systemPrompt = buildGeometrySystemPrompt(locale);
       const userContent = buildGeometryUserContent({
         lang: locale,
+        contentLanguage,
         lessonTitle,
         level,
         languageHint,
@@ -1074,9 +1226,6 @@ export async function POST(req: Request) {
         geometryAuto,
         answersByTaskId,
       });
-
-      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const model = pickModel();
 
       const resp = await client.responses.create({
         model,
@@ -1111,6 +1260,7 @@ export async function POST(req: Request) {
     const t = getPromptText(locale);
     const tasks = safeTasksArray(lesson.tasks);
     const answers = readAnswerMap(subDoc.answers);
+    const answersByTaskId = readAnswerMap(subDoc.answersByTaskId);
 
     const openItems = tasks
       .slice()
@@ -1121,7 +1271,7 @@ export async function POST(req: Request) {
         if (!isOpenLike(type)) return null;
 
         const prompt = safeString(task?.prompt);
-        const ans = asText(answers[stableId]).trim();
+        const ans = readTaskAnswer({ answers, answersByTaskId, task, stableId, idx });
 
         return {
           n: Number(task?.order ?? idx + 1),
@@ -1142,18 +1292,14 @@ export async function POST(req: Request) {
     const autoResultat = summarizeAutoResult(subDoc.auto, locale);
 
     const readingTimeLimitSeconds = safeNumber(subDoc.readingTestTimeLimitSeconds);
-    const readingTimeUsedSeconds =
-      safeNumber(subDoc.readingTestTimeUsedSeconds) ?? safeNumber(subDoc.timeSpentSeconds);
+    const readingTimeUsedSeconds = safeNumber(subDoc.readingTestTimeUsedSeconds) ?? safeNumber(subDoc.timeSpentSeconds);
     const readingTimedOut = safeBoolean(subDoc.readingTestTimedOut);
     const readingSubmittedManually = safeBoolean(subDoc.readingTestSubmittedManually);
 
     const timeSignal = buildTimeSignal(sourceWordCount, readingTimeUsedSeconds);
-    const isReadingTest =
-      safeString(lesson.lessonType).toLowerCase() === "reading_test" || readingTasks.length > 0;
+    const isReadingTest = lessonType === "reading_test" || readingTasks.length > 0;
 
-    const systemPrompt = isReadingTest
-      ? buildReadingSystemPrompt(locale)
-      : buildGeneralSystemPrompt(locale);
+    const systemPrompt = isReadingTest ? buildReadingSystemPrompt(locale) : buildGeneralSystemPrompt(locale);
 
     const openTasksBlock =
       openItems.length > 0
@@ -1188,7 +1334,9 @@ export async function POST(req: Request) {
             const type = safeString(task.type || "open");
             const stableId = getStableTaskId(task, idx);
             const prompt = safeString(task.prompt);
-            const answer = asText(answers[stableId]).trim() || t.notAnswered;
+            const rawAnswer = readTaskAnswer({ answers, answersByTaskId, task, stableId, idx });
+            const answer = summarizeChoiceTask(task, rawAnswer, locale);
+
             return `#${task.order ?? idx + 1} [${type}] ${prompt || t.noPrompt}\n${t.answer}: ${answer}`;
           })
           .join("\n\n")
@@ -1197,6 +1345,7 @@ export async function POST(req: Request) {
     const userContent = isReadingTest
       ? buildReadingUserContent({
         lang: locale,
+        contentLanguage,
         level,
         languageHint,
         lessonTitle,
@@ -1208,6 +1357,7 @@ export async function POST(req: Request) {
       })
       : buildGeneralUserContent({
         lang: locale,
+        contentLanguage,
         languageHint,
         lessonTitle,
         autoResultat,
@@ -1215,9 +1365,6 @@ export async function POST(req: Request) {
         taskOverviewBlock,
         openTasksBlock,
       });
-
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const model = pickModel();
 
     const resp = await client.responses.create({
       model,

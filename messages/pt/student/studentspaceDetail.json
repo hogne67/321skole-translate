@@ -78,6 +78,11 @@
       "readSubmissions": "Não foi possível carregar as entregas",
       "archiveMove": "Não foi possível mover para o arquivo",
       "archiveRestore": "Não foi possível restaurar"
+    },
+    "due": {
+      "label": "Prazo",
+      "soon": "Prazo próximo",
+      "overdue": "Prazo vencido"
     }
   }
 }

@@ -181,21 +181,21 @@ export function getBucketLimit(
 
   if (bucket === "premium_generators") {
     if (role === "teacher" || role === "creator") {
-      if (plan === "free") return 25;
-      if (plan === "basic") return 50;
-      if (plan === "plus") return 150;
+      if (plan === "free") return 50;
+      if (plan === "basic") return 25;
+      if (plan === "plus") return 100;
       if (plan === "pro") return 500;
     }
 
     if (role === "student") {
-      if (plan === "free") return 5;
+      if (plan === "free") return 3;
       if (plan === "basic") return 10;
       if (plan === "plus") return 25;
       if (plan === "pro") return 100;
     }
 
     if (role === "parent") {
-      if (plan === "free") return 5;
+      if (plan === "free") return 3;
       if (plan === "basic") return 5;
       if (plan === "plus") return 20;
       if (plan === "pro") return 100;
@@ -204,14 +204,14 @@ export function getBucketLimit(
 
   if (bucket === "image_generation") {
     if (role === "teacher" || role === "creator") {
-      if (plan === "free") return 15;
+      if (plan === "free") return 30;
       if (plan === "basic") return 50;
-      if (plan === "plus") return 200;
+      if (plan === "plus") return 100;
       if (plan === "pro") return 1000;
     }
 
     if (role === "student" || role === "parent") {
-      if (plan === "free") return 2;
+      if (plan === "free") return 1;
       if (plan === "basic") return 10;
       if (plan === "plus") return 50;
       if (plan === "pro") return 150;
@@ -220,14 +220,14 @@ export function getBucketLimit(
 
   if (bucket === "ai_feedback") {
     if (role === "teacher" || role === "creator") {
-      if (plan === "free") return 20;
+      if (plan === "free") return 5;
       if (plan === "basic") return 100;
-      if (plan === "plus") return 300;
+      if (plan === "plus") return 200;
       if (plan === "pro") return 1000;
     }
 
     if (role === "student") {
-      if (plan === "free") return 5;
+      if (plan === "free") return 3;
       if (plan === "basic") return 30;
       if (plan === "plus") return 100;
       if (plan === "pro") return 300;
@@ -266,10 +266,10 @@ export function getBucketLimit(
 
   if (bucket === "members") {
     if (role === "teacher" || role === "creator") {
-      if (plan === "free") return 30;
+      if (plan === "free") return 15;
       if (plan === "basic") return 25;
       if (plan === "plus") return 75;
-      if (plan === "pro") return 150;
+      if (plan === "pro") return 200;
     }
 
     return 0;

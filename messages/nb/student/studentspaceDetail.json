@@ -78,6 +78,11 @@
       "readSubmissions": "Kunne ikke laste innleveringer",
       "archiveMove": "Kunne ikke flytte til arkiv",
       "archiveRestore": "Kunne ikke gjenopprette"
+    },
+    "due": {
+      "label": "Frist",
+      "soon": "Snart frist",
+      "overdue": "Forfalt"
     }
   }
 }
