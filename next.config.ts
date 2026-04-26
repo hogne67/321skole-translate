@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
             value: "321skole.no",
           },
         ],
-        destination: "https://321school.com/nb/:path*",
+        destination: "https://321school.com/nb",
         permanent: true,
       },
       {
@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
             value: "www.321skole.no",
           },
         ],
-        destination: "https://321school.com/nb/:path*",
+        destination: "https://321school.com/nb",
         permanent: true,
       },
     ];
