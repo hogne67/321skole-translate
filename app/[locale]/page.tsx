@@ -136,6 +136,18 @@ async function getPublishedLessonCount(): Promise<number> {
   }
 }
 
+function languageRank(language: string | undefined, locale: string) {
+  const lang = (language ?? "").toLowerCase();
+
+  if (lang === locale) return 0;
+  if (locale === "nb" && lang === "no") return 0;
+
+  const order = ["nb", "en", "pt"];
+  const index = order.indexOf(lang);
+
+  return index === -1 ? 99 : index + 1;
+}
+
 async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
   try {
     const { db } = getAdmin();
@@ -143,7 +155,7 @@ async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
     const snap = await db
       .collection("published_lessons")
       .orderBy("createdAt", "desc")
-      .limit(40)
+      .limit(80)
       .get();
 
     const items: FeaturedLesson[] = [];
@@ -192,15 +204,24 @@ async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
       return true;
     });
 
-    if (unique.length > 0) return unique;
+    const sorted = unique.sort((a, b) => {
+      const langDiff =
+        languageRank(a.language, locale) - languageRank(b.language, locale);
 
-    return getFallbackLessons();
+      if (langDiff !== 0) return langDiff;
+
+      return a.title.localeCompare(b.title, locale);
+    });
+
+    if (sorted.length > 0) return sorted;
+
+    return getFallbackLessons(locale);
   } catch {
     return getFallbackLessons();
   }
 }
 
-function getFallbackLessons(): FeaturedLesson[] {
+function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
   return [
     {
       id: "1",
@@ -298,7 +319,14 @@ function getFallbackLessons(): FeaturedLesson[] {
       textType: "reading",
       image: "/landing/parents_study.jpg",
     },
-  ];
+  ].sort((a, b) => {
+    const langDiff =
+      languageRank(a.language, locale) - languageRank(b.language, locale);
+
+    if (langDiff !== 0) return langDiff;
+
+    return a.title.localeCompare(b.title, locale);
+  });
 }
 
 export default async function HomePage() {
@@ -675,7 +703,10 @@ function LibraryCard(props: { item: FeaturedLesson; locale: string }) {
       : locale;
 
   return (
-    <Link href={`/${lessonLocale}/student/lesson/${item.id}`} className="library-card">
+    <Link
+      href={`/${lessonLocale}/student/lesson/${item.id}`}
+      className="library-card scale-[0.7] md:scale-100"
+    >
       <div className="library-card-inner">
         {item.image ? (
           <img src={item.image} alt={item.title} loading="lazy" />
