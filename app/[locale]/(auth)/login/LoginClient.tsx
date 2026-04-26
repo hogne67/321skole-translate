@@ -16,6 +16,7 @@ import { auth } from "@/lib/firebase";
 import { signInWithGoogle, signInWithEmail, signUpWithEmail } from "@/lib/auth";
 import { linkAnonymousWithGoogle, linkAnonymousWithEmailPassword } from "@/lib/anonAuth";
 import { useLocale, useTranslations } from "next-intl";
+import { trackSignUp } from "@/lib/analytics";
 
 function toErrorString(err: unknown): string {
   if (!err) return "";
@@ -172,8 +173,13 @@ export default function LoginClient() {
 
       if (isAnon) {
         await linkAnonymousWithGoogle();
+        trackSignUp("anonymous_upgrade");
       } else {
         await signInWithGoogle();
+
+        if (mode === "signup") {
+          trackSignUp("google");
+        }
       }
 
       router.replace(postLoginUrl);
@@ -224,11 +230,13 @@ export default function LoginClient() {
 
       if (isAnon) {
         await linkAnonymousWithEmailPassword(e, password);
+        trackSignUp("anonymous_upgrade");
         router.replace(postLoginUrl);
         return;
       }
 
       await signUpWithEmail(e, password, displayName.trim());
+      trackSignUp("email");
 
       try {
         await fetch("/api/email/welcome", {

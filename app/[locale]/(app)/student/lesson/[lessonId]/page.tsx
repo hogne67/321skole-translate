@@ -22,6 +22,7 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { useUsage } from "@/lib/useUsage";
 import { getBucketLimit, type PlanKey } from "@/lib/featureAccess";
 import { incrementUsage } from "@/lib/usage";
+import { trackAiFeedback } from "@/lib/analytics";
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   value: l.code,
@@ -1224,6 +1225,8 @@ export default function StudentLessonPage() {
         autoResultat,
         locale,
       };
+
+      trackAiFeedback("student");
 
       const res = await fetch("/api/feedback", {
         method: "POST",

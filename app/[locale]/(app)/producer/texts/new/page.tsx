@@ -13,6 +13,7 @@ import {
 } from "@/lib/featureGuard";
 import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { trackCreateLesson } from "@/lib/analytics";
 
 type MCQ = {
   q: string;
@@ -751,6 +752,11 @@ export default function NewTextPage() {
         tasks: renumberOrders(lessonTasks),
       }),
     });
+    if (!res.ok) {
+      throw new Error("Could not create lesson");
+    }
+
+    trackCreateLesson("text");
 
     const raw = await res.text();
 
