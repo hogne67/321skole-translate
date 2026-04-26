@@ -198,11 +198,11 @@
   }
 
   .marquee-left {
-    animation: marqueeLeft 140s linear infinite;
+    animation: marqueeLeft 230s linear infinite;
   }
 
   .marquee-right {
-    animation: marqueeRight 155s linear infinite;
+    animation: marqueeRight 250s linear infinite;
   }
 
   .marquee-wrap:hover .marquee-left,
@@ -216,13 +216,13 @@
 
   .library-card {
     display: block;
-    width: 154px;
-    flex: 0 0 154px;
+    width: 96px;
+    flex: 0 0 96px;
   }
 
   .library-card-inner {
     position: relative;
-    height: 96px;
+    height: 144px;
     overflow: hidden;
     border-radius: 16px;
     background: #e0f2fe;
@@ -276,12 +276,12 @@
     }
 
     .library-card {
-      width: 220px;
-      flex-basis: 220px;
+      width: 154px;
+      flex-basis: 154px;
     }
 
     .library-card-inner {
-      height: 138px;
+      height: 231px;
       border-radius: 20px;
     }
 
