@@ -138,12 +138,21 @@ async function getPublishedLessonCount(): Promise<number> {
 
 function languageRank(language: string | undefined, locale: string) {
   const lang = (language ?? "").toLowerCase();
+  const current = locale.toLowerCase();
 
-  if (lang === locale) return 0;
-  if (locale === "nb" && lang === "no") return 0;
+  if (lang === current) return 0;
 
-  const order = ["nb", "en", "pt"];
-  const index = order.indexOf(lang);
+  if (current === "nb" && (lang === "nb" || lang === "no")) return 0;
+  if (current === "pt" && (lang === "pt" || lang === "pt-br" || lang === "br")) return 0;
+
+  const fallbackOrder =
+    current === "en"
+      ? ["en", "nb", "pt", "pt-br"]
+      : current === "pt"
+        ? ["pt", "pt-br", "nb", "en"]
+        : ["nb", "no", "en", "pt", "pt-br"];
+
+  const index = fallbackOrder.indexOf(lang);
 
   return index === -1 ? 99 : index + 1;
 }
@@ -705,7 +714,7 @@ function LibraryCard(props: { item: FeaturedLesson; locale: string }) {
   return (
     <Link
       href={`/${lessonLocale}/student/lesson/${item.id}`}
-      className="library-card scale-[0.7] md:scale-100"
+      className="library-card"
     >
       <div className="library-card-inner">
         {item.image ? (
