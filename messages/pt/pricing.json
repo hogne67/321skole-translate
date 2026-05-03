@@ -2,17 +2,7 @@
   "pricing": {
     "hero": {
       "title": "Preços e planos",
-      "subtitle": "O 321 School foi criado para que todos possam aprender gratuitamente. Quando você precisar de mais capacidade, mais recursos de IA e mais colaboração, pode fazer upgrade para o plano que melhor se adapta ao seu perfil."
-    },
-    "nav": {
-      "student": "Aluno",
-      "teacher": "Professor",
-      "parent": "Responsável"
-    },
-    "activePlan": {
-      "label": "Plano ativo:",
-      "role": "Perfil:",
-      "manage": "Gerenciar assinatura"
+      "subtitle": "A 321 School foi criada para que todos possam aprender gratuitamente. Quando você precisar de mais capacidade, mais recursos de IA e mais colaboração, poderá fazer upgrade para o plano que combina com o seu perfil."
     },
     "buttons": {
       "back": "Voltar para a página inicial",
@@ -21,135 +11,52 @@
     },
     "tiers": {
       "free": {
-        "name": "Grátis",
-        "price": "0 NOK",
-        "tagline": "Comece gratuitamente com acesso à biblioteca, leitura e uso básico.",
-        "badge": "Grátis"
+        "name": "Free",
+        "price": "R$ 0"
       },
       "basic": {
-        "name": "Básico",
-        "price": "59 NOK / mês",
-        "tagline": "Para quem quer usar a plataforma com mais frequência e ter mais capacidade."
+        "name": "Basic",
+        "price": "R$ 59"
       },
       "plus": {
         "name": "Plus",
-        "price": "129 NOK / mês",
-        "tagline": "Mais IA, mais colaboração e acesso aos principais recursos premium."
+        "price": "R$ 99"
       },
       "pro": {
         "name": "Pro",
-        "price": "199 NOK / mês",
-        "tagline": "Para uso intensivo, publicação e uso mais profissional."
-      },
-      "card": {
-        "recommended": "Recomendado",
-        "activePlan": "Plano ativo",
-        "managePlan": "Gerenciar plano",
-        "getStarted": "Começar",
-        "choosePlan": "Escolher {name}",
-        "disclaimer": "* Preços e conteúdo podem ser ajustados antes do lançamento."
-      }
-    },
-    "howItWorks": {
-      "title": "Como isso funciona na prática?",
-      "cards": {
-        "categories": {
-          "title": "Um pool compartilhado por categoria",
-          "body": "Geradores premium, feedback de IA, imagens e downloads são contados em pools mensais separados."
-        },
-        "dashboard": {
-          "title": "Dashboard e planos estão alinhados",
-          "body": "Os números que você vê no dashboard e nos geradores correspondem aos limites do seu plano."
-        },
-        "roles": {
-          "title": "Perfis têm valores diferentes",
-          "body": "Aluno, professor e responsável têm limites diferentes porque usam a plataforma de formas distintas."
-        },
-        "plus": {
-          "title": "Plus é a ponte para o premium",
-          "body": "O plano Plus é feito para usuários que precisam de mais capacidade, mas não uso profissional completo."
-        }
+        "price": "R$ 199"
       }
     },
     "compare": {
-      "function": "Recurso"
+      "function": "Função",
+      "choose": "Escolher este"
     },
     "roles": {
-      "student": {
-        "title": "🧑‍🎓 Aluno",
-        "subtitle": "Perfeito para estudo individual, prática e colaboração.",
-        "hint": "Os planos de aluno são baseados em um pool compartilhado de geradores premium por mês. O mesmo pool é usado ao criar tarefas, textos e outras ferramentas premium.",
-        "rows": {
-          "library": { "label": "📚 Biblioteca (leitura)" },
-          "classroom": { "label": "🏫 Entrar na sala de aula" },
-          "generators": {
-            "label": "🧠 Geradores premium / mês",
-            "note": "Pool compartilhado para geradores premium"
-          },
-          "feedback": { "label": "🧠 Feedback de IA / mês" },
-          "images": { "label": "🖼 Imagens de IA / mês" },
-          "downloads": { "label": "📥 Downloads / mês" },
-          "translator": { "label": "🌍 Tradutor" },
-          "groups": {
-            "label": "👥 Colaboração e grupos",
-            "note": "Pode ser expandido depois"
-          }
-        }
-      },
-      "teacher": {
-        "title": "👩‍🏫 Professor",
-        "subtitle": "Desenvolvido para professores com limites claros por plano.",
-        "hint": "Os planos para professores usam o mesmo modelo do dashboard: um pool compartilhado de geradores premium, com limites separados para feedback de IA, imagens, downloads e membros.",
-        "rows": {
-          "library": { "label": "📚 Biblioteca (leitura)" },
-          "generators": {
-            "label": "🧠 Geradores premium / mês",
-            "note": "Pool compartilhado para aulas, testes de leitura, quizzes, tarefas de escrita e mais"
-          },
-          "feedback": { "label": "🧠 Feedback de IA / mês" },
-          "images": { "label": "🖼 Imagens de IA / mês" },
-          "downloads": { "label": "📥 Downloads / mês" },
-          "members": {
-            "label": "👥 Máx. de membros",
-            "note": "Capacidade compartilhada"
-          },
-          "rooms": { "label": "🏫 Salas e quadros" },
-          "appAccess": { "label": "🌍 Acesso ao app premium" }
-        }
-      },
-      "parent": {
-        "title": "👨‍👩‍👧 Responsável",
-        "subtitle": "Para prática em casa, apoio e acompanhamento do progresso.",
-        "hint": "Os planos para responsáveis também usam um pool compartilhado de geradores premium, com limites separados para feedback de IA, imagens e downloads.",
-        "rows": {
-          "library": { "label": "📚 Biblioteca (leitura)" },
-          "homeRoom": { "label": "🏠 Espaço de aprendizagem em casa" },
-          "generators": {
-            "label": "🧠 Geradores premium / mês",
-            "note": "Pool compartilhado para geradores premium"
-          },
-          "feedback": { "label": "🧠 Feedback de IA / mês" },
-          "images": { "label": "🖼 Imagens de IA / mês" },
-          "downloads": { "label": "📥 Downloads / mês" },
-          "family": { "label": "👶 Uso familiar" },
-          "appAccess": { "label": "🌍 Acesso ao app premium" }
-        }
-      }
+      "teacher": "Professor",
+      "student": "Estudante",
+      "parent": "Responsável"
     },
-    "values": {
-      "simple": "Simples",
-      "more": "Mais",
-      "most": "Mais",
-      "basic": "Básico",
-      "moreCapacity": "Mais capacidade",
-      "largeCapacity": "Alta capacidade",
-      "maxCapacity": "Capacidade máxima",
-      "small": "Pequeno",
-      "large": "Grande",
-      "largest": "Maior"
+    "features": {
+      "library": "Biblioteca",
+      "generators": "Geradores",
+      "translateText": "Traduzir texto",
+      "translateTaskText": "Traduzir texto da atividade",
+      "taskAudio": "Reprodução de áudio da atividade",
+      "feedbackAudio": "Reprodução de áudio do feedback",
+      "createSpaces": "Criar Spaces",
+      "digitalBoard": "Quadro digital",
+      "studentCount": "Número de estudantes",
+      "aiTaskFeedback": "Feedback de IA para atividades",
+      "aiHelpSubmissions": "Ajuda de IA para envios",
+      "premiumGenerator": "Gerador premium",
+      "aiImageGenerator": "Gerador de imagens com IA",
+      "joinSpaces": "Participar de Spaces",
+      "translateTeacherFeedback": "Traduzir feedback do professor",
+      "createChildSpaces": "Criar Spaces para crianças",
+      "starFeedback": "Feedback com estrelas"
     },
     "footer": {
-      "note": "Esta é uma página de preços em desenvolvimento. Números, limites e conteúdo podem ser ajustados antes do lançamento. Os botões de CTA podem ser conectados diretamente ao Stripe ou à página de pagamento."
+      "note": "Preços, limites e conteúdo podem ser ajustados antes do lançamento."
     }
   }
 }

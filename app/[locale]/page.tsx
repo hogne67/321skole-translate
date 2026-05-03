@@ -1,3 +1,4 @@
+// app/[locale]/page.tsx
 import Link from "next/link";
 import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -23,6 +24,8 @@ type FeaturedLesson = {
   image?: string;
 };
 
+type TFn = (key: string, values?: Record<string, string | number>) => string;
+
 function localizedPath(locale: string, path: string) {
   const clean = path.startsWith("/") ? path : `/${path}`;
   return `/${locale}${clean}`;
@@ -31,7 +34,7 @@ function localizedPath(locale: string, path: string) {
 function pickLocalizedText(value: unknown, locale: string): string {
   if (!value) return "";
 
-  if (typeof value === 'string') return value.trim();
+  if (typeof value === "string") return value.trim();
 
   if (typeof value === "object" && value !== null) {
     const obj = value as Record<string, unknown>;
@@ -238,7 +241,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A2",
       language: "nb",
       textType: "fortelling",
-      image: "/landing/teacher.png",
+      image: "/landing/teacher-power.png",
     },
     {
       id: "2",
@@ -246,7 +249,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A1",
       language: "en",
       textType: "lesson",
-      image: "/landing/studentstudy.jpg",
+      image: "/landing/student-flow.png",
     },
     {
       id: "3",
@@ -254,7 +257,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "B1",
       language: "nb",
       textType: "article",
-      image: "/landing/parents_study.jpg",
+      image: "/landing/language-learning.png",
     },
     {
       id: "4",
@@ -262,7 +265,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A2",
       language: "en",
       textType: "lesson",
-      image: "/landing/studentstudy.jpg",
+      image: "/landing/student-flow.png",
     },
     {
       id: "5",
@@ -270,7 +273,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A2",
       language: "pt",
       textType: "writing",
-      image: "/landing/teacher.png",
+      image: "/landing/language-learning.png",
     },
     {
       id: "6",
@@ -278,7 +281,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A1",
       language: "nb",
       textType: "grammar",
-      image: "/landing/parents_study.jpg",
+      image: "/landing/wow-learning.png",
     },
     {
       id: "7",
@@ -286,7 +289,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A1",
       language: "en",
       textType: "reading",
-      image: "/landing/studentstudy.jpg",
+      image: "/landing/student-flow.png",
     },
     {
       id: "8",
@@ -294,7 +297,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A1",
       language: "nb",
       textType: "writing",
-      image: "/landing/teacher.png",
+      image: "/landing/teacher-power.png",
     },
     {
       id: "9",
@@ -302,7 +305,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A1",
       language: "pt",
       textType: "vocabulary",
-      image: "/landing/parents_study.jpg",
+      image: "/landing/language-learning.png",
     },
     {
       id: "10",
@@ -310,7 +313,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "B1",
       language: "nb",
       textType: "history",
-      image: "/landing/teacher.png",
+      image: "/landing/wow-learning.png",
     },
     {
       id: "11",
@@ -318,7 +321,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A2",
       language: "en",
       textType: "writing",
-      image: "/landing/studentstudy.jpg",
+      image: "/landing/student-flow.png",
     },
     {
       id: "12",
@@ -326,7 +329,7 @@ function getFallbackLessons(locale = "nb"): FeaturedLesson[] {
       level: "A2",
       language: "nb",
       textType: "reading",
-      image: "/landing/parents_study.jpg",
+      image: "/landing/language-learning.png",
     },
   ].sort((a, b) => {
     const langDiff =
@@ -363,264 +366,38 @@ export default async function HomePage() {
         loginLabel={t("common.login")}
       />
 
+      <HeroSection t={t} locale={locale} />
+
+      <AiSupportSection t={t} locale={locale} />
+
+      <PrintOrDigitalSection t={t} locale={locale} />
+
+      <WowSection t={t} locale={locale} />
+
+      <TeacherPowerSection t={t} locale={locale} />
+
+      <LanguageLearningSection t={t} locale={locale} />
+
+      <SpacesSection t={t} locale={locale} />
+
       <NorwayLegacyNotice />
 
-      <section className="w-full overflow-hidden bg-gradient-to-b from-sky-950 via-sky-800 to-sky-600 text-white">
-        <div className="w-full py-8 md:py-10">
-          <div className="mx-auto max-w-5xl px-6 text-center">
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-5xl">
-              {t("topStrip.title")}
-            </h2>
-
-            <p className="mt-3 text-lg text-white/75 md:text-xl">
-              {t("topStrip.description")}
-            </p>
-          </div>
-
-          <div className="mx-auto mt-8 w-[90vw] max-w-[1800px] space-y-5 overflow-hidden py-2">
-            <MarqueeRow
-              items={firstRow.length ? firstRow : featured}
-              locale={locale}
-              reverse={false}
-            />
-            <MarqueeRow
-              items={secondRow.length ? secondRow : featured}
-              locale={locale}
-              reverse
-            />
-          </div>
-
-          <div className="mt-6 px-6 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              {t("topStrip.badge", { count: lessonCountLabel })}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden bg-sky-600">
-        <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-          <h1 className="mx-auto max-w-4xl text-center text-4xl font-semibold tracking-tight text-white md:text-6xl">
-            {t("hero.title")}
-          </h1>
-
-          <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-white/85 md:text-xl">
-            {t("hero.lead")}
-          </p>
-
-          <div className="mt-10 rounded-3xl border border-white/20 bg-white/10 p-3 shadow-sm backdrop-blur">
-            <div className="relative aspect-[21/9] w-full overflow-hidden rounded-2xl bg-slate-100">
-              <Image
-                src="/landing/hero1_1.png"
-                alt={t("hero.imageAlt")}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <FeatureSection
-        id="for-larere"
-        eyebrow={t("teachers.eyebrow")}
-        title={t("teachers.title")}
-        description={t("teachers.description")}
-        image={{ src: "/landing/teacher.png", alt: t("teachers.imageAlt") }}
-        bullets={[
-          t("teachers.bullets.0"),
-          t("teachers.bullets.1"),
-          t("teachers.bullets.2"),
-          t("teachers.bullets.3"),
-          t("teachers.bullets.4"),
-          t("teachers.bullets.5"),
-        ]}
-        cta={{ href: localizedPath(locale, "/login"), label: t("teachers.cta") }}
-        flip={false}
+      <TopLibrarySection
+        locale={locale}
+        t={t}
+        featured={featured}
+        firstRow={firstRow}
+        secondRow={secondRow}
+        lessonCountLabel={lessonCountLabel}
       />
 
-      <FeatureSection
-        id="for-studenter"
-        eyebrow={t("students.eyebrow")}
-        title={t("students.title")}
-        description={t("students.description")}
-        image={{ src: "/landing/studentstudy.jpg", alt: t("students.imageAlt") }}
-        bullets={[
-          t("students.bullets.0"),
-          t("students.bullets.1"),
-          t("students.bullets.2"),
-          t("students.bullets.3"),
-          t("students.bullets.4"),
-          t("students.bullets.5"),
-        ]}
-        cta={{ href: localizedPath(locale, "/login"), label: t("students.cta") }}
-        flip
-      />
+      <ParentHomeSection t={t} locale={locale} />
 
-      <FeatureSection
-        id="for-parents"
-        eyebrow={t("parents.eyebrow")}
-        title={t("parents.title")}
-        description={t("parents.description")}
-        image={{ src: "/landing/parents_study.jpg", alt: t("parents.imageAlt") }}
-        bullets={[
-          t("parents.bullets.0"),
-          t("parents.bullets.1"),
-          t("parents.bullets.2"),
-          t("parents.bullets.3"),
-          t("parents.bullets.4"),
-          t("parents.bullets.5"),
-        ]}
-        cta={{ href: localizedPath(locale, "/login"), label: t("parents.cta") }}
-        flip={false}
-      />
+      <StudentFlowSection t={t} locale={locale} />
 
-      <section id="spaces" className="bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold text-slate-600">{t("spaces.eyebrow")}</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
-              {t("spaces.title")}
-            </h2>
-            <p className="mt-4 text-lg text-slate-700">{t("spaces.description")}</p>
-          </div>
+      <FinalCtaSection t={t} locale={locale} />
 
-          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
-            <InfoCard title={t("spaces.cards.0.title")} text={t("spaces.cards.0.text")} />
-            <InfoCard title={t("spaces.cards.1.title")} text={t("spaces.cards.1.text")} />
-            <InfoCard title={t("spaces.cards.2.title")} text={t("spaces.cards.2.text")} />
-          </div>
-
-          <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="relative aspect-[16/6] overflow-hidden rounded-xl bg-slate-100">
-              <Image
-                src="/landing/spaces.png"
-                alt={t("spaces.imageAlt")}
-                fill
-                className="object-cover"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
-            <div>
-              <p className="text-sm font-semibold text-slate-600">{t("whyAi.eyebrow")}</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
-                {t("whyAi.title")}
-              </h2>
-              <p className="mt-4 text-lg text-slate-700">{t("whyAi.description")}</p>
-
-              <div className="mt-6 grid grid-cols-1 gap-4">
-                <CheckRow text={t("whyAi.checks.0")} />
-                <CheckRow text={t("whyAi.checks.1")} />
-                <CheckRow text={t("whyAi.checks.2")} />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-              <p className="text-sm font-semibold text-slate-700">{t("whyAi.flowTitle")}</p>
-              <ol className="mt-4 space-y-3 text-sm text-slate-700">
-                <li className="rounded-xl border border-slate-200 bg-white p-4">
-                  <span className="font-semibold">1)</span> {t("whyAi.flow.1")}
-                </li>
-                <li className="rounded-xl border border-slate-200 bg-white p-4">
-                  <span className="font-semibold">2)</span> {t("whyAi.flow.2")}
-                </li>
-                <li className="rounded-xl border border-slate-200 bg-white p-4">
-                  <span className="font-semibold">3)</span> {t("whyAi.flow.3")}
-                </li>
-                <li className="rounded-xl border border-slate-200 bg-white p-4">
-                  <span className="font-semibold">4)</span> {t("whyAi.flow.4")}
-                </li>
-                <li className="rounded-xl border border-slate-200 bg-white p-4">
-                  <span className="font-semibold">5)</span> {t("whyAi.flow.5")}
-                </li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-slate-900 text-white">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
-            <div>
-              <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                {t("ctaLite.title")}
-              </h2>
-              <p className="mt-4 text-lg text-white/80">{t("ctaLite.lead")}</p>
-
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={localizedPath(locale, "/login")}
-                  className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-white/90"
-                >
-                  {t("ctaLite.primary")}
-                </Link>
-
-                <Link
-                  href={localizedPath(locale, "/pricing")}
-                  className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-transparent px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
-                >
-                  {t("ctaLite.secondary")}
-                </Link>
-              </div>
-
-              <p className="mt-4 text-sm text-white/70">{t("ctaLite.note")}</p>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-6">
-              <p className="text-sm font-semibold">{t("ctaLite.boxTitle")}</p>
-              <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-white/85">
-                <CheckRow dark text={t("ctaLite.checks.0")} />
-                <CheckRow dark text={t("ctaLite.checks.1")} />
-                <CheckRow dark text={t("ctaLite.checks.2")} />
-                <CheckRow dark text={t("ctaLite.checks.3")} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <footer className="bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-10">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold">{brand.name}</p>
-              <p className="mt-1 text-sm text-slate-600">{t("footer.tagline")}</p>
-            </div>
-            <div className="flex flex-wrap gap-3 text-sm">
-              <Link
-                className="text-slate-700 hover:text-slate-900"
-                href={localizedPath(locale, "/about")}
-              >
-                {t("footer.about")}
-              </Link>
-              <Link
-                className="text-slate-700 hover:text-slate-900"
-                href={localizedPath(locale, "/privacy")}
-              >
-                {t("footer.privacy")}
-              </Link>
-              <Link
-                className="text-slate-700 hover:text-slate-900"
-                href={localizedPath(locale, "/contact")}
-              >
-                {t("footer.contact")}
-              </Link>
-            </div>
-          </div>
-          <p className="mt-6 text-xs text-slate-500">
-            © {currentYear} {brand.name}. {t("footer.rights")}
-          </p>
-        </div>
-      </footer>
+      <FooterSection t={t} locale={locale} currentYear={currentYear} />
     </div>
   );
 }
@@ -686,6 +463,698 @@ function PublicHeader(props: {
   );
 }
 
+function HeroSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="relative overflow-hidden bg-sky-600 text-white">
+      <div className="mx-auto max-w-6xl px-6 py-14 md:py-20">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20">
+            {props.t("hero.badge")}
+          </p>
+
+          <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-6xl">
+            {props.t("hero.title")}
+          </h1>
+
+          <p className="mx-auto mt-5 max-w-3xl text-lg text-white/85 md:text-xl">
+            {props.t("hero.lead")}
+          </p>
+
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              href={localizedPath(props.locale, "/login")}
+              className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-white/90"
+            >
+              {props.t("hero.ctaPrimary")}
+            </Link>
+
+            <Link
+              href={localizedPath(props.locale, "/321lessons")}
+              className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/15"
+            >
+              {props.t("hero.ctaSecondary")}
+            </Link>
+          </div>
+
+          <p className="mt-4 text-sm text-white/70">
+            {props.t("hero.note")}
+          </p>
+        </div>
+
+        <div className="mt-10 rounded-3xl border border-white/20 bg-white/10 p-3 shadow-sm backdrop-blur">
+          <div className="relative aspect-[21/9] w-full overflow-hidden rounded-2xl bg-slate-100">
+            <Image
+              src="/landing/hero1_1.png"
+              alt={props.t("hero.imageAlt")}
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AiSupportSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="relative overflow-hidden bg-white">
+      <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-sky-400 to-sky-600" />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[0.95fr_1.05fr] md:items-center">
+          <div className="order-2 rounded-[2rem] border border-white bg-white/80 p-3 shadow-xl shadow-sky-900/10 backdrop-blur md:order-1">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
+              <Image
+                src="/landing/ai-support.png"
+                alt={props.t("aiSupport.imageAlt")}
+                fill
+                className="object-cover"
+              />
+
+              <FloatingLabel
+                position="top-left"
+                title={props.t("aiSupport.floatingTopTitle")}
+                text={props.t("aiSupport.floatingTopText")}
+              />
+
+              <FloatingLabel
+                position="bottom-right"
+                title={props.t("aiSupport.floatingBottomTitle")}
+                text={props.t("aiSupport.floatingBottomText")}
+              />
+            </div>
+          </div>
+
+          <div className="order-1 md:order-2">
+            <p className="inline-flex rounded-full bg-indigo-100 px-4 py-2 text-sm font-semibold text-indigo-800">
+              {props.t("aiSupport.eyebrow")}
+            </p>
+
+            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 md:text-6xl">
+              {props.t("aiSupport.title")}
+            </h2>
+
+            <p className="mt-5 max-w-xl text-lg text-slate-700 md:text-xl">
+              {props.t("aiSupport.description")}
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <LightCard title={props.t("aiSupport.cards.develop.title")} text={props.t("aiSupport.cards.develop.text")} />
+              <LightCard title={props.t("aiSupport.cards.support.title")} text={props.t("aiSupport.cards.support.text")} />
+              <LightCard title={props.t("aiSupport.cards.feedback.title")} text={props.t("aiSupport.cards.feedback.text")} />
+              <LightCard title={props.t("aiSupport.cards.control.title")} text={props.t("aiSupport.cards.control.text")} />
+            </div>
+
+            <SectionButtons
+              locale={props.locale}
+              primaryHref="/login"
+              primaryLabel={props.t("aiSupport.ctaPrimary")}
+              secondaryHref="/321lessons"
+              secondaryLabel={props.t("aiSupport.ctaSecondary")}
+              variant="light"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PrintOrDigitalSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="relative overflow-hidden bg-slate-950 text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.35),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.28),_transparent_35%)]" />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[0.95fr_1.05fr] md:items-center">
+          <div className="order-2 md:order-1">
+            <div className="rounded-[2rem] border border-white/10 bg-white/10 p-3 shadow-2xl shadow-black/20 backdrop-blur">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-900">
+                <Image
+                  src="/landing/digital-print.png"
+                  alt={props.t("printDigital.imageAlt")}
+                  fill
+                  className="object-cover"
+                />
+
+                <FloatingLabel
+                  position="top-left"
+                  title={props.t("printDigital.floatingDigitalTitle")}
+                  text={props.t("printDigital.floatingDigitalText")}
+                />
+
+                <FloatingLabel
+                  position="bottom-right"
+                  title={props.t("printDigital.floatingPdfTitle")}
+                  text={props.t("printDigital.floatingPdfText")}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="order-1 md:order-2">
+            <p className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/15">
+              {props.t("printDigital.eyebrow")}
+            </p>
+
+            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight md:text-6xl">
+              {props.t("printDigital.title")}
+            </h2>
+
+            <p className="mt-5 max-w-xl text-lg text-white/75 md:text-xl">
+              {props.t("printDigital.description")}
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <DarkCard title={props.t("printDigital.cards.digital.title")} text={props.t("printDigital.cards.digital.text")} />
+              <DarkCard title={props.t("printDigital.cards.pdf.title")} text={props.t("printDigital.cards.pdf.text")} />
+            </div>
+
+            <SectionButtons
+              locale={props.locale}
+              primaryHref="/login"
+              primaryLabel={props.t("printDigital.ctaPrimary")}
+              secondaryHref="/321lessons"
+              secondaryLabel={props.t("printDigital.ctaSecondary")}
+              variant="dark"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WowSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="relative overflow-hidden bg-sky-50">
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-50 via-white to-emerald-50" />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[1.05fr_0.95fr] md:items-center">
+          <div>
+            <p className="inline-flex rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-800">
+              {props.t("wow.eyebrow")}
+            </p>
+
+            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 md:text-6xl">
+              {props.t("wow.title")}
+            </h2>
+
+            <p className="mt-5 max-w-xl text-lg text-slate-700 md:text-xl">
+              {props.t("wow.description")}
+            </p>
+
+            <SectionButtons
+              locale={props.locale}
+              primaryHref="/login"
+              primaryLabel={props.t("wow.ctaPrimary")}
+              secondaryHref="/321lessons"
+              secondaryLabel={props.t("wow.ctaSecondary")}
+              variant="light"
+            />
+          </div>
+
+          <div className="rounded-[2rem] border border-white bg-white/80 p-3 shadow-xl shadow-sky-900/10 backdrop-blur">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
+              <Image
+                src="/landing/wow-learning.png"
+                alt={props.t("wow.imageAlt")}
+                fill
+                className="object-cover"
+              />
+
+              <div className="absolute inset-x-4 bottom-4 rounded-2xl bg-white/90 p-4 shadow-lg backdrop-blur">
+                <p className="text-sm font-semibold text-slate-950">
+                  {props.t("wow.floatingTitle")}
+                </p>
+                <p className="mt-1 text-sm text-slate-700">
+                  {props.t("wow.floatingText")}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TeacherPowerSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="relative overflow-hidden bg-sky-50 text-slate-950">
+      <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-sky-400 to-sky-600" />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[1.05fr_0.95fr] md:items-center">
+          <div>
+            <p className="inline-flex rounded-full bg-sky-200 px-4 py-2 text-sm font-semibold text-slate-950 ring-1 ring-white/50">
+              {props.t("teacherPower.eyebrow")}
+            </p>
+
+            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight md:text-6xl">
+              {props.t("teacherPower.title")}
+            </h2>
+
+            <p className="mt-5 max-w-xl text-lg text-slate-700 md:text-xl">
+              {props.t("teacherPower.description")}
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <LightCard transparent title={props.t("teacherPower.cards.create.title")} text={props.t("teacherPower.cards.create.text")} />
+              <LightCard transparent title={props.t("teacherPower.cards.share.title")} text={props.t("teacherPower.cards.share.text")} />
+              <LightCard transparent title={props.t("teacherPower.cards.overview.title")} text={props.t("teacherPower.cards.overview.text")} />
+              <LightCard transparent title={props.t("teacherPower.cards.ai.title")} text={props.t("teacherPower.cards.ai.text")} />
+            </div>
+
+            <SectionButtons
+              locale={props.locale}
+              primaryHref="/login"
+              primaryLabel={props.t("teacherPower.ctaPrimary")}
+              secondaryHref="/321lessons"
+              secondaryLabel={props.t("teacherPower.ctaSecondary")}
+              variant="dark"
+            />
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/10 p-3 shadow-2xl shadow-black/20 backdrop-blur">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-900">
+              <Image
+                src="/landing/teacher-power.png"
+                alt={props.t("teacherPower.imageAlt")}
+                fill
+                className="object-cover"
+              />
+
+              <FloatingLabel
+                position="top-left"
+                title={props.t("teacherPower.floatingTopTitle")}
+                text={props.t("teacherPower.floatingTopText")}
+              />
+
+              <FloatingLabel
+                position="bottom-right"
+                title={props.t("teacherPower.floatingBottomTitle")}
+                text={props.t("teacherPower.floatingBottomText")}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LanguageLearningSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="relative overflow-hidden bg-white">
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-sky-50" />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[1.05fr_0.95fr] md:items-center">
+          <div>
+            <p className="inline-flex rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-800">
+              {props.t("languageLearning.eyebrow")}
+            </p>
+
+            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 md:text-6xl">
+              {props.t("languageLearning.title")}
+            </h2>
+
+            <p className="mt-5 max-w-xl text-lg text-slate-700 md:text-xl">
+              {props.t("languageLearning.description")}
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <LightCard title={props.t("languageLearning.cards.level.title")} text={props.t("languageLearning.cards.level.text")} />
+              <LightCard title={props.t("languageLearning.cards.motherTongue.title")} text={props.t("languageLearning.cards.motherTongue.text")} />
+              <LightCard title={props.t("languageLearning.cards.audio.title")} text={props.t("languageLearning.cards.audio.text")} />
+              <LightCard title={props.t("languageLearning.cards.feedback.title")} text={props.t("languageLearning.cards.feedback.text")} />
+            </div>
+
+            <SectionButtons
+              locale={props.locale}
+              primaryHref="/321lessons"
+              primaryLabel={props.t("languageLearning.ctaPrimary")}
+              secondaryHref="/login"
+              secondaryLabel={props.t("languageLearning.ctaSecondary")}
+              variant="light"
+            />
+          </div>
+
+          <div className="rounded-[2rem] border border-white bg-white/80 p-3 shadow-xl shadow-emerald-900/10 backdrop-blur">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
+              <Image
+                src="/landing/language-learning.png"
+                alt={props.t("languageLearning.imageAlt")}
+                fill
+                className="object-cover"
+              />
+
+              <FloatingLabel
+                position="top-left"
+                title={props.t("languageLearning.floatingLevelTitle")}
+                text={props.t("languageLearning.floatingLevelText")}
+              />
+
+              <FloatingLabel
+                position="bottom-right"
+                title={props.t("languageLearning.floatingFeedbackTitle")}
+                text={props.t("languageLearning.floatingFeedbackText")}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SpacesSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="relative overflow-hidden bg-slate-950 text-white">
+      <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-sky-400 to-sky-600" />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[1.05fr_0.95fr] md:items-center">
+          <div>
+            <p className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/15">
+              {props.t("spacesNew.eyebrow")}
+            </p>
+
+            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight md:text-6xl">
+              {props.t("spacesNew.title")}
+            </h2>
+
+            <p className="mt-5 max-w-xl text-lg text-white/75 md:text-xl">
+              {props.t("spacesNew.description")}
+            </p>
+
+            <div className="mt-8 space-y-3">
+              <SimpleCheck text={props.t("spacesNew.checks.0")} />
+              <SimpleCheck text={props.t("spacesNew.checks.1")} />
+              <SimpleCheck text={props.t("spacesNew.checks.2")} />
+              <SimpleCheck text={props.t("spacesNew.checks.3")} />
+            </div>
+
+            <SectionButtons
+              locale={props.locale}
+              primaryHref="/login"
+              primaryLabel={props.t("spacesNew.ctaPrimary")}
+              secondaryHref="/321lessons"
+              secondaryLabel={props.t("spacesNew.ctaSecondary")}
+              variant="dark"
+            />
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/10 p-3 shadow-2xl shadow-black/20 backdrop-blur">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-900">
+              <Image
+                src="/landing/spaces-new.png"
+                alt={props.t("spacesNew.imageAlt")}
+                fill
+                className="object-cover"
+              />
+
+              <FloatingLabel
+                position="top-left"
+                title={props.t("spacesNew.floatingTopTitle")}
+                text={props.t("spacesNew.floatingTopText")}
+              />
+
+              <FloatingLabel
+                position="bottom-right"
+                title={props.t("spacesNew.floatingBottomTitle")}
+                text={props.t("spacesNew.floatingBottomText")}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TopLibrarySection(props: {
+  locale: string;
+  t: TFn;
+  featured: FeaturedLesson[];
+  firstRow: FeaturedLesson[];
+  secondRow: FeaturedLesson[];
+  lessonCountLabel: string;
+}) {
+  return (
+    <section className="w-full overflow-hidden bg-gradient-to-b from-sky-950 via-sky-800 to-sky-700 text-white">
+      <div className="w-full py-8 md:py-10">
+        <div className="mx-auto max-w-5xl px-6 text-center">
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">
+            {props.t("topStrip.title")}
+          </h2>
+
+          <p className="mt-3 text-lg text-white/75 md:text-xl">
+            {props.t("topStrip.description")}
+          </p>
+        </div>
+
+        <div className="mx-auto mt-8 w-[90vw] max-w-[1800px] space-y-5 overflow-hidden py-2">
+          <MarqueeRow
+            items={props.firstRow.length ? props.firstRow : props.featured}
+            locale={props.locale}
+            reverse={false}
+          />
+          <MarqueeRow
+            items={props.secondRow.length ? props.secondRow : props.featured}
+            locale={props.locale}
+            reverse
+          />
+        </div>
+
+        <div className="mt-6 px-6 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            {props.t("topStrip.badge", { count: props.lessonCountLabel })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ParentHomeSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="relative overflow-hidden bg-white">
+      <div className="absolute inset-0 bg-gradient-to-br from-amber-50 via-white to-sky-50" />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[0.95fr_1.05fr] md:items-center">
+          <div className="order-2 rounded-[2rem] border border-white bg-white/80 p-3 shadow-xl shadow-amber-900/10 backdrop-blur md:order-1">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
+              <Image
+                src="/landing/parent-home.png"
+                alt={props.t("parentHome.imageAlt")}
+                fill
+                className="object-cover"
+              />
+
+              <FloatingLabel
+                position="top-left"
+                title={props.t("parentHome.floatingTopTitle")}
+                text={props.t("parentHome.floatingTopText")}
+              />
+
+              <FloatingLabel
+                position="bottom-right"
+                title={props.t("parentHome.floatingBottomTitle")}
+                text={props.t("parentHome.floatingBottomText")}
+              />
+            </div>
+          </div>
+
+          <div className="order-1 md:order-2">
+            <p className="inline-flex rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-800">
+              {props.t("parentHome.eyebrow")}
+            </p>
+
+            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 md:text-6xl">
+              {props.t("parentHome.title")}
+            </h2>
+
+            <p className="mt-5 max-w-xl text-lg text-slate-700 md:text-xl">
+              {props.t("parentHome.description")}
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <LightCard title={props.t("parentHome.cards.platform.title")} text={props.t("parentHome.cards.platform.text")} />
+              <LightCard title={props.t("parentHome.cards.share.title")} text={props.t("parentHome.cards.share.text")} />
+              <LightCard title={props.t("parentHome.cards.ai.title")} text={props.t("parentHome.cards.ai.text")} />
+              <LightCard title={props.t("parentHome.cards.warm.title")} text={props.t("parentHome.cards.warm.text")} />
+            </div>
+
+            <SectionButtons
+              locale={props.locale}
+              primaryHref="/login"
+              primaryLabel={props.t("parentHome.ctaPrimary")}
+              secondaryHref="/321lessons"
+              secondaryLabel={props.t("parentHome.ctaSecondary")}
+              variant="light"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StudentFlowSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="relative overflow-hidden bg-sky-50">
+      <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-white to-emerald-50" />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-[1.05fr_0.95fr] md:items-center">
+          <div>
+            <p className="inline-flex rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-800">
+              {props.t("studentFlow.eyebrow")}
+            </p>
+
+            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 md:text-6xl">
+              {props.t("studentFlow.title")}
+            </h2>
+
+            <p className="mt-5 max-w-xl text-lg text-slate-700 md:text-xl">
+              {props.t("studentFlow.description")}
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <LightCard title={props.t("studentFlow.cards.create.title")} text={props.t("studentFlow.cards.create.text")} />
+              <LightCard title={props.t("studentFlow.cards.language.title")} text={props.t("studentFlow.cards.language.text")} />
+              <LightCard title={props.t("studentFlow.cards.correction.title")} text={props.t("studentFlow.cards.correction.text")} />
+              <LightCard title={props.t("studentFlow.cards.feedback.title")} text={props.t("studentFlow.cards.feedback.text")} />
+            </div>
+
+            <SectionButtons
+              locale={props.locale}
+              primaryHref="/321lessons"
+              primaryLabel={props.t("studentFlow.ctaPrimary")}
+              secondaryHref="/login"
+              secondaryLabel={props.t("studentFlow.ctaSecondary")}
+              variant="light"
+            />
+          </div>
+
+          <div className="rounded-[2rem] border border-white bg-white/80 p-3 shadow-xl shadow-sky-900/10 backdrop-blur">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
+              <Image
+                src="/landing/student-flow.png"
+                alt={props.t("studentFlow.imageAlt")}
+                fill
+                className="object-cover"
+              />
+
+              <FloatingLabel
+                position="top-left"
+                title={props.t("studentFlow.floatingTopTitle")}
+                text={props.t("studentFlow.floatingTopText")}
+              />
+
+              <FloatingLabel
+                position="bottom-right"
+                title={props.t("studentFlow.floatingBottomTitle")}
+                text={props.t("studentFlow.floatingBottomText")}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FinalCtaSection(props: { t: TFn; locale: string }) {
+  return (
+    <section className="bg-slate-900 text-white">
+      <div className="mx-auto max-w-6xl px-6 py-14">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
+          <div>
+            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              {props.t("ctaLite.title")}
+            </h2>
+            <p className="mt-4 text-lg text-white/80">{props.t("ctaLite.lead")}</p>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={localizedPath(props.locale, "/login")}
+                className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-white/90"
+              >
+                {props.t("ctaLite.primary")}
+              </Link>
+
+              <Link
+                href={localizedPath(props.locale, "/pricing")}
+                className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-transparent px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                {props.t("ctaLite.secondary")}
+              </Link>
+            </div>
+
+            <p className="mt-4 text-sm text-white/70">{props.t("ctaLite.note")}</p>
+          </div>
+
+          <div className="rounded-2xl bg-white/10 p-6">
+            <p className="text-sm font-semibold">{props.t("ctaLite.boxTitle")}</p>
+            <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-white/85">
+              <CheckRow dark text={props.t("ctaLite.checks.0")} />
+              <CheckRow dark text={props.t("ctaLite.checks.1")} />
+              <CheckRow dark text={props.t("ctaLite.checks.2")} />
+              <CheckRow dark text={props.t("ctaLite.checks.3")} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FooterSection(props: { t: TFn; locale: string; currentYear: number }) {
+  return (
+    <footer className="bg-white">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold">{brand.name}</p>
+            <p className="mt-1 text-sm text-slate-600">{props.t("footer.tagline")}</p>
+          </div>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <Link
+              className="text-slate-700 hover:text-slate-900"
+              href={localizedPath(props.locale, "/about")}
+            >
+              {props.t("footer.about")}
+            </Link>
+            <Link
+              className="text-slate-700 hover:text-slate-900"
+              href={localizedPath(props.locale, "/privacy")}
+            >
+              {props.t("footer.privacy")}
+            </Link>
+            <Link
+              className="text-slate-700 hover:text-slate-900"
+              href={localizedPath(props.locale, "/contact")}
+            >
+              {props.t("footer.contact")}
+            </Link>
+          </div>
+        </div>
+        <p className="mt-6 text-xs text-slate-500">
+          © {props.currentYear} {brand.name}. {props.t("footer.rights")}
+        </p>
+      </div>
+    </footer>
+  );
+}
+
 function MarqueeRow(props: {
   items: FeaturedLesson[];
   locale: string;
@@ -738,67 +1207,89 @@ function LibraryCard(props: { item: FeaturedLesson; locale: string }) {
   );
 }
 
-function FeatureSection(props: {
-  id?: string;
-  eyebrow: string;
-  title: string;
-  description: string;
-  bullets: string[];
-  cta: { href: string; label: string };
-  image: { src: string; alt: string };
-  flip: boolean;
+function SectionButtons(props: {
+  locale: string;
+  primaryHref: string;
+  primaryLabel: string;
+  secondaryHref: string;
+  secondaryLabel: string;
+  variant: "light" | "dark";
 }) {
+  const primaryClass =
+    props.variant === "dark"
+      ? "bg-white text-slate-950 hover:bg-white/90"
+      : "bg-slate-950 text-white hover:bg-slate-800";
+
+  const secondaryClass =
+    props.variant === "dark"
+      ? "border-white/15 bg-white/10 text-white hover:bg-white/15"
+      : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50";
+
   return (
-    <section id={props.id} className="bg-white">
-      <div className="mx-auto max-w-6xl px-6 py-16">
-        <div
-          className={`grid grid-cols-1 items-center gap-10 md:grid-cols-2 ${props.flip ? "md:[&>*:first-child]:order-2" : ""
-            }`}
-        >
-          <div>
-            <p className="text-sm font-semibold text-slate-600">{props.eyebrow}</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
-              {props.title}
-            </h2>
-            <p className="mt-4 text-lg text-slate-700">{props.description}</p>
+    <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+      <Link
+        href={localizedPath(props.locale, props.primaryHref)}
+        className={`inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold shadow-sm ${primaryClass}`}
+      >
+        {props.primaryLabel}
+      </Link>
 
-            <ul className="mt-6 space-y-3 text-sm text-slate-700">
-              {props.bullets.map((b) => (
-                <li key={b} className="flex gap-3">
-                  <span className="mt-0.5 inline-flex h-5 w-5 flex-none items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                    ✓
-                  </span>
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-7">
-              <Link
-                href={props.cta.href}
-                className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
-              >
-                {props.cta.label}
-              </Link>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-xl bg-slate-100">
-              <Image src={props.image.src} alt={props.image.alt} fill className="object-cover" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+      <Link
+        href={localizedPath(props.locale, props.secondaryHref)}
+        className={`inline-flex items-center justify-center rounded-xl border px-6 py-3 text-sm font-semibold shadow-sm ${secondaryClass}`}
+      >
+        {props.secondaryLabel}
+      </Link>
+    </div>
   );
 }
 
-function InfoCard(props: { title: string; text: string }) {
+function LightCard(props: { title: string; text: string; transparent?: boolean }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-sm font-semibold">{props.title}</p>
-      <p className="mt-2 text-sm text-slate-700">{props.text}</p>
+    <div
+      className={`rounded-2xl p-5 shadow-sm ${props.transparent
+          ? "border border-white/10 bg-white/10"
+          : "border border-slate-200 bg-white"
+        }`}
+    >
+      <p className="text-sm font-semibold text-slate-950">{props.title}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-700">{props.text}</p>
+    </div>
+  );
+}
+
+function DarkCard(props: { title: string; text: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/10 p-5">
+      <p className="text-sm font-semibold text-white">{props.title}</p>
+      <p className="mt-2 text-sm leading-6 text-white/70">{props.text}</p>
+    </div>
+  );
+}
+
+function FloatingLabel(props: {
+  title: string;
+  text: string;
+  position: "top-left" | "bottom-right";
+}) {
+  const positionClass =
+    props.position === "top-left" ? "left-4 top-4" : "bottom-4 right-4";
+
+  return (
+    <div className={`absolute ${positionClass} rounded-2xl bg-white/90 px-4 py-3 text-slate-950 shadow-lg backdrop-blur`}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {props.title}
+      </p>
+      <p className="mt-1 text-sm font-semibold">{props.text}</p>
+    </div>
+  );
+}
+
+function SimpleCheck(props: { text: string }) {
+  return (
+    <div className="flex gap-3 text-sm text-white/80">
+      <span className="text-emerald-400">✓</span>
+      <span>{props.text}</span>
     </div>
   );
 }

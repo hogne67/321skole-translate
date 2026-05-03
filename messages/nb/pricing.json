@@ -4,152 +4,59 @@
       "title": "Priser og planer",
       "subtitle": "321 Skole er laget slik at alle kan lære gratis. Når du trenger mer kapasitet, flere AI-funksjoner og mer samarbeid, kan du oppgradere til planen som passer din rolle."
     },
-    "nav": {
-      "student": "Elev",
-      "teacher": "Lærer",
-      "parent": "Forelder"
-    },
-    "activePlan": {
-      "label": "Aktiv plan:",
-      "role": "Rolle:",
-      "manage": "Administrer abonnement"
-    },
     "buttons": {
-      "back": "Tilbake til forsiden",
-      "managePlan": "Administrer plan",
+      "back": "Til forsiden",
+      "managePlan": "Administrer abonnement",
       "createAccount": "Opprett konto"
     },
     "tiers": {
       "free": {
-        "name": "Gratis",
-        "price": "0 NOK",
-        "tagline": "Kom i gang gratis med bibliotek, lesing og enkel bruk.",
-        "badge": "Gratis"
+        "name": "Free",
+        "price": "0 kr"
       },
       "basic": {
-        "name": "Basis",
-        "price": "59 NOK / måned",
-        "tagline": "For deg som vil bruke plattformen mer og få større kapasitet."
+        "name": "Basic",
+        "price": "59 kr"
       },
       "plus": {
-        "name": "Pluss",
-        "price": "129 NOK / måned",
-        "tagline": "Mer AI, mer samarbeid og tilgang til de viktigste premiumfunksjonene."
+        "name": "Plus",
+        "price": "99 kr"
       },
       "pro": {
         "name": "Pro",
-        "price": "199 NOK / måned",
-        "tagline": "For høy aktivitet, publisering og mer profesjonell bruk."
-      },
-      "card": {
-        "recommended": "Anbefalt",
-        "activePlan": "Aktiv plan",
-        "managePlan": "Administrer plan",
-        "getStarted": "Kom i gang",
-        "choosePlan": "Velg {name}",
-        "disclaimer": "* Priser og innhold kan justeres før lansering."
-      }
-    },
-    "howItWorks": {
-      "title": "Hvordan fungerer dette i praksis?",
-      "cards": {
-        "categories": {
-          "title": "Én felles pott per kategori",
-          "body": "Premium-generatorer, AI-tilbakemelding, bilder og nedlastinger telles i separate månedlige potter."
-        },
-        "dashboard": {
-          "title": "Dashboard og planer henger sammen",
-          "body": "Tallene du ser i dashboardet og i generatorene samsvarer med grensene i planen din."
-        },
-        "roles": {
-          "title": "Roller har ulik verdi",
-          "body": "Elev, lærer og forelder har ulike grenser fordi de bruker plattformen forskjellig."
-        },
-        "plus": {
-          "title": "Pluss er broen til premium",
-          "body": "Pluss er laget for brukere som trenger mer kapasitet, men ikke full profesjonell bruk."
-        }
+        "price": "199 kr"
       }
     },
     "compare": {
-      "function": "Funksjon"
+      "function": "Funksjon",
+      "choose": "Velg denne"
     },
     "roles": {
-      "student": {
-        "title": "🧑‍🎓 Elev",
-        "subtitle": "Perfekt for egen læring, øving og samarbeid.",
-        "hint": "Elevplaner er bygget rundt en delt premium-generatorpott per måned. Den samme potten brukes når du lager premiumoppgaver, tekster og lignende.",
-        "rows": {
-          "library": { "label": "📚 Bibliotek (les)" },
-          "classroom": { "label": "🏫 Bli med i klasserom" },
-          "generators": {
-            "label": "🧠 Premium-generatorer / måned",
-            "note": "Felles pott for premium-generatorer"
-          },
-          "feedback": { "label": "🧠 AI-tilbakemelding / måned" },
-          "images": { "label": "🖼 AI-bilder / måned" },
-          "downloads": { "label": "📥 Nedlastinger / måned" },
-          "translator": { "label": "🌍 Oversetter" },
-          "groups": {
-            "label": "👥 Samarbeid og grupper",
-            "note": "Kan utvides senere"
-          }
-        }
-      },
-      "teacher": {
-        "title": "👩‍🏫 Lærer",
-        "subtitle": "Laget for lærere med tydelige grenser per plan.",
-        "hint": "Lærerplaner bruker samme modell som dashboardet ditt: en delt premium-generatorpott, samt egne grenser for AI-tilbakemelding, bilder, nedlastinger og medlemmer.",
-        "rows": {
-          "library": { "label": "📚 Bibliotek (les)" },
-          "generators": {
-            "label": "🧠 Premium-generatorer / måned",
-            "note": "Felles pott for leksjon, leseprøve, quiz, skriveoppgave og mer"
-          },
-          "feedback": { "label": "🧠 AI-tilbakemelding / måned" },
-          "images": { "label": "🖼 AI-bilder / måned" },
-          "downloads": { "label": "📥 Nedlastinger / måned" },
-          "members": {
-            "label": "👥 Maks antall medlemmer",
-            "note": "Felles kapasitet"
-          },
-          "rooms": { "label": "🏫 Rom og tavler" },
-          "appAccess": { "label": "🌍 Premium app-tilgang" }
-        }
-      },
-      "parent": {
-        "title": "👨‍👩‍👧 Forelder",
-        "subtitle": "For hjemmeøving, støtte og oppfølging.",
-        "hint": "Foreldreplaner bruker også en delt premium-generatorpott, med egne grenser for AI-tilbakemelding, bilder og nedlastinger.",
-        "rows": {
-          "library": { "label": "📚 Bibliotek (les)" },
-          "homeRoom": { "label": "🏠 Læringsrom hjemme" },
-          "generators": {
-            "label": "🧠 Premium-generatorer / måned",
-            "note": "Felles pott for premium-generatorer"
-          },
-          "feedback": { "label": "🧠 AI-tilbakemelding / måned" },
-          "images": { "label": "🖼 AI-bilder / måned" },
-          "downloads": { "label": "📥 Nedlastinger / måned" },
-          "family": { "label": "👶 Familiebruk" },
-          "appAccess": { "label": "🌍 Premium app-tilgang" }
-        }
-      }
+      "teacher": "Lærer",
+      "student": "Student",
+      "parent": "Forelder"
     },
-    "values": {
-      "simple": "Enkel",
-      "more": "Mer",
-      "most": "Mest",
-      "basic": "Basis",
-      "moreCapacity": "Mer kapasitet",
-      "largeCapacity": "Stor kapasitet",
-      "maxCapacity": "Maks kapasitet",
-      "small": "Liten",
-      "large": "Stor",
-      "largest": "Størst"
+    "features": {
+      "library": "Bibliotek",
+      "generators": "Generatorer",
+      "translateText": "Oversett tekst",
+      "translateTaskText": "Oversett oppgavetekst",
+      "taskAudio": "Lydavspilling oppgavetekst",
+      "feedbackAudio": "Lydavspilling feedback",
+      "createSpaces": "Lage Spaces",
+      "digitalBoard": "Digital tavle",
+      "studentCount": "Antall studenter",
+      "aiTaskFeedback": "AI feedback oppgave",
+      "aiHelpSubmissions": "AI-hjelp for innleveringer",
+      "premiumGenerator": "Premium generator",
+      "aiImageGenerator": "AI bildegenerator",
+      "joinSpaces": "Delta i Spaces",
+      "translateTeacherFeedback": "Oversette feedback fra lærer",
+      "createChildSpaces": "Lage Spaces til barn",
+      "starFeedback": "Feedback med stjerner"
     },
     "footer": {
-      "note": "Dette er en prisside under utvikling. Tall, grenser og innhold kan endres før lansering. CTA-knappene kan kobles direkte til Stripe eller betalingsside."
+      "note": "Priser, grenser og innhold kan bli justert før lansering."
     }
   }
 }

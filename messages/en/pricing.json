@@ -1,155 +1,62 @@
 {
   "pricing": {
-  "hero": {
-    "title": "Pricing and plans",
-    "subtitle": "321 School is built so everyone can learn for free. When you need more capacity, more AI features, and more collaboration, you can upgrade to the plan that fits your role."
-  },
-  "nav": {
-    "student": "Student",
-    "teacher": "Teacher",
-    "parent": "Parent"
-  },
-  "activePlan": {
-    "label": "Active plan:",
-    "role": "Role:",
-    "manage": "Manage subscription"
-  },
-  "buttons": {
-    "back": "Back to front page",
-    "managePlan": "Manage plan",
-    "createAccount": "Create account"
-  },
-  "tiers": {
-    "free": {
-      "name": "Free",
-      "price": "0 NOK",
-      "tagline": "Get started for free with library access, reading, and simple use.",
-      "badge": "Free"
+    "hero": {
+      "title": "Pricing and plans",
+      "subtitle": "321 School is built so everyone can learn for free. When you need more capacity, more AI features, and more collaboration, you can upgrade to the plan that fits your role."
     },
-    "basic": {
-      "name": "Basic",
-      "price": "59 NOK / month",
-      "tagline": "For those who want to use the platform more often and get more capacity."
-    },
-    "plus": {
-      "name": "Plus",
-      "price": "129 NOK / month",
-      "tagline": "More AI, more collaboration, and access to the most important premium features."
-    },
-    "pro": {
-      "name": "Pro",
-      "price": "199 NOK / month",
-      "tagline": "For high activity, publishing, and more professional use."
-    },
-    "card": {
-      "recommended": "Recommended",
-      "activePlan": "Active plan",
+    "buttons": {
+      "back": "Back to front page",
       "managePlan": "Manage plan",
-      "getStarted": "Get started",
-      "choosePlan": "Choose {name}",
-      "disclaimer": "* Prices and content may be adjusted before launch."
-    }
-  },
-  "howItWorks": {
-    "title": "How does this work in practice?",
-    "cards": {
-      "categories": {
-        "title": "One shared pool per category",
-        "body": "Premium generators, AI feedback, images, and downloads are counted in separate monthly pools."
+      "createAccount": "Create account"
+    },
+    "tiers": {
+      "free": {
+        "name": "Free",
+        "price": "0 NOK"
       },
-      "dashboard": {
-        "title": "Dashboard and plans are aligned",
-        "body": "The numbers you see in your dashboard and in the generators should match the limits in your plan."
-      },
-      "roles": {
-        "title": "Roles have different value",
-        "body": "Student, teacher, and parent get different limits because they use the platform differently."
+      "basic": {
+        "name": "Basic",
+        "price": "59 NOK"
       },
       "plus": {
-        "title": "Plus is the bridge to premium",
-        "body": "Plus is made for users who need more capacity, but not full professional use."
-      }
-    }
-  },
-  "compare": {
-    "function": "Feature"
-  },
-  "roles": {
-    "student": {
-      "title": "🧑‍🎓 Student",
-      "subtitle": "Perfect for self-study, practice, and collaboration.",
-      "hint": "Student plans are built around a shared premium generator pool per month. The same pool is used when you create premium tasks, texts, and similar tools.",
-      "rows": {
-        "library": { "label": "📚 Library (read)" },
-        "classroom": { "label": "🏫 Join classroom" },
-        "generators": {
-          "label": "🧠 Premium generators / month",
-          "note": "Shared pool for premium generators"
-        },
-        "feedback": { "label": "🧠 AI feedback / month" },
-        "images": { "label": "🖼 AI images / month" },
-        "downloads": { "label": "📥 Downloads / month" },
-        "translator": { "label": "🌍 Translator" },
-        "groups": {
-          "label": "👥 Collaboration and groups",
-          "note": "Can be expanded later"
-        }
+        "name": "Plus",
+        "price": "99 NOK"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "199 NOK"
       }
     },
-    "teacher": {
-      "title": "👩‍🏫 Teacher",
-      "subtitle": "Built for teachers with clear limits per plan.",
-      "hint": "Teacher plans use the same model as your dashboard: a shared premium generator pool, separate limits for AI feedback, images, downloads, and members.",
-      "rows": {
-        "library": { "label": "📚 Library (read)" },
-        "generators": {
-          "label": "🧠 Premium generators / month",
-          "note": "Shared pool for lesson, reading test, quiz, writing task, and more"
-        },
-        "feedback": { "label": "🧠 AI feedback / month" },
-        "images": { "label": "🖼 AI images / month" },
-        "downloads": { "label": "📥 Downloads / month" },
-        "members": {
-          "label": "👥 Max members",
-          "note": "Shared capacity"
-        },
-        "rooms": { "label": "🏫 Rooms and boards" },
-        "appAccess": { "label": "🌍 Premium app access" }
-      }
+    "compare": {
+      "function": "Feature",
+      "choose": "Choose this"
     },
-    "parent": {
-      "title": "👨‍👩‍👧 Parent",
-      "subtitle": "For home training, support, and progress monitoring.",
-      "hint": "Parent plans also use a shared premium generator pool, along with separate limits for AI feedback, images, and downloads.",
-      "rows": {
-        "library": { "label": "📚 Library (read)" },
-        "homeRoom": { "label": "🏠 Learning space at home" },
-        "generators": {
-          "label": "🧠 Premium generators / month",
-          "note": "Shared pool for premium generators"
-        },
-        "feedback": { "label": "🧠 AI feedback / month" },
-        "images": { "label": "🖼 AI images / month" },
-        "downloads": { "label": "📥 Downloads / month" },
-        "family": { "label": "👶 Family-use capacity" },
-        "appAccess": { "label": "🌍 Premium app access" }
-      }
+    "roles": {
+      "teacher": "Teacher",
+      "student": "Student",
+      "parent": "Parent"
+    },
+    "features": {
+      "library": "Library",
+      "generators": "Generators",
+      "translateText": "Translate text",
+      "translateTaskText": "Translate task text",
+      "taskAudio": "Audio playback for task text",
+      "feedbackAudio": "Audio playback for feedback",
+      "createSpaces": "Create Spaces",
+      "digitalBoard": "Digital board",
+      "studentCount": "Number of students",
+      "aiTaskFeedback": "AI feedback for tasks",
+      "aiHelpSubmissions": "AI help for submissions",
+      "premiumGenerator": "Premium generator",
+      "aiImageGenerator": "AI image generator",
+      "joinSpaces": "Join Spaces",
+      "translateTeacherFeedback": "Translate teacher feedback",
+      "createChildSpaces": "Create Spaces for children",
+      "starFeedback": "Feedback with stars"
+    },
+    "footer": {
+      "note": "Prices, limits, and content may be adjusted before launch."
     }
-  },
-  "values": {
-    "simple": "Simple",
-    "more": "More",
-    "most": "Most",
-    "basic": "Basic",
-    "moreCapacity": "More capacity",
-    "largeCapacity": "Large capacity",
-    "maxCapacity": "Max capacity",
-    "small": "Small",
-    "large": "Large",
-    "largest": "Largest"
-  },
-  "footer": {
-    "note": "This is a living pricing page under development. Numbers, limits, and content may be adjusted before launch. The CTA buttons can be connected directly to Stripe checkout or the billing page."
   }
-}
 }

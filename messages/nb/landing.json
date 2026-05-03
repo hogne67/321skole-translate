@@ -4,218 +4,232 @@
       "login": "Logg inn",
       "register": "Registrer deg"
     },
-    "topbar": {
-      "nav": {
-        "teachers": "For lærere",
-        "students": "For elever",
-        "spaces": "Spaces"
-      }
-    },
     "hero": {
-      "badge": "Bli med i et globalt læringsnettverk!",
-      "title": "Fremtidens læring starter her",
-      "lead": "En ny og revolusjonerende plattform for å skape, dele og mestre kunnskap – tilpasset elever, lærere og foreldre. Og best av alt: Den er gratis.",
-      "ctaPrimary": "Registrer deg i dag",
-      "ctaSecondary": "Logg inn",
-      "guestNote": "Gjestebrukere blir med via delte lenker til oppgaver/Spaces.",
-      "stats": {
-        "languages": {
-          "title": "Språk",
-          "value": "Alle",
-          "hint": "Tekst + oppgaver + tilbakemelding"
-        },
-        "level": {
-          "title": "Nivå",
-          "value": "CEFR A1–C1",
-          "hint": "Forenkle, forbedre, variere"
-        },
-        "audio": {
-          "title": "Lyd",
-          "value": "Justerbar",
-          "hint": "Tekst + oversettelse"
-        },
-        "pdf": {
-          "title": "PDF",
-          "value": "Eksporter",
-          "hint": "Klare arbeidsark"
-        }
-      },
-      "imageAlt": "Illustrasjon av en lærer og elev som bruker 321skole",
+      "badge": "Gratis læringsplattform for lærere, elever og foreldre",
+      "title": "Lag undervisning. Del oppgaver. Få feedback.",
+      "lead": "321skole hjelper deg å lage tekster, oppgaver, bilder og digitale læringsrom — med KI-støtte når du trenger det.",
+      "ctaPrimary": "Start gratis",
+      "ctaSecondary": "Utforsk biblioteket",
+      "note": "Ingen installasjon. Bruk i nettleseren. Klar på få minutter.",
+      "imageAlt": "Illustrasjon av lærer og elev som bruker 321skole"
+    },
+    "aiSupport": {
+      "eyebrow": "KI som støtter læreren",
+      "title": "En ny verden av muligheter — uten å miste kontrollen.",
+      "description": "Bruk KI til å utvikle opplegg, støtte elever underveis og gi raskere feedback. Læreren bestemmer alltid retningen.",
+      "imageAlt": "Lærer som bruker KI-støtte i undervisning",
+      "floatingTopTitle": "KI-støtte",
+      "floatingTopText": "Læreren har kontroll",
+      "floatingBottomTitle": "Tid spart",
+      "floatingBottomText": "Mer tid til læring",
       "cards": {
-        "text": {
-          "title": "Tekst",
-          "subtitle": "Tilpass nivå"
+        "develop": {
+          "title": "Utvikle raskere",
+          "text": "Lag tekster, oppgaver, bilder og tilpasninger på kort tid."
         },
-        "tasks": {
-          "title": "Oppgaver",
-          "subtitle": "Varier"
+        "support": {
+          "title": "Støtte underveis",
+          "text": "Elever kan bruke oversettelse, lyd og hjelp når de står fast."
         },
         "feedback": {
-          "title": "Tilbakemelding",
-          "subtitle": "Umiddelbar"
+          "title": "KI-støttet feedback",
+          "text": "Få støtte til vurdering, respons og videre progresjon."
+        },
+        "control": {
+          "title": "Læreren har kontroll",
+          "text": "KI gir støtte. Læreren tar valgene."
         }
       },
-      "floating": {
-        "title": "Pedagogisk KI",
-        "subtitle": "Lærer styrer · KI hjelper"
-      }
+      "ctaPrimary": "Prøv KI-støtte",
+      "ctaSecondary": "Se ferdige opplegg"
+    },
+    "printDigital": {
+      "eyebrow": "Én oppgave. To måter å bruke den på.",
+      "title": "Del digitalt. Eller skriv ut. Du bestemmer.",
+      "description": "Lag opplegget én gang. Bruk det på skjerm, i klasserommet, hjemme eller på papir.",
+      "imageAlt": "Digital undervisning og PDF-ark",
+      "floatingDigitalTitle": "Digitalt",
+      "floatingDigitalText": "Del med klassen",
+      "floatingPdfTitle": "PDF",
+      "floatingPdfText": "Skriv ut og bruk",
+      "cards": {
+        "digital": {
+          "title": "Digital levering",
+          "text": "Elever leser, svarer og får KI-feedback direkte."
+        },
+        "pdf": {
+          "title": "Klar som PDF",
+          "text": "Perfekt til papir, vikaropplegg, lekser eller tavlebruk."
+        }
+      },
+      "ctaPrimary": "Lag ditt første opplegg",
+      "ctaSecondary": "Se ferdige opplegg"
+    },
+    "wow": {
+      "eyebrow": "En ny måte å lage undervisning på",
+      "title": "Fra idé til ferdig opplegg. På få klikk.",
+      "description": "321skole hjelper deg å lage, dele og følge opp læring — uten at det blir komplisert.",
+      "imageAlt": "Lærer og elev bruker 321skole",
+      "floatingTitle": "Klar til bruk",
+      "floatingText": "Generer. Tilpass. Del. Følg opp.",
+      "ctaPrimary": "Start gratis",
+      "ctaSecondary": "Utforsk biblioteket"
+    },
+    "teacherPower": {
+      "eyebrow": "For lærere",
+      "title": "Lag mer. Rett mindre. Følg bedre opp.",
+      "description": "Lag undervisningsopplegg, del dem med klassen og få bedre oversikt over hva elevene faktisk forstår.",
+      "imageAlt": "Lærer lager og deler opplegg",
+      "floatingTopTitle": "Opplegg",
+      "floatingTopText": "Klar til deling",
+      "floatingBottomTitle": "Oversikt",
+      "floatingBottomText": "Svar · Feedback",
+      "cards": {
+        "create": {
+          "title": "Lag opplegg raskt",
+          "text": "Generer tekst, oppgaver og bilder — eller bruk ditt eget innhold."
+        },
+        "share": {
+          "title": "Del med ett klikk",
+          "text": "Send oppgaver digitalt til Spaces eller skriv dem ut som PDF."
+        },
+        "overview": {
+          "title": "Se svarene samlet",
+          "text": "Følg innleveringer og se hvem som trenger mer støtte."
+        },
+        "ai": {
+          "title": "Få støtte fra KI",
+          "text": "Bruk KI til vurdering, feedback og videre progresjon."
+        }
+      },
+      "ctaPrimary": "Start som lærer",
+      "ctaSecondary": "Se biblioteket"
+    },
+    "languageLearning": {
+      "eyebrow": "Lær språk på ditt nivå",
+      "title": "Les. Lytt. Oversett. Få feedback med én gang.",
+      "description": "Finn tekster som passer deg. Bruk morsmålet ditt når du trenger støtte — og få hjelp mens du lærer.",
+      "imageAlt": "Elev lærer språk med tekst, lyd og oversettelse",
+      "floatingLevelTitle": "Nivå",
+      "floatingLevelText": "A1 · A2 · B1",
+      "floatingFeedbackTitle": "Feedback",
+      "floatingFeedbackText": "Med én gang",
+      "cards": {
+        "level": {
+          "title": "Tekster på riktig nivå",
+          "text": "Velg enkle eller mer avanserte tekster — fra A1 til B2."
+        },
+        "motherTongue": {
+          "title": "Støtte på morsmålet",
+          "text": "Oversett ord, setninger og forklaringer når du står fast."
+        },
+        "audio": {
+          "title": "Lytt og forstå",
+          "text": "Hør teksten mens du leser, og tren uttale og flyt."
+        },
+        "feedback": {
+          "title": "Feedback med én gang",
+          "text": "Få KI-feedback på svarene dine umiddelbart."
+        }
+      },
+      "ctaPrimary": "Finn en tekst",
+      "ctaSecondary": "Start gratis"
+    },
+    "spacesNew": {
+      "eyebrow": "Klasserom gjort enkelt",
+      "title": "Lag klasser. Del oppgaver. Se alt.",
+      "description": "Opprett så mange Spaces du vil. Inviter elever, del oppgaver og følg innleveringer — uten kaos.",
+      "imageAlt": "Lærer organiserer klasser",
+      "floatingTopTitle": "Spaces",
+      "floatingTopText": "3A · 3B · Norskgruppe",
+      "floatingBottomTitle": "Status",
+      "floatingBottomText": "Levert · Under arbeid",
+      "checks": {
+        "0": "Ubegrenset antall klasserom",
+        "1": "Del oppgaver med ett klikk",
+        "2": "Se svar med en gang",
+        "3": "Gi tilbakemelding — med eller uten KI"
+      },
+      "ctaPrimary": "Opprett ditt første klasserom",
+      "ctaSecondary": "Se oppgaver"
     },
     "topStrip": {
-      "title": "Lag dine egne opplegg på 321..",
-      "description": "Eller bare velg ett fra biblioteket. Det er gratis.",
-      "badge": "{count} opplegg klare akkurat nå"
+      "title": "Lag dine egne opplegg i 321",
+      "description": "Eller velg ett fra biblioteket. Det er gratis.",
+      "badge": "{count} opplegg klare nå"
     },
-    "trustLine": "Klar for skoler, kurs og voksenopplæring – uten tung LMS-friksjon.",
-    "teachers": {
-      "eyebrow": "For lærere",
-      "title": "Lag mer, raskere og bedre",
-      "description": "Et praktisk læringssystem som hjelper deg å produsere, tilpasse og dele innhold – uten å miste kontroll på kvalitet og nivå.",
-      "imageAlt": "Lærer som planlegger undervisning på en laptop",
-      "bullets": [
-        "Lag tekster på alle språk og nivåer (skriv, lim inn eller generer).",
-        "Generer og rediger mange oppgavetyper (MCQ, åpne svar, skriveoppgaver).",
-        "Opprett egne Spaces – og samle inn besvarelser.",
-        "Få automatisk retting og generer KI-støttet tilbakemelding.",
-        "Eksporter ferdige oppgaver som både digitale opplegg og PDF.",
-        "Lag leseprøver med umiddelbar tilbakemelding."
-      ],
-      "cta": "Registrer deg i dag"
-    },
-    "students": {
-      "eyebrow": "For elever",
-      "title": "Lær raskere, bedre og smartere",
-      "description": "Lag egne oppgaver, sjekk nivået ditt og øv med KI-verktøy som oversettelse, lyd og umiddelbar tilbakemelding på flere språk.",
-      "imageAlt": "Elev som lærer språk med hodetelefoner",
-      "bullets": [
-        "Lag egne oppgaver på alle nivåer.",
-        "Oppgaver med justerbar lydhastighet – både tekst og oversettelse.",
-        "Umiddelbar tilbakemelding på skriving (læringsspråk + valgfritt andrespråk).",
-        "Forklaringer som hjelper deg å bli bedre – ikke bare riktig/feil.",
-        "Delta i globale læringsnettverk.",
-        "Finn nivået ditt. Lag leseprøver med umiddelbar tilbakemelding."
-      ],
-      "cta": "Logg inn"
-    },
-    "parents": {
-      "eyebrow": "For foreldre",
-      "title": "Støtt læring smartere og bedre",
-      "description": "Støtt, øv og følg utviklingen med kraftige verktøy laget for hverdagen hjemme.",
-      "imageAlt": "Elev som lærer språk med hodetelefoner",
-      "bullets": [
-        "Lag egne oppgaver, opplegg og familie-Spaces.",
-        "Sjekk nivå og følg utviklingen over tid.",
-        "Øv på lesing sammen med lyd, oversettelse og leseprøver.",
-        "Forklaringer som hjelper – ikke bare riktig/feil.",
-        "Gi personlig tilbakemelding med enkle stjerner.",
-        "Finn nivået. Lag leseprøver med umiddelbar tilbakemelding."
-      ],
-      "cta": "Logg inn"
-    },
-    "spaces": {
-      "eyebrow": "Spaces",
-      "title": "Ett rom for alt som skjer i læring",
-      "description": "Del oppgaver, samle besvarelser og følg progresjon – for klasserom, kurs og voksenopplæring.",
-      "cards": [
-        {
-          "title": "Del på sekunder",
-          "text": "Gi elevene en lenke eller kode. De lander rett i oppgaven."
-        },
-        {
-          "title": "Anonymt eller innlogget",
-          "text": "Lav terskel i starten – trygg innlogging når dere er klare."
-        },
-        {
-          "title": "Oversikt og flyt",
-          "text": "Alt samlet: tekst, oppgaver, svar og tilbakemelding – ryddig og oversiktlig."
-        }
-      ],
-      "imageAlt": "Mockup av Spaces i 321skole"
-    },
-    "whyAi": {
-      "eyebrow": "Hvorfor KI-støttede verktøy?",
-      "title": "KI som assistent – ikke fasit.",
-      "description": "Dette er pedagogisk KI: Du bestemmer innholdet, og KI hjelper med språk, nivå og variasjon. Elevene får forklaringer – ikke snarveier.",
-      "checks": [
-        "Full kontroll: alt kan redigeres og justeres.",
-        "Trygg støtte: fokus på læring, forståelse og progresjon.",
-        "Flerspråklig fra starten: tekst, oppgaver, lyd og tilbakemelding."
-      ],
-      "flowTitle": "Eksempel på flyt",
-      "flow": {
-        "1": "Lærer velger tema og nivå",
-        "2": "Tekst lages/tilpasses på minutter",
-        "3": "Oppgaver genereres og redigeres",
-        "4": "Del i et Space → elever jobber",
-        "5": "Umiddelbar tilbakemelding + eksport til PDF"
-      }
-    },
-    "roles": {
-      "title": "Gratis å starte. Enkelt å oppgradere.",
-      "description": "Bruk biblioteket og oversetteren gratis. Oppgrader når du trenger mer kapasitet, flere oppgaver og avanserte KI-verktøy.",
-      "seeAll": "Se alle planer",
-      "teaser": "Planer for elev, lærer og forelder – fra 59 kr/mnd. Se full oversikt på prissiden.",
+    "parentHome": {
+      "eyebrow": "For foreldre og hjemmeskole",
+      "title": "Følg barnas læring hjemme — på en enkel måte.",
+      "description": "Lag egne oppgaver, del dem med barna og gi enkel vurdering med stjerner, smilefjes og KI-støtte.",
+      "imageAlt": "Forelder hjelper barn hjemme",
+      "floatingTopTitle": "Hjemmeskole",
+      "floatingTopText": "Læring hjemme",
+      "floatingBottomTitle": "Feedback",
+      "floatingBottomText": "⭐ 😊 ⭐",
       "cards": {
-        "student": {
-          "title": "Elev",
-          "freeTitle": "Gratis",
-          "free": {
-            "0": "Les i biblioteket og bruk oversetteren",
-            "1": "Start oppgaver: 2 / måned",
-            "2": "Bli med i klasser og samarbeid"
-          },
-          "paidTitle": "Planer fra",
-          "price": "59 kr/mnd",
-          "paid": {
-            "0": "Flere oppgaver per måned",
-            "1": "Studiegrupper og samarbeidstavle",
-            "2": "Pro-verktøy (språk + lyd) i Plus/Pro"
-          }
+        "platform": {
+          "title": "Foreldreplattform",
+          "text": "Lag trygge læringsrom hjemme."
         },
-        "teacher": {
-          "title": "Lærer",
-          "freeTitle": "Gratis",
-          "free": {
-            "0": "Lag og test oppgaver (Light)",
-            "1": "1 space / 15 elever",
-            "2": "2 Pro-oppgaver (språk + lyd) / måned"
-          },
-          "paidTitle": "Planer fra",
-          "price": "59 kr/mnd",
-          "paid": {
-            "0": "Flere spaces og flere elever",
-            "1": "PDF + privat deling (unlisted)",
-            "2": "Publisering og analyse i Plus/Pro"
-          }
+        "share": {
+          "title": "Del oppgaver",
+          "text": "Send lese-, språk- eller matteoppgaver direkte."
         },
-        "parent": {
-          "title": "Forelder",
-          "freeTitle": "Gratis",
-          "free": {
-            "0": "Støtt barnet hjemme",
-            "1": "Start oppgaver: 2 / måned"
-          },
-          "paidTitle": "Planer fra",
-          "price": "59 kr/mnd",
-          "paid": {
-            "0": "Flere barn + mer øving",
-            "1": "Progresjonsoversikt i Plus/Pro",
-            "2": "Mer KI (Light/Pro) og bildekreditter"
-          }
+        "ai": {
+          "title": "KI hjelper",
+          "text": "Få støtte til tekst, oppgaver og forklaringer."
+        },
+        "warm": {
+          "title": "Vurder med varme",
+          "text": "Bruk stjerner, smilefjes og korte kommentarer."
         }
-      }
+      },
+      "ctaPrimary": "Start som forelder",
+      "ctaSecondary": "Finn oppgaver"
+    },
+    "studentFlow": {
+      "eyebrow": "For elever",
+      "title": "Øv selv. Bli bedre. Få hjelp underveis.",
+      "description": "Litt som fotball: de som trener selv, blir best. Her kan du øve og få feedback når du vil.",
+      "imageAlt": "Elev trener selv",
+      "floatingTopTitle": "Øving",
+      "floatingTopText": "Når du vil",
+      "floatingBottomTitle": "Feedback",
+      "floatingBottomText": "Med én gang",
+      "cards": {
+        "create": {
+          "title": "Lag egne oppgaver",
+          "text": "Skriv tekst eller få hjelp."
+        },
+        "language": {
+          "title": "Lær språk smartere",
+          "text": "Les, lytt og oversett."
+        },
+        "correction": {
+          "title": "Få retting med én gang",
+          "text": "Se hva du kan forbedre."
+        },
+        "feedback": {
+          "title": "Få KI-feedback",
+          "text": "Forklaringer og tips."
+        }
+      },
+      "ctaPrimary": "Start å øve",
+      "ctaSecondary": "Logg inn"
     },
     "ctaLite": {
-      "title": "Klar til å komme i gang?",
-      "lead": "Lag, tilpass, del og støtt læring med KI-verktøy utviklet for ekte klasserom og ekte elever.",
+      "title": "Klar til å starte?",
+      "lead": "Lag, tilpass, del og støtt læring med KI-verktøy laget for ekte klasserom.",
       "primary": "Kom i gang",
       "secondary": "Se priser",
-      "note": "Gratis å starte. Oppgrader kun når du trenger mer kapasitet.",
+      "note": "Gratis å starte. Oppgrader når du trenger mer.",
       "boxTitle": "Dette får du fra dag én",
       "checks": [
-        "Lag oppgaver og innhold på minutter",
-        "Bruk oversettelse, lyd og tilbakemelding",
+        "Lag oppgaver på minutter",
+        "Bruk oversettelse, lyd og feedback",
         "Del oppgaver i Spaces",
-        "Eksporter og gjenbruk innhold enkelt"
+        "Gjenbruk innhold enkelt"
       ]
     },
     "footer": {
@@ -223,13 +237,7 @@
       "privacy": "Personvern",
       "contact": "Kontakt",
       "rights": "Alle rettigheter reservert.",
-      "tagline": "AI-støttet språklæring – bygget for lærere, elsket av studenter"
-    },
-    "libraryStrip": {
-      "eyebrow": "Fra biblioteket",
-      "title": "Ferdige opplegg du kan bruke med én gang",
-      "description": "Bruk ferdige undervisningsopplegg, eller lag dine egne på sekunder med AI.",
-      "cta": "Utforsk og lag egne opplegg"
+      "tagline": "Læring med KI — laget for lærere, elever og foreldre"
     }
   }
 }
