@@ -610,49 +610,58 @@ function PrintOrDigitalSection(props: { t: TFn; locale: string }) {
     <section className="relative overflow-hidden bg-slate-950 text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.35),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.28),_transparent_35%)]" />
 
-      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-[0.95fr_1.05fr] md:items-center">
-          <div className="order-2 md:order-1">
-            <div className="rounded-[2rem] border border-white/10 bg-white/10 p-3 shadow-2xl shadow-black/20 backdrop-blur">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-900">
-                <Image
-                  src="/landing/digital-print.png"
-                  alt={props.t("printDigital.imageAlt")}
-                  fill
-                  className="object-cover"
-                />
-
-                <FloatingLabel
-                  position="top-left"
-                  title={props.t("printDigital.floatingDigitalTitle")}
-                  text={props.t("printDigital.floatingDigitalText")}
-                />
-
-                <FloatingLabel
-                  position="bottom-right"
-                  title={props.t("printDigital.floatingPdfTitle")}
-                  text={props.t("printDigital.floatingPdfText")}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="order-1 md:order-2">
+      <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-20">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-[0.95fr_1.05fr] md:items-center md:gap-10">
+          {/* TEXT TOP */}
+          <div className="order-1 md:col-start-2 md:row-start-1">
             <p className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/15">
               {props.t("printDigital.eyebrow")}
             </p>
 
-            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight md:text-6xl">
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight md:mt-5 md:text-6xl">
               {props.t("printDigital.title")}
             </h2>
 
-            <p className="mt-5 max-w-xl text-lg text-white/75 md:text-xl">
+            <p className="mt-4 max-w-xl text-base text-white/75 md:mt-5 md:text-xl">
               {props.t("printDigital.description")}
             </p>
+          </div>
 
-            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <DarkCard title={props.t("printDigital.cards.digital.title")} text={props.t("printDigital.cards.digital.text")} />
-              <DarkCard title={props.t("printDigital.cards.pdf.title")} text={props.t("printDigital.cards.pdf.text")} />
+          {/* IMAGE */}
+          <div className="order-2 rounded-[2rem] border border-white/10 bg-white/10 p-2 shadow-2xl shadow-black/20 backdrop-blur md:col-start-1 md:row-span-2 md:row-start-1 md:p-3">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-900">
+              <Image
+                src="/landing/digital-print.png"
+                alt={props.t("printDigital.imageAlt")}
+                fill
+                className="object-cover object-center"
+              />
+
+              <FloatingLabel
+                position="top-left"
+                title={props.t("printDigital.floatingDigitalTitle")}
+                text={props.t("printDigital.floatingDigitalText")}
+              />
+
+              <FloatingLabel
+                position="bottom-right"
+                title={props.t("printDigital.floatingPdfTitle")}
+                text={props.t("printDigital.floatingPdfText")}
+              />
+            </div>
+          </div>
+
+          {/* TEXT BOTTOM */}
+          <div className="order-3 md:col-start-2 md:row-start-2">
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 md:mt-0 md:gap-3">
+              <DarkCard
+                title={props.t("printDigital.cards.digital.title")}
+                text={props.t("printDigital.cards.digital.text")}
+              />
+              <DarkCard
+                title={props.t("printDigital.cards.pdf.title")}
+                text={props.t("printDigital.cards.pdf.text")}
+              />
             </div>
 
             <SectionButtons
