@@ -466,21 +466,21 @@ function PublicHeader(props: {
 function HeroSection(props: { t: TFn; locale: string }) {
   return (
     <section className="relative overflow-hidden bg-sky-600 text-white">
-      <div className="mx-auto max-w-6xl px-6 py-14 md:py-20">
+      <div className="mx-auto max-w-6xl px-6 py-10 md:py-20">
         <div className="mx-auto max-w-4xl text-center">
           <p className="inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20">
             {props.t("hero.badge")}
           </p>
 
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-6xl">
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight md:mt-6 md:text-6xl">
             {props.t("hero.title")}
           </h1>
 
-          <p className="mx-auto mt-5 max-w-3xl text-lg text-white/85 md:text-xl">
+          <p className="mx-auto mt-4 max-w-3xl text-lg text-white/85 md:mt-5 md:text-xl">
             {props.t("hero.lead")}
           </p>
 
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row md:mt-8">
             <Link
               href={localizedPath(props.locale, "/login")}
               className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-white/90"
@@ -496,18 +496,18 @@ function HeroSection(props: { t: TFn; locale: string }) {
             </Link>
           </div>
 
-          <p className="mt-4 text-sm text-white/70">
+          <p className="mt-3 text-sm text-white/70 md:mt-4">
             {props.t("hero.note")}
           </p>
         </div>
 
-        <div className="mt-10 rounded-3xl border border-white/20 bg-white/10 p-3 shadow-sm backdrop-blur">
-          <div className="relative aspect-[21/9] w-full overflow-hidden rounded-2xl bg-slate-100">
+        <div className="mt-5 rounded-3xl border border-white/20 bg-white/10 p-3 shadow-sm backdrop-blur md:mt-10">
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-slate-100 sm:aspect-[16/10] md:aspect-[21/9]">
             <Image
               src="/landing/hero1_1.png"
               alt={props.t("hero.imageAlt")}
               fill
-              className="object-cover"
+              className="object-cover object-center"
               priority
             />
           </div>
@@ -522,15 +522,16 @@ function AiSupportSection(props: { t: TFn; locale: string }) {
     <section className="relative overflow-hidden bg-white">
       <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-sky-400 to-sky-600" />
 
-      <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-20">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-[0.95fr_1.05fr] md:items-center">
-          <div className="order-2 rounded-[2rem] border border-white bg-white/80 p-3 shadow-xl shadow-sky-900/10 backdrop-blur md:order-1">
+      <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-20">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-[0.95fr_1.05fr] md:items-center md:gap-10">
+          {/* IMAGE */}
+          <div className="order-2 rounded-[2rem] border border-white bg-white/80 p-2 shadow-xl shadow-sky-900/10 backdrop-blur md:order-1 md:col-start-1 md:row-span-2 md:row-start-1">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
               <Image
                 src="/landing/ai-support.png"
                 alt={props.t("aiSupport.imageAlt")}
                 fill
-                className="object-cover"
+                className="object-cover object-center"
               />
 
               <FloatingLabel
@@ -547,24 +548,44 @@ function AiSupportSection(props: { t: TFn; locale: string }) {
             </div>
           </div>
 
-          <div className="order-1 md:order-2">
+          {/* TEXT TOP */}
+          <div className="order-1 md:order-2 md:col-start-2 md:row-start-1">
             <p className="inline-flex rounded-full bg-indigo-100 px-4 py-2 text-sm font-semibold text-indigo-800">
               {props.t("aiSupport.eyebrow")}
             </p>
 
-            <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 md:text-6xl">
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-slate-950 md:mt-5 md:text-6xl">
               {props.t("aiSupport.title")}
             </h2>
 
-            <p className="mt-5 max-w-xl text-lg text-slate-700 md:text-xl">
+            <p className="mt-4 max-w-xl text-base text-slate-700 md:mt-5 md:text-xl">
               {props.t("aiSupport.description")}
             </p>
+          </div>
 
-            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <LightCard title={props.t("aiSupport.cards.develop.title")} text={props.t("aiSupport.cards.develop.text")} />
-              <LightCard title={props.t("aiSupport.cards.support.title")} text={props.t("aiSupport.cards.support.text")} />
-              <LightCard title={props.t("aiSupport.cards.feedback.title")} text={props.t("aiSupport.cards.feedback.text")} />
-              <LightCard title={props.t("aiSupport.cards.control.title")} text={props.t("aiSupport.cards.control.text")} />
+          {/* TEXT BOTTOM */}
+          <div className="order-3 md:col-start-2 md:row-start-2">
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 md:mt-0 md:gap-3">
+              <LightCard
+                small
+                title={props.t("aiSupport.cards.develop.title")}
+                text={props.t("aiSupport.cards.develop.text")}
+              />
+              <LightCard
+                small
+                title={props.t("aiSupport.cards.support.title")}
+                text={props.t("aiSupport.cards.support.text")}
+              />
+              <LightCard
+                small
+                title={props.t("aiSupport.cards.feedback.title")}
+                text={props.t("aiSupport.cards.feedback.text")}
+              />
+              <LightCard
+                small
+                title={props.t("aiSupport.cards.control.title")}
+                text={props.t("aiSupport.cards.control.text")}
+              />
             </div>
 
             <SectionButtons
@@ -1244,16 +1265,37 @@ function SectionButtons(props: {
   );
 }
 
-function LightCard(props: { title: string; text: string; transparent?: boolean }) {
+function LightCard(props: {
+  title: string;
+  text: string;
+  small?: boolean;
+  transparent?: boolean;
+}) {
   return (
     <div
-      className={`rounded-2xl p-5 shadow-sm ${props.transparent
-          ? "border border-white/10 bg-white/10"
-          : "border border-slate-200 bg-white"
-        }`}
+      className={`rounded-2xl shadow-sm ${props.transparent
+        ? "border border-white/10 bg-white/10 md:border-slate-200 md:bg-white"
+        : "border border-slate-200 bg-white"
+        } ${props.small ? "p-4" : "p-5"}`}
     >
-      <p className="text-sm font-semibold text-slate-950">{props.title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-700">{props.text}</p>
+      <p
+        className={`text-sm font-semibold ${props.transparent
+          ? "text-white md:text-slate-950"
+          : "text-slate-950"
+          }`}
+      >
+        {props.title}
+      </p>
+
+      <p
+        className={`mt-1 ${props.small ? "text-sm leading-5" : "text-sm leading-6"
+          } ${props.transparent
+            ? "text-white/80 md:text-slate-700"
+            : "text-slate-700"
+          }`}
+      >
+        {props.text}
+      </p>
     </div>
   );
 }
