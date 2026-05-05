@@ -80,8 +80,9 @@
     },
     "builder": {
       "lessonTitle": "Título",
-      "text": "Texto próprio ou gerado por IA.",
-      "textHelp": "Você pode gerar texto com IA ou colar / escrever o texto manualmente.",
+      "text": "Seu texto, seja ele próprio ou gerado por você, será exibido aqui.",
+      "textbox": "Cole seu texto aqui",
+      "textHelp": "Vá para a etapa 2 e crie as tarefas depois de verificar o texto.",
       "wordCount": "Contagem de palavras: {count}"
     },
     "editor": {

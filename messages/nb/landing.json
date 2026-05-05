@@ -55,7 +55,7 @@
       "cards": {
         "digital": {
           "title": "Digital levering",
-          "text": "Elever leser, svarer og får KI-feedback direkte."
+          "text": "Elever leser, svarer og får feedback fra lærer, med KI som støtte"
         },
         "pdf": {
           "title": "Klar som PDF",
@@ -99,7 +99,7 @@
         },
         "ai": {
           "title": "Få støtte fra KI",
-          "text": "Bruk KI til vurdering, feedback og videre progresjon."
+          "text": "Bruk KI til å hjelpe deg med vurdering, feedback og videre progresjon."
         }
       },
       "ctaPrimary": "Start som lærer",
@@ -154,8 +154,8 @@
       "ctaSecondary": "Se oppgaver"
     },
     "topStrip": {
-      "title": "Lag dine egne opplegg i 321",
-      "description": "Eller velg ett fra biblioteket. Det er gratis.",
+      "title": "Les så mye du vil fra bibliotektet.",
+      "description": "Det er gratis.",
       "badge": "{count} opplegg klare nå"
     },
     "parentHome": {

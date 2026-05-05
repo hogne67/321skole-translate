@@ -511,9 +511,6 @@ function HeroSection(props: { t: TFn; locale: string }) {
             </Link>
           </div>
 
-          <p className="mt-3 text-sm text-white/70 md:mt-4">
-            {props.t("hero.note")}
-          </p>
         </div>
 
         {/* 💻 IMAGE (DESKTOP ONLY) */}
@@ -547,11 +544,11 @@ function AiSupportSection(props: { t: TFn; locale: string }) {
               {props.t("aiSupport.eyebrow")}
             </p>
 
-            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-slate-950 md:mt-5 md:text-6xl">
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-slate-100 md:mt-5 md:text-6xl">
               {props.t("aiSupport.title")}
             </h2>
 
-            <p className="mt-4 max-w-xl text-base text-slate-700 md:mt-5 md:text-xl">
+            <p className="mt-4 max-w-xl text-base text-slate-200 md:mt-5 md:text-xl">
               {props.t("aiSupport.description")}
             </p>
           </div>

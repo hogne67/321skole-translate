@@ -49,7 +49,7 @@
       }
     },
     "buttons": {
-      "generateText": "Generer tekst",
+      "generateText": "Generer KI tekst",
       "generatingText": "Genererer tekst...",
       "generateTasks": "Generer oppgaver",
       "generatingTasks": "Genererer oppgaver...",
@@ -80,8 +80,9 @@
     },
     "builder": {
       "lessonTitle": "Tittel",
-      "text": "Egen eller generert tekst",
-      "textHelp": "Du kan generere tekst med KI eller lime inn / skrive teksten selv.",
+      "text": "Her vises egen eller generert tekst",
+      "textbox": "Lim inn teksten din her",
+      "textHelp": "Gå til steg 2 og lag oppgaver når du har sjekket teksten.",
       "wordCount": "Ordtelling: {count}"
     },
     "editor": {

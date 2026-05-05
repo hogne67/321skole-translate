@@ -1138,7 +1138,7 @@ export default function NewTextPage() {
                 </label>
 
                 <label style={{ display: "block", marginTop: 10 }}>
-                  {t("builder.text")}
+                  {t("builder.textbox")}
                   <textarea
                     value={sourceText}
                     onChange={(e) => {

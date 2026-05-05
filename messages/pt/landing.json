@@ -55,7 +55,7 @@
       "cards": {
         "digital": {
           "title": "Entrega digital",
-          "text": "Os alunos leem, respondem e recebem feedback com IA."
+          "text": "Os alunos leem, respondem e receber feedback do professor, com o auxílio da IA."
         },
         "pdf": {
           "title": "Pronto em PDF",
@@ -99,7 +99,7 @@
         },
         "ai": {
           "title": "Receba apoio da IA",
-          "text": "Use IA para avaliação, feedback e progresso."
+          "text": "Utilize IA para auxiliar na avaliação, no feedback e no acompanhamento do progresso."
         }
       },
       "ctaPrimary": "Começar como professor",
@@ -154,8 +154,8 @@
       "ctaSecondary": "Ver atividades"
     },
     "topStrip": {
-      "title": "Crie suas próprias aulas no 321",
-      "description": "Ou escolha uma da biblioteca. É grátis.",
+      "title": "Leia o quanto quiser na biblioteca.",
+      "description": "É grátis.",
       "badge": "{count} aulas disponíveis agora"
     },
     "parentHome": {

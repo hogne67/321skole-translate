@@ -55,7 +55,7 @@
       "cards": {
         "digital": {
           "title": "Digital submission",
-          "text": "Students read, answer and get AI feedback directly."
+          "text": "Students read, answer and get feedback from the teacher, with AI as support"
         },
         "pdf": {
           "title": "Ready as PDF",
@@ -99,7 +99,7 @@
         },
         "ai": {
           "title": "Get AI support",
-          "text": "Use AI to support assessment, feedback and further progress."
+          "text": "Use AI to help with assessment, feedback and further progress."
         }
       },
       "ctaPrimary": "Start as a teacher",
@@ -154,8 +154,8 @@
       "ctaSecondary": "See tasks"
     },
     "topStrip": {
-      "title": "Create your own lessons in 321",
-      "description": "Or just pick one from the library. It’s free.",
+      "title": "Read as much as you want from the library",
+      "description": "It’s free.",
       "badge": "{count} lessons ready right now"
     },
     "parentHome": {

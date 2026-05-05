@@ -80,8 +80,9 @@
     },
     "builder": {
       "lessonTitle": "Title",
-      "text": "Your own or generated text",
-      "textHelp": "You can generate text with AI or paste / write the text yourself.",
+      "text": "Your own or generated text is dispayed here",
+      "textbox": "Paste your text here.",
+      "textHelp": "Go to step 2 and create tasks once you have checked the text.",
       "wordCount": "Word count: {count}"
     },
     "editor": {
