@@ -1,3 +1,4 @@
+// \app\[locale]\(admin)\admin\users\page.tsx
 "use client";
 
 import Link from "next/link";
@@ -56,16 +57,16 @@ function toRole(v: unknown): Role | null | undefined {
     v === "creator"
     ? v
     : v === null
-    ? null
-    : undefined;
+      ? null
+      : undefined;
 }
 
 function toAdminLevel(v: unknown): AdminLevel | null | undefined {
   return v === "moderator" || v === "admin" || v === "superadmin"
     ? v
     : v === null
-    ? null
-    : undefined;
+      ? null
+      : undefined;
 }
 
 function formatDate(v: unknown): string {
@@ -89,11 +90,11 @@ function coerceUserRow(id: string, data: DocumentData): UserRow {
   const orgRaw = obj.org;
   const org = isRecord(orgRaw)
     ? {
-        country: toStringOrNull(orgRaw.country),
-        municipality: toStringOrNull(orgRaw.municipality),
-        institutionName: toStringOrNull(orgRaw.institutionName),
-        institutionType: toStringOrNull(orgRaw.institutionType),
-      }
+      country: toStringOrNull(orgRaw.country),
+      municipality: toStringOrNull(orgRaw.municipality),
+      institutionName: toStringOrNull(orgRaw.institutionName),
+      institutionType: toStringOrNull(orgRaw.institutionType),
+    }
     : undefined;
 
   return {
@@ -425,10 +426,10 @@ export default function AdminUsersPage() {
                     u.role === "admin"
                       ? "amber"
                       : u.role === "teacher"
-                      ? "blue"
-                      : u.role === "student"
-                      ? "green"
-                      : "neutral"
+                        ? "blue"
+                        : u.role === "student"
+                          ? "green"
+                          : "neutral"
                   }
                 />
                 {u.role === "admin" && u.adminLevel ? (

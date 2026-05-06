@@ -676,6 +676,15 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
     }
 
     /* =========================
+   ANALYTICS EVENTS
+========================= */
+match /analyticsEvents/{eventId} {
+  allow create: if true;
+  allow read: if isAdmin();
+  allow update, delete: if false;
+}
+
+    /* =========================
        Default deny
     ========================= */
     match /{document=**} {

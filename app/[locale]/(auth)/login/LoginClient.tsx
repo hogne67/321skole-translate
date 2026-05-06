@@ -17,6 +17,7 @@ import { signInWithGoogle, signInWithEmail, signUpWithEmail } from "@/lib/auth";
 import { linkAnonymousWithGoogle, linkAnonymousWithEmailPassword } from "@/lib/anonAuth";
 import { useLocale, useTranslations } from "next-intl";
 import { trackSignUp } from "@/lib/analytics";
+import { trackEvent } from "@/lib/trackEvent";
 
 function toErrorString(err: unknown): string {
   if (!err) return "";
@@ -174,8 +175,18 @@ export default function LoginClient() {
       if (isAnon) {
         await linkAnonymousWithGoogle();
         trackSignUp("anonymous_upgrade");
+
+        trackEvent("login", {
+          method: "google",
+          type: "anonymous_upgrade",
+        });
       } else {
         await signInWithGoogle();
+
+        trackEvent("login", {
+          method: "google",
+          type: mode,
+        });
 
         if (mode === "signup") {
           trackSignUp("google");
@@ -224,6 +235,12 @@ export default function LoginClient() {
 
       if (mode === "signin") {
         await signInWithEmail(e, password);
+
+        trackEvent("login", {
+          method: "email",
+          type: "signin",
+        });
+
         router.replace(postLoginUrl);
         return;
       }
@@ -231,12 +248,23 @@ export default function LoginClient() {
       if (isAnon) {
         await linkAnonymousWithEmailPassword(e, password);
         trackSignUp("anonymous_upgrade");
+
+        trackEvent("login", {
+          method: "email",
+          type: "anonymous_upgrade",
+        });
+
         router.replace(postLoginUrl);
         return;
       }
 
       await signUpWithEmail(e, password, displayName.trim());
       trackSignUp("email");
+
+      trackEvent("login", {
+        method: "email",
+        type: "signup",
+      });
 
       try {
         await fetch("/api/email/welcome", {

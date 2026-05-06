@@ -1,4 +1,5 @@
 // \app\[locale]\(admin)\admin\page.tsx
+// app/[locale]/(admin)/admin/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -161,6 +162,11 @@ export default function AdminPage() {
           <Card
             href={`/${locale}/admin/billing`}
             title="Billing"
+            text="Resync Stripe-abonnement og feilsøk betalinger."
+          />
+          <Card
+            href={`/${locale}/admin/analytics`}
+            title="Analytics"
             text="Resync Stripe-abonnement og feilsøk betalinger."
           />
         </div>

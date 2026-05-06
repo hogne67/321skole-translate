@@ -14,6 +14,7 @@ import {
 import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { trackCreateLesson } from "@/lib/analytics";
+import { trackEvent } from "@/lib/trackEvent";
 
 type MCQ = {
   q: string;
@@ -175,6 +176,12 @@ export default function NewTextPage() {
   const locale = useLocale();
   const t = useTranslations("generateNewText");
   const { profile } = useUserProfile();
+
+  useEffect(() => {
+    trackEvent("lesson_generator_open", {
+      source: "text",
+    });
+  }, []);
 
   const fieldStyle: CSSProperties = {
     boxSizing: "border-box",
@@ -601,6 +608,12 @@ export default function NewTextPage() {
       }
 
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      trackEvent("ai_generate_text", {
+        source: "text",
+        level,
+        language,
+        textType: textTypeLabel,
+      });
 
       const nextTitle = String(data.title || "").trim();
       const nextText = String(data.text || "").trim();
@@ -757,6 +770,12 @@ export default function NewTextPage() {
     }
 
     trackCreateLesson("text");
+    trackEvent("lesson_created", {
+      source: "text",
+      level,
+      language,
+      textType: textTypeLabel,
+    });
 
     const raw = await res.text();
 

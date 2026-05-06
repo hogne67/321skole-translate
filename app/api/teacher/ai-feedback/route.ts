@@ -1250,8 +1250,25 @@ export async function POST(req: Request) {
       };
 
       const batch = db.batch();
+
       batch.set(subRef, payload, { merge: true });
       batch.set(db.collection("spaceSubmissions").doc(subId), payload, { merge: true });
+
+      batch.set(db.collection("analyticsEvents").doc(), {
+        event: "teacher_ai_feedback",
+        context: "teacher",
+        type: "geometry",
+        uid,
+        role,
+        spaceId,
+        assignmentId,
+        subId,
+        lessonTitle,
+        level,
+        language: contentLanguage,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
       await batch.commit();
 
       return json({ text: textOut }, 200);
@@ -1389,8 +1406,25 @@ export async function POST(req: Request) {
     };
 
     const batch = db.batch();
+
     batch.set(subRef, payload, { merge: true });
     batch.set(db.collection("spaceSubmissions").doc(subId), payload, { merge: true });
+
+    batch.set(db.collection("analyticsEvents").doc(), {
+      event: "teacher_ai_feedback",
+      context: "teacher",
+      type: isReadingTest ? "reading_test" : "general",
+      uid,
+      role,
+      spaceId,
+      assignmentId,
+      subId,
+      lessonTitle,
+      level,
+      language: contentLanguage,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
     await batch.commit();
 
     return json({ text: textOut }, 200);
