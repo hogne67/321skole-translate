@@ -169,6 +169,11 @@ export default function AdminPage() {
             title="Analytics"
             text="Resync Stripe-abonnement og feilsøk betalinger."
           />
+          <Card
+            href={`/${locale}/admin/communication`}
+            title="Communication"
+            text="Resync Stripe-abonnement og feilsøk betalinger."
+          />
         </div>
       </section>
     </main>

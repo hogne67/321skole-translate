@@ -9,6 +9,7 @@ import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useTranslations } from "next-intl";
+import NotificationBell from "@/components/NotificationBell";
 
 /* =========================
    Locale helpers (TopNav)
@@ -223,6 +224,7 @@ export default function TopNav() {
             <option value="pt">PT</option>
           </select>
         </label>
+        <NotificationBell />
 
         {isAnon && (
           <>

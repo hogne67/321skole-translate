@@ -3,9 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { doc, getDoc, serverTimestamp, updateDoc, type DocumentData } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+  type DocumentData,
+} from "firebase/firestore";
+import { getIdToken } from "firebase/auth";
 import { useLocale } from "next-intl";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { isSuperAdmin } from "@/lib/adminAccess";
 
@@ -83,16 +90,16 @@ function toRole(v: unknown): Role | null | undefined {
     v === "creator"
     ? v
     : v === null
-    ? null
-    : undefined;
+      ? null
+      : undefined;
 }
 
 function toAdminLevel(v: unknown): AdminLevel | null | undefined {
   return v === "moderator" || v === "admin" || v === "superadmin"
     ? v
     : v === null
-    ? null
-    : undefined;
+      ? null
+      : undefined;
 }
 
 function formatDate(v: unknown): string {
@@ -101,8 +108,10 @@ function formatDate(v: unknown): string {
       const d = v.toDate();
       if (d instanceof Date) return d.toLocaleString("no-NO");
     }
+
     if (v instanceof Date) return v.toLocaleString("no-NO");
     if (typeof v === "number") return new Date(v).toLocaleString("no-NO");
+
     return "—";
   } catch {
     return "—";
@@ -115,43 +124,43 @@ function coerceUserDetail(id: string, data: DocumentData): UserDetail {
   const orgRaw = obj.org;
   const org = isRecord(orgRaw)
     ? {
-        country: toStringOrNull(orgRaw.country),
-        municipality: toStringOrNull(orgRaw.municipality),
-        institutionName: toStringOrNull(orgRaw.institutionName),
-        institutionType: toStringOrNull(orgRaw.institutionType),
-      }
+      country: toStringOrNull(orgRaw.country),
+      municipality: toStringOrNull(orgRaw.municipality),
+      institutionName: toStringOrNull(orgRaw.institutionName),
+      institutionType: toStringOrNull(orgRaw.institutionType),
+    }
     : undefined;
 
   const capsRaw = obj.caps;
   const caps = isRecord(capsRaw)
     ? {
-        publish: toBool(capsRaw.publish),
-        sell: toBool(capsRaw.sell),
-        pdf: toBool(capsRaw.pdf),
-        tts: toBool(capsRaw.tts),
-        vocab: toBool(capsRaw.vocab),
-      }
+      publish: toBool(capsRaw.publish),
+      sell: toBool(capsRaw.sell),
+      pdf: toBool(capsRaw.pdf),
+      tts: toBool(capsRaw.tts),
+      vocab: toBool(capsRaw.vocab),
+    }
     : undefined;
 
   const rolesRaw = obj.roles;
   const roles = isRecord(rolesRaw)
     ? {
-        student: toBool(rolesRaw.student),
-        teacher: toBool(rolesRaw.teacher),
-        admin: toBool(rolesRaw.admin),
-        parent: toBool(rolesRaw.parent),
-        creator: toBool(rolesRaw.creator),
-        teacherStatus: toStringOrNull(rolesRaw.teacherStatus) ?? undefined,
-        creatorStatus: toStringOrNull(rolesRaw.creatorStatus) ?? undefined,
-      }
+      student: toBool(rolesRaw.student),
+      teacher: toBool(rolesRaw.teacher),
+      admin: toBool(rolesRaw.admin),
+      parent: toBool(rolesRaw.parent),
+      creator: toBool(rolesRaw.creator),
+      teacherStatus: toStringOrNull(rolesRaw.teacherStatus) ?? undefined,
+      creatorStatus: toStringOrNull(rolesRaw.creatorStatus) ?? undefined,
+    }
     : undefined;
 
   const attRaw = obj.attestation;
   const attestation = isRecord(attRaw)
     ? {
-        version: toStringOrNull(attRaw.version),
-        acceptedAt: attRaw.acceptedAt,
-      }
+      version: toStringOrNull(attRaw.version),
+      acceptedAt: attRaw.acceptedAt,
+    }
     : undefined;
 
   return {
@@ -298,9 +307,12 @@ export default function AdminUserDetailPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
+  const [tempPassword, setTempPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
   const canWrite = isSuperAdmin(currentProfile);
 
-    const load = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!db) {
       setErr("Firestore db is null.");
       setLoading(false);
@@ -364,7 +376,8 @@ export default function AdminUserDetailPage() {
       const ref = doc(db, "users", uid);
 
       const nextRole: Role = editRole;
-      const nextAdminLevel: AdminLevel | null = nextRole === "admin" && editAdminLevel ? editAdminLevel : null;
+      const nextAdminLevel: AdminLevel | null =
+        nextRole === "admin" && editAdminLevel ? editAdminLevel : null;
 
       await updateDoc(ref, {
         role: nextRole,
@@ -379,6 +392,61 @@ export default function AdminUserDetailPage() {
       setErr(errorMessage(e));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function setTemporaryPassword() {
+    if (!uid) return;
+
+    if (!canWrite) {
+      setErr("Only superadmin can set password.");
+      return;
+    }
+
+    if (tempPassword.length < 8) {
+      setErr("Passordet må være minst 8 tegn.");
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+      setErr("Du må være innlogget.");
+      return;
+    }
+
+    setPasswordSaving(true);
+    setErr(null);
+    setMsg(null);
+
+    try {
+      const token = await getIdToken(user);
+
+      const res = await fetch("/api/admin/users/set-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          uid,
+          newPassword: tempPassword,
+        }),
+      });
+
+      const responseData = (await res.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!res.ok) {
+        throw new Error(responseData.error || "Could not set password");
+      }
+
+      setTempPassword("");
+      setMsg("Midlertidig passord er satt ✅");
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
+    } finally {
+      setPasswordSaving(false);
     }
   }
 
@@ -406,8 +474,12 @@ export default function AdminUserDetailPage() {
           }}
         >
           <div>
-            <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>ADMIN</div>
-            <h2 style={{ margin: "4px 0 0", fontSize: 24 }}>User detail</h2>
+            <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>
+              ADMIN
+            </div>
+            <h2 style={{ margin: "4px 0 0", fontSize: 24 }}>
+              User detail
+            </h2>
             <p style={{ margin: "8px 0 0", opacity: 0.8 }}>
               Brukerprofil, rolle, admin-nivå og grunnleggende kontodata.
             </p>
@@ -416,13 +488,14 @@ export default function AdminUserDetailPage() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
               onClick={load}
-              disabled={loading || saving}
+              disabled={loading || saving || passwordSaving}
               style={{
                 padding: "10px 14px",
                 borderRadius: 10,
                 border: "1px solid rgba(0,0,0,0.12)",
                 background: "white",
-                cursor: loading || saving ? "not-allowed" : "pointer",
+                cursor:
+                  loading || saving || passwordSaving ? "not-allowed" : "pointer",
                 fontWeight: 800,
               }}
             >
@@ -509,7 +582,9 @@ export default function AdminUserDetailPage() {
                 <div style={{ fontSize: 28, fontWeight: 900 }}>
                   {data.displayName || data.email || data.uid || data.id}
                 </div>
-                <div style={{ marginTop: 8, opacity: 0.8 }}>{data.email || "—"}</div>
+                <div style={{ marginTop: 8, opacity: 0.8 }}>
+                  {data.email || "—"}
+                </div>
                 <div style={{ marginTop: 6, fontSize: 13, opacity: 0.65 }}>
                   uid: {data.uid || data.id}
                 </div>
@@ -523,10 +598,10 @@ export default function AdminUserDetailPage() {
                       data.role === "admin"
                         ? "amber"
                         : data.role === "teacher"
-                        ? "blue"
-                        : data.role === "student"
-                        ? "green"
-                        : "neutral"
+                          ? "blue"
+                          : data.role === "student"
+                            ? "green"
+                            : "neutral"
                     }
                   />
                 ) : (
@@ -538,7 +613,9 @@ export default function AdminUserDetailPage() {
                 ) : null}
 
                 {data.disabled ? <Pill text="disabled" tone="red" /> : null}
-                {data.onboardingComplete ? <Pill text="onboarded" tone="green" /> : null}
+                {data.onboardingComplete ? (
+                  <Pill text="onboarded" tone="green" />
+                ) : null}
               </div>
             </div>
           </section>
@@ -552,7 +629,14 @@ export default function AdminUserDetailPage() {
               }}
             >
               <div>
-                <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800, marginBottom: 6 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    opacity: 0.65,
+                    fontWeight: 800,
+                    marginBottom: 6,
+                  }}
+                >
                   ROLE
                 </div>
                 <select
@@ -562,7 +646,7 @@ export default function AdminUserDetailPage() {
                     setEditRole(nextRole);
                     if (nextRole !== "admin") setEditAdminLevel("");
                   }}
-                  disabled={!canWrite || saving}
+                  disabled={!canWrite || saving || passwordSaving}
                   style={{
                     width: "100%",
                     padding: "10px 12px",
@@ -580,20 +664,33 @@ export default function AdminUserDetailPage() {
               </div>
 
               <div>
-                <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800, marginBottom: 6 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    opacity: 0.65,
+                    fontWeight: 800,
+                    marginBottom: 6,
+                  }}
+                >
                   ADMIN LEVEL
                 </div>
                 <select
                   value={editAdminLevel}
-                  onChange={(e) => setEditAdminLevel(e.target.value as "" | AdminLevel)}
-                  disabled={!canWrite || saving || editRole !== "admin"}
+                  onChange={(e) =>
+                    setEditAdminLevel(e.target.value as "" | AdminLevel)
+                  }
+                  disabled={
+                    !canWrite || saving || passwordSaving || editRole !== "admin"
+                  }
                   style={{
                     width: "100%",
                     padding: "10px 12px",
                     borderRadius: 10,
                     border: "1px solid rgba(0,0,0,0.12)",
                     background:
-                      canWrite && editRole === "admin" ? "white" : "rgba(0,0,0,0.03)",
+                      canWrite && editRole === "admin"
+                        ? "white"
+                        : "rgba(0,0,0,0.03)",
                   }}
                 >
                   <option value="">none</option>
@@ -604,7 +701,14 @@ export default function AdminUserDetailPage() {
               </div>
 
               <div>
-                <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800, marginBottom: 6 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    opacity: 0.65,
+                    fontWeight: 800,
+                    marginBottom: 6,
+                  }}
+                >
                   DISABLED
                 </div>
                 <label
@@ -623,24 +727,37 @@ export default function AdminUserDetailPage() {
                     type="checkbox"
                     checked={editDisabled}
                     onChange={(e) => setEditDisabled(e.target.checked)}
-                    disabled={!canWrite || saving}
+                    disabled={!canWrite || saving || passwordSaving}
                   />
-                  <span>{editDisabled ? "Bruker er deaktivert" : "Bruker er aktiv"}</span>
+                  <span>
+                    {editDisabled ? "Bruker er deaktivert" : "Bruker er aktiv"}
+                  </span>
                 </label>
               </div>
             </div>
 
-            <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <div
+              style={{
+                marginTop: 14,
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
               <button
                 onClick={saveChanges}
-                disabled={!canWrite || saving}
+                disabled={!canWrite || saving || passwordSaving}
                 style={{
                   padding: "10px 14px",
                   borderRadius: 10,
                   border: "1px solid rgba(0,0,0,0.12)",
                   background: canWrite ? "#111827" : "rgba(0,0,0,0.08)",
                   color: canWrite ? "white" : "rgba(0,0,0,0.45)",
-                  cursor: !canWrite || saving ? "not-allowed" : "pointer",
+                  cursor:
+                    !canWrite || saving || passwordSaving
+                      ? "not-allowed"
+                      : "pointer",
                   fontWeight: 800,
                 }}
               >
@@ -655,12 +772,66 @@ export default function AdminUserDetailPage() {
             </div>
           </Section>
 
+          <Section title="Midlertidig passord">
+            <p style={{ marginTop: 0, opacity: 0.75 }}>
+              Bruk dette bare når en eksisterende bruker må reddes. Passord
+              lagres ikke i Firestore, men settes direkte i Firebase Auth.
+            </p>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <input
+                value={tempPassword}
+                onChange={(e) => setTempPassword(e.target.value)}
+                type="text"
+                placeholder="Nytt midlertidig passord"
+                disabled={!canWrite || passwordSaving}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  minWidth: 260,
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={setTemporaryPassword}
+                disabled={!canWrite || passwordSaving || tempPassword.length < 8}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  background:
+                    !canWrite || passwordSaving || tempPassword.length < 8
+                      ? "rgba(0,0,0,0.08)"
+                      : "#111827",
+                  color:
+                    !canWrite || passwordSaving || tempPassword.length < 8
+                      ? "rgba(0,0,0,0.45)"
+                      : "white",
+                  cursor:
+                    !canWrite || passwordSaving || tempPassword.length < 8
+                      ? "not-allowed"
+                      : "pointer",
+                  fontWeight: 800,
+                }}
+              >
+                {passwordSaving
+                  ? "Setter passord…"
+                  : "Sett midlertidig passord"}
+              </button>
+            </div>
+          </Section>
+
           <Section title="Konto">
             <Row label="Role" value={data.role || "—"} />
             <Row label="Admin level" value={data.adminLevel || "—"} />
             <Row label="Locale" value={data.locale || "—"} />
             <Row label="Mode" value={data.mode || "—"} />
-            <Row label="Onboarding complete" value={data.onboardingComplete ? "Ja" : "Nei"} />
+            <Row
+              label="Onboarding complete"
+              value={data.onboardingComplete ? "Ja" : "Nei"}
+            />
             <Row label="Disabled" value={data.disabled ? "Ja" : "Nei"} />
             <Row label="Created" value={formatDate(data.createdAt)} />
             <Row label="Updated" value={formatDate(data.updatedAt)} />
@@ -669,14 +840,26 @@ export default function AdminUserDetailPage() {
 
           <Section title="Organisasjon">
             <Row label="Country" value={data.org?.country || "—"} />
-            <Row label="Municipality" value={data.org?.municipality || "—"} />
-            <Row label="Institution name" value={data.org?.institutionName || "—"} />
-            <Row label="Institution type" value={data.org?.institutionType || "—"} />
+            <Row
+              label="Municipality"
+              value={data.org?.municipality || "—"}
+            />
+            <Row
+              label="Institution name"
+              value={data.org?.institutionName || "—"}
+            />
+            <Row
+              label="Institution type"
+              value={data.org?.institutionType || "—"}
+            />
           </Section>
 
           <Section title="Attestation">
             <Row label="Version" value={data.attestation?.version || "—"} />
-            <Row label="Accepted at" value={formatDate(data.attestation?.acceptedAt)} />
+            <Row
+              label="Accepted at"
+              value={formatDate(data.attestation?.acceptedAt)}
+            />
           </Section>
 
           <Section title="Caps">
@@ -692,9 +875,18 @@ export default function AdminUserDetailPage() {
             <Row label="teacher" value={data.roles?.teacher ? "true" : "false"} />
             <Row label="admin" value={data.roles?.admin ? "true" : "false"} />
             <Row label="parent" value={data.roles?.parent ? "true" : "false"} />
-            <Row label="creator" value={data.roles?.creator ? "true" : "false"} />
-            <Row label="teacherStatus" value={data.roles?.teacherStatus || "—"} />
-            <Row label="creatorStatus" value={data.roles?.creatorStatus || "—"} />
+            <Row
+              label="creator"
+              value={data.roles?.creator ? "true" : "false"}
+            />
+            <Row
+              label="teacherStatus"
+              value={data.roles?.teacherStatus || "—"}
+            />
+            <Row
+              label="creatorStatus"
+              value={data.roles?.creatorStatus || "—"}
+            />
           </Section>
         </>
       ) : null}

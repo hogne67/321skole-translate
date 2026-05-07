@@ -1,6 +1,7 @@
 // app/api/email/welcome/route.ts
 import { NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
@@ -19,6 +20,11 @@ function getBaseUrl() {
     ).replace(/\/$/, "");
 }
 
+function normalizeLocale(locale?: string) {
+    if (locale === "en" || locale === "pt" || locale === "nb") return locale;
+    return "nb";
+}
+
 function escapeHtml(value: string) {
     return value
         .replaceAll("&", "&amp;")
@@ -28,12 +34,38 @@ function escapeHtml(value: string) {
         .replaceAll("'", "&#039;");
 }
 
+async function logEmailAttempt(data: {
+    type: "welcome";
+    email: string;
+    locale: string;
+    subject: string;
+    status: "sent" | "failed" | "not_configured";
+    error?: string;
+    provider?: "resend";
+}) {
+    try {
+        const db = getFirestore();
+
+        await db.collection("emailLogs").add({
+            ...data,
+            createdAt: FieldValue.serverTimestamp(),
+        });
+    } catch (error) {
+        console.error("email log error", error);
+    }
+}
+
 export async function POST(req: Request) {
+    let email = "";
+    let locale = "nb";
+    let subject = "Velkommen til 321";
+
     try {
         const body = (await req.json()) as WelcomeBody;
-        const email = body.email?.trim().toLowerCase();
+
+        email = body.email?.trim().toLowerCase() || "";
         const displayName = body.displayName?.trim() || "";
-        const locale = body.locale?.trim() || "nb";
+        locale = normalizeLocale(body.locale?.trim());
 
         if (!email) {
             return NextResponse.json(
@@ -53,14 +85,14 @@ export async function POST(req: Request) {
                 handleCodeInApp: false,
             });
         } catch {
-            // Hvis bruker ikke finnes ennå eller link ikke kan lages,
-            // sender vi fortsatt velkomstmail uten verifiseringslenke.
+            // Sender fortsatt velkomstmail selv om verifiseringslenke ikke kan lages.
         }
 
         const firstName = displayName || "der";
         const safeName = escapeHtml(firstName);
+        const safeVerifyUrl = escapeHtml(verifyUrl);
 
-        const subject =
+        subject =
             locale === "pt"
                 ? "Bem-vindo ao 321"
                 : locale === "en"
@@ -75,12 +107,12 @@ export async function POST(req: Request) {
             <p>Obrigado por se registrar no 321.</p>
             <p>Agora você pode entrar e começar a usar a plataforma.</p>
             <p>
-              <a href="${verifyUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
+              <a href="${safeVerifyUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
                 Verificar e-mail
               </a>
             </p>
             <p>Se o botão não funcionar, copie este link:</p>
-            <p>${escapeHtml(verifyUrl)}</p>
+            <p>${safeVerifyUrl}</p>
           </div>
         `
                 : locale === "en"
@@ -90,12 +122,12 @@ export async function POST(req: Request) {
             <p>Thanks for signing up for 321.</p>
             <p>You can now log in and start using the platform.</p>
             <p>
-              <a href="${verifyUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
+              <a href="${safeVerifyUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
                 Verify email
               </a>
             </p>
             <p>If the button does not work, copy this link:</p>
-            <p>${escapeHtml(verifyUrl)}</p>
+            <p>${safeVerifyUrl}</p>
           </div>
         `
                     : `
@@ -104,12 +136,12 @@ export async function POST(req: Request) {
             <p>Takk for at du registrerte deg på 321.</p>
             <p>Du kan nå logge inn og begynne å bruke plattformen.</p>
             <p>
-              <a href="${verifyUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
+              <a href="${safeVerifyUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
                 Bekreft e-post
               </a>
             </p>
             <p>Hvis knappen ikke virker, kan du kopiere denne lenken:</p>
-            <p>${escapeHtml(verifyUrl)}</p>
+            <p>${safeVerifyUrl}</p>
           </div>
         `;
 
@@ -117,6 +149,16 @@ export async function POST(req: Request) {
         const mailFrom = process.env.MAIL_FROM;
 
         if (!resendApiKey || !mailFrom) {
+            await logEmailAttempt({
+                type: "welcome",
+                email,
+                locale,
+                subject,
+                status: "not_configured",
+                error: "email_not_configured",
+                provider: "resend",
+            });
+
             return NextResponse.json({
                 ok: false,
                 error: "email_not_configured",
@@ -139,15 +181,48 @@ export async function POST(req: Request) {
 
         if (!sendRes.ok) {
             const errorText = await sendRes.text();
+
+            await logEmailAttempt({
+                type: "welcome",
+                email,
+                locale,
+                subject,
+                status: "failed",
+                error: errorText.slice(0, 1000),
+                provider: "resend",
+            });
+
             return NextResponse.json(
                 { ok: false, error: "send_failed", details: errorText },
                 { status: 500 }
             );
         }
 
+        await logEmailAttempt({
+            type: "welcome",
+            email,
+            locale,
+            subject,
+            status: "sent",
+            provider: "resend",
+        });
+
         return NextResponse.json({ ok: true });
     } catch (error) {
         console.error("welcome email error", error);
+
+        if (email) {
+            await logEmailAttempt({
+                type: "welcome",
+                email,
+                locale,
+                subject,
+                status: "failed",
+                error: "server_error",
+                provider: "resend",
+            });
+        }
+
         return NextResponse.json(
             { ok: false, error: "server_error" },
             { status: 500 }

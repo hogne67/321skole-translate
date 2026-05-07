@@ -683,6 +683,15 @@ match /analyticsEvents/{eventId} {
   allow read: if isAdmin();
   allow update, delete: if false;
 }
+   /* =========================
+       NOTIFICATIONS
+    ========================= */
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+
+      allow write: if false;
+    }
 
     /* =========================
        Default deny

@@ -662,27 +662,27 @@ function Badge({
   const styles =
     kind === "good"
       ? {
-          bg: "rgba(16,185,129,0.16)",
-          bd: "rgba(16,185,129,0.45)",
-          tx: "rgba(5,150,105,1)",
-        }
+        bg: "rgba(16,185,129,0.16)",
+        bd: "rgba(16,185,129,0.45)",
+        tx: "rgba(5,150,105,1)",
+      }
       : kind === "bad"
         ? {
-            bg: "rgba(231,76,60,0.14)",
-            bd: "rgba(231,76,60,0.40)",
-            tx: "rgba(180,40,30,1)",
-          }
+          bg: "rgba(231,76,60,0.14)",
+          bd: "rgba(231,76,60,0.40)",
+          tx: "rgba(180,40,30,1)",
+        }
         : kind === "warn"
           ? {
-              bg: "rgba(245,158,11,0.16)",
-              bd: "rgba(245,158,11,0.45)",
-              tx: "rgba(180,83,9,1)",
-            }
+            bg: "rgba(245,158,11,0.16)",
+            bd: "rgba(245,158,11,0.45)",
+            tx: "rgba(180,83,9,1)",
+          }
           : {
-              bg: "rgba(0,0,0,0.04)",
-              bd: "rgba(0,0,0,0.14)",
-              tx: "rgba(0,0,0,0.75)",
-            };
+            bg: "rgba(0,0,0,0.04)",
+            bd: "rgba(0,0,0,0.14)",
+            tx: "rgba(0,0,0,0.75)",
+          };
 
   return (
     <span
@@ -855,14 +855,14 @@ function Inner() {
     () =>
       hasParams
         ? doc(
-            db,
-            "spaces",
-            spaceId!,
-            "lessons",
-            assignmentId!,
-            "submissions",
-            subId!
-          )
+          db,
+          "spaces",
+          spaceId!,
+          "lessons",
+          assignmentId!,
+          "submissions",
+          subId!
+        )
         : null,
     [hasParams, spaceId, assignmentId, subId]
   );
@@ -1063,7 +1063,7 @@ function Inner() {
           ? sub.studentName.trim()
           : "") ||
         (typeof sub.studentDisplayName === "string" &&
-        sub.studentDisplayName.trim()
+          sub.studentDisplayName.trim()
           ? sub.studentDisplayName.trim()
           : "");
 
@@ -1222,32 +1222,32 @@ function Inner() {
 
   const geometryPercent =
     geometryAuto &&
-    typeof geometryAuto.percent === "number" &&
-    Number.isFinite(geometryAuto.percent)
+      typeof geometryAuto.percent === "number" &&
+      Number.isFinite(geometryAuto.percent)
       ? geometryAuto.percent
       : null;
   const geometryCorrect =
     geometryAuto &&
-    typeof geometryAuto.correct === "number" &&
-    Number.isFinite(geometryAuto.correct)
+      typeof geometryAuto.correct === "number" &&
+      Number.isFinite(geometryAuto.correct)
       ? geometryAuto.correct
       : 0;
   const geometryPartial =
     geometryAuto &&
-    typeof geometryAuto.partial === "number" &&
-    Number.isFinite(geometryAuto.partial)
+      typeof geometryAuto.partial === "number" &&
+      Number.isFinite(geometryAuto.partial)
       ? geometryAuto.partial
       : 0;
   const geometryWrong =
     geometryAuto &&
-    typeof geometryAuto.wrong === "number" &&
-    Number.isFinite(geometryAuto.wrong)
+      typeof geometryAuto.wrong === "number" &&
+      Number.isFinite(geometryAuto.wrong)
       ? geometryAuto.wrong
       : 0;
   const geometryUnanswered =
     geometryAuto &&
-    typeof geometryAuto.unanswered === "number" &&
-    Number.isFinite(geometryAuto.unanswered)
+      typeof geometryAuto.unanswered === "number" &&
+      Number.isFinite(geometryAuto.unanswered)
       ? geometryAuto.unanswered
       : 0;
 
@@ -1282,19 +1282,19 @@ function Inner() {
   const readingSummaryText = isReadingTest
     ? readingMeta.timedOut === true
       ? t("readingSummary.timedOut", {
+        used: formatDuration(readingMeta.usedSeconds),
+        limit: formatDuration(readingMeta.limitSeconds),
+      })
+      : readingMeta.submittedManually === true
+        ? t("readingSummary.submittedManually", {
           used: formatDuration(readingMeta.usedSeconds),
           limit: formatDuration(readingMeta.limitSeconds),
         })
-      : readingMeta.submittedManually === true
-        ? t("readingSummary.submittedManually", {
+        : readingMeta.usedSeconds != null || readingMeta.limitSeconds != null
+          ? t("readingSummary.generic", {
             used: formatDuration(readingMeta.usedSeconds),
             limit: formatDuration(readingMeta.limitSeconds),
           })
-        : readingMeta.usedSeconds != null || readingMeta.limitSeconds != null
-          ? t("readingSummary.generic", {
-              used: formatDuration(readingMeta.usedSeconds),
-              limit: formatDuration(readingMeta.limitSeconds),
-            })
           : ""
     : "";
 
@@ -1648,8 +1648,8 @@ function Inner() {
                         : null;
                     const selectedText =
                       selectedIndex != null &&
-                      selectedIndex >= 0 &&
-                      selectedIndex < options.length
+                        selectedIndex >= 0 &&
+                        selectedIndex < options.length
                         ? String(options[selectedIndex])
                         : typeof val === "string"
                           ? val
@@ -1671,7 +1671,7 @@ function Inner() {
                         </div>
 
                         {(type === "word_choice" || type === "fill_in_word") &&
-                        task?.sentence ? (
+                          task?.sentence ? (
                           <div className="mb-3 whitespace-pre-wrap rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
                             {String(task.sentence)}
                           </div>
@@ -1688,7 +1688,7 @@ function Inner() {
                           type === "sentence_placement" ||
                           type === "best_summary" ||
                           type === "fill_in_word") &&
-                        options.length > 0 ? (
+                          options.length > 0 ? (
                           <div className="grid gap-2">
                             {options.map((o, i) => {
                               const opt = String(o);
@@ -1756,7 +1756,7 @@ function Inner() {
                               {t("studentView.true")}{" "}
                               {val === true || val === "true" ? "✓" : ""}
                               {entry?.correctAnswer === true ||
-                              entry?.correctAnswer === "true" ? (
+                                entry?.correctAnswer === "true" ? (
                                 <span className="ml-2 text-xs text-slate-500">
                                   {t("studentView.correctTag")}
                                 </span>
@@ -1776,7 +1776,7 @@ function Inner() {
                               {t("studentView.false")}{" "}
                               {val === false || val === "false" ? "✓" : ""}
                               {entry?.correctAnswer === false ||
-                              entry?.correctAnswer === "false" ? (
+                                entry?.correctAnswer === "false" ? (
                                 <span className="ml-2 text-xs text-slate-500">
                                   {t("studentView.correctTag")}
                                 </span>
@@ -1786,16 +1786,16 @@ function Inner() {
                         ) : null}
 
                         {type === "open" ||
-                        type === "short_answer" ||
-                        ![
-                          "mcq",
-                          "truefalse",
-                          "true_false",
-                          "word_choice",
-                          "sentence_placement",
-                          "best_summary",
-                          "fill_in_word",
-                        ].includes(type) ? (
+                          type === "short_answer" ||
+                          ![
+                            "mcq",
+                            "truefalse",
+                            "true_false",
+                            "word_choice",
+                            "sentence_placement",
+                            "best_summary",
+                            "fill_in_word",
+                          ].includes(type) ? (
                           <div className="w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
                             {renderValue(val) ? (
                               <div className="whitespace-pre-wrap leading-6">
@@ -2011,6 +2011,13 @@ function Inner() {
                     if (nestedRef) batch.set(nestedRef, payload, { merge: true });
                     if (indexRef) batch.set(indexRef, payload, { merge: true });
                     await batch.commit();
+
+                    await authedPost("/api/notifications/teacher-feedback", {
+                      spaceId,
+                      assignmentId,
+                      subId,
+                      locale,
+                    });
 
                     setInitialStatus(status);
                     setSaveMsg(t("feedback.saved"));
