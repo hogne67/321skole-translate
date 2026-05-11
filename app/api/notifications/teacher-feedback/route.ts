@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
-import "@/lib/firebaseAdmin";
+import { getAdmin } from "@/lib/firebaseAdmin";
 import { createNotification } from "@/lib/createNotification";
 
 export const runtime = "nodejs";
@@ -44,7 +42,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ ok: false, error: "missing_token" }, { status: 401 });
         }
 
-        await getAuth().verifyIdToken(token);
+        const { auth, db } = getAdmin();
+
+        await auth.verifyIdToken(token);
 
         const body = (await req.json()) as Body;
         const spaceId = body.spaceId?.trim();
@@ -55,8 +55,6 @@ export async function POST(req: Request) {
         if (!spaceId || !assignmentId || !subId) {
             return NextResponse.json({ ok: false, error: "missing_fields" }, { status: 400 });
         }
-
-        const db = getFirestore();
 
         const subSnap = await db
             .collection("spaces")

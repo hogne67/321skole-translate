@@ -366,6 +366,7 @@ function renderTaskInputs({
   task,
   answer,
   onAnswerChange,
+  readOnly = false,
   t,
   showInlineFeedback,
   auto,
@@ -373,6 +374,7 @@ function renderTaskInputs({
   task: MathWorksheetTask;
   answer: GeometryPracticeAnswer;
   onAnswerChange?: (taskId: string, patch: Partial<GeometryPracticeAnswer>) => void;
+  readOnly?: boolean;
   t: TFn;
   showInlineFeedback?: boolean;
   auto?: GeometryAutoLike | null;
@@ -381,6 +383,15 @@ function renderTaskInputs({
   const shapePart = showInlineFeedback ? readPart(result, "shapeName") : undefined;
   const perimeterPart = showInlineFeedback ? readPart(result, "perimeter") : undefined;
   const areaPart = showInlineFeedback ? readPart(result, "area") : undefined;
+
+  const updateAnswer = (patch: Partial<GeometryPracticeAnswer>) => {
+    onAnswerChange?.(task.id, {
+      ...answer,
+      ...patch,
+      taskId: task.id,
+      updatedAt: Date.now(),
+    });
+  };
 
   if (task.type === "shape_name") {
     const field = fieldStateClass(shapePart?.isCorrect);
@@ -392,14 +403,16 @@ function renderTaskInputs({
         <input
           type="text"
           value={answer.shapeName ?? ""}
+          disabled={readOnly}
           onChange={(e) =>
-            onAnswerChange?.(task.id, {
-              taskId: task.id,
+            updateAnswer({
               shapeName: e.target.value,
-              updatedAt: Date.now(),
             })
           }
-          className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback ? field.input : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"}`}
+          className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback
+              ? field.input
+              : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"
+            }`}
         />
         {showInlineFeedback ? (
           <FeedbackLine state={shapePart?.isCorrect} expected={shapePart?.expected} t={t} />
@@ -420,16 +433,18 @@ function renderTaskInputs({
             type="text"
             inputMode="decimal"
             value={getPerimeterInputValue(answer)}
+            disabled={readOnly}
             placeholder={getNumberOnlyHelp(t)}
             onChange={(e) =>
-              onAnswerChange?.(task.id, {
-                taskId: task.id,
+              updateAnswer({
                 perimeterText: e.target.value,
                 perimeterValue: toNullableNumber(e.target.value),
-                updatedAt: Date.now(),
               })
             }
-            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback ? field.input : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"}`}
+            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback
+                ? field.input
+                : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"
+              }`}
           />
           <span className="shrink-0 text-sm font-medium text-slate-600">cm</span>
         </div>
@@ -454,15 +469,17 @@ function renderTaskInputs({
             inputMode="decimal"
             value={getAreaInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
+            disabled={readOnly}
             onChange={(e) =>
-              onAnswerChange?.(task.id, {
-                taskId: task.id,
+              updateAnswer({
                 areaText: e.target.value,
                 areaValue: toNullableNumber(e.target.value),
-                updatedAt: Date.now(),
               })
             }
-            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback ? field.input : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"}`}
+            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback
+                ? field.input
+                : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"
+              }`}
           />
           <span className="shrink-0 text-sm font-medium text-slate-600">cm²</span>
         </div>
@@ -487,14 +504,16 @@ function renderTaskInputs({
         <input
           type="text"
           value={answer.shapeName ?? ""}
+          disabled={readOnly}
           onChange={(e) =>
-            onAnswerChange?.(task.id, {
-              taskId: task.id,
+            updateAnswer({
               shapeName: e.target.value,
-              updatedAt: Date.now(),
             })
           }
-          className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback ? shapeField.input : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"}`}
+          className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback
+              ? shapeField.input
+              : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"
+            }`}
         />
         {showInlineFeedback ? (
           <FeedbackLine state={shapePart?.isCorrect} expected={shapePart?.expected} t={t} />
@@ -511,15 +530,17 @@ function renderTaskInputs({
             inputMode="decimal"
             value={getPerimeterInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
+            disabled={readOnly}
             onChange={(e) =>
-              onAnswerChange?.(task.id, {
-                taskId: task.id,
+              updateAnswer({
                 perimeterText: e.target.value,
                 perimeterValue: toNullableNumber(e.target.value),
-                updatedAt: Date.now(),
               })
             }
-            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback ? perimeterField.input : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"}`}
+            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback
+                ? perimeterField.input
+                : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"
+              }`}
           />
           <span className="shrink-0 text-sm font-medium text-slate-600">cm</span>
         </div>
@@ -537,17 +558,19 @@ function renderTaskInputs({
           <input
             type="text"
             inputMode="decimal"
+            disabled={readOnly}
             value={getAreaInputValue(answer)}
             placeholder={getNumberOnlyHelp(t)}
             onChange={(e) =>
-              onAnswerChange?.(task.id, {
-                taskId: task.id,
+              updateAnswer({
                 areaText: e.target.value,
                 areaValue: toNullableNumber(e.target.value),
-                updatedAt: Date.now(),
               })
             }
-            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback ? areaField.input : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"}`}
+            className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition ${showInlineFeedback
+                ? areaField.input
+                : "border-slate-300 bg-white text-slate-900 focus:border-slate-400"
+              }`}
           />
           <span className="shrink-0 text-sm font-medium text-slate-600">cm²</span>
         </div>
@@ -618,6 +641,7 @@ export default function GeometryWorksheetPracticeView({
   tBrand,
   answersByTaskId,
   onAnswerChange,
+  readOnly = false,
   showIdentityFields = false,
   showFigureMeta = true,
   includeHints = true,
@@ -634,6 +658,7 @@ export default function GeometryWorksheetPracticeView({
   tBrand: TFn;
   answersByTaskId?: GeometryPracticeAnswersByTaskId;
   onAnswerChange?: (taskId: string, patch: Partial<GeometryPracticeAnswer>) => void;
+  readOnly?: boolean;
   showIdentityFields?: boolean;
   showFigureMeta?: boolean;
   includeHints?: boolean;
@@ -728,7 +753,8 @@ export default function GeometryWorksheetPracticeView({
                 return (
                   <article
                     key={task.id || String(idx)}
-                    className={`rounded-3xl border bg-white p-5 shadow-sm ${showInlineFeedback ? taskCls.border : "border-slate-200"}`}
+                    className={`rounded-3xl border bg-white p-5 shadow-sm ${showInlineFeedback ? taskCls.border : "border-slate-200"
+                      }`}
                   >
                     <div className="mb-4 flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
@@ -771,6 +797,7 @@ export default function GeometryWorksheetPracticeView({
                           task,
                           answer,
                           onAnswerChange,
+                          readOnly,
                           t,
                           auto,
                           showInlineFeedback,

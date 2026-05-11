@@ -11,287 +11,58 @@ import {
   getDoc,
   onSnapshot,
   serverTimestamp,
-  Timestamp,
   writeBatch,
-  type Firestore,
 } from "firebase/firestore";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useLocale, useTranslations } from "next-intl";
 import { authedPost } from "@/lib/authedPost";
-import GeometryWorksheetPracticeView from "@/components/generators/math/geometry/GeometryWorksheetPracticeView";
-import type { MathWorksheet } from "@/lib/math/geometry/types";
+import type { GeometryAnswersByTaskId, } from "@/lib/math/geometry/submissionTypes";
+import Badge from "@/components/teacher/submissions/Badge";
+import StatusPill from "@/components/teacher/submissions/StatusPill";
 import type {
-  GeometryAnswersByTaskId,
-  GeometryAutoResult,
-} from "@/lib/math/geometry/submissionTypes";
+  AiResp,
+  AssignmentDoc,
+  Lesson,
+  ReviewStatus,
+  SourceType,
+  SpaceMemberDoc,
+  SubmissionDoc,
+} from "@/lib/submissions/types";
+import {
+  formatDuration,
+  formatLessonLevel,
+  formatMaybeDate,
+  getAutoEntry,
+  getErrorInfo,
+  getStableTaskId,
+  readAiFeedbackText,
+  readRole,
+  readStatus,
+  readStatusDefaultNeedsWork,
+  readTeacherFeedbackText,
+  renderValue,
+  safeTasksArray,
+} from "@/lib/submissions/helpers";
+import AiFeedbackPanel from "@/components/teacher/submissions/AiFeedbackPanel";
+import TeacherFeedbackPanel from "@/components/teacher/submissions/TeacherFeedbackPanel";
+import StandardSubmissionView from "@/components/teacher/submissions/StandardSubmissionView";
+import GeometrySubmissionView from "@/components/teacher/submissions/GeometrySubmissionView";
+import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
+import {
+  assignmentSnapshotToLesson,
+  hasAssignmentSnapshotContent,
+  isMathWorksheet,
+  isFractionWorksheet,
+  isReadingTestLesson,
+  readAnswerMap,
+  readAuth,
+  readAutoGrade,
+  readGeometryAuto,
+  readReadingTestMeta,
+  requireDb,
+} from "@/lib/submissions/readers";
 
-type Role = "student" | "teacher" | "admin" | "parent" | "creator";
-type ReviewStatus = "reviewed" | "needs_work";
-type SubmissionStatus =
-  | ReviewStatus
-  | "draft"
-  | "submitted"
-  | "approved"
-  | string;
 
-type SourceType = "myContent" | "library";
-type TaskType = "mcq" | "truefalse" | "open";
-
-type Task = {
-  id?: string;
-  order?: number;
-  type?: TaskType | string;
-  prompt?: string;
-  options?: unknown[];
-  correctAnswer?: unknown;
-  sentence?: string;
-  textWithGap?: string;
-};
-
-type AnswersMap = Record<string, unknown>;
-
-type TeacherFeedback = {
-  text?: string;
-  updatedAt?: unknown;
-  teacherUid?: string | null;
-};
-
-type AiFeedback = {
-  text?: string;
-  createdAt?: unknown;
-  updatedAt?: unknown;
-  teacherUid?: string | null;
-};
-
-type AutoGradeEntry = {
-  type: "mcq" | "truefalse";
-  isCorrect: boolean;
-  studentAnswer: unknown;
-  correctAnswer: unknown;
-};
-
-type AutoGrade = {
-  totalAuto: number;
-  correctAuto: number;
-  wrongAuto: number;
-  unansweredAuto: number;
-  percentAuto: number | null;
-  byTask: Record<string, AutoGradeEntry>;
-};
-
-type SubmissionDoc = {
-  createdAt?: unknown;
-  updatedAt?: unknown;
-  status?: SubmissionStatus;
-  answers?: AnswersMap | unknown;
-  answersByTaskId?: AnswersMap | unknown;
-  auth?: { isAnon?: boolean; uid?: string | null } | unknown;
-
-  studentName?: string;
-  studentDisplayName?: string;
-
-  teacherFeedback?: TeacherFeedback | null;
-  aiFeedback?: AiFeedback | null;
-  auto?: AutoGrade | GeometryAutoResult | unknown;
-
-  spaceId?: string;
-  assignmentId?: string;
-
-  startedAt?: unknown;
-  submittedAt?: unknown;
-  timeSpentSeconds?: unknown;
-
-  readingTestTimeLimitSeconds?: unknown;
-  readingTestTimeUsedSeconds?: unknown;
-  readingTestTimedOut?: unknown;
-  readingTestSubmittedManually?: unknown;
-};
-
-type AssignmentDoc = {
-  status?: "active" | "archived" | string;
-  sourceType?: SourceType;
-  sourceId?: string;
-
-  title?: string;
-  level?: string;
-  language?: string;
-  topic?: string;
-  description?: string;
-
-  createdAt?: unknown;
-  assignedAt?: unknown;
-  assignedByUid?: string;
-
-  lessonType?: string;
-  taskType?: string;
-
-  sourceText?: string;
-  text?: string;
-  tasks?: unknown;
-  coverImageUrl?: string;
-  mathWorksheet?: MathWorksheet | null;
-};
-
-type Lesson = {
-  title?: string;
-  level?: string;
-  topic?: string;
-  language?: string;
-  sourceText?: string;
-  text?: string;
-  tasks?: unknown;
-  coverImageUrl?: string;
-  isActive?: boolean;
-  status?: string;
-  lessonType?: string;
-  taskType?: string;
-  mathWorksheet?: MathWorksheet | null;
-};
-
-type SpaceMemberDoc = {
-  name?: string;
-  fullName?: string;
-  displayName?: string;
-  uid?: string;
-  role?: string;
-};
-
-type AiResp = { text: string; skipped?: boolean; locale?: string };
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function isMathWorksheet(value: unknown): value is MathWorksheet {
-  if (!value || typeof value !== "object") return false;
-  const v = value as { tasks?: unknown; title?: unknown };
-  return Array.isArray(v.tasks) && typeof v.title === "string";
-}
-
-function hasAssignmentSnapshotContent(a: AssignmentDoc | null): boolean {
-  if (!a) return false;
-  const hasText = String(a.sourceText ?? a.text ?? "").trim().length > 0;
-  const hasTasks = safeTasksArray(a.tasks).length > 0;
-  const hasImage = String(a.coverImageUrl ?? "").trim().length > 0;
-  const hasMathWorksheet = isMathWorksheet(a.mathWorksheet);
-  return hasText || hasTasks || hasImage || hasMathWorksheet;
-}
-
-function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
-  return {
-    title: a.title,
-    level: a.level,
-    topic: a.topic,
-    language: a.language,
-    sourceText: a.sourceText,
-    text: a.text,
-    tasks: a.tasks,
-    coverImageUrl: a.coverImageUrl,
-    status: a.status,
-    lessonType: a.lessonType,
-    taskType: a.taskType,
-    mathWorksheet: a.mathWorksheet ?? null,
-  };
-}
-
-function readLegacyRole(profile: Record<string, unknown>): Role | null {
-  const roles = profile["roles"];
-  if (!isRecord(roles)) return null;
-
-  if (roles["admin"] === true) return "admin";
-  if (roles["teacher"] === true) return "teacher";
-  if (roles["creator"] === true) return "creator";
-  if (roles["parent"] === true) return "parent";
-  if (roles["student"] === true) return "student";
-  return null;
-}
-
-function readRole(profile: unknown): Role | null {
-  if (!isRecord(profile)) return null;
-
-  const r = profile["role"];
-  if (
-    r === "student" ||
-    r === "teacher" ||
-    r === "admin" ||
-    r === "parent" ||
-    r === "creator"
-  ) {
-    return r;
-  }
-
-  return readLegacyRole(profile);
-}
-
-function getErrorInfo(err: unknown): { code?: string; message: string } {
-  if (err instanceof Error) return { message: err.message };
-  if (typeof err === "string") return { message: err };
-  if (err && typeof err === "object") {
-    const code = "code" in err ? (err as { code?: unknown }).code : undefined;
-    const message =
-      "message" in err ? (err as { message?: unknown }).message : undefined;
-    return {
-      code: typeof code === "string" ? code : undefined,
-      message: typeof message === "string" ? message : JSON.stringify(err),
-    };
-  }
-  return { message: String(err) };
-}
-
-function formatMaybeDate(v: unknown) {
-  try {
-    if (!v) return "";
-    const d: Date | null =
-      v instanceof Date
-        ? v
-        : typeof (v as { toDate?: unknown })?.toDate === "function"
-          ? (v as { toDate: () => Date }).toDate()
-          : v instanceof Timestamp
-            ? v.toDate()
-            : null;
-    return d ? d.toLocaleString() : "";
-  } catch {
-    return "";
-  }
-}
-
-function safeNumber(v: unknown): number | null {
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
-}
-
-function safeBoolean(v: unknown): boolean | null {
-  return typeof v === "boolean" ? v : null;
-}
-
-function formatDuration(totalSeconds: number | null | undefined): string {
-  if (typeof totalSeconds !== "number" || !Number.isFinite(totalSeconds))
-    return "—";
-  const secs = Math.max(0, Math.floor(totalSeconds));
-  const hours = Math.floor(secs / 3600);
-  const minutes = Math.floor((secs % 3600) / 60);
-  const seconds = secs % 60;
-
-  if (hours > 0) {
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
-      2,
-      "0"
-    )}:${String(seconds).padStart(2, "0")}`;
-  }
-
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
-    2,
-    "0"
-  )}`;
-}
-
-function formatLessonLevel(value: string | null | undefined): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  if (raw === "grade_3_4") return "3.–4. trinn";
-  if (raw === "grade_5_7") return "5.–7. trinn";
-  if (raw === "grade_8_10") return "8.–10. trinn";
-  return raw.replace(/_/g, " ");
-}
 
 function getGeometryScoreKind(
   percent: number | null
@@ -316,131 +87,6 @@ function safeSubmissionT(
   return isRawSubmissionKey(value, key) ? fallback : value;
 }
 
-function readTeacherFeedbackText(sub: SubmissionDoc): string {
-  const tf = sub.teacherFeedback;
-  if (!tf || typeof tf !== "object") return "";
-  const t = (tf as { text?: unknown }).text;
-  return typeof t === "string" ? t : "";
-}
-
-function readAiFeedbackText(sub: SubmissionDoc): string {
-  const af = sub.aiFeedback;
-  if (!af || typeof af !== "object") return "";
-  const t = (af as { text?: unknown }).text;
-  return typeof t === "string" ? t : "";
-}
-
-function readStatus(sub: SubmissionDoc): SubmissionStatus {
-  const s = sub.status;
-  if (typeof s === "string" && s.trim()) return s as SubmissionStatus;
-  return "needs_work";
-}
-
-function readStatusDefaultNeedsWork(sub: SubmissionDoc): ReviewStatus {
-  const s = sub.status;
-  return s === "needs_work" || s === "reviewed" ? s : "needs_work";
-}
-
-function readAuth(sub: SubmissionDoc): { isAnon: boolean; uid: string | null } {
-  const a = sub.auth;
-  if (!a || typeof a !== "object") return { isAnon: false, uid: null };
-  const isAnon = (a as { isAnon?: unknown }).isAnon === true;
-  const uidRaw = (a as { uid?: unknown }).uid;
-  return { isAnon, uid: typeof uidRaw === "string" ? uidRaw : null };
-}
-
-function requireDb(x: Firestore | null | undefined): Firestore {
-  if (!x) throw new Error("Firestore is not initialized (db is null).");
-  return x;
-}
-
-function safeTasksArray(tasks: unknown): Task[] {
-  if (Array.isArray(tasks)) return tasks as Task[];
-  if (typeof tasks === "string") {
-    try {
-      const parsed: unknown = JSON.parse(tasks);
-      return Array.isArray(parsed) ? (parsed as Task[]) : [];
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
-
-function getStableTaskId(t: Task, idx: number): string {
-  if (t?.id != null && String(t.id).trim()) return String(t.id).trim();
-
-  const orderPart = t?.order != null ? String(t.order) : "x";
-  const promptPart =
-    typeof t?.prompt === "string" ? t.prompt.trim().slice(0, 80) : "";
-  if (promptPart) return `${orderPart}__${promptPart}`;
-
-  return `${orderPart}__idx${idx}`;
-}
-
-function readAnswerMap(a: unknown): AnswersMap {
-  if (a && typeof a === "object" && !Array.isArray(a)) return a as AnswersMap;
-  return {};
-}
-
-function readAutoGrade(sub: SubmissionDoc | null): AutoGrade | null {
-  const a = sub?.auto;
-  if (!a || typeof a !== "object") return null;
-
-  const r = a as Partial<AutoGrade>;
-  const totalAuto = typeof r.totalAuto === "number" ? r.totalAuto : 0;
-  const correctAuto = typeof r.correctAuto === "number" ? r.correctAuto : 0;
-  const wrongAuto = typeof r.wrongAuto === "number" ? r.wrongAuto : 0;
-  const unansweredAuto =
-    typeof r.unansweredAuto === "number" ? r.unansweredAuto : 0;
-  const percentAuto = typeof r.percentAuto === "number" ? r.percentAuto : null;
-  const byTask =
-    r.byTask && typeof r.byTask === "object" && !Array.isArray(r.byTask)
-      ? (r.byTask as Record<string, AutoGradeEntry>)
-      : {};
-
-  if (totalAuto === 0 && Object.keys(byTask).length === 0) return null;
-
-  return { totalAuto, correctAuto, wrongAuto, unansweredAuto, percentAuto, byTask };
-}
-
-function readGeometryAuto(sub: SubmissionDoc | null): GeometryAutoResult | null {
-  const auto = sub?.auto;
-  if (!auto || typeof auto !== "object" || Array.isArray(auto)) return null;
-
-  const candidate = auto as Partial<GeometryAutoResult>;
-  const hasTaskMap =
-    candidate.byTaskId &&
-    typeof candidate.byTaskId === "object" &&
-    !Array.isArray(candidate.byTaskId);
-  const hasCounts =
-    typeof candidate.total === "number" ||
-    typeof candidate.correct === "number" ||
-    typeof candidate.wrong === "number" ||
-    typeof candidate.unanswered === "number" ||
-    typeof candidate.percent === "number";
-
-  if (!hasTaskMap && !hasCounts) return null;
-
-  return auto as GeometryAutoResult;
-}
-
-function getAutoEntry(
-  auto: AutoGrade | null,
-  stableId: string
-): AutoGradeEntry | undefined {
-  const byTask = auto?.byTask;
-  if (!byTask || typeof byTask !== "object") return undefined;
-
-  const v = (byTask as Record<string, unknown>)[stableId];
-  if (!v || typeof v !== "object") return undefined;
-
-  const e = v as Partial<AutoGradeEntry>;
-  if (e.type !== "mcq" && e.type !== "truefalse") return undefined;
-  if (typeof e.isCorrect !== "boolean") return undefined;
-
-  return e as AutoGradeEntry;
-}
 
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
@@ -453,68 +99,6 @@ function withLocale(locale: string, href: string): string {
   return `/${locale}${href}`;
 }
 
-function renderValue(v: unknown): string {
-  if (v == null) return "";
-
-  if (typeof v === "string") {
-    return v.trim();
-  }
-
-  if (typeof v === "number" || typeof v === "boolean") {
-    return String(v);
-  }
-
-  if (Array.isArray(v)) {
-    const items = v
-      .map((item) => renderValue(item))
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    return items.join(", ");
-  }
-
-  if (typeof v === "object") {
-    const obj = v as Record<string, unknown>;
-
-    const preferredKeys = [
-      "text",
-      "answer",
-      "value",
-      "response",
-      "content",
-      "label",
-      "studentAnswer",
-    ];
-
-    for (const key of preferredKeys) {
-      const candidate = obj[key];
-      if (typeof candidate === "string" && candidate.trim()) {
-        return candidate.trim();
-      }
-      if (typeof candidate === "number" || typeof candidate === "boolean") {
-        return String(candidate);
-      }
-    }
-
-    const entries = Object.entries(obj)
-      .filter(([, value]) => value != null && value !== "")
-      .map(([key, value]) => {
-        if (typeof value === "string") return `${key}: ${value}`;
-        if (typeof value === "number" || typeof value === "boolean")
-          return `${key}: ${String(value)}`;
-        return "";
-      })
-      .filter(Boolean);
-
-    if (entries.length > 0) {
-      return entries.join(" · ");
-    }
-
-    return "";
-  }
-
-  return String(v);
-}
 
 async function safeCopyToClipboard(text: string): Promise<boolean> {
   try {
@@ -540,237 +124,6 @@ async function safeCopyToClipboard(text: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function isReadingTestLesson(
-  assignment: AssignmentDoc | null,
-  lesson: Lesson | null,
-  tasks: Task[]
-): boolean {
-  const lessonType = String(
-    lesson?.lessonType ?? assignment?.lessonType ?? ""
-  )
-    .trim()
-    .toLowerCase();
-  if (lessonType === "reading_test") return true;
-
-  return tasks.some((task) => {
-    const type = String(task?.type ?? "").trim().toLowerCase();
-    return (
-      type === "word_choice" ||
-      type === "sentence_placement" ||
-      type === "best_summary" ||
-      type === "fill_in_word"
-    );
-  });
-}
-
-function readReadingTestMeta(sub: SubmissionDoc | null) {
-  const limitSeconds = safeNumber(sub?.readingTestTimeLimitSeconds);
-  const usedSeconds =
-    safeNumber(sub?.readingTestTimeUsedSeconds) ??
-    safeNumber(sub?.timeSpentSeconds);
-  const timedOut = safeBoolean(sub?.readingTestTimedOut);
-  const submittedManually = safeBoolean(sub?.readingTestSubmittedManually);
-
-  return {
-    limitSeconds,
-    usedSeconds,
-    timedOut,
-    submittedManually,
-  };
-}
-
-function StatusPill({
-  status,
-  t,
-}: {
-  status: SubmissionStatus;
-  t: (k: string) => string;
-}) {
-  const s = String(status || "").toLowerCase();
-
-  const isDraft = s === "draft";
-  const isApproved = s === "reviewed" || s === "approved";
-  const isNeeds = s === "needs_work";
-  const isSubmitted = s === "submitted";
-
-  const bg = isDraft
-    ? "rgba(99,102,241,0.12)"
-    : isApproved
-      ? "rgba(16,185,129,0.16)"
-      : isNeeds
-        ? "rgba(245,158,11,0.18)"
-        : isSubmitted
-          ? "rgba(0,0,0,0.06)"
-          : "rgba(0,0,0,0.06)";
-
-  const bd = isDraft
-    ? "rgba(99,102,241,0.40)"
-    : isApproved
-      ? "rgba(16,185,129,0.45)"
-      : isNeeds
-        ? "rgba(245,158,11,0.55)"
-        : "rgba(0,0,0,0.16)";
-
-  const tx = isDraft
-    ? "rgba(67,56,202,1)"
-    : isApproved
-      ? "rgba(5,150,105,1)"
-      : isNeeds
-        ? "rgba(180,83,9,1)"
-        : "rgba(0,0,0,0.70)";
-
-  const label = isDraft
-    ? t("status.draft")
-    : isApproved
-      ? t("status.approved")
-      : isNeeds
-        ? t("status.needsWork")
-        : isSubmitted
-          ? t("status.submitted")
-          : t("status.submitted");
-
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "6px 10px",
-        borderRadius: 999,
-        border: `1px solid ${bd}`,
-        background: bg,
-        color: tx,
-        fontWeight: 800,
-        fontSize: 12,
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function Badge({
-  text,
-  kind = "neutral",
-  title,
-}: {
-  text: string;
-  kind?: "neutral" | "good" | "bad" | "warn";
-  title?: string;
-}) {
-  const styles =
-    kind === "good"
-      ? {
-        bg: "rgba(16,185,129,0.16)",
-        bd: "rgba(16,185,129,0.45)",
-        tx: "rgba(5,150,105,1)",
-      }
-      : kind === "bad"
-        ? {
-          bg: "rgba(231,76,60,0.14)",
-          bd: "rgba(231,76,60,0.40)",
-          tx: "rgba(180,40,30,1)",
-        }
-        : kind === "warn"
-          ? {
-            bg: "rgba(245,158,11,0.16)",
-            bd: "rgba(245,158,11,0.45)",
-            tx: "rgba(180,83,9,1)",
-          }
-          : {
-            bg: "rgba(0,0,0,0.04)",
-            bd: "rgba(0,0,0,0.14)",
-            tx: "rgba(0,0,0,0.75)",
-          };
-
-  return (
-    <span
-      title={title}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "6px 10px",
-        borderRadius: 999,
-        border: `1px solid ${styles.bd}`,
-        background: styles.bg,
-        color: styles.tx,
-        fontWeight: 900,
-        fontSize: 12,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {text}
-    </span>
-  );
-}
-
-
-function StatusToggle({
-  value,
-  onChange,
-  disabled,
-  t,
-}: {
-  value: ReviewStatus;
-  onChange: (v: ReviewStatus) => void;
-  disabled?: boolean;
-  t: (k: string) => string;
-}) {
-  const checked = value === "reviewed";
-  return (
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        userSelect: "none",
-        flexWrap: "wrap",
-      }}
-    >
-      <span style={{ fontSize: 13, opacity: 0.85 }}>
-        {t("feedback.statusLabel")}
-      </span>
-
-      <button
-        type="button"
-        onClick={() => onChange(checked ? "needs_work" : "reviewed")}
-        disabled={disabled}
-        aria-pressed={checked}
-        style={{
-          position: "relative",
-          width: 56,
-          height: 32,
-          borderRadius: 999,
-          border: "1px solid rgba(0,0,0,0.18)",
-          background: checked
-            ? "rgba(16,185,129,0.25)"
-            : "rgba(245,158,11,0.25)",
-          opacity: disabled ? 0.6 : 1,
-          cursor: disabled ? "not-allowed" : "pointer",
-          flex: "0 0 auto",
-        }}
-      >
-        <span
-          style={{
-            position: "absolute",
-            top: 3,
-            left: checked ? 28 : 3,
-            width: 26,
-            height: 26,
-            borderRadius: 999,
-            background: "white",
-            border: "1px solid rgba(0,0,0,0.15)",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.10)",
-            transition: "left 120ms ease",
-          }}
-        />
-      </button>
-
-      <StatusPill status={value} t={t} />
-    </label>
-  );
 }
 
 export default function TeacherSubmissionPage() {
@@ -882,6 +235,29 @@ function Inner() {
     return isMathWorksheet(lesson?.mathWorksheet) ? lesson.mathWorksheet : null;
   }, [lesson?.mathWorksheet]);
 
+  const fractionWorksheet = useMemo(() => {
+    if (isFractionWorksheet(lesson?.fractionWorksheet)) {
+      return lesson.fractionWorksheet;
+    }
+
+    const mathType = String(lesson?.mathType ?? "").trim().toLowerCase();
+    const contentType = String(lesson?.contentType ?? "").trim().toLowerCase();
+
+    if (
+      (mathType === "fractions" || contentType === "fraction_worksheet") &&
+      isFractionWorksheet(lesson?.mathWorksheet)
+    ) {
+      return lesson.mathWorksheet;
+    }
+
+    return null;
+  }, [
+    lesson?.fractionWorksheet,
+    lesson?.mathWorksheet,
+    lesson?.mathType,
+    lesson?.contentType,
+  ]);
+
   const isGeometryAssignment = useMemo(() => {
     const lessonType = String(lesson?.lessonType ?? "").trim().toLowerCase();
     const lessonTaskType = String(lesson?.taskType ?? "").trim().toLowerCase();
@@ -905,6 +281,33 @@ function Inner() {
     assignment?.lessonType,
     assignment?.taskType,
     geometryWorksheet,
+  ]);
+
+  const isFractionAssignment = useMemo(() => {
+    const lessonMathType = String(lesson?.mathType ?? "").trim().toLowerCase();
+    const lessonContentType = String(lesson?.contentType ?? "").trim().toLowerCase();
+
+    const assignmentMathType = String(assignment?.mathType ?? "")
+      .trim()
+      .toLowerCase();
+
+    const assignmentContentType = String(assignment?.contentType ?? "")
+      .trim()
+      .toLowerCase();
+
+    return (
+      lessonMathType === "fractions" ||
+      lessonContentType === "fraction_worksheet" ||
+      assignmentMathType === "fractions" ||
+      assignmentContentType === "fraction_worksheet" ||
+      !!fractionWorksheet
+    );
+  }, [
+    lesson?.mathType,
+    lesson?.contentType,
+    assignment?.mathType,
+    assignment?.contentType,
+    fractionWorksheet,
   ]);
 
   useEffect(() => {
@@ -1032,6 +435,12 @@ function Inner() {
           taskType: assignment?.taskType ?? sourceLesson.taskType,
           mathWorksheet:
             assignment?.mathWorksheet ?? sourceLesson.mathWorksheet ?? null,
+          fractionWorksheet:
+            assignment?.fractionWorksheet ?? sourceLesson.fractionWorksheet ?? null,
+          mathType:
+            assignment?.mathType ?? sourceLesson.mathType,
+          contentType:
+            assignment?.contentType ?? sourceLesson.contentType,
         });
       } catch (e) {
         const info = getErrorInfo(e);
@@ -1215,10 +624,14 @@ function Inner() {
     .sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
 
   const answersMap = readAnswerMap(
-    isGeometryAssignment ? sub.answersByTaskId : sub.answers
+    isGeometryAssignment && !isFractionAssignment ? sub.answersByTaskId : sub.answers
   );
-  const auto = isGeometryAssignment ? null : readAutoGrade(sub);
-  const geometryAuto = isGeometryAssignment ? readGeometryAuto(sub) : null;
+
+  const auto =
+    isGeometryAssignment || isFractionAssignment ? null : readAutoGrade(sub);
+
+  const geometryAuto =
+    isGeometryAssignment && !isFractionAssignment ? readGeometryAuto(sub) : null;
 
   const geometryPercent =
     geometryAuto &&
@@ -1350,14 +763,14 @@ function Inner() {
           <div className="flex flex-wrap items-center gap-2">
             {lessonLevelLabel ? <Badge text={lessonLevelLabel} /> : null}
 
-            {isGeometryAssignment && geometryPercent != null ? (
+            {isGeometryAssignment && !isFractionAssignment && geometryPercent != null ? (
               <Badge
                 text={`${scoreLabel}: ${geometryPercent}%`}
                 kind={getGeometryScoreKind(geometryPercent)}
               />
             ) : null}
 
-            {!isGeometryAssignment && auto?.percentAuto != null ? (
+            {!isGeometryAssignment && !isFractionAssignment && auto?.percentAuto != null ? (
               <Badge
                 text={`${scoreLabel}: ${auto.percentAuto}%`}
                 kind={
@@ -1382,7 +795,11 @@ function Inner() {
               {quickOverviewTitle}
             </div>
 
-            {isGeometryAssignment ? (
+            {isFractionAssignment ? (
+              <div className="text-sm text-slate-600">
+                Brøkbesvarelse er levert. Automatisk vurdering kommer senere.
+              </div>
+            ) : isGeometryAssignment ? (
               geometryAuto ? (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
@@ -1526,45 +943,19 @@ function Inner() {
             </div>
 
             {!isGeometryAssignment ? (
-              <>
-                <div className="rounded-xl border border-slate-300 bg-slate-50 p-3">
-                  <div
-                    className="flex w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white"
-                    style={{ aspectRatio: "16 / 9" }}
-                  >
-                    {cover ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={cover}
-                        alt={t("studentView.imageAlt")}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                      />
-                    ) : (
-                      <div className="px-4 text-center text-sm text-slate-600">
-                        <div className="mb-1 font-semibold text-slate-800">
-                          {t("studentView.noImageTitle")}
-                        </div>
-                        <div>{t("studentView.noImageDesc")}</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {sourceText.trim() ? (
-                  <div className="rounded-xl border border-slate-300 bg-white p-4">
-                    <div className="mb-2 text-xs text-slate-500">
-                      {t("studentView.textTitle")}
-                    </div>
-                    <div className="whitespace-pre-wrap leading-7 text-slate-800">
-                      {sourceText}
-                    </div>
-                  </div>
-                ) : null}
-              </>
+              <StandardSubmissionView
+                lessonTitle={lessonTitle}
+                lessonLevel={lessonLevel}
+                cover={cover}
+                sourceText={sourceText}
+                tasksOriginal={tasksOriginal}
+                answersMap={answersMap}
+                auto={auto}
+                t={tAny}
+                getStableTaskId={getStableTaskId}
+                getAutoEntry={getAutoEntry}
+                renderValue={renderValue}
+              />
             ) : null}
 
             <div>
@@ -1574,26 +965,23 @@ function Inner() {
                   : t("studentView.tasksTitle")}
               </div>
 
-              {isGeometryAssignment && geometryWorksheet ? (
-                <div className="grid gap-4">
-                  <div className="rounded-xl border border-slate-300 bg-white p-3">
-                    <GeometryWorksheetPracticeView
-                      worksheet={geometryWorksheet}
-                      t={tGeometryAny}
-                      tBrand={tBrandAny}
-                      answersByTaskId={answersMap as GeometryAnswersByTaskId}
-                      onAnswerChange={() => {
-                        // read-only teacher view
-                      }}
-                      showExpectedAnswers={true}
-                      showIdentityFields={false}
-                      showFigureMeta={true}
-                      includeHints={true}
-                      auto={geometryAuto}
-                      showInlineFeedback={!!geometryAuto}
-                    />
-                  </div>
-                </div>
+              {isFractionAssignment && fractionWorksheet ? (
+                <FractionWorksheetView
+                  worksheet={fractionWorksheet}
+                  tBrand={tBrandAny}
+                  showIdentityFields={false}
+                  answersByTaskId={answersMap as Record<string, string>}
+                  readOnly={true}
+                  showAutoCheck={true}
+                />
+              ) : isGeometryAssignment && geometryWorksheet ? (
+                <GeometrySubmissionView
+                  worksheet={geometryWorksheet}
+                  answersMap={answersMap as GeometryAnswersByTaskId}
+                  auto={geometryAuto}
+                  tGeometry={tGeometryAny}
+                  tBrand={tBrandAny}
+                />
               ) : tasksOriginal.length === 0 ? (
                 <div className="text-sm text-slate-600">
                   {t("studentView.noTasks")}
@@ -1818,267 +1206,165 @@ function Inner() {
         </div>
 
         <div className="rightCol">
-          <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
-            <div className="flex min-w-0 flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-base font-semibold text-slate-900">
-                  {t("ai.title")}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    disabled={!canGenerateAi}
-                    onClick={async () => {
-                      setAiGenerating(true);
-                      setAiMsg(null);
+          <AiFeedbackPanel
+            aiText={aiText}
+            setAiText={setAiText}
+            aiGenerating={aiGenerating}
+            aiSaving={aiSaving}
+            aiMsg={aiMsg}
+            canOperate={canOperate}
+            canGenerateAi={canGenerateAi}
+            onGenerate={async () => {
+              setAiGenerating(true);
+              setAiMsg(null);
 
-                      try {
-                        const data = await authedPost<AiResp>(
-                          "/api/teacher/ai-feedback",
-                          {
-                            spaceId,
-                            assignmentId,
-                            subId,
-                            locale,
-                          }
-                        );
+              try {
+                const data = await authedPost<AiResp>("/api/teacher/ai-feedback", {
+                  spaceId,
+                  assignmentId,
+                  subId,
+                  locale,
+                });
 
-                        const newText = data.text || "";
-                        setAiText(newText);
+                const newText = data.text || "";
+                setAiText(newText);
 
-                        if (!data.skipped) {
-                          await saveAiFeedbackToFirestore(newText);
-                          setAiMsg(t("ai.generated"));
-                        } else {
-                          setAiMsg(newText);
-                        }
-                      } catch (e: unknown) {
-                        const info = getErrorInfo(e);
-                        console.log(
-                          "[TEACHER] generate ai feedback ERROR =>",
-                          info.code,
-                          info.message,
-                          e
-                        );
-                        setAiMsg(
-                          t("ai.generateFailed", {
-                            msg: info.message || t("fallback.unknownError"),
-                          })
-                        );
-                      } finally {
-                        setAiGenerating(false);
-                        setTimeout(() => setAiMsg(null), 2500);
-                      }
-                    }}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                  >
-                    {aiGenerating ? t("ai.generating") : t("ai.generateButton")}
-                  </button>
+                if (!data.skipped) {
+                  await saveAiFeedbackToFirestore(newText);
+                  setAiMsg(t("ai.generated"));
+                } else {
+                  setAiMsg(newText);
+                }
+              } catch (e: unknown) {
+                const info = getErrorInfo(e);
 
-                  <button
-                    disabled={!canOperate || !aiText.trim() || aiSaving}
-                    onClick={() => void saveAiFeedbackToFirestore(aiText)}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                  >
-                    {aiSaving ? t("ai.saving") : t("ai.saveButton")}
-                  </button>
+                console.log(
+                  "[TEACHER] generate ai feedback ERROR =>",
+                  info.code,
+                  info.message,
+                  e
+                );
 
-                  <button
-                    disabled={!canOperate || !aiText.trim()}
-                    onClick={async () => {
-                      const ok = await safeCopyToClipboard(aiText);
-                      setAiMsg(ok ? t("ai.copied") : t("ai.copyFailed"));
-                      setTimeout(() => setAiMsg(null), 1500);
-                    }}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                  >
-                    {t("ai.copyButton")}
-                  </button>
+                setAiMsg(
+                  t("ai.generateFailed", {
+                    msg: info.message || t("fallback.unknownError"),
+                  })
+                );
+              } finally {
+                setAiGenerating(false);
+                setTimeout(() => setAiMsg(null), 2500);
+              }
+            }}
+            onSave={() => {
+              void saveAiFeedbackToFirestore(aiText);
+            }}
+            onCopy={async () => {
+              const ok = await safeCopyToClipboard(aiText);
+              setAiMsg(ok ? t("ai.copied") : t("ai.copyFailed"));
+              setTimeout(() => setAiMsg(null), 1500);
+            }}
+            onInsert={() => {
+              const chunk = aiText.trim();
+              if (!chunk) return;
 
-                  <button
-                    disabled={!canOperate || !aiText.trim()}
-                    onClick={() => {
-                      const chunk = aiText.trim();
-                      if (!chunk) return;
-                      setText((prev) => {
-                        const p = prev.trim();
-                        if (!p) return chunk;
-                        return `${p}\n\n${chunk}`;
-                      });
-                      setAiMsg(t("ai.inserted"));
-                      setTimeout(() => setAiMsg(null), 1500);
-                    }}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                  >
-                    {t("ai.insertButton")}
-                  </button>
-                </div>
-              </div>
+              setText((prev) => {
+                const p = prev.trim();
+                if (!p) return chunk;
+                return `${p}\n\n${chunk}`;
+              });
 
-              <textarea
-                value={aiText}
-                onChange={(e) => setAiText(e.target.value)}
-                placeholder={t("ai.placeholder")}
-                rows={9}
-                disabled={!canOperate}
-                className="box-border w-full min-w-0 max-w-full resize-y rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm text-slate-900 disabled:opacity-65"
-              />
+              setAiMsg(t("ai.inserted"));
+              setTimeout(() => setAiMsg(null), 1500);
+            }}
+            t={tAny}
+          />
+          <TeacherFeedbackPanel
+            text={text}
+            setText={setText}
+            status={status}
+            setStatus={setStatus}
+            readingSummaryText={readingSummaryText}
+            needsTextToChangeStatus={needsTextToChangeStatus}
+            canOperate={canOperate}
+            canSave={canSave}
+            saving={saving}
+            saveMsg={saveMsg}
+            onSave={async () => {
+              setSaving(true);
+              setSaveMsg(null);
 
-              {aiMsg && (
-                <div className="text-sm font-semibold text-slate-700">
-                  {aiMsg}
-                </div>
-              )}
+              try {
+                const dbx = requireDb(db);
 
-              <div className="text-xs text-slate-500">
-                {t("ai.rulesHint")} <code>aiFeedback</code>.
-              </div>
-            </div>
-          </div>
+                const payload = {
+                  status,
+                  teacherFeedback: {
+                    text,
+                    updatedAt: serverTimestamp(),
+                    teacherUid: user?.uid ?? null,
+                  },
+                  updatedAt: serverTimestamp(),
+                };
 
-          <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
-            <div className="text-base font-semibold text-slate-900">
-              {t("feedback.title")}
-            </div>
+                const batch = writeBatch(dbx);
+                if (nestedRef) batch.set(nestedRef, payload, { merge: true });
+                if (indexRef) batch.set(indexRef, payload, { merge: true });
+                await batch.commit();
 
-            {readingSummaryText ? (
-              <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold leading-6 text-slate-800">
-                {readingSummaryText}
-              </div>
-            ) : null}
+                await authedPost("/api/notifications/teacher-feedback", {
+                  spaceId,
+                  assignmentId,
+                  subId,
+                  locale,
+                });
 
-            <div className="mt-4">
-              <StatusToggle
-                value={status}
-                onChange={setStatus}
-                disabled={!canOperate}
-                t={(k) => t(k)}
-              />
-            </div>
+                setInitialStatus(status);
+                setSaveMsg(t("feedback.saved"));
+              } catch (e: unknown) {
+                const info = getErrorInfo(e);
 
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={t("feedback.placeholder")}
-              rows={10}
-              disabled={!canOperate}
-              className="box-border mt-4 w-full min-w-0 max-w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 disabled:opacity-65"
-            />
+                console.log(
+                  "[TEACHER] save feedback ERROR =>",
+                  info.code,
+                  info.message,
+                  e
+                );
 
-            {needsTextToChangeStatus && (
-              <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
-                {t("feedback.needTextToChangeStatus")}
-              </div>
-            )}
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {readingSummaryText ? (
-                <button
-                  type="button"
-                  disabled={!canOperate}
-                  onClick={() => {
-                    setText((prev) => {
-                      const p = prev.trim();
-                      if (!p) return readingSummaryText;
-                      if (p.includes(readingSummaryText)) return prev;
-                      return `${readingSummaryText}\n\n${prev}`;
-                    });
-                  }}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                >
-                  {t("feedback.insertTimingData")}
-                </button>
-              ) : null}
-
-              <button
-                disabled={!canSave}
-                onClick={async () => {
-                  setSaving(true);
-                  setSaveMsg(null);
-                  try {
-                    const dbx = requireDb(db);
-
-                    const payload = {
-                      status,
-                      teacherFeedback: {
-                        text,
-                        updatedAt: serverTimestamp(),
-                        teacherUid: user?.uid ?? null,
-                      },
-                      updatedAt: serverTimestamp(),
-                    };
-
-                    const batch = writeBatch(dbx);
-                    if (nestedRef) batch.set(nestedRef, payload, { merge: true });
-                    if (indexRef) batch.set(indexRef, payload, { merge: true });
-                    await batch.commit();
-
-                    await authedPost("/api/notifications/teacher-feedback", {
-                      spaceId,
-                      assignmentId,
-                      subId,
-                      locale,
-                    });
-
-                    setInitialStatus(status);
-                    setSaveMsg(t("feedback.saved"));
-                  } catch (e: unknown) {
-                    const info = getErrorInfo(e);
-                    console.log(
-                      "[TEACHER] save feedback ERROR =>",
-                      info.code,
-                      info.message,
-                      e
-                    );
-                    setSaveMsg(
-                      t("feedback.saveFailed", {
-                        msg: info.message || t("fallback.unknownError"),
-                      })
-                    );
-                  } finally {
-                    setSaving(false);
-                    setTimeout(() => setSaveMsg(null), 2000);
-                  }
-                }}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-              >
-                {saving ? t("feedback.saving") : t("feedback.saveButton")}
-              </button>
-
-              {saveMsg ? (
-                <div className="self-center text-sm text-slate-700">
-                  {saveMsg}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-3 text-xs text-slate-500">
-              {t("feedback.rulesHint")} <code>status</code>{" "}
-              <code>teacherFeedback</code>.
-            </div>
-          </div>
+                setSaveMsg(
+                  t("feedback.saveFailed", {
+                    msg: info.message || t("fallback.unknownError"),
+                  })
+                );
+              } finally {
+                setSaving(false);
+                setTimeout(() => setSaveMsg(null), 2000);
+              }
+            }}
+            t={tAny}
+          />
         </div>
       </div>
 
       <style jsx>{`
-        .submissionGrid {
-          display: grid;
-          grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-          gap: 16px;
-          align-items: start;
-        }
+  .submissionGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 16px;
+    align-items: start;
+  }
 
-        .rightCol {
-          display: grid;
-          gap: 16px;
-          min-width: 0;
-        }
+  .rightCol {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+  }
 
-        @media (max-width: 980px) {
-          .submissionGrid {
-            grid-template-columns: minmax(0, 1fr);
-          }
-        }
-      `}</style>
+  @media (max-width: 980px) {
+    .submissionGrid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+`}</style>
     </div>
   );
 }

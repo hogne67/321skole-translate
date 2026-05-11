@@ -41,7 +41,11 @@ type SourceLessonData = {
   lessonType?: string;
   taskType?: string;
   readingTestConfig?: unknown;
+
   mathWorksheet?: unknown;
+  fractionWorksheet?: unknown;
+  mathType?: string;
+  contentType?: string;
 };
 
 type UserProfileAccess = {
@@ -69,7 +73,6 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
-/** YYYY-MM in Europe/Oslo */
 function currentPeriodOslo(d = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Oslo",
@@ -92,7 +95,9 @@ function nonEmptyOrUndefined(v: unknown): string | undefined {
   return s ? s : undefined;
 }
 
-function pickSourceLessonData(raw: FirebaseFirestore.DocumentData | undefined): SourceLessonData {
+function pickSourceLessonData(
+  raw: FirebaseFirestore.DocumentData | undefined
+): SourceLessonData {
   const d = (raw ?? {}) as Record<string, unknown>;
 
   return {
@@ -111,8 +116,20 @@ function pickSourceLessonData(raw: FirebaseFirestore.DocumentData | undefined): 
     lessonType: nonEmptyOrUndefined(d.lessonType),
     taskType: nonEmptyOrUndefined(d.taskType),
     readingTestConfig: d.readingTestConfig ?? null,
+
     mathWorksheet: d.mathWorksheet ?? null,
+    fractionWorksheet: d.fractionWorksheet ?? null,
+    mathType: nonEmptyOrUndefined(d.mathType),
+    contentType: nonEmptyOrUndefined(d.contentType),
   };
+}
+
+function isFractionSource(source: SourceLessonData): boolean {
+  return (
+    source.mathType === "fractions" ||
+    source.contentType === "fraction_worksheet" ||
+    isRecord(source.fractionWorksheet)
+  );
 }
 
 function normalizeRole(role?: string, isAdminFlag?: boolean): AppRole {
@@ -138,15 +155,10 @@ async function loadUserProfileAccess(
 ): Promise<UserProfileAccess> {
   const snap = await db.collection("users").doc(uid).get();
   if (!snap.exists) {
-    return {
-      role: "anonymous",
-      plan: "free",
-      isAdmin: false,
-    };
+    return { role: "anonymous", plan: "free", isAdmin: false };
   }
 
   const d = (snap.data() ?? {}) as Record<string, unknown>;
-
   const roleValue = typeof d.role === "string" ? d.role : undefined;
   const planValue = typeof d.plan === "string" ? d.plan : undefined;
 
@@ -184,29 +196,25 @@ async function loadSourceLesson(params: {
 
   if (sourceType === "library") {
     const snap = await db.collection("published_lessons").doc(sourceId).get();
-    if (!snap.exists) {
-      throw new Error("Source lesson not found in published_lessons");
-    }
+    if (!snap.exists) throw new Error("Source lesson not found in published_lessons");
 
     const source = pickSourceLessonData(snap.data());
 
     const inactive = source.isActive === false;
-    const archived = typeof source.status === "string" && source.status.toLowerCase() === "archived";
-    if (inactive || archived) {
-      throw new Error("Source lesson is not active");
-    }
+    const archived =
+      typeof source.status === "string" &&
+      source.status.toLowerCase() === "archived";
+
+    if (inactive || archived) throw new Error("Source lesson is not active");
 
     return source;
   }
 
   const snap = await db.collection("lessons").doc(sourceId).get();
-  if (!snap.exists) {
-    throw new Error("Source lesson not found in lessons");
-  }
+  if (!snap.exists) throw new Error("Source lesson not found in lessons");
 
   const source = pickSourceLessonData(snap.data());
 
-  // For myContent: admin may assign any; normal user may only assign own lesson
   if (!isAdmin && source.ownerId && source.ownerId !== uid) {
     throw new Error("No access to source lesson");
   }
@@ -214,7 +222,10 @@ async function loadSourceLesson(params: {
   return source;
 }
 
-export async function POST(req: Request, ctx: { params: Promise<{ spaceId: string }> }) {
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ spaceId: string }> }
+) {
   try {
     const token = getBearerToken(req);
     if (!token) return json({ error: "Missing Authorization Bearer token" }, 401);
@@ -224,7 +235,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
 
     const body = (await req.json().catch(() => ({}))) as AssignBody;
 
-    const sourceType: SourceType = body.sourceType === "library" ? "library" : "myContent";
+    const sourceType: SourceType =
+      body.sourceType === "library" ? "library" : "myContent";
+
     const sourceId = safeString(body.sourceId).trim();
     const titleOverride = safeString(body.title).trim();
     const levelOverride = safeString(body.level).trim();
@@ -253,6 +266,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
       isAdmin: profile.isAdmin,
     });
 
+    const isFractions = isFractionSource(source);
+    const fractionWorksheet = source.fractionWorksheet ?? source.mathWorksheet ?? null;
+
     const feature = "teacher_assign_task" as const;
     const bucket = getQuotaBucket(feature);
     const period = currentPeriodOslo();
@@ -271,18 +287,19 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
     const result = await db.runTransaction(async (tx) => {
       let quota:
         | {
-            feature: string;
-            bucket: string;
-            limit: number;
-            used: number;
-            remaining: number;
-            period: string;
-          }
+          feature: string;
+          bucket: string;
+          limit: number;
+          used: number;
+          remaining: number;
+          period: string;
+        }
         | null = null;
 
       if (shouldCountQuota) {
         const usageSnap = await tx.get(usageRef);
-        const usage = (usageSnap.exists ? (usageSnap.data() as UsageDoc) : null) ?? null;
+        const usage =
+          (usageSnap.exists ? (usageSnap.data() as UsageDoc) : null) ?? null;
 
         const usedBefore = readUsed(usage, bucket);
         const safeLimit = limit ?? 0;
@@ -335,7 +352,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
         sourceType,
         sourceId,
 
-        // snapshot fields for stable student access
         title: finalTitle,
         level: finalLevel,
         language: finalLanguage,
@@ -346,11 +362,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ spaceId: strin
         tasks: source.tasks ?? [],
         coverImageUrl: source.coverImageUrl ?? null,
 
-        // important for lesson rendering
-        lessonType: source.lessonType ?? null,
-        taskType: source.taskType ?? null,
+        lessonType: isFractions
+          ? "math_fractions"
+          : source.lessonType ?? null,
+        taskType: isFractions
+          ? "math_fractions"
+          : source.taskType ?? null,
         readingTestConfig: source.readingTestConfig ?? null,
-        mathWorksheet: source.mathWorksheet ?? null,
+
+        mathWorksheet: isFractions ? fractionWorksheet : source.mathWorksheet ?? null,
+        fractionWorksheet: isFractions ? fractionWorksheet : source.fractionWorksheet ?? null,
+        mathType: isFractions ? "fractions" : source.mathType ?? null,
+        contentType: isFractions
+          ? "fraction_worksheet"
+          : source.contentType ?? null,
 
         assignedAt: now,
         createdAt: now,

@@ -1,6 +1,8 @@
 {
   "studentAssignment": {
-    "common": { "loading": "Carregando…" },
+    "common": {
+      "loading": "Carregando…"
+    },
     "fallback": {
       "lessonTitle": "Lição",
       "title": "Tarefa"
@@ -13,7 +15,8 @@
       "backPrevTitle": "Voltar para a página anterior",
       "saving": "Salvando…",
       "submit": "Enviar ao professor",
-      "resubmit": "Enviar novamente"
+      "resubmit": "Enviar novamente",
+      "saveDraft": "Salvar rascunho"
     },
     "errors": {
       "missingParams": "Faltando spaceId/assignmentId na URL.",
@@ -146,6 +149,7 @@
     "autograde": {
       "label": "RESULTADO AUTOMÁTICO",
       "details": "{s}"
-    }
+    },
+    "school": "321escola"
   }
 }

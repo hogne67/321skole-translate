@@ -1029,10 +1029,28 @@ export default function ContentClient() {
 
       const rawUnknown = snap.data() as unknown;
       const raw = isRecord(rawUnknown) ? rawUnknown : {};
-      const worksheet = raw.mathWorksheet;
+
+      const mathType =
+        safeString(raw.mathType) ||
+        safeString(raw.contentType) ||
+        "";
+
+      const isFractionWorksheet =
+        mathType === "fractions" ||
+        mathType === "fraction_worksheet" ||
+        isRecord(raw.fractionWorksheet);
+
+      const worksheet = isFractionWorksheet
+        ? raw.fractionWorksheet ?? raw.mathWorksheet
+        : raw.mathWorksheet;
 
       if (!worksheet || typeof worksheet !== "object") {
         throw new Error("Missing math worksheet");
+      }
+
+      if (isFractionWorksheet) {
+        router.push(`/${locale}/student/lesson/${lessonId}`);
+        return;
       }
 
       const res = await authedPost<{ ok?: boolean; id?: string }>(

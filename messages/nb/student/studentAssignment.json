@@ -1,6 +1,8 @@
 {
   "studentAssignment": {
-    "common": { "loading": "Laster…" },
+    "common": {
+      "loading": "Laster…"
+    },
     "fallback": {
       "lessonTitle": "Oppgave",
       "title": "Tildeling"
@@ -13,7 +15,8 @@
       "backPrevTitle": "Gå tilbake til forrige side",
       "saving": "Lagrer…",
       "submit": "Send til lærer",
-      "resubmit": "Send på nytt"
+      "resubmit": "Send på nytt",
+      "saveDraft": "Lagre kladd"
     },
     "errors": {
       "missingParams": "Mangler spaceId/assignmentId i URL.",
@@ -146,6 +149,7 @@
     "autograde": {
       "label": "AUTO RESULTAT",
       "details": "{s}"
-    }
+    },
+    "school": "skole"
   }
 }

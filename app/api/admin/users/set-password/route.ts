@@ -40,9 +40,14 @@ export async function POST(req: Request) {
         const adminSnap = await db.collection("users").doc(decoded.uid).get();
         const adminProfile = adminSnap.exists ? adminSnap.data() || {} : {};
 
+        const roles = isRecord(adminProfile.roles) ? adminProfile.roles : {};
+
+        const isAdmin =
+            adminProfile.role === "admin" ||
+            roles.admin === true;
+
         const isSuperAdmin =
-            adminProfile.role === "admin" &&
-            adminProfile.adminLevel === "superadmin";
+            isAdmin && adminProfile.adminLevel === "superadmin";
 
         if (!isSuperAdmin) {
             return json({ error: "Only superadmin can set passwords" }, 403);
