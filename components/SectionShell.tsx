@@ -44,7 +44,7 @@ export default function SectionShell({
     if (!locale) return href;
 
     const seg = href.split("/")[1];
-    if (seg === "en" || seg === "no" || seg === "pt") return href;
+    if (seg === "en" || seg === "no" || seg === "nb" || seg === "pt") return href;
 
     if (href === "/") return `/${locale}`;
     return `/${locale}${href}`;
@@ -56,13 +56,30 @@ export default function SectionShell({
     return [...tools, ...rest];
   }, [items]);
 
+  const primaryItem = useMemo(() => {
+    return (
+      navItems.find((it) => it.href.includes("/producer")) ??
+      navItems.find((it) => it.href.includes("/texts/new")) ??
+      navItems.find((it) => it.href.includes("/new")) ??
+      null
+    );
+  }, [navItems]);
+
   return (
     <div className="shellRoot">
       {!hideHeader && (
         <div className="sectionHeader">
-          <div className="sectionTitleWrap">
-            <h1 className="sectionTitle">{title}</h1>
-            {subtitle ? <p className="sectionSubtitle">{subtitle}</p> : null}
+          <div className="sectionTitleRow">
+            <div className="sectionTitleWrap">
+              <h1 className="sectionTitle">{title}</h1>
+              {subtitle ? <p className="sectionSubtitle">{subtitle}</p> : null}
+            </div>
+
+            {primaryItem && !hideNav ? (
+              <Link href={withLocale(primaryItem.href)} className="mobilePrimaryBtn">
+                {primaryItem.label}
+              </Link>
+            ) : null}
           </div>
 
           {!hideNav && (
@@ -71,6 +88,7 @@ export default function SectionShell({
                 const isTools = isToolsItem(it.href);
                 const isActive = isItemActive(it.href);
                 const isPrimary = index === 0 && isTools;
+                const isMobilePrimary = primaryItem?.href === it.href;
 
                 const background = isTools
                   ? "#deebde"
@@ -90,15 +108,14 @@ export default function SectionShell({
                     ? "1px solid #bfd7f7"
                     : "1px solid rgba(0,0,0,0.12)";
 
-                const boxShadow = isTools
-                  ? "0 1px 2px rgba(0,0,0,0.10)"
-                  : "none";
+                const boxShadow = isTools ? "0 1px 2px rgba(0,0,0,0.10)" : "none";
 
                 return (
                   <Link
                     key={it.href}
                     href={withLocale(it.href)}
-                    className={`navLink ${isTools ? "navLinkTools" : ""} ${isPrimary ? "navLinkPrimary" : ""}`}
+                    className={`navLink ${isTools ? "navLinkTools" : ""} ${isPrimary ? "navLinkPrimary" : ""
+                      } ${isMobilePrimary ? "hideOnMobile" : ""}`}
                     style={{
                       textDecoration: "none",
                       borderRadius: 999,
@@ -108,6 +125,7 @@ export default function SectionShell({
                       fontWeight: 600,
                       display: "inline-flex",
                       alignItems: "center",
+                      justifyContent: "center",
                       background,
                       color,
                       border,
@@ -123,9 +141,7 @@ export default function SectionShell({
         </div>
       )}
 
-      <div className={`sectionContent ${fullWidth ? "full" : ""}`}>
-        {children}
-      </div>
+      <div className={`sectionContent ${fullWidth ? "full" : ""}`}>{children}</div>
 
       <style jsx>{`
         .shellRoot {
@@ -141,6 +157,15 @@ export default function SectionShell({
           padding: 14px 16px 8px;
           border-bottom: 1px solid rgba(0, 0, 0, 0.08);
           background: #fff;
+        }
+
+        .sectionTitleRow {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+          min-width: 0;
+          max-width: 100%;
         }
 
         .sectionTitleWrap {
@@ -161,28 +186,24 @@ export default function SectionShell({
           overflow-wrap: anywhere;
         }
 
-        .sectionNav {
-          margin-top: 12px;
-          display: flex;
-          gap: 8px;
-          min-width: 0;
-          max-width: 100%;
-          overflow-x: auto;
-          overflow-y: hidden;
-          padding-bottom: 6px;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          scroll-snap-type: x proximity;
-        }
-
-        .sectionNav::-webkit-scrollbar {
+        .mobilePrimaryBtn {
           display: none;
         }
 
-        .navLink {
-          flex: 0 0 auto;
+        .sectionNav {
+          margin-top: 12px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          min-width: 0;
           max-width: 100%;
-          scroll-snap-align: start;
+          overflow: visible;
+          padding-bottom: 6px;
+        }
+
+        .navLink {
+          flex: 0 1 auto;
+          max-width: 100%;
         }
 
         .sectionContent {
@@ -210,19 +231,41 @@ export default function SectionShell({
             margin-top: 4px;
           }
 
+          .mobilePrimaryBtn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #deebde;
+            border: 1px solid #81beb3;
+            color: #1f7a1f;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.2;
+            text-decoration: none;
+            white-space: nowrap;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+          }
+
           .sectionNav {
             margin-top: 10px;
-            gap: 8px;
+            gap: 6px;
             padding-bottom: 4px;
           }
 
           .navLink {
-            font-size: 13px !important;
-            padding: 9px 12px !important;
+            font-size: 12px !important;
+            padding: 7px 10px !important;
           }
 
           .navLinkPrimary {
             font-weight: 800 !important;
+          }
+
+          .hideOnMobile {
+            display: none !important;
           }
 
           .sectionContent {

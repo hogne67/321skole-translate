@@ -17,6 +17,14 @@ function isRecord(v: unknown): v is Record<string, unknown> {
     return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
+function safeRole(v: unknown): "student" | "teacher" | "parent" | "creator" | "admin" {
+    if (v === "teacher") return "teacher";
+    if (v === "parent") return "parent";
+    if (v === "creator") return "creator";
+    if (v === "admin") return "admin";
+    return "student";
+}
+
 export async function POST(req: Request) {
     try {
         const token = getBearerToken(req);
@@ -26,8 +34,7 @@ export async function POST(req: Request) {
         if (!isRecord(body)) return json({ error: "Invalid body" }, 400);
 
         const uid = typeof body.uid === "string" ? body.uid.trim() : "";
-        const newPassword =
-            typeof body.newPassword === "string" ? body.newPassword : "";
+        const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
 
         if (!uid) return json({ error: "Missing uid" }, 400);
         if (newPassword.length < 8) {
@@ -40,14 +47,10 @@ export async function POST(req: Request) {
         const adminSnap = await db.collection("users").doc(decoded.uid).get();
         const adminProfile = adminSnap.exists ? adminSnap.data() || {} : {};
 
-        const roles = isRecord(adminProfile.roles) ? adminProfile.roles : {};
+        const adminRoles = isRecord(adminProfile.roles) ? adminProfile.roles : {};
 
-        const isAdmin =
-            adminProfile.role === "admin" ||
-            roles.admin === true;
-
-        const isSuperAdmin =
-            isAdmin && adminProfile.adminLevel === "superadmin";
+        const isAdmin = adminProfile.role === "admin" || adminRoles.admin === true;
+        const isSuperAdmin = isAdmin && adminProfile.adminLevel === "superadmin";
 
         if (!isSuperAdmin) {
             return json({ error: "Only superadmin can set passwords" }, 403);
@@ -56,6 +59,33 @@ export async function POST(req: Request) {
         await auth.updateUser(uid, {
             password: newPassword,
         });
+
+        const userRecord = await auth.getUser(uid);
+        const userRef = db.collection("users").doc(uid);
+        const userSnap = await userRef.get();
+        const existing = userSnap.exists ? userSnap.data() || {} : {};
+
+        const existingRoles = isRecord(existing.roles) ? existing.roles : {};
+        const role = safeRole(existing.role);
+
+        await userRef.set(
+            {
+                uid,
+                email: userRecord.email ?? existing.email ?? null,
+                displayName: userRecord.displayName ?? existing.displayName ?? null,
+
+                role,
+                roles: {
+                    ...existingRoles,
+                    [role]: true,
+                },
+
+                passwordResetRequired: true,
+                tempPasswordUpdatedAt: new Date(),
+                updatedAt: new Date(),
+            },
+            { merge: true }
+        );
 
         await db.collection("adminAuditEvents").add({
             event: "set_user_password",
