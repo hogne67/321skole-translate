@@ -1,4 +1,3 @@
-// components/LibraryBar.tsx
 "use client";
 
 import Link from "next/link";
@@ -42,6 +41,7 @@ function withLocale(locale: Locale | null, href: string): string {
 }
 
 type Role = "student" | "teacher";
+
 function safeRole(role: unknown): Role {
   return role === "teacher" ? "teacher" : "student";
 }
@@ -68,22 +68,20 @@ export default function LibraryBar() {
 
   const locale = getLocaleFromPathname(pathname);
 
-  // true for /en/321lessons, /no/321lessons, /pt/321lessons
+  // true for /en/321lessons, /nb/321lessons, /pt/321lessons
   const isLibrary = (pathname || "").split("?")[0].endsWith("/321lessons");
 
   // dashboard link from nav items (avoid fallback "/")
   const dashboardFromNav =
     navItemsForRole(role).find((x) => x.labelKey === "nav.dashboard")?.href ?? null;
 
-  // ✅ Safe fallback if nav item isn't found (prevents going to "/")
-  // Adjust these if your real routes differ.
+  // fallback
   const dashboardFallback = role === "teacher" ? "/teacher" : "/student";
 
   const dashboardRaw = dashboardFromNav ?? dashboardFallback;
   const dashboardHref = withLocale(locale, dashboardRaw);
 
-  // Toggle: when in library -> back to dashboard (with locale),
-  // else -> go to library (with locale)
+  // Toggle
   const href = isLibrary ? dashboardHref : withLocale(locale, "/321lessons");
   const label = isLibrary ? tLib("close") : tLib("open");
 
@@ -137,25 +135,27 @@ export default function LibraryBar() {
           border-color: rgba(15, 23, 42, 0.22);
         }
 
-        /* Subtil "kom hit"-puls når du IKKE er i library */
+        /* Subtil puls når du IKKE er i library */
         .isIdle {
           animation: softPulse 2.6s ease-in-out infinite;
         }
 
-        /* Aktiv-state: litt roligere */
         .isActive {
           animation: none;
         }
 
         @keyframes softPulse {
           0% {
-            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.10), 0 0 0 0 rgba(34, 211, 238, 0);
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.10),
+              0 0 0 0 rgba(34, 211, 238, 0);
           }
           55% {
-            box-shadow: 0 10px 22px rgba(2, 6, 23, 0.12), 0 0 0 10px rgba(34, 211, 238, 0.12);
+            box-shadow: 0 10px 22px rgba(2, 6, 23, 0.12),
+              0 0 0 10px rgba(34, 211, 238, 0.12);
           }
           100% {
-            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.10), 0 0 0 0 rgba(34, 211, 238, 0);
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.10),
+              0 0 0 0 rgba(34, 211, 238, 0);
           }
         }
 
@@ -163,6 +163,7 @@ export default function LibraryBar() {
           .isIdle {
             animation: none;
           }
+
           .libraryToggle:hover {
             transform: none;
           }

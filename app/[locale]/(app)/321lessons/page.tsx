@@ -981,6 +981,31 @@ export default function LessonsLandingPage() {
           background: rgba(0, 0, 0, 0.03);
         }
 
+        .stickyLibraryCloseBtn {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 999999;
+
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 22px;
+
+  background: #dc2626;
+  color: white;
+
+  font-size: 15px;
+  font-weight: 900;
+
+  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.28);
+  cursor: pointer;
+}
+
+.stickyLibraryCloseBtn:hover {
+  transform: translateX(-50%) translateY(-1px);
+}
+
         .pageSizeSelect {
           padding: 8px 10px;
           border-radius: 10px;
@@ -1002,7 +1027,19 @@ export default function LessonsLandingPage() {
           }
         }
       `}</style>
-
+      <button
+        type="button"
+        className="stickyLibraryCloseBtn"
+        onClick={() => {
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push(`/${locale}`);
+          }
+        }}
+      >
+        {safeMsg("close", "Lukk bibliotek")}
+      </button>
       {error ? (
         <section
           style={{
