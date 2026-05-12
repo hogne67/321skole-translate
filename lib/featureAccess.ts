@@ -268,7 +268,7 @@ export function getBucketLimit(
     if (role === "teacher" || role === "creator") {
       if (plan === "free") return 15;
       if (plan === "basic") return 25;
-      if (plan === "plus") return 75;
+      if (plan === "plus") return 125;
       if (plan === "pro") return 200;
     }
 
