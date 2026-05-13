@@ -5,6 +5,10 @@ import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import OpenAI from "openai";
 import { FieldValue } from "firebase-admin/firestore";
+import {
+  getServerFeatureStatusFromProfile,
+  consumeServerFeature,
+} from "@/lib/serverFeatureGuard";
 
 type SourceType = "myContent" | "library";
 type TaskType = "mcq" | "truefalse" | "open" | "multiple_choice" | "text" | "writing" | "short_answer";
@@ -1161,6 +1165,30 @@ export async function POST(req: Request) {
       return json({ error: "Not allowed (role)" }, 403);
     }
 
+    const featureStatus = await getServerFeatureStatusFromProfile({
+      db,
+      uid,
+      role,
+      plan: isRecord(profile) ? safeString(profile.plan) : null,
+      billing: isRecord(profile) && isRecord(profile.billing)
+        ? profile.billing
+        : null,
+      feature: "ai_feedback",
+    });
+
+    if (!featureStatus.allowed) {
+      return json(
+        {
+          error: "AI feedback limit reached",
+          reason: featureStatus.reason ?? "limit_reached",
+          used: featureStatus.used,
+          limit: featureStatus.limit,
+          remaining: featureStatus.remaining,
+        },
+        429
+      );
+    }
+
     const subRef = db
       .collection("spaces")
       .doc(spaceId)
@@ -1253,6 +1281,12 @@ export async function POST(req: Request) {
       batch.set(subRef, payload, { merge: true });
       batch.set(db.collection("spaceSubmissions").doc(subId), payload, { merge: true });
       await batch.commit();
+
+      await consumeServerFeature({
+        db,
+        uid,
+        feature: "ai_feedback",
+      });
 
       return json({ text: textOut }, 200);
     }
@@ -1392,6 +1426,12 @@ export async function POST(req: Request) {
     batch.set(subRef, payload, { merge: true });
     batch.set(db.collection("spaceSubmissions").doc(subId), payload, { merge: true });
     await batch.commit();
+
+    await consumeServerFeature({
+      db,
+      uid,
+      feature: "ai_feedback",
+    });
 
     return json({ text: textOut }, 200);
   } catch (e: unknown) {

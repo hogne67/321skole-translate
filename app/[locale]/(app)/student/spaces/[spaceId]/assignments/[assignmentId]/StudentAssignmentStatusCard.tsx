@@ -5,16 +5,26 @@ import type { GeometryAutoResult } from "@/lib/math/geometry/submissionTypes";
 
 import type { AutoGrade, SubmissionStatus } from "./types";
 import { AutoGradeBadge } from "./AssignmentUiAtoms";
+import { formatSeconds } from "./helpers";
 import { statusTheme } from "./statusHelpers";
 import { statusDesc } from "./submissionTextHelpers";
 import TeacherFeedbackBox from "./TeacherFeedbackBox";
 
 type TFn = (key: string, values?: Record<string, unknown>) => string;
 
+type ReadingTestTimerResult = {
+    timeLimitSeconds: number | null;
+    timeSpentSeconds: number | null;
+    secondsLeftAtSubmit: number | null;
+    timedOut: boolean;
+    submittedManually: boolean;
+};
+
 type Props = {
     effectiveStatus: SubmissionStatus;
     liveAuto: AutoGrade | null;
     liveGeometryAuto: GeometryAutoResult | null;
+    liveReadingTimerResult?: ReadingTestTimerResult | null;
     liveTeacherText: string | null;
     liveTeacherUpdatedAt: string | null;
     liveUpdatedAt: string | null;
@@ -73,10 +83,46 @@ function getStatusNoticeStyle(status: SubmissionStatus) {
     };
 }
 
+function formatTimerLine(result: ReadingTestTimerResult): string {
+    const spent =
+        typeof result.timeSpentSeconds === "number"
+            ? formatSeconds(result.timeSpentSeconds)
+            : null;
+
+    const limit =
+        typeof result.timeLimitSeconds === "number"
+            ? formatSeconds(result.timeLimitSeconds)
+            : null;
+
+    const left =
+        typeof result.secondsLeftAtSubmit === "number"
+            ? formatSeconds(result.secondsLeftAtSubmit)
+            : null;
+
+    if (result.timedOut && limit) {
+        return `Tiden gikk ut: ${limit}`;
+    }
+
+    if (spent && limit) {
+        return `Tid brukt: ${spent} av ${limit}`;
+    }
+
+    if (spent) {
+        return `Tid brukt: ${spent}`;
+    }
+
+    if (left && limit) {
+        return `Tid igjen ved levering: ${left} av ${limit}`;
+    }
+
+    return "";
+}
+
 export default function StudentAssignmentStatusCard({
     effectiveStatus,
     liveAuto,
     liveGeometryAuto,
+    liveReadingTimerResult,
     liveTeacherText,
     liveTeacherUpdatedAt,
     liveUpdatedAt,
@@ -96,6 +142,7 @@ export default function StudentAssignmentStatusCard({
 }: Props) {
     const theme = statusTheme(effectiveStatus);
     const noticeStyle = getStatusNoticeStyle(effectiveStatus);
+    const timerLine = liveReadingTimerResult ? formatTimerLine(liveReadingTimerResult) : "";
 
     return (
         <section
@@ -127,7 +174,6 @@ export default function StudentAssignmentStatusCard({
                         />
                     ) : null}
                 </div>
-
             </div>
 
             <div
@@ -142,6 +188,21 @@ export default function StudentAssignmentStatusCard({
             >
                 {statusDesc(effectiveStatus, t)}
             </div>
+
+            {timerLine ? (
+                <div
+                    style={{
+                        marginTop: 10,
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: "1px solid rgba(15,23,42,0.12)",
+                        background: "rgba(255,255,255,0.72)",
+                        fontWeight: 800,
+                    }}
+                >
+                    {timerLine}
+                </div>
+            ) : null}
 
             {showGeometryAutoTop ? (
                 <div style={{ marginTop: 12 }}>

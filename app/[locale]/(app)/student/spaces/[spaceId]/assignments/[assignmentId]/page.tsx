@@ -18,9 +18,7 @@ import type {
 import GeometryWorksheetPracticeView from "@/components/generators/math/geometry/GeometryWorksheetPracticeView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
 
-import type {
-  GeometryAutoResult,
-} from "@/lib/math/geometry/submissionTypes";
+import type { GeometryAutoResult } from "@/lib/math/geometry/submissionTypes";
 import { gradeGeometryWorksheet } from "@/lib/math/geometry/autoCheck";
 
 import type {
@@ -80,6 +78,56 @@ import StudentAssignmentStickyActions from "./StudentAssignmentStickyActions";
 /* =========================
    Helpers
 ========================= */
+
+type ReadingTestTimerResult = {
+  timeLimitSeconds: number | null;
+  timeSpentSeconds: number | null;
+  secondsLeftAtSubmit: number | null;
+  timedOut: boolean;
+  submittedManually: boolean;
+};
+
+function readReadingTimerResult(sd: unknown): ReadingTestTimerResult | null {
+  if (!sd || typeof sd !== "object") return null;
+
+  const d = sd as Record<string, unknown>;
+
+  const timeLimitSeconds =
+    typeof d.readingTestTimeLimitSeconds === "number"
+      ? d.readingTestTimeLimitSeconds
+      : null;
+
+  const timeSpentSeconds =
+    typeof d.readingTestTimeSpentSeconds === "number"
+      ? d.readingTestTimeSpentSeconds
+      : null;
+
+  const secondsLeftAtSubmit =
+    typeof d.readingTestSecondsLeftAtSubmit === "number"
+      ? d.readingTestSecondsLeftAtSubmit
+      : null;
+
+  const timedOut = d.readingTestTimedOut === true;
+  const submittedManually = d.readingTestSubmittedManually === true;
+
+  if (
+    timeLimitSeconds == null &&
+    timeSpentSeconds == null &&
+    secondsLeftAtSubmit == null &&
+    !timedOut &&
+    !submittedManually
+  ) {
+    return null;
+  }
+
+  return {
+    timeLimitSeconds,
+    timeSpentSeconds,
+    secondsLeftAtSubmit,
+    timedOut,
+    submittedManually,
+  };
+}
 
 async function resolveUserForStudentPage(): Promise<User> {
   if (auth.currentUser) return auth.currentUser;
@@ -161,6 +209,8 @@ export default function StudentAssignmentPage() {
   const [liveUpdatedAt, setLiveUpdatedAt] = useState<string | null>(null);
   const [liveAuto, setLiveAuto] = useState<AutoGrade | null>(null);
   const [liveGeometryAuto, setLiveGeometryAuto] = useState<GeometryAutoResult | null>(null);
+  const [liveReadingTimerResult, setLiveReadingTimerResult] =
+    useState<ReadingTestTimerResult | null>(null);
 
   const [targetLang, setTargetLang] = useState("no");
   const [translatedText, setTranslatedText] = useState<string | null>(null);
@@ -621,6 +671,7 @@ export default function StudentAssignmentPage() {
         setLiveUpdatedAt(null);
         setLiveAuto(null);
         setLiveGeometryAuto(null);
+        setLiveReadingTimerResult(null);
 
         const loadSubmission = async (subId: string) => {
           const sRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
@@ -638,6 +689,7 @@ export default function StudentAssignmentPage() {
           setLiveTeacherText(sd.teacherFeedback?.text ? String(sd.teacherFeedback.text).trim() : null);
           setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
           setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
+          setLiveReadingTimerResult(readReadingTimerResult(sd));
 
           const nextAnswers = isGeometryResolved
             ? (normalizeGeometryAnswersByTaskId(sd.answersByTaskId) as unknown as AnswersMap)
@@ -742,6 +794,7 @@ export default function StudentAssignmentPage() {
 
         setLiveTeacherUpdatedAt(toDateString(sd.teacherFeedback?.updatedAt) ?? null);
         setLiveUpdatedAt(toDateString(sd.updatedAt) ?? null);
+        setLiveReadingTimerResult(readReadingTimerResult(sd));
 
         if (isGeometryAssignment) {
           setLiveGeometryAuto((sd.auto as GeometryAutoResult | null) ?? null);
@@ -867,6 +920,7 @@ export default function StudentAssignmentPage() {
         setSubmitted(false);
         setLiveAuto(null);
         setLiveGeometryAuto(null);
+        setLiveReadingTimerResult(null);
 
         if (manual) setMsg("Kladd lagret.");
       } catch (e: unknown) {
@@ -967,6 +1021,35 @@ export default function StudentAssignmentPage() {
           auto = gradeFractionWorksheet(fractionWorksheet, finalAnswers);
         }
 
+        const readingTestSecondsLeftAtSubmit =
+          isReadingTest
+            ? mode === "timeout"
+              ? 0
+              : readingTestSecondsLeft
+            : null;
+
+        const readingTestTimeSpentSeconds =
+          isReadingTest && readingTestTotalSeconds != null
+            ? Math.max(
+              0,
+              Math.min(
+                readingTestTotalSeconds,
+                readingTestTotalSeconds -
+                (readingTestSecondsLeftAtSubmit ?? readingTestTotalSeconds)
+              )
+            )
+            : null;
+
+        const readingTimerResult: ReadingTestTimerResult | null = isReadingTest
+          ? {
+            timeLimitSeconds: readingTestTotalSeconds,
+            timeSpentSeconds: readingTestTimeSpentSeconds,
+            secondsLeftAtSubmit: readingTestSecondsLeftAtSubmit,
+            timedOut: mode === "timeout",
+            submittedManually: mode === "manual",
+          }
+          : null;
+
         const basePayload: Record<string, unknown> = stripUndefinedDeep({
           spaceId,
           assignmentId,
@@ -1005,8 +1088,11 @@ export default function StudentAssignmentPage() {
           submittedAt: Date.now(),
 
           readingTestTimeLimitSeconds: isReadingTest ? readingTestTotalSeconds : null,
+          readingTestTimeSpentSeconds,
+          readingTestSecondsLeftAtSubmit,
           readingTestTimedOut: isReadingTest ? mode === "timeout" : false,
           readingTestSubmittedManually: isReadingTest ? mode === "manual" : false,
+          readingTimerResult,
 
           updatedAt: serverTimestamp(),
           auth: { isAnon, uid },
@@ -1032,6 +1118,7 @@ export default function StudentAssignmentPage() {
         setReadingTestRuntimeActive(false);
         setReadingTestSecondsLeft((prev) => (mode === "timeout" ? 0 : prev));
         setLiveStatus("submitted");
+        setLiveReadingTimerResult(readingTimerResult);
 
         if (isGeometryAssignment) {
           setLiveGeometryAuto((auto as GeometryAutoResult) ?? null);
@@ -1046,6 +1133,7 @@ export default function StudentAssignmentPage() {
         } else {
           setMsg(editingSubmissionId ? t("messages.resubmitted") : t("messages.submitted"));
         }
+
         window.scrollTo({
           top: 0,
           behavior: "smooth",
@@ -1080,6 +1168,7 @@ export default function StudentAssignmentPage() {
       isAnon,
       isReadingTest,
       readingTestTotalSeconds,
+      readingTestSecondsLeft,
       tasksOriginal,
     ]
   );
@@ -1217,6 +1306,7 @@ export default function StudentAssignmentPage() {
           effectiveStatus={effectiveStatus}
           liveAuto={liveAuto}
           liveGeometryAuto={liveGeometryAuto}
+          liveReadingTimerResult={liveReadingTimerResult}
           liveTeacherText={liveTeacherText}
           liveTeacherUpdatedAt={liveTeacherUpdatedAt}
           liveUpdatedAt={liveUpdatedAt}

@@ -12,6 +12,11 @@ type Props = {
     canOperate: boolean;
     canGenerateAi: boolean;
 
+    aiFeedbackUsed: number;
+    aiFeedbackLimit: number;
+    aiFeedbackRemaining: number;
+    usageLoading: boolean;
+
     onGenerate: () => void;
     onSave: () => void;
     onCopy: () => void;
@@ -28,6 +33,10 @@ export default function AiFeedbackPanel({
     aiMsg,
     canOperate,
     canGenerateAi,
+    aiFeedbackUsed,
+    aiFeedbackLimit,
+    aiFeedbackRemaining,
+    usageLoading,
     onGenerate,
     onSave,
     onCopy,
@@ -37,9 +46,17 @@ export default function AiFeedbackPanel({
     return (
         <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
             <div className="flex min-w-0 flex-col gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-base font-semibold text-slate-900">
-                        {t("ai.title")}
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                        <div className="text-base font-semibold text-slate-900">
+                            {t("ai.title")}
+                        </div>
+
+                        <div className="mt-1 text-xs text-slate-500">
+                            {usageLoading
+                                ? "Laster AI-kvote…"
+                                : `AI feedback: ${aiFeedbackUsed} / ${aiFeedbackLimit} brukt · ${aiFeedbackRemaining} igjen`}
+                        </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -48,9 +65,7 @@ export default function AiFeedbackPanel({
                             onClick={onGenerate}
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
                         >
-                            {aiGenerating
-                                ? t("ai.generating")
-                                : t("ai.generateButton")}
+                            {aiGenerating ? t("ai.generating") : t("ai.generateButton")}
                         </button>
 
                         <button
@@ -58,9 +73,7 @@ export default function AiFeedbackPanel({
                             onClick={onSave}
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
                         >
-                            {aiSaving
-                                ? t("ai.saving")
-                                : t("ai.saveButton")}
+                            {aiSaving ? t("ai.saving") : t("ai.saveButton")}
                         </button>
 
                         <button
@@ -91,9 +104,7 @@ export default function AiFeedbackPanel({
                 />
 
                 {aiMsg && (
-                    <div className="text-sm font-semibold text-slate-700">
-                        {aiMsg}
-                    </div>
+                    <div className="text-sm font-semibold text-slate-700">{aiMsg}</div>
                 )}
 
                 <div className="text-xs text-slate-500">

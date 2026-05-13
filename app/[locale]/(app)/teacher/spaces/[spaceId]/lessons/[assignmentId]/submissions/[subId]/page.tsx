@@ -14,9 +14,11 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { useUsage } from "@/lib/useUsage";
+import { getBucketLimitFromProfile } from "@/lib/featureAccess";
 import { useLocale, useTranslations } from "next-intl";
 import { authedPost } from "@/lib/authedPost";
-import type { GeometryAnswersByTaskId, } from "@/lib/math/geometry/submissionTypes";
+import type { GeometryAnswersByTaskId } from "@/lib/math/geometry/submissionTypes";
 import Badge from "@/components/teacher/submissions/Badge";
 import StatusPill from "@/components/teacher/submissions/StatusPill";
 import type {
@@ -62,8 +64,6 @@ import {
   requireDb,
 } from "@/lib/submissions/readers";
 
-
-
 function getGeometryScoreKind(
   percent: number | null
 ): "neutral" | "good" | "warn" | "bad" {
@@ -87,7 +87,6 @@ function safeSubmissionT(
   return isRawSubmissionKey(value, key) ? fallback : value;
 }
 
-
 function withLocale(locale: string, href: string): string {
   if (/^https?:\/\//i.test(href)) return href;
   if (!href.startsWith("/")) return href;
@@ -99,7 +98,6 @@ function withLocale(locale: string, href: string): string {
   return `/${locale}${href}`;
 }
 
-
 async function safeCopyToClipboard(text: string): Promise<boolean> {
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -109,6 +107,7 @@ async function safeCopyToClipboard(text: string): Promise<boolean> {
   } catch {
     //
   }
+
   try {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -156,6 +155,7 @@ function Inner() {
   ) => string;
 
   const params = useParams();
+
   const rawSpaceId = (params as Record<string, string | string[] | undefined>)[
     "spaceId"
   ];
@@ -181,6 +181,38 @@ function Inner() {
   const canOperate =
     Boolean(user?.uid) &&
     (role === "teacher" || role === "creator" || role === "admin");
+
+  const {
+    usage,
+    loading: usageLoading,
+    reload: reloadUsage,
+  } = useUsage(user?.uid);
+
+  const profileRecord =
+    profile && typeof profile === "object" && !Array.isArray(profile)
+      ? (profile as Record<string, unknown>)
+      : null;
+
+  const billing =
+    profileRecord?.billing &&
+      typeof profileRecord.billing === "object" &&
+      !Array.isArray(profileRecord.billing)
+      ? (profileRecord.billing as { plan?: string | null; status?: string | null })
+      : null;
+
+  const aiFeedbackUsed =
+    typeof usage.ai_feedback === "number" && Number.isFinite(usage.ai_feedback)
+      ? usage.ai_feedback
+      : 0;
+
+  const aiFeedbackLimit = getBucketLimitFromProfile({
+    role,
+    plan: typeof profileRecord?.plan === "string" ? profileRecord.plan : null,
+    billing,
+    bucket: "ai_feedback",
+  });
+
+  const aiFeedbackRemaining = Math.max(0, aiFeedbackLimit - aiFeedbackUsed);
 
   const [sub, setSub] = useState<SubmissionDoc | null>(null);
   const [assignment, setAssignment] = useState<AssignmentDoc | null>(null);
@@ -285,7 +317,9 @@ function Inner() {
 
   const isFractionAssignment = useMemo(() => {
     const lessonMathType = String(lesson?.mathType ?? "").trim().toLowerCase();
-    const lessonContentType = String(lesson?.contentType ?? "").trim().toLowerCase();
+    const lessonContentType = String(lesson?.contentType ?? "")
+      .trim()
+      .toLowerCase();
 
     const assignmentMathType = String(assignment?.mathType ?? "")
       .trim()
@@ -322,10 +356,12 @@ function Inner() {
       nestedRef,
       (snap) => {
         setLoading(false);
+
         if (!snap.exists()) {
           setSub(null);
           return;
         }
+
         const data = (snap.data() as SubmissionDoc) ?? {};
         setSub(data);
 
@@ -360,10 +396,12 @@ function Inner() {
     }
 
     let alive = true;
+
     (async () => {
       try {
         const aSnap = await getDoc(assignmentRef);
         if (!alive) return;
+
         setAssignment(
           aSnap.exists() ? ((aSnap.data() as AssignmentDoc) ?? {}) : null
         );
@@ -436,11 +474,11 @@ function Inner() {
           mathWorksheet:
             assignment?.mathWorksheet ?? sourceLesson.mathWorksheet ?? null,
           fractionWorksheet:
-            assignment?.fractionWorksheet ?? sourceLesson.fractionWorksheet ?? null,
-          mathType:
-            assignment?.mathType ?? sourceLesson.mathType,
-          contentType:
-            assignment?.contentType ?? sourceLesson.contentType,
+            assignment?.fractionWorksheet ??
+            sourceLesson.fractionWorksheet ??
+            null,
+          mathType: assignment?.mathType ?? sourceLesson.mathType,
+          contentType: assignment?.contentType ?? sourceLesson.contentType,
         });
       } catch (e) {
         const info = getErrorInfo(e);
@@ -477,6 +515,7 @@ function Inner() {
           : "");
 
       const authInfo = readAuth(sub);
+
       if (direct) {
         if (alive) setStudentName(direct);
         return;
@@ -496,6 +535,7 @@ function Inner() {
         const memberId = `${spaceId}_${authInfo.uid}`;
         const mref = doc(db, "spaceMembers", memberId);
         const msnap = await getDoc(mref);
+
         if (!alive) return;
 
         if (msnap.exists()) {
@@ -578,7 +618,9 @@ function Inner() {
   }
 
   if (loading || profileLoading) {
-    return <div className="p-4 text-sm text-slate-600">{tCommon("loading")}</div>;
+    return (
+      <div className="p-4 text-sm text-slate-600">{tCommon("loading")}</div>
+    );
   }
 
   if (!sub) {
@@ -624,7 +666,9 @@ function Inner() {
     .sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
 
   const answersMap = readAnswerMap(
-    isGeometryAssignment && !isFractionAssignment ? sub.answersByTaskId : sub.answers
+    isGeometryAssignment && !isFractionAssignment
+      ? sub.answersByTaskId
+      : sub.answers
   );
 
   const auto =
@@ -639,24 +683,28 @@ function Inner() {
       Number.isFinite(geometryAuto.percent)
       ? geometryAuto.percent
       : null;
+
   const geometryCorrect =
     geometryAuto &&
       typeof geometryAuto.correct === "number" &&
       Number.isFinite(geometryAuto.correct)
       ? geometryAuto.correct
       : 0;
+
   const geometryPartial =
     geometryAuto &&
       typeof geometryAuto.partial === "number" &&
       Number.isFinite(geometryAuto.partial)
       ? geometryAuto.partial
       : 0;
+
   const geometryWrong =
     geometryAuto &&
       typeof geometryAuto.wrong === "number" &&
       Number.isFinite(geometryAuto.wrong)
       ? geometryAuto.wrong
       : 0;
+
   const geometryUnanswered =
     geometryAuto &&
       typeof geometryAuto.unanswered === "number" &&
@@ -664,13 +712,12 @@ function Inner() {
       ? geometryAuto.unanswered
       : 0;
 
-  const quickOverviewTitle = safeSubmissionT(
-    tAny,
-    "meta.quickOverviewTitle",
-    "Quick overview"
-  );
   const correctLabel = safeSubmissionT(tAny, "meta.correctLabel", "Correct");
-  const partialLabel = safeSubmissionT(tAny, "meta.partialLabel", "Partially correct");
+  const partialLabel = safeSubmissionT(
+    tAny,
+    "meta.partialLabel",
+    "Partially correct"
+  );
   const wrongLabel = safeSubmissionT(tAny, "meta.wrongLabel", "Wrong");
   const unansweredLabel = safeSubmissionT(
     tAny,
@@ -714,35 +761,71 @@ function Inner() {
   const statusChanged = status !== initialStatus;
   const needsTextToChangeStatus = statusChanged && text.trim().length === 0;
   const canSave = canOperate && !saving && !needsTextToChangeStatus;
-  const canGenerateAi = canOperate && !aiGenerating && !aiSaving;
+
+  const canGenerateAi =
+    canOperate &&
+    !aiGenerating &&
+    !aiSaving &&
+    !usageLoading &&
+    aiFeedbackRemaining > 0;
 
   return (
-    <div className="mx-auto box-border w-full max-w-6xl min-w-0 space-y-4">
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="mx-auto box-border w-full max-w-6xl min-w-0 space-y-3">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-sm">
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium text-slate-500">{t("title")}</div>
-            <h1 className="mt-1 break-words text-2xl font-semibold text-slate-900">
-              {studentName || (authInfo.isAnon ? t("fallback.guest") : authInfo.uid || "—")}
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              {t("title")}
+            </div>
+
+            <h1 className="mt-1 break-words text-xl font-semibold text-slate-900">
+              {studentName ||
+                (authInfo.isAnon ? t("fallback.guest") : authInfo.uid || "—")}
             </h1>
-            <div className="mt-2 break-words text-base text-slate-700">
+
+            <div className="mt-1 break-words text-sm text-slate-700">
               {lessonTitle}
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-              <span>
-                {createdAt ? (
-                  <>
-                    {t("meta.delivered")} <b>{createdAt}</b>
-                  </>
-                ) : (
-                  t("meta.deliveredUnknown")
-                )}
-              </span>
 
-              {(normalizedStatus === "needs_work" ||
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+              {lessonLevelLabel ? <Badge text={lessonLevelLabel} /> : null}
+
+              {createdAt ? (
+                <span>
+                  {t("meta.delivered")} <b>{createdAt}</b>
+                </span>
+              ) : (
+                <span>{t("meta.deliveredUnknown")}</span>
+              )}
+
+              {normalizedStatus === "needs_work" ||
                 normalizedStatus === "reviewed" ||
-                normalizedStatus === "approved") ? (
+                normalizedStatus === "approved" ? (
                 <StatusPill status={rawStatus} t={(k) => t(k)} />
+              ) : null}
+
+              {isGeometryAssignment &&
+                !isFractionAssignment &&
+                geometryPercent != null ? (
+                <Badge
+                  text={`${scoreLabel}: ${geometryPercent}%`}
+                  kind={getGeometryScoreKind(geometryPercent)}
+                />
+              ) : null}
+
+              {!isGeometryAssignment &&
+                !isFractionAssignment &&
+                auto?.percentAuto != null ? (
+                <Badge
+                  text={`${scoreLabel}: ${auto.percentAuto}%`}
+                  kind={
+                    auto.percentAuto >= 80
+                      ? "good"
+                      : auto.percentAuto >= 50
+                        ? "warn"
+                        : "bad"
+                  }
+                />
               ) : null}
             </div>
           </div>
@@ -750,7 +833,7 @@ function Inner() {
           <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
             <Link
               href={backLink}
-              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50 sm:w-auto"
             >
               {t("actions.back")}
             </Link>
@@ -758,155 +841,117 @@ function Inner() {
         </div>
       </div>
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {lessonLevelLabel ? <Badge text={lessonLevelLabel} /> : null}
-
-            {isGeometryAssignment && !isFractionAssignment && geometryPercent != null ? (
-              <Badge
-                text={`${scoreLabel}: ${geometryPercent}%`}
-                kind={getGeometryScoreKind(geometryPercent)}
-              />
-            ) : null}
-
-            {!isGeometryAssignment && !isFractionAssignment && auto?.percentAuto != null ? (
-              <Badge
-                text={`${scoreLabel}: ${auto.percentAuto}%`}
-                kind={
-                  auto.percentAuto >= 80
-                    ? "good"
-                    : auto.percentAuto >= 50
-                      ? "warn"
-                      : "bad"
-                }
-              />
-            ) : null}
-
-            {(normalizedStatus === "needs_work" ||
-              normalizedStatus === "reviewed" ||
-              normalizedStatus === "approved") ? (
-              <StatusPill status={rawStatus} t={(k) => t(k)} />
-            ) : null}
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-3 shadow-sm">
+        {isFractionAssignment ? (
+          <div className="text-sm text-slate-600">
+            Brøkbesvarelse er levert. Automatisk vurdering kommer senere.
           </div>
-
-          <div className="rounded-xl border border-slate-300 bg-white p-4">
-            <div className="mb-3 text-sm font-semibold text-slate-900">
-              {quickOverviewTitle}
-            </div>
-
-            {isFractionAssignment ? (
-              <div className="text-sm text-slate-600">
-                Brøkbesvarelse er levert. Automatisk vurdering kommer senere.
-              </div>
-            ) : isGeometryAssignment ? (
-              geometryAuto ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {correctLabel}
-                    </div>
-                    <div className="mt-1 text-2xl font-bold text-slate-900">
-                      {geometryCorrect}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {partialLabel}
-                    </div>
-                    <div className="mt-1 text-2xl font-bold text-slate-900">
-                      {geometryPartial}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {wrongLabel}
-                    </div>
-                    <div className="mt-1 text-2xl font-bold text-slate-900">
-                      {geometryWrong}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {unansweredLabel}
-                    </div>
-                    <div className="mt-1 text-2xl font-bold text-slate-900">
-                      {geometryUnanswered}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {scoreLabel}
-                    </div>
-                    <div className="mt-1 text-2xl font-bold text-slate-900">
-                      {geometryPercent ?? "—"}%
-                    </div>
-                  </div>
+        ) : isGeometryAssignment ? (
+          geometryAuto ? (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  {correctLabel}
                 </div>
-              ) : (
-                <div className="text-sm text-slate-600">
-                  {noGeometryAutoScoreLabel}
-                </div>
-              )
-            ) : auto ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {correctLabel}
-                  </div>
-                  <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {auto.correctAuto}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {wrongLabel}
-                  </div>
-                  <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {auto.wrongAuto}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {unansweredLabel}
-                  </div>
-                  <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {auto.unansweredAuto}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {scoreLabel}
-                  </div>
-                  <div className="mt-1 text-2xl font-bold text-slate-900">
-                    {auto.percentAuto ?? "—"}%
-                  </div>
+                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                  {geometryCorrect}
                 </div>
               </div>
-            ) : (
-              <div className="text-sm text-slate-600">{noAutoScoreLabel}</div>
-            )}
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  {partialLabel}
+                </div>
+                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                  {geometryPartial}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  {wrongLabel}
+                </div>
+                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                  {geometryWrong}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  {unansweredLabel}
+                </div>
+                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                  {geometryUnanswered}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  {scoreLabel}
+                </div>
+                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                  {geometryPercent ?? "—"}%
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-slate-600">
+              {noGeometryAutoScoreLabel}
+            </div>
+          )
+        ) : auto ? (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {correctLabel}
+              </div>
+              <div className="mt-0.5 text-lg font-bold text-slate-900">
+                {auto.correctAuto}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {wrongLabel}
+              </div>
+              <div className="mt-0.5 text-lg font-bold text-slate-900">
+                {auto.wrongAuto}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {unansweredLabel}
+              </div>
+              <div className="mt-0.5 text-lg font-bold text-slate-900">
+                {auto.unansweredAuto}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {scoreLabel}
+              </div>
+              <div className="mt-0.5 text-lg font-bold text-slate-900">
+                {auto.percentAuto ?? "—"}%
+              </div>
+            </div>
           </div>
+        ) : (
+          <div className="text-sm text-slate-600">{noAutoScoreLabel}</div>
+        )}
 
-          {isReadingTest && readingSummaryText ? (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-semibold leading-6 text-slate-800">
-              {readingSummaryText}
-            </div>
-          ) : null}
+        {isReadingTest && readingSummaryText ? (
+          <div className="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium leading-5 text-slate-800">
+            {readingSummaryText}
+          </div>
+        ) : null}
 
-          {isDraft ? (
-            <div className="rounded-xl border border-indigo-300 bg-indigo-50 p-3 text-sm font-semibold text-indigo-900">
-              {t("draft.notice")}
-            </div>
-          ) : null}
-        </div>
+        {isDraft ? (
+          <div className="mt-2 rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900">
+            {t("draft.notice")}
+          </div>
+        ) : null}
       </div>
 
       {!canOperate && (
@@ -931,16 +976,18 @@ function Inner() {
           </div>
 
           <div className="mt-4 grid gap-4">
-            <div className="grid gap-1">
-              <div className="break-words text-lg font-semibold text-slate-900">
-                {lessonTitle}
-              </div>
-              {lessonLevel ? (
-                <div className="text-sm text-slate-600">
-                  {t("studentView.level", { v: lessonLevel })}
+            {isGeometryAssignment || isFractionAssignment ? (
+              <div className="grid gap-1">
+                <div className="break-words text-lg font-semibold text-slate-900">
+                  {lessonTitle}
                 </div>
-              ) : null}
-            </div>
+                {lessonLevel ? (
+                  <div className="text-sm text-slate-600">
+                    {t("studentView.level", { v: lessonLevel })}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {!isGeometryAssignment ? (
               <StandardSubmissionView
@@ -958,250 +1005,34 @@ function Inner() {
               />
             ) : null}
 
-            <div>
-              <div className="mb-3 text-base font-semibold text-slate-900">
-                {isGeometryAssignment
-                  ? t("studentView.geometryTitle")
-                  : t("studentView.tasksTitle")}
+            {isGeometryAssignment || isFractionAssignment ? (
+              <div>
+                <div className="mb-3 text-base font-semibold text-slate-900">
+                  {isGeometryAssignment
+                    ? t("studentView.geometryTitle")
+                    : t("studentView.tasksTitle")}
+                </div>
+
+                {isFractionAssignment && fractionWorksheet ? (
+                  <FractionWorksheetView
+                    worksheet={fractionWorksheet}
+                    tBrand={tBrandAny}
+                    showIdentityFields={false}
+                    answersByTaskId={answersMap as Record<string, string>}
+                    readOnly={true}
+                    showAutoCheck={true}
+                  />
+                ) : isGeometryAssignment && geometryWorksheet ? (
+                  <GeometrySubmissionView
+                    worksheet={geometryWorksheet}
+                    answersMap={answersMap as GeometryAnswersByTaskId}
+                    auto={geometryAuto}
+                    tGeometry={tGeometryAny}
+                    tBrand={tBrandAny}
+                  />
+                ) : null}
               </div>
-
-              {isFractionAssignment && fractionWorksheet ? (
-                <FractionWorksheetView
-                  worksheet={fractionWorksheet}
-                  tBrand={tBrandAny}
-                  showIdentityFields={false}
-                  answersByTaskId={answersMap as Record<string, string>}
-                  readOnly={true}
-                  showAutoCheck={true}
-                />
-              ) : isGeometryAssignment && geometryWorksheet ? (
-                <GeometrySubmissionView
-                  worksheet={geometryWorksheet}
-                  answersMap={answersMap as GeometryAnswersByTaskId}
-                  auto={geometryAuto}
-                  tGeometry={tGeometryAny}
-                  tBrand={tBrandAny}
-                />
-              ) : tasksOriginal.length === 0 ? (
-                <div className="text-sm text-slate-600">
-                  {t("studentView.noTasks")}
-                  <br />
-                  <span className="text-slate-500">
-                    {t("studentView.noTasksHint")}
-                  </span>
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {tasksOriginal.map((task, idx) => {
-                    const stableId = getStableTaskId(task, idx);
-                    const type = String(task?.type ?? "open").toLowerCase();
-                    const prompt = String(task?.prompt ?? "");
-                    const options = Array.isArray(task?.options)
-                      ? (task.options as unknown[])
-                      : [];
-                    const val = answersMap[stableId];
-
-                    const entry = getAutoEntry(auto, stableId);
-                    const showAutoMark =
-                      !!entry &&
-                      (type === "mcq" ||
-                        type === "truefalse" ||
-                        type === "true_false" ||
-                        type === "word_choice" ||
-                        type === "sentence_placement" ||
-                        type === "best_summary" ||
-                        type === "fill_in_word");
-
-                    const autoBadge =
-                      showAutoMark && entry ? (
-                        entry.isCorrect ? (
-                          <Badge text={t("auto.taskCorrect")} kind="good" />
-                        ) : (
-                          <Badge
-                            text={
-                              val == null
-                                ? t("auto.taskUnanswered")
-                                : t("auto.taskWrong")
-                            }
-                            kind={val == null ? "neutral" : "bad"}
-                          />
-                        )
-                      ) : null;
-
-                    const orderLabel = task?.order ?? idx + 1;
-
-                    const selectedIndex =
-                      typeof val === "number" && Number.isFinite(val)
-                        ? Math.floor(val)
-                        : null;
-                    const selectedText =
-                      selectedIndex != null &&
-                        selectedIndex >= 0 &&
-                        selectedIndex < options.length
-                        ? String(options[selectedIndex])
-                        : typeof val === "string"
-                          ? val
-                          : "";
-
-                    return (
-                      <div
-                        key={stableId}
-                        className="rounded-xl border border-slate-300 bg-white p-4"
-                      >
-                        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-                          <span>{t("studentView.taskN", { n: orderLabel })}</span>
-                          <span>• {type}</span>
-                          {autoBadge}
-                        </div>
-
-                        <div className="mb-3 whitespace-pre-wrap font-semibold leading-6 text-slate-900">
-                          {prompt}
-                        </div>
-
-                        {(type === "word_choice" || type === "fill_in_word") &&
-                          task?.sentence ? (
-                          <div className="mb-3 whitespace-pre-wrap rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
-                            {String(task.sentence)}
-                          </div>
-                        ) : null}
-
-                        {type === "sentence_placement" && task?.textWithGap ? (
-                          <div className="mb-3 whitespace-pre-wrap rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
-                            {String(task.textWithGap)}
-                          </div>
-                        ) : null}
-
-                        {(type === "mcq" ||
-                          type === "word_choice" ||
-                          type === "sentence_placement" ||
-                          type === "best_summary" ||
-                          type === "fill_in_word") &&
-                          options.length > 0 ? (
-                          <div className="grid gap-2">
-                            {options.map((o, i) => {
-                              const opt = String(o);
-                              const checked = opt === selectedText;
-
-                              const correctOpt =
-                                entry?.correctAnswer != null
-                                  ? String(entry.correctAnswer)
-                                  : null;
-                              const isCorrectOption =
-                                correctOpt != null && opt === correctOpt;
-
-                              return (
-                                <div
-                                  key={i}
-                                  className="flex gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2"
-                                  style={{
-                                    background: checked
-                                      ? "rgba(46, 204, 113, 0.10)"
-                                      : "white",
-                                  }}
-                                >
-                                  <input
-                                    type="radio"
-                                    checked={checked}
-                                    readOnly
-                                    style={{ marginTop: 3 }}
-                                  />
-                                  <div className="w-full min-w-0">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                      <div className="break-words text-slate-800">
-                                        {opt}
-                                        {isCorrectOption ? (
-                                          <span className="ml-2 text-xs text-slate-500">
-                                            {t("studentView.correctTag")}
-                                          </span>
-                                        ) : null}
-                                      </div>
-                                      {checked ? (
-                                        <Badge
-                                          text={t("studentView.selectedTag")}
-                                        />
-                                      ) : null}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : null}
-
-                        {type === "truefalse" || type === "true_false" ? (
-                          <div className="flex flex-wrap gap-2">
-                            <div
-                              className="rounded-xl border border-slate-300 px-3 py-2"
-                              style={{
-                                background:
-                                  val === true || val === "true"
-                                    ? "rgba(46, 204, 113, 0.12)"
-                                    : "white",
-                                fontWeight:
-                                  val === true || val === "true" ? 800 : 600,
-                              }}
-                            >
-                              {t("studentView.true")}{" "}
-                              {val === true || val === "true" ? "✓" : ""}
-                              {entry?.correctAnswer === true ||
-                                entry?.correctAnswer === "true" ? (
-                                <span className="ml-2 text-xs text-slate-500">
-                                  {t("studentView.correctTag")}
-                                </span>
-                              ) : null}
-                            </div>
-                            <div
-                              className="rounded-xl border border-slate-300 px-3 py-2"
-                              style={{
-                                background:
-                                  val === false || val === "false"
-                                    ? "rgba(46, 204, 113, 0.12)"
-                                    : "white",
-                                fontWeight:
-                                  val === false || val === "false" ? 800 : 600,
-                              }}
-                            >
-                              {t("studentView.false")}{" "}
-                              {val === false || val === "false" ? "✓" : ""}
-                              {entry?.correctAnswer === false ||
-                                entry?.correctAnswer === "false" ? (
-                                <span className="ml-2 text-xs text-slate-500">
-                                  {t("studentView.correctTag")}
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        ) : null}
-
-                        {type === "open" ||
-                          type === "short_answer" ||
-                          ![
-                            "mcq",
-                            "truefalse",
-                            "true_false",
-                            "word_choice",
-                            "sentence_placement",
-                            "best_summary",
-                            "fill_in_word",
-                          ].includes(type) ? (
-                          <div className="w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-slate-800">
-                            {renderValue(val) ? (
-                              <div className="whitespace-pre-wrap leading-6">
-                                {renderValue(val)}
-                              </div>
-                            ) : (
-                              <span className="text-slate-500">
-                                {t("studentView.notAnswered")}
-                              </span>
-                            )}
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            ) : null}
           </div>
         </div>
 
@@ -1214,17 +1045,24 @@ function Inner() {
             aiMsg={aiMsg}
             canOperate={canOperate}
             canGenerateAi={canGenerateAi}
+            aiFeedbackUsed={aiFeedbackUsed}
+            aiFeedbackLimit={aiFeedbackLimit}
+            aiFeedbackRemaining={aiFeedbackRemaining}
+            usageLoading={usageLoading}
             onGenerate={async () => {
               setAiGenerating(true);
               setAiMsg(null);
 
               try {
-                const data = await authedPost<AiResp>("/api/teacher/ai-feedback", {
-                  spaceId,
-                  assignmentId,
-                  subId,
-                  locale,
-                });
+                const data = await authedPost<AiResp>(
+                  "/api/teacher/ai-feedback",
+                  {
+                    spaceId,
+                    assignmentId,
+                    subId,
+                    locale,
+                  }
+                );
 
                 const newText = data.text || "";
                 setAiText(newText);
@@ -1235,6 +1073,8 @@ function Inner() {
                 } else {
                   setAiMsg(newText);
                 }
+
+                await reloadUsage();
               } catch (e: unknown) {
                 const info = getErrorInfo(e);
 
@@ -1278,6 +1118,7 @@ function Inner() {
             }}
             t={tAny}
           />
+
           <TeacherFeedbackPanel
             text={text}
             setText={setText}
@@ -1346,25 +1187,25 @@ function Inner() {
       </div>
 
       <style jsx>{`
-  .submissionGrid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    gap: 16px;
-    align-items: start;
-  }
+        .submissionGrid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+          gap: 16px;
+          align-items: start;
+        }
 
-  .rightCol {
-    display: grid;
-    gap: 16px;
-    min-width: 0;
-  }
+        .rightCol {
+          display: grid;
+          gap: 16px;
+          min-width: 0;
+        }
 
-  @media (max-width: 980px) {
-    .submissionGrid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-`}</style>
+        @media (max-width: 980px) {
+          .submissionGrid {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
+      `}</style>
     </div>
   );
 }

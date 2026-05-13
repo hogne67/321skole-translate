@@ -1,4 +1,4 @@
-// app\[locale]\(app)\producer\reading-tests\[id]\page.tsx
+// app/[locale]/(app)/producer/reading-tests/[id]/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -14,15 +14,7 @@ type LevelKey = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type AudienceKey = "children" | "teenagers" | "adult learners" | "learners";
 type FeedbackMode = "learner" | "adult" | "both";
 
-type ReadingTestTaskType =
-  | "word_choice"
-  | "sentence_placement"
-  | "best_summary"
-  | "mcq"
-  | "true_false"
-  | "fill_in_word"
-  | "short_answer"
-  | "open";
+type ReadingTestTaskType = "mcq" | "true_false" | "best_summary";
 
 type LessonTask = {
   id: string;
@@ -30,9 +22,7 @@ type LessonTask = {
   type: ReadingTestTaskType;
   prompt: string;
   options?: string[];
-  correctAnswer?: string | boolean | string[];
-  sentence?: string;
-  textWithGap?: string;
+  correctAnswer?: string | boolean;
   enabled?: boolean;
 };
 
@@ -61,7 +51,7 @@ type LessonDoc = {
   topic?: string;
   prompt?: string;
   readingTestConfig?: Partial<ReadingTestConfig>;
-  tasks?: LessonTask[];
+  tasks?: unknown[];
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -95,47 +85,48 @@ function countWords(text: string) {
 }
 
 function normalizeTaskType(v: unknown): ReadingTestTaskType {
-  switch (v) {
-    case "word_choice":
-    case "sentence_placement":
-    case "best_summary":
-    case "mcq":
-    case "true_false":
-    case "fill_in_word":
-    case "short_answer":
-    case "open":
-      return v;
-    default:
-      return "mcq";
-  }
+  if (v === "true_false") return "true_false";
+  if (v === "best_summary") return "best_summary";
+  return "mcq";
 }
 
 function normalizeTask(task: unknown, index: number): LessonTask {
   const t = isRecord(task) ? task : {};
 
-  const options = Array.isArray(t.options)
-    ? t.options.map((x) => String(x ?? "").trim()).filter(Boolean)
-    : undefined;
+  const type = normalizeTaskType(t.type);
+
+  const options =
+    type === "true_false"
+      ? ["True", "False"]
+      : Array.isArray(t.options)
+        ? t.options.map((x) => String(x ?? "").trim()).filter(Boolean)
+        : ["", "", ""];
 
   const correctAnswerRaw = t.correctAnswer;
-  let correctAnswer: string | boolean | string[] | undefined;
 
-  if (typeof correctAnswerRaw === "string") correctAnswer = correctAnswerRaw.trim();
-  else if (typeof correctAnswerRaw === "boolean") correctAnswer = correctAnswerRaw;
-  else if (Array.isArray(correctAnswerRaw)) {
-    correctAnswer = correctAnswerRaw.map((x) => String(x ?? "").trim()).filter(Boolean);
+  let correctAnswer: string | boolean;
+
+  if (type === "true_false") {
+    if (typeof correctAnswerRaw === "boolean") {
+      correctAnswer = correctAnswerRaw;
+    } else if (typeof correctAnswerRaw === "string") {
+      correctAnswer = correctAnswerRaw.toLowerCase() === "true";
+    } else {
+      correctAnswer = true;
+    }
+  } else if (typeof correctAnswerRaw === "string" && correctAnswerRaw.trim()) {
+    correctAnswer = correctAnswerRaw.trim();
+  } else {
+    correctAnswer = options[0] ?? "";
   }
 
   return {
     id: typeof t.id === "string" && t.id.trim() ? t.id.trim() : `task_${index + 1}_${newId()}`,
     order: typeof t.order === "number" && Number.isFinite(t.order) ? t.order : index + 1,
-    type: normalizeTaskType(t.type),
+    type,
     prompt: String(t.prompt ?? "").trim(),
     options,
     correctAnswer,
-    sentence: typeof t.sentence === "string" && t.sentence.trim() ? t.sentence.trim() : undefined,
-    textWithGap:
-      typeof t.textWithGap === "string" && t.textWithGap.trim() ? t.textWithGap.trim() : undefined,
     enabled: typeof t.enabled === "boolean" ? t.enabled : true,
   };
 }
@@ -145,23 +136,14 @@ function renumberOrders(tasks: LessonTask[]) {
 }
 
 function normalizeEnabledTaskTypes(v: unknown): ReadingTestTaskType[] {
-  if (!Array.isArray(v)) return ["word_choice", "sentence_placement", "best_summary"];
+  if (!Array.isArray(v)) return ["mcq", "true_false", "best_summary"];
 
   const valid = v.filter(
     (x): x is ReadingTestTaskType =>
-      x === "word_choice" ||
-      x === "sentence_placement" ||
-      x === "best_summary" ||
-      x === "mcq" ||
-      x === "true_false" ||
-      x === "fill_in_word" ||
-      x === "short_answer" ||
-      x === "open"
+      x === "mcq" || x === "true_false" || x === "best_summary"
   );
 
-  return valid.length
-    ? Array.from(new Set(valid))
-    : ["word_choice", "sentence_placement", "best_summary"];
+  return valid.length ? Array.from(new Set(valid)) : ["mcq", "true_false", "best_summary"];
 }
 
 function normalizeFeedbackMode(v: unknown): FeedbackMode {
@@ -181,7 +163,7 @@ function normalizeReadingTestConfig(cfg: unknown, levelFallback: string): Readin
     maxWords: safeNumber(c.maxWords, 180),
     timerEnabled,
     timerSeconds: timerEnabled ? (timerSecondsRaw ?? 300) : null,
-    showQuestionsAfterReading: c.showQuestionsAfterReading === true,
+    showQuestionsAfterReading: c.showQuestionsAfterReading !== false,
     enabledTaskTypes: normalizeEnabledTaskTypes(c.enabledTaskTypes),
     feedbackMode: normalizeFeedbackMode(c.feedbackMode),
   };
@@ -302,9 +284,10 @@ export default function ReadingTestEditorPage() {
   const [timerExtraSeconds, setTimerExtraSeconds] = useState(0);
   const [showQuestionsAfterReading, setShowQuestionsAfterReading] = useState(true);
   const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>("both");
+
   const [enabledTaskTypes, setEnabledTaskTypes] = useState<ReadingTestTaskType[]>([
-    "word_choice",
-    "sentence_placement",
+    "mcq",
+    "true_false",
     "best_summary",
   ]);
 
@@ -312,14 +295,9 @@ export default function ReadingTestEditorPage() {
 
   const taskTypeLabels: Record<ReadingTestTaskType, string> = useMemo(
     () => ({
-      word_choice: t("taskTypes.word_choice"),
-      sentence_placement: t("taskTypes.sentence_placement"),
-      best_summary: t("taskTypes.best_summary"),
       mcq: t("taskTypes.mcq"),
       true_false: t("taskTypes.true_false"),
-      fill_in_word: t("taskTypes.fill_in_word"),
-      short_answer: t("taskTypes.short_answer"),
-      open: t("taskTypes.open"),
+      best_summary: t("taskTypes.best_summary"),
     }),
     [t]
   );
@@ -395,7 +373,18 @@ export default function ReadingTestEditorPage() {
         setFeedbackMode(cfg.feedbackMode);
         setEnabledTaskTypes(cfg.enabledTaskTypes);
 
-        setTasks(Array.isArray(data.tasks) ? renumberOrders(data.tasks.map(normalizeTask)) : []);
+        const normalizedTasks = Array.isArray(data.tasks)
+          ? data.tasks
+            .map(normalizeTask)
+            .filter(
+              (task) =>
+                task.type === "mcq" ||
+                task.type === "true_false" ||
+                task.type === "best_summary"
+            )
+          : [];
+
+        setTasks(renumberOrders(normalizedTasks));
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -494,8 +483,29 @@ export default function ReadingTestEditorPage() {
 
   function addTask(type: ReadingTestTaskType) {
     const nextTask: LessonTask =
-      type === "mcq"
+      type === "true_false"
         ? {
+          id: newId(),
+          type: "true_false",
+          prompt: t("defaults.trueFalsePrompt"),
+          options: ["True", "False"],
+          correctAnswer: true,
+          enabled: true,
+        }
+        : type === "best_summary"
+          ? {
+            id: newId(),
+            type: "best_summary",
+            prompt: t("taskTypes.best_summary"),
+            options: [
+              t("defaults.option1"),
+              t("defaults.option2"),
+              t("defaults.option3"),
+            ],
+            correctAnswer: t("defaults.option1"),
+            enabled: true,
+          }
+          : {
             id: newId(),
             type: "mcq",
             prompt: t("defaults.newMcqPrompt"),
@@ -505,42 +515,6 @@ export default function ReadingTestEditorPage() {
               t("defaults.option3"),
             ],
             correctAnswer: t("defaults.option1"),
-            enabled: true,
-          }
-        : type === "true_false"
-        ? {
-            id: newId(),
-            type: "true_false",
-            prompt: t("defaults.trueFalsePrompt"),
-            options: [t("common.true"), t("common.false")],
-            correctAnswer: t("common.true"),
-            enabled: true,
-          }
-        : type === "fill_in_word"
-        ? {
-            id: newId(),
-            type: "fill_in_word",
-            prompt: t("defaults.fillInWordPrompt"),
-            sentence: t("defaults.fillInWordSentence"),
-            options: [
-              t("defaults.fillInWordOption1"),
-              t("defaults.fillInWordOption2"),
-              t("defaults.fillInWordOption3"),
-            ],
-            correctAnswer: t("defaults.fillInWordOption1"),
-            enabled: true,
-          }
-        : type === "short_answer"
-        ? {
-            id: newId(),
-            type: "short_answer",
-            prompt: t("defaults.shortAnswerPrompt"),
-            enabled: true,
-          }
-        : {
-            id: newId(),
-            type: "open",
-            prompt: t("defaults.openPrompt"),
             enabled: true,
           };
 
@@ -584,9 +558,14 @@ export default function ReadingTestEditorPage() {
           </div>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={save} disabled={saving} style={{ ...buttonPrimary, opacity: saving ? 0.7 : 1 }}>
+            <button
+              onClick={save}
+              disabled={saving}
+              style={{ ...buttonPrimary, opacity: saving ? 0.7 : 1 }}
+            >
               {saving ? t("actions.saving") : t("actions.save")}
             </button>
+
             <button
               onClick={() => router.push(`/${locale}/producer/reading-tests/new`)}
               style={buttonSecondary}
@@ -846,23 +825,12 @@ export default function ReadingTestEditorPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: isNarrow ? "1fr" : "repeat(4, 1fr)",
+              gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, 1fr)",
               gap: 12,
               marginTop: 12,
             }}
           >
-            {(
-              [
-                "word_choice",
-                "fill_in_word",
-                "sentence_placement",
-                "best_summary",
-                "mcq",
-                "true_false",
-                "short_answer",
-                "open",
-              ] as ReadingTestTaskType[]
-            ).map((type) => (
+            {(["mcq", "true_false", "best_summary"] as ReadingTestTaskType[]).map((type) => (
               <label key={type} style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <input
                   type="checkbox"
@@ -908,20 +876,14 @@ export default function ReadingTestEditorPage() {
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t("tasks.title")}</h2>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button type="button" onClick={() => addTask("fill_in_word")} style={buttonSmall}>
-                {t("actions.addFillInWord")}
-              </button>
               <button type="button" onClick={() => addTask("mcq")} style={buttonSmall}>
                 {t("actions.addMcq")}
               </button>
               <button type="button" onClick={() => addTask("true_false")} style={buttonSmall}>
                 {t("actions.addTrueFalse")}
               </button>
-              <button type="button" onClick={() => addTask("short_answer")} style={buttonSmall}>
-                {t("actions.addShortAnswer")}
-              </button>
-              <button type="button" onClick={() => addTask("open")} style={buttonSmall}>
-                {t("actions.addOpen")}
+              <button type="button" onClick={() => addTask("best_summary")} style={buttonSmall}>
+                {t("taskTypes.best_summary")}
               </button>
             </div>
           </div>
@@ -1001,109 +963,78 @@ export default function ReadingTestEditorPage() {
                     />
                   </label>
 
-                  {(task.type === "word_choice" || task.type === "fill_in_word") && (
-                    <label style={{ display: "block", marginTop: 10 }}>
-                      {task.type === "fill_in_word" ? t("tasks.sentenceWithBlank") : t("tasks.sentence")}
-                      <textarea
-                        value={task.sentence ?? ""}
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontWeight: 800, marginBottom: 6 }}>{t("tasks.options")}</div>
+
+                    {(task.options ?? []).map((opt, oIdx) => (
+                      <input
+                        key={oIdx}
+                        value={opt}
+                        disabled={task.type === "true_false"}
                         onChange={(e) => {
                           const v = e.target.value;
-                          setTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, sentence: v } : x)));
-                        }}
-                        rows={3}
-                        style={{ ...fieldStyle, resize: "vertical" }}
-                      />
-                    </label>
-                  )}
+                          setTasks((prev) =>
+                            prev.map((x, i) => {
+                              if (i !== idx) return x;
 
-                  {task.type === "sentence_placement" && (
+                              const opts = [...(x.options ?? [])];
+                              opts[oIdx] = v;
+
+                              const currentCorrect = x.correctAnswer;
+                              const nextCorrect =
+                                typeof currentCorrect === "string" && opts.includes(currentCorrect)
+                                  ? currentCorrect
+                                  : opts[0] ?? "";
+
+                              return { ...x, options: opts, correctAnswer: nextCorrect };
+                            })
+                          );
+                        }}
+                        style={{
+                          ...fieldStyle,
+                          marginTop: 8,
+                          opacity: task.type === "true_false" ? 0.7 : 1,
+                        }}
+                      />
+                    ))}
+
                     <label style={{ display: "block", marginTop: 10 }}>
-                      {t("tasks.textWithGap")}
-                      <textarea
-                        value={task.textWithGap ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, textWithGap: v } : x)));
-                        }}
-                        rows={5}
-                        style={{ ...fieldStyle, resize: "vertical" }}
-                      />
-                    </label>
-                  )}
+                      {t("tasks.correctAnswer")}
 
-                  {(task.type === "mcq" ||
-                    task.type === "word_choice" ||
-                    task.type === "fill_in_word" ||
-                    task.type === "sentence_placement" ||
-                    task.type === "best_summary" ||
-                    task.type === "true_false") && (
-                    <div style={{ marginTop: 10 }}>
-                      <div style={{ fontWeight: 800, marginBottom: 6 }}>{t("tasks.options")}</div>
-
-                      {(task.options ?? []).map((opt, oIdx) => (
-                        <input
-                          key={oIdx}
-                          value={opt}
+                      {task.type === "true_false" ? (
+                        <select
+                          value={String(task.correctAnswer)}
+                          onChange={(e) => {
+                            const v = e.target.value === "true";
+                            setTasks((prev) =>
+                              prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x))
+                            );
+                          }}
+                          style={fieldStyle}
+                        >
+                          <option value="true">True</option>
+                          <option value="false">False</option>
+                        </select>
+                      ) : (
+                        <select
+                          value={typeof task.correctAnswer === "string" ? task.correctAnswer : ""}
                           onChange={(e) => {
                             const v = e.target.value;
                             setTasks((prev) =>
-                              prev.map((x, i) => {
-                                if (i !== idx) return x;
-                                const opts = [...(x.options ?? [])];
-                                opts[oIdx] = v;
-
-                                const currentCorrect = x.correctAnswer;
-                                const nextCorrect =
-                                  typeof currentCorrect === "string" && opts.includes(currentCorrect)
-                                    ? currentCorrect
-                                    : opts[0] ?? "";
-
-                                return { ...x, options: opts, correctAnswer: nextCorrect };
-                              })
+                              prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x))
                             );
                           }}
-                          style={{ ...fieldStyle, marginTop: 8 }}
-                        />
-                      ))}
-
-                      <label style={{ display: "block", marginTop: 10 }}>
-                        {t("tasks.correctAnswer")}
-                        {(task.options ?? []).length > 0 ? (
-                          <select
-                            value={typeof task.correctAnswer === "string" ? task.correctAnswer : ""}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x)));
-                            }}
-                            style={fieldStyle}
-                          >
-                            {(task.options ?? []).map((opt, optIdx) => (
-                              <option key={`${task.id}_${optIdx}`} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            value={typeof task.correctAnswer === "string" ? task.correctAnswer : ""}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, correctAnswer: v } : x)));
-                            }}
-                            style={fieldStyle}
-                          />
-                        )}
-                      </label>
-                    </div>
-                  )}
-
-                  {(task.type === "short_answer" || task.type === "open") && (
-                    <p style={{ marginTop: 10, opacity: 0.75, marginBottom: 0 }}>
-                      {task.type === "short_answer"
-                        ? t("tasks.shortAnswerHelp")
-                        : t("tasks.openHelp")}
-                    </p>
-                  )}
+                          style={fieldStyle}
+                        >
+                          {(task.options ?? []).map((opt, optIdx) => (
+                            <option key={`${task.id}_${optIdx}`} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </label>
+                  </div>
                 </div>
               ))}
             </div>

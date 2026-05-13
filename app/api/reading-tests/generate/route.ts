@@ -1,4 +1,3 @@
-// app/api/reading-tests/generate/route.ts
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
@@ -12,15 +11,7 @@ export const runtime = "nodejs";
 
 type CefrLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
-type ReadingTestTaskType =
-  | "word_choice"
-  | "sentence_placement"
-  | "best_summary"
-  | "mcq"
-  | "true_false"
-  | "fill_in_word"
-  | "short_answer"
-  | "open";
+type ReadingTestTaskType = "mcq" | "true_false" | "best_summary";
 
 type GenerateReadingTestBody = {
   level?: string;
@@ -32,29 +23,19 @@ type GenerateReadingTestBody = {
   enabledTaskTypes?: ReadingTestTaskType[];
 };
 
-type ReadingWordChoiceTask = {
+type ReadingMcqTask = {
   prompt: string;
-  sentence: string;
   options: [string, string, string];
   correctAnswer: string;
 };
 
-type ReadingSentencePlacementTask = {
+type ReadingTrueFalseTask = {
   prompt: string;
-  textWithGap: string;
-  options: [string, string, string];
-  correctAnswer: string;
+  correctAnswer: boolean;
 };
 
 type ReadingBestSummaryTask = {
   prompt: string;
-  options: [string, string, string];
-  correctAnswer: string;
-};
-
-type ReadingFillInWordTask = {
-  prompt: string;
-  sentence: string;
   options: [string, string, string];
   correctAnswer: string;
 };
@@ -73,10 +54,9 @@ type ReadingTestResponse = {
   wordCount: number;
   text: string;
   tasks: {
-    wordChoice: ReadingWordChoiceTask;
-    sentencePlacement: ReadingSentencePlacementTask;
+    mcq: ReadingMcqTask[];
+    trueFalse: ReadingTrueFalseTask[];
     bestSummary: ReadingBestSummaryTask;
-    fillInWord?: ReadingFillInWordTask;
   };
   feedback: ReadingFeedback;
 };
@@ -110,7 +90,12 @@ function clampNumber(v: unknown, fallback: number, min: number, max: number): nu
 }
 
 function normalizeLevel(v: unknown): CefrLevel {
-  return v === "A1" || v === "A2" || v === "B1" || v === "B2" || v === "C1" || v === "C2"
+  return v === "A1" ||
+    v === "A2" ||
+    v === "B1" ||
+    v === "B2" ||
+    v === "C1" ||
+    v === "C2"
     ? v
     : "A2";
 }
@@ -148,19 +133,10 @@ function isTuple3(v: unknown): v is [string, string, string] {
 }
 
 function normalizeTaskTypes(v: unknown): ReadingTestTaskType[] {
-  const valid: ReadingTestTaskType[] = [
-    "word_choice",
-    "sentence_placement",
-    "best_summary",
-    "mcq",
-    "true_false",
-    "fill_in_word",
-    "short_answer",
-    "open",
-  ];
+  const valid: ReadingTestTaskType[] = ["mcq", "true_false", "best_summary"];
 
   if (!Array.isArray(v)) {
-    return ["word_choice", "sentence_placement", "best_summary"];
+    return ["mcq", "true_false", "best_summary"];
   }
 
   const picked = v.filter(
@@ -169,7 +145,7 @@ function normalizeTaskTypes(v: unknown): ReadingTestTaskType[] {
 
   return picked.length > 0
     ? Array.from(new Set(picked))
-    : ["word_choice", "sentence_placement", "best_summary"];
+    : ["mcq", "true_false", "best_summary"];
 }
 
 function normalizeLanguageCode(v: unknown): string {
@@ -178,6 +154,7 @@ function normalizeLanguageCode(v: unknown): string {
   if (raw === "no") return "nb";
   if (raw === "pt-br") return "pt-BR";
   if (raw === "pt-pt") return "pt-PT";
+
   if (
     raw === "nb" ||
     raw === "nn" ||
@@ -201,25 +178,25 @@ function normalizeLanguageCode(v: unknown): string {
 function getLanguageInstruction(language: string): string {
   switch (language) {
     case "nb":
-      return 'Use Norwegian Bokmål for the entire response. All fields inside the JSON that contain human-readable text must be written in Norwegian Bokmål.';
+      return "Use Norwegian Bokmål for the entire response. All fields inside the JSON that contain human-readable text must be written in Norwegian Bokmål.";
     case "nn":
-      return 'Use Norwegian Nynorsk for the entire response. All fields inside the JSON that contain human-readable text must be written in Norwegian Nynorsk.';
+      return "Use Norwegian Nynorsk for the entire response. All fields inside the JSON that contain human-readable text must be written in Norwegian Nynorsk.";
     case "en":
-      return 'Use English for the entire response. All fields inside the JSON that contain human-readable text must be written in English.';
+      return "Use English for the entire response. All fields inside the JSON that contain human-readable text must be written in English.";
     case "pt":
-      return 'Use Portuguese for the entire response. All fields inside the JSON that contain human-readable text must be written in Portuguese.';
+      return "Use Portuguese for the entire response. All fields inside the JSON that contain human-readable text must be written in Portuguese.";
     case "pt-BR":
-      return 'Use Brazilian Portuguese for the entire response. All fields inside the JSON that contain human-readable text must be written in Brazilian Portuguese.';
+      return "Use Brazilian Portuguese for the entire response. All fields inside the JSON that contain human-readable text must be written in Brazilian Portuguese.";
     case "pt-PT":
-      return 'Use European Portuguese for the entire response. All fields inside the JSON that contain human-readable text must be written in European Portuguese.';
+      return "Use European Portuguese for the entire response. All fields inside the JSON that contain human-readable text must be written in European Portuguese.";
     case "es":
-      return 'Use Spanish for the entire response. All fields inside the JSON that contain human-readable text must be written in Spanish.';
+      return "Use Spanish for the entire response. All fields inside the JSON that contain human-readable text must be written in Spanish.";
     case "de":
-      return 'Use German for the entire response. All fields inside the JSON that contain human-readable text must be written in German.';
+      return "Use German for the entire response. All fields inside the JSON that contain human-readable text must be written in German.";
     case "fr":
-      return 'Use French for the entire response. All fields inside the JSON that contain human-readable text must be written in French.';
+      return "Use French for the entire response. All fields inside the JSON that contain human-readable text must be written in French.";
     case "it":
-      return 'Use Italian for the entire response. All fields inside the JSON that contain human-readable text must be written in Italian.';
+      return "Use Italian for the entire response. All fields inside the JSON that contain human-readable text must be written in Italian.";
     default:
       return `Use the language with code "${language}" for the entire response. All fields inside the JSON that contain human-readable text must be written in that language.`;
   }
@@ -255,25 +232,39 @@ function getAudienceInstruction(audience: string, language: string): string {
 
 function isReadingTestResponse(v: unknown): v is ReadingTestResponse {
   if (!v || typeof v !== "object") return false;
-  const o = v as Record<string, unknown>;
 
+  const o = v as Record<string, unknown>;
   const tasks = o.tasks as Record<string, unknown> | undefined;
   const feedback = o.feedback as Record<string, unknown> | undefined;
 
   if (!tasks || typeof tasks !== "object") return false;
   if (!feedback || typeof feedback !== "object") return false;
 
-  const wordChoice = tasks.wordChoice as Record<string, unknown> | undefined;
-  const sentencePlacement = tasks.sentencePlacement as Record<string, unknown> | undefined;
+  const mcq = tasks.mcq;
+  const trueFalse = tasks.trueFalse;
   const bestSummary = tasks.bestSummary as Record<string, unknown> | undefined;
-  const fillInWord = tasks.fillInWord as Record<string, unknown> | undefined;
 
-  const fillInWordOk =
-    fillInWord === undefined ||
-    (typeof fillInWord.prompt === "string" &&
-      typeof fillInWord.sentence === "string" &&
-      isTuple3(fillInWord.options) &&
-      typeof fillInWord.correctAnswer === "string");
+  const mcqOk =
+    Array.isArray(mcq) &&
+    mcq.length > 0 &&
+    mcq.every((task) => {
+      if (!task || typeof task !== "object") return false;
+      const t = task as Record<string, unknown>;
+      return (
+        typeof t.prompt === "string" &&
+        isTuple3(t.options) &&
+        typeof t.correctAnswer === "string"
+      );
+    });
+
+  const trueFalseOk =
+    Array.isArray(trueFalse) &&
+    trueFalse.length > 0 &&
+    trueFalse.every((task) => {
+      if (!task || typeof task !== "object") return false;
+      const t = task as Record<string, unknown>;
+      return typeof t.prompt === "string" && typeof t.correctAnswer === "boolean";
+    });
 
   return (
     typeof o.title === "string" &&
@@ -282,21 +273,12 @@ function isReadingTestResponse(v: unknown): v is ReadingTestResponse {
     typeof o.topic === "string" &&
     typeof o.wordCount === "number" &&
     typeof o.text === "string" &&
-    !!wordChoice &&
-    typeof wordChoice.prompt === "string" &&
-    typeof wordChoice.sentence === "string" &&
-    isTuple3(wordChoice.options) &&
-    typeof wordChoice.correctAnswer === "string" &&
-    !!sentencePlacement &&
-    typeof sentencePlacement.prompt === "string" &&
-    typeof sentencePlacement.textWithGap === "string" &&
-    isTuple3(sentencePlacement.options) &&
-    typeof sentencePlacement.correctAnswer === "string" &&
+    mcqOk &&
+    trueFalseOk &&
     !!bestSummary &&
     typeof bestSummary.prompt === "string" &&
     isTuple3(bestSummary.options) &&
     typeof bestSummary.correctAnswer === "string" &&
-    fillInWordOk &&
     typeof feedback.learner === "string" &&
     typeof feedback.adult === "string" &&
     typeof feedback.nextStep === "string"
@@ -304,57 +286,37 @@ function isReadingTestResponse(v: unknown): v is ReadingTestResponse {
 }
 
 function buildTaskInstructions(enabledTaskTypes: ReadingTestTaskType[]) {
-  const wantsFillInWord = enabledTaskTypes.includes("fill_in_word");
+  const blocks: string[] = [];
 
-  const blocks: string[] = [
-    `Always create these required tasks:`,
-
-    `1) Word choice in context
-- Use one sentence from the text.
-- Create exactly 3 options.
+  if (enabledTaskTypes.includes("mcq")) {
+    blocks.push(`Multiple choice:
+- Create 3 multiple choice questions.
+- Each question must have exactly 3 options.
 - Only 1 option is correct.
-- The 2 wrong options must be plausible but clearly wrong in context.`,
+- The correctAnswer must be exactly equal to one of the options.
+- The wrong options must be plausible but clearly wrong based on the text.`);
+  }
 
-    `2) Sentence placement
-- Remove one sentence from the text.
-- Return the text with a clear gap marker: "[GAP]"
-- Provide exactly 3 sentence options.
-- Only 1 sentence fits logically in the gap.`,
+  if (enabledTaskTypes.includes("true_false")) {
+    blocks.push(`True or false:
+- Create 3 true/false statements.
+- Each statement must be clearly true or clearly false based on the text.
+- The prompt must be the statement itself.
+- correctAnswer must be a boolean: true or false.`);
+  }
 
-    `3) Best summary
-- Provide exactly 3 short summaries of the whole text.
+  if (enabledTaskTypes.includes("best_summary")) {
+    blocks.push(`Best summary:
+- Create exactly 3 short summaries of the whole text.
 - Only 1 summary correctly represents the main idea.
-- The 2 wrong summaries should be believable but incorrect.`,
-  ];
-
-  if (wantsFillInWord) {
-    blocks.push(
-      `Also create:
-4) Fill in word
-- Use one natural sentence based on the text.
-- Replace exactly one word with "_____".
-- Provide exactly 3 options.
-- Only 1 option is correct.
-- The wrong options must be plausible.
-- The sentence should work well for language learners.`
-    );
-  } else {
-    blocks.push(
-      `Also create:
-4) Fill in word
-- Return this as null or omit it if not requested.`
-    );
+- The 2 wrong summaries should be believable but incorrect.
+- The correctAnswer must be exactly equal to one of the options.`);
   }
 
   return blocks.join("\n\n");
 }
 
-function buildOutputShape(
-  level: CefrLevel,
-  language: string,
-  topic: string,
-  wantsFillInWord: boolean
-) {
+function buildOutputShape(level: CefrLevel, language: string, topic: string) {
   return `Return valid JSON in exactly this structure:
 {
   "title": "",
@@ -364,32 +326,23 @@ function buildOutputShape(
   "wordCount": 0,
   "text": "",
   "tasks": {
-    "wordChoice": {
-      "prompt": "",
-      "sentence": "",
-      "options": ["", "", ""],
-      "correctAnswer": ""
-    },
-    "sentencePlacement": {
-      "prompt": "",
-      "textWithGap": "",
-      "options": ["", "", ""],
-      "correctAnswer": ""
-    },
+    "mcq": [
+      {
+        "prompt": "",
+        "options": ["", "", ""],
+        "correctAnswer": ""
+      }
+    ],
+    "trueFalse": [
+      {
+        "prompt": "",
+        "correctAnswer": true
+      }
+    ],
     "bestSummary": {
       "prompt": "",
       "options": ["", "", ""],
       "correctAnswer": ""
-    }${
-      wantsFillInWord
-        ? `,
-    "fillInWord": {
-      "prompt": "",
-      "sentence": "",
-      "options": ["", "", ""],
-      "correctAnswer": ""
-    }`
-        : ""
     }
   },
   "feedback": {
@@ -496,7 +449,6 @@ export async function POST(req: Request) {
     const topic = safeString(body.topic, language === "nb" ? "dagligliv" : "everyday life");
     const audience = safeString(body.audience, "learners");
     const enabledTaskTypes = normalizeTaskTypes(body.enabledTaskTypes);
-    const wantsFillInWord = enabledTaskTypes.includes("fill_in_word");
 
     const { min, max } = normalizeWordRange(level, body.minWords, body.maxWords);
 
@@ -545,14 +497,14 @@ Also provide:
 - one suggested next step
 
 Important:
-- wordChoice, sentencePlacement and bestSummary are always required
-- fillInWord is only required when "fill_in_word" is selected
-- do not invent extra top-level fields
-- set "wordCount" to the text word count if possible
-- do not translate the language code itself
-- the output must be a single valid JSON object
+- Only create these task types: mcq, trueFalse and bestSummary
+- Do not create wordChoice, sentencePlacement, fillInWord, shortAnswer or open tasks
+- Do not invent extra top-level fields
+- Set "wordCount" to the text word count if possible
+- Do not translate the language code itself
+- The output must be a single valid JSON object
 
-${buildOutputShape(level, language, topic, wantsFillInWord)}
+${buildOutputShape(level, language, topic)}
 `.trim();
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -605,15 +557,9 @@ ${buildOutputShape(level, language, topic, wantsFillInWord)}
       cefrLevel: level,
       topic,
       wordCount: countWords(parsed.text),
-      tasks: {
-        ...parsed.tasks,
-        ...(wantsFillInWord && parsed.tasks.fillInWord
-          ? { fillInWord: parsed.tasks.fillInWord }
-          : {}),
-      },
     };
 
-        await consumeFeatureAdmin({
+    await consumeFeatureAdmin({
       uid: user.uid,
       feature: "producer_create_reading_test",
     });
