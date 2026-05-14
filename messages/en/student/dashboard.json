@@ -33,7 +33,8 @@
       "cards": {
         "premiumGenerators": "Premium generators",
         "aiFeedback": "AI feedback",
-        "imageGeneration": "Image generation"
+        "imageGeneration": "Image generation",
+        "downloads": "PDF / downloads"
       },
       "labels": {
         "unlimited": "Unlimited",
@@ -51,66 +52,66 @@
       "myContent": "My content"
     },
     "billing": {
-    "badge": "Plan and billing",
-    "title": "Your subscription",
-    "description": "See your current plan, subscription status, and next steps.",
-    "fields": {
-      "plan": "Plan",
-      "usagePlan": "Effective plan",
-      "role": "Role",
-      "studentRole": "Student",
-      "status": "Status"
+      "badge": "Plan and billing",
+      "title": "Your subscription",
+      "description": "See your current plan, subscription status, and next steps.",
+      "fields": {
+        "plan": "Plan",
+        "usagePlan": "Effective plan",
+        "role": "Role",
+        "studentRole": "Student",
+        "status": "Status"
+      },
+      "plans": {
+        "free": "Free",
+        "basic": "Basic",
+        "plus": "Plus",
+        "pro": "Pro"
+      },
+      "statuses": {
+        "active": "Active",
+        "trialing": "Trial",
+        "pastDue": "Past due",
+        "canceled": "Canceled",
+        "incomplete": "Incomplete",
+        "unpaid": "Unpaid",
+        "none": "No subscription"
+      },
+      "messages": {
+        "activeSubscription": "Your subscription is active. You can manage payments and plan changes.",
+        "noSubscription": "You are currently using the free plan. Upgrade when you need more capacity."
+      },
+      "actions": {
+        "seePlans": "See plans",
+        "manage": "Manage subscription"
+      }
     },
-    "plans": {
-      "free": "Free",
-      "basic": "Basic",
-      "plus": "Plus",
-      "pro": "Pro"
+    "submissions": {
+      "badge": "Assignments",
+      "title": "My assignment status",
+      "description": "See what still needs work and what has already been reviewed.",
+      "todo": "To do",
+      "submitted": "Submitted",
+      "needsWork": "Needs work",
+      "approved": "Done",
+      "spacesLabel": "Classes",
+      "noClassTitle": "You are not connected to a classroom yet",
+      "noClassText": "You can still study on your own, use the library, and save your own content.",
+      "actions": {
+        "openSpaces": "Open classes",
+        "library": "Library",
+        "myContent": "My content"
+      }
     },
-    "statuses": {
-      "active": "Active",
-      "trialing": "Trial",
-      "pastDue": "Past due",
-      "canceled": "Canceled",
-      "incomplete": "Incomplete",
-      "unpaid": "Unpaid",
-      "none": "No subscription"
+    "status": {
+      "unavailable": "...",
+      "limitReached": "...",
+      "almostFull": "...",
+      "gettingBusy": "...",
+      "good": "..."
     },
-    "messages": {
-      "activeSubscription": "Your subscription is active. You can manage payments and plan changes.",
-      "noSubscription": "You are currently using the free plan. Upgrade when you need more capacity."
-    },
-    "actions": {
-      "seePlans": "See plans",
-      "manage": "Manage subscription"
+    "stats": {
+      "percentUsed": "{percent}% used"
     }
-  },
-  "submissions": {
-    "badge": "Assignments",
-    "title": "My assignment status",
-    "description": "See what still needs work and what has already been reviewed.",
-    "todo": "To do",
-    "submitted": "Submitted",
-    "needsWork": "Needs work",
-    "approved": "Done",
-    "spacesLabel": "Classes",
-    "noClassTitle": "You are not connected to a classroom yet",
-    "noClassText": "You can still study on your own, use the library, and save your own content.",
-    "actions": {
-      "openSpaces": "Open classes",
-      "library": "Library",
-      "myContent": "My content"
-    }
-  },
-  "status": {
-  "unavailable": "...",
-  "limitReached": "...",
-  "almostFull": "...",
-  "gettingBusy": "...",
-  "good": "..."
-},
-"stats": {
-  "percentUsed": "{percent}% used"
-}
   }
 }

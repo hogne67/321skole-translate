@@ -296,6 +296,7 @@ export default function ContentClient() {
   const router = useRouter();
   const { user, profile } = useUserProfile();
 
+  const isAuthReady = user !== undefined;
   const isAnon = !!user?.isAnonymous;
   const uid = user?.uid ?? null;
 
@@ -445,6 +446,24 @@ export default function ContentClient() {
     return t(`math.subtypes.${subtype}`);
   }
 
+  function cardTypeLabel(it: ContentItem): string {
+    if (it.type === "space") return safeMsg("cardTypes.space", "Space");
+
+    if (it.type === "submission") {
+      if (isLibraryPractice(it)) return safeMsg("cardTypes.fromLibrary", "Fra bibliotek");
+      if (isTeacherSpaceSubmission(it)) return safeMsg("cardTypes.spaceSubmission", "Innsendt i space");
+      return safeMsg("cardTypes.submission", "Innsendt oppgave");
+    }
+
+    if (it.type === "lesson") {
+      if (isMathContent(it)) return safeMsg("cardTypes.mathWorksheet", "Matteoppgave");
+      if (isReadingTestLesson(it)) return safeMsg("cardTypes.readingTest", "Lesetest");
+      return safeMsg("cardTypes.ownGenerated", "Egen generert");
+    }
+
+    return safeMsg("cardTypes.content", "Innhold");
+  }
+
   function parentChildProgressLabel(status: string | null) {
     const s = String(status ?? "").trim().toLowerCase();
 
@@ -506,6 +525,14 @@ export default function ContentClient() {
   }
 
   async function refresh() {
+    if (!uid) {
+      setItems([]);
+      setNotes([]);
+      setWarnings([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setWarnings([]);
     setErr(null);
@@ -526,7 +553,7 @@ export default function ContentClient() {
   useEffect(() => {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, isAnon, role]);
+  }, [isAuthReady, uid, isAnon, role]);
 
   useEffect(() => {
     if (!isParent || !uid || mySpaces.length === 0) {
@@ -988,6 +1015,37 @@ export default function ContentClient() {
     }
   }
 
+
+  async function deleteSubmissionFromArchive(submissionId: string, title: string) {
+    const msg = t("confirm.deleteSubmission", {
+      title: title ? `: "${title}"` : "",
+    });
+
+    const ok = confirm(msg);
+    if (!ok) return;
+
+    const key = `submission:${submissionId}`;
+
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      await authedPost("/api/content/archive-submission", {
+        submissionId,
+      });
+
+      await refresh();
+    } catch (e: unknown) {
+      setErr(
+        e instanceof Error
+          ? e.message
+          : t("errors.deleteSubmissionFailed")
+      );
+    } finally {
+      setBusy(key, false);
+    }
+  }
+
   async function restoreLesson(lessonId: string, title: string) {
     const msg = t("confirm.restoreLesson", { title: title ? `: "${title}"` : "" });
     const ok = confirm(msg);
@@ -1105,6 +1163,33 @@ export default function ContentClient() {
     return filteredMeta.join(" · ");
   }
 
+  function submissionPdfHref(ss: Extract<ContentItem, { type: "submission" }>) {
+    const lessonId =
+      typeof (ss as { lessonId?: unknown }).lessonId === "string"
+        ? (ss as { lessonId?: string }).lessonId
+        : "";
+
+    const sourceId =
+      typeof (ss as { sourceId?: unknown }).sourceId === "string"
+        ? (ss as { sourceId?: string }).sourceId
+        : "";
+
+    const publishedLessonId =
+      typeof (ss as { publishedLessonId?: unknown }).publishedLessonId === "string"
+        ? (ss as { publishedLessonId?: string }).publishedLessonId
+        : "";
+
+    const id = lessonId || sourceId || publishedLessonId;
+
+    if (!id) return itemOpenHref(ss);
+
+    const isMath = isMathContent(ss);
+
+    return isMath
+      ? `/${locale}/producer/math/${id}/print`
+      : `/${locale}/producer/${id}/print`;
+  }
+
   function buildActions(it: ContentItem): ActionItem[] {
     const key = `${it.type}:${it.id}`;
     const busy = !!busyByKey[key];
@@ -1122,10 +1207,15 @@ export default function ContentClient() {
 
     if (it.type === "submission") {
       const ss = it as Extract<ContentItem, { type: "submission" }>;
-      const status = (ss.status ?? "").toLowerCase();
-      const isReviewed = status === "reviewed" || status === "approved";
 
-      const canEditSubmission = role === "student" && !isReviewed && !isTeacherSpaceSubmission(ss);
+      const status = (ss.status ?? "").toLowerCase();
+      const isReviewed =
+        status === "reviewed" || status === "approved";
+
+      const canEditSubmission =
+        role === "student" &&
+        !isReviewed &&
+        !isTeacherSpaceSubmission(ss);
 
       const canShareSubmissionToSpace =
         (isTeacher || isParent) &&
@@ -1143,9 +1233,14 @@ export default function ContentClient() {
             : ss.lessonId || "";
 
       const canShareSubmissionPublic =
-        isTeacher && isLibraryPractice(ss) && !!publishedShareId;
+        isTeacher &&
+        isLibraryPractice(ss) &&
+        !!publishedShareId;
 
-      const canShowEditDisabled = isTeacher && isLibraryPractice(ss);
+      const canShowEditDisabled =
+        isTeacher && isLibraryPractice(ss);
+      const canPdfSubmission = true;
+      const pdfHref = submissionPdfHref(ss);
 
       return [
         {
@@ -1154,6 +1249,16 @@ export default function ContentClient() {
           disabled: busy,
           onClick: () => router.push(itemOpenHref(ss)),
         },
+        ...(canPdfSubmission
+          ? [
+            {
+              key: "pdf",
+              label: t("actions.pdf"),
+              disabled: busy,
+              onClick: () => router.push(pdfHref),
+            },
+          ]
+          : []),
 
         ...(canEditSubmission
           ? [
@@ -1203,12 +1308,26 @@ export default function ContentClient() {
                 openPickSpace({
                   lessonId: ss.lessonId || "",
                   title: titleForCard(ss),
-                  sourceType: isLibraryPractice(ss) ? "library" : "myContent",
+                  sourceType: isLibraryPractice(ss)
+                    ? "library"
+                    : "myContent",
                   sourceId: ss.lessonId || "",
                 }),
             },
           ]
           : []),
+
+        {
+          key: "deleteFromArchive",
+          label: t("actions.deleteFromArchive"),
+          danger: true,
+          disabled: busy,
+          onClick: () =>
+            deleteSubmissionFromArchive(
+              ss.id,
+              titleForCard(ss)
+            ),
+        },
       ];
     }
 
@@ -1421,7 +1540,16 @@ export default function ContentClient() {
   }
 
   function visibleDesktopActionKeys(it: ContentItem): string[] {
-    if (it.type === "submission") return ["open", "edit", "share", "shareToSpace"];
+    if (it.type === "submission") {
+      return [
+        "open",
+        "edit",
+        "pdf",
+        "share",
+        "shareToSpace",
+        "deleteFromArchive",
+      ];
+    }
     if (it.type === "space") return ["open", "board", "copyCode", "share", "copyJoinLink"];
     if (isMathArchiveItem(it)) return ["openMath", "pdf", "delete", "restore"];
     return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "pdf", "delete", "restore"];
@@ -1459,7 +1587,18 @@ export default function ContentClient() {
     const qq = q.trim().toLowerCase();
 
     return items
-      .filter((it) => (showDeleted ? true : !isDeletedItem(it)))
+      .filter((it) => {
+        if (showDeleted) return true;
+
+        if (it.type === "submission") {
+          const archived =
+            (it as { archived?: boolean }).archived === true;
+
+          if (archived) return false;
+        }
+
+        return !isDeletedItem(it);
+      })
       .filter((it) => {
         if (filter === "all") return true;
         if (filter === "library") return isLibraryPractice(it);
@@ -1661,6 +1800,14 @@ export default function ContentClient() {
             ? filtered.map((it) => {
               const key = `${it.type}:${it.id}`;
               const actions = buildActions(it);
+              console.log("CONTENT CARD", {
+                id: it.id,
+                type: it.type,
+                title: titleForCard(it),
+                status: it.status,
+                meta: it.meta,
+                actions: actions.map((a) => a.key),
+              });
               const desktopMainActions = desktopActions(it, actions);
               const desktopExtraActions = desktopOverflowActions(it, actions);
 
@@ -1711,6 +1858,8 @@ export default function ContentClient() {
               const parentMeta = isParent && it.type === "space" ? parentSpaceMeta[it.id] : null;
               const mathHint = mathItem && it.type === "lesson" ? t("math.hint") : null;
 
+              const cardType = cardTypeLabel(it);
+
               return (
                 <div
                   key={key}
@@ -1733,6 +1882,10 @@ export default function ContentClient() {
                         {mathItem && mathSubtypeText && mathSubtype !== "math" ? (
                           <StatusPill label={mathSubtypeText} variant="gray" />
                         ) : null}
+                      </div>
+
+                      <div className="mt-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                        {cardType}
                       </div>
 
                       <div className="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -1815,13 +1968,14 @@ export default function ContentClient() {
 
                       <div className="mt-3 hidden flex-wrap gap-2 sm:flex">
                         {desktopMainActions.map((a) => {
-                          if (a.key === "delete") {
+                          if (a.key === "delete" || a.key === "deleteFromArchive") {
                             return (
                               <DangerButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
                                 {a.label}
                               </DangerButton>
                             );
                           }
+
                           if (a.key === "restore") {
                             return (
                               <SuccessButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
@@ -1829,6 +1983,7 @@ export default function ContentClient() {
                               </SuccessButton>
                             );
                           }
+
                           return (
                             <PrimaryButton key={a.key} onClick={a.onClick} disabled={a.disabled}>
                               {a.label}

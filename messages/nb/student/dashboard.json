@@ -16,7 +16,7 @@
         "parent": "Forelder"
       },
       "plans": {
-        "free": "Gratis",
+        "free": "Du har ingen plan enda",
         "basic": "Basic",
         "plus": "Plus",
         "pro": "Pro"
@@ -33,7 +33,8 @@
       "cards": {
         "premiumGenerators": "Premium-generatorer",
         "aiFeedback": "AI-tilbakemelding",
-        "imageGeneration": "Bildegenerering"
+        "imageGeneration": "Bildegenerering",
+        "downloads": "PDF / nedlastinger"
       },
       "labels": {
         "unlimited": "Ubegrenset",
@@ -50,67 +51,67 @@
       "library": "Åpne bibliotek",
       "myContent": "Mitt innhold"
     },
-  "billing": {
-    "badge": "Plan og betaling",
-    "title": "Ditt abonnement",
-    "description": "Se planen din, abonnementsstatus og hva du kan gjøre videre.",
-    "fields": {
-      "plan": "Plan",
-      "usagePlan": "Aktiv plan",
-      "role": "Rolle",
-      "studentRole": "Student",
-      "status": "Status"
+    "billing": {
+      "badge": "Plan og betaling",
+      "title": "Ditt abonnement",
+      "description": "Se planen din, abonnementsstatus og hva du kan gjøre videre.",
+      "fields": {
+        "plan": "Plan",
+        "usagePlan": "Aktiv plan",
+        "role": "Rolle",
+        "studentRole": "Student",
+        "status": "Status"
+      },
+      "plans": {
+        "free": "Gratis",
+        "basic": "Basis",
+        "plus": "Plus",
+        "pro": "Pro"
+      },
+      "statuses": {
+        "active": "Aktiv",
+        "trialing": "Prøveperiode",
+        "pastDue": "Forfalt",
+        "canceled": "Avsluttet",
+        "incomplete": "Ufullført",
+        "unpaid": "Ubetalt",
+        "none": "Ingen abonnement"
+      },
+      "messages": {
+        "activeSubscription": "Abonnementet ditt er aktivt. Du kan administrere betaling og endre plan.",
+        "noSubscription": "Du bruker gratisplanen akkurat nå. Oppgrader når du trenger mer kapasitet."
+      },
+      "actions": {
+        "seePlans": "Se planer",
+        "manage": "Administrer abonnement"
+      }
     },
-    "plans": {
-      "free": "Gratis",
-      "basic": "Basis",
-      "plus": "Plus",
-      "pro": "Pro"
+    "submissions": {
+      "badge": "Oppgaver",
+      "title": "Oppgavestatus",
+      "description": "Se raskt hva du må gjøre, og hva som allerede er vurdert.",
+      "todo": "Å gjøre",
+      "submitted": "Levert",
+      "needsWork": "Forbedre",
+      "approved": "Ferdig",
+      "spacesLabel": "Klasserom",
+      "noClassTitle": "Du er ikke koblet til et klasserom ennå",
+      "noClassText": "Du kan fortsatt jobbe på egen hånd, bruke biblioteket og lagre ditt eget innhold.",
+      "actions": {
+        "openSpaces": "Åpne klasserom",
+        "library": "Bibliotek",
+        "myContent": "Mitt innhold"
+      }
     },
-    "statuses": {
-      "active": "Aktiv",
-      "trialing": "Prøveperiode",
-      "pastDue": "Forfalt",
-      "canceled": "Avsluttet",
-      "incomplete": "Ufullført",
-      "unpaid": "Ubetalt",
-      "none": "Ingen abonnement"
+    "status": {
+      "unavailable": "Ikke tilgjengelig",
+      "limitReached": "Grense nådd",
+      "almostFull": "Nesten fullt",
+      "gettingBusy": "Begynner å fylles opp",
+      "good": "Bra"
     },
-    "messages": {
-      "activeSubscription": "Abonnementet ditt er aktivt. Du kan administrere betaling og endre plan.",
-      "noSubscription": "Du bruker gratisplanen akkurat nå. Oppgrader når du trenger mer kapasitet."
-    },
-    "actions": {
-      "seePlans": "Se planer",
-      "manage": "Administrer abonnement"
+    "stats": {
+      "percentUsed": "{percent}% brukt"
     }
-  },
-  "submissions": {
-    "badge": "Oppgaver",
-    "title": "Oppgavestatus",
-    "description": "Se raskt hva du må gjøre, og hva som allerede er vurdert.",
-    "todo": "Å gjøre",
-    "submitted": "Levert",
-    "needsWork": "Forbedre",
-    "approved": "Ferdig",
-    "spacesLabel": "Klasserom",
-    "noClassTitle": "Du er ikke koblet til et klasserom ennå",
-    "noClassText": "Du kan fortsatt jobbe på egen hånd, bruke biblioteket og lagre ditt eget innhold.",
-    "actions": {
-      "openSpaces": "Åpne klasserom",
-      "library": "Bibliotek",
-      "myContent": "Mitt innhold"
-    }
-  },
-  "status": {
-    "unavailable": "Ikke tilgjengelig",
-    "limitReached": "Grense nådd",
-    "almostFull": "Nesten fullt",
-    "gettingBusy": "Begynner å fylles opp",
-    "good": "Bra"
-  },
-  "stats": {
-    "percentUsed": "{percent}% brukt"
   }
 }
-  }

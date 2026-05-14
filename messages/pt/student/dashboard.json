@@ -33,7 +33,8 @@
       "cards": {
         "premiumGenerators": "Geradores premium",
         "aiFeedback": "Feedback com IA",
-        "imageGeneration": "Geração de imagens"
+        "imageGeneration": "Geração de imagens",
+        "downloads": "PDF / downloads"
       },
       "labels": {
         "unlimited": "Ilimitado",
@@ -50,67 +51,67 @@
       "library": "Abrir biblioteca",
       "myContent": "Meu conteúdo"
     },
-  "billing": {
-    "badge": "Plano e cobrança",
-    "title": "Sua assinatura",
-    "description": "Veja seu plano atual, status da assinatura e próximos passos.",
-    "fields": {
-      "plan": "Plano",
-      "usagePlan": "Plano efetivo",
-      "role": "Função",
-      "studentRole": "Aluno",
-      "status": "Status"
+    "billing": {
+      "badge": "Plano e cobrança",
+      "title": "Sua assinatura",
+      "description": "Veja seu plano atual, status da assinatura e próximos passos.",
+      "fields": {
+        "plan": "Plano",
+        "usagePlan": "Plano efetivo",
+        "role": "Função",
+        "studentRole": "Aluno",
+        "status": "Status"
+      },
+      "plans": {
+        "free": "Grátis",
+        "basic": "Basic",
+        "plus": "Plus",
+        "pro": "Pro"
+      },
+      "statuses": {
+        "active": "Ativo",
+        "trialing": "Período de teste",
+        "pastDue": "Pagamento em atraso",
+        "canceled": "Cancelado",
+        "incomplete": "Incompleto",
+        "unpaid": "Não pago",
+        "none": "Sem assinatura"
+      },
+      "messages": {
+        "activeSubscription": "Sua assinatura está ativa. Você pode gerenciar pagamentos e alterar o plano.",
+        "noSubscription": "Você está usando o plano gratuito no momento. Faça upgrade quando precisar de mais capacidade."
+      },
+      "actions": {
+        "seePlans": "Ver planos",
+        "manage": "Gerenciar assinatura"
+      }
     },
-    "plans": {
-      "free": "Grátis",
-      "basic": "Basic",
-      "plus": "Plus",
-      "pro": "Pro"
+    "submissions": {
+      "badge": "Tarefas",
+      "title": "Status das tarefas",
+      "description": "Veja rapidamente o que você precisa fazer e o que já foi avaliado.",
+      "todo": "Para fazer",
+      "submitted": "Enviadas",
+      "needsWork": "Melhorar",
+      "approved": "Concluídas",
+      "spacesLabel": "Turmas",
+      "noClassTitle": "Você ainda não está conectado a uma turma",
+      "noClassText": "Mesmo assim, você pode estudar sozinho, usar a biblioteca e salvar seu próprio conteúdo.",
+      "actions": {
+        "openSpaces": "Abrir turmas",
+        "library": "Biblioteca",
+        "myContent": "Meu conteúdo"
+      }
     },
-    "statuses": {
-      "active": "Ativo",
-      "trialing": "Período de teste",
-      "pastDue": "Pagamento em atraso",
-      "canceled": "Cancelado",
-      "incomplete": "Incompleto",
-      "unpaid": "Não pago",
-      "none": "Sem assinatura"
+    "status": {
+      "unavailable": "Indisponível",
+      "limitReached": "Limite atingido",
+      "almostFull": "Quase cheio",
+      "gettingBusy": "Começando a encher",
+      "good": "Bom"
     },
-    "messages": {
-      "activeSubscription": "Sua assinatura está ativa. Você pode gerenciar pagamentos e alterar o plano.",
-      "noSubscription": "Você está usando o plano gratuito no momento. Faça upgrade quando precisar de mais capacidade."
-    },
-    "actions": {
-      "seePlans": "Ver planos",
-      "manage": "Gerenciar assinatura"
+    "stats": {
+      "percentUsed": "{percent}% usado"
     }
-  },
-  "submissions": {
-    "badge": "Tarefas",
-    "title": "Status das tarefas",
-    "description": "Veja rapidamente o que você precisa fazer e o que já foi avaliado.",
-    "todo": "Para fazer",
-    "submitted": "Enviadas",
-    "needsWork": "Melhorar",
-    "approved": "Concluídas",
-    "spacesLabel": "Turmas",
-    "noClassTitle": "Você ainda não está conectado a uma turma",
-    "noClassText": "Mesmo assim, você pode estudar sozinho, usar a biblioteca e salvar seu próprio conteúdo.",
-    "actions": {
-      "openSpaces": "Abrir turmas",
-      "library": "Biblioteca",
-      "myContent": "Meu conteúdo"
-    }
-  },
-  "status": {
-    "unavailable": "Indisponível",
-    "limitReached": "Limite atingido",
-    "almostFull": "Quase cheio",
-    "gettingBusy": "Começando a encher",
-    "good": "Bom"
-  },
-  "stats": {
-    "percentUsed": "{percent}% usado"
   }
-}
 }

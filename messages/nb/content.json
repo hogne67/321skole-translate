@@ -24,6 +24,16 @@
       "space": "Spaces",
       "spaces": "SPACES"
     },
+    "cardTypes": {
+      "space": "Space",
+      "fromLibrary": "Fra bibliotek",
+      "spaceSubmission": "Innsendt i space",
+      "submission": "Innsendt oppgave",
+      "mathWorksheet": "Matteoppgave",
+      "readingTest": "Lesetest",
+      "ownGenerated": "Egen generert",
+      "content": "Innhold"
+    },
     "filterHints": {
       "library": "Dine egne oppgaver fra biblioteket (øving)",
       "math": "Bare innhold fra mattegeneratoren"
@@ -97,7 +107,8 @@
       "copyJoinCode": "Kopier kode",
       "copyJoinLink": "Kopier lenke",
       "shareLinkQr": "Del (lenke + QR)",
-      "board": "Tavle"
+      "board": "Tavle",
+      "deleteFromArchive": "Slett fra arkiv"
     },
     "errors": {
       "label": "Feil",
@@ -108,7 +119,8 @@
       "publishFailed": "Kunne ikke oppdatere publiseringsstatus",
       "deleteFailed": "Kunne ikke slette (arkivere) oppgaven",
       "restoreFailed": "Kunne ikke gjenopprette.",
-      "aiShareFailed": "Kunne ikke lage delingstekst med KI."
+      "aiShareFailed": "Kunne ikke lage delingstekst med KI.",
+      "deleteSubmissionFailed": "Kunne ikke slette fra arkiv."
     },
     "titles": {
       "lesson": "Oppgave",
@@ -182,7 +194,8 @@
     },
     "confirm": {
       "deleteLesson": "Slette oppgave{title}?\n\nDette vil arkivere den.\nDet vil også forsøke å avpublisere den.\n\nEn administrator kan gjenopprette den senere.",
-      "restoreLesson": "Gjenopprette oppgave{title}?"
+      "restoreLesson": "Gjenopprette oppgave{title}?",
+      "deleteSubmission": "Slette fra arkiv{title}?"
     },
     "fallback": {
       "untitledTask": "Oppgave uten tittel"

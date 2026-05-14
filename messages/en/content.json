@@ -24,6 +24,16 @@
       "space": "Spaces",
       "spaces": "SPACES"
     },
+    "cardTypes": {
+      "space": "Space",
+      "fromLibrary": "From Library",
+      "spaceSubmission": "Submitted to space",
+      "submission": "Submitted assignment",
+      "mathWorksheet": "Math assignment",
+      "readingTest": "Reading test",
+      "ownGenerated": "Own generated",
+      "content": "Content"
+    },
     "filterHints": {
       "library": "Your own tasks from the library (practice)",
       "math": "Only items from the math generator"
@@ -97,7 +107,8 @@
       "copyJoinCode": "Copy join code",
       "copyJoinLink": "Copy join link",
       "shareLinkQr": "Share (link + QR)",
-      "board": "Board"
+      "board": "Board",
+      "deleteFromArchive": "Remove from archive"
     },
     "errors": {
       "label": "Error",
@@ -108,7 +119,8 @@
       "publishFailed": "Failed to update publish status",
       "deleteFailed": "Failed to delete (archive) task",
       "restoreFailed": "Could not restore.",
-      "aiShareFailed": "Could not generate share text with AI."
+      "aiShareFailed": "Could not generate share text with AI.",
+      "deleteSubmissionFailed": "Could not remove from archive."
     },
     "titles": {
       "lesson": "Task",
@@ -182,7 +194,8 @@
     },
     "confirm": {
       "deleteLesson": "Delete task{title}?\n\nThis will archive it.\nIt will also attempt to unpublish it.\n\nAn admin can restore it later.",
-      "restoreLesson": "Restore task{title}?"
+      "restoreLesson": "Restore task{title}?",
+      "deleteSubmission": "Remove from archive{title}?"
     },
     "fallback": {
       "untitledTask": "Untitled task"

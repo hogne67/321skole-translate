@@ -48,7 +48,14 @@ export default function NotificationBell() {
     );
 
     useEffect(() => {
+        let unsubSnap: (() => void) | null = null;
+
         const unsubAuth = auth.onAuthStateChanged((user) => {
+            if (unsubSnap) {
+                unsubSnap();
+                unsubSnap = null;
+            }
+
             if (!user || user.isAnonymous) {
                 setNotifications([]);
                 return;
@@ -60,19 +67,33 @@ export default function NotificationBell() {
                 limit(20)
             );
 
-            const unsubSnap = onSnapshot(q, (snap) => {
-                setNotifications(
-                    snap.docs.map((doc) => ({
-                        id: doc.id,
-                        ...doc.data(),
-                    })) as Notification[]
-                );
-            });
-
-            return () => unsubSnap();
+            unsubSnap = onSnapshot(
+                q,
+                (snap) => {
+                    setNotifications(
+                        snap.docs.map((doc) => ({
+                            id: doc.id,
+                            ...doc.data(),
+                        })) as Notification[]
+                    );
+                },
+                (error) => {
+                    if (error.code !== "permission-denied") {
+                        console.warn("Notification listener failed:", error);
+                    }
+                    setNotifications([]);
+                }
+            );
         });
 
-        return () => unsubAuth();
+        return () => {
+            if (unsubSnap) {
+                unsubSnap();
+                unsubSnap = null;
+            }
+
+            unsubAuth();
+        };
     }, []);
 
     useEffect(() => {

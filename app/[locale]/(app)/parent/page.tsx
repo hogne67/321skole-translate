@@ -340,6 +340,9 @@ export default function ParentPage() {
   const imagesUsed = usage["image_generation"] ?? 0;
   const imagesLimit = getBucketLimit(role, effectivePlan, "image_generation");
 
+  const downloadsUsed = usage["downloads"] ?? 0;
+  const downloadsLimit = getBucketLimit(role, effectivePlan, "downloads");
+
   return (
     <main
       style={{
@@ -631,6 +634,13 @@ export default function ParentPage() {
             used={imagesUsed}
             limit={imagesLimit}
             accent="emerald"
+            t={t}
+          />
+          <StatCard
+            title={t("usage.cards.downloads")}
+            used={downloadsUsed}
+            limit={downloadsLimit}
+            accent="blue"
             t={t}
           />
         </section>

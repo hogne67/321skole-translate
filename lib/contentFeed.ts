@@ -64,6 +64,11 @@ export type ContentItem =
     deletedAt?: Date | null;
   };
 
+function isArchived(d: unknown): boolean {
+  const x = d as Record<string, unknown> | null;
+  return x?.archived === true || x?.studentArchived === true;
+}
+
 function toDateSafe(v: unknown): Date | null {
   if (!v) return null;
   if (v instanceof Timestamp) return v.toDate();
@@ -259,12 +264,7 @@ function withLocale(locale: string, path: string) {
   return `/${loc}${p}`;
 }
 
-function hrefForLesson(
-  locale: string,
-  mode: AppMode,
-  lessonId: string,
-  lessonType?: string
-) {
+function hrefForLesson(locale: string, mode: AppMode, lessonId: string, lessonType?: string) {
   const normalizedLessonType = String(lessonType || "").trim().toLowerCase();
 
   if (normalizedLessonType === "reading_test") {
@@ -342,7 +342,6 @@ type LessonMeta = {
 async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
   const metaById = new Map<string, LessonMeta>();
   const unique = Array.from(new Set(ids.filter(Boolean)));
-
   const chunkSize = 10;
 
   const fetchFrom = async (colName: "lessons" | "published_lessons", chunk: string[]) => {
@@ -353,23 +352,16 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
       snap.forEach((docSnap) => {
         const d = docSnap.data() as Record<string, unknown>;
         const title = pickTitle(d);
-        const level = pickLevel(d) || undefined;
-        const language = pickLanguage(d);
-        const lessonType = pickLessonType(d);
-        const textType = pickTextType(d);
-        const texttype = pickTexttype(d);
-        const meta = safeMeta(d);
-        const authorName = pickAuthorName(d);
 
         metaById.set(docSnap.id, {
           title: title || "",
-          level,
-          language,
-          lessonType,
-          textType,
-          texttype,
-          meta,
-          authorName,
+          level: pickLevel(d) || undefined,
+          language: pickLanguage(d),
+          lessonType: pickLessonType(d),
+          textType: pickTextType(d),
+          texttype: pickTexttype(d),
+          meta: safeMeta(d),
+          authorName: pickAuthorName(d),
         });
       });
     } catch {
@@ -378,15 +370,13 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
   };
 
   for (let i = 0; i < unique.length; i += chunkSize) {
-    const chunk = unique.slice(i, i + chunkSize);
-    await fetchFrom("lessons", chunk);
+    await fetchFrom("lessons", unique.slice(i, i + chunkSize));
   }
 
   const missing = unique.filter((id) => !metaById.has(id));
 
   for (let i = 0; i < missing.length; i += chunkSize) {
-    const chunk = missing.slice(i, i + chunkSize);
-    await fetchFrom("published_lessons", chunk);
+    await fetchFrom("published_lessons", missing.slice(i, i + chunkSize));
   }
 
   return metaById;
@@ -415,6 +405,7 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
 
     snap.forEach((docSnap) => {
       const d = docSnap.data() as Record<string, unknown>;
+      if (isArchived(d)) return;
 
       const lessonId =
         typeof d.lessonId === "string"
@@ -426,7 +417,6 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
       const spaceId = typeof d.spaceId === "string" ? d.spaceId : undefined;
 
       if (lessonId) lessonIds.push(lessonId);
-
       submissionRows.push({ id: docSnap.id, d, lessonId, spaceId });
     });
 
@@ -434,7 +424,6 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
 
     for (const row of submissionRows) {
       const { id, d, lessonId, spaceId } = row;
-
       const rawTitle = pickTitle(d);
       const lessonMeta = lessonId ? lessonMetaById.get(lessonId) : undefined;
 
@@ -445,16 +434,13 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
             ? `Submission · ${lessonMeta.title}`
             : "Submission";
 
-      const status =
-        pickStatus(d) ||
-        ((d as { reviewedAt?: unknown }).reviewedAt ? "reviewed" : "submitted");
+      const status = pickStatus(d) || ((d as { reviewedAt?: unknown }).reviewedAt ? "reviewed" : "submitted");
 
       const fallbackHref = lessonId
         ? hrefForLesson(locale, mode, lessonId, lessonMeta?.lessonType)
         : withLocale(locale, `/student/results`);
 
       const meta: string[] = [];
-
       const kind = typeof d.kind === "string" ? d.kind : "";
       const source = typeof d.source === "string" ? d.source : "";
 
@@ -464,11 +450,13 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
       if (lessonMeta?.lessonType) meta.push(String(lessonMeta.lessonType));
       if (lessonMeta?.textType) meta.push(String(lessonMeta.textType));
       if (lessonMeta?.texttype) meta.push(String(lessonMeta.texttype));
+
       if (lessonMeta?.meta?.length) {
         for (const tag of lessonMeta.meta) {
           if (!meta.includes(tag)) meta.push(tag);
         }
       }
+
       if (lessonMeta?.title) meta.push(`Lesson: ${lessonMeta.title}`);
       if (spaceId) meta.push(`space:${spaceId}`);
       if (lessonId) meta.push(`lesson:${lessonId}`);
@@ -485,7 +473,7 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
         lessonId,
         spaceId,
         authorName: lessonMeta?.authorName,
-        deletedAt: toDateSafe((d as Record<string, unknown>).deletedAt),
+        deletedAt: toDateSafe(d.deletedAt),
       });
     }
   } catch {
@@ -512,6 +500,8 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: st
 
     snap.forEach((docSnap) => {
       const d = docSnap.data() as Record<string, unknown>;
+      if (isArchived(d)) return;
+
       const lessonId =
         typeof d.publishedLessonId === "string"
           ? d.publishedLessonId
@@ -537,9 +527,7 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: st
             : "Draft";
 
       const status = typeof d.status === "string" ? d.status : "draft";
-      const href = lessonId
-        ? withLocale(locale, `/student/lesson/${lessonId}`)
-        : withLocale(locale, `/content`);
+      const href = lessonId ? withLocale(locale, `/student/lesson/${lessonId}`) : withLocale(locale, `/content`);
 
       const meta: string[] = ["practice"];
       if (lessonMeta?.level) meta.push(String(lessonMeta.level));
@@ -547,11 +535,13 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: st
       if (lessonMeta?.lessonType) meta.push(String(lessonMeta.lessonType));
       if (lessonMeta?.textType) meta.push(String(lessonMeta.textType));
       if (lessonMeta?.texttype) meta.push(String(lessonMeta.texttype));
+
       if (lessonMeta?.meta?.length) {
         for (const tag of lessonMeta.meta) {
           if (!meta.includes(tag)) meta.push(tag);
         }
       }
+
       if (lessonMeta?.title) meta.push(`Lesson: ${lessonMeta.title}`);
       if (lessonId) meta.push(`lesson:${lessonId}`);
 
@@ -577,12 +567,7 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: st
   return results;
 }
 
-async function fetchMySpaceSubmissions(
-  db: Firestore,
-  uid: string,
-  locale: string,
-  warnings: string[]
-) {
+async function fetchMySpaceSubmissions(db: Firestore, uid: string, locale: string, warnings: string[]) {
   const results: ContentItem[] = [];
 
   try {
@@ -597,6 +582,7 @@ async function fetchMySpaceSubmissions(
 
     snap.forEach((docSnap) => {
       const d = docSnap.data() as Record<string, unknown>;
+      if (isArchived(d)) return;
 
       const spaceId = typeof d.spaceId === "string" ? d.spaceId : "";
       const assignmentId = typeof d.assignmentId === "string" ? d.assignmentId : "";
@@ -669,14 +655,17 @@ async function fetchSpacesByIds(db: Firestore, spaceIds: string[], mode: AppMode
   };
 
   const chunkSize = 10;
+
   for (let i = 0; i < unique.length; i += chunkSize) {
     const chunk = unique.slice(i, i + chunkSize);
+
     try {
       const qy = query(collection(db, "spaces"), where(documentId(), "in", chunk));
       const snap = await getDocs(qy);
 
       snap.forEach((docSnap) => {
         const d = docSnap.data() as Record<string, unknown>;
+
         results.push({
           type: "space",
           id: docSnap.id,
@@ -724,7 +713,8 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
   };
 
   const pushDoc = (docSnap: { id: string; data: () => Record<string, unknown> }) => {
-    const d = docSnap.data() as Record<string, unknown>;
+    const d = docSnap.data();
+
     results.push({
       type: "space",
       id: docSnap.id,
@@ -773,6 +763,7 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
     const snap = await getDocs(qy);
 
     const spaceIds: string[] = [];
+
     snap.forEach((docSnap) => {
       const d = docSnap.data() as Record<string, unknown>;
       const sid = typeof d.spaceId === "string" ? d.spaceId : "";
@@ -786,6 +777,7 @@ async function fetchMySpaces(db: Firestore, uid: string, mode: AppMode, locale: 
   }
 
   const seen = new Set<string>();
+
   const deduped = results.filter((s) => {
     if (seen.has(s.id)) return false;
     seen.add(s.id);
@@ -829,6 +821,7 @@ export async function loadMyContent(opts: {
   ]);
 
   const seen = new Set<string>();
+
   const merged = [...lessons, ...submissions, ...practiceSubs, ...spaceSubs, ...spaces].filter((it) => {
     const k = `${it.type}:${it.id}`;
     if (seen.has(k)) return false;

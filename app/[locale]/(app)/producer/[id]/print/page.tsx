@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { getAuth } from "firebase/auth";
 import { useLocale, useTranslations } from "next-intl";
+import { logUsageEvent } from "@/lib/usageClient";
 
 type TaskType = "truefalse" | "mcq" | "open";
 type AnswerSpace = "short" | "medium" | "long";
@@ -118,26 +119,45 @@ export default function ProducerPrintPage() {
         const u = uidNow();
         if (!u) throw new Error("No auth uid.");
 
-        const snap = await getDoc(doc(db, "lessons", lessonId));
+        let loadedLesson: Lesson | null = null;
+
+        // 1. Prøv egen/original lesson først
+        try {
+          const ownSnap = await getDoc(doc(db, "lessons", lessonId));
+
+          if (ownSnap.exists()) {
+            const data = ownSnap.data() as Lesson;
+
+            const isOwner = !data.ownerId || data.ownerId === u;
+            const isPublished = data.status === "published";
+
+            if (isOwner || isPublished) {
+              loadedLesson = data;
+            }
+          }
+        } catch {
+          // ignore - prøver published_lessons under
+        }
+
+        // 2. Hvis ikke tilgang/funnet: prøv published_lessons
+        if (!loadedLesson) {
+          const publishedSnap = await getDoc(doc(db, "published_lessons", lessonId));
+
+          if (publishedSnap.exists()) {
+            loadedLesson = publishedSnap.data() as Lesson;
+          }
+        }
+
         if (!alive) return;
 
-        if (!snap.exists()) {
+        if (!loadedLesson) {
           setErr(t("errors.notFound"));
           setLesson(null);
           setLoading(false);
           return;
         }
 
-        const data = snap.data() as Lesson;
-
-        if (data.ownerId && data.ownerId !== u) {
-          setErr(t("errors.noAccessOwnerMismatch"));
-          setLesson(null);
-          setLoading(false);
-          return;
-        }
-
-        setLesson(data);
+        setLesson(loadedLesson);
         setLoading(false);
       } catch (e: unknown) {
         if (!alive) return;
@@ -151,6 +171,18 @@ export default function ProducerPrintPage() {
       alive = false;
     };
   }, [lessonId, t, localizeError]);
+
+  useEffect(() => {
+    if (!lesson) return;
+
+    void logUsageEvent({
+      feature: "pdf_download",
+      contentId: lessonId,
+      contentType: "lesson",
+      source: lesson.status === "published" ? "library" : "own",
+      path: window.location.pathname,
+    });
+  }, [lesson, lessonId]);
 
   const tasks = useMemo(() => {
     const t0 = Array.isArray(lesson?.tasks) ? (lesson?.tasks ?? []) : [];
@@ -347,8 +379,8 @@ export default function ProducerPrintPage() {
                         </div>
 
                         {teacherMode &&
-                        typeof task.correctAnswer === "string" &&
-                        task.correctAnswer.trim() ? (
+                          typeof task.correctAnswer === "string" &&
+                          task.correctAnswer.trim() ? (
                           <div className="answer">
                             <b>{t("teacher.suggestionNote")}:</b> {task.correctAnswer}
                           </div>

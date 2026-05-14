@@ -1,3 +1,4 @@
+// app\[locale]\(app)\student\page.tsx
 "use client";
 
 import Link from "next/link";
@@ -303,31 +304,31 @@ function StatusCard({
   const style =
     tone === "warning"
       ? {
-          bg: "rgba(245,158,11,0.12)",
-          border: "rgba(245,158,11,0.35)",
-          color: "rgba(180,83,9,1)",
-          badgeBg: "rgba(245,158,11,1)",
-        }
+        bg: "rgba(245,158,11,0.12)",
+        border: "rgba(245,158,11,0.35)",
+        color: "rgba(180,83,9,1)",
+        badgeBg: "rgba(245,158,11,1)",
+      }
       : tone === "info"
         ? {
-            bg: "rgba(59,130,246,0.12)",
-            border: "rgba(59,130,246,0.35)",
-            color: "rgba(37,99,235,1)",
-            badgeBg: "rgba(59,130,246,1)",
-          }
+          bg: "rgba(59,130,246,0.12)",
+          border: "rgba(59,130,246,0.35)",
+          color: "rgba(37,99,235,1)",
+          badgeBg: "rgba(59,130,246,1)",
+        }
         : tone === "success"
           ? {
-              bg: "rgba(16,185,129,0.12)",
-              border: "rgba(16,185,129,0.35)",
-              color: "rgba(5,150,105,1)",
-              badgeBg: "rgba(16,185,129,1)",
-            }
+            bg: "rgba(16,185,129,0.12)",
+            border: "rgba(16,185,129,0.35)",
+            color: "rgba(5,150,105,1)",
+            badgeBg: "rgba(16,185,129,1)",
+          }
           : {
-              bg: "rgba(148,163,184,0.12)",
-              border: "rgba(148,163,184,0.35)",
-              color: "rgba(51,65,85,1)",
-              badgeBg: "rgba(100,116,139,1)",
-            };
+            bg: "rgba(148,163,184,0.12)",
+            border: "rgba(148,163,184,0.35)",
+            color: "rgba(51,65,85,1)",
+            badgeBg: "rgba(100,116,139,1)",
+          };
 
   return (
     <Link
@@ -510,6 +511,9 @@ export default function StudentDashboard() {
 
   const imagesUsed = usage["image_generation"] ?? 0;
   const imagesLimit = getBucketLimit(role, effectivePlan, "image_generation");
+
+  const downloadsUsed = usage["downloads"] ?? 0;
+  const downloadsLimit = getBucketLimit(role, effectivePlan, "downloads");
 
   return (
     <main
@@ -800,6 +804,13 @@ export default function StudentDashboard() {
             used={imagesUsed}
             limit={imagesLimit}
             accent="emerald"
+            t={t}
+          />
+          <StatCard
+            title={t("usage.cards.downloads")}
+            used={downloadsUsed}
+            limit={downloadsLimit}
+            accent="blue"
             t={t}
           />
         </section>

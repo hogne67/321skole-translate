@@ -24,6 +24,16 @@
       "space": "Spaces",
       "spaces": "SPACES"
     },
+    "cardTypes": {
+      "space": "Space",
+      "fromLibrary": "Da Biblioteca",
+      "spaceSubmission": "Enviado para o Space",
+      "submission": "Tarefa enviada",
+      "mathWorksheet": "Tarefa de matemática",
+      "readingTest": "Teste de leitura",
+      "ownGenerated": "Gerado pelo usuário",
+      "content": "Conteúdo"
+    },
     "filterHints": {
       "library": "Suas próprias atividades da biblioteca (prática)",
       "math": "Somente itens do gerador de matemática"
@@ -97,7 +107,8 @@
       "copyJoinCode": "Copiar código",
       "copyJoinLink": "Copiar link",
       "shareLinkQr": "Compartilhar (link + QR)",
-      "board": "Quadro"
+      "board": "Quadro",
+      "deleteFromArchive": "Remover do arquivo"
     },
     "errors": {
       "label": "Erro",
@@ -108,7 +119,8 @@
       "publishFailed": "Falha ao atualizar o status de publicação",
       "deleteFailed": "Falha ao excluir (arquivar) a atividade",
       "restoreFailed": "Não foi possível restaurar.",
-      "aiShareFailed": "Não foi possível gerar texto de compartilhamento com IA."
+      "aiShareFailed": "Não foi possível gerar texto de compartilhamento com IA.",
+      "deleteSubmissionFailed": "Não foi possível remover do arquivo."
     },
     "titles": {
       "lesson": "Atividade",
@@ -182,7 +194,8 @@
     },
     "confirm": {
       "deleteLesson": "Excluir atividade{title}?\n\nIsso irá arquivá-la.\nTambém tentará despublicá-la.\n\nUm administrador poderá restaurá-la depois.",
-      "restoreLesson": "Restaurar atividade{title}?"
+      "restoreLesson": "Restaurar atividade{title}?",
+      "deleteSubmission": "Remover do arquivo{title}?"
     },
     "fallback": {
       "untitledTask": "Atividade sem título"

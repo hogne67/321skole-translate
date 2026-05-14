@@ -15,6 +15,7 @@ import type {
   LessonDocWithMathWorksheet as LessonDoc,
   MathWorksheet,
 } from "@/lib/math/geometry/types";
+import { logUsageEvent } from "@/lib/usageClient";
 
 function uidNow() {
   return getAuth().currentUser?.uid ?? null;
@@ -67,10 +68,41 @@ export default function MathWorksheetPrintPage() {
         const u = uidNow();
         if (!u) throw new Error("No auth uid.");
 
-        const snap = await getDoc(doc(db, "lessons", lessonId));
+        let loadedLesson: LessonDoc | null = null;
+
+        // 1. Prøv original lesson først
+        try {
+          const ownSnap = await getDoc(doc(db, "lessons", lessonId));
+
+          if (ownSnap.exists()) {
+            const data = ownSnap.data() as LessonDoc;
+
+            const isOwner = !data.ownerId || data.ownerId === u;
+            const isPublished =
+              (data as { status?: unknown }).status === "published";
+
+            if (isOwner || isPublished) {
+              loadedLesson = data;
+            }
+          }
+        } catch {
+          // prøver published_lessons under
+        }
+
+        // 2. Prøv publisert library-versjon
+        if (!loadedLesson) {
+          const publishedSnap = await getDoc(
+            doc(db, "published_lessons", lessonId)
+          );
+
+          if (publishedSnap.exists()) {
+            loadedLesson = publishedSnap.data() as LessonDoc;
+          }
+        }
+
         if (!alive) return;
 
-        if (!snap.exists()) {
+        if (!loadedLesson) {
           setErr(t("errors.notFound"));
           setLesson(null);
           setWorksheet(null);
@@ -78,27 +110,17 @@ export default function MathWorksheetPrintPage() {
           return;
         }
 
-        const data = snap.data() as LessonDoc;
-
-        if (data.ownerId && data.ownerId !== u) {
-          setErr(t("errors.noAccess"));
-          setLesson(null);
-          setWorksheet(null);
-          setLoading(false);
-          return;
-        }
-
-        const mathWorksheet = sanitizeWorksheet(data.mathWorksheet);
+        const mathWorksheet = sanitizeWorksheet(loadedLesson.mathWorksheet);
 
         if (!mathWorksheet) {
           setErr(t("errors.invalidWorksheet"));
-          setLesson(data);
+          setLesson(loadedLesson);
           setWorksheet(null);
           setLoading(false);
           return;
         }
 
-        setLesson(data);
+        setLesson(loadedLesson);
         setWorksheet(mathWorksheet);
         setLoading(false);
       } catch (e: unknown) {
@@ -113,6 +135,23 @@ export default function MathWorksheetPrintPage() {
       alive = false;
     };
   }, [lessonId, t, localizeError]);
+
+  useEffect(() => {
+    if (!worksheet) return;
+
+    const status =
+      typeof (lesson as { status?: unknown } | null)?.status === "string"
+        ? (lesson as { status?: string }).status
+        : "";
+
+    void logUsageEvent({
+      feature: "pdf_download",
+      contentId: lessonId,
+      contentType: "math",
+      source: status === "published" ? "library" : "own",
+      path: window.location.pathname,
+    });
+  }, [worksheet, lesson, lessonId]);
 
   const handlePrint = useCallback(() => {
     const content = printRef.current;

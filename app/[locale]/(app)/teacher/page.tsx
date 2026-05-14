@@ -377,31 +377,31 @@ function SmallStatusCard({
   const style =
     tone === "warning"
       ? {
-          bg: "rgba(245,158,11,0.12)",
-          border: "rgba(245,158,11,0.35)",
-          color: "rgba(180,83,9,1)",
-          badgeBg: "rgba(245,158,11,1)",
-        }
+        bg: "rgba(245,158,11,0.12)",
+        border: "rgba(245,158,11,0.35)",
+        color: "rgba(180,83,9,1)",
+        badgeBg: "rgba(245,158,11,1)",
+      }
       : tone === "info"
         ? {
-            bg: "rgba(59,130,246,0.12)",
-            border: "rgba(59,130,246,0.35)",
-            color: "rgba(37,99,235,1)",
-            badgeBg: "rgba(59,130,246,1)",
-          }
+          bg: "rgba(59,130,246,0.12)",
+          border: "rgba(59,130,246,0.35)",
+          color: "rgba(37,99,235,1)",
+          badgeBg: "rgba(59,130,246,1)",
+        }
         : tone === "success"
           ? {
-              bg: "rgba(16,185,129,0.12)",
-              border: "rgba(16,185,129,0.35)",
-              color: "rgba(5,150,105,1)",
-              badgeBg: "rgba(16,185,129,1)",
-            }
+            bg: "rgba(16,185,129,0.12)",
+            border: "rgba(16,185,129,0.35)",
+            color: "rgba(5,150,105,1)",
+            badgeBg: "rgba(16,185,129,1)",
+          }
           : {
-              bg: "#ffffff",
-              border: "#e5e7eb",
-              color: "#64748b",
-              badgeBg: "rgba(100,116,139,1)",
-            };
+            bg: "#ffffff",
+            border: "#e5e7eb",
+            color: "#64748b",
+            badgeBg: "rgba(100,116,139,1)",
+          };
 
   return (
     <Link
@@ -743,6 +743,9 @@ export default function TeacherPage() {
   const feedbackUsed = usage["ai_feedback"] ?? 0;
   const feedbackLimit = getBucketLimit(role, effectivePlan, "ai_feedback");
 
+  const downloadsUsed = usage["downloads"] ?? 0;
+  const downloadsLimit = getBucketLimit(role, effectivePlan, "downloads");
+
   const studentsLimit = getBucketLimit(role, effectivePlan, "members");
   const studentsPercent = percent(studentsUsed, studentsLimit);
   const studentsTone = getProgressTone(studentsUsed, studentsLimit);
@@ -1040,6 +1043,13 @@ export default function TeacherPage() {
           accent="slate"
           t={t}
         />
+        <StatCard
+          title={t("cards.downloads")}
+          used={downloadsUsed}
+          limit={downloadsLimit}
+          accent="blue"
+          t={t}
+        />
       </section>
 
       <section
@@ -1326,13 +1336,12 @@ export default function TeacherPage() {
                 <div
                   style={{
                     marginTop: 12,
-                    border: `1px solid ${
-                      studentsRemaining <= 0
-                        ? "#fecaca"
-                        : studentsRemaining <= 3
-                          ? "#fde68a"
-                          : "#bfdbfe"
-                    }`,
+                    border: `1px solid ${studentsRemaining <= 0
+                      ? "#fecaca"
+                      : studentsRemaining <= 3
+                        ? "#fde68a"
+                        : "#bfdbfe"
+                      }`,
                     background:
                       studentsRemaining <= 0
                         ? "#fef2f2"
