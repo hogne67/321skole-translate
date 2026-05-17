@@ -150,16 +150,6 @@ function isDelivered(status: string | null) {
     return s === "submitted" || s === "reviewed" || s === "approved";
 }
 
-function progressLabel(status: string | null) {
-    const s = normalizeStatus(status);
-
-    if (s === "submitted") return "Du har levert";
-    if (s === "reviewed" || s === "approved") return "Ferdig";
-    if (s === "draft" || s === "needs_work") return "Du har begynt";
-
-    return "Klar";
-}
-
 function progressTone(status: string | null): StatusTone {
     const s = normalizeStatus(status);
 
@@ -181,7 +171,7 @@ function cardToneClasses(tone: StatusTone) {
 function buttonText(status: string | null) {
     const s = normalizeStatus(status);
 
-    if (s === "submitted") return "Se oppgaven";
+    if (s === "submitted") return "Levert";
     if (s === "reviewed" || s === "approved") return "Se ferdig oppgave";
     if (s === "draft" || s === "needs_work") return "Fortsett";
     return "Start";
@@ -212,6 +202,28 @@ function Badge({
     );
 }
 
+function AssignmentActionButton({
+    href,
+    status,
+}: {
+    href: string;
+    status: string | null;
+}) {
+    const delivered = isDelivered(status);
+
+    return (
+        <Link
+            href={href}
+            className={[
+                "inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-black text-white no-underline shadow-sm transition",
+                delivered ? "bg-blue-600 hover:bg-blue-500" : "bg-green-600 hover:bg-green-500",
+            ].join(" ")}
+        >
+            {buttonText(status)}
+        </Link>
+    );
+}
+
 function GoalProgressCard({ goal, done }: { goal: ParentSpaceGoalDoc; done: number }) {
     const target = typeof goal.targetCount === "number" && goal.targetCount > 0 ? goal.targetCount : null;
     const cappedDone = target ? Math.min(done, target) : done;
@@ -219,13 +231,13 @@ function GoalProgressCard({ goal, done }: { goal: ParentSpaceGoalDoc; done: numb
     const finished = target ? cappedDone >= target : false;
 
     return (
-        <section className="rounded-3xl border border-sky-200 bg-sky-50 p-6 shadow-sm sm:p-8">
-            <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={finished ? "done" : "ready"}>{finished ? "Mål nådd" : "Dagens mål"}</Badge>
+        <section className="rounded-3xl border border-sky-200 bg-sky-50 p-5 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm font-black uppercase tracking-wide text-sky-800">Mål</div>
                 {target ? <Badge tone="neutral">{cappedDone} / {target}</Badge> : null}
             </div>
 
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900">{goal.title}</h2>
+            <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-900">{goal.title}</h2>
 
             {safeString(goal.description) ? (
                 <div className="mt-3 whitespace-pre-wrap text-base leading-8 text-slate-700">
@@ -235,7 +247,7 @@ function GoalProgressCard({ goal, done }: { goal: ParentSpaceGoalDoc; done: numb
 
             {target ? (
                 <div className="mt-5">
-                    <div className="mb-2 text-base font-black text-sky-950">
+                    <div className="mb-2 text-sm font-black text-sky-950">
                         {finished
                             ? "Du klarte målet. Bra jobbet!"
                             : `Du har levert ${cappedDone} av ${target} oppgaver.`}
@@ -298,11 +310,11 @@ function AddToHomeScreenButton() {
     }
 
     return (
-        <div className="mt-5">
+        <div>
             <button
                 type="button"
                 onClick={handleInstall}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-green-500"
             >
                 Legg til på startskjerm
             </button>
@@ -557,88 +569,89 @@ export default function ChildSpacePage() {
     return (
         <main className="mx-auto flex w-full max-w-5xl flex-col gap-5">
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                <div className="text-sm font-black uppercase tracking-wide text-slate-400">321school</div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <div className="text-sm font-black uppercase tracking-wide text-slate-400">321school</div>
+                        <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-900">{spaceTitle}</h1>
+                    </div>
 
-                <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-900">{spaceTitle}</h1>
-
-                <div className="mt-3 max-w-2xl text-base leading-8 text-slate-600">
-                    Her finner du oppgavene dine.
+                    <AddToHomeScreenButton />
                 </div>
-
-                <AddToHomeScreenButton />
             </section>
 
-            {activeGoal ? <GoalProgressCard goal={activeGoal.data} done={goalCompletedCount} /> : null}
-
-            {featuredAssignment ? (
-                <section
-                    className={`overflow-hidden rounded-3xl border shadow-sm ${cardToneClasses(
-                        progressTone(progressMap[featuredAssignment.id]?.status ?? null)
-                    )}`}
-                >
-                    <div className="grid gap-0 lg:grid-cols-2">
-                        <div className="flex flex-col justify-center p-6 sm:p-8">
-                            <div className="flex flex-wrap gap-2">
-                                {featuredAssignment.id === activeAssignmentId ? (
-                                    <Badge tone="ready">Neste oppgave</Badge>
-                                ) : null}
-
-                                <Badge tone={progressTone(progressMap[featuredAssignment.id]?.status ?? null)}>
-                                    {progressLabel(progressMap[featuredAssignment.id]?.status ?? null)}
-                                </Badge>
-
-                                {progressMap[featuredAssignment.id]?.autoSummary ? (
-                                    <Badge tone="neutral">Resultat: {progressMap[featuredAssignment.id].autoSummary}</Badge>
-                                ) : null}
-
-                                {progressMap[featuredAssignment.id]?.hasAiFeedback ? (
-                                    <Badge tone="done">Tilbakemelding klar</Badge>
-                                ) : null}
-                            </div>
-
-                            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900">
-                                {safeString(featuredAssignment.data.title) ?? "Oppgave"}
-                            </h2>
-
-                            {assignmentSnippet(featuredAssignment.data) ? (
-                                <div className="mt-4 text-base leading-8 text-slate-700">
-                                    {assignmentSnippet(featuredAssignment.data)}
-                                </div>
-                            ) : null}
-
-                            <div className="mt-8">
-                                <Link
-                                    href={`/child/spaces/${spaceId}/assignments/${featuredAssignment.id}`}
-                                    className="inline-flex items-center justify-center rounded-2xl bg-green-600 px-6 py-4 text-lg font-black text-white no-underline shadow-sm transition hover:bg-green-500"
-                                >
-                                    {buttonText(progressMap[featuredAssignment.id]?.status ?? null)}
-                                </Link>
-                            </div>
-                        </div>
-
-                        <div className="min-h-[260px] bg-white/40">
-                            {pickImageUrl(featuredAssignment.data) ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={pickImageUrl(featuredAssignment.data) ?? ""}
-                                    alt={safeString(featuredAssignment.data.title) ?? "Oppgave"}
-                                    className="h-full w-full object-cover"
-                                />
-                            ) : (
-                                <div className="flex h-full items-center justify-center text-sm font-bold text-slate-400">
-                                    Oppgave
-                                </div>
-                            )}
-                        </div>
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                    <div className="flex items-center justify-between gap-3">
+                        <h2 className="text-2xl font-black text-slate-900">Oppgaver</h2>
+                        <Badge tone="neutral">{assignments.length}</Badge>
                     </div>
+
+                    {featuredAssignment ? (
+                        <div
+                            className={`mt-5 overflow-hidden rounded-3xl border shadow-sm ${cardToneClasses(
+                                progressTone(progressMap[featuredAssignment.id]?.status ?? null)
+                            )}`}
+                        >
+                            <div className="grid gap-0 xl:grid-cols-2">
+                                <div className="flex flex-col justify-center p-5 sm:p-6">
+                                    <div className="flex flex-wrap gap-2">
+                                        {progressMap[featuredAssignment.id]?.autoSummary ? (
+                                            <Badge tone="neutral">
+                                                Resultat: {progressMap[featuredAssignment.id].autoSummary}
+                                            </Badge>
+                                        ) : null}
+
+                                        {progressMap[featuredAssignment.id]?.hasAiFeedback ? (
+                                            <Badge tone="done">Tilbakemelding klar</Badge>
+                                        ) : null}
+                                    </div>
+
+                                    <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-900">
+                                        {safeString(featuredAssignment.data.title) ?? "Oppgave"}
+                                    </h3>
+
+                                    {assignmentSnippet(featuredAssignment.data) ? (
+                                        <div className="mt-4 text-sm leading-7 text-slate-700">
+                                            {assignmentSnippet(featuredAssignment.data)}
+                                        </div>
+                                    ) : null}
+
+                                    <div className="mt-6">
+                                        <AssignmentActionButton
+                                            href={`/child/spaces/${spaceId}/assignments/${featuredAssignment.id}`}
+                                            status={progressMap[featuredAssignment.id]?.status ?? null}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="min-h-[220px] bg-white/40">
+                                    {pickImageUrl(featuredAssignment.data) ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={pickImageUrl(featuredAssignment.data) ?? ""}
+                                            alt={safeString(featuredAssignment.data.title) ?? "Oppgave"}
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-sm font-bold text-slate-400">
+                                            Oppgave
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
+                            Ingen oppgaver akkurat nå.
+                        </div>
+                    )}
                 </section>
-            ) : null}
+
+                {activeGoal ? <GoalProgressCard goal={activeGoal.data} done={goalCompletedCount} /> : null}
+            </div>
 
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-2xl font-black text-slate-900">Oppgaver</h2>
-                    <Badge tone="neutral">{assignments.length}</Badge>
-                </div>
+                <h2 className="text-2xl font-black text-slate-900">Flere oppgaver</h2>
 
                 {otherAssignments.length === 0 ? (
                     <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
@@ -653,9 +666,8 @@ export default function ChildSpacePage() {
                             const tone = progressTone(progress?.status ?? null);
 
                             return (
-                                <Link
+                                <div
                                     key={item.id}
-                                    href={`/child/spaces/${spaceId}/assignments/${item.id}`}
                                     className={`group overflow-hidden rounded-3xl border no-underline shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${cardToneClasses(
                                         tone
                                     )}`}
@@ -677,8 +689,6 @@ export default function ChildSpacePage() {
 
                                     <div className="p-5">
                                         <div className="flex flex-wrap gap-2">
-                                            <Badge tone={tone}>{progressLabel(progress?.status ?? null)}</Badge>
-
                                             {progress?.autoSummary ? (
                                                 <Badge tone="neutral">Resultat: {progress.autoSummary}</Badge>
                                             ) : null}
@@ -694,11 +704,14 @@ export default function ChildSpacePage() {
                                             </div>
                                         ) : null}
 
-                                        <div className="mt-5 text-sm font-black text-green-700">
-                                            {buttonText(progress?.status ?? null)} →
+                                        <div className="mt-5">
+                                            <AssignmentActionButton
+                                                href={`/child/spaces/${spaceId}/assignments/${item.id}`}
+                                                status={progress?.status ?? null}
+                                            />
                                         </div>
                                     </div>
-                                </Link>
+                                </div>
                             );
                         })}
                     </div>
