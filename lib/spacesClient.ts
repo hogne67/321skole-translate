@@ -36,6 +36,10 @@ export type SpaceDoc = {
   activeLessonTitle?: string | null;
   activeLessonUpdatedAt?: unknown;
 
+  // Active parent-controlled goal for child mode
+  activeGoalId?: string | null;
+  activeGoalTitle?: string | null;
+
   createdAt: unknown;
   updatedAt: unknown;
 };
@@ -92,6 +96,8 @@ export async function createSpaceForTeacher(params: {
       activeLessonId: null,
       activeLessonTitle: null,
       activeLessonUpdatedAt: null,
+      activeGoalId: null,
+      activeGoalTitle: null,
 
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),

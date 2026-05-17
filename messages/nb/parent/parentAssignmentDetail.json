@@ -108,7 +108,7 @@
       "false": "Usant"
     },
     "feedback": {
-      "autoResult": "Autoresultat",
+      "autoResult": "Autokorrekt",
       "aiFeedback": "AI-tilbakemelding",
       "noneYet": "Ingen AI-tilbakemelding lagret ennå."
     },
@@ -129,6 +129,26 @@
       "openTaskLine": "- Oppgave {order}: {prompt}",
       "openAnswerTask": "Oppgave {order} (åpen): {prompt}",
       "answerLine": "Svar: {answer}"
+    },
+    "childSelfReport": {
+      "title": "Barnets egenmelding",
+      "intro": "Barnet har krysset av før levering. Dette kan hjelpe deg å gi en varm og konkret tilbakemelding.",
+      "readSilently": "Jeg har lest teksten stille.",
+      "readAloud": "Jeg har lest teksten høyt.",
+      "completedTasks": "Jeg har gjort alle oppgavene.",
+      "feltEasy": "Dette var lett.",
+      "feltHard": "Dette var vanskelig.",
+      "commentFromChild": "Kommentar fra barnet"
+    },
+    "parentAi": {
+      "title": "AI-støtte til forelderen",
+      "intro": "Få et forslag til en varm og konkret tilbakemelding basert på barnets egenmelding, svar og resultat.",
+      "button": "Få forslag til tilbakemelding",
+      "generating": "Lager forslag…",
+      "suggestion": "Forslag",
+      "useAsComment": "Send til foreldrevurdering",
+      "error": "Kunne ikke lage forslag akkurat nå.",
+      "empty": "AI laget ikke noe forslag."
     }
   }
 }

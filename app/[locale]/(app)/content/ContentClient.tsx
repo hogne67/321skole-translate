@@ -451,7 +451,7 @@ export default function ContentClient() {
 
     if (it.type === "submission") {
       if (isLibraryPractice(it)) return safeMsg("cardTypes.fromLibrary", "Fra bibliotek");
-      if (isTeacherSpaceSubmission(it)) return safeMsg("cardTypes.spaceSubmission", "Innsendt i space");
+      if (isTeacherSpaceSubmission(it)) return safeMsg("cardTypes.spaceSubmission", "Innsendt til space");
       return safeMsg("cardTypes.submission", "Innsendt oppgave");
     }
 

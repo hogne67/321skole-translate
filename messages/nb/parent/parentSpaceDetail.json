@@ -15,7 +15,10 @@
       "backToMySpaces": "Tilbake til mine spaces",
       "backMySpacesShort": "Mine spaces",
       "open": "Åpne",
-      "openSpace": "Åpne space"
+      "openSpace": "Åpne space",
+      "archive": "Arkiver",
+      "archiving": "Arkiverer…",
+      "childRoomView": "Barneromsvisning"
     },
     "missing": {
       "title": "Space ikke funnet",
@@ -28,7 +31,8 @@
       "readSpace": "Kunne ikke lese space.",
       "listenStart": "Kunne ikke starte lytting på space.",
       "readAssignments": "Kunne ikke lese oppgaver.",
-      "listenAssignmentsStart": "Kunne ikke starte lytting på oppgaver."
+      "listenAssignmentsStart": "Kunne ikke starte lytting på oppgaver.",
+      "archiveAssignment": "Kunne ikke arkivere oppgaven."
     },
     "active": {
       "title": "Aktiv aktivitet",
@@ -60,6 +64,26 @@
       "aiFeedback": "KI-tilbakemelding",
       "parentReview": "Foreldrevurdering",
       "parentReviewWithStars": "Foreldrevurdering • {stars}★"
+    },
+    "archive": {
+      "title": "Arkiverte oppgaver",
+      "none": "Ingen arkiverte oppgaver ennå."
+    },
+    "childRoomCard": {
+      "title": "Barneromsvisning",
+      "text": "Klikk her for å vise og legge til barneversjon på barna sine enheter. Husk at du må logge inn med din bruker på deres enheter også.",
+      "button": "Åpne barneromsvisning"
+    },
+    "childSelfReport": {
+      "title": "Før du leverer",
+      "intro": "Kryss av det du har gjort. Dette hjelper den voksne å gi deg bedre tilbakemelding.",
+      "readSilently": "Jeg har lest teksten stille.",
+      "readAloud": "Jeg har lest teksten høyt.",
+      "completedTasks": "Jeg har gjort alle oppgavene.",
+      "feltEasy": "Dette var lett.",
+      "feltHard": "Dette var vanskelig.",
+      "comment": "Vil du skrive noe til den voksne?",
+      "commentPlaceholder": "Skriv her hvis du vil..."
     }
   }
 }

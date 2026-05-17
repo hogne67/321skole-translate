@@ -15,7 +15,10 @@
       "backToMySpaces": "Back to my spaces",
       "backMySpacesShort": "My spaces",
       "open": "Open",
-      "openSpace": "Open space"
+      "openSpace": "Open space",
+      "archive": "Archive",
+      "archiving": "Archiving…",
+      "childRoomView": "Child room view"
     },
     "missing": {
       "title": "Space not found",
@@ -28,7 +31,8 @@
       "readSpace": "Could not read the space.",
       "listenStart": "Could not start listening to the space.",
       "readAssignments": "Could not read assignments.",
-      "listenAssignmentsStart": "Could not start listening to assignments."
+      "listenAssignmentsStart": "Could not start listening to assignments.",
+      "archiveAssignment": "Could not archive assignment."
     },
     "active": {
       "title": "Active activity",
@@ -60,6 +64,26 @@
       "aiFeedback": "AI feedback",
       "parentReview": "Parent review",
       "parentReviewWithStars": "Parent review • {stars}★"
+    },
+    "archive": {
+      "title": "Archived assignments",
+      "none": "No archived assignments yet."
+    },
+    "childRoomCard": {
+      "title": "Child room view",
+      "text": "Click here to open and add the child version on your children’s devices. Remember that you must also sign in with your user account on their devices.",
+      "button": "Open child room view"
+    },
+    "childSelfReport": {
+      "title": "Before you hand in",
+      "intro": "Tick what you have done. This helps the adult give you better feedback.",
+      "readSilently": "I have read the text silently.",
+      "readAloud": "I have read the text aloud.",
+      "completedTasks": "I have completed all the tasks.",
+      "feltEasy": "This was easy.",
+      "feltHard": "This was difficult.",
+      "comment": "Do you want to write something to the adult?",
+      "commentPlaceholder": "Write here if you want..."
     }
   }
 }

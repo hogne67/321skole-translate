@@ -148,6 +148,49 @@ service cloud.firestore {
         );
     }
 
+    function validParentGoalBase(data) {
+      return data.keys().hasOnly([
+          "title",
+          "description",
+          "status",
+          "kind",
+          "targetCount",
+          "assignmentIds",
+          "createdByUid",
+          "createdAt",
+          "updatedAt",
+          "completedAt"
+        ])
+        && data.keys().hasAll([
+          "title",
+          "status",
+          "kind",
+          "createdByUid",
+          "createdAt",
+          "updatedAt"
+        ])
+        && (data.title is string)
+        && data.title.size() > 0
+        && data.title.size() <= 120
+        && (!("description" in data) || (data.description is string && data.description.size() <= 500))
+        && (data.status in ["active", "completed", "archived"])
+        && (data.kind in ["complete_assignments", "custom"])
+        && (data.createdByUid is string)
+        && data.createdByUid == myUid()
+        && (!("targetCount" in data) || (data.targetCount is int && data.targetCount >= 1 && data.targetCount <= 100))
+        && (!("assignmentIds" in data) || data.assignmentIds is list);
+    }
+
+    function validParentGoalCreate() {
+      return validParentGoalBase(request.resource.data);
+    }
+
+    function validParentGoalUpdate() {
+      return validParentGoalBase(request.resource.data)
+        && request.resource.data.createdByUid == resource.data.createdByUid
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
     /* =========================
        SPACE BOARD (per-space)
     ========================= */
@@ -500,6 +543,21 @@ allow update: if signedIn()
 
   allow update, delete: if isAdmin() || isSpaceOwner(spaceId);
 }
+
+    /* =========================
+       PARENT SPACE GOALS
+    ========================= */
+    match /spaces/{spaceId}/goals/{goalId} {
+      allow read: if isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
+
+      allow create: if (isAdmin() || isSpaceOwner(spaceId))
+        && validParentGoalCreate();
+
+      allow update: if (isAdmin() || isSpaceOwner(spaceId))
+        && validParentGoalUpdate();
+
+      allow delete: if isAdmin() || isSpaceOwner(spaceId);
+    }
 
     /* =========================
        SPACE-LOCAL ASSIGNMENTS

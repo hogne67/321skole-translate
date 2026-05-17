@@ -13,6 +13,7 @@ type AssignBody = {
 function readBearerToken(req: NextRequest): string | null {
   const authHeader = req.headers.get("authorization") || "";
   if (!authHeader.startsWith("Bearer ")) return null;
+
   const token = authHeader.slice("Bearer ".length).trim();
   return token || null;
 }
@@ -33,17 +34,24 @@ async function readSourceLesson(
   sourceCollection: "lessons" | "published_lessons" | null;
 }> {
   const draftSnap = await db.collection("lessons").doc(sourceId).get();
+
   if (draftSnap.exists) {
     const raw = draftSnap.data();
+
     return {
       data: isRecord(raw) ? raw : {},
       sourceCollection: "lessons",
     };
   }
 
-  const publishedSnap = await db.collection("published_lessons").doc(sourceId).get();
+  const publishedSnap = await db
+    .collection("published_lessons")
+    .doc(sourceId)
+    .get();
+
   if (publishedSnap.exists) {
     const raw = publishedSnap.data();
+
     return {
       data: isRecord(raw) ? raw : {},
       sourceCollection: "published_lessons",
@@ -64,25 +72,35 @@ export async function POST(
     const { spaceId } = await params;
 
     if (!spaceId) {
-      return NextResponse.json({ error: "Missing spaceId." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing spaceId." },
+        { status: 400 }
+      );
     }
 
     const token = readBearerToken(req);
+
     if (!token) {
-      return NextResponse.json({ error: "Missing bearer token." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Missing bearer token." },
+        { status: 401 }
+      );
     }
 
     const body = (await req.json().catch(() => ({}))) as AssignBody;
+
     const sourceType = safeString(body?.sourceType);
     const sourceId = safeString(body?.sourceId);
     const requestedTitle = safeString(body?.title);
 
-    if (!sourceId) {
-      return NextResponse.json({ error: "Missing sourceId." }, { status: 400 });
-    }
+    const normalizedSourceType =
+      sourceType === "library" ? "library" : "myContent";
 
-    if (sourceType && sourceType !== "myContent") {
-      return NextResponse.json({ error: "Unsupported sourceType." }, { status: 400 });
+    if (!sourceId) {
+      return NextResponse.json(
+        { error: "Missing sourceId." },
+        { status: 400 }
+      );
     }
 
     const app = getAdminApp();
@@ -96,21 +114,30 @@ export async function POST(
     const userSnap = await userRef.get();
 
     if (!userSnap.exists) {
-      return NextResponse.json({ error: "User profile not found." }, { status: 403 });
+      return NextResponse.json(
+        { error: "User profile not found." },
+        { status: 403 }
+      );
     }
 
     const userData = (userSnap.data() ?? {}) as Record<string, unknown>;
     const role = safeString(userData.role);
 
     if (role !== "parent" && role !== "admin") {
-      return NextResponse.json({ error: "Only parent can assign to parent spaces." }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only parent can assign to parent spaces." },
+        { status: 403 }
+      );
     }
 
     const spaceRef = adminDb.collection("spaces").doc(spaceId);
     const spaceSnap = await spaceRef.get();
 
     if (!spaceSnap.exists) {
-      return NextResponse.json({ error: "Space not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Space not found." },
+        { status: 404 }
+      );
     }
 
     const spaceData = (spaceSnap.data() ?? {}) as Record<string, unknown>;
@@ -118,35 +145,55 @@ export async function POST(
     const kind = safeString(spaceData.kind);
 
     if (role !== "admin" && ownerId !== uid) {
-      return NextResponse.json({ error: "You do not own this parent space." }, { status: 403 });
+      return NextResponse.json(
+        { error: "You do not own this parent space." },
+        { status: 403 }
+      );
     }
 
     if (kind !== "family" && kind !== "parent_group") {
-      return NextResponse.json({ error: "This is not a parent space." }, { status: 400 });
+      return NextResponse.json(
+        { error: "This is not a parent space." },
+        { status: 400 }
+      );
     }
 
     const source = await readSourceLesson(adminDb, sourceId);
 
     if (!source.data || !source.sourceCollection) {
-      return NextResponse.json({ error: "Source lesson not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Source lesson not found." },
+        { status: 404 }
+      );
     }
 
     const lessonData = source.data;
-    const lessonTitle = requestedTitle || safeString(lessonData.title) || "Untitled task";
+
+    const lessonTitle =
+      requestedTitle ||
+      safeString(lessonData.title) ||
+      "Untitled task";
 
     const targetRef = spaceRef.collection("lessons").doc();
 
     const assignmentDoc: Record<string, unknown> = {
       ...lessonData,
+
       title: lessonTitle,
+
       sourceId,
-      sourceType: sourceType || "myContent",
+      sourceType: normalizedSourceType,
       sourceCollection: source.sourceCollection,
+
       assignedByUid: uid,
       assignedByRole: role === "admin" ? "admin" : "parent",
+
       ownerId: uid,
+
       archived: false,
+
       updatedAt: FieldValue.serverTimestamp(),
+
       copiedFromLessonId: sourceId,
       copiedAt: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp(),
@@ -177,8 +224,13 @@ export async function POST(
     });
   } catch (error: unknown) {
     const message =
-      error instanceof Error ? error.message : "Could not assign lesson to parent space.";
+      error instanceof Error
+        ? error.message
+        : "Could not assign lesson to parent space.";
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: message },
+      { status: 500 }
+    );
   }
 }

@@ -129,6 +129,26 @@
       "openTaskLine": "- Task {order}: {prompt}",
       "openAnswerTask": "Task {order} (open): {prompt}",
       "answerLine": "Answer: {answer}"
+    },
+    "childSelfReport": {
+      "title": "Child self-report",
+      "intro": "The child ticked these before handing in. This can help you give warm and specific feedback.",
+      "readSilently": "I have read the text silently.",
+      "readAloud": "I have read the text aloud.",
+      "completedTasks": "I have completed all the tasks.",
+      "feltEasy": "This was easy.",
+      "feltHard": "This was difficult.",
+      "commentFromChild": "Comment from the child"
+    },
+    "parentAi": {
+      "title": "AI support for the parent",
+      "intro": "Get a warm and specific feedback suggestion based on the child’s self-report, answers and result.",
+      "button": "Get feedback suggestion",
+      "generating": "Generating suggestion…",
+      "suggestion": "Suggestion",
+      "useAsComment": "Send for parent review",
+      "error": "Could not generate a suggestion right now.",
+      "empty": "The AI did not generate a suggestion."
     }
   }
 }

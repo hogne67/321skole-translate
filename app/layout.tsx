@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import Providers from "./Providers";
+import PwaInstallSupport from "@/components/PwaInstallSupport";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,9 +23,10 @@ export const metadata: Metadata = {
   title: "321 Skole",
   description:
     "321 Skole er en digital læringsplattform for lærere, elever og foresatte.",
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
     apple: "/apple-touch-icon.png",
   },
 };
@@ -68,7 +70,10 @@ export default function RootLayout({
           }}
         />
 
-        <Providers>{children}</Providers>
+        <Providers>
+          <PwaInstallSupport />
+          {children}
+        </Providers>
       </body>
     </html>
   );

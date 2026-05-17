@@ -129,6 +129,26 @@
       "openTaskLine": "- Tarefa {order}: {prompt}",
       "openAnswerTask": "Tarefa {order} (aberta): {prompt}",
       "answerLine": "Resposta: {answer}"
+    },
+    "childSelfReport": {
+      "title": "Autoavaliação da criança",
+      "intro": "A criança marcou estas opções antes de entregar. Isso pode ajudar você a dar um retorno acolhedor e mais específico.",
+      "readSilently": "Eu li o texto em silêncio.",
+      "readAloud": "Eu li o texto em voz alta.",
+      "completedTasks": "Eu fiz todas as atividades.",
+      "feltEasy": "Isso foi fácil.",
+      "feltHard": "Isso foi difícil.",
+      "commentFromChild": "Comentário da criança"
+    },
+    "parentAi": {
+      "title": "Apoio de IA para os pais",
+      "intro": "Receba uma sugestão de retorno acolhedora e concreta com base na autoavaliação, nas respostas e no resultado da criança.",
+      "button": "Receber sugestão de retorno",
+      "generating": "Gerando sugestão…",
+      "suggestion": "Sugestão",
+      "useAsComment": "Enviar para revisão dos pais",
+      "error": "Não foi possível gerar uma sugestão agora.",
+      "empty": "A IA não gerou uma sugestão."
     }
   }
 }

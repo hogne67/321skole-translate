@@ -15,7 +15,10 @@
       "backToMySpaces": "Voltar para meus spaces",
       "backMySpacesShort": "Meus spaces",
       "open": "Abrir",
-      "openSpace": "Abrir space"
+      "openSpace": "Abrir space",
+      "archive": "Arquivar",
+      "archiving": "Arquivando…",
+      "childRoomView": "Visualização da sala da criança"
     },
     "missing": {
       "title": "Space não encontrado",
@@ -28,7 +31,8 @@
       "readSpace": "Não foi possível ler o space.",
       "listenStart": "Não foi possível iniciar a escuta do space.",
       "readAssignments": "Não foi possível ler as atividades.",
-      "listenAssignmentsStart": "Não foi possível iniciar a escuta das atividades."
+      "listenAssignmentsStart": "Não foi possível iniciar a escuta das atividades.",
+      "archiveAssignment": "Não foi possível arquivar a atividade."
     },
     "active": {
       "title": "Atividade ativa",
@@ -60,6 +64,26 @@
       "aiFeedback": "Feedback com IA",
       "parentReview": "Avaliação dos pais",
       "parentReviewWithStars": "Avaliação dos pais • {stars}★"
+    },
+    "archive": {
+      "title": "Atividades arquivadas",
+      "none": "Ainda não há atividades arquivadas."
+    },
+    "childRoomCard": {
+      "title": "Visualização da sala da criança",
+      "text": "Clique aqui para abrir e adicionar a versão infantil nos dispositivos das crianças. Lembre-se de que você também precisa entrar com o seu usuário nos dispositivos delas.",
+      "button": "Abrir visualização infantil"
+    },
+    "childSelfReport": {
+      "title": "Antes de entregar",
+      "intro": "Marque o que você fez. Isso ajuda o adulto a dar uma resposta melhor para você.",
+      "readSilently": "Eu li o texto em silêncio.",
+      "readAloud": "Eu li o texto em voz alta.",
+      "completedTasks": "Eu fiz todas as atividades.",
+      "feltEasy": "Isso foi fácil.",
+      "feltHard": "Isso foi difícil.",
+      "comment": "Você quer escrever algo para o adulto?",
+      "commentPlaceholder": "Escreva aqui se quiser..."
     }
   }
 }
