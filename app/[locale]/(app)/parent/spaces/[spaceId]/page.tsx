@@ -258,7 +258,7 @@ export default function ParentSpaceDetailPage() {
 
   async function createGoal() {
     if (!user?.uid) {
-      setGoalMsg("Du må være innlogget for å lage mål.");
+      setGoalMsg(t("goals.loginRequired"));
       return;
     }
 
@@ -266,12 +266,12 @@ export default function ParentSpaceDetailPage() {
     const targetCount = Number(goalTargetCount);
 
     if (!title) {
-      setGoalMsg("Skriv inn et mål først.");
+      setGoalMsg(t("goals.titleRequired"));
       return;
     }
 
     if (!Number.isInteger(targetCount) || targetCount < 1 || targetCount > 100) {
-      setGoalMsg("Antall oppgaver må være mellom 1 og 100.");
+      setGoalMsg(t("goals.targetInvalid"));
       return;
     }
 
@@ -314,9 +314,9 @@ export default function ParentSpaceDetailPage() {
 
       setGoalTitle("");
       setGoalTargetCount("3");
-      setGoalMsg("Målet er lagret.");
+      setGoalMsg(t("goals.saved"));
     } catch (e: unknown) {
-      setGoalMsg(errMessage(e, "Kunne ikke lagre målet."));
+      setGoalMsg(errMessage(e, t("goals.saveFailed")));
     } finally {
       setGoalBusy(false);
     }
@@ -347,14 +347,14 @@ export default function ParentSpaceDetailPage() {
           setMissing(false);
           setSpace(snap.data() as SpaceDoc);
         },
-        (e: unknown) => setErr(errMessage(e, tx("errors.readSpace", "Could not read space.")))
+        (e: unknown) => setErr(errMessage(e, t("errors.readSpace")))
       );
     } catch (e: unknown) {
       setErr(errMessage(e, tx("errors.listenStart", "Could not start space listener.")));
     }
 
     return () => unsub?.();
-  }, [spaceId, tx]);
+  }, [spaceId, t, tx]);
 
   useEffect(() => {
     setAssignErr(null);
@@ -384,7 +384,7 @@ export default function ParentSpaceDetailPage() {
           setAssignments(out);
         },
         (e: unknown) =>
-          setAssignErr(errMessage(e, tx("errors.readAssignments", "Could not read assignments.")))
+          setAssignErr(errMessage(e, t("errors.readAssignments")))
       );
     } catch (e: unknown) {
       setAssignErr(
@@ -393,7 +393,7 @@ export default function ParentSpaceDetailPage() {
     }
 
     return () => unsub?.();
-  }, [spaceId, collatorLocale, tx]);
+  }, [spaceId, collatorLocale, t, tx]);
 
   useEffect(() => {
     let unsub: (() => void) | null = null;
@@ -413,14 +413,14 @@ export default function ParentSpaceDetailPage() {
 
           setGoals(out);
         },
-        (e: unknown) => setGoalMsg(errMessage(e, "Kunne ikke lese mål."))
+        (e: unknown) => setGoalMsg(errMessage(e, t("goals.readFailed")))
       );
     } catch (e: unknown) {
-      setGoalMsg(errMessage(e, "Kunne ikke starte målvisning."));
+      setGoalMsg(errMessage(e, t("goals.listenFailed")));
     }
 
     return () => unsub?.();
-  }, [spaceId]);
+  }, [spaceId, t]);
 
   useEffect(() => {
     if (!user?.uid || assignments.length === 0) {
@@ -701,14 +701,17 @@ export default function ParentSpaceDetailPage() {
 
         <aside className="grid min-w-0 gap-4 lg:sticky lg:top-4">
           <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm sm:p-5">
-            <div className="text-base font-semibold text-sky-950">Mål for barnerommet</div>
+            <div className="text-base font-semibold text-sky-950">{t("goals.sectionTitle")}</div>
 
             {activeGoal ? (
               <div className="mt-3 rounded-xl border border-sky-200 bg-white p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge text="Aktivt mål" tone="good" />
+                  <Badge text={t("goals.active")} tone="good" />
                   {typeof activeGoal.data.targetCount === "number" ? (
-                    <Badge text={`${activeGoal.data.targetCount} oppgaver`} tone="neutral" />
+                    <Badge
+                      text={t("goals.tasksCount", { count: activeGoal.data.targetCount })}
+                      tone="neutral"
+                    />
                   ) : null}
                 </div>
 
@@ -724,7 +727,7 @@ export default function ParentSpaceDetailPage() {
               </div>
             ) : (
               <div className="mt-2 text-sm leading-6 text-sky-900">
-                Lag et enkelt mål barnet kan jobbe mot i barnevisningen.
+                {t("goals.empty")}
               </div>
             )}
 
@@ -736,19 +739,19 @@ export default function ParentSpaceDetailPage() {
               }}
             >
               <label className="block text-xs font-black uppercase tracking-wide text-slate-500">
-                Nytt mål
+                {t("goals.newGoal")}
               </label>
 
               <input
                 value={goalTitle}
                 onChange={(e) => setGoalTitle(e.target.value)}
-                placeholder="Fullfør 3 oppgaver denne uka"
+                placeholder={t("goals.placeholder")}
                 maxLength={120}
                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
               />
 
               <label className="mt-3 block text-xs font-black uppercase tracking-wide text-slate-500">
-                Antall oppgaver
+                {t("goals.targetLabel")}
               </label>
 
               <input
@@ -765,7 +768,7 @@ export default function ParentSpaceDetailPage() {
                 disabled={goalBusy}
                 className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-bold text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {goalBusy ? "Lagrer..." : "Lagre mål"}
+                {goalBusy ? t("goals.saving") : t("goals.save")}
               </button>
 
               {goalMsg ? <div className="mt-3 text-sm font-semibold text-slate-600">{goalMsg}</div> : null}
@@ -774,7 +777,7 @@ export default function ParentSpaceDetailPage() {
 
           <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:p-5">
             <div className="text-base font-semibold text-emerald-950">
-              {tx("childRoomCard.title", "Barneromsvisning")}
+              {t("childRoomCard.title")}
             </div>
             <div className="mt-1 text-sm leading-6 text-emerald-900">
               {tx(

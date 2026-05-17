@@ -1,0 +1,80 @@
+{
+  "childAssignment": {
+    "fallbacks": {
+      "assignmentTitle": "Atividade",
+      "spaceTitle": "Minha sala",
+      "audio": "Áudio"
+    },
+    "errors": {
+      "readRoom": "Não foi possível ler a sala.",
+      "readAssignment": "Não foi possível ler a atividade.",
+      "audioFailed": "Não foi possível tocar o áudio.",
+      "loginRequired": "Um adulto precisa estar conectado.",
+      "saveFailed": "Não foi possível salvar a atividade.",
+      "title": "Ops, algo deu errado",
+      "body": "Não conseguimos abrir a atividade agora."
+    },
+    "messages": {
+      "submitted": "Muito bem! A atividade foi entregue.",
+      "loading": "Carregando atividade...",
+      "celebrationTitle": "Muito bem!",
+      "celebrationText": "A atividade foi entregue.",
+      "delivered": "A atividade foi entregue.",
+      "readyToSubmit": "Quando terminar, você pode entregar a atividade."
+    },
+    "actions": {
+      "back": "Voltar",
+      "backToRoom": "Voltar para a sala",
+      "read": "Ler",
+      "playText": "Tocar o texto",
+      "save": "Entregar atividade",
+      "saving": "Salvando...",
+      "delivered": "Você entregou",
+      "pause": "Pausar",
+      "continue": "Continuar",
+      "stop": "Parar"
+    },
+    "feedback": {
+      "kicker": "Novidade da atividade",
+      "title": "Você recebeu resultado e feedback",
+      "hint": "Toque aqui para ver o resultado, as estrelas e a mensagem de casa.",
+      "submittedTitle": "A atividade foi entregue",
+      "submittedText": "Muito bem! Você enviou a atividade.",
+      "resultTitle": "Resultado",
+      "result": "Você acertou {value}",
+      "resultHint": "Veja as tarefas abaixo. Respostas verdes estão corretas. Respostas amarelas merecem mais uma tentativa.",
+      "feedbackTitle": "Feedback",
+      "homeGreeting": "Mensagem de casa"
+    },
+    "content": {
+      "readFirst": "Leia primeiro",
+      "textLabel": "O texto",
+      "tasks": "Atividades",
+      "none": "Ainda não há tarefas aqui.",
+      "taskNumber": "Atividade {number}",
+      "optionLabel": "Alternativa {number}",
+      "true": "Verdadeiro",
+      "false": "Falso",
+      "answerPlaceholder": "Escreva sua resposta aqui...",
+      "answerSaved": "Resposta salva",
+      "notAnswered": "Ainda não respondido",
+      "correct": "Você conseguiu!",
+      "tryAgain": "Quase! Tente mais uma vez."
+    },
+    "selfReport": {
+      "title": "Antes de entregar",
+      "intro": "Marque o que você fez. Isso ajuda o adulto a dar uma resposta melhor para você.",
+      "readSilently": "Eu li o texto em silêncio.",
+      "readAloud": "Eu li o texto em voz alta.",
+      "completedTasks": "Eu fiz todas as atividades.",
+      "feltEasy": "Isso foi fácil.",
+      "feltHard": "Isso foi difícil.",
+      "comment": "Você quer escrever algo para o adulto?",
+      "commentPlaceholder": "Escreva aqui se quiser..."
+    },
+    "audio": {
+      "loading": "Carregando áudio...",
+      "playing": "Tocando: {label}"
+    }
+  }
+}

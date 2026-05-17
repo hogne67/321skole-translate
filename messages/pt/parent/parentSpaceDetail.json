@@ -69,6 +69,24 @@
       "title": "Atividades arquivadas",
       "none": "Ainda não há atividades arquivadas."
     },
+    "goals": {
+      "loginRequired": "Você precisa estar conectado para criar uma meta.",
+      "titleRequired": "Escreva uma meta primeiro.",
+      "targetInvalid": "O número de atividades deve ficar entre 1 e 100.",
+      "saved": "A meta foi salva.",
+      "saveFailed": "Não foi possível salvar a meta.",
+      "readFailed": "Não foi possível ler as metas.",
+      "listenFailed": "Não foi possível iniciar a visualização de metas.",
+      "sectionTitle": "Meta para a sala da criança",
+      "active": "Meta ativa",
+      "tasksCount": "{count} atividades",
+      "empty": "Crie uma meta simples para a criança trabalhar na visualização infantil.",
+      "newGoal": "Nova meta",
+      "placeholder": "Concluir 3 atividades esta semana",
+      "targetLabel": "Número de atividades",
+      "save": "Salvar meta",
+      "saving": "Salvando..."
+    },
     "childRoomCard": {
       "title": "Visualização da sala da criança",
       "text": "Clique aqui para abrir e adicionar a versão infantil nos dispositivos das crianças. Lembre-se de que você também precisa entrar com o seu usuário nos dispositivos delas.",

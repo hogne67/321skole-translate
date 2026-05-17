@@ -38,6 +38,8 @@ import studentSubmission from "./student/studentSubmission.json";
 import studentDashboard from "./student/dashboard.json";
 import studentDashboardIntro from "./student/dashboardIntro.json";
 import studentBoard from "./student/studentBoard.json";
+import studentChildSpace from "./student/childSpace.json";
+import studentChildAssignment from "./student/childAssignment.json";
 
 import parentParentSpaces from "./parent/parentSpaces.json";
 import parentParentSpaceDetail from "./parent/parentSpaceDetail.json";
@@ -101,6 +103,8 @@ const messages = {
   ...studentDashboard,
   ...studentDashboardIntro,
   ...studentBoard,
+  ...studentChildSpace,
+  ...studentChildAssignment,
 
   ...parentParentSpaces,
   ...parentParentSpaceDetail,

@@ -1,0 +1,48 @@
+{
+  "childSpace": {
+    "brand": "321school",
+    "fallbacks": {
+      "spaceTitle": "My room",
+      "assignmentTitle": "Assignment"
+    },
+    "errors": {
+      "title": "Something went wrong",
+      "readRoom": "Could not read room.",
+      "readAssignments": "Could not read assignments.",
+      "readGoals": "Could not read goals."
+    },
+    "install": {
+      "button": "Add to Home Screen",
+      "manualHint": "On tablets and phones, you can also use the browser menu and choose Add to Home Screen.",
+      "accepted": "The room is now ready on the Home Screen.",
+      "dismissed": "You can add it later.",
+      "tip": "Tip: This works best when the page is set up as an app/PWA."
+    },
+    "actions": {
+      "start": "Start",
+      "delivered": "Delivered",
+      "continue": "Continue",
+      "viewCompleted": "See completed assignment"
+    },
+    "goal": {
+      "title": "Goal",
+      "completed": "You reached the goal. Well done!",
+      "progress": "You have handed in {done} of {target} assignments."
+    },
+    "assignments": {
+      "title": "Assignments",
+      "moreTitle": "More assignments",
+      "none": "No assignments right now.",
+      "noneMore": "No more assignments right now.",
+      "result": "Result: {value}",
+      "feedbackReady": "Feedback ready",
+      "feedback": "Feedback"
+    },
+    "startPage": {
+      "title": "Child room",
+      "opening": "Opening child room...",
+      "missingSavedRoom": "Open the child room from the parent page one more time, then the Home Screen icon will remember the right room.",
+      "parentSpaces": "Go to parent rooms"
+    }
+  }
+}

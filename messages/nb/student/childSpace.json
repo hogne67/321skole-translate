@@ -1,0 +1,48 @@
+{
+  "childSpace": {
+    "brand": "321school",
+    "fallbacks": {
+      "spaceTitle": "Mitt rom",
+      "assignmentTitle": "Oppgave"
+    },
+    "errors": {
+      "title": "Noe gikk galt",
+      "readRoom": "Kunne ikke lese rommet.",
+      "readAssignments": "Kunne ikke lese oppgaver.",
+      "readGoals": "Kunne ikke lese mål."
+    },
+    "install": {
+      "button": "Legg til på startskjerm",
+      "manualHint": "På nettbrett og mobil kan du også bruke nettleserens meny og velge Legg til på startskjerm.",
+      "accepted": "Nå ligger rommet klart på startskjermen.",
+      "dismissed": "Du kan legge det til senere.",
+      "tip": "Tips: Dette virker best når siden er satt opp som app/PWA."
+    },
+    "actions": {
+      "start": "Start",
+      "delivered": "Levert",
+      "continue": "Fortsett",
+      "viewCompleted": "Se ferdig oppgave"
+    },
+    "goal": {
+      "title": "Mål",
+      "completed": "Du klarte målet. Bra jobbet!",
+      "progress": "Du har levert {done} av {target} oppgaver."
+    },
+    "assignments": {
+      "title": "Oppgaver",
+      "moreTitle": "Flere oppgaver",
+      "none": "Ingen oppgaver akkurat nå.",
+      "noneMore": "Ingen flere oppgaver akkurat nå.",
+      "result": "Resultat: {value}",
+      "feedbackReady": "Tilbakemelding klar",
+      "feedback": "Tilbakemelding"
+    },
+    "startPage": {
+      "title": "Barnerom",
+      "opening": "Åpner barnerommet...",
+      "missingSavedRoom": "Åpne barnerommet fra foreldresiden én gang til, så husker startskjerm-ikonet riktig rom.",
+      "parentSpaces": "Gå til foreldrerom"
+    }
+  }
+}

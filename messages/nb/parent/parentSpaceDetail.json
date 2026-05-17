@@ -69,6 +69,24 @@
       "title": "Arkiverte oppgaver",
       "none": "Ingen arkiverte oppgaver ennå."
     },
+    "goals": {
+      "loginRequired": "Du må være innlogget for å lage mål.",
+      "titleRequired": "Skriv inn et mål først.",
+      "targetInvalid": "Antall oppgaver må være mellom 1 og 100.",
+      "saved": "Målet er lagret.",
+      "saveFailed": "Kunne ikke lagre målet.",
+      "readFailed": "Kunne ikke lese mål.",
+      "listenFailed": "Kunne ikke starte målvisning.",
+      "sectionTitle": "Mål for barnerommet",
+      "active": "Aktivt mål",
+      "tasksCount": "{count} oppgaver",
+      "empty": "Lag et enkelt mål barnet kan jobbe mot i barnevisningen.",
+      "newGoal": "Nytt mål",
+      "placeholder": "Fullfør 3 oppgaver denne uka",
+      "targetLabel": "Antall oppgaver",
+      "save": "Lagre mål",
+      "saving": "Lagrer..."
+    },
     "childRoomCard": {
       "title": "Barneromsvisning",
       "text": "Klikk her for å vise og legge til barneversjon på barna sine enheter. Husk at du må logge inn med din bruker på deres enheter også.",

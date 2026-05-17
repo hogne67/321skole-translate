@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { db } from "@/lib/firebase";
 import {
     doc,
@@ -332,11 +333,11 @@ function Badge({
     );
 }
 
-function AudioSpinner() {
+function AudioSpinner({ label }: { label: string }) {
     return (
         <div className="inline-flex items-center gap-2">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-sky-300 border-t-sky-700" />
-            <span>Laster lyd…</span>
+            <span>{label}</span>
         </div>
     );
 }
@@ -346,6 +347,7 @@ export default function ChildAssignmentPage() {
         spaceId: string;
         assignmentId: string;
     }>();
+    const t = useTranslations("childAssignment");
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -390,11 +392,11 @@ export default function ChildAssignmentPage() {
                 (e) => setErr(e.message)
             );
         } catch (e: unknown) {
-            setErr(e instanceof Error ? e.message : "Could not read room.");
+            setErr(e instanceof Error ? e.message : t("errors.readRoom"));
         }
 
         return () => unsub?.();
-    }, [spaceId]);
+    }, [spaceId, t]);
 
     useEffect(() => {
         let unsub: (() => void) | null = null;
@@ -408,11 +410,11 @@ export default function ChildAssignmentPage() {
                 (e) => setErr(e.message)
             );
         } catch (e: unknown) {
-            setErr(e instanceof Error ? e.message : "Could not read assignment.");
+            setErr(e instanceof Error ? e.message : t("errors.readAssignment"));
         }
 
         return () => unsub?.();
-    }, [spaceId, assignmentId]);
+    }, [spaceId, assignmentId, t]);
 
     useEffect(() => {
         if (!user?.uid) return;
@@ -504,8 +506,8 @@ export default function ChildAssignmentPage() {
     }, [sourceText]);
 
     const img = assignment ? pickImageUrl(assignment) : null;
-    const title = safeString(assignment?.title) ?? "Oppgave";
-    const spaceTitle = safeString((space as Record<string, unknown> | null)?.title) ?? "Mitt rom";
+    const title = safeString(assignment?.title) ?? t("fallbacks.assignmentTitle");
+    const spaceTitle = safeString((space as Record<string, unknown> | null)?.title) ?? t("fallbacks.spaceTitle");
     const autoSummary = renderAutoSummary(submission?.auto);
     const ttsLang = toTtsLang(assignment?.language);
     const submitted = submission?.status === "submitted";
@@ -622,7 +624,7 @@ export default function ChildAssignmentPage() {
 
             await a.play();
         } catch (e: unknown) {
-            setMsg(e instanceof Error ? e.message : "Kunne ikke spille lyd.");
+            setMsg(e instanceof Error ? e.message : t("errors.audioFailed"));
             stopAudio();
         } finally {
             setTtsBusy(null);
@@ -635,7 +637,7 @@ export default function ChildAssignmentPage() {
 
     async function submitAssignment() {
         if (!assignment || !user?.uid) {
-            setMsg("En voksen må være innlogget.");
+            setMsg(t("errors.loginRequired"));
             return;
         }
 
@@ -686,9 +688,9 @@ export default function ChildAssignmentPage() {
             setCelebrate(true);
             setFeedbackOpen(true);
             setTimeout(() => setCelebrate(false), 3500);
-            setMsg("Bra jobbet! Oppgaven er levert.");
+            setMsg(t("messages.submitted"));
         } catch (e: unknown) {
-            setErr(e instanceof Error ? e.message : "Kunne ikke lagre oppgaven.");
+            setErr(e instanceof Error ? e.message : t("errors.saveFailed"));
         } finally {
             setSaving(false);
         }
@@ -699,16 +701,16 @@ export default function ChildAssignmentPage() {
             <main className="mx-auto max-w-3xl p-4">
                 <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
                     <div className="text-5xl">😕</div>
-                    <h1 className="mt-4 text-2xl font-black text-amber-900">Oi, noe gikk galt</h1>
+                    <h1 className="mt-4 text-2xl font-black text-amber-900">{t("errors.title")}</h1>
                     <div className="mt-3 text-base leading-7 text-amber-800">
-                        Vi klarte ikke å åpne oppgaven akkurat nå.
+                        {t("errors.body")}
                     </div>
 
                     <Link
                         href={backHref}
                         className="mt-5 inline-flex rounded-2xl bg-amber-500 px-5 py-3 text-sm font-black text-white no-underline"
                     >
-                        Tilbake til rommet
+                        {t("actions.backToRoom")}
                     </Link>
 
                     {process.env.NODE_ENV === "development" ? (
@@ -722,7 +724,7 @@ export default function ChildAssignmentPage() {
     }
 
     if (!assignment) {
-        return <main className="p-4 text-sm text-slate-600">Laster oppgave…</main>;
+        return <main className="p-4 text-sm text-slate-600">{t("messages.loading")}</main>;
     }
 
     return (
@@ -730,9 +732,9 @@ export default function ChildAssignmentPage() {
             {celebrate ? (
                 <section className="animate-pulse rounded-3xl border border-green-200 bg-gradient-to-br from-green-100 to-emerald-50 p-8 text-center shadow-lg">
                     <div className="text-6xl">🎉</div>
-                    <h2 className="mt-4 text-4xl font-black text-green-900">Bra jobbet!</h2>
+                    <h2 className="mt-4 text-4xl font-black text-green-900">{t("messages.celebrationTitle")}</h2>
                     <div className="mt-3 text-lg font-bold text-green-800">
-                        Oppgaven er levert.
+                        {t("messages.celebrationText")}
                     </div>
                 </section>
             ) : null}
@@ -753,7 +755,7 @@ export default function ChildAssignmentPage() {
                         href={backHref}
                         className="inline-flex rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 no-underline shadow-sm hover:bg-slate-50"
                     >
-                        ← Tilbake
+                        ← {t("actions.back")}
                     </Link>
                 </div>
             </section>
@@ -767,13 +769,13 @@ export default function ChildAssignmentPage() {
                     >
                         <div>
                             <div className="text-sm font-black uppercase tracking-wide text-emerald-700">
-                                Nytt fra oppgaven
+                                {t("feedback.kicker")}
                             </div>
                             <div className="mt-1 text-2xl font-black text-emerald-950">
-                                Du har fått resultat og tilbakemelding ✨
+                                {t("feedback.title")}
                             </div>
                             <div className="mt-1 text-sm font-semibold text-emerald-800">
-                                Trykk her for å se resultat, stjerner og hilsen hjemmefra.
+                                {t("feedback.hint")}
                             </div>
                         </div>
 
@@ -787,10 +789,10 @@ export default function ChildAssignmentPage() {
                             {submitted ? (
                                 <div className="rounded-2xl border border-sky-200 bg-white p-4">
                                     <div className="text-sm font-black text-sky-700">
-                                        Oppgaven er levert
+                                        {t("feedback.submittedTitle")}
                                     </div>
                                     <div className="mt-1 text-base font-semibold leading-7 text-slate-800">
-                                        Bra jobbet! Du har sendt inn oppgaven.
+                                        {t("feedback.submittedText")}
                                     </div>
                                 </div>
                             ) : null}
@@ -798,13 +800,13 @@ export default function ChildAssignmentPage() {
                             {autoSummary ? (
                                 <div className="rounded-2xl border border-green-200 bg-white p-4">
                                     <div className="text-sm font-black text-green-700">
-                                        Resultat
+                                        {t("feedback.resultTitle")}
                                     </div>
                                     <div className="mt-1 text-xl font-black text-green-900">
-                                        Du klarte {autoSummary}
+                                        {t("feedback.result", { value: autoSummary })}
                                     </div>
                                     <div className="mt-1 text-base font-semibold leading-7 text-slate-800">
-                                        Se på oppgavene under. Grønne svar er riktige. Gule svar kan du tenke litt mer på.
+                                        {t("feedback.resultHint")}
                                     </div>
                                 </div>
                             ) : null}
@@ -813,18 +815,18 @@ export default function ChildAssignmentPage() {
                                 <div className="rounded-2xl border border-emerald-200 bg-white p-4">
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="text-sm font-black text-emerald-700">
-                                            Tilbakemelding
+                                            {t("feedback.feedbackTitle")}
                                         </div>
 
                                         <button
                                             type="button"
                                             onClick={() =>
-                                                playTTS(submission.aiFeedback ?? "", "feedback", "Tilbakemelding")
+                                                playTTS(submission.aiFeedback ?? "", "feedback", t("feedback.feedbackTitle"))
                                             }
                                             disabled={ttsBusy === "feedback"}
                                             className="rounded-2xl bg-sky-100 px-4 py-3 text-sm font-black text-sky-900 hover:bg-sky-200 disabled:opacity-60"
                                         >
-                                            {ttsBusy === "feedback" ? <AudioSpinner /> : "🔊 Les"}
+                                            {ttsBusy === "feedback" ? <AudioSpinner label={t("audio.loading")} /> : `🔊 ${t("actions.read")}`}
                                         </button>
                                     </div>
 
@@ -837,7 +839,7 @@ export default function ChildAssignmentPage() {
                             {(parentReview?.comment || parentReview?.stars) ? (
                                 <div className="rounded-2xl border border-yellow-200 bg-white p-4">
                                     <div className="text-sm font-black text-yellow-700">
-                                        Hilsen hjemmefra 💛
+                                        {t("feedback.homeGreeting")} 💛
                                     </div>
 
                                     {renderStars(parentReview?.stars) ? (
@@ -869,18 +871,18 @@ export default function ChildAssignmentPage() {
                 <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
                     <div className="sticky top-3 z-10 mb-5 rounded-3xl border border-sky-200 bg-sky-50/95 p-4 shadow-sm backdrop-blur">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <h2 className="text-2xl font-black text-slate-900">Les først</h2>
+                            <h2 className="text-2xl font-black text-slate-900">{t("content.readFirst")}</h2>
 
                             <button
                                 type="button"
-                                onClick={() => playTTS(sourceText, "text", "Teksten")}
+                                onClick={() => playTTS(sourceText, "text", t("content.textLabel"))}
                                 disabled={ttsBusy === "text"}
                                 className="rounded-2xl bg-sky-200 px-5 py-3 text-base font-black text-sky-950 transition hover:scale-[1.03] hover:bg-sky-300 disabled:opacity-60"
                             >
                                 {ttsBusy === "text" ? (
-                                    <AudioSpinner />
+                                    <AudioSpinner label={t("audio.loading")} />
                                 ) : (
-                                    <span>🔊 Spill av teksten</span>
+                                    <span>🔊 {t("actions.playText")}</span>
                                 )}
                             </button>
                         </div>
@@ -903,10 +905,10 @@ export default function ChildAssignmentPage() {
             ) : null}
 
             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                <h2 className="text-2xl font-black text-slate-900">Oppgaver</h2>
+                <h2 className="text-2xl font-black text-slate-900">{t("content.tasks")}</h2>
 
                 {tasks.length === 0 ? (
-                    <p className="mt-3 text-sm text-slate-600">Det er ingen oppgaver her ennå.</p>
+                    <p className="mt-3 text-sm text-slate-600">{t("content.none")}</p>
                 ) : (
                     <div className="mt-5 grid gap-5">
                         {tasks.map((task, idx) => {
@@ -932,16 +934,16 @@ export default function ChildAssignmentPage() {
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="text-xs font-black uppercase tracking-wide text-slate-400">
-                                            Oppgave {taskNumber}
+                                            {t("content.taskNumber", { number: taskNumber })}
                                         </div>
 
                                         <button
                                             type="button"
-                                            onClick={() => playTTS(prompt, "task", `Oppgave ${taskNumber}`)}
+                                            onClick={() => playTTS(prompt, "task", t("content.taskNumber", { number: taskNumber }))}
                                             disabled={ttsBusy === "task" || !prompt}
                                             className="rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-900 hover:bg-sky-200 disabled:opacity-60"
                                         >
-                                            {ttsBusy === "task" ? <AudioSpinner /> : "🔊 Les"}
+                                            {ttsBusy === "task" ? <AudioSpinner label={t("audio.loading")} /> : `🔊 ${t("actions.read")}`}
                                         </button>
                                     </div>
 
@@ -985,12 +987,12 @@ export default function ChildAssignmentPage() {
                                                                 type="button"
                                                                 onClick={(e) => {
                                                                     e.preventDefault();
-                                                                    playTTS(opt, "option", `Svaralternativ ${i + 1}`);
+                                                                    playTTS(opt, "option", t("content.optionLabel", { number: i + 1 }));
                                                                 }}
                                                                 disabled={ttsBusy === "option"}
                                                                 className="rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-900 hover:bg-sky-200 disabled:opacity-60"
                                                             >
-                                                                {ttsBusy === "option" ? <AudioSpinner /> : "🔊"}
+                                                                {ttsBusy === "option" ? <AudioSpinner label={t("audio.loading")} /> : "🔊"}
                                                             </button>
                                                         </div>
                                                     </label>
@@ -1015,7 +1017,7 @@ export default function ChildAssignmentPage() {
                                                         : "border-slate-200 bg-white text-slate-800",
                                                 ].join(" ")}
                                             >
-                                                Sant
+                                                {t("content.true")}
                                             </button>
 
                                             <button
@@ -1032,7 +1034,7 @@ export default function ChildAssignmentPage() {
                                                         : "border-slate-200 bg-white text-slate-800",
                                                 ].join(" ")}
                                             >
-                                                Usant
+                                                {t("content.false")}
                                             </button>
                                         </div>
                                     ) : null}
@@ -1042,16 +1044,16 @@ export default function ChildAssignmentPage() {
                                             value={typeof current === "string" ? current : ""}
                                             onChange={(e) => setAnswer(stableId, e.target.value)}
                                             rows={6}
-                                            placeholder="Skriv svaret ditt her..."
+                                            placeholder={t("content.answerPlaceholder")}
                                             className="mt-5 w-full rounded-3xl border border-slate-200 bg-white p-5 text-base leading-8 outline-none focus:border-green-400"
                                         />
                                     ) : null}
 
                                     <div className="mt-4 flex flex-wrap gap-2">
                                         {typeof current !== "undefined" && current !== "" ? (
-                                            <Badge tone="good">Svar lagret</Badge>
+                                            <Badge tone="good">{t("content.answerSaved")}</Badge>
                                         ) : (
-                                            <Badge>Ikke svart ennå</Badge>
+                                            <Badge>{t("content.notAnswered")}</Badge>
                                         )}
 
                                         {typeof taskAuto?.correct === "boolean" ? (
@@ -1064,8 +1066,8 @@ export default function ChildAssignmentPage() {
                                                 ].join(" ")}
                                             >
                                                 {taskAuto.correct
-                                                    ? "😊 Dette klarte du!"
-                                                    : "🤔 Nesten! Prøv en gang til."}
+                                                    ? `😊 ${t("content.correct")}`
+                                                    : `🤔 ${t("content.tryAgain")}`}
                                             </div>
                                         ) : null}
                                     </div>
@@ -1078,20 +1080,20 @@ export default function ChildAssignmentPage() {
 
             <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:p-7">
                 <h2 className="text-2xl font-black text-emerald-950">
-                    Før du leverer
+                    {t("selfReport.title")}
                 </h2>
 
                 <p className="mt-2 text-sm font-semibold leading-6 text-emerald-900">
-                    Kryss av det du har gjort. Dette hjelper den voksne å gi deg bedre tilbakemelding.
+                    {t("selfReport.intro")}
                 </p>
 
                 <div className="mt-5 grid gap-3">
                     {[
-                        ["readSilently", "Jeg har lest teksten stille."],
-                        ["readAloud", "Jeg har lest teksten høyt."],
-                        ["completedTasks", "Jeg har gjort alle oppgavene."],
-                        ["feltEasy", "Dette var lett."],
-                        ["feltHard", "Dette var vanskelig."],
+                        ["readSilently", t("selfReport.readSilently")],
+                        ["readAloud", t("selfReport.readAloud")],
+                        ["completedTasks", t("selfReport.completedTasks")],
+                        ["feltEasy", t("selfReport.feltEasy")],
+                        ["feltHard", t("selfReport.feltHard")],
                     ].map(([key, label]) => (
                         <label
                             key={key}
@@ -1114,7 +1116,7 @@ export default function ChildAssignmentPage() {
                 </div>
 
                 <label className="mt-5 block text-sm font-black text-emerald-950">
-                    Vil du skrive noe til den voksne?
+                    {t("selfReport.comment")}
                 </label>
 
                 <textarea
@@ -1126,7 +1128,7 @@ export default function ChildAssignmentPage() {
                             comment: e.target.value,
                         }))
                     }
-                    placeholder="Skriv her hvis du vil..."
+                    placeholder={t("selfReport.commentPlaceholder")}
                     rows={4}
                     className="mt-2 w-full rounded-2xl border border-emerald-200 bg-white p-4 text-base leading-7 text-slate-900 outline-none focus:border-emerald-500 disabled:bg-slate-100"
                 />
@@ -1135,7 +1137,7 @@ export default function ChildAssignmentPage() {
             <section className="sticky bottom-0 z-20 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="text-sm font-semibold text-slate-600">
-                        {msg ?? (submitted ? "Oppgaven er levert." : "Når du er ferdig, kan du levere oppgaven.")}
+                        {msg ?? (submitted ? t("messages.delivered") : t("messages.readyToSubmit"))}
                     </div>
 
                     <button
@@ -1149,7 +1151,7 @@ export default function ChildAssignmentPage() {
                                 : "bg-green-600 hover:bg-green-500",
                         ].join(" ")}
                     >
-                        {saving ? "Lagrer..." : submitted ? "Du har levert" : "Lever oppgave"}
+                        {saving ? t("actions.saving") : submitted ? t("actions.delivered") : t("actions.save")}
                     </button>
                 </div>
             </section>
@@ -1158,7 +1160,7 @@ export default function ChildAssignmentPage() {
                 <div className="fixed bottom-24 left-1/2 z-30 w-[calc(100%-24px)] max-w-4xl -translate-x-1/2 rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                         <div className="text-sm font-black text-slate-700">
-                            🔊 Spiller av: {activeAudioLabel ?? "Lyd"}
+                            🔊 {t("audio.playing", { label: activeAudioLabel ?? t("fallbacks.audio") })}
                         </div>
 
                         <div className="flex items-center gap-3 rounded-2xl bg-slate-100 px-4 py-2">
@@ -1188,7 +1190,7 @@ export default function ChildAssignmentPage() {
                             onClick={isPlaying ? pauseAudio : resumeAudio}
                             className="rounded-2xl bg-yellow-100 px-5 py-3 text-base font-black text-yellow-900"
                         >
-                            {isPlaying ? "⏸ Pause" : "▶ Fortsett"}
+                            {isPlaying ? `⏸ ${t("actions.pause")}` : `▶ ${t("actions.continue")}`}
                         </button>
 
                         <button
@@ -1196,7 +1198,7 @@ export default function ChildAssignmentPage() {
                             onClick={stopAudio}
                             className="rounded-2xl bg-rose-100 px-5 py-3 text-base font-black text-rose-900"
                         >
-                            ⏹ Stopp
+                            ⏹ {t("actions.stop")}
                         </button>
 
                         <div className="flex min-w-[220px] flex-1 items-center gap-2">

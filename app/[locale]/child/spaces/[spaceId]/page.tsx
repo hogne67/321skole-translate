@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { db } from "@/lib/firebase";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 
@@ -22,6 +23,8 @@ import type { ParentSpaceGoalDoc } from "@/lib/parentGoals";
 import type { SpaceDoc } from "@/lib/spacesClient";
 
 const CHILD_START_URL_KEY = "321skole.childStartUrl";
+
+type TFn = ReturnType<typeof useTranslations>;
 
 type BeforeInstallPromptEvent = Event & {
     prompt: () => Promise<void>;
@@ -168,13 +171,13 @@ function cardToneClasses(tone: StatusTone) {
     return "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50";
 }
 
-function buttonText(status: string | null) {
+function buttonText(status: string | null, t: TFn) {
     const s = normalizeStatus(status);
 
-    if (s === "submitted") return "Levert";
-    if (s === "reviewed" || s === "approved") return "Se ferdig oppgave";
-    if (s === "draft" || s === "needs_work") return "Fortsett";
-    return "Start";
+    if (s === "submitted") return t("actions.delivered");
+    if (s === "reviewed" || s === "approved") return t("actions.viewCompleted");
+    if (s === "draft" || s === "needs_work") return t("actions.continue");
+    return t("actions.start");
 }
 
 function Badge({
@@ -209,6 +212,7 @@ function AssignmentActionButton({
     href: string;
     status: string | null;
 }) {
+    const t = useTranslations("childSpace");
     const delivered = isDelivered(status);
 
     return (
@@ -219,12 +223,13 @@ function AssignmentActionButton({
                 delivered ? "bg-blue-600 hover:bg-blue-500" : "bg-green-600 hover:bg-green-500",
             ].join(" ")}
         >
-            {buttonText(status)}
+            {buttonText(status, t)}
         </Link>
     );
 }
 
 function GoalProgressCard({ goal, done }: { goal: ParentSpaceGoalDoc; done: number }) {
+    const t = useTranslations("childSpace");
     const target = typeof goal.targetCount === "number" && goal.targetCount > 0 ? goal.targetCount : null;
     const cappedDone = target ? Math.min(done, target) : done;
     const percent = target ? Math.round((cappedDone / target) * 100) : 0;
@@ -233,7 +238,9 @@ function GoalProgressCard({ goal, done }: { goal: ParentSpaceGoalDoc; done: numb
     return (
         <section className="rounded-3xl border border-sky-200 bg-sky-50 p-5 shadow-sm sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-sm font-black uppercase tracking-wide text-sky-800">Mål</div>
+                <div className="text-sm font-black uppercase tracking-wide text-sky-800">
+                    {t("goal.title")}
+                </div>
                 {target ? <Badge tone="neutral">{cappedDone} / {target}</Badge> : null}
             </div>
 
@@ -249,8 +256,8 @@ function GoalProgressCard({ goal, done }: { goal: ParentSpaceGoalDoc; done: numb
                 <div className="mt-5">
                     <div className="mb-2 text-sm font-black text-sky-950">
                         {finished
-                            ? "Du klarte målet. Bra jobbet!"
-                            : `Du har levert ${cappedDone} av ${target} oppgaver.`}
+                            ? t("goal.completed")
+                            : t("goal.progress", { done: cappedDone, target })}
                     </div>
 
                     <div className="h-4 overflow-hidden rounded-full bg-white">
@@ -266,6 +273,7 @@ function GoalProgressCard({ goal, done }: { goal: ParentSpaceGoalDoc; done: numb
 }
 
 function AddToHomeScreenButton() {
+    const t = useTranslations("childSpace");
     const [canInstall, setCanInstall] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
 
@@ -293,7 +301,7 @@ function AddToHomeScreenButton() {
         const promptEvent = window.__childInstallPrompt;
 
         if (!promptEvent) {
-            setMessage("På nettbrett og mobil kan du også bruke nettleserens meny og velge Legg til på startskjerm.");
+            setMessage(t("install.manualHint"));
             return;
         }
 
@@ -301,11 +309,11 @@ function AddToHomeScreenButton() {
         const choice = await promptEvent.userChoice;
 
         if (choice.outcome === "accepted") {
-            setMessage("Nå ligger rommet klart på startskjermen.");
+            setMessage(t("install.accepted"));
             setCanInstall(false);
             window.__childInstallPrompt = undefined;
         } else {
-            setMessage("Du kan legge det til senere.");
+            setMessage(t("install.dismissed"));
         }
     }
 
@@ -316,14 +324,14 @@ function AddToHomeScreenButton() {
                 onClick={handleInstall}
                 className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-green-500"
             >
-                Legg til på startskjerm
+                {t("install.button")}
             </button>
 
             {message ? <div className="mt-2 text-xs font-bold text-slate-500">{message}</div> : null}
 
             {!canInstall ? (
                 <div className="mt-2 text-xs text-slate-400">
-                    Tips: Dette virker best når siden er satt opp som app/PWA.
+                    {t("install.tip")}
                 </div>
             ) : null}
         </div>
@@ -332,6 +340,7 @@ function AddToHomeScreenButton() {
 
 export default function ChildSpacePage() {
     const { spaceId } = useParams<{ spaceId: string }>();
+    const t = useTranslations("childSpace");
 
     const [user, setUser] = useState<User | null>(null);
     const [space, setSpace] = useState<SpaceDoc | null>(null);
@@ -366,11 +375,11 @@ export default function ChildSpacePage() {
                 (e) => setErr(e.message)
             );
         } catch (e: unknown) {
-            setErr(e instanceof Error ? e.message : "Could not read room.");
+            setErr(e instanceof Error ? e.message : t("errors.readRoom"));
         }
 
         return () => unsub?.();
-    }, [spaceId]);
+    }, [spaceId, t]);
 
     useEffect(() => {
         let unsub: (() => void) | null = null;
@@ -397,11 +406,11 @@ export default function ChildSpacePage() {
                 (e) => setErr(e.message)
             );
         } catch (e: unknown) {
-            setErr(e instanceof Error ? e.message : "Could not read assignments.");
+            setErr(e instanceof Error ? e.message : t("errors.readAssignments"));
         }
 
         return () => unsub?.();
-    }, [spaceId]);
+    }, [spaceId, t]);
 
     useEffect(() => {
         let unsub: (() => void) | null = null;
@@ -427,11 +436,11 @@ export default function ChildSpacePage() {
                 (e) => setErr(e.message)
             );
         } catch (e: unknown) {
-            setErr(e instanceof Error ? e.message : "Could not read goals.");
+            setErr(e instanceof Error ? e.message : t("errors.readGoals"));
         }
 
         return () => unsub?.();
-    }, [spaceId]);
+    }, [spaceId, t]);
 
     useEffect(() => {
         if (!user?.uid || assignments.length === 0) {
@@ -534,11 +543,12 @@ export default function ChildSpacePage() {
     }, [assignments, activeAssignmentId, progressMap]);
 
     const featuredAssignment = sortedAssignments[0] ?? null;
+    const featuredProgress = featuredAssignment ? progressMap[featuredAssignment.id] ?? null : null;
     const otherAssignments = featuredAssignment
         ? sortedAssignments.filter((a) => a.id !== featuredAssignment.id)
         : [];
 
-    const spaceTitle = safeString((space as Record<string, unknown> | null)?.title) ?? "Mitt rom";
+    const spaceTitle = safeString((space as Record<string, unknown> | null)?.title) ?? t("fallbacks.spaceTitle");
 
     const completedCount = useMemo(() => {
         return assignments.filter((item) => isDelivered(progressMap[item.id]?.status ?? null)).length;
@@ -559,7 +569,7 @@ export default function ChildSpacePage() {
         return (
             <main className="mx-auto max-w-4xl p-4">
                 <section className="rounded-3xl border border-red-200 bg-red-50 p-6">
-                    <h1 className="text-2xl font-black text-red-900">Noe gikk galt</h1>
+                    <h1 className="text-2xl font-black text-red-900">{t("errors.title")}</h1>
                     <div className="mt-3 whitespace-pre-wrap text-sm text-red-800">{err}</div>
                 </section>
             </main>
@@ -571,7 +581,7 @@ export default function ChildSpacePage() {
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <div className="text-sm font-black uppercase tracking-wide text-slate-400">321school</div>
+                        <div className="text-sm font-black uppercase tracking-wide text-slate-400">{t("brand")}</div>
                         <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-900">{spaceTitle}</h1>
                     </div>
 
@@ -582,32 +592,32 @@ export default function ChildSpacePage() {
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                     <div className="flex items-center justify-between gap-3">
-                        <h2 className="text-2xl font-black text-slate-900">Oppgaver</h2>
+                        <h2 className="text-2xl font-black text-slate-900">{t("assignments.title")}</h2>
                         <Badge tone="neutral">{assignments.length}</Badge>
                     </div>
 
                     {featuredAssignment ? (
                         <div
                             className={`mt-5 overflow-hidden rounded-3xl border shadow-sm ${cardToneClasses(
-                                progressTone(progressMap[featuredAssignment.id]?.status ?? null)
+                                progressTone(featuredProgress?.status ?? null)
                             )}`}
                         >
                             <div className="grid gap-0 xl:grid-cols-2">
                                 <div className="flex flex-col justify-center p-5 sm:p-6">
                                     <div className="flex flex-wrap gap-2">
-                                        {progressMap[featuredAssignment.id]?.autoSummary ? (
+                                        {featuredProgress?.autoSummary ? (
                                             <Badge tone="neutral">
-                                                Resultat: {progressMap[featuredAssignment.id].autoSummary}
+                                                {t("assignments.result", { value: featuredProgress.autoSummary })}
                                             </Badge>
                                         ) : null}
 
-                                        {progressMap[featuredAssignment.id]?.hasAiFeedback ? (
-                                            <Badge tone="done">Tilbakemelding klar</Badge>
+                                        {featuredProgress?.hasAiFeedback ? (
+                                            <Badge tone="done">{t("assignments.feedbackReady")}</Badge>
                                         ) : null}
                                     </div>
 
                                     <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-900">
-                                        {safeString(featuredAssignment.data.title) ?? "Oppgave"}
+                                        {safeString(featuredAssignment.data.title) ?? t("fallbacks.assignmentTitle")}
                                     </h3>
 
                                     {assignmentSnippet(featuredAssignment.data) ? (
@@ -619,7 +629,7 @@ export default function ChildSpacePage() {
                                     <div className="mt-6">
                                         <AssignmentActionButton
                                             href={`/child/spaces/${spaceId}/assignments/${featuredAssignment.id}`}
-                                            status={progressMap[featuredAssignment.id]?.status ?? null}
+                                            status={featuredProgress?.status ?? null}
                                         />
                                     </div>
                                 </div>
@@ -629,12 +639,12 @@ export default function ChildSpacePage() {
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img
                                             src={pickImageUrl(featuredAssignment.data) ?? ""}
-                                            alt={safeString(featuredAssignment.data.title) ?? "Oppgave"}
+                                            alt={safeString(featuredAssignment.data.title) ?? t("fallbacks.assignmentTitle")}
                                             className="h-full w-full object-cover"
                                         />
                                     ) : (
                                         <div className="flex h-full items-center justify-center text-sm font-bold text-slate-400">
-                                            Oppgave
+                                            {t("fallbacks.assignmentTitle")}
                                         </div>
                                     )}
                                 </div>
@@ -642,7 +652,7 @@ export default function ChildSpacePage() {
                         </div>
                     ) : (
                         <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-                            Ingen oppgaver akkurat nå.
+                            {t("assignments.none")}
                         </div>
                     )}
                 </section>
@@ -651,16 +661,16 @@ export default function ChildSpacePage() {
             </div>
 
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                <h2 className="text-2xl font-black text-slate-900">Flere oppgaver</h2>
+                <h2 className="text-2xl font-black text-slate-900">{t("assignments.moreTitle")}</h2>
 
                 {otherAssignments.length === 0 ? (
                     <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-                        Ingen flere oppgaver akkurat nå.
+                        {t("assignments.noneMore")}
                     </div>
                 ) : (
                     <div className="mt-5 grid gap-4 sm:grid-cols-2">
                         {otherAssignments.map((item) => {
-                            const title = safeString(item.data.title) ?? "Oppgave";
+                            const title = safeString(item.data.title) ?? t("fallbacks.assignmentTitle");
                             const snippet = assignmentSnippet(item.data);
                             const progress = progressMap[item.id] ?? null;
                             const tone = progressTone(progress?.status ?? null);
@@ -682,7 +692,7 @@ export default function ChildSpacePage() {
                                             />
                                         ) : (
                                             <div className="flex h-full items-center justify-center text-sm font-bold text-slate-400">
-                                                Oppgave
+                                                {t("fallbacks.assignmentTitle")}
                                             </div>
                                         )}
                                     </div>
@@ -690,10 +700,14 @@ export default function ChildSpacePage() {
                                     <div className="p-5">
                                         <div className="flex flex-wrap gap-2">
                                             {progress?.autoSummary ? (
-                                                <Badge tone="neutral">Resultat: {progress.autoSummary}</Badge>
+                                                <Badge tone="neutral">
+                                                    {t("assignments.result", { value: progress.autoSummary })}
+                                                </Badge>
                                             ) : null}
 
-                                            {progress?.hasAiFeedback ? <Badge tone="done">Tilbakemelding</Badge> : null}
+                                            {progress?.hasAiFeedback ? (
+                                                <Badge tone="done">{t("assignments.feedback")}</Badge>
+                                            ) : null}
                                         </div>
 
                                         <div className="mt-4 text-xl font-black text-slate-900">{title}</div>

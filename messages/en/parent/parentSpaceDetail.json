@@ -69,6 +69,24 @@
       "title": "Archived assignments",
       "none": "No archived assignments yet."
     },
+    "goals": {
+      "loginRequired": "You must be signed in to create a goal.",
+      "titleRequired": "Write a goal first.",
+      "targetInvalid": "The number of assignments must be between 1 and 100.",
+      "saved": "The goal has been saved.",
+      "saveFailed": "Could not save the goal.",
+      "readFailed": "Could not read goals.",
+      "listenFailed": "Could not start goal view.",
+      "sectionTitle": "Goal for the child room",
+      "active": "Active goal",
+      "tasksCount": "{count} assignments",
+      "empty": "Create a simple goal the child can work toward in the child view.",
+      "newGoal": "New goal",
+      "placeholder": "Complete 3 assignments this week",
+      "targetLabel": "Number of assignments",
+      "save": "Save goal",
+      "saving": "Saving..."
+    },
     "childRoomCard": {
       "title": "Child room view",
       "text": "Click here to open and add the child version on your children’s devices. Remember that you must also sign in with your user account on their devices.",

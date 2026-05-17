@@ -1,0 +1,80 @@
+{
+  "childAssignment": {
+    "fallbacks": {
+      "assignmentTitle": "Assignment",
+      "spaceTitle": "My room",
+      "audio": "Audio"
+    },
+    "errors": {
+      "readRoom": "Could not read room.",
+      "readAssignment": "Could not read assignment.",
+      "audioFailed": "Could not play audio.",
+      "loginRequired": "An adult must be signed in.",
+      "saveFailed": "Could not save assignment.",
+      "title": "Oops, something went wrong",
+      "body": "We could not open the assignment right now."
+    },
+    "messages": {
+      "submitted": "Great job! The assignment has been handed in.",
+      "loading": "Loading assignment...",
+      "celebrationTitle": "Great job!",
+      "celebrationText": "The assignment has been handed in.",
+      "delivered": "The assignment has been handed in.",
+      "readyToSubmit": "When you are finished, you can hand in the assignment."
+    },
+    "actions": {
+      "back": "Back",
+      "backToRoom": "Back to room",
+      "read": "Read",
+      "playText": "Play the text",
+      "save": "Hand in assignment",
+      "saving": "Saving...",
+      "delivered": "You have handed it in",
+      "pause": "Pause",
+      "continue": "Continue",
+      "stop": "Stop"
+    },
+    "feedback": {
+      "kicker": "New from the assignment",
+      "title": "You have received a result and feedback",
+      "hint": "Tap here to see the result, stars and message from home.",
+      "submittedTitle": "The assignment has been handed in",
+      "submittedText": "Great job! You have sent in the assignment.",
+      "resultTitle": "Result",
+      "result": "You got {value}",
+      "resultHint": "Look at the tasks below. Green answers are correct. Yellow answers are worth another thought.",
+      "feedbackTitle": "Feedback",
+      "homeGreeting": "Message from home"
+    },
+    "content": {
+      "readFirst": "Read first",
+      "textLabel": "The text",
+      "tasks": "Assignments",
+      "none": "There are no tasks here yet.",
+      "taskNumber": "Assignment {number}",
+      "optionLabel": "Answer option {number}",
+      "true": "True",
+      "false": "False",
+      "answerPlaceholder": "Write your answer here...",
+      "answerSaved": "Answer saved",
+      "notAnswered": "Not answered yet",
+      "correct": "You got this!",
+      "tryAgain": "Almost! Try once more."
+    },
+    "selfReport": {
+      "title": "Before you hand in",
+      "intro": "Tick what you have done. This helps the adult give you better feedback.",
+      "readSilently": "I have read the text silently.",
+      "readAloud": "I have read the text aloud.",
+      "completedTasks": "I have completed all the tasks.",
+      "feltEasy": "This was easy.",
+      "feltHard": "This was difficult.",
+      "comment": "Do you want to write something to the adult?",
+      "commentPlaceholder": "Write here if you want..."
+    },
+    "audio": {
+      "loading": "Loading audio...",
+      "playing": "Playing: {label}"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "childSpace": {
+    "brand": "321school",
+    "fallbacks": {
+      "spaceTitle": "Minha sala",
+      "assignmentTitle": "Atividade"
+    },
+    "errors": {
+      "title": "Algo deu errado",
+      "readRoom": "Não foi possível ler a sala.",
+      "readAssignments": "Não foi possível ler as atividades.",
+      "readGoals": "Não foi possível ler as metas."
+    },
+    "install": {
+      "button": "Adicionar à tela inicial",
+      "manualHint": "Em tablets e celulares, você também pode usar o menu do navegador e escolher Adicionar à tela inicial.",
+      "accepted": "Agora a sala está pronta na tela inicial.",
+      "dismissed": "Você pode adicionar mais tarde.",
+      "tip": "Dica: isso funciona melhor quando a página está configurada como app/PWA."
+    },
+    "actions": {
+      "start": "Começar",
+      "delivered": "Entregue",
+      "continue": "Continuar",
+      "viewCompleted": "Ver atividade concluída"
+    },
+    "goal": {
+      "title": "Meta",
+      "completed": "Você alcançou a meta. Muito bem!",
+      "progress": "Você entregou {done} de {target} atividades."
+    },
+    "assignments": {
+      "title": "Atividades",
+      "moreTitle": "Mais atividades",
+      "none": "Nenhuma atividade no momento.",
+      "noneMore": "Nenhuma outra atividade no momento.",
+      "result": "Resultado: {value}",
+      "feedbackReady": "Feedback pronto",
+      "feedback": "Feedback"
+    },
+    "startPage": {
+      "title": "Sala da criança",
+      "opening": "Abrindo a sala da criança...",
+      "missingSavedRoom": "Abra a sala da criança pela página dos pais mais uma vez, para que o ícone da tela inicial lembre a sala certa.",
+      "parentSpaces": "Ir para as salas dos pais"
+    }
+  }
+}
