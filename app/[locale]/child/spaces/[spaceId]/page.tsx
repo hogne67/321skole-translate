@@ -21,6 +21,8 @@ import {
 import type { ParentSpaceGoalDoc } from "@/lib/parentGoals";
 import type { SpaceDoc } from "@/lib/spacesClient";
 
+const CHILD_START_URL_KEY = "321skole.childStartUrl";
+
 type BeforeInstallPromptEvent = Event & {
     prompt: () => Promise<void>;
     userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
@@ -329,6 +331,13 @@ export default function ChildSpacePage() {
     useEffect(() => {
         const auth = getAuth();
         return onAuthStateChanged(auth, (u) => setUser(u));
+    }, []);
+
+    useEffect(() => {
+        window.localStorage.setItem(
+            CHILD_START_URL_KEY,
+            window.location.pathname + window.location.search
+        );
     }, []);
 
     useEffect(() => {
