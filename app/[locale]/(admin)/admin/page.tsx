@@ -150,6 +150,11 @@ export default function AdminPage() {
             text="Se brukere, roller og senere kontrollfunksjoner."
           />
           <Card
+            href={`/${locale}/admin/partners`}
+            title="Partners"
+            text="Se og behandle nye 321school Partner-søknader."
+          />
+          <Card
             href={`/${locale}/admin/stats`}
             title="Stats"
             text="Åpne statistikk og plattformoversikt."

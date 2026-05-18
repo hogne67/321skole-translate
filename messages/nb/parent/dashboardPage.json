@@ -46,6 +46,11 @@
         "upgrade": "Oppgrader"
       }
     },
+    "partnerCard": {
+      "title": "Du er 321school Partner",
+      "text": "Som partner har du tilgang tilsvarende Plus-pakken så lenge partnerskapet er aktivt.",
+      "extraText": "Takk for at du bidrar til å teste, utvikle og dele 321school."
+    },
     "billing": {
       "badge": "Plan og betaling",
       "title": "Ditt abonnement",

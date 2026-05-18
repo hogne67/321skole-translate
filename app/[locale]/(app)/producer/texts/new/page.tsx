@@ -336,6 +336,8 @@ export default function NewTextPage() {
   const role = useMemo(() => resolveRoleFromProfile(profile), [profile]);
   const plan = useMemo(() => safePlan(planValue), [planValue]);
   const billing = useMemo(() => getBillingSnapshot(profile), [profile]);
+  const partnerAccess = profile?.partnerAccess === true;
+  const partnerStatus = profile?.partnerStatus ?? null;
 
   const sourceWordCount = useMemo(() => {
     return sourceText
@@ -377,6 +379,8 @@ export default function NewTextPage() {
         role,
         plan,
         billing,
+        partnerAccess,
+        partnerStatus,
         feature: "producer_create_lesson",
       });
       setFeatureStatus(status);
@@ -409,6 +413,8 @@ export default function NewTextPage() {
           role,
           plan,
           billing,
+          partnerAccess,
+          partnerStatus,
           feature: "producer_create_lesson",
         });
 
@@ -431,7 +437,7 @@ export default function NewTextPage() {
     return () => {
       active = false;
     };
-  }, [profileUid, role, plan, billing]);
+  }, [profileUid, role, plan, billing, partnerAccess, partnerStatus]);
 
   function buildFactsPrompt(count: number) {
     if (count <= 0) return "";

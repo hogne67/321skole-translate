@@ -1173,6 +1173,8 @@ export async function POST(req: Request) {
       billing: isRecord(profile) && isRecord(profile.billing)
         ? profile.billing
         : null,
+      partnerAccess: isRecord(profile) ? profile.partnerAccess === true : false,
+      partnerStatus: isRecord(profile) ? safeString(profile.partnerStatus) : null,
       feature: "ai_feedback",
     });
 

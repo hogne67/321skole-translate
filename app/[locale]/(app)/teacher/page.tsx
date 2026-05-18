@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { DashboardIntro } from "@/components/DashboardIntro";
+import { PartnerDashboardCard } from "@/components/PartnerDashboardCard";
 import { db } from "@/lib/firebase";
 import {
   getBucketLimit,
@@ -501,6 +502,8 @@ export default function TeacherPage() {
   const effectivePlan = getEffectivePlan({
     plan: planValue,
     billing,
+    partnerAccess: profile?.partnerAccess === true,
+    partnerStatus: profile?.partnerStatus ?? null,
   });
 
   const rawBillingPlan = billing?.plan ?? planValue ?? null;
@@ -513,6 +516,8 @@ export default function TeacherPage() {
 
   const hasActiveSubscription =
     rawBillingStatus === "active" || rawBillingStatus === "trialing";
+  const hasActivePartnerAccess =
+    profile?.partnerAccess === true && profile?.partnerStatus === "active";
 
   async function reloadStudents(currentUid?: string) {
     if (!currentUid || !db) {
@@ -796,6 +801,16 @@ export default function TeacherPage() {
           overflow: "hidden",
         }}
       >
+        {hasActivePartnerAccess ? (
+          <div style={{ padding: "16px 16px 0" }}>
+            <PartnerDashboardCard
+              title={t("partnerCard.title")}
+              text={t("partnerCard.text")}
+              extraText={t("partnerCard.extraText")}
+            />
+          </div>
+        ) : null}
+
         <div style={{ padding: 16 }}>
           <div
             style={{

@@ -4,6 +4,7 @@ import {
     getQuotaBucket,
     type BillingSnapshot,
     type FeatureKey,
+    type PartnerAccessSnapshot,
 } from "@/lib/featureAccess";
 
 type ServerFeatureParams = {
@@ -12,6 +13,7 @@ type ServerFeatureParams = {
     role?: string | null;
     plan?: string | null;
     billing?: BillingSnapshot | null;
+} & PartnerAccessSnapshot & {
     feature: FeatureKey;
 };
 
@@ -33,12 +35,14 @@ async function getServerUsage(db: Firestore, uid: string) {
 export async function getServerFeatureStatusFromProfile(
     params: ServerFeatureParams
 ) {
-    const { db, uid, role, plan, billing, feature } = params;
+    const { db, uid, role, plan, billing, partnerAccess, partnerStatus, feature } = params;
 
     const decision = getFeatureDecisionFromProfile({
         role,
         plan,
         billing,
+        partnerAccess,
+        partnerStatus,
         feature,
     });
 

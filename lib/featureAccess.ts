@@ -24,6 +24,11 @@ export type BillingSnapshot = {
   status?: string | null;
 };
 
+export type PartnerAccessSnapshot = {
+  partnerAccess?: boolean | null;
+  partnerStatus?: string | null;
+};
+
 export type FeatureKey =
   | "producer_create_lesson"
   | "producer_create_reading_test"
@@ -99,16 +104,24 @@ function isTeacherOnlyFeature(feature: FeatureKey): boolean {
 export function getEffectivePlan(input: {
   plan?: string | null;
   billing?: BillingSnapshot | null;
+  partnerAccess?: boolean | null;
+  partnerStatus?: string | null;
 }): PlanKey {
   const topLevelPlan = normalizePlan(input.plan);
   const billingPlan = normalizePlan(input.billing?.plan);
   const billingStatus = input.billing?.status ?? null;
 
-  if (isActiveBillingStatus(billingStatus) && billingPlan !== "free") {
-    return billingPlan;
+  const basePlan =
+    isActiveBillingStatus(billingStatus) && billingPlan !== "free"
+      ? billingPlan
+      : topLevelPlan;
+
+  if (input.partnerAccess === true && input.partnerStatus === "active") {
+    if (basePlan === "pro") return "pro";
+    return "plus";
   }
 
-  return topLevelPlan;
+  return basePlan;
 }
 
 /**
@@ -290,12 +303,16 @@ export function getBucketLimitFromProfile(input: {
   role?: string | null;
   plan?: string | null;
   billing?: BillingSnapshot | null;
+  partnerAccess?: boolean | null;
+  partnerStatus?: string | null;
   bucket: QuotaBucket;
 }): number {
   const role = normalizeRole(input.role ?? undefined);
   const plan = getEffectivePlan({
     plan: input.plan,
     billing: input.billing,
+    partnerAccess: input.partnerAccess,
+    partnerStatus: input.partnerStatus,
   });
 
   return getBucketLimit(role, plan, input.bucket);
@@ -331,6 +348,8 @@ export function getFeatureLimitFromProfile(input: {
   role?: string | null;
   plan?: string | null;
   billing?: BillingSnapshot | null;
+  partnerAccess?: boolean | null;
+  partnerStatus?: string | null;
   feature: FeatureKey;
 }): number {
   const role = normalizeRole(input.role ?? undefined);
@@ -347,6 +366,8 @@ export function getFeatureLimitFromProfile(input: {
   const effectivePlan = getEffectivePlan({
     plan: input.plan,
     billing: input.billing,
+    partnerAccess: input.partnerAccess,
+    partnerStatus: input.partnerStatus,
   });
 
   const bucket = getQuotaBucket(input.feature);
@@ -368,6 +389,8 @@ export function canAccessFeatureFromProfile(input: {
   role?: string | null;
   plan?: string | null;
   billing?: BillingSnapshot | null;
+  partnerAccess?: boolean | null;
+  partnerStatus?: string | null;
   feature: FeatureKey;
 }): boolean {
   return getFeatureLimitFromProfile(input) > 0;
@@ -412,6 +435,8 @@ export function getFeatureDecisionFromProfile(input: {
   role?: string | null;
   plan?: string | null;
   billing?: BillingSnapshot | null;
+  partnerAccess?: boolean | null;
+  partnerStatus?: string | null;
   feature: FeatureKey;
 }): FeatureDecision {
   const role = normalizeRole(input.role ?? undefined);

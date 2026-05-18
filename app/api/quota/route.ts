@@ -36,6 +36,8 @@ type UserProfileDoc = {
   roles?: unknown;
   org?: unknown;
   billing?: unknown;
+  partnerAccess?: unknown;
+  partnerStatus?: unknown;
 };
 
 function json(data: unknown, status = 200) {
@@ -153,6 +155,8 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
   let role: AppRole = "anonymous";
   let topLevelPlan: PlanKey = "free";
   let billing: BillingSnapshot | null = null;
+  let partnerAccess = decoded.partnerAccess === true;
+  let partnerStatus = safeString(decoded.partnerStatus);
 
   if (isAppRole(decoded.role)) {
     role = decoded.role;
@@ -187,6 +191,9 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
       if (userBilling) {
         billing = userBilling;
       }
+
+      partnerAccess = userData.partnerAccess === true;
+      partnerStatus = safeString(userData.partnerStatus);
     }
   } catch {
     // keep fallbacks
@@ -195,6 +202,8 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
   const plan = getEffectivePlan({
     plan: topLevelPlan,
     billing,
+    partnerAccess,
+    partnerStatus,
   });
 
   return { role, plan, billing };

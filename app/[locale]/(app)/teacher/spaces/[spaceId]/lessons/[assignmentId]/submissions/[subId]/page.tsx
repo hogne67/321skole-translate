@@ -209,6 +209,8 @@ function Inner() {
     role,
     plan: typeof profileRecord?.plan === "string" ? profileRecord.plan : null,
     billing,
+    partnerAccess: profileRecord?.partnerAccess === true,
+    partnerStatus: typeof profileRecord?.partnerStatus === "string" ? profileRecord.partnerStatus : null,
     bucket: "ai_feedback",
   });
 

@@ -19,6 +19,8 @@ export type AdminLevel = "moderator" | "admin" | "superadmin";
 
 /** Legacy-only (ikke bruk til gating) */
 export type TeacherStatus = "none" | "pending" | "approved" | "rejected";
+export type PartnerStatus = "none" | "pending" | "active" | "rejected" | "disabled";
+export type PartnerLevel = "none" | "partner";
 
 export type UserProfile = {
   displayName?: string;
@@ -34,6 +36,14 @@ export type UserProfile = {
   plan?: string;
   institutionType?: string;
   municipality?: string;
+
+  partnerAccess?: boolean;
+  partnerStatus?: PartnerStatus;
+  partnerLevel?: PartnerLevel;
+  partnerRegion?: string;
+  partnerLanguages?: string[];
+  partnerApprovedAt?: unknown;
+  partnerApprovedBy?: string;
 
   // ✅ legacy-felt beholdes som optional for gamle docs
   teacherStatus?: TeacherStatus;
@@ -96,6 +106,14 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
       plan: patch?.plan,
       institutionType: patch?.institutionType,
       municipality: patch?.municipality,
+
+      partnerAccess: patch?.partnerAccess,
+      partnerStatus: patch?.partnerStatus,
+      partnerLevel: patch?.partnerLevel,
+      partnerRegion: patch?.partnerRegion,
+      partnerLanguages: patch?.partnerLanguages,
+      partnerApprovedAt: patch?.partnerApprovedAt,
+      partnerApprovedBy: patch?.partnerApprovedBy,
 
       // legacy optional
       teacherStatus: patch?.teacherStatus,
