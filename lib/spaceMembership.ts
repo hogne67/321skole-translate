@@ -42,6 +42,8 @@ export async function ensureSpaceMember(
     uid,
     role,
     archived: false,
+    active: true,
+    status: "active",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -70,7 +72,9 @@ export async function listMySpaceIds(db: Firestore, uid: string): Promise<string
 
   const out: string[] = [];
   snap.forEach((d) => {
-    const data = d.data() as { spaceId?: unknown };
+    const data = d.data() as { spaceId?: unknown; archived?: unknown; active?: unknown; status?: unknown };
+    const status = typeof data.status === "string" ? data.status.trim().toLowerCase() : "";
+    if (data.archived === true || data.active === false || status === "removed") return;
     if (typeof data.spaceId === "string" && data.spaceId) out.push(data.spaceId);
   });
 

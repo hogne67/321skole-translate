@@ -38,11 +38,11 @@
         "show": "Mostrar alunos",
         "hide": "Ocultar alunos",
         "working": "Processando...",
-        "setInactive": "Definir como inativo",
+        "setInactive": "Remover dos espaços",
         "remove": "Remover"
       },
       "confirm": {
-        "archive": "Definir {name} como inativo em todos os seus Spaces?",
+        "archive": "Tem certeza de que deseja remover este aluno dos espaços? O aluno não receberá novas tarefas, mas o histórico anterior será mantido.",
         "remove": "Remover {name} de todos os seus Spaces? Isso não pode ser desfeito."
       },
       "errors": {

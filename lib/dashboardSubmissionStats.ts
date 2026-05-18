@@ -82,6 +82,11 @@ function addStatus(stats: SubmissionDashboardStats, status: unknown) {
   stats.other += 1;
 }
 
+function isActiveMembership(data: { archived?: unknown; active?: unknown; status?: unknown }): boolean {
+  const status = typeof data.status === "string" ? data.status.trim().toLowerCase() : "";
+  return data.archived !== true && data.active !== false && status !== "removed";
+}
+
 export async function getStudentDashboardStats(
   db: Firestore,
   uid: string
@@ -98,10 +103,12 @@ export async function getStudentDashboardStats(
     addStatus(stats, data.status);
   });
 
+  const activeMembershipCount = memberSnap.docs.filter((docSnap) => isActiveMembership(docSnap.data())).length;
+
   return {
     stats,
-    hasSpaces: !memberSnap.empty,
-    spaceCount: memberSnap.size,
+    hasSpaces: activeMembershipCount > 0,
+    spaceCount: activeMembershipCount,
   };
 }
 

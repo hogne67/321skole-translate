@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
-import { collection, getCountFromServer, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -155,8 +155,14 @@ function TeacherSpacesInner() {
 
       const q = query(collection(db, "spaceMembers"), where("spaceId", "==", r.id), where("archived", "==", false));
 
-      getCountFromServer(q)
-        .then((agg) => setMemberCount((m) => ({ ...m, [r.id]: agg.data().count })))
+      getDocs(q)
+        .then((snap) => {
+          const count = snap.docs.filter((docSnap) => {
+            const data = docSnap.data() as { active?: unknown; status?: unknown };
+            return data.active !== false && String(data.status ?? "").toLowerCase() !== "removed";
+          }).length;
+          setMemberCount((m) => ({ ...m, [r.id]: count }));
+        })
         .catch(() => setMemberCount((m) => ({ ...m, [r.id]: undefined })))
         .finally(() => setMemberCountBusy((m) => ({ ...m, [r.id]: false })));
     });

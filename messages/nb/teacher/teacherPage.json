@@ -38,11 +38,11 @@
         "show": "Vis elever",
         "hide": "Skjul elever",
         "working": "Jobber...",
-        "setInactive": "Sett som inaktiv",
+        "setInactive": "Fjern fra rommene",
         "remove": "Fjern"
       },
       "confirm": {
-        "archive": "Sette {name} som inaktiv i alle dine grupper?",
+        "archive": "Er du sikker på at du vil fjerne eleven fra rommene? Eleven får ikke nye oppgaver, men tidligere historikk beholdes.",
         "remove": "Fjerne {name} fra alle dine grupper? Dette kan ikke angres."
       },
       "errors": {

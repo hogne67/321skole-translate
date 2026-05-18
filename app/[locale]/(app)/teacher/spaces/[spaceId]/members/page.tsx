@@ -17,6 +17,8 @@ type MemberData = {
   displayName?: string;
   role?: string;
   archived?: boolean;
+  active?: boolean;
+  status?: string;
   isAnon?: boolean;
   createdAt?: unknown;
 };
@@ -126,11 +128,13 @@ function Inner() {
     );
 
     return onSnapshot(qy, (snap) => {
-      const next: MemberRow[] = snap.docs.map((d) => {
-        const raw = d.data();
-        const data: MemberData = isRecord(raw) ? (raw as MemberData) : {};
-        return { id: d.id, data };
-      });
+      const next: MemberRow[] = snap.docs
+        .map((d) => {
+          const raw = d.data();
+          const data: MemberData = isRecord(raw) ? (raw as MemberData) : {};
+          return { id: d.id, data };
+        })
+        .filter((row) => row.data.active !== false && String(row.data.status ?? "").toLowerCase() !== "removed");
       setRows(next);
     });
   }, [spaceId, user?.uid]);

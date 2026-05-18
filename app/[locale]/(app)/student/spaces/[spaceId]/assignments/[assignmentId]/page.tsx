@@ -561,6 +561,11 @@ export default function StudentAssignmentPage() {
         const memberId = `${spaceId}_${user.uid}`;
         const memberSnap = await getDoc(doc(db, "spaceMembers", memberId));
         if (!memberSnap.exists()) throw new Error(t("errors.notMember"));
+        const memberData = memberSnap.data() as { archived?: unknown; active?: unknown; status?: unknown };
+        const memberStatus = String(memberData.status ?? "").toLowerCase().trim();
+        if (memberData.archived === true || memberData.active === false || memberStatus === "removed") {
+          throw new Error(t("errors.notMember"));
+        }
 
         const aSnap = await getDoc(doc(db, "spaces", spaceId, "lessons", assignmentId));
         if (!alive) return;

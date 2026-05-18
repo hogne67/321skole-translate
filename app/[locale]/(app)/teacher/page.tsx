@@ -17,7 +17,6 @@ import {
   archiveStudentFromTeacherSpaces,
   getTeacherStudentCount,
   getTeacherStudentsOverview,
-  removeStudentFromTeacherSpaces,
   type TeacherStudentOverviewItem,
 } from "@/lib/teacherStudentLimit";
 import { useUsage } from "@/lib/useUsage";
@@ -705,31 +704,6 @@ export default function TeacherPage() {
     } catch (error) {
       console.error("Failed to archive student", error);
       setActionError(t("students.errors.archive"));
-    } finally {
-      setBusyStudentUid(null);
-    }
-  }
-
-  async function handleRemoveStudent(student: TeacherStudentOverviewItem) {
-    if (!user?.uid || !db) return;
-
-    const ok = window.confirm(t("students.confirm.remove", { name: student.displayName }));
-    if (!ok) return;
-
-    setBusyStudentUid(student.uid);
-    setActionError(null);
-
-    try {
-      await removeStudentFromTeacherSpaces({
-        db,
-        teacherUid: user.uid,
-        studentUid: student.uid,
-      });
-
-      await reloadStudents(user.uid);
-    } catch (error) {
-      console.error("Failed to remove student", error);
-      setActionError(t("students.errors.remove"));
     } finally {
       setBusyStudentUid(null);
     }
@@ -1660,26 +1634,6 @@ export default function TeacherPage() {
                                 }}
                               >
                                 {isBusy ? t("students.actions.working") : t("students.actions.setInactive")}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveStudent(student)}
-                                disabled={isBusy}
-                                style={{
-                                  width: "100%",
-                                  border: "1px solid #fecaca",
-                                  background: "#fef2f2",
-                                  color: "#b91c1c",
-                                  borderRadius: 10,
-                                  padding: "10px 12px",
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  cursor: isBusy ? "not-allowed" : "pointer",
-                                  opacity: isBusy ? 0.6 : 1,
-                                }}
-                              >
-                                {isBusy ? t("students.actions.working") : t("students.actions.remove")}
                               </button>
                             </div>
                           </div>

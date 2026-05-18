@@ -194,7 +194,7 @@ export function getBucketLimit(
 
   if (bucket === "premium_generators") {
     if (role === "teacher" || role === "creator") {
-      if (plan === "free") return 50;
+      if (plan === "free") return 3;
       if (plan === "basic") return 25;
       if (plan === "plus") return 100;
       if (plan === "pro") return 500;
@@ -217,7 +217,7 @@ export function getBucketLimit(
 
   if (bucket === "image_generation") {
     if (role === "teacher" || role === "creator") {
-      if (plan === "free") return 30;
+      if (plan === "free") return 3;
       if (plan === "basic") return 50;
       if (plan === "plus") return 100;
       if (plan === "pro") return 1000;
@@ -256,7 +256,7 @@ export function getBucketLimit(
 
   if (bucket === "downloads") {
     if (role === "teacher" || role === "creator") {
-      if (plan === "free") return 10;
+      if (plan === "free") return 5;
       if (plan === "basic") return 50;
       if (plan === "plus") return 200;
       if (plan === "pro") return 1000;
@@ -279,7 +279,7 @@ export function getBucketLimit(
 
   if (bucket === "members") {
     if (role === "teacher" || role === "creator") {
-      if (plan === "free") return 15;
+      if (plan === "free") return 10;
       if (plan === "basic") return 25;
       if (plan === "plus") return 125;
       if (plan === "pro") return 200;

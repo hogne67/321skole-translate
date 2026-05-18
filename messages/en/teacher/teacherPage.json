@@ -38,11 +38,11 @@
         "show": "Show students",
         "hide": "Hide students",
         "working": "Working...",
-        "setInactive": "Set inactive",
+        "setInactive": "Remove from spaces",
         "remove": "Remove"
       },
       "confirm": {
-        "archive": "Set {name} to inactive in all your spaces?",
+        "archive": "Are you sure you want to remove this student from the spaces? The student will not receive new assignments, but previous history will be kept.",
         "remove": "Remove {name} from all your spaces? This cannot be undone."
       },
       "errors": {

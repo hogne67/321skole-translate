@@ -30,6 +30,8 @@ type TeacherProfileFields = {
 type SpaceMemberFields = {
   role?: unknown;
   archived?: unknown;
+  active?: unknown;
+  status?: unknown;
 };
 
 function readBearerToken(req: NextRequest): string | null {
@@ -104,8 +106,9 @@ async function isUserAlreadyStudentInSpace(
   const data = (snap.data() ?? {}) as SpaceMemberFields;
   const role = safeString(data.role);
   const archived = asBoolean(data.archived);
+  const status = safeString(data.status).toLowerCase();
 
-  return role === "student" && !archived;
+  return role === "student" && !archived && data.active !== false && status !== "removed";
 }
 
 export async function POST(req: NextRequest) {
@@ -190,6 +193,8 @@ export async function POST(req: NextRequest) {
         uid,
         role: "student",
         archived: false,
+        active: true,
+        status: "active",
         code,
         displayName,
         isAnon: isAnonymous,

@@ -2,11 +2,11 @@
 
 import {
   collection,
-  deleteDoc,
   doc,
   getDocs,
   limit,
   query,
+  serverTimestamp,
   updateDoc,
   where,
   type DocumentData,
@@ -33,6 +33,8 @@ type SpaceMemberFields = {
   displayName?: unknown;
   isAnon?: unknown;
   archived?: unknown;
+  active?: unknown;
+  status?: unknown;
 };
 
 export type TeacherStudentSpaceInfo = {
@@ -162,7 +164,8 @@ function getMemberIsAnon(docSnap: QueryDocumentSnapshot<DocumentData>): boolean 
 
 function isArchivedMember(docSnap: QueryDocumentSnapshot<DocumentData>): boolean {
   const data = docSnap.data() as SpaceMemberFields;
-  return asBoolean(data.archived);
+  const status = asNonEmptyString(data.status)?.toLowerCase();
+  return asBoolean(data.archived) || data.active === false || status === "removed";
 }
 
 export async function getTeacherStudentCount(db: Firestore, teacherUid: string): Promise<number> {
@@ -325,6 +328,11 @@ export async function archiveStudentFromTeacherSpaces(params: {
   for (const membershipDoc of membershipDocs) {
     await updateDoc(doc(db, "spaceMembers", membershipDoc.id), {
       archived: true,
+      active: false,
+      status: "removed",
+      removedAt: serverTimestamp(),
+      removedBy: teacherUid,
+      updatedAt: serverTimestamp(),
     });
   }
 
@@ -333,23 +341,3 @@ export async function archiveStudentFromTeacherSpaces(params: {
   };
 }
 
-export async function removeStudentFromTeacherSpaces(params: {
-  db: Firestore;
-  teacherUid: string;
-  studentUid: string;
-}) {
-  const { db, teacherUid, studentUid } = params;
-  const membershipDocs = await getTeacherStudentMembershipDocs({
-    db,
-    teacherUid,
-    studentUid,
-  });
-
-  for (const membershipDoc of membershipDocs) {
-    await deleteDoc(doc(db, "spaceMembers", membershipDoc.id));
-  }
-
-  return {
-    affected: membershipDocs.length,
-  };
-}
