@@ -80,5 +80,7 @@ export type FractionWorksheet = {
 
     showAnswerKey: boolean;
 
+    showHints?: boolean;
+
     tasks: FractionTask[];
 };

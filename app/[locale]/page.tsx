@@ -1316,7 +1316,13 @@ function LibraryCard(props: { item: FeaturedLesson; locale: string }) {
     >
       <div className="library-card-inner">
         {item.image ? (
-          <img src={item.image} alt={item.title} loading="lazy" />
+          <Image
+            src={item.image}
+            alt={item.title}
+            fill
+            sizes="(min-width: 768px) 154px, 96px"
+            className="object-cover"
+          />
         ) : (
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-sky-200 to-emerald-200 text-xs font-semibold text-slate-700">
             321

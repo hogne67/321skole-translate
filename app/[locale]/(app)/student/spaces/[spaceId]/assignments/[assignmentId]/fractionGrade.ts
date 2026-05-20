@@ -1,6 +1,21 @@
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
 import type { AnswersMap, FractionAutoGrade } from "./types";
 
+function getSelectedParts(value: unknown, denominator: number): number[] {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+
+    const selectedParts = (value as { selectedParts?: unknown }).selectedParts;
+    if (!Array.isArray(selectedParts)) return [];
+
+    return Array.from(
+        new Set(
+            selectedParts
+                .map((part) => Number(part))
+                .filter((part) => Number.isInteger(part) && part >= 0 && part < denominator)
+        )
+    );
+}
+
 export function normalizeFractionText(value: unknown): string {
     return String(value ?? "")
         .trim()
@@ -66,7 +81,11 @@ export function gradeFractionWorksheet(
             task.expected?.answerText ||
             `${task.fraction.numerator}/${task.fraction.denominator}`;
 
-        const hasAnswer = normalizeFractionText(studentAnswer).length > 0;
+        const selectedParts = getSelectedParts(studentAnswer, task.fraction.denominator);
+        const hasAnswer =
+            task.type === "shade_fraction"
+                ? selectedParts.length > 0
+                : normalizeFractionText(studentAnswer).length > 0;
 
         if (!hasAnswer) {
             unansweredAuto += 1;
@@ -79,7 +98,10 @@ export function gradeFractionWorksheet(
             return;
         }
 
-        const isCorrect = isCorrectFraction(studentAnswer, correctAnswer);
+        const isCorrect =
+            task.type === "shade_fraction"
+                ? selectedParts.length === task.fraction.numerator
+                : isCorrectFraction(studentAnswer, correctAnswer);
 
         if (isCorrect) correctAuto += 1;
         else wrongAuto += 1;

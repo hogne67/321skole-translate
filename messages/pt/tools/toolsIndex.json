@@ -35,6 +35,10 @@
         "title": "Gerador de leitura",
         "description": "Crie um texto curto com perguntas corrigidas automaticamente."
       },
+      "fractionGenerator": {
+        "title": "Gerador de frações",
+        "description": "Crie atividades de frações para uso digital, partilha e impressão."
+      },
       "vocab": {
         "title": "Gerador de vocabulário",
         "description": "Crie listas de vocabulário a partir de um tema ou texto."

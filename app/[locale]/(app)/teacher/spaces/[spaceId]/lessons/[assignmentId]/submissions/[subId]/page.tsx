@@ -1023,6 +1023,7 @@ function Inner() {
                     answersByTaskId={answersMap as Record<string, string>}
                     readOnly={true}
                     showAutoCheck={true}
+                    variant="embedded"
                   />
                 ) : isGeometryAssignment && geometryWorksheet ? (
                   <GeometrySubmissionView

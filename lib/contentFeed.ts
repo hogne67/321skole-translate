@@ -31,6 +31,8 @@ export type ContentItem =
     lessonType?: string;
     textType?: string;
     texttype?: string;
+    mathType?: string;
+    contentType?: string;
     language?: string;
     level?: string;
     authorName?: string;
@@ -140,6 +142,18 @@ function pickTexttype(d: unknown): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
 }
 
+function pickMathType(d: unknown): string | undefined {
+  const x = d as Record<string, unknown> | null;
+  const v = x?.mathType;
+  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
+
+function pickContentType(d: unknown): string | undefined {
+  const x = d as Record<string, unknown> | null;
+  const v = x?.contentType;
+  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
+
 function pickLanguage(d: unknown): string | undefined {
   const x = d as Record<string, unknown> | null;
   const v = x?.language || x?.lang;
@@ -186,6 +200,8 @@ function deriveMathMeta(d: unknown): string[] {
     x?.texttype,
     x?.type,
     x?.category,
+    x?.mathType,
+    x?.contentType,
   ]
     .map((v) => (typeof v === "string" ? v.toLowerCase() : ""))
     .filter(Boolean);
@@ -207,7 +223,13 @@ function deriveMathMeta(d: unknown): string[] {
   }
 
   if (joined.includes("algebra")) out.push("algebra");
-  if (joined.includes("fractions")) out.push("fractions");
+  if (
+    joined.includes("fractions") ||
+    joined.includes("fraction_worksheet") ||
+    !!x?.fractionWorksheet
+  ) {
+    out.push("fractions");
+  }
   if (joined.includes("percent")) out.push("percent");
   if (joined.includes("equations")) out.push("equations");
   if (joined.includes("measurement")) out.push("measurement");
@@ -225,6 +247,8 @@ function safeMeta(d: unknown): string[] {
   const typeValue = normalizeMetaValue(x?.type);
   const lang = normalizeMetaValue(x?.language ?? x?.lang);
   const lessonType = normalizeMetaValue(x?.lessonType ?? x?.lesson_type);
+  const mathType = normalizeMetaValue(x?.mathType);
+  const contentType = normalizeMetaValue(x?.contentType);
 
   pushUnique(out, level);
   pushUnique(out, textType);
@@ -232,6 +256,8 @@ function safeMeta(d: unknown): string[] {
   pushUnique(out, typeValue);
   pushUnique(out, lang);
   pushUnique(out, lessonType);
+  pushUnique(out, mathType);
+  pushUnique(out, contentType);
 
   for (const tag of deriveMathMeta(d)) {
     pushUnique(out, tag);
@@ -315,6 +341,8 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode, locale:
         lessonType,
         textType: pickTextType(d),
         texttype: pickTexttype(d),
+        mathType: pickMathType(d),
+        contentType: pickContentType(d),
         language: pickLanguage(d),
         level: pickLevel(d) || undefined,
         authorName: pickAuthorName(d),

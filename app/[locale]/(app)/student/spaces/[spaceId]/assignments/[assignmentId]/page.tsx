@@ -1388,7 +1388,13 @@ export default function StudentAssignmentPage() {
             onAnswerChange={(taskId, value) => setAnswer(taskId, value)}
             readOnly={lock || submitted}
             showIdentityFields={false}
-            showAutoCheck
+            showAutoCheck={
+              submitted ||
+              ["submitted", "reviewed", "approved", "needs_work"].includes(
+                normalizeStatus(liveStatus ?? "")
+              )
+            }
+            variant="embedded"
           />
         ) : null}
 

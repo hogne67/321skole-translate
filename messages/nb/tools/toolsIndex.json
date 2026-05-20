@@ -35,6 +35,10 @@
         "title": "Lesegenerator",
         "description": "Lag en kort lesetekst med automatisk rettede oppgaver."
       },
+      "fractionGenerator": {
+        "title": "Brøkgenerator",
+        "description": "Lag brøkoppgaver for digital bruk, deling og utskrift."
+      },
       "vocab": {
         "title": "Ordlistegenerator",
         "description": "Bygg ordlister fra et tema eller en tekst."

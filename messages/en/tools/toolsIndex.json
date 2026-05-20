@@ -35,6 +35,10 @@
         "title": "Reading generator",
         "description": "Create a short reading text with auto-corrected questions."
       },
+      "fractionGenerator": {
+        "title": "Fraction generator",
+        "description": "Create fraction worksheets for digital use, sharing and print."
+      },
       "vocab": {
         "title": "Glossary generator",
         "description": "Build vocabulary lists from a topic or text."

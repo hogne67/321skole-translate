@@ -156,9 +156,20 @@ function makeWrongOptions(
 
     options.add(fractionText(denominator - numerator, denominator));
 
-    while (options.size < 3) {
-        const n = Math.floor(Math.random() * denominator) + 1;
+    for (let n = 1; n <= denominator && options.size < 3; n += 1) {
         options.add(fractionText(n, denominator));
+    }
+
+    const nearbyDenominators = [
+        denominator + 1,
+        denominator + 2,
+        Math.max(2, denominator - 1),
+    ];
+
+    for (const d of nearbyDenominators) {
+        for (let n = 1; n <= d && options.size < 3; n += 1) {
+            options.add(fractionText(Math.min(n, d), d));
+        }
     }
 
     return Array.from(options)

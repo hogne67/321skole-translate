@@ -223,8 +223,12 @@ function normalizedLessonSignals(it: ContentItem) {
   if (it.type !== "lesson") return [];
 
   const lesson = it as Extract<ContentItem, { type: "lesson" }>;
+  const extra = lesson as Extract<ContentItem, { type: "lesson" }> & {
+    mathType?: unknown;
+    contentType?: unknown;
+  };
 
-  return [lesson.lessonType, lesson.textType, lesson.texttype]
+  return [lesson.lessonType, lesson.textType, lesson.texttype, extra.mathType, extra.contentType]
     .map((v) => (typeof v === "string" ? v.trim().toLowerCase() : ""))
     .filter(Boolean);
 }
@@ -242,6 +246,7 @@ function isMathContent(it: ContentItem) {
     "geometry_worksheet",
     "algebra",
     "fractions",
+    "fraction_worksheet",
     "percent",
     "equations",
     "measurement",
@@ -269,7 +274,7 @@ function getMathSubtype(it: ContentItem): string | null {
 
   if (all.has("geometry") || all.has("geometry_worksheet")) return "geometry";
   if (all.has("algebra")) return "algebra";
-  if (all.has("fractions")) return "fractions";
+  if (all.has("fractions") || all.has("fraction_worksheet")) return "fractions";
   if (all.has("percent")) return "percent";
   if (all.has("equations")) return "equations";
   if (all.has("measurement")) return "measurement";
@@ -397,6 +402,9 @@ export default function ContentClient() {
   function lessonOpenHref(it: Extract<ContentItem, { type: "lesson" }>) {
     if (isReadingTestLesson(it)) {
       return readingTestPlayHref(it.id);
+    }
+    if (getMathSubtype(it) === "fractions") {
+      return `/${locale}/producer/math/${it.id}/print`;
     }
     const pid = it.activePublishedId || it.id;
     return `/${locale}/student/lesson/${pid}`;
@@ -1107,7 +1115,20 @@ export default function ContentClient() {
       }
 
       if (isFractionWorksheet) {
-        router.push(`/${locale}/student/lesson/${lessonId}`);
+        const res = await authedPost<{ ok?: boolean; id?: string }>(
+          "/api/math/fractions/save-attempt",
+          {
+            worksheet,
+            answersByTaskId: {},
+            auto: null,
+          }
+        );
+
+        if (!res?.id) {
+          throw new Error("Attempt was created without id");
+        }
+
+        router.push(`/${locale}/math/fractions/attempts/${res.id}`);
         return;
       }
 
@@ -1145,6 +1166,7 @@ export default function ContentClient() {
       "geometry_worksheet",
       "algebra",
       "fractions",
+      "fraction_worksheet",
       "percent",
       "equations",
       "measurement",

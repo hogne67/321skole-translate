@@ -21,6 +21,7 @@ const premiumTools: Tool[] = [
 const tools: Tool[] = [
   { id: "translate", href: "/tools/translate", badge: "POPULAR" },
   { id: "generator", href: "/tools/generator", badge: "NEW" },
+  { id: "fractionGenerator", href: "/producer/math/fractions", badge: "NEW" },
   { id: "vocab", href: "/tools/vocab", badge: "BETA" },
   { id: "sentenceFixer", href: "/tools/sentence-fixer", badge: "NEW" },
   { id: "speakingTopic", href: "/tools/speaking-topic", badge: "NEW" },

@@ -1,7 +1,7 @@
 // app\[locale]\(app)\producer\math\fractions\page.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import {
     collection,
@@ -18,6 +18,7 @@ import type {
     FractionDifficulty,
     FractionLanguage,
     FractionLevel,
+    FractionTask,
     FractionTopic,
     FractionVisualKind,
     FractionWorksheet,
@@ -53,12 +54,204 @@ const emptyWorksheet: FractionWorksheet = {
     difficulty: "easy",
     instructions: "Se på figuren og svar på oppgavene.",
     showAnswerKey: false,
+    showHints: true,
     tasks: [],
 };
 
 function normalizeLocale(locale: string): FractionLanguage {
     if (locale === "en" || locale === "pt") return locale;
     return "nb";
+}
+
+function escapeHtml(value: unknown): string {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function fractionHtml(value: string): string {
+    const match = value.trim().match(/^(-?\d+)\s*\/\s*(-?\d+)$/);
+
+    if (!match) return `<span>${escapeHtml(value)}</span>`;
+
+    return `
+        <span class="fraction-print-fraction" aria-label="${escapeHtml(value)}">
+            <span>${escapeHtml(match[1])}</span>
+            <span class="fraction-print-line"></span>
+            <span>${escapeHtml(match[2])}</span>
+        </span>
+    `;
+}
+
+function promptLabelForPrint(task: FractionTask, language: FractionLanguage): string {
+    if (task.type === "shade_fraction") {
+        if (language === "en") return "Shade";
+        if (language === "pt") return "Pinta";
+        return "Fargelegg";
+    }
+
+    if (task.type === "write_fraction") {
+        if (language === "en") return "Write the fraction.";
+        if (language === "pt") return "Escreve a fração.";
+        return "Skriv riktig brøk.";
+    }
+
+    return task.prompt;
+}
+
+function printFigureHtml(task: FractionTask, shadedOverride?: number): string {
+    const total = Math.max(1, Number(task.fraction.denominator) || 1);
+    const shaded = Math.max(
+        0,
+        Math.min(Number(shadedOverride ?? task.shadedParts ?? task.fraction.numerator) || 0, total)
+    );
+
+    if (task.visual === "circle") {
+        const cx = 100;
+        const cy = 100;
+        const r = 88;
+        const angle = 360 / total;
+
+        const polar = (degrees: number) => {
+            const radians = ((degrees - 90) * Math.PI) / 180;
+            return {
+                x: cx + r * Math.cos(radians),
+                y: cy + r * Math.sin(radians),
+            };
+        };
+
+        const slices = Array.from({ length: total }).map((_, idx) => {
+            const startAngle = idx * angle;
+            const endAngle = (idx + 1) * angle;
+            const start = polar(endAngle);
+            const end = polar(startAngle);
+            const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+            const active = idx < shaded;
+
+            return `<path d="M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z" fill="${active ? "#10b981" : "#f8fafc"}" stroke="#111827" stroke-width="2" />`;
+        }).join("");
+
+        return `
+            <svg class="fraction-print-circle" viewBox="-8 -8 216 216" role="img" aria-label="${shaded} av ${total}">
+                ${slices}
+                <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#111827" stroke-width="3" />
+            </svg>
+        `;
+    }
+
+    if (task.visual === "rectangle") {
+        const columns = Math.ceil(Math.sqrt(total));
+
+        return `
+            <div class="fraction-print-rect" style="grid-template-columns: repeat(${columns}, 28px);">
+                ${Array.from({ length: total }).map((_, idx) => {
+                    const active = idx < shaded;
+                    return `<div class="fraction-print-cell${active ? " is-active" : ""}"></div>`;
+                }).join("")}
+            </div>
+        `;
+    }
+
+    const partWidth = Math.max(14, Math.min(32, Math.floor(150 / total)));
+
+    return `
+        <div class="fraction-print-bar">
+            ${Array.from({ length: total }).map((_, idx) => {
+                const active = idx < shaded;
+                return `<div class="fraction-print-bar-part${active ? " is-active" : ""}" style="width:${partWidth}px;"></div>`;
+            }).join("")}
+        </div>
+    `;
+}
+
+function printTaskHtml(task: FractionTask, idx: number, worksheet: FractionWorksheet): string {
+    const prompt = promptLabelForPrint(task, worksheet.language);
+    const answer = task.answer || `${task.fraction.numerator}/${task.fraction.denominator}`;
+
+    if (task.type === "shade_fraction") {
+        return `
+            <article class="fraction-print-task fraction-print-task-shade">
+                <div class="fraction-print-head">
+                    <div class="fraction-print-num">${idx + 1}</div>
+                    <h4>${escapeHtml(prompt)}</h4>
+                </div>
+                <div class="fraction-print-shade-grid">
+                    <div class="fraction-print-target">${fractionHtml(answer)}</div>
+                    <div class="fraction-print-figure-box">${printFigureHtml(task, 0)}</div>
+                </div>
+                ${worksheet.showHints && task.hint ? `<div class="fraction-print-hint"><strong>Hint:</strong> ${escapeHtml(task.hint)}</div>` : ""}
+            </article>
+        `;
+    }
+
+    if (task.type === "choose_fraction" && task.options?.length) {
+        return `
+            <article class="fraction-print-task">
+                <div class="fraction-print-head">
+                    <div class="fraction-print-num">${idx + 1}</div>
+                    <h4>${escapeHtml(prompt)}</h4>
+                </div>
+                <div class="fraction-print-choice-grid">
+                    <div class="fraction-print-figure-box">${printFigureHtml(task)}</div>
+                    <div class="fraction-print-options">
+                        ${task.options.map((option) => `<div class="fraction-print-option">${fractionHtml(option)}</div>`).join("")}
+                    </div>
+                </div>
+                ${worksheet.showHints && task.hint ? `<div class="fraction-print-hint"><strong>Hint:</strong> ${escapeHtml(task.hint)}</div>` : ""}
+            </article>
+        `;
+    }
+
+    return `
+        <article class="fraction-print-task">
+            <div class="fraction-print-head">
+                <div class="fraction-print-num">${idx + 1}</div>
+                <h4>${escapeHtml(prompt)}</h4>
+            </div>
+            <div class="fraction-print-write-grid">
+                <div class="fraction-print-figure-box">${printFigureHtml(task)}</div>
+                <div class="fraction-print-answer-box">
+                    <span>Svar:</span>
+                    <div class="fraction-print-answer-lines">
+                        <div></div>
+                        <div></div>
+                    </div>
+                </div>
+            </div>
+            ${worksheet.showHints && task.hint ? `<div class="fraction-print-hint"><strong>Hint:</strong> ${escapeHtml(task.hint)}</div>` : ""}
+        </article>
+    `;
+}
+
+function answerKeyHtml(worksheet: FractionWorksheet): string {
+    if (!worksheet.showAnswerKey) return "";
+
+    return `
+        <section class="fraction-print-answer-key-section">
+            <div class="fraction-print-page-break"></div>
+            <h3>Fasit</h3>
+            <div class="fraction-print-task-list">
+                ${worksheet.tasks.map((task, idx) => {
+                    const answer = task.answer || `${task.fraction.numerator}/${task.fraction.denominator}`;
+                    return `
+                        <article class="fraction-print-task fraction-print-answer-key-task">
+                            <div class="fraction-print-head">
+                                <div class="fraction-print-num">${idx + 1}</div>
+                                <h4>Oppgave ${idx + 1}</h4>
+                            </div>
+                            <div class="fraction-print-answer-key-row">
+                                <span>Svar:</span>
+                                ${fractionHtml(answer)}
+                            </div>
+                        </article>
+                    `;
+                }).join("")}
+            </div>
+        </section>
+    `;
 }
 
 export default function FractionsPage() {
@@ -72,6 +265,7 @@ export default function FractionsPage() {
     const [difficulty, setDifficulty] = useState<FractionDifficulty>("easy");
     const [taskCount, setTaskCount] = useState(6);
     const [showAnswerKey, setShowAnswerKey] = useState(false);
+    const [includeHints, setIncludeHints] = useState(true);
     const [visualKinds, setVisualKinds] = useState<FractionVisualKind[]>(["bar"]);
 
     const [worksheet, setWorksheet] = useState<FractionWorksheet>({
@@ -94,6 +288,14 @@ export default function FractionsPage() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
+    const worksheetWithDisplayOptions = useMemo<FractionWorksheet>(
+        () => ({
+            ...worksheet,
+            showHints: includeHints,
+        }),
+        [includeHints, worksheet]
+    );
 
     useEffect(() => {
         const uid = auth.currentUser?.uid;
@@ -161,11 +363,368 @@ export default function FractionsPage() {
 
 
     function handlePrint() {
-        const content = printRef.current;
-        if (!content) return;
+        if (worksheetWithDisplayOptions.tasks.length === 0) return;
 
         const printWindow = window.open("", "_blank", "width=1000,height=1400");
         if (!printWindow) return;
+
+        const printWorksheet = worksheetWithDisplayOptions;
+        const styles = `
+            <style>
+                @page { size: A4; margin: 14mm; }
+
+                html, body {
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                    color: #0f172a;
+                    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+                }
+
+                * {
+                    box-sizing: border-box;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+
+                .fraction-print-root {
+                    max-width: 980px;
+                    margin: 0 auto;
+                }
+
+                .fraction-print-brandbar {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 16px;
+                    margin-bottom: 18px;
+                    padding-bottom: 14px;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+
+                .fraction-print-brandleft {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+
+                .fraction-print-brandlogo {
+                    width: 60px;
+                    height: auto;
+                    object-fit: contain;
+                    flex-shrink: 0;
+                }
+
+                .fraction-print-brandtitle {
+                    font-size: 20px;
+                    font-weight: 800;
+                    line-height: 1.1;
+                }
+
+                .fraction-print-brandsite {
+                    margin-top: 2px;
+                    font-size: 12px;
+                    color: #64748b;
+                    font-weight: 600;
+                }
+
+                .fraction-print-badge {
+                    border: 1px solid #e2e8f0;
+                    border-radius: 999px;
+                    padding: 7px 12px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #334155;
+                }
+
+                .fraction-print-title-wrap {
+                    margin-bottom: 20px;
+                    padding-bottom: 14px;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+
+                .fraction-print-title {
+                    margin: 0;
+                    font-size: 24px;
+                    line-height: 1.2;
+                    font-weight: 800;
+                }
+
+                .fraction-print-instructions {
+                    margin: 8px 0 0;
+                    font-size: 14px;
+                    color: #475569;
+                }
+
+                .fraction-print-meta-grid {
+                    margin-top: 16px;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                }
+
+                .fraction-print-meta-box {
+                    border: 1px solid #e2e8f0;
+                    border-radius: 14px;
+                    padding: 10px 12px;
+                    font-size: 13px;
+                    color: #334155;
+                }
+
+                .fraction-print-meta-box:last-child {
+                    grid-column: 1 / -1;
+                }
+
+                .fraction-print-task-list {
+                    display: grid;
+                    gap: 14px;
+                }
+
+                .fraction-print-task {
+                    border: 1px solid #e2e8f0;
+                    border-radius: 20px;
+                    padding: 14px;
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                }
+
+                .fraction-print-head {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 10px;
+                    margin-bottom: 10px;
+                }
+
+                .fraction-print-num {
+                    width: 26px;
+                    height: 26px;
+                    border-radius: 999px;
+                    background: #0f172a;
+                    color: #fff;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 13px;
+                    font-weight: 700;
+                    flex-shrink: 0;
+                }
+
+                .fraction-print-head h4 {
+                    margin: 1px 0 0;
+                    font-size: 15px;
+                    line-height: 1.25;
+                    font-weight: 700;
+                }
+
+                .fraction-print-write-grid,
+                .fraction-print-choice-grid,
+                .fraction-print-shade-grid {
+                    display: grid;
+                    align-items: center;
+                    gap: 14px;
+                }
+
+                .fraction-print-write-grid {
+                    grid-template-columns: 220px minmax(0, 1fr);
+                }
+
+                .fraction-print-choice-grid {
+                    grid-template-columns: 190px minmax(0, 1fr);
+                }
+
+                .fraction-print-shade-grid {
+                    grid-template-columns: 96px minmax(0, 1fr);
+                }
+
+                .fraction-print-figure-box {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 120px;
+                    border-radius: 16px;
+                    background: #f8fafc;
+                    padding: 10px;
+                    overflow: visible;
+                }
+
+                .fraction-print-answer-box {
+                    border: 1px dashed #cbd5e1;
+                    border-radius: 16px;
+                    background: #fff;
+                    min-height: 92px;
+                    padding: 12px;
+                    display: flex;
+                    align-items: center;
+                    gap: 18px;
+                }
+
+                .fraction-print-answer-box > span,
+                .fraction-print-answer-key-row > span {
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #475569;
+                }
+
+                .fraction-print-answer-lines {
+                    display: grid;
+                    gap: 16px;
+                    width: 90px;
+                }
+
+                .fraction-print-answer-lines div {
+                    height: 2px;
+                    background: #0f172a;
+                    border-radius: 999px;
+                }
+
+                .fraction-print-options {
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    gap: 10px;
+                }
+
+                .fraction-print-option {
+                    border: 1px solid #cbd5e1;
+                    border-radius: 16px;
+                    min-height: 74px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #fff;
+                }
+
+                .fraction-print-target {
+                    display: flex;
+                    justify-content: center;
+                }
+
+                .fraction-print-fraction {
+                    display: inline-flex;
+                    min-width: 2.4em;
+                    flex-direction: column;
+                    align-items: center;
+                    vertical-align: middle;
+                    font-size: 24px;
+                    font-weight: 800;
+                    line-height: 1;
+                }
+
+                .fraction-print-line {
+                    width: 100%;
+                    height: 2px;
+                    margin: 4px 0;
+                    border-radius: 999px;
+                    background: currentColor;
+                }
+
+                .fraction-print-circle {
+                    display: block;
+                    width: 128px;
+                    height: 128px;
+                    background: #f1f5f9;
+                    border: 3px solid #111827;
+                    border-radius: 18px;
+                    padding: 7px;
+                }
+
+                .fraction-print-rect {
+                    display: grid;
+                    padding: 8px;
+                    border: 3px solid #111827;
+                    background: #f1f5f9;
+                    width: fit-content;
+                }
+
+                .fraction-print-cell {
+                    width: 28px;
+                    height: 28px;
+                    border: 2px solid #111827;
+                    margin-left: -2px;
+                    margin-top: -2px;
+                    background: #f8fafc;
+                }
+
+                .fraction-print-cell.is-active,
+                .fraction-print-bar-part.is-active {
+                    background: #10b981;
+                }
+
+                .fraction-print-circle path,
+                .fraction-print-cell.is-active,
+                .fraction-print-bar-part.is-active {
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+
+                .fraction-print-bar {
+                    display: inline-flex;
+                    padding: 8px;
+                    border: 3px solid #111827;
+                    background: #f1f5f9;
+                    max-width: 100%;
+                }
+
+                .fraction-print-bar-part {
+                    height: 58px;
+                    border: 2px solid #111827;
+                    margin-left: -2px;
+                    background: #f8fafc;
+                }
+
+                .fraction-print-bar-part:first-child {
+                    margin-left: 0;
+                }
+
+                .fraction-print-hint {
+                    margin-top: 10px;
+                    border-radius: 14px;
+                    background: #fffbeb;
+                    padding: 10px;
+                    font-size: 13px;
+                    color: #334155;
+                }
+
+                .fraction-print-answer-key-section {
+                    margin-top: 28px;
+                    border-top: 2px solid #cbd5e1;
+                    padding-top: 18px;
+                }
+
+                .fraction-print-answer-key-section h3 {
+                    margin: 0 0 14px;
+                    font-size: 22px;
+                    font-weight: 800;
+                }
+
+                .fraction-print-answer-key-task {
+                    background: #ecfdf5;
+                    border-color: #a7f3d0;
+                }
+
+                .fraction-print-answer-key-row {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 12px;
+                    border: 1px solid #a7f3d0;
+                    border-radius: 16px;
+                    background: #fff;
+                    padding: 10px 14px;
+                }
+
+                .fraction-print-page-break {
+                    break-before: page;
+                    page-break-before: always;
+                    height: 0;
+                }
+
+                @media print {
+                    .fraction-print-task {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+                }
+            </style>
+        `;
 
         printWindow.document.open();
         printWindow.document.write(`
@@ -173,28 +732,68 @@ export default function FractionsPage() {
     <html>
       <head>
         <meta charset="utf-8" />
-        <title>${worksheet.title}</title>
-        <style>
-          @page { size: A4; margin: 15mm; }
-          html, body {
-            margin: 0;
-            padding: 0;
-            background: white;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            color: #0f172a;
-          }
-          * { box-sizing: border-box; }
-          svg { max-width: 100%; height: auto; }
-        </style>
+        <title>${escapeHtml(printWorksheet.title)}</title>
+        ${styles}
       </head>
       <body>
-        ${content.outerHTML}
+        <main class="fraction-print-root">
+            <div class="fraction-print-brandbar">
+                <div class="fraction-print-brandleft">
+                    <img src="/logo321ny.png" alt="321 school" class="fraction-print-brandlogo" />
+                    <div>
+                        <div class="fraction-print-brandtitle">321 school</div>
+                        <div class="fraction-print-brandsite">321school.com</div>
+                    </div>
+                </div>
+                <div class="fraction-print-badge">Arbeidsark</div>
+            </div>
+
+            <section class="fraction-print-title-wrap">
+                <h1 class="fraction-print-title">${escapeHtml(printWorksheet.title)}</h1>
+                <p class="fraction-print-instructions">${escapeHtml(printWorksheet.instructions)}</p>
+                <div class="fraction-print-meta-grid">
+                    <div class="fraction-print-meta-box"><strong>Navn:</strong></div>
+                    <div class="fraction-print-meta-box"><strong>Dato:</strong></div>
+                    <div class="fraction-print-meta-box"><strong>Klasse:</strong></div>
+                </div>
+            </section>
+
+            <section class="fraction-print-task-list">
+                ${printWorksheet.tasks.map((task, idx) => printTaskHtml(task, idx, printWorksheet)).join("")}
+            </section>
+
+            ${answerKeyHtml(printWorksheet)}
+        </main>
       </body>
     </html>
   `);
         printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
+
+        const images = Array.from(printWindow.document.images);
+        const doPrint = () => {
+            printWindow.focus();
+            printWindow.print();
+        };
+
+        if (images.length === 0) {
+            doPrint();
+            return;
+        }
+
+        let loaded = 0;
+        const done = () => {
+            loaded += 1;
+            if (loaded >= images.length) doPrint();
+        };
+
+        images.forEach((img) => {
+            if (img.complete) {
+                done();
+            } else {
+                img.onload = done;
+                img.onerror = done;
+            }
+        });
     }
 
     function toggleVisual(kind: FractionVisualKind) {
@@ -253,7 +852,10 @@ export default function FractionsPage() {
                 return;
             }
 
-            setWorksheet(data.worksheet);
+            setWorksheet({
+                ...data.worksheet,
+                showHints: includeHints,
+            });
         } catch (err) {
             setError(err instanceof Error ? err.message : "Kunne ikke lage brøkark.");
         } finally {
@@ -262,7 +864,7 @@ export default function FractionsPage() {
     }
 
     async function saveWorksheetAndGetId(): Promise<string | null> {
-        if (worksheet.tasks.length === 0) {
+        if (worksheetWithDisplayOptions.tasks.length === 0) {
             setError("Lag et brøkark før du lagrer.");
             return null;
         }
@@ -282,7 +884,7 @@ export default function FractionsPage() {
                 Authorization: `Bearer ${idToken}`,
             },
             body: JSON.stringify({
-                worksheet,
+                worksheet: worksheetWithDisplayOptions,
                 source: "math-fractions-generator",
             }),
         });
@@ -378,9 +980,9 @@ export default function FractionsPage() {
                 body: JSON.stringify({
                     sourceType: "myContent",
                     sourceId: savedWorksheetId,
-                    title: worksheet.title,
-                    level: worksheet.level,
-                    language: worksheet.language,
+                    title: worksheetWithDisplayOptions.title,
+                    level: worksheetWithDisplayOptions.level,
+                    language: worksheetWithDisplayOptions.language,
                 }),
             });
 
@@ -536,6 +1138,17 @@ export default function FractionsPage() {
                             {showAnswerKey ? "✓ Vis fasit" : "Vis fasit"}
                         </button>
 
+                        <button
+                            type="button"
+                            onClick={() => setIncludeHints((value) => !value)}
+                            className={`w-full rounded-2xl border px-3 py-2 text-left text-sm ${includeHints
+                                ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                                : "border-slate-200 bg-white text-slate-700"
+                                }`}
+                        >
+                            {includeHints ? "✓ Vis hint" : "Vis hint"}
+                        </button>
+
                         {error ? (
                             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                                 {error}
@@ -596,6 +1209,8 @@ export default function FractionsPage() {
                     <FractionWorksheetView
                         worksheet={worksheet}
                         printRef={printRef}
+                        includeHints={includeHints}
+                        showAutoCheck={false}
                     />
                 </section>
             </div>

@@ -47,9 +47,9 @@ function CircleFraction({
 
     return (
         <svg
-            viewBox="0 0 200 200"
-            width="190"
-            height="190"
+            viewBox="-8 -8 216 216"
+            width="160"
+            height="160"
             role="img"
             aria-label={`${shaded} av ${total}`}
             style={{
@@ -102,6 +102,8 @@ export default function FractionVisual({
         0,
         Math.min(Number(shadedParts ?? fraction.numerator) || 0, total)
     );
+    const barPartWidth = Math.max(18, Math.min(42, Math.floor(168 / total)));
+    const rectanglePartSize = total > 8 ? 34 : 42;
 
     if (visual === "circle") {
         return <CircleFraction total={total} shaded={shaded} />;
@@ -112,11 +114,13 @@ export default function FractionVisual({
             <div
                 style={{
                     display: "grid",
-                    gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(total))}, 42px)`,
+                    gridTemplateColumns: `repeat(${Math.ceil(Math.sqrt(total))}, ${rectanglePartSize}px)`,
                     gap: 0,
-                    padding: 12,
+                    padding: 10,
                     border: "3px solid #111827",
                     background: "#f1f5f9",
+                    maxWidth: "100%",
+                    width: "fit-content",
                 }}
             >
                 {Array.from({ length: total }).map((_, idx) => {
@@ -126,8 +130,8 @@ export default function FractionVisual({
                         <div
                             key={idx}
                             style={{
-                                width: 42,
-                                height: 42,
+                                width: rectanglePartSize,
+                                height: rectanglePartSize,
                                 border: "2px solid #111827",
                                 marginLeft: -2,
                                 marginTop: -2,
@@ -144,9 +148,10 @@ export default function FractionVisual({
         <div
             style={{
                 display: "inline-block",
-                padding: 12,
+                padding: 10,
                 border: "3px solid #111827",
                 background: "#f1f5f9",
+                maxWidth: "100%",
             }}
         >
             <div style={{ display: "flex" }}>
@@ -157,8 +162,8 @@ export default function FractionVisual({
                         <div
                             key={idx}
                             style={{
-                                width: 50,
-                                height: 80,
+                                width: barPartWidth,
+                                height: 68,
                                 border: "2px solid #111827",
                                 marginLeft: idx === 0 ? 0 : -2,
                                 background: active ? "#10b981" : "#f8fafc",
