@@ -26,6 +26,17 @@ type Task = {
   textWithGap?: string;
 };
 
+type ImageWritingTask = {
+  id?: string;
+  imageUrl?: string;
+  imageSource?: string;
+  imagePrompt?: string;
+  imageDescription?: string;
+  instruction?: string;
+  supportWords?: unknown[];
+  successCriteria?: unknown[];
+};
+
 type AnswersMap = Record<string, unknown>;
 
 type MathWorksheetTask = {
@@ -127,6 +138,11 @@ function safeTasksArray(tasks: unknown): Task[] {
     }
   }
   return [];
+}
+
+function safeImageTasksArray(tasks: unknown): ImageWritingTask[] {
+  if (!Array.isArray(tasks)) return [];
+  return tasks.filter(isRecord).map((task) => task as ImageWritingTask);
 }
 
 function isMathWorksheet(value: unknown): value is MathWorksheet {
@@ -1130,6 +1146,51 @@ function buildGeneralUserContent(args: {
   );
 }
 
+function buildImageWritingUserContent(args: {
+  lang: Lang;
+  contentLanguage: string;
+  languageHint: string;
+  lessonTitle: string;
+  level: string;
+  taskType: string;
+  imageTask: ImageWritingTask | null;
+  studentAnswer: string;
+}) {
+  const { lang, contentLanguage, languageHint, lessonTitle, level, taskType, imageTask, studentAnswer } = args;
+  const t = getPromptText(lang);
+  const instruction = safeString(imageTask?.instruction).trim();
+  const imageDescription = safeString(imageTask?.imageDescription).trim();
+  const imagePrompt = safeString(imageTask?.imagePrompt).trim();
+  const supportWords = Array.isArray(imageTask?.supportWords)
+    ? imageTask.supportWords.map((word) => asText(word).trim()).filter(Boolean).join(", ")
+    : "";
+  const successCriteria = Array.isArray(imageTask?.successCriteria)
+    ? imageTask.successCriteria.map((item) => asText(item).trim()).filter(Boolean).join("; ")
+    : "";
+
+  return [
+    buildLanguageContextBlock({ lang, contentLanguage, languageHint }),
+    "",
+    "Dette er en skriveoppgave basert på et bilde.",
+    `${t.lessonTitle}: ${lessonTitle}`,
+    `${t.level}: ${level}`,
+    `${t.taskType}: ${taskType || "image_writing"}`,
+    imagePrompt ? `Image prompt: ${imagePrompt}` : "",
+    supportWords ? `Support words: ${supportWords}` : "",
+    successCriteria ? `Success criteria: ${successCriteria}` : "",
+    "",
+    `Bildebeskrivelse:\n${imageDescription || t.notProvided}`,
+    "",
+    `Oppgave:\n${instruction || t.noPrompt}`,
+    "",
+    `Elevtekst:\n${studentAnswer || t.notAnswered}`,
+    "",
+    `${t.instruction}:\nGi tilbakemelding på innhold, grammatikk, ordvalg og om teksten passer til bildet og oppgaven. Vær konkret, kort og støttende. Skriv i samme språk som feedback-språket.`,
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
 export async function POST(req: Request) {
   try {
     requireEnv();
@@ -1334,6 +1395,7 @@ export async function POST(req: Request) {
 
     const timeSignal = buildTimeSignal(sourceWordCount, readingTimeUsedSeconds);
     const isReadingTest = lessonType === "reading_test" || readingTasks.length > 0;
+    const isImageWriting = lessonType === "image_writing";
 
     const systemPrompt = isReadingTest ? buildReadingSystemPrompt(locale) : buildGeneralSystemPrompt(locale);
 
@@ -1378,7 +1440,29 @@ export async function POST(req: Request) {
           .join("\n\n")
         : t.noTasksFound;
 
-    const userContent = isReadingTest
+    const imageTask = safeImageTasksArray(lesson.imageTasks)[0] ?? null;
+    const imageWritingAnswer =
+      openItems.find((item) => item.answer.trim())?.answer.trim() ||
+      Object.values(answers)
+        .map((value) => asText(value).trim())
+        .find(Boolean) ||
+      Object.values(answersByTaskId)
+        .map((value) => asText(value).trim())
+        .find(Boolean) ||
+      "";
+
+    const userContent = isImageWriting
+      ? buildImageWritingUserContent({
+        lang: locale,
+        contentLanguage,
+        languageHint,
+        lessonTitle,
+        level,
+        taskType,
+        imageTask,
+        studentAnswer: imageWritingAnswer,
+      })
+      : isReadingTest
       ? buildReadingUserContent({
         lang: locale,
         contentLanguage,

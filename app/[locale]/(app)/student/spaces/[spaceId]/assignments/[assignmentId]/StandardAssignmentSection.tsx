@@ -13,6 +13,7 @@ import type {
 } from "./types";
 
 type Props = {
+    lessonLanguage?: string;
     sourceTextSafe: string;
     translatedText: string | null;
 
@@ -88,6 +89,7 @@ type Props = {
 };
 
 export default function StandardAssignmentSection({
+    lessonLanguage,
     sourceTextSafe,
     translatedText,
     originalSegs,
@@ -125,28 +127,30 @@ export default function StandardAssignmentSection({
 }: Props) {
     return (
         <div style={{ display: "grid", gap: 18 }}>
-            <StudentAssignmentTextSection
-                sourceTextSafe={sourceTextSafe}
-                translatedText={translatedText}
-                originalSegs={originalSegs}
-                translationSegs={translationSegs}
-                targetLang={targetLang}
-                onTargetLangChange={onTargetLangChange}
-                translating={translating}
-                ttsBusy={ttsBusy}
-                ttsErr={ttsErr}
-                showTextTranslation={showTextTranslation}
-                onToggleTextTranslation={onToggleTextTranslation}
-                activeTextMode={activeTextMode}
-                activeSentenceIndex={activeSentenceIndex}
-                hasAudio={hasAudio}
-                originalLangForTTS={originalLangForTTS}
-                translationLangForTTS={translationLangForTTS}
-                t={t}
-                onTranslateText={onTranslateText}
-                onPlayTTS={onPlayTTS}
-                onSeekSentence={onSeekSentence}
-            />
+            {sourceTextSafe.trim() ? (
+                <StudentAssignmentTextSection
+                    sourceTextSafe={sourceTextSafe}
+                    translatedText={translatedText}
+                    originalSegs={originalSegs}
+                    translationSegs={translationSegs}
+                    targetLang={targetLang}
+                    onTargetLangChange={onTargetLangChange}
+                    translating={translating}
+                    ttsBusy={ttsBusy}
+                    ttsErr={ttsErr}
+                    showTextTranslation={showTextTranslation}
+                    onToggleTextTranslation={onToggleTextTranslation}
+                    activeTextMode={activeTextMode}
+                    activeSentenceIndex={activeSentenceIndex}
+                    hasAudio={hasAudio}
+                    originalLangForTTS={originalLangForTTS}
+                    translationLangForTTS={translationLangForTTS}
+                    t={t}
+                    onTranslateText={onTranslateText}
+                    onPlayTTS={onPlayTTS}
+                    onSeekSentence={onSeekSentence}
+                />
+            ) : null}
 
             <section>
                 <AssignmentTasksHeader
@@ -179,6 +183,7 @@ export default function StandardAssignmentSection({
                                 <AssignmentTaskCard
                                     key={stableId}
                                     task={task}
+                                    language={lessonLanguage}
                                     stableId={stableId}
                                     answers={answers}
                                     translatedTask={translatedTasksMap.get(stableId)}

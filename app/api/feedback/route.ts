@@ -338,23 +338,41 @@ export async function POST(req: Request) {
     ]);
 
     const oppgaveType = pickString(body, ["oppgaveType", "taskType", "type"]);
+    const lessonType = pickString(body, ["lessonType"]);
+    const imageDescription = pickString(body, ["imageDescription"]);
+    const imageInstruction = pickString(body, ["imageInstruction"]);
+    const isImageWriting = lessonType.toLowerCase() === "image_writing";
 
-    if (!lesetekst) return Response.json({ error: "Mangler lesetekst." }, { status: 400 });
+    if (!lesetekst && !isImageWriting) return Response.json({ error: "Mangler lesetekst." }, { status: 400 });
+    if (isImageWriting && !imageDescription && !lesetekst) {
+      return Response.json({ error: "Mangler bildebeskrivelse." }, { status: 400 });
+    }
     if (!oppgave) return Response.json({ error: "Mangler oppgave." }, { status: 400 });
     if (!svar && !autoResultat) {
       return Response.json({ error: "Mangler svar." }, { status: 400 });
     }
 
     const t = getPromptText(locale);
-    const systemPrompt = buildSystemPrompt(locale);
+    const systemPrompt = isImageWriting ? buildImageWritingSystemPrompt(locale) : buildSystemPrompt(locale);
 
-    const userContent =
-      `${t.level}: ${nivå}\n` +
-      (oppgaveType ? `${t.taskType}: ${oppgaveType}\n` : "") +
-      `\n${t.autoResult}:\n${autoResultat || t.notProvided}\n` +
-      `\n${t.lessonText}:\n${lesetekst}\n\n` +
-      `${t.task}:\n${oppgave}\n\n` +
-      `${t.studentAnswer}:\n${svar || t.notProvided}\n`;
+    const userContent = isImageWriting
+      ? [
+        `${t.level}: ${nivå}`,
+        oppgaveType ? `${t.taskType}: ${oppgaveType}` : "",
+        "",
+        "Dette er en skriveoppgave basert på et bilde.",
+        `Bildebeskrivelse:\n${imageDescription || lesetekst || t.notProvided}`,
+        "",
+        `${t.task}:\n${imageInstruction || oppgave}`,
+        "",
+        `${t.studentAnswer}:\n${svar || t.notProvided}`,
+      ].filter(Boolean).join("\n")
+      : `${t.level}: ${nivå}\n` +
+        (oppgaveType ? `${t.taskType}: ${oppgaveType}\n` : "") +
+        `\n${t.autoResult}:\n${autoResultat || t.notProvided}\n` +
+        `\n${t.lessonText}:\n${lesetekst}\n\n` +
+        `${t.task}:\n${oppgave}\n\n` +
+        `${t.studentAnswer}:\n${svar || t.notProvided}\n`;
 
     const r = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
@@ -371,4 +389,63 @@ export async function POST(req: Request) {
     console.error("Feedback route error:", err);
     return Response.json({ error: toErrorString(err) }, { status: 500 });
   }
+}
+
+function buildImageWritingSystemPrompt(lang: Lang) {
+  const headings = getImageWritingHeadings(lang);
+  const t = getPromptText(lang);
+
+  const role =
+    lang === "pt"
+      ? "Você é um professor experiente de língua."
+      : lang === "en"
+        ? "You are an experienced language teacher."
+        : "Du er en erfaren norsklærer/språklærer.";
+
+  return [
+    role,
+    t.guidance,
+    "",
+    "IMPORTANT:",
+    "This is a writing task based on an image. Evaluate whether the student's text fits the image description and the task instruction.",
+    t.taskRule,
+    t.relevanceRule,
+    t.grammarRule,
+    t.nextStepRule,
+    "",
+    "Use these exact headings:",
+    headings.h1,
+    headings.h2,
+    headings.h3,
+    headings.h4,
+    "",
+    t.finalInstruction,
+  ].join("\n");
+}
+
+function getImageWritingHeadings(lang: Lang) {
+  if (lang === "en") {
+    return {
+      h1: "CONTENT AND IMAGE MATCH",
+      h2: "RESPONSE TO THE TASK",
+      h3: "GRAMMAR AND LANGUAGE",
+      h4: "NEXT STEPS",
+    };
+  }
+
+  if (lang === "pt") {
+    return {
+      h1: "CONTEÚDO E RELAÇÃO COM A IMAGEM",
+      h2: "RESPOSTA À TAREFA",
+      h3: "GRAMÁTICA E LINGUAGEM",
+      h4: "PRÓXIMOS PASSOS",
+    };
+  }
+
+  return {
+    h1: "INNHOLD OG BILDEKOBLING",
+    h2: "SVAR PÅ OPPGAVEN",
+    h3: "GRAMMATIKK OG SPRÅK",
+    h4: "NESTE STEG",
+  };
 }

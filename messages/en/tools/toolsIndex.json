@@ -16,6 +16,10 @@
           "title": "Worksheet generator",
           "description": "Create structured assignments with AI support."
         },
+        "imageWritingGenerator": {
+          "title": "Image writing",
+          "description": "Create writing tasks where students write from an image."
+        },
         "readingTestGenerator": {
           "title": "Reading test generator",
           "description": "Generate reading tests with questions and automatic evaluation."

@@ -16,6 +16,10 @@
           "title": "Oppgavegenerator",
           "description": "Lag strukturerte oppgaver med AI-støtte."
         },
+        "imageWritingGenerator": {
+          "title": "Skriv til bilde",
+          "description": "Lag skriveoppgaver der elever skriver tekst til et bilde."
+        },
         "readingTestGenerator": {
           "title": "Leseprøvegenerator",
           "description": "Generer leseprøver med spørsmål og automatisk vurdering."

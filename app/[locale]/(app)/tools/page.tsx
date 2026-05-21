@@ -14,6 +14,7 @@ type Tool = {
 
 const premiumTools: Tool[] = [
   { id: "assignmentGenerator", href: "/producer/texts/new", badge: "PREMIUM" },
+  { id: "imageWritingGenerator", href: "/producer/image-writing", badge: "NEW" },
   { id: "readingTestGenerator", href: "/producer/reading-tests/new", badge: "PREMIUM" },
   { id: "geometryGenerator", href: "/producer/math/geometry", badge: "NEW" },
 ];

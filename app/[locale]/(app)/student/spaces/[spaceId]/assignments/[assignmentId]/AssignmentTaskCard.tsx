@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { AnswersMap, AutoGrade, Task, TranslatedTask } from "./types";
 import {
     blueButtonActiveStyle,
@@ -8,6 +9,7 @@ import {
 
 type Props = {
     task: Task;
+    language?: string;
     stableId: string;
     answers: AnswersMap;
     translatedTask?: TranslatedTask;
@@ -21,8 +23,34 @@ type Props = {
     onAnswer: (taskId: string, value: unknown) => void;
 };
 
+function imageWritingLabels(language: unknown) {
+    if (language === "en") {
+        return {
+            showSupport: "Show support words",
+            hideSupport: "Hide support words",
+            showCriteria: "Show success criteria",
+            hideCriteria: "Hide success criteria",
+        };
+    }
+    if (language === "pt") {
+        return {
+            showSupport: "Mostrar palavras de apoio",
+            hideSupport: "Ocultar palavras de apoio",
+            showCriteria: "Mostrar critérios de sucesso",
+            hideCriteria: "Ocultar critérios de sucesso",
+        };
+    }
+    return {
+        showSupport: "Vis støtteord",
+        hideSupport: "Skjul støtteord",
+        showCriteria: "Vis suksesskriterier",
+        hideCriteria: "Skjul suksesskriterier",
+    };
+}
+
 export default function AssignmentTaskCard({
     task,
+    language,
     stableId,
     answers,
     translatedTask,
@@ -38,6 +66,20 @@ export default function AssignmentTaskCard({
     const type = String(task?.type ?? "open").toLowerCase();
     const promptOrig = String(task?.prompt ?? "").trim();
     const promptTr = String(translatedTask?.translatedPrompt ?? "").trim();
+    const supportWords = Array.isArray(task.supportWords)
+        ? task.supportWords.map((word) => String(word).trim()).filter(Boolean)
+        : [];
+    const successCriteria = Array.isArray(task.successCriteria)
+        ? task.successCriteria.map((item) => String(item).trim()).filter(Boolean)
+        : [];
+    const [showSupportWords, setShowSupportWords] = useState(false);
+    const [showSuccessCriteria, setShowSuccessCriteria] = useState(false);
+    const labels = imageWritingLabels(language);
+    const isImageWritingTask =
+        !!String(task.imageUrl ?? "").trim() ||
+        !!String(task.imageDescription ?? "").trim() ||
+        supportWords.length > 0 ||
+        successCriteria.length > 0;
 
     const autoResult = autoGrade?.byTask?.[stableId] ?? null;
 
@@ -142,6 +184,58 @@ export default function AssignmentTaskCard({
                     }}
                 >
                     {promptTr}
+                </div>
+            ) : null}
+
+            {supportWords.length > 0 ? (
+                <div style={{ marginTop: 10 }}>
+                    <button
+                        type="button"
+                        onClick={() => setShowSupportWords((value) => !value)}
+                        style={{ ...softBlueButtonStyle, padding: "7px 10px" }}
+                    >
+                        {showSupportWords ? labels.hideSupport : `${labels.showSupport} (${supportWords.length})`}
+                    </button>
+
+                    {showSupportWords ? (
+                        <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {supportWords.map((word) => (
+                                <span
+                                    key={word}
+                                    style={{
+                                        border: "1px solid rgba(59,130,246,0.20)",
+                                        borderRadius: 999,
+                                        padding: "5px 9px",
+                                        background: "rgba(59,130,246,0.07)",
+                                        fontSize: 13,
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    {word}
+                                </span>
+                            ))}
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
+
+            {successCriteria.length > 0 ? (
+                <div style={{ marginTop: 10 }}>
+                    <button
+                        type="button"
+                        onClick={() => setShowSuccessCriteria((value) => !value)}
+                        style={{ ...softBlueButtonStyle, padding: "7px 10px" }}
+                    >
+                        {showSuccessCriteria ? labels.hideCriteria : `${labels.showCriteria} (${successCriteria.length})`}
+                    </button>
+
+                    {showSuccessCriteria ? (
+                        <ul style={{ margin: "10px 0 0", paddingLeft: 20, color: "rgba(0,0,0,0.70)", lineHeight: 1.45 }}>
+                            {successCriteria.map((item) => (
+                                <li key={item}>{item}</li>
+                            ))}
+                        </ul>
+                    ) : null}
                 </div>
             ) : null}
 
@@ -300,7 +394,7 @@ export default function AssignmentTaskCard({
                         value={String(answers[stableId] ?? "")}
                         disabled={locked}
                         onChange={(e) => onAnswer(stableId, e.target.value)}
-                        rows={4}
+                        rows={isImageWritingTask ? 9 : 4}
                         style={{
                             width: "100%",
                             border: "1px solid rgba(59,130,246,0.18)",
@@ -309,6 +403,7 @@ export default function AssignmentTaskCard({
                             outline: "none",
                             opacity: locked ? 0.7 : 1,
                             background: "rgba(59,130,246,0.04)",
+                            minHeight: isImageWritingTask ? 190 : undefined,
                         }}
                         placeholder={t("tasks.writeAnswer")}
                     />

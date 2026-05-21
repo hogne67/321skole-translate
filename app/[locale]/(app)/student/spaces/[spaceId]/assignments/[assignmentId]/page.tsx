@@ -257,16 +257,23 @@ export default function StudentAssignmentPage() {
     [lesson?.sourceText, lesson?.text]
   );
 
+  const isImageWriting = useMemo(
+    () => String(lesson?.lessonType ?? assignment?.lessonType ?? "").trim().toLowerCase() === "image_writing",
+    [lesson?.lessonType, assignment?.lessonType]
+  );
+
+  const displayedSourceTextSafe = isImageWriting ? "" : sourceTextSafe;
+
   const imageUrl = useMemo(() => {
     const u = String(lesson?.coverImageUrl ?? "").trim();
     return u || null;
   }, [lesson?.coverImageUrl]);
 
   const textFollow = useMemo(() => {
-    const original = segmentSentences(sourceTextSafe || "");
+    const original = segmentSentences(displayedSourceTextSafe || "");
     const translation = segmentSentences(translatedText || "");
     return { original, translation };
-  }, [sourceTextSafe, translatedText]);
+  }, [displayedSourceTextSafe, translatedText]);
 
   const originalSegs = textFollow.original.segs;
   const translationSegs = textFollow.translation.segs;
@@ -1296,13 +1303,15 @@ export default function StudentAssignmentPage() {
         <div
           style={{
             marginTop: 14,
-            maxHeight: 340,
+            aspectRatio: "16 / 9",
+            maxHeight: isImageWriting ? 520 : 340,
             overflow: "hidden",
             borderRadius: 14,
             border: "1px solid rgba(0,0,0,0.10)",
+            background: isImageWriting ? "rgba(0,0,0,0.03)" : undefined,
           }}
         >
-          <SmartImage src={imageUrl} alt={mainTitle || "Cover"} />
+          <SmartImage src={imageUrl} alt={mainTitle || "Cover"} fit={isImageWriting ? "contain" : "cover"} />
         </div>
       ) : null}
 
@@ -1400,7 +1409,8 @@ export default function StudentAssignmentPage() {
 
         {!isReadingTest && !isGeometryAssignment && !isFractionAssignment ? (
           <StandardAssignmentSection
-            sourceTextSafe={sourceTextSafe}
+            lessonLanguage={String(lesson?.language ?? assignment?.language ?? "")}
+            sourceTextSafe={displayedSourceTextSafe}
             translatedText={translatedText}
             originalSegs={originalSegs}
             translationSegs={translationSegs}

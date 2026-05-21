@@ -215,6 +215,10 @@ function isReadingTestLesson(it: ContentItem) {
   return it.type === "lesson" && (it.meta ?? []).includes("reading_test");
 }
 
+function isImageWritingLesson(it: ContentItem) {
+  return it.type === "lesson" && normalizedLessonSignals(it).includes("image_writing");
+}
+
 function normalizedMetaSet(it: ContentItem) {
   return new Set((it.meta ?? []).map((m) => String(m).trim().toLowerCase()).filter(Boolean));
 }
@@ -414,6 +418,9 @@ export default function ContentClient() {
     if (isReadingTestLesson(it)) {
       return `/${locale}/producer/reading-tests/${it.id}`;
     }
+    if (isImageWritingLesson(it)) {
+      return `/${locale}/student/lesson/${it.id}`;
+    }
     return `/${locale}/producer/${it.id}`;
   }
 
@@ -466,6 +473,7 @@ export default function ContentClient() {
     if (it.type === "lesson") {
       if (isMathContent(it)) return safeMsg("cardTypes.mathWorksheet", "Matteoppgave");
       if (isReadingTestLesson(it)) return safeMsg("cardTypes.readingTest", "Lesetest");
+      if (isImageWritingLesson(it)) return "Skriveoppgave med bilde";
       return safeMsg("cardTypes.ownGenerated", "Egen generert");
     }
 
@@ -1415,6 +1423,7 @@ export default function ContentClient() {
     const isPublished = status === "published";
     const isDeleted = isDeletedItem(ls);
     const isReadingTest = isReadingTestLesson(ls);
+    const isImageWriting = isImageWritingLesson(ls);
     const isMath = isMathContent(ls);
     const mathSubtype = getMathSubtype(ls);
     const mathSubtypeText = mathSubtypeLabel(mathSubtype);
@@ -1422,7 +1431,7 @@ export default function ContentClient() {
     const canPublish = isTeacherApproved && !isDeleted && !isReadingTest;
     const canDelete = (isTeacher || isParent || isStudent) && !busy;
     const canShareToSpace = mySpaces.length > 0 && (isTeacher || isParent) && !isDeleted;
-    const canEdit = (isTeacher || isParent || isStudent) && !isDeleted;
+    const canEdit = (isTeacher || isParent || isStudent) && !isDeleted && !isImageWriting;
     const canShareReadingTest = !isDeleted && isReadingTest && (isTeacher || isParent || isStudent);
     const canSharePublic = isTeacher && isPublished && !isDeleted && !isReadingTest;
     const canPdf = isTeacher && !isDeleted && !isReadingTest;
@@ -1430,6 +1439,8 @@ export default function ContentClient() {
     const editHref = lessonEditHref(ls);
     const pdfHref = isMath
       ? `/${locale}/producer/math/${ls.id}/print`
+      : isImageWriting
+        ? `/${locale}/producer/image-writing/${ls.id}/print`
       : `/${locale}/producer/${ls.id}/print`;
     const isMathArchive = isMathArchiveItem(ls);
 
@@ -1855,6 +1866,8 @@ export default function ContentClient() {
               } else if (it.type === "lesson") {
                 if (isReadingTestLesson(it)) {
                   pill = <StatusPill label={t("pills.readingTest")} variant="gray" />;
+                } else if (isImageWritingLesson(it)) {
+                  pill = <StatusPill label="Skriveoppgave med bilde" variant="gray" />;
                 } else if (isParent) {
                   pill = <StatusPill label={t("parent.shareReady")} variant="green" />;
                 } else if (isMathArchiveItem(it)) {

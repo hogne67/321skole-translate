@@ -11,6 +11,7 @@ export type Lesson = {
     text?: string;
     tasks?: unknown;
     coverImageUrl?: string;
+    imageTasks?: unknown;
     isActive?: boolean;
     status?: string;
     lessonType?: string;
@@ -41,6 +42,7 @@ export type AssignmentDoc = {
     text?: string;
     tasks?: unknown;
     coverImageUrl?: string;
+    imageTasks?: unknown;
     lessonType?: string;
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
@@ -61,6 +63,10 @@ export type Task = {
     prompt?: string;
     options?: unknown[];
     correctAnswer?: unknown;
+    supportWords?: unknown[];
+    successCriteria?: unknown[];
+    imageDescription?: string;
+    imageUrl?: string;
 };
 
 export type AnswersMap = Record<string, unknown>;

@@ -153,9 +153,11 @@ export function StatusToggleButton({
 export function SmartImage({
     src,
     alt,
+    fit = "cover",
 }: {
     src: string;
     alt: string;
+    fit?: "cover" | "contain";
 }) {
     const isInline =
         src.startsWith("data:") || src.startsWith("blob:");
@@ -170,7 +172,7 @@ export function SmartImage({
                     style={{
                         width: "100%",
                         height: "100%",
-                        objectFit: "cover",
+                        objectFit: fit,
                     }}
                 />
             </>
@@ -187,7 +189,7 @@ export function SmartImage({
             style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "cover",
+                objectFit: fit,
             }}
         />
     );

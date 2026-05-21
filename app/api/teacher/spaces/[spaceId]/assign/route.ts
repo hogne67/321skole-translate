@@ -35,6 +35,7 @@ type SourceLessonData = {
   text?: string;
   tasks?: unknown;
   coverImageUrl?: string;
+  imageTasks?: unknown;
   status?: string;
   isActive?: boolean;
   ownerId?: string;
@@ -110,6 +111,7 @@ function pickSourceLessonData(
     text: nonEmptyOrUndefined(d.text),
     tasks: d.tasks,
     coverImageUrl: nonEmptyOrUndefined(d.coverImageUrl),
+    imageTasks: d.imageTasks ?? null,
     status: nonEmptyOrUndefined(d.status),
     isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
     ownerId: nonEmptyOrUndefined(d.ownerId),
@@ -361,6 +363,7 @@ export async function POST(
         text: source.text ?? null,
         tasks: source.tasks ?? [],
         coverImageUrl: source.coverImageUrl ?? null,
+        imageTasks: source.imageTasks ?? null,
 
         lessonType: isFractions
           ? "math_fractions"

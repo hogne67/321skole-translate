@@ -69,6 +69,7 @@ export function assignmentToLesson(a: AssignmentDoc): Lesson {
         text: a.text,
         tasks: a.tasks,
         coverImageUrl: a.coverImageUrl,
+        imageTasks: a.imageTasks,
         status: a.status,
         lessonType: a.lessonType,
         taskType: a.taskType,

@@ -40,6 +40,9 @@ type Lesson = {
   status?: "draft" | "published";
   language?: string;
   coverImageUrl?: string;
+  lessonType?: string;
+  taskType?: string;
+  imageTasks?: unknown;
   isActive?: boolean;
   sourceCollection?: "published_lessons" | "lessons";
   publishedLessonId?: string | null;
@@ -74,6 +77,9 @@ type PublishedLessonDoc = {
   text?: string;
   tasks?: unknown;
   coverImageUrl?: string;
+  lessonType?: string;
+  taskType?: string;
+  imageTasks?: unknown;
   isActive?: boolean;
 };
 
@@ -87,6 +93,9 @@ type PrivateLessonDoc = {
   text?: string;
   tasks?: unknown;
   coverImageUrl?: string;
+  lessonType?: string;
+  taskType?: string;
+  imageTasks?: unknown;
   status?: "draft" | "published";
 };
 
@@ -99,6 +108,19 @@ type Task = {
   prompt?: string;
   options?: unknown[];
   correctAnswer?: unknown;
+  supportWords?: unknown[];
+  successCriteria?: unknown[];
+  imageDescription?: string;
+  imageUrl?: string;
+};
+
+type ImageWritingTask = {
+  id?: string;
+  imageUrl?: string;
+  imageDescription?: string;
+  instruction?: string;
+  supportWords?: unknown[];
+  successCriteria?: unknown[];
 };
 
 type Role = "student" | "teacher" | "parent";
@@ -150,6 +172,9 @@ function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
     text: typeof d.text === "string" ? d.text : undefined,
     tasks: d.tasks,
     coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
+    lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
+    taskType: typeof d.taskType === "string" ? d.taskType : undefined,
+    imageTasks: d.imageTasks,
     isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
   };
 }
@@ -166,6 +191,9 @@ function asPrivateLessonDoc(data: DocumentData): PrivateLessonDoc {
     text: typeof d.text === "string" ? d.text : undefined,
     tasks: d.tasks,
     coverImageUrl: typeof d.coverImageUrl === "string" ? d.coverImageUrl : undefined,
+    lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
+    taskType: typeof d.taskType === "string" ? d.taskType : undefined,
+    imageTasks: d.imageTasks,
     status: d.status === "published" ? "published" : "draft",
   };
 }
@@ -254,6 +282,43 @@ function safeTasksArray(tasks: unknown): Task[] {
     }
   }
   return [];
+}
+
+function safeImageTasksArray(tasks: unknown): ImageWritingTask[] {
+  if (!Array.isArray(tasks)) return [];
+  return tasks
+    .filter((task) => task && typeof task === "object")
+    .map((task) => task as ImageWritingTask);
+}
+
+function toCleanStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item ?? "").trim()).filter(Boolean);
+}
+
+function imageWritingStudentLabels(language: unknown) {
+  if (language === "en") {
+    return {
+      showSupport: "Show support words",
+      hideSupport: "Hide support words",
+      showCriteria: "Show success criteria",
+      hideCriteria: "Hide success criteria",
+    };
+  }
+  if (language === "pt") {
+    return {
+      showSupport: "Mostrar palavras de apoio",
+      hideSupport: "Ocultar palavras de apoio",
+      showCriteria: "Mostrar critérios de sucesso",
+      hideCriteria: "Ocultar critérios de sucesso",
+    };
+  }
+  return {
+    showSupport: "Vis støtteord",
+    hideSupport: "Skjul støtteord",
+    showCriteria: "Vis suksesskriterier",
+    hideCriteria: "Skjul suksesskriterier",
+  };
 }
 
 function getStableTaskId(t: Task, idx: number): string {
@@ -546,6 +611,8 @@ export default function StudentLessonPage() {
   const [showTextTranslation, setShowTextTranslation] = useState(true);
   const [showTaskTranslations, setShowTaskTranslations] = useState(true);
   const [taskTranslationOpen, setTaskTranslationOpen] = useState<Record<string, boolean>>({});
+  const [supportWordsOpen, setSupportWordsOpen] = useState<Record<string, boolean>>({});
+  const [successCriteriaOpen, setSuccessCriteriaOpen] = useState<Record<string, boolean>>({});
 
   const [translatedFeedback, setTranslatedFeedback] = useState<string | null>(null);
   const [feedbackTranslating, setFeedbackTranslating] = useState(false);
@@ -588,11 +655,27 @@ export default function StudentLessonPage() {
     return txt;
   }, [lesson?.sourceText, lesson?.text]);
 
+  const isImageWriting = useMemo(
+    () => String(lesson?.lessonType ?? "").trim().toLowerCase() === "image_writing",
+    [lesson?.lessonType]
+  );
+
+  const displayedSourceTextSafe = isImageWriting ? "" : sourceTextSafe;
+
+  const imageWritingTask = useMemo(
+    () => safeImageTasksArray(lesson?.imageTasks)[0] ?? null,
+    [lesson?.imageTasks]
+  );
+  const imageWritingLabels = useMemo(
+    () => imageWritingStudentLabels(lesson?.language),
+    [lesson?.language]
+  );
+
   const textFollow = useMemo(() => {
-    const original = segmentSentences(sourceTextSafe || "");
+    const original = segmentSentences(displayedSourceTextSafe || "");
     const translation = segmentSentences(translatedText || "");
     return { original, translation };
-  }, [sourceTextSafe, translatedText]);
+  }, [displayedSourceTextSafe, translatedText]);
 
   const originalLangForTTS: TtsLang = toTtsLang(lesson?.language || "no");
   const translationLangForTTS: TtsLang = toTtsLang(targetLang);
@@ -723,7 +806,7 @@ export default function StudentLessonPage() {
 
   async function playOriginalTextAudio() {
     if (!requireAudioLogin()) return;
-    const txt = (sourceTextSafe || "").trim();
+    const txt = (displayedSourceTextSafe || "").trim();
     if (!txt) return;
     await playTTS(txt, originalLangForTTS, "text_original");
   }
@@ -933,6 +1016,9 @@ export default function StudentLessonPage() {
               language: rawData.language,
               tasks: rawData.tasks,
               coverImageUrl: rawData.coverImageUrl,
+              lessonType: rawData.lessonType,
+              taskType: rawData.taskType,
+              imageTasks: rawData.imageTasks,
               isActive: rawData.isActive,
               sourceText: (rawData.sourceText ?? rawData.text ?? "") as string,
               text: rawData.text,
@@ -980,6 +1066,9 @@ export default function StudentLessonPage() {
             language: rawPrivate.language,
             tasks: rawPrivate.tasks,
             coverImageUrl: rawPrivate.coverImageUrl,
+            lessonType: rawPrivate.lessonType,
+            taskType: rawPrivate.taskType,
+            imageTasks: rawPrivate.imageTasks,
             sourceText: (rawPrivate.sourceText ?? rawPrivate.text ?? "") as string,
             text: rawPrivate.text,
             status: rawPrivate.status ?? "draft",
@@ -1085,6 +1174,22 @@ export default function StudentLessonPage() {
     const v = taskTranslationOpen[stableId];
     if (v === undefined) return showTaskTranslations;
     return v;
+  }
+
+  function toggleSupportWords(stableId: string) {
+    setSupportWordsOpen((prev) => ({ ...prev, [stableId]: !prev[stableId] }));
+  }
+
+  function isSupportWordsVisible(stableId: string) {
+    return !!supportWordsOpen[stableId];
+  }
+
+  function toggleSuccessCriteria(stableId: string) {
+    setSuccessCriteriaOpen((prev) => ({ ...prev, [stableId]: !prev[stableId] }));
+  }
+
+  function isSuccessCriteriaVisible(stableId: string) {
+    return !!successCriteriaOpen[stableId];
   }
 
   async function saveDraft() {
@@ -1204,7 +1309,10 @@ export default function StudentLessonPage() {
         { merge: true }
       );
 
-      const lesetekst = (lesson.sourceText ?? lesson.text ?? "").trim();
+      const imageDescription = String(imageWritingTask?.imageDescription ?? "").trim();
+      const lesetekst = isImageWriting
+        ? imageDescription
+        : (lesson.sourceText ?? lesson.text ?? "").trim();
       const oppgave = buildOppgaveString(lesson);
       const svar = buildSvarString(lesson, answers);
       const autoResultat = buildAutoResultat(lesson, answers);
@@ -1223,6 +1331,9 @@ export default function StudentLessonPage() {
         svar,
         nivå,
         autoResultat,
+        lessonType: lesson.lessonType ?? null,
+        imageDescription: imageDescription || null,
+        imageInstruction: String(imageWritingTask?.instruction ?? "").trim() || null,
         locale,
       };
 
@@ -1266,7 +1377,7 @@ export default function StudentLessonPage() {
   }
 
   async function onTranslateText() {
-    const base = (lesson?.sourceText ?? lesson?.text ?? "").toString();
+    const base = displayedSourceTextSafe;
     if (!base.trim()) return;
 
     setTranslating("text");
@@ -1552,7 +1663,7 @@ export default function StudentLessonPage() {
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
-              background: "white",
+              background: isImageWriting ? "rgba(0,0,0,0.03)" : "white",
             }}
           >
             {imageUrl ? (
@@ -1560,7 +1671,7 @@ export default function StudentLessonPage() {
               <img
                 src={imageUrl}
                 alt={t("image.alt")}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                style={{ width: "100%", height: "100%", objectFit: isImageWriting ? "contain" : "cover" }}
               />
             ) : (
               <div style={{ textAlign: "center", padding: 16, opacity: 0.7 }}>
@@ -1587,6 +1698,7 @@ export default function StudentLessonPage() {
         </button>
       </div>
 
+      {!isImageWriting && displayedSourceTextSafe.trim() ? (
       <section style={{ marginTop: 14 }}>
         <div
           style={{
@@ -1604,7 +1716,7 @@ export default function StudentLessonPage() {
             <button
               type="button"
               onClick={playOriginalTextAudio}
-              disabled={ttsBusy !== null || !(sourceTextSafe || "").trim()}
+              disabled={ttsBusy !== null || !(displayedSourceTextSafe || "").trim()}
               style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
               title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
             >
@@ -1624,7 +1736,7 @@ export default function StudentLessonPage() {
             <button
               type="button"
               onClick={onTranslateText}
-              disabled={translating === "text" || !(sourceTextSafe || "").trim()}
+              disabled={translating === "text" || !(displayedSourceTextSafe || "").trim()}
               style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1, fontWeight: 600 }}
             >
               {translating === "text" ? t("translate.translating") : t("translate.translateText")}
@@ -1633,11 +1745,12 @@ export default function StudentLessonPage() {
         </div>
 
         <div style={cardStyle}>
-          {renderFollowText("text_original", originalSegs, (sourceTextSafe ?? "").trim())}
+          {renderFollowText("text_original", originalSegs, (displayedSourceTextSafe ?? "").trim())}
         </div>
       </section>
+      ) : null}
 
-      {translatedText ? (
+      {!isImageWriting && translatedText ? (
         <section style={{ marginTop: 14 }}>
           <div
             style={{
@@ -1766,6 +1879,10 @@ export default function StudentLessonPage() {
               const prompt = String(tt?.prompt ?? "");
               const options = Array.isArray(tt?.options) ? (tt.options as unknown[]) : [];
               const val = answers[stableId];
+              const supportWords = toCleanStringList(tt?.supportWords);
+              const successCriteria = toCleanStringList(tt?.successCriteria);
+              const showSupportWords = isSupportWordsVisible(stableId);
+              const showSuccessCriteria = isSuccessCriteriaVisible(stableId);
 
               const hasThisTranslation =
                 !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
@@ -1859,6 +1976,54 @@ export default function StudentLessonPage() {
                     >
                       <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translate.translatedLabel")}</div>
                       {tr.translatedPrompt}
+                    </div>
+                  ) : null}
+
+                  {supportWords.length > 0 ? (
+                    <div style={{ marginBottom: 10 }}>
+                      <button type="button" style={blueBtnStyle} onClick={() => toggleSupportWords(stableId)}>
+                        {showSupportWords
+                          ? imageWritingLabels.hideSupport
+                          : `${imageWritingLabels.showSupport} (${supportWords.length})`}
+                      </button>
+
+                      {showSupportWords ? (
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                          {supportWords.map((word) => (
+                            <span
+                              key={word}
+                              style={{
+                                border: "1px solid rgba(59,130,246,0.20)",
+                                borderRadius: 999,
+                                padding: "5px 9px",
+                                background: "rgba(59,130,246,0.07)",
+                                fontSize: 13,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {word}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {successCriteria.length > 0 ? (
+                    <div style={{ marginBottom: 10 }}>
+                      <button type="button" style={blueBtnStyle} onClick={() => toggleSuccessCriteria(stableId)}>
+                        {showSuccessCriteria
+                          ? imageWritingLabels.hideCriteria
+                          : `${imageWritingLabels.showCriteria} (${successCriteria.length})`}
+                      </button>
+
+                      {showSuccessCriteria ? (
+                        <ul style={{ margin: "10px 0 0", paddingLeft: 20, lineHeight: 1.45, color: "rgba(0,0,0,0.72)" }}>
+                          {successCriteria.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -1969,7 +2134,7 @@ export default function StudentLessonPage() {
                       value={typeof val === "string" ? val : val == null ? "" : String(val)}
                       onChange={(e) => setAnswer(stableId, e.target.value)}
                       placeholder={t("tasks.writeAnswerPlaceholder")}
-                      rows={4}
+                      rows={isImageWriting ? 9 : 4}
                       style={{
                         width: "100%",
                         padding: 12,
@@ -1977,6 +2142,7 @@ export default function StudentLessonPage() {
                         border: "1px solid rgba(0,0,0,0.16)",
                         resize: "vertical",
                         background: "rgba(255,255,255,0.98)",
+                        minHeight: isImageWriting ? 190 : undefined,
                       }}
                     />
                   ) : null}
