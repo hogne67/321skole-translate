@@ -45,6 +45,10 @@ export type UserProfile = {
   partnerApprovedAt?: unknown;
   partnerApprovedBy?: string;
 
+  schoolId?: string;
+  schoolRole?: "school_admin" | "school_teacher";
+  schoolStatus?: "active" | "disabled";
+
   // ✅ legacy-felt beholdes som optional for gamle docs
   teacherStatus?: TeacherStatus;
   creatorStatus?: string;
@@ -114,6 +118,9 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
       partnerLanguages: patch?.partnerLanguages,
       partnerApprovedAt: patch?.partnerApprovedAt,
       partnerApprovedBy: patch?.partnerApprovedBy,
+      schoolId: patch?.schoolId,
+      schoolRole: patch?.schoolRole,
+      schoolStatus: patch?.schoolStatus,
 
       // legacy optional
       teacherStatus: patch?.teacherStatus,
