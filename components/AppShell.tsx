@@ -65,11 +65,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           : tModes("student");
 
   const items = useMemo(() => {
-    return navItemsForRole(role).map((it) => ({
+    const baseItems = navItemsForRole(role).map((it) => ({
       href: it.href,
       label: tNav(it.labelKey),
     }));
-  }, [role, tNav]);
+
+    if (
+      profile?.schoolId &&
+      profile.schoolRole === "school_admin" &&
+      profile.schoolStatus === "active"
+    ) {
+      return [
+        ...baseItems,
+        {
+          href: "/school",
+          label: "Skoleadministrasjon",
+        },
+      ];
+    }
+
+    return baseItems;
+  }, [profile?.schoolId, profile?.schoolRole, profile?.schoolStatus, role, tNav]);
 
   return (
     <div className="app-scope tw-scope appShellRoot">
