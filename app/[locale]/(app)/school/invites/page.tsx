@@ -44,6 +44,8 @@ type CreateInviteResponse = {
   reason?: string;
   inviteId?: string;
   token?: string;
+  emailSent?: boolean;
+  warning?: string;
 };
 
 type LoadState = "idle" | "loading" | "success" | "error";
@@ -146,7 +148,7 @@ export default function SchoolInvitesPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ schoolId, email }),
+        body: JSON.stringify({ schoolId, email, locale }),
       });
       const data = (await response.json().catch(() => ({}))) as CreateInviteResponse;
 
@@ -156,7 +158,11 @@ export default function SchoolInvitesPage() {
       }
 
       setInviteEmail("");
-      setInviteMessage("Invitasjonen er opprettet.");
+      setInviteMessage(
+        data.emailSent
+          ? "Invitasjonen er opprettet og e-post er sendt."
+          : "Invitasjonen er opprettet, men e-post ble ikke sendt automatisk."
+      );
 
       if (data.token) {
         const origin = window.location.origin;
@@ -220,14 +226,19 @@ export default function SchoolInvitesPage() {
         </form>
 
         {inviteMessage ? <div style={styles.successBox}>{inviteMessage}</div> : null}
+        {temporaryInviteLink && inviteMessage && !inviteError ? (
+          <p style={styles.muted}>
+            {inviteMessage.includes("ikke sendt")
+              ? "Bruk lenken under som midlertidig fallback."
+              : "Lenken vises midlertidig som kontroll/fallback."}
+          </p>
+        ) : null}
         {inviteError ? <div style={styles.errorBox}>{inviteError}</div> : null}
 
         {temporaryInviteLink ? (
           <div style={styles.linkBox}>
             <div style={styles.infoLabel}>Midlertidig invitasjonslenke</div>
-            <p style={styles.muted}>
-              E-post sendes ikke ennå. Kopier denne lenken manuelt nå.
-            </p>
+            <p style={styles.muted}>Kopier denne lenken hvis læreren ikke mottar e-post.</p>
             <input readOnly value={temporaryInviteLink} style={styles.input} />
           </div>
         ) : null}
