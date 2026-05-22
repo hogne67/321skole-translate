@@ -54,6 +54,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const isLibrary = (pathname || "").endsWith("/321lessons");
   const isProducer = (pathname || "").includes("/producer");
+  const showSchoolTeacherIndicator =
+    Boolean(profile?.schoolId) &&
+    profile?.schoolRole === "school_teacher" &&
+    profile?.schoolStatus === "active";
 
   const title =
     role === "teacher"
@@ -93,9 +97,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <LibraryBar />
 
       {isLibrary ? (
-        <div className="libraryWrap">{children}</div>
+        <div className="libraryWrap">
+          {showSchoolTeacherIndicator ? <SchoolTeacherIndicator /> : null}
+          {children}
+        </div>
       ) : (
         <SectionShell title={title} items={items} fullWidth={isProducer}>
+          {showSchoolTeacherIndicator ? <SchoolTeacherIndicator /> : null}
           {children}
         </SectionShell>
       )}
@@ -120,6 +128,46 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         :global(body) {
           max-width: 100%;
           overflow-x: clip;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function SchoolTeacherIndicator() {
+  return (
+    <div className="schoolTeacherIndicator" aria-label="Tilknyttet skole">
+      <div>
+        <strong>Tilknyttet skole</strong>
+        <span>Du bruker 321school gjennom en skolelisens.</span>
+      </div>
+
+      <style jsx>{`
+        .schoolTeacherIndicator {
+          margin: 0 0 12px;
+          padding: 10px 12px;
+          border: 1px solid #bfdbfe;
+          border-radius: 8px;
+          background: #eff6ff;
+          color: #1e3a8a;
+        }
+
+        .schoolTeacherIndicator div {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px 10px;
+          align-items: baseline;
+        }
+
+        .schoolTeacherIndicator strong {
+          font-size: 14px;
+          line-height: 1.3;
+        }
+
+        .schoolTeacherIndicator span {
+          font-size: 13px;
+          line-height: 1.35;
+          color: #1d4ed8;
         }
       `}</style>
     </div>
