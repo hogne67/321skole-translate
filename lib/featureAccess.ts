@@ -29,6 +29,12 @@ export type PartnerAccessSnapshot = {
   partnerStatus?: string | null;
 };
 
+export type SchoolAccessSnapshot = {
+  schoolId?: string | null;
+  schoolRole?: string | null;
+  schoolStatus?: string | null;
+};
+
 export type FeatureKey =
   | "producer_create_lesson"
   | "producer_create_reading_test"
@@ -92,6 +98,19 @@ function isActiveBillingStatus(status?: string | null): boolean {
   return normalized === "active" || normalized === "trialing";
 }
 
+function isActiveSchoolLicense(input: SchoolAccessSnapshot): boolean {
+  return Boolean(
+    input.schoolId &&
+      input.schoolStatus === "active" &&
+      (input.schoolRole === "school_teacher" || input.schoolRole === "school_admin")
+  );
+}
+
+function atLeastPlus(plan: PlanKey): PlanKey {
+  if (plan === "pro" || plan === "plus") return plan;
+  return "plus";
+}
+
 function isTeacherOnlyFeature(feature: FeatureKey): boolean {
   return feature === "teacher_assign_task";
 }
@@ -100,12 +119,17 @@ function isTeacherOnlyFeature(feature: FeatureKey): boolean {
  * Stripe-aware effective plan.
  * If billing is active/trialing, billing.plan wins.
  * Otherwise we fall back to the stored top-level plan.
+ * Active school license access upgrades feature limits to at least plus
+ * without changing personal billing data.
  */
 export function getEffectivePlan(input: {
   plan?: string | null;
   billing?: BillingSnapshot | null;
   partnerAccess?: boolean | null;
   partnerStatus?: string | null;
+  schoolId?: string | null;
+  schoolRole?: string | null;
+  schoolStatus?: string | null;
 }): PlanKey {
   const topLevelPlan = normalizePlan(input.plan);
   const billingPlan = normalizePlan(input.billing?.plan);
@@ -117,8 +141,11 @@ export function getEffectivePlan(input: {
       : topLevelPlan;
 
   if (input.partnerAccess === true && input.partnerStatus === "active") {
-    if (basePlan === "pro") return "pro";
-    return "plus";
+    return atLeastPlus(basePlan);
+  }
+
+  if (isActiveSchoolLicense(input)) {
+    return atLeastPlus(basePlan);
   }
 
   return basePlan;
@@ -305,6 +332,9 @@ export function getBucketLimitFromProfile(input: {
   billing?: BillingSnapshot | null;
   partnerAccess?: boolean | null;
   partnerStatus?: string | null;
+  schoolId?: string | null;
+  schoolRole?: string | null;
+  schoolStatus?: string | null;
   bucket: QuotaBucket;
 }): number {
   const role = normalizeRole(input.role ?? undefined);
@@ -313,6 +343,9 @@ export function getBucketLimitFromProfile(input: {
     billing: input.billing,
     partnerAccess: input.partnerAccess,
     partnerStatus: input.partnerStatus,
+    schoolId: input.schoolId,
+    schoolRole: input.schoolRole,
+    schoolStatus: input.schoolStatus,
   });
 
   return getBucketLimit(role, plan, input.bucket);
@@ -350,6 +383,9 @@ export function getFeatureLimitFromProfile(input: {
   billing?: BillingSnapshot | null;
   partnerAccess?: boolean | null;
   partnerStatus?: string | null;
+  schoolId?: string | null;
+  schoolRole?: string | null;
+  schoolStatus?: string | null;
   feature: FeatureKey;
 }): number {
   const role = normalizeRole(input.role ?? undefined);
@@ -368,6 +404,9 @@ export function getFeatureLimitFromProfile(input: {
     billing: input.billing,
     partnerAccess: input.partnerAccess,
     partnerStatus: input.partnerStatus,
+    schoolId: input.schoolId,
+    schoolRole: input.schoolRole,
+    schoolStatus: input.schoolStatus,
   });
 
   const bucket = getQuotaBucket(input.feature);
@@ -437,6 +476,9 @@ export function getFeatureDecisionFromProfile(input: {
   billing?: BillingSnapshot | null;
   partnerAccess?: boolean | null;
   partnerStatus?: string | null;
+  schoolId?: string | null;
+  schoolRole?: string | null;
+  schoolStatus?: string | null;
   feature: FeatureKey;
 }): FeatureDecision {
   const role = normalizeRole(input.role ?? undefined);

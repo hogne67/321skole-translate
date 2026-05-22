@@ -5,6 +5,7 @@ import {
     type BillingSnapshot,
     type FeatureKey,
     type PartnerAccessSnapshot,
+    type SchoolAccessSnapshot,
 } from "@/lib/featureAccess";
 
 type ServerFeatureParams = {
@@ -13,7 +14,7 @@ type ServerFeatureParams = {
     role?: string | null;
     plan?: string | null;
     billing?: BillingSnapshot | null;
-} & PartnerAccessSnapshot & {
+} & PartnerAccessSnapshot & SchoolAccessSnapshot & {
     feature: FeatureKey;
 };
 
@@ -35,7 +36,19 @@ async function getServerUsage(db: Firestore, uid: string) {
 export async function getServerFeatureStatusFromProfile(
     params: ServerFeatureParams
 ) {
-    const { db, uid, role, plan, billing, partnerAccess, partnerStatus, feature } = params;
+    const {
+        db,
+        uid,
+        role,
+        plan,
+        billing,
+        partnerAccess,
+        partnerStatus,
+        schoolId,
+        schoolRole,
+        schoolStatus,
+        feature,
+    } = params;
 
     const decision = getFeatureDecisionFromProfile({
         role,
@@ -43,6 +56,9 @@ export async function getServerFeatureStatusFromProfile(
         billing,
         partnerAccess,
         partnerStatus,
+        schoolId,
+        schoolRole,
+        schoolStatus,
         feature,
     });
 

@@ -211,6 +211,10 @@ function Inner() {
     billing,
     partnerAccess: profileRecord?.partnerAccess === true,
     partnerStatus: typeof profileRecord?.partnerStatus === "string" ? profileRecord.partnerStatus : null,
+    schoolId: typeof profileRecord?.schoolId === "string" ? profileRecord.schoolId : null,
+    schoolRole: typeof profileRecord?.schoolRole === "string" ? profileRecord.schoolRole : null,
+    schoolStatus:
+      typeof profileRecord?.schoolStatus === "string" ? profileRecord.schoolStatus : null,
     bucket: "ai_feedback",
   });
 

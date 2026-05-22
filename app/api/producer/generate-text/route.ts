@@ -5,7 +5,7 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import {
   getFeatureStatusAdmin,
 } from "@/lib/featureGuardAdmin";
-import type { AppRole, PlanKey } from "@/lib/featureAccess";
+import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 
 export const runtime = "nodejs";
 
@@ -44,10 +44,21 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
   const userSnap = await db.collection("users").doc(uid).get();
   const data = userSnap.exists ? userSnap.data() : undefined;
 
+  const plan = getEffectivePlan({
+    plan: typeof data?.plan === "string" ? data.plan : "free",
+    billing:
+      data?.billing && typeof data.billing === "object"
+        ? (data.billing as { plan?: string | null; status?: string | null })
+        : null,
+    schoolId: typeof data?.schoolId === "string" ? data.schoolId : null,
+    schoolRole: typeof data?.schoolRole === "string" ? data.schoolRole : null,
+    schoolStatus: typeof data?.schoolStatus === "string" ? data.schoolStatus : null,
+  });
+
   return {
     uid,
     role: data?.role ?? "anonymous",
-    plan: data?.plan ?? "free",
+    plan,
   };
 }
 

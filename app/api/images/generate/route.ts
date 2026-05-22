@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { randomUUID } from "crypto";
 import { getAdmin } from "@/lib/firebaseAdmin";
-import { getBucketLimit, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import {
+  getBucketLimit,
+  getEffectivePlan,
+  type AppRole,
+  type PlanKey,
+} from "@/lib/featureAccess";
 
 type CoverImageStyle = "illustration" | "realistic";
 type CoverImagePromptMode = "custom" | "fromText";
@@ -147,7 +152,16 @@ export async function POST(req: NextRequest) {
     const userData = userSnap.exists ? userSnap.data() : {};
 
     const role = normalizeRole(userData?.role);
-    const plan = normalizePlan(userData?.plan);
+    const plan = getEffectivePlan({
+      plan: normalizePlan(userData?.plan),
+      billing:
+        userData?.billing && typeof userData.billing === "object"
+          ? (userData.billing as { plan?: string | null; status?: string | null })
+          : null,
+      schoolId: typeof userData?.schoolId === "string" ? userData.schoolId : null,
+      schoolRole: typeof userData?.schoolRole === "string" ? userData.schoolRole : null,
+      schoolStatus: typeof userData?.schoolStatus === "string" ? userData.schoolStatus : null,
+    });
 
     const imageLimit = getBucketLimit(role, plan, "image_generation");
     if (imageLimit <= 0) {

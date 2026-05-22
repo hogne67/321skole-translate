@@ -361,6 +361,9 @@ export default function ProducerMathGeometryPage() {
   const billing = useMemo(() => getBillingSnapshot(profile), [profile]);
   const partnerAccess = profile?.partnerAccess === true;
   const partnerStatus = profile?.partnerStatus ?? null;
+  const schoolId = profile?.schoolId ?? null;
+  const schoolRole = profile?.schoolRole ?? null;
+  const schoolStatus = profile?.schoolStatus ?? null;
 
   useEffect(() => {
     let active = true;
@@ -384,6 +387,9 @@ export default function ProducerMathGeometryPage() {
           billing,
           partnerAccess,
           partnerStatus,
+          schoolId,
+          schoolRole,
+          schoolStatus,
           feature: "producer_create_math_worksheet",
         });
 
@@ -406,7 +412,17 @@ export default function ProducerMathGeometryPage() {
     return () => {
       active = false;
     };
-  }, [uid, role, plan, billing, partnerAccess, partnerStatus]);
+  }, [
+    uid,
+    role,
+    plan,
+    billing,
+    partnerAccess,
+    partnerStatus,
+    schoolId,
+    schoolRole,
+    schoolStatus,
+  ]);
 
   useEffect(() => {
     if (!uid) {
@@ -483,6 +499,9 @@ export default function ProducerMathGeometryPage() {
         billing,
         partnerAccess,
         partnerStatus,
+        schoolId,
+        schoolRole,
+        schoolStatus,
         feature: "producer_create_math_worksheet",
       });
       setFeatureStatus(status);

@@ -38,6 +38,9 @@ type UserProfileDoc = {
   billing?: unknown;
   partnerAccess?: unknown;
   partnerStatus?: unknown;
+  schoolId?: unknown;
+  schoolRole?: unknown;
+  schoolStatus?: unknown;
 };
 
 function json(data: unknown, status = 200) {
@@ -157,6 +160,9 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
   let billing: BillingSnapshot | null = null;
   let partnerAccess = decoded.partnerAccess === true;
   let partnerStatus = safeString(decoded.partnerStatus);
+  let schoolId = safeString(decoded.schoolId);
+  let schoolRole = safeString(decoded.schoolRole);
+  let schoolStatus = safeString(decoded.schoolStatus);
 
   if (isAppRole(decoded.role)) {
     role = decoded.role;
@@ -194,6 +200,9 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
 
       partnerAccess = userData.partnerAccess === true;
       partnerStatus = safeString(userData.partnerStatus);
+      schoolId = safeString(userData.schoolId);
+      schoolRole = safeString(userData.schoolRole);
+      schoolStatus = safeString(userData.schoolStatus);
     }
   } catch {
     // keep fallbacks
@@ -204,6 +213,9 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
     billing,
     partnerAccess,
     partnerStatus,
+    schoolId,
+    schoolRole,
+    schoolStatus,
   });
 
   return { role, plan, billing };

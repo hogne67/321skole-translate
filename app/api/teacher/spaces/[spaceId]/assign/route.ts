@@ -4,6 +4,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
+  getEffectivePlan,
   getFeatureLimit,
   getQuotaBucket,
   type AppRole,
@@ -171,7 +172,16 @@ async function loadUserProfileAccess(
 
   return {
     role: normalizeRole(roleValue, isAdmin),
-    plan: normalizePlan(planValue),
+    plan: getEffectivePlan({
+      plan: normalizePlan(planValue),
+      billing:
+        d.billing && typeof d.billing === "object"
+          ? (d.billing as { plan?: string | null; status?: string | null })
+          : null,
+      schoolId: typeof d.schoolId === "string" ? d.schoolId : null,
+      schoolRole: typeof d.schoolRole === "string" ? d.schoolRole : null,
+      schoolStatus: typeof d.schoolStatus === "string" ? d.schoolStatus : null,
+    }),
     isAdmin,
   };
 }

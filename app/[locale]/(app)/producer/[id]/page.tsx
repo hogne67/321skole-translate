@@ -11,7 +11,12 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useUsage } from "@/lib/useUsage";
-import { getBucketLimit, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import {
+  getBucketLimit,
+  getEffectivePlan,
+  type AppRole,
+  type PlanKey,
+} from "@/lib/featureAccess";
 
 type TaskType = "truefalse" | "mcq" | "open";
 type ReleaseMode = "ALL_AT_ONCE" | "TEXT_FIRST";
@@ -226,7 +231,18 @@ export default function ProducerLessonEditorPage() {
   const { usage, loading: usageLoading, reload: reloadUsage } = useUsage(uid ?? undefined);
 
   const role = safeRole((profile as { role?: string } | null)?.role);
-  const plan = safePlan((profile as { plan?: string } | null)?.plan);
+  const profileForPlan = profile as {
+    plan?: string;
+    schoolId?: string | null;
+    schoolRole?: string | null;
+    schoolStatus?: string | null;
+  } | null;
+  const plan = getEffectivePlan({
+    plan: safePlan(profileForPlan?.plan),
+    schoolId: profileForPlan?.schoolId ?? null,
+    schoolRole: profileForPlan?.schoolRole ?? null,
+    schoolStatus: profileForPlan?.schoolStatus ?? null,
+  });
 
   const imagesUsed = usage["image_generation"] ?? 0;
   const imagesLimit = getBucketLimit(role, plan, "image_generation");

@@ -6,7 +6,7 @@ import {
   getFeatureStatusAdmin,
   consumeFeatureAdmin,
 } from "@/lib/featureGuardAdmin";
-import type { AppRole, PlanKey } from "@/lib/featureAccess";
+import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 
 export const runtime = "nodejs";
 
@@ -80,7 +80,16 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
         ? data.mode
         : "anonymous";
 
-  const plan = typeof data?.plan === "string" ? data.plan : "free";
+  const plan = getEffectivePlan({
+    plan: typeof data?.plan === "string" ? data.plan : "free",
+    billing:
+      data?.billing && typeof data.billing === "object"
+        ? (data.billing as { plan?: string | null; status?: string | null })
+        : null,
+    schoolId: typeof data?.schoolId === "string" ? data.schoolId : null,
+    schoolRole: typeof data?.schoolRole === "string" ? data.schoolRole : null,
+    schoolStatus: typeof data?.schoolStatus === "string" ? data.schoolStatus : null,
+  });
 
   return { uid, role, plan };
 }

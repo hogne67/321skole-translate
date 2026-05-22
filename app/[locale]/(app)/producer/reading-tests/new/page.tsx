@@ -311,6 +311,9 @@ export default function NewReadingTestPage() {
   const billing = useMemo(() => getBillingSnapshot(profile), [profile]);
   const partnerAccess = profile?.partnerAccess === true;
   const partnerStatus = profile?.partnerStatus ?? null;
+  const schoolId = profile?.schoolId ?? null;
+  const schoolRole = profile?.schoolRole ?? null;
+  const schoolStatus = profile?.schoolStatus ?? null;
 
   const taskTypeLabels: Record<ReadingTestTaskType, string> = useMemo(
     () => ({
@@ -355,6 +358,9 @@ export default function NewReadingTestPage() {
         billing,
         partnerAccess,
         partnerStatus,
+        schoolId,
+        schoolRole,
+        schoolStatus,
         feature: "producer_create_reading_test",
       });
 
@@ -423,6 +429,9 @@ export default function NewReadingTestPage() {
           billing,
           partnerAccess,
           partnerStatus,
+          schoolId,
+          schoolRole,
+          schoolStatus,
           feature: "producer_create_reading_test",
         });
 
@@ -446,7 +455,17 @@ export default function NewReadingTestPage() {
     return () => {
       active = false;
     };
-  }, [profileUid, role, plan, billing, partnerAccess, partnerStatus]);
+  }, [
+    profileUid,
+    role,
+    plan,
+    billing,
+    partnerAccess,
+    partnerStatus,
+    schoolId,
+    schoolRole,
+    schoolStatus,
+  ]);
 
   async function generateReadingTest() {
     setLoadingReadingTest(true);

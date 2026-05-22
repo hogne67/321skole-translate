@@ -20,7 +20,7 @@ import { LANGUAGES } from "@/lib/languages";
 import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useUsage } from "@/lib/useUsage";
-import { getBucketLimit, type PlanKey } from "@/lib/featureAccess";
+import { getBucketLimit, getEffectivePlan, type PlanKey } from "@/lib/featureAccess";
 import { incrementUsage } from "@/lib/usage";
 import { trackAiFeedback } from "@/lib/analytics";
 
@@ -623,7 +623,14 @@ export default function StudentLessonPage() {
   const hasAnswers = useMemo(() => Object.keys(answers).length > 0, [answers]);
 
   const role: Role = isAnon ? "student" : safeRole(readStringField(profile, "role"));
-  const plan: PlanKey = isAnon ? "free" : safePlan(readStringField(profile, "plan"));
+  const plan: PlanKey = isAnon
+    ? "free"
+    : getEffectivePlan({
+        plan: safePlan(readStringField(profile, "plan")),
+        schoolId: readStringField(profile, "schoolId"),
+        schoolRole: readStringField(profile, "schoolRole"),
+        schoolStatus: readStringField(profile, "schoolStatus"),
+      });
 
   const { usage, loading: usageLoading, reload: reloadUsage } = useUsage(uid ?? undefined);
 

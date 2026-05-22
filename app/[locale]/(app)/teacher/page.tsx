@@ -503,6 +503,9 @@ export default function TeacherPage() {
     billing,
     partnerAccess: profile?.partnerAccess === true,
     partnerStatus: profile?.partnerStatus ?? null,
+    schoolId: profile?.schoolId ?? null,
+    schoolRole: profile?.schoolRole ?? null,
+    schoolStatus: profile?.schoolStatus ?? null,
   });
 
   const rawBillingPlan = billing?.plan ?? planValue ?? null;

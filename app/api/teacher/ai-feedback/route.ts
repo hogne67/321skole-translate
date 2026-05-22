@@ -1236,6 +1236,9 @@ export async function POST(req: Request) {
         : null,
       partnerAccess: isRecord(profile) ? profile.partnerAccess === true : false,
       partnerStatus: isRecord(profile) ? safeString(profile.partnerStatus) : null,
+      schoolId: isRecord(profile) ? safeString(profile.schoolId) : null,
+      schoolRole: isRecord(profile) ? safeString(profile.schoolRole) : null,
+      schoolStatus: isRecord(profile) ? safeString(profile.schoolStatus) : null,
       feature: "ai_feedback",
     });
 

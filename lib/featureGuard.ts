@@ -9,6 +9,7 @@ import {
   type PlanKey,
   type BillingSnapshot,
   type PartnerAccessSnapshot,
+  type SchoolAccessSnapshot,
 } from "@/lib/featureAccess";
 import { getUsage, incrementUsage } from "@/lib/usage";
 
@@ -39,7 +40,7 @@ type GuardProfileParams = {
   role?: string | null;
   plan?: string | null;
   billing?: BillingSnapshot | null;
-} & PartnerAccessSnapshot & {
+} & PartnerAccessSnapshot & SchoolAccessSnapshot & {
   feature: FeatureKey;
 };
 
@@ -129,7 +130,18 @@ export async function getFeatureStatus(
 export async function getFeatureStatusFromProfile(
   params: GuardProfileParams
 ): Promise<FeatureStatus> {
-  const { uid, role, plan, billing, partnerAccess, partnerStatus, feature } = params;
+  const {
+    uid,
+    role,
+    plan,
+    billing,
+    partnerAccess,
+    partnerStatus,
+    schoolId,
+    schoolRole,
+    schoolStatus,
+    feature,
+  } = params;
 
   const decision = getFeatureDecisionFromProfile({
     role,
@@ -137,6 +149,9 @@ export async function getFeatureStatusFromProfile(
     billing,
     partnerAccess,
     partnerStatus,
+    schoolId,
+    schoolRole,
+    schoolStatus,
     feature,
   });
 
