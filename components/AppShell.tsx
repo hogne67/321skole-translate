@@ -12,6 +12,8 @@ import { useTranslations } from "next-intl";
 
 type AppRole = "student" | "teacher" | "parent" | "admin" | "creator";
 
+const PERSONAL_ADMIN_LINK_UIDS = new Set(["x9gRQLihwobfyXaoPIl6OZBd5Ov1"]);
+
 function normalizeRole(role: unknown, isAnonymous: boolean): AppRole {
   if (isAnonymous) return "student";
   if (role === "teacher") return "teacher";
@@ -58,6 +60,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     Boolean(profile?.schoolId) &&
     profile?.schoolRole === "school_teacher" &&
     profile?.schoolStatus === "active";
+  const showPersonalAdminLink =
+    !!user && !user.isAnonymous && PERSONAL_ADMIN_LINK_UIDS.has(user.uid);
 
   const title =
     role === "teacher"
@@ -74,22 +78,38 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       label: tNav(it.labelKey),
     }));
 
-    if (
+    const withSchoolItems =
       profile?.schoolId &&
       profile.schoolRole === "school_admin" &&
       profile.schoolStatus === "active"
-    ) {
+        ? [
+          ...baseItems,
+          {
+            href: "/school",
+            label: "Skoleadministrasjon",
+          },
+        ]
+        : baseItems;
+
+    if (showPersonalAdminLink && !withSchoolItems.some((it) => it.href === "/admin")) {
       return [
-        ...baseItems,
+        ...withSchoolItems,
         {
-          href: "/school",
-          label: "Skoleadministrasjon",
+          href: "/admin",
+          label: tNav("admin"),
         },
       ];
     }
 
-    return baseItems;
-  }, [profile?.schoolId, profile?.schoolRole, profile?.schoolStatus, role, tNav]);
+    return withSchoolItems;
+  }, [
+    profile?.schoolId,
+    profile?.schoolRole,
+    profile?.schoolStatus,
+    role,
+    showPersonalAdminLink,
+    tNav,
+  ]);
 
   return (
     <div className="app-scope tw-scope appShellRoot">

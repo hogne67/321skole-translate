@@ -572,6 +572,8 @@ export default function StudentDashboard() {
               title={t("partnerCard.title")}
               text={t("partnerCard.text")}
               extraText={t("partnerCard.extraText")}
+              actionHref={`/${locale}/partner`}
+              actionLabel={t("partnerCard.action")}
             />
           </div>
         ) : null}

@@ -274,7 +274,7 @@ export default function AdminReviewPage() {
     try {
       await authedPost("/api/admin/review/approve", { id: item.id });
       setItems((prev) => prev.filter((x) => x.id !== item.id));
-      setMsg(`Approved ✅ (${item.id})`);
+      setMsg(`Approved (${item.id})`);
     } catch (e: unknown) {
       setError(errorMessage(e));
     } finally {
@@ -337,7 +337,7 @@ export default function AdminReviewPage() {
               fontWeight: 800,
             }}
           >
-            {loading ? "Laster…" : "Oppdater"}
+            {loading ? "Loading..." : "Refresh"}
           </button>
         </div>
       </section>
@@ -361,7 +361,7 @@ export default function AdminReviewPage() {
           <input
             value={qText}
             onChange={(e) => setQText(e.target.value)}
-            placeholder="Søk tittel, språk, nivå, reasons, ownerId…"
+            placeholder="Search title, language, level, reasons, ownerId..."
             style={{
               padding: "10px 12px",
               borderRadius: 10,
@@ -388,7 +388,7 @@ export default function AdminReviewPage() {
         </div>
 
         <div style={{ marginTop: 12, fontSize: 13, opacity: 0.75 }}>
-          Viser <b>{sorted.length}</b> av <b>{items.length}</b> items
+          Showing <b>{sorted.length}</b> of <b>{items.length}</b> items
         </div>
       </section>
 
@@ -401,7 +401,7 @@ export default function AdminReviewPage() {
             background: "rgba(239,68,68,0.05)",
           }}
         >
-          <b>Feil:</b> {error}
+          <b>Error:</b> {error}
         </section>
       ) : null}
 
@@ -419,7 +419,7 @@ export default function AdminReviewPage() {
       ) : null}
 
       <section style={{ display: "grid", gap: 12 }}>
-        {loading ? <div style={{ opacity: 0.75 }}>Laster review queue…</div> : null}
+        {loading ? <div style={{ opacity: 0.75 }}>Loading review queue...</div> : null}
 
         {!loading && sorted.length === 0 ? (
           <div
@@ -430,7 +430,7 @@ export default function AdminReviewPage() {
               background: "white",
             }}
           >
-            No pending items 🎉
+            No pending items.
           </div>
         ) : null}
 

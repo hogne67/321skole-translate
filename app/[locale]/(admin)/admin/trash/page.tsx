@@ -167,6 +167,8 @@ export default function AdminTrashPage() {
   const [items, setItems] = useState<TrashRow[]>([]);
   const [qText, setQText] = useState("");
   const [busyById, setBusyById] = useState<Record<string, boolean>>({});
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   function setBusy(id: string, v: boolean) {
@@ -197,6 +199,7 @@ export default function AdminTrashPage() {
       const snap = await getDocs(qy);
       const rows: TrashRow[] = snap.docs.map((d) => coerceTrashRow(d.id, d.data()));
       setItems(rows);
+      setSelectedIds((current) => current.filter((id) => rows.some((row) => row.id === id)));
     } catch (e: unknown) {
       setErr(errorMessage(e) || "Failed to load trash");
     } finally {
@@ -212,7 +215,7 @@ export default function AdminTrashPage() {
     try {
       await requireUser();
       await authedPost("/api/admin/trash/restore", { id: lessonId });
-      setMsg(`Restored ✅ (${lessonId})`);
+      setMsg(`Restored (${lessonId})`);
       await load();
     } catch (e: unknown) {
       setErr(errorMessage(e) || "Restore failed");
@@ -234,7 +237,7 @@ export default function AdminTrashPage() {
     try {
       await requireUser();
       await authedPost("/api/admin/trash/permanent-delete", { id: lessonId });
-      setMsg(`Deleted permanently ❌ (${lessonId})`);
+      setMsg(`Deleted permanently (${lessonId})`);
       await load();
     } catch (e: unknown) {
       setErr(errorMessage(e) || "Permanent delete failed");
@@ -260,6 +263,62 @@ export default function AdminTrashPage() {
     });
   }, [items, qText]);
 
+  const filteredIds = useMemo(() => filtered.map((item) => item.id), [filtered]);
+  const allFilteredSelected =
+    filteredIds.length > 0 && filteredIds.every((id) => selectedIds.includes(id));
+
+  function toggleSelected(id: string, checked: boolean) {
+    setSelectedIds((current) => {
+      if (checked) return Array.from(new Set([...current, id]));
+      return current.filter((item) => item !== id);
+    });
+  }
+
+  function toggleAllFiltered(checked: boolean) {
+    setSelectedIds((current) => {
+      if (!checked) return current.filter((id) => !filteredIds.includes(id));
+      return Array.from(new Set([...current, ...filteredIds]));
+    });
+  }
+
+  async function permanentDeleteSelected() {
+    const ids = selectedIds.filter((id) => filteredIds.includes(id));
+    if (ids.length === 0) return;
+
+    const ok = confirm(
+      `PERMANENT DELETE ${ids.length} selected item${ids.length === 1 ? "" : "s"}?\n\nThis cannot be undone.`
+    );
+    if (!ok) return;
+
+    setBulkBusy(true);
+    setErr(null);
+    setMsg(null);
+    setBusyById((current) => ({
+      ...current,
+      ...Object.fromEntries(ids.map((id) => [id, true])),
+    }));
+
+    try {
+      await requireUser();
+
+      for (const id of ids) {
+        await authedPost("/api/admin/trash/permanent-delete", { id });
+      }
+
+      setSelectedIds((current) => current.filter((id) => !ids.includes(id)));
+      setMsg(`Deleted ${ids.length} selected item${ids.length === 1 ? "" : "s"} permanently.`);
+      await load();
+    } catch (e: unknown) {
+      setErr(errorMessage(e) || "Bulk permanent delete failed");
+    } finally {
+      setBulkBusy(false);
+      setBusyById((current) => ({
+        ...current,
+        ...Object.fromEntries(ids.map((id) => [id, false])),
+      }));
+    }
+  }
+
   return (
     <main style={{ display: "grid", gap: 16 }}>
       <section
@@ -283,7 +342,7 @@ export default function AdminTrashPage() {
             <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>ADMIN</div>
             <h2 style={{ margin: "4px 0 0", fontSize: 24 }}>Trash</h2>
             <p style={{ margin: "8px 0 0", opacity: 0.8 }}>
-              Soft-deleted lessons som kan gjenopprettes eller slettes permanent.
+              Soft-deleted lessons that can be restored or permanently deleted.
             </p>
           </div>
 
@@ -299,7 +358,7 @@ export default function AdminTrashPage() {
               fontWeight: 800,
             }}
           >
-            {loading ? "Laster…" : "Oppdater"}
+            {loading ? "Loading..." : "Refresh"}
           </button>
         </div>
       </section>
@@ -323,7 +382,7 @@ export default function AdminTrashPage() {
           <input
             value={qText}
             onChange={(e) => setQText(e.target.value)}
-            placeholder="Søk tittel, type, språk, ownerId…"
+            placeholder="Search title, type, language, ownerId..."
             style={{
               padding: "10px 12px",
               border: "1px solid rgba(0,0,0,0.12)",
@@ -336,7 +395,71 @@ export default function AdminTrashPage() {
         </div>
 
         <div style={{ marginTop: 12, fontSize: 13, opacity: 0.75 }}>
-          Viser <b>{filtered.length}</b> av <b>{items.length}</b> items
+          Showing <b>{filtered.length}</b> of <b>{items.length}</b> items
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            alignItems: "center",
+            marginTop: 14,
+          }}
+        >
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 13,
+              fontWeight: 800,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={allFilteredSelected}
+              onChange={(event) => toggleAllFiltered(event.target.checked)}
+              disabled={filtered.length === 0 || bulkBusy}
+            />
+            Select all shown
+          </label>
+
+          <button
+            type="button"
+            onClick={() => void permanentDeleteSelected()}
+            disabled={bulkBusy || selectedIds.length === 0}
+            style={{
+              padding: "9px 12px",
+              border: "1px solid #ef4444",
+              borderRadius: 10,
+              background: selectedIds.length === 0 ? "#f8fafc" : "#fff",
+              color: selectedIds.length === 0 ? "#94a3b8" : "#ef4444",
+              cursor: bulkBusy || selectedIds.length === 0 ? "not-allowed" : "pointer",
+              fontWeight: 900,
+            }}
+          >
+            {bulkBusy ? "Deleting..." : `Permanent delete selected (${selectedIds.length})`}
+          </button>
+
+          {selectedIds.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              disabled={bulkBusy}
+              style={{
+                padding: "9px 12px",
+                border: "1px solid rgba(0,0,0,0.12)",
+                borderRadius: 10,
+                background: "white",
+                color: "#111827",
+                cursor: bulkBusy ? "not-allowed" : "pointer",
+                fontWeight: 800,
+              }}
+            >
+              Clear selection
+            </button>
+          ) : null}
         </div>
       </section>
 
@@ -349,7 +472,7 @@ export default function AdminTrashPage() {
             background: "rgba(239,68,68,0.05)",
           }}
         >
-          <b>Feil:</b> {err}
+          <b>Error:</b> {err}
         </section>
       ) : null}
 
@@ -367,7 +490,7 @@ export default function AdminTrashPage() {
       ) : null}
 
       <section style={{ display: "grid", gap: 12 }}>
-        {loading ? <div style={{ opacity: 0.75 }}>Laster trash…</div> : null}
+        {loading ? <div style={{ opacity: 0.75 }}>Loading trash...</div> : null}
 
         {!loading && filtered.length === 0 ? (
           <div
@@ -406,6 +529,25 @@ export default function AdminTrashPage() {
                 }}
               >
                 <div style={{ minWidth: 280, flex: "1 1 420px" }}>
+                  <label
+                    style={{
+                      display: "inline-flex",
+                      gap: 8,
+                      alignItems: "center",
+                      marginBottom: 10,
+                      fontSize: 13,
+                      fontWeight: 800,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(l.id)}
+                      onChange={(event) => toggleSelected(l.id, event.target.checked)}
+                      disabled={busy || bulkBusy}
+                    />
+                    Select
+                  </label>
+
                   <div style={{ fontWeight: 900, fontSize: 18 }}>
                     {l.title ?? "Untitled"}
                   </div>

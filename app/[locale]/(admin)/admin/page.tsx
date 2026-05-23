@@ -1,186 +1,448 @@
-// \app\[locale]\(admin)\admin\page.tsx
-// app/[locale]/(admin)/admin/page.tsx
 "use client";
 
-import Link from "next/link";
-import { useLocale } from "next-intl";
+import { useEffect, useState } from "react";
+import { collection, getCountFromServer, query, Timestamp, where } from "firebase/firestore";
+import AdminCard from "@/components/admin/AdminCard";
+import AdminSection from "@/components/admin/AdminSection";
+import AdminStatCard from "@/components/admin/AdminStatCard";
+import { adminToneStyles, type AdminTone } from "@/components/admin/AdminStatusBadge";
+import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { adminLabel } from "@/lib/adminAccess";
 
-function Card({
-  title,
-  text,
-  href,
-}: {
-  title: string;
-  text: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      style={{
-        display: "block",
-        padding: 16,
-        borderRadius: 16,
-        border: "1px solid rgba(0,0,0,0.08)",
-        background: "white",
-        textDecoration: "none",
-        color: "inherit",
-      }}
-    >
-      <div style={{ fontWeight: 900, fontSize: 17 }}>{title}</div>
-      <div style={{ marginTop: 8, opacity: 0.75, lineHeight: 1.45 }}>{text}</div>
-    </Link>
-  );
-}
+type AdminSchoolRow = {
+  status?: string | null;
+  teacherSeatLimit?: number | null;
+  activeTeacherCount?: number | null;
+};
 
-function InfoRow({
+type AdminSchoolsResponse = {
+  ok?: boolean;
+  schools?: AdminSchoolRow[];
+};
+
+type AdminPartnersResponse = {
+  ok?: boolean;
+  activePartners?: Array<{
+    partnerFollowUpStatus?: string;
+    unreviewedPartnerReplyCount?: number;
+  }>;
+  stats?: {
+    unreviewedPartnerReplies?: number;
+    needsFollowUp?: number;
+    active?: number;
+  };
+};
+
+function StatusItem({
   label,
   value,
+  tone = "green",
 }: {
   label: string;
   value: string;
+  tone?: AdminTone;
 }) {
+  const styles = adminToneStyles(tone);
+
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "160px 1fr",
-        gap: 10,
-        padding: "8px 0",
-        borderBottom: "1px solid rgba(0,0,0,0.06)",
-      }}
-    >
-      <div style={{ fontWeight: 700, opacity: 0.75 }}>{label}</div>
-      <div>{value}</div>
+    <div className="statusItem">
+      <span
+        className="statusDot"
+        style={{
+          background: styles.color,
+        }}
+      />
+      <div>
+        <strong>{label}</strong>
+        <span>{value}</span>
+      </div>
     </div>
   );
 }
 
 export default function AdminPage() {
   const { user, profile, loading } = useUserProfile();
-  const locale = useLocale();
+  const [dashboardStats, setDashboardStats] = useState({
+    analyticsLastDay: null as number | null,
+    analyticsLastWeek: null as number | null,
+    usersTotal: null as number | null,
+    newUsersLastWeek: null as number | null,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [signalsLoading, setSignalsLoading] = useState(true);
+  const [signals, setSignals] = useState({
+    activeSchools: null as number | null,
+    schoolsNeedAttention: null as number | null,
+    activePartners: null as number | null,
+    partnerRepliesNeedReview: null as number | null,
+    partnersNeedFollowUp: null as number | null,
+  });
 
-  if (loading) {
-    return <main style={{ padding: 20 }}>Laster…</main>;
+  const displayName =
+    typeof profile?.displayName === "string" && profile.displayName.trim()
+      ? profile.displayName.trim()
+      : user?.email ?? "admin";
+
+  const levelLabel = adminLabel(profile?.adminLevel);
+  const adminIsActive =
+    profile?.disabled !== true &&
+    (profile?.roles?.admin === true || profile?.role === "admin");
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadDashboardStats() {
+      if (!db) {
+        setStatsLoading(false);
+        return;
+      }
+
+      setStatsLoading(true);
+
+      try {
+        const now = Date.now();
+        const dayAgo = Timestamp.fromDate(new Date(now - 24 * 60 * 60 * 1000));
+        const weekAgo = Timestamp.fromDate(new Date(now - 7 * 24 * 60 * 60 * 1000));
+        const analyticsRef = collection(db, "analyticsEvents");
+        const usersRef = collection(db, "users");
+
+        const [
+          analyticsLastDaySnap,
+          analyticsLastWeekSnap,
+          usersTotalSnap,
+          newUsersLastWeekSnap,
+        ] = await Promise.all([
+          getCountFromServer(query(analyticsRef, where("createdAt", ">=", dayAgo))),
+          getCountFromServer(query(analyticsRef, where("createdAt", ">=", weekAgo))),
+          getCountFromServer(usersRef),
+          getCountFromServer(query(usersRef, where("createdAt", ">=", weekAgo))),
+        ]);
+
+        if (!alive) return;
+
+        setDashboardStats({
+          analyticsLastDay: analyticsLastDaySnap.data().count,
+          analyticsLastWeek: analyticsLastWeekSnap.data().count,
+          usersTotal: usersTotalSnap.data().count,
+          newUsersLastWeek: newUsersLastWeekSnap.data().count,
+        });
+      } catch (error) {
+        console.error("Admin dashboard stats failed", error);
+      } finally {
+        if (alive) setStatsLoading(false);
+      }
+    }
+
+    void loadDashboardStats();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadOperationalSignals() {
+      if (!user || user.isAnonymous) {
+        setSignalsLoading(false);
+        return;
+      }
+
+      setSignalsLoading(true);
+
+      try {
+        const token = await user.getIdToken();
+        const [schoolsResponse, partnersResponse] = await Promise.all([
+          fetch("/api/admin/schools", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch("/api/admin/partners", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        const schoolsData = (await schoolsResponse.json().catch(() => ({}))) as AdminSchoolsResponse;
+        const partnersData = (await partnersResponse.json().catch(() => ({}))) as AdminPartnersResponse;
+
+        if (!alive) return;
+
+        const schools = Array.isArray(schoolsData.schools) ? schoolsData.schools : [];
+        const schoolsNeedAttention = schools.filter((school) => {
+          const limit = school.teacherSeatLimit ?? 0;
+          const used = school.activeTeacherCount ?? 0;
+          return school.status !== "active" || (limit > 0 && limit - used <= 1);
+        }).length;
+
+        setSignals({
+          activeSchools: schools.filter((school) => school.status === "active").length,
+          schoolsNeedAttention,
+          activePartners:
+            typeof partnersData.stats?.active === "number"
+              ? partnersData.stats.active
+              : partnersData.activePartners?.length ?? 0,
+          partnerRepliesNeedReview: partnersData.stats?.unreviewedPartnerReplies ?? 0,
+          partnersNeedFollowUp:
+            typeof partnersData.stats?.needsFollowUp === "number"
+              ? partnersData.stats.needsFollowUp
+              : (partnersData.activePartners ?? []).filter(
+                  (partner) => partner.partnerFollowUpStatus === "needs_follow_up"
+                ).length,
+        });
+      } catch (error) {
+        console.error("Admin operational signals failed", error);
+      } finally {
+        if (alive) setSignalsLoading(false);
+      }
+    }
+
+    void loadOperationalSignals();
+
+    return () => {
+      alive = false;
+    };
+  }, [user]);
+
+  function statValue(value: number | null) {
+    if (statsLoading) return "...";
+    return typeof value === "number" ? String(value) : "-";
   }
 
-  const isAdmin = profile?.roles?.admin === true;
-  const role = String(profile?.role ?? "—");
-  const adminLevel = String(profile?.adminLevel ?? "—");
+  function signalValue(value: number | null) {
+    if (signalsLoading) return "...";
+    return typeof value === "number" ? String(value) : "-";
+  }
 
   return (
-    <main style={{ display: "grid", gap: 16 }}>
-      <section
-        style={{
-          padding: 18,
-          borderRadius: 18,
-          border: "1px solid rgba(0,0,0,0.08)",
-          background: "white",
-        }}
-      >
-        <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>OVERSIKT</div>
-        <h2 style={{ margin: "4px 0 0", fontSize: 26 }}>Admin dashboard</h2>
-        <p style={{ marginTop: 10, opacity: 0.8, lineHeight: 1.5 }}>
-          Dette området er skilt fra student- og lærerflyt, og brukes til kontroll,
-          moderering, statistikk og drift.
-        </p>
-
-        <div
-          style={{
-            marginTop: 12,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 12px",
-            borderRadius: 999,
-            fontWeight: 800,
-            fontSize: 13,
-            background: isAdmin ? "rgba(22,163,74,0.12)" : "rgba(220,38,38,0.10)",
-            color: isAdmin ? "rgb(21,128,61)" : "rgb(185,28,28)",
-          }}
-        >
-          {isAdmin ? "Admin access aktiv" : "Ikke admin"}
+    <div className="dashboard">
+      <AdminCard className="hero">
+        <div>
+          <div className="eyebrow">Overview</div>
+          <h2>Welcome, {loading ? "admin" : displayName}</h2>
+          <p>
+            A quieter admin dashboard for following activity, users, operations,
+            and platform health without duplicating the navigation.
+          </p>
         </div>
-      </section>
 
-      <section
-        style={{
-          padding: 18,
-          borderRadius: 18,
-          border: "1px solid rgba(0,0,0,0.08)",
-          background: "white",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Innlogget admin</h3>
-
-        <div style={{ marginTop: 8 }}>
-          <InfoRow label="Innlogget" value={user ? "Ja" : "Nei"} />
-          <InfoRow label="UID" value={user?.uid ?? "—"} />
-          <InfoRow label="Role" value={role} />
-          <InfoRow label="Admin flag" value={String(profile?.roles?.admin ?? false)} />
-          <InfoRow label="Teacher flag" value={String(profile?.roles?.teacher ?? false)} />
-          <InfoRow label="Admin level" value={adminLevel} />
-          <InfoRow label="Display name" value={String(profile?.displayName ?? "—")} />
-          <InfoRow label="E-post" value={String(profile?.email ?? "—")} />
-          <InfoRow label="Plan" value={String(profile?.plan ?? "—")} />
-          <InfoRow label="Institution" value={String(profile?.institutionType ?? "—")} />
-          <InfoRow label="Municipality" value={String(profile?.municipality ?? profile?.org?.municipality ?? "—")} />
+        <div className="heroPanel">
+          <span>Role</span>
+          <strong>{levelLabel}</strong>
+          <small>{adminIsActive ? "Admin access active" : "Admin access needs review"}</small>
         </div>
-      </section>
+      </AdminCard>
 
-      <section>
-        <h3 style={{ margin: "0 0 10px" }}>Hurtigvalg</h3>
+      <AdminSection eyebrow="Analytics" title="Recent activity">
+        <section className="statsRow" aria-label="Analytics activity">
+          <AdminStatCard
+            title="Last 24 hours"
+            value={statValue(dashboardStats.analyticsLastDay)}
+            text="Analytics events recorded in the last day."
+            tone="blue"
+          />
+          <AdminStatCard
+            title="Last 7 days"
+            value={statValue(dashboardStats.analyticsLastWeek)}
+            text="Analytics events recorded in the last week."
+            tone="blue"
+          />
+        </section>
+      </AdminSection>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 12,
-          }}
-        >
-          <Card
-            href={`/${locale}/admin/review`}
-            title="Moderation"
-            text="Se ventende eller flagget innhold og godkjenn eller avvis."
+      <AdminSection eyebrow="Users" title="User growth">
+        <section className="statsRow" aria-label="User growth">
+          <AdminStatCard
+            title="Total users"
+            value={statValue(dashboardStats.usersTotal)}
+            text="All user profiles currently registered."
+            tone="green"
           />
-          <Card
-            href={`/${locale}/admin/users`}
-            title="Users"
-            text="Se brukere, roller og senere kontrollfunksjoner."
+          <AdminStatCard
+            title="New this week"
+            value={statValue(dashboardStats.newUsersLastWeek)}
+            text="Users created during the last 7 days."
+            tone="green"
           />
-          <Card
-            href={`/${locale}/admin/partners`}
-            title="Partners"
-            text="Se og behandle nye 321school Partner-søknader."
+        </section>
+      </AdminSection>
+
+      <AdminSection eyebrow="Operations" title="Schools and partners">
+        <section className="statsRow" aria-label="Schools and partner signals">
+          <AdminStatCard
+            title="Active schools"
+            value={signalValue(signals.activeSchools)}
+            text="Schools with active license status."
+            tone="green"
           />
-          <Card
-            href={`/${locale}/admin/stats`}
-            title="Stats"
-            text="Åpne statistikk og plattformoversikt."
+          <AdminStatCard
+            title="School attention"
+            value={signalValue(signals.schoolsNeedAttention)}
+            text="Schools not active, full, or almost full."
+            tone={(signals.schoolsNeedAttention ?? 0) > 0 ? "amber" : "blue"}
           />
-          <Card
-            href={`/${locale}/admin/trash`}
-            title="Trash"
-            text="Se slettede lessons og gjenopprett ved behov."
+          <AdminStatCard
+            title="Active partners"
+            value={signalValue(signals.activePartners)}
+            text="Partners with active access."
+            tone="blue"
           />
-          <Card
-            href={`/${locale}/admin/billing`}
-            title="Billing"
-            text="Resync Stripe-abonnement og feilsøk betalinger."
+          <AdminStatCard
+            title="Partner follow-up"
+            value={signalValue(signals.partnersNeedFollowUp)}
+            text="Partners marked as needing follow-up."
+            tone={(signals.partnersNeedFollowUp ?? 0) > 0 ? "amber" : "green"}
           />
-          <Card
-            href={`/${locale}/admin/analytics`}
-            title="Analytics"
-            text="Resync Stripe-abonnement og feilsøk betalinger."
+          <AdminStatCard
+            title="Partner replies"
+            value={signalValue(signals.partnerRepliesNeedReview)}
+            text="Partner replies waiting for review."
+            tone={(signals.partnerRepliesNeedReview ?? 0) > 0 ? "amber" : "green"}
           />
-          <Card
-            href={`/${locale}/admin/communication`}
-            title="Communication"
-            text="Resync Stripe-abonnement og feilsøk betalinger."
+        </section>
+      </AdminSection>
+
+      <AdminSection eyebrow="System status" title="Operational check">
+        <div className="statusGrid">
+          <StatusItem
+            label="Admin area"
+            value={adminIsActive ? "Access active" : "Needs review"}
+            tone={adminIsActive ? "green" : "amber"}
           />
+          <StatusItem label="Moderation" value="Workflow available" tone="blue" />
+          <StatusItem
+            label="Schools"
+            value={
+              (signals.schoolsNeedAttention ?? 0) > 0
+                ? "Some licenses need attention"
+                : "License overview ready"
+            }
+            tone={(signals.schoolsNeedAttention ?? 0) > 0 ? "amber" : "green"}
+          />
+          <StatusItem
+            label="Partners"
+            value={
+              (signals.partnerRepliesNeedReview ?? 0) > 0
+                ? "Replies need review"
+                : "Partner workflow ready"
+            }
+            tone={(signals.partnerRepliesNeedReview ?? 0) > 0 ? "amber" : "green"}
+          />
+          <StatusItem label="Billing" value="Resync tool available" tone="slate" />
+          <StatusItem label="Debug" value="Technical info moved off the dashboard" tone="green" />
         </div>
-      </section>
-    </main>
+      </AdminSection>
+
+      <style jsx>{`
+        .dashboard {
+          display: grid;
+          gap: var(--admin-gap, 16px);
+        }
+
+        :global(.hero) {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 220px;
+          gap: var(--admin-gap, 16px);
+          padding: 20px;
+          align-items: center;
+        }
+
+        .eyebrow {
+          font-size: 12px;
+          line-height: 1.2;
+          color: var(--admin-muted, #6b728084);
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        h2 {
+          margin: 4px 0 0;
+          font-size: 25px;
+          line-height: 1.2;
+        }
+
+        p {
+          margin: 8px 0 0;
+          color: var(--admin-muted, #6b7280);
+          line-height: 1.55;
+        }
+
+        .heroPanel {
+          border: 1px solid #dbeafe;
+          border-radius: var(--admin-radius, 10px);
+          background: #eff6ff;
+          padding: 16px;
+          display: grid;
+          gap: 4px;
+        }
+
+        .heroPanel span,
+        .heroPanel small {
+          color: #7d8cb4;
+          font-size: 13px;
+        }
+
+        .heroPanel strong {
+          font-size: 22px;
+          line-height: 1.2;
+        }
+
+        .overviewGrid,
+        .statsRow,
+        .statusGrid {
+          display: grid;
+          gap: var(--admin-gap, 16px);
+        }
+
+        .overviewGrid {
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .statsRow {
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .statusGrid {
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .statusItem {
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          padding: 12px;
+          border: 1px solid var(--admin-border, #e5e7eb);
+          border-radius: var(--admin-radius, 10px);
+          background: var(--admin-surface-subtle, #f8fafc);
+        }
+
+        .statusDot {
+          flex: 0 0 auto;
+          width: 10px;
+          height: 10px;
+          margin-top: 5px;
+          border-radius: 999px;
+        }
+
+        .statusItem strong,
+        .statusItem span {
+          display: block;
+        }
+
+        .statusItem span {
+          margin-top: 2px;
+          color: var(--admin-muted, #6b7280);
+          font-size: 13px;
+          line-height: 1.4;
+        }
+
+        @media (max-width: 760px) {
+          :global(.hero) {
+            grid-template-columns: 1fr;
+            padding: 18px;
+          }
+        }
+      `}</style>
+    </div>
   );
 }

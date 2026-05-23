@@ -16,7 +16,7 @@ export default function AdminBillingPage() {
 
       const user = getAuth().currentUser;
       if (!user) {
-        throw new Error("Ikke logget inn");
+        throw new Error("Not signed in");
       }
 
       const token = await user.getIdToken();
@@ -48,19 +48,19 @@ export default function AdminBillingPage() {
       <h1>Billing resync</h1>
 
       <p style={{ opacity: 0.7 }}>
-        Brukes hvis betaling er gjennomført i Stripe, men ikke oppdatert i appen.
+        Use this when a Stripe payment has completed but the app has not updated.
       </p>
 
       <div style={{ marginTop: 20, display: "grid", gap: 12 }}>
         <input
-          placeholder="UID (valgfritt)"
+          placeholder="UID (optional)"
           value={uid}
           onChange={(e) => setUid(e.target.value)}
           style={inputStyle}
         />
 
         <input
-          placeholder="Customer ID (valgfritt)"
+          placeholder="Customer ID (optional)"
           value={customerId}
           onChange={(e) => setCustomerId(e.target.value)}
           style={inputStyle}
@@ -71,7 +71,7 @@ export default function AdminBillingPage() {
           disabled={loading}
           style={buttonStyle}
         >
-          {loading ? "Kjører..." : "Resync"}
+          {loading ? "Running..." : "Resync"}
         </button>
       </div>
 

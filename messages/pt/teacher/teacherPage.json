@@ -90,7 +90,8 @@
     "partnerCard": {
       "title": "Você é um Parceiro 321school",
       "text": "Como parceiro, você tem acesso equivalente ao plano Plus enquanto sua parceria estiver ativa.",
-      "extraText": "Obrigado por ajudar a testar, desenvolver e compartilhar o 321school."
+      "extraText": "Obrigado por ajudar a testar, desenvolver e compartilhar o 321school.",
+      "action": "Abrir página de parceiro"
     },
     "billing": {
       "badge": "Plano e cobrança",

@@ -23,6 +23,7 @@ import { useUsage } from "@/lib/useUsage";
 import { getBucketLimit, getEffectivePlan, type PlanKey } from "@/lib/featureAccess";
 import { incrementUsage } from "@/lib/usage";
 import { trackAiFeedback } from "@/lib/analytics";
+import { Volume2 } from "lucide-react";
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   value: l.code,
@@ -128,6 +129,7 @@ type Role = "student" | "teacher" | "parent";
 type AudioMode =
   | "text_original"
   | "text_translation"
+  | "task_original"
   | "feedback_original"
   | "feedback_translation";
 
@@ -491,13 +493,13 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
     if (!isCorrect) {
       if (type === "mcq") {
         wrongLines.push(
-          `- Oppgave ${order} (MCQ): "${prompt}" | Elev: "${String(val)}" | Fasit: "${String(
+          `- Oppgave ${order} (flervalg): "${prompt}" | Elev: "${String(val)}" | Fasit: "${String(
             mcqCorrectText
           )}"`
         );
       } else {
         wrongLines.push(
-          `- Oppgave ${order} (True/False): "${prompt}" | Elev: ${String(val)} | Fasit: ${String(
+          `- Oppgave ${order} (sant/usant): "${prompt}" | Elev: ${String(val)} | Fasit: ${String(
             tfCorrectBool
           )}`
         );
@@ -507,7 +509,7 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
 
   if (total === 0) return "";
 
-  lines.push(`Lukkede oppgaver (MCQ/True-False): ${correct}/${total} riktige.`);
+  lines.push(`Lukkede oppgaver (flervalg og sant/usant): ${correct}/${total} riktige.`);
   if (wrongLines.length) {
     lines.push("");
     lines.push("Feil/misforståelser (kort oversikt):");
@@ -600,6 +602,7 @@ export default function StudentLessonPage() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [audioLoginNoticeMode, setAudioLoginNoticeMode] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const [targetLang, setTargetLang] = useState("no");
@@ -701,15 +704,14 @@ export default function StudentLessonPage() {
       ? t("text.audioSourceTranslation")
       : activeTextMode === "feedback_original"
         ? t("feedback.title")
-        : t("text.audioSourceOriginal");
+        : activeTextMode === "task_original"
+          ? t("tasks.title")
+          : t("text.audioSourceOriginal");
 
   const loginHref = useMemo(() => {
     const next = `/${locale}/student/lesson/${lessonId}`;
     return `/${locale}/login?next=${encodeURIComponent(next)}`;
   }, [locale, lessonId]);
-
-  const anonTopTitle = t("feedback.loginForFeedback");
-  const anonTopBody = `${t("anon.savedLocally")} ${t("feedback.anonHint")} ${t("text.loginToPlayAudio")}.`;
 
   function stopAudio() {
     if (audioRef.current) {
@@ -741,12 +743,37 @@ export default function StudentLessonPage() {
     setTimeout(() => setMsg(null), 2600);
   }
 
-  function requireAudioLogin() {
+  function requireAudioLogin(mode: string) {
     if (isAnon) {
-      flash(t("text.loginToPlayAudio"));
+      setAudioLoginNoticeMode(mode);
+      setTimeout(() => {
+        setAudioLoginNoticeMode((current) => (current === mode ? null : current));
+      }, 3600);
       return false;
     }
     return true;
+  }
+
+  function renderAudioLoginNotice(mode: string) {
+    if (!isAnon || audioLoginNoticeMode !== mode) return null;
+
+    return (
+      <div
+        style={{
+          marginTop: 6,
+          maxWidth: 220,
+          fontSize: 12,
+          lineHeight: 1.35,
+          color: "#1e3a8a",
+          background: "rgba(59,130,246,0.10)",
+          border: "1px solid rgba(37,99,235,0.18)",
+          borderRadius: 10,
+          padding: "7px 9px",
+        }}
+      >
+        {t("text.loginToPlayAudio")}
+      </div>
+    );
   }
 
   async function playTTS(text: string, lang: TtsLang, mode: AudioMode) {
@@ -812,28 +839,56 @@ export default function StudentLessonPage() {
   }
 
   async function playOriginalTextAudio() {
-    if (!requireAudioLogin()) return;
+    if (!requireAudioLogin("text_original")) return;
     const txt = (displayedSourceTextSafe || "").trim();
     if (!txt) return;
     await playTTS(txt, originalLangForTTS, "text_original");
   }
 
   async function playTranslatedTextAudio() {
-    if (!requireAudioLogin()) return;
+    if (!requireAudioLogin("text_translation")) return;
     const txt = (translatedText || "").trim();
     if (!txt) return;
     await playTTS(txt, translationLangForTTS, "text_translation");
   }
 
+  async function playTaskAudio(text: string, stableId: string) {
+    if (!requireAudioLogin(`task:${stableId}`)) return;
+    const txt = (text || "").trim();
+    if (!txt) return;
+    await playTTS(txt, originalLangForTTS, "task_original");
+  }
+
+  async function playTranslatedTaskAudio(text: string, stableId: string) {
+    if (!requireAudioLogin(`taskTranslation:${stableId}`)) return;
+    const txt = (text || "").trim();
+    if (!txt) return;
+    await playTTS(txt, translationLangForTTS, "task_original");
+  }
+
+  async function playTaskOptionAudio(text: string, stableId: string, optionIndex: number) {
+    if (!requireAudioLogin(`taskOption:${stableId}:${optionIndex}`)) return;
+    const txt = (text || "").trim();
+    if (!txt) return;
+    await playTTS(txt, originalLangForTTS, "task_original");
+  }
+
+  async function playTranslatedTaskOptionAudio(text: string, stableId: string, optionIndex: number) {
+    if (!requireAudioLogin(`taskOptionTranslation:${stableId}:${optionIndex}`)) return;
+    const txt = (text || "").trim();
+    if (!txt) return;
+    await playTTS(txt, translationLangForTTS, "task_original");
+  }
+
   async function playFeedbackAudio() {
-    if (!requireAudioLogin()) return;
+    if (!requireAudioLogin("feedback_original")) return;
     const txt = (feedback || "").trim();
     if (!txt) return;
     await playTTS(txt, toTtsLang(targetLang || lesson?.language || "no"), "feedback_original");
   }
 
   async function playTranslatedFeedbackAudio() {
-    if (!requireAudioLogin()) return;
+    if (!requireAudioLogin("feedback_translation")) return;
     const txt = (translatedFeedback || "").trim();
     if (!txt) return;
     await playTTS(txt, translationLangForTTS, "feedback_translation");
@@ -878,6 +933,7 @@ export default function StudentLessonPage() {
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
+    if (activeTextMode !== "text_original" && activeTextMode !== "text_translation") return;
 
     const onTime = () => {
       const d = a.duration;
@@ -886,10 +942,9 @@ export default function StudentLessonPage() {
       const tt = a.currentTime;
       const ratio = Math.max(0, Math.min(1, tt / d));
 
-      const segs =
-        activeTextMode === "text_translation"
-          ? textFollow.translation.segs
-          : textFollow.original.segs;
+      const segs = activeTextMode === "text_translation"
+        ? textFollow.translation.segs
+        : textFollow.original.segs;
 
       if (!segs || segs.length === 0) return;
 
@@ -1277,7 +1332,7 @@ export default function StudentLessonPage() {
     }
 
     if (isAnon) {
-      flash(t("flash.loginToGetFeedback"));
+      router.push(loginHref);
       return;
     }
 
@@ -1593,51 +1648,8 @@ export default function StudentLessonPage() {
             {lesson.topic ? <Pill text={lesson.topic} /> : null}
           </div>
 
-          {isAnon ? (
-            <div
-              style={{
-                marginTop: 10,
-                fontSize: 13,
-                color: "#475569",
-              }}
-            >
-              {t("anon.savedLocally")}
-            </div>
-          ) : null}
         </div>
 
-        {isAnon ? (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "flex-end",
-              flex: "1 1 240px",
-            }}
-          >
-            <div
-              style={{
-                maxWidth: 340,
-                padding: "12px 14px",
-                borderRadius: 14,
-                border: "1px solid rgba(37,99,235,0.22)",
-                background: "linear-gradient(180deg, rgba(59,130,246,0.10), rgba(59,130,246,0.06))",
-              }}
-            >
-              <div style={{ fontWeight: 700, color: "#1d4ed8", marginBottom: 6 }}>
-                {anonTopTitle}
-              </div>
-              <div style={{ fontSize: 13, lineHeight: 1.45, color: "#334155", marginBottom: 10 }}>
-                {anonTopBody}
-              </div>
-              <Link href={loginHref} style={{ textDecoration: "none" }}>
-                <span style={{ ...blueBtnStyle, display: "inline-flex", fontWeight: 700 }}>
-                  {t("feedback.loginForFeedback")}
-                </span>
-              </Link>
-            </div>
-          </div>
-        ) : null}
       </header>
 
       {msg ? (
@@ -1657,8 +1669,6 @@ export default function StudentLessonPage() {
       ) : null}
 
       <section style={{ marginTop: 14 }}>
-        <h2 style={sectionHeadingStyle}>{t("image.title")}</h2>
-
         <div style={cardStyle}>
           <div
             style={{
@@ -1719,35 +1729,39 @@ export default function StudentLessonPage() {
         >
           <h2 style={sectionHeadingStyle}>{t("text.title")}</h2>
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <button
-              type="button"
-              onClick={playOriginalTextAudio}
-              disabled={ttsBusy !== null || !(displayedSourceTextSafe || "").trim()}
-              style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
-              title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
-            >
-              {t("text.playAudio")}
-            </button>
+          <div style={textToolsStyle}>
+            <div>
+              <button
+                type="button"
+                onClick={playOriginalTextAudio}
+                disabled={ttsBusy !== null || !(displayedSourceTextSafe || "").trim()}
+                style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
+                title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
+              >
+                {t("text.playAudio")}
+              </button>
+              {renderAudioLoginNotice("text_original")}
+            </div>
 
-            <span style={{ opacity: 0.75 }}>{t("translate.label")}</span>
+            <div style={translateToolStyle}>
+              <SearchableSelect
+                label=""
+                value={targetLang}
+                options={LANGUAGE_OPTIONS}
+                onChange={setTargetLang}
+                placeholder={t("translate.searchPlaceholder")}
+                buttonWidth={180}
+              />
 
-            <SearchableSelect
-              label=""
-              value={targetLang}
-              options={LANGUAGE_OPTIONS}
-              onChange={setTargetLang}
-              placeholder={t("translate.searchPlaceholder")}
-            />
-
-            <button
-              type="button"
-              onClick={onTranslateText}
-              disabled={translating === "text" || !(displayedSourceTextSafe || "").trim()}
-              style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1, fontWeight: 600 }}
-            >
-              {translating === "text" ? t("translate.translating") : t("translate.translateText")}
-            </button>
+              <button
+                type="button"
+                onClick={onTranslateText}
+                disabled={translating === "text" || !(displayedSourceTextSafe || "").trim()}
+                style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1, fontWeight: 600 }}
+              >
+                {translating === "text" ? t("translate.translating") : t("translate.translateText")}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1772,15 +1786,18 @@ export default function StudentLessonPage() {
             <h2 style={sectionHeadingStyle}>{t("translate.title")}</h2>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button
-                type="button"
-                onClick={playTranslatedTextAudio}
-                disabled={ttsBusy !== null || !translatedText.trim()}
-                style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
-                title={isAnon ? t("text.loginToPlayAudio") : t("text.playTranslation")}
-              >
-                {t("text.playAudio")}
-              </button>
+              <div>
+                <button
+                  type="button"
+                  onClick={playTranslatedTextAudio}
+                  disabled={ttsBusy !== null || !translatedText.trim()}
+                  style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
+                  title={isAnon ? t("text.loginToPlayAudio") : t("text.playTranslation")}
+                >
+                  {t("text.playAudio")}
+                </button>
+                {renderAudioLoginNotice("text_translation")}
+              </div>
 
               <button type="button" style={btnStyle} onClick={() => setShowTextTranslation((v) => !v)}>
                 {showTextTranslation ? t("text.hideTranslation") : t("text.showTranslation")}
@@ -1838,33 +1855,27 @@ export default function StudentLessonPage() {
           </div>
         </div>
 
-        <div
-          style={{
-            ...cardStyle,
-            marginTop: 10,
-            paddingTop: 12,
-            paddingBottom: 12,
-          }}
-        >
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ opacity: 0.75 }}>{t("tasks.translateTo")}</span>
+        <div style={{ ...cardStyle, marginTop: 10, paddingTop: 12, paddingBottom: 12 }}>
+          <div style={textToolsStyle}>
+            <div style={translateToolStyle}>
+              <SearchableSelect
+                label=""
+                value={targetLang}
+                options={LANGUAGE_OPTIONS}
+                onChange={setTargetLang}
+                placeholder={t("translate.searchPlaceholder")}
+                buttonWidth={180}
+              />
 
-            <SearchableSelect
-              label=""
-              value={targetLang}
-              options={LANGUAGE_OPTIONS}
-              onChange={setTargetLang}
-              placeholder={t("translate.searchPlaceholder")}
-            />
-
-            <button
-              type="button"
-              onClick={onTranslateTasks}
-              disabled={translating === "tasks" || tasksOriginal.length === 0}
-              style={{ ...blueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1, fontWeight: 600 }}
-            >
-              {translating === "tasks" ? t("translate.translating") : t("translate.translateTasks")}
-            </button>
+              <button
+                type="button"
+                onClick={onTranslateTasks}
+                disabled={translating === "tasks" || tasksOriginal.length === 0}
+                style={{ ...blueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1, fontWeight: 600 }}
+              >
+                {translating === "tasks" ? t("translate.translating") : t("translate.translateTasks")}
+              </button>
+            </div>
 
             {(translatedTasks ?? []).length > 0 ? (
               <button type="button" style={blueBtnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
@@ -1948,7 +1959,6 @@ export default function StudentLessonPage() {
                   >
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.95, alignItems: "center" }}>
                       <span>{t("tasks.taskLabel", { n: String(tt?.order ?? idx + 1) })}</span>
-                      <span>• {type}</span>
 
                       {showAnswers && hasCorrect && val != null ? (
                         <span style={{ marginLeft: 6 }}>
@@ -1957,11 +1967,27 @@ export default function StudentLessonPage() {
                       ) : null}
                     </div>
 
-                    {hasThisTranslation ? (
-                      <button type="button" style={blueBtnStyle} onClick={() => toggleTaskTranslation(stableId)}>
-                        {showThisTranslation ? t("tasks.hideTranslation") : t("tasks.showTranslation")}
-                      </button>
-                    ) : null}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => playTaskAudio(prompt, stableId)}
+                          disabled={ttsBusy !== null || !prompt.trim()}
+                          style={{ ...audioIconBtnStyle, opacity: ttsBusy !== null || !prompt.trim() ? 0.6 : 1 }}
+                          title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
+                          aria-label={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
+                        >
+                          <Volume2 size={16} strokeWidth={2.4} />
+                        </button>
+                        {renderAudioLoginNotice(`task:${stableId}`)}
+                      </div>
+
+                      {hasThisTranslation ? (
+                        <button type="button" style={blueBtnStyle} onClick={() => toggleTaskTranslation(stableId)}>
+                          {showThisTranslation ? t("tasks.hideTranslation") : t("tasks.showTranslation")}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, marginBottom: 10, fontSize: 16 }}>
@@ -1981,7 +2007,33 @@ export default function StudentLessonPage() {
                         lineHeight: 1.45,
                       }}
                     >
-                      <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translate.translatedLabel")}</div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 8,
+                          alignItems: "flex-start",
+                          marginBottom: 6,
+                        }}
+                      >
+                        <div style={{ fontSize: 12, opacity: 0.7 }}>{t("translate.translatedLabel")}</div>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => playTranslatedTaskAudio(tr.translatedPrompt || "", stableId)}
+                            disabled={ttsBusy !== null || !tr.translatedPrompt.trim()}
+                            style={{
+                              ...audioIconBtnStyle,
+                              opacity: ttsBusy !== null || !tr.translatedPrompt.trim() ? 0.6 : 1,
+                            }}
+                            title={isAnon ? t("text.loginToPlayAudio") : t("text.playTranslation")}
+                            aria-label={isAnon ? t("text.loginToPlayAudio") : t("text.playTranslation")}
+                          >
+                            <Volume2 size={16} strokeWidth={2.4} />
+                          </button>
+                          {renderAudioLoginNotice(`taskTranslation:${stableId}`)}
+                        </div>
+                      </div>
                       {tr.translatedPrompt}
                     </div>
                   ) : null}
@@ -2091,12 +2143,60 @@ export default function StudentLessonPage() {
                             <div style={{ width: "100%" }}>
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                                 <div style={{ fontWeight: checked ? 700 : 500 }}>{opt}</div>
-                                {checked ? <Pill text={t("tasks.yourAnswer")} /> : null}
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                                  {checked ? <Pill text={t("tasks.yourAnswer")} /> : null}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      void playTaskOptionAudio(opt, stableId, i);
+                                    }}
+                                    disabled={ttsBusy !== null || !opt.trim()}
+                                    style={{
+                                      ...optionAudioIconBtnStyle,
+                                      opacity: ttsBusy !== null || !opt.trim() ? 0.6 : 1,
+                                    }}
+                                    title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
+                                    aria-label={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
+                                  >
+                                    <Volume2 size={15} strokeWidth={2.4} />
+                                  </button>
+                                </div>
                               </div>
 
                               {showThisTranslation && optT ? (
-                                <div style={{ fontSize: 12, opacity: 0.72, marginTop: 4 }}>{optT}</div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    gap: 8,
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  <div style={{ fontSize: 12, opacity: 0.72 }}>{optT}</div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      void playTranslatedTaskOptionAudio(optT, stableId, i);
+                                    }}
+                                    disabled={ttsBusy !== null || !optT.trim()}
+                                    style={{
+                                      ...optionAudioIconBtnStyle,
+                                      opacity: ttsBusy !== null || !optT.trim() ? 0.6 : 1,
+                                    }}
+                                    title={isAnon ? t("text.loginToPlayAudio") : t("text.playTranslation")}
+                                    aria-label={isAnon ? t("text.loginToPlayAudio") : t("text.playTranslation")}
+                                  >
+                                    <Volume2 size={14} strokeWidth={2.4} />
+                                  </button>
+                                </div>
                               ) : null}
+                              {renderAudioLoginNotice(`taskOption:${stableId}:${i}`)}
+                              {renderAudioLoginNotice(`taskOptionTranslation:${stableId}:${i}`)}
                             </div>
                           </label>
                         );
@@ -2198,34 +2298,7 @@ export default function StudentLessonPage() {
           ) : null}
         </div>
 
-        {isAnon ? (
-          <div
-            style={{
-              marginBottom: 12,
-              padding: "12px 14px",
-              borderRadius: 14,
-              border: "1px solid rgba(37,99,235,0.18)",
-              background: "rgba(59,130,246,0.08)",
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ fontSize: 14, lineHeight: 1.45, color: "#334155" }}>
-              {anonTopBody}
-            </div>
-
-            <Link href={loginHref} style={{ textDecoration: "none" }}>
-              <span style={{ ...blueBtnStyle, display: "inline-flex", fontWeight: 700 }}>
-                {t("feedback.loginForFeedback")}
-              </span>
-            </Link>
-          </div>
-        ) : null}
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={textToolsStyle}>
           <button
             onClick={submitForFeedback}
             disabled={submitting || !uid}
@@ -2244,41 +2317,45 @@ export default function StudentLessonPage() {
                   : t("feedback.getFeedback")}
           </button>
 
-          <span style={{ opacity: 0.75 }}>{t("feedback.translateTo")}</span>
+          <div style={translateToolStyle}>
+            <SearchableSelect
+              label=""
+              value={targetLang}
+              options={LANGUAGE_OPTIONS}
+              onChange={setTargetLang}
+              placeholder={t("translate.searchPlaceholder")}
+              buttonWidth={180}
+            />
 
-          <SearchableSelect
-            label=""
-            value={targetLang}
-            options={LANGUAGE_OPTIONS}
-            onChange={setTargetLang}
-            placeholder={t("translate.searchPlaceholder")}
-          />
+            <button
+              onClick={onTranslateFeedback}
+              disabled={feedbackTranslating || !(feedback || "").trim()}
+              style={{
+                ...blueBtnStyle,
+                fontWeight: 700,
+                opacity: feedbackTranslating || !(feedback || "").trim() ? 0.6 : 1,
+              }}
+            >
+              {feedbackTranslating ? t("feedback.translating") : t("feedback.translateFeedback")}
+            </button>
+          </div>
 
-          <button
-            onClick={onTranslateFeedback}
-            disabled={feedbackTranslating || !(feedback || "").trim()}
-            style={{
-              ...blueBtnStyle,
-              fontWeight: 700,
-              opacity: feedbackTranslating || !(feedback || "").trim() ? 0.6 : 1,
-            }}
-          >
-            {feedbackTranslating ? t("feedback.translating") : t("feedback.translateFeedback")}
-          </button>
-
-          <button
-            type="button"
-            onClick={playFeedbackAudio}
-            disabled={ttsBusy !== null || !(feedback || "").trim()}
-            style={{
-              ...greenBtnStyle,
-              fontWeight: 700,
-              opacity: ttsBusy !== null || !(feedback || "").trim() ? 0.6 : 1,
-            }}
-            title={isAnon ? t("text.loginToPlayAudio") : t("feedback.playAudio")}
-          >
-            {t("feedback.playAudio")}
-          </button>
+          <div>
+            <button
+              type="button"
+              onClick={playFeedbackAudio}
+              disabled={ttsBusy !== null || !(feedback || "").trim()}
+              style={{
+                ...greenBtnStyle,
+                fontWeight: 700,
+                opacity: ttsBusy !== null || !(feedback || "").trim() ? 0.6 : 1,
+              }}
+              title={isAnon ? t("text.loginToPlayAudio") : t("feedback.playAudio")}
+            >
+              {t("feedback.playAudio")}
+            </button>
+            {renderAudioLoginNotice("feedback_original")}
+          </div>
         </div>
 
         {feedbackTranslateErr ? (
@@ -2336,15 +2413,18 @@ export default function StudentLessonPage() {
                 {t("feedback.translatedFeedbackLabel")}
               </div>
 
-              <button
-                type="button"
-                onClick={playTranslatedFeedbackAudio}
-                disabled={ttsBusy !== null || !translatedFeedback.trim()}
-                style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 700 }}
-                title={isAnon ? t("text.loginToPlayAudio") : t("feedback.playAudio")}
-              >
-                {t("feedback.playAudio")}
-              </button>
+              <div>
+                <button
+                  type="button"
+                  onClick={playTranslatedFeedbackAudio}
+                  disabled={ttsBusy !== null || !translatedFeedback.trim()}
+                  style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 700 }}
+                  title={isAnon ? t("text.loginToPlayAudio") : t("feedback.playAudio")}
+                >
+                  {t("feedback.playAudio")}
+                </button>
+                {renderAudioLoginNotice("feedback_translation")}
+              </div>
             </div>
 
             <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{translatedFeedback}</div>
@@ -2362,9 +2442,11 @@ export default function StudentLessonPage() {
         <div
           style={{
             position: "fixed",
-            left: 12,
-            right: 12,
+            left: "50%",
+            width: "calc(100% - 24px)",
+            maxWidth: 980,
             bottom: 12,
+            transform: "translateX(-50%)",
             zIndex: 60,
             padding: 12,
             borderRadius: 16,
@@ -2388,24 +2470,32 @@ export default function StudentLessonPage() {
               {t("text.nowPlaying")}: {stickyAudioLabel}
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={speedGroupStyle}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>{t("text.speed")}</span>
               <button
                 type="button"
-                style={btnStyle}
-                onClick={() => setPlaybackRate((v) => Math.max(0.75, Number((v - 0.1).toFixed(2))))}
+                style={playbackRate === 0.8 ? speedBtnActiveStyle : speedBtnStyle}
+                onClick={() => setPlaybackRate(0.8)}
               >
-                −
+                0.8x
               </button>
-              <span style={{ fontSize: 12, minWidth: 44, textAlign: "center", opacity: 0.8 }}>
-                {playbackRate.toFixed(2)}x
+              <button
+                type="button"
+                style={playbackRate === 1 ? speedBtnActiveStyle : speedBtnStyle}
+                onClick={() => setPlaybackRate(1)}
+              >
+                1x
+              </button>
+              <button
+                type="button"
+                style={playbackRate === 1.2 ? speedBtnActiveStyle : speedBtnStyle}
+                onClick={() => setPlaybackRate(1.2)}
+              >
+                1.2x
+              </button>
+              <span style={{ fontSize: 12, minWidth: 42, textAlign: "right", color: "#64748b" }}>
+                {playbackRate.toFixed(1)}x
               </span>
-              <button
-                type="button"
-                style={btnStyle}
-                onClick={() => setPlaybackRate((v) => Math.min(1.5, Number((v + 0.1).toFixed(2))))}
-              >
-                +
-              </button>
             </div>
           </div>
 
@@ -2482,6 +2572,79 @@ const cardStyle: React.CSSProperties = {
   padding: 14,
   background: "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.92))",
   boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
+};
+
+const textToolsStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+  justifyContent: "flex-end",
+};
+
+const translateToolStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 6,
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+  padding: 4,
+  border: "1px solid rgba(37,99,235,0.16)",
+  borderRadius: 14,
+  background: "rgba(255,255,255,0.72)",
+};
+
+const audioIconBtnStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 38,
+  height: 38,
+  border: "1px solid rgba(22,163,74,0.42)",
+  borderRadius: 12,
+  background: "rgba(34,197,94,0.16)",
+  color: "#166534",
+  cursor: "pointer",
+};
+
+const optionAudioIconBtnStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 34,
+  height: 34,
+  border: "1px solid rgba(245,158,11,0.48)",
+  borderRadius: 11,
+  background: "rgba(245,158,11,0.16)",
+  color: "#92400e",
+  cursor: "pointer",
+};
+
+const speedGroupStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  padding: 4,
+  borderRadius: 14,
+  border: "1px solid rgba(15,23,42,0.12)",
+  background: "rgba(248,250,252,0.9)",
+};
+
+const speedBtnStyle: React.CSSProperties = {
+  border: "1px solid rgba(15,23,42,0.16)",
+  borderRadius: 10,
+  padding: "7px 9px",
+  background: "white",
+  color: "#334155",
+  cursor: "pointer",
+  fontWeight: 700,
+};
+
+const speedBtnActiveStyle: React.CSSProperties = {
+  ...speedBtnStyle,
+  border: "1px solid rgba(37,99,235,0.70)",
+  background: "rgba(59,130,246,0.16)",
+  color: "#1d4ed8",
+  boxShadow: "0 0 0 2px rgba(59,130,246,0.10)",
 };
 
 const btnStyle: React.CSSProperties = {

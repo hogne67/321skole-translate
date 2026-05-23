@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useLocale } from "next-intl";
-import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 
 import { useUserProfile } from "@/lib/useUserProfile";
 
@@ -52,6 +52,7 @@ type LoadState = "idle" | "loading" | "success" | "error";
 
 export default function SchoolInvitesPage() {
   const locale = useLocale();
+  const t = useTranslations("schoolAdmin");
   const { user, profile, loading } = useUserProfile();
   const [state, setState] = useState<LoadState>("idle");
   const [invites, setInvites] = useState<SchoolInvite[]>([]);
@@ -59,8 +60,11 @@ export default function SchoolInvitesPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMessage, setInviteMessage] = useState("");
+  const [emailSent, setEmailSent] = useState<boolean | null>(null);
   const [inviteError, setInviteError] = useState("");
   const [temporaryInviteLink, setTemporaryInviteLink] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
 
   const schoolId = profile?.schoolId ?? "";
@@ -68,6 +72,24 @@ export default function SchoolInvitesPage() {
     Boolean(schoolId) &&
     profile?.schoolRole === "school_admin" &&
     profile?.schoolStatus === "active";
+  const pendingInvites = invites.filter((invite) => invite.status === "pending").length;
+  const acceptedInvites = invites.filter((invite) => invite.status === "accepted").length;
+  const filteredInvites = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return invites.filter((invite) => {
+      const matchesStatus = statusFilter === "all" || invite.status === statusFilter;
+      const matchesSearch =
+        !q ||
+        [invite.email, invite.role, invite.status, invite.id]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [invites, search, statusFilter]);
 
   useEffect(() => {
     if (loading) return;
@@ -101,7 +123,7 @@ export default function SchoolInvitesPage() {
 
         if (!response.ok || !data.ok) {
           setState("error");
-          setError(data.error || "Kunne ikke hente invitasjoner.");
+          setError(data.error || t("invites.errorTitle"));
           setInvites([]);
           return;
         }
@@ -112,7 +134,7 @@ export default function SchoolInvitesPage() {
         if (cancelled) return;
 
         setState("error");
-        setError(err instanceof Error ? err.message : "Kunne ikke hente invitasjoner.");
+        setError(err instanceof Error ? err.message : t("invites.errorTitle"));
         setInvites([]);
       }
     }
@@ -122,7 +144,7 @@ export default function SchoolInvitesPage() {
     return () => {
       cancelled = true;
     };
-  }, [hasSchoolAdminAccess, loading, refreshKey, schoolId, user]);
+  }, [hasSchoolAdminAccess, loading, refreshKey, schoolId, t, user]);
 
   async function submitInvite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,12 +153,13 @@ export default function SchoolInvitesPage() {
 
     const email = inviteEmail.trim();
     if (!email) {
-      setInviteError("Skriv inn e-postadresse.");
+      setInviteError(t("invites.emailRequired"));
       return;
     }
 
     setInviteLoading(true);
     setInviteMessage("");
+    setEmailSent(null);
     setInviteError("");
     setTemporaryInviteLink("");
 
@@ -153,15 +176,16 @@ export default function SchoolInvitesPage() {
       const data = (await response.json().catch(() => ({}))) as CreateInviteResponse;
 
       if (!response.ok || !data.ok) {
-        setInviteError(getInviteErrorMessage(data));
+        setInviteError(getInviteErrorMessage(data, t));
         return;
       }
 
       setInviteEmail("");
+      setEmailSent(Boolean(data.emailSent));
       setInviteMessage(
         data.emailSent
-          ? "Invitasjonen er opprettet og e-post er sendt."
-          : "Invitasjonen er opprettet, men e-post ble ikke sendt automatisk."
+          ? t("invites.createdSent")
+          : t("invites.createdNoEmail")
       );
 
       if (data.token) {
@@ -172,23 +196,23 @@ export default function SchoolInvitesPage() {
 
       setRefreshKey((current) => current + 1);
     } catch (err: unknown) {
-      setInviteError(err instanceof Error ? err.message : "Kunne ikke opprette invitasjon.");
+      setInviteError(err instanceof Error ? err.message : t("invites.createError"));
     } finally {
       setInviteLoading(false);
     }
   }
 
   if (loading) {
-    return <main style={styles.page}>Laster...</main>;
+    return <main style={styles.page}>{t("access.loading")}</main>;
   }
 
   if (!hasSchoolAdminAccess) {
     return (
       <main style={styles.page}>
         <section style={styles.card}>
-          <div style={styles.kicker}>Skole</div>
-          <h1 style={styles.title}>Ingen tilgang</h1>
-          <p style={styles.muted}>Denne siden er bare for aktive skoleadministratorer.</p>
+          <div style={styles.kicker}>{t("access.eyebrow")}</div>
+          <h1 style={styles.title}>{t("access.title")}</h1>
+          <p style={styles.muted}>{t("access.text")}</p>
         </section>
       </main>
     );
@@ -196,86 +220,127 @@ export default function SchoolInvitesPage() {
 
   return (
     <main style={styles.page}>
-      <SchoolNav locale={locale} active="invites" />
+      <SchoolNav locale={locale} active="invites" t={t} />
 
       <section style={styles.header}>
         <div>
-          <div style={styles.kicker}>Skoleadmin</div>
-          <h1 style={styles.title}>Invitasjoner</h1>
-          <p style={styles.muted}>Oversikt over skoleinvitasjoner som er opprettet.</p>
+          <div style={styles.kicker}>{t("invites.eyebrow")}</div>
+          <h1 style={styles.title}>{t("invites.title")}</h1>
+          <p style={styles.muted}>{t("invites.subtitle")}</p>
         </div>
       </section>
 
       <section style={styles.card}>
-        <h2 style={styles.sectionTitle}>Inviter lærer</h2>
+        <h2 style={styles.sectionTitle}>{t("invites.inviteTitle")}</h2>
         <form onSubmit={submitInvite} style={styles.form}>
           <label style={styles.label}>
-            E-post
+            {t("invites.email")}
             <input
               value={inviteEmail}
               onChange={(event) => setInviteEmail(event.target.value)}
               type="email"
-              placeholder="larer@example.com"
+              placeholder={t("invites.emailPlaceholder")}
               style={styles.input}
               disabled={inviteLoading}
             />
           </label>
           <button type="submit" disabled={inviteLoading} style={styles.button}>
-            {inviteLoading ? "Sender..." : "Inviter lærer"}
+            {inviteLoading ? t("invites.sending") : t("invites.send")}
           </button>
         </form>
 
-        {inviteMessage ? <div style={styles.successBox}>{inviteMessage}</div> : null}
+            {inviteMessage ? <div style={styles.successBox}>{inviteMessage}</div> : null}
         {temporaryInviteLink && inviteMessage && !inviteError ? (
           <p style={styles.muted}>
-            {inviteMessage.includes("ikke sendt")
-              ? "Bruk lenken under som midlertidig fallback."
-              : "Lenken vises midlertidig som kontroll/fallback."}
+            {emailSent === false
+              ? t("invites.fallbackText")
+              : t("invites.controlText")}
           </p>
         ) : null}
         {inviteError ? <div style={styles.errorBox}>{inviteError}</div> : null}
 
         {temporaryInviteLink ? (
           <div style={styles.linkBox}>
-            <div style={styles.infoLabel}>Midlertidig invitasjonslenke</div>
-            <p style={styles.muted}>Kopier denne lenken hvis læreren ikke mottar e-post.</p>
+            <div style={styles.infoLabel}>{t("invites.temporaryLink")}</div>
+            <p style={styles.muted}>{t("invites.temporaryLinkText")}</p>
             <input readOnly value={temporaryInviteLink} style={styles.input} />
           </div>
         ) : null}
       </section>
 
       {state === "loading" ? (
-        <section style={styles.card}>Henter invitasjoner...</section>
+        <section style={styles.card}>{t("invites.loading")}</section>
       ) : null}
 
       {state === "error" ? (
         <section style={styles.errorBox}>
-          <strong>Kunne ikke hente invitasjoner</strong>
+          <strong>{t("invites.errorTitle")}</strong>
           <p style={{ margin: "6px 0 0" }}>{error}</p>
         </section>
       ) : null}
 
       {state === "success" ? (
-        <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>Invitasjonsliste</h2>
+        <>
+          <section style={styles.statsGrid}>
+            <StatCard label={t("invites.pending")} value={String(pendingInvites)} helper={t("invites.pendingText")} />
+            <StatCard label={t("invites.accepted")} value={String(acceptedInvites)} helper={t("invites.acceptedText")} />
+            <StatCard label={t("invites.total")} value={String(invites.length)} helper={t("invites.totalText")} />
+          </section>
 
-          {invites.length === 0 ? (
-            <p style={styles.muted}>Ingen invitasjoner er opprettet ennå.</p>
+          <section style={styles.card}>
+          <h2 style={styles.sectionTitle}>{t("invites.listTitle")}</h2>
+
+          <div style={styles.toolbar}>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={t("invites.searchPlaceholder")}
+              style={styles.input}
+            />
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              style={styles.select}
+            >
+              <option value="all">{t("invites.allStatuses")}</option>
+              <option value="pending">{t("invites.pending")}</option>
+              <option value="accepted">{t("invites.accepted")}</option>
+              <option value="expired">{t("invites.expired")}</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("all");
+              }}
+              style={styles.secondaryButton}
+            >
+              {t("invites.reset")}
+            </button>
+            <span style={styles.countText}>
+              {t("invites.showing")} <b>{filteredInvites.length}</b> {t("invites.of")} <b>{invites.length}</b>
+            </span>
+          </div>
+
+          {filteredInvites.length === 0 ? (
+            <p style={styles.muted}>
+              {t("invites.empty")}
+            </p>
           ) : (
             <div style={styles.tableWrap}>
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <TableHeader>E-post</TableHeader>
-                    <TableHeader>Rolle</TableHeader>
-                    <TableHeader>Status</TableHeader>
-                    <TableHeader>Opprettet</TableHeader>
-                    <TableHeader>Utløper</TableHeader>
-                    <TableHeader>Akseptert</TableHeader>
+                    <TableHeader>{t("invites.email")}</TableHeader>
+                    <TableHeader>{t("invites.role")}</TableHeader>
+                    <TableHeader>{t("invites.status")}</TableHeader>
+                    <TableHeader>{t("invites.created")}</TableHeader>
+                    <TableHeader>{t("invites.expires")}</TableHeader>
+                    <TableHeader>{t("invites.acceptedAt")}</TableHeader>
                   </tr>
                 </thead>
                 <tbody>
-                  {invites.map((invite) => (
+                  {filteredInvites.map((invite) => (
                     <tr key={invite.id ?? invite.email ?? "invite"}>
                       <TableCell>{invite.email || "-"}</TableCell>
                       <TableCell>{invite.role || "-"}</TableCell>
@@ -292,6 +357,7 @@ export default function SchoolInvitesPage() {
             </div>
           )}
         </section>
+        </>
       ) : null}
     </main>
   );
@@ -300,20 +366,22 @@ export default function SchoolInvitesPage() {
 function SchoolNav({
   locale,
   active,
+  t,
 }: {
   locale: string;
   active: "overview" | "teachers" | "invites";
+  t: ReturnType<typeof useTranslations>;
 }) {
   return (
     <nav style={styles.nav}>
       <SchoolNavLink href={`/${locale}/school`} active={active === "overview"}>
-        Oversikt
+        {t("nav.overview")}
       </SchoolNavLink>
       <SchoolNavLink href={`/${locale}/school/teachers`} active={active === "teachers"}>
-        Lærere
+        {t("nav.teachers")}
       </SchoolNavLink>
       <SchoolNavLink href={`/${locale}/school/invites`} active={active === "invites"}>
-        Invitasjoner
+        {t("nav.invites")}
       </SchoolNavLink>
     </nav>
   );
@@ -335,18 +403,18 @@ function SchoolNavLink({
   );
 }
 
-function getInviteErrorMessage(data: CreateInviteResponse): string {
+function getInviteErrorMessage(data: CreateInviteResponse, t: ReturnType<typeof useTranslations>): string {
   if (data.error) return data.error;
 
   switch (data.reason) {
     case "school_not_found":
-      return "Skolen finnes ikke.";
+      return t("invites.schoolNotFound");
     case "school_not_active":
-      return "Skolen er ikke aktiv.";
+      return t("invites.schoolNotActive");
     case "pending_invite_exists":
-      return "Det finnes allerede en ventende invitasjon for denne e-postadressen.";
+      return t("invites.pendingInviteExists");
     default:
-      return "Kunne ikke opprette invitasjon.";
+      return t("invites.createError");
   }
 }
 
@@ -407,6 +475,24 @@ function StatusPill({ status }: { status: string }) {
   return <span style={style}>{status}</span>;
 }
 
+function StatCard({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+}) {
+  return (
+    <section style={styles.statCard}>
+      <div style={styles.statLabel}>{label}</div>
+      <div style={styles.statValue}>{value}</div>
+      <p style={styles.statHelper}>{helper}</p>
+    </section>
+  );
+}
+
 const styles: Record<string, React.CSSProperties> = {
   page: {
     display: "grid",
@@ -452,6 +538,34 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(0,0,0,0.08)",
     background: "white",
   },
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: 12,
+  },
+  statCard: {
+    padding: 16,
+    borderRadius: 18,
+    border: "1px solid rgba(0,0,0,0.08)",
+    background: "white",
+  },
+  statLabel: {
+    color: "#64748b",
+    fontSize: 13,
+    fontWeight: 800,
+  },
+  statValue: {
+    marginTop: 8,
+    color: "#0f172a",
+    fontSize: 28,
+    fontWeight: 900,
+  },
+  statHelper: {
+    margin: "6px 0 0",
+    color: "#64748b",
+    fontSize: 13,
+    lineHeight: 1.4,
+  },
   errorBox: {
     padding: 16,
     borderRadius: 14,
@@ -481,6 +595,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 20,
     fontWeight: 800,
   },
+  toolbar: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 14,
+  },
   form: {
     display: "grid",
     gridTemplateColumns: "minmax(220px, 1fr) auto",
@@ -502,6 +623,29 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     background: "#ffffff",
     color: "#0f172a",
+  },
+  select: {
+    border: "1px solid #cbd5e1",
+    borderRadius: 10,
+    padding: "10px 12px",
+    fontSize: 14,
+    background: "#ffffff",
+    color: "#0f172a",
+    fontWeight: 700,
+  },
+  secondaryButton: {
+    border: "1px solid #cbd5e1",
+    borderRadius: 10,
+    padding: "10px 12px",
+    background: "#ffffff",
+    color: "#0f172a",
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 800,
+  },
+  countText: {
+    color: "#64748b",
+    fontSize: 13,
   },
   button: {
     border: "1px solid #0f766e",

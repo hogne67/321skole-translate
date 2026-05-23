@@ -20,6 +20,18 @@ type AnalyticsEvent = {
     };
 };
 
+function eventTimeMs(event: AnalyticsEvent): number | null {
+    return event.createdAt?.seconds ? event.createdAt.seconds * 1000 : null;
+}
+
+function dayKey(ms: number): string {
+    return new Date(ms).toISOString().slice(0, 10);
+}
+
+function formatDay(key: string): string {
+    return new Date(`${key}T12:00:00`).toLocaleDateString();
+}
+
 export default function AdminAnalyticsPage() {
     const [events, setEvents] = useState<AnalyticsEvent[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,10 +72,61 @@ export default function AdminAnalyticsPage() {
                 : now - 7 * 24 * 60 * 60 * 1000;
 
         return events.filter((e) => {
-            if (!e.createdAt?.seconds) return false;
-            return e.createdAt.seconds * 1000 >= cutoff;
+            const ms = eventTimeMs(e);
+            return typeof ms === "number" && ms >= cutoff;
         });
     }, [events, range]);
+
+    const lastSevenDayEvents = useMemo(() => {
+        const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        return events.filter((event) => {
+            const ms = eventTimeMs(event);
+            return typeof ms === "number" && ms >= cutoff;
+        });
+    }, [events]);
+
+    const dailyHits = useMemo(() => {
+        const map = new Map<string, number>();
+
+        for (const event of filteredEvents) {
+            const ms = eventTimeMs(event);
+            if (typeof ms !== "number") continue;
+            const key = dayKey(ms);
+            map.set(key, (map.get(key) ?? 0) + 1);
+        }
+
+        return Array.from(map.entries())
+            .map(([day, count]) => ({ day, count }))
+            .sort((a, b) => b.day.localeCompare(a.day));
+    }, [filteredEvents]);
+
+    const analyticsSummary = useMemo(() => {
+        const validEvents = events
+            .map((event) => eventTimeMs(event))
+            .filter((ms): ms is number => typeof ms === "number")
+            .sort((a, b) => a - b);
+        const firstMs = validEvents[0] ?? Date.now();
+        const totalDays = Math.max(
+            1,
+            Math.ceil((Date.now() - firstMs) / (24 * 60 * 60 * 1000))
+        );
+        const selectedDays =
+            range === "24h"
+                ? 1
+                : range === "7d"
+                    ? 7
+                    : Math.max(1, dailyHits.length || totalDays);
+
+        return {
+            selectedTotal: filteredEvents.length,
+            selectedAveragePerDay: filteredEvents.length / selectedDays,
+            lastSevenTotal: lastSevenDayEvents.length,
+            lastSevenAveragePerDay: lastSevenDayEvents.length / 7,
+            allLoadedTotal: events.length,
+            allLoadedAveragePerDay: events.length / totalDays,
+            totalDays,
+        };
+    }, [dailyHits.length, events, filteredEvents.length, lastSevenDayEvents.length, range]);
 
     const counts = useMemo(() => {
         return filteredEvents.reduce<Record<string, number>>((acc, e) => {
@@ -77,7 +140,7 @@ export default function AdminAnalyticsPage() {
         const get = (name: string) => counts[name] || 0;
 
         return [
-            { name: "Besøk", value: get("page_view") },
+            { name: "Visits", value: get("page_view") },
             { name: "Login", value: get("login") },
             { name: "Generate", value: get("ai_generate_text") },
             { name: "Create", value: get("lesson_created") },
@@ -139,9 +202,9 @@ export default function AdminAnalyticsPage() {
                 <h1>Analytics</h1>
                 <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                     {[
-                        { key: "24h", label: "Siste 24 timer" },
-                        { key: "7d", label: "Siste 7 dager" },
-                        { key: "all", label: "Alt" },
+                        { key: "24h", label: "Last 24 hours" },
+                        { key: "7d", label: "Last 7 days" },
+                        { key: "all", label: "All" },
                     ].map((item) => (
                         <button
                             key={item.key}
@@ -161,6 +224,91 @@ export default function AdminAnalyticsPage() {
                         </button>
                     ))}
                 </div>
+
+                <section
+                    style={{
+                        marginTop: 20,
+                        padding: 16,
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 16,
+                        background: "white",
+                    }}
+                >
+                    <h2 style={{ marginBottom: 12 }}>Traffic summary</h2>
+                    <div
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                            gap: 12,
+                        }}
+                    >
+                        <SummaryCard
+                            label="Selected hits"
+                            value={String(analyticsSummary.selectedTotal)}
+                            helper={`${formatAverage(analyticsSummary.selectedAveragePerDay)} avg/day`}
+                        />
+                        <SummaryCard
+                            label="Last 7 days"
+                            value={String(analyticsSummary.lastSevenTotal)}
+                            helper={`${formatAverage(analyticsSummary.lastSevenAveragePerDay)} avg/day`}
+                        />
+                        <SummaryCard
+                            label="All loaded"
+                            value={String(analyticsSummary.allLoadedTotal)}
+                            helper={`${formatAverage(analyticsSummary.allLoadedAveragePerDay)} avg/day over ${analyticsSummary.totalDays} days`}
+                        />
+                    </div>
+                </section>
+
+                <section
+                    style={{
+                        marginTop: 20,
+                        padding: 16,
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 16,
+                        background: "white",
+                    }}
+                >
+                    <h2 style={{ marginBottom: 12 }}>Hits per day</h2>
+                    {dailyHits.length === 0 ? (
+                        <p style={{ color: "#64748b" }}>No events in this range.</p>
+                    ) : (
+                        <div style={{ display: "grid", gap: 8 }}>
+                            {dailyHits.slice(0, 14).map((item) => (
+                                <div key={item.day}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                                        <strong>{formatDay(item.day)}</strong>
+                                        <span>{item.count}</span>
+                                    </div>
+                                    <div
+                                        style={{
+                                            height: 7,
+                                            background: "#e2e8f0",
+                                            borderRadius: 999,
+                                            overflow: "hidden",
+                                            marginTop: 4,
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                width: `${Math.max(
+                                                    3,
+                                                    Math.round(
+                                                        (item.count /
+                                                            Math.max(...dailyHits.map((day) => day.count), 1)) *
+                                                            100
+                                                    )
+                                                )}%`,
+                                                height: "100%",
+                                                background: "#2563eb",
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </section>
 
                 <section
                     style={{
@@ -213,7 +361,7 @@ export default function AdminAnalyticsPage() {
                     </div>
                 </section>
 
-                {loading ? <p>Laster...</p> : null}
+                {loading ? <p>Loading...</p> : null}
 
                 <section
                     style={{
@@ -277,7 +425,7 @@ export default function AdminAnalyticsPage() {
                     </div>
                 </section>
 
-                <h2 style={{ marginTop: 32 }}>Siste hendelser</h2>
+                <h2 style={{ marginTop: 32 }}>Latest events</h2>
 
                 <div style={{ overflowX: "auto" }}>
                     <table
@@ -290,13 +438,13 @@ export default function AdminAnalyticsPage() {
                     >
                         <thead>
                             <tr>
-                                <th style={th}>Tid</th>
+                                <th style={th}>Time</th>
                                 <th style={th}>Event</th>
                                 <th style={th}>Path</th>
                                 <th style={th}>Type</th>
-                                <th style={th}>Metode</th>
-                                <th style={th}>Nivå</th>
-                                <th style={th}>Språk</th>
+                                <th style={th}>Method</th>
+                                <th style={th}>Level</th>
+                                <th style={th}>Language</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -322,6 +470,35 @@ export default function AdminAnalyticsPage() {
         </AuthGate>
     );
 
+}
+
+function formatAverage(value: number): string {
+    return Number.isFinite(value) ? value.toFixed(1) : "-";
+}
+
+function SummaryCard({
+    label,
+    value,
+    helper,
+}: {
+    label: string;
+    value: string;
+    helper: string;
+}) {
+    return (
+        <div
+            style={{
+                padding: 16,
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                background: "#f8fafc",
+            }}
+        >
+            <div style={{ fontSize: 13, color: "#64748b", fontWeight: 800 }}>{label}</div>
+            <div style={{ fontSize: 30, fontWeight: 900, marginTop: 6 }}>{value}</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{helper}</div>
+        </div>
+    );
 }
 
 

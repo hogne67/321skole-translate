@@ -850,7 +850,7 @@ export default function ContentClient() {
         }
       }
 
-      url = `${getOrigin()}/${locale}/share/lesson/${pid}`;
+      url = `${getOrigin()}/${locale}/student/lesson/${pid}`;
     }
 
     await openShareModal({
@@ -1319,7 +1319,7 @@ export default function ContentClient() {
               onClick: () =>
                 openShareModal({
                   title: titleForCard(ss),
-                  url: `${getOrigin()}/${locale}/share/lesson/${publishedShareId}`,
+                  url: `${getOrigin()}/${locale}/student/lesson/${publishedShareId}`,
                   text: getSharePresetText("example1"),
                   kind: "lesson",
                   tone: "professional",

@@ -386,7 +386,7 @@ export default function AdminUserDetailPage() {
         updatedAt: serverTimestamp(),
       });
 
-      setMsg("Bruker oppdatert ✅");
+      setMsg("User updated.");
       await load();
     } catch (e: unknown) {
       setErr(errorMessage(e));
@@ -404,13 +404,13 @@ export default function AdminUserDetailPage() {
     }
 
     if (tempPassword.length < 8) {
-      setErr("Passordet må være minst 8 tegn.");
+      setErr("Password must be at least 8 characters.");
       return;
     }
 
     const user = auth.currentUser;
     if (!user) {
-      setErr("Du må være innlogget.");
+      setErr("You must be signed in.");
       return;
     }
 
@@ -442,7 +442,7 @@ export default function AdminUserDetailPage() {
       }
 
       setTempPassword("");
-      setMsg("Midlertidig passord er satt ✅");
+      setMsg("Temporary password has been set.");
     } catch (e: unknown) {
       setErr(errorMessage(e));
     } finally {
@@ -481,7 +481,7 @@ export default function AdminUserDetailPage() {
               User detail
             </h2>
             <p style={{ margin: "8px 0 0", opacity: 0.8 }}>
-              Brukerprofil, rolle, admin-nivå og grunnleggende kontodata.
+              User profile, role, admin level, and basic account data.
             </p>
           </div>
 
@@ -499,7 +499,7 @@ export default function AdminUserDetailPage() {
                 fontWeight: 800,
               }}
             >
-              {loading ? "Laster…" : "Oppdater"}
+              {loading ? "Loading..." : "Refresh"}
             </button>
 
             <Link
@@ -514,7 +514,7 @@ export default function AdminUserDetailPage() {
                 fontWeight: 800,
               }}
             >
-              Tilbake til users
+              Back to users
             </Link>
           </div>
         </div>
@@ -529,7 +529,7 @@ export default function AdminUserDetailPage() {
             background: "rgba(239,68,68,0.05)",
           }}
         >
-          <b>Feil:</b> {err}
+          <b>Error:</b> {err}
         </section>
       ) : null}
 
@@ -555,7 +555,7 @@ export default function AdminUserDetailPage() {
             background: "white",
           }}
         >
-          Laster bruker…
+          Loading user...
         </section>
       ) : null}
 
@@ -620,7 +620,7 @@ export default function AdminUserDetailPage() {
             </div>
           </section>
 
-          <Section title="Rediger bruker">
+          <Section title="Edit user">
             <div
               style={{
                 display: "grid",
@@ -730,7 +730,7 @@ export default function AdminUserDetailPage() {
                     disabled={!canWrite || saving || passwordSaving}
                   />
                   <span>
-                    {editDisabled ? "Bruker er deaktivert" : "Bruker er aktiv"}
+                    {editDisabled ? "User is disabled" : "User is active"}
                   </span>
                 </label>
               </div>
@@ -761,21 +761,21 @@ export default function AdminUserDetailPage() {
                   fontWeight: 800,
                 }}
               >
-                {saving ? "Lagrer…" : "Lagre endringer"}
+                {saving ? "Saving..." : "Save changes"}
               </button>
 
               <div style={{ fontSize: 13, opacity: 0.75 }}>
                 {canWrite
-                  ? "Bare superadmin kan lagre endringer."
-                  : "Du har lesetilgang, men ikke skrivetilgang."}
+                  ? "Only superadmins can save changes."
+                  : "You have read access, but not write access."}
               </div>
             </div>
           </Section>
 
-          <Section title="Midlertidig passord">
+          <Section title="Temporary password">
             <p style={{ marginTop: 0, opacity: 0.75 }}>
-              Bruk dette bare når en eksisterende bruker må reddes. Passord
-              lagres ikke i Firestore, men settes direkte i Firebase Auth.
+              Use this only when an existing user needs account recovery. Passwords
+              are not stored in Firestore; they are set directly in Firebase Auth.
             </p>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -783,7 +783,7 @@ export default function AdminUserDetailPage() {
                 value={tempPassword}
                 onChange={(e) => setTempPassword(e.target.value)}
                 type="text"
-                placeholder="Nytt midlertidig passord"
+                placeholder="New temporary password"
                 disabled={!canWrite || passwordSaving}
                 style={{
                   padding: "10px 12px",
@@ -817,28 +817,28 @@ export default function AdminUserDetailPage() {
                 }}
               >
                 {passwordSaving
-                  ? "Setter passord…"
-                  : "Sett midlertidig passord"}
+                  ? "Setting password..."
+                  : "Set temporary password"}
               </button>
             </div>
           </Section>
 
-          <Section title="Konto">
+          <Section title="Account">
             <Row label="Role" value={data.role || "—"} />
             <Row label="Admin level" value={data.adminLevel || "—"} />
             <Row label="Locale" value={data.locale || "—"} />
             <Row label="Mode" value={data.mode || "—"} />
             <Row
               label="Onboarding complete"
-              value={data.onboardingComplete ? "Ja" : "Nei"}
+              value={data.onboardingComplete ? "Yes" : "No"}
             />
-            <Row label="Disabled" value={data.disabled ? "Ja" : "Nei"} />
+            <Row label="Disabled" value={data.disabled ? "Yes" : "No"} />
             <Row label="Created" value={formatDate(data.createdAt)} />
             <Row label="Updated" value={formatDate(data.updatedAt)} />
             <Row label="Last login" value={formatDate(data.lastLoginAt)} />
           </Section>
 
-          <Section title="Organisasjon">
+          <Section title="Organization">
             <Row label="Country" value={data.org?.country || "—"} />
             <Row
               label="Municipality"

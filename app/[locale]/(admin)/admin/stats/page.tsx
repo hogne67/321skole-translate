@@ -203,7 +203,7 @@ export default function AdminStatsPage() {
             <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>ADMIN</div>
             <h2 style={{ margin: "4px 0 0", fontSize: 24 }}>Stats</h2>
             <p style={{ margin: "8px 0 0", opacity: 0.8 }}>
-              Plattformoversikt for brukere, innhold og aktivitet.
+              Platform overview for users, content, and activity.
             </p>
           </div>
 
@@ -219,7 +219,7 @@ export default function AdminStatsPage() {
               fontWeight: 800,
             }}
           >
-            {loading ? "Laster…" : "Oppdater"}
+            {loading ? "Loading..." : "Refresh"}
           </button>
         </div>
       </section>
@@ -233,9 +233,9 @@ export default function AdminStatsPage() {
             background: "rgba(239,68,68,0.05)",
           }}
         >
-          <b>Feil:</b> {err}
+          <b>Error:</b> {err}
           <div style={{ marginTop: 8, opacity: 0.8 }}>
-            Hvis dette gjelder pending moderation eller trash, kan det mangle Firestore-indekser.
+            If this is related to pending moderation or trash, Firestore indexes may be missing.
           </div>
         </section>
       ) : null}
@@ -247,14 +247,14 @@ export default function AdminStatsPage() {
           gap: 12,
         }}
       >
-        <StatCard title="Brukere totalt" value={loading ? "…" : stats.usersTotal} />
-        <StatCard title="Studenter" value={loading ? "…" : stats.students} />
-        <StatCard title="Lærere" value={loading ? "…" : stats.teachers} />
+        <StatCard title="Total users" value={loading ? "…" : stats.usersTotal} />
+        <StatCard title="Students" value={loading ? "…" : stats.students} />
+        <StatCard title="Teachers" value={loading ? "…" : stats.teachers} />
         <StatCard title="Admins" value={loading ? "…" : stats.admins} />
         <StatCard title="Lessons" value={loading ? "…" : stats.lessonsTotal} />
         <StatCard title="Submissions" value={loading ? "…" : stats.submissionsTotal} />
         <StatCard title="Spaces" value={loading ? "…" : stats.spacesTotal} />
-        <StatCard title="Til moderering" value={loading ? "…" : stats.pendingModeration} />
+        <StatCard title="To moderate" value={loading ? "…" : stats.pendingModeration} />
         <StatCard title="Trash" value={loading ? "…" : stats.trashItems} />
       </section>
 
@@ -265,17 +265,17 @@ export default function AdminStatsPage() {
           gap: 12,
         }}
       >
-        <Section title="Brukerfordeling">
+        <Section title="User distribution">
           <Row label="Students" value={loading ? "…" : stats.students} />
           <Row label="Teachers" value={loading ? "…" : stats.teachers} />
           <Row label="Admins" value={loading ? "…" : stats.admins} />
           <Row label="Parents" value={loading ? "…" : stats.parents} />
           <Row label="Creators" value={loading ? "…" : stats.creators} />
-          <Row label="Totalt" value={loading ? "…" : stats.usersTotal} />
+          <Row label="Total" value={loading ? "…" : stats.usersTotal} />
         </Section>
 
-        <Section title="Innhold og drift">
-          <Row label="Lessons totalt" value={loading ? "…" : stats.lessonsTotal} />
+        <Section title="Content and operations">
+          <Row label="Total lessons" value={loading ? "…" : stats.lessonsTotal} />
           <Row label="Pending moderation" value={loading ? "…" : stats.pendingModeration} />
           <Row label="Trash items" value={loading ? "…" : stats.trashItems} />
           <Row label="Spaces" value={loading ? "…" : stats.spacesTotal} />

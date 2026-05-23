@@ -255,7 +255,7 @@ export default function AdminUsersPage() {
             <div style={{ fontSize: 12, opacity: 0.65, fontWeight: 800 }}>ADMIN</div>
             <h2 style={{ margin: "4px 0 0", fontSize: 24 }}>Users</h2>
             <p style={{ margin: "8px 0 0", opacity: 0.8 }}>
-              Oversikt over brukere, roller og grunnleggende kontoinformasjon.
+              Overview of users, roles, and basic account information.
             </p>
           </div>
 
@@ -271,7 +271,7 @@ export default function AdminUsersPage() {
               fontWeight: 800,
             }}
           >
-            {loading ? "Laster…" : "Oppdater"}
+            {loading ? "Loading..." : "Refresh"}
           </button>
         </div>
       </section>
@@ -295,7 +295,7 @@ export default function AdminUsersPage() {
           <input
             value={qText}
             onChange={(e) => setQText(e.target.value)}
-            placeholder="Søk navn, e-post, uid, rolle…"
+            placeholder="Search name, email, uid, role..."
             style={{
               padding: "10px 12px",
               borderRadius: 10,
@@ -315,7 +315,7 @@ export default function AdminUsersPage() {
               background: "white",
             }}
           >
-            <option value="">Alle roller</option>
+            <option value="">All roles</option>
             <option value="student">student</option>
             <option value="teacher">teacher</option>
             <option value="admin">admin</option>
@@ -325,7 +325,7 @@ export default function AdminUsersPage() {
         </div>
 
         <div style={{ marginTop: 12, fontSize: 13, opacity: 0.75 }}>
-          Viser <b>{filtered.length}</b> av <b>{rows.length}</b> brukere
+          Showing <b>{filtered.length}</b> of <b>{rows.length}</b> users
         </div>
       </section>
 
@@ -338,12 +338,12 @@ export default function AdminUsersPage() {
             background: "rgba(239,68,68,0.05)",
           }}
         >
-          <b>Feil:</b> {err}
+          <b>Error:</b> {err}
         </section>
       ) : null}
 
       <section style={{ display: "grid", gap: 12 }}>
-        {loading ? <div style={{ opacity: 0.75 }}>Laster brukere…</div> : null}
+        {loading ? <div style={{ opacity: 0.75 }}>Loading users...</div> : null}
 
         {!loading && filtered.length === 0 ? (
           <div
@@ -354,7 +354,7 @@ export default function AdminUsersPage() {
               background: "white",
             }}
           >
-            Ingen brukere matcher søket eller filteret.
+            No users match the search or filter.
           </div>
         ) : null}
 
@@ -414,7 +414,7 @@ export default function AdminUsersPage() {
                       fontWeight: 700,
                     }}
                   >
-                    Åpne bruker
+                    Open user
                   </Link>
                 </div>
               </div>

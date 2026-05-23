@@ -191,7 +191,7 @@ function getPromptText(lang: Lang) {
       "Skriv kort, støttende og konkret tilbakemelding direkte til eleven med 'du'. Bruk bare rene overskrifter som vanlig tekst. Ikke bruk markdown, ###, punktlister eller nummererte overskrifter. Ikke skriv en fullstendig korrigert versjon av hele svaret. Ikke opptre som en offisiell sensor og ikke gi en endelig CEFR-dom. Bruk oppgitt CEFR-nivå bare som en bakgrunn for forventninger.",
 
     autoRule:
-      "Hvis autoresultat finnes, bruk det aktivt. Oppsummer hva eleven ser ut til å forstå ut fra flervalg, true/false, hulloppgaver og andre automatisk rettede oppgaver. Knytt dette forsiktig til leseforståelse, men uten å overtolke. Automatiske resultater skal regnes som et sterkt signal om leseforståelse, men ikke hele bildet.",
+      "Hvis autoresultat finnes, bruk det aktivt. Oppsummer hva eleven ser ut til å forstå ut fra flervalg, sant/usant, hulloppgaver og andre automatisk rettede oppgaver. Knytt dette forsiktig til leseforståelse, men uten å overtolke. Automatiske resultater skal regnes som et sterkt signal om leseforståelse, men ikke hele bildet.",
 
     taskClassificationRule:
       "Før du vurderer svaret, må du identifisere hvilken type oppgave dette er. Bruk internt én av disse kategoriene: FAKTA, FORKLARING, REFLEKSJON eller PROSEDYRE. Tilpass vurderingen etter oppgavetype.",

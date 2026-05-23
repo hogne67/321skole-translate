@@ -1,13 +1,19 @@
+import Link from "next/link";
+
 type PartnerDashboardCardProps = {
   title: string;
   text: string;
   extraText: string;
+  actionHref?: string;
+  actionLabel?: string;
 };
 
 export function PartnerDashboardCard({
   title,
   text,
   extraText,
+  actionHref,
+  actionLabel,
 }: PartnerDashboardCardProps) {
   return (
     <section
@@ -72,6 +78,27 @@ export function PartnerDashboardCard({
         >
           {extraText}
         </p>
+
+        {actionHref && actionLabel ? (
+          <Link
+            href={actionHref}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              marginTop: 12,
+              borderRadius: 8,
+              border: "1px solid rgba(15,118,110,0.28)",
+              background: "#0f766e",
+              color: "#ffffff",
+              padding: "8px 11px",
+              fontSize: 14,
+              fontWeight: 800,
+              textDecoration: "none",
+            }}
+          >
+            {actionLabel}
+          </Link>
+        ) : null}
       </div>
     </section>
   );

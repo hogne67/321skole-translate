@@ -337,7 +337,7 @@ export default function LessonsLandingPage() {
   }
 
   async function openShareModal(lesson: PublishedLesson) {
-    const url = `${getOrigin()}/${locale}/share/lesson/${lesson.id}`;
+    const url = `${getOrigin()}/${locale}/student/lesson/${lesson.id}`;
     const defaultPreset: SharePreset = "example1";
 
     setCopied(false);

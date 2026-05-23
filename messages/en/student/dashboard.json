@@ -54,7 +54,8 @@
     "partnerCard": {
       "title": "You are a 321school Partner",
       "text": "As a partner, you have access equivalent to the Plus plan while your partnership remains active.",
-      "extraText": "Thank you for helping test, develop and share 321school."
+      "extraText": "Thank you for helping test, develop and share 321school.",
+      "action": "Open partner page"
     },
     "billing": {
       "badge": "Plan and billing",
