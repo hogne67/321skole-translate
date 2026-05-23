@@ -27,6 +27,7 @@
       "searchPlaceholder": "Search language…",
       "translateText": "Translate text",
       "translateTasks": "Translate tasks",
+      "compactAction": "Translate",
       "translating": "Translating…",
       "reset": "Reset",
       "translatedLabel": "Translation",

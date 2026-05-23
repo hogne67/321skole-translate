@@ -1611,8 +1611,8 @@ export default function StudentLessonPage() {
         maxWidth: 980,
         margin: "0 auto",
         paddingTop: 12,
-        paddingLeft: 8,
-        paddingRight: 8,
+        paddingLeft: "clamp(3px, 1.5vw, 8px)",
+        paddingRight: "clamp(3px, 1.5vw, 8px)",
         paddingBottom: 120,
         boxSizing: "border-box",
       }}
@@ -1750,16 +1750,17 @@ export default function StudentLessonPage() {
                 options={LANGUAGE_OPTIONS}
                 onChange={setTargetLang}
                 placeholder={t("translate.searchPlaceholder")}
-                buttonWidth={180}
+                buttonWidth={132}
               />
 
               <button
                 type="button"
                 onClick={onTranslateText}
                 disabled={translating === "text" || !(displayedSourceTextSafe || "").trim()}
-                style={{ ...blueBtnStyle, opacity: translating === "text" ? 0.6 : 1, fontWeight: 600 }}
+                style={{ ...compactBlueBtnStyle, opacity: translating === "text" ? 0.6 : 1 }}
+                title={t("translate.translateText")}
               >
-                {translating === "text" ? t("translate.translating") : t("translate.translateText")}
+                {translating === "text" ? t("translate.translating") : t("translate.compactAction")}
               </button>
             </div>
           </div>
@@ -1864,16 +1865,17 @@ export default function StudentLessonPage() {
                 options={LANGUAGE_OPTIONS}
                 onChange={setTargetLang}
                 placeholder={t("translate.searchPlaceholder")}
-                buttonWidth={180}
+                buttonWidth={132}
               />
 
               <button
                 type="button"
                 onClick={onTranslateTasks}
                 disabled={translating === "tasks" || tasksOriginal.length === 0}
-                style={{ ...blueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1, fontWeight: 600 }}
+                style={{ ...compactBlueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
+                title={t("translate.translateTasks")}
               >
-                {translating === "tasks" ? t("translate.translating") : t("translate.translateTasks")}
+                {translating === "tasks" ? t("translate.translating") : t("translate.compactAction")}
               </button>
             </div>
 
@@ -2324,19 +2326,19 @@ export default function StudentLessonPage() {
               options={LANGUAGE_OPTIONS}
               onChange={setTargetLang}
               placeholder={t("translate.searchPlaceholder")}
-              buttonWidth={180}
+              buttonWidth={132}
             />
 
             <button
               onClick={onTranslateFeedback}
               disabled={feedbackTranslating || !(feedback || "").trim()}
               style={{
-                ...blueBtnStyle,
-                fontWeight: 700,
+                ...compactBlueBtnStyle,
                 opacity: feedbackTranslating || !(feedback || "").trim() ? 0.6 : 1,
               }}
+              title={t("feedback.translateFeedback")}
             >
-              {feedbackTranslating ? t("feedback.translating") : t("feedback.translateFeedback")}
+              {feedbackTranslating ? t("feedback.translating") : t("translate.compactAction")}
             </button>
           </div>
 
@@ -2568,8 +2570,8 @@ const sectionHeadingStyle: React.CSSProperties = {
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid rgba(0,0,0,0.08)",
-  borderRadius: 18,
-  padding: 14,
+  borderRadius: 16,
+  padding: "clamp(10px, 2.8vw, 14px)",
   background: "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.92))",
   boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
 };
@@ -2584,12 +2586,13 @@ const textToolsStyle: React.CSSProperties = {
 
 const translateToolStyle: React.CSSProperties = {
   display: "flex",
-  gap: 6,
-  flexWrap: "wrap",
+  gap: 4,
+  flexWrap: "nowrap",
   alignItems: "flex-start",
-  padding: 4,
+  maxWidth: "100%",
+  padding: 3,
   border: "1px solid rgba(37,99,235,0.16)",
-  borderRadius: 14,
+  borderRadius: 13,
   background: "rgba(255,255,255,0.72)",
 };
 
@@ -2661,6 +2664,14 @@ const blueBtnStyle: React.CSSProperties = {
   border: "1px solid rgba(37,99,235,0.38)",
   background: "rgba(59,130,246,0.12)",
   color: "#1d4ed8",
+};
+
+const compactBlueBtnStyle: React.CSSProperties = {
+  ...blueBtnStyle,
+  padding: "9px 10px",
+  fontSize: 13,
+  fontWeight: 700,
+  whiteSpace: "nowrap",
 };
 
 const blueBtnActiveStyle: React.CSSProperties = {

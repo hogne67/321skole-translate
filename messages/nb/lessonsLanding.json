@@ -27,6 +27,7 @@
       "searchPlaceholder": "Søk etter språk…",
       "translateText": "Oversett tekst",
       "translateTasks": "Oversett oppgaver",
+      "compactAction": "Oversett",
       "translating": "Oversetter…",
       "reset": "Nullstill",
       "translatedLabel": "Oversettelse",
