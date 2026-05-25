@@ -7,7 +7,8 @@
     },
     "nav": {
       "backToDashboard": "Tilbake",
-      "backToPreview": "Tilbake til forhåndsvisning"
+      "backToPreview": "Tilbake til forhåndsvisning",
+      "backToLibrary": "Tilbake til biblioteket"
     },
     "anon": {
       "savedLocally": "Svarene dine er lagret lokalt på denne enheten."

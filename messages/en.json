@@ -1271,7 +1271,8 @@
     "fallback": { "lessonTitle": "Lesson" },
     "nav": {
       "backToDashboard": "Back to My content",
-      "backToPreview": "Back to preview"
+      "backToPreview": "Back to preview",
+      "backToLibrary": "Back to library"
     },
     "errors": {
       "missingLessonId": "Missing lessonId in URL.",

@@ -1714,8 +1714,12 @@ export default function StudentLessonPage() {
 
   const backHref =
     lesson.sourceCollection === "published_lessons"
-      ? `/${locale}/lesson/${lessonId}`
+      ? `/${locale}/321lessons`
       : `/${locale}/content`;
+  const backLabel =
+    lesson.sourceCollection === "published_lessons"
+      ? t("nav.backToLibrary")
+      : t("nav.backToDashboard");
 
   return (
     <main
@@ -2589,7 +2593,7 @@ export default function StudentLessonPage() {
 
       <section style={{ marginTop: 18 }}>
         <Link href={backHref} style={{ textDecoration: "none" }}>
-          ← {t("nav.backToPreview")}
+          ← {backLabel}
         </Link>
       </section>
 

@@ -1198,7 +1198,7 @@ export default function LessonsLandingPage() {
             const author = (l.authorName || l.producerName || "").trim();
             const ratingAverage = l.ratingAverage ?? 0;
             const ratingCount = l.ratingCount ?? 0;
-            const lessonHref = `/${locale}/lesson/${l.id}`;
+            const lessonHref = `/${locale}/student/lesson/${l.id}`;
 
             return (
               <div

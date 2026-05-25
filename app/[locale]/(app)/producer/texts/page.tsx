@@ -424,8 +424,7 @@ export default function ProducerTextsPage() {
     const origin = getOrigin();
     const pid = l.activePublishedId || l.id;
 
-    // ✅ locale-aware share link
-    const url = `${origin}/${locale}/lesson/${pid}`;
+    const url = `${origin}/${locale}/student/lesson/${pid}`;
 
     setShareUrl(url);
     setShareOpen(true);
@@ -750,7 +749,7 @@ export default function ProducerTextsPage() {
             </div>
 
             <div style={{ padding: 14, borderTop: "1px solid rgba(0,0,0,0.08)", opacity: 0.7, fontSize: 12 }}>
-              Share URL points to: <code>/{locale}/lesson/{shareLesson.activePublishedId || shareLesson.id}</code>
+              Share URL points to: <code>/{locale}/student/lesson/{shareLesson.activePublishedId || shareLesson.id}</code>
             </div>
           </div>
         </div>

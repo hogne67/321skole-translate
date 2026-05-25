@@ -1271,7 +1271,8 @@
     "fallback": { "lessonTitle": "Oppgave" },
     "nav": {
       "backToDashboard": "Tilbake til Mitt innhold",
-      "backToPreview": "Tilbake til forhåndsvisning"
+      "backToPreview": "Tilbake til forhåndsvisning",
+      "backToLibrary": "Tilbake til biblioteket"
     },
     "errors": {
       "missingLessonId": "Mangler lessonId i URL.",

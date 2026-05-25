@@ -361,13 +361,13 @@ export default function ContentClient() {
 
   const mySpaces = useMemo(() => items.filter((x) => x.type === "space"), [items]);
 
-  function safeMsg(key: string, fallback: string, values?: Record<string, unknown>) {
+  const safeMsg = useCallback((key: string, fallback: string, values?: Record<string, unknown>) => {
     try {
       return tLoose(key, values);
     } catch {
       return fallback;
     }
-  }
+  }, [tLoose]);
 
   function getSharePresetText(preset: SharePreset) {
     return safeMsg(`share.examples.${preset}.text`, "");
@@ -461,7 +461,7 @@ export default function ContentClient() {
     return t(`math.subtypes.${subtype}`);
   }
 
-  function cardTypeLabel(it: ContentItem): string {
+  const cardTypeLabel = useCallback((it: ContentItem): string => {
     if (it.type === "space") return safeMsg("cardTypes.space", "Space");
 
     if (it.type === "submission") {
@@ -478,7 +478,7 @@ export default function ContentClient() {
     }
 
     return safeMsg("cardTypes.content", "Innhold");
-  }
+  }, [safeMsg]);
 
   function parentChildProgressLabel(status: string | null) {
     const s = String(status ?? "").trim().toLowerCase();
@@ -1651,12 +1651,14 @@ export default function ContentClient() {
         const meta = (it.meta || []).join(" ").toLowerCase();
         const st = (it.status || "").toLowerCase();
         const author = authorNameFromItem(it)?.toLowerCase() || "";
+        const cardType = cardTypeLabel(it).toLowerCase();
 
         return (
           tt.includes(qq) ||
           meta.includes(qq) ||
           st.includes(qq) ||
-          author.includes(qq)
+          author.includes(qq) ||
+          cardType.includes(qq)
         );
       })
       .slice()
@@ -1665,7 +1667,7 @@ export default function ContentClient() {
         const bb = (b.updatedAt?.getTime?.() ?? 0) || 0;
         return bb - aa;
       });
-  }, [items, q, filter, showDeleted, titleForCard]);
+  }, [items, q, filter, showDeleted, titleForCard, cardTypeLabel]);
 
   const deletedLabel = t("labels.deleted");
   const showDeletedLabel = t("toggles.showDeleted");

@@ -12,6 +12,9 @@ import {
 import type { Firestore } from "firebase/firestore";
 import type { AppMode } from "@/lib/mode";
 
+const MY_CONTENT_QUERY_LIMIT = 250;
+const MY_SPACE_QUERY_LIMIT = 250;
+
 export type PublishVisibility = "public" | "unlisted" | "private";
 
 export type ContentItem =
@@ -317,7 +320,7 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode, locale:
       collection(db, "lessons"),
       where("ownerId", "==", uid),
       orderBy("updatedAt", "desc"),
-      limit(50)
+      limit(MY_CONTENT_QUERY_LIMIT)
     );
     const snap = await getDocs(qy);
 
@@ -358,6 +361,12 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode, locale:
 
 type LessonMeta = {
   title: string;
+  id: string;
+  ownerId?: string;
+  lessonId?: string;
+  publishedId?: string;
+  activePublishedId?: string | null;
+  status?: string;
   level?: string;
   language?: string;
   lessonType?: string;
@@ -380,9 +389,40 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
       snap.forEach((docSnap) => {
         const d = docSnap.data() as Record<string, unknown>;
         const title = pickTitle(d);
+        const activePublishedId =
+          typeof d.activePublishedId === "string" && d.activePublishedId.trim()
+            ? d.activePublishedId.trim()
+            : null;
+        const linkedLessonId =
+          typeof d.lessonId === "string" && d.lessonId.trim()
+            ? d.lessonId.trim()
+            : docSnap.id;
+        const linkedPublishedId =
+          typeof d.publishedId === "string" && d.publishedId.trim()
+            ? d.publishedId.trim()
+            : typeof d.publishedLessonId === "string" && d.publishedLessonId.trim()
+              ? d.publishedLessonId.trim()
+              : activePublishedId || docSnap.id;
+        const publishObj = d.publish && typeof d.publish === "object"
+          ? (d.publish as Record<string, unknown>)
+          : {};
+        const rawStatus = pickStatus(d);
+        const status =
+          rawStatus === "published" ||
+            publishObj.state === "published" ||
+            activePublishedId ||
+            (colName === "published_lessons" && d.isActive !== false)
+            ? "published"
+            : rawStatus;
 
         metaById.set(docSnap.id, {
           title: title || "",
+          id: docSnap.id,
+          ownerId: typeof d.ownerId === "string" ? d.ownerId : undefined,
+          lessonId: linkedLessonId,
+          publishedId: linkedPublishedId,
+          activePublishedId,
+          status,
           level: pickLevel(d) || undefined,
           language: pickLanguage(d),
           lessonType: pickLessonType(d),
@@ -410,6 +450,60 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
   return metaById;
 }
 
+function ownLessonItemFromSubmission(args: {
+  uid: string;
+  locale: string;
+  mode: AppMode;
+  lessonMeta?: LessonMeta;
+  fallbackLessonId?: string;
+  updatedAt: Date | null;
+}): ContentItem | null {
+  const { uid, locale, mode, lessonMeta, fallbackLessonId, updatedAt } = args;
+  if (!lessonMeta || lessonMeta.ownerId !== uid) return null;
+
+  const draftLessonId = lessonMeta.lessonId || fallbackLessonId || lessonMeta.id;
+  if (!draftLessonId) return null;
+
+  const publishedId =
+    lessonMeta.activePublishedId ||
+    (lessonMeta.publishedId && lessonMeta.publishedId !== draftLessonId
+      ? lessonMeta.publishedId
+      : lessonMeta.id && lessonMeta.id !== draftLessonId
+        ? lessonMeta.id
+        : null);
+
+  const meta: string[] = ["own_generated"];
+  if (lessonMeta.level) meta.push(String(lessonMeta.level));
+  if (lessonMeta.language) meta.push(String(lessonMeta.language));
+  if (lessonMeta.lessonType) meta.push(String(lessonMeta.lessonType));
+  if (lessonMeta.textType) meta.push(String(lessonMeta.textType));
+  if (lessonMeta.texttype) meta.push(String(lessonMeta.texttype));
+  if (publishedId) meta.push(`published:${publishedId}`);
+  if (lessonMeta.meta?.length) {
+    for (const tag of lessonMeta.meta) {
+      if (!meta.includes(tag)) meta.push(tag);
+    }
+  }
+
+  return {
+    type: "lesson",
+    id: draftLessonId,
+    title: lessonMeta.title || "Lesson",
+    status: publishedId || lessonMeta.status === "published" ? "published" : (lessonMeta.status || "draft"),
+    updatedAt,
+    href: hrefForLesson(locale, mode, draftLessonId, lessonMeta.lessonType),
+    meta,
+    ownerId: uid,
+    activePublishedId: publishedId,
+    lessonType: lessonMeta.lessonType,
+    textType: lessonMeta.textType,
+    texttype: lessonMeta.texttype,
+    language: lessonMeta.language,
+    level: lessonMeta.level,
+    authorName: lessonMeta.authorName,
+  };
+}
+
 async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, locale: string) {
   const results: ContentItem[] = [];
 
@@ -418,7 +512,7 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
       collection(db, "submissions"),
       where("uid", "==", uid),
       orderBy("updatedAt", "desc"),
-      limit(50)
+      limit(MY_CONTENT_QUERY_LIMIT)
     );
     const snap = await getDocs(qy);
 
@@ -454,6 +548,21 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
       const { id, d, lessonId, spaceId } = row;
       const rawTitle = pickTitle(d);
       const lessonMeta = lessonId ? lessonMetaById.get(lessonId) : undefined;
+      const updatedAt = pickUpdated(d);
+
+      const ownLessonItem = ownLessonItemFromSubmission({
+        uid,
+        locale,
+        mode,
+        lessonMeta,
+        fallbackLessonId: lessonId,
+        updatedAt,
+      });
+
+      if (ownLessonItem) {
+        results.push(ownLessonItem);
+        continue;
+      }
 
       const title =
         rawTitle && rawTitle.toLowerCase() !== "untitled"
@@ -494,7 +603,7 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
         id,
         title,
         status,
-        updatedAt: pickUpdated(d),
+        updatedAt,
         href: mode === "student" ? withLocale(locale, `/student/submissions/${id}`) : fallbackHref,
         meta,
         uid: typeof d.uid === "string" ? d.uid : null,
@@ -511,7 +620,7 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
   return results;
 }
 
-async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: string) {
+async function fetchMyPracticeSubmissions(db: Firestore, uid: string, mode: AppMode, locale: string) {
   const results: ContentItem[] = [];
 
   try {
@@ -519,7 +628,7 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: st
       collection(db, "practiceSubmissions"),
       where("uid", "==", uid),
       orderBy("updatedAt", "desc"),
-      limit(80)
+      limit(MY_CONTENT_QUERY_LIMIT)
     );
     const snap = await getDocs(qy);
 
@@ -546,6 +655,21 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: st
     for (const row of rows) {
       const { id, d, lessonId } = row;
       const lessonMeta = lessonId ? metaByLessonId.get(lessonId) : undefined;
+      const updatedAt = pickUpdated(d);
+
+      const ownLessonItem = ownLessonItemFromSubmission({
+        uid,
+        locale,
+        mode,
+        lessonMeta,
+        fallbackLessonId: lessonId,
+        updatedAt,
+      });
+
+      if (ownLessonItem) {
+        results.push(ownLessonItem);
+        continue;
+      }
 
       const title =
         typeof d.title === "string" && d.title.trim()
@@ -578,7 +702,7 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, locale: st
         id,
         title,
         status,
-        updatedAt: pickUpdated(d),
+        updatedAt,
         href,
         meta,
         uid,
@@ -603,7 +727,7 @@ async function fetchMySpaceSubmissions(db: Firestore, uid: string, locale: strin
       collection(db, "spaceSubmissions"),
       where("uid", "==", uid),
       orderBy("updatedAt", "desc"),
-      limit(80)
+      limit(MY_SPACE_QUERY_LIMIT)
     );
 
     const snap = await getDocs(qy);
@@ -843,7 +967,7 @@ export async function loadMyContent(opts: {
   const [lessons, submissions, practiceSubs, spaceSubs, spaces] = await Promise.all([
     fetchMyLessons(db, uid, mode, locale),
     fetchMySubmissions(db, uid, mode, locale),
-    fetchMyPracticeSubmissions(db, uid, locale),
+    fetchMyPracticeSubmissions(db, uid, mode, locale),
     mode === "student" ? fetchMySpaceSubmissions(db, uid, locale, warnings) : Promise.resolve([] as ContentItem[]),
     fetchMySpaces(db, uid, mode, locale),
   ]);
