@@ -400,12 +400,12 @@ export default function ContentClient() {
   }
 
   function readingTestPlayHref(lessonId: string) {
-    return `/${locale}/reading-tests/${lessonId}`;
+    return `/${locale}/student/lesson/${lessonId}`;
   }
 
   function lessonOpenHref(it: Extract<ContentItem, { type: "lesson" }>) {
     if (isReadingTestLesson(it)) {
-      return readingTestPlayHref(it.id);
+      return readingTestPlayHref(it.activePublishedId || it.id);
     }
     if (getMathSubtype(it) === "fractions") {
       return `/${locale}/producer/math/${it.id}/print`;
@@ -829,33 +829,25 @@ export default function ContentClient() {
   }, [shareUrl]);
 
   async function openShareForLesson(it: Extract<ContentItem, { type: "lesson" }>) {
-    let url = "";
     const title = titleForCard(it);
+    let pid = it.activePublishedId || it.id;
 
-    if (isReadingTestLesson(it)) {
-      url = `${getOrigin()}/${locale}/reading-tests/${it.id}`;
-    } else {
-      let pid = it.activePublishedId || it.id;
-
-      if (!it.activePublishedId) {
-        try {
-          const snap = await getDoc(doc(db, "lessons", it.id));
-          const dUnknown = snap.data() as unknown;
-          const d = isRecord(dUnknown) ? dUnknown : {};
-          if (typeof d.activePublishedId === "string" && d.activePublishedId) {
-            pid = d.activePublishedId;
-          }
-        } catch {
-          // ignore
+    if (!it.activePublishedId) {
+      try {
+        const snap = await getDoc(doc(db, "lessons", it.id));
+        const dUnknown = snap.data() as unknown;
+        const d = isRecord(dUnknown) ? dUnknown : {};
+        if (typeof d.activePublishedId === "string" && d.activePublishedId) {
+          pid = d.activePublishedId;
         }
+      } catch {
+        // ignore
       }
-
-      url = `${getOrigin()}/${locale}/student/lesson/${pid}`;
     }
 
     await openShareModal({
       title,
-      url,
+      url: `${getOrigin()}/${locale}/student/lesson/${pid}`,
       text: getSharePresetText("example1"),
       kind: "lesson",
       lesson: it,
@@ -948,7 +940,10 @@ export default function ContentClient() {
         const publishObj = isRecord((data as { publish?: unknown }).publish)
           ? (data as { publish?: Record<string, unknown> }).publish
           : undefined;
-        const vis = pickVisibility(publishObj?.visibility);
+        const isReadingTest = String((data as { lessonType?: unknown }).lessonType ?? "")
+          .trim()
+          .toLowerCase() === "reading_test";
+        const vis = isReadingTest ? "public" : pickVisibility(publishObj?.visibility);
 
         const resp = await authedPost<{
           publishedId?: string;
@@ -964,6 +959,13 @@ export default function ContentClient() {
         await updateDoc(lessonRef, {
           status: "published",
           activePublishedId: publishedId,
+          ...(isReadingTest
+            ? {
+              publishVisibility: "public",
+              showInLibrary: true,
+              "publish.visibility": "public",
+            }
+            : {}),
           updatedAt: serverTimestamp(),
         });
       } else {
@@ -1428,7 +1430,7 @@ export default function ContentClient() {
     const mathSubtype = getMathSubtype(ls);
     const mathSubtypeText = mathSubtypeLabel(mathSubtype);
 
-    const canPublish = isTeacherApproved && !isDeleted && !isReadingTest;
+    const canPublish = isTeacherApproved && !isDeleted;
     const canDelete = (isTeacher || isParent || isStudent) && !busy;
     const canShareToSpace = mySpaces.length > 0 && (isTeacher || isParent) && !isDeleted;
     const canEdit = (isTeacher || isParent || isStudent) && !isDeleted && !isImageWriting;
@@ -1516,7 +1518,9 @@ export default function ContentClient() {
               ? t("actions.working")
               : isPublished
                 ? t("actions.unpublish")
-                : t("actions.publish"),
+                : isReadingTest
+                  ? safeMsg("actions.publishToLibrary", "Publiser til Bibliotek")
+                  : t("actions.publish"),
             disabled: busy || !canPublish,
             onClick: () => setPublished(ls.id, !isPublished),
           },

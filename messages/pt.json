@@ -1578,8 +1578,8 @@
       "learners": "Aprendizes"
     },
     "flow": {
-      "title": "Fluxo de leitura e tempo",
-      "description": "Estas definições são guardadas na configuração do teste de leitura. Elas descrevem o fluxo pretendido do aluno, mas ainda não substituem totalmente o fluxo completo de submissão do professor em toda a aplicação.",
+      "title": "Cronômetro",
+      "description": "Escolha o tempo para o teste de leitura. Quando o teste for entregue, o tempo real usado será mostrado e usado para calcular as palavras lidas por minuto. Se o tempo acabar, o teste será encerrado automaticamente e enviado para avaliação.",
       "showQuestionsAfterReading": "Mostrar perguntas após a leitura",
       "showQuestionsAfterReadingHelp": "O aluno lê primeiro e depois recebe as tarefas."
     },
@@ -1716,8 +1716,8 @@
       "learners": "Aprendizes"
     },
     "flow": {
-      "title": "Fluxo de leitura e tempo",
-      "description": "Estas definições são armazenadas na configuração do teste de leitura. Elas descrevem como o fluxo do aluno deve funcionar, mas algumas partes da experiência real do aluno ainda precisam de ser ligadas na página do aluno.",
+      "title": "Cronômetro",
+      "description": "Escolha o tempo para o teste de leitura. Quando o teste for entregue, o tempo real usado será mostrado e usado para calcular as palavras lidas por minuto. Se o tempo acabar, o teste será encerrado automaticamente e enviado para avaliação.",
       "showQuestionsAfterReading": "Mostrar perguntas após a leitura",
       "showQuestionsAfterReadingHelp": "O aluno lê primeiro e depois recebe as tarefas."
     },

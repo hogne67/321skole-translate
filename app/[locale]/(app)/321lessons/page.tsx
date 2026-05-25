@@ -105,6 +105,9 @@ function toBooleanSafe(v: unknown): boolean | undefined {
 }
 
 function coerceTextType(l: PublishedLesson): string {
+  const lessonType = String(l.lessonType || "").trim().toLowerCase();
+  if (lessonType === "reading_test") return "Lesetest";
+
   const tt1 = String(l.textType ?? "").trim();
   if (tt1) return tt1;
 
@@ -116,15 +119,15 @@ function coerceTextType(l: PublishedLesson): string {
 
 function shouldShowInLibrary(l: PublishedLesson): boolean {
   const lessonType = String(l.lessonType || "").trim().toLowerCase();
-  if (lessonType === "reading_test") return false;
+  const isReadingTest = lessonType === "reading_test";
 
   const publishVisibility = String(l.publishVisibility || "").trim().toLowerCase();
-  if (publishVisibility === "private") return false;
-
   const visibility = String(l.visibility || "").trim().toLowerCase();
+  if (!visibility && publishVisibility === "private") return false;
+
   if (visibility === "private") return false;
 
-  if (l.showInLibrary === false) return false;
+  if (!isReadingTest && l.showInLibrary === false) return false;
 
   return true;
 }
@@ -1190,6 +1193,7 @@ export default function LessonsLandingPage() {
             const langCode = normLang(l.language);
             const langLabel = langLabelByCode.get(langCode) || (l.language ? l.language : "");
             const tt = coerceTextType(l);
+            const isReadingTest = String(l.lessonType || "").trim().toLowerCase() === "reading_test";
             const img = pickImageUrl(l);
             const author = (l.authorName || l.producerName || "").trim();
             const ratingAverage = l.ratingAverage ?? 0;
@@ -1232,6 +1236,12 @@ export default function LessonsLandingPage() {
                       {langLabel ? <span>{langLabel}</span> : null}
                       {langLabel && tt ? <span className="dot">•</span> : null}
                       {tt ? <span>{tt}</span> : null}
+                      {isReadingTest ? (
+                        <>
+                          {(langLabel || tt) ? <span className="dot">•</span> : null}
+                          <span>AI-vurdering</span>
+                        </>
+                      ) : null}
                     </div>
 
                     {author ? (

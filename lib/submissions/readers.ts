@@ -201,18 +201,38 @@ export function isReadingTestLesson(
 }
 
 export function readReadingTestMeta(sub: SubmissionDoc | null) {
-    const limitSeconds = safeNumber(sub?.readingTestTimeLimitSeconds);
+    const timerResult =
+        sub?.readingTimerResult &&
+            typeof sub.readingTimerResult === "object" &&
+            !Array.isArray(sub.readingTimerResult)
+            ? (sub.readingTimerResult as Record<string, unknown>)
+            : null;
+
+    const limitSeconds =
+        safeNumber(sub?.readingTestTimeLimitSeconds) ??
+        safeNumber(timerResult?.timeLimitSeconds);
 
     const usedSeconds =
         safeNumber(sub?.readingTestTimeUsedSeconds) ??
+        safeNumber(sub?.readingTestTimeSpentSeconds) ??
+        safeNumber(timerResult?.timeSpentSeconds) ??
         safeNumber(sub?.timeSpentSeconds);
 
-    const timedOut = safeBoolean(sub?.readingTestTimedOut);
-    const submittedManually = safeBoolean(sub?.readingTestSubmittedManually);
+    const secondsLeftAtSubmit =
+        safeNumber(sub?.readingTestSecondsLeftAtSubmit) ??
+        safeNumber(timerResult?.secondsLeftAtSubmit);
+
+    const timedOut =
+        safeBoolean(sub?.readingTestTimedOut) ??
+        safeBoolean(timerResult?.timedOut);
+    const submittedManually =
+        safeBoolean(sub?.readingTestSubmittedManually) ??
+        safeBoolean(timerResult?.submittedManually);
 
     return {
         limitSeconds,
         usedSeconds,
+        secondsLeftAtSubmit,
         timedOut,
         submittedManually,
     };

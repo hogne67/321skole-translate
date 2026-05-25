@@ -1578,8 +1578,8 @@
       "learners": "Lærende"
     },
     "flow": {
-      "title": "Leseflyt og tid",
-      "description": "Disse innstillingene lagres i konfigurasjonen for lesetesten. De beskriver ønsket elevflyt, men de overstyrer ennå ikke hele innleveringsflyten for læreren overalt i appen.",
+      "title": "Tidtaker",
+      "description": "Velg tid for lesetest. Når testen er levert vises faktisk tid som er brukt og brukes som beregning for antall ord som er lest pr. minutt. Er tiden ute, avsluttes testen automatisk og sendes til vurdering.",
       "showQuestionsAfterReading": "Vis spørsmål etter lesing",
       "showQuestionsAfterReadingHelp": "Eleven leser først og får deretter oppgavene."
     },
@@ -1716,8 +1716,8 @@
       "learners": "Lærende"
     },
     "flow": {
-      "title": "Leseflyt og tid",
-      "description": "Disse innstillingene lagres i konfigurasjonen for lesetesten. De beskriver hvordan elevflyten skal fungere, men noen deler av den faktiske elevvisningen må fortsatt kobles på elevsiden.",
+      "title": "Tidtaker",
+      "description": "Velg tid for lesetest. Når testen er levert vises faktisk tid som er brukt og brukes som beregning for antall ord som er lest pr. minutt. Er tiden ute, avsluttes testen automatisk og sendes til vurdering.",
       "showQuestionsAfterReading": "Vis spørsmål etter lesing",
       "showQuestionsAfterReadingHelp": "Eleven leser først og får deretter oppgavene."
     },

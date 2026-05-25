@@ -5,13 +5,23 @@
       "title": "Redigering av leseprøve",
       "statusLabel": "Tilpasset redigering for leseprøver. Status:"
     },
+    "summary": {
+      "title": "Oppsummering",
+      "words": "Antall ord",
+      "level": "Nivå",
+      "tasks": "Antall oppgaver",
+      "time": "Valgt tid"
+    },
     "fields": {
       "title": "Tittel",
       "cefrLevel": "CEFR-nivå",
       "language": "Språk",
       "searchLanguage": "Søk etter språk",
       "audience": "Målgruppe",
-      "topic": "Tema",
+      "description": "Beskrivelse",
+      "publishState": "Publisering i Mitt innhold",
+      "publishStateHelp": "Velg om leseprøven bare skal være kladd, eller kunne åpnes via delingslenke. Bibliotekpublisering kommer senere.",
+      "topic": "Tema (valgfritt)",
       "minimumWords": "Minimum ord",
       "maximumWords": "Maksimum ord",
       "feedbackMode": "Tilbakemeldingsmodus",
@@ -24,8 +34,8 @@
       "learners": "Deltakere"
     },
     "flow": {
-      "title": "Leseflyt og timing",
-      "description": "Disse innstillingene lagres i leseprøvekonfigurasjonen. De beskriver hvordan elevflyten skal fungere, men noen deler av den faktiske elevvisningen må fortsatt kobles opp på elevsiden.",
+      "title": "Tidtaker",
+      "description": "Velg tid for lesetest. Når testen er levert vises faktisk tid som er brukt og brukes som beregning for antall ord som er lest pr. minutt. Er tiden ute, avsluttes testen automatisk og sendes til vurdering.",
       "showQuestionsAfterReading": "Vis spørsmål etter lesing",
       "showQuestionsAfterReadingHelp": "Eleven leser først og får deretter oppgavene."
     },
@@ -37,6 +47,23 @@
       "extraSeconds": "Ekstra sekunder",
       "minutesOnly": "{minutes} min",
       "minutesAndSeconds": "{minutes} min {seconds} sek"
+    },
+    "publishState": {
+      "draft": "Ikke publiser",
+      "unlisted": "Publiser via delingslenke"
+    },
+    "cover": {
+      "title": "Velg publiseringsbilde",
+      "description": "Leseprøven bruker ikke bilde i selve prøven, men må ha et 16:9-bilde for publiseringsvisningen.",
+      "selected": "Valgt bilde"
+    },
+    "coverTemplates": {
+      "blue": "Blå",
+      "pink": "Rosa",
+      "red": "Rød",
+      "orange": "Oransje",
+      "purple": "Lilla",
+      "brown": "Brun"
     },
     "feedbackMode": {
       "learner": "Kun deltaker",
@@ -72,12 +99,13 @@
       "openHelp": "Åpen oppgave / svarfelt."
     },
     "actions": {
-      "save": "Lagre",
+      "save": "Lagre til Mitt innhold",
       "saving": "Lagrer...",
       "newReadingTest": "Ny leseprøve",
       "addFillInWord": "Legg til fyll inn ord",
-      "addMcq": "Legg til flervalg",
-      "addTrueFalse": "Legg til sant/usant",
+      "addMcq": "+ Flervalg",
+      "addTrueFalse": "+ Sant/Usant",
+      "addBestSummary": "+ Beste sammendrag",
       "addShortAnswer": "Legg til kort svar",
       "addOpen": "Legg til åpen oppgave",
       "delete": "Slett"
@@ -85,6 +113,10 @@
     "messages": {
       "saved": "Lagret.",
       "noTasks": "Ingen oppgaver ennå."
+    },
+    "saveBar": {
+      "title": "Lagre til Mitt innhold",
+      "description": "Lagrer tekst, oppgaver, tidtaker og valgt malbilde."
     },
     "common": {
       "true": "Sant",

@@ -9,6 +9,7 @@ import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { LANGUAGES } from "@/lib/languages";
+import { countReadingTestWords } from "@/lib/readingTests/readingSignals";
 
 type LevelKey = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type AudienceKey = "children" | "teenagers" | "adult learners" | "learners";
@@ -44,15 +45,74 @@ type LessonDoc = {
   status?: string;
   lessonType?: string;
   title?: string;
+  description?: string;
   level?: string;
   language?: string;
   sourceText?: string;
   wordCount?: number;
   topic?: string;
   prompt?: string;
+  coverImageUrl?: string;
+  imageUrl?: string;
+  publish?: {
+    state?: string;
+  };
   readingTestConfig?: Partial<ReadingTestConfig>;
   tasks?: unknown[];
 };
+
+type CoverTemplate = {
+  id: string;
+  titleKey: string;
+  imageUrl: string;
+  tone: string;
+  border: string;
+};
+
+const COVER_TEMPLATES: CoverTemplate[] = [
+  {
+    id: "blue",
+    titleKey: "coverTemplates.blue",
+    imageUrl: "/reading-test-covers/blue.jpg",
+    tone: "#eff6ff",
+    border: "#93c5fd",
+  },
+  {
+    id: "pink",
+    titleKey: "coverTemplates.pink",
+    imageUrl: "/reading-test-covers/pink.jpg",
+    tone: "#fdf2f8",
+    border: "#f9a8d4",
+  },
+  {
+    id: "red",
+    titleKey: "coverTemplates.red",
+    imageUrl: "/reading-test-covers/red.jpg",
+    tone: "#fef2f2",
+    border: "#fca5a5",
+  },
+  {
+    id: "orange",
+    titleKey: "coverTemplates.orange",
+    imageUrl: "/reading-test-covers/orange.jpg",
+    tone: "#fff7ed",
+    border: "#fdba74",
+  },
+  {
+    id: "purple",
+    titleKey: "coverTemplates.purple",
+    imageUrl: "/reading-test-covers/purple.jpg",
+    tone: "#faf5ff",
+    border: "#d8b4fe",
+  },
+  {
+    id: "brown",
+    titleKey: "coverTemplates.brown",
+    imageUrl: "/reading-test-covers/brown.jpg",
+    tone: "#fefce8",
+    border: "#d6d3d1",
+  },
+];
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -163,7 +223,7 @@ function normalizeReadingTestConfig(cfg: unknown, levelFallback: string): Readin
     maxWords: safeNumber(c.maxWords, 180),
     timerEnabled,
     timerSeconds: timerEnabled ? (timerSecondsRaw ?? 300) : null,
-    showQuestionsAfterReading: c.showQuestionsAfterReading !== false,
+    showQuestionsAfterReading: c.showQuestionsAfterReading === true,
     enabledTaskTypes: normalizeEnabledTaskTypes(c.enabledTaskTypes),
     feedbackMode: normalizeFeedbackMode(c.feedbackMode),
   };
@@ -201,10 +261,10 @@ export default function ReadingTestEditorPage() {
     width: "100%",
     padding: 10,
     marginTop: 6,
-    border: "1px solid #e2e8f0",
+    border: "1.5px solid #94a3b8",
     borderRadius: 12,
-    background: "#ffffffe0",
-    boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
+    background: "#ffffffef",
+    boxShadow: "0 2px 8px rgba(15, 23, 42, 0.10)",
     outline: "none",
     fontSize: 14,
   };
@@ -215,29 +275,19 @@ export default function ReadingTestEditorPage() {
   };
 
   const cardStyle: CSSProperties = {
-    border: "1px solid #97aac0",
+    border: "1.5px solid #94a3b8",
     borderRadius: 20,
-    background: "#d8c7c7e4",
-    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.10)",
+    background: "#e6eef0f1",
+    boxShadow: "0 12px 32px rgba(15, 23, 42, 0.16)",
     padding: 18,
   };
 
-  const buttonPrimary: CSSProperties = {
+  const buttonSuccess: CSSProperties = {
     padding: "10px 14px",
     borderRadius: 12,
-    border: "1px solid #0f172a",
-    background: "#214db4",
+    border: "1px solid #14532d",
+    background: "#15803d",
     color: "#fff",
-    fontWeight: 700,
-    cursor: "pointer",
-  };
-
-  const buttonSecondary: CSSProperties = {
-    padding: "10px 14px",
-    borderRadius: 12,
-    border: "1px solid #e2e8f0",
-    background: "#fff",
-    color: "#0f172a",
     fontWeight: 700,
     cursor: "pointer",
   };
@@ -245,7 +295,7 @@ export default function ReadingTestEditorPage() {
   const buttonSmall: CSSProperties = {
     padding: "8px 10px",
     borderRadius: 10,
-    border: "1px solid #e2e8f0",
+    border: "1.5px solid #cbd5e1",
     background: "#fff",
     color: "#0f172a",
     fontWeight: 600,
@@ -268,10 +318,12 @@ export default function ReadingTestEditorPage() {
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
   const [title, setTitle] = useState(t("defaults.title"));
+  const [description, setDescription] = useState("");
   const [language, setLanguage] = useState("nb");
   const [languageSearch, setLanguageSearch] = useState("");
   const [level, setLevel] = useState<LevelKey>("A2");
   const [status, setStatus] = useState("draft");
+  const [coverImageUrl, setCoverImageUrl] = useState(COVER_TEMPLATES[0].imageUrl);
 
   const [sourceText, setSourceText] = useState("");
   const [topic, setTopic] = useState("");
@@ -280,11 +332,8 @@ export default function ReadingTestEditorPage() {
   const [maxWords, setMaxWords] = useState(180);
 
   const [timerEnabled, setTimerEnabled] = useState(false);
-  const [timerMinutes, setTimerMinutes] = useState(5);
+  const [timerMinutes, setTimerMinutes] = useState(2);
   const [timerExtraSeconds, setTimerExtraSeconds] = useState(0);
-  const [showQuestionsAfterReading, setShowQuestionsAfterReading] = useState(true);
-  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>("both");
-
   const [enabledTaskTypes, setEnabledTaskTypes] = useState<ReadingTestTaskType[]>([
     "mcq",
     "true_false",
@@ -354,23 +403,28 @@ export default function ReadingTestEditorPage() {
         const cfg = normalizeReadingTestConfig(data.readingTestConfig, safeString(data.level, "A2"));
 
         setTitle(safeString(data.title, t("defaults.title")));
+        setDescription(safeString(data.description, ""));
         setLanguage(safeString(data.language, "nb"));
         setLevel((safeString(data.level, "A2") as LevelKey) || "A2");
         setStatus(safeString(data.status, "draft"));
+        const loadedCoverImageUrl = safeString(data.coverImageUrl || data.imageUrl, "");
+        setCoverImageUrl(
+          COVER_TEMPLATES.some((template) => template.imageUrl === loadedCoverImageUrl)
+            ? loadedCoverImageUrl
+            : COVER_TEMPLATES[0].imageUrl
+        );
 
         setSourceText(safeString(data.sourceText, ""));
-        setTopic(safeString(data.topic, cfg.topic || safeString(data.prompt, "")));
+        setTopic("");
         setAudience((cfg.audience as AudienceKey) || "learners");
         setMinWords(cfg.minWords);
         setMaxWords(cfg.maxWords);
 
         setTimerEnabled(cfg.timerEnabled);
-        const seconds = cfg.timerEnabled ? (cfg.timerSeconds ?? 300) : 300;
+        const seconds = cfg.timerEnabled ? (cfg.timerSeconds ?? 120) : 120;
         setTimerMinutes(Math.floor(seconds / 60));
         setTimerExtraSeconds(seconds % 60);
 
-        setShowQuestionsAfterReading(cfg.showQuestionsAfterReading);
-        setFeedbackMode(cfg.feedbackMode);
         setEnabledTaskTypes(cfg.enabledTaskTypes);
 
         const normalizedTasks = Array.isArray(data.tasks)
@@ -417,6 +471,10 @@ export default function ReadingTestEditorPage() {
     if (secs === 0) return t("timer.minutesOnly", { minutes: mins });
     return t("timer.minutesAndSeconds", { minutes: mins, seconds: secs });
   }, [timerEnabled, timerSeconds, t]);
+  const totalWordCount = useMemo(
+    () => countReadingTestWords(sourceText, tasks),
+    [sourceText, tasks]
+  );
 
   async function save() {
     try {
@@ -437,19 +495,24 @@ export default function ReadingTestEditorPage() {
         maxWords,
         timerEnabled,
         timerSeconds: timerEnabled ? timerSeconds : null,
-        showQuestionsAfterReading,
+        showQuestionsAfterReading: false,
         enabledTaskTypes,
-        feedbackMode,
+        feedbackMode: "both",
       };
 
       const payload = stripUndefinedDeep({
         title: title.trim(),
+        description: description.trim(),
         level,
         language,
         sourceText,
         wordCount,
         topic,
         prompt: topic,
+        coverImageUrl,
+        imageUrl: coverImageUrl,
+        "publish.state": "draft",
+        status: "draft",
         readingTestConfig,
         tasks: renumberOrders(tasks),
         updatedAt: serverTimestamp(),
@@ -458,6 +521,7 @@ export default function ReadingTestEditorPage() {
       await updateDoc(doc(db, "lessons", lessonId), payload);
 
       setSavedMsg(t("messages.saved"));
+      router.push(`/${locale}/content`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -534,9 +598,9 @@ export default function ReadingTestEditorPage() {
       className="pageWrap"
       style={{
         width: "100%",
-        maxWidth: 980,
+        maxWidth: 1180,
         margin: "0 auto",
-        padding: "8px 12px 60px",
+        padding: "8px 12px 180px",
         boxSizing: "border-box",
       }}
     >
@@ -552,31 +616,62 @@ export default function ReadingTestEditorPage() {
         >
           <div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>{t("page.title")}</h1>
-            <p style={{ marginTop: 6, opacity: 0.8 }}>
+            <p style={{ marginTop: 6, marginBottom: 0, opacity: 0.8 }}>
               {t("page.statusLabel")} <strong>{status}</strong>
             </p>
-          </div>
-
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button
-              onClick={save}
-              disabled={saving}
-              style={{ ...buttonPrimary, opacity: saving ? 0.7 : 1 }}
-            >
-              {saving ? t("actions.saving") : t("actions.save")}
-            </button>
-
-            <button
-              onClick={() => router.push(`/${locale}/producer/reading-tests/new`)}
-              style={buttonSecondary}
-            >
-              {t("actions.newReadingTest")}
-            </button>
           </div>
         </div>
 
         {error && <div style={{ color: "crimson", marginTop: 12 }}>{error}</div>}
         {savedMsg && <div style={{ color: "green", marginTop: 12 }}>{savedMsg}</div>}
+
+        <section
+          style={{
+            ...cardStyle,
+            marginTop: 18,
+            background: "#eaedf1f3",
+          }}
+        >
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
+            {t("summary.title")}
+          </h2>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isNarrow ? "1fr 1fr" : "repeat(5, minmax(0, 1fr))",
+              gap: 8,
+              marginTop: 12,
+            }}
+          >
+            {[
+              { label: "Antall ord lesetekst", value: String(wordCount) },
+              { label: "Antall ord totalt", value: String(totalWordCount) },
+              { label: t("summary.level"), value: level },
+              { label: t("summary.tasks"), value: String(tasks.length) },
+              { label: t("summary.time"), value: timerPreview },
+            ].map((item) => (
+              <div
+                key={item.label}
+                style={{
+                  border: "1.5px solid #cbd5e1",
+                  borderRadius: 14,
+                  padding: "10px 9px",
+                  background: "#fff",
+                  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ fontSize: 11, opacity: 0.72, fontWeight: 800, lineHeight: 1.2 }}>
+                  {item.label}
+                </div>
+                <div style={{ marginTop: 4, fontSize: 18, fontWeight: 900, lineHeight: 1.1 }}>
+                  {item.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section
           style={{
@@ -633,6 +728,15 @@ export default function ReadingTestEditorPage() {
           </label>
 
           <label style={{ gridColumn: "1 / -1" }}>
+            {t("fields.description")}
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={fieldStyle}
+            />
+          </label>
+
+          <label style={{ gridColumn: "1 / -1" }}>
             {t("fields.topic")}
             <textarea
               value={topic}
@@ -642,29 +746,74 @@ export default function ReadingTestEditorPage() {
             />
           </label>
 
-          <label>
-            {t("fields.minimumWords")}
-            <input
-              type="number"
-              value={minWords}
-              onChange={(e) => setMinWords(Number(e.target.value))}
-              style={fieldStyle}
-              min={40}
-              max={500}
-            />
-          </label>
+        </section>
 
-          <label>
-            {t("fields.maximumWords")}
-            <input
-              type="number"
-              value={maxWords}
-              onChange={(e) => setMaxWords(Number(e.target.value))}
-              style={fieldStyle}
-              min={40}
-              max={500}
-            />
-          </label>
+        <section style={{ marginTop: 18, ...cardStyle }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
+              {t("cover.title")}
+            </h2>
+            <div style={{ fontSize: 13, opacity: 0.75, marginTop: 6 }}>
+              {t("cover.description")}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isNarrow ? "repeat(2, minmax(0, 1fr))" : "repeat(6, minmax(0, 1fr))",
+              gap: 8,
+              marginTop: 12,
+            }}
+          >
+            {COVER_TEMPLATES.map((template) => {
+              const selected = coverImageUrl === template.imageUrl;
+
+              return (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => setCoverImageUrl(template.imageUrl)}
+                  style={{
+                    border: `2px solid ${selected ? "#15803d" : template.border}`,
+                    borderRadius: 12,
+                    padding: 6,
+                    background: selected ? "#f0fdf4" : template.tone,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    boxShadow: selected
+                      ? "0 0 0 3px rgba(21, 128, 61, 0.18)"
+                      : "0 2px 8px rgba(15, 23, 42, 0.08)",
+                  }}
+                  aria-pressed={selected}
+                >
+                  <div
+                    role="img"
+                    aria-label={t(template.titleKey)}
+                    style={{
+                      width: "100%",
+                      aspectRatio: "16 / 9",
+                      display: "block",
+                      borderRadius: 10,
+                      border: "1px solid rgba(15, 23, 42, 0.16)",
+                      backgroundColor: "#fff",
+                      backgroundImage: `url("${template.imageUrl}")`,
+                      backgroundPosition: "center",
+                      backgroundSize: "cover",
+                    }}
+                  />
+                  <div style={{ marginTop: 6, fontSize: 12, fontWeight: 800 }}>
+                    {t(template.titleKey)}
+                  </div>
+                  {selected && (
+                    <div style={{ marginTop: 4, fontSize: 12, color: "#166534", fontWeight: 800 }}>
+                      {t("cover.selected")}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </section>
 
         <section style={{ marginTop: 18, ...cardStyle }}>
@@ -676,7 +825,7 @@ export default function ReadingTestEditorPage() {
                 padding: "6px 10px",
                 borderRadius: 999,
                 background: timerEnabled ? "#eff6ff" : "#f8fafc",
-                border: "1px solid #dbeafe",
+                border: "1.5px solid #93c5fd",
                 fontWeight: 700,
               }}
             >
@@ -691,14 +840,14 @@ export default function ReadingTestEditorPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: isNarrow ? "1fr" : "1.2fr 1fr",
+              gridTemplateColumns: "1fr",
               gap: 14,
               marginTop: 14,
             }}
           >
             <div
               style={{
-                border: "1px solid #e2e8f0",
+                border: "1.5px solid #cbd5e1",
                 borderRadius: 16,
                 padding: 14,
                 background: "#f8fafc",
@@ -718,7 +867,7 @@ export default function ReadingTestEditorPage() {
                   {t("timer.quickPresets")}
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[2, 3, 5, 10, 15, 20].map((m) => (
+                  {[2, 3, 5, 10].map((m) => (
                     <button
                       key={m}
                       type="button"
@@ -772,45 +921,6 @@ export default function ReadingTestEditorPage() {
                   />
                 </label>
               </div>
-            </div>
-
-            <div
-              style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: 16,
-                padding: 14,
-                background: "#f8fafc",
-              }}
-            >
-              <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={showQuestionsAfterReading}
-                  onChange={(e) => setShowQuestionsAfterReading(e.target.checked)}
-                />
-                <span>
-                  <strong>{t("flow.showQuestionsAfterReading")}</strong>
-                  <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
-                    {t("flow.showQuestionsAfterReadingHelp")}
-                  </div>
-                </span>
-              </label>
-
-              <label style={{ display: "block", marginTop: 14 }}>
-                {t("fields.feedbackMode")}
-                <select
-                  value={feedbackMode}
-                  onChange={(e) => setFeedbackMode(e.target.value as FeedbackMode)}
-                  style={fieldStyle}
-                >
-                  <option value="learner">{t("feedbackMode.learner")}</option>
-                  <option value="adult">{t("feedbackMode.adult")}</option>
-                  <option value="both">{t("feedbackMode.both")}</option>
-                </select>
-                <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                  {t("fields.feedbackModeHelp")}
-                </div>
-              </label>
             </div>
           </div>
         </section>
@@ -883,7 +993,7 @@ export default function ReadingTestEditorPage() {
                 {t("actions.addTrueFalse")}
               </button>
               <button type="button" onClick={() => addTask("best_summary")} style={buttonSmall}>
-                {t("taskTypes.best_summary")}
+                {t("actions.addBestSummary")}
               </button>
             </div>
           </div>
@@ -896,7 +1006,7 @@ export default function ReadingTestEditorPage() {
                 <div
                   key={task.id}
                   style={{
-                    border: "1px solid #e2e8f0",
+                    border: "1.5px solid #cbd5e1",
                     borderRadius: 14,
                     padding: 12,
                     marginBottom: 10,
@@ -1041,13 +1151,63 @@ export default function ReadingTestEditorPage() {
           )}
         </section>
 
+        <section
+          className="stickySaveSection"
+          style={{
+            position: "fixed",
+            left: 12,
+            right: 12,
+            bottom: 12,
+            zIndex: 50,
+            width: "calc(100% - 24px)",
+            maxWidth: 1180,
+            marginLeft: "auto",
+            marginRight: "auto",
+          }}
+        >
+          <div
+            style={{
+              ...cardStyle,
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              background: "#ecfdf5",
+              borderColor: "#86efac",
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
+              {t("saveBar.title")}
+              </h2>
+              <div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>
+                {t("saveBar.description")}
+              </div>
+            </div>
+
+            <button
+              className="actionBtn"
+              onClick={save}
+              disabled={saving}
+              style={{
+                ...buttonSuccess,
+                opacity: saving ? 0.7 : 1,
+                cursor: saving ? "not-allowed" : "pointer",
+              }}
+            >
+              {saving ? t("actions.saving") : t("actions.save")}
+            </button>
+          </div>
+        </section>
+
         <style jsx>{`
           @media (max-width: 560px) {
             .pageWrap {
               width: 100% !important;
               max-width: none !important;
               margin: 0 !important;
-              padding: 0 0 60px !important;
+              padding: 0 0 190px !important;
               overflow-x: hidden !important;
               box-sizing: border-box !important;
             }
@@ -1059,6 +1219,18 @@ export default function ReadingTestEditorPage() {
               border-left: 0 !important;
               border-right: 0 !important;
               box-sizing: border-box !important;
+            }
+
+            .actionBtn {
+              width: 100% !important;
+            }
+
+            .stickySaveSection {
+              left: 0 !important;
+              right: 0 !important;
+              bottom: 0 !important;
+              width: 100% !important;
+              max-width: none !important;
             }
           }
         `}</style>

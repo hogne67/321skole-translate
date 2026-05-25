@@ -9,10 +9,12 @@
       "language": "Idioma",
       "searchLanguage": "Buscar idioma",
       "languagesCount": "{count} idiomas",
+      "sharedSettingsTitle": "Configurações do teste de leitura",
       "audience": "Público",
       "minimumWords": "Mínimo de palavras",
       "maximumWords": "Máximo de palavras",
       "topic": "Tema / prompt",
+      "promptInstructions": "Escreva aqui as instruções para a IA",
       "topicHelp": "Exemplo: Um texto curto sobre escola, futebol, natureza, vida em família ou atividades do dia a dia.",
       "feedbackMode": "Modo de feedback",
       "feedbackModeHelp": "Isso controla qual orientação gerada é mostrada aqui no construtor. No momento, o professor ainda recebe a resposta completa de qualquer forma."
@@ -24,8 +26,8 @@
       "learners": "Aprendizes"
     },
     "flow": {
-      "title": "Fluxo de leitura e tempo",
-      "description": "Essas configurações são salvas na configuração do teste de leitura. Elas descrevem o fluxo planejado para o aluno, mas ainda não substituem totalmente o fluxo completo do professor em toda a aplicação.",
+      "title": "Cronômetro",
+      "description": "Escolha o tempo para o teste de leitura. Quando o teste for entregue, o tempo real usado será mostrado e usado para calcular as palavras lidas por minuto. Se o tempo acabar, o teste será encerrado automaticamente e enviado para avaliação.",
       "showQuestionsAfterReading": "Mostrar perguntas depois da leitura",
       "showQuestionsAfterReadingHelp": "O aluno lê primeiro e depois recebe as atividades."
     },
@@ -67,10 +69,12 @@
       "generate": "Gerar teste de leitura",
       "generating": "Gerando teste de leitura...",
       "saveDraft": "Salvar rascunho",
+      "goToFinishing": "Ir para finalização",
       "saving": "Salvando...",
       "addFillInWord": "Adicionar preencher palavra",
-      "addMcq": "Adicionar múltipla escolha",
-      "addTrueFalse": "Adicionar verdadeiro/falso",
+      "addMcq": "+ Múltipla escolha",
+      "addTrueFalse": "+ Verdadeiro/falso",
+      "addBestSummary": "+ Melhor resumo",
       "addShortAnswer": "Adicionar resposta curta",
       "addOpen": "Adicionar atividade aberta",
       "delete": "Excluir"
@@ -89,7 +93,10 @@
     "builder": {
       "title": "Construtor do teste de leitura",
       "lessonTitle": "Título",
-      "readingText": "Texto de leitura",
+      "readingText": "Seu texto, seja ele próprio ou gerado por você, será exibido aqui.",
+      "pasteText": "Traduza seu próprio texto aqui",
+      "textHelp": "Revise o texto e as atividades antes de continuar para a finalização.",
+      "wordCount": "Contagem de palavras: {count}",
       "tasks": "Atividades",
       "id": "ID: {id}",
       "prompt": "Enunciado",
@@ -135,6 +142,36 @@
       "notSignedIn": "Não conectado. Faça login como professor ou produtor.",
       "quotaExceeded": "Você usou {used} de {limit} neste mês. Não é possível criar mais agora.",
       "missingId": "Falta id do servidor."
+    },
+    "steps": {
+      "text": "Texto",
+      "tasks": "Atividades",
+      "finishing": "Finalização",
+      "ready": "Pronto",
+      "generateReadingTest": "Gerar teste de leitura",
+      "nextStep": "Próxima etapa",
+      "lockedUntilTextReady": "Bloqueado até o texto estar pronto",
+      "readyForFinalSetup": "Pronto para configuração final",
+      "lockedUntilTasksReady": "Bloqueado até as atividades estarem prontas"
+    },
+    "stepStatus": {
+      "step1Title": "Etapa 1: Criar teste de leitura",
+      "step1Body": "Escolha nível, idioma, tamanho do texto e tema. O gerador cria o texto de leitura e as atividades.",
+      "textReadyTitle": "O texto está pronto",
+      "textReadyBody": "A próxima etapa é revisar as atividades. Você pode editar perguntas, alternativas e respostas corretas antes de continuar.",
+      "tasksReadyTitle": "As atividades estão prontas",
+      "tasksReadyBody": "A próxima etapa é a finalização. Lá você faz os últimos ajustes antes de usar o teste de leitura."
+    },
+    "sections": {
+      "generateReadingTestTitle": "Gerar teste de leitura",
+      "generateReadingTestBody": "Escolha nível, idioma, tamanho do texto, tema e quais tipos de atividade incluir.",
+      "generateAiTextTitle": "Gerar texto de IA para o teste de leitura",
+      "reviewTasksTitle": "Revisar atividades",
+      "reviewTasksBody": "As atividades geradas podem ser ajustadas aqui. Os tipos de atividade e a lógica continuam os mesmos.",
+      "enableTaskEditorFirst": "Gere um teste de leitura primeiro para ativar a edição de atividades.",
+      "goToFinishingTitle": "Ir para finalização",
+      "goToFinishingBody": "Continue daqui para a configuração final do teste de leitura.",
+      "readyToFinishBody": "Quando o texto e as atividades estiverem prontos, você pode continuar para a finalização."
     }
   }
 }

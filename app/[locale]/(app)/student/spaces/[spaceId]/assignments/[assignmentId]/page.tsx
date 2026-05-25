@@ -10,9 +10,9 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 
-import type {
+import ReadingTestPlayer, {
   ReadingLessonTask,
-  ReadingTestConfig,
+  type ReadingProgress,
 } from "@/components/student/ReadingTestPlayer";
 
 import GeometryWorksheetPracticeView from "@/components/generators/math/geometry/GeometryWorksheetPracticeView";
@@ -69,8 +69,6 @@ import AssignmentFooterActions from "./AssignmentFooterActions";
 import AssignmentPageHeader from "./AssignmentPageHeader";
 import AssignmentPageState from "./AssignmentPageState";
 import StandardAssignmentSection from "./StandardAssignmentSection";
-import ReadingTestStartCard from "./ReadingTestStartCard";
-import ReadingTestActiveSection from "./ReadingTestActiveSection";
 import { getAssignmentDerivedState } from "./assignmentDerivedState";
 import { useAssignmentAudio } from "./useAssignmentAudio";
 import StudentAssignmentStickyActions from "./StudentAssignmentStickyActions";
@@ -234,8 +232,6 @@ export default function StudentAssignmentPage() {
   const [readingTestStarted, setReadingTestStarted] = useState(false);
   const [readingTestFinished, setReadingTestFinished] = useState(false);
   const [readingTestSecondsLeft, setReadingTestSecondsLeft] = useState<number | null>(null);
-  const [readingTestRuntimeActive, setReadingTestRuntimeActive] = useState(false);
-  const timeoutHandledRef = useRef(false);
 
   const {
     tasksOriginal,
@@ -262,7 +258,7 @@ export default function StudentAssignmentPage() {
     [lesson?.lessonType, assignment?.lessonType]
   );
 
-  const displayedSourceTextSafe = isImageWriting ? "" : sourceTextSafe;
+  const displayedSourceTextSafe = isImageWriting || isReadingTest ? "" : sourceTextSafe;
 
   const imageUrl = useMemo(() => {
     const u = String(lesson?.coverImageUrl ?? "").trim();
@@ -330,27 +326,6 @@ export default function StudentAssignmentPage() {
     return Math.max(10, raw);
   }, [lesson?.readingTestConfig]);
 
-  const readingProgressPercent = useMemo(() => {
-    if (!readingTestTotalSeconds || readingTestSecondsLeft == null) return 100;
-    return Math.max(0, Math.min(100, (readingTestSecondsLeft / readingTestTotalSeconds) * 100));
-  }, [readingTestSecondsLeft, readingTestTotalSeconds]);
-
-  const readingTimerIsRed = useMemo(
-    () => readingTestStarted && readingTestSecondsLeft != null && readingTestSecondsLeft <= 15,
-    [readingTestStarted, readingTestSecondsLeft]
-  );
-
-  const readingPlayerConfig = useMemo<ReadingTestConfig | null>(() => {
-    const cfg = lesson?.readingTestConfig ?? null;
-    if (!cfg) return null;
-
-    return {
-      ...cfg,
-      timerEnabled: false,
-      timerSeconds: null,
-    };
-  }, [lesson?.readingTestConfig]);
-
   useEffect(() => {
     answersRef.current = answers;
   }, [answers]);
@@ -372,31 +347,14 @@ export default function StudentAssignmentPage() {
     return v;
   }
 
-  function setReadingTestCountdownFromConfig() {
-    if (readingTestTotalSeconds != null) {
-      setReadingTestSecondsLeft(readingTestTotalSeconds);
-      setReadingTestRuntimeActive(true);
-    } else {
-      setReadingTestSecondsLeft(null);
-      setReadingTestRuntimeActive(false);
-    }
-  }
-
   const isLockedByTeacher = useCallback((): boolean => {
     const s = normalizeStatus(liveStatus ?? "submitted");
     return s === "reviewed" || s === "approved";
   }, [liveStatus]);
 
-  function startReadingTest() {
-    if (submitted) return;
-    if (submitting) return;
-    if (isLockedByTeacher()) return;
-
-    timeoutHandledRef.current = false;
-    setMsg(null);
-    setReadingTestFinished(false);
-    setReadingTestStarted(true);
-    setReadingTestCountdownFromConfig();
+  function syncReadingProgress(progress: ReadingProgress) {
+    setReadingTestStarted(progress.hasStarted);
+    setReadingTestSecondsLeft(progress.secondsLeft);
   }
 
   async function onTranslateText() {
@@ -674,8 +632,6 @@ export default function StudentAssignmentPage() {
         setReadingTestStarted(false);
         setReadingTestFinished(false);
         setReadingTestSecondsLeft(readingTestTotalSeconds);
-        setReadingTestRuntimeActive(false);
-        timeoutHandledRef.current = false;
 
         setLiveStatus(null);
         setLiveTeacherText(null);
@@ -830,7 +786,6 @@ export default function StudentAssignmentPage() {
         if (sStatus === "submitted" || sStatus === "reviewed" || sStatus === "approved") {
           setReadingTestStarted(true);
           setReadingTestFinished(true);
-          setReadingTestRuntimeActive(false);
         }
       },
       () => { }
@@ -838,26 +793,6 @@ export default function StudentAssignmentPage() {
 
     return () => unsub();
   }, [spaceId, assignmentId, uid, sid, submissionId, editingSubmissionId, isGeometryAssignment]);
-
-  useEffect(() => {
-    if (!isReadingTest) return;
-    if (!readingTestStarted) return;
-    if (!readingTestRuntimeActive) return;
-    if (submitted) return;
-    if (submitting) return;
-
-    if (readingTestSecondsLeft == null) return;
-    if (readingTestSecondsLeft <= 0) return;
-
-    const timer = window.setTimeout(() => {
-      setReadingTestSecondsLeft((prev) => {
-        if (prev == null) return prev;
-        return Math.max(0, prev - 1);
-      });
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, [isReadingTest, readingTestStarted, readingTestRuntimeActive, submitted, submitting, readingTestSecondsLeft]);
 
   const saveDraft = useCallback(
     async (manual = false) => {
@@ -987,7 +922,11 @@ export default function StudentAssignmentPage() {
   }, [answers, uid, spaceId, assignmentId, submitted, submitting, isReadingTest, isLockedByTeacher, saveDraft]);
 
   const submitToSpace = useCallback(
-    async (mode: "manual" | "timeout" = "manual", explicitAnswers?: AnswersMap) => {
+    async (
+      mode: "manual" | "timeout" = "manual",
+      explicitAnswers?: AnswersMap,
+      progressOverride?: ReadingProgress
+    ) => {
       if (!spaceId || !assignmentId || !uid) return;
       if (submitted) return;
 
@@ -1037,7 +976,7 @@ export default function StudentAssignmentPage() {
           isReadingTest
             ? mode === "timeout"
               ? 0
-              : readingTestSecondsLeft
+              : progressOverride?.secondsLeft ?? readingTestSecondsLeft
             : null;
 
         const readingTestTimeSpentSeconds =
@@ -1127,7 +1066,6 @@ export default function StudentAssignmentPage() {
         setEditingSubmissionId(null);
         setSubmitted(true);
         setReadingTestFinished(true);
-        setReadingTestRuntimeActive(false);
         setReadingTestSecondsLeft((prev) => (mode === "timeout" ? 0 : prev));
         setLiveStatus("submitted");
         setLiveReadingTimerResult(readingTimerResult);
@@ -1185,27 +1123,6 @@ export default function StudentAssignmentPage() {
     ]
   );
 
-  useEffect(() => {
-    if (!isReadingTest) return;
-    if (!readingTestStarted) return;
-    if (!readingTestRuntimeActive) return;
-    if (submitted) return;
-    if (readingTestSecondsLeft !== 0) return;
-    if (timeoutHandledRef.current) return;
-
-    timeoutHandledRef.current = true;
-    setReadingTestRuntimeActive(false);
-    setReadingTestFinished(true);
-    void submitToSpace("timeout", answersRef.current);
-  }, [
-    isReadingTest,
-    readingTestStarted,
-    readingTestRuntimeActive,
-    submitted,
-    readingTestSecondsLeft,
-    submitToSpace,
-  ]);
-
   if (loading || err || !lesson) {
     return (
       <AssignmentPageState
@@ -1256,7 +1173,7 @@ export default function StudentAssignmentPage() {
     : canResubmit
       ? t("actions.resubmit")
       : isReadingTest
-        ? "Lever test"
+        ? "Send til lærer"
         : t("actions.submit");
 
   const submitDisabled =
@@ -1280,7 +1197,7 @@ export default function StudentAssignmentPage() {
   return (
     <main style={{ width: "100%", maxWidth: 980, margin: "0 auto", padding: "12px 8px 170px", boxSizing: "border-box" }}>
       <AssignmentPageHeader
-        mainTitle={mainTitle}
+        mainTitle={isReadingTest ? "Lesetest" : mainTitle}
         metaLine={metaLine}
         showDraftButton={showDraftButton}
         showSubmitButton={showSubmitButton}
@@ -1299,7 +1216,7 @@ export default function StudentAssignmentPage() {
         <div style={{ marginTop: 10, color: "crimson", whiteSpace: "pre-wrap" }}>{translateErr}</div>
       ) : null}
 
-      {imageUrl ? (
+      {imageUrl && !isReadingTest ? (
         <div
           style={{
             marginTop: 14,
@@ -1341,41 +1258,22 @@ export default function StudentAssignmentPage() {
       ) : null}
 
       <div style={{ marginTop: 18 }}>
-        {isReadingTest && !readingTestStarted ? (
-          <ReadingTestStartCard
-            spaceId={spaceId}
-            submitting={submitting}
-            uid={uid}
-            readingTestTotalSeconds={readingTestTotalSeconds}
-            formatSeconds={formatSeconds}
-            t={tString}
-            onStart={startReadingTest}
-          />
-        ) : null}
-
-        {isReadingTest && readingTestStarted ? (
-          <ReadingTestActiveSection
-            spaceId={spaceId}
-            mainTitle={mainTitle}
-            sourceTextSafe={sourceTextSafe}
+        {isReadingTest ? (
+          <ReadingTestPlayer
+            title={mainTitle}
+            level={String(assignment?.level ?? lesson.level ?? "")}
+            language={String(assignment?.language ?? lesson.language ?? "")}
+            sourceText={sourceTextSafe}
             tasks={tasksOriginal as ReadingLessonTask[]}
-            readingPlayerConfig={readingPlayerConfig}
-            answers={answers}
-            lock={lock}
-            submitted={submitted}
-            readingTestFinished={readingTestFinished}
-            readingTestStarted={readingTestStarted}
-            readingTestRuntimeActive={readingTestRuntimeActive}
-            readingTestSecondsLeft={readingTestSecondsLeft}
-            readingProgressPercent={readingProgressPercent}
-            readingTimerIsRed={readingTimerIsRed}
-            showSubmitButton={showSubmitButton}
-            submitLabel={submitLabel}
-            submitDisabled={submitDisabled}
-            t={tString}
-            formatSeconds={formatSeconds}
+            readingTestConfig={lesson.readingTestConfig ?? null}
+            initialAnswers={answers}
+            disabled={lock || submitted || readingTestFinished || submitting}
+            submitLabel="Send til lærer"
+            importantMessage="Viktig! Nedtellingen starter når du trykker på Start test. Les teksten nøye og svar på oppgavene. Timeren stopper når du trykker på Send til lærer."
             onAnswersChange={setAnswers}
-            onSubmit={() => submitToSpace("manual")}
+            onProgressChange={syncReadingProgress}
+            onSubmittedChange={setReadingTestFinished}
+            onSubmit={(progress) => submitToSpace("manual", undefined, progress)}
           />
         ) : null}
 

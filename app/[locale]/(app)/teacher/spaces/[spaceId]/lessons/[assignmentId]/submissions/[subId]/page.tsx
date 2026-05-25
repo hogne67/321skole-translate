@@ -63,6 +63,7 @@ import {
   readReadingTestMeta,
   requireDb,
 } from "@/lib/submissions/readers";
+import { countReadingTestWords } from "@/lib/readingTests/readingSignals";
 
 function getGeometryScoreKind(
   percent: number | null
@@ -665,7 +666,7 @@ function Inner() {
   const lessonLevel = lesson?.level ?? assignment?.level ?? "";
   const lessonLevelLabel = formatLessonLevel(lessonLevel);
   const sourceText = String(lesson?.sourceText ?? lesson?.text ?? "");
-  const cover = String(lesson?.coverImageUrl ?? "").trim() || null;
+  const rawCover = String(lesson?.coverImageUrl ?? "").trim() || null;
 
   const tasksOriginal = safeTasksArray(lesson?.tasks)
     .slice()
@@ -743,7 +744,13 @@ function Inner() {
   );
 
   const isReadingTest = isReadingTestLesson(assignment, lesson, tasksOriginal);
+  const cover = isReadingTest ? null : rawCover;
   const readingMeta = readReadingTestMeta(sub);
+  const readingTextWordCount = sourceText
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+  const readingTotalWordCount = countReadingTestWords(sourceText, tasksOriginal);
 
   const readingSummaryText = isReadingTest
     ? readingMeta.timedOut === true
@@ -762,6 +769,13 @@ function Inner() {
             limit: formatDuration(readingMeta.limitSeconds),
           })
           : ""
+    : "";
+  const readingDeliveryStatus = isReadingTest
+    ? readingMeta.timedOut === true
+      ? "Tiden gikk ut"
+      : readingMeta.submittedManually === true
+        ? "Sendt inn av elev"
+        : "Levert"
     : "";
 
   const statusChanged = status !== initialStatus;
@@ -947,9 +961,63 @@ function Inner() {
           <div className="text-sm text-slate-600">{noAutoScoreLabel}</div>
         )}
 
-        {isReadingTest && readingSummaryText ? (
-          <div className="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium leading-5 text-slate-800">
-            {readingSummaryText}
+        {isReadingTest ? (
+          <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+            <div className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-900">
+              Lesetest
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+              <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Brukt tid
+                </div>
+                <div className="mt-1 text-lg font-black text-slate-950">
+                  {formatDuration(readingMeta.usedSeconds)}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Tidsgrense
+                </div>
+                <div className="mt-1 text-lg font-black text-slate-950">
+                  {formatDuration(readingMeta.limitSeconds)}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Levering
+                </div>
+                <div className="mt-1 text-sm font-black text-slate-950">
+                  {readingDeliveryStatus}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Ord lesetekst
+                </div>
+                <div className="mt-1 text-lg font-black text-slate-950">
+                  {readingTextWordCount}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Ord totalt
+                </div>
+                <div className="mt-1 text-lg font-black text-slate-950">
+                  {readingTotalWordCount}
+                </div>
+              </div>
+            </div>
+
+            {readingSummaryText ? (
+              <div className="mt-2 text-xs font-medium leading-5 text-slate-700">
+                {readingSummaryText}
+              </div>
+            ) : null}
           </div>
         ) : null}
 

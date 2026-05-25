@@ -101,8 +101,11 @@ export type SubmissionDoc = {
 
     readingTestTimeLimitSeconds?: unknown;
     readingTestTimeUsedSeconds?: unknown;
+    readingTestTimeSpentSeconds?: unknown;
+    readingTestSecondsLeftAtSubmit?: unknown;
     readingTestTimedOut?: unknown;
     readingTestSubmittedManually?: unknown;
+    readingTimerResult?: unknown;
 };
 
 export type AssignmentDoc = {

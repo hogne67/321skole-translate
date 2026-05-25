@@ -63,10 +63,93 @@ type ReadingTestResponse = {
 
 type OpenAIErrorLike = { message?: string; code?: string | number };
 
+type LevelSpec = {
+  minWords: number;
+  maxWords: number;
+  targetWords: number;
+  mcqCount: number;
+  trueFalseCount: number;
+  topicGuidance: string;
+  languageGuidance: string;
+  lengthGuidance: string;
+};
+
 type RequestUserContext = {
   uid: string;
   role: AppRole | string;
   plan: PlanKey | string;
+};
+
+const REQUIRED_TASK_TYPES: ReadingTestTaskType[] = ["mcq", "true_false", "best_summary"];
+
+const LEVEL_SPECS: Record<CefrLevel, LevelSpec> = {
+  A1: {
+    minWords: 60,
+    maxWords: 80,
+    targetWords: 70,
+    mcqCount: 2,
+    trueFalseCount: 1,
+    topicGuidance: "Familiar everyday situations.",
+    languageGuidance:
+      "Use short sentences, easy words, and very little information in each sentence.",
+    lengthGuidance: "Write one short paragraph of about 70 words.",
+  },
+  A2: {
+    minWords: 100,
+    maxWords: 150,
+    targetWords: 125,
+    mcqCount: 3,
+    trueFalseCount: 2,
+    topicGuidance: "Familiar topics from everyday life, school, work, family, and leisure.",
+    languageGuidance:
+      'Use simple sentences and some connectors such as "fordi", "men", "også" and "etterpå" when the target language is Norwegian.',
+    lengthGuidance: "Write 2 paragraphs with about 60 words each.",
+  },
+  B1: {
+    minWords: 150,
+    maxWords: 220,
+    targetWords: 185,
+    mcqCount: 4,
+    trueFalseCount: 3,
+    topicGuidance: "Everyday life, society, work, school, and simple factual texts.",
+    languageGuidance:
+      "Use a more coherent text with details, cause and effect, and simple reflection.",
+    lengthGuidance: "Write 3 paragraphs with about 60 words each.",
+  },
+  B2: {
+    minWords: 220,
+    maxWords: 320,
+    targetWords: 270,
+    mcqCount: 5,
+    trueFalseCount: 4,
+    topicGuidance: "Society, work, education, culture, and current topics.",
+    languageGuidance:
+      "Use a more complex text with viewpoints, nuance, and some indirect information.",
+    lengthGuidance:
+      "Write 4 paragraphs with about 65-75 words each. The text should be developed enough to include viewpoints, nuance, examples, and some indirect information.",
+  },
+  C1: {
+    minWords: 180,
+    maxWords: 260,
+    targetWords: 220,
+    mcqCount: 5,
+    trueFalseCount: 4,
+    topicGuidance: "Complex but accessible topics for advanced language learners.",
+    languageGuidance:
+      "Use advanced, coherent language with nuance while keeping the test assessable.",
+    lengthGuidance: "Write 3-4 coherent paragraphs.",
+  },
+  C2: {
+    minWords: 180,
+    maxWords: 260,
+    targetWords: 220,
+    mcqCount: 5,
+    trueFalseCount: 4,
+    topicGuidance: "Complex but accessible topics for advanced language learners.",
+    languageGuidance:
+      "Use advanced, coherent language with nuance while keeping the test assessable.",
+    lengthGuidance: "Write 3-4 coherent paragraphs.",
+  },
 };
 
 function getErrorMessage(err: unknown): string {
@@ -106,18 +189,14 @@ function safeString(v: unknown, fallback: string): string {
 }
 
 function normalizeWordRange(level: CefrLevel, minWords?: number, maxWords?: number) {
-  const defaults: Record<CefrLevel, { min: number; max: number }> = {
-    A1: { min: 60, max: 90 },
-    A2: { min: 120, max: 180 },
-    B1: { min: 120, max: 180 },
-    B2: { min: 150, max: 220 },
-    C1: { min: 180, max: 260 },
-    C2: { min: 180, max: 260 },
-  };
+  const base = LEVEL_SPECS[level];
 
-  const base = defaults[level];
-  const min = clampNumber(minWords, base.min, 40, 400);
-  const max = clampNumber(maxWords, base.max, min, 500);
+  if (level === "A1" || level === "A2" || level === "B1" || level === "B2") {
+    return { min: base.minWords, max: base.maxWords };
+  }
+
+  const min = clampNumber(minWords, base.minWords, 40, 400);
+  const max = clampNumber(maxWords, base.maxWords, min, 500);
 
   return { min, max };
 }
@@ -126,26 +205,6 @@ function countWords(text: string): number {
   const t = (text || "").trim();
   if (!t) return 0;
   return t.split(/\s+/).filter(Boolean).length;
-}
-
-function isTuple3(v: unknown): v is [string, string, string] {
-  return Array.isArray(v) && v.length === 3 && v.every((x) => typeof x === "string");
-}
-
-function normalizeTaskTypes(v: unknown): ReadingTestTaskType[] {
-  const valid: ReadingTestTaskType[] = ["mcq", "true_false", "best_summary"];
-
-  if (!Array.isArray(v)) {
-    return ["mcq", "true_false", "best_summary"];
-  }
-
-  const picked = v.filter(
-    (x): x is ReadingTestTaskType => valid.includes(x as ReadingTestTaskType)
-  );
-
-  return picked.length > 0
-    ? Array.from(new Set(picked))
-    : ["mcq", "true_false", "best_summary"];
 }
 
 function normalizeLanguageCode(v: unknown): string {
@@ -230,88 +289,207 @@ function getAudienceInstruction(audience: string, language: string): string {
   }
 }
 
-function isReadingTestResponse(v: unknown): v is ReadingTestResponse {
-  if (!v || typeof v !== "object") return false;
+function normalizeGeneratedReadingTest(
+  v: unknown,
+  args: {
+    level: CefrLevel;
+    language: string;
+    topic: string;
+    mcqCount: number;
+    trueFalseCount: number;
+  }
+): ReadingTestResponse | null {
+  if (!v || typeof v !== "object") return null;
 
   const o = v as Record<string, unknown>;
   const tasks = o.tasks as Record<string, unknown> | undefined;
   const feedback = o.feedback as Record<string, unknown> | undefined;
 
-  if (!tasks || typeof tasks !== "object") return false;
-  if (!feedback || typeof feedback !== "object") return false;
+  if (!tasks || typeof tasks !== "object") return null;
 
-  const mcq = tasks.mcq;
-  const trueFalse = tasks.trueFalse;
-  const bestSummary = tasks.bestSummary as Record<string, unknown> | undefined;
+  const flatTasks = Array.isArray(tasks.items)
+    ? tasks.items
+    : Array.isArray(tasks.questions)
+      ? tasks.questions
+      : Array.isArray(tasks)
+        ? tasks
+        : [];
+  const mcq =
+    tasks.mcq ??
+    tasks.multipleChoice ??
+    tasks.multiple_choice ??
+    flatTasks.filter((task) => normalizeGeneratedTaskType(task) === "mcq");
+  const trueFalse =
+    tasks.trueFalse ??
+    tasks.true_false ??
+    tasks.truefalse ??
+    flatTasks.filter((task) => normalizeGeneratedTaskType(task) === "true_false");
+  const bestSummary = (tasks.bestSummary ??
+    tasks.best_summary ??
+    flatTasks.find((task) => normalizeGeneratedTaskType(task) === "best_summary")) as
+    | Record<string, unknown>
+    | undefined;
+  const feedbackRecord = feedback && typeof feedback === "object" ? feedback : {};
 
-  const mcqOk =
-    Array.isArray(mcq) &&
-    mcq.length > 0 &&
-    mcq.every((task) => {
-      if (!task || typeof task !== "object") return false;
-      const t = task as Record<string, unknown>;
-      return (
-        typeof t.prompt === "string" &&
-        isTuple3(t.options) &&
-        typeof t.correctAnswer === "string"
-      );
+  if (!Array.isArray(mcq) || mcq.length < args.mcqCount) return null;
+  if (!Array.isArray(trueFalse) || trueFalse.length < args.trueFalseCount) return null;
+  if (!bestSummary || typeof bestSummary !== "object") return null;
+  if (typeof o.text !== "string" || !o.text.trim()) return null;
+
+  const normalizedMcq: ReadingMcqTask[] = [];
+  for (const task of mcq.slice(0, args.mcqCount)) {
+    if (!task || typeof task !== "object") return null;
+    const t = task as Record<string, unknown>;
+    const prompt = readPrompt(t);
+    const options = normalizeOptions(t.options);
+    if (!prompt || !options) return null;
+    const correctAnswer = normalizeOptionAnswer(readCorrectAnswer(t), options);
+    if (!correctAnswer) return null;
+
+    normalizedMcq.push({
+      prompt,
+      options,
+      correctAnswer,
     });
+  }
 
-  const trueFalseOk =
-    Array.isArray(trueFalse) &&
-    trueFalse.length > 0 &&
-    trueFalse.every((task) => {
-      if (!task || typeof task !== "object") return false;
-      const t = task as Record<string, unknown>;
-      return typeof t.prompt === "string" && typeof t.correctAnswer === "boolean";
+  const normalizedTrueFalse: ReadingTrueFalseTask[] = [];
+  for (const task of trueFalse.slice(0, args.trueFalseCount)) {
+    if (!task || typeof task !== "object") return null;
+    const t = task as Record<string, unknown>;
+    const prompt = readPrompt(t);
+    if (!prompt) return null;
+    const correctAnswer = normalizeBooleanAnswer(readCorrectAnswer(t));
+    if (correctAnswer == null) return null;
+
+    normalizedTrueFalse.push({
+      prompt,
+      correctAnswer,
     });
+  }
 
+  const bestSummaryPrompt = readPrompt(bestSummary);
+  const bestSummaryOptions = normalizeOptions(bestSummary.options);
+  if (!bestSummaryPrompt || !bestSummaryOptions) return null;
+  const bestSummaryCorrect = normalizeOptionAnswer(readCorrectAnswer(bestSummary), bestSummaryOptions);
+  if (!bestSummaryCorrect) return null;
+
+  return {
+    title: typeof o.title === "string" && o.title.trim() ? o.title.trim() : "Lesetest",
+    cefrLevel: args.level,
+    language: args.language,
+    topic: args.topic,
+    wordCount: countWords(o.text),
+    text: o.text.trim(),
+    tasks: {
+      mcq: normalizedMcq,
+      trueFalse: normalizedTrueFalse,
+      bestSummary: {
+        prompt: bestSummaryPrompt,
+        options: bestSummaryOptions,
+        correctAnswer: bestSummaryCorrect,
+      },
+    },
+    feedback: {
+      learner: typeof feedbackRecord.learner === "string" ? feedbackRecord.learner : "",
+      adult: typeof feedbackRecord.adult === "string" ? feedbackRecord.adult : "",
+      nextStep: typeof feedbackRecord.nextStep === "string" ? feedbackRecord.nextStep : "",
+    },
+  };
+}
+
+function normalizeGeneratedTaskType(value: unknown): ReadingTestTaskType | null {
+  if (!value || typeof value !== "object") return null;
+  const task = value as Record<string, unknown>;
+  const raw = String(task.type ?? task.taskType ?? task.kind ?? "").trim().toLowerCase();
+  if (raw === "mcq" || raw === "multiple_choice" || raw === "multiple choice") return "mcq";
+  if (raw === "true_false" || raw === "truefalse" || raw === "true/false" || raw === "true false") {
+    return "true_false";
+  }
+  if (raw === "best_summary" || raw === "bestsummary" || raw === "best summary") {
+    return "best_summary";
+  }
+  return null;
+}
+
+function readPrompt(task: Record<string, unknown>): string {
+  const value = task.prompt ?? task.question ?? task.statement ?? task.instruction ?? task.text;
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readCorrectAnswer(task: Record<string, unknown>): unknown {
   return (
-    typeof o.title === "string" &&
-    typeof o.cefrLevel === "string" &&
-    typeof o.language === "string" &&
-    typeof o.topic === "string" &&
-    typeof o.wordCount === "number" &&
-    typeof o.text === "string" &&
-    mcqOk &&
-    trueFalseOk &&
-    !!bestSummary &&
-    typeof bestSummary.prompt === "string" &&
-    isTuple3(bestSummary.options) &&
-    typeof bestSummary.correctAnswer === "string" &&
-    typeof feedback.learner === "string" &&
-    typeof feedback.adult === "string" &&
-    typeof feedback.nextStep === "string"
+    task.correctAnswer ??
+    task.answer ??
+    task.correct ??
+    task.correctOption ??
+    task.correct_option ??
+    task.answerIndex ??
+    task.correctIndex
   );
 }
 
-function buildTaskInstructions(enabledTaskTypes: ReadingTestTaskType[]) {
+function normalizeOptions(value: unknown): [string, string, string] | null {
+  if (!Array.isArray(value)) return null;
+  const options = value.map((option) => String(option ?? "").trim()).filter(Boolean);
+  if (options.length < 3) return null;
+  return [options[0], options[1], options[2]];
+}
+
+function normalizeOptionAnswer(value: unknown, options: [string, string, string]): string | null {
+  if (typeof value === "number" && options[value]) return options[value];
+  if (typeof value !== "string") return null;
+
+  const letterIndex = { a: 0, b: 1, c: 2 }[value.trim().toLowerCase()];
+  if (letterIndex != null && options[letterIndex]) return options[letterIndex];
+
+  const numericIndex = Number(value.trim());
+  if (Number.isInteger(numericIndex)) {
+    if (options[numericIndex]) return options[numericIndex];
+    if (options[numericIndex - 1]) return options[numericIndex - 1];
+  }
+
+  const exact = options.find((option) => option === value);
+  if (exact) return exact;
+
+  const normalized = value.trim().toLowerCase();
+  return options.find((option) => option.trim().toLowerCase() === normalized) ?? null;
+}
+
+function normalizeBooleanAnswer(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value !== "string") return null;
+
+  const normalized = value.trim().toLowerCase();
+  if (["true", "sant", "yes", "ja", "verdadeiro"].includes(normalized)) return true;
+  if (["false", "usant", "no", "nei", "falso"].includes(normalized)) return false;
+  return null;
+}
+
+function buildTaskInstructions(spec: LevelSpec) {
   const blocks: string[] = [];
 
-  if (enabledTaskTypes.includes("mcq")) {
-    blocks.push(`Multiple choice:
-- Create 3 multiple choice questions.
+  blocks.push(`Multiple choice:
+- Create exactly ${spec.mcqCount} multiple choice questions.
 - Each question must have exactly 3 options.
 - Only 1 option is correct.
 - The correctAnswer must be exactly equal to one of the options.
-- The wrong options must be plausible but clearly wrong based on the text.`);
-  }
+- The wrong options must be plausible, but not tricky or misleading.
+- The wrong options must be clearly wrong based on the text.`);
 
-  if (enabledTaskTypes.includes("true_false")) {
-    blocks.push(`True or false:
-- Create 3 true/false statements.
+  blocks.push(`True or false:
+- Create exactly ${spec.trueFalseCount} true/false statements.
+- Each statement must be answerable directly from the text.
 - Each statement must be clearly true or clearly false based on the text.
 - The prompt must be the statement itself.
 - correctAnswer must be a boolean: true or false.`);
-  }
 
-  if (enabledTaskTypes.includes("best_summary")) {
-    blocks.push(`Best summary:
-- Create exactly 3 short summaries of the whole text.
-- Only 1 summary correctly represents the main idea.
-- The 2 wrong summaries should be believable but incorrect.
+  blocks.push(`Best summary:
+- Create exactly 1 best summary task.
+- The task must have exactly 3 short summaries of the whole text.
+- Only 1 summary must clearly be the best representation of the main idea.
+- The 2 wrong summaries should be believable, but either too narrow, contain a wrong main point, or exaggerate something.
 - The correctAnswer must be exactly equal to one of the options.`);
-  }
 
   return blocks.join("\n\n");
 }
@@ -457,7 +635,8 @@ export async function POST(req: Request) {
     const language = normalizeLanguageCode(body.language);
     const topic = safeString(body.topic, language === "nb" ? "dagligliv" : "everyday life");
     const audience = safeString(body.audience, "learners");
-    const enabledTaskTypes = normalizeTaskTypes(body.enabledTaskTypes);
+    const enabledTaskTypes = REQUIRED_TASK_TYPES;
+    const levelSpec = LEVEL_SPECS[level];
 
     const { min, max } = normalizeWordRange(level, body.minWords, body.maxWords);
 
@@ -484,10 +663,16 @@ Target language:
 
 Requirements:
 - Write one coherent reading text.
-- The text must be between ${min} and ${max} words.
+- The "text" field itself must be between ${min} and ${max} words. This is mandatory.
+- Aim for about ${levelSpec.targetWords} words in the "text" field.
+- Count only the words inside the "text" field, not the title, tasks, options, or feedback.
+- For ${level}, do not write a shorter text and do not summarize to save space.
+- Length guidance: ${levelSpec.lengthGuidance}
 - Topic: ${topic}
 - CEFR level: ${level}
 - ${getAudienceInstruction(audience, language)}
+- Topic guidance for this level: ${levelSpec.topicGuidance}
+- Language guidance for this level: ${levelSpec.languageGuidance}
 - Use vocabulary and sentence structure appropriate for CEFR ${level}.
 - Keep the text natural, clear, engaging, and age-appropriate.
 - The title must also be written in the target language.
@@ -495,10 +680,10 @@ Requirements:
 - All answer options must be written in the target language.
 - All feedback fields must be written in the target language.
 
-Enabled task types selected by the teacher:
+Required task types:
 ${enabledTaskTypes.join(", ")}
 
-${buildTaskInstructions(enabledTaskTypes)}
+${buildTaskInstructions(levelSpec)}
 
 Also provide:
 - short feedback for the learner
@@ -508,6 +693,8 @@ Also provide:
 Important:
 - Only create these task types: mcq, trueFalse and bestSummary
 - Do not create wordChoice, sentencePlacement, fillInWord, shortAnswer or open tasks
+- All questions and answers must build only on the generated text
+- Do not create questions that require background knowledge outside the text
 - Do not invent extra top-level fields
 - Set "wordCount" to the text word count if possible
 - Do not translate the language code itself
@@ -518,55 +705,87 @@ ${buildOutputShape(level, language, topic)}
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const resp = await client.responses.create({
-      model,
-      input: [
-        { role: "system", content: system },
-        { role: "user", content: userPrompt },
-      ],
-    });
+    let normalized: ReadingTestResponse | null = null;
+    let lastRaw = "";
+    let lastParsed: unknown = null;
+    let lastError = "";
 
-    const out = (resp.output_text || "").trim();
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const retryInstruction =
+        attempt === 0
+          ? ""
+          : `
 
-    if (!out) {
-      return NextResponse.json(
-        { ok: false, error: "Empty response from model." },
-        { status: 500 }
-      );
+Previous attempt failed: ${lastError || "wrong word count or structure"}.
+You must now regenerate the whole JSON.
+The "text" field must contain ${min}-${max} words. Aim for about ${levelSpec.targetWords} words.
+${levelSpec.lengthGuidance}
+Do not shorten the text below ${min} words.
+`.trim();
+
+      const resp = await client.responses.create({
+        model,
+        temperature: 0.4,
+        max_output_tokens: 5000,
+        input: [
+          { role: "system", content: system },
+          { role: "user", content: retryInstruction ? `${userPrompt}\n\n${retryInstruction}` : userPrompt },
+        ],
+      });
+
+      const out = (resp.output_text || "").trim();
+      lastRaw = out;
+
+      if (!out) {
+        lastError = "Empty response from model.";
+        continue;
+      }
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(out);
+        lastParsed = parsed;
+      } catch {
+        lastError = "Model did not return valid JSON.";
+        continue;
+      }
+
+      const candidate = normalizeGeneratedReadingTest(parsed, {
+        level,
+        language,
+        topic,
+        mcqCount: levelSpec.mcqCount,
+        trueFalseCount: levelSpec.trueFalseCount,
+      });
+
+      if (!candidate) {
+        lastError = "JSON response is missing fields or has an invalid structure.";
+        continue;
+      }
+
+      if (candidate.wordCount < min || candidate.wordCount > max) {
+        lastError = `Generated text had ${candidate.wordCount} words, expected ${min}-${max}.`;
+        continue;
+      }
+
+      normalized = candidate;
+      break;
     }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(out);
-    } catch {
+    if (!normalized) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Model did not return valid JSON.",
-          raw: out.slice(0, 3000),
+          error: lastError || "Could not generate a valid reading test.",
+          raw: lastRaw
+            ? lastRaw.slice(0, 3000)
+            : lastParsed
+              ? JSON.stringify(lastParsed).slice(0, 3000)
+              : "",
         },
         { status: 500 }
       );
     }
-
-    if (!isReadingTestResponse(parsed)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "JSON response is missing fields or has an invalid structure.",
-          raw: JSON.stringify(parsed).slice(0, 3000),
-        },
-        { status: 500 }
-      );
-    }
-
-    const normalized: ReadingTestResponse = {
-      ...parsed,
-      language,
-      cefrLevel: level,
-      topic,
-      wordCount: countWords(parsed.text),
-    };
 
     await consumeFeatureAdmin({
       uid: user.uid,

@@ -294,7 +294,7 @@ function hrefForLesson(locale: string, mode: AppMode, lessonId: string, lessonTy
   const normalizedLessonType = String(lessonType || "").trim().toLowerCase();
 
   if (normalizedLessonType === "reading_test") {
-    return withLocale(locale, `/reading-tests/${lessonId}`);
+    return withLocale(locale, `/student/lesson/${lessonId}`);
   }
 
   if (mode === "teacher" || mode === "creator") {

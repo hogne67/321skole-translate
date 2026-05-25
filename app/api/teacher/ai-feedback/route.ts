@@ -9,6 +9,10 @@ import {
   getServerFeatureStatusFromProfile,
   consumeServerFeature,
 } from "@/lib/serverFeatureGuard";
+import {
+  buildReadingSignalsPayload,
+  countReadingTestWords,
+} from "@/lib/readingTests/readingSignals";
 
 type SourceType = "myContent" | "library";
 type TaskType = "mcq" | "truefalse" | "open" | "multiple_choice" | "text" | "writing" | "short_answer";
@@ -214,6 +218,10 @@ function isClosedChoiceLike(type: string): boolean {
 function isReadingTestType(type: string): boolean {
   const t = type.toLowerCase();
   return (
+    t === "mcq" ||
+    t === "multiple_choice" ||
+    t === "truefalse" ||
+    t === "true_false" ||
     t === "word_choice" ||
     t === "sentence_placement" ||
     t === "best_summary" ||
@@ -315,12 +323,6 @@ function readRole(profile: unknown): Role | null {
   return readLegacyRole(profile);
 }
 
-function countWords(text: string): number {
-  const t = (text || "").trim();
-  if (!t) return 0;
-  return t.split(/\s+/).filter(Boolean).length;
-}
-
 function formatDuration(totalSeconds: number | null): string {
   if (typeof totalSeconds !== "number" || !Number.isFinite(totalSeconds)) return "unknown";
   const secs = Math.max(0, Math.floor(totalSeconds));
@@ -333,32 +335,6 @@ function formatDuration(totalSeconds: number | null): string {
   }
 
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
-function buildTimeSignal(wordCount: number, usedSeconds: number | null): {
-  wordsPerMinute: number | null;
-  summary: string;
-} {
-  if (!wordCount || typeof usedSeconds !== "number" || !Number.isFinite(usedSeconds) || usedSeconds <= 0) {
-    return {
-      wordsPerMinute: null,
-      summary: "No reliable timing data available.",
-    };
-  }
-
-  const minutes = usedSeconds / 60;
-  const wpm = Math.round(wordCount / minutes);
-
-  let band = "";
-  if (wpm < 60) band = "slow";
-  else if (wpm <= 140) band = "normal";
-  else if (wpm <= 180) band = "fast";
-  else band = "very fast";
-
-  return {
-    wordsPerMinute: wpm,
-    summary: `Estimated reading pace: about ${wpm} words per minute (${band}). Treat this as a supportive signal only, not as proof by itself.`,
-  };
 }
 
 function cleanAiFeedback(text: string): string {
@@ -473,7 +449,7 @@ function getPromptText(lang: Lang) {
       instruction: "Instruction",
       readingMetadata: "Reading test metadata",
 
-      wordCount: "Reading text word count",
+      wordCount: "Reading test word count",
       timeLimit: "Time limit",
       timeUsed: "Time used",
       submittedManually: "Submitted manually",
@@ -504,7 +480,7 @@ function getPromptText(lang: Lang) {
         "Write teacher feedback for the student in the required structure. Use the auto-check actively. Mention what the student understands, what is partly correct or wrong, and what should be practised next. Write the headings in the same language as the feedback language.",
 
       readingInstruction:
-        "Write teacher feedback in the required structure. Base the reading assessment mainly on the auto result. Use time only as a cautious supporting signal. Evaluate whether short open answers are sufficient for the task itself, and when they are too thin, give concrete advice for how the student can improve them. Write the headings in the same language as the feedback language.",
+        "Write teacher feedback in the required structure. Base the reading assessment mainly on the auto result and readingSignals. Use concrete results clearly, for example: 'You answered 6 of 6 tasks correctly, which is 100%.' You may use approximate words per minute, but WPM is based on the whole reading basis: reading text, task prompts, answer options, and answering. Treat it as functional test reading, not pure reading speed for the main text alone. Use wording like: 'In this test, you read and answered at about 159 words per minute.' Do not write 'You read 159 words per minute' or 'Your reading speed is 159 WPM.' Reading pace must always be connected to comprehension. This is not an official diagnostic test; frame it as support for learning, progress, and realistic orientation. Use the CEFR level as the level of this text, not as a broad level conclusion about the student. Avoid claims such as 'you are A2', 'you are B1', 'you are at level...', 'you fully meet the level', or that the student is working toward a C1 goal. Prefer careful formulations such as 'This result suggests...', 'This text seems to fit...', 'You answered ... correctly', 'you show signs of...', and 'You worked through the text quickly/calmly...'. Do not infer too much from task order, such as 'the first three tasks'. Tone down coach language. Avoid 'Congratulations!', 'Fantastic!', and 'Keep up the good work!'. Short tests and few tasks can produce higher or more unstable WPM numbers, so do not overinterpret WPM from one short test. Do not write 'This is expected for A2.' If score is high and pace is appropriate/high, you may write that the result suggests the student reads this type of text with good fluency or shows signs of being a strong reader at this level. If score is high and pace is high, follow the level guidance in the user message; never suggest moving to a level that is the same as, or lower than, the current text level. If score is low and pace is high, do not praise speed and do not suggest a higher level; say the student worked quickly through the test, but some mistakes may suggest it went a little too fast, and suggest reading questions and answer options more calmly before answering. If score is low and pace is calm/slow, do not suggest reading more slowly; suggest reading calmly in smaller parts, stopping at difficult words, and trying more texts at the same level. Use mild real-life comparisons only as explanations, never as hard standards. For best_summary tasks, write that the student chose the correct summary, not that the student summarized the text well. If best_summary is wrong, suggest practising the main idea and choosing the summary that best fits the text. Only include an open tasks section if open tasks or open answers exist. The next steps section must always give one concrete next step and must follow the level guidance in the user message: high score + appropriate/high pace may mean a slightly more demanding text only when a higher level is appropriate; otherwise suggest a longer, more complex, or different text at the same level. 1 wrong answer -> read the questions carefully and practise the same level a little more; several wrong answers + fast pace -> read questions and answer options more calmly; several wrong answers + slow pace -> practise more at the same level, read calmly, stop at difficult words, and try more texts on the same level; wrong best_summary -> practise main idea and summaries. Write the headings in the same language as the feedback language.",
 
       generalInstruction:
         "Write short teacher feedback in the required structure. Focus on whether the student has understood the task, answered relevantly, and responded to the open tasks. Use automatic result data as support when it exists. In the language section, comment on grammar and point out concrete errors that should be corrected. Judge short answers in light of what the task asks for. If short answers are acceptable for that task, say so. If the answer is too thin for the task, explain what is missing and give concrete advice on how the student can expand or improve it. Write the headings in the same language as the feedback language. Do not set a CEFR level.",
@@ -542,7 +518,7 @@ function getPromptText(lang: Lang) {
       instruction: "Instrução",
       readingMetadata: "Metadados do teste de leitura",
 
-      wordCount: "Número de palavras do texto de leitura",
+      wordCount: "Número de palavras do teste de leitura",
       timeLimit: "Tempo limite",
       timeUsed: "Tempo usado",
       submittedManually: "Enviado manualmente",
@@ -573,7 +549,7 @@ function getPromptText(lang: Lang) {
         "Escreva um feedback do professor para o aluno na estrutura exigida. Use ativamente a autocorreção. Diga o que o aluno compreende, o que está parcialmente correto ou errado e o que deve praticar a seguir. Escreva os títulos no mesmo idioma do feedback.",
 
       readingInstruction:
-        "Escreva um feedback do professor na estrutura exigida. Baseie a avaliação de leitura principalmente no resultado automático. Use o tempo apenas como um sinal de apoio cuidadoso. Avalie se respostas abertas curtas são suficientes para a própria tarefa e, quando forem curtas demais, dê conselhos concretos sobre como o aluno pode melhorá-las. Escreva os títulos no mesmo idioma do feedback.",
+        "Escreva um feedback do professor na estrutura exigida. Baseie a avaliação de leitura principalmente no resultado automático e em readingSignals. Use resultados concretos com clareza, por exemplo: 'Você respondeu corretamente a 6 de 6 tarefas, ou seja, 100%.' Você pode usar palavras por minuto aproximadas, mas o WPM se baseia em toda a base de leitura: texto, enunciados, alternativas de resposta e respostas. Trate isso como leitura funcional de teste, não como velocidade pura de leitura apenas do texto principal. Use formulações como: 'Neste teste, você leu e respondeu a cerca de 159 palavras por minuto.' Não escreva 'Você leu 159 palavras por minuto' ou 'Sua velocidade de leitura é 159 WPM.' A velocidade de leitura sempre deve ser ligada à compreensão. Isto não é um teste diagnóstico oficial; formule como apoio para aprendizagem, progresso e orientação realista. Use o nível CEFR como o nível deste texto, não como conclusão ampla sobre o nível do aluno. Evite afirmações como 'você é A2', 'você é B1', 'você está no nível...', 'você cumpre totalmente o nível' ou que o aluno trabalha rumo ao C1. Prefira formulações cuidadosas como 'Este resultado sugere...', 'Este texto parece combinar...', 'Você respondeu corretamente a...', 'você mostra sinais de...' e 'Você trabalhou o texto de forma rápida/calma...'. Não interprete demais a ordem das tarefas, como 'as três primeiras tarefas'. Reduza a linguagem de coach. Evite 'Parabéns!', 'Fantástico!' e 'Continue o bom trabalho!'. Testes curtos e poucas tarefas podem gerar WPM mais alto ou mais instável, então não interprete demais WPM de um único teste curto. Não escreva 'Isso é esperado para A2.' Se a pontuação for alta e o ritmo for adequado/alto, você pode escrever que o resultado sugere que o aluno lê este tipo de texto com boa fluência ou mostra sinais de ser um leitor forte neste nível. Se a pontuação for alta e o ritmo alto, siga a orientação de nível na mensagem do usuário; nunca sugira avançar para um nível igual ou inferior ao nível atual do texto. Se a pontuação for baixa e o ritmo alto, não elogie a velocidade e não sugira nível mais alto; diga que o aluno trabalhou rapidamente pelo teste, mas alguns erros podem sugerir que foi um pouco rápido demais, e sugira ler perguntas e alternativas com mais calma antes de responder. Se a pontuação for baixa e o ritmo calmo/lento, não sugira ler mais devagar; sugira ler com calma em partes menores, parar em palavras difíceis e tentar mais textos no mesmo nível. Use comparações leves da vida real apenas como explicação, nunca como padrão rígido. Em tarefas best_summary, escreva que o aluno escolheu o resumo correto, não que resumiu bem o texto. Se best_summary estiver errado, sugira praticar a ideia principal e escolher o resumo que melhor combina com o texto. Inclua uma seção de tarefas abertas apenas se houver tarefas abertas ou respostas abertas. A seção de próximos passos deve sempre dar um próximo passo concreto e seguir a orientação de nível na mensagem do usuário: pontuação alta + ritmo adequado/rápido pode indicar um texto um pouco mais exigente apenas quando um nível mais alto for adequado; caso contrário, sugira um texto mais longo, mais complexo ou com outro tema no mesmo nível. 1 erro -> ler as perguntas com atenção e praticar um pouco mais no mesmo nível; vários erros + ritmo rápido -> ler perguntas e alternativas com mais calma; vários erros + ritmo lento -> praticar mais no mesmo nível, ler com calma, parar em palavras difíceis e tentar mais textos no mesmo nível; best_summary errado -> praticar ideia principal e resumos. Escreva os títulos no mesmo idioma do feedback.",
 
       generalInstruction:
         "Escreva um feedback curto do professor na estrutura exigida. Foque se o aluno compreendeu a tarefa, respondeu de forma relevante e respondeu às tarefas abertas. Use dados automáticos como apoio quando existirem. Na parte de linguagem, comente a gramática e aponte erros concretos que devem ser corrigidos. Julgue respostas curtas de acordo com o que a tarefa pede. Se respostas curtas forem aceitáveis para aquela tarefa, diga isso. Se a resposta estiver pobre demais para a tarefa, explique o que falta e dê conselhos concretos sobre como o aluno pode ampliar ou melhorar a resposta. Escreva os títulos no mesmo idioma do feedback. Não defina nível CEFR.",
@@ -610,7 +586,7 @@ function getPromptText(lang: Lang) {
     instruction: "Instruksjon",
     readingMetadata: "Metadata for lesetest",
 
-    wordCount: "Antall ord i leseteksten",
+    wordCount: "Antall ord i lesetesten",
     timeLimit: "Tidsgrense",
     timeUsed: "Brukt tid",
     submittedManually: "Levert manuelt",
@@ -641,7 +617,7 @@ function getPromptText(lang: Lang) {
       "Skriv lærerfeedback til eleven i den påkrevde strukturen. Bruk autokorrekturen aktivt. Nevn hva eleven forstår, hva som er delvis riktig eller feil, og hva eleven bør øve på videre. Skriv overskriftene på samme språk som feedbackspråket.",
 
     readingInstruction:
-      "Skriv lærerfeedback i den påkrevde strukturen. Basér lesevurderingen hovedsakelig på autoresultatet. Bruk tid bare som et forsiktig støttesignal. Vurder om korte åpne svar er tilstrekkelige for selve oppgaven, og når de er for tynne, gi konkrete råd om hvordan eleven kan forbedre dem. Skriv overskriftene på samme språk som feedbackspråket.",
+      "Skriv lærerfeedback i den påkrevde strukturen. Basér lesevurderingen hovedsakelig på autoresultatet og readingSignals. Bruk konkrete resultater tydelig, for eksempel: 'Du svarte riktig på 6 av 6 oppgaver, altså 100 %.'. Du kan bruke omtrentlige ord per minutt, men WPM beregnes fra hele lesegrunnlaget: lesetekst, oppgavetekster, svaralternativer og svaring. Tolk det som funksjonell testlesing, ikke ren lesefart på hovedteksten alene. Bruk formuleringen: 'I denne testen leste og svarte du i et tempo på omtrent 159 ord per minutt.'. Ikke skriv 'Du leste 159 ord per minutt' eller 'Din lesehastighet er 159 WPM'. Lesefart skal alltid kobles til forståelse. Dette er ikke en offisiell kartleggingsprøve; formuler det som støtte for læring, progresjon og realitetsorientering. Bruk CEFR-nivået som nivået på denne teksten, ikke som en bred nivåkonklusjon om eleven. Unngå påstander som 'du er A2', 'du er B1', 'du ligger på nivå...', 'du oppfyller nivået fullt ut' eller at eleven jobber mot C1-mål. Foretrekk forsiktige formuleringer som 'Resultatet på denne testen tyder på...', 'Denne teksten ser ut til å passe...', 'Du svarte riktig på...', 'du viser tegn på...' og 'Du jobbet deg raskt/rolig gjennom teksten...'. Ikke tolk rekkefølgen på oppgavene for mye, som 'de tre første oppgavene'. Ton ned coach-språk. Unngå 'Gratulerer!', 'Fantastisk!' og 'Fortsett det gode arbeidet!'. Korte tester og få oppgaver kan gi høyere eller mer ustabile WPM-tall, så ikke overtolk WPM fra én kort test. Ikke skriv 'Dette er forventet for A2.'. Ved høy score og passende/høy lesefart kan du skrive at resultatet tyder på at eleven leser denne typen tekst med god flyt, eller at eleven viser tegn på å være en sterk leser på dette nivået. Ved høy score og høy lesefart: følg nivåveiledningen i brukermeldingen; foreslå aldri å gå videre til et nivå som er likt eller lavere enn tekstens nivå. Ved lav score og høy lesefart: ikke ros farten og ikke foreslå høyere nivå; skriv at eleven jobbet raskt gjennom testen, men at flere feil kan tyde på at det gikk litt fort, og foreslå å lese spørsmålene og svaralternativene roligere før svar. Ved lav score og rolig/lav lesefart: ikke foreslå å lese roligere; foreslå å lese rolig i mindre deler, stoppe ved vanskelige ord og prøve flere tekster på samme nivå. Bruk milde sammenligninger fra virkeligheten bare som forklaring, aldri som harde standarder. Ved best_summary skal du skrive at eleven valgte riktig sammendrag, ikke at eleven oppsummerte teksten godt. Hvis best_summary er feil, foreslå å øve på hovedinnhold og på å velge sammendraget som passer best. Ta bare med en seksjon om åpne oppgaver hvis det finnes åpne oppgaver eller åpne svar. Seksjonen for neste steg skal alltid gi ett konkret neste steg og følge nivåveiledningen i brukermeldingen: høy score + passende/høy fart kan bety litt mer krevende tekst bare når et høyere nivå passer; ellers foreslå lengre, mer kompleks eller annen tekst på samme nivå. 1 feil -> les spørsmålene nøye og prøv samme nivå litt til; flere feil + høy fart -> les spørsmål og svaralternativer roligere; flere feil + lav fart -> øv mer på samme nivå, les rolig, stopp ved vanskelige ord og prøv flere tekster på samme nivå; feil best_summary -> øv på hovedinnhold og sammendrag. Skriv overskriftene på samme språk som feedbackspråket.",
 
     generalInstruction:
       "Skriv kort lærerfeedback i den påkrevde strukturen. Fokuser på om eleven har forstått oppgaven, svart relevant og besvart de åpne oppgavene. Bruk automatiske resultatdata som støtte når de finnes. I språkseksjonen skal du kommentere grammatikk og peke på konkrete feil som bør rettes. Vurder korte svar ut fra hva oppgaven ber om. Hvis korte svar er akseptable for den oppgaven, si det. Hvis svaret er for tynt i forhold til oppgaven, forklar hva som mangler og gi konkrete råd om hvordan eleven kan utvide eller forbedre svaret. Skriv overskriftene på samme språk som feedbackspråket. Ikke sett CEFR-nivå.",
@@ -663,17 +639,42 @@ function buildReadingSystemPrompt(lang: Lang) {
 
   if (lang === "en") {
     return [
-      "You are an experienced Norwegian language teacher.",
+      "You are an experienced language teacher.",
       "Address the student directly using 'you'. Be supportive, clear, and motivating.",
       "Give short, precise, and helpful feedback on the student's work.",
-      "Adapt your language and expectations to the provided CEFR level.",
+      "Use the CEFR level only as background for this text, not as a broad level judgement.",
       "Do NOT write a full corrected version of the entire text.",
-      "Use: LOW / MEDIUM / HIGH achievement relative to CEFR.",
       "",
       "IMPORTANT:",
       "- Base the reading assessment mainly on automatic results.",
       ...safety,
-      "- Time is only a supportive signal, never proof by itself.",
+      "- Use readingSignals actively: resultStrength, speedSignal, summarySignal, caution, and wordsPerMinute.",
+      "- You may mention concrete results: percent correct, number of wrong answers, and approximate words per minute.",
+      "- WPM is based on the whole reading basis: reading text, task prompts, answer options, and answering. Treat it as functional test reading, not pure reading speed for the main text alone.",
+      "- Prefer careful formulations such as: 'This result suggests...', 'This text seems to fit...', 'You answered ... correctly', and 'You worked through the text quickly/calmly...'.",
+      "- Tone down coach language. Avoid: 'Congratulations!', 'Fantastic!', 'Keep up the good work!', and broad skill claims. Prefer: 'Good work.', 'This result suggests...', 'In this test...', and 'This text seems to...'.",
+      "- Use the result clearly, for example: 'You answered 6 of 6 tasks correctly, which is 100%.'",
+      "- Time and reading pace are supportive signals, never proof by themselves.",
+      "- Never interpret reading speed alone. Always connect pace with comprehension.",
+      "- Short tests and few tasks can still produce higher or more unstable WPM numbers. Do not overinterpret WPM from one short test.",
+      "- When mentioning WPM, use wording like: 'In this test, you read and answered at about 159 words per minute.'",
+      "- Do not write: 'You read 159 words per minute' or 'Your reading speed is 159 WPM'.",
+      "- Do not write: 'This is expected for A2.' Write instead: 'On short texts, the pace can become high, especially when the text fits well.'",
+      "- If score is high and pace is appropriate/high, you may write: 'This result suggests that you read this type of text with good fluency' or 'You show signs of being a strong reader at this level.' Do not write that the student is A2/B1 or has fully met the level.",
+      "- If score is high and pace is high, do not jump to a fixed next CEFR level. Use the current text level from the user message and the level guidance there. Never suggest moving to a level that is the same as, or lower than, the current text level.",
+      "- If score is low and pace is high, do not praise the speed and do not suggest a higher level. Say that the student worked quickly through the test, but some mistakes may suggest that it went a little too fast. Suggest reading the questions and answer options more calmly before answering.",
+      "- If score is low and pace is calm/slow, do not suggest reading more slowly. Say that the text may have been demanding, and suggest reading in smaller parts, stopping after each paragraph, and checking the main idea.",
+      "- If score is high and pace is calm/slow, say that the student spent good time and answered many tasks correctly; this may mean careful, thorough reading.",
+      "- Do not infer too much from task order, such as 'the first three tasks'. Prefer: 'You answered 3 of 6 tasks correctly. This suggests that you understood parts of the text, while some answers show that parts of the text were demanding.'",
+      "- If pace is high and there are many wrong answers, gently suggest reading more calmly and carefully.",
+      "- If pace is calm/slow and the score is high, present this positively as careful, thorough reading.",
+      "- If pace is expected and the score is good, highlight fluency and understanding.",
+      "- If there are many wrong answers, focus on support and next steps, not judgement.",
+      "- You may use mild real-life comparisons such as subtitles on TV, short news texts, novels, subject texts, messages/chat, and school texts. Never use them as hard standards.",
+      "- Never write: 'you read too slowly', 'you are weak', 'you are below level', or 'you cannot read fast enough'.",
+      "- For best_summary tasks, do not pretend the student wrote a summary. Write 'You chose the correct summary', not 'You summarized the text well'. If best_summary is wrong, suggest practising finding the main idea and choosing the summary that best fits the text.",
+      "- Only include the OPEN TASKS section if open tasks or open answers exist. Otherwise omit that heading and do not write about open answers.",
+      "- The LEVEL AND NEXT STEPS section must always give one concrete next step. Follow the level guidance from the user message: high score + appropriate/high pace may mean a slightly more demanding text only when a higher level is appropriate; otherwise suggest a longer, more complex, or different text at the same level. 1 wrong answer -> read the questions carefully and practise the same level a little more; several wrong answers + fast pace -> read questions and answer options more calmly; several wrong answers + slow pace -> practise more at the same level, read calmly, stop at difficult words, and try more texts on the same level; wrong best_summary -> practise main idea and summaries.",
       "- If open answers exist, assess them briefly too.",
       "- Evaluate short open answers in light of what the task actually asks for.",
       "- Short answers can be fully acceptable when the task asks for facts, simple information, keywords, or a fixed number of short sentences.",
@@ -686,7 +687,7 @@ function buildReadingSystemPrompt(lang: Lang) {
       "- Do not use markdown.",
       "- Do not use ###, ##, #, bullet markers, or numbered heading formatting.",
       "",
-      "Use these exact headings:",
+      "Use these headings when relevant:",
       headings.h1,
       headings.h2,
       headings.h3,
@@ -697,16 +698,43 @@ function buildReadingSystemPrompt(lang: Lang) {
 
   if (lang === "pt") {
     return [
-      "Você é um professor experiente de norueguês/língua.",
+      "Você é um professor experiente.",
       "Fale diretamente com o aluno usando 'você'. Seja claro, encorajador e específico.",
       "Dê um feedback curto, preciso e útil.",
       "Adapte ao nível CEFR informado.",
+      "Use o nível CEFR apenas como contexto para este texto, não como julgamento amplo de nível.",
       "Não escreva uma versão corrigida completa do texto.",
       "",
       "IMPORTANTE:",
       "- Baseie a avaliação de leitura principalmente no resultado automático.",
       ...safety,
-      "- O tempo é apenas um sinal de apoio, nunca uma prova por si só.",
+      "- Use readingSignals ativamente: resultStrength, speedSignal, summarySignal, caution e wordsPerMinute.",
+      "- Você pode mencionar resultados concretos: porcentagem de acertos, número de erros e palavras por minuto aproximadas.",
+      "- O WPM se baseia em toda a base de leitura: texto, enunciados, alternativas de resposta e respostas. Trate isso como leitura funcional de teste, não como velocidade pura de leitura apenas do texto principal.",
+      "- Prefira formulações cuidadosas como: 'Este resultado sugere...', 'Este texto parece combinar...', 'Você respondeu corretamente a...' e 'Você trabalhou o texto de forma rápida/calma...'.",
+      "- Reduza a linguagem de coach. Evite: 'Parabéns!', 'Fantástico!', 'Continue o bom trabalho!' e afirmações amplas de habilidade. Prefira: 'Bom trabalho.', 'Este resultado sugere...', 'Neste teste...' e 'Este texto parece...'.",
+      "- Use o resultado de forma clara, por exemplo: 'Você respondeu corretamente a 6 de 6 tarefas, ou seja, 100%.'",
+      "- Tempo e velocidade de leitura são sinais de apoio, nunca prova por si só.",
+      "- Nunca interprete a velocidade de leitura sozinha. Sempre relacione o ritmo com a compreensão.",
+      "- Testes curtos e poucas tarefas ainda podem gerar números de WPM mais altos ou mais instáveis. Não interprete demais o WPM de um único teste curto.",
+      "- Ao mencionar WPM, use formulações como: 'Neste teste, você leu e respondeu a cerca de 159 palavras por minuto.'",
+      "- Não escreva: 'Você leu 159 palavras por minuto' ou 'Sua velocidade de leitura é 159 WPM'.",
+      "- Não escreva: 'Isso é esperado para A2.' Escreva antes: 'Em textos curtos, o ritmo pode ficar alto, especialmente quando o texto combina bem.'",
+      "- Se a pontuação for alta e o ritmo for adequado/alto, você pode escrever: 'Este resultado sugere que você lê este tipo de texto com boa fluência' ou 'Você mostra sinais de ser um leitor forte neste nível.' Não escreva que o aluno é A2/B1 ou que cumpre totalmente o nível.",
+      "- Se a pontuação for alta e o ritmo alto, não salte para um nível CEFR fixo. Use o nível atual do texto informado na mensagem do usuário e a orientação de nível que aparece ali. Nunca sugira avançar para um nível que seja igual ou inferior ao nível atual do texto.",
+      "- Se a pontuação for baixa e o ritmo alto, não elogie a velocidade e não sugira nível mais alto. Diga que o aluno trabalhou rapidamente pelo teste, mas alguns erros podem sugerir que foi um pouco rápido demais. Sugira ler perguntas e alternativas com mais calma antes de responder.",
+      "- Se a pontuação for baixa e o ritmo calmo/lento, não sugira ler mais devagar. Diga que o texto pode ter sido exigente e sugira ler em partes menores, parar após cada parágrafo e verificar a ideia principal.",
+      "- Se a pontuação for alta e o ritmo calmo/lento, diga que o aluno usou bom tempo e respondeu corretamente a muitas tarefas; isso pode indicar leitura cuidadosa.",
+      "- Não interprete demais a ordem das tarefas, como 'as três primeiras tarefas'. Prefira: 'Você respondeu corretamente a 3 de 6 tarefas. Isso sugere que você entendeu partes do texto, enquanto algumas respostas mostram que partes do texto foram exigentes.'",
+      "- Se o ritmo for alto e houver muitos erros, sugira com cuidado ler com mais calma e atenção.",
+      "- Se o ritmo for calmo/lento e a pontuação for alta, apresente isso positivamente como leitura cuidadosa.",
+      "- Se o ritmo for esperado e a pontuação for boa, destaque fluência e compreensão.",
+      "- Se houver muitos erros, foque em apoio e próximos passos, não em julgamento.",
+      "- Você pode usar comparações leves da vida real, como legendas de TV, notícias curtas, romances, textos técnicos/escolares, mensagens/chat e textos escolares. Nunca use isso como padrão rígido.",
+      "- Nunca escreva: 'você lê devagar demais', 'você é fraco', 'você está abaixo do nível' ou 'você não consegue ler rápido o suficiente'.",
+      "- Em tarefas best_summary, não finja que o aluno escreveu um resumo. Escreva 'Você escolheu o resumo correto', não 'Você resumiu bem o texto'. Se best_summary estiver errado, sugira praticar a identificação da ideia principal e a escolha do resumo que melhor combina com o texto.",
+      "- Inclua a seção TAREFAS ABERTAS apenas se houver tarefas abertas ou respostas abertas. Caso contrário, omita esse título e não escreva sobre respostas abertas.",
+      "- A seção NÍVEL E PRÓXIMOS PASSOS deve sempre dar um próximo passo concreto. Siga a orientação de nível da mensagem do usuário: pontuação alta + ritmo adequado/rápido pode indicar um texto um pouco mais exigente apenas quando um nível mais alto for adequado; caso contrário, sugira um texto mais longo, mais complexo ou com outro tema no mesmo nível. 1 erro -> ler as perguntas com atenção e praticar um pouco mais no mesmo nível; vários erros + ritmo rápido -> ler perguntas e alternativas com mais calma; vários erros + ritmo lento -> praticar mais no mesmo nível, ler com calma, parar em palavras difíceis e tentar mais textos no mesmo nível; best_summary errado -> praticar ideia principal e resumos.",
       "- Se houver respostas abertas, avalie-as brevemente também.",
       "- Avalie respostas curtas de acordo com o que a tarefa realmente pede.",
       "- Respostas curtas podem ser totalmente adequadas quando a tarefa pede fatos, informações simples, palavras-chave ou um número fixo de frases curtas.",
@@ -719,7 +747,7 @@ function buildReadingSystemPrompt(lang: Lang) {
       "- Não use markdown.",
       "- Não use ###, ##, #, marcadores ou numeração de headings.",
       "",
-      "Use estes títulos exatos:",
+      "Use estes títulos quando forem relevantes:",
       headings.h1,
       headings.h2,
       headings.h3,
@@ -729,16 +757,41 @@ function buildReadingSystemPrompt(lang: Lang) {
   }
 
   return [
-    "Du er en erfaren norsklærer/språklærer.",
+    "Du er en erfaren språklærer.",
     "Skriv direkte til eleven med 'du'. Vær støttende, konkret og motiverende.",
-    "Gi kort, presis og nyttig tilbakemelding tilpasset oppgitt CEFR-nivå.",
+    "Gi kort, presis og nyttig tilbakemelding. Bruk CEFR-nivået bare som bakgrunn for denne teksten, ikke som en bred nivådom.",
     "Ikke skriv en fullstendig korrigert versjon av hele teksten.",
-    "Bruk: LAV / MIDDELS / HØY målopnåelse i forhold til nivå.",
     "",
     "VIKTIG:",
     "- Lesetest vurderes først og fremst ut fra autoresultat.",
     ...safety,
-    "- Tidsbruk er bare et støttesignal.",
+    "- Bruk readingSignals aktivt: resultStrength, speedSignal, summarySignal, caution og wordsPerMinute.",
+    "- Du kan nevne konkrete resultater: prosent riktig, antall feil og omtrentlige ord per minutt.",
+    "- WPM beregnes fra hele lesegrunnlaget: lesetekst, oppgavetekster, svaralternativer og svaring. Tolk det som funksjonell testlesing, ikke ren lesefart på hovedteksten alene.",
+    "- Foretrekk forsiktige formuleringer som: 'Resultatet på denne testen tyder på...', 'Denne teksten ser ut til å passe...', 'Du svarte riktig på...' og 'Du jobbet deg raskt/rolig gjennom teksten...'.",
+    "- Ton ned coach-språk. Unngå: 'Gratulerer!', 'Fantastisk!', 'Fortsett det gode arbeidet!' og brede ferdighetspåstander. Foretrekk: 'Godt jobbet.', 'Resultatet tyder på...', 'I denne testen...' og 'Denne teksten ser ut til...'.",
+    "- Bruk resultatet tydelig, for eksempel: 'Du svarte riktig på 6 av 6 oppgaver, altså 100 %.'.",
+    "- Tidsbruk og lesefart er støttesignaler, aldri bevis alene.",
+    "- Tolk aldri lesefart alene. Koble alltid tempo sammen med forståelse.",
+    "- Korte tester og få oppgaver kan fortsatt gi høyere eller mer ustabile WPM-tall. Ikke overtolk WPM fra én kort test.",
+    "- Når du nevner WPM, bruk formuleringer som: 'I denne testen leste og svarte du i et tempo på omtrent 159 ord per minutt.'.",
+    "- Ikke skriv: 'Du leste 159 ord per minutt' eller 'Din lesehastighet er 159 WPM'.",
+    "- Ikke skriv: 'Dette er forventet for A2.' Skriv heller: 'På korte tekster kan tempoet bli høyt, særlig når teksten passer godt.'.",
+    "- Ved høy score og passende/høy lesefart kan du skrive: 'Resultatet tyder på at du leser denne typen tekst med god flyt' eller 'Du viser tegn på å være en sterk leser på dette nivået.' Ikke skriv at eleven er A2/B1 eller oppfyller nivået fullt ut.",
+    "- Ved høy score og høy lesefart: ikke hopp til et fast neste CEFR-nivå. Bruk tekstens nivå fra brukermeldingen og nivåveiledningen der. Foreslå aldri å gå videre til et nivå som er likt eller lavere enn tekstens nivå.",
+    "- Ved lav score og høy lesefart: ikke ros farten og ikke foreslå høyere nivå. Skriv at eleven jobbet raskt gjennom testen, men at flere feil kan tyde på at det gikk litt fort. Foreslå å lese spørsmålene og svaralternativene roligere før svar.",
+    "- Ved lav score og rolig/lav lesefart: ikke foreslå å lese roligere. Skriv heller at teksten kan ha vært krevende, og foreslå å lese i mindre deler, stoppe etter hvert avsnitt og sjekke hovedinnholdet.",
+    "- Ved høy score og rolig/lav lesefart: skriv at eleven brukte god tid og svarte riktig på mange oppgaver. Det kan bety at eleven leste nøye og jobbet godt med teksten.",
+    "- Ikke tolk rekkefølgen på oppgavene for mye, som 'de tre første oppgavene'. Foretrekk: 'Du svarte riktig på 3 av 6 oppgaver. Det tyder på at du fikk med deg deler av teksten, mens noen svar viser at deler av teksten var krevende.'.",
+    "- Ved høy fart og mange feil: foreslå forsiktig å lese roligere og nøyere.",
+    "- Ved rolig/lav fart og høy score: løft dette positivt som grundig og rolig lesing.",
+    "- Ved forventet tempo og god score: fremhev flyt og forståelse.",
+    "- Ved mange feil: fokuser på støtte og neste steg, ikke dom.",
+    "- Du kan bruke milde sammenligninger fra virkeligheten, som undertekster på TV, korte nyhetstekster, romaner, fagtekster, meldinger/chat og skoletekster. Bruk dem aldri som harde standarder.",
+    "- Skriv aldri: 'du leser for sakte', 'du er svak', 'du ligger under nivå' eller 'du kan ikke lese raskt nok'.",
+    "- Ved best_summary skal du ikke late som eleven har skrevet sammendrag. Skriv 'Du valgte riktig sammendrag', ikke 'Du oppsummerte teksten godt'. Hvis best_summary er feil, foreslå å øve på å finne hovedinnholdet i teksten og velge sammendraget som passer best.",
+    "- Ta bare med seksjonen ÅPNE OPPGAVER hvis det finnes åpne oppgaver eller åpne svar. Hvis ikke, utelat overskriften og ikke skriv om åpne svar.",
+    "- Seksjonen NIVÅ OG NESTE STEG skal alltid gi ett konkret neste steg. Følg nivåveiledningen i brukermeldingen: høy score + passende/høy fart kan bety litt mer krevende tekst bare når et høyere nivå passer; ellers foreslå lengre, mer kompleks eller annen tekst på samme nivå. 1 feil -> les spørsmålene nøye og prøv samme nivå litt til; flere feil + høy fart -> les spørsmål og svaralternativer roligere; flere feil + lav fart -> øv mer på samme nivå, les rolig, stopp ved vanskelige ord og prøv flere tekster på samme nivå; feil best_summary -> øv på hovedinnhold og sammendrag.",
     "- Hvis åpne svar finnes, vurder dem kort også.",
     "- Vurder korte åpne svar ut fra hva oppgaven faktisk ber om.",
     "- Korte svar kan være helt gode nok når oppgaven ber om fakta, enkle opplysninger, nøkkelord eller et fast antall korte setninger.",
@@ -751,7 +804,7 @@ function buildReadingSystemPrompt(lang: Lang) {
     "- Ikke bruk markdown.",
     "- Ikke bruk ###, ##, #, punktlister eller nummererte overskrifter.",
     "",
-    "Bruk nøyaktig disse overskriftene:",
+    "Bruk disse overskriftene når de er relevante:",
     headings.h1,
     headings.h2,
     headings.h3,
@@ -766,7 +819,7 @@ function buildGeneralSystemPrompt(lang: Lang) {
 
   if (lang === "en") {
     return [
-      "You are an experienced language teacher.",
+      "You are an experienced teacher.",
       "Address the student directly using 'you'. Be supportive, clear, and motivating.",
       "Give short, precise, and useful feedback.",
       "Focus on whether the tasks are answered correctly, reading comprehension according to autoscore, and whether open tasks are answered relevantly.",
@@ -798,7 +851,7 @@ function buildGeneralSystemPrompt(lang: Lang) {
 
   if (lang === "pt") {
     return [
-      "Você é um professor experiente de língua.",
+      "Você é um professor experiente.",
       "Fale diretamente com o aluno usando 'você'.",
       "Dê um feedback curto, preciso e útil.",
       "Foque se as tarefas foram respondidas corretamente, na compreensão de leitura de acordo com a pontuação automática, e se as tarefas abertas foram respondidas de forma relevante.",
@@ -829,7 +882,7 @@ function buildGeneralSystemPrompt(lang: Lang) {
   }
 
   return [
-    "Du er en erfaren språk- og norsklærer.",
+    "Du er en erfaren lærer.",
     "Skriv direkte til eleven med 'du'. Vær støttende, konkret og motiverende.",
     "Gi kort, presis og nyttig tilbakemelding.",
     "Fokuser på om oppgavene er besvart riktig, leseforståelse i henhold til autoscore, og om åpne oppgaver er besvart relevant.",
@@ -1088,10 +1141,12 @@ function buildReadingUserContent(args: {
   languageHint: string;
   lessonTitle: string;
   autoResultat: string;
+  readingSignalsText: string;
   sourceText: string;
   readingModeBlock: string;
   taskOverviewBlock: string;
   openTasksBlock: string;
+  hasOpenTasks: boolean;
 }) {
   const {
     lang,
@@ -1104,21 +1159,64 @@ function buildReadingUserContent(args: {
     readingModeBlock,
     taskOverviewBlock,
     openTasksBlock,
+    hasOpenTasks,
   } = args;
   const t = getPromptText(lang);
+  const openTasksSection = hasOpenTasks
+    ? `${t.openTasksAndAnswers}:\n${openTasksBlock}\n\n`
+    : "";
 
   return (
     `${buildLanguageContextBlock({ lang, contentLanguage, languageHint })}\n\n` +
     `${t.cefrLevel}: ${level}\n` +
+    `${buildReadingLevelGuidance(level, lang)}\n` +
     `${t.lessonTitle}: ${lessonTitle}\n` +
     `${t.isReadingTest}: ${lang === "pt" ? "sim" : lang === "en" ? "yes" : "ja"}\n\n` +
     `${t.autoResult}:\n${autoResultat || t.notProvided}\n\n` +
+    `Reading signals for AI feedback:\n${args.readingSignalsText || t.notProvided}\n\n` +
     `${t.readingText}:\n${sourceText.trim() || t.notProvided}\n\n` +
     `${readingModeBlock}\n\n` +
     `${t.allTasksAndAnswers}:\n${taskOverviewBlock}\n\n` +
-    `${t.openTasksAndAnswers}:\n${openTasksBlock}\n\n` +
+    openTasksSection +
     `${t.instruction}:\n${t.readingInstruction}`
   );
+}
+
+function buildReadingLevelGuidance(level: string, lang: Lang): string {
+  const normalized = (level || "").trim().toUpperCase();
+  const nextLevel: Record<string, string> = {
+    A1: "A2",
+    A2: "B1",
+    B1: "B2",
+  };
+
+  if (lang === "en") {
+    if (normalized === "B2" || normalized === "C1" || normalized === "C2") {
+      return `Level guidance: The text CEFR level is ${normalized}. Do not suggest moving on to B2 or a lower level when the text is already at this level or higher. With a very strong result, suggest a longer text, a more demanding topic, or a more nuanced text at the same level.`;
+    }
+    if (nextLevel[normalized]) {
+      return `Level guidance: The text CEFR level is ${normalized}. Only with a very strong result and good comprehension may you gently suggest trying a slightly more demanding text, for example ${nextLevel[normalized]}. Otherwise, suggest more practice at the same level.`;
+    }
+    return `Level guidance: Use ${level || "the provided level"} as the text level, not as a broad judgement of the student's level.`;
+  }
+
+  if (lang === "pt") {
+    if (normalized === "B2" || normalized === "C1" || normalized === "C2") {
+      return `Orientação de nível: O nível CEFR do texto é ${normalized}. Não sugira avançar para B2 ou para um nível inferior quando o texto já está neste nível ou acima. Com um resultado muito forte, sugira um texto mais longo, um tema mais exigente ou um texto mais nuançado no mesmo nível.`;
+    }
+    if (nextLevel[normalized]) {
+      return `Orientação de nível: O nível CEFR do texto é ${normalized}. Apenas com resultado muito forte e boa compreensão você pode sugerir com cuidado tentar um texto um pouco mais exigente, por exemplo ${nextLevel[normalized]}. Caso contrário, sugira mais prática no mesmo nível.`;
+    }
+    return `Orientação de nível: Use ${level || "o nível informado"} como nível do texto, não como julgamento amplo do nível do aluno.`;
+  }
+
+  if (normalized === "B2" || normalized === "C1" || normalized === "C2") {
+    return `Nivåveiledning: Tekstens CEFR-nivå er ${normalized}. Ikke foreslå å gå videre til B2 eller et lavere nivå når teksten allerede er på dette nivået eller høyere. Ved svært godt resultat kan neste steg være en lengre tekst, et mer krevende tema eller en mer nyansert tekst på samme nivå.`;
+  }
+  if (nextLevel[normalized]) {
+    return `Nivåveiledning: Tekstens CEFR-nivå er ${normalized}. Bare ved svært godt resultat og god forståelse kan du forsiktig foreslå å prøve en litt mer krevende tekst, for eksempel ${nextLevel[normalized]}. Ellers bør neste steg være mer øving på samme nivå.`;
+  }
+  return `Nivåveiledning: Bruk ${level || "oppgitt nivå"} som tekstnivå, ikke som en bred vurdering av elevens nivå.`;
 }
 
 function buildGeneralUserContent(args: {
@@ -1387,18 +1485,32 @@ export async function POST(req: Request) {
       .filter((task) => isReadingTestType(safeString(task?.type)));
 
     const sourceText = safeString(lesson.sourceText) || safeString(lesson.text) || "";
-    const sourceWordCount = countWords(sourceText);
+    const sourceWordCount = countReadingTestWords(sourceText, tasks);
 
     const autoResultat = summarizeAutoResult(subDoc.auto, locale);
 
     const readingTimeLimitSeconds = safeNumber(subDoc.readingTestTimeLimitSeconds);
-    const readingTimeUsedSeconds = safeNumber(subDoc.readingTestTimeUsedSeconds) ?? safeNumber(subDoc.timeSpentSeconds);
+    const readingTimeUsedSeconds =
+      safeNumber(subDoc.readingTestTimeSpentSeconds) ??
+      safeNumber(subDoc.readingTestTimeUsedSeconds) ??
+      safeNumber(subDoc.timeSpentSeconds);
     const readingTimedOut = safeBoolean(subDoc.readingTestTimedOut);
     const readingSubmittedManually = safeBoolean(subDoc.readingTestSubmittedManually);
 
-    const timeSignal = buildTimeSignal(sourceWordCount, readingTimeUsedSeconds);
     const isReadingTest = lessonType === "reading_test" || readingTasks.length > 0;
     const isImageWriting = lessonType === "image_writing";
+    const readingSignalsText = isReadingTest
+      ? JSON.stringify(
+        buildReadingSignalsPayload({
+          tasks,
+          answers: { ...answers, ...answersByTaskId },
+          wordCount: sourceWordCount,
+          timeSpentSeconds: readingTimeUsedSeconds,
+        }),
+        null,
+        2
+      )
+      : "";
 
     const systemPrompt = isReadingTest ? buildReadingSystemPrompt(locale) : buildGeneralSystemPrompt(locale);
 
@@ -1413,6 +1525,7 @@ export async function POST(req: Request) {
           )
           .join("\n\n")
         : t.noOpenAnswers;
+    const hasOpenTasks = openItems.length > 0;
 
     const readingModeBlock = isReadingTest
       ? [
@@ -1422,7 +1535,6 @@ export async function POST(req: Request) {
         `- ${t.timeUsed}: ${readingTimeUsedSeconds != null ? `${readingTimeUsedSeconds} (${formatDuration(readingTimeUsedSeconds)})` : t.unknown}`,
         `- ${t.submittedManually}: ${readingSubmittedManually === true ? t.yes : readingSubmittedManually === false ? t.no : t.unknown}`,
         `- ${t.timedOut}: ${readingTimedOut === true ? t.yes : readingTimedOut === false ? t.no : t.unknown}`,
-        `- ${timeSignal.summary}`,
       ].join("\n")
       : "";
 
@@ -1473,10 +1585,12 @@ export async function POST(req: Request) {
         languageHint,
         lessonTitle,
         autoResultat,
+        readingSignalsText,
         sourceText,
         readingModeBlock,
         taskOverviewBlock,
         openTasksBlock,
+        hasOpenTasks,
       })
       : buildGeneralUserContent({
         lang: locale,

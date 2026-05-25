@@ -9,10 +9,12 @@
       "language": "Språk",
       "searchLanguage": "Søk etter språk",
       "languagesCount": "{count} språk",
+      "sharedSettingsTitle": "Innstillinger for leseprøven",
       "audience": "Målgruppe",
       "minimumWords": "Minimum ord",
       "maximumWords": "Maksimum ord",
       "topic": "Tema / prompt",
+      "promptInstructions": "Her skriver du instruksjoner til KI",
       "topicHelp": "Eksempel: En kort tekst om skole, fotball, natur, familieliv eller daglige aktiviteter.",
       "feedbackMode": "Tilbakemeldingsmodus",
       "feedbackModeHelp": "Dette styrer hvilken veiledning som vises her i byggeren. Foreløpig mottar læreren fortsatt hele besvarelsen uansett."
@@ -24,8 +26,8 @@
       "learners": "Deltakere"
     },
     "flow": {
-      "title": "Leseflyt og timing",
-      "description": "Disse innstillingene lagres i leseprøvekonfigurasjonen. De beskriver den planlagte elevflyten, men overstyrer foreløpig ikke hele lærerflyten i resten av appen.",
+      "title": "Tidtaker",
+      "description": "Velg tid for lesetest. Når testen er levert vises faktisk tid som er brukt og brukes som beregning for antall ord som er lest pr. minutt. Er tiden ute, avsluttes testen automatisk og sendes til vurdering.",
       "showQuestionsAfterReading": "Vis spørsmål etter lesing",
       "showQuestionsAfterReadingHelp": "Eleven leser først og får deretter oppgavene."
     },
@@ -67,10 +69,12 @@
       "generate": "Generer leseprøve",
       "generating": "Genererer leseprøve...",
       "saveDraft": "Lagre kladd",
+      "goToFinishing": "Gå til ferdigstilling",
       "saving": "Lagrer...",
       "addFillInWord": "Legg til fyll inn ord",
-      "addMcq": "Legg til flervalg",
-      "addTrueFalse": "Legg til sant/usant",
+      "addMcq": "+ Flervalg",
+      "addTrueFalse": "+ Sant/Usant",
+      "addBestSummary": "+ Beste sammendrag",
       "addShortAnswer": "Legg til kort svar",
       "addOpen": "Legg til åpen oppgave",
       "delete": "Slett"
@@ -89,7 +93,10 @@
     "builder": {
       "title": "Bygger for leseprøve",
       "lessonTitle": "Tittel",
-      "readingText": "Lesetekst",
+      "readingText": "Her vises egen eller generert tekst",
+      "pasteText": "Lim inn egen tekst",
+      "textHelp": "Sjekk teksten og oppgavene før du går videre til ferdigstilling.",
+      "wordCount": "Ordtelling: {count}",
       "tasks": "Oppgaver",
       "id": "ID: {id}",
       "prompt": "Oppgavetekst",
@@ -135,6 +142,37 @@
       "notSignedIn": "Ikke logget inn. Logg inn som lærer eller produsent.",
       "quotaExceeded": "Du har brukt {used} av {limit} denne måneden. Du kan ikke lage flere akkurat nå.",
       "missingId": "Mangler id fra serveren."
+    },
+    "steps": {
+      "text": "Tekst",
+      "tasks": "Oppgaver",
+      "finishing": "Ferdigstilling",
+      "ready": "Klar",
+      "generateReadingTestTop": "Generer KI tekst til leseprøve",
+      "generateReadingTest": "Generer",
+      "nextStep": "Neste steg",
+      "lockedUntilTextReady": "Låst til teksten er klar",
+      "readyForFinalSetup": "Klar for sluttoppsett",
+      "lockedUntilTasksReady": "Låst til oppgavene er klare"
+    },
+    "stepStatus": {
+      "step1Title": "Steg 1: Lag leseprøve",
+      "step1Body": "Velg nivå, språk, tekstlengde og tema. Generatoren lager både lesetekst og leseprøveoppgaver.",
+      "textReadyTitle": "Teksten er klar",
+      "textReadyBody": "Neste steg er å lese gjennom oppgavene. Du kan redigere spørsmål, alternativer og riktige svar før du går videre.",
+      "tasksReadyTitle": "Oppgavene er klare",
+      "tasksReadyBody": "Neste steg er ferdigstilling. Der kan du gjøre siste oppsett før leseprøven tas i bruk."
+    },
+    "sections": {
+      "generateReadingTestTitle": "Generer leseprøve",
+      "generateReadingTestBody": "Velg nivå, språk, tekstlengde, tema og hvilke oppgavetyper som skal være med.",
+      "generateAiTextTitle": "Generer KI tekst til leseprøve",
+      "reviewTasksTitle": "Se over oppgavene",
+      "reviewTasksBody": "Oppgavene fra generatoren kan justeres her. Oppgavetypene og logikken er den samme som før.",
+      "enableTaskEditorFirst": "Generer en leseprøve først for å aktivere oppgaveredigeringen.",
+      "goToFinishingTitle": "Gå til ferdigstilling",
+      "goToFinishingBody": "Herfra går du videre til siste oppsett og ferdigstilling av leseprøven.",
+      "readyToFinishBody": "Når teksten og oppgavene er klare, kan du gå videre til ferdigstilling."
     }
   }
 }

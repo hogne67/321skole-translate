@@ -1,15 +1,151 @@
 {
-  "producer": {
-    "readingTestsEditor": {
-      "page": {
-        "title": "Reading test editor"
-      },
-      "actions": {
-        "save": "Save"
-      },
-      "errors": {
-        "notFound": "Reading test not found."
-      }
+  "readingTestsEditor": {
+    "loading": "Loading reading test...",
+    "page": {
+      "title": "Edit reading test",
+      "statusLabel": "Custom editor for reading tests. Status:"
+    },
+    "summary": {
+      "title": "Summary",
+      "words": "Word count",
+      "level": "Level",
+      "tasks": "Number of tasks",
+      "time": "Selected time"
+    },
+    "fields": {
+      "title": "Title",
+      "cefrLevel": "CEFR level",
+      "language": "Language",
+      "searchLanguage": "Search language",
+      "audience": "Audience",
+      "description": "Description",
+      "publishState": "Publishing in My content",
+      "publishStateHelp": "Choose whether the reading test stays as a draft or can be opened through a share link. Library publishing comes later.",
+      "topic": "Topic (optional)",
+      "minimumWords": "Minimum words",
+      "maximumWords": "Maximum words",
+      "feedbackMode": "Feedback mode",
+      "feedbackModeHelp": "This is configuration for generated guidance and preferred display mode. It does not fully change the teacher flow by itself yet."
+    },
+    "audience": {
+      "children": "Children",
+      "teenagers": "Teenagers",
+      "adultLearners": "Adult learners",
+      "learners": "Learners"
+    },
+    "flow": {
+      "title": "Timer",
+      "description": "Choose the time for the reading test. When the test is submitted, the actual time used is shown and used to calculate words read per minute. If time runs out, the test ends automatically and is sent for assessment.",
+      "showQuestionsAfterReading": "Show questions after reading",
+      "showQuestionsAfterReadingHelp": "The student reads first and gets the tasks afterwards."
+    },
+    "timer": {
+      "noTimer": "No timer",
+      "enable": "Enable timer",
+      "quickPresets": "Quick presets",
+      "minutes": "Minutes",
+      "extraSeconds": "Extra seconds",
+      "minutesOnly": "{minutes} min",
+      "minutesAndSeconds": "{minutes} min {seconds} sec"
+    },
+    "publishState": {
+      "draft": "Do not publish",
+      "unlisted": "Publish through share link"
+    },
+    "cover": {
+      "title": "Choose publishing image",
+      "description": "The reading test does not use an image inside the test, but it needs a 16:9 image for the publishing view.",
+      "selected": "Selected image"
+    },
+    "coverTemplates": {
+      "blue": "Blue",
+      "pink": "Pink",
+      "red": "Red",
+      "orange": "Orange",
+      "purple": "Purple",
+      "brown": "Brown"
+    },
+    "feedbackMode": {
+      "learner": "Learner only",
+      "adult": "Teacher / parent only",
+      "both": "Both"
+    },
+    "taskTypes": {
+      "enabledTitle": "Enabled task types",
+      "enabledDescription": "These are the task types this reading test is intended to use. The student page can later decide how each type is shown.",
+      "word_choice": "Word choice",
+      "sentence_placement": "Sentence placement",
+      "best_summary": "Best summary",
+      "mcq": "Multiple choice",
+      "true_false": "True / false",
+      "fill_in_word": "Fill in word",
+      "short_answer": "Short answer",
+      "open": "Open"
+    },
+    "text": {
+      "title": "Reading text",
+      "wordCount": "Word count: {count}"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "id": "ID: {id}",
+      "prompt": "Task text",
+      "sentence": "Sentence",
+      "sentenceWithBlank": "Sentence with blank",
+      "textWithGap": "Text with gap",
+      "options": "Options",
+      "correctAnswer": "Correct answer",
+      "shortAnswerHelp": "Short written answer from the student.",
+      "openHelp": "Open task / answer field."
+    },
+    "actions": {
+      "save": "Save to My content",
+      "saving": "Saving...",
+      "newReadingTest": "New reading test",
+      "addFillInWord": "Add fill in word",
+      "addMcq": "+ Multiple choice",
+      "addTrueFalse": "+ True/False",
+      "addBestSummary": "+ Best summary",
+      "addShortAnswer": "Add short answer",
+      "addOpen": "Add open task",
+      "delete": "Delete"
+    },
+    "messages": {
+      "saved": "Saved.",
+      "noTasks": "No tasks yet."
+    },
+    "saveBar": {
+      "title": "Save to My content",
+      "description": "Saves text, tasks, timer, and selected template image."
+    },
+    "common": {
+      "true": "True",
+      "false": "False"
+    },
+    "defaults": {
+      "title": "Reading test",
+      "fillInWordPrompt": "Choose the correct word for the blank.",
+      "fillInWordSentence": "The children saw a black _____ that said meow.",
+      "fillInWordOption1": "cat",
+      "fillInWordOption2": "horse",
+      "fillInWordOption3": "dog",
+      "newMcqPrompt": "New multiple choice question",
+      "trueFalsePrompt": "Write true or false.",
+      "shortAnswerPrompt": "Write a short answer.",
+      "openPrompt": "New open question",
+      "option1": "Option 1",
+      "option2": "Option 2",
+      "option3": "Option 3"
+    },
+    "errors": {
+      "missingLessonId": "Missing lesson id.",
+      "notSignedIn": "Not signed in.",
+      "notFound": "Reading test not found.",
+      "noAccess": "You do not have access to this reading test.",
+      "notReadingTest": "This lesson is not a reading test.",
+      "titleRequired": "Title is required.",
+      "sourceTextEmpty": "The reading text is empty.",
+      "timerTooShort": "The timer must be at least 10 seconds."
     }
   }
 }

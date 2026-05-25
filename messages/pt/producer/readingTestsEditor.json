@@ -5,13 +5,23 @@
       "title": "Editor de teste de leitura",
       "statusLabel": "Editor personalizado para testes de leitura. Status:"
     },
+    "summary": {
+      "title": "Resumo",
+      "words": "Quantidade de palavras",
+      "level": "Nível",
+      "tasks": "Quantidade de atividades",
+      "time": "Tempo escolhido"
+    },
     "fields": {
       "title": "Título",
       "cefrLevel": "Nível CEFR",
       "language": "Idioma",
       "searchLanguage": "Buscar idioma",
       "audience": "Público",
-      "topic": "Tema",
+      "description": "Descrição",
+      "publishState": "Publicação em Meu conteúdo",
+      "publishStateHelp": "Escolha se o teste de leitura fica como rascunho ou pode ser aberto por link de compartilhamento. A publicação na biblioteca vem depois.",
+      "topic": "Tema (opcional)",
       "minimumWords": "Mínimo de palavras",
       "maximumWords": "Máximo de palavras",
       "feedbackMode": "Modo de feedback",
@@ -24,8 +34,8 @@
       "learners": "Aprendizes"
     },
     "flow": {
-      "title": "Fluxo de leitura e tempo",
-      "description": "Essas configurações são armazenadas na configuração do teste de leitura. Elas descrevem como o fluxo do aluno deve funcionar, mas algumas partes da execução real no lado do aluno ainda precisam ser conectadas na página do aluno.",
+      "title": "Cronômetro",
+      "description": "Escolha o tempo para o teste de leitura. Quando o teste for entregue, o tempo real usado será mostrado e usado para calcular as palavras lidas por minuto. Se o tempo acabar, o teste será encerrado automaticamente e enviado para avaliação.",
       "showQuestionsAfterReading": "Mostrar perguntas depois da leitura",
       "showQuestionsAfterReadingHelp": "O aluno lê primeiro e depois recebe as atividades."
     },
@@ -37,6 +47,23 @@
       "extraSeconds": "Segundos extras",
       "minutesOnly": "{minutes} min",
       "minutesAndSeconds": "{minutes} min {seconds} s"
+    },
+    "publishState": {
+      "draft": "Não publicar",
+      "unlisted": "Publicar por link de compartilhamento"
+    },
+    "cover": {
+      "title": "Escolha a imagem de publicação",
+      "description": "O teste de leitura não usa imagem dentro do teste, mas precisa de uma imagem 16:9 para a visualização de publicação.",
+      "selected": "Imagem selecionada"
+    },
+    "coverTemplates": {
+      "blue": "Azul",
+      "pink": "Rosa",
+      "red": "Vermelho",
+      "orange": "Laranja",
+      "purple": "Roxo",
+      "brown": "Marrom"
     },
     "feedbackMode": {
       "learner": "Somente aprendiz",
@@ -72,12 +99,13 @@
       "openHelp": "Atividade aberta / campo de resposta."
     },
     "actions": {
-      "save": "Salvar",
+      "save": "Salvar em Meu conteúdo",
       "saving": "Salvando...",
       "newReadingTest": "Novo teste de leitura",
       "addFillInWord": "Adicionar preencher palavra",
-      "addMcq": "Adicionar múltipla escolha",
-      "addTrueFalse": "Adicionar verdadeiro/falso",
+      "addMcq": "+ Múltipla escolha",
+      "addTrueFalse": "+ Verdadeiro/Falso",
+      "addBestSummary": "+ Melhor resumo",
       "addShortAnswer": "Adicionar resposta curta",
       "addOpen": "Adicionar atividade aberta",
       "delete": "Excluir"
@@ -85,6 +113,10 @@
     "messages": {
       "saved": "Salvo.",
       "noTasks": "Ainda não há atividades."
+    },
+    "saveBar": {
+      "title": "Salvar em Meu conteúdo",
+      "description": "Salva texto, atividades, cronômetro e imagem-modelo selecionada."
     },
     "common": {
       "true": "Verdadeiro",

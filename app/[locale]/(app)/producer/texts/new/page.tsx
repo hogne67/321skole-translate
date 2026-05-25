@@ -1344,7 +1344,21 @@ export default function NewTextPage() {
         </section>
 
         {(hasTasks || hasText) && (
-          <section style={{ marginTop: 22 }}>
+          <section
+            className="stickyFinishSection"
+            style={{
+              marginTop: 22,
+              position: hasTasks ? "fixed" : "sticky",
+              left: hasTasks ? 12 : undefined,
+              right: hasTasks ? 12 : undefined,
+              bottom: 12,
+              zIndex: 50,
+              width: hasTasks ? "calc(100% - 24px)" : undefined,
+              maxWidth: hasTasks ? 1180 : undefined,
+              marginLeft: hasTasks ? "auto" : undefined,
+              marginRight: hasTasks ? "auto" : undefined,
+            }}
+          >
             <div style={{ ...(hasTasks ? cardStyle : mutedCardStyle) }}>
               <div
                 style={{
@@ -1409,6 +1423,8 @@ export default function NewTextPage() {
             </div>
           </section>
         )}
+
+        {hasTasks && <div aria-hidden="true" style={{ height: isNarrow ? 168 : 128 }} />}
 
         {hasTasks && (
           <section style={{ marginTop: 22 }}>
@@ -1707,6 +1723,14 @@ export default function NewTextPage() {
               border-left: 0 !important;
               border-right: 0 !important;
               box-sizing: border-box !important;
+            }
+
+            .stickyFinishSection {
+              left: 0 !important;
+              right: 0 !important;
+              bottom: 0 !important;
+              width: 100% !important;
+              max-width: none !important;
             }
           }
         `}</style>

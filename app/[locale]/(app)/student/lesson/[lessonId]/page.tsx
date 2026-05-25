@@ -24,6 +24,10 @@ import { getBucketLimit, getEffectivePlan, type PlanKey } from "@/lib/featureAcc
 import { incrementUsage } from "@/lib/usage";
 import { trackAiFeedback } from "@/lib/analytics";
 import { Volume2 } from "lucide-react";
+import ReadingTestPlayer, {
+  type ReadingLessonTask,
+  type ReadingTestConfig,
+} from "@/components/student/ReadingTestPlayer";
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   value: l.code,
@@ -44,6 +48,7 @@ type Lesson = {
   lessonType?: string;
   taskType?: string;
   imageTasks?: unknown;
+  readingTestConfig?: unknown;
   isActive?: boolean;
   sourceCollection?: "published_lessons" | "lessons";
   publishedLessonId?: string | null;
@@ -81,6 +86,7 @@ type PublishedLessonDoc = {
   lessonType?: string;
   taskType?: string;
   imageTasks?: unknown;
+  readingTestConfig?: unknown;
   isActive?: boolean;
 };
 
@@ -97,6 +103,7 @@ type PrivateLessonDoc = {
   lessonType?: string;
   taskType?: string;
   imageTasks?: unknown;
+  readingTestConfig?: unknown;
   status?: "draft" | "published";
 };
 
@@ -113,6 +120,9 @@ type Task = {
   successCriteria?: unknown[];
   imageDescription?: string;
   imageUrl?: string;
+  sentence?: string;
+  textWithGap?: string;
+  enabled?: boolean;
 };
 
 type ImageWritingTask = {
@@ -134,6 +144,15 @@ type AudioMode =
   | "feedback_translation";
 
 type TtsLang = "no" | "en" | "pt-BR";
+
+type ReadingProgress = {
+  timeLimitSeconds: number | null;
+  secondsLeft: number | null;
+  secondsUsed: number | null;
+  isTimeUp: boolean;
+  hasStarted: boolean;
+  questionsVisible: boolean;
+};
 
 type SentenceSeg = {
   text: string;
@@ -177,6 +196,7 @@ function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
     lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
     taskType: typeof d.taskType === "string" ? d.taskType : undefined,
     imageTasks: d.imageTasks,
+    readingTestConfig: d.readingTestConfig,
     isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
   };
 }
@@ -196,6 +216,7 @@ function asPrivateLessonDoc(data: DocumentData): PrivateLessonDoc {
     lessonType: typeof d.lessonType === "string" ? d.lessonType : undefined,
     taskType: typeof d.taskType === "string" ? d.taskType : undefined,
     imageTasks: d.imageTasks,
+    readingTestConfig: d.readingTestConfig,
     status: d.status === "published" ? "published" : "draft",
   };
 }
@@ -291,6 +312,32 @@ function safeImageTasksArray(tasks: unknown): ImageWritingTask[] {
   return tasks
     .filter((task) => task && typeof task === "object")
     .map((task) => task as ImageWritingTask);
+}
+
+function safeReadingConfig(value: unknown): ReadingTestConfig | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as ReadingTestConfig;
+}
+
+function safeReadingTasksArray(tasks: unknown): ReadingLessonTask[] {
+  return safeTasksArray(tasks).map((task, idx) => {
+    const stableId = getStableTaskId(task, idx);
+    const options = Array.isArray(task.options)
+      ? task.options.map((option) => String(option ?? ""))
+      : undefined;
+
+    return {
+      id: stableId,
+      order: typeof task.order === "number" ? task.order : idx + 1,
+      type: String(task.type || "open") as ReadingLessonTask["type"],
+      prompt: String(task.prompt || ""),
+      options,
+      correctAnswer: task.correctAnswer as ReadingLessonTask["correctAnswer"],
+      sentence: typeof task.sentence === "string" ? task.sentence : undefined,
+      textWithGap: typeof task.textWithGap === "string" ? task.textWithGap : undefined,
+      enabled: task.enabled === false ? false : true,
+    };
+  });
 }
 
 function toCleanStringList(value: unknown): string[] {
@@ -443,8 +490,17 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
   for (let i = 0; i < sorted.length; i++) {
     const tt = sorted[i];
     const stableId = getStableTaskId(tt, i);
-    const type = String(tt?.type ?? "open");
-    if (type !== "mcq" && type !== "truefalse") continue;
+    const type = String(tt?.type ?? "open").toLowerCase();
+    const isTrueFalse = type === "truefalse" || type === "true_false";
+    const isChoice =
+      type === "mcq" ||
+      type === "multiple_choice" ||
+      type === "best_summary" ||
+      type === "word_choice" ||
+      type === "sentence_placement" ||
+      type === "fill_in_word";
+
+    if (!isChoice && !isTrueFalse) continue;
 
     const val = answersObj[stableId];
     if (val === undefined || val === null || val === "") continue;
@@ -458,6 +514,7 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
         return String(options[rawCorrect]);
       }
       if (typeof rawCorrect === "string") return rawCorrect;
+      if (Array.isArray(rawCorrect) && rawCorrect.length > 0) return String(rawCorrect[0]);
       return null;
     })();
 
@@ -472,17 +529,20 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
     })();
 
     const hasCorrect =
-      (type === "mcq" && mcqCorrectText != null) || (type === "truefalse" && tfCorrectBool != null);
+      (isChoice && mcqCorrectText != null) || (isTrueFalse && tfCorrectBool != null);
 
     if (!hasCorrect) continue;
 
     total += 1;
 
     const isCorrect =
-      type === "mcq"
-        ? mcqCorrectText != null && val != null && String(val) === String(mcqCorrectText)
-        : type === "truefalse"
-          ? tfCorrectBool != null && typeof val === "boolean" && val === tfCorrectBool
+      isChoice
+        ? mcqCorrectText != null && val != null && String(val).trim() === String(mcqCorrectText).trim()
+        : isTrueFalse
+          ? tfCorrectBool != null &&
+            (typeof val === "boolean"
+              ? val === tfCorrectBool
+              : String(val).trim().toLowerCase() === String(tfCorrectBool))
           : false;
 
     if (isCorrect) correct += 1;
@@ -491,9 +551,9 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
     const prompt = String(tt?.prompt ?? "").trim();
 
     if (!isCorrect) {
-      if (type === "mcq") {
+      if (isChoice) {
         wrongLines.push(
-          `- Oppgave ${order} (flervalg): "${prompt}" | Elev: "${String(val)}" | Fasit: "${String(
+          `- Oppgave ${order} (${type}): "${prompt}" | Elev: "${String(val)}" | Fasit: "${String(
             mcqCorrectText
           )}"`
         );
@@ -509,7 +569,7 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
 
   if (total === 0) return "";
 
-  lines.push(`Lukkede oppgaver (flervalg og sant/usant): ${correct}/${total} riktige.`);
+  lines.push(`Lukkede oppgaver: ${correct}/${total} riktige.`);
   if (wrongLines.length) {
     lines.push("");
     lines.push("Feil/misforståelser (kort oversikt):");
@@ -519,7 +579,7 @@ function buildAutoResultat(lessonObj: Lesson, answersObj: AnswersMap): string {
   return lines.join("\n").trim();
 }
 
-function buildOppgaveString(lessonObj: Lesson): string {
+function buildOppgaveString(lessonObj: Lesson, isReadingTestLesson = false): string {
   const tasksArr = safeTasksArray(lessonObj.tasks);
   const sorted = [...tasksArr].sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
   const openPrompts: string[] = [];
@@ -535,10 +595,17 @@ function buildOppgaveString(lessonObj: Lesson): string {
   }
 
   const level = (lessonObj.level ?? "A2").toString();
-  const target = "C1";
+
+  if (isReadingTestLesson) {
+    return (
+      `Vurder resultatet fra denne lesetesten forsiktig i forhold til teksten og nivå ${level}. ` +
+      `Ikke gi bastante nivåkonklusjoner.\n` +
+      (openPrompts.length ? `Åpne oppgaver:\n${openPrompts.join("\n")}\n` : "")
+    ).trim();
+  }
 
   return (
-    `Vurder elevens åpne svar i forhold til CEFR ${level}, og gi råd for progresjon mot ${target}.\n` +
+    `Vurder elevens åpne svar i forhold til CEFR ${level}, og gi råd for videre progresjon.\n` +
     (openPrompts.length ? `Åpne oppgaver:\n${openPrompts.join("\n")}\n` : "")
   ).trim();
 }
@@ -622,6 +689,9 @@ export default function StudentLessonPage() {
   const [feedbackTranslateErr, setFeedbackTranslateErr] = useState<string | null>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [readingProgress, setReadingProgress] = useState<ReadingProgress | null>(null);
+  const [readingSubmitted, setReadingSubmitted] = useState(false);
+  const [readingAttemptKey, setReadingAttemptKey] = useState(0);
 
   const hasAnswers = useMemo(() => Object.keys(answers).length > 0, [answers]);
 
@@ -670,7 +740,22 @@ export default function StudentLessonPage() {
     [lesson?.lessonType]
   );
 
-  const displayedSourceTextSafe = isImageWriting ? "" : sourceTextSafe;
+  const isReadingTest = useMemo(
+    () => String(lesson?.lessonType ?? "").trim().toLowerCase() === "reading_test",
+    [lesson?.lessonType]
+  );
+
+  const displayedSourceTextSafe = isImageWriting || isReadingTest ? "" : sourceTextSafe;
+
+  const readingTestConfig = useMemo(
+    () => safeReadingConfig(lesson?.readingTestConfig),
+    [lesson?.readingTestConfig]
+  );
+
+  const readingTasks = useMemo(
+    () => safeReadingTasksArray(lesson?.tasks),
+    [lesson?.tasks]
+  );
 
   const imageWritingTask = useMemo(
     () => safeImageTasksArray(lesson?.imageTasks)[0] ?? null,
@@ -1081,6 +1166,7 @@ export default function StudentLessonPage() {
               lessonType: rawData.lessonType,
               taskType: rawData.taskType,
               imageTasks: rawData.imageTasks,
+              readingTestConfig: rawData.readingTestConfig,
               isActive: rawData.isActive,
               sourceText: (rawData.sourceText ?? rawData.text ?? "") as string,
               text: rawData.text,
@@ -1131,6 +1217,7 @@ export default function StudentLessonPage() {
             lessonType: rawPrivate.lessonType,
             taskType: rawPrivate.taskType,
             imageTasks: rawPrivate.imageTasks,
+            readingTestConfig: rawPrivate.readingTestConfig,
             sourceText: (rawPrivate.sourceText ?? rawPrivate.text ?? "") as string,
             text: rawPrivate.text,
             status: rawPrivate.status ?? "draft",
@@ -1225,6 +1312,25 @@ export default function StudentLessonPage() {
     setAnswers((prev) => ({ ...prev, [taskId]: value }));
   }
 
+  function restartReadingTest() {
+    setAnswers({});
+    setFeedback(null);
+    setTranslatedFeedback(null);
+    setReadingProgress(null);
+    setReadingSubmitted(false);
+    setReadingAttemptKey((key) => key + 1);
+
+    if (lessonId && isAnon) {
+      try {
+        localStorage.removeItem(lsKey(lessonId));
+      } catch {
+        // ignore
+      }
+    }
+
+    flash("Klar for en ny runde.");
+  }
+
   function toggleTaskTranslation(stableId: string) {
     setTaskTranslationOpen((prev) => {
       const current = prev[stableId];
@@ -1288,6 +1394,7 @@ export default function StudentLessonPage() {
           lessonId,
           publishedLessonId,
           answers,
+          readingProgress: isReadingTest ? readingProgress : null,
           status: "draft",
           source,
           updatedAt: serverTimestamp(),
@@ -1304,6 +1411,7 @@ export default function StudentLessonPage() {
           lessonId,
           publishedLessonId,
           answers,
+          readingProgress: isReadingTest ? readingProgress : null,
           status: "draft",
           kind: "practice",
           source,
@@ -1324,7 +1432,7 @@ export default function StudentLessonPage() {
     }
   }
 
-  async function submitForFeedback() {
+  async function submitForFeedback(progressOverride?: ReadingProgress) {
     if (!lessonId || !uid || !lesson) return;
     if (!hasAnswers) {
       flash(t("flash.answerAtLeastOne"));
@@ -1349,6 +1457,7 @@ export default function StudentLessonPage() {
     setTranslatedFeedback(null);
 
     try {
+      const activeReadingProgress = progressOverride ?? readingProgress;
       const stableId = `${uid}_${lessonId}`;
       const ref = doc(db, "practiceSubmissions", stableId);
       const publishedLessonId =
@@ -1363,6 +1472,7 @@ export default function StudentLessonPage() {
           lessonId,
           publishedLessonId,
           answers,
+          readingProgress: isReadingTest ? activeReadingProgress : null,
           status: "submitted",
           source,
           updatedAt: serverTimestamp(),
@@ -1375,7 +1485,7 @@ export default function StudentLessonPage() {
       const lesetekst = isImageWriting
         ? imageDescription
         : (lesson.sourceText ?? lesson.text ?? "").trim();
-      const oppgave = buildOppgaveString(lesson);
+      const oppgave = buildOppgaveString(lesson, isReadingTest);
       const svar = buildSvarString(lesson, answers);
       const autoResultat = buildAutoResultat(lesson, answers);
 
@@ -1384,8 +1494,7 @@ export default function StudentLessonPage() {
       }
 
       const baseLevel = (lesson.level ?? "A2").toString();
-      const targetLevel = "C1";
-      const nivå = `${baseLevel} (mål: ${targetLevel})`;
+      const nivå = isReadingTest ? baseLevel : `${baseLevel} (mål: videre progresjon)`;
 
       const payload = {
         lesetekst,
@@ -1397,6 +1506,10 @@ export default function StudentLessonPage() {
         imageDescription: imageDescription || null,
         imageInstruction: String(imageWritingTask?.instruction ?? "").trim() || null,
         locale,
+        readingTasks: isReadingTest ? readingTasks : null,
+        readingAnswers: isReadingTest ? answers : null,
+        readingTestConfig: isReadingTest ? readingTestConfig : null,
+        readingProgress: isReadingTest ? activeReadingProgress : null,
       };
 
       trackAiFeedback("student");
@@ -1632,7 +1745,7 @@ export default function StudentLessonPage() {
       >
         <div>
           <h1 style={{ margin: "0 0 8px", fontSize: "clamp(1.5rem, 3.5vw, 2.2rem)", lineHeight: 1.1 }}>
-            {lesson.title}
+            {isReadingTest ? "Lesetest" : lesson.title}
           </h1>
 
           <div
@@ -1643,9 +1756,8 @@ export default function StudentLessonPage() {
               opacity: 0.88,
             }}
           >
-            {lesson.level ? <Pill text={lesson.level} /> : null}
-            {lesson.language ? <Pill text={lesson.language.toUpperCase()} /> : null}
-            {lesson.topic ? <Pill text={lesson.topic} /> : null}
+            {!isReadingTest && lesson.level ? <Pill text={lesson.level} /> : null}
+            {!isReadingTest && lesson.language ? <Pill text={lesson.language.toUpperCase()} /> : null}
           </div>
 
         </div>
@@ -1668,6 +1780,7 @@ export default function StudentLessonPage() {
         </div>
       ) : null}
 
+      {!isReadingTest ? (
       <section style={{ marginTop: 14 }}>
         <div style={cardStyle}>
           <div
@@ -1699,8 +1812,24 @@ export default function StudentLessonPage() {
           </div>
         </div>
       </section>
+      ) : null}
 
-      <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+        {isReadingTest ? (
+          <button
+            type="button"
+            onClick={restartReadingTest}
+            disabled={saving || submitting}
+            style={{
+              ...btnStyle,
+              fontWeight: 800,
+              opacity: saving || submitting ? 0.6 : 1,
+            }}
+          >
+            Gjør en gang til
+          </button>
+        ) : null}
+
         <button
           onClick={saveDraft}
           disabled={saving || !uid}
@@ -1715,7 +1844,27 @@ export default function StudentLessonPage() {
         </button>
       </div>
 
-      {!isImageWriting && displayedSourceTextSafe.trim() ? (
+      {isReadingTest ? (
+        <section style={{ marginTop: 14 }}>
+          <ReadingTestPlayer
+            key={readingAttemptKey}
+            title={lesson.title}
+            level={lesson.level}
+            language={lesson.language}
+            sourceText={sourceTextSafe}
+            tasks={readingTasks}
+            readingTestConfig={readingTestConfig}
+            initialAnswers={answers}
+            disabled={submitting}
+            onAnswersChange={setAnswers}
+            onProgressChange={setReadingProgress}
+            onSubmittedChange={setReadingSubmitted}
+            onSubmit={submitForFeedback}
+          />
+        </section>
+      ) : null}
+
+      {!isImageWriting && !isReadingTest && displayedSourceTextSafe.trim() ? (
       <section style={{ marginTop: 14 }}>
         <div
           style={{
@@ -1772,7 +1921,7 @@ export default function StudentLessonPage() {
       </section>
       ) : null}
 
-      {!isImageWriting && translatedText ? (
+      {!isImageWriting && !isReadingTest && translatedText ? (
         <section style={{ marginTop: 14 }}>
           <div
             style={{
@@ -1820,6 +1969,7 @@ export default function StudentLessonPage() {
         </section>
       ) : null}
 
+      {!isReadingTest ? (
       <section style={{ marginTop: 16 }}>
         <div
           style={{
@@ -2261,7 +2411,9 @@ export default function StudentLessonPage() {
           </div>
         )}
       </section>
+      ) : null}
 
+      {(!isReadingTest || readingSubmitted) ? (
       <section
         style={{
           marginTop: 16,
@@ -2302,7 +2454,7 @@ export default function StudentLessonPage() {
 
         <div style={textToolsStyle}>
           <button
-            onClick={submitForFeedback}
+            onClick={() => void submitForFeedback()}
             disabled={submitting || !uid}
             style={{
               ...greenBtnStyle,
@@ -2433,6 +2585,7 @@ export default function StudentLessonPage() {
           </div>
         ) : null}
       </section>
+      ) : null}
 
       <section style={{ marginTop: 18 }}>
         <Link href={backHref} style={{ textDecoration: "none" }}>

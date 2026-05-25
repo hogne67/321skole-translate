@@ -135,10 +135,13 @@ function normalizeTask(task: unknown, index: number): ReadingTestTask {
 
 function normalizeConfig(v: unknown, fallbackLevel: string): ReadingTestConfig {
   const c = isRecord(v) ? v : {};
+  const allowedGeneratedTypes: ReadingTestTaskType[] = ["mcq", "true_false", "best_summary"];
 
   const enabledTaskTypes: ReadingTestTaskType[] = Array.isArray(c.enabledTaskTypes)
-    ? c.enabledTaskTypes.map(normalizeTaskType)
-    : ["word_choice", "sentence_placement", "best_summary"];
+    ? c.enabledTaskTypes
+        .map(normalizeTaskType)
+        .filter((type) => allowedGeneratedTypes.includes(type))
+    : allowedGeneratedTypes;
 
   const feedbackModeRaw = c.feedbackMode;
   const feedbackMode =
@@ -146,16 +149,20 @@ function normalizeConfig(v: unknown, fallbackLevel: string): ReadingTestConfig {
       ? feedbackModeRaw
       : "both";
 
+  const hasTimerEnabled = Object.prototype.hasOwnProperty.call(c, "timerEnabled");
+  const timerEnabled = hasTimerEnabled ? c.timerEnabled === true : true;
+  const timerSeconds = safeNullableNumber(c.timerSeconds) ?? 120;
+
   return {
     cefrLevel: String(c.cefrLevel || fallbackLevel || "A2"),
     audience: String(c.audience || "learners"),
     topic: String(c.topic || ""),
     minWords: safeNumber(c.minWords) || 120,
     maxWords: safeNumber(c.maxWords) || 180,
-    timerEnabled: c.timerEnabled === true,
-    timerSeconds: safeNullableNumber(c.timerSeconds),
+    timerEnabled,
+    timerSeconds: timerEnabled ? timerSeconds : null,
     showQuestionsAfterReading: c.showQuestionsAfterReading === true,
-    enabledTaskTypes,
+    enabledTaskTypes: enabledTaskTypes.length > 0 ? enabledTaskTypes : allowedGeneratedTypes,
     feedbackMode,
   };
 }

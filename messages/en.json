@@ -1578,8 +1578,8 @@
     "learners": "Learners"
   },
   "flow": {
-    "title": "Reading flow and timing",
-    "description": "These settings are saved in the reading test config. They describe the intended student flow, but they do not yet override the full teacher submission flow everywhere in the app.",
+    "title": "Timer",
+    "description": "Choose the time for the reading test. When the test is submitted, the actual time used is shown and used to calculate words read per minute. If time runs out, the test ends automatically and is sent for assessment.",
     "showQuestionsAfterReading": "Show questions after reading",
     "showQuestionsAfterReadingHelp": "The student reads first, then gets the tasks."
   },
@@ -1716,8 +1716,8 @@
     "learners": "Learners"
   },
   "flow": {
-    "title": "Reading flow and timing",
-    "description": "These settings are stored in the reading test config. They describe how the student flow should work, but some parts of the actual student runtime still need to be connected on the student page.",
+    "title": "Timer",
+    "description": "Choose the time for the reading test. When the test is submitted, the actual time used is shown and used to calculate words read per minute. If time runs out, the test ends automatically and is sent for assessment.",
     "showQuestionsAfterReading": "Show questions after reading",
     "showQuestionsAfterReadingHelp": "The student reads first, then gets the tasks."
   },

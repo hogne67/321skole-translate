@@ -1,140 +1,177 @@
 {
   "readingTestsNew": {
-  "page": {
-    "title": "Reading test generator",
-    "subtitle": "Create a reading test with a text and task types that match the selected level and topic."
-  },
-  "fields": {
-    "cefrLevel": "CEFR level",
-    "language": "Language",
-    "searchLanguage": "Search language",
-    "languagesCount": "{count} languages",
-    "audience": "Audience",
-    "minimumWords": "Minimum words",
+    "page": {
+      "title": "Reading test generator",
+      "subtitle": "Create a reading test with a text and task types that match the selected level and topic."
+    },
+    "fields": {
+      "cefrLevel": "CEFR level",
+      "language": "Language",
+      "searchLanguage": "Search language",
+      "languagesCount": "{count} languages",
+      "sharedSettingsTitle": "Reading test settings",
+      "audience": "Audience",
+      "minimumWords": "Minimum words",
     "maximumWords": "Maximum words",
     "topic": "Topic / prompt",
+    "promptInstructions": "Write instructions for the AI here",
     "topicHelp": "Example: A short text about school, football, nature, family life, or daily activities.",
-    "feedbackMode": "Feedback mode",
-    "feedbackModeHelp": "This controls which generated guidance is shown here in the builder. At the moment, the teacher still receives the full submission regardless."
-  },
-  "audience": {
-    "children": "Children",
-    "teenagers": "Teenagers",
-    "adultLearners": "Adult learners",
-    "learners": "Learners"
-  },
-  "flow": {
-    "title": "Reading flow and timing",
-    "description": "These settings are saved in the reading test config. They describe the intended student flow, but they do not yet override the full teacher submission flow everywhere in the app.",
-    "showQuestionsAfterReading": "Show questions after reading",
-    "showQuestionsAfterReadingHelp": "The student reads first, then gets the tasks."
-  },
-  "timer": {
-    "noTimer": "No timer",
-    "enable": "Enable timer",
-    "quickPresets": "Quick presets",
-    "minutes": "Minutes",
-    "extraSeconds": "Extra seconds",
-    "help": "For most cases, set the timer in minutes and only adjust seconds when needed.",
-    "minutesOnly": "{minutes} min",
-    "minutesAndSeconds": "{minutes} min {seconds} sec"
-  },
-  "feedbackMode": {
-    "learner": "Learner only",
-    "adult": "Teacher / parent only",
-    "both": "Both"
-  },
-  "feedback": {
-    "previewTitle": "Generated guidance preview",
-    "forLearner": "For learner:",
-    "forAdult": "For teacher / parent:",
-    "nextStep": "Next step:"
-  },
-  "taskTypes": {
-    "title": "Task types",
-    "description": "The generator currently creates the classic reading test tasks first. You can also include",
-    "descriptionAfter": "immediately, and add more task types manually below.",
-    "word_choice": "Word choice",
-    "sentence_placement": "Sentence placement",
-    "best_summary": "Best summary",
-    "mcq": "MCQ",
-    "true_false": "True / false",
-    "fill_in_word": "Fill in word",
-    "short_answer": "Short answer",
-    "open": "Open"
-  },
-  "actions": {
-    "generate": "Generate reading test",
-    "generating": "Generating reading test...",
-    "saveDraft": "Save draft",
-    "saving": "Saving...",
-    "addFillInWord": "Add fill in word",
-    "addMcq": "Add MCQ",
-    "addTrueFalse": "Add true/false",
-    "addShortAnswer": "Add short answer",
-    "addOpen": "Add open task",
-    "delete": "Delete"
-  },
-  "messages": {
-    "tasksDirty": "The text has changed. Check the tasks before saving.",
-    "saved": "Saved: {id}",
-    "noTasks": "No tasks yet. Generate a reading test first."
-  },
-  "quota": {
-    "loading": "Loading quota…",
-    "usedOfLimit": "You have used {used} of {limit} this month",
-    "runningLow": "(running low)",
-    "periodTitle": "Period: {period}"
-  },
-  "builder": {
-    "title": "Reading test builder",
-    "lessonTitle": "Title",
-    "readingText": "Reading text",
-    "tasks": "Tasks",
-    "id": "ID: {id}",
-    "prompt": "Prompt",
-    "sentence": "Sentence",
-    "sentenceWithBlank": "Sentence with blank",
-    "fillInWordExample": "Example: The children saw a black _____ that said meow.",
-    "textWithGap": "Text with gap",
-    "options": "Options",
-    "correctAnswer": "Correct answer",
-    "shortAnswerHelp": "Short written response from the student.",
-    "openHelp": "Open task / response field."
-  },
-  "debug": {
-    "title": "Debug / raw reading test"
-  },
-  "common": {
-    "true": "True",
-    "false": "False"
-  },
-  "defaults": {
-    "title": "Reading test",
-    "topic": "A short everyday text about family, school, nature, or daily life.",
-    "fillInWordPrompt": "Choose the correct word for the blank.",
-    "fillInWordSentence": "The children saw a black _____ that said meow.",
-    "fillInWordOption1": "cat",
-    "fillInWordOption2": "horse",
-    "fillInWordOption3": "dog",
-    "newMcqPrompt": "New multiple choice question",
-    "trueFalsePrompt": "Write true or false.",
-    "shortAnswerPrompt": "Write a short answer.",
-    "openPrompt": "New open question",
-    "option1": "Option 1",
-    "option2": "Option 2",
-    "option3": "Option 3"
-  },
-  "errors": {
-    "emptyResponse": "Empty response from server. HTTP {status}",
-    "notJson": "Response was not valid JSON. HTTP {status}. First characters: {preview}",
-    "missingReadingText": "Missing reading text in response.",
-    "titleRequired": "Title is required.",
-    "sourceTextEmpty": "Source text is empty.",
-    "timerTooShort": "Timer must be at least 10 seconds.",
-    "notSignedIn": "Not signed in. Please log in as a teacher or producer.",
-    "quotaExceeded": "You have used {used} of {limit} this month. You cannot create more right now.",
-    "missingId": "Missing id from server."
+      "feedbackMode": "Feedback mode",
+      "feedbackModeHelp": "This controls which generated guidance is shown here in the builder. At the moment, the teacher still receives the full submission regardless."
+    },
+    "audience": {
+      "children": "Children",
+      "teenagers": "Teenagers",
+      "adultLearners": "Adult learners",
+      "learners": "Learners"
+    },
+    "flow": {
+      "title": "Timer",
+      "description": "Choose the time for the reading test. When the test is submitted, the actual time used is shown and used to calculate words read per minute. If time runs out, the test ends automatically and is sent for assessment.",
+      "showQuestionsAfterReading": "Show questions after reading",
+      "showQuestionsAfterReadingHelp": "The student reads first, then gets the tasks."
+    },
+    "timer": {
+      "noTimer": "No timer",
+      "enable": "Enable timer",
+      "quickPresets": "Quick presets",
+      "minutes": "Minutes",
+      "extraSeconds": "Extra seconds",
+      "help": "For most cases, set the timer in minutes and only adjust seconds when needed.",
+      "minutesOnly": "{minutes} min",
+      "minutesAndSeconds": "{minutes} min {seconds} sec"
+    },
+    "feedbackMode": {
+      "learner": "Learner only",
+      "adult": "Teacher / parent only",
+      "both": "Both"
+    },
+    "feedback": {
+      "previewTitle": "Generated guidance preview",
+      "forLearner": "For learner:",
+      "forAdult": "For teacher / parent:",
+      "nextStep": "Next step:"
+    },
+    "taskTypes": {
+      "title": "Task types",
+      "description": "The generator currently creates the classic reading test tasks first. You can also include",
+      "descriptionAfter": "immediately, and add more task types manually below.",
+      "word_choice": "Word choice",
+      "sentence_placement": "Sentence placement",
+      "best_summary": "Best summary",
+      "mcq": "MCQ",
+      "true_false": "True / false",
+      "fill_in_word": "Fill in word",
+      "short_answer": "Short answer",
+      "open": "Open"
+    },
+    "actions": {
+      "generate": "Generate reading test",
+      "generating": "Generating reading test...",
+      "saveDraft": "Save draft",
+      "goToFinishing": "Go to finishing",
+      "saving": "Saving...",
+      "addFillInWord": "Add fill in word",
+      "addMcq": "+ MCQ",
+      "addTrueFalse": "+ True/false",
+      "addBestSummary": "+ Best summary",
+      "addShortAnswer": "Add short answer",
+      "addOpen": "Add open task",
+      "delete": "Delete"
+    },
+    "messages": {
+      "tasksDirty": "The text has changed. Check the tasks before saving.",
+      "saved": "Saved: {id}",
+      "noTasks": "No tasks yet. Generate a reading test first."
+    },
+    "quota": {
+      "loading": "Loading quota…",
+      "usedOfLimit": "You have used {used} of {limit} this month",
+      "runningLow": "(running low)",
+      "periodTitle": "Period: {period}"
+    },
+    "builder": {
+      "title": "Reading test builder",
+      "lessonTitle": "Title",
+      "readingText": "Your own or generated text is dispayed here",
+      "pasteText": "Paste your own text",
+      "textHelp": "Review the text and tasks before you continue to finishing.",
+      "wordCount": "Word count: {count}",
+      "tasks": "Tasks",
+      "id": "ID: {id}",
+      "prompt": "Prompt",
+      "sentence": "Sentence",
+      "sentenceWithBlank": "Sentence with blank",
+      "fillInWordExample": "Example: The children saw a black _____ that said meow.",
+      "textWithGap": "Text with gap",
+      "options": "Options",
+      "correctAnswer": "Correct answer",
+      "shortAnswerHelp": "Short written response from the student.",
+      "openHelp": "Open task / response field."
+    },
+    "debug": {
+      "title": "Debug / raw reading test"
+    },
+    "common": {
+      "true": "True",
+      "false": "False"
+    },
+    "defaults": {
+      "title": "Reading test",
+      "topic": "A short everyday text about family, school, nature, or daily life.",
+      "fillInWordPrompt": "Choose the correct word for the blank.",
+      "fillInWordSentence": "The children saw a black _____ that said meow.",
+      "fillInWordOption1": "cat",
+      "fillInWordOption2": "horse",
+      "fillInWordOption3": "dog",
+      "newMcqPrompt": "New multiple choice question",
+      "trueFalsePrompt": "Write true or false.",
+      "shortAnswerPrompt": "Write a short answer.",
+      "openPrompt": "New open question",
+      "option1": "Option 1",
+      "option2": "Option 2",
+      "option3": "Option 3"
+    },
+    "errors": {
+      "emptyResponse": "Empty response from server. HTTP {status}",
+      "notJson": "Response was not valid JSON. HTTP {status}. First characters: {preview}",
+      "missingReadingText": "Missing reading text in response.",
+      "titleRequired": "Title is required.",
+      "sourceTextEmpty": "Source text is empty.",
+      "timerTooShort": "Timer must be at least 10 seconds.",
+      "notSignedIn": "Not signed in. Please log in as a teacher or producer.",
+      "quotaExceeded": "You have used {used} of {limit} this month. You cannot create more right now.",
+      "missingId": "Missing id from server."
+    },
+    "steps": {
+      "text": "Text",
+      "tasks": "Tasks",
+      "finishing": "Finishing",
+      "ready": "Ready",
+      "generateReadingTest": "Generate reading test",
+      "nextStep": "Next step",
+      "lockedUntilTextReady": "Locked until the text is ready",
+      "readyForFinalSetup": "Ready for final setup",
+      "lockedUntilTasksReady": "Locked until the tasks are ready"
+    },
+    "stepStatus": {
+      "step1Title": "Step 1: Create the reading test",
+      "step1Body": "Choose level, language, text length, and topic. The generator creates both the reading text and the reading test tasks.",
+      "textReadyTitle": "The text is ready",
+      "textReadyBody": "Next, review the tasks. You can edit questions, options, and correct answers before continuing.",
+      "tasksReadyTitle": "The tasks are ready",
+      "tasksReadyBody": "Next step is finishing. There you can do the final setup before using the reading test."
+    },
+    "sections": {
+    "generateReadingTestTitle": "Generate reading test",
+    "generateReadingTestBody": "Choose level, language, text length, topic, and which task types to include.",
+    "generateAiTextTitle": "Generate AI text for reading test",
+    "reviewTasksTitle": "Review the tasks",
+      "reviewTasksBody": "The generated tasks can be adjusted here. Task types and logic stay the same as before.",
+      "enableTaskEditorFirst": "Generate a reading test first to enable task editing.",
+      "goToFinishingTitle": "Go to finishing",
+      "goToFinishingBody": "Continue from here to final setup and finishing for the reading test.",
+      "readyToFinishBody": "When the text and tasks are ready, you can continue to finishing."
+    }
   }
-}
 }
