@@ -1522,14 +1522,26 @@ export default function NewTextPage() {
 
                       <label style={{ display: "block", marginTop: 10 }}>
                         {t("editor.prompt")}
-                        <input
-                          value={task.prompt}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, prompt: v } : x)));
-                          }}
-                          style={fieldStyle}
-                        />
+                        {task.type === "open" ? (
+                          <textarea
+                            value={task.prompt}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, prompt: v } : x)));
+                            }}
+                            rows={3}
+                            style={{ ...fieldStyle, resize: "vertical" }}
+                          />
+                        ) : (
+                          <input
+                            value={task.prompt}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setLessonTasks((prev) => prev.map((x, i) => (i === idx ? { ...x, prompt: v } : x)));
+                            }}
+                            style={fieldStyle}
+                          />
+                        )}
                       </label>
 
                       {task.type === "truefalse" && (

@@ -215,20 +215,6 @@ function isClosedChoiceLike(type: string): boolean {
   return t === "mcq" || t === "multiple_choice" || t === "truefalse" || t === "true_false";
 }
 
-function isReadingTestType(type: string): boolean {
-  const t = type.toLowerCase();
-  return (
-    t === "mcq" ||
-    t === "multiple_choice" ||
-    t === "truefalse" ||
-    t === "true_false" ||
-    t === "word_choice" ||
-    t === "sentence_placement" ||
-    t === "best_summary" ||
-    t === "fill_in_word"
-  );
-}
-
 function readTaskAnswer(args: {
   answers: AnswersMap;
   answersByTaskId: AnswersMap;
@@ -1258,7 +1244,6 @@ function buildImageWritingUserContent(args: {
   const t = getPromptText(lang);
   const instruction = safeString(imageTask?.instruction).trim();
   const imageDescription = safeString(imageTask?.imageDescription).trim();
-  const imagePrompt = safeString(imageTask?.imagePrompt).trim();
   const supportWords = Array.isArray(imageTask?.supportWords)
     ? imageTask.supportWords.map((word) => asText(word).trim()).filter(Boolean).join(", ")
     : "";
@@ -1273,7 +1258,6 @@ function buildImageWritingUserContent(args: {
     `${t.lessonTitle}: ${lessonTitle}`,
     `${t.level}: ${level}`,
     `${t.taskType}: ${taskType || "image_writing"}`,
-    imagePrompt ? `Image prompt: ${imagePrompt}` : "",
     supportWords ? `Support words: ${supportWords}` : "",
     successCriteria ? `Success criteria: ${successCriteria}` : "",
     "",
@@ -1283,7 +1267,7 @@ function buildImageWritingUserContent(args: {
     "",
     `Elevtekst:\n${studentAnswer || t.notAnswered}`,
     "",
-    `${t.instruction}:\nGi tilbakemelding på innhold, grammatikk, ordvalg og om teksten passer til bildet og oppgaven. Vær konkret, kort og støttende. Skriv i samme språk som feedback-språket.`,
+    `${t.instruction}:\nGi tilbakemelding på det eleven faktisk har skrevet: innhold, grammatikk, ordvalg og om teksten er relevant for bildet og oppgaven. Ikke trekk for bildedetaljer eleven ikke nevner, med mindre oppgaven eksplisitt ber om akkurat disse detaljene. Ikke referer til eller vurder ut fra en bildeprompt. Hvis teksten er kortere enn et tydelig antallskrav i oppgaven, gi bare en kort og mild kommentar om at eleven kan skrive litt mer neste gang. Vær konkret, kort og støttende. Skriv i samme språk som feedback-språket.`,
   ]
     .filter((line) => line !== "")
     .join("\n");
@@ -1479,11 +1463,6 @@ export async function POST(req: Request) {
       })
       .filter(Boolean) as Array<{ n: number; prompt: string; answer: string }>;
 
-    const readingTasks = tasks
-      .slice()
-      .sort((x, y) => Number(x?.order ?? 999) - Number(y?.order ?? 999))
-      .filter((task) => isReadingTestType(safeString(task?.type)));
-
     const sourceText = safeString(lesson.sourceText) || safeString(lesson.text) || "";
     const sourceWordCount = countReadingTestWords(sourceText, tasks);
 
@@ -1492,12 +1471,11 @@ export async function POST(req: Request) {
     const readingTimeLimitSeconds = safeNumber(subDoc.readingTestTimeLimitSeconds);
     const readingTimeUsedSeconds =
       safeNumber(subDoc.readingTestTimeSpentSeconds) ??
-      safeNumber(subDoc.readingTestTimeUsedSeconds) ??
-      safeNumber(subDoc.timeSpentSeconds);
+      safeNumber(subDoc.readingTestTimeUsedSeconds);
     const readingTimedOut = safeBoolean(subDoc.readingTestTimedOut);
     const readingSubmittedManually = safeBoolean(subDoc.readingTestSubmittedManually);
 
-    const isReadingTest = lessonType === "reading_test" || readingTasks.length > 0;
+    const isReadingTest = lessonType === "reading_test";
     const isImageWriting = lessonType === "image_writing";
     const readingSignalsText = isReadingTest
       ? JSON.stringify(

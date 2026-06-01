@@ -70,6 +70,33 @@ function normalizeText(value: unknown): string {
   return "";
 }
 
+function normalizeAnswerForTask(task: ReadingSignalTask, value: unknown): string {
+  const options = Array.isArray(task.options) ? task.options : [];
+
+  if (typeof value === "number" && options[value] != null) {
+    return normalizeText(options[value]);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const numericIndex = Number(trimmed);
+
+    if (options.some((option) => normalizeText(option) === normalizeText(trimmed))) {
+      return normalizeText(trimmed);
+    }
+
+    if (
+      trimmed !== "" &&
+      Number.isInteger(numericIndex) &&
+      options[numericIndex] != null
+    ) {
+      return normalizeText(options[numericIndex]);
+    }
+  }
+
+  return normalizeText(value);
+}
+
 function normalizeTaskType(value: unknown): "mcq" | "true_false" | "best_summary" | null {
   const type = String(value ?? "").trim().toLowerCase();
   if (
@@ -195,7 +222,7 @@ export function buildReadingSignalsPayload(args: {
     totalTasks += 1;
     const stableId = getStableTaskId(task, idx);
     const answer = readAnswer(task, args.answers, stableId, idx);
-    const isCorrect = correct.includes(normalizeText(answer));
+    const isCorrect = correct.includes(normalizeAnswerForTask(task, answer));
 
     if (type === "best_summary") {
       summarySeen = true;

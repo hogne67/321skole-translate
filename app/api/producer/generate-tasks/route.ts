@@ -152,6 +152,34 @@ function clampCount(value: number, min: number, max: number, fallback: number) {
   return Math.max(min, Math.min(max, Math.round(value)));
 }
 
+function buildOpenTaskGuidance(level: string, languageName: string) {
+  const normalized = level.trim().toUpperCase();
+
+  const levelGuidance =
+    normalized === "A1"
+      ? "A1: Use very simple words. Ask for a short personal answer with one simple reason or example."
+      : normalized === "A2"
+        ? "A2: Use simple everyday language. Ask for an opinion, feeling, or choice, and invite one reason."
+        : normalized === "B1"
+          ? "B1: Ask the learner to reflect, give a personal opinion, imagine a situation, or explain what people can learn. Invite 2-4 connected sentences."
+          : normalized === "B2"
+            ? "B2: Ask for a more developed reflection with reasons, consequences, different perspectives, or comparison with society or the learner's own experience."
+            : "C1/C2: Ask for nuanced reflection, interpretation, values, reliability, consequences, perspectives, or critical thinking. The task can invite a longer, more precise answer.";
+
+  return `
+Open task quality rules:
+- reflectionQuestions must be richer than a single bare question.
+- Each reflectionQuestions item should normally contain 2 short parts in one string: first the main question, then a short follow-up telling what the answer can include.
+- Use formats like: "What do you think...? Explain why.", "How do you think it felt...? Write about thoughts, feelings and challenges.", "If you were ..., what would you do? Give reasons for your choice."
+- Prefer reflection, personal opinion, perspective-taking, values, cause/effect, or what people can learn from the text.
+- A yes/no question is allowed only if it also asks the learner to explain why.
+- The question must be grounded in the source text, but it may ask the learner to imagine, evaluate, or connect the text to their own thinking.
+- Do not ask for facts only in reflectionQuestions; factual recall belongs in writeFacts, multipleChoice, or trueFalse.
+- Keep the language natural for ${languageName} and CEFR ${level}.
+- ${levelGuidance}
+`.trim();
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -233,7 +261,9 @@ Important rules:
 - answerIndex must point to the correct option.
 - trueFalse statements must be checkable against the source text.
 - writeFacts should be short task prompts suitable for the learner.
-- reflectionQuestions should be open-ended and relevant to the source text.
+- reflectionQuestions should be open-ended, thoughtful, and relevant to the source text.
+
+${buildOpenTaskGuidance(level, languageName)}
 
 Return EXACTLY valid JSON with no markdown and no extra text in this structure:
 {
