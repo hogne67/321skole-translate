@@ -887,14 +887,21 @@ function Inner() {
             </div>
           </div>
 
-          <label className="inline-flex select-none items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800">
+          <label
+            className={[
+              "inline-flex min-h-[42px] select-none items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold",
+              showArchived
+                ? "border-amber-500 bg-amber-100 text-amber-950 shadow-sm ring-2 ring-amber-300"
+                : "border-slate-300 bg-white text-slate-800",
+            ].join(" ")}
+          >
             <input
               type="checkbox"
               checked={showArchived}
               onChange={(e) => setShowArchived(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300"
+              className="h-4 w-4 rounded border-slate-300 accent-amber-600"
             />
-            <span>{t("assignments.showArchived")}</span>
+            <span className="whitespace-nowrap">{t("assignments.showArchived")}</span>
           </label>
         </div>
 

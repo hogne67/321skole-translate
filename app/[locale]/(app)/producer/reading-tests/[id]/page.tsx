@@ -10,6 +10,7 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { LANGUAGES } from "@/lib/languages";
 import { countReadingTestWords } from "@/lib/readingTests/readingSignals";
+import { useUserProfile } from "@/lib/useUserProfile";
 
 type LevelKey = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type AudienceKey = "children" | "teenagers" | "adult learners" | "learners";
@@ -44,6 +45,9 @@ type LessonDoc = {
   ownerId: string;
   status?: string;
   lessonType?: string;
+  producerName?: string;
+  authorName?: string;
+  createdByName?: string;
   title?: string;
   description?: string;
   level?: string;
@@ -124,6 +128,19 @@ function newId() {
 
 function safeString(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
+}
+
+function readUserDisplayName(v: unknown): string {
+  if (!v || typeof v !== "object") return "";
+  const x = v as Record<string, unknown>;
+  return (
+    safeString(x.producerName).trim() ||
+    safeString(x.displayName).trim() ||
+    safeString(x.fullName).trim() ||
+    safeString(x.name).trim() ||
+    safeString(x.companyName).trim() ||
+    ""
+  );
 }
 
 function safeNumber(v: unknown, fallback = 0): number {
@@ -254,6 +271,7 @@ export default function ReadingTestEditorPage() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("readingTestsEditor");
+  const { profile } = useUserProfile();
   const lessonId = typeof params?.id === "string" ? params.id : "";
 
   const fieldStyle: CSSProperties = {
@@ -311,6 +329,7 @@ export default function ReadingTestEditorPage() {
 
   const [isNarrow, setIsNarrow] = useState(false);
   const [authResolved, setAuthResolved] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -323,6 +342,7 @@ export default function ReadingTestEditorPage() {
   const [languageSearch, setLanguageSearch] = useState("");
   const [level, setLevel] = useState<LevelKey>("A2");
   const [status, setStatus] = useState("draft");
+  const [producerName, setProducerName] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState(COVER_TEMPLATES[0].imageUrl);
 
   const [sourceText, setSourceText] = useState("");
@@ -359,11 +379,48 @@ export default function ReadingTestEditorPage() {
   }, []);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(getAuth(), () => {
+    const unsub = onAuthStateChanged(getAuth(), (user) => {
+      setUid(user?.uid ?? null);
       setAuthResolved(true);
     });
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadProducerName() {
+      if (!uid || producerName.trim()) return;
+
+      const profileName = readUserDisplayName(profile);
+      const authName = safeString(getAuth().currentUser?.displayName).trim();
+
+      if (profileName) {
+        setProducerName(profileName);
+        return;
+      }
+
+      if (authName) {
+        setProducerName(authName);
+        return;
+      }
+
+      try {
+        const snap = await getDoc(doc(db, "users", uid));
+        if (!alive) return;
+        const dbName = snap.exists() ? readUserDisplayName(snap.data()) : "";
+        if (dbName) setProducerName(dbName);
+      } catch (err) {
+        console.error("Failed to fetch producer name:", err);
+      }
+    }
+
+    void loadProducerName();
+
+    return () => {
+      alive = false;
+    };
+  }, [uid, profile, producerName]);
 
   useEffect(() => {
     async function load() {
@@ -407,6 +464,11 @@ export default function ReadingTestEditorPage() {
         setLanguage(safeString(data.language, "nb"));
         setLevel((safeString(data.level, "A2") as LevelKey) || "A2");
         setStatus(safeString(data.status, "draft"));
+        setProducerName(
+          safeString(data.producerName).trim() ||
+          safeString(data.authorName).trim() ||
+          safeString(data.createdByName).trim()
+        );
         const loadedCoverImageUrl = safeString(data.coverImageUrl || data.imageUrl, "");
         setCoverImageUrl(
           COVER_TEMPLATES.some((template) => template.imageUrl === loadedCoverImageUrl)
@@ -513,6 +575,7 @@ export default function ReadingTestEditorPage() {
         imageUrl: coverImageUrl,
         "publish.state": "draft",
         status: "draft",
+        producerName: producerName.trim(),
         readingTestConfig,
         tasks: renumberOrders(tasks),
         updatedAt: serverTimestamp(),
@@ -725,6 +788,24 @@ export default function ReadingTestEditorPage() {
               <option value="adult learners">{t("audience.adultLearners")}</option>
               <option value="learners">{t("audience.learners")}</option>
             </select>
+          </label>
+
+          <label style={{ gridColumn: "1 / -1" }}>
+            {t("fields.producerName")}
+            <input
+              value={producerName}
+              disabled
+              readOnly
+              style={{
+                ...fieldStyle,
+                background: "#f4f4f5",
+              }}
+              placeholder={t("fields.producerNamePlaceholder")}
+              title={t("fields.producerNameHelp", { uid: uid ?? "uid" })}
+            />
+            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+              {t("fields.producerNameHelp", { uid: uid ?? "uid" })}
+            </div>
           </label>
 
           <label style={{ gridColumn: "1 / -1" }}>

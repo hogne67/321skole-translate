@@ -6,6 +6,12 @@
     "newSpaceLocked": "+ Novo space (bloqueado)",
     "newSpaceTitle": "Criar um novo space",
     "newSpaceLockedTitle": "Requer validação + modo Professor/Criador",
+    "trainingVideo": {
+      "button": "Ver guia",
+      "buttonTitle": "Ver guia sobre spaces",
+      "close": "Fechar",
+      "title": "Guia: spaces"
+    },
     "controls": {
       "search": {
         "label": "Buscar",
@@ -23,8 +29,14 @@
       "filters": {
         "label": "Filtros",
         "openOnly": "Apenas abertos",
+        "showClosed": "Mostrar fechados",
+        "showClosedTitle": "Ative para mostrar spaces abertos e fechados",
         "showing": "Mostrando: {n}"
       }
+    },
+    "access": {
+      "title": "Spaces são para professores",
+      "subtitle": "Entre com uma conta de professor para criar e gerenciar suas salas. Alunos entram por código ou link."
     },
     "list": {
       "untitled": "Sem título",
@@ -45,7 +57,17 @@
       "openSpace": "Abrir space",
       "openSpaceTitle": "Abrir space",
       "board": "Quadro",
-      "boardTitle": "Abrir o quadro deste space"
+      "boardTitle": "Abrir o quadro deste space",
+      "editTitle": "Editar nome",
+      "editTitleTitle": "Editar nome da sala",
+      "editTitleLabel": "Nome da sala",
+      "saveTitle": "Salvar",
+      "savingTitle": "Salvando...",
+      "saveTitleTitle": "Salvar novo nome",
+      "cancelEditTitle": "Cancelar",
+      "cancelEditTitleTitle": "Cancelar edição do nome",
+      "editTitleRequired": "A sala precisa de um nome.",
+      "editTitleError": "Não foi possível salvar o nome. Tente novamente."
     },
     "empty": {
       "title": "Nenhum space encontrado.",

@@ -9,6 +9,14 @@
       "BETA": "Beta",
       "PREMIUM": "Premium"
     },
+    "trainingVideos": {
+      "close": "Lukk",
+      "assignmentGenerator": {
+        "button": "Se opplæring",
+        "buttonTitle": "Se opplæring om oppgavegeneratoren",
+        "title": "Opplæring: oppgavegenerator"
+      }
+    },
     "premium": {
       "title": "Premium-generatorer",
       "items": {

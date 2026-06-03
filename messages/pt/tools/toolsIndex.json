@@ -9,6 +9,14 @@
       "BETA": "Beta",
       "PREMIUM": "Premium"
     },
+    "trainingVideos": {
+      "close": "Fechar",
+      "assignmentGenerator": {
+        "button": "Ver guia",
+        "buttonTitle": "Ver guia sobre o gerador de atividades",
+        "title": "Guia: gerador de atividades"
+      }
+    },
     "premium": {
       "title": "Geradores premium",
       "items": {

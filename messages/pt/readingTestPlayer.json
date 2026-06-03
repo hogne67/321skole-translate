@@ -12,13 +12,29 @@
     "loading": "Carregando...",
     "meta": {
       "words": "palavras",
-      "answered": "respondidas"
+      "answered": "respondidas",
+      "level": "Nível: {level}",
+      "language": "Idioma: {language}",
+      "wordsCount": "Palavras: {count}",
+      "tasksCount": "Tarefas: {count}"
     },
     "actions": {
       "startTest": "Iniciar teste",
       "submit": "Enviar",
       "tryAgain": "Tentar novamente",
-      "showQuestions": "Mostrar perguntas"
+      "showQuestions": "Mostrar tarefas",
+      "finishedReadingShowQuestions": "Terminei de ler – mostrar perguntas"
+    },
+    "intro": {
+      "importantMessage": "Importante! A contagem começa quando você clica em Iniciar teste. Leia o texto com atenção e responda às tarefas. O temporizador para quando você clica em {submitLabel}."
+    },
+    "timer": {
+      "time": "Tempo",
+      "timeUsed": "Tempo usado",
+      "timeUsedWithValue": "Tempo usado: {time}",
+      "timeUp": "O tempo acabou.",
+      "startTime": "Tempo inicial",
+      "timeLeft": "Tempo restante"
     },
     "readingText": {
       "title": "Texto",
@@ -32,10 +48,19 @@
       "correct": "Correto",
       "incorrect": "Incorreto",
       "openSaved": "Resposta aberta salva para autoavaliação",
-      "correctAnswer": "Resposta correta:"
+      "correctAnswer": "Resposta correta:",
+      "correctAnswerShort": "Resposta correta",
+      "taskLabel": "Tarefa {n}",
+      "answerPlaceholder": "Escreva sua resposta aqui",
+      "readyBody": "Quando estiver pronto, você pode mostrar as tarefas e responder.",
+      "noTasks": "Ainda não há tarefas."
     },
     "result": {
-      "title": "Resultado"
+      "title": "Resultado",
+      "autoTitle": "Correção automática",
+      "correct": "Corretas: {count}",
+      "wrong": "Erradas: {count}",
+      "total": "Total: {count}"
     },
     "feedback": {
       "learner": "Ótimo trabalho. Revise as respostas que você errou e tente outro teste no mesmo nível.",

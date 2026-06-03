@@ -9,6 +9,14 @@
       "BETA": "Beta",
       "PREMIUM": "Premium"
     },
+    "trainingVideos": {
+      "close": "Close",
+      "assignmentGenerator": {
+        "button": "Watch guide",
+        "buttonTitle": "Watch the worksheet generator guide",
+        "title": "Guide: worksheet generator"
+      }
+    },
     "premium": {
       "title": "Premium generators",
       "items": {

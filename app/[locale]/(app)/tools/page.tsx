@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
+import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 
 type ToolBadge = "NEW" | "POPULAR" | "BETA" | "PREMIUM";
 
@@ -57,9 +58,8 @@ export default function ToolsPage() {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {premiumTools.map((tool) => (
-            <Link
+            <div
               key={tool.id}
-              href={`/${locale}${tool.href}`}
               className="group relative flex min-h-[160px] flex-col justify-between rounded-2xl border border-sky-300 bg-sky-100 p-4 sm:p-5 no-underline shadow-sm transition-all hover:border-sky-400 hover:bg-sky-200 hover:shadow-md"
             >
               <div className="absolute left-0 top-0 h-1 w-full rounded-t-2xl bg-sky-500" />
@@ -80,10 +80,27 @@ export default function ToolsPage() {
                 {t(`premium.items.${tool.id}.description`)}
               </p>
 
-              <div className="mt-4 text-sm font-semibold text-slate-900">
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <Link
+                  href={`/${locale}${tool.href}`}
+                  className="text-sm font-semibold text-slate-900 no-underline hover:text-sky-800"
+                >
                 {t("open")}
+                </Link>
+
+                {tool.id === "assignmentGenerator" ? (
+                  <TrainingVideoPlayer
+                    title={t("trainingVideos.assignmentGenerator.title")}
+                    videoUrl="https://youtu.be/J2UsvKRtlgw?si=l-Gean7b9o7dXFYW"
+                    buttonLabel={t("trainingVideos.assignmentGenerator.button")}
+                    buttonTitle={t("trainingVideos.assignmentGenerator.buttonTitle")}
+                    closeLabel={t("trainingVideos.close")}
+                    iconOnly
+                    className="h-11 w-11"
+                  />
+                ) : null}
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </section>

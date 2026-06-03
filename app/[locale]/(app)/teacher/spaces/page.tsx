@@ -8,9 +8,10 @@ import { useRouter } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
+import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 
 type SpaceDocSafe = SpaceDoc & { createdAt?: unknown };
 type Row = { id: string; data: SpaceDocSafe };
@@ -77,17 +78,21 @@ function TeacherSpacesInner() {
   const locale = useLocale();
   const router = useRouter();
 
-  const { user, loading } = useUserProfile();
+  const { user, profile, loading } = useUserProfile();
   const [rows, setRows] = useState<Row[]>([]);
 
   const [search, setSearch] = useState("");
-  const [openOnly, setOpenOnly] = useState(false);
+  const [showClosed, setShowClosed] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
 
   const [memberCount, setMemberCount] = useState<Record<string, number | undefined>>({});
   const [memberCountBusy, setMemberCountBusy] = useState<Record<string, boolean>>({});
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [titleSaving, setTitleSaving] = useState(false);
+  const [titleErr, setTitleErr] = useState<string | null>(null);
 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrFor, setQrFor] = useState<QrFor | null>(null);
@@ -95,10 +100,11 @@ function TeacherSpacesInner() {
   const [qrBusy, setQrBusy] = useState(false);
   const [qrErr, setQrErr] = useState<string | null>(null);
 
-  const canCreateSpace = Boolean(user?.uid);
+  const canUseTeacherSpaces = profile?.role === "teacher" || profile?.role === "admin";
+  const canCreateSpace = Boolean(user?.uid && canUseTeacherSpaces);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || !canUseTeacherSpaces) return;
 
     const q = query(collection(db, "spaces"), where("ownerId", "==", user.uid), orderBy("createdAt", "desc"));
 
@@ -109,7 +115,7 @@ function TeacherSpacesInner() {
       }));
       setRows(next);
     });
-  }, [user?.uid]);
+  }, [user?.uid, canUseTeacherSpaces]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -123,7 +129,7 @@ function TeacherSpacesInner() {
       });
     }
 
-    if (openOnly) {
+    if (!showClosed) {
       list = list.filter((r) => Boolean(r.data.isOpen));
     }
 
@@ -141,7 +147,7 @@ function TeacherSpacesInner() {
     });
 
     return sorted;
-  }, [rows, search, openOnly, sortKey]);
+  }, [rows, search, showClosed, sortKey]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -176,6 +182,47 @@ function TeacherSpacesInner() {
       window.setTimeout(() => setCopiedId((v) => (v === id ? null : v)), 1200);
     } catch {
       // no-op
+    }
+  }
+
+  function startEditingTitle(spaceId: string, title: string) {
+    setEditingTitleId(spaceId);
+    setTitleDraft(title);
+    setTitleErr(null);
+  }
+
+  function cancelEditingTitle() {
+    setEditingTitleId(null);
+    setTitleDraft("");
+    setTitleErr(null);
+  }
+
+  async function saveSpaceTitle(spaceId: string, currentTitle: string) {
+    const nextTitle = titleDraft.trim();
+
+    if (!nextTitle) {
+      setTitleErr(t("list.editTitleRequired"));
+      return;
+    }
+
+    if (nextTitle === currentTitle.trim()) {
+      cancelEditingTitle();
+      return;
+    }
+
+    setTitleSaving(true);
+    setTitleErr(null);
+
+    try {
+      await updateDoc(doc(db, "spaces", spaceId), {
+        title: nextTitle,
+        updatedAt: serverTimestamp(),
+      });
+      cancelEditingTitle();
+    } catch {
+      setTitleErr(t("list.editTitleError"));
+    } finally {
+      setTitleSaving(false);
     }
   }
 
@@ -216,6 +263,15 @@ function TeacherSpacesInner() {
     return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
   }
 
+  if (!canUseTeacherSpaces) {
+    return (
+      <div className="mx-auto box-border w-full max-w-3xl min-w-0 rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-md">
+        <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("access.title")}</h1>
+        <p className="mt-2 break-words text-sm text-slate-700">{t("access.subtitle")}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
@@ -225,7 +281,7 @@ function TeacherSpacesInner() {
             <p className="mt-2 break-words text-sm text-slate-600">{t("subtitle")}</p>
           </div>
 
-          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 lg:w-auto lg:justify-end">
             <Link
               href={withLocale(locale, "/teacher/spaces/new")}
               title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
@@ -238,6 +294,15 @@ function TeacherSpacesInner() {
             >
               {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
             </Link>
+            <TrainingVideoPlayer
+              title={t("trainingVideo.title")}
+              videoUrl="https://youtu.be/subn_OdWSGo?si=4zRJZYqbHZ9F5pUy"
+              buttonLabel={t("trainingVideo.button")}
+              buttonTitle={t("trainingVideo.buttonTitle")}
+              closeLabel={t("trainingVideo.close")}
+              iconOnly
+              className="h-11 w-11 border-blue-700 bg-blue-600 text-white shadow-sm hover:bg-blue-700"
+            />
           </div>
         </div>
       </div>
@@ -282,15 +347,23 @@ function TeacherSpacesInner() {
               </select>
             </div>
 
-            <label className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+            <label
+              className={[
+                "inline-flex min-h-[42px] items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold",
+                showClosed
+                  ? "border-amber-500 bg-amber-100 text-amber-950 shadow-sm ring-2 ring-amber-300"
+                  : "border-slate-300 bg-white text-slate-700",
+              ].join(" ")}
+              title={t("controls.filters.showClosedTitle")}
+            >
               <input
-                id="openOnly"
+                id="showClosed"
                 type="checkbox"
-                checked={openOnly}
-                onChange={(e) => setOpenOnly(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-400"
+                checked={showClosed}
+                onChange={(e) => setShowClosed(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-400 accent-amber-600"
               />
-              <span className="whitespace-nowrap">{t("controls.filters.openOnly")}</span>
+              <span className="whitespace-nowrap">{t("controls.filters.showClosed")}</span>
             </label>
           </div>
         </div>
@@ -323,7 +396,60 @@ function TeacherSpacesInner() {
                 <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <div className="break-words text-base font-semibold text-slate-900">{title}</div>
+                      {editingTitleId === r.id ? (
+                        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start">
+                          <div className="min-w-0 flex-1">
+                            <label className="sr-only" htmlFor={`space-title-${r.id}`}>
+                              {t("list.editTitleLabel")}
+                            </label>
+                            <input
+                              id={`space-title-${r.id}`}
+                              value={titleDraft}
+                              onChange={(e) => setTitleDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveSpaceTitle(r.id, title);
+                                if (e.key === "Escape") cancelEditingTitle();
+                              }}
+                              disabled={titleSaving}
+                              className="box-border w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
+                              autoFocus
+                            />
+                            {titleErr && <div className="mt-1 break-words text-xs text-red-600">{titleErr}</div>}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => saveSpaceTitle(r.id, title)}
+                              disabled={titleSaving}
+                              className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                              title={t("list.saveTitleTitle")}
+                            >
+                              {titleSaving ? t("list.savingTitle") : t("list.saveTitle")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEditingTitle}
+                              disabled={titleSaving}
+                              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                              title={t("list.cancelEditTitleTitle")}
+                            >
+                              {t("list.cancelEditTitle")}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="break-words text-base font-semibold text-slate-900">{title}</div>
+                          <button
+                            type="button"
+                            onClick={() => startEditingTitle(r.id, title)}
+                            className="shrink-0 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                            title={t("list.editTitleTitle")}
+                          >
+                            {t("list.editTitle")}
+                          </button>
+                        </>
+                      )}
                       <span
                         className={[
                           "shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",

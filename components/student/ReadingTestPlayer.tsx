@@ -3,6 +3,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { countReadingTestWords } from "@/lib/readingTests/readingSignals";
+import { useTranslations } from "next-intl";
 
 type ReadingTestTaskType =
   | "word_choice"
@@ -176,15 +177,17 @@ export default function ReadingTestPlayer({
   readingTestConfig,
   initialAnswers,
   disabled = false,
-  submitLabel = "Lever",
+  submitLabel,
   importantMessage,
   onAnswersChange,
   onProgressChange,
   onSubmittedChange,
   onSubmit,
 }: ReadingTestPlayerProps) {
+  const t = useTranslations("readingTestPlayer");
   const normalizedTasks = useMemo(() => normalizeTasks(tasks), [tasks]);
   const answersFromProps = useMemo(() => normalizeInitialAnswers(initialAnswers), [initialAnswers]);
+  const effectiveSubmitLabel = submitLabel || t("actions.submit");
 
   const timerEnabled = readingTestConfig?.timerEnabled !== false;
   const showQuestionsAfterReading = readingTestConfig?.showQuestionsAfterReading === true;
@@ -379,9 +382,9 @@ export default function ReadingTestPlayer({
               />
               <span style={{ fontWeight: checked || showCorrect ? 700 : 500, lineHeight: 1.45 }}>
                 {opt}
-                {selectedCorrect ? " - Riktig" : ""}
-                {selectedWrong ? " - Feil" : ""}
-                {!checked && showCorrect ? " - Riktig svar" : ""}
+                {selectedCorrect ? ` - ${t("questions.correct")}` : ""}
+                {selectedWrong ? ` - ${t("questions.incorrect")}` : ""}
+                {!checked && showCorrect ? ` - ${t("questions.correctAnswerShort")}` : ""}
               </span>
             </label>
           );
@@ -440,7 +443,7 @@ export default function ReadingTestPlayer({
     return (
       <div key={task.id} style={boxStyle}>
         <div style={{ fontSize: 13, opacity: 0.75, marginBottom: 6, fontWeight: 600 }}>
-          Oppgave {index + 1} • {task.type}
+          {t("questions.taskLabel", { n: index + 1 })} • {task.type}
         </div>
 
         <div style={promptStyle}>{task.prompt}</div>
@@ -463,8 +466,8 @@ export default function ReadingTestPlayer({
         {(taskType === "true_false" || taskType === "truefalse") && (
           <div style={{ display: "grid", gap: 10 }}>
             {[
-              { label: "Sant", value: "true" },
-              { label: "Usant", value: "false" },
+              { label: t("questions.true"), value: "true" },
+              { label: t("questions.false"), value: "false" },
             ].map((opt, i) => {
               const checked = normalizeAnswer(currentAnswer) === opt.value;
               const correct = isCorrectAnswer(task, opt.value) === true;
@@ -511,9 +514,9 @@ export default function ReadingTestPlayer({
                   />
                   <span style={{ fontWeight: checked || showCorrect ? 700 : 500 }}>
                     {opt.label}
-                    {selectedCorrect ? " - Riktig" : ""}
-                    {selectedWrong ? " - Feil" : ""}
-                    {!checked && showCorrect ? " - Riktig svar" : ""}
+                    {selectedCorrect ? ` - ${t("questions.correct")}` : ""}
+                    {selectedWrong ? ` - ${t("questions.incorrect")}` : ""}
+                    {!checked && showCorrect ? ` - ${t("questions.correctAnswerShort")}` : ""}
                   </span>
                 </label>
               );
@@ -528,7 +531,7 @@ export default function ReadingTestPlayer({
             disabled={disabled || isTimeUp || isSubmitted}
             rows={taskType === "open" ? 5 : 2}
             style={{ ...inputStyle, resize: "vertical", opacity: isTimeUp && !isSubmitted ? 0.78 : 1 }}
-            placeholder="Skriv svaret ditt her"
+            placeholder={t("questions.answerPlaceholder")}
           />
         )}
       </div>
@@ -566,13 +569,13 @@ export default function ReadingTestPlayer({
         >
           <div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
-              {title || "Lesetest"}
+              {title || t("fallback.title")}
             </h2>
             <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {effectiveLevel ? <InfoPill label={`Nivå: ${effectiveLevel}`} /> : null}
-              {languageLabel ? <InfoPill label={`Språk: ${languageLabel}`} /> : null}
-              <InfoPill label={`Ord: ${wordCount}`} />
-              <InfoPill label={`Oppgaver: ${normalizedTasks.length}`} />
+              {effectiveLevel ? <InfoPill label={t("meta.level", { level: effectiveLevel })} /> : null}
+              {languageLabel ? <InfoPill label={t("meta.language", { language: languageLabel })} /> : null}
+              <InfoPill label={t("meta.wordsCount", { count: wordCount })} />
+              <InfoPill label={t("meta.tasksCount", { count: normalizedTasks.length })} />
             </div>
           </div>
 
@@ -587,7 +590,7 @@ export default function ReadingTestPlayer({
                 fontWeight: 800,
               }}
             >
-              Tid: {formatTime(secondsLeft)}
+              {t("timer.time")}: {formatTime(secondsLeft)}
             </div>
           )}
 
@@ -602,7 +605,7 @@ export default function ReadingTestPlayer({
                 fontWeight: 800,
               }}
             >
-              Brukt tid: {formatTime(secondsUsed)}
+              {t("timer.timeUsed")}: {formatTime(secondsUsed)}
             </div>
           )}
         </div>
@@ -621,7 +624,7 @@ export default function ReadingTestPlayer({
               }}
             >
               {importantMessage ||
-                `Viktig! Nedtellingen starter når du trykker på Start test. Les teksten nøye og svar på oppgavene. Timeren stopper når du trykker på ${submitLabel}.`}
+                t("intro.importantMessage", { submitLabel: effectiveSubmitLabel })}
             </div>
             <button
               type="button"
@@ -639,7 +642,7 @@ export default function ReadingTestPlayer({
                 opacity: disabled ? 0.6 : 1,
               }}
             >
-              Start test
+              {t("actions.startTest")}
             </button>
           </div>
         )}
@@ -678,7 +681,7 @@ export default function ReadingTestPlayer({
                 opacity: disabled ? 0.6 : 1,
               }}
             >
-              Jeg er ferdig å lese – vis spørsmål
+              {t("actions.finishedReadingShowQuestions")}
             </button>
           </div>
         )}
@@ -695,7 +698,7 @@ export default function ReadingTestPlayer({
               fontWeight: 700,
             }}
           >
-            Tiden er ute.
+            {t("timer.timeUp")}
           </div>
         )}
       </div>
@@ -711,14 +714,14 @@ export default function ReadingTestPlayer({
           }}
         >
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: "#14532d" }}>
-            Autokorrektur
+            {t("result.autoTitle")}
           </h3>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <InfoPill label={`Riktige: ${closedResult.correct}`} />
-            <InfoPill label={`Feil: ${closedResult.wrong}`} />
-            <InfoPill label={`Totalt: ${closedResult.total}`} />
+            <InfoPill label={t("result.correct", { count: closedResult.correct })} />
+            <InfoPill label={t("result.wrong", { count: closedResult.wrong })} />
+            <InfoPill label={t("result.total", { count: closedResult.total })} />
             {timerEnabled && secondsUsed != null ? (
-              <InfoPill label={`Brukt tid: ${formatTime(secondsUsed)}`} />
+              <InfoPill label={t("timer.timeUsedWithValue", { time: formatTime(secondsUsed) })} />
             ) : null}
           </div>
         </div>
@@ -735,10 +738,10 @@ export default function ReadingTestPlayer({
           }}
         >
           <h3 style={{ marginTop: 0, marginBottom: 8, fontSize: 18, fontWeight: 800 }}>
-            Oppgaver
+            {t("questions.title")}
           </h3>
           <p style={{ marginTop: 0, opacity: 0.78, lineHeight: 1.5 }}>
-            Når du er klar, kan du vise oppgavene og svare.
+            {t("questions.readyBody")}
           </p>
           <button
             type="button"
@@ -755,7 +758,7 @@ export default function ReadingTestPlayer({
               opacity: disabled ? 0.6 : 1,
             }}
           >
-            Vis oppgaver
+            {t("actions.showQuestions")}
           </button>
         </div>
       )}
@@ -771,11 +774,11 @@ export default function ReadingTestPlayer({
           }}
         >
           <h3 style={{ marginTop: 0, marginBottom: 6, fontSize: 18, fontWeight: 800 }}>
-            Oppgaver
+            {t("questions.title")}
           </h3>
 
           {normalizedTasks.length === 0 ? (
-            <p style={{ opacity: 0.75, marginBottom: 0 }}>Ingen oppgaver ennå.</p>
+            <p style={{ opacity: 0.75, marginBottom: 0 }}>{t("questions.noTasks")}</p>
           ) : (
             normalizedTasks.map((task, index) => renderTask(task, index))
           )}
@@ -797,7 +800,7 @@ export default function ReadingTestPlayer({
                   opacity: disabled ? 0.6 : 1,
                 }}
               >
-                {submitLabel}
+                {effectiveSubmitLabel}
               </button>
             </div>
           )}
@@ -827,7 +830,7 @@ export default function ReadingTestPlayer({
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 900, color: "#334155", whiteSpace: "nowrap" }}>
-              Starttid: {formatTime(initialTimer)}
+              {t("timer.startTime")}: {formatTime(initialTimer)}
             </div>
 
             <div
@@ -840,7 +843,7 @@ export default function ReadingTestPlayer({
               }}
             >
               <div
-                aria-label="Tid igjen"
+                aria-label={t("timer.timeLeft")}
                 style={{
                   height: 14,
                   borderRadius: 999,
@@ -893,7 +896,7 @@ export default function ReadingTestPlayer({
                   whiteSpace: "nowrap",
                 }}
               >
-                {submitLabel}
+                {effectiveSubmitLabel}
               </button>
             ) : null}
           </div>

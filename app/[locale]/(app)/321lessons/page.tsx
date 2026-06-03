@@ -51,6 +51,7 @@ type PublishedLesson = {
   showInLibrary?: boolean;
   authorName?: string;
   producerName?: string;
+  feedback?: string;
 };
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
@@ -106,7 +107,7 @@ function toBooleanSafe(v: unknown): boolean | undefined {
 
 function coerceTextType(l: PublishedLesson): string {
   const lessonType = String(l.lessonType || "").trim().toLowerCase();
-  if (lessonType === "reading_test") return "Lesetest";
+  if (lessonType === "reading_test") return "reading_test";
 
   const tt1 = String(l.textType ?? "").trim();
   if (tt1) return tt1;
@@ -134,6 +135,7 @@ function shouldShowInLibrary(l: PublishedLesson): boolean {
 
 function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson {
   const obj: Record<string, unknown> = isRecord(data) ? data : {};
+  const signedBy = isRecord(obj.signedBy) ? obj.signedBy : {};
 
   const title = toStringSafe(obj.title) || "Untitled";
 
@@ -173,8 +175,13 @@ function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson 
     publishVisibility: toStringSafe(obj.publishVisibility) || undefined,
     visibility: toStringSafe(obj.visibility) || undefined,
     showInLibrary: toBooleanSafe(obj.showInLibrary),
-    authorName: toStringSafe(obj.authorName) || undefined,
+    authorName:
+      toStringSafe(obj.authorName) ||
+      toStringSafe(obj.createdByName) ||
+      toStringSafe(signedBy.nameSnapshot) ||
+      undefined,
     producerName: toStringSafe(obj.producerName) || undefined,
+    feedback: toStringSafe(obj.feedback) || undefined,
   };
 }
 
@@ -1109,7 +1116,7 @@ export default function LessonsLandingPage() {
           <option value="all">{t("filters.textTypeAll")}</option>
           {allTextTypes.map((tt) => (
             <option key={tt} value={tt}>
-              {tt}
+              {tt === "reading_test" ? t("card.readingTest") : tt}
             </option>
           ))}
         </select>
@@ -1192,8 +1199,8 @@ export default function LessonsLandingPage() {
           pageSlice.map((l) => {
             const langCode = normLang(l.language);
             const langLabel = langLabelByCode.get(langCode) || (l.language ? l.language : "");
-            const tt = coerceTextType(l);
             const isReadingTest = String(l.lessonType || "").trim().toLowerCase() === "reading_test";
+            const tt = isReadingTest ? t("card.readingTest") : coerceTextType(l);
             const img = pickImageUrl(l);
             const author = (l.authorName || l.producerName || "").trim();
             const ratingAverage = l.ratingAverage ?? 0;
@@ -1236,10 +1243,10 @@ export default function LessonsLandingPage() {
                       {langLabel ? <span>{langLabel}</span> : null}
                       {langLabel && tt ? <span className="dot">•</span> : null}
                       {tt ? <span>{tt}</span> : null}
-                      {isReadingTest ? (
+                      {!isReadingTest && l.feedback ? (
                         <>
                           {(langLabel || tt) ? <span className="dot">•</span> : null}
-                          <span>AI-vurdering</span>
+                          <span>{t("card.aiFeedback")}</span>
                         </>
                       ) : null}
                     </div>

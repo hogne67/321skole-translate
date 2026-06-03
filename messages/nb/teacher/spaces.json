@@ -6,6 +6,12 @@
     "newSpaceLocked": "+ Nytt space (låst)",
     "newSpaceTitle": "Opprett et nytt space",
     "newSpaceLockedTitle": "Krever attestering + lærer-/produsentmodus",
+    "trainingVideo": {
+      "button": "Se opplæring",
+      "buttonTitle": "Se opplæring om spaces",
+      "close": "Lukk",
+      "title": "Opplæring: spaces"
+    },
     "controls": {
       "search": {
         "label": "Søk",
@@ -23,8 +29,14 @@
       "filters": {
         "label": "Filtre",
         "openOnly": "Kun åpne",
+        "showClosed": "Vis lukkede",
+        "showClosedTitle": "Skru på for å vise både åpne og lukkede spaces",
         "showing": "Viser: {n}"
       }
+    },
+    "access": {
+      "title": "Spaces er for lærere",
+      "subtitle": "Logg inn med en lærerbruker for å opprette og administrere egne rom. Elever blir med via kode eller lenke."
     },
     "list": {
       "untitled": "Uten navn",
@@ -45,7 +57,17 @@
       "openSpace": "Åpne space",
       "openSpaceTitle": "Åpne space",
       "board": "Tavle",
-      "boardTitle": "Åpne tavlen for dette spacet"
+      "boardTitle": "Åpne tavlen for dette spacet",
+      "editTitle": "Rediger navn",
+      "editTitleTitle": "Rediger navn på rommet",
+      "editTitleLabel": "Romnavn",
+      "saveTitle": "Lagre",
+      "savingTitle": "Lagrer...",
+      "saveTitleTitle": "Lagre nytt navn",
+      "cancelEditTitle": "Avbryt",
+      "cancelEditTitleTitle": "Avbryt navneredigering",
+      "editTitleRequired": "Rommet må ha et navn.",
+      "editTitleError": "Kunne ikke lagre navnet. Prøv igjen."
     },
     "empty": {
       "title": "Ingen spaces funnet.",

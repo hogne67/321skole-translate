@@ -12,13 +12,29 @@
     "loading": "Laster...",
     "meta": {
       "words": "ord",
-      "answered": "besvart"
+      "answered": "besvart",
+      "level": "Nivå: {level}",
+      "language": "Språk: {language}",
+      "wordsCount": "Ord: {count}",
+      "tasksCount": "Oppgaver: {count}"
     },
     "actions": {
       "startTest": "Start test",
       "submit": "Send inn",
       "tryAgain": "Prøv igjen",
-      "showQuestions": "Vis spørsmål"
+      "showQuestions": "Vis oppgaver",
+      "finishedReadingShowQuestions": "Jeg er ferdig å lese – vis spørsmål"
+    },
+    "intro": {
+      "importantMessage": "Viktig! Nedtellingen starter når du trykker på Start test. Les teksten nøye og svar på oppgavene. Timeren stopper når du trykker på {submitLabel}."
+    },
+    "timer": {
+      "time": "Tid",
+      "timeUsed": "Brukt tid",
+      "timeUsedWithValue": "Brukt tid: {time}",
+      "timeUp": "Tiden er ute.",
+      "startTime": "Starttid",
+      "timeLeft": "Tid igjen"
     },
     "readingText": {
       "title": "Lesetekst",
@@ -32,10 +48,19 @@
       "correct": "Riktig",
       "incorrect": "Feil",
       "openSaved": "Åpent svar lagret for egenvurdering",
-      "correctAnswer": "Riktig svar:"
+      "correctAnswer": "Riktig svar:",
+      "correctAnswerShort": "Riktig svar",
+      "taskLabel": "Oppgave {n}",
+      "answerPlaceholder": "Skriv svaret ditt her",
+      "readyBody": "Når du er klar, kan du vise oppgavene og svare.",
+      "noTasks": "Ingen oppgaver ennå."
     },
     "result": {
-      "title": "Resultat"
+      "title": "Resultat",
+      "autoTitle": "Autokorrektur",
+      "correct": "Riktige: {count}",
+      "wrong": "Feil: {count}",
+      "total": "Totalt: {count}"
     },
     "feedback": {
       "learner": "Bra jobbet. Se gjennom svarene du bommet på, og prøv en ny test på samme nivå.",

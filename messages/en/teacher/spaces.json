@@ -6,6 +6,12 @@
       "newSpaceLocked": "+ New space (locked)",
       "newSpaceTitle": "Create a new space",
       "newSpaceLockedTitle": "Requires attestation + Teacher/Creator mode",
+      "trainingVideo": {
+        "button": "Watch guide",
+        "buttonTitle": "Watch the spaces guide",
+        "close": "Close",
+        "title": "Guide: spaces"
+      },
       "controls": {
         "search": {
           "label": "Search",
@@ -23,8 +29,14 @@
         "filters": {
           "label": "Filters",
           "openOnly": "Open only",
+          "showClosed": "Show closed",
+          "showClosedTitle": "Turn on to show both open and closed spaces",
           "showing": "Showing: {n}"
         }
+      },
+      "access": {
+        "title": "Spaces are for teachers",
+        "subtitle": "Sign in with a teacher account to create and manage your own rooms. Students join by code or link."
       },
       "list": {
         "untitled": "Untitled space",
@@ -45,7 +57,17 @@
         "openSpace": "Open space",
         "openSpaceTitle": "Open space",
         "board": "Board",
-        "boardTitle": "Open the board for this space"
+        "boardTitle": "Open the board for this space",
+        "editTitle": "Edit name",
+        "editTitleTitle": "Edit room name",
+        "editTitleLabel": "Room name",
+        "saveTitle": "Save",
+        "savingTitle": "Saving...",
+        "saveTitleTitle": "Save new name",
+        "cancelEditTitle": "Cancel",
+        "cancelEditTitleTitle": "Cancel name editing",
+        "editTitleRequired": "The room needs a name.",
+        "editTitleError": "Could not save the name. Try again."
       },
       "empty": {
         "title": "No spaces found.",

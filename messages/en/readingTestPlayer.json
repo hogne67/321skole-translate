@@ -12,13 +12,29 @@
     "loading": "Loading...",
     "meta": {
       "words": "words",
-      "answered": "answered"
+      "answered": "answered",
+      "level": "Level: {level}",
+      "language": "Language: {language}",
+      "wordsCount": "Words: {count}",
+      "tasksCount": "Tasks: {count}"
     },
     "actions": {
       "startTest": "Start test",
       "submit": "Submit",
       "tryAgain": "Try again",
-      "showQuestions": "Show questions"
+      "showQuestions": "Show tasks",
+      "finishedReadingShowQuestions": "I have finished reading – show questions"
+    },
+    "intro": {
+      "importantMessage": "Important! The countdown starts when you press Start test. Read the text carefully and answer the tasks. The timer stops when you press {submitLabel}."
+    },
+    "timer": {
+      "time": "Time",
+      "timeUsed": "Time used",
+      "timeUsedWithValue": "Time used: {time}",
+      "timeUp": "Time is up.",
+      "startTime": "Start time",
+      "timeLeft": "Time left"
     },
     "readingText": {
       "title": "Reading text",
@@ -32,10 +48,19 @@
       "correct": "Correct",
       "incorrect": "Incorrect",
       "openSaved": "Open response saved for self-review",
-      "correctAnswer": "Correct answer:"
+      "correctAnswer": "Correct answer:",
+      "correctAnswerShort": "Correct answer",
+      "taskLabel": "Task {n}",
+      "answerPlaceholder": "Write your answer here",
+      "readyBody": "When you are ready, you can show the tasks and answer.",
+      "noTasks": "No tasks yet."
     },
     "result": {
-      "title": "Result"
+      "title": "Result",
+      "autoTitle": "Auto correction",
+      "correct": "Correct: {count}",
+      "wrong": "Wrong: {count}",
+      "total": "Total: {count}"
     },
     "feedback": {
       "learner": "Great work. Review the answers you missed and try one more test at the same level.",

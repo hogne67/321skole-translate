@@ -650,6 +650,7 @@ function buildSvarString(lessonObj: Lesson, answersObj: AnswersMap): string {
 
 export default function StudentLessonPage() {
   const t = useTranslations("lessonsLanding");
+  const tReading = useTranslations("readingTestPlayer");
   const locale = useLocale();
 
   const params = useParams<{ lessonId: string }>();
@@ -1749,7 +1750,7 @@ export default function StudentLessonPage() {
       >
         <div>
           <h1 style={{ margin: "0 0 8px", fontSize: "clamp(1.5rem, 3.5vw, 2.2rem)", lineHeight: 1.1 }}>
-            {isReadingTest ? "Lesetest" : lesson.title}
+            {isReadingTest ? tReading("fallback.title") : lesson.title}
           </h1>
 
           <div
@@ -1830,7 +1831,7 @@ export default function StudentLessonPage() {
               opacity: saving || submitting ? 0.6 : 1,
             }}
           >
-            Gjør en gang til
+            {tReading("actions.tryAgain")}
           </button>
         ) : null}
 

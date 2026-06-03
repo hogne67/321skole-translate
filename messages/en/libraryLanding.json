@@ -23,7 +23,9 @@
     },
     "card": {
       "imageFallback": "Image",
-      "author": "Author"
+      "author": "Author",
+      "readingTest": "Reading test",
+      "aiFeedback": "AI feedback"
     },
     "languages": {
       "all": "All languages",
