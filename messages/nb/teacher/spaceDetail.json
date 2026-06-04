@@ -10,7 +10,8 @@
       "setActive": "Sett som aktiv",
       "archive": "Arkiver",
       "restore": "Gjenopprett",
-      "createNewLesson": "+ Lag ny oppgave"
+      "createNewLesson": "+ Lag ny oppgave",
+      "printRoom": "Print/PDF romkode"
     },
     "access": {
       "mustBeSignedIn": "Du må være logget inn.",

@@ -96,7 +96,7 @@ export default function ToolsPage() {
                     buttonTitle={t("trainingVideos.assignmentGenerator.buttonTitle")}
                     closeLabel={t("trainingVideos.close")}
                     iconOnly
-                    className="h-11 w-11"
+                    className="h-12 w-12"
                   />
                 ) : null}
               </div>

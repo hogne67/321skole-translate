@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ExternalLink, Info, PlayCircle, X } from "lucide-react";
+import { ExternalLink, PlayCircle, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 type TrainingVideoPlayerProps = {
@@ -96,16 +96,15 @@ export default function TrainingVideoPlayer({
         title={buttonTitle ?? buttonLabel}
         aria-label={iconOnly ? buttonTitle ?? buttonLabel : undefined}
         className={cn(
-          "inline-flex h-10 items-center justify-center gap-2 rounded-xl border text-sm font-bold shadow-sm transition active:translate-y-px",
+          "inline-flex items-center justify-center gap-2 text-sm font-bold transition active:translate-y-px",
           iconOnly
-            ? "border-blue-700 bg-blue-600 text-white hover:bg-blue-700"
-            : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50",
-          iconOnly ? "w-10 px-0" : "px-4",
+            ? "h-12 w-12 rounded-full border-0 bg-transparent p-0 shadow-none hover:scale-105"
+            : "h-10 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 shadow-sm hover:bg-slate-50",
           className
         )}
       >
         {iconOnly ? (
-          <Info className="h-5 w-5" aria-hidden="true" />
+          <img src="/videobutton.png" alt="" className="h-full w-full rounded-full object-contain" aria-hidden="true" />
         ) : (
           <PlayCircle className="h-4 w-4" aria-hidden="true" />
         )}

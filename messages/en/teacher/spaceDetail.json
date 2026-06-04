@@ -10,7 +10,8 @@
       "setActive": "Set active",
       "archive": "Archive",
       "restore": "Restore",
-      "createNewLesson": "+ Create new lesson"
+      "createNewLesson": "+ Create new lesson",
+      "printRoom": "Print/PDF room code"
     },
     "access": {
       "mustBeSignedIn": "You must be signed in.",

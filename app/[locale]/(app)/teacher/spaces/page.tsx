@@ -301,7 +301,7 @@ function TeacherSpacesInner() {
               buttonTitle={t("trainingVideo.buttonTitle")}
               closeLabel={t("trainingVideo.close")}
               iconOnly
-              className="h-11 w-11 border-blue-700 bg-blue-600 text-white shadow-sm hover:bg-blue-700"
+              className="h-12 w-12"
             />
           </div>
         </div>
@@ -506,7 +506,7 @@ function TeacherSpacesInner() {
                     </div>
                   </div>
 
-                  <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[340px]">
+                  <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-4 xl:w-auto xl:min-w-[440px]">
                     <button
                       type="button"
                       onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
@@ -523,6 +523,15 @@ function TeacherSpacesInner() {
                       title={t("list.boardTitle")}
                     >
                       {t("list.board")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/print`))}
+                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      title={t("list.printRoomTitle")}
+                    >
+                      {t("list.printRoom")}
                     </button>
 
                     <button

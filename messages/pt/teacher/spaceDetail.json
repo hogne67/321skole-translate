@@ -10,7 +10,8 @@
       "setActive": "Definir como ativa",
       "archive": "Arquivar",
       "restore": "Restaurar",
-      "createNewLesson": "+ Criar nova atividade"
+      "createNewLesson": "+ Criar nova atividade",
+      "printRoom": "Imprimir/PDF código"
     },
     "access": {
       "mustBeSignedIn": "Você precisa estar conectado.",

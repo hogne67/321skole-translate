@@ -58,6 +58,8 @@
       "openSpaceTitle": "Åpne space",
       "board": "Tavle",
       "boardTitle": "Åpne tavlen for dette spacet",
+      "printRoom": "Print/PDF",
+      "printRoomTitle": "Lag printside med romkode og QR-kode",
       "editTitle": "Rediger navn",
       "editTitleTitle": "Rediger navn på rommet",
       "editTitleLabel": "Romnavn",

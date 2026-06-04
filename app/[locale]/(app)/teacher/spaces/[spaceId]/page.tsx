@@ -832,7 +832,7 @@ function Inner() {
           </div>
 
           <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
-            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setAssignOpen(true)}
@@ -847,6 +847,13 @@ function Inner() {
                 className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
               >
                 {t("actions.createNewLesson")}
+              </Link>
+
+              <Link
+                href={withLocale(locale, `/teacher/spaces/${spaceId}/print`)}
+                className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+              >
+                {t("actions.printRoom")}
               </Link>
             </div>
 
