@@ -751,6 +751,10 @@ function Inner() {
     .split(/\s+/)
     .filter(Boolean).length;
   const readingTotalWordCount = countReadingTestWords(sourceText, tasksOriginal);
+  const readingWordsPerMinute =
+    readingMeta.usedSeconds != null && readingMeta.usedSeconds > 0 && readingTotalWordCount > 0
+      ? Math.round(readingTotalWordCount / (readingMeta.usedSeconds / 60))
+      : null;
 
   const readingSummaryText = isReadingTest
     ? readingMeta.timedOut === true
@@ -966,7 +970,7 @@ function Inner() {
             <div className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-900">
               Lesetest
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   Brukt tid
@@ -1005,10 +1009,19 @@ function Inner() {
 
               <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Ord totalt
+                  Ord lest
                 </div>
                 <div className="mt-1 text-lg font-black text-slate-950">
                   {readingTotalWordCount}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Ord/min
+                </div>
+                <div className="mt-1 text-lg font-black text-slate-950">
+                  {readingWordsPerMinute ?? "—"}
                 </div>
               </div>
             </div>

@@ -652,8 +652,8 @@ export default function ReadingTestPlayer({
             style={{
               marginTop: 16,
               whiteSpace: "pre-wrap",
-              lineHeight: 1.7,
-              fontSize: 16,
+              lineHeight: 1.82,
+              fontSize: 17,
               color: "#111827",
             }}
           >
@@ -720,6 +720,7 @@ export default function ReadingTestPlayer({
             <InfoPill label={t("result.correct", { count: closedResult.correct })} />
             <InfoPill label={t("result.wrong", { count: closedResult.wrong })} />
             <InfoPill label={t("result.total", { count: closedResult.total })} />
+            <InfoPill label={t("result.wordsRead", { count: wordCount })} />
             {timerEnabled && secondsUsed != null ? (
               <InfoPill label={t("timer.timeUsedWithValue", { time: formatTime(secondsUsed) })} />
             ) : null}

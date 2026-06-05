@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { DashboardIntro } from "@/components/DashboardIntro";
+import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { PartnerDashboardCard } from "@/components/PartnerDashboardCard";
 import { db } from "@/lib/firebase";
 import {
@@ -767,6 +768,8 @@ export default function TeacherPage() {
         actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
         actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
       />
+
+      <InstallAppButton />
 
       <section
         style={{

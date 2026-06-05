@@ -159,8 +159,8 @@ function classifyResultStrength(wrongCount: number): ReadingSignalsPayload["read
 function classifySpeed(wordsPerMinute: number | null): ReadingSignalsPayload["readingSignals"]["speedSignal"] {
   if (wordsPerMinute == null) return "expected";
   if (wordsPerMinute < 80) return "calm_or_slow";
-  if (wordsPerMinute >= 250) return "very_fast";
-  if (wordsPerMinute >= 180) return "fast";
+  if (wordsPerMinute >= 200) return "very_fast";
+  if (wordsPerMinute >= 100) return "fast";
   return "expected";
 }
 

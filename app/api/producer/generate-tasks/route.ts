@@ -22,6 +22,21 @@ type GenerateTasksBody = {
     facts?: number;
     reflection?: number;
   };
+  a1Start?: A1StartConfig;
+};
+
+type A1StartConfig = {
+  type?: string;
+  verb?: string;
+  tense?: string;
+  sentenceCount?: number;
+  topic?: string;
+  trueFalseCount?: number;
+  imageSentenceCount?: number;
+  verbSentenceCount?: number;
+  wordClass?: string;
+  word?: string;
+  sequenceCount?: number;
 };
 
 type TasksOnly = {
@@ -180,6 +195,113 @@ Open task quality rules:
 `.trim();
 }
 
+function buildA1StartTaskPrompt(args: {
+  languageName: string;
+  text: string;
+  config: A1StartConfig;
+}) {
+  const isHighFrequency = args.config.type === "high_frequency_words";
+  const verb = String(args.config.verb || "").trim();
+  const word = String(args.config.word || "").trim();
+  const targetWord = isHighFrequency ? word : verb;
+  if (!targetWord) throw new Error("A target verb or word is required for A1 Start.");
+  const trueFalseCount = clampCount(Number(args.config.trueFalseCount ?? 5), 0, 10, 5);
+  const imageSentenceCount = clampCount(Number(args.config.imageSentenceCount ?? 5), 0, 10, 5);
+  const verbSentenceCount = clampCount(Number(args.config.verbSentenceCount ?? 5), 0, 10, 5);
+
+  return `
+Create very simple tasks for an A1 Start learner.
+
+Target language: ${args.languageName}
+Target ${isHighFrequency ? "high-frequency word" : "verb"}: ${targetWord}
+
+SOURCE SENTENCES:
+"""
+${args.text}
+"""
+
+Return valid JSON only in this exact structure:
+{
+  "tasks": {
+    "multipleChoice": [],
+    "trueFalse": [
+      { "statement": "A simple statement about the source sentences.", "answer": true }
+    ],
+    "writeFacts": [],
+    "reflectionQuestions": [
+      "Write ${imageSentenceCount} sentences for the picture.",
+      "Write ${verbSentenceCount} sentences using the ${isHighFrequency ? "word" : "verb"} \\"${targetWord}\\"."
+    ]
+  }
+}
+
+Strict rules:
+- Write every task and option in ${args.languageName}.
+- Keep the instructions extremely short and concrete.
+- Create exactly ${trueFalseCount} true/false statements based only on the source sentences.
+- Each true/false statement must be simple, meaningful, and clearly checkable against the source sentences.
+- ${imageSentenceCount > 0
+    ? `Return exactly one open instruction meaning: Write ${imageSentenceCount} sentences for the picture.`
+    : "Do not return an open instruction."}
+- ${verbSentenceCount > 0
+    ? `Return exactly one open instruction meaning: Write ${verbSentenceCount} sentences using the ${isHighFrequency ? "word" : "verb"} "${targetWord}".`
+    : `Do not return an instruction about writing sentences with the ${isHighFrequency ? "word" : "verb"} "${targetWord}".`}
+- Do not add explanations, reflection, factual recall, multiple choice, or other tasks.
+`.trim();
+}
+
+function buildA1StartImagePrompt(languageName: string, count: number): string {
+  if (languageName === "Norwegian") return `Skriv ${count} setninger til bildet.`;
+  if (languageName === "Portuguese" || languageName === "Brazilian Portuguese") {
+    return `Escreva ${count} frases sobre a imagem.`;
+  }
+  return `Write ${count} sentences for the picture.`;
+}
+
+function buildA1StartVerbPrompt(languageName: string, count: number, verb: string): string {
+  if (languageName === "Norwegian") return `Skriv ${count} setninger med verbet "${verb}".`;
+  if (languageName === "Portuguese" || languageName === "Brazilian Portuguese") {
+    return `Escreva ${count} frases com o verbo "${verb}".`;
+  }
+  return `Write ${count} sentences using the verb "${verb}".`;
+}
+
+function buildA1StartWordPrompt(languageName: string, count: number, word: string): string {
+  if (languageName === "Norwegian") return `Skriv ${count} setninger med ordet "${word}".`;
+  if (languageName === "Portuguese" || languageName === "Brazilian Portuguese") {
+    return `Escreva ${count} frases com a palavra "${word}".`;
+  }
+  return `Write ${count} sentences using the word "${word}".`;
+}
+
+function buildA1StartTrueFalseFallback(text: string, count: number): TasksOnly["trueFalse"] {
+  const lines = Array.from(
+    new Set(
+      text
+        .split(/\r?\n/)
+        .map((line) => line.trim().replace(/[.!?]+$/, ""))
+        .filter(Boolean)
+    )
+  );
+  if (lines.length === 0) return [];
+
+  return Array.from({ length: count }, (_, index) => {
+    const source = lines[index % lines.length];
+    if (index % 2 === 0 || lines.length === 1) {
+      return { statement: source, answer: true };
+    }
+
+    const words = source.split(/\s+/);
+    const replacement = lines[(index + 1) % lines.length].split(/\s+/).at(-1);
+    if (words.length >= 3 && replacement && replacement !== words.at(-1)) {
+      words[words.length - 1] = replacement;
+      return { statement: words.join(" "), answer: false };
+    }
+
+    return { statement: source, answer: true };
+  });
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -226,10 +348,17 @@ export async function POST(req: Request) {
     const trueFalse = clampCount(Number(body.tasks?.trueFalse ?? 10), 0, 30, 10);
     const facts = clampCount(Number(body.tasks?.facts ?? 6), 0, 10, 6);
     const reflection = clampCount(Number(body.tasks?.reflection ?? 3), 0, 20, 3);
+    const isA1Start = level === "A1_START";
 
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-    const system = `
+    const system = isA1Start
+      ? `
+You create highly controlled beginning-reading tasks for 321skole.
+You must return valid JSON only.
+All task texts must be written only in the requested target language.
+`.trim()
+      : `
 You create CEFR-adapted reading tasks for 321skole.
 You must return valid JSON only.
 The output language must strictly follow the requested target language.
@@ -237,7 +366,13 @@ Do not default to the UI language, prompt language, instruction language, or top
 All task texts must be written only in the requested target language.
 `.trim();
 
-    const userPrompt = `
+    const userPrompt = isA1Start
+      ? buildA1StartTaskPrompt({
+        languageName,
+        text,
+        config: body.a1Start || {},
+      })
+      : `
 Create tasks based ONLY on the text below.
 
 Target language: ${languageName}
@@ -290,6 +425,7 @@ Counts:
 
     const resp = await client.responses.create({
       model,
+      text: { format: { type: "json_object" } },
       input: [
         { role: "system", content: system },
         { role: "user", content: userPrompt },
@@ -323,6 +459,39 @@ Counts:
         { ok: false, error: "Mangler 'tasks' i JSON-respons." },
         { status: 500 }
       );
+    }
+
+    if (isA1Start) {
+      const requestedTrueFalse = clampCount(Number(body.a1Start?.trueFalseCount ?? 5), 0, 10, 5);
+      const requestedImageSentences = clampCount(Number(body.a1Start?.imageSentenceCount ?? 5), 0, 10, 5);
+      const requestedVerbSentences = clampCount(Number(body.a1Start?.verbSentenceCount ?? 5), 0, 10, 5);
+      const selectedVerb = String(body.a1Start?.verb || "").trim();
+      const selectedWord = String(body.a1Start?.word || "").trim();
+      const isHighFrequency = body.a1Start?.type === "high_frequency_words";
+      const generatedTrueFalse = Array.isArray(parsed.tasks.trueFalse)
+        ? parsed.tasks.trueFalse.slice(0, requestedTrueFalse)
+        : [];
+      const fallbackTrueFalse = buildA1StartTrueFalseFallback(text, requestedTrueFalse);
+      parsed.tasks = {
+        multipleChoice: [],
+        trueFalse: [
+          ...generatedTrueFalse,
+          ...fallbackTrueFalse.slice(generatedTrueFalse.length),
+        ].slice(0, requestedTrueFalse),
+        writeFacts: [],
+        reflectionQuestions: [
+          ...(requestedImageSentences > 0
+            ? [buildA1StartImagePrompt(languageName, requestedImageSentences)]
+            : []),
+          ...(requestedVerbSentences > 0
+            ? [
+              isHighFrequency
+                ? buildA1StartWordPrompt(languageName, requestedVerbSentences, selectedWord)
+                : buildA1StartVerbPrompt(languageName, requestedVerbSentences, selectedVerb),
+            ]
+            : []),
+        ],
+      };
     }
 
     await consumeFeatureAdmin({

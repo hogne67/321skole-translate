@@ -18,6 +18,53 @@
       "textLength": "Tekstlengde (ord)",
       "sharedSettingsTitle": "Tekstinnstillinger"
     },
+    "a1Start": {
+      "levelLabel": "A1 Start",
+      "title": "Leseopplæring – A1 Start",
+      "tasksHeading": "Oppgaver",
+      "customVerb": "Annet verb",
+      "description": "Start og avslutt med samme Jeg-setning. Gjenta hvert subjekt tre ganger med samme verb.",
+      "highFrequencyDescription": "Lag korte lesesekvenser med ett valgt høyfrekvent funksjonsord.",
+      "fields": {
+        "type": "Type",
+        "verb": "Verb",
+        "tense": "Tid",
+        "sentenceCount": "Antall setninger",
+        "topic": "Tema (valgfritt)",
+        "trueFalseCount": "Antall sant / usant",
+        "imageSentenceCount": "Antall setninger til bildet",
+        "verbSentenceCount": "Antall setninger med verbet",
+        "wordSentenceCount": "Antall setninger med ordet",
+        "wordClass": "Ordklasse",
+        "word": "Ord",
+        "sequenceCount": "Antall sekvenser"
+      },
+      "types": {
+        "patternSentences": "Mønstersetninger",
+        "highFrequencyWords": "Høyfrekvente ord (beta)"
+      },
+      "wordClasses": {
+        "preposition": "Preposisjon",
+        "adverb": "Adverb",
+        "conjunction": "Konjunksjon",
+        "subjunction": "Subjunksjon",
+        "determiner": "Determinativ"
+      },
+      "sequenceHelp": "Én sekvens består av 6 linjer. De fire mønstersetningene bruker samme subjekt og verbal. Sekvenser skilles med en tom linje.",
+      "tenses": {
+        "present": "Presens",
+        "past": "Preteritum",
+        "future": "Framtid"
+      },
+      "placeholders": {
+        "verb": "Skriv eller velg verb",
+        "topic": "For eksempel mat, skole eller familie"
+      },
+      "verbSuggestions": "Forslag: {verbs}",
+      "errors": {
+        "verbRequired": "Skriv inn et verb for A1 Start."
+      }
+    },
     "textTypes": {
       "everydayStory": "Hverdagsfortelling",
       "factual": "Saktekst",

@@ -648,6 +648,7 @@ function buildReadingSystemPrompt(lang: Lang) {
       "- Do not write: 'This is expected for A2.' Write instead: 'On short texts, the pace can become high, especially when the text fits well.'",
       "- If score is high and pace is appropriate/high, you may write: 'This result suggests that you read this type of text with good fluency' or 'You show signs of being a strong reader at this level.' Do not write that the student is A2/B1 or has fully met the level.",
       "- If score is high and pace is high, do not jump to a fixed next CEFR level. Use the current text level from the user message and the level guidance there. Never suggest moving to a level that is the same as, or lower than, the current text level.",
+      "- If autoscore is high and WPM is above 100, next steps should normally include trying a slightly higher-level text when a higher level exists. If autoscore is very high and WPM is above 200, clearly point out that the student can try more demanding or higher-level texts, while avoiding hard level conclusions.",
       "- If score is low and pace is high, do not praise the speed and do not suggest a higher level. Say that the student worked quickly through the test, but some mistakes may suggest that it went a little too fast. Suggest reading the questions and answer options more calmly before answering.",
       "- If score is low and pace is calm/slow, do not suggest reading more slowly. Say that the text may have been demanding, and suggest reading in smaller parts, stopping after each paragraph, and checking the main idea.",
       "- If score is high and pace is calm/slow, say that the student spent good time and answered many tasks correctly; this may mean careful, thorough reading.",
@@ -708,6 +709,7 @@ function buildReadingSystemPrompt(lang: Lang) {
       "- Não escreva: 'Isso é esperado para A2.' Escreva antes: 'Em textos curtos, o ritmo pode ficar alto, especialmente quando o texto combina bem.'",
       "- Se a pontuação for alta e o ritmo for adequado/alto, você pode escrever: 'Este resultado sugere que você lê este tipo de texto com boa fluência' ou 'Você mostra sinais de ser um leitor forte neste nível.' Não escreva que o aluno é A2/B1 ou que cumpre totalmente o nível.",
       "- Se a pontuação for alta e o ritmo alto, não salte para um nível CEFR fixo. Use o nível atual do texto informado na mensagem do usuário e a orientação de nível que aparece ali. Nunca sugira avançar para um nível que seja igual ou inferior ao nível atual do texto.",
+      "- Se o autoscore for alto e o WPM estiver acima de 100, os próximos passos normalmente devem incluir experimentar um texto de nível um pouco mais alto quando houver um nível mais alto. Se o autoscore for muito alto e o WPM estiver acima de 200, indique claramente que o aluno pode experimentar textos mais exigentes ou de nível mais alto, sem conclusões rígidas de nível.",
       "- Se a pontuação for baixa e o ritmo alto, não elogie a velocidade e não sugira nível mais alto. Diga que o aluno trabalhou rapidamente pelo teste, mas alguns erros podem sugerir que foi um pouco rápido demais. Sugira ler perguntas e alternativas com mais calma antes de responder.",
       "- Se a pontuação for baixa e o ritmo calmo/lento, não sugira ler mais devagar. Diga que o texto pode ter sido exigente e sugira ler em partes menores, parar após cada parágrafo e verificar a ideia principal.",
       "- Se a pontuação for alta e o ritmo calmo/lento, diga que o aluno usou bom tempo e respondeu corretamente a muitas tarefas; isso pode indicar leitura cuidadosa.",
@@ -765,6 +767,7 @@ function buildReadingSystemPrompt(lang: Lang) {
     "- Ikke skriv: 'Dette er forventet for A2.' Skriv heller: 'På korte tekster kan tempoet bli høyt, særlig når teksten passer godt.'.",
     "- Ved høy score og passende/høy lesefart kan du skrive: 'Resultatet tyder på at du leser denne typen tekst med god flyt' eller 'Du viser tegn på å være en sterk leser på dette nivået.' Ikke skriv at eleven er A2/B1 eller oppfyller nivået fullt ut.",
     "- Ved høy score og høy lesefart: ikke hopp til et fast neste CEFR-nivå. Bruk tekstens nivå fra brukermeldingen og nivåveiledningen der. Foreslå aldri å gå videre til et nivå som er likt eller lavere enn tekstens nivå.",
+    "- Ved høy autoscore og mer enn 100 ord per minutt bør neste steg vanligvis ta med at eleven kan prøve en tekst på litt høyere nivå når et høyere nivå finnes. Ved svært høy autoscore og mer enn 200 ord per minutt skal du tydelig peke på at eleven godt kan prøve mer krevende tekster eller høyere nivå, uten bastante nivåkonklusjoner.",
     "- Ved lav score og høy lesefart: ikke ros farten og ikke foreslå høyere nivå. Skriv at eleven jobbet raskt gjennom testen, men at flere feil kan tyde på at det gikk litt fort. Foreslå å lese spørsmålene og svaralternativene roligere før svar.",
     "- Ved lav score og rolig/lav lesefart: ikke foreslå å lese roligere. Skriv heller at teksten kan ha vært krevende, og foreslå å lese i mindre deler, stoppe etter hvert avsnitt og sjekke hovedinnholdet.",
     "- Ved høy score og rolig/lav lesefart: skriv at eleven brukte god tid og svarte riktig på mange oppgaver. Det kan bety at eleven leste nøye og jobbet godt med teksten.",
@@ -1174,33 +1177,35 @@ function buildReadingLevelGuidance(level: string, lang: Lang): string {
     A1: "A2",
     A2: "B1",
     B1: "B2",
+    B2: "C1",
+    C1: "C2",
   };
 
   if (lang === "en") {
-    if (normalized === "B2" || normalized === "C1" || normalized === "C2") {
-      return `Level guidance: The text CEFR level is ${normalized}. Do not suggest moving on to B2 or a lower level when the text is already at this level or higher. With a very strong result, suggest a longer text, a more demanding topic, or a more nuanced text at the same level.`;
+    if (normalized === "C2") {
+      return `Level guidance: The text CEFR level is ${normalized}. There is no higher CEFR level to suggest. With a very strong result, suggest a longer text, a more demanding topic, or a more nuanced text at the same level.`;
     }
     if (nextLevel[normalized]) {
-      return `Level guidance: The text CEFR level is ${normalized}. Only with a very strong result and good comprehension may you gently suggest trying a slightly more demanding text, for example ${nextLevel[normalized]}. Otherwise, suggest more practice at the same level.`;
+      return `Level guidance: The text CEFR level is ${normalized}. With a high autoscore and more than 100 words per minute, you may suggest that the student also tries a slightly higher-level text, for example ${nextLevel[normalized]}, if comprehension seems good. With a very high autoscore and more than 200 words per minute, clearly point out that the student can try more demanding texts, preferably ${nextLevel[normalized]}, without concluding that the student is at that level. If the result is not strong, suggest more practice at the same level.`;
     }
     return `Level guidance: Use ${level || "the provided level"} as the text level, not as a broad judgement of the student's level.`;
   }
 
   if (lang === "pt") {
-    if (normalized === "B2" || normalized === "C1" || normalized === "C2") {
-      return `Orientação de nível: O nível CEFR do texto é ${normalized}. Não sugira avançar para B2 ou para um nível inferior quando o texto já está neste nível ou acima. Com um resultado muito forte, sugira um texto mais longo, um tema mais exigente ou um texto mais nuançado no mesmo nível.`;
+    if (normalized === "C2") {
+      return `Orientação de nível: O nível CEFR do texto é ${normalized}. Não há um nível CEFR mais alto para sugerir. Com um resultado muito forte, sugira um texto mais longo, um tema mais exigente ou um texto mais nuançado no mesmo nível.`;
     }
     if (nextLevel[normalized]) {
-      return `Orientação de nível: O nível CEFR do texto é ${normalized}. Apenas com resultado muito forte e boa compreensão você pode sugerir com cuidado tentar um texto um pouco mais exigente, por exemplo ${nextLevel[normalized]}. Caso contrário, sugira mais prática no mesmo nível.`;
+      return `Orientação de nível: O nível CEFR do texto é ${normalized}. Com autoscore alto e mais de 100 palavras por minuto, você pode sugerir que o aluno também experimente um texto de nível um pouco mais alto, por exemplo ${nextLevel[normalized]}, se a compreensão parecer boa. Com autoscore muito alto e mais de 200 palavras por minuto, indique claramente que o aluno pode experimentar textos mais exigentes, de preferência ${nextLevel[normalized]}, sem concluir que o aluno está nesse nível. Se o resultado não for forte, sugira mais prática no mesmo nível.`;
     }
     return `Orientação de nível: Use ${level || "o nível informado"} como nível do texto, não como julgamento amplo do nível do aluno.`;
   }
 
-  if (normalized === "B2" || normalized === "C1" || normalized === "C2") {
-    return `Nivåveiledning: Tekstens CEFR-nivå er ${normalized}. Ikke foreslå å gå videre til B2 eller et lavere nivå når teksten allerede er på dette nivået eller høyere. Ved svært godt resultat kan neste steg være en lengre tekst, et mer krevende tema eller en mer nyansert tekst på samme nivå.`;
+  if (normalized === "C2") {
+    return `Nivåveiledning: Tekstens CEFR-nivå er ${normalized}. Det finnes ikke et høyere CEFR-nivå å foreslå. Ved svært godt resultat kan neste steg være en lengre tekst, et mer krevende tema eller en mer nyansert tekst på samme nivå.`;
   }
   if (nextLevel[normalized]) {
-    return `Nivåveiledning: Tekstens CEFR-nivå er ${normalized}. Bare ved svært godt resultat og god forståelse kan du forsiktig foreslå å prøve en litt mer krevende tekst, for eksempel ${nextLevel[normalized]}. Ellers bør neste steg være mer øving på samme nivå.`;
+    return `Nivåveiledning: Tekstens CEFR-nivå er ${normalized}. Ved høy autoscore og mer enn 100 ord per minutt kan du foreslå at eleven også prøver en tekst på et litt høyere nivå, for eksempel ${nextLevel[normalized]}, hvis forståelsen virker god. Ved svært høy autoscore og mer enn 200 ord per minutt bør du tydelig peke på at eleven godt kan prøve mer krevende tekster, gjerne ${nextLevel[normalized]}, men uten å konkludere at eleven er på dette nivået. Hvis resultatet ikke er sterkt, bør neste steg være mer øving på samme nivå.`;
   }
   return `Nivåveiledning: Bruk ${level || "oppgitt nivå"} som tekstnivå, ikke som en bred vurdering av elevens nivå.`;
 }

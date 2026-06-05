@@ -60,7 +60,8 @@
       "autoTitle": "Correção automática",
       "correct": "Corretas: {count}",
       "wrong": "Erradas: {count}",
-      "total": "Total: {count}"
+      "total": "Total: {count}",
+      "wordsRead": "Palavras lidas: {count}"
     },
     "feedback": {
       "learner": "Ótimo trabalho. Revise as respostas que você errou e tente outro teste no mesmo nível.",

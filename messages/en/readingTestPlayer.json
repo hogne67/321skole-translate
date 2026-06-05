@@ -60,7 +60,8 @@
       "autoTitle": "Auto correction",
       "correct": "Correct: {count}",
       "wrong": "Wrong: {count}",
-      "total": "Total: {count}"
+      "total": "Total: {count}",
+      "wordsRead": "Words read: {count}"
     },
     "feedback": {
       "learner": "Great work. Review the answers you missed and try one more test at the same level.",

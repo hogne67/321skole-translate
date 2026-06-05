@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { DashboardIntro } from "@/components/DashboardIntro";
+import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { PartnerDashboardCard } from "@/components/PartnerDashboardCard";
 import { useUsage } from "@/lib/useUsage";
 import {
@@ -383,6 +384,8 @@ export default function ParentPage() {
         actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
         actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
       />
+
+      <InstallAppButton />
 
       <section
         style={{

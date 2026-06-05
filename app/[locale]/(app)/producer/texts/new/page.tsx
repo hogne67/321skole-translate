@@ -104,12 +104,35 @@ const TEXT_TYPE_KEYS = [
 ] as const;
 type TextTypeKey = (typeof TEXT_TYPE_KEYS)[number];
 
-type LevelKey = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+type LevelKey = "A1_START" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+type A1StartTense = "present" | "past" | "future";
+type A1StartSentenceCount = 10 | 13 | 16 | 19;
+type A1StartType = "pattern_sentences" | "high_frequency_words";
+type A1StartWordClass = keyof typeof A1_START_HIGH_FREQUENCY_WORDS;
+
+const A1_START_HIGH_FREQUENCY_WORDS = {
+  preposition: ["i", "på", "til", "fra", "av", "for", "med", "om", "hos", "etter", "før", "over", "utenfor", "under", "ved"],
+  adverb: ["ikke", "så", "også", "nå", "ut", "opp", "her", "der", "bare", "mer", "helt", "da", "ja", "nei", "nok"],
+  conjunction: ["og", "men", "eller", "for", "så"],
+  subjunction: ["som", "at", "da", "når", "fordi", "hvis", "om", "selv om", "slik at", "før"],
+  determiner: ["en", "ei", "et", "min", "din", "sin", "denne", "dette", "disse", "alle", "ingen", "andre", "mye", "egen", "samme"],
+} as const;
+
+const A1_START_VERB_SUGGESTIONS: Record<string, readonly string[]> = {
+  nb: ["er", "har", "ser", "liker", "spiser", "drikker", "går", "kommer", "lager", "leser", "skriver"],
+  en: ["be", "have", "see", "like", "eat", "drink", "go", "come", "make", "read", "write"],
+  "pt-br": ["ser", "ter", "ver", "gostar", "comer", "beber", "ir", "vir", "fazer", "ler", "escrever"],
+};
+
+function getA1StartVerbSuggestions(language: string): readonly string[] {
+  return A1_START_VERB_SUGGESTIONS[language.toLocaleLowerCase()] || A1_START_VERB_SUGGESTIONS.nb;
+}
 
 const LEVEL_DEFAULTS: Record<
   LevelKey,
   { textLength: number; trueFalse: number; mcq: number; facts: number; reflection: number }
 > = {
+  A1_START: { textLength: 10, trueFalse: 0, mcq: 0, facts: 0, reflection: 1 },
   A1: { textLength: 80, trueFalse: 3, mcq: 3, facts: 2, reflection: 1 },
   A2: { textLength: 140, trueFalse: 6, mcq: 4, facts: 3, reflection: 1 },
   B1: { textLength: 200, trueFalse: 8, mcq: 6, facts: 3, reflection: 2 },
@@ -304,6 +327,26 @@ export default function NewTextPage() {
   const [trueFalseCount, setTrueFalseCount] = useState<number>(LEVEL_DEFAULTS.A2.trueFalse);
   const [factsCount, setFactsCount] = useState<number>(LEVEL_DEFAULTS.A2.facts);
   const [reflectionCount, setReflectionCount] = useState<number>(LEVEL_DEFAULTS.A2.reflection);
+  const [a1StartVerb, setA1StartVerb] = useState("er");
+  const [a1StartCustomVerb, setA1StartCustomVerb] = useState("");
+  const [a1StartType, setA1StartType] = useState<A1StartType>("pattern_sentences");
+  const [a1StartWordClass, setA1StartWordClass] = useState<A1StartWordClass>("preposition");
+  const [a1StartWord, setA1StartWord] = useState("i");
+  const [a1StartSequenceCount, setA1StartSequenceCount] = useState(1);
+  const [a1StartTense, setA1StartTense] = useState<A1StartTense>("present");
+  const [a1StartSentenceCount, setA1StartSentenceCount] =
+    useState<A1StartSentenceCount>(10);
+  const [a1StartTopic, setA1StartTopic] = useState("");
+  const [a1StartTrueFalseCount, setA1StartTrueFalseCount] = useState(5);
+  const [a1StartImageSentenceCount, setA1StartImageSentenceCount] = useState(5);
+  const [a1StartVerbSentenceCount, setA1StartVerbSentenceCount] = useState(5);
+  const a1StartVerbSuggestions = getA1StartVerbSuggestions(language);
+  const a1StartUsesCustomVerb = a1StartVerb === "__custom__";
+  const effectiveA1StartVerb = a1StartUsesCustomVerb
+    ? a1StartCustomVerb.trim()
+    : a1StartVerb.trim();
+  const isA1StartHighFrequency = a1StartType === "high_frequency_words";
+  const isNorwegianLesson = ["nb", "no"].includes(language.toLocaleLowerCase());
 
   const [title, setTitle] = useState<string>("");
   const [sourceText, setSourceText] = useState<string>("");
@@ -322,6 +365,9 @@ export default function NewTextPage() {
   const [statusLoading, setStatusLoading] = useState(false);
 
   const busy = loadingText || loadingTasks || saving;
+  const isA1Start = level === "A1_START";
+  const effectiveTextType = isA1Start ? a1StartType : textTypeLabel;
+  const effectiveTopic = isA1Start ? a1StartTopic.trim() : prompt.trim();
 
   const profileUid =
     profile && typeof profile === "object" && "uid" in profile
@@ -357,6 +403,22 @@ export default function NewTextPage() {
     setFactsCount(Math.max(0, Math.min(10, d.facts)));
     setReflectionCount(d.reflection);
   }, [level]);
+
+  const a1StartConfig = isA1Start
+    ? {
+      type: a1StartType,
+      verb: effectiveA1StartVerb,
+      tense: a1StartTense,
+      sentenceCount: a1StartSentenceCount,
+      topic: a1StartTopic.trim(),
+      trueFalseCount: a1StartTrueFalseCount,
+      imageSentenceCount: a1StartImageSentenceCount,
+      verbSentenceCount: a1StartVerbSentenceCount,
+      wordClass: a1StartWordClass,
+      word: a1StartWord,
+      sequenceCount: a1StartSequenceCount,
+    }
+    : undefined;
 
   const filteredLanguages = useMemo(() => {
     const q = languageSearch.trim().toLowerCase();
@@ -587,6 +649,10 @@ export default function NewTextPage() {
     setSavedId(null);
 
     try {
+      if (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb) {
+        throw new Error(t("a1Start.errors.verbRequired"));
+      }
+
       const user = getAuth().currentUser;
       if (!user) throw new Error("Not signed in.");
 
@@ -601,9 +667,10 @@ export default function NewTextPage() {
         body: JSON.stringify({
           level,
           language,
-          topic: prompt.trim(),
-          textType: textTypeLabel,
+          topic: effectiveTopic,
+          textType: effectiveTextType,
           textLength,
+          a1Start: a1StartConfig,
         }),
       });
 
@@ -637,7 +704,7 @@ export default function NewTextPage() {
         source: "text",
         level,
         language,
-        textType: textTypeLabel,
+        textType: effectiveTextType,
       });
 
       const nextTitle = String(data.title || "").trim();
@@ -681,8 +748,8 @@ export default function NewTextPage() {
         body: JSON.stringify({
           level,
           language,
-          topic: prompt.trim(),
-          textType: textTypeLabel,
+          topic: effectiveTopic,
+          textType: effectiveTextType,
           text: sourceText,
           tasks: {
             mcq: mcqCount,
@@ -690,6 +757,7 @@ export default function NewTextPage() {
             facts: factsCount,
             reflection: reflectionCount,
           },
+          a1Start: a1StartConfig,
         }),
       });
 
@@ -710,7 +778,7 @@ export default function NewTextPage() {
         title: title || t("defaults.title"),
         level,
         language,
-        topic: prompt,
+        topic: effectiveTopic,
         text: sourceText,
         tasks: data.tasks,
       };
@@ -783,9 +851,9 @@ export default function NewTextPage() {
         title: title.trim() || t("defaults.title"),
         level,
         language,
-        prompt: prompt.trim(),
-        topic: prompt.trim(),
-        textType: textTypeLabel,
+        prompt: effectiveTopic,
+        topic: effectiveTopic,
+        textType: effectiveTextType,
         sourceText: sourceText || "",
         tasks: renumberOrders(lessonTasks),
       }),
@@ -799,7 +867,7 @@ export default function NewTextPage() {
       source: "text",
       level,
       language,
-      textType: textTypeLabel,
+      textType: effectiveTextType,
     });
 
     const raw = await res.text();
@@ -1028,7 +1096,18 @@ export default function NewTextPage() {
               >
                 <label>
                   {t("fields.level")}
-                  <select value={level} onChange={(e) => setLevel(e.target.value as LevelKey)} style={fieldStyle}>
+                  <select
+                    value={level}
+                    onChange={(e) => {
+                      const nextLevel = e.target.value as LevelKey;
+                      setLevel(nextLevel);
+                      if (nextLevel === "A1_START") {
+                        setA1StartVerb(getA1StartVerbSuggestions(language)[0] || "");
+                      }
+                    }}
+                    style={fieldStyle}
+                  >
+                    <option value="A1_START">{t("a1Start.levelLabel")}</option>
                     <option value="A1">A1</option>
                     <option value="A2">A2</option>
                     <option value="B1">B1</option>
@@ -1047,7 +1126,20 @@ export default function NewTextPage() {
                       placeholder={t("fields.languageSearchPlaceholder")}
                       style={fieldStyleCompact}
                     />
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)} style={fieldStyle}>
+                    <select
+                      value={language}
+                      onChange={(e) => {
+                        const nextLanguage = e.target.value;
+                        setLanguage(nextLanguage);
+                      if (isA1Start) {
+                          setA1StartVerb(getA1StartVerbSuggestions(nextLanguage)[0] || "");
+                          if (!["nb", "no"].includes(nextLanguage.toLocaleLowerCase())) {
+                            setA1StartType("pattern_sentences");
+                          }
+                        }
+                      }}
+                      style={fieldStyle}
+                    >
                       {filteredLanguages.map((l) => (
                         <option key={l.code} value={l.code}>
                           {l.label} ({l.code})
@@ -1060,43 +1152,237 @@ export default function NewTextPage() {
                   </div>
                 </label>
 
-                <label>
-                  {t("fields.textType")}
-                  <select
-                    value={textTypePreset}
-                    onChange={(e) => setTextTypePreset(e.target.value as TextTypeKey)}
-                    style={fieldStyle}
-                  >
-                    {TEXT_TYPE_KEYS.map((k) => (
-                      <option key={k} value={k}>
-                        {t(`textTypes.${k}`)}
-                      </option>
-                    ))}
-                  </select>
+                {!isA1Start && (
+                  <>
+                    <label>
+                      {t("fields.textType")}
+                      <select
+                        value={textTypePreset}
+                        onChange={(e) => setTextTypePreset(e.target.value as TextTypeKey)}
+                        style={fieldStyle}
+                      >
+                        {TEXT_TYPE_KEYS.map((k) => (
+                          <option key={k} value={k}>
+                            {t(`textTypes.${k}`)}
+                          </option>
+                        ))}
+                      </select>
 
-                  {textTypePreset === "other" && (
-                    <input
-                      value={textTypeOther}
-                      onChange={(e) => setTextTypeOther(e.target.value)}
-                      placeholder={t("fields.textTypeOtherPlaceholder")}
-                      style={{ ...fieldStyle, marginTop: 8 }}
-                    />
-                  )}
-                </label>
+                      {textTypePreset === "other" && (
+                        <input
+                          value={textTypeOther}
+                          onChange={(e) => setTextTypeOther(e.target.value)}
+                          placeholder={t("fields.textTypeOtherPlaceholder")}
+                          style={{ ...fieldStyle, marginTop: 8 }}
+                        />
+                      )}
+                    </label>
 
-                <label>
-                  {t("fields.textLength")}
-                  <input
-                    type="number"
-                    value={textLength}
-                    onChange={(e) => setTextLength(Number(e.target.value))}
-                    style={fieldStyle}
-                    min={60}
-                    max={900}
-                  />
-                </label>
+                    <label>
+                      {t("fields.textLength")}
+                      <input
+                        type="number"
+                        value={textLength}
+                        onChange={(e) => setTextLength(Number(e.target.value))}
+                        style={fieldStyle}
+                        min={60}
+                        max={900}
+                      />
+                    </label>
+                  </>
+                )}
               </div>
             </div>
+
+            {isA1Start && (
+              <div
+                style={{
+                  border: "1px solid #93c5fd",
+                  borderRadius: 16,
+                  padding: 14,
+                  background: "#eff6ff",
+                  marginBottom: 14,
+                }}
+              >
+                <h3 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 800 }}>
+                  {t("a1Start.title")}
+                </h3>
+                <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 12 }}>
+                  {isA1StartHighFrequency
+                    ? t("a1Start.highFrequencyDescription")
+                    : t("a1Start.description")}
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isNarrow ? "1fr" : "repeat(4, minmax(0, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  <label>
+                    {t("a1Start.fields.type")}
+                    <select
+                      value={a1StartType}
+                      onChange={(e) => setA1StartType(e.target.value as A1StartType)}
+                      style={fieldStyle}
+                    >
+                      <option value="pattern_sentences">{t("a1Start.types.patternSentences")}</option>
+                      <option value="high_frequency_words" disabled={!isNorwegianLesson}>
+                        {t("a1Start.types.highFrequencyWords")}
+                      </option>
+                    </select>
+                  </label>
+                  {!isA1StartHighFrequency && <label>
+                    {t("a1Start.fields.verb")}
+                    <select
+                      value={a1StartVerb}
+                      onChange={(e) => setA1StartVerb(e.target.value)}
+                      style={fieldStyle}
+                    >
+                      {a1StartVerbSuggestions.map((verb) => (
+                        <option key={verb} value={verb}>{verb}</option>
+                      ))}
+                      <option value="__custom__">{t("a1Start.customVerb")}</option>
+                    </select>
+                    {a1StartUsesCustomVerb && (
+                      <input
+                        value={a1StartCustomVerb}
+                        onChange={(e) => setA1StartCustomVerb(e.target.value)}
+                        placeholder={t("a1Start.placeholders.verb")}
+                        style={{ ...fieldStyle, marginTop: 8 }}
+                      />
+                    )}
+                    <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+                      {t("a1Start.verbSuggestions", {
+                        verbs: a1StartVerbSuggestions.join(", "),
+                      })}
+                    </div>
+                  </label>}
+                  {!isA1StartHighFrequency && <label>
+                    {t("a1Start.fields.tense")}
+                    <select
+                      value={a1StartTense}
+                      onChange={(e) => setA1StartTense(e.target.value as A1StartTense)}
+                      style={fieldStyle}
+                    >
+                      <option value="present">{t("a1Start.tenses.present")}</option>
+                      <option value="past">{t("a1Start.tenses.past")}</option>
+                      <option value="future">{t("a1Start.tenses.future")}</option>
+                    </select>
+                  </label>}
+                  {!isA1StartHighFrequency && <label>
+                    {t("a1Start.fields.sentenceCount")}
+                    <select
+                      value={a1StartSentenceCount}
+                      onChange={(e) =>
+                        setA1StartSentenceCount(Number(e.target.value) as A1StartSentenceCount)
+                      }
+                      style={fieldStyle}
+                    >
+                      {[10, 13, 16, 19].map((count) => (
+                        <option key={count} value={count}>{count}</option>
+                      ))}
+                    </select>
+                  </label>}
+                  {isA1StartHighFrequency && (
+                    <>
+                      <label>
+                        {t("a1Start.fields.wordClass")}
+                        <select
+                          value={a1StartWordClass}
+                          onChange={(e) => {
+                            const nextClass = e.target.value as A1StartWordClass;
+                            setA1StartWordClass(nextClass);
+                            setA1StartWord(A1_START_HIGH_FREQUENCY_WORDS[nextClass][0]);
+                          }}
+                          style={fieldStyle}
+                        >
+                          {Object.keys(A1_START_HIGH_FREQUENCY_WORDS).map((wordClass) => (
+                            <option key={wordClass} value={wordClass}>
+                              {t(`a1Start.wordClasses.${wordClass}`)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        {t("a1Start.fields.word")}
+                        <select
+                          value={a1StartWord}
+                          onChange={(e) => setA1StartWord(e.target.value)}
+                          style={fieldStyle}
+                        >
+                          {A1_START_HIGH_FREQUENCY_WORDS[a1StartWordClass].map((word) => (
+                            <option key={word} value={word}>{word}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        {t("a1Start.fields.sequenceCount")}
+                        <select
+                          value={a1StartSequenceCount}
+                          onChange={(e) => setA1StartSequenceCount(Number(e.target.value))}
+                          style={fieldStyle}
+                        >
+                          {[1, 2, 3, 4, 5].map((count) => (
+                            <option key={count} value={count}>{count}</option>
+                          ))}
+                        </select>
+                        <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+                          {t("a1Start.sequenceHelp")}
+                        </div>
+                      </label>
+                    </>
+                  )}
+                  <label style={{ gridColumn: isNarrow ? "auto" : "1 / -1" }}>
+                    {t("a1Start.fields.topic")}
+                    <input
+                      value={a1StartTopic}
+                      onChange={(e) => setA1StartTopic(e.target.value)}
+                      placeholder={t("a1Start.placeholders.topic")}
+                      style={fieldStyle}
+                    />
+                  </label>
+                  <label>
+                    {t("a1Start.fields.trueFalseCount")}
+                    <select
+                      value={a1StartTrueFalseCount}
+                      onChange={(e) => setA1StartTrueFalseCount(Number(e.target.value))}
+                      style={fieldStyle}
+                    >
+                      {[0, 3, 5, 8, 10].map((count) => (
+                        <option key={count} value={count}>{count}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    {t("a1Start.fields.imageSentenceCount")}
+                    <select
+                      value={a1StartImageSentenceCount}
+                      onChange={(e) => setA1StartImageSentenceCount(Number(e.target.value))}
+                      style={fieldStyle}
+                    >
+                      {[0, 3, 5, 8, 10].map((count) => (
+                        <option key={count} value={count}>{count}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    {isA1StartHighFrequency
+                      ? t("a1Start.fields.wordSentenceCount")
+                      : t("a1Start.fields.verbSentenceCount")}
+                    <select
+                      value={a1StartVerbSentenceCount}
+                      onChange={(e) => setA1StartVerbSentenceCount(Number(e.target.value))}
+                      style={fieldStyle}
+                    >
+                      {[0, 3, 5, 8, 10].map((count) => (
+                        <option key={count} value={count}>{count}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
 
             <div
               style={{
@@ -1118,40 +1404,42 @@ export default function NewTextPage() {
                   {t("buttons.generateText")}
                 </h3>
 
-                <label>
-                  {t("fields.prompt")}
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => {
-                      setPrompt(e.target.value);
-                      autoGrow(e.currentTarget);
-                    }}
-                    onInput={(e) => autoGrow(e.currentTarget as HTMLTextAreaElement)}
-                    rows={5}
-                    placeholder={t("defaults.prompt")}
-                    style={{
-                      ...fieldStyle,
-                      resize: "vertical",
-                      minHeight: 110,
-                      lineHeight: 1.35,
-                      fontFamily: "inherit",
-                    }}
-                  />
-                  <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                    {t("fields.promptTip")}
-                  </div>
-                </label>
+                {!isA1Start && (
+                  <label>
+                    {t("fields.prompt")}
+                    <textarea
+                      value={prompt}
+                      onChange={(e) => {
+                        setPrompt(e.target.value);
+                        autoGrow(e.currentTarget);
+                      }}
+                      onInput={(e) => autoGrow(e.currentTarget as HTMLTextAreaElement)}
+                      rows={5}
+                      placeholder={t("defaults.prompt")}
+                      style={{
+                        ...fieldStyle,
+                        resize: "vertical",
+                        minHeight: 110,
+                        lineHeight: 1.35,
+                        fontFamily: "inherit",
+                      }}
+                    />
+                    <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+                      {t("fields.promptTip")}
+                    </div>
+                  </label>
+                )}
 
                 <div style={{ marginTop: 12 }}>
                   <button
                     className="actionBtn"
                     onClick={generateTextOnly}
-                    disabled={busy}
+                    disabled={busy || (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb)}
                     style={{
                       ...buttonPrimary,
                       width: isNarrow ? "100%" : "auto",
-                      opacity: busy ? 0.7 : 1,
-                      cursor: busy ? "not-allowed" : "pointer",
+                      opacity: busy || (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb) ? 0.7 : 1,
+                      cursor: busy || (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb) ? "not-allowed" : "pointer",
                     }}
                   >
                     {loadingText ? t("buttons.generatingText") : t("buttons.generateText")}
@@ -1241,7 +1529,7 @@ export default function NewTextPage() {
               </div>
             )}
 
-            <div
+            {!isA1Start && <div
               style={{
                 display: "grid",
                 gridTemplateColumns: isNarrow ? "1fr 1fr" : "repeat(4, 1fr)",
@@ -1300,7 +1588,7 @@ export default function NewTextPage() {
                   disabled={!hasText}
                 />
               </label>
-            </div>
+            </div>}
 
             {hasText && (
               <div
@@ -1428,7 +1716,9 @@ export default function NewTextPage() {
 
         {hasTasks && (
           <section style={{ marginTop: 22 }}>
-            <h2 style={sectionTitleStyle}>{t("editor.title")}</h2>
+            <h2 style={sectionTitleStyle}>
+              {isA1Start ? t("a1Start.tasksHeading") : t("editor.title")}
+            </h2>
 
             <div style={{ marginTop: 12, ...cardStyle }}>
               <div

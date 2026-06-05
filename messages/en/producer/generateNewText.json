@@ -18,6 +18,53 @@
       "textLength": "Text length (words)",
       "sharedSettingsTitle": "Text settings"
     },
+    "a1Start": {
+      "levelLabel": "A1 Start",
+      "title": "Reading instruction – A1 Start",
+      "tasksHeading": "Tasks",
+      "customVerb": "Other verb",
+      "description": "Start and finish with the same first-person sentence. Repeat each subject three times with the same verb.",
+      "highFrequencyDescription": "Create short reading sequences using one selected high-frequency function word.",
+      "fields": {
+        "type": "Type",
+        "verb": "Verb",
+        "tense": "Tense",
+        "sentenceCount": "Number of sentences",
+        "topic": "Topic (optional)",
+        "trueFalseCount": "Number of true / false tasks",
+        "imageSentenceCount": "Sentences for the picture",
+        "verbSentenceCount": "Sentences using the verb",
+        "wordSentenceCount": "Sentences using the word",
+        "wordClass": "Word class",
+        "word": "Word",
+        "sequenceCount": "Number of sequences"
+      },
+      "types": {
+        "patternSentences": "Pattern sentences",
+        "highFrequencyWords": "High-frequency words (beta)"
+      },
+      "wordClasses": {
+        "preposition": "Preposition",
+        "adverb": "Adverb",
+        "conjunction": "Conjunction",
+        "subjunction": "Subjunction",
+        "determiner": "Determiner"
+      },
+      "sequenceHelp": "One sequence consists of 6 lines. The four pattern sentences use the same subject and verb. Sequences are separated by a blank line.",
+      "tenses": {
+        "present": "Present",
+        "past": "Past",
+        "future": "Future"
+      },
+      "placeholders": {
+        "verb": "Write or choose a verb",
+        "topic": "For example food, school, or family"
+      },
+      "verbSuggestions": "Suggestions: {verbs}",
+      "errors": {
+        "verbRequired": "Enter a verb for A1 Start."
+      }
+    },
     "textTypes": {
       "everydayStory": "Everyday story",
       "factual": "Factual",

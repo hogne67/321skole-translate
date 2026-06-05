@@ -18,6 +18,53 @@
       "textLength": "Tamanho do texto (palavras)",
       "sharedSettingsTitle": "Configurações do texto"
     },
+    "a1Start": {
+      "levelLabel": "A1 Start",
+      "title": "Iniciação à leitura – A1 Start",
+      "tasksHeading": "Atividades",
+      "customVerb": "Outro verbo",
+      "description": "Comece e termine com a mesma frase na primeira pessoa. Repita cada sujeito três vezes com o mesmo verbo.",
+      "highFrequencyDescription": "Crie sequências curtas de leitura usando uma palavra funcional de alta frequência.",
+      "fields": {
+        "type": "Tipo",
+        "verb": "Verbo",
+        "tense": "Tempo verbal",
+        "sentenceCount": "Número de frases",
+        "topic": "Tema (opcional)",
+        "trueFalseCount": "Número de verdadeiro / falso",
+        "imageSentenceCount": "Frases sobre a imagem",
+        "verbSentenceCount": "Frases com o verbo",
+        "wordSentenceCount": "Frases com a palavra",
+        "wordClass": "Classe gramatical",
+        "word": "Palavra",
+        "sequenceCount": "Número de sequências"
+      },
+      "types": {
+        "patternSentences": "Frases-modelo",
+        "highFrequencyWords": "Palavras de alta frequência (beta)"
+      },
+      "wordClasses": {
+        "preposition": "Preposição",
+        "adverb": "Advérbio",
+        "conjunction": "Conjunção",
+        "subjunction": "Conjunção subordinativa",
+        "determiner": "Determinante"
+      },
+      "sequenceHelp": "Uma sequência consiste em 6 linhas. As quatro frases-modelo usam o mesmo sujeito e verbo. As sequências são separadas por uma linha em branco.",
+      "tenses": {
+        "present": "Presente",
+        "past": "Pretérito",
+        "future": "Futuro"
+      },
+      "placeholders": {
+        "verb": "Escreva ou escolha um verbo",
+        "topic": "Por exemplo comida, escola ou família"
+      },
+      "verbSuggestions": "Sugestões: {verbs}",
+      "errors": {
+        "verbRequired": "Insira um verbo para A1 Start."
+      }
+    },
     "textTypes": {
       "everydayStory": "História do cotidiano",
       "factual": "Texto informativo",
