@@ -24,7 +24,9 @@
       "tasksHeading": "Tasks",
       "customVerb": "Other verb",
       "description": "Start and finish with the same first-person sentence. Repeat each subject three times with the same verb.",
-      "highFrequencyDescription": "Create short reading sequences using one selected high-frequency function word.",
+      "highFrequencyDescription": "Create one coherent A1 text using a selected high-frequency function word, followed by a simple explanation.",
+      "soundLadderDescription": "Create an A1 text with one focus sound, sound words, and short sound sentences.",
+      "reviewReminder": "Check the text carefully. Replace individual words or sentences if needed.",
       "fields": {
         "type": "Type",
         "verb": "Verb",
@@ -37,20 +39,50 @@
         "wordSentenceCount": "Sentences using the word",
         "wordClass": "Word class",
         "word": "Word",
-        "sequenceCount": "Number of sequences"
+        "highFrequencyLength": "Text length",
+        "focusSound": "Focus sound",
+        "soundSentenceCount": "Number of sentences with the sound",
+        "soundWordCount": "Number of sound words"
       },
       "types": {
         "patternSentences": "Pattern sentences",
-        "highFrequencyWords": "High-frequency words (beta)"
+        "highFrequencyWords": "High-frequency words",
+        "soundReadingLadder": "Sound training"
       },
       "wordClasses": {
         "preposition": "Preposition",
         "adverb": "Adverb",
-        "conjunction": "Conjunction",
+        "conjunction": "Conjunction / linking word",
         "subjunction": "Subjunction",
         "determiner": "Determiner"
       },
-      "sequenceHelp": "One sequence consists of 6 lines. The four pattern sentences use the same subject and verb. Sequences are separated by a blank line.",
+      "textLengths": {
+        "short": "Short text (about 50 words)",
+        "medium": "Medium text (about 100 words)",
+        "long": "Long text (about 150 words)"
+      },
+      "highFrequencyThemes": {
+        "familie": "Family",
+        "jobb": "Work",
+        "skole": "School",
+        "shopping": "Shopping",
+        "mat": "Food",
+        "fritid": "Free time",
+        "venner": "Friends",
+        "hjem": "Home",
+        "transport": "Transport",
+        "helse": "Health",
+        "custom": "Custom topic"
+      },
+      "highFrequencyHelp": "The AI creates one coherent A1 text. Good language comes first. The text ends with Explanation and Example sentences.",
+      "soundLadderHelp": "The AI creates a text, explanation, sound words, and short sentences with the sound.",
+      "soundTasksPreview": {
+        "title": "Tasks that will be created",
+        "trueFalse": "5 true/false",
+        "words": "Write 10 words with the {sound} sound",
+        "sentences": "Write 5 sentences with the {sound} sound",
+        "image": "Write 5 sentences for the picture"
+      },
       "tenses": {
         "present": "Present",
         "past": "Past",

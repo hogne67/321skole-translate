@@ -36,7 +36,9 @@ type A1StartConfig = {
   verbSentenceCount?: number;
   wordClass?: string;
   word?: string;
-  sequenceCount?: number;
+  focusSound?: string;
+  soundSentenceCount?: number;
+  soundWordCount?: number;
 };
 
 type TasksOnly = {
@@ -201,6 +203,8 @@ function buildA1StartTaskPrompt(args: {
   config: A1StartConfig;
 }) {
   const isHighFrequency = args.config.type === "high_frequency_words";
+  const isSoundLadder = args.config.type === "sound_reading_ladder";
+  if (isSoundLadder) return buildA1StartSoundLadderTaskPrompt(args);
   const verb = String(args.config.verb || "").trim();
   const word = String(args.config.word || "").trim();
   const targetWord = isHighFrequency ? word : verb;
@@ -250,6 +254,54 @@ Strict rules:
 `.trim();
 }
 
+function buildA1StartSoundLadderTaskPrompt(args: {
+  languageName: string;
+  text: string;
+  config: A1StartConfig;
+}) {
+  const focusSound = String(args.config.focusSound || "").trim();
+  if (!focusSound) throw new Error("A focus sound is required for A1 Start sound ladder.");
+
+  return `
+Create very simple tasks for an A1 Start learner.
+
+Target language: ${args.languageName}
+Focus sound: ${focusSound}
+
+SOURCE TEXT:
+"""
+${args.text}
+"""
+
+Return valid JSON only in this exact structure:
+{
+  "tasks": {
+    "multipleChoice": [],
+    "trueFalse": [
+      { "statement": "A simple statement about the source text.", "answer": true }
+    ],
+    "writeFacts": [],
+      "reflectionQuestions": [
+      "Write 10 words with the ${focusSound} sound.",
+      "Write 5 sentences with the ${focusSound} sound.",
+      "Write 5 sentences for the picture."
+    ]
+  }
+}
+
+Strict rules:
+- Write every task in ${args.languageName}.
+- Keep all tasks very short and concrete.
+- Create exactly 5 true/false statements based only on the source text.
+- Each true/false statement must be simple, meaningful, and clearly checkable against the source text.
+- Create exactly these 3 open task meanings:
+  1. Write 10 words with the focus sound.
+  2. Write 5 sentences with the focus sound.
+  3. Write 5 sentences for the picture.
+- Do not create multiple choice, explanations, factual recall, or extra tasks.
+`.trim();
+}
+
 function buildA1StartImagePrompt(languageName: string, count: number): string {
   if (languageName === "Norwegian") return `Skriv ${count} setninger til bildet.`;
   if (languageName === "Portuguese" || languageName === "Brazilian Portuguese") {
@@ -272,6 +324,28 @@ function buildA1StartWordPrompt(languageName: string, count: number, word: strin
     return `Escreva ${count} frases com a palavra "${word}".`;
   }
   return `Write ${count} sentences using the word "${word}".`;
+}
+
+function buildA1StartSoundFallbackTasks(languageName: string, focusSound: string): string[] {
+  if (languageName === "Norwegian") {
+    return [
+      `Skriv 10 ord med ${focusSound}-lyden.`,
+      `Skriv 5 setninger med ${focusSound}-lyden.`,
+      "Skriv 5 setninger til bildet.",
+    ];
+  }
+  if (languageName === "Portuguese" || languageName === "Brazilian Portuguese") {
+    return [
+      `Escreva 10 palavras com o som ${focusSound}.`,
+      `Escreva 5 frases com o som ${focusSound}.`,
+      "Escreva 5 frases sobre a imagem.",
+    ];
+  }
+  return [
+    `Write 10 words with the ${focusSound} sound.`,
+    `Write 5 sentences with the ${focusSound} sound.`,
+    "Write 5 sentences for the picture.",
+  ];
 }
 
 function buildA1StartTrueFalseFallback(text: string, count: number): TasksOnly["trueFalse"] {
@@ -468,6 +542,26 @@ Counts:
       const selectedVerb = String(body.a1Start?.verb || "").trim();
       const selectedWord = String(body.a1Start?.word || "").trim();
       const isHighFrequency = body.a1Start?.type === "high_frequency_words";
+      const isSoundLadder = body.a1Start?.type === "sound_reading_ladder";
+      if (isSoundLadder) {
+        const focusSound = String(body.a1Start?.focusSound || "").trim();
+        const generatedTrueFalse = Array.isArray(parsed.tasks.trueFalse)
+          ? parsed.tasks.trueFalse.slice(0, 5)
+          : [];
+        const fallbackTrueFalse = buildA1StartTrueFalseFallback(text, 5);
+        parsed.tasks = {
+          multipleChoice: [],
+          trueFalse: [
+            ...generatedTrueFalse,
+            ...fallbackTrueFalse.slice(generatedTrueFalse.length),
+          ].slice(0, 5),
+          writeFacts: [],
+          reflectionQuestions: buildA1StartSoundFallbackTasks(
+            languageName,
+            focusSound
+          ),
+        };
+      } else {
       const generatedTrueFalse = Array.isArray(parsed.tasks.trueFalse)
         ? parsed.tasks.trueFalse.slice(0, requestedTrueFalse)
         : [];
@@ -492,6 +586,7 @@ Counts:
             : []),
         ],
       };
+      }
     }
 
     await consumeFeatureAdmin({

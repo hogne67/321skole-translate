@@ -1686,6 +1686,18 @@ export default function StudentLessonPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {segs.map((s, i) => {
           const isActive = activeTextMode === mode && activeSentenceIndex === i;
+          const normalizedSegment = s.text.trim().toLocaleLowerCase();
+          const isSectionHeading = [
+            "forklaring",
+            "ord og lydtrening",
+            "setninger med lyden",
+            "explanation",
+            "words and sound training",
+            "sentences with the sound",
+            "explicação",
+            "palavras e treino de som",
+            "frases com o som",
+          ].includes(normalizedSegment);
           const canSeek =
             !!audioRef.current &&
             activeTextMode === mode &&
@@ -1702,6 +1714,8 @@ export default function StudentLessonPage() {
                 background: isActive ? "rgba(255, 230, 120, 0.65)" : "transparent",
                 transition: "background 120ms ease",
                 lineHeight: 1.6,
+                marginTop: isSectionHeading && i > 0 ? 14 : 0,
+                fontWeight: isSectionHeading ? 800 : 400,
               }}
               title={canSeek ? t("text.clickToSeek") : undefined}
             >

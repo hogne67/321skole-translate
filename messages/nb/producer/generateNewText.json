@@ -24,7 +24,9 @@
       "tasksHeading": "Oppgaver",
       "customVerb": "Annet verb",
       "description": "Start og avslutt med samme Jeg-setning. Gjenta hvert subjekt tre ganger med samme verb.",
-      "highFrequencyDescription": "Lag korte lesesekvenser med ett valgt høyfrekvent funksjonsord.",
+      "highFrequencyDescription": "Lag en sammenhengende A1-tekst med ett valgt høyfrekvent funksjonsord og en enkel forklaring etter teksten.",
+      "soundLadderDescription": "Lag en A1-tekst med fokus på én lyd, ord og korte lydsetninger.",
+      "reviewReminder": "Sjekk teksten nøye. Bytt gjerne ut enkelte ord eller setninger om nødvendig.",
       "fields": {
         "type": "Type",
         "verb": "Verb",
@@ -37,20 +39,50 @@
         "wordSentenceCount": "Antall setninger med ordet",
         "wordClass": "Ordklasse",
         "word": "Ord",
-        "sequenceCount": "Antall sekvenser"
+        "highFrequencyLength": "Tekstlengde",
+        "focusSound": "Fokuslyd",
+        "soundSentenceCount": "Antall setninger med lyden",
+        "soundWordCount": "Antall lydord"
       },
       "types": {
         "patternSentences": "Mønstersetninger",
-        "highFrequencyWords": "Høyfrekvente ord (beta)"
+        "highFrequencyWords": "Høyfrekvente ord",
+        "soundReadingLadder": "Lydtrening"
       },
       "wordClasses": {
         "preposition": "Preposisjon",
         "adverb": "Adverb",
-        "conjunction": "Konjunksjon",
+        "conjunction": "Konjunksjon / bindeord",
         "subjunction": "Subjunksjon",
         "determiner": "Determinativ"
       },
-      "sequenceHelp": "Én sekvens består av 6 linjer. De fire mønstersetningene bruker samme subjekt og verbal. Sekvenser skilles med en tom linje.",
+      "textLengths": {
+        "short": "Kort tekst (ca. 50 ord)",
+        "medium": "Medium tekst (ca. 100 ord)",
+        "long": "Lang tekst (ca. 150 ord)"
+      },
+      "highFrequencyThemes": {
+        "familie": "Familie",
+        "jobb": "Jobb",
+        "skole": "Skole",
+        "shopping": "Shopping",
+        "mat": "Mat",
+        "fritid": "Fritid",
+        "venner": "Venner",
+        "hjem": "Hjem",
+        "transport": "Transport",
+        "helse": "Helse",
+        "custom": "Eget tema"
+      },
+      "highFrequencyHelp": "AI lager en sammenhengende A1-tekst. Godt språk er viktigst. Teksten avsluttes med Forklaring og Eksempelsetninger.",
+      "soundLadderHelp": "AI lager tekst, forklaring, lydord og korte setninger med lyden.",
+      "soundTasksPreview": {
+        "title": "Oppgaver som lages",
+        "trueFalse": "5 sant/usant",
+        "words": "Skriv 10 ord med {sound}-lyden",
+        "sentences": "Skriv 5 setninger med {sound}-lyden",
+        "image": "Skriv 5 setninger til bildet"
+      },
       "tenses": {
         "present": "Presens",
         "past": "Preteritum",

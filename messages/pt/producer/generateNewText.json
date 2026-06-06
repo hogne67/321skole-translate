@@ -24,7 +24,9 @@
       "tasksHeading": "Atividades",
       "customVerb": "Outro verbo",
       "description": "Comece e termine com a mesma frase na primeira pessoa. Repita cada sujeito três vezes com o mesmo verbo.",
-      "highFrequencyDescription": "Crie sequências curtas de leitura usando uma palavra funcional de alta frequência.",
+      "highFrequencyDescription": "Crie um texto A1 coerente usando uma palavra funcional de alta frequência, seguido de uma explicação simples.",
+      "soundLadderDescription": "Crie um texto A1 com foco em um som, palavras de som e frases curtas.",
+      "reviewReminder": "Verifique o texto com atenção. Substitua algumas palavras ou frases se necessário.",
       "fields": {
         "type": "Tipo",
         "verb": "Verbo",
@@ -37,20 +39,50 @@
         "wordSentenceCount": "Frases com a palavra",
         "wordClass": "Classe gramatical",
         "word": "Palavra",
-        "sequenceCount": "Número de sequências"
+        "highFrequencyLength": "Tamanho do texto",
+        "focusSound": "Som foco",
+        "soundSentenceCount": "Número de frases com o som",
+        "soundWordCount": "Número de palavras de som"
       },
       "types": {
         "patternSentences": "Frases-modelo",
-        "highFrequencyWords": "Palavras de alta frequência (beta)"
+        "highFrequencyWords": "Palavras de alta frequência",
+        "soundReadingLadder": "Treino de som"
       },
       "wordClasses": {
         "preposition": "Preposição",
         "adverb": "Advérbio",
-        "conjunction": "Conjunção",
+        "conjunction": "Conjunção / palavra de ligação",
         "subjunction": "Conjunção subordinativa",
         "determiner": "Determinante"
       },
-      "sequenceHelp": "Uma sequência consiste em 6 linhas. As quatro frases-modelo usam o mesmo sujeito e verbo. As sequências são separadas por uma linha em branco.",
+      "textLengths": {
+        "short": "Texto curto (cerca de 50 palavras)",
+        "medium": "Texto médio (cerca de 100 palavras)",
+        "long": "Texto longo (cerca de 150 palavras)"
+      },
+      "highFrequencyThemes": {
+        "familie": "Família",
+        "jobb": "Trabalho",
+        "skole": "Escola",
+        "shopping": "Compras",
+        "mat": "Comida",
+        "fritid": "Tempo livre",
+        "venner": "Amigos",
+        "hjem": "Casa",
+        "transport": "Transporte",
+        "helse": "Saúde",
+        "custom": "Tema próprio"
+      },
+      "highFrequencyHelp": "A IA cria um texto A1 coerente. A boa linguagem vem primeiro. O texto termina com Explicação e Frases de exemplo.",
+      "soundLadderHelp": "A IA cria um texto, explicação, palavras de som e frases curtas com o som.",
+      "soundTasksPreview": {
+        "title": "Atividades que serão criadas",
+        "trueFalse": "5 verdadeiro/falso",
+        "words": "Escreva 10 palavras com o som {sound}",
+        "sentences": "Escreva 5 frases com o som {sound}",
+        "image": "Escreva 5 frases sobre a imagem"
+      },
       "tenses": {
         "present": "Presente",
         "past": "Pretérito",

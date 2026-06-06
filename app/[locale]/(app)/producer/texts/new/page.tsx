@@ -49,7 +49,7 @@ type LessonTask = {
 
 type GenerateTextResp = {
   title?: string;
-  text?: string;
+  text?: unknown;
   error?: string;
   raw?: string;
 };
@@ -89,6 +89,21 @@ function getErrorMessage(err: unknown): string {
   }
 }
 
+function stringifyGeneratedText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value.map(stringifyGeneratedText).filter(Boolean).join("\n");
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>)
+      .map(stringifyGeneratedText)
+      .filter(Boolean)
+      .join("\n\n");
+  }
+  if (value == null) return "";
+  return String(value).trim();
+}
+
 const TEXT_TYPE_KEYS = [
   "everydayStory",
   "factual",
@@ -107,16 +122,68 @@ type TextTypeKey = (typeof TEXT_TYPE_KEYS)[number];
 type LevelKey = "A1_START" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type A1StartTense = "present" | "past" | "future";
 type A1StartSentenceCount = 10 | 13 | 16 | 19;
-type A1StartType = "pattern_sentences" | "high_frequency_words";
+type A1StartHighFrequencyLength = 50 | 100 | 150;
+type A1StartType = "pattern_sentences" | "high_frequency_words" | "sound_reading_ladder";
 type A1StartWordClass = keyof typeof A1_START_HIGH_FREQUENCY_WORDS;
 
 const A1_START_HIGH_FREQUENCY_WORDS = {
-  preposition: ["i", "på", "til", "fra", "av", "for", "med", "om", "hos", "etter", "før", "over", "utenfor", "under", "ved"],
-  adverb: ["ikke", "så", "også", "nå", "ut", "opp", "her", "der", "bare", "mer", "helt", "da", "ja", "nei", "nok"],
-  conjunction: ["og", "men", "eller", "for", "så"],
-  subjunction: ["som", "at", "da", "når", "fordi", "hvis", "om", "selv om", "slik at", "før"],
-  determiner: ["en", "ei", "et", "min", "din", "sin", "denne", "dette", "disse", "alle", "ingen", "andre", "mye", "egen", "samme"],
+  conjunction: {
+    nb: ["og", "men", "eller", "fordi", "så", "når", "hvis", "at"],
+    en: ["and", "but", "or", "because", "so", "when", "if", "that"],
+    "pt-br": ["e", "mas", "ou", "porque", "então", "quando", "se", "que"],
+  },
+  adverb: {
+    nb: ["ikke", "også", "nå", "alltid", "ofte", "kanskje", "snart", "her"],
+    en: ["not", "also", "now", "always", "often", "maybe", "soon", "here"],
+    "pt-br": ["não", "também", "agora", "sempre", "muitas vezes", "talvez", "em breve", "aqui"],
+  },
+  determiner: {
+    nb: ["min", "mitt", "mine", "denne", "dette", "disse", "alle", "mange"],
+    en: ["my", "this", "these", "all", "many"],
+    "pt-br": ["meu", "minha", "meus", "minhas", "este", "esta", "isto", "estes", "estas", "todos", "muitos"],
+  },
+  preposition: {
+    nb: ["i", "på", "med", "til", "fra", "under", "ved", "mellom"],
+    en: ["in", "on", "with", "to", "from", "under", "by", "between"],
+    "pt-br": ["em", "sobre", "com", "para", "de", "embaixo de", "perto de", "entre"],
+  },
 } as const;
+
+const A1_START_HIGH_FREQUENCY_THEMES = [
+  "familie",
+  "jobb",
+  "skole",
+  "shopping",
+  "mat",
+  "fritid",
+  "venner",
+  "hjem",
+  "transport",
+  "helse",
+] as const;
+
+const A1_START_SOUND_CHOICES = {
+  nb: ["s", "m", "a", "b", "d", "f", "g", "k", "n", "e", "o", "u", "æ", "ø", "å", "sj", "kj"],
+  en: ["s", "m", "a", "th", "b", "d", "f", "g", "k", "n", "e", "o", "u", "sh"],
+  "pt-br": ["s", "m", "a", "nh", "b", "d", "f", "g", "l", "n", "e", "o", "u", "lh"],
+} as const;
+
+function getA1StartHighFrequencyWords(
+  wordClass: A1StartWordClass,
+  language: string
+): readonly string[] {
+  const lang = language.toLocaleLowerCase();
+  const normalizedLang = lang === "no" ? "nb" : lang;
+  if (normalizedLang !== "nb" && normalizedLang !== "en" && normalizedLang !== "pt-br") return [];
+  return A1_START_HIGH_FREQUENCY_WORDS[wordClass][normalizedLang];
+}
+
+function getA1StartSoundChoices(language: string): readonly string[] {
+  const lang = language.toLocaleLowerCase();
+  const normalizedLang = lang === "no" || lang === "nn" ? "nb" : lang;
+  if (normalizedLang !== "nb" && normalizedLang !== "en" && normalizedLang !== "pt-br") return [];
+  return A1_START_SOUND_CHOICES[normalizedLang];
+}
 
 const A1_START_VERB_SUGGESTIONS: Record<string, readonly string[]> = {
   nb: ["er", "har", "ser", "liker", "spiser", "drikker", "går", "kommer", "lager", "leser", "skriver"],
@@ -330,9 +397,15 @@ export default function NewTextPage() {
   const [a1StartVerb, setA1StartVerb] = useState("er");
   const [a1StartCustomVerb, setA1StartCustomVerb] = useState("");
   const [a1StartType, setA1StartType] = useState<A1StartType>("pattern_sentences");
-  const [a1StartWordClass, setA1StartWordClass] = useState<A1StartWordClass>("preposition");
-  const [a1StartWord, setA1StartWord] = useState("i");
-  const [a1StartSequenceCount, setA1StartSequenceCount] = useState(1);
+  const [a1StartWordClass, setA1StartWordClass] = useState<A1StartWordClass>("conjunction");
+  const [a1StartWord, setA1StartWord] = useState("og");
+  const [a1StartHighFrequencyLength, setA1StartHighFrequencyLength] =
+    useState<A1StartHighFrequencyLength>(50);
+  const [a1StartHighFrequencyTheme, setA1StartHighFrequencyTheme] = useState("familie");
+  const [a1StartHighFrequencyCustomTheme, setA1StartHighFrequencyCustomTheme] = useState("");
+  const [a1StartFocusSound, setA1StartFocusSound] = useState("s");
+  const [a1StartSoundSentenceCount, setA1StartSoundSentenceCount] = useState(5);
+  const [a1StartSoundWordCount, setA1StartSoundWordCount] = useState(9);
   const [a1StartTense, setA1StartTense] = useState<A1StartTense>("present");
   const [a1StartSentenceCount, setA1StartSentenceCount] =
     useState<A1StartSentenceCount>(10);
@@ -346,7 +419,15 @@ export default function NewTextPage() {
     ? a1StartCustomVerb.trim()
     : a1StartVerb.trim();
   const isA1StartHighFrequency = a1StartType === "high_frequency_words";
-  const isNorwegianLesson = ["nb", "no"].includes(language.toLocaleLowerCase());
+  const isA1StartSoundLadder = a1StartType === "sound_reading_ladder";
+  const isHighFrequencyLanguage = ["nb", "no", "en", "pt-br"].includes(language.toLocaleLowerCase());
+  const isSoundLadderLanguage = ["nb", "no", "nn", "en", "pt-br"].includes(language.toLocaleLowerCase());
+  const a1StartWords = getA1StartHighFrequencyWords(a1StartWordClass, language);
+  const a1StartSoundChoices = getA1StartSoundChoices(language);
+  const effectiveA1StartHighFrequencyTheme =
+    a1StartHighFrequencyTheme === "__custom__"
+      ? a1StartHighFrequencyCustomTheme.trim()
+      : a1StartHighFrequencyTheme;
 
   const [title, setTitle] = useState<string>("");
   const [sourceText, setSourceText] = useState<string>("");
@@ -367,7 +448,10 @@ export default function NewTextPage() {
   const busy = loadingText || loadingTasks || saving;
   const isA1Start = level === "A1_START";
   const effectiveTextType = isA1Start ? a1StartType : textTypeLabel;
-  const effectiveTopic = isA1Start ? a1StartTopic.trim() : prompt.trim();
+  const effectiveA1StartTopic = isA1StartHighFrequency || isA1StartSoundLadder
+    ? effectiveA1StartHighFrequencyTheme
+    : a1StartTopic.trim();
+  const effectiveTopic = isA1Start ? effectiveA1StartTopic : prompt.trim();
 
   const profileUid =
     profile && typeof profile === "object" && "uid" in profile
@@ -410,13 +494,17 @@ export default function NewTextPage() {
       verb: effectiveA1StartVerb,
       tense: a1StartTense,
       sentenceCount: a1StartSentenceCount,
-      topic: a1StartTopic.trim(),
+      topic: effectiveA1StartTopic,
       trueFalseCount: a1StartTrueFalseCount,
       imageSentenceCount: a1StartImageSentenceCount,
       verbSentenceCount: a1StartVerbSentenceCount,
       wordClass: a1StartWordClass,
       word: a1StartWord,
-      sequenceCount: a1StartSequenceCount,
+      highFrequencyLength: a1StartHighFrequencyLength,
+      highFrequencyTheme: effectiveA1StartHighFrequencyTheme,
+      focusSound: a1StartFocusSound,
+      soundSentenceCount: a1StartSoundSentenceCount,
+      soundWordCount: a1StartSoundWordCount,
     }
     : undefined;
 
@@ -708,7 +796,7 @@ export default function NewTextPage() {
       });
 
       const nextTitle = String(data.title || "").trim();
-      const nextText = String(data.text || "").trim();
+      const nextText = stringifyGeneratedText(data.text);
       if (!nextText) throw new Error("Missing text in response.");
 
       setTitle(nextTitle);
@@ -1133,9 +1221,14 @@ export default function NewTextPage() {
                         setLanguage(nextLanguage);
                       if (isA1Start) {
                           setA1StartVerb(getA1StartVerbSuggestions(nextLanguage)[0] || "");
-                          if (!["nb", "no"].includes(nextLanguage.toLocaleLowerCase())) {
+                          if (!["nb", "no", "nn", "en", "pt-br"].includes(nextLanguage.toLocaleLowerCase())) {
                             setA1StartType("pattern_sentences");
+                          } else {
+                            const nextWords = getA1StartHighFrequencyWords(a1StartWordClass, nextLanguage);
+                            setA1StartWord(nextWords[0] || "");
                           }
+                          const nextSounds = getA1StartSoundChoices(nextLanguage);
+                          setA1StartFocusSound(nextSounds[0] || "s");
                         }
                       }}
                       style={fieldStyle}
@@ -1208,9 +1301,11 @@ export default function NewTextPage() {
                   {t("a1Start.title")}
                 </h3>
                 <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 12 }}>
-                  {isA1StartHighFrequency
-                    ? t("a1Start.highFrequencyDescription")
-                    : t("a1Start.description")}
+                  {isA1StartSoundLadder
+                    ? t("a1Start.soundLadderDescription")
+                    : isA1StartHighFrequency
+                      ? t("a1Start.highFrequencyDescription")
+                      : t("a1Start.description")}
                 </div>
                 <div
                   style={{
@@ -1227,12 +1322,15 @@ export default function NewTextPage() {
                       style={fieldStyle}
                     >
                       <option value="pattern_sentences">{t("a1Start.types.patternSentences")}</option>
-                      <option value="high_frequency_words" disabled={!isNorwegianLesson}>
+                      <option value="high_frequency_words" disabled={!isHighFrequencyLanguage}>
                         {t("a1Start.types.highFrequencyWords")}
+                      </option>
+                      <option value="sound_reading_ladder" disabled={!isSoundLadderLanguage}>
+                        {t("a1Start.types.soundReadingLadder")}
                       </option>
                     </select>
                   </label>
-                  {!isA1StartHighFrequency && <label>
+                  {!isA1StartHighFrequency && !isA1StartSoundLadder && <label>
                     {t("a1Start.fields.verb")}
                     <select
                       value={a1StartVerb}
@@ -1258,7 +1356,7 @@ export default function NewTextPage() {
                       })}
                     </div>
                   </label>}
-                  {!isA1StartHighFrequency && <label>
+                  {!isA1StartHighFrequency && !isA1StartSoundLadder && <label>
                     {t("a1Start.fields.tense")}
                     <select
                       value={a1StartTense}
@@ -1270,7 +1368,7 @@ export default function NewTextPage() {
                       <option value="future">{t("a1Start.tenses.future")}</option>
                     </select>
                   </label>}
-                  {!isA1StartHighFrequency && <label>
+                  {!isA1StartHighFrequency && !isA1StartSoundLadder && <label>
                     {t("a1Start.fields.sentenceCount")}
                     <select
                       value={a1StartSentenceCount}
@@ -1293,7 +1391,7 @@ export default function NewTextPage() {
                           onChange={(e) => {
                             const nextClass = e.target.value as A1StartWordClass;
                             setA1StartWordClass(nextClass);
-                            setA1StartWord(A1_START_HIGH_FREQUENCY_WORDS[nextClass][0]);
+                            setA1StartWord(getA1StartHighFrequencyWords(nextClass, language)[0] || "");
                           }}
                           style={fieldStyle}
                         >
@@ -1311,38 +1409,108 @@ export default function NewTextPage() {
                           onChange={(e) => setA1StartWord(e.target.value)}
                           style={fieldStyle}
                         >
-                          {A1_START_HIGH_FREQUENCY_WORDS[a1StartWordClass].map((word) => (
+                          {a1StartWords.map((word) => (
                             <option key={word} value={word}>{word}</option>
                           ))}
                         </select>
                       </label>
                       <label>
-                        {t("a1Start.fields.sequenceCount")}
+                        {t("a1Start.fields.highFrequencyLength")}
                         <select
-                          value={a1StartSequenceCount}
-                          onChange={(e) => setA1StartSequenceCount(Number(e.target.value))}
+                          value={a1StartHighFrequencyLength}
+                          onChange={(e) =>
+                            setA1StartHighFrequencyLength(Number(e.target.value) as A1StartHighFrequencyLength)
+                          }
                           style={fieldStyle}
                         >
-                          {[1, 2, 3, 4, 5].map((count) => (
+                          <option value={50}>{t("a1Start.textLengths.short")}</option>
+                          <option value={100}>{t("a1Start.textLengths.medium")}</option>
+                          <option value={150}>{t("a1Start.textLengths.long")}</option>
+                        </select>
+                        <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+                          {t("a1Start.highFrequencyHelp")}
+                        </div>
+                      </label>
+                    </>
+                  )}
+                  {isA1StartSoundLadder && (
+                    <>
+                      <label>
+                        {t("a1Start.fields.focusSound")}
+                        <select
+                          value={a1StartFocusSound}
+                          onChange={(e) => setA1StartFocusSound(e.target.value)}
+                          style={fieldStyle}
+                        >
+                          {a1StartSoundChoices.map((sound) => (
+                            <option key={sound} value={sound}>{sound}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        {t("a1Start.fields.soundSentenceCount")}
+                        <select
+                          value={a1StartSoundSentenceCount}
+                          onChange={(e) => setA1StartSoundSentenceCount(Number(e.target.value))}
+                          style={fieldStyle}
+                        >
+                          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => (
+                            <option key={count} value={count}>{count}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        {t("a1Start.fields.soundWordCount")}
+                        <select
+                          value={a1StartSoundWordCount}
+                          onChange={(e) => setA1StartSoundWordCount(Number(e.target.value))}
+                          style={fieldStyle}
+                        >
+                          {[0, 3, 6, 9, 12, 15].map((count) => (
                             <option key={count} value={count}>{count}</option>
                           ))}
                         </select>
                         <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                          {t("a1Start.sequenceHelp")}
+                          {t("a1Start.soundLadderHelp")}
                         </div>
                       </label>
                     </>
                   )}
                   <label style={{ gridColumn: isNarrow ? "auto" : "1 / -1" }}>
                     {t("a1Start.fields.topic")}
-                    <input
-                      value={a1StartTopic}
-                      onChange={(e) => setA1StartTopic(e.target.value)}
-                      placeholder={t("a1Start.placeholders.topic")}
-                      style={fieldStyle}
-                    />
+                    {isA1StartHighFrequency || isA1StartSoundLadder ? (
+                      <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
+                        <select
+                          value={a1StartHighFrequencyTheme}
+                          onChange={(e) => setA1StartHighFrequencyTheme(e.target.value)}
+                          style={fieldStyle}
+                        >
+                          {A1_START_HIGH_FREQUENCY_THEMES.map((theme) => (
+                            <option key={theme} value={theme}>
+                              {t(`a1Start.highFrequencyThemes.${theme}`)}
+                            </option>
+                          ))}
+                          <option value="__custom__">{t("a1Start.highFrequencyThemes.custom")}</option>
+                        </select>
+                        {a1StartHighFrequencyTheme === "__custom__" && (
+                          <input
+                            value={a1StartHighFrequencyCustomTheme}
+                            onChange={(e) => setA1StartHighFrequencyCustomTheme(e.target.value)}
+                            placeholder={t("a1Start.placeholders.topic")}
+                            style={fieldStyle}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <input
+                        value={a1StartTopic}
+                        onChange={(e) => setA1StartTopic(e.target.value)}
+                        placeholder={t("a1Start.placeholders.topic")}
+                        style={fieldStyle}
+                      />
+                    )}
                   </label>
-                  <label>
+                  {!isA1StartSoundLadder && <label>
                     {t("a1Start.fields.trueFalseCount")}
                     <select
                       value={a1StartTrueFalseCount}
@@ -1353,8 +1521,8 @@ export default function NewTextPage() {
                         <option key={count} value={count}>{count}</option>
                       ))}
                     </select>
-                  </label>
-                  <label>
+                  </label>}
+                  {!isA1StartSoundLadder && <label>
                     {t("a1Start.fields.imageSentenceCount")}
                     <select
                       value={a1StartImageSentenceCount}
@@ -1365,8 +1533,8 @@ export default function NewTextPage() {
                         <option key={count} value={count}>{count}</option>
                       ))}
                     </select>
-                  </label>
-                  <label>
+                  </label>}
+                  {!isA1StartSoundLadder && <label>
                     {isA1StartHighFrequency
                       ? t("a1Start.fields.wordSentenceCount")
                       : t("a1Start.fields.verbSentenceCount")}
@@ -1379,7 +1547,29 @@ export default function NewTextPage() {
                         <option key={count} value={count}>{count}</option>
                       ))}
                     </select>
-                  </label>
+                  </label>}
+                  {isA1StartSoundLadder && (
+                    <div
+                      style={{
+                        gridColumn: isNarrow ? "auto" : "1 / -1",
+                        border: "1px solid rgba(37,99,235,0.18)",
+                        borderRadius: 12,
+                        background: "rgba(255,255,255,0.62)",
+                        padding: 12,
+                        fontSize: 13,
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                        {t("a1Start.soundTasksPreview.title")}
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.65 }}>
+                        <li>{t("a1Start.soundTasksPreview.trueFalse")}</li>
+                        <li>{t("a1Start.soundTasksPreview.words", { sound: a1StartFocusSound })}</li>
+                        <li>{t("a1Start.soundTasksPreview.sentences", { sound: a1StartFocusSound })}</li>
+                        <li>{t("a1Start.soundTasksPreview.image")}</li>
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1444,6 +1634,11 @@ export default function NewTextPage() {
                   >
                     {loadingText ? t("buttons.generatingText") : t("buttons.generateText")}
                   </button>
+                  {isA1Start && (
+                    <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8, lineHeight: 1.45 }}>
+                      {t("a1Start.reviewReminder")}
+                    </div>
+                  )}
                 </div>
               </div>
 

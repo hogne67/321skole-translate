@@ -54,7 +54,7 @@ type PublishedLesson = {
   feedback?: string;
 };
 
-const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
+const LEVELS = ["A1_START", "A1", "A2", "B1", "B2", "C1"];
 const PAGE_SIZES = [25, 50, 100] as const;
 type PageSize = (typeof PAGE_SIZES)[number];
 type SharePreset =
@@ -131,6 +131,12 @@ function shouldShowInLibrary(l: PublishedLesson): boolean {
   if (!isReadingTest && l.showInLibrary === false) return false;
 
   return true;
+}
+
+function levelLabel(level?: string) {
+  const normalized = (level || "").toUpperCase();
+  if (normalized === "A1_START") return "A1 Start";
+  return normalized || "—";
 }
 
 function coercePublishedLesson(id: string, data: DocumentData): PublishedLesson {
@@ -1141,7 +1147,7 @@ export default function LessonsLandingPage() {
           <option value="all">{t("filters.levelAll")}</option>
           {LEVELS.map((lv) => (
             <option key={lv} value={lv}>
-              {lv}
+              {levelLabel(lv)}
             </option>
           ))}
         </select>
@@ -1225,7 +1231,7 @@ export default function LessonsLandingPage() {
                 <div className="card">
                   <div className="imgWrap">
                     <div className="badge">
-                      <span>{(l.level || "—").toUpperCase()}</span>
+                      <span>{levelLabel(l.level)}</span>
                     </div>
 
                     {img ? (
