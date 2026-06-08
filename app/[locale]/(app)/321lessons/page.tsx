@@ -319,6 +319,7 @@ export default function LessonsLandingPage() {
   const [level, setLevel] = useState<string>("all");
   const [lang, setLang] = useState<string>("all");
   const [textType, setTextType] = useState<string>("all");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const [pageSize, setPageSize] = useState<PageSize>(25);
   const [page, setPage] = useState<number>(1);
@@ -586,6 +587,9 @@ export default function LessonsLandingPage() {
   const isResetDisabled = useMemo(() => {
     return qText === "" && level === "all" && lang === "all" && textType === "all";
   }, [qText, level, lang, textType]);
+  const activeFilterCount = useMemo(() => {
+    return [textType !== "all", lang !== "all", level !== "all"].filter(Boolean).length;
+  }, [textType, lang, level]);
 
   const loading = loadState.status === "loading";
   const error = loadState.status === "error" ? loadState.error : null;
@@ -744,6 +748,14 @@ export default function LessonsLandingPage() {
           align-items: center;
         }
 
+        .filterToggle {
+          display: none;
+        }
+
+        .filterExtras {
+          display: contents;
+        }
+
         @media (max-width: 900px) {
           .filters {
             grid-template-columns: 1fr 1fr;
@@ -757,6 +769,34 @@ export default function LessonsLandingPage() {
         @media (max-width: 560px) {
           .filters {
             grid-template-columns: 1fr;
+            padding: 10px;
+            gap: 8px;
+            position: sticky;
+            top: 8px;
+            z-index: 4;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
+          }
+          .filterToggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 42px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.18);
+            background: white;
+            font-weight: 800;
+            cursor: pointer;
+          }
+          .filterExtras {
+            display: none;
+            grid-template-columns: 1fr;
+            gap: 8px;
+          }
+          .filterExtrasOpen {
+            display: grid;
           }
           .resetBtn {
             grid-column: auto;
@@ -1110,66 +1150,81 @@ export default function LessonsLandingPage() {
           }}
         />
 
-        <select
-          value={textType}
-          onChange={(e) => setTextType(e.target.value)}
-          style={{
-            padding: 10,
-            borderRadius: 10,
-            border: "1px solid rgba(0,0,0,0.2)",
-          }}
-        >
-          <option value="all">{t("filters.textTypeAll")}</option>
-          {allTextTypes.map((tt) => (
-            <option key={tt} value={tt}>
-              {tt === "reading_test" ? t("card.readingTest") : tt}
-            </option>
-          ))}
-        </select>
-
-        <SearchableSelect
-          value={lang}
-          options={LANGUAGE_OPTIONS}
-          onChange={setLang}
-          placeholder={t("filters.languagePlaceholder")}
-          fullWidth
-        />
-
-        <select
-          value={level}
-          onChange={(e) => setLevel(e.target.value)}
-          style={{
-            padding: 10,
-            borderRadius: 10,
-            border: "1px solid rgba(0,0,0,0.2)",
-          }}
-        >
-          <option value="all">{t("filters.levelAll")}</option>
-          {LEVELS.map((lv) => (
-            <option key={lv} value={lv}>
-              {levelLabel(lv)}
-            </option>
-          ))}
-        </select>
-
         <button
           type="button"
-          className="resetBtn"
-          onClick={resetFilters}
-          disabled={isResetDisabled}
-          style={{
-            padding: "10px 14px",
-            borderRadius: 10,
-            border: "1px solid rgba(0,0,0,0.2)",
-            background: isResetDisabled ? "rgba(0,0,0,0.03)" : "white",
-            fontWeight: 700,
-            cursor: isResetDisabled ? "default" : "pointer",
-            whiteSpace: "nowrap",
-            opacity: isResetDisabled ? 0.6 : 1,
-          }}
+          className="filterToggle"
+          onClick={() => setMobileFiltersOpen((open) => !open)}
+          aria-expanded={mobileFiltersOpen}
         >
-          {t("filters.reset")}
+          {mobileFiltersOpen
+            ? safeMsg("filters.hideFilters", "Skjul filtre")
+            : activeFilterCount > 0
+              ? safeMsg("filters.showFiltersWithCount", "Filtre ({count})", { count: activeFilterCount })
+              : safeMsg("filters.showFilters", "Filtre")}
         </button>
+
+        <div className={`filterExtras ${mobileFiltersOpen ? "filterExtrasOpen" : ""}`}>
+          <select
+            value={textType}
+            onChange={(e) => setTextType(e.target.value)}
+            style={{
+              padding: 10,
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.2)",
+            }}
+          >
+            <option value="all">{t("filters.textTypeAll")}</option>
+            {allTextTypes.map((tt) => (
+              <option key={tt} value={tt}>
+                {tt === "reading_test" ? t("card.readingTest") : tt}
+              </option>
+            ))}
+          </select>
+
+          <SearchableSelect
+            value={lang}
+            options={LANGUAGE_OPTIONS}
+            onChange={setLang}
+            placeholder={t("filters.languagePlaceholder")}
+            fullWidth
+          />
+
+          <select
+            value={level}
+            onChange={(e) => setLevel(e.target.value)}
+            style={{
+              padding: 10,
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.2)",
+            }}
+          >
+            <option value="all">{t("filters.levelAll")}</option>
+            {LEVELS.map((lv) => (
+              <option key={lv} value={lv}>
+                {levelLabel(lv)}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            className="resetBtn"
+            onClick={resetFilters}
+            disabled={isResetDisabled}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.2)",
+              background: isResetDisabled ? "rgba(0,0,0,0.03)" : "white",
+              fontWeight: 700,
+              cursor: isResetDisabled ? "default" : "pointer",
+              whiteSpace: "nowrap",
+              opacity: isResetDisabled ? 0.6 : 1,
+            }}
+          >
+            {t("filters.reset")}
+          </button>
+        </div>
       </section>
 
       <section style={{ marginTop: 14, opacity: 0.75 }}>

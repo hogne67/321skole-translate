@@ -20,7 +20,7 @@
     "fields": {
       "role": {
         "label": "Velg rolle *",
-        "student": "Elev",
+        "student": "Student",
         "teacher": "Lærer",
         "parent": "Forelder",
         "hint": "Velg én rolle for å fortsette.",
@@ -44,7 +44,7 @@
       }
     },
     "errors": {
-      "missingRole": "Velg en rolle (Elev, Lærer eller Forelder).",
+      "missingRole": "Velg en rolle (Student, Lærer eller Forelder).",
       "missingName": "Skriv inn fullt navn.",
       "missingCountry": "Velg et land.",
       "missingMunicipalityNo": "Velg en kommune.",

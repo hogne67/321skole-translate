@@ -104,6 +104,8 @@
       "controlText": "O link e mostrado temporariamente como controlo/alternativa.",
       "temporaryLink": "Link temporario de convite",
       "temporaryLinkText": "Copie este link se o professor nao receber email.",
+      "printInvitation": "Criar convite / PDF",
+      "printInvitationText": "Abre uma pagina para imprimir com link e QR code.",
       "loading": "A carregar convites...",
       "errorTitle": "Nao foi possivel carregar convites",
       "listTitle": "Convites",

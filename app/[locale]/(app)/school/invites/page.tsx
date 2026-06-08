@@ -38,6 +38,13 @@ type InvitesResponse = {
   invites?: SchoolInvite[];
 };
 
+type SchoolSummary = {
+  ok?: boolean;
+  school?: {
+    name?: string;
+  };
+};
+
 type CreateInviteResponse = {
   ok?: boolean;
   error?: string;
@@ -63,6 +70,8 @@ export default function SchoolInvitesPage() {
   const [emailSent, setEmailSent] = useState<boolean | null>(null);
   const [inviteError, setInviteError] = useState("");
   const [temporaryInviteLink, setTemporaryInviteLink] = useState("");
+  const [temporaryInviteEmail, setTemporaryInviteEmail] = useState("");
+  const [schoolName, setSchoolName] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -109,15 +118,20 @@ export default function SchoolInvitesPage() {
 
       try {
         const authToken = await signedInUser.getIdToken();
-        const response = await fetch(
-          `/api/schools/${encodeURIComponent(schoolId)}/invites`,
-          {
+        const [response, schoolResponse] = await Promise.all([
+          fetch(`/api/schools/${encodeURIComponent(schoolId)}/invites`, {
             headers: {
               Authorization: `Bearer ${authToken}`,
             },
-          }
-        );
+          }),
+          fetch(`/api/schools/${encodeURIComponent(schoolId)}`, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          }),
+        ]);
         const data = (await response.json().catch(() => ({}))) as InvitesResponse;
+        const schoolData = (await schoolResponse.json().catch(() => ({}))) as SchoolSummary;
 
         if (cancelled) return;
 
@@ -129,6 +143,9 @@ export default function SchoolInvitesPage() {
         }
 
         setInvites(data.invites ?? []);
+        if (schoolResponse.ok && schoolData.ok) {
+          setSchoolName(String(schoolData.school?.name ?? "").trim());
+        }
         setState("success");
       } catch (err: unknown) {
         if (cancelled) return;
@@ -162,6 +179,7 @@ export default function SchoolInvitesPage() {
     setEmailSent(null);
     setInviteError("");
     setTemporaryInviteLink("");
+    setTemporaryInviteEmail("");
 
     try {
       const authToken = await user.getIdToken();
@@ -181,6 +199,7 @@ export default function SchoolInvitesPage() {
       }
 
       setInviteEmail("");
+      setTemporaryInviteEmail(email);
       setEmailSent(Boolean(data.emailSent));
       setInviteMessage(
         data.emailSent
@@ -264,6 +283,22 @@ export default function SchoolInvitesPage() {
             <div style={styles.infoLabel}>{t("invites.temporaryLink")}</div>
             <p style={styles.muted}>{t("invites.temporaryLinkText")}</p>
             <input readOnly value={temporaryInviteLink} style={styles.input} />
+            <div style={styles.linkActions}>
+              <Link
+                href={buildInvitationPrintHref({
+                  locale,
+                  link: temporaryInviteLink,
+                  email: temporaryInviteEmail,
+                  schoolName,
+                  adminName: profile?.displayName || user?.displayName || user?.email || "",
+                })}
+                target="_blank"
+                style={styles.secondaryLinkButton}
+              >
+                {t("invites.printInvitation")}
+              </Link>
+              <span style={styles.countText}>{t("invites.printInvitationText")}</span>
+            </div>
           </div>
         ) : null}
       </section>
@@ -454,6 +489,29 @@ function formatDateObject(date: Date): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function buildInvitationPrintHref({
+  locale,
+  link,
+  email,
+  schoolName,
+  adminName,
+}: {
+  locale: string;
+  link: string;
+  email: string;
+  schoolName: string;
+  adminName: string;
+}) {
+  const params = new URLSearchParams({
+    link,
+    email,
+    schoolName,
+    adminName,
+  });
+
+  return `/${locale}/school/invites/print?${params.toString()}`;
 }
 
 function TableHeader({ children }: { children: React.ReactNode }) {
@@ -673,6 +731,26 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 12,
     border: "1px solid #bfdbfe",
     background: "#eff6ff",
+  },
+  linkActions: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  secondaryLinkButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1px solid #0f172a",
+    borderRadius: 10,
+    padding: "10px 12px",
+    background: "#ffffff",
+    color: "#0f172a",
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 800,
+    textDecoration: "none",
   },
   tableWrap: {
     width: "100%",

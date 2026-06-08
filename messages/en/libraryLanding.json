@@ -11,7 +11,10 @@
       "textTypeAll": "Text type",
       "languagePlaceholder": "Search language…",
       "levelAll": "Level",
-      "reset": "Reset"
+      "reset": "Reset",
+      "showFilters": "Filters",
+      "showFiltersWithCount": "Filters ({count})",
+      "hideFilters": "Hide filters"
     },
     "status": {
       "loading": "Loading published lessons…",

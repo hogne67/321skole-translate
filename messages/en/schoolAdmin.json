@@ -104,6 +104,8 @@
       "controlText": "The link is shown temporarily as a control/fallback.",
       "temporaryLink": "Temporary invitation link",
       "temporaryLinkText": "Copy this link if the teacher does not receive email.",
+      "printInvitation": "Create invitation / PDF",
+      "printInvitationText": "Opens a printable page with link and QR code.",
       "loading": "Loading invitations...",
       "errorTitle": "Could not load invitations",
       "listTitle": "Invitations",

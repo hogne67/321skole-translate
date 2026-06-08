@@ -11,7 +11,10 @@
       "textTypeAll": "Tipo de texto",
       "languagePlaceholder": "Buscar idioma…",
       "levelAll": "Nível",
-      "reset": "Redefinir"
+      "reset": "Redefinir",
+      "showFilters": "Filtros",
+      "showFiltersWithCount": "Filtros ({count})",
+      "hideFilters": "Ocultar filtros"
     },
     "status": {
       "loading": "Carregando aulas publicadas…",

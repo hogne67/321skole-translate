@@ -11,7 +11,10 @@
       "textTypeAll": "Teksttype",
       "languagePlaceholder": "Søk språk…",
       "levelAll": "Nivå",
-      "reset": "Nullstill"
+      "reset": "Nullstill",
+      "showFilters": "Filtre",
+      "showFiltersWithCount": "Filtre ({count})",
+      "hideFilters": "Skjul filtre"
     },
     "status": {
       "loading": "Laster publiserte oppgaver…",

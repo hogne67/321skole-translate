@@ -104,6 +104,8 @@
       "controlText": "Lenken vises midlertidig som kontroll/fallback.",
       "temporaryLink": "Midlertidig invitasjonslenke",
       "temporaryLinkText": "Kopier denne lenken hvis læreren ikke mottar e-post.",
+      "printInvitation": "Lag invitasjon / PDF",
+      "printInvitationText": "Åpner et utskriftsark med lenke og QR-kode.",
       "loading": "Henter invitasjoner...",
       "errorTitle": "Kunne ikke hente invitasjoner",
       "listTitle": "Invitasjoner",

@@ -1,5 +1,6 @@
 // app/[locale]/layout.tsx
 import React from "react";
+import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -9,6 +10,20 @@ const SUPPORTED_LOCALES = ["en", "nb", "pt"] as const;
 type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+
+  if (!SUPPORTED_LOCALES.includes(locale as Locale)) return {};
+
+  return {
+    manifest: `/${locale}/manifest.webmanifest`,
+  };
+}
 
 export default async function LocaleLayout({
   children,
