@@ -6,6 +6,7 @@
     },
     "buttons": {
       "back": "Back to front page",
+      "close": "Close",
       "managePlan": "Manage plan",
       "createAccount": "Create account"
     },
@@ -16,15 +17,16 @@
       },
       "basic": {
         "name": "Basic",
-        "price": "59 NOK"
+        "price": "79 NOK"
       },
       "plus": {
         "name": "Plus",
-        "price": "99 NOK"
+        "price": "139 NOK"
       },
       "pro": {
         "name": "Pro",
-        "price": "199 NOK"
+        "price": "229 NOK",
+        "studentParentPrice": "79 NOK"
       }
     },
     "compare": {
@@ -39,20 +41,22 @@
     "features": {
       "library": "Library",
       "generators": "Generators",
-      "translateText": "Translate text",
-      "translateTaskText": "Translate task text",
-      "taskAudio": "Audio playback for task text",
-      "feedbackAudio": "Audio playback for feedback",
-      "createSpaces": "Create Spaces",
+      "translateText": "Translate text and tasks",
+      "translateTaskText": "Translate feedback",
+      "taskAudio": "Listen to text and tasks",
+      "feedbackAudio": "Listen to feedback",
+      "createSpaces": "Number of Spaces (classrooms)",
       "digitalBoard": "Digital board",
       "studentCount": "Number of students",
+      "pdfPrints": "PDF prints",
       "aiTaskFeedback": "AI feedback for tasks",
       "aiHelpSubmissions": "AI help for submissions",
-      "premiumGenerator": "Premium generator",
+      "premiumGenerator": "Premium generators",
       "aiImageGenerator": "AI image generator",
       "joinSpaces": "Join Spaces",
       "translateTeacherFeedback": "Translate teacher feedback",
       "createChildSpaces": "Create Spaces for children",
+      "aiChildFeedbackSupport": "AI support for child feedback",
       "starFeedback": "Feedback with stars"
     },
     "footer": {

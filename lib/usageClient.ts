@@ -14,7 +14,7 @@ export async function logUsageEvent(input: {
 
     const token = await getIdToken(user);
 
-    await fetch("/api/usage/log", {
+    const res = await fetch("/api/usage/log", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -22,4 +22,9 @@ export async function logUsageEvent(input: {
         },
         body: JSON.stringify(input),
     });
+
+    if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error || "Usage limit reached");
+    }
 }

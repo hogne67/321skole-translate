@@ -175,14 +175,29 @@ export default function ProducerPrintPage() {
   useEffect(() => {
     if (!lesson) return;
 
-    void logUsageEvent({
-      feature: "pdf_download",
-      contentId: lessonId,
-      contentType: "lesson",
-      source: lesson.status === "published" ? "library" : "own",
-      path: window.location.pathname,
-    });
-  }, [lesson, lessonId]);
+    let alive = true;
+
+    (async () => {
+      try {
+        await logUsageEvent({
+          feature: "pdf_download",
+          contentId: lessonId,
+          contentType: "lesson",
+          source: lesson.status === "published" ? "library" : "own",
+          path: window.location.pathname,
+        });
+      } catch (error) {
+        if (!alive) return;
+        console.error("PDF quota check failed:", error);
+        setErr(error instanceof Error ? error.message : t("errors.loadFailed"));
+        setLesson(null);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [lesson, lessonId, t]);
 
   const tasks = useMemo(() => {
     const t0 = Array.isArray(lesson?.tasks) ? (lesson?.tasks ?? []) : [];

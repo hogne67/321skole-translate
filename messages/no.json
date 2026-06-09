@@ -2297,7 +2297,7 @@
   "title": "Gratis å starte. Enkelt å oppgradere.",
   "description": "Bruk biblioteket og oversetteren gratis. Oppgrader når du trenger mer kapasitet, flere oppgaver og avanserte AI-verktøy.",
   "seeAll": "Se alle planer",
-  "teaser": "Planer for Student, Teacher og Parent — fra 59 kr/mnd. Se full oversikt på prissiden.",
+  "teaser": "Planer for Student, Teacher og Parent — fra 79 kr/mnd. Se full oversikt på prissiden.",
   "cards": {
     "student": {
       "title": "Student",
@@ -2308,7 +2308,7 @@
         "2": "Delta i klasserom og samarbeid"
       },
       "paidTitle": "Planer fra",
-      "price": "59 kr/mnd",
+      "price": "79 kr/mnd",
       "paid": {
         "0": "Flere oppgaver per måned",
         "1": "Kollokviegrupper + samarbeidstavle",
@@ -2324,7 +2324,7 @@
         "2": "2 Pro-oppgaver (språk + lyd) / måned"
       },
       "paidTitle": "Planer fra",
-      "price": "59 kr/mnd",
+      "price": "79 kr/mnd",
       "paid": {
         "0": "Flere rom og flere elever",
         "1": "PDF + privat deling (unlisted)",
@@ -2339,7 +2339,7 @@
         "1": "Start oppgaver: 2 / måned"
       },
       "paidTitle": "Planer fra",
-      "price": "59 kr/mnd",
+      "price": "79 kr/mnd",
       "paid": {
         "0": "Flere barn + mer øving",
         "1": "Progresjonsoversikt i Plus/Pro",

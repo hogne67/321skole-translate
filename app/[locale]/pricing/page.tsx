@@ -3,7 +3,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { X } from "lucide-react";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 type TierKey = "free" | "basic" | "plus" | "pro";
@@ -45,22 +47,28 @@ function CompareTable({
   locale: string;
   t: ReturnType<typeof useTranslations>;
 }) {
+  const visiblePlans: TierKey[] =
+    role.id === "teacher" ? ["free", "basic", "plus", "pro"] : ["free", "pro"];
   const prices: Record<TierKey, string> = {
     free: t("tiers.free.price"),
     basic: t("tiers.basic.price"),
     plus: t("tiers.plus.price"),
-    pro: t("tiers.pro.price"),
+    pro:
+      role.id === "teacher"
+        ? t("tiers.pro.price")
+        : t("tiers.pro.studentParentPrice"),
   };
+  const gridCols = role.id === "teacher" ? "grid-cols-6" : "grid-cols-4";
 
   return (
     <section className="mt-6">
       {/* HEADER */}
-      <div className="grid grid-cols-6 gap-2 mb-2">
+      <div className={cx("grid gap-2 mb-2", gridCols)}>
         <div className="col-span-2 text-sm font-semibold text-slate-700 flex items-end pb-2">
           {t("compare.function")}
         </div>
 
-        {(["free", "basic", "plus", "pro"] as TierKey[]).map((plan) => {
+        {visiblePlans.map((plan) => {
           const href = isLoggedIn
             ? `/${locale}/account/billing`
             : `/${locale}/join`;
@@ -100,15 +108,14 @@ function CompareTable({
       {/* TABLE */}
       <div className="border rounded-xl divide-y">
         {role.rows.map((row) => (
-          <div key={row.labelKey} className="grid grid-cols-6 px-4 py-1">
+          <div key={row.labelKey} className={cx("grid px-4 py-1", gridCols)}>
             <div className="col-span-2 text-sm font-medium text-slate-900">
               {t(row.labelKey)}
             </div>
 
-            <ValueCell value={row.values.free} />
-            <ValueCell value={row.values.basic} />
-            <ValueCell value={row.values.plus} />
-            <ValueCell value={row.values.pro} />
+            {visiblePlans.map((plan) => (
+              <ValueCell key={plan} value={row.values[plan]} />
+            ))}
           </div>
         ))}
       </div>
@@ -118,6 +125,7 @@ function CompareTable({
 
 export default function PricingPage() {
   const locale = useLocale();
+  const router = useRouter();
   const t = useTranslations("pricing");
   const { user } = useUserProfile();
 
@@ -140,13 +148,14 @@ export default function PricingPage() {
       titleKey: "roles.teacher",
       rows: [
         ...commonRows,
-        { labelKey: "features.createSpaces", values: { free: CHECK, basic: CHECK, plus: CHECK, pro: CHECK } },
         { labelKey: "features.digitalBoard", values: { free: CHECK, basic: CHECK, plus: CHECK, pro: CHECK } },
-        { labelKey: "features.studentCount", values: { free: "10", basic: "30", plus: "100", pro: "500" } },
+        { labelKey: "features.studentCount", values: { free: "10", basic: "30", plus: "100", pro: "300" } },
+        { labelKey: "features.createSpaces", values: { free: "3", basic: "10", plus: "30", pro: "100" } },
         { labelKey: "features.aiTaskFeedback", values: { free: "3", basic: "100", plus: "300", pro: "1000" } },
         { labelKey: "features.aiHelpSubmissions", values: { free: "3", basic: "100", plus: "300", pro: "1000" } },
-        { labelKey: "features.premiumGenerator", values: { free: "3", basic: "30", plus: "150", pro: "500" } },
+        { labelKey: "features.premiumGenerator", values: { free: "3", basic: "30", plus: "100", pro: "500" } },
         { labelKey: "features.aiImageGenerator", values: { free: "2", basic: "30", plus: "100", pro: "500" } },
+        { labelKey: "features.pdfPrints", values: { free: "3", basic: "30", plus: "100", pro: "500" } },
       ],
     },
     {
@@ -155,10 +164,11 @@ export default function PricingPage() {
       rows: [
         ...commonRows,
         { labelKey: "features.joinSpaces", values: { free: CHECK, basic: CHECK, plus: CHECK, pro: CHECK } },
-        { labelKey: "features.aiTaskFeedback", values: { free: "3", basic: "100", plus: "300", pro: "1000" } },
+        { labelKey: "features.aiTaskFeedback", values: { free: "3", basic: "100", plus: "300", pro: "100" } },
         { labelKey: "features.translateTeacherFeedback", values: { free: CHECK, basic: CHECK, plus: CHECK, pro: CHECK } },
-        { labelKey: "features.premiumGenerator", values: { free: "2", basic: "30", plus: "100", pro: "500" } },
-        { labelKey: "features.aiImageGenerator", values: { free: "2", basic: "30", plus: "100", pro: "500" } },
+        { labelKey: "features.pdfPrints", values: { free: "5", basic: "20", plus: "100", pro: "20" } },
+        { labelKey: "features.premiumGenerator", values: { free: "2", basic: "30", plus: "100", pro: "30" } },
+        { labelKey: "features.aiImageGenerator", values: { free: "2", basic: "30", plus: "100", pro: "30" } },
       ],
     },
     {
@@ -168,9 +178,11 @@ export default function PricingPage() {
         ...commonRows,
         { labelKey: "features.createChildSpaces", values: { free: CHECK, basic: CHECK, plus: CHECK, pro: CHECK } },
         { labelKey: "features.starFeedback", values: { free: CHECK, basic: CHECK, plus: CHECK, pro: CHECK } },
-        { labelKey: "features.aiTaskFeedback", values: { free: "3", basic: "100", plus: "300", pro: "1000" } },
-        { labelKey: "features.premiumGenerator", values: { free: "2", basic: "30", plus: "100", pro: "500" } },
-        { labelKey: "features.aiImageGenerator", values: { free: "2", basic: "30", plus: "100", pro: "500" } },
+        { labelKey: "features.pdfPrints", values: { free: "5", basic: "20", plus: "100", pro: "20" } },
+        { labelKey: "features.aiChildFeedbackSupport", values: { free: "3", basic: "100", plus: "300", pro: "100" } },
+        { labelKey: "features.aiTaskFeedback", values: { free: "3", basic: "100", plus: "300", pro: "100" } },
+        { labelKey: "features.premiumGenerator", values: { free: "2", basic: "30", plus: "100", pro: "30" } },
+        { labelKey: "features.aiImageGenerator", values: { free: "2", basic: "30", plus: "100", pro: "30" } },
       ],
     },
   ];
@@ -178,9 +190,29 @@ export default function PricingPage() {
   const activeRoleSection =
     ROLES.find((r) => r.id === selectedRole) ?? ROLES[0];
 
+  function handleClose() {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push(`/${locale}`);
+  }
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto max-w-6xl px-4 py-6">
+        <div className="mb-5 flex justify-end">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            aria-label={t("buttons.close")}
+          >
+            <X size={16} aria-hidden="true" />
+            <span>{t("buttons.close")}</span>
+          </button>
+        </div>
 
         {/* HERO */}
         <div className="mb-8 max-w-3xl">

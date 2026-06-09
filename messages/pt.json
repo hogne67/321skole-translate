@@ -2297,7 +2297,7 @@
   "title": "Grátis para começar. Fácil para fazer upgrade.",
   "description": "Use a biblioteca e o tradutor gratuitamente. Faça upgrade quando precisar de mais capacidade, mais atividades e ferramentas avançadas de IA.",
   "seeAll": "Ver todos os planos",
-  "teaser": "Planos para Student, Teacher e Parent — a partir de 59 NOK/mês. Veja todos os detalhes na página de preços.",
+  "teaser": "Planos para Student, Teacher e Parent — a partir de 79 NOK/mês. Veja todos os detalhes na página de preços.",
   "cards": {
     "student": {
       "title": "Student",
@@ -2308,7 +2308,7 @@
         "2": "Participar de salas e colaborar"
       },
       "paidTitle": "Planos a partir de",
-      "price": "59 NOK/mês",
+      "price": "79 NOK/mês",
       "paid": {
         "0": "Mais atividades por mês",
         "1": "Grupos de estudo + quadro colaborativo",
@@ -2324,7 +2324,7 @@
         "2": "2 atividades Pro (idioma + áudio) / mês"
       },
       "paidTitle": "Planos a partir de",
-      "price": "59 NOK/mês",
+      "price": "79 NOK/mês",
       "paid": {
         "0": "Mais salas e mais alunos",
         "1": "PDF + compartilhamento privado (unlisted)",
@@ -2339,7 +2339,7 @@
         "1": "Iniciar atividades: 2 / mês"
       },
       "paidTitle": "Planos a partir de",
-      "price": "59 NOK/mês",
+      "price": "79 NOK/mês",
       "paid": {
         "0": "Mais filhos + mais prática",
         "1": "Visão de progresso no Plus/Pro",

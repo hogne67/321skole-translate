@@ -6,6 +6,7 @@
     },
     "buttons": {
       "back": "Til forsiden",
+      "close": "Lukk",
       "managePlan": "Administrer abonnement",
       "createAccount": "Opprett konto"
     },
@@ -16,15 +17,16 @@
       },
       "basic": {
         "name": "Basic",
-        "price": "59 kr"
+        "price": "79 kr"
       },
       "plus": {
         "name": "Plus",
-        "price": "99 kr"
+        "price": "139 kr"
       },
       "pro": {
         "name": "Pro",
-        "price": "199 kr"
+        "price": "229 kr",
+        "studentParentPrice": "79 kr"
       }
     },
     "compare": {
@@ -39,20 +41,22 @@
     "features": {
       "library": "Bibliotek",
       "generators": "Generatorer",
-      "translateText": "Oversett tekst",
-      "translateTaskText": "Oversett oppgavetekst",
-      "taskAudio": "Lydavspilling oppgavetekst",
-      "feedbackAudio": "Lydavspilling feedback",
-      "createSpaces": "Lage Spaces",
+      "translateText": "Oversett tekst og oppgaver",
+      "translateTaskText": "Oversett feedback",
+      "taskAudio": "Lytt til tekst og oppgaver",
+      "feedbackAudio": "Lytt til feedback",
+      "createSpaces": "Antall Spaces (klasserom)",
       "digitalBoard": "Digital tavle",
       "studentCount": "Antall studenter",
+      "pdfPrints": "PDF-utskrifter",
       "aiTaskFeedback": "AI feedback oppgave",
       "aiHelpSubmissions": "AI-hjelp for innleveringer",
-      "premiumGenerator": "Premium generator",
+      "premiumGenerator": "Premium generatorer",
       "aiImageGenerator": "AI bildegenerator",
       "joinSpaces": "Delta i Spaces",
       "translateTeacherFeedback": "Oversette feedback fra lærer",
       "createChildSpaces": "Lage Spaces til barn",
+      "aiChildFeedbackSupport": "AI-støtte feedback barn",
       "starFeedback": "Feedback med stjerner"
     },
     "footer": {

@@ -165,19 +165,35 @@ export default function MathWorksheetPrintPage() {
   useEffect(() => {
     if (!worksheet && !fractionWorksheet) return;
 
+    let alive = true;
     const status =
       typeof (lesson as { status?: unknown } | null)?.status === "string"
         ? (lesson as { status?: string }).status
         : "";
 
-    void logUsageEvent({
-      feature: "pdf_download",
-      contentId: lessonId,
-      contentType: "math",
-      source: status === "published" ? "library" : "own",
-      path: window.location.pathname,
-    });
-  }, [worksheet, fractionWorksheet, lesson, lessonId]);
+    (async () => {
+      try {
+        await logUsageEvent({
+          feature: "pdf_download",
+          contentId: lessonId,
+          contentType: "math",
+          source: status === "published" ? "library" : "own",
+          path: window.location.pathname,
+        });
+      } catch (error) {
+        if (!alive) return;
+        console.error("PDF quota check failed:", error);
+        setErr(error instanceof Error ? error.message : t("errors.invalidWorksheet"));
+        setLesson(null);
+        setWorksheet(null);
+        setFractionWorksheet(null);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [worksheet, fractionWorksheet, lesson, lessonId, t]);
 
   const handlePrint = useCallback(() => {
     if (fractionWorksheet) {

@@ -2297,7 +2297,7 @@
   "title": "Free to start. Easy to upgrade.",
   "description": "Use the library and translator for free. Upgrade when you need more capacity, more tasks, and advanced AI tools.",
   "seeAll": "See all plans",
-  "teaser": "Plans for Student, Teacher and Parent — from 59 NOK/mo. See full details on the pricing page.",
+  "teaser": "Plans for Student, Teacher and Parent — from 79 NOK/mo. See full details on the pricing page.",
   "cards": {
     "student": {
       "title": "Student",
@@ -2308,7 +2308,7 @@
         "2": "Join classrooms and collaborate"
       },
       "paidTitle": "Plans from",
-      "price": "59 NOK/mo",
+      "price": "79 NOK/mo",
       "paid": {
         "0": "More tasks per month",
         "1": "Study groups + collaboration board",
@@ -2324,7 +2324,7 @@
         "2": "2 Pro tasks (language + audio) / month"
       },
       "paidTitle": "Plans from",
-      "price": "59 NOK/mo",
+      "price": "79 NOK/mo",
       "paid": {
         "0": "More spaces and more students",
         "1": "PDF + private sharing (unlisted)",
@@ -2339,7 +2339,7 @@
         "1": "Start tasks: 2 / month"
       },
       "paidTitle": "Plans from",
-      "price": "59 NOK/mo",
+      "price": "79 NOK/mo",
       "paid": {
         "0": "More kids + more practice",
         "1": "Progress overview in Plus/Pro",

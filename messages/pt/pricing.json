@@ -6,6 +6,7 @@
     },
     "buttons": {
       "back": "Voltar para a página inicial",
+      "close": "Fechar",
       "managePlan": "Gerenciar plano",
       "createAccount": "Criar conta"
     },
@@ -16,15 +17,16 @@
       },
       "basic": {
         "name": "Basic",
-        "price": "R$ 59"
+        "price": "R$ 79"
       },
       "plus": {
         "name": "Plus",
-        "price": "R$ 99"
+        "price": "R$ 139"
       },
       "pro": {
         "name": "Pro",
-        "price": "R$ 199"
+        "price": "R$ 229",
+        "studentParentPrice": "R$ 79"
       }
     },
     "compare": {
@@ -39,20 +41,22 @@
     "features": {
       "library": "Biblioteca",
       "generators": "Geradores",
-      "translateText": "Traduzir texto",
-      "translateTaskText": "Traduzir texto da atividade",
-      "taskAudio": "Reprodução de áudio da atividade",
-      "feedbackAudio": "Reprodução de áudio do feedback",
-      "createSpaces": "Criar Spaces",
+      "translateText": "Traduzir textos e atividades",
+      "translateTaskText": "Traduzir feedback",
+      "taskAudio": "Ouvir textos e atividades",
+      "feedbackAudio": "Ouvir feedback",
+      "createSpaces": "Número de Spaces (salas)",
       "digitalBoard": "Quadro digital",
       "studentCount": "Número de estudantes",
+      "pdfPrints": "Impressões em PDF",
       "aiTaskFeedback": "Feedback de IA para atividades",
       "aiHelpSubmissions": "Ajuda de IA para envios",
-      "premiumGenerator": "Gerador premium",
+      "premiumGenerator": "Geradores premium",
       "aiImageGenerator": "Gerador de imagens com IA",
       "joinSpaces": "Participar de Spaces",
       "translateTeacherFeedback": "Traduzir feedback do professor",
       "createChildSpaces": "Criar Spaces para crianças",
+      "aiChildFeedbackSupport": "Suporte de IA para feedback da criança",
       "starFeedback": "Feedback com estrelas"
     },
     "footer": {
