@@ -126,7 +126,7 @@ function shouldShowInLibrary(l: PublishedLesson): boolean {
   const visibility = String(l.visibility || "").trim().toLowerCase();
   if (!visibility && publishVisibility === "private") return false;
 
-  if (visibility === "private") return false;
+  if (visibility === "private" || visibility === "unlisted") return false;
 
   if (!isReadingTest && l.showInLibrary === false) return false;
 

@@ -831,6 +831,7 @@ export default function ContentClient() {
   async function openShareForLesson(it: Extract<ContentItem, { type: "lesson" }>) {
     const title = titleForCard(it);
     let pid = it.activePublishedId || it.id;
+    const shouldAutoPublishForShare = role === "teacher" && !isReadingTestLesson(it);
 
     if (!it.activePublishedId) {
       try {
@@ -839,9 +840,32 @@ export default function ContentClient() {
         const d = isRecord(dUnknown) ? dUnknown : {};
         if (typeof d.activePublishedId === "string" && d.activePublishedId) {
           pid = d.activePublishedId;
+        } else if (shouldAutoPublishForShare) {
+          const resp = await authedPost<{
+            publishedId?: string;
+            publishedLessonId?: string;
+            id?: string;
+          }>("/api/publish", {
+            id: it.id,
+            visibility: "unlisted",
+          });
+
+          pid = resp.publishedId || resp.publishedLessonId || resp.id || it.id;
+
+          await updateDoc(doc(db, "lessons", it.id), {
+            status: "published",
+            activePublishedId: pid,
+            publishVisibility: "unlisted",
+            showInLibrary: false,
+            "publish.visibility": "unlisted",
+            updatedAt: serverTimestamp(),
+          });
+
+          await refresh();
         }
       } catch {
-        // ignore
+        setErr(t("errors.publishFailed"));
+        return;
       }
     }
 
@@ -1435,7 +1459,7 @@ export default function ContentClient() {
     const canShareToSpace = mySpaces.length > 0 && (isTeacher || isParent) && !isDeleted;
     const canEdit = (isTeacher || isParent || isStudent) && !isDeleted && !isImageWriting;
     const canShareReadingTest = !isDeleted && isReadingTest && (isTeacher || isParent || isStudent);
-    const canSharePublic = isTeacher && isPublished && !isDeleted && !isReadingTest;
+    const canSharePublic = isTeacher && !isDeleted && !isReadingTest;
     const canPdf = isTeacher && !isDeleted && !isReadingTest;
 
     const editHref = lessonEditHref(ls);

@@ -185,6 +185,8 @@ export async function POST(req: Request) {
 
     // Publish metadata
     visibility,
+    publishVisibility: visibility,
+    showInLibrary: visibility === "public" ? draft.showInLibrary !== false : false,
     publishedAt: now,
     updatedAt: now,
 
