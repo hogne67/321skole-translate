@@ -18,7 +18,22 @@ type SchoolSummary = {
     teacherSeatLimit?: number;
   };
   activeTeacherCount?: number;
+  pendingTeacherInviteCount?: number;
   teacherSeatLimit?: number;
+  usageStats?: {
+    activeTeachersLast30Days?: number;
+    latestTeacherLoginAt?: string | null;
+    totalStudentCount?: number;
+    activeStudentsLast30Days?: number;
+    totalSpaceCount?: number;
+    activeSpacesLast30Days?: number;
+    assignmentsLast30Days?: number;
+    submissionsLast30Days?: number;
+    aiFeedbackThisMonth?: number;
+    premiumGeneratorsThisMonth?: number;
+    imageGenerationThisMonth?: number;
+    downloadsThisMonth?: number;
+  };
 };
 
 type LoadState = "idle" | "loading" | "success" | "error";
@@ -107,14 +122,32 @@ export default function SchoolAdminOverviewPage() {
 
   const school = summary?.school;
   const activeTeacherCount = summary?.activeTeacherCount ?? 0;
+  const pendingTeacherInviteCount = summary?.pendingTeacherInviteCount ?? 0;
   const teacherSeatLimit = summary?.teacherSeatLimit ?? school?.teacherSeatLimit ?? 0;
-  const seatsRemaining = Math.max(teacherSeatLimit - activeTeacherCount, 0);
+  const committedTeacherSeats = activeTeacherCount + pendingTeacherInviteCount;
+  const seatsRemaining = Math.max(teacherSeatLimit - committedTeacherSeats, 0);
   const seatUsagePercent =
     teacherSeatLimit > 0
-      ? Math.min(Math.round((activeTeacherCount / teacherSeatLimit) * 100), 100)
+      ? Math.min(Math.round((committedTeacherSeats / teacherSeatLimit) * 100), 100)
       : 0;
-  const isLicenseFull = teacherSeatLimit > 0 && activeTeacherCount >= teacherSeatLimit;
+  const isLicenseFull = teacherSeatLimit > 0 && committedTeacherSeats >= teacherSeatLimit;
   const isAlmostFull = !isLicenseFull && teacherSeatLimit > 0 && seatsRemaining <= 1;
+  const activeTeachersLast30Days = summary?.usageStats?.activeTeachersLast30Days ?? 0;
+  const totalStudentCount = summary?.usageStats?.totalStudentCount ?? 0;
+  const activeStudentsLast30Days = summary?.usageStats?.activeStudentsLast30Days ?? 0;
+  const totalSpaceCount = summary?.usageStats?.totalSpaceCount ?? 0;
+  const activeSpacesLast30Days = summary?.usageStats?.activeSpacesLast30Days ?? 0;
+  const assignmentsLast30Days = summary?.usageStats?.assignmentsLast30Days ?? 0;
+  const submissionsLast30Days = summary?.usageStats?.submissionsLast30Days ?? 0;
+  const aiFeedbackThisMonth = summary?.usageStats?.aiFeedbackThisMonth ?? 0;
+  const premiumGeneratorsThisMonth = summary?.usageStats?.premiumGeneratorsThisMonth ?? 0;
+  const imageGenerationThisMonth = summary?.usageStats?.imageGenerationThisMonth ?? 0;
+  const downloadsThisMonth = summary?.usageStats?.downloadsThisMonth ?? 0;
+  const latestTeacherLoginAt = formatDateTime(
+    summary?.usageStats?.latestTeacherLoginAt,
+    locale,
+    t("overview.noLoginData")
+  );
 
   return (
     <main style={styles.page}>
@@ -140,130 +173,119 @@ export default function SchoolAdminOverviewPage() {
 
       {state === "success" && school ? (
         <>
-          <section style={styles.statsGrid}>
-            <StatCard
-              label={t("overview.activeTeachers")}
-              value={String(activeTeacherCount)}
-              helper={t("overview.teacherSeats")}
-            />
-            <StatCard
-              label={t("overview.teacherSeats")}
-              value={t("overview.seatUsageShort", {
-                used: activeTeacherCount,
-                limit: teacherSeatLimit,
-              })}
-              helper={t("overview.seatUsage", {
-                used: activeTeacherCount,
-                limit: teacherSeatLimit,
-              })}
-            />
-            <StatCard
-              label={t("overview.availableSeats")}
-              value={String(seatsRemaining)}
-              helper={formatSeatsRemaining(t, seatsRemaining)}
-            />
-            <StatCard
-              label={t("overview.plan")}
-              value={formatValue(school.planKey)}
-              helper={formatValue(school.billingType)}
-            />
-          </section>
-
-          <section style={styles.twoColumnGrid}>
-            <div style={styles.card}>
-              <div style={styles.cardHeader}>
-                <div>
-                  <h2 style={styles.sectionTitle}>{t("overview.licenseUsage")}</h2>
-                  <p style={styles.mutedCompact}>{t("overview.licenseText")}</p>
-                </div>
-                <strong style={styles.usageNumber}>{seatUsagePercent}%</strong>
+          <section style={styles.card}>
+            <div style={styles.cardHeader}>
+              <div>
+                <h2 style={styles.sectionTitle}>{t("overview.licenseUsage")}</h2>
+                <p style={styles.mutedCompact}>{t("overview.licenseText")}</p>
               </div>
-
-              <div style={styles.progressTrack} aria-hidden="true">
-                <div
-                  style={{
-                    ...styles.progressFill,
-                    width: `${seatUsagePercent}%`,
-                    background: isLicenseFull ? "#dc2626" : isAlmostFull ? "#d97706" : "#2563eb",
-                  }}
-                />
-              </div>
-
-              <div style={styles.usageRow}>
-                <span>
-                  {t("overview.seatUsage", {
-                    used: activeTeacherCount,
-                    limit: teacherSeatLimit,
-                  })}
-                </span>
-                <span>{formatSeatsRemaining(t, seatsRemaining)}</span>
-              </div>
-
-              {isLicenseFull ? (
-                <Notice
-                  tone="danger"
-                  title={t("overview.licenseFullTitle")}
-                  text={t("overview.licenseFullText")}
-                />
-              ) : null}
-
-              {isAlmostFull ? (
-                <Notice
-                  tone="warning"
-                  title={t("overview.almostFullTitle")}
-                  text={t("overview.almostFullText", { count: seatsRemaining })}
-                />
-              ) : null}
+              <strong style={styles.usageNumber}>{seatUsagePercent}%</strong>
             </div>
 
-            <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>{t("overview.quickActions")}</h2>
-              <div style={styles.actionGrid}>
-                <ActionLink
-                  href={`/${locale}/school/invites`}
-                  title={t("overview.inviteTeacher")}
-                  text={t("overview.inviteTeachersText")}
-                />
-                <ActionLink
-                  href={`/${locale}/school/teachers`}
-                  title={t("overview.viewTeachers")}
-                  text={t("overview.manageTeachersText")}
-                />
-                <ActionLink
-                  href={`/${locale}/school/invites`}
-                  title={t("overview.viewInvites")}
-                  text={t("overview.viewInvitesText")}
-                />
-              </div>
+            <div style={styles.progressTrack} aria-hidden="true">
+              <div
+                style={{
+                  ...styles.progressFill,
+                  width: `${seatUsagePercent}%`,
+                  background: isLicenseFull ? "#dc2626" : isAlmostFull ? "#d97706" : "#2563eb",
+                }}
+              />
+            </div>
+
+            <div style={styles.usageRow}>
+              <span>
+                {t("overview.seatUsage", {
+                  used: activeTeacherCount,
+                  limit: teacherSeatLimit,
+                })}
+              </span>
+              <span>
+                {t("overview.pendingSeatUsage", {
+                  count: pendingTeacherInviteCount,
+                })}
+              </span>
+              <span>{formatSeatsRemaining(t, seatsRemaining)}</span>
+            </div>
+
+            {isLicenseFull ? (
+              <Notice
+                tone="danger"
+                title={t("overview.licenseFullTitle")}
+                text={t("overview.licenseFullText")}
+              />
+            ) : null}
+
+            {isAlmostFull ? (
+              <Notice
+                tone="warning"
+                title={t("overview.almostFullTitle")}
+                text={t("overview.almostFullText", { count: seatsRemaining })}
+              />
+            ) : null}
+          </section>
+
+          <section style={styles.card}>
+            <h2 style={styles.sectionTitle}>{t("overview.usageStats")}</h2>
+            <p style={styles.mutedCompact}>{t("overview.usageStatsText")}</p>
+
+            <div style={styles.metricGrid}>
+              <MetricItem
+                label={t("overview.activeTeachersMetric")}
+                value={String(activeTeachersLast30Days)}
+                helper={t("overview.activeTeachersMetricHelp", { total: activeTeacherCount })}
+              />
+              <MetricItem
+                label={t("overview.activeStudentsMetric")}
+                value={String(activeStudentsLast30Days)}
+                helper={t("overview.activeStudentsMetricHelp", { total: totalStudentCount })}
+              />
+              <MetricItem
+                label={t("overview.activeSpacesMetric")}
+                value={String(activeSpacesLast30Days)}
+                helper={t("overview.activeSpacesMetricHelp", { total: totalSpaceCount })}
+              />
+              <MetricItem
+                label={t("overview.assignmentsMetric")}
+                value={String(assignmentsLast30Days)}
+                helper={t("overview.last30Days")}
+              />
+              <MetricItem
+                label={t("overview.submissionsMetric")}
+                value={String(submissionsLast30Days)}
+                helper={t("overview.last30Days")}
+              />
+              <MetricItem
+                label={t("overview.latestTeacherLogin")}
+                value={latestTeacherLoginAt}
+                helper={t("overview.latestTeacherLoginHelp")}
+              />
             </div>
           </section>
 
           <section style={styles.card}>
-            <div style={styles.cardHeaderCompact}>
-              <div>
-                <h2 style={styles.sectionTitle}>{t("overview.nextSteps")}</h2>
-                <p style={styles.mutedCompact}>{t("overview.nextStepsText")}</p>
-              </div>
-            </div>
+            <h2 style={styles.sectionTitle}>{t("overview.toolUsage")}</h2>
+            <p style={styles.mutedCompact}>{t("overview.toolUsageText")}</p>
 
-            <div style={styles.stepGrid}>
-              <StepItem
-                number="1"
-                title={t("overview.stepInviteTitle")}
-                text={t("overview.stepInviteText")}
-                active={activeTeacherCount === 0}
+            <div style={styles.metricGrid}>
+              <MetricItem
+                label={t("overview.aiFeedbackMetric")}
+                value={String(aiFeedbackThisMonth)}
+                helper={t("overview.thisMonth")}
               />
-              <StepItem
-                number="2"
-                title={t("overview.stepManageTitle")}
-                text={t("overview.stepManageText")}
-                active={activeTeacherCount > 0}
+              <MetricItem
+                label={t("overview.premiumGeneratorsMetric")}
+                value={String(premiumGeneratorsThisMonth)}
+                helper={t("overview.thisMonth")}
               />
-              <StepItem
-                number="3"
-                title={t("overview.stepCapacityTitle")}
-                text={t("overview.stepCapacityText")}
-                active={isAlmostFull || isLicenseFull}
+              <MetricItem
+                label={t("overview.imageGenerationMetric")}
+                value={String(imageGenerationThisMonth)}
+                helper={t("overview.thisMonth")}
+              />
+              <MetricItem
+                label={t("overview.downloadsMetric")}
+                value={String(downloadsThisMonth)}
+                helper={t("overview.thisMonth")}
               />
             </div>
           </section>
@@ -290,6 +312,21 @@ function formatValue(value?: string | null) {
   return value.replaceAll("_", " ");
 }
 
+function formatDateTime(value: string | null | undefined, locale: string, fallback: string) {
+  if (!value) return fallback;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function formatSeatsRemaining(
   t: SchoolAdminTranslator,
   count: number
@@ -301,41 +338,6 @@ function formatSeatsRemaining(
 
 function StatusPill({ value }: { value: string }) {
   return <span style={styles.statusPill}>{formatValue(value)}</span>;
-}
-
-function StatCard({
-  label,
-  value,
-  helper,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-}) {
-  return (
-    <section style={styles.statCard}>
-      <div style={styles.infoLabel}>{label}</div>
-      <div style={styles.statValue}>{value}</div>
-      <p style={styles.statHelper}>{helper}</p>
-    </section>
-  );
-}
-
-function ActionLink({
-  href,
-  title,
-  text,
-}: {
-  href: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <Link href={href} style={styles.actionLink}>
-      <strong>{title}</strong>
-      <span>{text}</span>
-    </Link>
-  );
 }
 
 function Notice({
@@ -353,28 +355,6 @@ function Notice({
     <div style={style}>
       <strong>{title}</strong>
       <p style={{ margin: "4px 0 0" }}>{text}</p>
-    </div>
-  );
-}
-
-function StepItem({
-  number,
-  title,
-  text,
-  active,
-}: {
-  number: string;
-  title: string;
-  text: string;
-  active: boolean;
-}) {
-  return (
-    <div style={active ? styles.stepItemActive : styles.stepItem}>
-      <span style={active ? styles.stepNumberActive : styles.stepNumber}>{number}</span>
-      <div>
-        <strong>{title}</strong>
-        <p>{text}</p>
-      </div>
     </div>
   );
 }
@@ -424,6 +404,16 @@ function InfoItem({ label, value }: { label: string; value: string }) {
     <div style={styles.infoItem}>
       <div style={styles.infoLabel}>{label}</div>
       <div style={styles.infoValue}>{value}</div>
+    </div>
+  );
+}
+
+function MetricItem({ label, value, helper }: { label: string; value: string; helper: string }) {
+  return (
+    <div style={styles.metricItem}>
+      <div style={styles.metricLabel}>{label}</div>
+      <div style={styles.metricValue}>{value}</div>
+      <div style={styles.metricHelper}>{helper}</div>
     </div>
   );
 }
@@ -479,35 +469,6 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(15,23,42,0.08)",
     background: "white",
     boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
-  },
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: 12,
-  },
-  statCard: {
-    padding: 16,
-    borderRadius: 16,
-    border: "1px solid rgba(15,23,42,0.08)",
-    background: "white",
-    boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
-  },
-  statValue: {
-    marginTop: 8,
-    fontSize: 28,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-  statHelper: {
-    margin: "6px 0 0",
-    color: "#64748b",
-    fontSize: 13,
-    lineHeight: 1.45,
-  },
-  twoColumnGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
-    gap: 16,
   },
   errorBox: {
     padding: 16,
@@ -577,77 +538,12 @@ const styles: Record<string, React.CSSProperties> = {
   usageRow: {
     display: "flex",
     justifyContent: "space-between",
+    flexWrap: "wrap",
     gap: 12,
     marginTop: 10,
     color: "#475569",
     fontSize: 13,
     fontWeight: 750,
-  },
-  actionGrid: {
-    display: "grid",
-    gap: 10,
-    marginTop: 14,
-  },
-  actionLink: {
-    display: "grid",
-    gap: 4,
-    padding: 14,
-    borderRadius: 14,
-    border: "1px solid #e2e8f0",
-    background: "#f8fafc",
-    color: "#0f172a",
-    textDecoration: "none",
-  },
-  stepGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 10,
-  },
-  stepItem: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 12,
-    padding: 14,
-    borderRadius: 14,
-    border: "1px solid #e2e8f0",
-    background: "#f8fafc",
-    color: "#0f172a",
-  },
-  stepItemActive: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 12,
-    padding: 14,
-    borderRadius: 14,
-    border: "1px solid #bfdbfe",
-    background: "#eff6ff",
-    color: "#0f172a",
-  },
-  stepNumber: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: "0 0 28px",
-    width: 28,
-    height: 28,
-    borderRadius: 999,
-    background: "#e2e8f0",
-    color: "#334155",
-    fontSize: 13,
-    fontWeight: 900,
-  },
-  stepNumberActive: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: "0 0 28px",
-    width: 28,
-    height: 28,
-    borderRadius: 999,
-    background: "#2563eb",
-    color: "#ffffff",
-    fontSize: 13,
-    fontWeight: 900,
   },
   noticeDanger: {
     marginTop: 16,
@@ -686,6 +582,41 @@ const styles: Record<string, React.CSSProperties> = {
     gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
     gap: 12,
     marginTop: 16,
+  },
+  metricGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+    gap: 12,
+    marginTop: 16,
+  },
+  metricItem: {
+    minHeight: 118,
+    padding: 14,
+    borderRadius: 14,
+    border: "1px solid #e2e8f0",
+    background: "#f8fafc",
+    display: "grid",
+    alignContent: "space-between",
+    gap: 8,
+  },
+  metricLabel: {
+    fontSize: 13,
+    color: "#475569",
+    fontWeight: 750,
+    lineHeight: 1.35,
+  },
+  metricValue: {
+    fontSize: 30,
+    lineHeight: 1,
+    fontWeight: 900,
+    color: "#0f172a",
+    wordBreak: "break-word",
+    textTransform: "none",
+  },
+  metricHelper: {
+    fontSize: 12,
+    color: "#64748b",
+    lineHeight: 1.35,
   },
   infoItem: {
     padding: 14,

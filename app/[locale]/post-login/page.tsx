@@ -1,10 +1,11 @@
 // app/[locale]/post-login/page.tsx
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { recordUserLogin } from "@/lib/userProfile";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
 
@@ -110,6 +111,7 @@ function nextMatchesRole(next: string, role: AppRole, locale: string): boolean {
 
 export default function PostLoginPage() {
   const { user, profile, loading } = useUserProfile();
+  const loginRecordedRef = useRef(false);
   const router = useRouter();
   const sp = useSearchParams();
   const locale = useLocale();
@@ -132,6 +134,13 @@ export default function PostLoginPage() {
     }
 
     if (!profile) return;
+
+    if (!loginRecordedRef.current) {
+      loginRecordedRef.current = true;
+      recordUserLogin(user).catch((err) => {
+        console.warn("record login failed", err);
+      });
+    }
 
     const onboardingComplete = profile.onboardingComplete === true;
     const role = normalizeRole(profile.role);

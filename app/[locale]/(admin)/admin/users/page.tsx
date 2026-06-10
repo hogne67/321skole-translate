@@ -78,6 +78,10 @@ function formatDate(v: unknown): string {
 
     if (v instanceof Date) return v.toLocaleString("no-NO");
     if (typeof v === "number") return new Date(v).toLocaleString("no-NO");
+    if (typeof v === "string") {
+      const d = new Date(v);
+      if (!Number.isNaN(d.getTime())) return d.toLocaleString("no-NO");
+    }
     return "—";
   } catch {
     return "—";

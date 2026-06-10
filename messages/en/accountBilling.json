@@ -2,10 +2,15 @@
   "accountBilling": {
     "title": "Subscription",
     "subtitle": "Here you can view your plan, status, and manage your Stripe subscription.",
+    "eyebrow": "Account and billing",
     "loadingAuth": "Loading sign-in ...",
     "mustBeSignedIn": "You must be signed in to view your subscription.",
     "currentStatus": "Current status",
     "upgradeSection": "Upgrade or change plan",
+    "upgradeLead": {
+      "teacher": "Choose the capacity that fits your number of students and how much you use the AI tools.",
+      "studentParent": "For regular use, Pro is the plan that opens more capacity and more AI features."
+    },
     "technicalSection": "Technical details",
     "noPlansForUser": "No valid plans were found for this user.",
     "fields": {
@@ -40,7 +45,14 @@
       "pro": "Pro",
       "basicDescription": "A good starting level for regular use.",
       "plusDescription": "More capacity and more premium features.",
-      "proDescription": "Most relevant for teachers with greater needs."
+      "proDescription": "Most relevant for teachers with greater needs.",
+      "proDescriptionStudentParent": "For regular 321school use with more AI, generators, and print capacity."
+    },
+    "prices": {
+      "basic": "79 NOK / mo",
+      "plus": "139 NOK / mo",
+      "pro": "229 NOK / mo",
+      "proStudentParent": "79 NOK / mo"
     },
     "statuses": {
       "active": "Active",
@@ -52,7 +64,7 @@
       "inactive": "Not active"
     },
     "statusBox": {
-      "active": "Your subscription is active. You can manage payment details and plan changes in the billing portal.",
+      "active": "Your subscription is active. You can manage payment details, cancel, or change plan in the billing portal.",
       "paymentIssue": "There is a payment issue on this subscription. Please open the billing portal and review the payment details.",
       "inactive": "You do not currently have an active paid subscription. You can choose a new plan below."
     },

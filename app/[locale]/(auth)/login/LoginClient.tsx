@@ -15,6 +15,7 @@ import {
 import { auth } from "@/lib/firebase";
 import { signInWithGoogle, signInWithEmail, signUpWithEmail } from "@/lib/auth";
 import { linkAnonymousWithGoogle, linkAnonymousWithEmailPassword } from "@/lib/anonAuth";
+import { recordUserLogin } from "@/lib/userProfile";
 import { useLocale, useTranslations } from "next-intl";
 import { trackSignUp } from "@/lib/analytics";
 import { trackEvent } from "@/lib/trackEvent";
@@ -165,6 +166,14 @@ export default function LoginClient() {
     resetMessages();
   }
 
+  async function recordExistingLogin(user: User) {
+    try {
+      await recordUserLogin(user);
+    } catch (err) {
+      console.warn("record login failed", err);
+    }
+  }
+
   async function handleGoogle() {
     resetMessages();
     setLoadingGoogle(true);
@@ -173,7 +182,8 @@ export default function LoginClient() {
       await applyPersistence();
 
       if (isAnon) {
-        await linkAnonymousWithGoogle();
+        const user = await linkAnonymousWithGoogle();
+        await recordExistingLogin(user);
         trackSignUp("anonymous_upgrade");
 
         trackEvent("login", {
@@ -181,7 +191,10 @@ export default function LoginClient() {
           type: "anonymous_upgrade",
         });
       } else {
-        await signInWithGoogle();
+        const cred = await signInWithGoogle();
+        if (mode === "signin") {
+          await recordExistingLogin(cred.user);
+        }
 
         trackEvent("login", {
           method: "google",
@@ -234,7 +247,8 @@ export default function LoginClient() {
       await applyPersistence();
 
       if (mode === "signin") {
-        await signInWithEmail(e, password);
+        const cred = await signInWithEmail(e, password);
+        await recordExistingLogin(cred.user);
 
         trackEvent("login", {
           method: "email",
@@ -246,7 +260,8 @@ export default function LoginClient() {
       }
 
       if (isAnon) {
-        await linkAnonymousWithEmailPassword(e, password);
+        const user = await linkAnonymousWithEmailPassword(e, password);
+        await recordExistingLogin(user);
         trackSignUp("anonymous_upgrade");
 
         trackEvent("login", {

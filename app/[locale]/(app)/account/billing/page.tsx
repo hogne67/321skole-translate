@@ -68,8 +68,8 @@ function resolveRole(data: UserDocData | null): BillingRole | null {
 
 function allowedPlansForRole(role: BillingRole | null): CheckoutPlan[] {
   if (role === "teacher") return ["basic", "plus", "pro"];
-  if (role === "student") return ["basic", "plus"];
-  if (role === "parent") return ["basic", "plus"];
+  if (role === "student") return ["pro"];
+  if (role === "parent") return ["pro"];
   return [];
 }
 
@@ -161,6 +161,22 @@ export default function BillingPage() {
 
   function labelForPlan(plan: BillingPlan | null | undefined) {
     return t(`plans.${plan ?? "free"}`);
+  }
+
+  function descriptionForPlan(plan: CheckoutPlan) {
+    if (plan === "pro" && (role === "student" || role === "parent")) {
+      return t("plans.proDescriptionStudentParent");
+    }
+
+    return t(`plans.${plan}Description`);
+  }
+
+  function priceForPlan(plan: CheckoutPlan) {
+    if (plan === "pro" && (role === "student" || role === "parent")) {
+      return t("prices.proStudentParent");
+    }
+
+    return t(`prices.${plan}`);
   }
 
   function labelForStatus(statusValue: BillingStatus | null | undefined) {
@@ -292,10 +308,14 @@ export default function BillingPage() {
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>{t("title")}</h1>
-
-      <p style={{ color: "#475569", marginBottom: 24 }}>{t("subtitle")}</p>
+    <main style={pageStyle}>
+      <div style={heroStyle}>
+        <div>
+          <div style={eyebrowStyle}>{t("eyebrow")}</div>
+          <h1 style={titleStyle}>{t("title")}</h1>
+          <p style={subtitleStyle}>{t("subtitle")}</p>
+        </div>
+      </div>
 
       {!authReady ? (
         <div style={cardStyle}>{t("loadingAuth")}</div>
@@ -303,25 +323,16 @@ export default function BillingPage() {
         <div style={cardStyle}>{t("mustBeSignedIn")}</div>
       ) : (
         <>
-          <section style={cardStyle}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 12,
-                flexWrap: "wrap",
-                marginBottom: 16,
-              }}
-            >
-              <h2 style={sectionTitleStyle}>{t("currentStatus")}</h2>
+          <section style={statusCardStyle}>
+            <div style={sectionHeaderStyle}>
+              <div>
+                <h2 style={sectionTitleStyle}>{t("currentStatus")}</h2>
+                <p style={sectionLeadStyle}>{getStatusMessage()}</p>
+              </div>
 
               <span
                 style={{
-                  borderRadius: 999,
-                  padding: "6px 10px",
-                  fontSize: 12,
-                  fontWeight: 700,
+                  ...statusPillStyle,
                   background: statusTone.background,
                   border: `1px solid ${statusTone.border}`,
                   color: statusTone.color,
@@ -331,55 +342,28 @@ export default function BillingPage() {
               </span>
             </div>
 
-            <div
-              style={{
-                marginBottom: 18,
-                padding: 14,
-                borderRadius: 14,
-                border: `1px solid ${statusTone.border}`,
-                background: statusTone.background,
-                color: statusTone.color,
-                fontSize: 14,
-                lineHeight: 1.5,
-              }}
-            >
-              {getStatusMessage()}
-            </div>
-
-            <div style={gridStyle}>
+            <div style={summaryGridStyle}>
               <InfoItem
                 label={t("fields.role")}
                 value={role ? capitalize(role) : t("common.empty")}
               />
               <InfoItem label={t("fields.plan")} value={labelForPlan(effectivePlan)} />
               <InfoItem
-                label={t("fields.subscriptionPlan")}
-                value={labelForPlan(billing?.plan ?? "free")}
-              />
-              <InfoItem
                 label={t("fields.billingStatus")}
                 value={labelForStatus(status)}
               />
               <InfoItem label={t("fields.renewsOrEnds")} value={renewalText} />
-              <InfoItem
-                label={t("fields.cancelAtPeriodEnd")}
-                value={billing?.cancelAtPeriodEnd ? t("common.yes") : t("common.no")}
-              />
-              <InfoItem
-                label={t("fields.provider")}
-                value={billing?.provider ? String(billing.provider) : t("common.empty")}
-              />
-              <InfoItem
-                label={t("fields.roleProduct")}
-                value={billing?.roleProduct ? capitalize(String(billing.roleProduct)) : t("common.empty")}
-              />
             </div>
 
-            <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <div style={actionsRowStyle}>
               <button
                 onClick={openPortal}
                 disabled={portalLoading || !billing?.customerId}
-                style={secondaryButtonStyle}
+                style={{
+                  ...secondaryButtonStyle,
+                  opacity: !billing?.customerId ? 0.55 : 1,
+                  cursor: !billing?.customerId ? "not-allowed" : "pointer",
+                }}
               >
                 {portalLoading ? t("buttons.opening") : t("buttons.manageSubscription")}
               </button>
@@ -387,7 +371,16 @@ export default function BillingPage() {
           </section>
 
           <section style={cardStyle}>
-            <h2 style={sectionTitleStyle}>{t("upgradeSection")}</h2>
+            <div style={sectionHeaderStyle}>
+              <div>
+                <h2 style={sectionTitleStyle}>{t("upgradeSection")}</h2>
+                <p style={sectionLeadStyle}>
+                  {role === "teacher"
+                    ? t("upgradeLead.teacher")
+                    : t("upgradeLead.studentParent")}
+                </p>
+              </div>
+            </div>
 
             {allowedPlans.length === 0 ? (
               <p style={{ color: "#64748b" }}>{t("noPlansForUser")}</p>
@@ -397,13 +390,29 @@ export default function BillingPage() {
                   const isCurrent = effectivePlan === plan;
 
                   return (
-                    <div key={plan} style={planCardStyle}>
-                      <div style={{ fontSize: 20, fontWeight: 700 }}>
-                        {labelForPlan(plan)}
+                    <div
+                      key={plan}
+                      style={{
+                        ...planCardStyle,
+                        borderColor: isCurrent ? "#0f766e" : "#dbe3ea",
+                        background: isCurrent ? "#f0fdfa" : "#ffffff",
+                      }}
+                    >
+                      <div style={planCardTopStyle}>
+                        <div>
+                          <div style={{ fontSize: 20, fontWeight: 800 }}>
+                            {labelForPlan(plan)}
+                          </div>
+                          <div style={planPriceStyle}>{priceForPlan(plan)}</div>
+                        </div>
+
+                        {isCurrent ? (
+                          <span style={currentBadgeStyle}>{t("buttons.currentPlan")}</span>
+                        ) : null}
                       </div>
 
-                      <div style={{ color: "#64748b", marginTop: 8 }}>
-                        {t(`plans.${plan}Description`)}
+                      <div style={planDescriptionStyle}>
+                        {descriptionForPlan(plan)}
                       </div>
 
                       <div style={{ marginTop: 16 }}>
@@ -426,10 +435,26 @@ export default function BillingPage() {
             )}
           </section>
 
-          <section style={cardStyle}>
-            <h2 style={sectionTitleStyle}>{t("technicalSection")}</h2>
+          <details style={detailsStyle}>
+            <summary style={detailsSummaryStyle}>{t("technicalSection")}</summary>
 
             <div style={gridStyle}>
+              <InfoItem
+                label={t("fields.subscriptionPlan")}
+                value={labelForPlan(billing?.plan ?? "free")}
+              />
+              <InfoItem
+                label={t("fields.cancelAtPeriodEnd")}
+                value={billing?.cancelAtPeriodEnd ? t("common.yes") : t("common.no")}
+              />
+              <InfoItem
+                label={t("fields.provider")}
+                value={billing?.provider ? String(billing.provider) : t("common.empty")}
+              />
+              <InfoItem
+                label={t("fields.roleProduct")}
+                value={billing?.roleProduct ? capitalize(String(billing.roleProduct)) : t("common.empty")}
+              />
               <InfoItem
                 label={t("fields.customerId")}
                 value={billing?.customerId || t("common.empty")}
@@ -443,7 +468,7 @@ export default function BillingPage() {
                 value={billing?.priceId || t("common.empty")}
               />
             </div>
-          </section>
+          </details>
 
           {message ? <div style={messageStyle}>{message}</div> : null}
         </>
@@ -463,21 +488,91 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 18,
-  padding: 20,
+  borderRadius: 16,
+  padding: 22,
   background: "#ffffff",
-  marginBottom: 20,
+  marginBottom: 18,
+  boxShadow: "0 10px 30px rgba(15, 23, 42, 0.04)",
+};
+
+const pageStyle: React.CSSProperties = {
+  padding: "24px 14px 36px",
+  maxWidth: 980,
+  margin: "0 auto",
+};
+
+const heroStyle: React.CSSProperties = {
+  marginBottom: 18,
+  padding: "8px 2px 10px",
+};
+
+const eyebrowStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 800,
+  color: "#0f766e",
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+  marginBottom: 6,
+};
+
+const titleStyle: React.CSSProperties = {
+  fontSize: 30,
+  lineHeight: 1.15,
+  fontWeight: 800,
+  margin: 0,
+};
+
+const subtitleStyle: React.CSSProperties = {
+  color: "#475569",
+  margin: "8px 0 0",
+  maxWidth: 660,
+  lineHeight: 1.55,
+};
+
+const statusCardStyle: React.CSSProperties = {
+  ...cardStyle,
+  borderColor: "#cbd5e1",
+};
+
+const sectionHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 14,
+  flexWrap: "wrap",
+  marginBottom: 18,
 };
 
 const sectionTitleStyle: React.CSSProperties = {
   fontSize: 20,
-  fontWeight: 700,
+  fontWeight: 800,
   margin: 0,
+};
+
+const sectionLeadStyle: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: 14,
+  lineHeight: 1.5,
+  margin: "6px 0 0",
+  maxWidth: 620,
+};
+
+const statusPillStyle: React.CSSProperties = {
+  borderRadius: 999,
+  padding: "6px 10px",
+  fontSize: 12,
+  fontWeight: 800,
 };
 
 const gridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+};
+
+const summaryGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
   gap: 12,
 };
 
@@ -489,13 +584,42 @@ const planGridStyle: React.CSSProperties = {
 
 const planCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 16,
-  padding: 16,
+  borderRadius: 14,
+  padding: 18,
+  minHeight: 178,
+};
+
+const planCardTopStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 12,
+};
+
+const planPriceStyle: React.CSSProperties = {
+  color: "#0f766e",
+  fontWeight: 800,
+  marginTop: 4,
+};
+
+const planDescriptionStyle: React.CSSProperties = {
+  color: "#64748b",
+  marginTop: 12,
+  lineHeight: 1.5,
+};
+
+const currentBadgeStyle: React.CSSProperties = {
+  borderRadius: 999,
+  padding: "5px 8px",
+  fontSize: 12,
+  fontWeight: 800,
+  color: "#0f766e",
+  background: "#ccfbf1",
 };
 
 const infoItemStyle: React.CSSProperties = {
   padding: 14,
-  borderRadius: 14,
+  borderRadius: 12,
   border: "1px solid #e2e8f0",
   background: "#f8fafc",
 };
@@ -519,6 +643,13 @@ const secondaryButtonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const actionsRowStyle: React.CSSProperties = {
+  marginTop: 18,
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 10,
+};
+
 const disabledButtonStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 12,
@@ -534,4 +665,15 @@ const messageStyle: React.CSSProperties = {
   borderRadius: 14,
   background: "#fff7ed",
   color: "#9a3412",
+};
+
+const detailsStyle: React.CSSProperties = {
+  ...cardStyle,
+  overflow: "hidden",
+};
+
+const detailsSummaryStyle: React.CSSProperties = {
+  marginBottom: 14,
+  cursor: "pointer",
+  fontWeight: 800,
 };

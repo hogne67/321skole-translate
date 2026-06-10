@@ -137,11 +137,29 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
     return;
   }
 
+  const cleanedPatch = stripUndefined((patch ?? {}) as Record<string, unknown>);
+  if (Object.keys(cleanedPatch).length === 0) {
+    return;
+  }
+
   const payload: Partial<UserProfile> = {
-    ...patch,
+    ...cleanedPatch,
     updatedAt: serverTimestamp(),
-    lastLoginAt: serverTimestamp(),
   };
 
   await setDoc(ref, stripUndefined(payload as Record<string, unknown>), { merge: true });
+}
+
+export async function recordUserLogin(user: User) {
+  const token = await user.getIdToken();
+  const res = await fetch("/api/auth/last-login", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Could not record login (${res.status})`);
+  }
 }

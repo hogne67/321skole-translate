@@ -2,10 +2,15 @@
   "accountBilling": {
     "title": "Abonnement",
     "subtitle": "Her kan du se planen din, status og administrere Stripe-abonnementet ditt.",
+    "eyebrow": "Konto og betaling",
     "loadingAuth": "Laster innlogging ...",
     "mustBeSignedIn": "Du må være logget inn for å se abonnementet ditt.",
     "currentStatus": "Nåværende status",
     "upgradeSection": "Oppgrader eller bytt plan",
+    "upgradeLead": {
+      "teacher": "Velg kapasiteten som passer antall studenter og hvor mye du bruker AI-verktøyene.",
+      "studentParent": "For jevn bruk er Pro planen som åpner mer kapasitet og flere AI-funksjoner."
+    },
     "technicalSection": "Tekniske detaljer",
     "noPlansForUser": "Fant ingen gyldige planer for denne brukeren.",
     "fields": {
@@ -40,7 +45,14 @@
       "pro": "Pro",
       "basicDescription": "Et godt startnivå for vanlig bruk.",
       "plusDescription": "Mer kapasitet og flere premium-funksjoner.",
-      "proDescription": "Mest relevant for lærere med større behov."
+      "proDescription": "Mest relevant for lærere med større behov.",
+      "proDescriptionStudentParent": "For deg som bruker 321skole jevnlig og trenger mer AI, generatorer og utskrifter."
+    },
+    "prices": {
+      "basic": "79 kr / mnd",
+      "plus": "139 kr / mnd",
+      "pro": "229 kr / mnd",
+      "proStudentParent": "79 kr / mnd"
     },
     "statuses": {
       "active": "Aktiv",
@@ -52,7 +64,7 @@
       "inactive": "Ikke aktiv"
     },
     "statusBox": {
-      "active": "Abonnementet ditt er aktivt. Du kan administrere betalingsdetaljer og endre plan i betalingsportalen.",
+      "active": "Abonnementet ditt er aktivt. Du kan administrere betalingsdetaljer, kansellere eller endre plan i betalingsportalen.",
       "paymentIssue": "Det er et betalingsproblem på abonnementet ditt. Åpne betalingsportalen og kontroller betalingsinformasjonen.",
       "inactive": "Du har ikke et aktivt betalt abonnement akkurat nå. Du kan velge en ny plan nedenfor."
     },

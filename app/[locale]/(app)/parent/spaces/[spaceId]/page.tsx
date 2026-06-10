@@ -680,137 +680,135 @@ export default function ParentSpaceDetailPage() {
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-        <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
-          <div className="text-base font-semibold text-slate-900">
-            {tx("all.title", "All lessons")}
-          </div>
-
-          {assignErr ? (
-            <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{assignErr}</div>
-          ) : activeAssignments.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
-              {tx("all.none", "No lessons yet.")}
-            </div>
-          ) : (
-            <div className="mt-4 grid min-w-0 gap-3">
-              {activeAssignments.map((it) => renderAssignmentCard(it, false))}
-            </div>
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:p-5">
+        <div className="text-base font-semibold text-emerald-950">
+          {t("childRoomCard.title")}
+        </div>
+        <div className="mt-1 text-sm leading-6 text-emerald-900">
+          {tx(
+            "childRoomCard.text",
+            "Klikk her for å vise og legge til barneversjon på barna sine enheter. Husk at du må logge inn med din bruker på deres enheter også."
           )}
-        </section>
+        </div>
 
-        <aside className="grid min-w-0 gap-4 lg:sticky lg:top-4">
-          <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm sm:p-5">
-            <div className="text-base font-semibold text-sky-950">{t("goals.sectionTitle")}</div>
+        <Link
+          href={`/child/spaces/${spaceId}`}
+          className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white no-underline hover:bg-emerald-600 sm:w-auto"
+        >
+          {tx("childRoomCard.button", "Åpne barneromsvisning")}
+        </Link>
+      </section>
 
-            {activeGoal ? (
-              <div className="mt-3 rounded-xl border border-sky-200 bg-white p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge text={t("goals.active")} tone="good" />
-                  {typeof activeGoal.data.targetCount === "number" ? (
-                    <Badge
-                      text={t("goals.tasksCount", { count: activeGoal.data.targetCount })}
-                      tone="neutral"
-                    />
-                  ) : null}
-                </div>
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm sm:p-5">
+        <div className="text-base font-semibold text-sky-950">{t("goals.sectionTitle")}</div>
 
-                <div className="mt-3 break-words text-lg font-black text-slate-900">
-                  {activeGoal.data.title}
-                </div>
-
-                {safeString(activeGoal.data.description) ? (
-                  <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                    {safeString(activeGoal.data.description)}
-                  </div>
+        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+          {activeGoal ? (
+            <div className="rounded-xl border border-sky-200 bg-white p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge text={t("goals.active")} tone="good" />
+                {typeof activeGoal.data.targetCount === "number" ? (
+                  <Badge
+                    text={t("goals.tasksCount", { count: activeGoal.data.targetCount })}
+                    tone="neutral"
+                  />
                 ) : null}
               </div>
-            ) : (
-              <div className="mt-2 text-sm leading-6 text-sky-900">
-                {t("goals.empty")}
-              </div>
-            )}
 
-            <form
-              className="mt-4 rounded-xl border border-sky-200 bg-white p-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                createGoal();
-              }}
+              <div className="mt-3 break-words text-lg font-black text-slate-900">
+                {activeGoal.data.title}
+              </div>
+
+              {safeString(activeGoal.data.description) ? (
+                <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                  {safeString(activeGoal.data.description)}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-sky-200 bg-white p-4 text-sm leading-6 text-sky-900">
+              {t("goals.empty")}
+            </div>
+          )}
+
+          <form
+            className="rounded-xl border border-sky-200 bg-white p-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              createGoal();
+            }}
+          >
+            <label className="block text-xs font-black uppercase tracking-wide text-slate-500">
+              {t("goals.newGoal")}
+            </label>
+
+            <input
+              value={goalTitle}
+              onChange={(e) => setGoalTitle(e.target.value)}
+              placeholder={t("goals.placeholder")}
+              maxLength={120}
+              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
+            />
+
+            <label className="mt-3 block text-xs font-black uppercase tracking-wide text-slate-500">
+              {t("goals.targetLabel")}
+            </label>
+
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={goalTargetCount}
+              onChange={(e) => setGoalTargetCount(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
+            />
+
+            <button
+              type="submit"
+              disabled={goalBusy}
+              className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-bold text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <label className="block text-xs font-black uppercase tracking-wide text-slate-500">
-                {t("goals.newGoal")}
-              </label>
+              {goalBusy ? t("goals.saving") : t("goals.save")}
+            </button>
 
-              <input
-                value={goalTitle}
-                onChange={(e) => setGoalTitle(e.target.value)}
-                placeholder={t("goals.placeholder")}
-                maxLength={120}
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
-              />
+            {goalMsg ? <div className="mt-3 text-sm font-semibold text-slate-600">{goalMsg}</div> : null}
+          </form>
+        </div>
+      </section>
 
-              <label className="mt-3 block text-xs font-black uppercase tracking-wide text-slate-500">
-                {t("goals.targetLabel")}
-              </label>
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="text-base font-semibold text-slate-900">
+          {tx("all.title", "All lessons")}
+        </div>
 
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={goalTargetCount}
-                onChange={(e) => setGoalTargetCount(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
-              />
+        {assignErr ? (
+          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{assignErr}</div>
+        ) : activeAssignments.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+            {tx("all.none", "No lessons yet.")}
+          </div>
+        ) : (
+          <div className="mt-4 grid min-w-0 gap-3">
+            {activeAssignments.map((it) => renderAssignmentCard(it, false))}
+          </div>
+        )}
+      </section>
 
-              <button
-                type="submit"
-                disabled={goalBusy}
-                className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-bold text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {goalBusy ? t("goals.saving") : t("goals.save")}
-              </button>
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <div className="text-base font-semibold text-slate-900">
+          {tx("archive.title", "Archived assignments")}
+        </div>
 
-              {goalMsg ? <div className="mt-3 text-sm font-semibold text-slate-600">{goalMsg}</div> : null}
-            </form>
-          </section>
-
-          <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:p-5">
-            <div className="text-base font-semibold text-emerald-950">
-              {t("childRoomCard.title")}
-            </div>
-            <div className="mt-1 text-sm leading-6 text-emerald-900">
-              {tx(
-                "childRoomCard.text",
-                "Klikk her for å vise og legge til barneversjon på barna sine enheter. Husk at du må logge inn med din bruker på deres enheter også."
-              )}
-            </div>
-
-            <Link
-              href={`/child/spaces/${spaceId}`}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white no-underline hover:bg-emerald-600"
-            >
-              {tx("childRoomCard.button", "Åpne barneromsvisning")}
-            </Link>
-          </section>
-
-          <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
-            <div className="text-base font-semibold text-slate-900">
-              {tx("archive.title", "Archived assignments")}
-            </div>
-
-            {archivedAssignments.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
-                {tx("archive.none", "No archived assignments yet.")}
-              </div>
-            ) : (
-              <div className="mt-4 grid min-w-0 gap-3">
-                {archivedAssignments.map((it) => renderAssignmentCard(it, true))}
-              </div>
-            )}
-          </section>
-        </aside>
-      </div>
+        {archivedAssignments.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+            {tx("archive.none", "No archived assignments yet.")}
+          </div>
+        ) : (
+          <div className="mt-4 grid min-w-0 gap-3">
+            {archivedAssignments.map((it) => renderAssignmentCard(it, true))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }

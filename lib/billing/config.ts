@@ -30,13 +30,8 @@ export function getBillingPrices(): BillingPriceConfig[] {
   return [
     {
       role: "student",
-      plan: "basic",
-      priceId: required("STRIPE_PRICE_STUDENT_BASIC"),
-    },
-    {
-      role: "student",
-      plan: "plus",
-      priceId: required("STRIPE_PRICE_STUDENT_PLUS"),
+      plan: "pro",
+      priceId: required("STRIPE_PRICE_STUDENT_PRO"),
     },
     {
       role: "teacher",
@@ -55,13 +50,8 @@ export function getBillingPrices(): BillingPriceConfig[] {
     },
     {
       role: "parent",
-      plan: "basic",
-      priceId: required("STRIPE_PRICE_PARENT_BASIC"),
-    },
-    {
-      role: "parent",
-      plan: "plus",
-      priceId: required("STRIPE_PRICE_PARENT_PLUS"),
+      plan: "pro",
+      priceId: required("STRIPE_PRICE_PARENT_PRO"),
     },
   ];
 }
@@ -77,11 +67,11 @@ export function isBillingPlan(value: unknown): value is BillingPlan {
 export function getAllowedPlansForRole(role: BillingRole): Exclude<BillingPlan, "free">[] {
   switch (role) {
     case "student":
-      return ["basic", "plus"];
+      return ["pro"];
     case "teacher":
       return ["basic", "plus", "pro"];
     case "parent":
-      return ["basic", "plus"];
+      return ["pro"];
     default:
       return [];
   }
