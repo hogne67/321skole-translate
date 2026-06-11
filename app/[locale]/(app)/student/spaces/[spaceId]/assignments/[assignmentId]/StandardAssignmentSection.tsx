@@ -9,21 +9,23 @@ import type {
     SentenceSeg,
     Task,
     TranslatedTask,
+    TranslatingState,
     TtsLang,
 } from "./types";
+import type { LessonTextSection, LessonTextSectionKey } from "./lessonTextSections";
 
 type Props = {
     lessonLanguage?: string;
     sourceTextSafe: string;
     translatedText: string | null;
+    lessonTextSections: LessonTextSection[];
+    translatedSectionMap: Map<string, string>;
 
     originalSegs: SentenceSeg[];
     translationSegs: SentenceSeg[];
+    activeTextSectionKey: LessonTextSectionKey | null;
 
-    targetLang: string;
-    onTargetLangChange: (v: string) => void;
-
-    translating: null | "text" | "tasks";
+    translating: TranslatingState;
 
     ttsBusy: null | "original" | "translation";
     ttsErr: string | null;
@@ -44,8 +46,16 @@ type Props = {
     t: (key: string, values?: Record<string, unknown>) => string;
 
     onTranslateText: () => void;
+    onTranslateSection: (key: string, text: string) => void;
 
     onPlayTTS: (
+        text: string,
+        lang: TtsLang,
+        mode: "original" | "translation"
+    ) => Promise<void>;
+
+    onPlaySectionTTS: (
+        key: LessonTextSectionKey,
         text: string,
         lang: TtsLang,
         mode: "original" | "translation"
@@ -81,7 +91,7 @@ type Props = {
 
     onAnswer: (taskId: string, value: unknown) => void;
 
-    onTranslateTasks: () => void;
+    onTranslateTask: (task: Task, idx: number) => void;
 
     showTaskTranslations: boolean;
 
@@ -92,10 +102,11 @@ export default function StandardAssignmentSection({
     lessonLanguage,
     sourceTextSafe,
     translatedText,
+    lessonTextSections,
+    translatedSectionMap,
     originalSegs,
     translationSegs,
-    targetLang,
-    onTargetLangChange,
+    activeTextSectionKey,
     translating,
     ttsBusy,
     ttsErr,
@@ -109,7 +120,9 @@ export default function StandardAssignmentSection({
     autoGrade,
     t,
     onTranslateText,
+    onTranslateSection,
     onPlayTTS,
+    onPlaySectionTTS,
     onSeekSentence,
     tasksOriginal,
     answers,
@@ -121,7 +134,7 @@ export default function StandardAssignmentSection({
     isTrueSelected,
     onToggleTranslation,
     onAnswer,
-    onTranslateTasks,
+    onTranslateTask,
     showTaskTranslations,
     onToggleTaskTranslations,
 }: Props) {
@@ -131,10 +144,11 @@ export default function StandardAssignmentSection({
                 <StudentAssignmentTextSection
                     sourceTextSafe={sourceTextSafe}
                     translatedText={translatedText}
+                    lessonTextSections={lessonTextSections}
+                    translatedSectionMap={translatedSectionMap}
                     originalSegs={originalSegs}
                     translationSegs={translationSegs}
-                    targetLang={targetLang}
-                    onTargetLangChange={onTargetLangChange}
+                    activeTextSectionKey={activeTextSectionKey}
                     translating={translating}
                     ttsBusy={ttsBusy}
                     ttsErr={ttsErr}
@@ -147,21 +161,19 @@ export default function StandardAssignmentSection({
                     translationLangForTTS={translationLangForTTS}
                     t={t}
                     onTranslateText={onTranslateText}
+                    onTranslateSection={onTranslateSection}
                     onPlayTTS={onPlayTTS}
+                    onPlaySectionTTS={onPlaySectionTTS}
                     onSeekSentence={onSeekSentence}
                 />
             ) : null}
 
             <section>
                 <AssignmentTasksHeader
-                    targetLang={targetLang}
-                    translating={translating}
                     tasksCount={tasksOriginal.length}
                     hasTranslatedTasks={translatedTasksMap.size > 0}
                     showTaskTranslations={showTaskTranslations}
                     t={t}
-                    onTargetLangChange={onTargetLangChange}
-                    onTranslateTasks={onTranslateTasks}
                     onToggleTranslations={onToggleTaskTranslations}
                 />
 
@@ -195,6 +207,11 @@ export default function StandardAssignmentSection({
                                     isTrueSelected={isTrueSelected}
                                     onToggleTranslation={onToggleTranslation}
                                     onAnswer={onAnswer}
+                                    translating={translating}
+                                    ttsBusy={ttsBusy}
+                                    onTranslateTask={() => onTranslateTask(task, idx)}
+                                    onPlayOriginal={(text) => onPlayTTS(text, originalLangForTTS, "original")}
+                                    onPlayTranslation={(text) => onPlayTTS(text, translationLangForTTS, "translation")}
                                 />
                             );
                         })

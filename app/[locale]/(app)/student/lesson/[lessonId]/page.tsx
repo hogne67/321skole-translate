@@ -62,6 +62,11 @@ type TranslatedTask = {
   translatedOptions?: string[];
 };
 
+type TranslatedSection = {
+  key: LessonTextSectionKey;
+  translatedText: string;
+};
+
 type SubmissionDoc = {
   uid?: string;
   lessonId?: string;
@@ -143,6 +148,25 @@ type AudioMode =
   | "feedback_original"
   | "feedback_translation";
 
+type LessonTextSectionKey =
+  | "text"
+  | "focus"
+  | "words"
+  | "sentences"
+  | "highfreq_text_1"
+  | "highfreq_text_2"
+  | "highfreq_text_3"
+  | "highfreq_text_4"
+  | "highfreq_text_5"
+  | "highfreq_explanation"
+  | "highfreq_examples";
+
+type LessonTextSection = {
+  key: LessonTextSectionKey;
+  title: string;
+  text: string;
+};
+
 type TtsLang = "no" | "en" | "pt-BR";
 
 type ReadingProgress = {
@@ -180,6 +204,200 @@ function readStringField(obj: unknown, key: string): string | null {
   const rec = obj as Record<string, unknown>;
   const v = rec[key];
   return typeof v === "string" ? v : null;
+}
+
+function normalizeHeading(value: string) {
+  return value
+    .trim()
+    .replace(/[:：]+$/g, "")
+    .toLocaleLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+const SOUND_TRAINING_HEADING_KEYS: Record<string, "focus" | "words" | "sentences"> = {
+  forklaring: "focus",
+  explanation: "focus",
+  explicacao: "focus",
+  "ord og lydtrening": "words",
+  "words and sound training": "words",
+  "palavras e treino de som": "words",
+  "setninger med lyden": "sentences",
+  "sentences with the sound": "sentences",
+  "frases com o som": "sentences",
+};
+
+function getSoundTrainingTitles(language?: string): Record<"text" | "focus" | "words" | "sentences", string> {
+  const lang = String(language || "").trim().toLocaleLowerCase();
+
+  if (lang === "en") {
+    return {
+      text: "Text",
+      focus: "Today we work with the sound",
+      words: "Words",
+      sentences: "Sentences",
+    };
+  }
+
+  if (lang === "pt" || lang === "pt-br") {
+    return {
+      text: "Texto",
+      focus: "Hoje trabalhamos com o som",
+      words: "Palavras",
+      sentences: "Frases",
+    };
+  }
+
+  return {
+    text: "Tekst",
+    focus: "I dag jobber vi med lyden",
+    words: "Ord",
+    sentences: "Setninger",
+  };
+}
+
+function splitSoundTrainingSections(text: string, language?: string): LessonTextSection[] {
+  const clean = text.trim();
+  if (!clean) return [];
+
+  const titles = getSoundTrainingTitles(language);
+  const sections: LessonTextSection[] = [];
+  let current: LessonTextSection = {
+    key: "text",
+    title: titles.text,
+    text: "",
+  };
+
+  for (const rawLine of clean.split(/\r?\n/g)) {
+    const line = rawLine.trim();
+    const headingKey = SOUND_TRAINING_HEADING_KEYS[normalizeHeading(line)];
+
+    if (headingKey) {
+      if (current.text.trim()) {
+        sections.push({ ...current, text: current.text.trim() });
+      }
+      current = {
+        key: headingKey,
+        title: titles[headingKey],
+        text: "",
+      };
+      continue;
+    }
+
+    current.text = current.text ? `${current.text}\n${rawLine}` : rawLine;
+  }
+
+  if (current.text.trim()) {
+    sections.push({ ...current, text: current.text.trim() });
+  }
+
+  return sections.some((section) => section.key !== "text") ? sections : [];
+}
+
+const HIGH_FREQUENCY_HEADING_KEYS: Record<string, "highfreq_explanation" | "highfreq_examples"> = {
+  forklaring: "highfreq_explanation",
+  explanation: "highfreq_explanation",
+  explicacao: "highfreq_explanation",
+  eksempelsetninger: "highfreq_examples",
+  "example sentences": "highfreq_examples",
+  "frases de exemplo": "highfreq_examples",
+};
+
+function getHighFrequencyTitles(language?: string) {
+  const lang = String(language || "").trim().toLocaleLowerCase();
+  if (lang === "en") {
+    return {
+      text: "Text",
+      explanation: "Explanation",
+      examples: "Example sentences",
+    };
+  }
+  if (lang === "pt" || lang === "pt-br") {
+    return {
+      text: "Texto",
+      explanation: "Explicação",
+      examples: "Frases de exemplo",
+    };
+  }
+  return {
+    text: "Tekst",
+    explanation: "Forklaring",
+    examples: "Eksempelsetninger",
+  };
+}
+
+function highFrequencyTextKey(index: number): LessonTextSectionKey {
+  return `highfreq_text_${Math.min(Math.max(index, 1), 5)}` as LessonTextSectionKey;
+}
+
+function splitHighFrequencySections(text: string, language?: string): LessonTextSection[] {
+  const clean = text.trim();
+  if (!clean) return [];
+
+  const titles = getHighFrequencyTitles(language);
+  const sections: LessonTextSection[] = [];
+  let current: LessonTextSection = {
+    key: "highfreq_text_1",
+    title: titles.text,
+    text: "",
+  };
+
+  for (const rawLine of clean.split(/\r?\n/g)) {
+    const line = rawLine.trim();
+    const headingKey = HIGH_FREQUENCY_HEADING_KEYS[normalizeHeading(line)];
+
+    if (headingKey) {
+      if (current.text.trim()) {
+        sections.push({ ...current, text: current.text.trim() });
+      }
+      current = {
+        key: headingKey,
+        title: headingKey === "highfreq_explanation" ? titles.explanation : titles.examples,
+        text: "",
+      };
+      continue;
+    }
+
+    current.text = current.text ? `${current.text}\n${rawLine}` : rawLine;
+  }
+
+  if (current.text.trim()) {
+    sections.push({ ...current, text: current.text.trim() });
+  }
+
+  if (!sections.some((section) => section.key === "highfreq_explanation" || section.key === "highfreq_examples")) {
+    return [];
+  }
+
+  const mainSections: LessonTextSection[] = [];
+  const restSections: LessonTextSection[] = [];
+  for (const section of sections) {
+    if (section.key !== "highfreq_text_1") {
+      restSections.push(section);
+      continue;
+    }
+
+    const parts = section.text
+      .split(/\n\s*\n/g)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+
+    if (parts.length <= 1) {
+      mainSections.push(section);
+      continue;
+    }
+
+    parts.forEach((part, index) => {
+      mainSections.push({
+        key: highFrequencyTextKey(index + 1),
+        title: `${titles.text} ${index + 1}`,
+        text: part,
+      });
+    });
+  }
+
+  return [...mainSections, ...restSections];
 }
 
 function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
@@ -676,8 +894,9 @@ export default function StudentLessonPage() {
   const [targetLang, setTargetLang] = useState("no");
   const [translatedText, setTranslatedText] = useState<string | null>(null);
   const [translatedTasks, setTranslatedTasks] = useState<TranslatedTask[] | null>(null);
+  const [translatedSections, setTranslatedSections] = useState<TranslatedSection[] | null>(null);
 
-  const [translating, setTranslating] = useState<null | "text" | "tasks">(null);
+  const [translating, setTranslating] = useState<null | "text" | `section:${string}` | `task:${string}`>(null);
 
   const [showTextTranslation, setShowTextTranslation] = useState(true);
   const [showTaskTranslations, setShowTaskTranslations] = useState(true);
@@ -730,6 +949,7 @@ export default function StudentLessonPage() {
 
   const [activeTextMode, setActiveTextMode] = useState<AudioMode | null>(null);
   const [activeSentenceIndex, setActiveSentenceIndex] = useState<number | null>(null);
+  const [activeSoundSectionKey, setActiveSoundSectionKey] = useState<LessonTextSectionKey | null>(null);
 
   const sourceTextSafe = useMemo(() => {
     const txt = (lesson?.sourceText ?? lesson?.text ?? "").toString();
@@ -747,6 +967,35 @@ export default function StudentLessonPage() {
   );
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest ? "" : sourceTextSafe;
+
+  const soundTrainingSections = useMemo(() => {
+    return splitSoundTrainingSections(displayedSourceTextSafe, lesson?.language);
+  }, [displayedSourceTextSafe, lesson?.language]);
+
+  const showSoundTrainingSections = soundTrainingSections.some(
+    (section) => section.key === "words" || section.key === "sentences"
+  );
+
+  const highFrequencySections = useMemo(() => {
+    return showSoundTrainingSections
+      ? []
+      : splitHighFrequencySections(displayedSourceTextSafe, lesson?.language);
+  }, [displayedSourceTextSafe, lesson?.language, showSoundTrainingSections]);
+
+  const lessonTextSections = showSoundTrainingSections ? soundTrainingSections : highFrequencySections;
+  const showLessonTextSections = lessonTextSections.length >= 2;
+
+  const translatedSectionMap = useMemo(() => {
+    const map = new Map<LessonTextSectionKey, string>();
+    (translatedSections ?? []).forEach((section) => map.set(section.key, section.translatedText));
+    return map;
+  }, [translatedSections]);
+
+  const activeSoundSectionSegs = useMemo(() => {
+    if (!activeSoundSectionKey) return null;
+    const section = lessonTextSections.find((item) => item.key === activeSoundSectionKey);
+    return section ? segmentSentences(section.text).segs : null;
+  }, [activeSoundSectionKey, lessonTextSections]);
 
   const readingTestConfig = useMemo(
     () => safeReadingConfig(lesson?.readingTestConfig),
@@ -807,6 +1056,7 @@ export default function StudentLessonPage() {
     }
     setActiveSentenceIndex(null);
     setActiveTextMode(null);
+    setActiveSoundSectionKey(null);
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
@@ -928,6 +1178,16 @@ export default function StudentLessonPage() {
     if (!requireAudioLogin("text_original")) return;
     const txt = (displayedSourceTextSafe || "").trim();
     if (!txt) return;
+    setActiveSoundSectionKey(null);
+    await playTTS(txt, originalLangForTTS, "text_original");
+  }
+
+  async function playSoundTrainingSectionAudio(section: LessonTextSection) {
+    const mode = `text_original:${section.key}`;
+    if (!requireAudioLogin(mode)) return;
+    const txt = section.text.trim();
+    if (!txt) return;
+    setActiveSoundSectionKey(section.key);
     await playTTS(txt, originalLangForTTS, "text_original");
   }
 
@@ -970,7 +1230,7 @@ export default function StudentLessonPage() {
     if (!requireAudioLogin("feedback_original")) return;
     const txt = (feedback || "").trim();
     if (!txt) return;
-    await playTTS(txt, toTtsLang(targetLang || lesson?.language || "no"), "feedback_original");
+    await playTTS(txt, originalLangForTTS, "feedback_original");
   }
 
   async function playTranslatedFeedbackAudio() {
@@ -1030,7 +1290,7 @@ export default function StudentLessonPage() {
 
       const segs = activeTextMode === "text_translation"
         ? textFollow.translation.segs
-        : textFollow.original.segs;
+        : activeSoundSectionSegs ?? textFollow.original.segs;
 
       if (!segs || segs.length === 0) return;
 
@@ -1042,7 +1302,7 @@ export default function StudentLessonPage() {
 
     a.addEventListener("timeupdate", onTime);
     return () => a.removeEventListener("timeupdate", onTime);
-  }, [activeTextMode, textFollow.original.segs, textFollow.translation.segs]);
+  }, [activeSoundSectionSegs, activeTextMode, textFollow.original.segs, textFollow.translation.segs]);
 
   function seekToSentence(mode: AudioMode, idx: number) {
     const a = audioRef.current;
@@ -1052,7 +1312,7 @@ export default function StudentLessonPage() {
       mode === "text_translation"
         ? textFollow.translation.segs
         : mode === "text_original"
-          ? textFollow.original.segs
+          ? activeSoundSectionSegs ?? textFollow.original.segs
           : [];
 
     if (!segs || !segs[idx]) return;
@@ -1076,7 +1336,7 @@ export default function StudentLessonPage() {
     const segs =
       activeTextMode === "text_translation"
         ? textFollow.translation.segs
-        : textFollow.original.segs;
+        : activeSoundSectionSegs ?? textFollow.original.segs;
 
     if (!segs.length) return;
 
@@ -1092,7 +1352,7 @@ export default function StudentLessonPage() {
     const segs =
       activeTextMode === "text_translation"
         ? textFollow.translation.segs
-        : textFollow.original.segs;
+        : activeSoundSectionSegs ?? textFollow.original.segs;
 
     if (!segs.length) return;
 
@@ -1570,59 +1830,68 @@ export default function StudentLessonPage() {
     }
   }
 
-  async function onTranslateTasks() {
-    if (!lesson) return;
-    const tasksArr = safeTasksArray(lesson.tasks);
-    if (tasksArr.length === 0) return;
+  async function onTranslateSection(section: LessonTextSection) {
+    const text = section.text.trim();
+    if (!text) return;
 
-    setTranslating("tasks");
+    setTranslating(`section:${section.key}`);
 
     try {
-      const sorted = tasksArr.slice().sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
-      const out: TranslatedTask[] = [];
+      const out = await translateOne(text, targetLang);
+      setTranslatedSections((current) => {
+        const rest = (current ?? []).filter((item) => item.key !== section.key);
+        return [...rest, { key: section.key, translatedText: out }];
+      });
+    } catch (e: unknown) {
+      console.error("Translate section error:", e);
+    } finally {
+      setTranslating(null);
+    }
+  }
 
-      for (let i = 0; i < sorted.length; i++) {
-        const tt = sorted[i];
-        const stableId = getStableTaskId(tt, i);
+  async function onTranslateTask(tt: Task, idx: number) {
+    const stableId = getStableTaskId(tt, idx);
+    const promptOrig = typeof tt?.prompt === "string" ? tt.prompt : "";
+    const optionsOrig = Array.isArray(tt?.options) ? tt.options : [];
 
-        const promptOrig = typeof tt?.prompt === "string" ? tt.prompt : "";
-        const optionsOrig = Array.isArray(tt?.options) ? tt.options : [];
+    if (!promptOrig.trim() && optionsOrig.length === 0) return;
 
-        let translatedPrompt = "";
-        if (promptOrig) {
-          try {
-            translatedPrompt = await translateOne(promptOrig, targetLang);
-          } catch (e: unknown) {
-            console.error("Translate task prompt error:", e);
-          }
-        }
+    setTranslating(`task:${stableId}`);
 
-        let translatedOptions: string[] = [];
-
-        if (optionsOrig.length > 0) {
-          translatedOptions = await Promise.all(
-            optionsOrig.map(async (o) => {
-              try {
-                return await translateOne(String(o), targetLang);
-              } catch {
-                return "";
-              }
-            })
-          );
-        }
-
-        out.push({
-          stableId,
-          translatedPrompt: translatedPrompt || undefined,
-          translatedOptions: translatedOptions.length > 0 ? translatedOptions : undefined,
-        });
+    try {
+      let translatedPrompt = "";
+      if (promptOrig.trim()) {
+        translatedPrompt = await translateOne(promptOrig, targetLang);
       }
 
-      setTranslatedTasks(out);
+      let translatedOptions: string[] = [];
+      if (optionsOrig.length > 0) {
+        translatedOptions = await Promise.all(
+          optionsOrig.map(async (option) => {
+            try {
+              return await translateOne(String(option), targetLang);
+            } catch {
+              return "";
+            }
+          })
+        );
+      }
+
+      setTranslatedTasks((current) => {
+        const rest = (current ?? []).filter((item) => item.stableId !== stableId);
+        return [
+          ...rest,
+          {
+            stableId,
+            translatedPrompt: translatedPrompt || undefined,
+            translatedOptions: translatedOptions.length > 0 ? translatedOptions : undefined,
+          },
+        ];
+      });
       setShowTaskTranslations(true);
-      setTaskTranslationOpen({});
+      setTaskTranslationOpen((current) => ({ ...current, [stableId]: true }));
     } catch (e: unknown) {
-      console.error("Translate error:", e);
+      console.error("Translate task error:", e);
     } finally {
       setTranslating(null);
     }
@@ -1718,6 +1987,48 @@ export default function StudentLessonPage() {
                 fontWeight: isSectionHeading ? 800 : 400,
               }}
               title={canSeek ? t("text.clickToSeek") : undefined}
+            >
+              {s.text}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderSoundTrainingText = (section: LessonTextSection) => {
+    const segs = segmentSentences(section.text).segs;
+    if (segs.length === 0) {
+      return <div style={soundTrainingTextStyle}>{section.text}</div>;
+    }
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {segs.map((s, i) => {
+          const isActive =
+            activeTextMode === "text_original" &&
+            activeSoundSectionKey === section.key &&
+            activeSentenceIndex === i;
+
+          return (
+            <span
+              key={`${section.key}_${i}_${s.startChar}`}
+              onClick={() =>
+                activeSoundSectionKey === section.key && audioRef.current
+                  ? seekToSentence("text_original", i)
+                  : undefined
+              }
+              style={{
+                cursor: activeSoundSectionKey === section.key && audioRef.current ? "pointer" : "default",
+                padding: "3px 8px",
+                borderRadius: 8,
+                background: isActive ? "rgba(255, 230, 120, 0.65)" : "transparent",
+                transition: "background 120ms ease",
+                lineHeight: 1.65,
+                fontSize: 17,
+                color: "#0f172a",
+              }}
+              title={activeSoundSectionKey === section.key && audioRef.current ? t("text.clickToSeek") : undefined}
             >
               {s.text}
             </span>
@@ -1833,7 +2144,20 @@ export default function StudentLessonPage() {
       </section>
       ) : null}
 
-      <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {!isReadingTest ? (
+          <div style={translateToolStyle}>
+            <SearchableSelect
+              label={t("translate.languageLabel")}
+              value={targetLang}
+              options={LANGUAGE_OPTIONS}
+              onChange={setTargetLang}
+              placeholder={t("translate.searchPlaceholder")}
+              buttonWidth={220}
+            />
+          </div>
+        ) : <span />}
+
         {isReadingTest ? (
           <button
             type="button"
@@ -1897,29 +2221,20 @@ export default function StudentLessonPage() {
         >
           <h2 style={sectionHeadingStyle}>{t("text.title")}</h2>
 
-          <div style={textToolsStyle}>
-            <div>
-              <button
-                type="button"
-                onClick={playOriginalTextAudio}
-                disabled={ttsBusy !== null || !(displayedSourceTextSafe || "").trim()}
-                style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
-                title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
-              >
-                {t("text.playAudio")}
-              </button>
-              {renderAudioLoginNotice("text_original")}
-            </div>
-
-            <div style={translateToolStyle}>
-              <SearchableSelect
-                label=""
-                value={targetLang}
-                options={LANGUAGE_OPTIONS}
-                onChange={setTargetLang}
-                placeholder={t("translate.searchPlaceholder")}
-                buttonWidth={132}
-              />
+          {!showLessonTextSections ? (
+            <div style={textToolsStyle}>
+              <div>
+                <button
+                  type="button"
+                  onClick={playOriginalTextAudio}
+                  disabled={ttsBusy !== null || !(displayedSourceTextSafe || "").trim()}
+                  style={{ ...greenBtnStyle, opacity: ttsBusy !== null ? 0.6 : 1, fontWeight: 600 }}
+                  title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
+                >
+                  {t("text.playAudio")}
+                </button>
+                {renderAudioLoginNotice("text_original")}
+              </div>
 
               <button
                 type="button"
@@ -1931,12 +2246,63 @@ export default function StudentLessonPage() {
                 {translating === "text" ? t("translate.translating") : t("translate.compactAction")}
               </button>
             </div>
-          </div>
+          ) : null}
         </div>
 
-        <div style={cardStyle}>
-          {renderFollowText("text_original", originalSegs, (displayedSourceTextSafe ?? "").trim())}
-        </div>
+        {showLessonTextSections ? (
+          <div style={soundTrainingGridStyle}>
+            {lessonTextSections.map((section) => (
+              <div key={section.key} style={soundTrainingCardStyle}>
+                <div style={soundTrainingHeaderStyle}>
+                  <h3 style={soundTrainingTitleStyle}>{section.title}</h3>
+                  <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <button
+                      type="button"
+                      onClick={() => playSoundTrainingSectionAudio(section)}
+                      disabled={ttsBusy !== null || !section.text.trim()}
+                      style={{
+                        ...audioIconBtnStyle,
+                        opacity: ttsBusy !== null || !section.text.trim() ? 0.6 : 1,
+                      }}
+                      title={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
+                      aria-label={isAnon ? t("text.loginToPlayAudio") : t("text.playOriginal")}
+                    >
+                      <Volume2 size={16} strokeWidth={2.4} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onTranslateSection(section)}
+                      disabled={translating === `section:${section.key}` || !section.text.trim()}
+                      style={{
+                        ...compactBlueBtnStyle,
+                        opacity: translating === `section:${section.key}` || !section.text.trim() ? 0.6 : 1,
+                      }}
+                      title={t("translate.translateText")}
+                    >
+                      {translating === `section:${section.key}` ? t("translate.translating") : t("translate.compactAction")}
+                    </button>
+                    {renderAudioLoginNotice(`text_original:${section.key}`)}
+                  </div>
+                </div>
+
+                {renderSoundTrainingText(section)}
+
+                {translatedSectionMap.get(section.key) ? (
+                  <div style={soundTrainingTranslationStyle}>
+                    <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translate.translatedLabel")}</div>
+                    <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>
+                      {translatedSectionMap.get(section.key)}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={cardStyle}>
+            {renderFollowText("text_original", originalSegs, (displayedSourceTextSafe ?? "").trim())}
+          </div>
+        )}
       </section>
       ) : null}
 
@@ -2025,37 +2391,6 @@ export default function StudentLessonPage() {
           </div>
         </div>
 
-        <div style={{ ...cardStyle, marginTop: 10, paddingTop: 12, paddingBottom: 12 }}>
-          <div style={textToolsStyle}>
-            <div style={translateToolStyle}>
-              <SearchableSelect
-                label=""
-                value={targetLang}
-                options={LANGUAGE_OPTIONS}
-                onChange={setTargetLang}
-                placeholder={t("translate.searchPlaceholder")}
-                buttonWidth={132}
-              />
-
-              <button
-                type="button"
-                onClick={onTranslateTasks}
-                disabled={translating === "tasks" || tasksOriginal.length === 0}
-                style={{ ...compactBlueBtnStyle, opacity: translating === "tasks" ? 0.6 : 1 }}
-                title={t("translate.translateTasks")}
-              >
-                {translating === "tasks" ? t("translate.translating") : t("translate.compactAction")}
-              </button>
-            </div>
-
-            {(translatedTasks ?? []).length > 0 ? (
-              <button type="button" style={blueBtnStyle} onClick={() => setShowTaskTranslations((v) => !v)}>
-                {showTaskTranslations ? t("tasks.hideAllTranslations") : t("tasks.showAllTranslations")}
-              </button>
-            ) : null}
-          </div>
-        </div>
-
         {tasksOriginal.length === 0 ? (
           <p style={{ opacity: 0.7, marginTop: 8 }}>{t("tasks.noTasks")}</p>
         ) : (
@@ -2072,6 +2407,7 @@ export default function StudentLessonPage() {
               const successCriteria = toCleanStringList(tt?.successCriteria);
               const showSupportWords = isSupportWordsVisible(stableId);
               const showSuccessCriteria = isSuccessCriteriaVisible(stableId);
+              const canTranslateTask = prompt.trim() || options.length > 0;
 
               const hasThisTranslation =
                 !!tr?.translatedPrompt || (tr?.translatedOptions?.length ?? 0) > 0;
@@ -2152,6 +2488,19 @@ export default function StudentLessonPage() {
                         </button>
                         {renderAudioLoginNotice(`task:${stableId}`)}
                       </div>
+
+                      <button
+                        type="button"
+                        style={{
+                          ...compactBlueBtnStyle,
+                          opacity: translating === `task:${stableId}` || !canTranslateTask ? 0.6 : 1,
+                        }}
+                        onClick={() => onTranslateTask(tt, idx)}
+                        disabled={translating === `task:${stableId}` || !canTranslateTask}
+                        title={t("translate.translateTasks")}
+                      >
+                        {translating === `task:${stableId}` ? t("translate.translating") : t("translate.compactAction")}
+                      </button>
 
                       {hasThisTranslation ? (
                         <button type="button" style={blueBtnStyle} onClick={() => toggleTaskTranslation(stableId)}>
@@ -2490,29 +2839,6 @@ export default function StudentLessonPage() {
                   : t("feedback.getFeedback")}
           </button>
 
-          <div style={translateToolStyle}>
-            <SearchableSelect
-              label=""
-              value={targetLang}
-              options={LANGUAGE_OPTIONS}
-              onChange={setTargetLang}
-              placeholder={t("translate.searchPlaceholder")}
-              buttonWidth={132}
-            />
-
-            <button
-              onClick={onTranslateFeedback}
-              disabled={feedbackTranslating || !(feedback || "").trim()}
-              style={{
-                ...compactBlueBtnStyle,
-                opacity: feedbackTranslating || !(feedback || "").trim() ? 0.6 : 1,
-              }}
-              title={t("feedback.translateFeedback")}
-            >
-              {feedbackTranslating ? t("feedback.translating") : t("translate.compactAction")}
-            </button>
-          </div>
-
           <div>
             <button
               type="button"
@@ -2529,6 +2855,19 @@ export default function StudentLessonPage() {
             </button>
             {renderAudioLoginNotice("feedback_original")}
           </div>
+
+          <button
+            type="button"
+            onClick={onTranslateFeedback}
+            disabled={feedbackTranslating || !(feedback || "").trim()}
+            style={{
+              ...compactBlueBtnStyle,
+              opacity: feedbackTranslating || !(feedback || "").trim() ? 0.6 : 1,
+            }}
+            title={t("feedback.translateFeedback")}
+          >
+            {feedbackTranslating ? t("feedback.translating") : t("translate.compactAction")}
+          </button>
         </div>
 
         {feedbackTranslateErr ? (
@@ -2748,6 +3087,47 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
 };
 
+const soundTrainingGridStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 12,
+};
+
+const soundTrainingCardStyle: React.CSSProperties = {
+  ...cardStyle,
+  background: "rgba(255,255,255,0.96)",
+};
+
+const soundTrainingHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 10,
+  marginBottom: 8,
+};
+
+const soundTrainingTitleStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 18,
+  lineHeight: 1.18,
+  fontWeight: 900,
+  color: "#0f172a",
+};
+
+const soundTrainingTextStyle: React.CSSProperties = {
+  whiteSpace: "pre-wrap",
+  lineHeight: 1.65,
+  fontSize: 17,
+  color: "#0f172a",
+};
+
+const soundTrainingTranslationStyle: React.CSSProperties = {
+  marginTop: 10,
+  padding: 10,
+  borderRadius: 12,
+  border: "1px solid rgba(59,130,246,0.22)",
+  background: "rgba(59,130,246,0.08)",
+};
+
 const textToolsStyle: React.CSSProperties = {
   display: "flex",
   gap: 8,
@@ -2758,14 +3138,14 @@ const textToolsStyle: React.CSSProperties = {
 
 const translateToolStyle: React.CSSProperties = {
   display: "flex",
-  gap: 4,
+  gap: 6,
   flexWrap: "nowrap",
   alignItems: "flex-start",
   maxWidth: "100%",
-  padding: 3,
+  padding: 8,
   border: "1px solid rgba(37,99,235,0.16)",
-  borderRadius: 13,
-  background: "rgba(255,255,255,0.72)",
+  borderRadius: 14,
+  background: "rgba(239,246,255,0.82)",
 };
 
 const audioIconBtnStyle: React.CSSProperties = {

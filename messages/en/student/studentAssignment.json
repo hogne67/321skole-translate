@@ -75,8 +75,9 @@
     "translate": {
       "title": "Translation",
       "to": "Translate to",
+      "languageLabel": "Choose translation language",
       "searchPlaceholder": "Search language…",
-      "text": "Translate text",
+      "text": "Translate",
       "tasks": "Translate tasks",
       "translating": "Translating…",
       "reset": "Reset translation",

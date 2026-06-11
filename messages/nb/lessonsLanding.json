@@ -25,6 +25,7 @@
     },
     "translate": {
       "label": "Oversett til",
+      "languageLabel": "Velg oversettelsespråk",
       "searchPlaceholder": "Søk etter språk…",
       "translateText": "Oversett tekst",
       "translateTasks": "Oversett oppgaver",

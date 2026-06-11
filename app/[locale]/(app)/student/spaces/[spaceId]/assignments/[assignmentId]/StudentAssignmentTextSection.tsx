@@ -1,28 +1,23 @@
 "use client";
 
-import { SearchableSelect } from "@/components/SearchableSelect";
-import { LANGUAGES } from "@/lib/languages";
 import FollowTextView from "./FollowTextView";
-import type { SentenceSeg, TtsLang } from "./types";
+import type { SentenceSeg, TranslatingState, TtsLang } from "./types";
 import { playButtonStyle, softBlueButtonStyle } from "./assignmentStyles";
-
-const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
-    value: l.code,
-    label: l.label,
-}));
+import { segmentSentences } from "./audioHelpers";
+import type { LessonTextSection, LessonTextSectionKey } from "./lessonTextSections";
 
 type TFn = (key: string, values?: Record<string, unknown>) => string;
 
 type Props = {
     sourceTextSafe: string;
     translatedText: string | null;
+    lessonTextSections: LessonTextSection[];
+    translatedSectionMap: Map<string, string>;
     originalSegs: SentenceSeg[];
     translationSegs: SentenceSeg[];
+    activeTextSectionKey: LessonTextSectionKey | null;
 
-    targetLang: string;
-    onTargetLangChange: (value: string) => void;
-
-    translating: null | "text" | "tasks";
+    translating: TranslatingState;
     ttsBusy: null | "original" | "translation";
     ttsErr: string | null;
 
@@ -39,7 +34,14 @@ type Props = {
     t: TFn;
 
     onTranslateText: () => void;
+    onTranslateSection: (key: string, text: string) => void;
     onPlayTTS: (
+        text: string,
+        lang: TtsLang,
+        mode: "original" | "translation"
+    ) => void;
+    onPlaySectionTTS: (
+        key: LessonTextSectionKey,
         text: string,
         lang: TtsLang,
         mode: "original" | "translation"
@@ -50,10 +52,11 @@ type Props = {
 export default function StudentAssignmentTextSection({
     sourceTextSafe,
     translatedText,
+    lessonTextSections,
+    translatedSectionMap,
     originalSegs,
     translationSegs,
-    targetLang,
-    onTargetLangChange,
+    activeTextSectionKey,
     translating,
     ttsBusy,
     ttsErr,
@@ -66,9 +69,13 @@ export default function StudentAssignmentTextSection({
     translationLangForTTS,
     t,
     onTranslateText,
+    onTranslateSection,
     onPlayTTS,
+    onPlaySectionTTS,
     onSeekSentence,
 }: Props) {
+    const showSectionCards = lessonTextSections.length >= 2;
+
     return (
         <section style={{ display: "grid", gap: 14 }}>
             <section>
@@ -84,6 +91,7 @@ export default function StudentAssignmentTextSection({
                 >
                     <h2 style={{ margin: 0, fontSize: 18 }}>{t("text.original")}</h2>
 
+                    {!showSectionCards ? (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         <button
                             type="button"
@@ -93,21 +101,11 @@ export default function StudentAssignmentTextSection({
                                 ...playButtonStyle,
                                 opacity: !sourceTextSafe.trim() || ttsBusy != null ? 0.7 : 1,
                             }}
+                            title={t("tts.playOriginal")}
+                            aria-label={t("tts.playOriginal")}
                         >
-                            {ttsBusy === "original" ? t("tts.working") : t("tts.playOriginal")}
+                            {ttsBusy === "original" ? "…" : "🔊"}
                         </button>
-
-                        <span style={{ opacity: 0.75 }}>{t("translate.targetLang")}</span>
-
-                        <div style={{ minWidth: 190 }}>
-                            <SearchableSelect
-                                label=""
-                                value={targetLang}
-                                options={LANGUAGE_OPTIONS}
-                                onChange={onTargetLangChange}
-                                placeholder={t("translate.targetLang")}
-                            />
-                        </div>
 
                         <button
                             type="button"
@@ -121,8 +119,99 @@ export default function StudentAssignmentTextSection({
                             {translating === "text" ? t("translate.working") : t("translate.text")}
                         </button>
                     </div>
+                    ) : null}
                 </div>
 
+                {showSectionCards ? (
+                    <div style={{ display: "grid", gap: 12 }}>
+                        {lessonTextSections.map((section) => {
+                            const translatedSection = translatedSectionMap.get(section.key) || "";
+                            const sectionSegs = segmentSentences(section.text).segs;
+                            const isSectionActive = activeTextSectionKey === section.key;
+
+                            return (
+                                <div
+                                    key={section.key}
+                                    style={{
+                                        border: "1px solid rgba(0,0,0,0.10)",
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        background: "white",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "flex-start",
+                                            gap: 10,
+                                            flexWrap: "wrap",
+                                            marginBottom: 8,
+                                        }}
+                                    >
+                                        <h3 style={{ margin: 0, fontSize: 17 }}>{section.title}</h3>
+                                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => onPlaySectionTTS(section.key, section.text, originalLangForTTS, "original")}
+                                                disabled={!section.text.trim() || ttsBusy != null}
+                                                style={{
+                                                    ...playButtonStyle,
+                                                    opacity: !section.text.trim() || ttsBusy != null ? 0.7 : 1,
+                                                }}
+                                                title={t("tts.playOriginal")}
+                                                aria-label={t("tts.playOriginal")}
+                                            >
+                                                {ttsBusy === "original" && isSectionActive ? "…" : "🔊"}
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => onTranslateSection(section.key, section.text)}
+                                                disabled={translating === `section:${section.key}` || !section.text.trim()}
+                                                style={{
+                                                    ...softBlueButtonStyle,
+                                                    opacity: translating === `section:${section.key}` ? 0.7 : 1,
+                                                }}
+                                            >
+                                                {translating === `section:${section.key}` ? t("translate.working") : t("translate.text")}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <FollowTextView
+                                        mode="original"
+                                        segs={sectionSegs}
+                                        fallbackText={section.text}
+                                        activeTextMode={isSectionActive ? activeTextMode : null}
+                                        activeSentenceIndex={activeSentenceIndex}
+                                        canSeek={hasAudio && activeTextMode === "original" && isSectionActive}
+                                        noTextLabel={t("text.noText")}
+                                        clickToSeekLabel={t("text.clickToSeek")}
+                                        onSeek={onSeekSentence}
+                                    />
+
+                                    {translatedSection ? (
+                                        <div
+                                            style={{
+                                                marginTop: 10,
+                                                border: "1px solid rgba(59,130,246,0.18)",
+                                                borderRadius: 12,
+                                                padding: 10,
+                                                background: "rgba(59,130,246,0.08)",
+                                            }}
+                                        >
+                                            <div style={{ fontSize: 12, opacity: 0.72, marginBottom: 6 }}>
+                                                {t("translate.translatedLabel")}
+                                            </div>
+                                            <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>{translatedSection}</div>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
                 <div
                     style={{
                         border: "1px solid rgba(0,0,0,0.10)",
@@ -143,9 +232,10 @@ export default function StudentAssignmentTextSection({
                         onSeek={onSeekSentence}
                     />
                 </div>
+                )}
             </section>
 
-            {translatedText ? (
+            {!showSectionCards && translatedText ? (
                 <section>
                     <div
                         style={{
@@ -173,10 +263,10 @@ export default function StudentAssignmentTextSection({
                                             ? 0.7
                                             : 1,
                                 }}
+                                title={t("tts.playTranslation")}
+                                aria-label={t("tts.playTranslation")}
                             >
-                                {ttsBusy === "translation"
-                                    ? t("tts.working")
-                                    : t("tts.playTranslation")}
+                                {ttsBusy === "translation" ? "…" : "🔊"}
                             </button>
 
                             <button

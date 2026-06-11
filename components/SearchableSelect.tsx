@@ -82,6 +82,19 @@ export function SearchableSelect({
   ref={wrapperRef}
   style={{ display: "grid", gap: 6, position: "relative", zIndex: open ? 9999 : "auto" }}
 >
+      {label ? (
+        <div
+          style={{
+            fontSize: 12,
+            lineHeight: 1.2,
+            fontWeight: 800,
+            color: "#1e3a8a",
+            padding: "2px 2px 0",
+          }}
+        >
+          {label}
+        </div>
+      ) : null}
 
       <button
         type="button"

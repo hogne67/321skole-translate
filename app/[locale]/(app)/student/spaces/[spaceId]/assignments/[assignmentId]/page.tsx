@@ -9,6 +9,8 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 
 import { db, auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
+import { LANGUAGES } from "@/lib/languages";
+import { SearchableSelect } from "@/components/SearchableSelect";
 
 import ReadingTestPlayer, {
   ReadingLessonTask,
@@ -29,7 +31,10 @@ import type {
   SourceType,
   SubmissionDoc,
   SubmissionStatus,
+  Task,
+  TranslatedSection,
   TranslatedTask,
+  TranslatingState,
   TtsLang,
 } from "./types";
 
@@ -42,7 +47,6 @@ import {
   isFinalSubmissionStatus,
   isPermissionDenied,
   normalizeStatus,
-  safeTasksArray,
   stripUndefinedDeep,
   toTtsLang,
 } from "./helpers";
@@ -61,6 +65,7 @@ import { normalizeGeometryAnswersByTaskId } from "./geometrySubmissionHelpers";
 import { isMathWorksheet } from "./worksheetTypeGuards";
 import { translateOne } from "./translationHelpers";
 import { segmentSentences } from "./audioHelpers";
+import { splitLessonTextSections, type LessonTextSectionKey } from "./lessonTextSections";
 
 import { SmartImage } from "./AssignmentUiAtoms";
 import StudentAssignmentStatusCard from "./StudentAssignmentStatusCard";
@@ -72,6 +77,12 @@ import StandardAssignmentSection from "./StandardAssignmentSection";
 import { getAssignmentDerivedState } from "./assignmentDerivedState";
 import { useAssignmentAudio } from "./useAssignmentAudio";
 import StudentAssignmentStickyActions from "./StudentAssignmentStickyActions";
+import { DraftButton } from "./AssignmentActionButtons";
+
+const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
+  value: l.code,
+  label: l.label,
+}));
 
 /* =========================
    Helpers
@@ -221,11 +232,13 @@ export default function StudentAssignmentPage() {
   >(null);
 
   const [translatedTasks, setTranslatedTasks] = useState<TranslatedTask[] | null>(null);
-  const [translating, setTranslating] = useState<null | "text" | "tasks">(null);
+  const [translatedSections, setTranslatedSections] = useState<TranslatedSection[] | null>(null);
+  const [translating, setTranslating] = useState<TranslatingState>(null);
   const [translateErr, setTranslateErr] = useState<string | null>(null);
   const [showTextTranslation, setShowTextTranslation] = useState(true);
   const [showTaskTranslations, setShowTaskTranslations] = useState(true);
   const [taskTranslationOpen, setTaskTranslationOpen] = useState<Record<string, boolean>>({});
+  const [activeTextSectionKey, setActiveTextSectionKey] = useState<LessonTextSectionKey | null>(null);
 
   const [playbackRate, setPlaybackRate] = useState(1.0);
 
@@ -259,6 +272,23 @@ export default function StudentAssignmentPage() {
   );
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest ? "" : sourceTextSafe;
+
+  const lessonTextSections = useMemo(
+    () => splitLessonTextSections(displayedSourceTextSafe, lesson?.language || assignment?.language),
+    [assignment?.language, displayedSourceTextSafe, lesson?.language]
+  );
+
+  const translatedSectionMap = useMemo(() => {
+    const map = new Map<string, string>();
+    (translatedSections ?? []).forEach((section) => map.set(section.key, section.translatedText));
+    return map;
+  }, [translatedSections]);
+
+  const activeSectionOriginalSegs = useMemo(() => {
+    if (!activeTextSectionKey) return null;
+    const section = lessonTextSections.find((item) => item.key === activeTextSectionKey);
+    return section ? segmentSentences(section.text).segs : null;
+  }, [activeTextSectionKey, lessonTextSections]);
 
   const imageUrl = useMemo(() => {
     const u = String(lesson?.coverImageUrl ?? "").trim();
@@ -299,7 +329,7 @@ export default function StudentAssignmentPage() {
   } = useAssignmentAudio({
     assignmentId,
     playbackRate,
-    originalSegs,
+    originalSegs: activeSectionOriginalSegs ?? originalSegs,
     translationSegs,
     t: tString,
   });
@@ -377,6 +407,27 @@ export default function StudentAssignmentPage() {
     }
   }
 
+  async function onTranslateSection(key: string, text: string) {
+    const base = text.trim();
+    if (!base) return;
+
+    setTranslateErr(null);
+    setTranslating(`section:${key}`);
+
+    try {
+      const out = await translateOne(base, targetLang);
+      setTranslatedSections((current) => {
+        const rest = (current ?? []).filter((section) => section.key !== key);
+        return [...rest, { key, translatedText: out }];
+      });
+    } catch (e: unknown) {
+      const m = (e as { message?: unknown })?.message;
+      setTranslateErr(typeof m === "string" ? m : t("translate.failed"));
+    } finally {
+      setTranslating(null);
+    }
+  }
+
   async function onTranslateTeacherFeedback() {
     const base = String(liveTeacherText ?? "").trim();
     if (!base) return;
@@ -422,60 +473,49 @@ export default function StudentAssignmentPage() {
     }
   }
 
-  async function onTranslateTasks() {
-    if (!lesson) return;
-    const tasksArr = safeTasksArray(lesson.tasks);
-    if (tasksArr.length === 0) return;
+  async function onTranslateTask(tt: Task, idx: number) {
+    const stableId = getStableTaskId(tt, idx);
+    const promptOrig = typeof tt?.prompt === "string" ? tt.prompt : "";
+    const optionsOrig = Array.isArray(tt?.options) ? tt.options : [];
+    if (!promptOrig.trim() && optionsOrig.length === 0) return;
 
     setTranslateErr(null);
-    setTranslating("tasks");
+    setTranslating(`task:${stableId}`);
 
     try {
-      const sorted = tasksArr.slice().sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
-      const out: TranslatedTask[] = [];
-
-      for (let i = 0; i < sorted.length; i++) {
-        const tt = sorted[i];
-        const stableId = getStableTaskId(tt, i);
-
-        const promptOrig = typeof tt?.prompt === "string" ? tt.prompt : "";
-        const optionsOrig = Array.isArray(tt?.options) ? tt.options : [];
-
-        let translatedPrompt = "";
-        if (promptOrig) {
-          try {
-            translatedPrompt = await translateOne(promptOrig, targetLang);
-          } catch (e: unknown) {
-            const m = (e as { message?: unknown })?.message;
-            setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : t("translate.failed")));
-          }
-        }
-
-        let translatedOptions: string[] = [];
-        if (optionsOrig.length > 0) {
-          translatedOptions = await Promise.all(
-            optionsOrig.map(async (o) => {
-              try {
-                return await translateOne(String(o), targetLang);
-              } catch (e: unknown) {
-                const m = (e as { message?: unknown })?.message;
-                setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : t("translate.failed")));
-                return "";
-              }
-            })
-          );
-        }
-
-        out.push({
-          stableId,
-          translatedPrompt: translatedPrompt || undefined,
-          translatedOptions: translatedOptions.length > 0 ? translatedOptions : undefined,
-        });
+      let translatedPrompt = "";
+      if (promptOrig.trim()) {
+        translatedPrompt = await translateOne(promptOrig, targetLang);
       }
 
-      setTranslatedTasks(out);
+      let translatedOptions: string[] = [];
+      if (optionsOrig.length > 0) {
+        translatedOptions = await Promise.all(
+          optionsOrig.map(async (option) => {
+            try {
+              return await translateOne(String(option), targetLang);
+            } catch (e: unknown) {
+              const m = (e as { message?: unknown })?.message;
+              setTranslateErr((prev) => prev ?? (typeof m === "string" ? m : t("translate.failed")));
+              return "";
+            }
+          })
+        );
+      }
+
+      setTranslatedTasks((current) => {
+        const rest = (current ?? []).filter((item) => item.stableId !== stableId);
+        return [
+          ...rest,
+          {
+            stableId,
+            translatedPrompt: translatedPrompt || undefined,
+            translatedOptions: translatedOptions.length > 0 ? translatedOptions : undefined,
+          },
+        ];
+      });
       setShowTaskTranslations(true);
-      setTaskTranslationOpen({});
+      setTaskTranslationOpen((current) => ({ ...current, [stableId]: true }));
     } catch (e: unknown) {
       const m = (e as { message?: unknown })?.message;
       setTranslateErr(typeof m === "string" ? m : t("translate.failed"));
@@ -1199,17 +1239,6 @@ export default function StudentAssignmentPage() {
       <AssignmentPageHeader
         mainTitle={isReadingTest ? "Lesetest" : mainTitle}
         metaLine={metaLine}
-        showDraftButton={showDraftButton}
-        showSubmitButton={showSubmitButton}
-        draftSaving={draftSaving}
-        submitting={submitting}
-        lock={lock}
-        uid={uid}
-        submitLabel={submitLabel}
-        submitDisabled={submitDisabled}
-        isReadingTest={isReadingTest}
-        onSaveDraft={() => saveDraft(true)}
-        onSubmit={() => submitToSpace("manual")}
       />
 
       {translateErr ? (
@@ -1220,8 +1249,10 @@ export default function StudentAssignmentPage() {
         <div
           style={{
             marginTop: 14,
+            width: "100%",
+            boxSizing: "border-box",
             aspectRatio: "16 / 9",
-            maxHeight: isImageWriting ? 520 : 340,
+            maxHeight: isImageWriting ? 520 : undefined,
             overflow: "hidden",
             borderRadius: 14,
             border: "1px solid rgba(0,0,0,0.10)",
@@ -1229,6 +1260,44 @@ export default function StudentAssignmentPage() {
           }}
         >
           <SmartImage src={imageUrl} alt={mainTitle || "Cover"} fit={isImageWriting ? "contain" : "cover"} />
+        </div>
+      ) : null}
+
+      {!isReadingTest ? (
+        <div
+          style={{
+            marginTop: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              padding: 8,
+              borderRadius: 14,
+              border: "1px solid rgba(37,99,235,0.16)",
+              background: "rgba(239,246,255,0.82)",
+            }}
+          >
+            <SearchableSelect
+              label={tString("translate.languageLabel")}
+              value={targetLang}
+              options={LANGUAGE_OPTIONS}
+              onChange={setTargetLang}
+              placeholder={tString("translate.searchPlaceholder")}
+              buttonWidth={220}
+            />
+          </div>
+
+          <DraftButton
+            show={showDraftButton}
+            disabled={draftSaving || submitting || lock || !uid}
+            saving={draftSaving}
+            onClick={() => saveDraft(true)}
+          />
         </div>
       ) : null}
 
@@ -1310,10 +1379,11 @@ export default function StudentAssignmentPage() {
             lessonLanguage={String(lesson?.language ?? assignment?.language ?? "")}
             sourceTextSafe={displayedSourceTextSafe}
             translatedText={translatedText}
+            lessonTextSections={lessonTextSections}
+            translatedSectionMap={translatedSectionMap}
             originalSegs={originalSegs}
             translationSegs={translationSegs}
-            targetLang={targetLang}
-            onTargetLangChange={setTargetLang}
+            activeTextSectionKey={activeTextSectionKey}
             translating={translating}
             ttsBusy={ttsBusy}
             ttsErr={ttsErr}
@@ -1326,7 +1396,15 @@ export default function StudentAssignmentPage() {
             translationLangForTTS={translationLangForTTS}
             t={tString}
             onTranslateText={onTranslateText}
-            onPlayTTS={playTTS}
+            onTranslateSection={onTranslateSection}
+            onPlayTTS={async (text, lang, mode) => {
+              setActiveTextSectionKey(null);
+              await playTTS(text, lang, mode);
+            }}
+            onPlaySectionTTS={async (key, text, lang, mode) => {
+              setActiveTextSectionKey(key);
+              await playTTS(text, lang, mode);
+            }}
             onSeekSentence={seekToSentence}
             tasksOriginal={tasksOriginal}
             answers={answers}
@@ -1339,7 +1417,7 @@ export default function StudentAssignmentPage() {
             isTrueSelected={isTrueSelected}
             onToggleTranslation={toggleTaskTranslation}
             onAnswer={setAnswer}
-            onTranslateTasks={onTranslateTasks}
+            onTranslateTask={onTranslateTask}
             showTaskTranslations={showTaskTranslations}
             onToggleTaskTranslations={() => setShowTaskTranslations((v) => !v)}
           />
@@ -1348,25 +1426,12 @@ export default function StudentAssignmentPage() {
 
       <AssignmentFooterActions
         msg={msg}
-        showDraftButton={showDraftButton}
-        showSubmitButton={showSubmitButton}
-        draftSaving={draftSaving}
-        submitting={submitting}
-        lock={lock}
-        uid={uid}
-        submitLabel={submitLabel}
-        submitDisabled={submitDisabled}
-        isReadingTest={isReadingTest}
         spaceId={spaceId}
         t={tString}
-        onSaveDraft={() => saveDraft(true)}
-        onSubmit={() => submitToSpace("manual")}
       />
 
       <StudentAssignmentStickyActions
-        showDraftButton={showDraftButton}
         showSubmitButton={showSubmitButton}
-        draftSaving={draftSaving}
         submitting={submitting}
         lock={lock}
         uid={uid}
@@ -1374,7 +1439,6 @@ export default function StudentAssignmentPage() {
         submitDisabled={submitDisabled}
         isReadingTest={isReadingTest}
         t={tString}
-        onSaveDraft={() => saveDraft(true)}
         onSubmit={() => submitToSpace("manual")}
       />
 

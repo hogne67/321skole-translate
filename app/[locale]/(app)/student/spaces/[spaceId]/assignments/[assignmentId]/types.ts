@@ -77,6 +77,17 @@ export type TranslatedTask = {
     translatedOptions?: string[];
 };
 
+export type TranslatedSection = {
+    key: string;
+    translatedText: string;
+};
+
+export type TranslatingState =
+    | null
+    | "text"
+    | `section:${string}`
+    | `task:${string}`;
+
 export type TtsLang = "no" | "en" | "pt-BR";
 
 export type SubmissionStatus =

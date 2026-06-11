@@ -25,6 +25,7 @@
     },
     "translate": {
       "label": "Traduzir para",
+      "languageLabel": "Escolha o idioma da tradução",
       "searchPlaceholder": "Pesquisar idioma…",
       "translateText": "Traduzir texto",
       "translateTasks": "Traduzir tarefas",

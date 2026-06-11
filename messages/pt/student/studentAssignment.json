@@ -75,8 +75,9 @@
     "translate": {
       "title": "tradução",
       "to": "Traduzir para",
+      "languageLabel": "Escolha o idioma da tradução",
       "searchPlaceholder": "Buscar idioma…",
-      "text": "Traduzir texto",
+      "text": "Traduzir",
       "tasks": "Traduzir tarefas",
       "translating": "Traduzindo…",
       "reset": "Redefinir tradução",

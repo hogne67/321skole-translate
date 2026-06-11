@@ -25,6 +25,7 @@
     },
     "translate": {
       "label": "Translate to",
+      "languageLabel": "Choose translation language",
       "searchPlaceholder": "Search language…",
       "translateText": "Translate text",
       "translateTasks": "Translate tasks",

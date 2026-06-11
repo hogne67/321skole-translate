@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AnswersMap, AutoGrade, Task, TranslatedTask } from "./types";
+import type { AnswersMap, AutoGrade, Task, TranslatedTask, TranslatingState } from "./types";
 import {
     blueButtonActiveStyle,
     softBlueButtonStyle,
@@ -16,11 +16,16 @@ type Props = {
     showTranslation: boolean;
     autoGrade: AutoGrade | null;
     locked: boolean;
+    translating: TranslatingState;
+    ttsBusy: null | "original" | "translation";
     t: (key: string, values?: Record<string, unknown>) => string;
     getMcqSelectedIndex: (stableId: string, options: unknown[]) => number | null;
     isTrueSelected: (stableId: string, v: boolean) => boolean;
     onToggleTranslation: (stableId: string) => void;
     onAnswer: (taskId: string, value: unknown) => void;
+    onTranslateTask: () => void;
+    onPlayOriginal: (text: string) => void;
+    onPlayTranslation: (text: string) => void;
 };
 
 function imageWritingLabels(language: unknown) {
@@ -57,15 +62,21 @@ export default function AssignmentTaskCard({
     showTranslation,
     autoGrade,
     locked,
+    translating,
+    ttsBusy,
     t,
     getMcqSelectedIndex,
     isTrueSelected,
     onToggleTranslation,
     onAnswer,
+    onTranslateTask,
+    onPlayOriginal,
+    onPlayTranslation,
 }: Props) {
     const type = String(task?.type ?? "open").toLowerCase();
     const promptOrig = String(task?.prompt ?? "").trim();
     const promptTr = String(translatedTask?.translatedPrompt ?? "").trim();
+    const options = Array.isArray(task.options) ? task.options : [];
     const supportWords = Array.isArray(task.supportWords)
         ? task.supportWords.map((word) => String(word).trim()).filter(Boolean)
         : [];
@@ -92,6 +103,7 @@ export default function AssignmentTaskCard({
         showTranslation &&
         promptTr.length > 0 &&
         promptTr !== promptOrig;
+    const canTranslateTask = promptOrig.trim() || options.length > 0;
 
     const cardBorder =
         isAutoCorrect === true
@@ -128,7 +140,39 @@ export default function AssignmentTaskCard({
                     {promptOrig || t("tasks.noPrompt")}
                 </div>
 
-                {!!(translatedTask?.translatedPrompt || translatedTask?.translatedOptions?.length) && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <button
+                        type="button"
+                        onClick={() => onPlayOriginal(promptOrig)}
+                        disabled={!promptOrig || ttsBusy != null}
+                        style={{
+                            ...softBlueButtonStyle,
+                            background: "rgba(34,197,94,0.14)",
+                            border: "1px solid rgba(34,197,94,0.40)",
+                            color: "rgba(21,128,61,1)",
+                            padding: "6px 10px",
+                            opacity: !promptOrig || ttsBusy != null ? 0.65 : 1,
+                        }}
+                        title={t("tts.playOriginal")}
+                        aria-label={t("tts.playOriginal")}
+                    >
+                        {ttsBusy === "original" ? "…" : "🔊"}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={onTranslateTask}
+                        disabled={!canTranslateTask || translating === `task:${stableId}`}
+                        style={{
+                            ...softBlueButtonStyle,
+                            padding: "6px 10px",
+                            opacity: !canTranslateTask || translating === `task:${stableId}` ? 0.65 : 1,
+                        }}
+                    >
+                        {translating === `task:${stableId}` ? t("translate.working") : t("translate.text")}
+                    </button>
+
+                    {!!(translatedTask?.translatedPrompt || translatedTask?.translatedOptions?.length) && (
                     <button
                         type="button"
                         onClick={() => onToggleTranslation(stableId)}
@@ -137,7 +181,8 @@ export default function AssignmentTaskCard({
                     >
                         {showTranslation ? t("translate.hide") : t("translate.show")}
                     </button>
-                )}
+                    )}
+                </div>
             </div>
 
             {isAutoCorrect === true ? (
@@ -183,6 +228,34 @@ export default function AssignmentTaskCard({
                         padding: "8px 10px",
                     }}
                 >
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            gap: 8,
+                            marginBottom: 6,
+                        }}
+                    >
+                        <span style={{ opacity: 0.75 }}>{t("translate.translatedLabel")}</span>
+                        <button
+                            type="button"
+                            onClick={() => onPlayTranslation(promptTr)}
+                        disabled={!promptTr || ttsBusy != null}
+                            style={{
+                                ...softBlueButtonStyle,
+                                background: "rgba(34,197,94,0.14)",
+                                border: "1px solid rgba(34,197,94,0.40)",
+                                color: "rgba(21,128,61,1)",
+                                padding: "5px 9px",
+                                opacity: !promptTr || ttsBusy != null ? 0.65 : 1,
+                            }}
+                            title={t("tts.playTranslation")}
+                            aria-label={t("tts.playTranslation")}
+                        >
+                            {ttsBusy === "translation" ? "…" : "🔊"}
+                        </button>
+                    </div>
                     {promptTr}
                 </div>
             ) : null}
