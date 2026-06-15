@@ -235,7 +235,12 @@ export default function BillingPage() {
       }
 
       if (!res.ok) {
-        setMessage(t("errors.checkoutFailed", { status: res.status }));
+        const serverError = typeof data.error === "string" ? data.error : null;
+        setMessage(
+          serverError
+            ? `${t("errors.checkoutFailed", { status: res.status })}: ${serverError}`
+            : t("errors.checkoutFailed", { status: res.status })
+        );
         return;
       }
 

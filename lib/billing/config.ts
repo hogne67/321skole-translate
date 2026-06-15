@@ -18,6 +18,25 @@ export type BillingPriceConfig = {
   priceId: string;
 };
 
+type PaidBillingPlan = Exclude<BillingPlan, "free">;
+
+const PRICE_ENV_BY_ROLE_PLAN: Record<
+  BillingRole,
+  Partial<Record<PaidBillingPlan, string>>
+> = {
+  student: {
+    pro: "STRIPE_PRICE_STUDENT_PRO",
+  },
+  teacher: {
+    basic: "STRIPE_PRICE_TEACHER_BASIC",
+    plus: "STRIPE_PRICE_TEACHER_PLUS",
+    pro: "STRIPE_PRICE_TEACHER_PRO",
+  },
+  parent: {
+    pro: "STRIPE_PRICE_PARENT_PRO",
+  },
+};
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -27,33 +46,22 @@ function required(name: string): string {
 }
 
 export function getBillingPrices(): BillingPriceConfig[] {
-  return [
-    {
-      role: "student",
-      plan: "pro",
-      priceId: required("STRIPE_PRICE_STUDENT_PRO"),
-    },
-    {
-      role: "teacher",
-      plan: "basic",
-      priceId: required("STRIPE_PRICE_TEACHER_BASIC"),
-    },
-    {
-      role: "teacher",
-      plan: "plus",
-      priceId: required("STRIPE_PRICE_TEACHER_PLUS"),
-    },
-    {
-      role: "teacher",
-      plan: "pro",
-      priceId: required("STRIPE_PRICE_TEACHER_PRO"),
-    },
-    {
-      role: "parent",
-      plan: "pro",
-      priceId: required("STRIPE_PRICE_PARENT_PRO"),
-    },
-  ];
+  return Object.entries(PRICE_ENV_BY_ROLE_PLAN).flatMap(([role, plans]) =>
+    Object.entries(plans).flatMap(([plan, envName]) => {
+      if (!envName) return [];
+
+      const priceId = process.env[envName];
+      if (!priceId) return [];
+
+      return [
+        {
+          role: role as BillingRole,
+          plan: plan as PaidBillingPlan,
+          priceId,
+        },
+      ];
+    })
+  );
 }
 
 export function isBillingRole(value: unknown): value is BillingRole {
@@ -79,10 +87,11 @@ export function getAllowedPlansForRole(role: BillingRole): Exclude<BillingPlan, 
 
 export function getCheckoutPriceId(
   role: BillingRole,
-  plan: Exclude<BillingPlan, "free">
+  plan: PaidBillingPlan
 ): string | null {
-  const item = getBillingPrices().find((entry) => entry.role === role && entry.plan === plan);
-  return item?.priceId ?? null;
+  const envName = PRICE_ENV_BY_ROLE_PLAN[role][plan];
+  if (!envName) return null;
+  return required(envName);
 }
 
 export function getBillingPlanByPriceId(priceId: string): BillingPriceConfig | null {

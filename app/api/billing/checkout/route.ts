@@ -147,16 +147,26 @@ async function getOrCreateCustomer(input: {
 }
 
 export async function POST(req: NextRequest) {
+  const logContext: {
+    uid?: string;
+    role?: BillingRole;
+    plan?: Exclude<CheckoutBody["plan"], undefined>;
+    priceId?: string | null;
+  } = {};
+
   try {
     const { uid } = await verifyUser(req);
+    logContext.uid = uid;
     const body = (await req.json().catch(() => ({}))) as CheckoutBody;
 
     const requestedPlanRaw = body.plan;
     if (!isBillingPlan(requestedPlanRaw) || requestedPlanRaw === "free") {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
+    logContext.plan = requestedPlanRaw;
 
     const user = await readUser(uid);
+    logContext.role = user.role;
     const allowedPlans = getAllowedPlansForRole(user.role);
 
     if (!allowedPlans.includes(requestedPlanRaw)) {
@@ -167,6 +177,7 @@ export async function POST(req: NextRequest) {
     }
 
     const priceId = getCheckoutPriceId(user.role, requestedPlanRaw);
+    logContext.priceId = priceId;
     if (!priceId) {
       return NextResponse.json({ error: "Missing Stripe priceId" }, { status: 500 });
     }
@@ -214,7 +225,10 @@ export async function POST(req: NextRequest) {
     const message =
       error instanceof Error ? error.message : "Checkout creation failed";
 
-    console.error("billing checkout failed:", error);
+    console.error("billing checkout failed:", {
+      ...logContext,
+      error,
+    });
 
     return NextResponse.json(
       {
