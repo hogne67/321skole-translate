@@ -76,6 +76,7 @@ function langMatches(docLang: string | undefined, selected: string) {
   if (s === "all") return true;
   if (!d) return false;
   if (s === "nb" && d === "no") return true;
+  if (s === "pt-br" && (d === "pt" || d === "br")) return true;
   return d === s;
 }
 
@@ -83,7 +84,7 @@ function defaultLanguageForLocale(locale: string) {
   const normalized = normLang(locale);
 
   if (normalized === "nb" || normalized === "no") return "nb";
-  if (normalized === "pt" || normalized === "pt-br" || normalized === "br") return "pt";
+  if (normalized === "pt" || normalized === "pt-br" || normalized === "br") return "pt-BR";
   if (normalized === "en" || normalized === "en-gb" || normalized === "uk") return "en";
 
   return "all";
