@@ -16,8 +16,38 @@ function readBearerToken(req: NextRequest): string | null {
   return token || null;
 }
 
-function appUrl(): string {
+function requestHost(req: NextRequest): string | null {
+  return req.headers.get("x-forwarded-host") || req.headers.get("host");
+}
+
+function requestOrigin(req: NextRequest): string {
+  const host = requestHost(req);
+  if (host) {
+    const proto = req.headers.get("x-forwarded-proto") || "https";
+    return `${proto}://${host}`;
+  }
+
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+}
+
+function accountBillingUrl(req: NextRequest): string {
+  const origin = requestOrigin(req);
+  const referer = req.headers.get("referer");
+
+  if (referer) {
+    try {
+      const url = new URL(referer);
+      const firstSegment = url.pathname.split("/").filter(Boolean)[0];
+
+      if (firstSegment === "nb" || firstSegment === "en" || firstSegment === "pt") {
+        return `${origin}/${firstSegment}/account/billing`;
+      }
+    } catch {
+      // Fall through to the non-localized fallback.
+    }
+  }
+
+  return `${origin}/account/billing`;
 }
 
 async function verifyUser(req: NextRequest): Promise<{ uid: string }> {
@@ -71,7 +101,7 @@ export async function POST(req: NextRequest) {
     const stripe = getStripe();
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${appUrl()}/account/billing`,
+      return_url: accountBillingUrl(req),
     });
 
     return NextResponse.json({

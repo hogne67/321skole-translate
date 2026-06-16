@@ -40,6 +40,14 @@ type UserDocData = {
 
 type CheckoutPlan = "basic" | "plus" | "pro";
 
+type BillingPrice = {
+  plan: CheckoutPlan;
+  currency: string;
+  unitAmount: number | null;
+  interval: string | null;
+  active: boolean;
+};
+
 function resolveRole(data: UserDocData | null): BillingRole | null {
   if (!data) return null;
 
@@ -126,6 +134,7 @@ export default function BillingPage() {
   const [checkoutLoading, setCheckoutLoading] = useState<CheckoutPlan | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [stripePrices, setStripePrices] = useState<BillingPrice[]>([]);
 
   useEffect(() => {
     const auth = getAuth();
@@ -139,6 +148,7 @@ export default function BillingPage() {
   useEffect(() => {
     if (!uid) {
       setUserData(null);
+      setStripePrices([]);
       return;
     }
 
@@ -149,6 +159,46 @@ export default function BillingPage() {
     });
 
     return () => unsubscribe();
+  }, [uid]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPrices() {
+      if (!uid) {
+        setStripePrices([]);
+        return;
+      }
+
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch("/api/billing/prices", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = (await res.json().catch(() => ({}))) as {
+          prices?: BillingPrice[];
+        };
+
+        if (!cancelled && res.ok && Array.isArray(data.prices)) {
+          setStripePrices(data.prices.filter((price) => price.active));
+        }
+      } catch {
+        if (!cancelled) setStripePrices([]);
+      }
+    }
+
+    void loadPrices();
+
+    return () => {
+      cancelled = true;
+    };
   }, [uid]);
 
   const role = useMemo(() => resolveRole(userData), [userData]);
@@ -172,11 +222,34 @@ export default function BillingPage() {
   }
 
   function priceForPlan(plan: CheckoutPlan) {
+    const stripePrice = stripePrices.find((price) => price.plan === plan);
+    if (stripePrice?.currency && typeof stripePrice.unitAmount === "number") {
+      const amount = stripePrice.unitAmount / 100;
+      const formatted = new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: stripePrice.currency.toUpperCase(),
+      }).format(amount);
+
+      return `${formatted} / ${intervalLabel(stripePrice.interval)}`;
+    }
+
     if (plan === "pro" && (role === "student" || role === "parent")) {
       return t("prices.proStudentParent");
     }
 
     return t(`prices.${plan}`);
+  }
+
+  function intervalLabel(interval: string | null) {
+    if (interval === "year") {
+      if (locale === "pt") return "ano";
+      if (locale === "nb") return "år";
+      return "yr";
+    }
+
+    if (locale === "pt") return "mês";
+    if (locale === "nb") return "mnd";
+    return "mo";
   }
 
   function labelForStatus(statusValue: BillingStatus | null | undefined) {

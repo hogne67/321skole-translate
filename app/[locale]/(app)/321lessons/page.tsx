@@ -79,6 +79,16 @@ function langMatches(docLang: string | undefined, selected: string) {
   return d === s;
 }
 
+function defaultLanguageForLocale(locale: string) {
+  const normalized = normLang(locale);
+
+  if (normalized === "nb" || normalized === "no") return "nb";
+  if (normalized === "pt" || normalized === "pt-br" || normalized === "br") return "pt";
+  if (normalized === "en" || normalized === "en-gb" || normalized === "uk") return "en";
+
+  return "all";
+}
+
 function pickImageUrl(l: PublishedLesson): string | null {
   const a = String(l.imageUrl || "").trim();
   if (a) return a;
@@ -317,7 +327,8 @@ export default function LessonsLandingPage() {
 
   const [qText, setQText] = useState("");
   const [level, setLevel] = useState<string>("all");
-  const [lang, setLang] = useState<string>("all");
+  const defaultLang = useMemo(() => defaultLanguageForLocale(locale), [locale]);
+  const [lang, setLang] = useState<string>(defaultLang);
   const [textType, setTextType] = useState<string>("all");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
@@ -454,7 +465,7 @@ export default function LessonsLandingPage() {
   function resetFilters() {
     setQText("");
     setLevel("all");
-    setLang("all");
+    setLang(defaultLang);
     setTextType("all");
     setPage(1);
   }
@@ -585,11 +596,11 @@ export default function LessonsLandingPage() {
   }, [currentUser, pageSlice]);
 
   const isResetDisabled = useMemo(() => {
-    return qText === "" && level === "all" && lang === "all" && textType === "all";
-  }, [qText, level, lang, textType]);
+    return qText === "" && level === "all" && lang === defaultLang && textType === "all";
+  }, [qText, level, lang, textType, defaultLang]);
   const activeFilterCount = useMemo(() => {
-    return [textType !== "all", lang !== "all", level !== "all"].filter(Boolean).length;
-  }, [textType, lang, level]);
+    return [textType !== "all", lang !== defaultLang, level !== "all"].filter(Boolean).length;
+  }, [textType, lang, level, defaultLang]);
 
   const loading = loadState.status === "loading";
   const error = loadState.status === "error" ? loadState.error : null;

@@ -5,9 +5,11 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getAdminApp } from "@/lib/firebaseAdmin";
 import { getStripe } from "@/lib/stripe";
 import {
+  getBillingMarketFromHost,
   getAllowedPlansForRole,
   getCheckoutPriceId,
   isBillingPlan,
+  type BillingMarket,
   type BillingRole,
 } from "@/lib/billing/config";
 
@@ -26,8 +28,38 @@ function readBearerToken(req: NextRequest): string | null {
   return token || null;
 }
 
-function appUrl(): string {
+function requestHost(req: NextRequest): string | null {
+  return req.headers.get("x-forwarded-host") || req.headers.get("host");
+}
+
+function requestOrigin(req: NextRequest): string {
+  const host = requestHost(req);
+  if (host) {
+    const proto = req.headers.get("x-forwarded-proto") || "https";
+    return `${proto}://${host}`;
+  }
+
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+}
+
+function accountBillingUrl(req: NextRequest, query: string): string {
+  const origin = requestOrigin(req);
+  const referer = req.headers.get("referer");
+
+  if (referer) {
+    try {
+      const url = new URL(referer);
+      const firstSegment = url.pathname.split("/").filter(Boolean)[0];
+
+      if (firstSegment === "nb" || firstSegment === "en" || firstSegment === "pt") {
+        return `${origin}/${firstSegment}/account/billing${query}`;
+      }
+    } catch {
+      // Fall through to the non-localized fallback.
+    }
+  }
+
+  return `${origin}/account/billing${query}`;
 }
 
 function resolveBillingRoleFromUserData(data: Record<string, unknown>): BillingRole | null {
@@ -151,10 +183,14 @@ export async function POST(req: NextRequest) {
     uid?: string;
     role?: BillingRole;
     plan?: Exclude<CheckoutBody["plan"], undefined>;
+    market?: BillingMarket;
     priceId?: string | null;
   } = {};
 
   try {
+    const market = getBillingMarketFromHost(requestHost(req));
+    logContext.market = market;
+
     const { uid } = await verifyUser(req);
     logContext.uid = uid;
     const body = (await req.json().catch(() => ({}))) as CheckoutBody;
@@ -176,7 +212,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const priceId = getCheckoutPriceId(user.role, requestedPlanRaw);
+    const priceId = getCheckoutPriceId(user.role, requestedPlanRaw, market);
     logContext.priceId = priceId;
     if (!priceId) {
       return NextResponse.json({ error: "Missing Stripe priceId" }, { status: 500 });
@@ -189,7 +225,6 @@ export async function POST(req: NextRequest) {
     });
 
     const stripe = getStripe();
-    const baseUrl = appUrl();
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -201,18 +236,20 @@ export async function POST(req: NextRequest) {
         },
       ],
       allow_promotion_codes: false,
-      success_url: `${baseUrl}/account/billing?checkout=success`,
-      cancel_url: `${baseUrl}/account/billing?checkout=cancel`,
+      success_url: accountBillingUrl(req, "?checkout=success"),
+      cancel_url: accountBillingUrl(req, "?checkout=cancel"),
       metadata: {
         uid: user.uid,
         role: user.role,
         plan: requestedPlanRaw,
+        market,
       },
       subscription_data: {
         metadata: {
           uid: user.uid,
           role: user.role,
           plan: requestedPlanRaw,
+          market,
         },
       },
     });

@@ -160,6 +160,10 @@ function languageRank(language: string | undefined, locale: string) {
   return index === -1 ? 99 : index + 1;
 }
 
+function isPreferredLanguage(language: string | undefined, locale: string) {
+  return languageRank(language, locale) === 0;
+}
+
 async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
   try {
     const { db } = getAdmin();
@@ -216,7 +220,10 @@ async function getFeaturedLessons(locale: string): Promise<FeaturedLesson[]> {
       return true;
     });
 
-    const sorted = unique.sort((a, b) => {
+    const preferred = unique.filter((item) => isPreferredLanguage(item.language, locale));
+    const displayItems = preferred.length > 0 ? preferred : unique;
+
+    const sorted = displayItems.sort((a, b) => {
       const langDiff =
         languageRank(a.language, locale) - languageRank(b.language, locale);
 
