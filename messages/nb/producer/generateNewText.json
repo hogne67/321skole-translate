@@ -130,6 +130,8 @@
     "buttons": {
       "generateText": "Generer KI tekst",
       "generatingText": "Genererer tekst...",
+      "generateFactCheckedText": "Ekstra faktasjekk",
+      "generatingFactCheckedText": "Faktasjekker...",
       "generateTasks": "Generer oppgaver",
       "generatingTasks": "Genererer oppgaver...",
       "saveDraft": "Lagre kladd",
@@ -146,6 +148,8 @@
     },
     "warnings": {
       "checkTextBeforeTasks": "Sjekk teksten før du genererer oppgaver.",
+      "factCheckRequiredBeforePublish": "Denne teksten bør ekstrasjekkes før publisering.",
+      "factCheckCompleted": "Ekstra faktasjekk er kjørt for denne teksten.",
       "soonEmpty": "(begynner å bli tomt)"
     },
     "status": {

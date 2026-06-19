@@ -1,6 +1,7 @@
 // app/api/publish/route.ts
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
+import { createHash } from "crypto";
 import { getAdmin } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
@@ -21,6 +22,46 @@ function pickVisibility(v: unknown): Visibility {
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
+}
+
+function textHash(text: string): string {
+  return createHash("sha256").update(text.trim().replace(/\s+/g, " "), "utf8").digest("hex");
+}
+
+function containsAny(haystack: string, needles: string[]): boolean {
+  return needles.some((needle) => haystack.includes(needle));
+}
+
+function inferFactCheckRequired(draft: Record<string, unknown>): { required: boolean; reason: string } {
+  const aiQuality = isRecord(draft.aiQuality) ? draft.aiQuality : {};
+  if (aiQuality.factCheckRequired === true) {
+    return {
+      required: true,
+      reason: typeof aiQuality.factCheckReason === "string" ? aiQuality.factCheckReason : "marked",
+    };
+  }
+
+  const textType = String(draft.textType ?? draft.texttype ?? "").toLocaleLowerCase();
+  const topic = String(draft.topic ?? draft.prompt ?? draft.title ?? "").toLocaleLowerCase();
+  const combined = `${textType} ${topic}`;
+
+  if (
+    containsAny(combined, [
+      "saktekst",
+      "factual",
+      "texto informativo",
+      "biografi",
+      "biography",
+      "person",
+      "historisk",
+      "historical",
+      "historie",
+    ])
+  ) {
+    return { required: true, reason: "sensitive_type_or_topic" };
+  }
+
+  return { required: false, reason: "" };
 }
 
 function isTeacherProfile(profile: Record<string, unknown>): boolean {
@@ -153,6 +194,38 @@ export async function POST(req: Request) {
   }
 
   const effectiveOwnerId = ownerId || uid;
+  const factCheckRequirement = inferFactCheckRequired(draft);
+  if (factCheckRequirement.required) {
+    const aiQuality = isRecord(draft.aiQuality) ? draft.aiQuality : {};
+    const sourceText = String(draft.sourceText ?? draft.text ?? "").trim();
+    const checkedTextHash = typeof aiQuality.checkedTextHash === "string" ? aiQuality.checkedTextHash : "";
+    const factChecked = aiQuality.factChecked === true && checkedTextHash === textHash(sourceText);
+
+    if (!factChecked) {
+      await db.collection("auditEvents").add({
+        type: "PUBLISH_BLOCKED",
+        uid,
+        lessonId: draftId,
+        ts: now,
+        meta: {
+          reason: "FACT_CHECK_REQUIRED",
+          draftPath,
+          factCheckReason: factCheckRequirement.reason,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          error:
+            "Extra fact check is required before publishing this text. " +
+            "Run Extra fact check and save the checked version before publishing.",
+          code: "FACT_CHECK_REQUIRED",
+          reason: factCheckRequirement.reason,
+        },
+        { status: 400 }
+      );
+    }
+  }
 
   // --- Build published doc (signed snapshot) ---
   const publishedRef = db.collection("published_lessons").doc();

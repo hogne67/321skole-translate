@@ -130,6 +130,8 @@
     "buttons": {
       "generateText": "Generate text",
       "generatingText": "Generating text...",
+      "generateFactCheckedText": "Extra fact check",
+      "generatingFactCheckedText": "Fact-checking...",
       "generateTasks": "Generate tasks",
       "generatingTasks": "Generating tasks...",
       "saveDraft": "Save draft lesson",
@@ -146,6 +148,8 @@
     },
     "warnings": {
       "checkTextBeforeTasks": "Please check the text before you generate tasks.",
+      "factCheckRequiredBeforePublish": "This text should be extra fact-checked before publishing.",
+      "factCheckCompleted": "Extra fact check has been run for this text.",
       "soonEmpty": "(running low)"
     },
     "status": {

@@ -15,6 +15,7 @@ type GenerateTextBody = {
   topic?: string;
   textType?: string;
   textLength?: number;
+  extraFactCheck?: boolean;
   a1Start?: A1StartConfig;
 };
 
@@ -36,6 +37,11 @@ type A1StartConfig = {
 type GenerateTextResult = {
   title: string;
   text: unknown;
+};
+
+type SourceGroundingResult = {
+  facts?: unknown;
+  cautions?: unknown;
 };
 
 type RequestUserContext = {
@@ -101,6 +107,276 @@ function resolveLanguageName(code: string): string {
   if (c === "pt-br") return "Brazilian Portuguese";
   if (c === "pt-pt") return "European Portuguese";
   return code;
+}
+
+function isCefrAtLeastB1(level: string): boolean {
+  const normalized = level.trim().toUpperCase();
+  return normalized === "B1" || normalized === "B2" || normalized === "C1" || normalized === "C2";
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .slice(0, 10);
+}
+
+function stringifySourceGrounding(value: SourceGroundingResult | null): string {
+  if (!value) return "";
+  const facts = normalizeStringList(value.facts);
+  const cautions = normalizeStringList(value.cautions);
+  const lines: string[] = [];
+
+  if (facts.length) {
+    lines.push("Source-grounded facts:");
+    facts.forEach((fact) => lines.push(`- ${fact}`));
+  }
+
+  if (cautions.length) {
+    if (lines.length) lines.push("");
+    lines.push("Source cautions:");
+    cautions.forEach((caution) => lines.push(`- ${caution}`));
+  }
+
+  return lines.join("\n");
+}
+
+function buildCefrLevelGuidance(level: string): string {
+  const normalized = level.trim().toUpperCase();
+
+  if (normalized === "A1") {
+    return [
+      "A1 control:",
+      "- Use very short sentences with simple word order.",
+      "- Use concrete, high-frequency words and familiar situations.",
+      "- Avoid subordinate clauses, idioms, abstract nouns and long noun phrases.",
+      "- Keep the text clearly below A2 if you are unsure.",
+      "- Avoid long compound words and difficult verbs when a simpler word or phrase exists.",
+      "- For Norwegian A1, avoid words like 'teaterforestillinger' and 'avhenger'. Use simpler phrasing such as 'teater' or 'kommer an på'.",
+    ].join("\n");
+  }
+
+  if (normalized === "A2") {
+    return [
+      "A2 control:",
+      "- Aim a little easier rather than a little harder. Do not drift toward B1.",
+      "- Use short, clear sentences, usually 6-12 words.",
+      "- Prefer main clauses and simple connectors such as and, but, because, then and when.",
+      "- Use active everyday language and concrete words.",
+      "- Avoid abstract nominalizations, dense noun phrases, idioms and specialist vocabulary.",
+      "- For Norwegian, avoid old-fashioned words such as 'meget'; use natural modern words such as 'veldig'.",
+      "- For Norwegian, avoid difficult abstract compounds such as 'musikkglede'. Split the idea into simpler wording.",
+    ].join("\n");
+  }
+
+  if (normalized === "B1") {
+    return [
+      "B1 control:",
+      "- Use clear everyday language with some variation in sentence length.",
+      "- You may use common subordinate clauses, but avoid academic style.",
+      "- Explain harder words through context or choose simpler alternatives.",
+      "- Keep the text accessible for an independent learner, not a native-school textbook.",
+    ].join("\n");
+  }
+
+  if (normalized === "B2") {
+    return [
+      "B2 control:",
+      "- Use varied but still clear language.",
+      "- You may include more nuance, causes and consequences.",
+      "- Avoid unnecessarily academic or literary wording unless the text type requires it.",
+    ].join("\n");
+  }
+
+  return [
+    "Level control:",
+    "- Match the requested CEFR level closely.",
+    "- If unsure, choose simpler wording and clearer sentence structure.",
+    "- Do not write above the requested level just to sound polished.",
+  ].join("\n");
+}
+
+function buildCefrTextPrompt(args: {
+  languageName: string;
+  level: string;
+  topic: string;
+  textType: string;
+  textLength: number;
+  extraFactCheck?: boolean;
+}): string {
+  const { languageName, level, topic, textType, textLength, extraFactCheck } = args;
+  const minWords = Math.max(1, Math.round(textLength * 0.9));
+  const maxWords = Math.max(minWords, Math.round(textLength * 1.1));
+
+  return `
+Write a ${textType} text.
+
+Language: ${languageName}
+Level: ${level}
+Topic: ${topic}
+Target length: ${textLength} words
+Allowed length: ${minWords}-${maxWords} words
+
+${buildCefrLevelGuidance(level)}
+
+Teacher choices:
+- Follow the requested language, CEFR level, topic, text type and word count closely.
+- The text type matters. If the teacher asks for nonfiction, write a coherent nonfiction text, not a story.
+- The final text must be ${minWords}-${maxWords} words. Silently count the words before returning.
+- Do not end much earlier just because the text has a reflection or because the language level is simple.
+- Level control should shape vocabulary and sentence structure, but it must not make the text too short, thin or unfinished.
+- A coherent, useful reading text is more important than adding stylistic extras.
+
+Factual accuracy:
+- Use only facts you know with high confidence.
+- Do not invent exact dates, birthplaces, family details, hobbies, teams, prizes, quotes or career events.
+- If the topic is a real person, place or historical event and you are not sure about a fact, omit it or write more generally.
+- Never add a personal detail only to make the text more interesting unless it is a verified or teacher-supplied fact.
+- Do not create vague fake anecdotes such as "one time at a big concert" unless the event is verified or supplied by the teacher.
+- For real people, be extra careful with birthplaces, schools, universities, workplaces and named organizations.
+- If an exact institution or place is not teacher-supplied or certain, write generally instead, for example "Han lærte mer i utlandet" rather than naming a school or city.
+- Do not turn a general fact into a specific one. "Han studerte musikk" is safer than an uncertain named institution.
+- If the topic is a named person, assume biography facts are high risk unless they are very well known.
+- For named people, avoid birthplace, exact education, exact workplaces and current roles unless you are certain.
+- Prefer durable facts over current facts. Be especially careful with roles that may have changed recently.
+- If writing about a living person, avoid saying "today he/she works as..." unless that current role is teacher-supplied or certain.
+- For living people, prefer past roles with clear time spans over current-role sentences. Write "var ... fra 2014 til 2024" rather than "jobber som ..." when a role may have changed.
+
+${extraFactCheck ? `Extra fact-check mode:
+- This generation will be compared with another draft before the final answer.
+- Be conservative with concrete facts so the final text can keep only stable, high-confidence information.
+- Prefer a slightly more general sentence over a risky exact fact.
+` : ""}
+
+Narrative quality:
+- Do not write a flat CV list or encyclopedia summary.
+- Give the text a small narrative shape: a concrete moment, a challenge, a change over time, or one verified personal detail when relevant.
+- Use narrative detail as spice, not as a long detour, and only when it supports the requested text type.
+- For a nonfiction biography, build a clear progression such as childhood/background, work, one important contribution, and why the person matters.
+- Vary the opening when it fits the topic: a simple question, a clear claim, or a concrete scene can work.
+- A reflection question or final thought is optional and should be used rarely. Most texts should end with a simple, natural closing sentence.
+- Use a reflection ending only if it fits the text type, the topic and the requested level very naturally.
+- Do not force a reflection ending. Never let it replace missing content or reduce the requested length.
+
+Language quality:
+- Write modern, natural, active everyday language.
+- Prefer common collocations and phrasing that a native speaker would actually use.
+- Avoid formal filler, old-fashioned wording and inflated praise.
+- Keep the text connected from beginning to end, with clear progression between paragraphs.
+- For abstract topics such as politics, economy, tax, society, health or the environment, simplify extra carefully at A1-A2.
+- At A1-A2, introduce only a few necessary technical words, and explain each one in simple everyday language.
+- Avoid dense lists of technical terms at A1-A2. Choose the most important examples instead.
+
+Return valid JSON only:
+{
+  "title": "...",
+  "text": "..."
+}
+          `.trim();
+}
+
+function buildCefrSelectionPrompt(args: {
+  languageName: string;
+  level: string;
+  topic: string;
+  textType: string;
+  textLength: number;
+  draftA: GenerateTextResult;
+  draftB: GenerateTextResult;
+  sourceGrounding?: string;
+}): string {
+  const { languageName, level, topic, textType, textLength, draftA, draftB, sourceGrounding } = args;
+  const minWords = Math.max(1, Math.round(textLength * 0.9));
+  const maxWords = Math.max(minWords, Math.round(textLength * 1.1));
+
+  return `
+Create the final learner text from two drafts.
+
+Language: ${languageName}
+Level: ${level}
+Topic: ${topic}
+Text type: ${textType}
+Target length: ${textLength} words
+Allowed length: ${minWords}-${maxWords} words
+
+Draft A:
+Title: ${String(draftA.title || "").trim()}
+Text:
+${stringifyGeneratedText(draftA.text)}
+
+Draft B:
+Title: ${String(draftB.title || "").trim()}
+Text:
+${stringifyGeneratedText(draftB.text)}
+
+${sourceGrounding ? `Verified source notes:
+${sourceGrounding}
+` : ""}
+
+Selection and fact-check rules:
+- Return one final text, not comments.
+- Keep the best language, structure and level match from the drafts.
+- If verified source notes are provided, use them as the highest-priority fact basis.
+- Also perform a language quality check: correct grammar, word order, pronoun reference, singular/plural consistency and unnatural collocations.
+- Keep grammar corrections simple and natural. Do not make the text more advanced when improving the language.
+- After fact-checking, perform a final CEFR level check. Simplify words, sentence length and sentence structure until the text clearly matches ${level}.
+- Do not let more precise facts make the text harder than the requested level.
+- If a precise fact requires a difficult phrase, split it into two short sentences or explain it with simpler words.
+- For long organization names, historical terms or specialist terms, either explain them simply nearby or use a simpler description if the exact name is not necessary.
+- At A1-A2, do not stack several difficult terms in one sentence.
+- Remove or generalize facts that are suspicious, too specific, unstable, or appear in only one draft unless they are clearly high-confidence.
+- For named people, be very careful with birthplaces, schools, exact jobs, dates, current roles, family details and named organizations.
+- For living people, avoid present-tense job or role claims unless the teacher supplied the role. Prefer past-tense role descriptions with years when known.
+- Do not add new specific facts that are not in the drafts, unless they are in the verified source notes.
+- If verified source notes correct or update a draft, follow the verified source notes.
+- Preserve the requested CEFR level, text type and word count.
+- If the drafts disagree or feel uncertain, choose a simpler, safer sentence.
+- Silently count the words before returning.
+
+Return valid JSON only:
+{
+  "title": "...",
+  "text": "..."
+}
+          `.trim();
+}
+
+function buildSourceGroundingPrompt(args: {
+  languageName: string;
+  level: string;
+  topic: string;
+  textType: string;
+}): string {
+  const { languageName, level, topic, textType } = args;
+
+  return `
+Find a small source-grounded fact basis for a learner text.
+
+Language of the final learner text: ${languageName}
+CEFR level: ${level}
+Topic: ${topic}
+Text type: ${textType}
+
+Task:
+- Use web search to verify the most important facts for this topic.
+- Focus especially on named people, historical events, public roles, dates, places, organizations and current roles.
+- Prefer official or high-quality reference sources when available.
+- Keep the result short. Do not write the learner text.
+- If the topic is a living person, include current role only if it is clearly supported by sources.
+- If facts are uncertain, controversial or recently changed, put that in cautions instead of facts.
+
+Return valid JSON only:
+{
+  "facts": [
+    "short verified fact",
+    "short verified fact"
+  ],
+  "cautions": [
+    "short caution about unstable or uncertain facts"
+  ]
+}
+          `.trim();
 }
 
 function buildA1StartPatternPrompt(languageName: string, config: A1StartConfig): string {
@@ -1874,6 +2150,7 @@ export async function POST(req: Request) {
     const textType = body.textType || "Story";
     const textLength = body.textLength || 200;
     const isA1Start = level === "A1_START";
+    const extraFactCheck = !isA1Start && body.extraFactCheck === true;
     const isA1StartHighFrequency = isA1Start && body.a1Start?.type === "high_frequency_words";
     const isA1StartSoundLadder = isA1Start && body.a1Start?.type === "sound_reading_ladder";
     const highFrequencyLanguageAllowed =
@@ -1903,42 +2180,98 @@ export async function POST(req: Request) {
         : isA1StartHighFrequency
           ? buildA1StartHighFrequencyPrompt(languageName, body.a1Start || {})
           : buildA1StartPatternPrompt(languageName, body.a1Start || {})
-      : `
-Write a ${textType} text.
-
-Language: ${languageName}
-Level: ${level}
-Topic: ${topic}
-Length: ${textLength} words
-
-Return:
-{
-  "title": "...",
-  "text": "..."
-}
-          `;
+      : buildCefrTextPrompt({
+          languageName,
+          level,
+          topic,
+          textType,
+          textLength,
+          extraFactCheck,
+        });
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const createResponse = async (prompt: string, temperature: number) => {
+      const resp = await client.responses.create({
+        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        text: { format: { type: "json_object" } },
+        temperature,
+        input: [
+          {
+            role: "system",
+            content: isA1Start
+              ? `You create highly controlled beginning-reading practice. Return JSON only. Output must be in ${languageName}.`
+              : `You create accurate, natural CEFR reading texts for language learners. Level match and factual caution are more important than sounding impressive. Return JSON only. Output must be in ${languageName}.`,
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      });
 
-    const resp = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-      text: { format: { type: "json_object" } },
-      input: [
-        {
-          role: "system",
-          content: isA1Start
-            ? `You create highly controlled beginning-reading practice. Return JSON only. Output must be in ${languageName}.`
-            : `You create CEFR texts. Return JSON only. Output must be in ${languageName}.`,
-        },
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-    });
+      const out = resp.output_text?.trim() || "";
+      return JSON.parse(out) as GenerateTextResult;
+    };
+    const createSourceGrounding = async (): Promise<string> => {
+      if (!extraFactCheck || !isCefrAtLeastB1(level)) return "";
 
-    const out = resp.output_text?.trim() || "";
-    const parsed = JSON.parse(out) as GenerateTextResult;
+      try {
+        const resp = await client.responses.create({
+          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+          text: { format: { type: "json_object" } },
+          temperature: 0.1,
+          tools: [{ type: "web_search_preview" }],
+          input: [
+            {
+              role: "system",
+              content:
+                "You verify facts for learner texts. Use web search for current or specific facts. Return JSON only.",
+            },
+            {
+              role: "user",
+              content: buildSourceGroundingPrompt({
+                languageName,
+                level,
+                topic,
+                textType,
+              }),
+            },
+          ],
+        });
+
+        const out = resp.output_text?.trim() || "";
+        return stringifySourceGrounding(JSON.parse(out) as SourceGroundingResult);
+      } catch (error) {
+        console.warn(
+          "Source grounding failed; continuing with draft comparison only:",
+          error instanceof Error ? error.message : String(error)
+        );
+        return "";
+      }
+    };
+
+    const parsed = extraFactCheck
+      ? await (async () => {
+          const [draftA, draftB, sourceGrounding] = await Promise.all([
+            createResponse(userPrompt, 0.25),
+            createResponse(userPrompt, 0.35),
+            createSourceGrounding(),
+          ]);
+          return createResponse(
+            buildCefrSelectionPrompt({
+              languageName,
+              level,
+              topic,
+              textType,
+              textLength,
+              draftA,
+              draftB,
+              sourceGrounding,
+            }),
+            0.15
+          );
+        })()
+      : await createResponse(userPrompt, isA1Start ? 0.2 : 0.45);
 
     if (isA1Start) {
       if (isA1StartSoundLadder) {

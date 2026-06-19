@@ -104,6 +104,23 @@ function stringifyGeneratedText(value: unknown): string {
   return String(value).trim();
 }
 
+function hasAnyTerm(value: string, terms: string[]) {
+  const normalized = value.toLocaleLowerCase();
+  return terms.some((term) => normalized.includes(term));
+}
+
+function looksLikeNamedPersonTopic(value: string) {
+  const cleaned = value.trim();
+  if (!cleaned || cleaned.length > 80 || /\bi\b/i.test(cleaned)) return false;
+  const words = cleaned
+    .split(/\s+/)
+    .map((word) => word.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, ""))
+    .filter(Boolean);
+
+  const capitalizedWords = words.filter((word) => /^\p{Lu}/u.test(word));
+  return capitalizedWords.length >= 2;
+}
+
 const TEXT_TYPE_KEYS = [
   "everydayStory",
   "factual",
@@ -431,10 +448,13 @@ export default function NewTextPage() {
 
   const [title, setTitle] = useState<string>("");
   const [sourceText, setSourceText] = useState<string>("");
+  const [lastFactCheckedText, setLastFactCheckedText] = useState("");
+  const [lastGeneratedWith, setLastGeneratedWith] = useState<"standard" | "factcheck" | "manual">("manual");
   const [lessonTasks, setLessonTasks] = useState<LessonTask[]>([]);
   const [pack, setPack] = useState<ContentPack | null>(null);
 
   const [loadingText, setLoadingText] = useState(false);
+  const [textGenerationMode, setTextGenerationMode] = useState<"standard" | "factcheck" | null>(null);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -452,6 +472,21 @@ export default function NewTextPage() {
     ? effectiveA1StartHighFrequencyTheme
     : a1StartTopic.trim();
   const effectiveTopic = isA1Start ? effectiveA1StartTopic : prompt.trim();
+  const factCheckReason = useMemo(() => {
+    if (isA1Start) return "";
+    const textTypeTerms = `${textTypePreset} ${textTypeLabel} ${textTypeOther}`;
+    const topicTerms = `${prompt} ${effectiveTopic}`;
+    if (hasAnyTerm(textTypeTerms, ["factual", "saktekst", "texto informativo"])) return "factual_text";
+    if (hasAnyTerm(textTypeTerms, ["biography", "biografi"])) return "biography";
+    if (hasAnyTerm(topicTerms, ["biografi", "biography", "historisk", "historical", "historie", "history"])) {
+      return "sensitive_topic";
+    }
+    if (looksLikeNamedPersonTopic(effectiveTopic)) return "named_person_topic";
+    return "";
+  }, [effectiveTopic, isA1Start, prompt, textTypeLabel, textTypeOther, textTypePreset]);
+  const factCheckRequired = factCheckReason.length > 0;
+  const currentTextFactChecked =
+    factCheckRequired && lastFactCheckedText.trim() === sourceText.trim() && sourceText.trim().length > 0;
 
   const profileUid =
     profile && typeof profile === "object" && "uid" in profile
@@ -731,8 +766,9 @@ export default function NewTextPage() {
     return m;
   }
 
-  async function generateTextOnly() {
+  async function generateTextOnly(extraFactCheck = false) {
     setLoadingText(true);
+    setTextGenerationMode(extraFactCheck ? "factcheck" : "standard");
     setError(null);
     setSavedId(null);
 
@@ -758,6 +794,7 @@ export default function NewTextPage() {
           topic: effectiveTopic,
           textType: effectiveTextType,
           textLength,
+          extraFactCheck,
           a1Start: a1StartConfig,
         }),
       });
@@ -801,6 +838,8 @@ export default function NewTextPage() {
 
       setTitle(nextTitle);
       setSourceText(nextText);
+      setLastGeneratedWith(extraFactCheck ? "factcheck" : "standard");
+      setLastFactCheckedText(extraFactCheck ? nextText : "");
       setLessonTasks([]);
       setPack(null);
       setTasksDirty(false);
@@ -810,6 +849,7 @@ export default function NewTextPage() {
       setError(localizeError(getErrorMessage(e)));
     } finally {
       setLoadingText(false);
+      setTextGenerationMode(null);
     }
   }
 
@@ -944,6 +984,12 @@ export default function NewTextPage() {
         textType: effectiveTextType,
         sourceText: sourceText || "",
         tasks: renumberOrders(lessonTasks),
+        aiQuality: {
+          factCheckRequired,
+          factChecked: currentTextFactChecked,
+          factCheckReason,
+          generatedWith: lastGeneratedWith,
+        },
       }),
     });
     if (!res.ok) {
@@ -1623,7 +1669,7 @@ export default function NewTextPage() {
                 <div style={{ marginTop: 12 }}>
                   <button
                     className="actionBtn"
-                    onClick={generateTextOnly}
+                    onClick={() => generateTextOnly(false)}
                     disabled={busy || (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb)}
                     style={{
                       ...buttonPrimary,
@@ -1632,8 +1678,37 @@ export default function NewTextPage() {
                       cursor: busy || (isA1Start && !isA1StartHighFrequency && !effectiveA1StartVerb) ? "not-allowed" : "pointer",
                     }}
                   >
-                    {loadingText ? t("buttons.generatingText") : t("buttons.generateText")}
+                    {loadingText && textGenerationMode === "standard" ? t("buttons.generatingText") : t("buttons.generateText")}
                   </button>
+                  {!isA1Start && (
+                    <button
+                      className="actionBtn"
+                      onClick={() => generateTextOnly(true)}
+                      disabled={busy}
+                      style={{
+                        ...buttonSecondary,
+                        width: isNarrow ? "100%" : "auto",
+                        marginLeft: isNarrow ? 0 : 8,
+                        marginTop: isNarrow ? 8 : 0,
+                        opacity: busy ? 0.7 : 1,
+                        cursor: busy ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {loadingText && textGenerationMode === "factcheck"
+                        ? t("buttons.generatingFactCheckedText")
+                        : t("buttons.generateFactCheckedText")}
+                    </button>
+                  )}
+                  {!isA1Start && factCheckRequired && !currentTextFactChecked && sourceText.trim() && (
+                    <div style={{ fontSize: 12, color: "#92400e", marginTop: 8, lineHeight: 1.45 }}>
+                      {t("warnings.factCheckRequiredBeforePublish")}
+                    </div>
+                  )}
+                  {!isA1Start && factCheckRequired && currentTextFactChecked && (
+                    <div style={{ fontSize: 12, color: "#166534", marginTop: 8, lineHeight: 1.45 }}>
+                      {t("warnings.factCheckCompleted")}
+                    </div>
+                  )}
                   {isA1Start && (
                     <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8, lineHeight: 1.45 }}>
                       {t("a1Start.reviewReminder")}

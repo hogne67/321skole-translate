@@ -3,6 +3,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
+import { createHash } from "crypto";
 import { getAdmin } from "@/lib/firebaseAdmin";
 
 type Body = {
@@ -14,10 +15,24 @@ type Body = {
   textType: string;
   sourceText: string;
   tasks: unknown[];
+  aiQuality?: {
+    factCheckRequired?: boolean;
+    factChecked?: boolean;
+    factCheckReason?: string;
+    generatedWith?: string;
+  };
 };
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
+}
+
+function textHash(text: string): string {
+  return createHash("sha256").update(text.trim().replace(/\s+/g, " "), "utf8").digest("hex");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 export async function POST(req: Request) {
@@ -48,6 +63,21 @@ export async function POST(req: Request) {
       .trim()
       .replace(/^"+|"+$/g, "")
       .trim();
+    const aiQualityInput = isRecord(body.aiQuality) ? body.aiQuality : {};
+    const factCheckRequired = aiQualityInput.factCheckRequired === true;
+    const factChecked = aiQualityInput.factChecked === true;
+    const factCheckReason =
+      typeof aiQualityInput.factCheckReason === "string" ? aiQualityInput.factCheckReason : "";
+    const generatedWith =
+      typeof aiQualityInput.generatedWith === "string" ? aiQualityInput.generatedWith : "unknown";
+    const aiQuality = {
+      factCheckRequired,
+      factChecked,
+      factCheckReason,
+      generatedWith,
+      checkedTextHash: factChecked ? textHash(sourceText) : null,
+      checkedAt: factChecked ? FieldValue.serverTimestamp() : null,
+    };
 
     await lessonRef.set({
       ownerId: uid,
@@ -67,6 +97,7 @@ export async function POST(req: Request) {
 
       sourceText,
       tasks: Array.isArray(body.tasks) ? body.tasks : [],
+      aiQuality,
 
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),

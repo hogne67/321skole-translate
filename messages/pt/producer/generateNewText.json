@@ -130,6 +130,8 @@
     "buttons": {
       "generateText": "Gerar texto",
       "generatingText": "Gerando texto...",
+      "generateFactCheckedText": "Verificação extra",
+      "generatingFactCheckedText": "Verificando fatos...",
       "generateTasks": "Gerar atividades",
       "generatingTasks": "Gerando atividades...",
       "saveDraft": "Salvar rascunho",
@@ -146,6 +148,8 @@
     },
     "warnings": {
       "checkTextBeforeTasks": "Verifique o texto antes de gerar atividades.",
+      "factCheckRequiredBeforePublish": "Este texto deve passar por verificação extra antes da publicação.",
+      "factCheckCompleted": "A verificação extra foi feita para este texto.",
       "soonEmpty": "(quase acabando)"
     },
     "status": {
