@@ -494,13 +494,14 @@ Strict rules:
 - Do not explain the word inside the main text.
 ${prepositionGuidance ? `\n${prepositionGuidance}\n` : ""}
 - After the coherent text, add a blank line, then the heading "${languageLabels.explanationHeading}".
-- Under "${languageLabels.explanationHeading}", write:
-  1. ${languageLabels.belongsToWordClass(word, wordClassLabel)}
-  2. ${wordClassExplanation}
-  3. A simple explanation of the focus word "${word}": ${wordExplanation}
-  4. One very simple example sentence with "${word}".
+- Under "${languageLabels.explanationHeading}", write short plain lines without numbering or bullet points:
+  ${languageLabels.belongsToWordClass(word, wordClassLabel)}
+  ${wordClassExplanation}
+  A simple explanation of the focus word "${word}": ${wordExplanation}
+  One very simple example sentence with "${word}".
 - After the explanation, add a blank line, then the heading "${languageLabels.exampleHeading}".
 - Under "${languageLabels.exampleHeading}", write exactly 5 simple, correct sentences where "${word}" is used in different natural situations.
+- Do not number the explanation lines or example sentences.
 - The 5 example sentences should vary placement, time, subject or situation when possible.
 - Every example sentence must be grammatically correct and idiomatic ${languageName}.
 
@@ -1273,6 +1274,14 @@ function cleanA1StartLine(value: string): string {
     .trim();
 }
 
+function removeA1StartSectionNumbering(value: string): string {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*\d+[.)]\s+/, "").trimEnd())
+    .join("\n")
+    .trim();
+}
+
 function getHighFrequencyLanguageLabels(languageName: string): {
   titlePrefix: string;
   explanationHeading: string;
@@ -1782,7 +1791,7 @@ function normalizeA1StartHighFrequencyResult(
 ): GenerateTextResult {
   const word = cleanA1StartLine(String(config.word || ""));
   const wordClass = String(config.wordClass || "").trim();
-  const text = String(result.text || "").trim();
+  const text = removeA1StartSectionNumbering(String(result.text || ""));
 
   if (!word || !text) {
     throw new Error("A1 Start response did not contain usable high-frequency word text.");
