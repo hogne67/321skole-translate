@@ -20,6 +20,7 @@ import { getOrigin } from "@/lib/url";
 import QRCode from "qrcode";
 import type { CSSProperties } from "react";
 import { useLocale } from "next-intl";
+import { getTextTypeLabel, getTextTypeSearchTerms, normalizeTextTypeKey, normalizeTextTypeValue } from "@/lib/textTypes";
 
 type PublishVisibility = "public" | "unlisted" | "private";
 type LessonStatus = "draft" | "published";
@@ -89,10 +90,15 @@ function formatMaybeDate(v: FirestoreTimestampLike) {
 function coerceTextType(d: unknown): string {
   if (!isRecord(d)) return "";
   const a = asString(d.textType).trim();
-  if (a) return a;
+  if (a) return normalizeTextTypeValue(a);
   const b = asString(d.texttype).trim();
-  if (b) return b;
+  if (b) return normalizeTextTypeValue(b);
   return "";
+}
+
+function displayTextType(value: unknown, locale: string): string {
+  const key = normalizeTextTypeKey(value);
+  return key ? getTextTypeLabel(key, locale) : normalizeTextTypeValue(value);
 }
 
 function pickVisibility(v: unknown): PublishVisibility {
@@ -483,7 +489,8 @@ export default function ProducerTextsPage() {
       if (!needle) return true;
 
       const tt = coerceTextType(l);
-      const hay = `${l.title ?? ""} ${tt} ${l.level ?? ""} ${l.language ?? ""} ${l.status ?? ""}`
+      const textTypeTerms = getTextTypeSearchTerms(tt).join(" ");
+      const hay = `${l.title ?? ""} ${tt} ${textTypeTerms} ${l.level ?? ""} ${l.language ?? ""} ${l.status ?? ""}`
         .toLowerCase()
         .trim();
 
@@ -543,7 +550,7 @@ export default function ProducerTextsPage() {
             {filtered.map((l) => {
               const isPublished = (l.status ?? "draft") === "published";
               const busy = !!busyById[l.id];
-              const tt = coerceTextType(l);
+              const tt = displayTextType(coerceTextType(l), locale);
 
               return (
                 <div key={l.id} style={listCard}>

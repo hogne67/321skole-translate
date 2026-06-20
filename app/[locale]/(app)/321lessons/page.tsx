@@ -22,6 +22,7 @@ import { db } from "@/lib/firebase";
 import { LANGUAGES } from "@/lib/languages";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { useLocale, useTranslations } from "next-intl";
+import { getTextTypeLabel, normalizeTextTypeKey, normalizeTextTypeValue, TEXT_TYPE_KEYS, type TextTypeKey } from "@/lib/textTypes";
 
 type FirestoreTimestampLike = { seconds?: number } | null | undefined;
 
@@ -90,6 +91,53 @@ function defaultLanguageForLocale(locale: string) {
   return "all";
 }
 
+function languageDisplayName(code: string, fallbackLabel: string, locale: string): string {
+  const normalized = normLang(code);
+  if (normalized === "all") return fallbackLabel;
+
+  const language = locale.toLocaleLowerCase().startsWith("pt")
+    ? "pt"
+    : locale.toLocaleLowerCase().startsWith("en")
+      ? "en"
+      : "nb";
+  const names: Record<"nb" | "en" | "pt", Record<string, string>> = {
+    nb: {
+      nb: "Norsk (Bokmål)",
+      no: "Norsk (Bokmål)",
+      nn: "Norsk (Nynorsk)",
+      se: "Nordsamisk",
+      en: "Engelsk",
+      "pt-br": "Portugisisk (Brasil)",
+      "pt-pt": "Portugisisk (Portugal)",
+    },
+    en: {
+      nb: "Norwegian (Bokmål)",
+      no: "Norwegian (Bokmål)",
+      nn: "Norwegian (Nynorsk)",
+      se: "Northern Sami",
+      en: "English",
+      "pt-br": "Portuguese (Brazil)",
+      "pt-pt": "Portuguese (Portugal)",
+    },
+    pt: {
+      nb: "Norueguês (Bokmål)",
+      no: "Norueguês (Bokmål)",
+      nn: "Norueguês (Nynorsk)",
+      se: "Sami do norte",
+      en: "Inglês",
+      "pt-br": "Português (Brasil)",
+      "pt-pt": "Português (Portugal)",
+    },
+  };
+  const localized = names[language][normalized];
+  if (!localized) return fallbackLabel;
+
+  const original = fallbackLabel.includes("–") ? fallbackLabel.split("–").slice(1).join("–").trim() : "";
+  return original && !localized.toLocaleLowerCase().includes(original.toLocaleLowerCase())
+    ? `${localized} – ${original}`
+    : localized;
+}
+
 function pickImageUrl(l: PublishedLesson): string | null {
   const a = String(l.imageUrl || "").trim();
   if (a) return a;
@@ -121,12 +169,24 @@ function coerceTextType(l: PublishedLesson): string {
   if (lessonType === "reading_test") return "reading_test";
 
   const tt1 = String(l.textType ?? "").trim();
-  if (tt1) return tt1;
+  if (tt1) return normalizeTextTypeValue(tt1);
 
   const tt2 = String(l.texttype ?? "").trim();
-  if (tt2) return tt2;
+  if (tt2) return normalizeTextTypeValue(tt2);
 
   return "";
+}
+
+function coerceTextTypeFilterValue(l: PublishedLesson): TextTypeKey | string {
+  const tt = coerceTextType(l);
+  return normalizeTextTypeKey(tt) ?? tt;
+}
+
+function textTypeOptionLabel(value: string, locale: string, t: (key: string) => string): string {
+  const key = normalizeTextTypeKey(value);
+  if (key) return getTextTypeLabel(key, locale);
+  if (value === "reading_test") return t("card.readingTest");
+  return value;
 }
 
 function shouldShowInLibrary(l: PublishedLesson): boolean {
@@ -448,20 +508,20 @@ export default function LessonsLandingPage() {
 
   const langLabelByCode = useMemo(() => {
     const m = new Map<string, string>();
-    for (const l of LANGUAGES) m.set(normLang(l.code), l.label);
+    for (const l of LANGUAGES) m.set(normLang(l.code), languageDisplayName(l.code, l.label, locale));
     if (!m.has("no")) m.set("no", t("languages.norwegianBokmal"));
     return m;
-  }, [t]);
+  }, [locale, t]);
 
   const LANGUAGE_OPTIONS = useMemo(() => {
     return [
       { value: "all", label: t("languages.all") },
       ...LANGUAGES.map((l) => ({
         value: l.code,
-        label: l.label,
+        label: languageDisplayName(l.code, l.label, locale),
       })),
     ];
-  }, [t]);
+  }, [locale, t]);
 
   function resetFilters() {
     setQText("");
@@ -510,10 +570,14 @@ export default function LessonsLandingPage() {
   const allTextTypes = useMemo(() => {
     const s = new Set<string>();
     for (const l of all) {
-      const tt = coerceTextType(l);
+      const tt = coerceTextTypeFilterValue(l);
       if (tt) s.add(tt);
     }
-    return Array.from(s).sort((a, b) => a.localeCompare(b));
+    const ordered = [
+      ...TEXT_TYPE_KEYS.filter((key) => s.has(key)),
+      ...Array.from(s).filter((value) => value !== "reading_test" && !TEXT_TYPE_KEYS.includes(value as TextTypeKey)),
+    ];
+    return ordered;
   }, [all]);
 
   const filtered = useMemo(() => {
@@ -524,7 +588,8 @@ export default function LessonsLandingPage() {
       if (!langMatches(l.language, lang)) return false;
 
       const tt = coerceTextType(l);
-      if (textType !== "all" && tt !== textType) return false;
+      const ttFilterValue = coerceTextTypeFilterValue(l);
+      if (textType !== "all" && ttFilterValue !== textType) return false;
 
       if (!qt) return true;
 
@@ -1188,7 +1253,7 @@ export default function LessonsLandingPage() {
             <option value="all">{t("filters.textTypeAll")}</option>
             {allTextTypes.map((tt) => (
               <option key={tt} value={tt}>
-                {tt === "reading_test" ? t("card.readingTest") : tt}
+                {textTypeOptionLabel(tt, locale, t)}
               </option>
             ))}
           </select>
@@ -1273,7 +1338,9 @@ export default function LessonsLandingPage() {
             const langCode = normLang(l.language);
             const langLabel = langLabelByCode.get(langCode) || (l.language ? l.language : "");
             const isReadingTest = String(l.lessonType || "").trim().toLowerCase() === "reading_test";
-            const tt = isReadingTest ? t("card.readingTest") : coerceTextType(l);
+            const tt = isReadingTest
+              ? t("card.readingTest")
+              : textTypeOptionLabel(coerceTextTypeFilterValue(l), locale, t);
             const img = pickImageUrl(l);
             const author = (l.authorName || l.producerName || "").trim();
             const ratingAverage = l.ratingAverage ?? 0;

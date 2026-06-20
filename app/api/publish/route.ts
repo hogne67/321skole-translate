@@ -41,6 +41,10 @@ function inferFactCheckRequired(draft: Record<string, unknown>): { required: boo
     };
   }
 
+  if (!isRecord(draft.aiQuality)) {
+    return { required: false, reason: "" };
+  }
+
   const textType = String(draft.textType ?? draft.texttype ?? "").toLocaleLowerCase();
   const topic = String(draft.topic ?? draft.prompt ?? draft.title ?? "").toLocaleLowerCase();
   const combined = `${textType} ${topic}`;

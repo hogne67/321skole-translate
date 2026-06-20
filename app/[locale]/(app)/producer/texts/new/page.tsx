@@ -15,6 +15,7 @@ import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { trackCreateLesson } from "@/lib/analytics";
 import { trackEvent } from "@/lib/trackEvent";
+import { TEXT_TYPE_KEYS, type TextTypeKey } from "@/lib/textTypes";
 
 type MCQ = {
   q: string;
@@ -121,21 +122,6 @@ function looksLikeNamedPersonTopic(value: string) {
   return capitalizedWords.length >= 2;
 }
 
-const TEXT_TYPE_KEYS = [
-  "everydayStory",
-  "factual",
-  "fiction",
-  "article",
-  "dialogue",
-  "news",
-  "biography",
-  "letterEmail",
-  "opinion",
-  "howto",
-  "other",
-] as const;
-type TextTypeKey = (typeof TEXT_TYPE_KEYS)[number];
-
 type LevelKey = "A1_START" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type A1StartTense = "present" | "past" | "future";
 type A1StartSentenceCount = 10 | 13 | 16 | 19;
@@ -210,6 +196,20 @@ const A1_START_VERB_SUGGESTIONS: Record<string, readonly string[]> = {
 
 function getA1StartVerbSuggestions(language: string): readonly string[] {
   return A1_START_VERB_SUGGESTIONS[language.toLocaleLowerCase()] || A1_START_VERB_SUGGESTIONS.nb;
+}
+
+function getDefaultContentLanguage(locale: string): string {
+  const normalized = locale.toLocaleLowerCase();
+  if (normalized.startsWith("en")) return "en";
+  if (normalized.startsWith("pt")) return "pt-BR";
+  return "nb";
+}
+
+function getDefaultLanguageSearch(locale: string): string {
+  const normalized = locale.toLocaleLowerCase();
+  if (normalized.startsWith("en")) return "English";
+  if (normalized.startsWith("pt")) return "Portugu";
+  return "Norsk";
 }
 
 const LEVEL_DEFAULTS: Record<
@@ -394,8 +394,8 @@ export default function NewTextPage() {
   }, []);
 
   const [level, setLevel] = useState<LevelKey>("A2");
-  const [language, setLanguage] = useState("nb");
-  const [languageSearch, setLanguageSearch] = useState("");
+  const [language, setLanguage] = useState(() => getDefaultContentLanguage(locale));
+  const [languageSearch, setLanguageSearch] = useState(() => getDefaultLanguageSearch(locale));
   const [prompt, setPrompt] = useState("");
   const [textTypePreset, setTextTypePreset] = useState<TextTypeKey>("everydayStory");
   const [textTypeOther, setTextTypeOther] = useState("");
@@ -405,6 +405,7 @@ export default function NewTextPage() {
     }
     return t(`textTypes.${textTypePreset}`);
   }, [textTypePreset, textTypeOther, t]);
+  const textTypeValue = textTypePreset === "other" ? textTypeLabel : textTypePreset;
 
   const [textLength, setTextLength] = useState<number>(LEVEL_DEFAULTS.A2.textLength);
   const [mcqCount, setMcqCount] = useState<number>(LEVEL_DEFAULTS.A2.mcq);
@@ -473,6 +474,7 @@ export default function NewTextPage() {
   const busy = loadingText || loadingTasks || saving;
   const isA1Start = level === "A1_START";
   const effectiveTextType = isA1Start ? a1StartType : textTypeLabel;
+  const effectiveTextTypeValue = isA1Start ? a1StartType : textTypeValue;
   const effectiveA1StartTopic = isA1StartHighFrequency || isA1StartSoundLadder
     ? effectiveA1StartHighFrequencyTheme
     : effectiveA1StartPatternTopic;
@@ -834,7 +836,7 @@ export default function NewTextPage() {
         source: "text",
         level,
         language,
-        textType: effectiveTextType,
+        textType: effectiveTextTypeValue,
       });
 
       const nextTitle = String(data.title || "").trim();
@@ -1006,7 +1008,7 @@ export default function NewTextPage() {
       source: "text",
       level,
       language,
-      textType: effectiveTextType,
+      textType: effectiveTextTypeValue,
     });
 
     const raw = await res.text();

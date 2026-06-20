@@ -7,6 +7,14 @@ import { useParams } from "next/navigation";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase";
+import { useLocale } from "next-intl";
+import {
+  getTextTypeLabel,
+  normalizeTextTypeKey,
+  normalizeTextTypeValue,
+  TEXT_TYPE_KEYS,
+  type TextTypeKey,
+} from "@/lib/textTypes";
 
 type PublishState = "draft" | "unlisted" | "pending" | "published" | "rejected";
 type ModStatus = "pass" | "review" | "blocked" | "unknown";
@@ -80,8 +88,7 @@ function safeTasksArray(tasks: unknown): TaskLike[] {
 }
 
 function normalizeTextType(l: LessonDraft): string {
-  const raw = String(l.textType ?? l.texttype ?? "").trim();
-  return raw.replace(/^"+|"+$/g, "").trim();
+  return normalizeTextTypeValue(l.textType ?? l.texttype ?? "");
 }
 
 function publishStateLabel(s?: PublishState) {
@@ -141,6 +148,7 @@ async function publishViaApi(id: string, visibility: "public" | "unlisted" | "pr
 export default function ProducerTextDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id || "";
+  const locale = useLocale();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -157,6 +165,9 @@ export default function ProducerTextDetailPage() {
   const [rawTasksDraft, setRawTasksDraft] = useState<string>("");
 
   const tasksArr = useMemo(() => safeTasksArray(draft?.tasks), [draft?.tasks]);
+  const selectedTextType = draft ? normalizeTextTypeKey(normalizeTextType(draft)) : null;
+  const textTypeSelectValue: TextTypeKey | "other" = selectedTextType ?? "other";
+  const customTextTypeValue = draft && selectedTextType ? "" : normalizeTextType(draft ?? {});
 
   async function load() {
     if (!id) {
@@ -490,12 +501,28 @@ export default function ProducerTextDetailPage() {
 
               <label>
                 Text type (for library filters)
-                <input
-                  value={normalizeTextType(draft)}
-                  onChange={(e) => setDraft({ ...draft, textType: e.target.value })}
-                  placeholder="Everyday story / Biography / Article ..."
+                <select
+                  value={textTypeSelectValue}
+                  onChange={(e) => {
+                    const next = e.target.value as TextTypeKey | "other";
+                    setDraft({ ...draft, textType: next === "other" ? "" : next });
+                  }}
                   style={{ width: "100%", padding: 8, marginTop: 6 }}
-                />
+                >
+                  {TEXT_TYPE_KEYS.map((key) => (
+                    <option key={key} value={key}>
+                      {getTextTypeLabel(key, locale)}
+                    </option>
+                  ))}
+                </select>
+                {textTypeSelectValue === "other" && (
+                  <input
+                    value={customTextTypeValue}
+                    onChange={(e) => setDraft({ ...draft, textType: e.target.value })}
+                    placeholder={getTextTypeLabel("other", locale)}
+                    style={{ width: "100%", padding: 8, marginTop: 6 }}
+                  />
+                )}
               </label>
 
               <label>

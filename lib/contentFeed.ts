@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import type { Firestore } from "firebase/firestore";
 import type { AppMode } from "@/lib/mode";
+import { getTextTypeSearchTerms, normalizeTextTypeValue } from "@/lib/textTypes";
 
 const MY_CONTENT_QUERY_LIMIT = 250;
 const MY_SPACE_QUERY_LIMIT = 250;
@@ -136,13 +137,13 @@ function pickLessonType(d: unknown): string | undefined {
 function pickTextType(d: unknown): string | undefined {
   const x = d as Record<string, unknown> | null;
   const v = x?.textType;
-  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+  return typeof v === "string" && v.trim() ? normalizeTextTypeValue(v) : undefined;
 }
 
 function pickTexttype(d: unknown): string | undefined {
   const x = d as Record<string, unknown> | null;
   const v = x?.texttype;
-  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+  return typeof v === "string" && v.trim() ? normalizeTextTypeValue(v) : undefined;
 }
 
 function pickMathType(d: unknown): string | undefined {
@@ -256,6 +257,8 @@ function safeMeta(d: unknown): string[] {
   pushUnique(out, level);
   pushUnique(out, textType);
   pushUnique(out, texttype);
+  for (const term of getTextTypeSearchTerms(textType)) pushUnique(out, term);
+  for (const term of getTextTypeSearchTerms(texttype)) pushUnique(out, term);
   pushUnique(out, typeValue);
   pushUnique(out, lang);
   pushUnique(out, lessonType);
@@ -476,8 +479,14 @@ function ownLessonItemFromSubmission(args: {
   if (lessonMeta.level) meta.push(String(lessonMeta.level));
   if (lessonMeta.language) meta.push(String(lessonMeta.language));
   if (lessonMeta.lessonType) meta.push(String(lessonMeta.lessonType));
-  if (lessonMeta.textType) meta.push(String(lessonMeta.textType));
-  if (lessonMeta.texttype) meta.push(String(lessonMeta.texttype));
+  if (lessonMeta.textType) meta.push(normalizeTextTypeValue(lessonMeta.textType));
+  if (lessonMeta.texttype) meta.push(normalizeTextTypeValue(lessonMeta.texttype));
+  for (const term of getTextTypeSearchTerms(lessonMeta.textType)) {
+    if (!meta.includes(term)) meta.push(term);
+  }
+  for (const term of getTextTypeSearchTerms(lessonMeta.texttype)) {
+    if (!meta.includes(term)) meta.push(term);
+  }
   if (publishedId) meta.push(`published:${publishedId}`);
   if (lessonMeta.meta?.length) {
     for (const tag of lessonMeta.meta) {
@@ -585,8 +594,14 @@ async function fetchMySubmissions(db: Firestore, uid: string, mode: AppMode, loc
       if (lessonMeta?.level) meta.push(String(lessonMeta.level));
       if (lessonMeta?.language) meta.push(String(lessonMeta.language));
       if (lessonMeta?.lessonType) meta.push(String(lessonMeta.lessonType));
-      if (lessonMeta?.textType) meta.push(String(lessonMeta.textType));
-      if (lessonMeta?.texttype) meta.push(String(lessonMeta.texttype));
+      if (lessonMeta?.textType) meta.push(normalizeTextTypeValue(lessonMeta.textType));
+      if (lessonMeta?.texttype) meta.push(normalizeTextTypeValue(lessonMeta.texttype));
+      for (const term of getTextTypeSearchTerms(lessonMeta?.textType)) {
+        if (!meta.includes(term)) meta.push(term);
+      }
+      for (const term of getTextTypeSearchTerms(lessonMeta?.texttype)) {
+        if (!meta.includes(term)) meta.push(term);
+      }
 
       if (lessonMeta?.meta?.length) {
         for (const tag of lessonMeta.meta) {
@@ -685,8 +700,14 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, mode: AppM
       if (lessonMeta?.level) meta.push(String(lessonMeta.level));
       if (lessonMeta?.language) meta.push(String(lessonMeta.language));
       if (lessonMeta?.lessonType) meta.push(String(lessonMeta.lessonType));
-      if (lessonMeta?.textType) meta.push(String(lessonMeta.textType));
-      if (lessonMeta?.texttype) meta.push(String(lessonMeta.texttype));
+      if (lessonMeta?.textType) meta.push(normalizeTextTypeValue(lessonMeta.textType));
+      if (lessonMeta?.texttype) meta.push(normalizeTextTypeValue(lessonMeta.texttype));
+      for (const term of getTextTypeSearchTerms(lessonMeta?.textType)) {
+        if (!meta.includes(term)) meta.push(term);
+      }
+      for (const term of getTextTypeSearchTerms(lessonMeta?.texttype)) {
+        if (!meta.includes(term)) meta.push(term);
+      }
 
       if (lessonMeta?.meta?.length) {
         for (const tag of lessonMeta.meta) {
