@@ -1,13 +1,14 @@
 {
   "login": {
     "title": {
+      "anon": "Save your work",
       "signin": "Welcome back",
       "signup": "Create your account"
     },
     "intro": {
-      "anon": "You are using a temporary account. Sign in or create an account now to keep your work.",
-      "normal": "Choose how you want to log in.",
-      "signup": "Start as a student, teacher or parent in just a minute."
+      "anon": "Create an account or log in to keep everything you have made.",
+      "normal": "Log in with Google or email.",
+      "signup": "Create your account first. Then choose whether you are a student, teacher or parent."
     },
     "tabs": {
       "signin": "I already have an account",
@@ -26,10 +27,11 @@
     "buttons": {
       "working": "Working…",
       "sending": "Sending…",
-      "upgradeGoogle": "Save and continue with Google",
+      "upgradeGoogle": "Save with Google",
       "signinGoogle": "Log in with Google",
       "signupGoogle": "Create account with Google",
-      "useEmailSignin": "Use email and password",
+      "upgradeEmail": "Save with email",
+      "useEmailSignin": "Log in with email",
       "useEmailSignup": "Create account with email",
       "signinEmail": "Log in",
       "upgradeAccount": "Save anonymous account",

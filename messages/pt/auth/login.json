@@ -1,13 +1,14 @@
 {
   "login": {
     "title": {
+      "anon": "Salve seu trabalho",
       "signin": "Bem-vindo de volta",
       "signup": "Crie sua conta"
     },
     "intro": {
-      "anon": "Você está usando uma conta temporária. Faça login ou crie uma conta agora para salvar seu trabalho.",
-      "normal": "Escolha como deseja fazer login.",
-      "signup": "Comece como aluno, professor ou responsável em um minuto."
+      "anon": "Crie uma conta ou entre para manter tudo que você criou.",
+      "normal": "Entre com Google ou e-mail.",
+      "signup": "Crie sua conta primeiro. Depois escolha se você é aluno, professor ou responsável."
     },
     "tabs": {
       "signin": "Já tenho uma conta",
@@ -26,10 +27,11 @@
     "buttons": {
       "working": "Processando…",
       "sending": "Enviando…",
-      "upgradeGoogle": "Salvar e continuar com Google",
+      "upgradeGoogle": "Salvar com Google",
       "signinGoogle": "Entrar com Google",
       "signupGoogle": "Criar conta com Google",
-      "useEmailSignin": "Usar e-mail e senha",
+      "upgradeEmail": "Salvar com e-mail",
+      "useEmailSignin": "Entrar com e-mail",
       "useEmailSignup": "Criar conta com e-mail",
       "signinEmail": "Entrar",
       "upgradeAccount": "Salvar conta anônima",

@@ -405,9 +405,12 @@ Strict reading-practice rules:
 - Write exactly ${sentenceCount} lines using the structure below.
 - Use the same verb "${verb}" in every sentence, conjugated naturally for the requested tense.
 - Keep the same verb meaning clearly recognizable in every sentence, even when its form changes with the subject.
+- For Brazilian Portuguese, be careful that "ser" and "ir" share preterite forms. If the teacher supplies "ser", use identity or description complements, not movement or destination complements.
 - The first line must be a complete sentence beginning with the first-person singular subject, equivalent to "Jeg" in Norwegian.
 - Every line must be a complete, meaningful sentence using subject + verb + a simple object/complement.
 - For verbs that take an object, prefer a concrete noun phrase. Example: "Jeg ser en katt" and "Katten ser en mus".
+- Treat the theme as a word bank, not decoration. Keep the object/complement in every line connected to the theme when that is natural.
+- For a friends theme, prefer words about friends and friendship. For breakfast/dinner, prefer food and drink words. For school, prefer school objects and activities.
 - The title must be exactly the first complete sentence without final punctuation. Example: "Jeg er snill".
 - Lines 2 and 3 must use the same first-person subject and verb as line 1, but each line must have a different simple object/complement.
 - Then choose exactly ${additionalSubjectCount} varied, simple, single-word subjects. Examples include the equivalents of he, cat, it, Sara, child, or teacher.
@@ -1869,11 +1872,320 @@ function buildFallbackGroupsFromPattern(
   );
 }
 
+function getA1StartBrazilianPortugueseVerbPattern(
+  selectedVerb: string,
+  tense: string,
+  topic: string
+): { first: string; third: string; complements: string[] } | null {
+  const normalizedVerb = selectedVerb.toLocaleLowerCase();
+  const normalizedTense = tense === "past" || tense === "future" ? tense : "present";
+  const cleanedTopic = cleanA1StartLine(topic).toLocaleLowerCase();
+  const isFamilyTopic = cleanedTopic === "familie" || cleanedTopic === "família" || cleanedTopic === "familia";
+  const isSchoolTopic = cleanedTopic === "skole" || cleanedTopic === "escola";
+  const isShoppingTopic = cleanedTopic === "shopping" || cleanedTopic === "compras";
+  const isTravelTopic = cleanedTopic === "reise" || cleanedTopic === "viagem";
+  const isFriendsTopic = cleanedTopic === "venner" || cleanedTopic === "amigos";
+  const isHomeTopic = cleanedTopic === "hjem" || cleanedTopic === "casa";
+  const isTransportTopic = cleanedTopic === "transport" || cleanedTopic === "transporte";
+  const isHealthTopic = cleanedTopic === "helse" || cleanedTopic === "saúde" || cleanedTopic === "saude";
+  const isBreakfastTopic =
+    cleanedTopic === "frokost" ||
+    cleanedTopic === "café da manhã" ||
+    cleanedTopic === "cafe da manha" ||
+    cleanedTopic === "café de manhã" ||
+    cleanedTopic === "cafe de manha";
+  const isDinnerTopic = cleanedTopic === "middag" || cleanedTopic === "jantar";
+  const topicPhrase = cleanA1StartLine(topic);
+  const verbForms: Record<string, Record<string, { first: string; third: string }>> = {
+    ser: {
+      present: { first: "sou", third: "é" },
+      past: { first: "fui", third: "foi" },
+      future: { first: "vou ser", third: "vai ser" },
+    },
+    ter: {
+      present: { first: "tenho", third: "tem" },
+      past: { first: "tive", third: "teve" },
+      future: { first: "vou ter", third: "vai ter" },
+    },
+    ver: {
+      present: { first: "vejo", third: "vê" },
+      past: { first: "vi", third: "viu" },
+      future: { first: "vou ver", third: "vai ver" },
+    },
+    gostar: {
+      present: { first: "gosto", third: "gosta" },
+      past: { first: "gostei", third: "gostou" },
+      future: { first: "vou gostar", third: "vai gostar" },
+    },
+    comer: {
+      present: { first: "como", third: "come" },
+      past: { first: "comi", third: "comeu" },
+      future: { first: "vou comer", third: "vai comer" },
+    },
+    beber: {
+      present: { first: "bebo", third: "bebe" },
+      past: { first: "bebi", third: "bebeu" },
+      future: { first: "vou beber", third: "vai beber" },
+    },
+    ir: {
+      present: { first: "vou", third: "vai" },
+      past: { first: "fui", third: "foi" },
+      future: { first: "vou", third: "vai" },
+    },
+    vir: {
+      present: { first: "venho", third: "vem" },
+      past: { first: "vim", third: "veio" },
+      future: { first: "vou vir", third: "vai vir" },
+    },
+    fazer: {
+      present: { first: "faço", third: "faz" },
+      past: { first: "fiz", third: "fez" },
+      future: { first: "vou fazer", third: "vai fazer" },
+    },
+    ler: {
+      present: { first: "leio", third: "lê" },
+      past: { first: "li", third: "leu" },
+      future: { first: "vou ler", third: "vai ler" },
+    },
+    escrever: {
+      present: { first: "escrevo", third: "escreve" },
+      past: { first: "escrevi", third: "escreveu" },
+      future: { first: "vou escrever", third: "vai escrever" },
+    },
+  };
+  const defaultComplements: Record<string, string[]> = {
+    ser: ["feliz", "gentil", "forte", "calmo", "rápido", "amigo"],
+    ter: ["um livro", "uma bolsa", "uma bola", "uma bicicleta", "um cão", "um gato"],
+    ver: ["um carro", "um ônibus", "um trem", "uma casa", "uma escola", "uma loja"],
+    gostar: ["de livros", "de filmes", "de música", "de café", "de chá", "de suco"],
+    comer: ["uma maçã", "pão", "arroz", "peixe", "sopa", "frutas"],
+    beber: ["água", "leite", "suco", "chá", "café", "vitamina"],
+    ir: ["para casa", "à escola", "ao parque", "à loja", "ao trabalho", "para fora"],
+    vir: ["para casa", "à escola", "ao parque", "à loja", "para dentro", "de fora"],
+    fazer: ["comida", "um bolo", "um desenho", "uma cadeira", "um barco", "um cartão"],
+    ler: ["um livro", "uma história", "uma carta", "uma revista", "uma placa", "um poema"],
+    escrever: ["uma palavra", "uma frase", "uma carta", "um nome", "uma história", "uma lista"],
+  };
+  const familyComplements: Partial<Record<string, string[]>> = {
+    ver: ["minha mãe", "meu pai", "minha irmã", "meu irmão", "minha avó", "meu avô"],
+    gostar: ["da minha mãe", "do meu pai", "da minha irmã", "do meu irmão", "da minha avó", "do meu avô"],
+    comer: ["com minha mãe", "com meu pai", "com minha irmã", "com meu irmão", "com minha avó", "com meu avô"],
+    beber: ["com minha mãe", "com meu pai", "com minha irmã", "com meu irmão", "com minha avó", "com meu avô"],
+    ir: ["para a casa da mãe", "para a casa do pai", "para a casa da irmã", "para a casa do irmão", "para a casa da avó", "para a casa do avô"],
+    vir: ["da casa da mãe", "da casa do pai", "da casa da irmã", "da casa do irmão", "da casa da avó", "da casa do avô"],
+    fazer: ["comida para minha mãe", "um bolo para meu pai", "um desenho para minha irmã", "um cartão para meu irmão", "chá para minha avó", "um presente para meu avô"],
+    ler: ["uma carta para minha mãe", "uma carta para meu pai", "uma história para minha irmã", "uma história para meu irmão", "um livro para minha avó", "um livro para meu avô"],
+    escrever: ["uma carta para minha mãe", "uma carta para meu pai", "uma frase para minha irmã", "uma frase para meu irmão", "um cartão para minha avó", "um cartão para meu avô"],
+  };
+  const schoolComplements: Partial<Record<string, string[]>> = {
+    ser: ["aluno", "professor", "amigo", "gentil", "calmo", "rápido"],
+    ter: ["um livro", "um lápis", "um caderno", "uma mochila", "uma borracha", "uma régua"],
+    ver: ["um livro", "um lápis", "um caderno", "uma mochila", "uma mesa", "uma sala"],
+    gostar: ["do livro", "do lápis", "do caderno", "da mochila", "da sala", "da escola"],
+    comer: ["um lanche", "uma fruta", "um pão", "uma banana", "uma maçã", "uma salada"],
+    beber: ["água", "suco", "leite", "vitamina", "água na escola", "suco no recreio"],
+    ir: ["à escola", "à sala", "ao recreio", "à biblioteca", "ao quadro", "ao pátio"],
+    vir: ["da escola", "da sala", "do recreio", "da biblioteca", "do quadro", "do pátio"],
+    fazer: ["uma tarefa", "um desenho", "uma conta", "uma prova", "um cartaz", "uma atividade"],
+    ler: ["um livro", "uma frase", "uma palavra", "uma história", "uma página", "um texto"],
+    escrever: ["uma palavra", "uma frase", "uma conta", "um texto", "uma resposta", "um nome"],
+  };
+  const breakfastComplements: Partial<Record<string, string[]>> = {
+    ser: ["cedo", "bom", "simples", "gostoso", "calmo", "rápido"],
+    ter: ["pão", "queijo", "fruta", "bolo", "cereal", "torrada"],
+    ver: ["pão", "queijo", "fruta", "bolo", "cereal", "torrada"],
+    gostar: ["de pão", "de queijo", "de fruta", "de bolo", "de cereal", "de torrada"],
+    comer: ["pão", "queijo", "fruta", "bolo", "cereal", "torrada"],
+    beber: ["água", "leite", "suco", "café", "chá", "vitamina"],
+    ir: ["para a cozinha", "para a mesa", "tomar café", "comer pão", "beber leite", "pegar fruta"],
+    vir: ["para a cozinha", "para a mesa", "tomar café", "comer pão", "beber leite", "pegar fruta"],
+    fazer: ["pão", "suco", "café", "chá", "uma vitamina", "uma torrada"],
+    ler: ["uma palavra", "uma frase", "um bilhete", "uma receita", "um livro", "uma história"],
+    escrever: ["uma palavra", "uma frase", "um bilhete", "uma receita", "um nome", "uma lista"],
+  };
+  const dinnerComplements: Partial<Record<string, string[]>> = {
+    ser: ["bom", "gostoso", "simples", "quente", "calmo", "rápido"],
+    ter: ["arroz", "feijão", "peixe", "sopa", "salada", "frango"],
+    ver: ["arroz", "feijão", "peixe", "sopa", "salada", "frango"],
+    gostar: ["de arroz", "de feijão", "de peixe", "de sopa", "de salada", "de frango"],
+    comer: ["arroz", "feijão", "peixe", "sopa", "salada", "frango"],
+    beber: ["água", "suco", "leite", "chá", "vitamina", "água com limão"],
+    ir: ["para a cozinha", "para a mesa", "jantar", "pegar arroz", "comer sopa", "beber água"],
+    vir: ["para a cozinha", "para a mesa", "jantar", "pegar arroz", "comer sopa", "beber água"],
+    fazer: ["arroz", "feijão", "sopa", "salada", "frango", "peixe"],
+    ler: ["uma receita", "uma lista", "um bilhete", "uma frase", "um texto", "uma palavra"],
+    escrever: ["uma receita", "uma lista", "um bilhete", "uma frase", "um texto", "uma palavra"],
+  };
+  const shoppingComplements: Partial<Record<string, string[]>> = {
+    ser: ["barato", "caro", "novo", "bonito", "pequeno", "grande"],
+    ter: ["uma bolsa", "uma camiseta", "um sapato", "um livro", "um brinquedo", "um presente"],
+    ver: ["uma bolsa", "uma camiseta", "um sapato", "um livro", "um brinquedo", "um presente"],
+    gostar: ["da bolsa", "da camiseta", "do sapato", "do livro", "do brinquedo", "do presente"],
+    comer: ["um lanche", "uma fruta", "um pão", "uma banana", "uma maçã", "uma salada"],
+    beber: ["água", "suco", "leite", "café", "chá", "vitamina"],
+    ir: ["à loja", "ao mercado", "ao caixa", "ao shopping", "comprar uma bolsa", "comprar um livro"],
+    vir: ["da loja", "do mercado", "do caixa", "do shopping", "comprar uma bolsa", "comprar um livro"],
+    fazer: ["uma lista", "uma compra", "um pagamento", "um pacote", "uma escolha", "um pedido"],
+    ler: ["uma lista", "um preço", "uma placa", "um bilhete", "um anúncio", "um nome"],
+    escrever: ["uma lista", "um preço", "um nome", "um bilhete", "uma frase", "um pedido"],
+  };
+  const travelComplements: Partial<Record<string, string[]>> = {
+    ser: ["longe", "perto", "bom", "rápido", "calmo", "novo"],
+    ter: ["uma mala", "uma passagem", "um mapa", "um bilhete", "um ônibus", "um trem"],
+    ver: ["uma mala", "uma passagem", "um mapa", "um ônibus", "um trem", "um hotel"],
+    gostar: ["da mala", "da viagem", "do mapa", "do ônibus", "do trem", "do hotel"],
+    comer: ["um lanche", "uma fruta", "um pão", "uma banana", "uma maçã", "uma salada"],
+    beber: ["água", "suco", "leite", "café", "chá", "vitamina"],
+    ir: ["ao ônibus", "ao trem", "ao hotel", "à estação", "ao aeroporto", "à cidade"],
+    vir: ["do ônibus", "do trem", "do hotel", "da estação", "do aeroporto", "da cidade"],
+    fazer: ["uma mala", "uma viagem", "um mapa", "uma lista", "uma parada", "um plano"],
+    ler: ["um mapa", "uma passagem", "um bilhete", "uma placa", "uma lista", "um nome"],
+    escrever: ["uma lista", "um nome", "um bilhete", "uma frase", "um plano", "um endereço"],
+  };
+  const friendsComplements: Partial<Record<string, string[]>> = {
+    ser: ["amigo", "gentil", "bom amigo", "calmo", "feliz", "leal"],
+    ter: ["um amigo", "uma amiga", "um grupo", "uma bola", "um jogo", "uma foto"],
+    ver: ["um amigo", "uma amiga", "um grupo", "uma bola", "um jogo", "uma foto"],
+    gostar: ["do amigo", "da amiga", "do grupo", "do jogo", "da bola", "da foto"],
+    comer: ["com um amigo", "com uma amiga", "com o grupo", "com Sara", "com Ana", "com Paulo"],
+    beber: ["água com um amigo", "suco com uma amiga", "leite com o grupo", "chá com Sara", "café com Ana", "vitamina com Paulo"],
+    ir: ["com um amigo", "com uma amiga", "ao parque", "ao jogo", "à casa de Sara", "à casa de Ana"],
+    vir: ["com um amigo", "com uma amiga", "do parque", "do jogo", "da casa de Sara", "da casa de Ana"],
+    fazer: ["um jogo com o amigo", "um desenho para a amiga", "uma carta para o grupo", "uma foto com Sara", "um plano com Ana", "uma atividade com Paulo"],
+    ler: ["uma carta do amigo", "uma carta da amiga", "uma mensagem do grupo", "uma história para Sara", "um bilhete de Ana", "um texto sobre amigos"],
+    escrever: ["uma carta para o amigo", "uma carta para a amiga", "uma mensagem para o grupo", "um bilhete para Sara", "uma frase sobre Ana", "um texto sobre amigos"],
+  };
+  const homeComplements: Partial<Record<string, string[]>> = {
+    ser: ["em casa", "calmo", "limpo", "pequeno", "grande", "bom"],
+    ter: ["uma cama", "uma mesa", "uma cadeira", "uma porta", "uma janela", "um quarto"],
+    ver: ["uma cama", "uma mesa", "uma cadeira", "uma porta", "uma janela", "um quarto"],
+    gostar: ["da casa", "do quarto", "da cama", "da mesa", "da janela", "da cadeira"],
+    comer: ["em casa", "na cozinha", "na mesa", "pão em casa", "fruta em casa", "sopa em casa"],
+    beber: ["água em casa", "suco em casa", "leite em casa", "chá na cozinha", "café na mesa", "vitamina em casa"],
+    ir: ["para casa", "para o quarto", "para a cozinha", "para a sala", "para a mesa", "para a porta"],
+    vir: ["para casa", "do quarto", "da cozinha", "da sala", "da mesa", "da porta"],
+    fazer: ["a cama", "comida", "um desenho", "uma lista", "uma tarefa", "um lanche"],
+    ler: ["um livro em casa", "uma frase no quarto", "uma carta na sala", "uma receita na cozinha", "um bilhete na mesa", "um texto em casa"],
+    escrever: ["uma frase em casa", "uma carta no quarto", "um bilhete na sala", "uma lista na cozinha", "um nome na mesa", "um texto em casa"],
+  };
+  const transportComplements: Partial<Record<string, string[]>> = {
+    ser: ["rápido", "lento", "perto", "longe", "cheio", "novo"],
+    ter: ["um ônibus", "um trem", "um carro", "uma bicicleta", "um bilhete", "uma parada"],
+    ver: ["um ônibus", "um trem", "um carro", "uma bicicleta", "um bilhete", "uma parada"],
+    gostar: ["do ônibus", "do trem", "do carro", "da bicicleta", "do bilhete", "da parada"],
+    comer: ["um lanche no ônibus", "uma fruta no trem", "um pão no carro", "uma banana na parada", "uma maçã na viagem", "uma salada na estação"],
+    beber: ["água no ônibus", "suco no trem", "leite no carro", "café na parada", "chá na viagem", "vitamina na estação"],
+    ir: ["de ônibus", "de trem", "de carro", "de bicicleta", "à parada", "à estação"],
+    vir: ["de ônibus", "de trem", "de carro", "de bicicleta", "da parada", "da estação"],
+    fazer: ["uma viagem", "uma parada", "uma lista", "um mapa", "um plano", "um bilhete"],
+    ler: ["um bilhete", "um mapa", "uma placa", "uma lista", "um nome", "um horário"],
+    escrever: ["um bilhete", "um nome", "uma lista", "um horário", "uma frase", "um plano"],
+  };
+  const healthComplements: Partial<Record<string, string[]>> = {
+    ser: ["saudável", "forte", "calmo", "bom", "leve", "ativo"],
+    ter: ["água", "sono", "força", "energia", "um remédio", "uma consulta"],
+    ver: ["um médico", "uma médica", "um remédio", "uma consulta", "uma fruta", "água"],
+    gostar: ["de água", "de fruta", "de sono", "de descanso", "de caminhar", "de correr"],
+    comer: ["fruta", "salada", "sopa", "arroz", "peixe", "banana"],
+    beber: ["água", "suco", "leite", "chá", "vitamina", "água com limão"],
+    ir: ["ao médico", "à médica", "à consulta", "caminhar", "correr", "descansar"],
+    vir: ["do médico", "da médica", "da consulta", "caminhar", "correr", "descansar"],
+    fazer: ["uma caminhada", "um exercício", "uma consulta", "uma pausa", "uma lista", "um lanche saudável"],
+    ler: ["uma receita", "uma lista", "um bilhete", "um texto sobre saúde", "uma frase", "uma palavra"],
+    escrever: ["uma lista", "um bilhete", "uma frase sobre saúde", "um texto sobre saúde", "um nome", "uma palavra"],
+  };
+  const topicComplements: Partial<Record<string, string[]>> | null = topicPhrase && !isFamilyTopic && !isSchoolTopic && !isShoppingTopic && !isTravelTopic && !isFriendsTopic && !isHomeTopic && !isTransportTopic && !isHealthTopic && !isBreakfastTopic && !isDinnerTopic
+    ? {
+        ser: [`amigo de ${topicPhrase}`, `fã de ${topicPhrase}`, `bom em ${topicPhrase}`, `feliz com ${topicPhrase}`, `calmo com ${topicPhrase}`, `rápido em ${topicPhrase}`],
+        ter: [`um livro sobre ${topicPhrase}`, `uma foto de ${topicPhrase}`, `um desenho de ${topicPhrase}`, `uma história de ${topicPhrase}`, `uma mochila de ${topicPhrase}`, `uma camiseta de ${topicPhrase}`],
+        ver: [`${topicPhrase}`, `uma foto de ${topicPhrase}`, `um desenho de ${topicPhrase}`, `um livro sobre ${topicPhrase}`, `uma história de ${topicPhrase}`, `um vídeo de ${topicPhrase}`],
+        gostar: [`de ${topicPhrase}`, `muito de ${topicPhrase}`, `da história de ${topicPhrase}`, `do desenho de ${topicPhrase}`, `do livro de ${topicPhrase}`, `da foto de ${topicPhrase}`],
+        comer: [`um lanche depois de ${topicPhrase}`, `uma fruta depois de ${topicPhrase}`, `um pão depois de ${topicPhrase}`, `uma banana depois de ${topicPhrase}`, `uma maçã depois de ${topicPhrase}`, `uma salada depois de ${topicPhrase}`],
+        beber: [`água depois de ${topicPhrase}`, `suco depois de ${topicPhrase}`, `leite depois de ${topicPhrase}`, `água com ${topicPhrase}`, `suco com ${topicPhrase}`, `vitamina depois de ${topicPhrase}`],
+        ir: [`para ${topicPhrase}`, `ver ${topicPhrase}`, `brincar de ${topicPhrase}`, `ler sobre ${topicPhrase}`, `falar de ${topicPhrase}`, `desenhar ${topicPhrase}`],
+        vir: [`de ${topicPhrase}`, `para ver ${topicPhrase}`, `para brincar de ${topicPhrase}`, `para ler sobre ${topicPhrase}`, `para falar de ${topicPhrase}`, `para desenhar ${topicPhrase}`],
+        fazer: [`um desenho de ${topicPhrase}`, `uma história de ${topicPhrase}`, `um cartaz de ${topicPhrase}`, `uma atividade sobre ${topicPhrase}`, `uma frase sobre ${topicPhrase}`, `um jogo de ${topicPhrase}`],
+        ler: [`um livro sobre ${topicPhrase}`, `uma história de ${topicPhrase}`, `uma frase sobre ${topicPhrase}`, `uma página sobre ${topicPhrase}`, `um texto sobre ${topicPhrase}`, `uma palavra de ${topicPhrase}`],
+        escrever: [`uma palavra sobre ${topicPhrase}`, `uma frase sobre ${topicPhrase}`, `uma história de ${topicPhrase}`, `um texto sobre ${topicPhrase}`, `uma resposta sobre ${topicPhrase}`, `um nome de ${topicPhrase}`],
+      }
+    : null;
+  const forms = verbForms[normalizedVerb]?.[normalizedTense];
+  const complements =
+    isFamilyTopic && familyComplements[normalizedVerb]
+      ? familyComplements[normalizedVerb]
+        : isSchoolTopic && schoolComplements[normalizedVerb]
+          ? schoolComplements[normalizedVerb]
+        : isShoppingTopic && shoppingComplements[normalizedVerb]
+          ? shoppingComplements[normalizedVerb]
+        : isTravelTopic && travelComplements[normalizedVerb]
+          ? travelComplements[normalizedVerb]
+        : isFriendsTopic && friendsComplements[normalizedVerb]
+          ? friendsComplements[normalizedVerb]
+        : isHomeTopic && homeComplements[normalizedVerb]
+          ? homeComplements[normalizedVerb]
+        : isTransportTopic && transportComplements[normalizedVerb]
+          ? transportComplements[normalizedVerb]
+        : isHealthTopic && healthComplements[normalizedVerb]
+          ? healthComplements[normalizedVerb]
+        : isBreakfastTopic && breakfastComplements[normalizedVerb]
+          ? breakfastComplements[normalizedVerb]
+        : isDinnerTopic && dinnerComplements[normalizedVerb]
+          ? dinnerComplements[normalizedVerb]
+        : topicComplements?.[normalizedVerb]
+          ? topicComplements[normalizedVerb]
+        : defaultComplements[normalizedVerb];
+  if (!forms || !complements) return null;
+  return { ...forms, complements };
+}
+
+function getA1StartExpectedVerbForms(
+  languageName: string,
+  selectedVerb: string,
+  tense: string
+): string[] {
+  if (languageName === "Brazilian Portuguese") {
+    const pattern = getA1StartBrazilianPortugueseVerbPattern(selectedVerb, tense, "");
+    if (pattern) return [pattern.first, pattern.third];
+  }
+  return [selectedVerb];
+}
+
+function lineContainsA1StartVerb(line: string, verbForms: string[]): boolean {
+  const paddedLine = ` ${line.toLocaleLowerCase()} `;
+  return verbForms.some((form) => paddedLine.includes(` ${form.toLocaleLowerCase()} `));
+}
+
+function isA1StartLineCompatibleWithVerb(
+  line: string,
+  selectedVerb: string,
+  languageName: string
+): boolean {
+  if (languageName !== "Brazilian Portuguese") return true;
+  if (selectedVerb.toLocaleLowerCase() !== "ser") return true;
+
+  const lower = ` ${line.toLocaleLowerCase()} `;
+  return ![
+    " fui ao ",
+    " fui à ",
+    " fui aos ",
+    " fui às ",
+    " fui para ",
+    " fui de ",
+    " foi ao ",
+    " foi à ",
+    " foi aos ",
+    " foi às ",
+    " foi para ",
+    " foi de ",
+  ].some((pattern) => lower.includes(pattern));
+}
+
 function getA1StartFallbackGroups(
   languageName: string,
   selectedVerb: string,
   firstPersonSubject: string,
-  topic: string
+  topic: string,
+  tense = "present"
 ): string[][] {
   const normalizedVerb = selectedVerb.toLocaleLowerCase();
   const cleanedTopic = cleanA1StartLine(topic);
@@ -1953,7 +2265,7 @@ function getA1StartFallbackGroups(
     }
   }
 
-  if (languageName === "Brazilian Portuguese" && normalizedVerb === "gostar") {
+  if (languageName === "Brazilian Portuguese" && tense === "present" && normalizedVerb === "gostar") {
     return [
       ["Eu gosto de livros", "Eu gosto de filmes", "Eu gosto de música"],
       ["Ele gosta de cães", "Ele gosta de carros", "Ele gosta de flores"],
@@ -1964,7 +2276,7 @@ function getA1StartFallbackGroups(
     ];
   }
 
-  if (languageName === "Brazilian Portuguese" && normalizedVerb === "ver") {
+  if (languageName === "Brazilian Portuguese" && tense === "present" && normalizedVerb === "ver") {
     return [
       ["Eu vejo um carro", "Eu vejo um ônibus", "Eu vejo um trem"],
       ["Ele vê um cão", "Ele vê um gato", "Ele vê um pássaro"],
@@ -1976,18 +2288,7 @@ function getA1StartFallbackGroups(
   }
 
   if (languageName === "Brazilian Portuguese") {
-    const portuguesePatterns: Record<string, { first: string; third: string; complements: string[] }> = {
-      ser: { first: "sou", third: "é", complements: ["feliz", "gentil", "forte", "calmo", "rápido", "amigo"] },
-      ter: { first: "tenho", third: "tem", complements: ["um livro", "uma bolsa", "uma bola", "uma bicicleta", "um cão", "um gato"] },
-      comer: { first: "como", third: "come", complements: ["uma maçã", "pão", "arroz", "peixe", "sopa", "frutas"] },
-      beber: { first: "bebo", third: "bebe", complements: ["água", "leite", "suco", "chá", "café", "vitamina"] },
-      ir: { first: "vou", third: "vai", complements: ["para casa", "à escola", "ao parque", "à loja", "ao trabalho", "para fora"] },
-      vir: { first: "venho", third: "vem", complements: ["para casa", "à escola", "ao parque", "à loja", "para dentro", "de fora"] },
-      fazer: { first: "faço", third: "faz", complements: ["comida", "um bolo", "um desenho", "uma cadeira", "um barco", "um cartão"] },
-      ler: { first: "leio", third: "lê", complements: ["um livro", "uma história", "uma carta", "uma revista", "uma placa", "um poema"] },
-      escrever: { first: "escrevo", third: "escreve", complements: ["uma palavra", "uma frase", "uma carta", "um nome", "uma história", "uma lista"] },
-    };
-    const pattern = portuguesePatterns[normalizedVerb];
+    const pattern = getA1StartBrazilianPortugueseVerbPattern(selectedVerb, tense, topic);
     if (pattern) {
       const subjects = [firstPersonSubject, "Ela", "Sara", "Ana", "Paulo", "Bia"];
       return buildFallbackGroupsFromPattern(
@@ -2069,17 +2370,26 @@ function normalizeA1StartResult(
         : languageName === "English"
           ? "I"
           : rawLines.map((line) => line.split(" ")[0]).find(Boolean) || titleLine.split(" ")[0];
-  const hasSelectedVerb = (line: string) =>
-    line.toLocaleLowerCase().split(" ").includes(selectedVerb.toLocaleLowerCase());
+  const expectedVerbForms = getA1StartExpectedVerbForms(
+    languageName,
+    selectedVerb,
+    String(config.tense || "present")
+  );
   const completeLines = rawLines
     .map(cleanA1StartLine)
-    .filter((line) => line.split(" ").length >= 3 && hasSelectedVerb(line));
+    .filter(
+      (line) =>
+        line.split(" ").length >= 3 &&
+        lineContainsA1StartVerb(line, expectedVerbForms) &&
+        isA1StartLineCompatibleWithVerb(line, selectedVerb, languageName)
+    );
   const groupCount = (expectedSentenceCount - 4) / 3;
   const fallbackGroups = getA1StartFallbackGroups(
     languageName,
     selectedVerb,
     firstPersonSubject,
-    String(config.topic || "")
+    String(config.topic || ""),
+    String(config.tense || "present")
   );
   const groupsBySubject = new Map<string, string[]>();
   for (const line of completeLines) {
@@ -2091,9 +2401,10 @@ function normalizeA1StartResult(
 
   const firstSubjectKey = firstPersonSubject.toLocaleLowerCase();
   const generatedFirstGroup = groupsBySubject.get(firstSubjectKey) || [];
-  const firstGroup = generatedFirstGroup.length >= 3
-    ? generatedFirstGroup.slice(0, 3)
-    : fallbackGroups[0];
+  const firstGroupNeedsFallback = generatedFirstGroup.length < 3;
+  const firstGroup = firstGroupNeedsFallback
+    ? fallbackGroups[0]
+    : generatedFirstGroup.slice(0, 3);
 
   const otherGroups = Array.from(groupsBySubject.entries())
     .filter(

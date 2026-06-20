@@ -166,13 +166,13 @@ const A1_START_HIGH_FREQUENCY_WORDS = {
   },
 } as const;
 
-const A1_START_HIGH_FREQUENCY_THEMES = [
+const A1_START_THEMES = [
   "familie",
-  "jobb",
   "skole",
   "shopping",
-  "mat",
-  "fritid",
+  "reise",
+  "frokost",
+  "middag",
   "venner",
   "hjem",
   "transport",
@@ -426,7 +426,8 @@ export default function NewTextPage() {
   const [a1StartTense, setA1StartTense] = useState<A1StartTense>("present");
   const [a1StartSentenceCount, setA1StartSentenceCount] =
     useState<A1StartSentenceCount>(10);
-  const [a1StartTopic, setA1StartTopic] = useState("");
+  const [a1StartTopic, setA1StartTopic] = useState("familie");
+  const [a1StartCustomTopic, setA1StartCustomTopic] = useState("");
   const [a1StartTrueFalseCount, setA1StartTrueFalseCount] = useState(5);
   const [a1StartImageSentenceCount, setA1StartImageSentenceCount] = useState(5);
   const [a1StartVerbSentenceCount, setA1StartVerbSentenceCount] = useState(5);
@@ -445,6 +446,10 @@ export default function NewTextPage() {
     a1StartHighFrequencyTheme === "__custom__"
       ? a1StartHighFrequencyCustomTheme.trim()
       : a1StartHighFrequencyTheme;
+  const effectiveA1StartPatternTopic =
+    a1StartTopic === "__custom__"
+      ? a1StartCustomTopic.trim()
+      : a1StartTopic;
 
   const [title, setTitle] = useState<string>("");
   const [sourceText, setSourceText] = useState<string>("");
@@ -470,7 +475,7 @@ export default function NewTextPage() {
   const effectiveTextType = isA1Start ? a1StartType : textTypeLabel;
   const effectiveA1StartTopic = isA1StartHighFrequency || isA1StartSoundLadder
     ? effectiveA1StartHighFrequencyTheme
-    : a1StartTopic.trim();
+    : effectiveA1StartPatternTopic;
   const effectiveTopic = isA1Start ? effectiveA1StartTopic : prompt.trim();
   const factCheckReason = useMemo(() => {
     if (isA1Start) return "";
@@ -1531,7 +1536,7 @@ export default function NewTextPage() {
                           onChange={(e) => setA1StartHighFrequencyTheme(e.target.value)}
                           style={fieldStyle}
                         >
-                          {A1_START_HIGH_FREQUENCY_THEMES.map((theme) => (
+                          {A1_START_THEMES.map((theme) => (
                             <option key={theme} value={theme}>
                               {t(`a1Start.highFrequencyThemes.${theme}`)}
                             </option>
@@ -1548,12 +1553,28 @@ export default function NewTextPage() {
                         )}
                       </div>
                     ) : (
-                      <input
-                        value={a1StartTopic}
-                        onChange={(e) => setA1StartTopic(e.target.value)}
-                        placeholder={t("a1Start.placeholders.topic")}
-                        style={fieldStyle}
-                      />
+                      <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
+                        <select
+                          value={a1StartTopic}
+                          onChange={(e) => setA1StartTopic(e.target.value)}
+                          style={fieldStyle}
+                        >
+                          {A1_START_THEMES.map((theme) => (
+                            <option key={theme} value={theme}>
+                              {t(`a1Start.highFrequencyThemes.${theme}`)}
+                            </option>
+                          ))}
+                          <option value="__custom__">{t("a1Start.highFrequencyThemes.custom")}</option>
+                        </select>
+                        {a1StartTopic === "__custom__" && (
+                          <input
+                            value={a1StartCustomTopic}
+                            onChange={(e) => setA1StartCustomTopic(e.target.value)}
+                            placeholder={t("a1Start.placeholders.topic")}
+                            style={fieldStyle}
+                          />
+                        )}
+                      </div>
                     )}
                   </label>
                   {!isA1StartSoundLadder && <label>
