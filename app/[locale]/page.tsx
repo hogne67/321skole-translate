@@ -375,9 +375,7 @@ export default async function HomePage() {
 
       <HeroSection t={t} locale={locale} />
 
-      <AiSupportSection t={t} locale={locale} />
-
-      <PrintOrDigitalSection t={t} locale={locale} />
+      <RoleGatewaySection t={t} locale={locale} />
 
       <TopLibrarySection
         locale={locale}
@@ -388,13 +386,15 @@ export default async function HomePage() {
         lessonCountLabel={lessonCountLabel}
       />
 
+      <AiSupportSection t={t} locale={locale} />
+
+      <PrintOrDigitalSection t={t} locale={locale} />
+
+      <SpacesSection t={t} locale={locale} />
+
       <WowSection t={t} locale={locale} />
 
       <TeacherPowerSection t={t} locale={locale} />
-
-      <LanguageLearningSection t={t} locale={locale} />
-
-      <SpacesSection t={t} locale={locale} />
 
       <NorwayLegacyNotice />
 
@@ -403,6 +403,8 @@ export default async function HomePage() {
       <ParentHomeSection t={t} locale={locale} />
 
       <StudentFlowSection t={t} locale={locale} />
+
+      <LanguageLearningSection t={t} locale={locale} />
 
       <FinalCtaSection t={t} locale={locale} />
 
@@ -537,9 +539,147 @@ function HeroSection(props: { t: TFn; locale: string }) {
   );
 }
 
+function RoleGatewaySection(props: { t: TFn; locale: string }) {
+  const roles = [
+    {
+      key: "teacher",
+      image: "/landing/symbol_teacher.png",
+      learnHref: "#ai-support",
+      startHref: "/login",
+    },
+    {
+      key: "student",
+      image: "/landing/symbol_student.png",
+      learnHref: "#for-students",
+      startHref: "/login",
+    },
+    {
+      key: "parent",
+      image: "/landing/symbol_parent.png",
+      learnHref: "#for-parents",
+      startHref: "/login",
+    },
+    {
+      key: "school",
+      image: "/landing/symbol_school.png",
+      learnHref: "/skoler",
+      startHref: "/skoler/bestilling",
+    },
+  ];
+
+  return (
+    <section className="bg-white">
+      <div className="mx-auto max-w-6xl px-6 py-10 md:py-14">
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold uppercase text-sky-700">
+            {props.t("roleGateway.eyebrow")}
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
+            {props.t("roleGateway.title")}
+          </h2>
+          <p className="mt-3 text-base leading-7 text-slate-700 md:text-lg">
+            {props.t("roleGateway.description")}
+          </p>
+        </div>
+
+        <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {roles.map((role) => (
+            <RoleGatewayCard
+              key={role.key}
+              title={props.t(`roleGateway.cards.${role.key}.title`)}
+              text={props.t(`roleGateway.cards.${role.key}.text`)}
+              points={[
+                props.t(`roleGateway.cards.${role.key}.points.0`),
+                props.t(`roleGateway.cards.${role.key}.points.1`),
+                props.t(`roleGateway.cards.${role.key}.points.2`),
+                props.t(`roleGateway.cards.${role.key}.points.3`),
+                props.t(`roleGateway.cards.${role.key}.points.4`),
+              ]}
+              image={role.image}
+              imageAlt={props.t(`roleGateway.cards.${role.key}.imageAlt`)}
+              learnHref={role.learnHref}
+              startHref={role.startHref}
+              learnLabel={props.t("roleGateway.learnMore")}
+              startLabel={props.t("roleGateway.startNow")}
+              locale={props.locale}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RoleGatewayCard(props: {
+  title: string;
+  text: string;
+  points: string[];
+  image: string;
+  imageAlt: string;
+  learnHref: string;
+  startHref: string;
+  learnLabel: string;
+  startLabel: string;
+  locale: string;
+}) {
+  const learnHref = props.learnHref.startsWith("#")
+    ? props.learnHref
+    : localizedPath(props.locale, props.learnHref);
+  const startHref = localizedPath(props.locale, props.startHref);
+
+  return (
+    <details className="group rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-sm transition hover:border-sky-200 hover:bg-white hover:shadow-md">
+      <summary className="block cursor-pointer list-none">
+        <div className="relative aspect-[14/17] overflow-hidden rounded-xl bg-white">
+          <Image
+            src={props.image}
+            alt={props.imageAlt}
+            fill
+            sizes="(min-width: 1024px) 260px, (min-width: 640px) 45vw, 90vw"
+            className="object-cover object-center"
+          />
+        </div>
+
+        <div className="px-1 pb-1 pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-semibold text-slate-950">{props.title}</h3>
+            <span className="text-sm font-semibold text-sky-700 group-open:hidden">+</span>
+            <span className="hidden text-sm font-semibold text-sky-700 group-open:inline">−</span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{props.text}</p>
+        </div>
+      </summary>
+
+      <div className="grid gap-2 px-1 pb-1 pt-3">
+        <ul className="grid gap-2 pb-2">
+          {props.points.map((point) => (
+            <li key={point} className="flex gap-2 text-sm leading-5 text-slate-700">
+              <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-sky-500" />
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
+
+        <Link
+          href={learnHref}
+          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+        >
+          {props.learnLabel}
+        </Link>
+        <Link
+          href={startHref}
+          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+        >
+          {props.startLabel}
+        </Link>
+      </div>
+    </details>
+  );
+}
+
 function AiSupportSection(props: { t: TFn; locale: string }) {
   return (
-    <section className="relative overflow-hidden bg-white">
+    <section id="ai-support" className="relative overflow-hidden bg-white scroll-mt-24">
       <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-sky-400 to-sky-600" />
 
       <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-20">
@@ -745,7 +885,7 @@ function WowSection(props: { t: TFn; locale: string }) {
 
 function TeacherPowerSection(props: { t: TFn; locale: string }) {
   return (
-    <section className="relative overflow-hidden bg-sky-50 text-slate-950">
+    <section id="for-teachers" className="relative overflow-hidden bg-sky-50 text-slate-950 scroll-mt-24">
       <div className="absolute inset-0 bg-gradient-to-br from-sky-600 via-sky-400 to-sky-600" />
 
       <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-20">
@@ -1037,7 +1177,7 @@ function TopLibrarySection(props: {
 
 function ParentHomeSection(props: { t: TFn; locale: string }) {
   return (
-    <section className="relative overflow-hidden bg-white">
+    <section id="for-parents" className="relative overflow-hidden bg-white scroll-mt-24">
       <div className="absolute inset-0 bg-gradient-to-br from-amber-50 via-white to-sky-50" />
 
       <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-20">
@@ -1123,30 +1263,30 @@ function ParentHomeSection(props: { t: TFn; locale: string }) {
 
 function StudentFlowSection(props: { t: TFn; locale: string }) {
   return (
-    <section className="relative overflow-hidden bg-sky-50">
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-white to-emerald-50" />
+    <section id="for-students" className="relative overflow-hidden bg-slate-950 text-white scroll-mt-24">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.35),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.28),_transparent_35%)]" />
 
       <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-20">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-10">
 
           {/* TEXT TOP */}
           <div className="order-1 md:col-start-1 md:row-start-1">
-            <p className="inline-flex rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-800">
+            <p className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/15">
               {props.t("studentFlow.eyebrow")}
             </p>
 
-            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-slate-950 md:mt-5 md:text-6xl">
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight md:mt-5 md:text-6xl">
               {props.t("studentFlow.title")}
             </h2>
 
-            <p className="mt-4 max-w-xl text-base text-slate-700 md:mt-5 md:text-xl">
+            <p className="mt-4 max-w-xl text-base text-white/75 md:mt-5 md:text-xl">
               {props.t("studentFlow.description")}
             </p>
           </div>
 
           {/* IMAGE (opp på mobil) */}
-          <div className="order-2 rounded-[2rem] border border-white bg-white/80 p-2 shadow-xl shadow-sky-900/10 backdrop-blur md:col-start-2 md:row-span-2 md:row-start-1 md:p-3">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
+          <div className="order-2 rounded-[2rem] border border-white/10 bg-white/10 p-2 shadow-2xl shadow-black/20 backdrop-blur md:col-start-2 md:row-span-2 md:row-start-1 md:p-3">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-900">
               <Image
                 src="/landing/student-flow.png"
                 alt={props.t("studentFlow.imageAlt")}
@@ -1171,23 +1311,19 @@ function StudentFlowSection(props: { t: TFn; locale: string }) {
           {/* TEXT BOTTOM */}
           <div className="order-3 md:col-start-1 md:row-start-2">
             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 md:mt-0 md:gap-3">
-              <LightCard
-                small
+              <DarkCard
                 title={props.t("studentFlow.cards.create.title")}
                 text={props.t("studentFlow.cards.create.text")}
               />
-              <LightCard
-                small
+              <DarkCard
                 title={props.t("studentFlow.cards.language.title")}
                 text={props.t("studentFlow.cards.language.text")}
               />
-              <LightCard
-                small
+              <DarkCard
                 title={props.t("studentFlow.cards.correction.title")}
                 text={props.t("studentFlow.cards.correction.text")}
               />
-              <LightCard
-                small
+              <DarkCard
                 title={props.t("studentFlow.cards.feedback.title")}
                 text={props.t("studentFlow.cards.feedback.text")}
               />
@@ -1199,7 +1335,7 @@ function StudentFlowSection(props: { t: TFn; locale: string }) {
               primaryLabel={props.t("studentFlow.ctaPrimary")}
               secondaryHref="/login"
               secondaryLabel={props.t("studentFlow.ctaSecondary")}
-              variant="light"
+              variant="dark"
             />
           </div>
         </div>

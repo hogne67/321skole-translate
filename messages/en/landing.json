@@ -13,6 +13,63 @@
       "note": "No installation. Use it in your browser. Ready in minutes.",
       "imageAlt": "Illustration of a teacher and student using 321school"
     },
+    "roleGateway": {
+      "eyebrow": "Choose your path",
+      "title": "What fits you best?",
+      "description": "Start with the role closest to what you need right now. Read more or jump straight in and try it.",
+      "learnMore": "Read more",
+      "startNow": "Start now",
+      "cards": {
+        "teacher": {
+          "title": "Teacher",
+          "text": "Create tasks, classes and give feedback.",
+          "imageAlt": "Symbol for the teacher role",
+          "points": {
+            "0": "Create tasks, classes and classrooms",
+            "1": "Invite students and pupils",
+            "2": "Assign tasks",
+            "3": "Reply and give feedback",
+            "4": "AI support all the way"
+          }
+        },
+        "student": {
+          "title": "Student",
+          "text": "Study independently and get AI feedback.",
+          "imageAlt": "Symbol for the student role",
+          "points": {
+            "0": "Study independently and get feedback",
+            "1": "Read and translate everything",
+            "2": "Listen to texts and tasks",
+            "3": "Create your own tasks",
+            "4": "AI support all the way"
+          }
+        },
+        "parent": {
+          "title": "Parent",
+          "text": "Homeschooling with AI support.",
+          "imageAlt": "Symbol for the parent role",
+          "points": {
+            "0": "Create child spaces",
+            "1": "Assign tasks",
+            "2": "Give stars and feedback",
+            "3": "Create your own tasks",
+            "4": "AI support all the way"
+          }
+        },
+        "school": {
+          "title": "School",
+          "text": "A complete system for teachers and substitutes.",
+          "imageAlt": "Symbol for the school solution",
+          "points": {
+            "0": "A complete system for teachers and substitutes",
+            "1": "Simple administration",
+            "2": "Excellent statistics and control",
+            "3": "Pay only for active teachers",
+            "4": "AI supports teachers and substitutes only"
+          }
+        }
+      }
+    },
     "aiSupport": {
       "eyebrow": "AI that supports the teacher",
       "title": "A new world of possibilities — without losing control.",

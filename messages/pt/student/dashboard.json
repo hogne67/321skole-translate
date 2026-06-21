@@ -7,6 +7,7 @@
       "loggedIn": "conectado",
       "roleFallback": "Usuário",
       "youAre": "Você está {state} como <b>{role}</b>.",
+      "youAreAnon": "Você está usando o 321school como <b>visitante</b>.",
       "activity": "Você pode continuar sua <b>atividade</b> abaixo.",
       "recommendRegister": "Recomendamos criar uma conta para salvar seu trabalho e sincronizar seu conteúdo.",
       "remaining": "{count} restantes",
@@ -50,6 +51,12 @@
       "title": "Acessos rápidos",
       "library": "Abrir biblioteca",
       "myContent": "Meu conteúdo"
+    },
+    "anonymousCreate": {
+      "title": "Quer criar suas próprias atividades?",
+      "body": "Você precisa entrar para criar atividades. Como visitante, você ainda pode ler atividades abertas e explorar a biblioteca.",
+      "login": "Entrar / criar conta",
+      "library": "Abrir biblioteca"
     },
     "partnerCard": {
       "title": "Você é um Parceiro 321school",

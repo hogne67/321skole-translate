@@ -13,6 +13,63 @@
       "note": "Sem instalação. Use no navegador. Pronto em minutos.",
       "imageAlt": "Ilustração de professor e aluno usando 321escola"
     },
+    "roleGateway": {
+      "eyebrow": "Escolha seu caminho",
+      "title": "O que combina com você?",
+      "description": "Comece pela função mais próxima do que você precisa agora. Leia mais ou entre direto para testar.",
+      "learnMore": "Ler mais",
+      "startNow": "Começar agora",
+      "cards": {
+        "teacher": {
+          "title": "Professor",
+          "text": "Crie atividades, turmas e dê feedback.",
+          "imageAlt": "Símbolo da função de professor",
+          "points": {
+            "0": "Crie atividades, turmas e salas",
+            "1": "Convide estudantes e alunos",
+            "2": "Distribua atividades",
+            "3": "Responda e dê feedback",
+            "4": "Apoio de IA em todo o caminho"
+          }
+        },
+        "student": {
+          "title": "Aluno",
+          "text": "Estude sozinho e receba feedback com IA.",
+          "imageAlt": "Símbolo da função de aluno",
+          "points": {
+            "0": "Estude sozinho e receba feedback",
+            "1": "Leia e traduza tudo",
+            "2": "Ouça textos e atividades",
+            "3": "Crie suas próprias atividades",
+            "4": "Apoio de IA em todo o caminho"
+          }
+        },
+        "parent": {
+          "title": "Pais",
+          "text": "Ensino em casa com apoio de IA.",
+          "imageAlt": "Símbolo da função de pais",
+          "points": {
+            "0": "Crie espaços para seus filhos",
+            "1": "Distribua atividades",
+            "2": "Dê estrelas e feedback",
+            "3": "Crie suas próprias atividades",
+            "4": "Apoio de IA em todo o caminho"
+          }
+        },
+        "school": {
+          "title": "Escola",
+          "text": "Sistema completo para professores e substitutos.",
+          "imageAlt": "Símbolo da solução escolar",
+          "points": {
+            "0": "Sistema completo para professores e substitutos",
+            "1": "Administração simples",
+            "2": "Estatísticas e controle excelentes",
+            "3": "Pague apenas por professores ativos",
+            "4": "IA como apoio apenas para professores e substitutos"
+          }
+        }
+      }
+    },
     "aiSupport": {
       "eyebrow": "IA que apoia o professor",
       "title": "Um novo mundo de possibilidades — sem perder o controle.",

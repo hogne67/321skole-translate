@@ -54,8 +54,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous);
 
-  const isLibrary = (pathname || "").endsWith("/321lessons");
+  const cleanPathname = (pathname || "").split("?")[0].replace(/\/+$/, "");
+  const isLibrary = cleanPathname.endsWith("/321lessons");
   const isProducer = (pathname || "").includes("/producer");
+  const isAnonymousOpenLesson =
+    !!user?.isAnonymous && (pathname || "").includes("/student/lesson/");
+  const isAnonymousDashboard = !!user?.isAnonymous && cleanPathname.endsWith("/student");
   const showSchoolTeacherIndicator =
     Boolean(profile?.schoolId) &&
     profile?.schoolRole === "school_teacher" &&
@@ -64,7 +68,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     !!user && !user.isAnonymous && PERSONAL_ADMIN_LINK_UIDS.has(user.uid);
 
   const title =
-    role === "teacher"
+    isAnonymousOpenLesson
+      ? tModes("openTask")
+      : isAnonymousDashboard
+        ? tModes("guest")
+      : user?.isAnonymous && isLibrary
+        ? tModes("openLibrary")
+        : isLibrary
+          ? tModes("library")
+      : role === "teacher"
       ? tModes("teacher")
       : role === "parent"
         ? tModes("parent")
@@ -118,11 +130,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {isLibrary ? (
         <div className="libraryWrap">
+          <h1 className="libraryTitle">{title}</h1>
           {showSchoolTeacherIndicator ? <SchoolTeacherIndicator /> : null}
           {children}
         </div>
       ) : (
-        <SectionShell title={title} items={items} fullWidth={isProducer}>
+        <SectionShell
+          title={title}
+          items={items}
+          fullWidth={isProducer}
+          blockedToolsMessage={
+            user?.isAnonymous ? tModes("anonymousCreateLessonRequired") : undefined
+          }
+          blockedToolsLoginLabel={tModes("anonymousCreateLessonLogin")}
+        >
           {showSchoolTeacherIndicator ? <SchoolTeacherIndicator /> : null}
           {children}
         </SectionShell>
@@ -142,6 +163,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           width: 100%;
           min-width: 0;
           overflow-x: clip;
+        }
+
+        .libraryTitle {
+          margin: 0 0 14px;
+          font-size: 24px;
+          line-height: 1.2;
+          font-weight: 900;
+          color: #0f172a;
         }
 
         :global(html),

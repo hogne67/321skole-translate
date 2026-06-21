@@ -1,6 +1,12 @@
 {
   "modes": {
     "student": "Aluno",
+    "guest": "Visitante",
+    "openTask": "Tarefa aberta",
+    "openLibrary": "Biblioteca aberta",
+    "library": "Biblioteca",
+    "anonymousCreateLessonRequired": "Você precisa entrar para criar atividades. Leva só um momento.",
+    "anonymousCreateLessonLogin": "Entrar",
     "parent": "Responsável",
     "teacher": "Professor",
     "creator": "Criador",

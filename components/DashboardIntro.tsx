@@ -13,6 +13,7 @@ type Props = {
   guestLabel: string;
   loggedInLabel: string;
   youAre: string;
+  youAreAnon?: string;
   activity: string;
   recommendRegister: string;
   remainingLabel: string;
@@ -117,10 +118,15 @@ export function DashboardIntro(props: Props) {
       ? props.helloAnon
       : interpolate(props.helloUser, { name });
 
-  const youAreNode = renderSimpleRichText(props.youAre, {
-    state: props.userIsAnon ? props.guestLabel : props.loggedInLabel,
-    role: roleLabel,
-  });
+  const youAreNode = props.userIsAnon
+    ? renderSimpleRichText(props.youAreAnon || props.youAre, {
+      state: props.guestLabel,
+      role: props.guestLabel,
+    })
+    : renderSimpleRichText(props.youAre, {
+      state: props.loggedInLabel,
+      role: roleLabel,
+    });
 
   const activityNode = renderSimpleRichText(props.activity, {});
 

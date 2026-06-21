@@ -1,6 +1,12 @@
 {
   "modes": {
     "student": "Student",
+    "guest": "Guest",
+    "openTask": "Open task",
+    "openLibrary": "Open library",
+    "library": "Library",
+    "anonymousCreateLessonRequired": "You need to be logged in to create lessons. It only takes a moment.",
+    "anonymousCreateLessonLogin": "Log in",
     "parent": "Parent",
     "teacher": "Teacher",
     "creator": "Creator",

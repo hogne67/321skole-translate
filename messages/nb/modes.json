@@ -1,6 +1,12 @@
 {
   "modes": {
     "student": "Elev",
+    "guest": "Gjest",
+    "openTask": "Åpen oppgave",
+    "openLibrary": "Åpent bibliotek",
+    "library": "Bibliotek",
+    "anonymousCreateLessonRequired": "Du må være innlogget for å kunne lage oppgaver. Det tar bare et øyeblikk.",
+    "anonymousCreateLessonLogin": "Logg inn",
     "parent": "Forelder",
     "teacher": "Lærer",
     "creator": "Produsent",

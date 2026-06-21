@@ -541,6 +541,7 @@ export default function StudentDashboard() {
         guestLabel={t("dashboardIntro.guest")}
         loggedInLabel={t("dashboardIntro.loggedIn")}
         youAre={t.raw("dashboardIntro.youAre")}
+        youAreAnon={t.raw("dashboardIntro.youAreAnon")}
         activity={t.raw("dashboardIntro.activity")}
         recommendRegister={t("dashboardIntro.recommendRegister")}
         remainingLabel={t.raw("dashboardIntro.remaining")}
@@ -558,6 +559,93 @@ export default function StudentDashboard() {
       />
 
       <InstallAppButton />
+
+      {isAnon ? (
+        <section
+          style={{
+            marginTop: 18,
+            border: "1px solid #bfdbfe",
+            borderRadius: 18,
+            background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 14,
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ minWidth: 0, flex: "1 1 420px" }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 20,
+                  fontWeight: 850,
+                  color: "#0f172a",
+                  lineHeight: 1.2,
+                }}
+              >
+                {t("anonymousCreate.title")}
+              </h2>
+              <p
+                style={{
+                  margin: "7px 0 0",
+                  color: "#334155",
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                }}
+              >
+                {t("anonymousCreate.body")}
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <Link
+                href={`/${locale}/login?next=${encodeURIComponent(`/${locale}/tools`)}`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                }}
+              >
+                {t("anonymousCreate.login")}
+              </Link>
+
+              <Link
+                href={`/${locale}/321lessons`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  border: "1px solid #cbd5e1",
+                }}
+              >
+                {t("anonymousCreate.library")}
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section
         style={{

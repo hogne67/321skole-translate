@@ -69,7 +69,8 @@ export default function LibraryBar() {
   const locale = getLocaleFromPathname(pathname);
 
   // true for /en/321lessons, /nb/321lessons, /pt/321lessons
-  const isLibrary = (pathname || "").split("?")[0].endsWith("/321lessons");
+  const cleanPathname = (pathname || "").split("?")[0].replace(/\/+$/, "");
+  const isLibrary = cleanPathname.endsWith("/321lessons");
 
   // dashboard link from nav items (avoid fallback "/")
   const dashboardFromNav =

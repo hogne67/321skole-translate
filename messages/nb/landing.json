@@ -13,6 +13,63 @@
       "note": "Ingen installasjon. Bruk i nettleseren. Klar på få minutter.",
       "imageAlt": "Illustrasjon av lærer og elev som bruker 321skole"
     },
+    "roleGateway": {
+      "eyebrow": "Velg inngang",
+      "title": "Hva passer for deg?",
+      "description": "Start med rollen som ligner mest på det du trenger nå. Du kan lese mer eller gå rett inn og prøve.",
+      "learnMore": "Les mer",
+      "startNow": "Start nå",
+      "cards": {
+        "teacher": {
+          "title": "Lærer",
+          "text": "Lag oppgaver, klasser og gi feedback.",
+          "imageAlt": "Symbol for lærerrollen",
+          "points": {
+            "0": "Lag oppgaver, klasser og klasserom",
+            "1": "Inviter studenter og elever",
+            "2": "Del ut oppgaver",
+            "3": "Svar og gi feedback",
+            "4": "KI-støtte hele veien"
+          }
+        },
+        "student": {
+          "title": "Student",
+          "text": "Studer selv og få KI-feedback.",
+          "imageAlt": "Symbol for studentrollen",
+          "points": {
+            "0": "Studer selv og få feedback",
+            "1": "Les og få oversatt alt",
+            "2": "Lytt til tekst og oppgaver",
+            "3": "Lag egne oppgaver",
+            "4": "KI-støtte hele veien"
+          }
+        },
+        "parent": {
+          "title": "Foreldre",
+          "text": "Hjemmeskole med KI-støtte.",
+          "imageAlt": "Symbol for foreldrerollen",
+          "points": {
+            "0": "Lag egne barnerom",
+            "1": "Del ut oppgaver",
+            "2": "Gi stjerner og feedback",
+            "3": "Lag egne oppgaver",
+            "4": "KI-støtte hele veien"
+          }
+        },
+        "school": {
+          "title": "Skole",
+          "text": "Komplett system for lærere og vikarer.",
+          "imageAlt": "Symbol for skoleløsningen",
+          "points": {
+            "0": "Komplett system for lærere og vikarer",
+            "1": "Enkel administrasjon",
+            "2": "Suveren statistikk og kontroll",
+            "3": "Betal kun for aktive lærere",
+            "4": "KI er støtte kun for lærere og vikarer"
+          }
+        }
+      }
+    },
     "aiSupport": {
       "eyebrow": "KI som støtter læreren",
       "title": "En ny verden av muligheter — uten å miste kontrollen.",

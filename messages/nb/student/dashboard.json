@@ -7,6 +7,7 @@
       "loggedIn": "logget inn",
       "roleFallback": "Bruker",
       "youAre": "Du er {state} som <b>{role}</b>.",
+      "youAreAnon": "Du er inne som <b>gjest</b>.",
       "activity": "Du kan fortsette din <b>aktivitet</b> nedenfor.",
       "recommendRegister": "Vi anbefaler å opprette en konto for å lagre arbeidet ditt og synkronisere innholdet ditt.",
       "remaining": "{count} igjen",
@@ -50,6 +51,12 @@
       "title": "Hurtiglenker",
       "library": "Åpne bibliotek",
       "myContent": "Mitt innhold"
+    },
+    "anonymousCreate": {
+      "title": "Vil du lage egne oppgaver?",
+      "body": "Du må være innlogget for å kunne lage oppgaver. Som gjest kan du fortsatt lese åpne oppgaver og utforske biblioteket.",
+      "login": "Logg inn / opprett konto",
+      "library": "Åpne bibliotek"
     },
     "partnerCard": {
       "title": "Du er 321school Partner",
