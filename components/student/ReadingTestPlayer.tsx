@@ -168,6 +168,13 @@ function InfoPill({ label }: { label: string }) {
   );
 }
 
+const containTextStyle: React.CSSProperties = {
+  minWidth: 0,
+  maxWidth: "100%",
+  overflowWrap: "anywhere",
+  wordBreak: "normal",
+};
+
 export default function ReadingTestPlayer({
   title,
   level,
@@ -370,6 +377,8 @@ export default function ReadingTestPlayer({
                 background,
                 opacity: isTimeUp && !isSubmitted ? 0.78 : 1,
                 boxShadow: checked ? "0 0 0 1px rgba(59,130,246,0.10)" : "none",
+                minWidth: 0,
+                maxWidth: "100%",
               }}
             >
               <input
@@ -380,7 +389,15 @@ export default function ReadingTestPlayer({
                 onChange={() => setAnswer(task.id, opt)}
                 style={{ marginTop: 2 }}
               />
-              <span style={{ fontWeight: checked || showCorrect ? 700 : 500, lineHeight: 1.45 }}>
+              <span
+                style={{
+                  flex: "1 1 auto",
+                  minWidth: 0,
+                  fontWeight: checked || showCorrect ? 700 : 500,
+                  lineHeight: 1.45,
+                  overflowWrap: "anywhere",
+                }}
+              >
                 {opt}
                 {selectedCorrect ? ` - ${t("questions.correct")}` : ""}
                 {selectedWrong ? ` - ${t("questions.incorrect")}` : ""}
@@ -404,6 +421,7 @@ export default function ReadingTestPlayer({
       background: "#ffffff",
       marginTop: 12,
       boxShadow: "0 2px 8px rgba(15, 23, 42, 0.05)",
+      ...containTextStyle,
     };
 
     const promptStyle: React.CSSProperties = {
@@ -412,6 +430,7 @@ export default function ReadingTestPlayer({
       whiteSpace: "pre-wrap",
       lineHeight: 1.45,
       color: "#0f172a",
+      ...containTextStyle,
     };
 
     const hintBoxStyle: React.CSSProperties = {
@@ -425,6 +444,7 @@ export default function ReadingTestPlayer({
       border: "1px solid #d1d5db",
       background: "#f8fafc",
       color: "#111827",
+      ...containTextStyle,
     };
 
     const inputStyle: React.CSSProperties = {
@@ -502,6 +522,8 @@ export default function ReadingTestPlayer({
                     cursor: disabled || isTimeUp || isSubmitted ? "default" : "pointer",
                     background,
                     opacity: isTimeUp && !isSubmitted ? 0.78 : 1,
+                    minWidth: 0,
+                    maxWidth: "100%",
                   }}
                 >
                   <input
@@ -512,7 +534,14 @@ export default function ReadingTestPlayer({
                     onChange={() => setAnswer(task.id, opt.value)}
                     style={{ marginTop: 2 }}
                   />
-                  <span style={{ fontWeight: checked || showCorrect ? 700 : 500 }}>
+                  <span
+                    style={{
+                      flex: "1 1 auto",
+                      minWidth: 0,
+                      fontWeight: checked || showCorrect ? 700 : 500,
+                      overflowWrap: "anywhere",
+                    }}
+                  >
                     {opt.label}
                     {selectedCorrect ? ` - ${t("questions.correct")}` : ""}
                     {selectedWrong ? ` - ${t("questions.incorrect")}` : ""}
@@ -547,6 +576,10 @@ export default function ReadingTestPlayer({
       style={{
         display: "grid",
         gap: 16,
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
+        overflowX: "clip",
       }}
     >
       <div
@@ -556,6 +589,7 @@ export default function ReadingTestPlayer({
           background: "#ffffff",
           boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
           padding: 18,
+          ...containTextStyle,
         }}
       >
         <div
@@ -655,6 +689,7 @@ export default function ReadingTestPlayer({
               lineHeight: 1.82,
               fontSize: 17,
               color: "#111827",
+              ...containTextStyle,
             }}
           >
             {sourceText}
@@ -711,6 +746,7 @@ export default function ReadingTestPlayer({
             background: "#f0fdf4",
             boxShadow: "0 10px 30px rgba(22, 163, 74, 0.08)",
             padding: 18,
+            ...containTextStyle,
           }}
         >
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: "#14532d" }}>
@@ -736,6 +772,7 @@ export default function ReadingTestPlayer({
             background: "#ffffff",
             boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
             padding: 18,
+            ...containTextStyle,
           }}
         >
           <h3 style={{ marginTop: 0, marginBottom: 8, fontSize: 18, fontWeight: 800 }}>
@@ -772,6 +809,7 @@ export default function ReadingTestPlayer({
             background: "#ffffff",
             boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
             padding: 18,
+            ...containTextStyle,
           }}
         >
           <h3 style={{ marginTop: 0, marginBottom: 6, fontSize: 18, fontWeight: 800 }}>
@@ -820,22 +858,33 @@ export default function ReadingTestPlayer({
             boxShadow: "0 12px 30px rgba(15, 23, 42, 0.16)",
             padding: 12,
             backdropFilter: "blur(10px)",
+            ...containTextStyle,
           }}
         >
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "auto minmax(160px, 1fr) auto",
+              display: "flex",
+              flexWrap: "wrap",
               gap: 12,
               alignItems: "center",
+              minWidth: 0,
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 900, color: "#334155", whiteSpace: "nowrap" }}>
+            <div
+              style={{
+                flex: "0 1 auto",
+                fontSize: 13,
+                fontWeight: 900,
+                color: "#334155",
+                whiteSpace: "nowrap",
+              }}
+            >
               {t("timer.startTime")}: {formatTime(initialTimer)}
             </div>
 
             <div
               style={{
+                flex: "1 1 180px",
                 display: "grid",
                 gridTemplateColumns: "1fr auto",
                 gap: 10,
@@ -895,6 +944,7 @@ export default function ReadingTestPlayer({
                   cursor: disabled ? "not-allowed" : "pointer",
                   opacity: disabled ? 0.6 : 1,
                   whiteSpace: "nowrap",
+                  flex: "0 0 auto",
                 }}
               >
                 {effectiveSubmitLabel}

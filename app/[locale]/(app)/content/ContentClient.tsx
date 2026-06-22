@@ -1932,21 +1932,27 @@ export default function ContentClient() {
                 >
                   <div className="flex min-w-0 max-w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 max-w-full flex-1">
-                      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
-                        <div className="min-w-0 max-w-full break-words text-base font-black leading-tight text-slate-900">
-                          {title}
+                      <div className="flex min-w-0 max-w-full items-start justify-between gap-2">
+                        <div className="flex min-w-0 max-w-full flex-1 flex-wrap items-center gap-2">
+                          <div className="min-w-0 max-w-full break-words text-base font-black leading-tight text-slate-900">
+                            {title}
+                          </div>
+
+                          {pill}
+                          {extraPill}
+
+                          {mathItem ? (
+                            <StatusPill label={t("pills.mathGenerator")} variant="amber" />
+                          ) : null}
+
+                          {mathItem && mathSubtypeText && mathSubtype !== "math" ? (
+                            <StatusPill label={mathSubtypeText} variant="gray" />
+                          ) : null}
                         </div>
 
-                        {pill}
-                        {extraPill}
-
-                        {mathItem ? (
-                          <StatusPill label={t("pills.mathGenerator")} variant="amber" />
-                        ) : null}
-
-                        {mathItem && mathSubtypeText && mathSubtype !== "math" ? (
-                          <StatusPill label={mathSubtypeText} variant="gray" />
-                        ) : null}
+                        <div className="shrink-0 sm:hidden">
+                          <ActionMenu items={actions} />
+                        </div>
                       </div>
 
                       <div className="mt-2 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -2059,10 +2065,6 @@ export default function ContentClient() {
                     </div>
 
                     <div className="flex min-w-0 w-full justify-end sm:w-auto">
-                      <div className="ml-2 shrink-0 sm:hidden">
-                        <ActionMenu items={actions} />
-                      </div>
-
                       <div className="ml-2 hidden shrink-0 sm:block">
                         {desktopExtraActions.length > 0 ? <ActionMenu items={desktopExtraActions} /> : null}
                       </div>
