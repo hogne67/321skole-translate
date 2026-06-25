@@ -46,6 +46,12 @@
       "emptyHtml": "No assignments yet. Click <b>Assign task</b>.",
       "count": "{count} · {label}"
     },
+    "assignTrainingVideo": {
+      "button": "Watch guide",
+      "buttonTitle": "Watch the guide for assigning tasks",
+      "close": "Close",
+      "title": "Guide: assign task"
+    },
     "spaceToggle": {
       "openLabel": "Space is open",
       "closedLabel": "Space is closed",
@@ -74,6 +80,10 @@
       "lessonId": "lessonId",
       "publishedLessonId": "publishedLessonId",
       "assign": "Assign",
+      "meta": {
+        "author": "Author",
+        "textType": "Text type"
+      },
       "paging": {
         "prev": "← Previous",
         "next": "Next →",

@@ -26,6 +26,9 @@ import {
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { setSpaceOpen } from "@/lib/spacesClient";
 import { useLocale, useTranslations } from "next-intl";
+import { LANGUAGES } from "@/lib/languages";
+import { getTextTypeLabel, normalizeTextTypeKey } from "@/lib/textTypes";
+import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 
 type AccessState = "checking" | "allowed" | "denied";
 type SourceType = "myContent" | "library";
@@ -54,6 +57,13 @@ type MyLesson = {
   title?: string;
   level?: string;
   language?: string;
+  producerName?: string;
+  authorName?: string;
+  createdByName?: string;
+  ownerName?: string;
+  textType?: string;
+  texttype?: string;
+  lessonType?: string;
   ownerId?: string;
   status?: string;
   type?: string;
@@ -66,6 +76,13 @@ type LibraryLesson = {
   title?: string;
   level?: string;
   language?: string;
+  producerName?: string;
+  authorName?: string;
+  createdByName?: string;
+  ownerName?: string;
+  textType?: string;
+  texttype?: string;
+  lessonType?: string;
   isActive?: boolean;
   type?: string;
   taskType?: string;
@@ -165,7 +182,126 @@ function normalizeLang(s: unknown): string {
   if (v === "nb-no" || v === "nb_no") return "nb";
   if (v === "nn-no" || v === "nn_no") return "nn";
   if (v === "no-no" || v === "no_no") return "no";
+  if (v === "pt_br" || v === "pt-br") return "pt-br";
+  if (v === "norsk" || v === "norwegian" || v === "bokmål" || v === "bokmal") return "no";
+  if (v === "engelsk" || v === "english") return "en";
+  if (v === "portugisisk" || v === "portuguese" || v === "brasil" || v === "brazil") return "pt";
   return v;
+}
+
+function localeLibraryLanguages(locale: string): string[] {
+  const lang = normalizeLang(locale);
+  if (lang === "nb" || lang === "no") return ["nb", "no"];
+  if (lang === "pt" || lang === "pt-br") return ["pt", "pt-br"];
+  if (lang === "en") return ["en"];
+  return lang ? [lang] : [];
+}
+
+function matchesAnyLanguage(docLangRaw: unknown, languageCodes: string[]): boolean {
+  const docLang = normalizeLang(docLangRaw);
+  if (!docLang) return false;
+
+  return languageCodes.some((code) => {
+    const c = normalizeLang(code);
+    return docLang === c || docLang.startsWith(`${c}-`);
+  });
+}
+
+function fallbackLanguageDisplayName(language: string): string {
+  const normalized = normalizeLang(language);
+  const match = LANGUAGES.find((item) => {
+    const code = normalizeLang(item.code);
+    return code === normalized || code.startsWith(`${normalized}-`);
+  });
+
+  return (match?.label ?? language).split("–")[0].trim();
+}
+
+function languageDisplayName(language: unknown, locale: string): string {
+  const raw = typeof language === "string" ? language.trim() : "";
+  if (!raw) return "";
+
+  const normalized = normalizeLang(raw);
+  const uiLang = normalizeLang(locale);
+
+  const localized: Record<string, Record<string, string>> = {
+    nb: {
+      nb: "Norsk (bokmål)",
+      no: "Norsk",
+      nn: "Norsk (nynorsk)",
+      en: "Engelsk",
+      pt: "Portugisisk",
+      "pt-br": "Portugisisk (Brasil)",
+      "pt-pt": "Portugisisk (Portugal)",
+    },
+    en: {
+      nb: "Norwegian (Bokmål)",
+      no: "Norwegian",
+      nn: "Norwegian (Nynorsk)",
+      en: "English",
+      pt: "Portuguese",
+      "pt-br": "Portuguese (Brazil)",
+      "pt-pt": "Portuguese (Portugal)",
+    },
+    pt: {
+      nb: "Norueguês (Bokmål)",
+      no: "Norueguês",
+      nn: "Norueguês (Nynorsk)",
+      en: "Inglês",
+      pt: "Português",
+      "pt-br": "Português (Brasil)",
+      "pt-pt": "Português (Portugal)",
+    },
+  };
+
+  const table = uiLang === "pt" || uiLang === "pt-br" ? localized.pt : uiLang === "en" ? localized.en : localized.nb;
+  return table[normalized] ?? fallbackLanguageDisplayName(raw);
+}
+
+function lessonAuthorName(lesson: MyLesson | LibraryLesson): string {
+  return (
+    lesson.producerName?.trim() ||
+    lesson.authorName?.trim() ||
+    lesson.createdByName?.trim() ||
+    lesson.ownerName?.trim() ||
+    ""
+  );
+}
+
+function lessonTypeLabel(lesson: MyLesson | LibraryLesson, locale: string): string {
+  const raw =
+    lesson.textType?.trim() ||
+    lesson.texttype?.trim() ||
+    lesson.lessonType?.trim() ||
+    lesson.contentType?.trim() ||
+    lesson.taskType?.trim() ||
+    lesson.kind?.trim() ||
+    lesson.type?.trim() ||
+    "";
+
+  if (!raw) return "";
+
+  const key = normalizeTextTypeKey(raw);
+  return key ? getTextTypeLabel(key, locale) : raw.replaceAll("_", " ");
+}
+
+function lessonMetaParts(
+  lesson: MyLesson | LibraryLesson,
+  locale: string,
+  labels: { author: string; textType: string }
+): string[] {
+  const parts = [
+    lesson.level?.trim() || "",
+    languageDisplayName(lesson.language, locale),
+  ].filter(Boolean);
+
+  const author = lessonAuthorName(lesson);
+  const textType = lessonTypeLabel(lesson, locale);
+
+  if (author) parts.push(`${labels.author}: ${author}`);
+  if (textType) parts.push(`${labels.textType}: ${textType}`);
+
+  return parts;
 }
 
 function queryImpliesLang(q: string): string[] {
@@ -567,7 +703,7 @@ function Inner() {
       collection(db, "published_lessons"),
       where("isActive", "==", true),
       orderBy("createdAt", "desc"),
-      limit(50)
+      limit(1000)
     );
 
     return onSnapshot(qy, (snap) => setLibrary(snap.docs.map((d) => ({ id: d.id, data: snapTo<LibraryLesson>(d) }))));
@@ -598,9 +734,16 @@ function Inner() {
 
   const filteredLibrary = useMemo(() => {
     const s = assignSearch.trim().toLowerCase();
-    if (!s) return library;
+    const preferredLanguages = localeLibraryLanguages(locale);
+    const searchChoosesLanguage = queryImpliesLang(s).length > 0;
+    const languageScopedLibrary =
+      preferredLanguages.length > 0 && !searchChoosesLanguage
+        ? library.filter((x) => matchesAnyLanguage(x.data.language, preferredLanguages))
+        : library;
 
-    return library.filter((x) => {
+    if (!s) return languageScopedLibrary;
+
+    return languageScopedLibrary.filter((x) => {
       const tt = (x.data.title ?? "").toString().toLowerCase();
       const lvl = (x.data.level ?? "").toString().toLowerCase();
       const lang = (x.data.language ?? "").toString().toLowerCase();
@@ -612,7 +755,7 @@ function Inner() {
 
       return false;
     });
-  }, [library, assignSearch]);
+  }, [library, assignSearch, locale]);
 
   const pagedMy = useMemo(() => {
     const start = pageMy * PAGE_SIZE;
@@ -832,22 +975,27 @@ function Inner() {
           </div>
 
           <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
-            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
-              <button
-                type="button"
-                onClick={() => setAssignOpen(true)}
-                disabled={!canManage || saving}
-                className="rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                {t("assignments.assignTask")}
-              </button>
+            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAssignOpen(true)}
+                  disabled={!canManage || saving}
+                  className="min-w-0 flex-1 rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  {t("assignments.assignTask")}
+                </button>
 
-              <Link
-                href={withLocale(locale, "/tools")}
-                className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-              >
-                {t("actions.createNewLesson")}
-              </Link>
+                <TrainingVideoPlayer
+                  title={t("assignTrainingVideo.title")}
+                  videoUrl="https://youtu.be/jPoZmhM48YM?si=p_ig4Ir9NwAxrri0"
+                  buttonLabel={t("assignTrainingVideo.button")}
+                  buttonTitle={t("assignTrainingVideo.buttonTitle")}
+                  closeLabel={t("assignTrainingVideo.close")}
+                  iconOnly
+                  className="h-11 w-11 shrink-0"
+                />
+              </div>
 
               <Link
                 href={withLocale(locale, `/teacher/spaces/${spaceId}/print`)}
@@ -1232,42 +1380,44 @@ function Inner() {
                           {t("assignModal.noResults")}
                         </div>
                       ) : (
-                        pagedMy.map((x) => (
-                          <div key={x.id} className="w-full min-w-0 rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
-                            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0 flex-1">
-                                <div className="break-words font-semibold text-slate-900">
-                                  {x.data.title || t("fallback.untitled")}
-                                </div>
-                                <div className="mt-1 break-words text-sm text-slate-600">
-                                  {x.data.level ? x.data.level : "—"}
-                                  {x.data.language ? ` · ${x.data.language}` : ""}
-                                  {x.data.status ? ` · ${x.data.status}` : ""}
-                                </div>
-                                <div className="mt-1 break-all text-xs text-slate-500">
-                                  {t("assignModal.lessonId")}: <code>{x.id}</code>
-                                </div>
-                              </div>
+                        pagedMy.map((x) => {
+                          const metaParts = lessonMetaParts(x.data, locale, {
+                            author: t("assignModal.meta.author"),
+                            textType: t("assignModal.meta.textType"),
+                          });
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  assignTask({
-                                    type: "myContent",
-                                    id: x.id,
-                                    title: x.data.title,
-                                    level: x.data.level,
-                                    language: x.data.language,
-                                  })
-                                }
-                                disabled={saving || !canManage}
-                                className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto"
-                              >
-                                {t("assignModal.assign")}
-                              </button>
+                          return (
+                            <div key={x.id} className="w-full min-w-0 rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
+                              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0 flex-1">
+                                  <div className="break-words font-semibold text-slate-900">
+                                    {x.data.title || t("fallback.untitled")}
+                                  </div>
+                                  <div className="mt-1 break-words text-sm text-slate-600">
+                                    {metaParts.length > 0 ? metaParts.join(" · ") : "—"}
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    assignTask({
+                                      type: "myContent",
+                                      id: x.id,
+                                      title: x.data.title,
+                                      level: x.data.level,
+                                      language: x.data.language,
+                                    })
+                                  }
+                                  disabled={saving || !canManage}
+                                  className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto"
+                                >
+                                  {t("assignModal.assign")}
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </>
                   )}
@@ -1279,41 +1429,44 @@ function Inner() {
                           {t("assignModal.noResults")}
                         </div>
                       ) : (
-                        pagedLibrary.map((x) => (
-                          <div key={x.id} className="w-full min-w-0 rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
-                            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0 flex-1">
-                                <div className="break-words font-semibold text-slate-900">
-                                  {x.data.title || t("fallback.untitled")}
-                                </div>
-                                <div className="mt-1 break-words text-sm text-slate-600">
-                                  {x.data.level ? x.data.level : "—"}
-                                  {x.data.language ? ` · ${x.data.language}` : ""}
-                                </div>
-                                <div className="mt-1 break-all text-xs text-slate-500">
-                                  {t("assignModal.publishedLessonId")}: <code>{x.id}</code>
-                                </div>
-                              </div>
+                        pagedLibrary.map((x) => {
+                          const metaParts = lessonMetaParts(x.data, locale, {
+                            author: t("assignModal.meta.author"),
+                            textType: t("assignModal.meta.textType"),
+                          });
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  assignTask({
-                                    type: "library",
-                                    id: x.id,
-                                    title: x.data.title,
-                                    level: x.data.level,
-                                    language: x.data.language,
-                                  })
-                                }
-                                disabled={saving || !canManage}
-                                className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto"
-                              >
-                                {t("assignModal.assign")}
-                              </button>
+                          return (
+                            <div key={x.id} className="w-full min-w-0 rounded-xl border border-slate-300 bg-white p-3 sm:p-4">
+                              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0 flex-1">
+                                  <div className="break-words font-semibold text-slate-900">
+                                    {x.data.title || t("fallback.untitled")}
+                                  </div>
+                                  <div className="mt-1 break-words text-sm text-slate-600">
+                                    {metaParts.length > 0 ? metaParts.join(" · ") : "—"}
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    assignTask({
+                                      type: "library",
+                                      id: x.id,
+                                      title: x.data.title,
+                                      level: x.data.level,
+                                      language: x.data.language,
+                                    })
+                                  }
+                                  disabled={saving || !canManage}
+                                  className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 sm:w-auto"
+                                >
+                                  {t("assignModal.assign")}
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </>
                   )}

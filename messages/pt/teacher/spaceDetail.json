@@ -46,6 +46,12 @@
       "emptyHtml": "Ainda não há atividades. Clique em <b>Atribuir nova atividade</b>.",
       "count": "{count} · {label}"
     },
+    "assignTrainingVideo": {
+      "button": "Ver guia",
+      "buttonTitle": "Ver guia sobre como atribuir atividades",
+      "close": "Fechar",
+      "title": "Guia: atribuir atividade"
+    },
     "spaceToggle": {
       "openLabel": "O space está aberto",
       "closedLabel": "O space está fechado",
@@ -74,6 +80,10 @@
       "lessonId": "lessonId",
       "publishedLessonId": "publishedLessonId",
       "assign": "Atribuir",
+      "meta": {
+        "author": "Autor",
+        "textType": "Tipo de texto"
+      },
       "paging": {
         "prev": "← Anterior",
         "next": "Próxima →",

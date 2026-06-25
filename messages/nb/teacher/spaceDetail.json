@@ -46,6 +46,12 @@
       "emptyHtml": "Ingen oppgaver ennå. Klikk på <b>Tildel ny oppgave</b>.",
       "count": "{count} · {label}"
     },
+    "assignTrainingVideo": {
+      "button": "Se opplæring",
+      "buttonTitle": "Se opplæring om å tildele oppgaver",
+      "close": "Lukk",
+      "title": "Opplæring: tildel oppgave"
+    },
     "spaceToggle": {
       "openLabel": "Spacet er åpent",
       "closedLabel": "Spacet er lukket",
@@ -74,6 +80,10 @@
       "lessonId": "lessonId",
       "publishedLessonId": "publishedLessonId",
       "assign": "Tildel",
+      "meta": {
+        "author": "Forfatter",
+        "textType": "Teksttype"
+      },
       "paging": {
         "prev": "← Forrige",
         "next": "Neste →",

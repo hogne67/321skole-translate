@@ -481,7 +481,7 @@ function TeacherSpacesInner() {
                       <b className="text-slate-900">{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
                     </div>
 
-                    <div className="mt-3 grid w-full min-w-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
+                    <div className="mt-3 grid w-full min-w-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-3">
                       <button
                         type="button"
                         onClick={() => {
@@ -503,10 +503,19 @@ function TeacherSpacesInner() {
                       >
                         {t("list.joinWithQr")}
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/print`))}
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                        title={t("list.printRoomTitle")}
+                      >
+                        {t("list.printRoom")}
+                      </button>
                     </div>
                   </div>
 
-                  <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-4 xl:w-auto xl:min-w-[440px]">
+                  <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[330px]">
                     <button
                       type="button"
                       onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
@@ -527,17 +536,8 @@ function TeacherSpacesInner() {
 
                     <button
                       type="button"
-                      onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/print`))}
-                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-                      title={t("list.printRoomTitle")}
-                    >
-                      {t("list.printRoom")}
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}`))}
-                      className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                      className="rounded-xl bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500"
                       title={t("list.openSpaceTitle")}
                     >
                       {t("list.openSpace")}
