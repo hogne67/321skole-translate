@@ -1,7 +1,8 @@
 {
   "assignedTask": {
     "actions": {
-      "backToSpace": "← Tilbake til space"
+      "backToSpace": "← Tilbake til space",
+      "openSubmission": "Åpne besvarelse"
     },
     "header": {
       "subtitle": "Dette er visningen for tildelt oppgave. Innleveringer vises nedenfor.",

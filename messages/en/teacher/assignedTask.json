@@ -1,7 +1,8 @@
 {
   "assignedTask": {
     "actions": {
-      "backToSpace": "← Back to space"
+      "backToSpace": "← Back to space",
+      "openSubmission": "Open submission"
     },
     "header": {
       "subtitle": "This is the assigned task view. Submissions are listed below.",

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 type Props = {
     aiText: string;
     setAiText: (v: string) => void;
@@ -43,11 +45,22 @@ export default function AiFeedbackPanel({
     onInsert,
     t,
 }: Props) {
+    const [open, setOpen] = useState(false);
+
+    useEffect(() => {
+        if (aiText.trim()) setOpen(true);
+    }, [aiText]);
+
     return (
-        <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
+        <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white shadow-md">
             <div className="flex min-w-0 flex-col gap-3">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
+                <button
+                    type="button"
+                    onClick={() => setOpen((v) => !v)}
+                    className="flex w-full min-w-0 items-start justify-between gap-3 rounded-2xl px-4 py-4 text-left hover:bg-slate-50 sm:px-5"
+                    aria-expanded={open}
+                >
+                    <div className="min-w-0">
                         <div className="text-base font-semibold text-slate-900">
                             {t("ai.title")}
                         </div>
@@ -59,6 +72,13 @@ export default function AiFeedbackPanel({
                         </div>
                     </div>
 
+                    <span className="shrink-0 rounded-full border border-slate-300 bg-white px-2 py-1 text-xs font-black text-slate-700">
+                        {open ? "−" : "+"}
+                    </span>
+                </button>
+
+                {open ? (
+                    <div className="grid gap-3 border-t border-slate-200 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
                     <div className="flex flex-wrap gap-2">
                         <button
                             disabled={!canGenerateAi}
@@ -92,7 +112,6 @@ export default function AiFeedbackPanel({
                             {t("ai.insertButton")}
                         </button>
                     </div>
-                </div>
 
                 <textarea
                     value={aiText}
@@ -110,6 +129,8 @@ export default function AiFeedbackPanel({
                 <div className="text-xs text-slate-500">
                     {t("ai.rulesHint")} <code>aiFeedback</code>.
                 </div>
+                    </div>
+                ) : null}
             </div>
         </div>
     );

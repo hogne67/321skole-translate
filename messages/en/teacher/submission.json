@@ -102,7 +102,7 @@
       "rulesHint": "(Rules: only teacher/owner/admin can change)"
     },
     "ai": {
-      "title": "AI feedback",
+      "title": "Generate suggestion from AI",
       "generateButton": "Generate AI feedback",
       "generating": "Generating…",
       "copyButton": "Copy",

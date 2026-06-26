@@ -65,13 +65,11 @@ import {
 } from "@/lib/submissions/readers";
 import { countReadingTestWords } from "@/lib/readingTests/readingSignals";
 
-function getGeometryScoreKind(
-  percent: number | null
-): "neutral" | "good" | "warn" | "bad" {
-  if (percent == null) return "neutral";
-  if (percent >= 80) return "good";
-  if (percent >= 50) return "warn";
-  return "bad";
+function scoreTextClass(percent: number | null | undefined) {
+  if (percent == null) return "text-slate-950";
+  if (percent === 100) return "text-green-700";
+  if (percent >= 60) return "text-yellow-700";
+  return "text-red-700";
 }
 
 function isRawSubmissionKey(value: string, key: string) {
@@ -828,29 +826,6 @@ function Inner() {
                 <StatusPill status={rawStatus} t={(k) => t(k)} />
               ) : null}
 
-              {isGeometryAssignment &&
-                !isFractionAssignment &&
-                geometryPercent != null ? (
-                <Badge
-                  text={`${scoreLabel}: ${geometryPercent}%`}
-                  kind={getGeometryScoreKind(geometryPercent)}
-                />
-              ) : null}
-
-              {!isGeometryAssignment &&
-                !isFractionAssignment &&
-                auto?.percentAuto != null ? (
-                <Badge
-                  text={`${scoreLabel}: ${auto.percentAuto}%`}
-                  kind={
-                    auto.percentAuto >= 80
-                      ? "good"
-                      : auto.percentAuto >= 50
-                        ? "warn"
-                        : "bad"
-                  }
-                />
-              ) : null}
             </div>
           </div>
 
@@ -865,55 +840,55 @@ function Inner() {
         </div>
       </div>
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-3 shadow-sm">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-blue-300 bg-blue-100 p-4 shadow-md sm:p-5">
         {isFractionAssignment ? (
           <div className="text-sm text-slate-600">
             Brøkbesvarelse er levert. Automatisk vurdering kommer senere.
           </div>
         ) : isGeometryAssignment ? (
           geometryAuto ? (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+                <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   {correctLabel}
                 </div>
-                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                <div className="mt-1 text-2xl font-black text-slate-950">
                   {geometryCorrect}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+                <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   {partialLabel}
                 </div>
-                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                <div className="mt-1 text-2xl font-black text-slate-950">
                   {geometryPartial}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+                <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   {wrongLabel}
                 </div>
-                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                <div className="mt-1 text-2xl font-black text-slate-950">
                   {geometryWrong}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+                <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   {unansweredLabel}
                 </div>
-                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                <div className="mt-1 text-2xl font-black text-slate-950">
                   {geometryUnanswered}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+                <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   {scoreLabel}
                 </div>
-                <div className="mt-0.5 text-lg font-bold text-slate-900">
+                <div className={`mt-1 text-2xl font-black ${scoreTextClass(geometryPercent)}`}>
                   {geometryPercent ?? "—"}%
                 </div>
               </div>
@@ -924,39 +899,39 @@ function Inner() {
             </div>
           )
         ) : auto ? (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 {correctLabel}
               </div>
-              <div className="mt-0.5 text-lg font-bold text-slate-900">
+              <div className="mt-1 text-2xl font-black text-slate-950">
                 {auto.correctAuto}
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 {wrongLabel}
               </div>
-              <div className="mt-0.5 text-lg font-bold text-slate-900">
+              <div className="mt-1 text-2xl font-black text-slate-950">
                 {auto.wrongAuto}
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 {unansweredLabel}
               </div>
-              <div className="mt-0.5 text-lg font-bold text-slate-900">
+              <div className="mt-1 text-2xl font-black text-slate-950">
                 {auto.unansweredAuto}
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <div className="rounded-2xl border border-blue-200 bg-white px-3 py-3 text-center shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 {scoreLabel}
               </div>
-              <div className="mt-0.5 text-lg font-bold text-slate-900">
+              <div className={`mt-1 text-2xl font-black ${scoreTextClass(auto.percentAuto)}`}>
                 {auto.percentAuto ?? "—"}%
               </div>
             </div>

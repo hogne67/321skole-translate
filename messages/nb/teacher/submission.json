@@ -78,7 +78,7 @@
       "rulesHint": "(Regler: kun lærer/eier/admin kan endre)"
     },
     "ai": {
-      "title": "AI-tilbakemelding",
+      "title": "Generer forslag fra AI",
       "generateButton": "Generer AI-tilbakemelding",
       "generating": "Genererer…",
       "copyButton": "Kopier",

@@ -1,7 +1,8 @@
 {
   "assignedTask": {
     "actions": {
-      "backToSpace": "← Voltar para o space"
+      "backToSpace": "← Voltar para o space",
+      "openSubmission": "Abrir resposta"
     },
     "header": {
       "subtitle": "Esta é a visualização da atividade atribuída. As entregas estão listadas abaixo.",

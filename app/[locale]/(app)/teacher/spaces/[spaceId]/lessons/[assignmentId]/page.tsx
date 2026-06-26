@@ -169,6 +169,12 @@ function statusBadge(
       cls: "border-green-200 bg-green-50 text-green-900",
     };
   }
+  if (s === "submitted") {
+    return {
+      label: t("status.submitted"),
+      cls: "border-blue-200 bg-blue-50 text-blue-900",
+    };
+  }
   if (s === "draft") {
     return {
       label: t("status.draft"),
@@ -250,7 +256,6 @@ export default function TeacherSpaceAssignedTaskPage() {
 
   const t = useTranslations("assignedTask");
   const tCommon = useTranslations("common");
-  const tActions = useTranslations("actions");
 
   const params = useParams();
   const rawSpaceId = (params as Record<string, string | string[] | undefined>)["spaceId"];
@@ -558,9 +563,9 @@ export default function TeacherSpaceAssignedTaskPage() {
                         <button
                           type="button"
                           onClick={() => router.push(openHref)}
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                          className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
                         >
-                          {tActions("open")}
+                          {t("actions.openSubmission")}
                         </button>
                       </div>
                     </div>

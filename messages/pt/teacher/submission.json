@@ -78,7 +78,7 @@
       "rulesHint": "(Regras: apenas professor/dono/admin pode alterar)"
     },
     "ai": {
-      "title": "Feedback com IA",
+      "title": "Gerar sugestão com IA",
       "generateButton": "Gerar feedback com IA",
       "generating": "Gerando…",
       "copyButton": "Copiar",
