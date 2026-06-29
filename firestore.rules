@@ -511,6 +511,107 @@ allow update: if signedIn()
 }
 
     /* =========================
+       COURSES / 321ACADEMY
+    ========================= */
+    match /courses/{courseId} {
+      function courseKeys() {
+        return [
+          "ownerUid",
+          "title",
+          "description",
+          "learningGoals",
+          "targetAudience",
+          "language",
+          "level",
+          "priceText",
+          "maxParticipants",
+          "numberOfSessions",
+          "numberOfWeeks",
+          "status",
+          "slug",
+          "publicUrl",
+          "publishedAt",
+          "coursePlan",
+          "createdAt",
+          "updatedAt"
+        ];
+      }
+
+      function validCourseStatus(status) {
+        return status == "draft"
+          || status == "published"
+          || status == "active"
+          || status == "completed";
+      }
+
+      function validCoursePayload(data) {
+        return data.keys().hasAll(courseKeys())
+          && data.keys().hasOnly(courseKeys())
+          && data.ownerUid is string
+          && data.ownerUid == myUid()
+          && data.title is string
+          && data.description is string
+          && data.learningGoals is string
+          && data.targetAudience is string
+          && data.language is string
+          && data.level is string
+          && data.priceText is string
+          && data.maxParticipants is number
+          && data.numberOfSessions is number
+          && data.numberOfWeeks is number
+          && validCourseStatus(data.status)
+          && data.slug is string
+          && data.publicUrl is string
+          && (data.publishedAt == null || data.publishedAt is timestamp)
+          && data.coursePlan is list
+          && data.createdAt is timestamp
+          && data.updatedAt is timestamp;
+      }
+
+      function isCourseOwner() {
+        return signedIn()
+          && resource != null
+          && resource.data.ownerUid is string
+          && resource.data.ownerUid == myUid();
+      }
+
+      function isCourseParentOwner() {
+        return signedIn()
+          && exists(/databases/$(database)/documents/courses/$(courseId))
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.ownerUid is string
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.ownerUid == myUid();
+      }
+
+      allow read: if isAdmin() || isCourseOwner();
+
+      allow create: if signedIn()
+        && validCoursePayload(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isCourseOwner()
+        && validCoursePayload(request.resource.data)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp;
+
+      allow delete: if isCourseOwner();
+
+      match /participants/{participantId} {
+        allow read, create, update, delete: if isAdmin() || isCourseParentOwner();
+      }
+
+      match /messages/{messageId} {
+        allow read, create, update, delete: if isAdmin() || isCourseParentOwner();
+      }
+
+      match /signupRequests/{requestId} {
+        allow create: if false;
+        allow read, update, delete: if isAdmin() || isCourseParentOwner();
+      }
+    }
+
+    /* =========================
        SPACES
     ========================= */
     match /spaces/{spaceId} {
@@ -687,6 +788,14 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
        PRACTICE SUBMISSIONS
     ========================= */
     match /practiceSubmissions/{id} {
+      function reviewFields() {
+        return [
+          "instructorFeedback",
+          "reviewStatus",
+          "instructorFeedbackUpdatedAt"
+        ];
+      }
+
       function isOwnerDoc() {
         return signedIn()
           && resource != null
@@ -695,12 +804,22 @@ match /spaces/{spaceId}/lessons/{assignmentId}/parentReviews/{uid} {
           && resource.data.uid == myUid();
       }
 
+      function noReviewFieldsOnCreate() {
+        return !request.resource.data.keys().hasAny(reviewFields());
+      }
+
+      function reviewFieldsUnchanged() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny(reviewFields());
+      }
+
       allow create: if signedIn()
         && (request.resource.data.uid is string)
-        && request.resource.data.uid == myUid();
+        && request.resource.data.uid == myUid()
+        && noReviewFieldsOnCreate();
 
       allow read: if isAdmin() || isOwnerDoc();
-      allow update: if isAdmin() || isOwnerDoc();
+      allow update: if isAdmin()
+        || (isOwnerDoc() && reviewFieldsUnchanged());
       allow delete: if false;
     }
 

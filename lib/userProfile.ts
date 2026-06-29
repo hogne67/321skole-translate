@@ -49,6 +49,11 @@ export type UserProfile = {
   schoolRole?: "school_admin" | "school_teacher";
   schoolStatus?: "active" | "disabled";
 
+  academyEnabled?: boolean;
+  features?: {
+    academy?: boolean;
+  };
+
   // ✅ legacy-felt beholdes som optional for gamle docs
   teacherStatus?: TeacherStatus;
   creatorStatus?: string;

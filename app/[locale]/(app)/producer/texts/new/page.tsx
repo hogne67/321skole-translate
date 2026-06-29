@@ -15,7 +15,7 @@ import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { trackCreateLesson } from "@/lib/analytics";
 import { trackEvent } from "@/lib/trackEvent";
-import { TEXT_TYPE_KEYS, type TextTypeKey } from "@/lib/textTypes";
+import { getTextTypeLabel, type TextTypeKey } from "@/lib/textTypes";
 
 type MCQ = {
   q: string;
@@ -205,12 +205,204 @@ function getDefaultContentLanguage(locale: string): string {
   return "nb";
 }
 
-function getDefaultLanguageSearch(locale: string): string {
+const LANGUAGE_LABELS_BY_LOCALE: Record<"nb" | "en" | "pt", Record<string, string>> = {
+  nb: {
+    nb: "Norsk (bokmål)",
+    nn: "Norsk (nynorsk)",
+    se: "Nordsamisk",
+    en: "Engelsk",
+    "pt-BR": "Portugisisk (Brasil)",
+    "pt-PT": "Portugisisk (Portugal)",
+    sv: "Svensk",
+    da: "Dansk",
+    fi: "Finsk",
+    de: "Tysk",
+    fr: "Fransk",
+    es: "Spansk",
+    it: "Italiensk",
+    nl: "Nederlandsk",
+    pl: "Polsk",
+    cs: "Tsjekkisk",
+    sk: "Slovakisk",
+    hu: "Ungarsk",
+    ro: "Rumensk",
+    bg: "Bulgarsk",
+    el: "Gresk",
+    ru: "Russisk",
+    uk: "Ukrainsk",
+    sr: "Serbisk",
+    tr: "Tyrkisk",
+    lv: "Latvisk",
+    lt: "Litauisk",
+    ar: "Arabisk",
+    so: "Somali",
+    ti: "Tigrinja",
+    am: "Amharisk",
+    kmr: "Kurdisk (Kurmanji)",
+    ckb: "Kurdisk (Sorani)",
+    sq: "Albansk",
+    ta: "Tamil",
+    om: "Oromo",
+    "fa-AF": "Dari (Afghanistan)",
+    ps: "Pashto",
+    fa: "Persisk",
+    ur: "Urdu",
+    hi: "Hindi",
+    bn: "Bengali",
+    rw: "Kinyarwanda",
+    ln: "Lingala",
+    sw: "Swahili",
+    din: "Dinka",
+    nus: "Nuer",
+    vi: "Vietnamesisk",
+    th: "Thai",
+    "zh-CN": "Kinesisk (forenklet)",
+    "zh-TW": "Kinesisk (tradisjonell)",
+    ja: "Japansk",
+    ko: "Koreansk",
+    tl: "Filipino / Tagalog",
+    ceb: "Cebuano",
+  },
+  en: {
+    nb: "Norwegian (Bokmål)",
+    nn: "Norwegian (Nynorsk)",
+    se: "Northern Sami",
+    en: "English",
+    "pt-BR": "Portuguese (Brazil)",
+    "pt-PT": "Portuguese (Portugal)",
+    sv: "Swedish",
+    da: "Danish",
+    fi: "Finnish",
+    de: "German",
+    fr: "French",
+    es: "Spanish",
+    it: "Italian",
+    nl: "Dutch",
+    pl: "Polish",
+    cs: "Czech",
+    sk: "Slovak",
+    hu: "Hungarian",
+    ro: "Romanian",
+    bg: "Bulgarian",
+    el: "Greek",
+    ru: "Russian",
+    uk: "Ukrainian",
+    sr: "Serbian",
+    tr: "Turkish",
+    lv: "Latvian",
+    lt: "Lithuanian",
+    ar: "Arabic",
+    so: "Somali",
+    ti: "Tigrinya",
+    am: "Amharic",
+    kmr: "Kurdish (Kurmanji)",
+    ckb: "Kurdish (Sorani)",
+    sq: "Albanian",
+    ta: "Tamil",
+    om: "Oromo",
+    "fa-AF": "Dari (Afghanistan)",
+    ps: "Pashto",
+    fa: "Persian",
+    ur: "Urdu",
+    hi: "Hindi",
+    bn: "Bengali",
+    rw: "Kinyarwanda",
+    ln: "Lingala",
+    sw: "Swahili",
+    din: "Dinka",
+    nus: "Nuer",
+    vi: "Vietnamese",
+    th: "Thai",
+    "zh-CN": "Chinese (Simplified)",
+    "zh-TW": "Chinese (Traditional)",
+    ja: "Japanese",
+    ko: "Korean",
+    tl: "Filipino / Tagalog",
+    ceb: "Cebuano",
+  },
+  pt: {
+    nb: "Norueguês (Bokmål)",
+    nn: "Norueguês (Nynorsk)",
+    se: "Sami do Norte",
+    en: "Inglês",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    sv: "Sueco",
+    da: "Dinamarquês",
+    fi: "Finlandês",
+    de: "Alemão",
+    fr: "Francês",
+    es: "Espanhol",
+    it: "Italiano",
+    nl: "Holandês",
+    pl: "Polonês",
+    cs: "Tcheco",
+    sk: "Eslovaco",
+    hu: "Húngaro",
+    ro: "Romeno",
+    bg: "Búlgaro",
+    el: "Grego",
+    ru: "Russo",
+    uk: "Ucraniano",
+    sr: "Sérvio",
+    tr: "Turco",
+    lv: "Letão",
+    lt: "Lituano",
+    ar: "Árabe",
+    so: "Somali",
+    ti: "Tigrínia",
+    am: "Amárico",
+    kmr: "Curdo (Kurmanji)",
+    ckb: "Curdo (Sorani)",
+    sq: "Albanês",
+    ta: "Tâmil",
+    om: "Oromo",
+    "fa-AF": "Dari (Afeganistão)",
+    ps: "Pashto",
+    fa: "Persa",
+    ur: "Urdu",
+    hi: "Hindi",
+    bn: "Bengali",
+    rw: "Kinyarwanda",
+    ln: "Lingala",
+    sw: "Suaíli",
+    din: "Dinka",
+    nus: "Nuer",
+    vi: "Vietnamita",
+    th: "Tailandês",
+    "zh-CN": "Chinês (simplificado)",
+    "zh-TW": "Chinês (tradicional)",
+    ja: "Japonês",
+    ko: "Coreano",
+    tl: "Filipino / Tagalog",
+    ceb: "Cebuano",
+  },
+};
+
+function getLabelLocale(locale: string): "nb" | "en" | "pt" {
   const normalized = locale.toLocaleLowerCase();
-  if (normalized.startsWith("en")) return "English";
-  if (normalized.startsWith("pt")) return "Portugu";
-  return "Norsk";
+  if (normalized.startsWith("en")) return "en";
+  if (normalized.startsWith("pt")) return "pt";
+  return "nb";
 }
+
+function getLanguageDisplayLabel(code: string, label: string, locale: string): string {
+  return LANGUAGE_LABELS_BY_LOCALE[getLabelLocale(locale)][code] || label.split("–")[0]?.trim() || label;
+}
+
+const GENERATOR_TEXT_TYPE_KEYS = [
+  "everydayStory",
+  "factual",
+  "fiction",
+  "article",
+  "dialogue",
+  "news",
+  "biography",
+  "letterEmail",
+  "opinion",
+  "howto",
+  "other",
+] as const satisfies readonly TextTypeKey[];
 
 const LEVEL_DEFAULTS: Record<
   LevelKey,
@@ -303,11 +495,6 @@ export default function NewTextPage() {
     fontSize: 14,
   };
 
-  const fieldStyleCompact: CSSProperties = {
-    ...fieldStyle,
-    padding: 8,
-  };
-
   const cardStyle: CSSProperties = {
     border: "1px solid #cbd5e1",
     borderRadius: 20,
@@ -395,7 +582,14 @@ export default function NewTextPage() {
 
   const [level, setLevel] = useState<LevelKey>("A2");
   const [language, setLanguage] = useState(() => getDefaultContentLanguage(locale));
-  const [languageSearch, setLanguageSearch] = useState(() => getDefaultLanguageSearch(locale));
+  const languageOptions = useMemo(() => {
+    const defaultLanguage = getDefaultContentLanguage(locale);
+    return [...LANGUAGES].sort((a, b) => {
+      if (a.code === defaultLanguage) return -1;
+      if (b.code === defaultLanguage) return 1;
+      return 0;
+    });
+  }, [locale]);
   const [prompt, setPrompt] = useState("");
   const [textTypePreset, setTextTypePreset] = useState<TextTypeKey>("everydayStory");
   const [textTypeOther, setTextTypeOther] = useState("");
@@ -403,8 +597,8 @@ export default function NewTextPage() {
     if (textTypePreset === "other") {
       return (textTypeOther || t("textTypes.other")).trim() || t("textTypes.other");
     }
-    return t(`textTypes.${textTypePreset}`);
-  }, [textTypePreset, textTypeOther, t]);
+    return getTextTypeLabel(textTypePreset, locale);
+  }, [locale, textTypePreset, textTypeOther, t]);
   const textTypeValue = textTypePreset === "other" ? textTypeLabel : textTypePreset;
 
   const [textLength, setTextLength] = useState<number>(LEVEL_DEFAULTS.A2.textLength);
@@ -479,6 +673,20 @@ export default function NewTextPage() {
     ? effectiveA1StartHighFrequencyTheme
     : effectiveA1StartPatternTopic;
   const effectiveTopic = isA1Start ? effectiveA1StartTopic : prompt.trim();
+  useEffect(() => {
+    const nextLanguage = getDefaultContentLanguage(locale);
+    setLanguage(nextLanguage);
+    if (isA1Start) {
+      setA1StartVerb(getA1StartVerbSuggestions(nextLanguage)[0] || "");
+      const nextWords = getA1StartHighFrequencyWords(a1StartWordClass, nextLanguage);
+      setA1StartWord(nextWords[0] || "");
+      const nextSounds = getA1StartSoundChoices(nextLanguage);
+      setA1StartFocusSound(nextSounds[0] || "s");
+    }
+    // This should only follow the page language, not reset a manual language choice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
+
   const factCheckReason = useMemo(() => {
     if (isA1Start) return "";
     const textTypeTerms = `${textTypePreset} ${textTypeLabel} ${textTypeOther}`;
@@ -549,16 +757,6 @@ export default function NewTextPage() {
       soundWordCount: a1StartSoundWordCount,
     }
     : undefined;
-
-  const filteredLanguages = useMemo(() => {
-    const q = languageSearch.trim().toLowerCase();
-    if (!q) return LANGUAGES;
-
-    return LANGUAGES.filter((l) => {
-      const hay = `${l.label} ${l.code}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [languageSearch]);
 
   async function refreshFeatureStatus(currentUid?: string) {
     const uid = currentUid ?? getAuth().currentUser?.uid ?? profileUid;
@@ -1260,42 +1458,27 @@ export default function NewTextPage() {
 
                 <label>
                   {t("fields.language")}
-                  <div style={{ marginTop: 6, display: "grid", gap: 8 }}>
-                    <input
-                      value={languageSearch}
-                      onChange={(e) => setLanguageSearch(e.target.value)}
-                      placeholder={t("fields.languageSearchPlaceholder")}
-                      style={fieldStyleCompact}
-                    />
-                    <select
-                      value={language}
-                      onChange={(e) => {
-                        const nextLanguage = e.target.value;
-                        setLanguage(nextLanguage);
+                  <select
+                    value={language}
+                    onChange={(e) => {
+                      const nextLanguage = e.target.value;
+                      setLanguage(nextLanguage);
                       if (isA1Start) {
-                          setA1StartVerb(getA1StartVerbSuggestions(nextLanguage)[0] || "");
-                          if (!["nb", "no", "nn", "en", "pt-br"].includes(nextLanguage.toLocaleLowerCase())) {
-                            setA1StartType("pattern_sentences");
-                          } else {
-                            const nextWords = getA1StartHighFrequencyWords(a1StartWordClass, nextLanguage);
-                            setA1StartWord(nextWords[0] || "");
-                          }
-                          const nextSounds = getA1StartSoundChoices(nextLanguage);
-                          setA1StartFocusSound(nextSounds[0] || "s");
-                        }
-                      }}
-                      style={fieldStyle}
-                    >
-                      {filteredLanguages.map((l) => (
-                        <option key={l.code} value={l.code}>
-                          {l.label} ({l.code})
-                        </option>
-                      ))}
-                    </select>
-                    <div style={{ fontSize: 12, opacity: 0.75 }}>
-                      {t("fields.languageCount", { count: filteredLanguages.length })}
-                    </div>
-                  </div>
+                        setA1StartVerb(getA1StartVerbSuggestions(nextLanguage)[0] || "");
+                        const nextWords = getA1StartHighFrequencyWords(a1StartWordClass, nextLanguage);
+                        setA1StartWord(nextWords[0] || "");
+                        const nextSounds = getA1StartSoundChoices(nextLanguage);
+                        setA1StartFocusSound(nextSounds[0] || "s");
+                      }
+                    }}
+                    style={fieldStyle}
+                  >
+                    {languageOptions.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {getLanguageDisplayLabel(option.code, option.label, locale)}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 {!isA1Start && (
@@ -1307,9 +1490,9 @@ export default function NewTextPage() {
                         onChange={(e) => setTextTypePreset(e.target.value as TextTypeKey)}
                         style={fieldStyle}
                       >
-                        {TEXT_TYPE_KEYS.map((k) => (
+                        {GENERATOR_TEXT_TYPE_KEYS.map((k) => (
                           <option key={k} value={k}>
-                            {t(`textTypes.${k}`)}
+                            {getTextTypeLabel(k, locale)}
                           </option>
                         ))}
                       </select>

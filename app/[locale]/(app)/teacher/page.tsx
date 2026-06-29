@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { PartnerDashboardCard } from "@/components/PartnerDashboardCard";
+import { canAccessAcademy } from "@/lib/courses/academyAccess";
 import { db } from "@/lib/firebase";
 import {
   getBucketLimit,
@@ -521,6 +522,7 @@ export default function TeacherPage() {
     rawBillingStatus === "active" || rawBillingStatus === "trialing";
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
+  const showCoursesSection = canAccessAcademy(profile);
 
   async function reloadStudents(currentUid?: string) {
     if (!currentUid || !db) {
@@ -1655,6 +1657,202 @@ export default function TeacherPage() {
           </div>
         </div>
       </section>
+
+      {showCoursesSection ? (
+        <section
+          style={{
+            marginTop: 24,
+            border: "1px solid #cbd5e1",
+            borderRadius: 22,
+            background: "#f8fafc",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ padding: 16 }}>
+            <div
+              style={{
+                border: "1px solid #bbf7d0",
+                borderRadius: 18,
+                background: "#ffffff",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                padding: 16,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: 14,
+                  flexWrap: "wrap",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                }}
+              >
+                <div style={{ minWidth: 0, flex: "1 1 420px" }}>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      border: "1px solid #86efac",
+                      background: "#f0fdf4",
+                      color: "#166534",
+                      borderRadius: 999,
+                      padding: "6px 10px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    321Academy
+                    <span
+                      style={{
+                        borderRadius: 999,
+                        background: "#dcfce7",
+                        color: "#14532d",
+                        padding: "2px 7px",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Beta
+                    </span>
+                  </div>
+
+                  <h2
+                    style={{
+                      margin: "10px 0 0",
+                      fontSize: 24,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    Courses
+                  </h2>
+
+                  <p
+                    style={{
+                      margin: "8px 0 0",
+                      fontSize: 14,
+                      color: "#475569",
+                      maxWidth: 720,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Planlegg, publiser og følg opp kurs i en egen, tynn kursflyt. Modulen
+                    er i beta og holdes adskilt fra Lessons, Spaces og Library foreløpig.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 16,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 10,
+                }}
+              >
+                <Link
+                  href={withLocale(locale, "/teacher/courses")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    background: "#166534",
+                    color: "#ffffff",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                  }}
+                >
+                  My courses
+                </Link>
+
+                <Link
+                  href={withLocale(locale, "/teacher/courses/new")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    background: "#ffffff",
+                    color: "#0f172a",
+                    border: "1px solid #cbd5e1",
+                  }}
+                >
+                  Create course
+                </Link>
+
+                <Link
+                  href={withLocale(locale, "/teacher/courses/generate")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    background: "#ecfdf5",
+                    color: "#166534",
+                    border: "1px solid #86efac",
+                  }}
+                >
+                  Generate course
+                </Link>
+
+                <Link
+                  href={withLocale(locale, "/teacher/courses?filter=published")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    background: "#ffffff",
+                    color: "#0f172a",
+                    border: "1px solid #cbd5e1",
+                  }}
+                >
+                  Published courses
+                </Link>
+
+                <Link
+                  href={withLocale(locale, "/academy/courses")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    padding: "10px 14px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    background: "#ffffff",
+                    color: "#0f172a",
+                    border: "1px solid #cbd5e1",
+                  }}
+                >
+                  Courses I attend
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

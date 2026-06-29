@@ -26,7 +26,12 @@ function hasRequiredRole(profile: unknown, requireRole: Role): boolean {
   }
 
   if (requireRole === "teacher") {
-    return roles?.["teacher"] === true || role === "teacher";
+    return (
+      roles?.["admin"] === true ||
+      role === "admin" ||
+      roles?.["teacher"] === true ||
+      role === "teacher"
+    );
   }
 
   if (requireRole === "creator") {

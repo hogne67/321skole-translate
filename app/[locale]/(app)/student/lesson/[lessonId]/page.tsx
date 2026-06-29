@@ -3,7 +3,7 @@
 
 import { SearchableSelect } from "@/components/SearchableSelect";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db, auth } from "@/lib/firebase";
@@ -873,6 +873,23 @@ export default function StudentLessonPage() {
 
   const params = useParams<{ lessonId: string }>();
   const lessonId = params?.lessonId;
+  const searchParams = useSearchParams();
+  const courseContext = useMemo(() => {
+    const courseId = (searchParams.get("courseId") || "").trim();
+    if (!courseId) return null;
+
+    const sessionNumberRaw = (searchParams.get("sessionNumber") || "").trim();
+    const sessionNumber = Number(sessionNumberRaw);
+    const resourceId = (searchParams.get("resourceId") || "").trim();
+
+    return {
+      courseId,
+      sessionNumber: Number.isFinite(sessionNumber) ? sessionNumber : null,
+      resourceId,
+    };
+  }, [searchParams]);
+  const isCourseMode = courseContext !== null;
+  const courseRoomHref = courseContext ? `/${locale}/academy/courses/${courseContext.courseId}` : "";
 
   const router = useRouter();
   const { profile } = useUserProfile();
@@ -1641,11 +1658,17 @@ export default function StudentLessonPage() {
         return;
       }
 
-      const stableId = `${uid}_${lessonId}`;
+      const stableId = courseContext
+        ? `${uid}_course_${courseContext.courseId}_${courseContext.resourceId || lessonId}`
+        : `${uid}_${lessonId}`;
       const publishedLessonId =
         lesson.sourceCollection === "published_lessons" ? lessonId : null;
       const source =
-        lesson.sourceCollection === "published_lessons" ? "library" : "my_content";
+        courseContext
+          ? "course"
+          : lesson.sourceCollection === "published_lessons"
+            ? "library"
+            : "my_content";
 
       const practiceRef = doc(db, "practiceSubmissions", stableId);
       await setDoc(
@@ -1654,6 +1677,9 @@ export default function StudentLessonPage() {
           uid,
           lessonId,
           publishedLessonId,
+          courseId: courseContext?.courseId ?? null,
+          courseSessionNumber: courseContext?.sessionNumber ?? null,
+          courseResourceId: courseContext?.resourceId ?? null,
           answers,
           readingProgress: isReadingTest ? readingProgress : null,
           status: "draft",
@@ -1664,26 +1690,28 @@ export default function StudentLessonPage() {
         { merge: true }
       );
 
-      const subRef = doc(db, "submissions", stableId);
-      await setDoc(
-        subRef,
-        {
-          uid,
-          lessonId,
-          publishedLessonId,
-          answers,
-          readingProgress: isReadingTest ? readingProgress : null,
-          status: "draft",
-          kind: "practice",
-          source,
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      if (!courseContext) {
+        const subRef = doc(db, "submissions", stableId);
+        await setDoc(
+          subRef,
+          {
+            uid,
+            lessonId,
+            publishedLessonId,
+            answers,
+            readingProgress: isReadingTest ? readingProgress : null,
+            status: "draft",
+            kind: "practice",
+            source,
+            updatedAt: serverTimestamp(),
+            createdAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
 
       flash(t("flash.saved"));
-      router.push(`/${locale}/content`);
+      router.push(courseContext ? courseRoomHref : `/${locale}/content`);
       return;
     } catch (e: unknown) {
       const m = (e as { message?: unknown })?.message;
@@ -1719,12 +1747,18 @@ export default function StudentLessonPage() {
 
     try {
       const activeReadingProgress = progressOverride ?? readingProgress;
-      const stableId = `${uid}_${lessonId}`;
+      const stableId = courseContext
+        ? `${uid}_course_${courseContext.courseId}_${courseContext.resourceId || lessonId}`
+        : `${uid}_${lessonId}`;
       const ref = doc(db, "practiceSubmissions", stableId);
       const publishedLessonId =
         lesson.sourceCollection === "published_lessons" ? lessonId : null;
       const source =
-        lesson.sourceCollection === "published_lessons" ? "library" : "my_content";
+        courseContext
+          ? "course"
+          : lesson.sourceCollection === "published_lessons"
+            ? "library"
+            : "my_content";
 
       await setDoc(
         ref,
@@ -1732,6 +1766,9 @@ export default function StudentLessonPage() {
           uid,
           lessonId,
           publishedLessonId,
+          courseId: courseContext?.courseId ?? null,
+          courseSessionNumber: courseContext?.sessionNumber ?? null,
+          courseResourceId: courseContext?.resourceId ?? null,
           answers,
           readingProgress: isReadingTest ? activeReadingProgress : null,
           status: "submitted",
@@ -1741,6 +1778,26 @@ export default function StudentLessonPage() {
         },
         { merge: true }
       );
+
+      const subRef = !courseContext ? doc(db, "submissions", stableId) : null;
+      if (subRef) {
+        await setDoc(
+          subRef,
+          {
+            uid,
+            lessonId,
+            publishedLessonId,
+            answers,
+            readingProgress: isReadingTest ? activeReadingProgress : null,
+            status: "submitted",
+            kind: "practice",
+            source,
+            updatedAt: serverTimestamp(),
+            createdAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
 
       const imageDescription = String(imageWritingTask?.imageDescription ?? "").trim();
       const lesetekst = isImageWriting
@@ -1798,6 +1855,14 @@ export default function StudentLessonPage() {
         feedbackUpdatedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+
+      if (subRef) {
+        await updateDoc(subRef, {
+          feedback: fb,
+          feedbackUpdatedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
 
       await incrementUsage(uid, "ai_feedback");
       await reloadUsage();
@@ -2038,12 +2103,14 @@ export default function StudentLessonPage() {
     );
   };
 
-  const backHref =
-    lesson.sourceCollection === "published_lessons"
+  const backHref = courseContext
+    ? courseRoomHref
+    : lesson.sourceCollection === "published_lessons"
       ? `/${locale}/321lessons`
       : `/${locale}/content`;
-  const backLabel =
-    lesson.sourceCollection === "published_lessons"
+  const backLabel = courseContext
+    ? "Back to course room"
+    : lesson.sourceCollection === "published_lessons"
       ? t("nav.backToLibrary")
       : t("nav.backToDashboard");
 
@@ -2093,6 +2160,51 @@ export default function StudentLessonPage() {
         </div>
 
       </header>
+
+      {isCourseMode ? (
+        <div
+          style={{
+            marginTop: 12,
+            padding: "12px 14px",
+            border: "1px solid #bbf7d0",
+            borderRadius: 14,
+            background: "#f0fdf4",
+            color: "#14532d",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.4 }}>
+              321Academy course task
+            </div>
+            <div style={{ marginTop: 3, fontSize: 14, fontWeight: 650 }}>
+              This work will be saved to the course session.
+            </div>
+          </div>
+          <Link
+            href={courseRoomHref}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 10,
+              padding: "8px 12px",
+              border: "1px solid #86efac",
+              background: "#ffffff",
+              color: "#166534",
+              fontSize: 13,
+              fontWeight: 800,
+              textDecoration: "none",
+            }}
+          >
+            Back to course room
+          </Link>
+        </div>
+      ) : null}
 
       {msg ? (
         <div
@@ -2183,7 +2295,7 @@ export default function StudentLessonPage() {
             minWidth: 120,
           }}
         >
-          {saving ? t("actions.saving") : t("actions.save")}
+          {saving ? t("actions.saving") : isCourseMode ? "Save course draft" : t("actions.save")}
         </button>
       </div>
 
@@ -2805,7 +2917,9 @@ export default function StudentLessonPage() {
           <div>
             <h2 style={{ margin: 0 }}>{t("feedback.title")}</h2>
             <div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>
-              {t("feedback.subtitle")}
+              {isCourseMode
+                ? "KI-feedback lagres sammen med kursbesvarelsen, slik at kursinstruktøren kan følge den opp."
+                : t("feedback.subtitle")}
             </div>
           </div>
 

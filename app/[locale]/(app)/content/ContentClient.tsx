@@ -1373,6 +1373,17 @@ export default function ContentClient() {
           ]
           : []),
 
+        ...(isTeacher
+          ? [
+            {
+              key: "addToCourse",
+              label: "Add to course",
+              disabled: true,
+              onClick: () => { },
+            },
+          ]
+          : []),
+
         {
           key: "deleteFromArchive",
           label: t("actions.deleteFromArchive"),
@@ -1578,6 +1589,17 @@ export default function ContentClient() {
       ...(isTeacher
         ? [
           {
+            key: "addToCourse",
+            label: "Add to course",
+            disabled: true,
+            onClick: () => { },
+          },
+        ]
+        : []),
+
+      ...(isTeacher
+        ? [
+          {
             key: "pdf",
             label: isMath
               ? mathSubtypeText && mathSubtype !== "math"
@@ -1608,12 +1630,13 @@ export default function ContentClient() {
         "pdf",
         "share",
         "shareToSpace",
+        "addToCourse",
         "deleteFromArchive",
       ];
     }
     if (it.type === "space") return ["open", "board", "copyCode", "share", "copyJoinLink"];
     if (isMathArchiveItem(it)) return ["openMath", "pdf", "delete", "restore"];
-    return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "pdf", "delete", "restore"];
+    return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "addToCourse", "pdf", "delete", "restore"];
   }
 
   function desktopActions(it: ContentItem, actions: ActionItem[]) {

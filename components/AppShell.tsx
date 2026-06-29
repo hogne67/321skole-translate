@@ -7,6 +7,7 @@ import TopNav from "@/components/TopNav";
 import LibraryBar from "@/components/LibraryBar";
 import SectionShell from "@/components/SectionShell";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { hasAcademyAccess } from "@/lib/courses/academyAccess";
 import { navItemsForRole } from "@/lib/navItems";
 import { useTranslations } from "next-intl";
 
@@ -66,6 +67,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     profile?.schoolStatus === "active";
   const showPersonalAdminLink =
     !!user && !user.isAnonymous && PERSONAL_ADMIN_LINK_UIDS.has(user.uid);
+  const academyEnabled = hasAcademyAccess(profile);
 
   const title =
     isAnonymousOpenLesson
@@ -85,7 +87,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           : tModes("student");
 
   const items = useMemo(() => {
-    const baseItems = navItemsForRole(role).map((it) => ({
+    const baseItems = navItemsForRole(role, { academyEnabled }).map((it) => ({
       href: it.href,
       label: tNav(it.labelKey),
     }));
@@ -119,6 +121,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     profile?.schoolRole,
     profile?.schoolStatus,
     role,
+    academyEnabled,
     showPersonalAdminLink,
     tNav,
   ]);
