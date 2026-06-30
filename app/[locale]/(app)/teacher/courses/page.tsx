@@ -120,7 +120,7 @@ function TeacherCoursesContent() {
   const isPublishedFilter = filter === "published";
   const connectReturn = searchParams.get("connect");
 
-  async function updatePublishStatus(course: Course, action: "unpublish") {
+  async function updatePublishStatus(course: Course, action: "publish" | "unpublish") {
     if (!user || busyCourseId) return;
 
     try {
@@ -138,11 +138,27 @@ function TeacherCoursesContent() {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Could not update course");
 
-      setCourses((prev) =>
-        prev.map((item) =>
-          item.id === course.id ? { ...item, status: "draft" } : item
-        )
-      );
+      const refreshed = await fetch("/api/teacher/courses", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const refreshedData = (await refreshed.json().catch(() => ({}))) as {
+        courses?: Array<Record<string, unknown> & { id?: string }>;
+      };
+      if (refreshed.ok) {
+        setCourses(
+          (refreshedData.courses ?? []).map((item) =>
+            normalizeCourse(typeof item.id === "string" ? item.id : "", item)
+          )
+        );
+      } else {
+        setCourses((prev) =>
+          prev.map((item) =>
+            item.id === course.id
+              ? { ...item, status: action === "publish" ? "published" : "draft" }
+              : item
+          )
+        );
+      }
     } catch (err) {
       console.error("Failed to update publish status", err);
       setError("Publisering kunne ikke oppdateres akkurat nå.");
@@ -308,6 +324,16 @@ function TeacherCoursesContent() {
                     <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold capitalize text-slate-600">
                       {course.status}
                     </span>
+                    {course.status === "draft" ? (
+                      <button
+                        type="button"
+                        disabled={busyCourseId === course.id}
+                        onClick={() => void updatePublishStatus(course, "publish")}
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-3 text-xs font-bold text-white disabled:opacity-60"
+                      >
+                        {busyCourseId === course.id ? "Working..." : "Publish"}
+                      </button>
+                    ) : null}
                     <Link
                       href={withLocale(locale, `/teacher/courses/${course.id}`)}
                       className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 no-underline hover:bg-slate-50"

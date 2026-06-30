@@ -120,7 +120,9 @@ export async function GET(req: Request) {
     const access = await requireCourseAccess(req);
     if ("error" in access) return access.error;
 
-    const snap = access.isAdmin
+    const url = new URL(req.url);
+    const showAll = access.isAdmin && url.searchParams.get("scope") === "all";
+    const snap = showAll
       ? await access.db.collection("courses").get()
       : await access.db.collection("courses").where("ownerUid", "==", access.uid).get();
 
