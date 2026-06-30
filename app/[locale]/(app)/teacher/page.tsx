@@ -1774,7 +1774,7 @@ export default function TeacherPage() {
                 </Link>
 
                 <Link
-                  href={withLocale(locale, "/teacher/courses/new")}
+                  href={withLocale(locale, "/courses")}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -1789,7 +1789,7 @@ export default function TeacherPage() {
                     border: "1px solid #cbd5e1",
                   }}
                 >
-                  Create course
+                  Course marketplace
                 </Link>
 
                 <Link

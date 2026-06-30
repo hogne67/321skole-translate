@@ -3,10 +3,13 @@ import type { Metadata } from "next";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
   normalizeCourseMarketing,
+  normalizeCourseSalesSettings,
   normalizeCoursePlan,
   type CourseMarketing,
+  type CourseSalesSettings,
   type CoursePlanSession,
 } from "@/lib/courses/types";
+import { CourseCheckoutButton } from "./CourseCheckoutButton";
 import { SignupRequestForm } from "./SignupRequestForm";
 
 type PageProps = {
@@ -25,12 +28,14 @@ type PublicCourse = {
   language: string;
   level: string;
   priceText: string;
+  sales: CourseSalesSettings;
   maxParticipants: number;
   numberOfSessions: number;
   numberOfWeeks: number;
   marketing: CourseMarketing;
   coursePlan: CoursePlanSession[];
   teacherName: string;
+  canCheckout: boolean;
 };
 
 function safeString(value: unknown): string {
@@ -52,12 +57,23 @@ async function loadPublicCourse(slug: string): Promise<PublicCourse | null> {
   if (data.status !== "published" && data.status !== "active") return null;
 
   let teacherName = "";
+  let ownerCanReceivePayments = false;
   const ownerUid = safeString(data.ownerUid);
   if (ownerUid) {
     const ownerSnap = await db.collection("users").doc(ownerUid).get();
     const owner = ownerSnap.exists ? ownerSnap.data() ?? {} : {};
     teacherName = safeString(owner.displayName);
+    const connect =
+      owner.academyStripeConnect && typeof owner.academyStripeConnect === "object"
+        ? owner.academyStripeConnect as Record<string, unknown>
+        : {};
+    ownerCanReceivePayments =
+      typeof connect.accountId === "string" &&
+      connect.chargesEnabled === true &&
+      connect.payoutsEnabled === true &&
+      connect.detailsSubmitted === true;
   }
+  const sales = normalizeCourseSalesSettings(data.sales);
 
   return {
     title: safeString(data.title),
@@ -68,12 +84,19 @@ async function loadPublicCourse(slug: string): Promise<PublicCourse | null> {
     language: safeString(data.language),
     level: safeString(data.level),
     priceText: safeString(data.priceText),
+    sales,
     maxParticipants: safeNumber(data.maxParticipants),
     numberOfSessions: safeNumber(data.numberOfSessions),
     numberOfWeeks: safeNumber(data.numberOfWeeks),
     marketing: normalizeCourseMarketing(data.marketing),
     coursePlan: normalizeCoursePlan(data.coursePlan),
     teacherName,
+    canCheckout:
+      ownerCanReceivePayments === true &&
+      sales.saleStatus === "ready" &&
+      sales.priceAmountOre > 0 &&
+      sales.taxProfile.deliveryType === "live_instruction" &&
+      sales.taxProfile.vatTreatment === "vat_exempt_education",
   };
 }
 
@@ -94,12 +117,14 @@ export default async function PublicCoursePage({ params }: PageProps) {
             <p className="mt-2 text-sm font-bold text-slate-600">Instructor: {course.teacherName}</p>
           ) : null}
           {course.marketing.coverImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={course.marketing.coverImageUrl}
-              alt=""
-              className="mt-5 max-h-96 w-full rounded-lg border border-slate-200 object-cover"
-            />
+            <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={course.marketing.coverImageUrl}
+                alt=""
+                className="aspect-video w-full object-cover"
+              />
+            </div>
           ) : null}
           {course.marketing.summary ? (
             <p className="mt-4 max-w-3xl whitespace-pre-wrap text-lg font-semibold leading-8 text-slate-800">
@@ -116,10 +141,17 @@ export default async function PublicCoursePage({ params }: PageProps) {
             <Badge label="Sessions" value={String(course.numberOfSessions)} />
             <Badge label="Weeks" value={String(course.numberOfWeeks)} />
             <Badge label="Max participants" value={String(course.maxParticipants)} />
-            <Badge label="Price" value={course.priceText || "Ikke fylt ut"} />
+            <Badge label="Price" value={formatCoursePrice(course.sales, course.priceText)} />
           </div>
 
-          <SignupRequestForm slug={course.slug} />
+          {course.canCheckout ? (
+            <>
+              <CourseCheckoutButton enabled label="Buy course" />
+              <SignupRequestForm slug={course.slug} compact />
+            </>
+          ) : (
+            <SignupRequestForm slug={course.slug} />
+          )}
         </section>
 
         <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -239,6 +271,18 @@ function TextBlock({ title, value }: { title: string; value: string }) {
       <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{value}</p>
     </div>
   );
+}
+
+function formatCoursePrice(sales: CourseSalesSettings, fallback: string) {
+  if (sales.priceAmountOre > 0) {
+    return new Intl.NumberFormat("nb-NO", {
+      style: "currency",
+      currency: sales.currency || "NOK",
+      maximumFractionDigits: sales.priceAmountOre % 100 === 0 ? 0 : 2,
+    }).format(sales.priceAmountOre / 100);
+  }
+
+  return fallback || "Ikke fylt ut";
 }
 
 function formatSessionDate(value: string): string {

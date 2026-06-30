@@ -69,12 +69,14 @@ export default function CourseSessionPage() {
   const courseId = typeof params?.courseId === "string" ? params.courseId : "";
   const sessionNumber = Number(params?.sessionNumber);
   const { user } = useUserProfile();
+  const videoShellRef = useRef<HTMLDivElement | null>(null);
   const dailyContainerRef = useRef<HTMLDivElement | null>(null);
   const dailyFrameRef = useRef<DailyCallFrame | null>(null);
   const [course, setCourse] = useState<CourseRoom | null>(null);
   const [loading, setLoading] = useState(true);
   const [joiningDaily, setJoiningDaily] = useState(false);
   const [dailyLoaded, setDailyLoaded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [dailyError, setDailyError] = useState("");
   const [error, setError] = useState("");
 
@@ -117,7 +119,14 @@ export default function CourseSessionPage() {
   }, [courseId, sessionNumber, user]);
 
   useEffect(() => {
+    function handleFullscreenChange() {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    }
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
     return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
       dailyFrameRef.current?.destroy();
       dailyFrameRef.current = null;
     };
@@ -161,7 +170,9 @@ export default function CourseSessionPage() {
         },
       });
       dailyFrameRef.current = frame;
+      enableDailyIframeFullscreen(dailyContainerRef.current);
       await frame.join({ url: data.roomUrl, token: data.token });
+      enableDailyIframeFullscreen(dailyContainerRef.current);
       setDailyLoaded(true);
     } catch (err) {
       const message = getDailyJoinErrorMessage(err);
@@ -173,6 +184,21 @@ export default function CourseSessionPage() {
       setDailyError(message);
     } finally {
       setJoiningDaily(false);
+    }
+  }
+
+  async function openVideoFullscreen() {
+    const target = videoShellRef.current ?? dailyContainerRef.current;
+    if (!target || !document.fullscreenEnabled) return;
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await target.requestFullscreen();
+      }
+    } catch (err) {
+      console.info("Fullscreen could not be toggled.", err);
     }
   }
 
@@ -252,19 +278,46 @@ export default function CourseSessionPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
-        <div className="grid min-h-[420px] gap-4 rounded-lg border border-slate-900 bg-slate-950 p-5 text-white shadow-sm">
-          <div>
-            <div className="text-xs font-black uppercase tracking-wide text-emerald-300">
-              Live session
+        <div
+          ref={videoShellRef}
+          className={`relative grid gap-4 rounded-lg border border-slate-900 bg-slate-950 p-5 text-white shadow-sm ${
+            isFullscreen
+              ? "min-h-screen grid-rows-[1fr] rounded-none border-0 p-0"
+              : dailyLoaded
+                ? "grid-rows-[auto_minmax(0,auto)]"
+                : "min-h-[420px] grid-rows-[auto_auto_minmax(360px,1fr)]"
+          }`}
+        >
+          <div className={`flex flex-wrap items-start justify-between gap-3 ${isFullscreen && dailyLoaded ? "hidden" : ""}`}>
+            <div>
+              <div className="text-xs font-black uppercase tracking-wide text-emerald-300">
+                Live session
+              </div>
+              <h2 className="m-0 mt-2 text-xl font-black">Video room</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+                This area is prepared for a video provider such as Daily. For now, use the meeting
+                link when one has been added by the instructor.
+              </p>
             </div>
-            <h2 className="m-0 mt-2 text-xl font-black">Video room</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-              This area is prepared for a video provider such as Daily. For now, use the meeting
-              link when one has been added by the instructor.
-            </p>
+            <button
+              type="button"
+              onClick={() => void openVideoFullscreen()}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15"
+            >
+              Fullscreen
+            </button>
           </div>
+          {isFullscreen ? (
+            <button
+              type="button"
+              onClick={() => void document.exitFullscreen()}
+              className="absolute right-4 top-4 z-[9999] inline-flex h-10 items-center justify-center rounded-lg border border-white/30 bg-black/70 px-4 text-sm font-black text-white shadow-lg backdrop-blur hover:bg-black/80"
+            >
+              Exit fullscreen
+            </button>
+          ) : null}
 
-          <div className="grid place-items-center rounded-lg border border-white/10 bg-white/5 p-6 text-center">
+          <div className={`place-items-center rounded-lg border border-white/10 bg-white/5 p-6 text-center ${dailyLoaded ? "hidden" : "grid"}`}>
             <div>
               <div className="text-5xl font-black text-white/20">321</div>
               <p className="mt-3 text-sm font-semibold text-slate-300">
@@ -285,7 +338,16 @@ export default function CourseSessionPage() {
               ) : null}
             </div>
           </div>
-          <div ref={dailyContainerRef} className="min-h-[360px]" />
+          <div
+            ref={dailyContainerRef}
+            className={`overflow-hidden bg-black ${
+              isFullscreen
+                ? "h-screen min-h-0 rounded-none"
+                : dailyLoaded
+                  ? "aspect-video min-h-0 rounded-xl"
+                  : "min-h-[360px] rounded-xl"
+            }`}
+          />
         </div>
 
         <aside className="grid gap-4">
@@ -463,6 +525,22 @@ function loadDailyScript(): Promise<void> {
     });
     document.head.appendChild(script);
   });
+}
+
+function getDailyIframeElement(container: HTMLElement | null): HTMLIFrameElement | null {
+  return container?.querySelector("iframe") ?? null;
+}
+
+function enableDailyIframeFullscreen(container: HTMLElement | null) {
+  const iframe = getDailyIframeElement(container);
+  if (!iframe) return;
+
+  iframe.allowFullscreen = true;
+  const allow = iframe.getAttribute("allow") || "";
+  const permissions = ["camera", "microphone", "fullscreen", "display-capture", "autoplay"];
+  const nextAllow = Array.from(new Set([...allow.split(";").map((item) => item.trim()).filter(Boolean), ...permissions])).join("; ");
+  iframe.setAttribute("allow", nextAllow);
+  iframe.setAttribute("allowfullscreen", "true");
 }
 
 const DAILY_NOT_AVAILABLE_MESSAGE =

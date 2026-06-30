@@ -6,6 +6,7 @@ import { canAccessAcademy, hasAdminAccess } from "@/lib/courses/academyAccess";
 import {
   createEmptyCoursePlan,
   normalizeCourseMarketing,
+  normalizeCourseSalesSettings,
   normalizeCoursePlan,
   type CourseStatus,
 } from "@/lib/courses/types";
@@ -24,6 +25,7 @@ type CourseBody = {
   sessionDurationMinutes?: unknown;
   coursePlan?: unknown;
   marketing?: unknown;
+  sales?: unknown;
   status?: unknown;
 };
 
@@ -105,6 +107,7 @@ function serializeCourse(id: string, data: FirebaseFirestore.DocumentData) {
     slug: safeString(data.slug),
     publicUrl: safeString(data.publicUrl),
     marketing: normalizeCourseMarketing(data.marketing),
+    sales: normalizeCourseSalesSettings(data.sales),
     publishedAt: data.publishedAt?.toDate ? data.publishedAt.toDate().toISOString() : null,
     coursePlan: normalizeCoursePlan(data.coursePlan),
     createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
@@ -166,6 +169,7 @@ export async function POST(req: Request) {
       slug: "",
       publicUrl: "",
       marketing: normalizeCourseMarketing(body.marketing),
+      sales: normalizeCourseSalesSettings(body.sales),
       publishedAt: null,
       coursePlan,
       createdAt: now,

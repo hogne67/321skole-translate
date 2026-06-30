@@ -118,6 +118,7 @@ function TeacherCoursesContent() {
 
   const filter = searchParams.get("filter");
   const isPublishedFilter = filter === "published";
+  const connectReturn = searchParams.get("connect");
 
   async function updatePublishStatus(course: Course, action: "unpublish") {
     if (!user || busyCourseId) return;
@@ -186,6 +187,12 @@ function TeacherCoursesContent() {
         </div>
       </section>
 
+      {connectReturn ? (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
+          Stripe setup returned. Open a course and check Marketing → Sales setup to confirm payout status.
+        </div>
+      ) : null}
+
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
@@ -218,6 +225,12 @@ function TeacherCoursesContent() {
                 className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700 no-underline"
               >
                 Kurs jeg deltar på
+              </Link>
+              <Link
+                href={withLocale(locale, "/courses")}
+                className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 no-underline"
+              >
+                Course marketplace
               </Link>
             </div>
           </div>
@@ -274,10 +287,22 @@ function TeacherCoursesContent() {
                 className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    {course.marketing.coverImageUrl ? (
+                      <div className="hidden w-32 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 sm:block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={course.marketing.coverImageUrl}
+                          alt=""
+                          className="aspect-video w-full object-cover"
+                        />
+                      </div>
+                    ) : null}
+                    <div className="min-w-0">
                     <h3 className="m-0 break-words text-base font-extrabold text-slate-950">
                       {course.title || "Uten tittel"}
                     </h3>
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold capitalize text-slate-600">

@@ -4,6 +4,16 @@ export type ParticipantStatus = "invited" | "enrolled" | "active" | "completed" 
 export type CourseMessageStatus = "draft" | "sent" | "failed";
 export type SignupRequestStatus = "new" | "accepted" | "rejected" | "contacted";
 export type CourseDate = { toDate: () => Date };
+export type CourseSaleStatus = "not_for_sale" | "ready" | "needs_review";
+export type CourseDeliveryType =
+  | "live_instruction"
+  | "recorded_digital_content"
+  | "mixed"
+  | "needs_review";
+export type CourseVatTreatment =
+  | "vat_exempt_education"
+  | "vatable_digital_service"
+  | "needs_review";
 
 export type CoursePlanSession = {
   sessionNumber: number;
@@ -71,10 +81,26 @@ export type CourseSignupRequest = {
 
 export type CourseMarketing = {
   coverImageUrl: string;
+  coverImageSource: "upload" | "ai" | "";
+  coverImagePrompt: string;
+  coverImageStyle: "illustration" | "realistic";
   summary: string;
   salesText: string;
   seoTitle: string;
   seoDescription: string;
+};
+
+export type CourseTaxProfile = {
+  deliveryType: CourseDeliveryType;
+  vatTreatment: CourseVatTreatment;
+  vatNote: string;
+};
+
+export type CourseSalesSettings = {
+  saleStatus: CourseSaleStatus;
+  currency: string;
+  priceAmountOre: number;
+  taxProfile: CourseTaxProfile;
 };
 
 export type Course = {
@@ -94,6 +120,7 @@ export type Course = {
   slug: string;
   publicUrl: string;
   marketing: CourseMarketing;
+  sales: CourseSalesSettings;
   publishedAt?: CourseDate | null;
   coursePlan: CoursePlanSession[];
   createdAt?: CourseDate | null;
@@ -102,7 +129,15 @@ export type Course = {
 
 export type CourseFormValues = Omit<
   Course,
-  "id" | "ownerUid" | "slug" | "publicUrl" | "marketing" | "publishedAt" | "createdAt" | "updatedAt"
+  | "id"
+  | "ownerUid"
+  | "slug"
+  | "publicUrl"
+  | "marketing"
+  | "sales"
+  | "publishedAt"
+  | "createdAt"
+  | "updatedAt"
 >;
 
 export const DEFAULT_COURSE_FORM: CourseFormValues = {
@@ -234,10 +269,45 @@ export function normalizeCourse(id: string, data: Record<string, unknown>): Cour
     slug: typeof data.slug === "string" ? data.slug : "",
     publicUrl: typeof data.publicUrl === "string" ? data.publicUrl : "",
     marketing: normalizeCourseMarketing(data.marketing),
+    sales: normalizeCourseSalesSettings(data.sales),
     publishedAt: normalizeDate(data.publishedAt),
     coursePlan: normalizeCoursePlan(data.coursePlan),
     createdAt: normalizeDate(data.createdAt),
     updatedAt: normalizeDate(data.updatedAt),
+  };
+}
+
+export function defaultCourseTaxProfile(): CourseTaxProfile {
+  return {
+    deliveryType: "live_instruction",
+    vatTreatment: "vat_exempt_education",
+    vatNote:
+      "Live instructor-led course with participant interaction. No recorded self-study product is sold as the primary product.",
+  };
+}
+
+export function normalizeCourseSalesSettings(value: unknown): CourseSalesSettings {
+  const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+
+  return {
+    saleStatus: normalizeCourseSaleStatus(record.saleStatus),
+    currency: normalizeCurrency(record.currency),
+    priceAmountOre: numberOrZero(record.priceAmountOre),
+    taxProfile: normalizeCourseTaxProfile(record.taxProfile),
+  };
+}
+
+export function normalizeCourseTaxProfile(value: unknown): CourseTaxProfile {
+  const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const deliveryType = normalizeCourseDeliveryType(record.deliveryType);
+
+  return {
+    deliveryType,
+    vatTreatment: normalizeCourseVatTreatment(record.vatTreatment, deliveryType),
+    vatNote:
+      typeof record.vatNote === "string" && record.vatNote.trim()
+        ? record.vatNote.trim()
+        : defaultCourseTaxProfile().vatNote,
   };
 }
 
@@ -246,6 +316,12 @@ export function normalizeCourseMarketing(value: unknown): CourseMarketing {
 
   return {
     coverImageUrl: typeof record.coverImageUrl === "string" ? record.coverImageUrl : "",
+    coverImageSource:
+      record.coverImageSource === "upload" || record.coverImageSource === "ai"
+        ? record.coverImageSource
+        : "",
+    coverImagePrompt: typeof record.coverImagePrompt === "string" ? record.coverImagePrompt : "",
+    coverImageStyle: record.coverImageStyle === "realistic" ? "realistic" : "illustration",
     summary: typeof record.summary === "string" ? record.summary : "",
     salesText: typeof record.salesText === "string" ? record.salesText : "",
     seoTitle: typeof record.seoTitle === "string" ? record.seoTitle : "",
@@ -255,6 +331,38 @@ export function normalizeCourseMarketing(value: unknown): CourseMarketing {
 
 function numberOrZero(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function normalizeCurrency(value: unknown): string {
+  const currency = typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (/^[A-Z]{3}$/.test(currency)) return currency;
+  return "NOK";
+}
+
+function normalizeCourseSaleStatus(value: unknown): CourseSaleStatus {
+  if (value === "ready" || value === "needs_review") return value;
+  return "not_for_sale";
+}
+
+function normalizeCourseDeliveryType(value: unknown): CourseDeliveryType {
+  if (value === "recorded_digital_content" || value === "mixed" || value === "needs_review") {
+    return value;
+  }
+
+  return "live_instruction";
+}
+
+function normalizeCourseVatTreatment(
+  value: unknown,
+  deliveryType: CourseDeliveryType
+): CourseVatTreatment {
+  if (value === "vat_exempt_education" || value === "vatable_digital_service" || value === "needs_review") {
+    return value;
+  }
+
+  if (deliveryType === "live_instruction") return "vat_exempt_education";
+  if (deliveryType === "recorded_digital_content") return "vatable_digital_service";
+  return "needs_review";
 }
 
 function numberOrDefault(value: unknown, fallback: number): number {

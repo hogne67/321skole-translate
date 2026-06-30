@@ -625,7 +625,7 @@ export default function StudentDashboard() {
               </Link>
 
               <Link
-                href={`/${locale}/321lessons`}
+                href={`/${locale}/courses`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -1346,7 +1346,7 @@ export default function StudentDashboard() {
                   border: "1px solid #cbd5e1",
                 }}
               >
-                Explore public lessons
+                Browse public courses
               </Link>
             </div>
           </div>

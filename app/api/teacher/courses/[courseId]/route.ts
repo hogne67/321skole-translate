@@ -7,6 +7,7 @@ import { buildCoursePublishChecklist } from "@/lib/courses/publishChecklist";
 import {
   normalizeCourse,
   normalizeCourseMarketing,
+  normalizeCourseSalesSettings,
   normalizeCoursePlan,
   normalizeSessionStatus,
   normalizeSessionResources,
@@ -31,6 +32,7 @@ type CourseBody = {
   status?: unknown;
   coursePlan?: unknown;
   marketing?: unknown;
+  sales?: unknown;
 };
 
 type CourseActionBody = {
@@ -92,6 +94,7 @@ function serializeCourse(id: string, data: FirebaseFirestore.DocumentData) {
     slug: safeString(data.slug),
     publicUrl: safeString(data.publicUrl),
     marketing: normalizeCourseMarketing(data.marketing),
+    sales: normalizeCourseSalesSettings(data.sales),
     publishedAt: data.publishedAt?.toDate ? data.publishedAt.toDate().toISOString() : null,
     coursePlan: normalizeCoursePlan(data.coursePlan),
     createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
@@ -204,6 +207,10 @@ export async function PUT(req: Request, ctx: { params: Promise<{ courseId: strin
       body.marketing === undefined
         ? normalizeCourseMarketing(current.marketing)
         : normalizeCourseMarketing(body.marketing);
+    const sales =
+      body.sales === undefined
+        ? normalizeCourseSalesSettings(current.sales)
+        : normalizeCourseSalesSettings(body.sales);
 
     await courseRef.set(
       {
@@ -223,6 +230,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ courseId: strin
         publicUrl: safeString(current.publicUrl),
         publishedAt: current.publishedAt ?? null,
         marketing,
+        sales,
         updatedAt: new Date(),
       },
       { merge: true }

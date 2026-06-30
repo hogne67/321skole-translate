@@ -7,6 +7,10 @@ import {
   syncFromCheckoutSession,
   syncFromStripeSubscription,
 } from "@/lib/billing/sync";
+import {
+  markCourseOrderFailedFromCheckoutSession,
+  syncCourseOrderFromCheckoutSession,
+} from "@/lib/courses/orders";
 
 export const runtime = "nodejs";
 
@@ -89,6 +93,9 @@ export async function POST(req: NextRequest) {
           payment_status: session.payment_status ?? null,
           mode: session.mode ?? null,
         });
+
+        const handledCourseOrder = await syncCourseOrderFromCheckoutSession(session);
+        if (handledCourseOrder) break;
 
         await syncFromCheckoutSession(session);
 
@@ -190,6 +197,9 @@ export async function POST(req: NextRequest) {
           subscription: session.subscription ?? null,
         });
 
+        const handledCourseOrder = await syncCourseOrderFromCheckoutSession(session);
+        if (handledCourseOrder) break;
+
         if (session.subscription && typeof session.subscription === "string") {
           await syncSubscriptionById(
             stripe,
@@ -208,6 +218,9 @@ export async function POST(req: NextRequest) {
           uid: session.metadata?.uid ?? null,
           subscription: session.subscription ?? null,
         });
+
+        const handledCourseOrder = await markCourseOrderFailedFromCheckoutSession(session);
+        if (handledCourseOrder) break;
 
         if (session.subscription && typeof session.subscription === "string") {
           await syncSubscriptionById(

@@ -2,7 +2,13 @@
 
 import { FormEvent, useState } from "react";
 
-export function SignupRequestForm({ slug }: { slug: string }) {
+export function SignupRequestForm({
+  slug,
+  compact = false,
+}: {
+  slug: string;
+  compact?: boolean;
+}) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -46,7 +52,16 @@ export function SignupRequestForm({ slug }: { slug: string }) {
 
   return (
     <form onSubmit={submit} className="mt-6 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <h2 className="m-0 text-lg font-black text-slate-950">Meld interesse</h2>
+      <div>
+        <h2 className="m-0 text-lg font-black text-slate-950">
+          {compact ? "Contact instructor" : "Meld interesse"}
+        </h2>
+        {compact ? (
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Use this if you have questions before buying or need a manual follow-up.
+          </p>
+        ) : null}
+      </div>
       <div className="hidden">
         <label>
           Website
@@ -93,7 +108,7 @@ export function SignupRequestForm({ slug }: { slug: string }) {
           onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
           className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
           maxLength={1000}
-          rows={4}
+          rows={compact ? 3 : 4}
         />
       </Field>
       {error ? <div className="text-sm font-bold text-rose-700">{error}</div> : null}
@@ -103,7 +118,7 @@ export function SignupRequestForm({ slug }: { slug: string }) {
         disabled={saving}
         className="inline-flex h-11 w-fit items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-5 text-sm font-black text-white disabled:opacity-60"
       >
-        {saving ? "Sender..." : "Request a place"}
+        {saving ? "Sending..." : compact ? "Send request" : "Request a place"}
       </button>
     </form>
   );
