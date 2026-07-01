@@ -31,10 +31,13 @@ export default function StudentCoursesPage() {
   const searchParams = useSearchParams();
   const { user, profile } = useUserProfile();
   const [courses, setCourses] = useState<StudentCourse[]>([]);
+  const [highlightedCourseId, setHighlightedCourseId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const dashboardHref = getDashboardHref(locale, profile);
   const checkoutStatus = searchParams.get("courseCheckout");
+  const orderId = searchParams.get("order") || "";
+  const highlightedCourse = courses.find((course) => course.id === highlightedCourseId) ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -49,15 +52,20 @@ export default function StudentCoursesPage() {
         setLoading(true);
         setError("");
         const token = await user.getIdToken();
-        const res = await fetch("/api/student/courses", {
+        const query = orderId ? `?order=${encodeURIComponent(orderId)}` : "";
+        const res = await fetch(`/api/student/courses${query}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = (await res.json().catch(() => ({}))) as {
           courses?: StudentCourse[];
+          highlightedCourseId?: string;
           error?: string;
         };
         if (!res.ok) throw new Error(data.error || "Could not load courses");
-        if (!cancelled) setCourses(Array.isArray(data.courses) ? data.courses : []);
+        if (!cancelled) {
+          setCourses(Array.isArray(data.courses) ? data.courses : []);
+          setHighlightedCourseId(typeof data.highlightedCourseId === "string" ? data.highlightedCourseId : "");
+        }
       } catch (err) {
         console.error("Failed to load student courses", err);
         if (!cancelled) setError("Kursene kunne ikke hentes akkurat nå.");
@@ -71,7 +79,7 @@ export default function StudentCoursesPage() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [orderId, user]);
 
   return (
     <main className="mx-auto grid max-w-4xl gap-5 px-3 py-4">
@@ -101,7 +109,24 @@ export default function StudentCoursesPage() {
 
       {checkoutStatus === "success" ? (
         <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
-          Payment completed. The course has been added to your course room.
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-base font-black">Payment completed</div>
+              <div className="mt-1">
+                {highlightedCourse
+                  ? `${highlightedCourse.title} has been added to your course room.`
+                  : "The course has been added to your course room."}
+              </div>
+            </div>
+            {highlightedCourse ? (
+              <Link
+                href={`/${locale}/academy/courses/${highlightedCourse.id}`}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-800 bg-white px-4 text-sm font-black text-emerald-950 no-underline hover:bg-emerald-100"
+              >
+                Open course room
+              </Link>
+            ) : null}
+          </div>
         </section>
       ) : null}
 

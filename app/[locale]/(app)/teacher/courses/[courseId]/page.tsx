@@ -220,6 +220,8 @@ function PaymentsPanel({ course }: { course: Course }) {
   }, [course.id, user]);
 
   const paidOrders = orders.filter((order) => order.status === "paid" || order.status === "completed");
+  const pendingOrders = orders.filter((order) => order.status === "checkout_created").length;
+  const failedOrders = orders.filter((order) => order.status === "failed").length;
   const totalGross = paidOrders.reduce((sum, order) => sum + order.grossAmountOre, 0);
   const totalInstructor = paidOrders.reduce((sum, order) => sum + order.instructorAmountOre, 0);
   const totalFees = paidOrders.reduce((sum, order) => sum + order.applicationFeeAmountOre, 0);
@@ -247,8 +249,14 @@ function PaymentsPanel({ course }: { course: Course }) {
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <PaymentStat label="Application fee / platform side" value={formatMoney(totalFees, currency)} />
-        <PaymentStat label="Total orders" value={String(orders.length)} />
+        <PaymentStat label="Pending / failed" value={`${pendingOrders} / ${failedOrders}`} />
       </div>
+
+      {pendingOrders > 0 ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+          Some checkouts are still pending. This usually means the user opened checkout but payment has not completed yet, or the webhook is still processing.
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
@@ -281,7 +289,13 @@ function PaymentsPanel({ course }: { course: Course }) {
                     ) : null}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold capitalize text-slate-700">
+                    <span className={`rounded-full border px-2.5 py-1 text-xs font-bold capitalize ${
+                      order.status === "paid" || order.status === "completed"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                        : order.status === "failed"
+                          ? "border-rose-200 bg-rose-50 text-rose-800"
+                          : "border-amber-200 bg-amber-50 text-amber-800"
+                    }`}>
                       {order.status || "unknown"}
                     </span>
                   </td>

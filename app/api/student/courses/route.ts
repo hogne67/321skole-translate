@@ -96,6 +96,8 @@ export async function GET(req: Request) {
     const { auth, db } = getAdmin();
     const decoded = await auth.verifyIdToken(token);
     const uid = decoded.uid;
+    const url = new URL(req.url);
+    const highlightOrderId = safeString(url.searchParams.get("order"));
     const rawEmail = safeString(decoded.email);
     const email = rawEmail.toLowerCase();
     if (!email) return json({ courses: [] }, 200);
@@ -163,7 +165,16 @@ export async function GET(req: Request) {
     }
 
     courses.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    return json({ courses }, 200);
+    let highlightedCourseId = "";
+    if (highlightOrderId) {
+      const orderSnap = await db.collection("courseOrders").doc(highlightOrderId).get();
+      const order = orderSnap.exists ? orderSnap.data() ?? {} : {};
+      if (safeString(order.buyerUid) === uid) {
+        highlightedCourseId = safeString(order.courseId);
+      }
+    }
+
+    return json({ courses, highlightedCourseId }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not load student courses";
     return json({ error: message }, 500);
