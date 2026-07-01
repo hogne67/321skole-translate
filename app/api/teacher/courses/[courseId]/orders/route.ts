@@ -66,10 +66,13 @@ async function requireCourseAccess(req: Request, courseId: string) {
 
 function serializeOrder(id: string, data: FirebaseFirestore.DocumentData) {
   const payout = isRecord(data.payout) ? data.payout : {};
+  const payoutRelease = isRecord(data.payoutRelease) ? data.payoutRelease : {};
 
   return {
     id,
     status: safeString(data.status),
+    payoutStatus: safeString(data.payoutStatus),
+    payoutTransferMode: safeString(data.payoutTransferMode),
     buyerEmail: safeString(data.buyerEmail),
     buyerRole: safeString(data.buyerRole),
     currency: safeString(data.currency) || "NOK",
@@ -79,6 +82,10 @@ function serializeOrder(id: string, data: FirebaseFirestore.DocumentData) {
     paymentFeeOre: safeNumber(payout.paymentFeeOre),
     dailyAiFeeOre: safeNumber(payout.dailyAiFeeOre),
     licenseFeeOre: safeNumber(payout.licenseFeeOre),
+    firstReleaseAmountOre: safeNumber(payoutRelease.firstReleaseAmountOre),
+    holdbackAmountOre: safeNumber(payoutRelease.holdbackAmountOre),
+    milestonePercent: safeNumber(payoutRelease.milestonePercent),
+    complaintWindowHours: safeNumber(payoutRelease.complaintWindowHours),
     participantHasActiveLicense: data.participantHasActiveLicense === true,
     stripeCheckoutSessionId: safeString(data.stripeCheckoutSessionId),
     stripePaymentIntentId: safeString(data.stripePaymentIntentId),

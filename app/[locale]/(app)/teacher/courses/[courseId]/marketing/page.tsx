@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { storage } from "@/lib/firebase";
-import { calculateCoursePayout } from "@/lib/courses/commerce";
+import {
+  calculateCoursePayout,
+  calculateCoursePayoutReleasePolicy,
+} from "@/lib/courses/commerce";
 import {
   defaultCourseTaxProfile,
   type Course,
@@ -83,6 +86,10 @@ function CourseMarketingContent() {
       participantHasActiveLicense: false,
     });
   }, [course, sales.priceAmountOre]);
+  const payoutReleasePreview = useMemo(() => {
+    if (!payoutPreview) return null;
+    return calculateCoursePayoutReleasePolicy(payoutPreview.instructorAmountOre);
+  }, [payoutPreview]);
   const saleReady =
     sales.saleStatus === "ready" &&
     sales.priceAmountOre > 0 &&
@@ -688,7 +695,8 @@ function CourseMarketingContent() {
           <div>
             <h3 className="m-0 text-base font-extrabold text-slate-950">Stripe Connect</h3>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              Instructors must connect Stripe Express before this course can accept paid enrollments.
+              Instructors must connect Stripe Express before this course can accept paid enrollments and later payouts.
+              Course payments are held by the platform until delivery milestones are reviewed.
             </p>
             <div className="mt-2 flex flex-wrap gap-2 text-xs font-bold">
               <span className={`rounded-full border px-2.5 py-1 ${
@@ -867,7 +875,18 @@ function CourseMarketingContent() {
             <SummaryLine label="Net revenue" value={formatOre(payoutPreview.netRevenueOre)} />
             <SummaryLine label="Instructor estimate" value={formatOre(payoutPreview.instructorAmountOre)} />
             <SummaryLine label="Platform margin" value={formatOre(payoutPreview.platformMarginOre)} />
-            <SummaryLine label="Application fee for Stripe" value={formatOre(payoutPreview.applicationFeeAmountOre)} />
+            <SummaryLine label="Platform/cost reserve" value={formatOre(payoutPreview.applicationFeeAmountOre)} />
+            {payoutReleasePreview ? (
+              <>
+                <SummaryLine label="First payout after 75% delivery" value={formatOre(payoutReleasePreview.firstReleaseAmountOre)} />
+                <SummaryLine label="Held until completion" value={formatOre(payoutReleasePreview.holdbackAmountOre)} />
+              </>
+            ) : null}
+            <div className="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-900">
+              Paid enrollments are held by 321School first. Up to 75% of the instructor estimate can be released
+              after 75% of the course is completed. The remaining 25% is held until completion and a short complaint
+              window has passed.
+            </div>
           </div>
         ) : null}
       </section>

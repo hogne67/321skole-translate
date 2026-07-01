@@ -27,18 +27,23 @@ export async function syncCourseOrderFromCheckoutSession(session: Stripe.Checkou
   const courseRef = db.collection("courses").doc(courseId);
   const participantRef = courseRef.collection("participants").doc(uid);
   const now = new Date();
+  const isPaid = session.payment_status === "paid";
 
   await db.runTransaction(async (tx) => {
-    const [orderSnap, participantSnap] = await Promise.all([
-      tx.get(orderRef),
-      tx.get(participantRef),
-    ]);
+    const orderSnap = await tx.get(orderRef);
     const orderData = orderSnap.exists ? orderSnap.data() ?? {} : {};
+    const payoutTransferMode = safeString(orderData.payoutTransferMode);
+    const paidStatus = payoutTransferMode === "platform_hold" ? "paid_held" : "paid";
 
     tx.set(
       orderRef,
       {
-        status: session.payment_status === "paid" ? "paid" : "completed",
+        status: isPaid ? paidStatus : "checkout_completed",
+        payoutStatus: isPaid
+          ? payoutTransferMode === "platform_hold"
+            ? "held"
+            : "transferred_at_checkout"
+          : "pending_payment",
         stripeCheckoutSessionId: session.id,
         stripePaymentIntentId:
           typeof session.payment_intent === "string"
@@ -52,6 +57,9 @@ export async function syncCourseOrderFromCheckoutSession(session: Stripe.Checkou
       { merge: true }
     );
 
+    if (!isPaid) return;
+
+    const participantSnap = await tx.get(participantRef);
     const participantBase = {
       participantUid: uid,
       roleSnapshot: safeString(orderData.buyerRole),

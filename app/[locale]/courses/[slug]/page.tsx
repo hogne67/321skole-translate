@@ -161,6 +161,9 @@ export default async function PublicCoursePage({ params }: PageProps) {
           {course.canCheckout ? (
             <>
               <CourseCheckoutButton enabled label="Buy course" />
+              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold leading-6 text-emerald-900">
+                Payment is held securely by 321School and released to the instructor according to course delivery.
+              </div>
               <SignupRequestForm slug={course.slug} compact />
             </>
           ) : course.isFull ? (

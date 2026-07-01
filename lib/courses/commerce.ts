@@ -17,6 +17,16 @@ export type CoursePayoutBreakdown = {
   applicationFeeAmountOre: number;
 };
 
+export type CoursePayoutReleasePolicy = {
+  model: "platform_hold_75_25";
+  milestonePercent: number;
+  firstReleasePercent: number;
+  holdbackPercent: number;
+  complaintWindowHours: number;
+  firstReleaseAmountOre: number;
+  holdbackAmountOre: number;
+};
+
 export const COURSE_COMMERCE_DEFAULTS = {
   paymentFeePercent: 0.024,
   paymentFeeFixedOre: 200,
@@ -27,6 +37,10 @@ export const COURSE_COMMERCE_DEFAULTS = {
   maxLicenseMonths: 6,
   platformShare: 0.15,
   instructorShare: 0.85,
+  payoutMilestonePercent: 0.75,
+  firstReleasePercent: 0.75,
+  holdbackPercent: 0.25,
+  complaintWindowHours: 72,
 } as const;
 
 function wholeOre(value: number): number {
@@ -77,5 +91,23 @@ export function calculateCoursePayout(input: CoursePayoutInput): CoursePayoutBre
     instructorAmountOre,
     platformMarginOre,
     applicationFeeAmountOre,
+  };
+}
+
+export function calculateCoursePayoutReleasePolicy(
+  instructorAmountOre: number
+): CoursePayoutReleasePolicy {
+  const firstReleaseAmountOre = wholeOre(
+    instructorAmountOre * COURSE_COMMERCE_DEFAULTS.firstReleasePercent
+  );
+
+  return {
+    model: "platform_hold_75_25",
+    milestonePercent: COURSE_COMMERCE_DEFAULTS.payoutMilestonePercent,
+    firstReleasePercent: COURSE_COMMERCE_DEFAULTS.firstReleasePercent,
+    holdbackPercent: COURSE_COMMERCE_DEFAULTS.holdbackPercent,
+    complaintWindowHours: COURSE_COMMERCE_DEFAULTS.complaintWindowHours,
+    firstReleaseAmountOre,
+    holdbackAmountOre: Math.max(0, wholeOre(instructorAmountOre) - firstReleaseAmountOre),
   };
 }

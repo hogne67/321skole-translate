@@ -162,6 +162,8 @@ const EMPTY_GROUP_FORM = {
 type CourseOrderRow = {
   id: string;
   status: string;
+  payoutStatus: string;
+  payoutTransferMode: string;
   buyerEmail: string;
   buyerRole: string;
   currency: string;
@@ -171,6 +173,10 @@ type CourseOrderRow = {
   paymentFeeOre: number;
   dailyAiFeeOre: number;
   licenseFeeOre: number;
+  firstReleaseAmountOre: number;
+  holdbackAmountOre: number;
+  milestonePercent: number;
+  complaintWindowHours: number;
   participantHasActiveLicense: boolean;
   stripeCheckoutSessionId: string;
   stripePaymentIntentId: string;
@@ -249,12 +255,23 @@ function PaymentsPanel({ course }: { course: Course }) {
     }
   }
 
-  const paidOrders = orders.filter((order) => order.status === "paid" || order.status === "completed");
+  const paidOrders = orders.filter(isPaidCourseOrder);
   const pendingOrders = orders.filter((order) => order.status === "checkout_created").length;
   const failedOrders = orders.filter((order) => order.status === "failed").length;
   const totalGross = paidOrders.reduce((sum, order) => sum + order.grossAmountOre, 0);
   const totalInstructor = paidOrders.reduce((sum, order) => sum + order.instructorAmountOre, 0);
   const totalFees = paidOrders.reduce((sum, order) => sum + order.applicationFeeAmountOre, 0);
+  const totalHeld = paidOrders
+    .filter((order) => order.payoutStatus === "held")
+    .reduce((sum, order) => sum + order.instructorAmountOre, 0);
+  const totalFirstRelease = paidOrders
+    .filter((order) => order.payoutStatus === "held")
+    .reduce((sum, order) => sum + (order.firstReleaseAmountOre || Math.round(order.instructorAmountOre * 0.75)), 0);
+  const completedSessions = course.coursePlan.filter((session) => session.status === "completed").length;
+  const totalSessions = course.coursePlan.length || course.numberOfSessions || 0;
+  const completionRatio = totalSessions > 0 ? completedSessions / totalSessions : 0;
+  const firstReleaseReady = completionRatio >= 0.75 && totalHeld > 0;
+  const requiredSessionsForRelease = totalSessions > 0 ? Math.ceil(totalSessions * 0.75) : 0;
   const currency = orders[0]?.currency || course.sales.currency || "NOK";
 
   return (
@@ -290,11 +307,37 @@ function PaymentsPanel({ course }: { course: Course }) {
       <div className="grid gap-3 md:grid-cols-3">
         <PaymentStat label="Paid orders" value={String(paidOrders.length)} />
         <PaymentStat label="Gross paid" value={formatMoney(totalGross, currency)} />
-        <PaymentStat label="Instructor estimate" value={formatMoney(totalInstructor, currency)} />
+        <PaymentStat label="Instructor earned estimate" value={formatMoney(totalInstructor, currency)} />
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <PaymentStat label="Held for payout" value={formatMoney(totalHeld, currency)} />
+        <PaymentStat label="First release estimate" value={formatMoney(totalFirstRelease, currency)} />
+        <PaymentStat label="Application fee / platform side" value={formatMoney(totalFees, currency)} />
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <PaymentStat label="Application fee / platform side" value={formatMoney(totalFees, currency)} />
         <PaymentStat label="Pending / failed" value={`${pendingOrders} / ${failedOrders}`} />
+        <PaymentStat
+          label="Course delivery"
+          value={`${completedSessions}/${totalSessions || 0} sessions`}
+        />
+      </div>
+
+      <div
+        className={`rounded-lg border p-4 text-sm ${
+          firstReleaseReady
+            ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+            : "border-slate-200 bg-slate-50 text-slate-700"
+        }`}
+      >
+        <div className="font-black">
+          {firstReleaseReady ? "First payout can be reviewed" : "Payout safety policy"}
+        </div>
+        <p className="m-0 mt-1 leading-6">
+          New paid course orders are held by the platform. When at least 75% of sessions are completed
+          {requiredSessionsForRelease ? ` (${requiredSessionsForRelease} of ${totalSessions})` : ""}, up to 75% of the
+          instructor estimate can be released manually. The remaining 25% is kept until the course is completed and
+          the complaint window has passed.
+        </p>
       </div>
 
       {pendingOrders > 0 ? (
@@ -335,14 +378,19 @@ function PaymentsPanel({ course }: { course: Course }) {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full border px-2.5 py-1 text-xs font-bold capitalize ${
-                      order.status === "paid" || order.status === "completed"
+                      isPaidCourseOrder(order)
                         ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                         : order.status === "failed"
                           ? "border-rose-200 bg-rose-50 text-rose-800"
                           : "border-amber-200 bg-amber-50 text-amber-800"
                     }`}>
-                      {order.status || "unknown"}
+                      {formatOrderStatus(order)}
                     </span>
+                    {order.payoutStatus ? (
+                      <div className="mt-1 text-xs font-semibold text-slate-500">
+                        Payout: {formatPayoutStatus(order.payoutStatus)}
+                      </div>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 font-bold">{formatMoney(order.grossAmountOre, order.currency)}</td>
                   <td className="px-4 py-3 font-bold">{formatMoney(order.instructorAmountOre, order.currency)}</td>
@@ -365,6 +413,26 @@ function PaymentStat({ label, value }: { label: string; value: string }) {
       <div className="mt-2 text-xl font-black text-slate-950">{value}</div>
     </div>
   );
+}
+
+function isPaidCourseOrder(order: CourseOrderRow): boolean {
+  return order.status === "paid" || order.status === "paid_held";
+}
+
+function formatOrderStatus(order: CourseOrderRow): string {
+  if (order.status === "paid_held") return "paid / held";
+  if (order.status === "checkout_created") return "checkout created";
+  return order.status || "unknown";
+}
+
+function formatPayoutStatus(value: string): string {
+  if (value === "held") return "held";
+  if (value === "partially_released") return "partially released";
+  if (value === "released") return "released";
+  if (value === "disputed") return "disputed";
+  if (value === "refunded") return "refunded";
+  if (value === "transferred_at_checkout") return "transferred at checkout";
+  return value;
 }
 
 function formatMoney(amountOre: number, currency: string) {
@@ -1791,7 +1859,7 @@ function Overview({
             ).length,
             needsWorkCount: submissions.filter((submission) => submission.reviewStatus === "needs_work").length,
             newSignupCount: requests.filter((request) => request.status === "new").length,
-            paidOrderCount: orders.filter((order) => order.status === "paid" || order.status === "completed").length,
+            paidOrderCount: orders.filter(isPaidCourseOrder).length,
           });
         }
       } catch {

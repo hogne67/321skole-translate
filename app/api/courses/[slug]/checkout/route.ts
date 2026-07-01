@@ -3,7 +3,10 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { getStripe } from "@/lib/stripe";
-import { calculateCoursePayout } from "@/lib/courses/commerce";
+import {
+  calculateCoursePayout,
+  calculateCoursePayoutReleasePolicy,
+} from "@/lib/courses/commerce";
 import { normalizeCourse, normalizeCourseSalesSettings } from "@/lib/courses/types";
 
 export const runtime = "nodejs";
@@ -166,6 +169,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
       numberOfWeeks: course.numberOfWeeks,
       participantHasActiveLicense,
     });
+    const payoutRelease = calculateCoursePayoutReleasePolicy(payout.instructorAmountOre);
+    const instructorConnectAccountId = connectAccountId(owner);
 
     const now = new Date();
     const orderRef = db.collection("courseOrders").doc();
@@ -182,6 +187,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
       taxProfile: sales.taxProfile,
       participantHasActiveLicense,
       payout,
+      payoutRelease,
+      payoutStatus: "held",
+      payoutTransferMode: "platform_hold",
+      instructorConnectAccountId,
       createdAt: now,
       updatedAt: now,
     });
@@ -207,10 +216,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
         },
       ],
       payment_intent_data: {
-        application_fee_amount: payout.applicationFeeAmountOre,
-        transfer_data: {
-          destination: connectAccountId(owner),
-        },
         metadata: {
           product: "321AcademyCourse",
           orderId: orderRef.id,
