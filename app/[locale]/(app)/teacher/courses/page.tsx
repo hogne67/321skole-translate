@@ -14,6 +14,19 @@ function withLocale(locale: string, href: string): string {
   return `/${locale}${href}`;
 }
 
+function getSaleReadiness(course: Course) {
+  if (course.status !== "published" && course.status !== "active") return { label: "Not published", ready: false };
+  if (course.sales.saleStatus !== "ready") return { label: "Sale off", ready: false };
+  if (course.sales.priceAmountOre <= 0) return { label: "No price", ready: false };
+  if (
+    course.sales.taxProfile.deliveryType !== "live_instruction" ||
+    course.sales.taxProfile.vatTreatment !== "vat_exempt_education"
+  ) {
+    return { label: "Review", ready: false };
+  }
+  return { label: "Sale ready", ready: true };
+}
+
 export default function TeacherCoursesPage() {
   return (
     <AcademyGate>
@@ -324,6 +337,7 @@ function TeacherCoursesContent() {
                     <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold capitalize text-slate-600">
                       {course.status}
                     </span>
+                    <CourseSaleBadge course={course} />
                     {course.status === "draft" ? (
                       <button
                         type="button"
@@ -381,5 +395,21 @@ function TeacherCoursesContent() {
         )}
       </section>
     </main>
+  );
+}
+
+function CourseSaleBadge({ course }: { course: Course }) {
+  const readiness = getSaleReadiness(course);
+
+  return (
+    <span
+      className={`rounded-full border px-3 py-1 text-xs font-bold ${
+        readiness.ready
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          : "border-amber-200 bg-amber-50 text-amber-800"
+      }`}
+    >
+      {readiness.label}
+    </span>
   );
 }

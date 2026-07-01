@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 type StudentCourse = {
@@ -27,11 +28,13 @@ type StudentCourse = {
 
 export default function StudentCoursesPage() {
   const locale = useLocale();
+  const searchParams = useSearchParams();
   const { user, profile } = useUserProfile();
   const [courses, setCourses] = useState<StudentCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const dashboardHref = getDashboardHref(locale, profile);
+  const checkoutStatus = searchParams.get("courseCheckout");
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +96,12 @@ export default function StudentCoursesPage() {
       {error ? (
         <section className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           {error}
+        </section>
+      ) : null}
+
+      {checkoutStatus === "success" ? (
+        <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
+          Payment completed. The course has been added to your course room.
         </section>
       ) : null}
 

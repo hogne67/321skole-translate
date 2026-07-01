@@ -10,7 +10,8 @@ type Props = {
 };
 
 export function CourseCheckoutButton({ enabled, label = "Buy course" }: Props) {
-  const params = useParams<{ slug?: string }>();
+  const params = useParams<{ locale?: string; slug?: string }>();
+  const locale = typeof params?.locale === "string" ? params.locale : "nb";
   const slug = typeof params?.slug === "string" ? params.slug : "";
   const { user } = useUserProfile();
   const [busy, setBusy] = useState(false);
@@ -34,8 +35,19 @@ export function CourseCheckoutButton({ enabled, label = "Buy course" }: Props) {
           "Content-Type": "application/json",
         },
       });
-      const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error || "Could not start checkout");
+      const data = (await res.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+        alreadyEnrolled?: boolean;
+        courseId?: string;
+      };
+      if (!res.ok || !data.url) {
+        if (data.alreadyEnrolled && data.courseId) {
+          window.location.href = `/${locale}/academy/courses/${data.courseId}`;
+          return;
+        }
+        throw new Error(data.error || "Could not start checkout");
+      }
       window.location.href = data.url;
     } catch (err) {
       const text = err instanceof Error ? err.message : "Could not start checkout";

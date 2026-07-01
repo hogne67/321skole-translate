@@ -36,6 +36,8 @@ type PublicCourse = {
   coursePlan: CoursePlanSession[];
   teacherName: string;
   canCheckout: boolean;
+  isFull: boolean;
+  participantCount: number;
 };
 
 function safeString(value: unknown): string {
@@ -74,6 +76,12 @@ async function loadPublicCourse(slug: string): Promise<PublicCourse | null> {
       connect.detailsSubmitted === true;
   }
   const sales = normalizeCourseSalesSettings(data.sales);
+  const participantsSnap = await doc.ref.collection("participants").get();
+  const participantCount = participantsSnap.docs.filter((participantDoc) => {
+    const status = safeString(participantDoc.data().status);
+    return status === "invited" || status === "enrolled" || status === "active";
+  }).length;
+  const isFull = safeNumber(data.maxParticipants) > 0 && participantCount >= safeNumber(data.maxParticipants);
 
   return {
     title: safeString(data.title),
@@ -91,7 +99,10 @@ async function loadPublicCourse(slug: string): Promise<PublicCourse | null> {
     marketing: normalizeCourseMarketing(data.marketing),
     coursePlan: normalizeCoursePlan(data.coursePlan),
     teacherName,
+    isFull,
+    participantCount,
     canCheckout:
+      !isFull &&
       ownerCanReceivePayments === true &&
       sales.saleStatus === "ready" &&
       sales.priceAmountOre > 0 &&
@@ -141,12 +152,22 @@ export default async function PublicCoursePage({ params }: PageProps) {
             <Badge label="Sessions" value={String(course.numberOfSessions)} />
             <Badge label="Weeks" value={String(course.numberOfWeeks)} />
             <Badge label="Max participants" value={String(course.maxParticipants)} />
+            {course.maxParticipants > 0 ? (
+              <Badge label="Available" value={`${Math.max(0, course.maxParticipants - course.participantCount)} places`} />
+            ) : null}
             <Badge label="Price" value={formatCoursePrice(course.sales, course.priceText)} />
           </div>
 
           {course.canCheckout ? (
             <>
               <CourseCheckoutButton enabled label="Buy course" />
+              <SignupRequestForm slug={course.slug} compact />
+            </>
+          ) : course.isFull ? (
+            <>
+              <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                This course is currently full. You can still contact the instructor.
+              </div>
               <SignupRequestForm slug={course.slug} compact />
             </>
           ) : (

@@ -28,6 +28,23 @@ function requestOrigin(req: NextRequest): string {
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 }
 
+function requestLocale(req: NextRequest): string {
+  const referer = req.headers.get("referer");
+  if (referer) {
+    try {
+      const url = new URL(referer);
+      const first = url.pathname.split("/").filter(Boolean)[0];
+      if (first === "nb" || first === "en" || first === "pt") return first;
+    } catch {
+      // Fall through to query/fallback below.
+    }
+  }
+
+  const locale = req.nextUrl.searchParams.get("locale");
+  if (locale === "nb" || locale === "en" || locale === "pt") return locale;
+  return "nb";
+}
+
 function isActiveBillingStatus(status: unknown): boolean {
   return status === "active" || status === "trialing";
 }
@@ -62,6 +79,17 @@ function connectReady(profile: Record<string, unknown>): boolean {
     connect.payoutsEnabled === true &&
     connect.detailsSubmitted === true
   );
+}
+
+function participantCountsTowardCapacity(data: FirebaseFirestore.DocumentData): boolean {
+  const status = typeof data.status === "string" ? data.status : "";
+  return status === "invited" || status === "enrolled" || status === "active";
+}
+
+function participantMatchesBuyer(data: FirebaseFirestore.DocumentData, uid: string, email: string): boolean {
+  const participantUid = typeof data.participantUid === "string" ? data.participantUid : "";
+  const participantEmail = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
+  return participantUid === uid || (!!email && participantEmail === email.toLowerCase());
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
@@ -103,6 +131,29 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
     const owner = ownerSnap.exists ? ownerSnap.data() ?? {} : {};
     if (!connectReady(owner)) return json({ error: "Instructor has not connected Stripe yet" }, 403);
 
+    const buyerEmail = authUser.email ?? "";
+    const participantsSnap = await courseDoc.ref.collection("participants").get();
+    const alreadyParticipant = participantsSnap.docs.some((doc) =>
+      participantMatchesBuyer(doc.data(), uid, buyerEmail)
+    );
+    if (alreadyParticipant) {
+      return json(
+        {
+          error: "You are already enrolled in this course",
+          alreadyEnrolled: true,
+          courseId: course.id,
+        },
+        409
+      );
+    }
+
+    const capacityCount = participantsSnap.docs.filter((doc) =>
+      participantCountsTowardCapacity(doc.data())
+    ).length;
+    if (course.maxParticipants > 0 && capacityCount >= course.maxParticipants) {
+      return json({ error: "This course is full", courseFull: true }, 409);
+    }
+
     const buyer = buyerSnap.exists ? buyerSnap.data() ?? {} : {};
     const billing =
       buyer.billing && typeof buyer.billing === "object"
@@ -124,7 +175,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
       courseTitle: course.title,
       ownerUid: course.ownerUid,
       buyerUid: uid,
-      buyerEmail: authUser.email ?? "",
+      buyerEmail,
       buyerRole: roleFromProfile(buyer),
       status: "checkout_created",
       currency: sales.currency,
@@ -136,7 +187,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
     });
 
     const origin = requestOrigin(req);
-    const locale = req.nextUrl.pathname.split("/").filter(Boolean)[0] || "nb";
+    const locale = requestLocale(req);
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",

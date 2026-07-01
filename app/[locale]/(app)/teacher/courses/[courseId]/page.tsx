@@ -94,7 +94,9 @@ function CourseDashboardContent() {
   const loadedCourse = course;
   const activeNav =
     activeSection === "Participants"
-      ? "participants"
+          ? "participants"
+      : activeSection === "Payments"
+        ? "payments"
       : activeSection === "Submissions"
         ? "submissions"
         : activeSection === "Messages"
@@ -121,6 +123,8 @@ function CourseDashboardContent() {
             <ContentResourcesView course={course} />
           ) : activeSection === "Participants" ? (
             <ParticipantsPanel course={loadedCourse} />
+          ) : activeSection === "Payments" ? (
+            <PaymentsPanel course={loadedCourse} />
           ) : activeSection === "Submissions" ? (
             <CourseSubmissionsPanel course={loadedCourse} />
           ) : activeSection === "Messages" ? (
@@ -154,6 +158,170 @@ const EMPTY_GROUP_FORM = {
   participantsText: "",
   status: "invited" as ParticipantStatus,
 };
+
+type CourseOrderRow = {
+  id: string;
+  status: string;
+  buyerEmail: string;
+  buyerRole: string;
+  currency: string;
+  grossAmountOre: number;
+  instructorAmountOre: number;
+  applicationFeeAmountOre: number;
+  paymentFeeOre: number;
+  dailyAiFeeOre: number;
+  licenseFeeOre: number;
+  participantHasActiveLicense: boolean;
+  stripeCheckoutSessionId: string;
+  stripePaymentIntentId: string;
+  createdAt: string | null;
+  paidAt: string | null;
+  updatedAt: string | null;
+};
+
+function PaymentsPanel({ course }: { course: Course }) {
+  const { user } = useUserProfile();
+  const [orders, setOrders] = useState<CourseOrderRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadOrders() {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        setError("");
+        const token = await user.getIdToken();
+        const res = await fetch(`/api/teacher/courses/${course.id}/orders`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          orders?: CourseOrderRow[];
+          error?: string;
+        };
+        if (!res.ok) throw new Error(data.error || "Could not load orders");
+        if (!cancelled) setOrders(Array.isArray(data.orders) ? data.orders : []);
+      } catch (err) {
+        console.error("Failed to load course orders", err);
+        if (!cancelled) setError("Payments could not be loaded right now.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadOrders();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [course.id, user]);
+
+  const paidOrders = orders.filter((order) => order.status === "paid" || order.status === "completed");
+  const totalGross = paidOrders.reduce((sum, order) => sum + order.grossAmountOre, 0);
+  const totalInstructor = paidOrders.reduce((sum, order) => sum + order.instructorAmountOre, 0);
+  const totalFees = paidOrders.reduce((sum, order) => sum + order.applicationFeeAmountOre, 0);
+  const currency = orders[0]?.currency || course.sales.currency || "NOK";
+
+  return (
+    <div className="grid gap-5">
+      <div>
+        <h2 className="m-0 text-xl font-black text-slate-950">Payments</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          Simple payment control for this course. Amounts are estimates from the checkout ledger.
+        </p>
+      </div>
+
+      {error ? (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <PaymentStat label="Paid orders" value={String(paidOrders.length)} />
+        <PaymentStat label="Gross paid" value={formatMoney(totalGross, currency)} />
+        <PaymentStat label="Instructor estimate" value={formatMoney(totalInstructor, currency)} />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <PaymentStat label="Application fee / platform side" value={formatMoney(totalFees, currency)} />
+        <PaymentStat label="Total orders" value={String(orders.length)} />
+      </div>
+
+      {loading ? (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+          Loading payments...
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
+          No payment orders yet.
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Buyer</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Gross</th>
+                <th className="px-4 py-3">Instructor</th>
+                <th className="px-4 py-3">Platform/Fee</th>
+                <th className="px-4 py-3">Paid</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 bg-white">
+              {orders.map((order) => (
+                <tr key={order.id}>
+                  <td className="px-4 py-3 font-bold text-slate-900">
+                    {order.buyerEmail || "Unknown"}
+                    {order.participantHasActiveLicense ? (
+                      <div className="mt-1 text-xs font-semibold text-slate-500">Had active license</div>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold capitalize text-slate-700">
+                      {order.status || "unknown"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-bold">{formatMoney(order.grossAmountOre, order.currency)}</td>
+                  <td className="px-4 py-3 font-bold">{formatMoney(order.instructorAmountOre, order.currency)}</td>
+                  <td className="px-4 py-3 font-bold">{formatMoney(order.applicationFeeAmountOre, order.currency)}</td>
+                  <td className="px-4 py-3 text-slate-600">{formatDateTime(order.paidAt || order.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaymentStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-2 text-xl font-black text-slate-950">{value}</div>
+    </div>
+  );
+}
+
+function formatMoney(amountOre: number, currency: string) {
+  return new Intl.NumberFormat("nb-NO", {
+    style: "currency",
+    currency: currency || "NOK",
+    maximumFractionDigits: amountOre % 100 === 0 ? 0 : 2,
+  }).format((amountOre || 0) / 100);
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
 
 function ParticipantsPanel({ course }: { course: Course }) {
   const { user } = useUserProfile();
@@ -1478,7 +1646,19 @@ type CourseActionSummary = {
   awaitingReviewCount: number | null;
   needsWorkCount: number | null;
   newSignupCount: number | null;
+  paidOrderCount: number | null;
 };
+
+function getCourseSaleReadiness(course: Course) {
+  const missing: string[] = [];
+  if (course.status !== "published" && course.status !== "active") missing.push("publish course");
+  if (course.sales.saleStatus !== "ready") missing.push("set sale status to ready");
+  if (course.sales.priceAmountOre <= 0) missing.push("set price");
+  if (course.sales.taxProfile.deliveryType !== "live_instruction") missing.push("live instruction delivery");
+  if (course.sales.taxProfile.vatTreatment !== "vat_exempt_education") missing.push("VAT treatment");
+
+  return { ready: missing.length === 0, missing };
+}
 
 function Overview({
   course,
@@ -1495,8 +1675,10 @@ function Overview({
     awaitingReviewCount: null,
     needsWorkCount: null,
     newSignupCount: null,
+    paidOrderCount: null,
   });
   const nextSession = getNextSession(course);
+  const saleReadiness = getCourseSaleReadiness(course);
 
   useEffect(() => {
     let cancelled = false;
@@ -1506,7 +1688,7 @@ function Overview({
 
       try {
         const token = await user.getIdToken();
-        const [participantsRes, submissionsRes, requestsRes] = await Promise.all([
+        const [participantsRes, submissionsRes, requestsRes, ordersRes] = await Promise.all([
           fetch(`/api/teacher/courses/${course.id}/participants`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
@@ -1514,6 +1696,9 @@ function Overview({
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`/api/teacher/courses/${course.id}/signup-requests`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`/api/teacher/courses/${course.id}/orders`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -1532,8 +1717,12 @@ function Overview({
             createdAt?: string;
           }>;
         };
+        const ordersData = (await ordersRes.json().catch(() => ({}))) as {
+          orders?: CourseOrderRow[];
+        };
         const submissions = Array.isArray(submissionsData.submissions) ? submissionsData.submissions : [];
         const requests = Array.isArray(requestsData.requests) ? requestsData.requests : [];
+        const orders = Array.isArray(ordersData.orders) ? ordersData.orders : [];
 
         if (!cancelled) {
           setSummary({
@@ -1543,6 +1732,7 @@ function Overview({
             ).length,
             needsWorkCount: submissions.filter((submission) => submission.reviewStatus === "needs_work").length,
             newSignupCount: requests.filter((request) => request.status === "new").length,
+            paidOrderCount: orders.filter((order) => order.status === "paid" || order.status === "completed").length,
           });
         }
       } catch {
@@ -1552,6 +1742,7 @@ function Overview({
             awaitingReviewCount: 0,
             needsWorkCount: 0,
             newSignupCount: 0,
+            paidOrderCount: 0,
           });
         }
       }
@@ -1567,7 +1758,33 @@ function Overview({
   return (
     <div className="grid gap-4">
       <h2 className="m-0 text-lg font-extrabold text-slate-900">Overview</h2>
-      <div className="grid gap-3 md:grid-cols-4">
+      <section
+        className={`rounded-lg border p-4 ${
+          saleReadiness.ready
+            ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+            : "border-amber-200 bg-amber-50 text-amber-950"
+        }`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="m-0 text-base font-black">
+              {saleReadiness.ready ? "Course sale is ready" : "Course sale needs attention"}
+            </h3>
+            <p className="mt-1 text-sm leading-6">
+              {saleReadiness.ready
+                ? "The public page can show Buy course when Stripe Connect is connected."
+                : `Missing: ${saleReadiness.missing.join(", ")}`}
+            </p>
+          </div>
+          <Link
+            href={`/${locale}/teacher/courses/${course.id}/marketing`}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-white/60 bg-white px-3 text-sm font-bold text-slate-950 no-underline hover:bg-slate-50"
+          >
+            Sales setup
+          </Link>
+        </div>
+      </section>
+      <div className="grid gap-3 md:grid-cols-5">
         <OverviewActionCard
           label="Awaiting review"
           value={summary.awaitingReviewCount}
@@ -1591,6 +1808,12 @@ function Overview({
           value={summary.participantCount}
           tone="slate"
           onClick={() => onOpenSection("Participants")}
+        />
+        <OverviewActionCard
+          label="Paid orders"
+          value={summary.paidOrderCount}
+          tone="emerald"
+          onClick={() => onOpenSection("Payments")}
         />
       </div>
       <NextSessionOverview

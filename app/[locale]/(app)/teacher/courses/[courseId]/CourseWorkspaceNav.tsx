@@ -7,7 +7,7 @@ type CourseWorkspaceNavProps = {
   courseId: string;
   title: string;
   status: string;
-  active: "overview" | "edit" | "sessions" | "marketing" | "participants" | "submissions" | "messages";
+  active: "overview" | "edit" | "sessions" | "marketing" | "participants" | "payments" | "submissions" | "messages";
 };
 
 const NAV_ITEMS = [
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { key: "sessions", label: "Edit sessions", href: "/sessions" },
   { key: "marketing", label: "Marketing", href: "/marketing" },
   { key: "participants", label: "Participants", section: "Participants" },
+  { key: "payments", label: "Payments", section: "Payments" },
   { key: "submissions", label: "Submissions", section: "Submissions" },
   { key: "messages", label: "Messages", section: "Messages" },
 ] as const;
