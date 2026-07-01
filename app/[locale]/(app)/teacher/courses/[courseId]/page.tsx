@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useLocale } from "next-intl";
 import { useParams, useSearchParams } from "next/navigation";
 import { AcademyGate } from "../AcademyGate";
@@ -183,41 +183,71 @@ function PaymentsPanel({ course }: { course: Course }) {
   const { user } = useUserProfile();
   const [orders, setOrders] = useState<CourseOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resyncing, setResyncing] = useState(false);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const loadOrders = useCallback(async (cancelled = false) => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      setError("");
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/teacher/courses/${course.id}/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        orders?: CourseOrderRow[];
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error || "Could not load orders");
+      if (!cancelled) setOrders(Array.isArray(data.orders) ? data.orders : []);
+    } catch (err) {
+      console.error("Failed to load course orders", err);
+      if (!cancelled) setError("Payments could not be loaded right now.");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  }, [course.id, user]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadOrders() {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        setError("");
-        const token = await user.getIdToken();
-        const res = await fetch(`/api/teacher/courses/${course.id}/orders`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = (await res.json().catch(() => ({}))) as {
-          orders?: CourseOrderRow[];
-          error?: string;
-        };
-        if (!res.ok) throw new Error(data.error || "Could not load orders");
-        if (!cancelled) setOrders(Array.isArray(data.orders) ? data.orders : []);
-      } catch (err) {
-        console.error("Failed to load course orders", err);
-        if (!cancelled) setError("Payments could not be loaded right now.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void loadOrders();
+    void loadOrders(cancelled);
 
     return () => {
       cancelled = true;
     };
-  }, [course.id, user]);
+  }, [loadOrders]);
+
+  async function resyncOrders() {
+    if (!user || resyncing) return;
+
+    try {
+      setResyncing(true);
+      setMessage("");
+      setError("");
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/teacher/courses/${course.id}/orders/resync`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        checked?: number;
+        updated?: number;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error || "Could not resync orders");
+      setMessage(`Checked ${data.checked ?? 0} pending orders. Updated ${data.updated ?? 0}.`);
+      await loadOrders(false);
+    } catch (err) {
+      console.error("Failed to resync course orders", err);
+      setError("Payment status could not be resynced right now.");
+    } finally {
+      setResyncing(false);
+    }
+  }
 
   const paidOrders = orders.filter((order) => order.status === "paid" || order.status === "completed");
   const pendingOrders = orders.filter((order) => order.status === "checkout_created").length;
@@ -229,16 +259,31 @@ function PaymentsPanel({ course }: { course: Course }) {
 
   return (
     <div className="grid gap-5">
-      <div>
-        <h2 className="m-0 text-xl font-black text-slate-950">Payments</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-600">
-          Simple payment control for this course. Amounts are estimates from the checkout ledger.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="m-0 text-xl font-black text-slate-950">Payments</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Simple payment control for this course. Amounts are estimates from the checkout ledger.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={resyncing}
+          onClick={() => void resyncOrders()}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50 disabled:opacity-60"
+        >
+          {resyncing ? "Checking..." : "Resync Stripe"}
+        </button>
       </div>
 
       {error ? (
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           {error}
+        </div>
+      ) : null}
+      {message ? (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
+          {message}
         </div>
       ) : null}
 
@@ -302,7 +347,7 @@ function PaymentsPanel({ course }: { course: Course }) {
                   <td className="px-4 py-3 font-bold">{formatMoney(order.grossAmountOre, order.currency)}</td>
                   <td className="px-4 py-3 font-bold">{formatMoney(order.instructorAmountOre, order.currency)}</td>
                   <td className="px-4 py-3 font-bold">{formatMoney(order.applicationFeeAmountOre, order.currency)}</td>
-                  <td className="px-4 py-3 text-slate-600">{formatDateTime(order.paidAt || order.createdAt)}</td>
+                  <td className="px-4 py-3 text-slate-600">{formatDateTime(order.paidAt)}</td>
                 </tr>
               ))}
             </tbody>
