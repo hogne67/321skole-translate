@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
   normalizeCourseMarketing,
@@ -112,20 +113,21 @@ async function loadPublicCourse(slug: string): Promise<PublicCourse | null> {
 }
 
 export default async function PublicCoursePage({ params }: PageProps) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  const t = await getTranslations("academy.publicCourse");
   const course = await loadPublicCourse(slug);
   if (!course) notFound();
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950">
       <div className="mx-auto grid max-w-5xl gap-6">
-        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-6 shadow-sm">
           <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-            321Academy
+            {t("brand")}
           </div>
           <h1 className="m-0 mt-2 break-words text-3xl font-black">{course.title}</h1>
           {course.teacherName ? (
-            <p className="mt-2 text-sm font-bold text-slate-600">Instructor: {course.teacherName}</p>
+            <p className="mt-2 text-sm font-bold text-slate-600">{t("instructor", { name: course.teacherName })}</p>
           ) : null}
           {course.marketing.coverImageUrl ? (
             <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
@@ -143,33 +145,36 @@ export default async function PublicCoursePage({ params }: PageProps) {
             </p>
           ) : null}
           <p className="mt-4 max-w-3xl whitespace-pre-wrap text-base leading-7 text-slate-700">
-            {course.description || "Ingen beskrivelse ennå."}
+            {course.description || t("noDescription")}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            <Badge label="Level" value={course.level || "Ikke fylt ut"} />
-            <Badge label="Language" value={course.language || "Ikke fylt ut"} />
-            <Badge label="Sessions" value={String(course.numberOfSessions)} />
-            <Badge label="Weeks" value={String(course.numberOfWeeks)} />
-            <Badge label="Max participants" value={String(course.maxParticipants)} />
+            <Badge label={t("badges.level")} value={course.level || t("missing")} />
+            <Badge label={t("badges.language")} value={course.language || t("missing")} />
+            <Badge label={t("badges.sessions")} value={String(course.numberOfSessions)} />
+            <Badge label={t("badges.weeks")} value={String(course.numberOfWeeks)} />
+            <Badge label={t("badges.maxParticipants")} value={String(course.maxParticipants)} />
             {course.maxParticipants > 0 ? (
-              <Badge label="Available" value={`${Math.max(0, course.maxParticipants - course.participantCount)} places`} />
+              <Badge
+                label={t("badges.available")}
+                value={t("places", { count: Math.max(0, course.maxParticipants - course.participantCount) })}
+              />
             ) : null}
-            <Badge label="Price" value={formatCoursePrice(course.sales, course.priceText)} />
+            <Badge label={t("badges.price")} value={formatCoursePrice(course.sales, course.priceText, locale, t("missing"))} />
           </div>
 
           {course.canCheckout ? (
             <>
-              <CourseCheckoutButton enabled label="Buy course" />
+              <CourseCheckoutButton enabled label={t("buy")} />
               <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold leading-6 text-emerald-900">
-                Payment is held securely by 321School and released to the instructor according to course delivery.
+                {t("paymentHeld")}
               </div>
               <SignupRequestForm slug={course.slug} compact />
             </>
           ) : course.isFull ? (
             <>
               <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-                This course is currently full. You can still contact the instructor.
+                {t("full")}
               </div>
               <SignupRequestForm slug={course.slug} compact />
             </>
@@ -178,19 +183,19 @@ export default async function PublicCoursePage({ params }: PageProps) {
           )}
         </section>
 
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <TextBlock title="Learning goals" value={course.learningGoals || "Ikke fylt ut"} />
-          <TextBlock title="Target audience" value={course.targetAudience || "Ikke fylt ut"} />
+        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-6 shadow-sm">
+          <TextBlock title={t("learningGoals")} value={course.learningGoals || t("missing")} />
+          <TextBlock title={t("targetAudience")} value={course.targetAudience || t("missing")} />
           {course.marketing.salesText ? (
-            <TextBlock title="About this course" value={course.marketing.salesText} />
+            <TextBlock title={t("about")} value={course.marketing.salesText} />
           ) : null}
         </section>
 
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="m-0 text-xl font-black">Course plan</h2>
+        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-6 shadow-sm">
+          <h2 className="m-0 text-xl font-black">{t("coursePlan")}</h2>
           {course.coursePlan.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-              Ingen samlinger er publisert ennå.
+              {t("noSessions")}
             </div>
           ) : (
             <div className="grid gap-3">
@@ -200,23 +205,23 @@ export default async function PublicCoursePage({ params }: PageProps) {
                   className="rounded-lg border border-slate-200 bg-slate-50 p-4"
                 >
                   <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                    Session {session.sessionNumber}
+                    {t("session", { number: session.sessionNumber })}
                   </div>
                   <h3 className="m-0 mt-2 text-base font-extrabold">
-                    {session.title || "Uten tittel"}
+                    {session.title || t("untitled")}
                   </h3>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                    {session.description || "Ingen beskrivelse."}
+                    {session.description || t("noSessionDescription")}
                   </p>
                   {session.contentSuggestions ? (
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                      <strong>Forslag til innhold:</strong> {session.contentSuggestions}
+                      <strong>{t("contentSuggestions")}</strong> {session.contentSuggestions}
                     </p>
                   ) : null}
                   {session.resources.some(isPublicPreviewResource) ? (
                     <div className="mt-3 grid gap-2">
                       <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                        Resources
+                        {t("resources")}
                       </div>
                       {session.resources.filter(isPublicPreviewResource).map((resource) => (
                         <div key={resource.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
@@ -226,11 +231,11 @@ export default async function PublicCoursePage({ params }: PageProps) {
                           {resource.description ? <div className="mt-1 whitespace-pre-wrap">{resource.description}</div> : null}
                           {isPublicResourceLink(resource) ? (
                             <a href={resource.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex text-sm font-bold text-slate-900 underline">
-                              Open resource
+                              {t("openResource")}
                             </a>
                           ) : (
                             <div className="mt-1 text-xs font-bold text-slate-500">
-                              Available after enrollment
+                              {t("availableAfterEnrollment")}
                             </div>
                           )}
                         </div>
@@ -239,7 +244,7 @@ export default async function PublicCoursePage({ params }: PageProps) {
                   ) : null}
                   <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-slate-600">
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                      {formatSessionDate(session.startsAt)}
+                      {formatSessionDate(session.startsAt, locale, t("dateNotSet"))}
                     </span>
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
                       {session.durationMinutes || 120} min
@@ -249,10 +254,10 @@ export default async function PublicCoursePage({ params }: PageProps) {
                     </span>
                   </div>
                   <div className="mt-3 text-sm font-bold text-slate-500">
-                    Meeting link available after enrollment
+                    {t("meetingAfterEnrollment")}
                   </div>
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                    <strong>Homework:</strong> {session.homework || "Ingen lekser."}
+                    <strong>{t("homework")}</strong> {session.homework || t("noHomework")}
                   </p>
                 </article>
               ))}
@@ -297,23 +302,23 @@ function TextBlock({ title, value }: { title: string; value: string }) {
   );
 }
 
-function formatCoursePrice(sales: CourseSalesSettings, fallback: string) {
+function formatCoursePrice(sales: CourseSalesSettings, fallback: string, locale: string, missing: string) {
   if (sales.priceAmountOre > 0) {
-    return new Intl.NumberFormat("nb-NO", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: sales.currency || "NOK",
       maximumFractionDigits: sales.priceAmountOre % 100 === 0 ? 0 : 2,
     }).format(sales.priceAmountOre / 100);
   }
 
-  return fallback || "Ikke fylt ut";
+  return fallback || missing;
 }
 
-function formatSessionDate(value: string): string {
-  if (!value) return "Dato ikke satt";
+function formatSessionDate(value: string, locale: string, fallback: string): string {
+  if (!value) return fallback;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }
 
 function isPublicResourceLink(resource: CoursePlanSession["resources"][number]): boolean {

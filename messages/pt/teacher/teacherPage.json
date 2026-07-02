@@ -138,6 +138,19 @@
       "actions": {
         "openSpaces": "Abrir turmas"
       }
+    },
+    "academy": {
+      "badge": "321Academy",
+      "beta": "Beta",
+      "title": "Cursos",
+      "description": "Planeje, publique e acompanhe cursos em um fluxo dedicado. O módulo está em beta e, por enquanto, fica separado de Lessons, Spaces e Library.",
+      "actions": {
+        "myCourses": "Meus cursos",
+        "marketplace": "Mercado de cursos",
+        "generate": "Criar curso",
+        "published": "Cursos publicados",
+        "attending": "Cursos em que participo"
+      }
     }
   }
 }

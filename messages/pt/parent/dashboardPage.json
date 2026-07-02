@@ -96,6 +96,16 @@
     },
     "stats": {
       "percentUsed": "{percent}% usado"
+    },
+    "academy": {
+      "badge": "321Academy",
+      "beta": "Beta",
+      "title": "Cursos dos quais você pode participar",
+      "description": "Acompanhe cursos como participante, seja como responsável, aluno ou profissional. O acesso ao curso é independente da sua função principal.",
+      "actions": {
+        "myCourses": "Meus cursos",
+        "browse": "Ver cursos"
+      }
     }
   }
 }

@@ -125,6 +125,16 @@
     },
     "stats": {
       "percentUsed": "{percent}% brukt"
+    },
+    "academy": {
+      "badge": "321Academy",
+      "beta": "Beta",
+      "title": "Kurs",
+      "description": "Kurs du deltar på vises her. Dette er en tidlig beta for kursrom, livesamlinger og delte oppgaver.",
+      "actions": {
+        "myCourses": "Mine kurs",
+        "browse": "Se offentlige kurs"
+      }
     }
   }
 }

@@ -20,6 +20,7 @@ import pricing from "./pricing.json";
 import postLogin from "./postLogin.json";
 import libraryOpenLesson from "./libraryOpenLesson.json";
 import schoolAdmin from "./schoolAdmin.json";
+import academy from "./academy.json";
 
 import authLogin from "./auth/login.json";
 import authOnboarding from "./auth/onboarding.json";
@@ -108,6 +109,7 @@ const ptMessages = {
   ...postLogin,
   ...libraryOpenLesson,
   ...schoolAdmin,
+  ...academy,
 
   ...authLogin,
   ...authOnboarding,

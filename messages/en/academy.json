@@ -1,0 +1,1020 @@
+{
+  "academy": {
+    "common": {
+      "untitled": "Untitled",
+      "draft": "draft"
+    },
+    "workspace": {
+      "subtitle": "321Academy course workspace",
+      "backToCourses": "Back to courses",
+      "nav": {
+        "overview": "Overview",
+        "edit": "Edit course",
+        "sessions": "Edit sessions",
+        "content": "Content",
+        "marketing": "Marketing",
+        "sales": "Sales",
+        "participants": "Participants",
+        "payments": "Payments",
+        "submissions": "Submissions",
+        "messages": "Messages"
+      }
+    },
+    "teacherCourses": {
+      "title": "321Academy",
+      "intro": "Create, organise and follow up courses for your own participants.",
+      "createCourse": "+ Create course",
+      "stripeReturned": "Stripe setup returned. Open a course and check Marketing → Sales setup to confirm payout status.",
+      "filters": {
+        "myCourses": "My courses",
+        "published": "Published courses",
+        "participating": "Courses I attend",
+        "marketplace": "Course marketplace"
+      },
+      "headings": {
+        "courses": "Courses",
+        "published": "Published courses",
+        "noCourses": "No courses yet",
+        "noParticipating": "No courses you attend yet"
+      },
+      "searchPlaceholder": "Search courses",
+      "sort": {
+        "newest": "Newest first",
+        "oldest": "Oldest first",
+        "titleAz": "Title A-Z",
+        "titleZa": "Title Z-A"
+      },
+      "states": {
+        "loading": "Loading courses...",
+        "loadFailed": "Could not load courses right now.",
+        "publishFailed": "Publishing could not be updated right now.",
+        "emptyText": "Start with a simple course draft. You can add details now and continue building later.",
+        "participatingEmptyText": "When you attend a course, it appears here without leaving the teacher area."
+      },
+      "actions": {
+        "openCourse": "Open course",
+        "openCourseRoom": "Open course room",
+        "publish": "Publish",
+        "unpublish": "Unpublish",
+        "working": "Working...",
+        "publicPage": "Public page",
+        "shareLink": "Share link",
+        "copied": "Copied",
+        "copyFailed": "Could not copy",
+        "preview": "Preview"
+      },
+      "sale": {
+        "notPublished": "Not published",
+        "saleOff": "Sale off",
+        "noPrice": "No price",
+        "review": "Review",
+        "ready": "Sale ready"
+      },
+      "meta": {
+        "sessions": "{count} sessions",
+        "resources": "{count} resources",
+        "next": "Next: {date}",
+        "notScheduled": "not scheduled"
+      }
+    },
+    "marketplace": {
+      "metadataTitle": "321Academy Courses",
+      "metadataDescription": "Browse published courses from 321Academy.",
+      "badge": "321Academy",
+      "title": "Courses",
+      "intro": "Browse teacher-led courses. Paid courses can be bought directly, and free or manual courses can accept requests.",
+      "myCourseRoom": "My course room",
+      "emptyTitle": "No published courses yet",
+      "emptyText": "Published 321Academy courses will appear here.",
+      "levelFallback": "Level",
+      "languageFallback": "Language",
+      "instructor": "Instructor: {name}",
+      "descriptionFallback": "Course description coming soon.",
+      "start": "Start",
+      "startComing": "Start date coming",
+      "price": "Price",
+      "contact": "Contact",
+      "sessions": "Sessions",
+      "weeks": "Weeks",
+      "flexible": "Flexible",
+      "viewCourse": "View course"
+    },
+    "studentCourses": {
+      "title": "Courses",
+      "intro": "Courses where your email has been added as a participant.",
+      "backToDashboard": "Back to dashboard",
+      "loadFailed": "Courses could not be loaded right now.",
+      "checkoutTitle": "Payment completed",
+      "checkoutAdded": "{title} has been added to your course room.",
+      "checkoutAddedFallback": "The course has been added to your course room.",
+      "openCourseRoom": "Open course room",
+      "loading": "Loading courses...",
+      "emptyTitle": "No courses yet",
+      "emptyText": "When an instructor adds this email as a participant, the course will appear here.",
+      "untitled": "Untitled course",
+      "sessions": "{count} sessions",
+      "nextSession": "Next session",
+      "session": "Session {number}",
+      "startsIn": "Starts in",
+      "notScheduled": "No session has been scheduled yet.",
+      "joinVideo": "Join video session",
+      "videoLater": "Video session room will be added later.",
+      "dateNotSet": "Date not set",
+      "notSet": "Not set",
+      "now": "Now",
+      "daysHours": "{days}d {hours}h",
+      "hoursMinutes": "{hours}h {minutes}m",
+      "minutes": "{minutes}m",
+      "status": {
+        "invited": "invited",
+        "enrolled": "enrolled",
+        "active": "active",
+        "completed": "completed",
+        "cancelled": "cancelled"
+      }
+    },
+    "studentCourseRoom": {
+      "notFound": "Course not found.",
+      "loadFailed": "The course room could not be loaded right now.",
+      "saveFailed": "The submission could not be saved right now.",
+      "saved": "Saved",
+      "loading": "Loading course room...",
+      "backToCourses": "Back to courses",
+      "publicPage": "Public course page",
+      "eyebrow": "321Academy course room",
+      "untitled": "Untitled",
+      "noDescription": "No description yet.",
+      "levelMissing": "Level not set",
+      "languageMissing": "Language not set",
+      "sessionsCount": "{count} sessions",
+      "weeksCount": "{count} weeks",
+      "nav": {
+        "overview": "Overview",
+        "tasks": "Tasks",
+        "progress": "Progress",
+        "feedback": "Feedback",
+        "messages": "Messages",
+        "info": "Course info",
+        "sessions": "Sessions"
+      },
+      "stats": {
+        "todo": "To do",
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "progress": "Progress"
+      },
+      "nextSession": "Next session",
+      "session": "Session {number}",
+      "openSessionRoom": "Open session room",
+      "noSessionScheduled": "No session is scheduled yet.",
+      "tasks": {
+        "title": "To do",
+        "intro": "Open course tasks and resources that have not been approved yet.",
+        "empty": "Everything that has been shared is approved or done for now."
+      },
+      "progress": {
+        "title": "My progress",
+        "summary": "{submitted}/{total} resources submitted · {approved} approved",
+        "empty": "No course resources have been shared yet."
+      },
+      "feedback": {
+        "title": "Feedback from instructor",
+        "intro": "Latest reviews and comments from the course instructor.",
+        "empty": "No reviews yet.",
+        "courseTask": "Course task",
+        "resource": "Resource",
+        "noComment": "No comment, only status has been set.",
+        "updated": "Updated: {date}"
+      },
+      "messages": {
+        "title": "Announcements",
+        "intro": "Messages from the course instructor appear here.",
+        "empty": "No messages yet.",
+        "fallback": "Message"
+      },
+      "info": {
+        "learningGoals": "Learning goals",
+        "targetAudience": "Target audience",
+        "missing": "Not filled in"
+      },
+      "sessions": {
+        "title": "Sessions",
+        "empty": "No sessions have been added yet.",
+        "untitled": "Untitled session",
+        "noDescription": "No description yet.",
+        "open": "Open",
+        "close": "Close",
+        "resources": "{count} resources",
+        "submitted": "{submitted}/{total} submitted",
+        "openMeeting": "Open meeting",
+        "resourcesTitle": "Resources for this session",
+        "openLesson": "Open lesson",
+        "openResource": "Open resource",
+        "opensLater": "Platform resource opens here later.",
+        "comment": "Comment for instructor",
+        "commentPlaceholder": "Write a short comment, or submit empty if this should only be marked as done.",
+        "saving": "Saving...",
+        "submit": "Submit",
+        "noResources": "No resources have been added to this session yet.",
+        "homework": "Homework:",
+        "closeSession": "Close session"
+      },
+      "status": {
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "needsWork": "Needs work",
+        "awaiting": "Awaiting review",
+        "notSubmitted": "Not submitted yet",
+        "planned": "planned",
+        "completed": "completed",
+        "cancelled": "cancelled"
+      },
+      "dateNotSet": "Date not set"
+    },
+    "studentSessionRoom": {
+      "notFound": "Could not find this session.",
+      "loadFailed": "This session could not be loaded right now.",
+      "loading": "Loading session...",
+      "backToCourseRoom": "Back to course room",
+      "courseFallback": "Course",
+      "session": "Session {number}",
+      "noDescription": "No description yet.",
+      "status": {
+        "planned": "planned",
+        "completed": "completed",
+        "cancelled": "cancelled",
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "needsWork": "Needs work",
+        "awaiting": "Awaiting review",
+        "notSubmitted": "Not submitted yet"
+      },
+      "video": {
+        "eyebrow": "Live session",
+        "title": "Video room",
+        "intro": "Join the live session here when the instructor has opened the room.",
+        "fullscreen": "Fullscreen",
+        "exitFullscreen": "Exit fullscreen",
+        "placeholder": "Daily/meeting room",
+        "starting": "Starting...",
+        "reconnect": "Reconnect video",
+        "join": "Join video session",
+        "notAvailable": "This meeting is not available yet. Try again closer to the session start time."
+      },
+      "info": {
+        "starts": "Starts",
+        "duration": "Duration",
+        "resources": "Resources",
+        "submitted": "Submitted"
+      },
+      "resources": {
+        "title": "Session resources",
+        "intro": "Materials and tasks connected to this session.",
+        "empty": "No resources have been added to this session yet.",
+        "openLesson": "Open lesson",
+        "openResource": "Open resource",
+        "opensLater": "This resource will open here later."
+      },
+      "agenda": {
+        "title": "Agenda",
+        "empty": "The instructor has not added an agenda yet.",
+        "homework": "Homework"
+      },
+      "dateNotSet": "Date not set"
+    },
+    "teacherPreview": {
+      "loading": "Loading preview...",
+      "notFound": "Course not found.",
+      "loadFailed": "The preview could not be loaded right now.",
+      "eyebrow": "321Academy preview",
+      "untitled": "Untitled",
+      "noDescription": "No description yet.",
+      "joinButton": "Join course / Sign up",
+      "badges": {
+        "level": "Level",
+        "language": "Language",
+        "sessions": "Sessions",
+        "price": "Price"
+      },
+      "missing": "Not filled in",
+      "learningGoals": "Learning goals",
+      "targetAudience": "Target audience",
+      "coursePlan": "Course plan",
+      "noSessions": "No sessions have been added yet.",
+      "session": "Session {number}",
+      "noSessionTitle": "Untitled",
+      "noSessionDescription": "No description.",
+      "contentSuggestions": "Content suggestions:",
+      "resources": "Resources",
+      "openResource": "Open resource",
+      "meetingLink": "Meeting link",
+      "meetingLater": "Meeting link will be added later",
+      "homework": "Homework:",
+      "noHomework": "No homework.",
+      "back": "Back to course dashboard",
+      "dateNotSet": "Date not set",
+      "visibility": {
+        "teacher": "Teacher only",
+        "public": "Public preview",
+        "participants": "Participants"
+      }
+    },
+    "publicCourse": {
+      "brand": "321Academy",
+      "instructor": "Instructor: {name}",
+      "noDescription": "No description yet.",
+      "badges": {
+        "level": "Level",
+        "language": "Language",
+        "sessions": "Sessions",
+        "weeks": "Weeks",
+        "maxParticipants": "Max participants",
+        "available": "Available",
+        "price": "Price"
+      },
+      "places": "{count} places",
+      "missing": "Not filled in",
+      "buy": "Buy course",
+      "paymentHeld": "Payment is held securely by 321School and released to the instructor according to course delivery.",
+      "full": "This course is currently full. You can still contact the instructor.",
+      "learningGoals": "Learning goals",
+      "targetAudience": "Target audience",
+      "about": "About this course",
+      "coursePlan": "Course plan",
+      "noSessions": "No sessions have been published yet.",
+      "session": "Session {number}",
+      "untitled": "Untitled",
+      "noSessionDescription": "No description.",
+      "contentSuggestions": "Content suggestions:",
+      "resources": "Resources",
+      "openResource": "Open resource",
+      "availableAfterEnrollment": "Available after enrollment",
+      "meetingAfterEnrollment": "Meeting link available after enrollment",
+      "homework": "Homework:",
+      "noHomework": "No homework.",
+      "dateNotSet": "Date not set",
+      "signup": {
+        "contactTitle": "Contact instructor",
+        "requestTitle": "Request a place",
+        "compactHelp": "Use this if you have questions before buying or need a manual follow-up.",
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone",
+        "message": "Message",
+        "success": "Thank you. Your request has been sent.",
+        "error": "The request could not be sent right now.",
+        "sending": "Sending...",
+        "sendRequest": "Send request",
+        "requestPlace": "Request a place"
+      },
+      "checkout": {
+        "signin": "Sign in before buying this course.",
+        "failed": "Could not start checkout",
+        "opening": "Opening checkout..."
+      }
+    },
+    "teacherSessionRoom": {
+      "loading": "Loading session...",
+      "notFound": "Could not find this session.",
+      "loadFailed": "This session could not be loaded right now.",
+      "dailyUnavailable": "This meeting is not available yet. Try again closer to the session start time.",
+      "dailyLoadFailed": "Daily script failed to load",
+      "dailyCouldNotLoad": "Daily could not be loaded",
+      "videoStartFailed": "Could not start video session",
+      "fullscreenFailed": "Fullscreen could not be toggled.",
+      "backToCourse": "Back to course",
+      "eyebrow": "Instructor session room · Session {number}",
+      "fallbackTitle": "Session {number}",
+      "noDescription": "No session description yet.",
+      "editSessions": "Edit sessions",
+      "hostRoom": "Host room",
+      "videoTitle": "Video session",
+      "videoIntro": "Join through this page as instructor. This creates a host token for the private Daily room.",
+      "fullscreen": "Fullscreen",
+      "exitFullscreen": "Exit fullscreen",
+      "embedLabel": "Daily instructor embed",
+      "starting": "Starting...",
+      "reconnect": "Reconnect video",
+      "startJoin": "Start / join session",
+      "cards": {
+        "starts": "Starts",
+        "duration": "Duration",
+        "resources": "Resources",
+        "meetingLink": "Meeting link",
+        "ready": "Ready",
+        "createdOnJoin": "Created on join"
+      },
+      "sessionPlan": "Session plan",
+      "noAgenda": "No agenda has been added yet.",
+      "dateNotSet": "Date not set"
+    },
+    "editCourse": {
+      "title": "Edit course",
+      "intro": "Update the main course information. Sessions, dates and resources are edited in Edit sessions.",
+      "loading": "Loading course...",
+      "errors": {
+        "notFound": "Course not found.",
+        "ownerOnly": "Only the owner can edit this course.",
+        "loadFailed": "The course could not be loaded right now.",
+        "titleRequired": "Title is required.",
+        "saveFailed": "The course could not be saved right now."
+      },
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "learningGoals": "Learning goals",
+        "targetAudience": "Target audience",
+        "language": "Language",
+        "level": "Level",
+        "maxParticipants": "Max participants",
+        "status": "Status",
+        "numberOfSessions": "Number of sessions",
+        "numberOfWeeks": "Number of weeks"
+      },
+      "notes": {
+        "language": "Language is locked after course creation because it affects expectations, materials and marketing.",
+        "level": "Level is locked after setup. Create a new course if the target level changes significantly.",
+        "maxParticipants": "Changing this can affect sales capacity and availability on the public course page.",
+        "status": "Publishing and sales status are managed from the course overview and Sales.",
+        "sessions": "Use Edit sessions to add, remove or schedule sessions.",
+        "weeks": "Course duration is part of the course setup and payout/license estimates."
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "save": "Save course"
+      }
+    },
+    "sessions": {
+      "title": "Sessions",
+      "intro": "Edit each course day. This is where you manage suggestions, meeting info, homework and resources from My Content, Library or your own links.",
+      "loading": "Loading sessions...",
+      "errors": {
+        "notFound": "Course not found.",
+        "loadFailed": "The sessions could not be loaded right now.",
+        "saveFailed": "The sessions could not be saved right now."
+      },
+      "actions": {
+        "saving": "Saving...",
+        "save": "Save sessions",
+        "apply": "Apply",
+        "openSessionRoom": "Open session room",
+        "removeSession": "Remove session",
+        "addFromMyContent": "Add from My Content",
+        "addFromLibrary": "Add from Library",
+        "addResource": "Add resource",
+        "remove": "Remove",
+        "closeSession": "Close session",
+        "addNewSession": "+ Add new session",
+        "close": "Close"
+      },
+      "quickSchedule": {
+        "title": "Quick schedule",
+        "intro": "Set start date, time and repeat pattern. This fills dates for all sessions, and you can adjust each session manually afterwards.",
+        "note": "\"Consecutive weekdays\" places sessions on the next working day and skips Saturday and Sunday. All dates and times can be changed manually afterwards.",
+        "fields": {
+          "startDate": "Start date",
+          "time": "Time",
+          "duration": "Duration minutes",
+          "repeat": "Repeat"
+        },
+        "repeat": {
+          "weekdays": "Consecutive weekdays",
+          "weekly": "Every week",
+          "biweekly": "Every other week",
+          "monthly": "Every month"
+        }
+      },
+      "session": {
+        "label": "Session {number}",
+        "untitled": "Untitled",
+        "noDescription": "No description yet.",
+        "openAria": "Open session {number}",
+        "closeAria": "Close session {number}",
+        "confirmRemove": "Remove session {number}?",
+        "dateNotSet": "Date not set",
+        "addNewDescription": "Add a new session at the end of the course plan."
+      },
+      "fields": {
+        "startsAt": "Starts at",
+        "durationMinutes": "Duration minutes",
+        "meetingUrl": "Meeting URL",
+        "status": "Status",
+        "title": "Title",
+        "description": "Description",
+        "contentSuggestions": "Content suggestions",
+        "homework": "Homework suggestion",
+        "type": "Type",
+        "visibility": "Visibility",
+        "url": "URL"
+      },
+      "status": {
+        "planned": "planned",
+        "completed": "completed",
+        "cancelled": "cancelled"
+      },
+      "resources": {
+        "title": "Resources",
+        "intro": "Links, PDF links, 321school placeholders or manual notes.",
+        "empty": "No resources added yet.",
+        "label": "Resource {number}",
+        "optional": "Optional",
+        "lesson": "Lesson",
+        "libraryLesson": "Library lesson",
+        "myContentDescription": "321school content. Student access is connected later.",
+        "libraryDescription": "Library content. Student access is connected later.",
+        "type": {
+          "link": "External link",
+          "pdf": "PDF / file link",
+          "platform": "321school content later",
+          "note": "Manual note"
+        },
+        "visibility": {
+          "participants": "Participants",
+          "teacher": "Teacher only",
+          "public": "Public preview"
+        }
+      },
+      "picker": {
+        "libraryTitle": "Add from Library",
+        "myContentTitle": "Add from My Content",
+        "intro": "This only adds a pointer to the content. Student access comes later.",
+        "searchPlaceholder": "Search by title, level or language",
+        "libraryEmpty": "No library resources found right now.",
+        "myContentEmpty": "No lessons in My Content found right now."
+      }
+    },
+    "marketing": {
+      "loading": "Loading marketing...",
+      "title": "Marketing",
+      "intro": "Course image, public text and presentation fields for course cards and public pages.",
+      "errors": {
+        "notFound": "Course not found.",
+        "loadFailed": "The course could not be loaded right now.",
+        "saveFailed": "The marketing fields could not be saved right now.",
+        "generic": "Something went wrong.",
+        "copyFailed": "Could not copy right now.",
+        "chooseImage": "Choose an image file.",
+        "imageTooLarge": "The image is too large. Max 8MB.",
+        "uploadFailed": "Image upload failed.",
+        "imagePromptRequired": "Write an image prompt first.",
+        "imageGenerationFailed": "Image generation failed.",
+        "noImageReturned": "Image generation returned no image.",
+        "marketingGenerationFailed": "Could not generate marketing text."
+      },
+      "actions": {
+        "preview": "Preview course",
+        "openPublicPage": "Open public page",
+        "copyLink": "Copy link",
+        "copyText": "Copy text",
+        "share": "Share",
+        "downloadQr": "Download QR",
+        "uploadImage": "Upload image",
+        "generateWithAi": "Generate with AI",
+        "useSuggestedPrompt": "Use suggested prompt",
+        "generatingImage": "Generating...",
+        "generateImage": "Generate image",
+        "removeImage": "Remove image",
+        "generatingMarketing": "Generating marketing...",
+        "generateMarketing": "Generate marketing text",
+        "backToDashboard": "Back to dashboard",
+        "saving": "Saving...",
+        "save": "Save marketing"
+      },
+      "messages": {
+        "linkCopied": "Link copied.",
+        "shareTextCopied": "Share text copied.",
+        "shareDialogOpened": "Share dialog opened.",
+        "imageUploaded": "Image uploaded. Remember to save marketing.",
+        "imageGenerated": "AI image generated. Remember to save marketing.",
+        "marketingGenerated": "Marketing suggestions added. Review and edit before saving."
+      },
+      "share": {
+        "title": "Share course",
+        "intro": "Share the public course page with a link, QR code or social media.",
+        "publishFirst": "Publish the course first to create a shareable public link.",
+        "link": "Share link",
+        "text": "Share text",
+        "qrAlt": "QR code for course page",
+        "qrFallback": "QR"
+      },
+      "fields": {
+        "marketingFields": "Marketing fields",
+        "courseImage": "Course image",
+        "imageLocked": "Locked to 16:9 so it works for marketing, course cards and public sharing.",
+        "uploadImage": "Upload image",
+        "pasteImageUrl": "Or paste image URL",
+        "imageStyle": "Image style",
+        "aiImagePrompt": "AI image prompt",
+        "shortSummary": "Short public summary",
+        "salesText": "Sales text",
+        "seoTitle": "SEO title",
+        "seoDescription": "SEO description"
+      },
+      "image": {
+        "uploadHelp": "Use jpg, png or webp. Max 8MB.",
+        "uploading": "Uploading...",
+        "promptPlaceholder": "Describe the course image. Avoid text inside the image.",
+        "promptHelp": "Built from course description and marketing text. You can edit it before generating.",
+        "illustration": "Illustration",
+        "realistic": "Realistic",
+        "previewAlt": "Course image",
+        "placeholder": "16:9 course image",
+        "source": "Source: {source}",
+        "sourceAi": "AI",
+        "sourceUpload": "Upload/URL",
+        "sourceNone": "None"
+      },
+      "placeholders": {
+        "summary": "Short text shown high on the public course page.",
+        "salesText": "More detailed text about who the course is for and what participants get out of it."
+      },
+      "aiPrompt": {
+        "line1": "Create a premium 16:9 front-page marketing image for a professional course.",
+        "line2": "The image should feel like something used to sell the course: polished, optimistic, trustworthy and high quality.",
+        "line3": "Show happy, confident, successful people in a positive learning situation connected to the course topic.",
+        "line4": "The mood should communicate progress, mastery, collaboration and practical value.",
+        "line5": "Use a clean modern composition with warm natural light and enough visual space for a course title to be placed outside the image later.",
+        "line6": "Do not include any text, letters, numbers, logos, watermarks, UI screens with readable text, or brand names inside the image.",
+        "courseTitle": "Course title: {value}",
+        "courseFallback": "Course",
+        "courseDescription": "Course description: {value}",
+        "learningGoals": "Learning goals: {value}",
+        "targetAudience": "Target audience: {value}",
+        "salesAngle": "Sales angle: {value}",
+        "courseLanguage": "Course language: {value}",
+        "level": "Level: {value}"
+      }
+    },
+    "sales": {
+      "loading": "Loading sales...",
+      "title": "Sales",
+      "intro": "Price, checkout readiness, tax classification and payout policy for this course.",
+      "errors": {
+        "notFound": "Course not found.",
+        "loadFailed": "The course could not be loaded right now.",
+        "connectStatusFailed": "Could not load Stripe Connect status.",
+        "connectStartFailed": "Could not start Stripe onboarding.",
+        "saveFailed": "Sales setup could not be saved right now.",
+        "generic": "Something went wrong."
+      },
+      "messages": {
+        "saved": "Sales setup saved."
+      },
+      "readiness": {
+        "checkoutReady": "Checkout ready",
+        "notReady": "Not ready",
+        "checking": "Checking...",
+        "connected": "Connected",
+        "incomplete": "Onboarding incomplete",
+        "notConnected": "Not connected"
+      },
+      "payoutEstimate": {
+        "title": "Instructor payout estimate",
+        "intro": "Estimate based on the current course price. Final payout depends on payment fees, license deduction and admin review.",
+        "instructor": "Instructor estimate",
+        "firstRelease": "First 75% release",
+        "holdback": "Held until completion",
+        "noPrice": "Set a course price to see the payout estimate."
+      },
+      "checkout": {
+        "title": "Checkout readiness",
+        "intro": "The public page can sell this course when Stripe is connected, price is set, status is ready, and the tax profile is reviewed.",
+        "stripeTitle": "Stripe Connect",
+        "stripeIntro": "Instructors must connect Stripe Express before paid enrollments and later payouts. Payments are held by the platform until delivery milestones are reviewed.",
+        "readyText": "Public checkout is ready. The public course page can show Buy course after you save these settings.",
+        "notReadyText": "Public checkout is not ready yet. Required: Stripe connected, sale status ready, price set, and live instruction tax profile.",
+        "openStripe": "Open Stripe setup",
+        "continueSetup": "Continue setup",
+        "connectStripe": "Connect Stripe"
+      },
+      "price": {
+        "title": "Price",
+        "saleStatus": "Sale status",
+        "currency": "Currency",
+        "price": "Price",
+        "notForSale": "Not for sale yet",
+        "readyWhenConnected": "Ready when Stripe is connected",
+        "needsReview": "Needs review"
+      },
+      "tax": {
+        "title": "Tax classification",
+        "intro": "Default is live instructor-led education. Mixed or recorded digital content should be reviewed before sale.",
+        "deliveryType": "Delivery type",
+        "vatTreatment": "VAT treatment",
+        "vatNote": "VAT note",
+        "live": "Live instructor-led course",
+        "mixed": "Mixed content, review needed",
+        "recorded": "Recorded digital content",
+        "needsReview": "Needs review",
+        "vatExempt": "VAT exempt education",
+        "vatableDigital": "VAT-able digital service"
+      },
+      "payoutPreview": {
+        "title": "Payout preview",
+        "intro": "Estimates used for the 321School hold and release model.",
+        "gross": "Gross price",
+        "paymentFee": "Estimated payment fee",
+        "dailyAi": "Estimated Daily/AI",
+        "license": "Course license deduction",
+        "netRevenue": "Net revenue",
+        "instructor": "Instructor estimate",
+        "platformMargin": "Platform margin",
+        "reserve": "Platform/cost reserve",
+        "firstPayout": "First payout after 75% delivery",
+        "held": "Held until completion",
+        "holdNotice": "Paid enrollments are held by 321School first. Up to 75% of the instructor estimate can be released after 75% of the course is completed. The remaining 25% is held until completion and a short complaint window has passed."
+      },
+      "actions": {
+        "backToDashboard": "Back to dashboard",
+        "saving": "Saving...",
+        "save": "Save sales"
+      }
+    },
+    "dashboard": {
+      "loading": "Loading course...",
+      "errors": {
+        "notFound": "Course not found.",
+        "loadFailed": "The course could not be loaded right now.",
+        "placeholder": "This section is reserved as a placeholder in the first version."
+      },
+      "payments": {
+        "title": "Payments",
+        "intro": "Simple payment control for this course. Amounts are estimates from the checkout ledger.",
+        "resync": "Resync Stripe",
+        "checking": "Checking...",
+        "loadFailed": "Payments could not be loaded right now.",
+        "resyncFailed": "Payment status could not be resynced right now.",
+        "resyncDone": "Checked {checked} pending orders. Updated {updated}.",
+        "loading": "Loading payments...",
+        "empty": "No payment orders yet.",
+        "pendingNotice": "Some checkouts are still pending. This usually means the user opened checkout but payment has not completed yet, or the webhook is still processing.",
+        "payoutReview": "First payout can be reviewed",
+        "payoutPolicy": "Payout safety policy",
+        "payoutText": "New paid course orders are held by the platform. When at least 75% of sessions are completed{required}, up to 75% of the instructor estimate can be released manually. The remaining 25% is kept until the course is completed and the complaint window has passed.",
+        "requiredSessions": " ({required} of {total})",
+        "stats": {
+          "paidOrders": "Paid orders",
+          "grossPaid": "Gross paid",
+          "instructor": "Instructor earned estimate",
+          "held": "Held for payout",
+          "firstRelease": "First release estimate",
+          "fees": "Application fee / platform side",
+          "pendingFailed": "Pending / failed",
+          "delivery": "Course delivery",
+          "sessions": "{done}/{total} sessions"
+        },
+        "table": {
+          "buyer": "Buyer",
+          "status": "Status",
+          "gross": "Gross",
+          "instructor": "Instructor",
+          "platform": "Platform/Fee",
+          "paid": "Paid",
+          "unknown": "Unknown",
+          "activeLicense": "Had active license",
+          "payout": "Payout: {status}"
+        }
+      },
+      "participants": {
+        "title": "Participants",
+        "intro": "Manage course participants and signup requests for this course.",
+        "addGroup": "Add group",
+        "addParticipant": "Add participant",
+        "loadFailed": "Participants could not be loaded right now.",
+        "saveFailed": "The participant could not be saved right now.",
+        "groupEmpty": "Paste at least one participant with email.",
+        "groupSaveFailed": "The group could not be added right now.",
+        "deleteConfirm": "Delete {name}?",
+        "deleteFailed": "The participant could not be deleted right now.",
+        "requestFailed": "The request could not be updated right now.",
+        "loading": "Loading participants...",
+        "empty": "No participants yet.",
+        "stats": {
+          "participants": "Participants: {count}",
+          "paid": "Paid: {count}",
+          "requests": "Requests: {newCount} new / {acceptedCount} accepted",
+          "manual": "Manual: {manualCount} · Submissions: {submissionCount}"
+        },
+        "fields": {
+          "name": "Name",
+          "email": "Email",
+          "phone": "Phone",
+          "organization": "School / organization",
+          "status": "Status",
+          "note": "Note",
+          "participants": "Participants",
+          "sharedNote": "Shared note"
+        },
+        "placeholders": {
+          "organization": "For example: Solvang school",
+          "note": "Internal note, e.g. AI course for teachers",
+          "groupNote": "Internal note, e.g. AI course for lower secondary teachers"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "saving": "Saving...",
+          "adding": "Adding...",
+          "saveParticipant": "Save participant",
+          "addParticipant": "Add participant",
+          "addGroup": "Add group",
+          "edit": "Edit",
+          "delete": "Delete",
+          "contacted": "Contacted",
+          "accept": "Accept",
+          "reject": "Reject"
+        },
+        "group": {
+          "title": "Add group / school",
+          "intro": "Paste one participant per line. Examples: “Ola Nordmann, ola@school.no” or just “ola@school.no”."
+        },
+        "requests": {
+          "title": "Signup requests",
+          "intro": "Interest requests from the public course page.",
+          "empty": "No requests yet.",
+          "status": {
+            "new": "new",
+            "accepted": "accepted",
+            "rejected": "rejected",
+            "contacted": "contacted"
+          }
+        },
+        "progress": {
+          "title": "Course progress",
+          "delivered": "{done}/{total} delivered",
+          "approved": "{count} approved",
+          "needsWork": "{count} needs work",
+          "lastActivity": "Last activity: {date}"
+        },
+        "meta": {
+          "createdUpdated": "Created: {created} · Updated: {updated}"
+        },
+        "status": {
+          "invited": "invited",
+          "enrolled": "enrolled",
+          "active": "active",
+          "completed": "completed",
+          "cancelled": "cancelled"
+        },
+        "roles": {
+          "student": "student",
+          "teacher": "teacher",
+          "parent": "parent",
+          "admin": "admin"
+        },
+        "origin": {
+          "paidCheckout": "Paid checkout",
+          "requestAccepted": "Request accepted",
+          "requestStatus": "Request: {status}",
+          "groupImport": "Group import",
+          "manual": "Manual"
+        },
+        "payment": {
+          "paidHeld": "Paid / held",
+          "paid": "Paid",
+          "checkoutStarted": "Checkout started"
+        }
+      },
+      "submissions": {
+        "title": "Submissions",
+        "intro": "Review participant work submitted from course resources.",
+        "refresh": "Refresh",
+        "loadFailed": "Submissions could not be loaded right now.",
+        "openFailed": "The submission could not be opened right now.",
+        "feedbackSaveFailed": "Instructor feedback could not be saved right now.",
+        "loading": "Loading submissions...",
+        "empty": "No course submissions yet. When participants open tasks from the course room and save or submit, they appear here.",
+        "emptyFilter": "No submissions in this filter.",
+        "stats": {
+          "total": "Total: {count}",
+          "awaiting": "Awaiting review: {count}",
+          "needsWork": "Needs work: {count}",
+          "approved": "Approved: {count}"
+        },
+        "filters": {
+          "all": "All",
+          "unreviewed": "Awaiting review",
+          "needs_work": "Needs work",
+          "approved": "Approved"
+        },
+        "labels": {
+          "lesson": "Lesson",
+          "participant": "Participant: {value}",
+          "session": "Session: {value}",
+          "updated": "Updated: {value}",
+          "feedback": "feedback",
+          "noFeedback": "no feedback",
+          "opening": "Opening...",
+          "view": "View",
+          "submission": "Submission",
+          "manualTask": "Manual course task",
+          "status": "Status: {value}",
+          "openTask": "Open task",
+          "close": "Close",
+          "answers": "Answers",
+          "noAnswers": "No answers saved yet.",
+          "answer": "Answer {number}",
+          "aiFeedback": "Feedback",
+          "noSavedFeedback": "No feedback saved yet.",
+          "instructorFeedback": "Instructor feedback",
+          "instructorPlaceholder": "Write a short feedback or internal follow-up note.",
+          "noStatus": "No status",
+          "saveFeedback": "Save instructor feedback",
+          "saving": "Saving..."
+        }
+      },
+      "messages": {
+        "title": "Messages",
+        "intro": "Send course messages and keep a simple message history.",
+        "newMessage": "New message",
+        "loadFailed": "Messages could not be loaded right now.",
+        "sendFailed": "The message could not be sent right now.",
+        "loading": "Loading messages...",
+        "empty": "No messages yet.",
+        "stats": {
+          "messages": "Messages: {count}",
+          "sent": "Sent: {count}",
+          "failed": "Failed: {count}",
+          "drafts": "Drafts: {count}"
+        },
+        "fields": {
+          "subject": "Subject",
+          "body": "Body",
+          "recipients": "Recipients"
+        },
+        "recipients": {
+          "all": "all participants",
+          "active": "enrolled/active participants",
+          "signupNew": "signup requests with status new",
+          "signupContacted": "signup requests with status contacted"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "sending": "Sending...",
+          "send": "Send email"
+        },
+        "meta": "{count} recipients · {date}"
+      },
+      "content": {
+        "fallbackTitle": "Course content",
+        "title": "Content",
+        "summary": "{resources} resources across {sessions} sessions.",
+        "print": "Print",
+        "pdf": "PDF",
+        "empty": "No resources have been added yet. Use Sessions to add from My Content, Library or your own links.",
+        "session": "Session {number}",
+        "untitled": "Untitled",
+        "openResource": "Open resource",
+        "visibility": {
+          "teacher": "Teacher only",
+          "public": "Public preview",
+          "participants": "Participants"
+        }
+      },
+      "overview": {
+        "title": "Overview",
+        "saleReady": "Course sale is ready",
+        "saleNeedsAttention": "Course sale needs attention",
+        "saleReadyText": "The public page can show Buy course when Stripe Connect is connected.",
+        "missing": "Missing: {items}",
+        "salesSetup": "Sales setup",
+        "cards": {
+          "awaitingReview": "Awaiting review",
+          "needsWork": "Needs work",
+          "newSignupRequests": "New signup requests",
+          "participants": "Participants",
+          "paidOrders": "Paid orders"
+        },
+        "nextSession": {
+          "title": "Next session",
+          "none": "No planned session yet.",
+          "openSessions": "Open sessions",
+          "fallbackTitle": "Session {number}",
+          "participantResources": "Participant resources: {count}",
+          "teacherOnly": "Teacher only: {count}",
+          "meetingLink": "Meeting link: {status}",
+          "ready": "ready",
+          "missing": "missing",
+          "openMeeting": "Open meeting",
+          "editSession": "Edit session",
+          "messageParticipants": "Message participants",
+          "dateNotSet": "Date not set"
+        },
+        "readiness": {
+          "publish": "publish course",
+          "saleStatus": "set sale status to ready",
+          "price": "set price",
+          "live": "live instruction delivery",
+          "vat": "VAT treatment"
+        },
+        "reviewStatus": {
+          "approved": "Approved",
+          "needsWork": "Needs work",
+          "none": "No status"
+        }
+      }
+    }
+  }
+}

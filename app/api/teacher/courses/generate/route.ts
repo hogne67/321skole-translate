@@ -4,6 +4,8 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { canAccessAcademy, hasAdminAccess } from "@/lib/courses/academyAccess";
+import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
+import { getEffectivePlan } from "@/lib/featureAccess";
 
 export const runtime = "nodejs";
 
@@ -68,7 +70,27 @@ async function requireAcademyAccess(req: Request) {
     return { error: json({ error: "No academy access" }, 403) };
   }
 
-  return { uid };
+  return { uid, profile };
+}
+
+function getProfilePlan(profile: Record<string, unknown>): string {
+  return getEffectivePlan({
+    plan: typeof profile.plan === "string" ? profile.plan : null,
+    billing:
+      profile.billing && typeof profile.billing === "object"
+        ? (profile.billing as { plan?: string | null; status?: string | null })
+        : null,
+    partnerAccess: profile.partnerAccess === true,
+    partnerStatus: typeof profile.partnerStatus === "string" ? profile.partnerStatus : null,
+    schoolId: typeof profile.schoolId === "string" ? profile.schoolId : null,
+    schoolRole: typeof profile.schoolRole === "string" ? profile.schoolRole : null,
+    schoolStatus: typeof profile.schoolStatus === "string" ? profile.schoolStatus : null,
+  });
+}
+
+function quotaErrorResponse(reason?: string) {
+  if (reason === "limit_reached") return json({ error: "You have reached your monthly AI generation limit." }, 429);
+  return json({ error: "AI generation is not available on your current plan." }, 403);
 }
 
 function parseProposal(value: unknown) {
@@ -109,6 +131,17 @@ export async function POST(req: Request) {
   try {
     const access = await requireAcademyAccess(req);
     if ("error" in access) return access.error;
+    const profile = access.profile as Record<string, unknown>;
+    const role = typeof profile.role === "string" ? profile.role : "teacher";
+    const plan = getProfilePlan(profile);
+
+    const featureStatus = await getFeatureStatusAdmin({
+      uid: access.uid,
+      role,
+      plan,
+      feature: "ai_generate_text",
+    });
+    if (!featureStatus.allowed) return quotaErrorResponse(featureStatus.reason);
 
     if (!process.env.OPENAI_API_KEY) {
       return json({ error: "OPENAI_API_KEY is not configured" }, 500);
@@ -186,7 +219,23 @@ Return exact JSON:
       const output = response.output_text?.trim() || "{}";
       const coursePlan = parseCoursePlan(JSON.parse(output), numberOfSessions, durationMinutes);
       if (coursePlan.length === 0) return json({ error: "Could not generate course plan" }, 500);
-      return json({ coursePlan }, 200);
+      await consumeFeatureAdmin({ uid: access.uid, feature: "ai_generate_text" });
+      const quotaAfter = await getFeatureStatusAdmin({
+        uid: access.uid,
+        role,
+        plan,
+        feature: "ai_generate_text",
+      });
+      return json({
+        coursePlan,
+        quota: {
+          feature: "ai_generate_text",
+          bucket: quotaAfter.bucket,
+          limit: quotaAfter.limit,
+          used: quotaAfter.used,
+          remaining: quotaAfter.remaining,
+        },
+      }, 200);
     }
 
     const response = await client.responses.create({
@@ -240,7 +289,24 @@ Return exact JSON:
       return json({ error: "Could not generate a complete course proposal" }, 500);
     }
 
-    return json({ proposal }, 200);
+    await consumeFeatureAdmin({ uid: access.uid, feature: "ai_generate_text" });
+    const quotaAfter = await getFeatureStatusAdmin({
+      uid: access.uid,
+      role,
+      plan,
+      feature: "ai_generate_text",
+    });
+
+    return json({
+      proposal,
+      quota: {
+        feature: "ai_generate_text",
+        bucket: quotaAfter.bucket,
+        limit: quotaAfter.limit,
+        used: quotaAfter.used,
+        remaining: quotaAfter.remaining,
+      },
+    }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not generate course";
     return json({ error: message }, 500);

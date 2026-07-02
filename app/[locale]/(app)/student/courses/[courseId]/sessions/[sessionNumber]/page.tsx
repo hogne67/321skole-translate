@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 
@@ -49,6 +49,8 @@ type DailyCallFrame = {
   destroy: () => void;
 };
 
+type Translator = ReturnType<typeof useTranslations>;
+
 declare global {
   interface Window {
     Daily?: {
@@ -65,6 +67,7 @@ declare global {
 
 export default function CourseSessionPage() {
   const locale = useLocale();
+  const t = useTranslations("academy.studentSessionRoom");
   const params = useParams<{ courseId?: string; sessionNumber?: string }>();
   const courseId = typeof params?.courseId === "string" ? params.courseId : "";
   const sessionNumber = Number(params?.sessionNumber);
@@ -86,7 +89,7 @@ export default function CourseSessionPage() {
     async function loadCourse() {
       if (!user || !courseId || !Number.isFinite(sessionNumber)) {
         setLoading(false);
-        setError("Could not find this session.");
+        setError(t("notFound"));
         return;
       }
 
@@ -101,11 +104,11 @@ export default function CourseSessionPage() {
           course?: CourseRoom;
           error?: string;
         };
-        if (!res.ok || !data.course) throw new Error(data.error || "Could not load session");
+        if (!res.ok || !data.course) throw new Error(data.error || t("loadFailed"));
         if (!cancelled) setCourse(data.course);
       } catch (err) {
         console.error("Failed to load course session", err);
-        if (!cancelled) setError("This session could not be loaded right now.");
+        if (!cancelled) setError(t("loadFailed"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -116,7 +119,7 @@ export default function CourseSessionPage() {
     return () => {
       cancelled = true;
     };
-  }, [courseId, sessionNumber, user]);
+  }, [courseId, sessionNumber, t, user]);
 
   useEffect(() => {
     function handleFullscreenChange() {
@@ -175,8 +178,8 @@ export default function CourseSessionPage() {
       enableDailyIframeFullscreen(dailyContainerRef.current);
       setDailyLoaded(true);
     } catch (err) {
-      const message = getDailyJoinErrorMessage(err);
-      if (message === DAILY_NOT_AVAILABLE_MESSAGE) {
+      const message = getDailyJoinErrorMessage(err, t("video.notAvailable"));
+      if (message === t("video.notAvailable")) {
         console.info("Daily session is not available yet.");
       } else {
         console.info("Daily session could not be joined.", message);
@@ -221,8 +224,8 @@ export default function CourseSessionPage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-5xl px-3 py-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">
-          Loading session...
+        <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 text-sm text-slate-600">
+          {t("loading")}
         </div>
       </main>
     );
@@ -232,13 +235,13 @@ export default function CourseSessionPage() {
     return (
       <main className="mx-auto grid max-w-4xl gap-4 px-3 py-4">
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-          {error || "Could not find this session."}
+          {error || t("notFound")}
         </div>
         <Link
           href={`/${locale}/academy/courses/${courseId}`}
           className="inline-flex h-10 w-fit items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
         >
-          Back to course room
+          {t("backToCourseRoom")}
         </Link>
       </main>
     );
@@ -250,28 +253,28 @@ export default function CourseSessionPage() {
 
   return (
     <main className="mx-auto grid max-w-6xl gap-5 px-3 py-4">
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-              {course.title || "Course"} · Session {session.sessionNumber}
+              {course.title || t("courseFallback")} · {t("session", { number: session.sessionNumber })}
             </div>
             <h1 className="m-0 mt-2 break-words text-2xl font-black text-slate-950">
-              {session.title || `Session ${session.sessionNumber}`}
+              {session.title || t("session", { number: session.sessionNumber })}
             </h1>
             <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-slate-600">
-              {session.description || course.description || "No description yet."}
+              {session.description || course.description || t("noDescription")}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold capitalize text-slate-600">
-              {session.status || "planned"}
+              {formatSessionStatus(session.status, t)}
             </span>
             <Link
               href={`/${locale}/academy/courses/${course.id}`}
               className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
             >
-              Back to course room
+              {t("backToCourseRoom")}
             </Link>
           </div>
         </div>
@@ -291,12 +294,11 @@ export default function CourseSessionPage() {
           <div className={`flex flex-wrap items-start justify-between gap-3 ${isFullscreen && dailyLoaded ? "hidden" : ""}`}>
             <div>
               <div className="text-xs font-black uppercase tracking-wide text-emerald-300">
-                Live session
+                {t("video.eyebrow")}
               </div>
-              <h2 className="m-0 mt-2 text-xl font-black">Video room</h2>
+              <h2 className="m-0 mt-2 text-xl font-black">{t("video.title")}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                This area is prepared for a video provider such as Daily. For now, use the meeting
-                link when one has been added by the instructor.
+                {t("video.intro")}
               </p>
             </div>
             <button
@@ -304,7 +306,7 @@ export default function CourseSessionPage() {
               onClick={() => void openVideoFullscreen()}
               className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15"
             >
-              Fullscreen
+              {t("video.fullscreen")}
             </button>
           </div>
           {isFullscreen ? (
@@ -313,7 +315,7 @@ export default function CourseSessionPage() {
               onClick={() => void document.exitFullscreen()}
               className="absolute right-4 top-4 z-[9999] inline-flex h-10 items-center justify-center rounded-lg border border-white/30 bg-black/70 px-4 text-sm font-black text-white shadow-lg backdrop-blur hover:bg-black/80"
             >
-              Exit fullscreen
+              {t("video.exitFullscreen")}
             </button>
           ) : null}
 
@@ -321,7 +323,7 @@ export default function CourseSessionPage() {
             <div>
               <div className="text-5xl font-black text-white/20">321</div>
               <p className="mt-3 text-sm font-semibold text-slate-300">
-                Daily/meeting embed placeholder
+                {t("video.placeholder")}
               </p>
               <button
                 type="button"
@@ -329,7 +331,7 @@ export default function CourseSessionPage() {
                 disabled={joiningDaily}
                 className="mt-5 inline-flex h-11 items-center justify-center rounded-lg border border-emerald-400 bg-emerald-400 px-5 text-sm font-black text-slate-950 no-underline hover:bg-emerald-300 disabled:opacity-60"
               >
-                {joiningDaily ? "Starting..." : dailyLoaded ? "Reconnect video" : "Join video session"}
+                {joiningDaily ? t("video.starting") : dailyLoaded ? t("video.reconnect") : t("video.join")}
               </button>
               {dailyError ? (
                 <div className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 text-sm font-semibold text-rose-100">
@@ -351,24 +353,24 @@ export default function CourseSessionPage() {
         </div>
 
         <aside className="grid gap-4">
-          <InfoCard label="Starts" value={formatSessionDate(session.startsAt)} />
-          <InfoCard label="Duration" value={`${session.durationMinutes || 120} min`} />
-          <InfoCard label="Resources" value={`${session.resources.length}`} />
-          <InfoCard label="Submitted" value={`${submittedCount}/${session.resources.length}`} />
+          <InfoCard label={t("info.starts")} value={formatSessionDate(session.startsAt, locale, t("dateNotSet"))} />
+          <InfoCard label={t("info.duration")} value={`${session.durationMinutes || 120} min`} />
+          <InfoCard label={t("info.resources")} value={`${session.resources.length}`} />
+          <InfoCard label={t("info.submitted")} value={`${submittedCount}/${session.resources.length}`} />
         </aside>
       </section>
 
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <div>
-          <h2 className="m-0 text-xl font-black text-slate-950">Session resources</h2>
+          <h2 className="m-0 text-xl font-black text-slate-950">{t("resources.title")}</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Materials and tasks connected to this session.
+            {t("resources.intro")}
           </p>
         </div>
 
         {session.resources.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-            No resources have been added to this session yet.
+            {t("resources.empty")}
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
@@ -390,13 +392,18 @@ export default function CourseSessionPage() {
                   </span>
                 </div>
 
-                <ResourceStatus submission={submissionByResourceId.get(resource.id)} />
+                <ResourceStatus
+                  submission={submissionByResourceId.get(resource.id)}
+                  t={t}
+                  locale={locale}
+                />
 
                 <ResourceAction
                   locale={locale}
                   courseId={course.id}
                   sessionNumber={session.sessionNumber}
                   resource={resource}
+                  t={t}
                 />
               </article>
             ))}
@@ -404,15 +411,15 @@ export default function CourseSessionPage() {
         )}
       </section>
 
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="m-0 text-xl font-black text-slate-950">Agenda</h2>
+      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+        <h2 className="m-0 text-xl font-black text-slate-950">{t("agenda.title")}</h2>
         <p className="m-0 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-          {session.contentSuggestions || session.description || "The instructor has not added an agenda yet."}
+          {session.contentSuggestions || session.description || t("agenda.empty")}
         </p>
         {session.homework ? (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-              Homework
+              {t("agenda.homework")}
             </div>
             <p className="m-0 mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
               {session.homework}
@@ -426,7 +433,7 @@ export default function CourseSessionPage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 shadow-sm">
       <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-2 text-lg font-black text-slate-950">{value || "-"}</div>
     </div>
@@ -438,11 +445,13 @@ function ResourceAction({
   courseId,
   sessionNumber,
   resource,
+  t,
 }: {
   locale: string;
   courseId: string;
   sessionNumber: number;
   resource: CourseRoomSession["resources"][number];
+  t: Translator;
 }) {
   if (resource.openMode === "lesson" && resource.sourceId) {
     return (
@@ -450,7 +459,7 @@ function ResourceAction({
         href={`/${locale}/student/lesson/${resource.sourceId}?courseId=${encodeURIComponent(courseId)}&sessionNumber=${encodeURIComponent(String(sessionNumber))}&resourceId=${encodeURIComponent(resource.id)}`}
         className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-sm font-bold text-white no-underline"
       >
-        Open lesson
+        {t("resources.openLesson")}
       </Link>
     );
   }
@@ -463,33 +472,37 @@ function ResourceAction({
         rel="noreferrer"
         className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-sm font-bold text-white no-underline"
       >
-        Open resource
+        {t("resources.openResource")}
       </a>
     );
   }
 
   return (
     <div className="mt-3 text-xs font-bold text-slate-500">
-      This resource will open here later.
+      {t("resources.opensLater")}
     </div>
   );
 }
 
 function ResourceStatus({
   submission,
+  t,
+  locale,
 }: {
   submission?: CourseRoom["resourceSubmissions"][number];
+  t: Translator;
+  locale: string;
 }) {
   if (!submission) {
-    return <div className="mt-3 text-xs font-bold text-slate-500">Not submitted yet</div>;
+    return <div className="mt-3 text-xs font-bold text-slate-500">{t("status.notSubmitted")}</div>;
   }
 
   return (
     <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
       <div className="font-bold">
-        {formatSubmissionStatus(submission.status)} · {formatMaybeDate(submission.updatedAt)}
+        {formatSubmissionStatus(submission.status, t)} · {formatMaybeDate(submission.updatedAt, locale)}
       </div>
-      <div className="mt-1 font-bold">{formatReviewStatus(submission.reviewStatus)}</div>
+      <div className="mt-1 font-bold">{formatReviewStatus(submission.reviewStatus, t)}</div>
       {submission.instructorFeedback ? (
         <div className="mt-2 whitespace-pre-wrap text-slate-700">
           {submission.instructorFeedback}
@@ -543,10 +556,7 @@ function enableDailyIframeFullscreen(container: HTMLElement | null) {
   iframe.setAttribute("allowfullscreen", "true");
 }
 
-const DAILY_NOT_AVAILABLE_MESSAGE =
-  "This meeting is not available yet. Try again closer to the session start time.";
-
-function getDailyJoinErrorMessage(error: unknown): string {
+function getDailyJoinErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim()) return error.message;
 
   if (error && typeof error === "object") {
@@ -559,31 +569,38 @@ function getDailyJoinErrorMessage(error: unknown): string {
     if (info) return info;
   }
 
-  return DAILY_NOT_AVAILABLE_MESSAGE;
+  return fallback;
 }
 
-function formatSubmissionStatus(value: string): string {
-  if (value === "draft") return "Draft";
-  if (value === "submitted") return "Submitted";
-  return value || "Submitted";
+function formatSessionStatus(value: string, t: Translator): string {
+  if (value === "planned") return t("status.planned");
+  if (value === "completed") return t("status.completed");
+  if (value === "cancelled") return t("status.cancelled");
+  return value || t("status.planned");
 }
 
-function formatReviewStatus(value: string): string {
-  if (value === "approved") return "Approved";
-  if (value === "needs_work") return "Needs work";
-  return "Awaiting review";
+function formatSubmissionStatus(value: string, t: Translator): string {
+  if (value === "draft") return t("status.draft");
+  if (value === "submitted") return t("status.submitted");
+  return value || t("status.submitted");
 }
 
-function formatSessionDate(value: string): string {
-  if (!value) return "Date not set";
+function formatReviewStatus(value: string, t: Translator): string {
+  if (value === "approved") return t("status.approved");
+  if (value === "needs_work") return t("status.needsWork");
+  return t("status.awaiting");
+}
+
+function formatSessionDate(value: string, locale: string, fallback: string): string {
+  if (!value) return fallback;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }
 
-function formatMaybeDate(value: string): string {
+function formatMaybeDate(value: string, locale: string): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }

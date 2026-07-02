@@ -46,6 +46,9 @@ export type CourseParticipant = {
   id: string;
   participantUid: string;
   roleSnapshot: string;
+  source: string;
+  orderId: string;
+  signupRequestId: string;
   name: string;
   email: string;
   phone: string;
@@ -410,6 +413,9 @@ export function normalizeCourseParticipant(
     id,
     participantUid: typeof data.participantUid === "string" ? data.participantUid : "",
     roleSnapshot: typeof data.roleSnapshot === "string" ? data.roleSnapshot : "",
+    source: typeof data.source === "string" ? data.source : "",
+    orderId: typeof data.orderId === "string" ? data.orderId : "",
+    signupRequestId: typeof data.signupRequestId === "string" ? data.signupRequestId : "",
     name: typeof data.name === "string" ? data.name : "",
     email: typeof data.email === "string" ? data.email : "",
     phone: typeof data.phone === "string" ? data.phone : "",

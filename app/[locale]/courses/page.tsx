@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
   normalizeCourseMarketing,
@@ -41,7 +42,7 @@ function safeNumber(value: unknown): number {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
-function formatStartsAt(coursePlan: CoursePlanSession[]) {
+function formatStartsAt(coursePlan: CoursePlanSession[], locale: string, fallback: string) {
   const next = coursePlan
     .map((session) => session.startsAt)
     .filter(Boolean)
@@ -49,8 +50,8 @@ function formatStartsAt(coursePlan: CoursePlanSession[]) {
     .filter((date) => !Number.isNaN(date.getTime()))
     .sort((a, b) => a.getTime() - b.getTime())[0];
 
-  if (!next) return "Start date coming";
-  return next.toLocaleDateString("nb-NO", {
+  if (!next) return fallback;
+  return next.toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -100,44 +101,57 @@ async function loadMarketplaceCourses(): Promise<MarketplaceCourse[]> {
     .sort((a, b) => a.title.localeCompare(b.title));
 }
 
-export const metadata: Metadata = {
-  title: "321Academy Courses",
-  description: "Browse published courses from 321Academy.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("academy.marketplace");
+  return {
+    title: t("metadataTitle"),
+    description: t("metadataDescription"),
+  };
+}
 
 export default async function PublicCoursesPage({ params }: PageProps) {
   const { locale } = await params;
+  return <CoursesMarketplaceView locale={locale} />;
+}
+
+export async function CoursesMarketplaceView({
+  locale,
+  insideApp = false,
+}: {
+  locale: string;
+  insideApp?: boolean;
+}) {
+  const t = await getTranslations("academy.marketplace");
   const courses = await loadMarketplaceCourses();
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950">
       <div className="mx-auto grid max-w-6xl gap-6">
-        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-6 shadow-sm">
           <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-800">
-            321Academy
+            {t("badge")}
           </div>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="m-0 text-3xl font-black">Courses</h1>
+              <h1 className="m-0 text-3xl font-black">{t("title")}</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Browse teacher-led courses. Payment and automatic enrollment are not enabled yet,
-                so requests are handled as course interest for now.
+                {t("intro")}
               </p>
             </div>
             <Link
               href={`/${locale}/academy/courses`}
               className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
             >
-              My course room
+              {t("myCourseRoom")}
             </Link>
           </div>
         </section>
 
         {courses.length === 0 ? (
           <section className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
-            <h2 className="m-0 text-xl font-black">No published courses yet</h2>
+            <h2 className="m-0 text-xl font-black">{t("emptyTitle")}</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Published 321Academy courses will appear here.
+              {t("emptyText")}
             </p>
           </section>
         ) : (
@@ -145,7 +159,7 @@ export default async function PublicCoursesPage({ params }: PageProps) {
             {courses.map((course) => (
               <article
                 key={course.slug}
-                className="grid overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+                className="grid overflow-hidden rounded-lg border border-sky-100 bg-sky-50/80 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
               >
                 <div className="aspect-video bg-slate-100">
                   {course.marketing.coverImageUrl ? (
@@ -157,39 +171,43 @@ export default async function PublicCoursesPage({ params }: PageProps) {
                     />
                   ) : (
                     <div className="grid h-full place-items-center text-sm font-black text-slate-400">
-                      321Academy
+                      {t("badge")}
                     </div>
                   )}
                 </div>
                 <div className="grid gap-4 p-4">
                   <div>
                     <div className="flex flex-wrap gap-2">
-                      <Badge value={course.level || "Level"} />
-                      <Badge value={course.language || "Language"} />
+                      <Badge value={course.level || t("levelFallback")} />
+                      <Badge value={course.language || t("languageFallback")} />
                     </div>
                     <h2 className="m-0 mt-3 break-words text-lg font-black">{course.title}</h2>
                     {course.teacherName ? (
                       <p className="mt-1 text-xs font-bold text-slate-500">
-                        Instructor: {course.teacherName}
+                        {t("instructor", { name: course.teacherName })}
                       </p>
                     ) : null}
                     <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-700">
-                      {course.marketing.summary || course.description || "Course description coming soon."}
+                      {course.marketing.summary || course.description || t("descriptionFallback")}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <Info label="Start" value={formatStartsAt(course.coursePlan)} />
-                    <Info label="Price" value={formatCoursePrice(course.sales, course.priceText)} />
-                    <Info label="Sessions" value={String(course.numberOfSessions || course.coursePlan.length)} />
-                    <Info label="Weeks" value={course.numberOfWeeks ? String(course.numberOfWeeks) : "Flexible"} />
+                    <Info label={t("start")} value={formatStartsAt(course.coursePlan, locale, t("startComing"))} />
+                    <Info label={t("price")} value={formatCoursePrice(course.sales, course.priceText, locale, t("contact"))} />
+                    <Info label={t("sessions")} value={String(course.numberOfSessions || course.coursePlan.length)} />
+                    <Info label={t("weeks")} value={course.numberOfWeeks ? String(course.numberOfWeeks) : t("flexible")} />
                   </div>
 
                   <Link
-                    href={`/${locale}/courses/${course.slug}`}
+                    href={
+                      insideApp
+                        ? `/${locale}/academy/courses/marketplace/${course.slug}`
+                        : `/${locale}/courses/${course.slug}`
+                    }
                     className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-black text-white no-underline hover:bg-emerald-800"
                   >
-                    View course
+                    {t("viewCourse")}
                   </Link>
                 </div>
               </article>
@@ -218,14 +236,14 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatCoursePrice(sales: CourseSalesSettings, fallback: string) {
+function formatCoursePrice(sales: CourseSalesSettings, fallback: string, locale: string, contact: string) {
   if (sales.priceAmountOre > 0) {
-    return new Intl.NumberFormat("nb-NO", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: sales.currency || "NOK",
       maximumFractionDigits: sales.priceAmountOre % 100 === 0 ? 0 : 2,
     }).format(sales.priceAmountOre / 100);
   }
 
-  return fallback || "Contact";
+  return fallback || contact;
 }

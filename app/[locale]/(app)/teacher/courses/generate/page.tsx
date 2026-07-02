@@ -280,7 +280,7 @@ function GenerateCourseContent() {
   return (
     <main className="mx-auto max-w-5xl">
       <form onSubmit={saveCourse} className="grid gap-5">
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-800">
@@ -306,7 +306,7 @@ function GenerateCourseContent() {
           </div>
         ) : null}
 
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <div>
             <h2 className="m-0 text-lg font-extrabold text-slate-950">1. Praktisk info</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
@@ -406,7 +406,7 @@ function GenerateCourseContent() {
           </div>
         </section>
 
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <div>
             <h2 className="m-0 text-lg font-extrabold text-slate-950">2. Administrativt forslag</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
@@ -459,7 +459,7 @@ function GenerateCourseContent() {
           </div>
         </section>
 
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <div>
             <h2 className="m-0 text-lg font-extrabold text-slate-950">3. Forslag til kursdager</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">

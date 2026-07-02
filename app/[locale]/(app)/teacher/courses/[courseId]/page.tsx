@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useParams, useSearchParams } from "next/navigation";
 import { AcademyGate } from "../AcademyGate";
 import {
@@ -30,6 +30,7 @@ export default function CourseDashboardPage() {
 
 function CourseDashboardContent() {
   const locale = useLocale();
+  const t = useTranslations("academy.dashboard");
   const params = useParams<{ courseId?: string }>();
   const searchParams = useSearchParams();
   const { user } = useUserProfile();
@@ -49,7 +50,7 @@ function CourseDashboardContent() {
 
     async function loadCourse() {
       if (!courseId || !user) {
-        setError("Fant ikke kurs.");
+        setError(t("errors.notFound"));
         setLoading(false);
         return;
       }
@@ -62,7 +63,7 @@ function CourseDashboardContent() {
         if (!cancelled) setCourse(loadedCourse);
       } catch (err) {
         console.error("Failed to load course", err);
-        if (!cancelled) setError("Kurset kunne ikke hentes akkurat nå.");
+        if (!cancelled) setError(t("errors.loadFailed"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -73,12 +74,12 @@ function CourseDashboardContent() {
     return () => {
       cancelled = true;
     };
-  }, [courseId, user]);
+  }, [courseId, t, user]);
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
-        Laster kurs...
+      <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 text-sm text-slate-500">
+        {t("loading")}
       </div>
     );
   }
@@ -86,7 +87,7 @@ function CourseDashboardContent() {
   if (error || !course) {
     return (
       <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-        {error || "Fant ikke kurs."}
+        {error || t("errors.notFound")}
       </div>
     );
   }
@@ -95,6 +96,8 @@ function CourseDashboardContent() {
   const activeNav =
     activeSection === "Participants"
           ? "participants"
+      : activeSection === "Content"
+        ? "content"
       : activeSection === "Payments"
         ? "payments"
       : activeSection === "Submissions"
@@ -115,7 +118,7 @@ function CourseDashboardContent() {
         />
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section className="rounded-lg border border-sky-100 bg-sky-50/80 shadow-sm">
         <div className="p-5">
           {activeSection === "Overview" ? (
         <Overview course={course} locale={locale} onOpenSection={setActiveSection} />
@@ -133,7 +136,7 @@ function CourseDashboardContent() {
             <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6">
               <h2 className="m-0 text-lg font-extrabold text-slate-900">{activeSection}</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Denne delen er satt av som plassholder i første versjon.
+                {t("errors.placeholder")}
               </p>
             </div>
           )}
@@ -186,6 +189,7 @@ type CourseOrderRow = {
 };
 
 function PaymentsPanel({ course }: { course: Course }) {
+  const t = useTranslations("academy.dashboard.payments");
   const { user } = useUserProfile();
   const [orders, setOrders] = useState<CourseOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -211,11 +215,11 @@ function PaymentsPanel({ course }: { course: Course }) {
       if (!cancelled) setOrders(Array.isArray(data.orders) ? data.orders : []);
     } catch (err) {
       console.error("Failed to load course orders", err);
-      if (!cancelled) setError("Payments could not be loaded right now.");
+      if (!cancelled) setError(t("loadFailed"));
     } finally {
       if (!cancelled) setLoading(false);
     }
-  }, [course.id, user]);
+  }, [course.id, t, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,11 +249,11 @@ function PaymentsPanel({ course }: { course: Course }) {
         error?: string;
       };
       if (!res.ok) throw new Error(data.error || "Could not resync orders");
-      setMessage(`Checked ${data.checked ?? 0} pending orders. Updated ${data.updated ?? 0}.`);
+      setMessage(t("resyncDone", { checked: data.checked ?? 0, updated: data.updated ?? 0 }));
       await loadOrders(false);
     } catch (err) {
       console.error("Failed to resync course orders", err);
-      setError("Payment status could not be resynced right now.");
+      setError(t("resyncFailed"));
     } finally {
       setResyncing(false);
     }
@@ -278,9 +282,9 @@ function PaymentsPanel({ course }: { course: Course }) {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="m-0 text-xl font-black text-slate-950">Payments</h2>
+          <h2 className="m-0 text-xl font-black text-slate-950">{t("title")}</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Simple payment control for this course. Amounts are estimates from the checkout ledger.
+            {t("intro")}
           </p>
         </div>
         <button
@@ -289,7 +293,7 @@ function PaymentsPanel({ course }: { course: Course }) {
           onClick={() => void resyncOrders()}
           className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50 disabled:opacity-60"
         >
-          {resyncing ? "Checking..." : "Resync Stripe"}
+          {resyncing ? t("checking") : t("resync")}
         </button>
       </div>
 
@@ -305,20 +309,20 @@ function PaymentsPanel({ course }: { course: Course }) {
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-3">
-        <PaymentStat label="Paid orders" value={String(paidOrders.length)} />
-        <PaymentStat label="Gross paid" value={formatMoney(totalGross, currency)} />
-        <PaymentStat label="Instructor earned estimate" value={formatMoney(totalInstructor, currency)} />
+        <PaymentStat label={t("stats.paidOrders")} value={String(paidOrders.length)} />
+        <PaymentStat label={t("stats.grossPaid")} value={formatMoney(totalGross, currency)} />
+        <PaymentStat label={t("stats.instructor")} value={formatMoney(totalInstructor, currency)} />
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        <PaymentStat label="Held for payout" value={formatMoney(totalHeld, currency)} />
-        <PaymentStat label="First release estimate" value={formatMoney(totalFirstRelease, currency)} />
-        <PaymentStat label="Application fee / platform side" value={formatMoney(totalFees, currency)} />
+        <PaymentStat label={t("stats.held")} value={formatMoney(totalHeld, currency)} />
+        <PaymentStat label={t("stats.firstRelease")} value={formatMoney(totalFirstRelease, currency)} />
+        <PaymentStat label={t("stats.fees")} value={formatMoney(totalFees, currency)} />
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <PaymentStat label="Pending / failed" value={`${pendingOrders} / ${failedOrders}`} />
+        <PaymentStat label={t("stats.pendingFailed")} value={`${pendingOrders} / ${failedOrders}`} />
         <PaymentStat
-          label="Course delivery"
-          value={`${completedSessions}/${totalSessions || 0} sessions`}
+          label={t("stats.delivery")}
+          value={t("stats.sessions", { done: completedSessions, total: totalSessions || 0 })}
         />
       </div>
 
@@ -330,50 +334,51 @@ function PaymentsPanel({ course }: { course: Course }) {
         }`}
       >
         <div className="font-black">
-          {firstReleaseReady ? "First payout can be reviewed" : "Payout safety policy"}
+          {firstReleaseReady ? t("payoutReview") : t("payoutPolicy")}
         </div>
         <p className="m-0 mt-1 leading-6">
-          New paid course orders are held by the platform. When at least 75% of sessions are completed
-          {requiredSessionsForRelease ? ` (${requiredSessionsForRelease} of ${totalSessions})` : ""}, up to 75% of the
-          instructor estimate can be released manually. The remaining 25% is kept until the course is completed and
-          the complaint window has passed.
+          {t("payoutText", {
+            required: requiredSessionsForRelease
+              ? t("requiredSessions", { required: requiredSessionsForRelease, total: totalSessions })
+              : "",
+          })}
         </p>
       </div>
 
       {pendingOrders > 0 ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-          Some checkouts are still pending. This usually means the user opened checkout but payment has not completed yet, or the webhook is still processing.
+          {t("pendingNotice")}
         </div>
       ) : null}
 
       {loading ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-          Loading payments...
+          {t("loading")}
         </div>
       ) : orders.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-          No payment orders yet.
+          {t("empty")}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-slate-200">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-4 py-3">Buyer</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Gross</th>
-                <th className="px-4 py-3">Instructor</th>
-                <th className="px-4 py-3">Platform/Fee</th>
-                <th className="px-4 py-3">Paid</th>
+                <th className="px-4 py-3">{t("table.buyer")}</th>
+                <th className="px-4 py-3">{t("table.status")}</th>
+                <th className="px-4 py-3">{t("table.gross")}</th>
+                <th className="px-4 py-3">{t("table.instructor")}</th>
+                <th className="px-4 py-3">{t("table.platform")}</th>
+                <th className="px-4 py-3">{t("table.paid")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
               {orders.map((order) => (
                 <tr key={order.id}>
                   <td className="px-4 py-3 font-bold text-slate-900">
-                    {order.buyerEmail || "Unknown"}
+                    {order.buyerEmail || t("table.unknown")}
                     {order.participantHasActiveLicense ? (
-                      <div className="mt-1 text-xs font-semibold text-slate-500">Had active license</div>
+                      <div className="mt-1 text-xs font-semibold text-slate-500">{t("table.activeLicense")}</div>
                     ) : null}
                   </td>
                   <td className="px-4 py-3">
@@ -388,7 +393,7 @@ function PaymentsPanel({ course }: { course: Course }) {
                     </span>
                     {order.payoutStatus ? (
                       <div className="mt-1 text-xs font-semibold text-slate-500">
-                        Payout: {formatPayoutStatus(order.payoutStatus)}
+                        {t("table.payout", { status: formatPayoutStatus(order.payoutStatus) })}
                       </div>
                     ) : null}
                   </td>
@@ -451,10 +456,12 @@ function formatDateTime(value: string | null) {
 }
 
 function ParticipantsPanel({ course }: { course: Course }) {
+  const t = useTranslations("academy.dashboard.participants");
   const { user } = useUserProfile();
   const [participants, setParticipants] = useState<CourseParticipant[]>([]);
   const [requests, setRequests] = useState<CourseSignupRequest[]>([]);
   const [submissions, setSubmissions] = useState<CourseSubmissionRow[]>([]);
+  const [orders, setOrders] = useState<CourseOrderRow[]>([]);
   const [form, setForm] = useState(EMPTY_PARTICIPANT_FORM);
   const [groupForm, setGroupForm] = useState(EMPTY_GROUP_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -471,7 +478,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
       setLoading(true);
       setError("");
       const token = await user.getIdToken();
-      const [participantsRes, submissionsRes, requestsRes] = await Promise.all([
+      const [participantsRes, submissionsRes, requestsRes, ordersRes] = await Promise.all([
         fetch(`/api/teacher/courses/${course.id}/participants`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -479,6 +486,9 @@ function ParticipantsPanel({ course }: { course: Course }) {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(`/api/teacher/courses/${course.id}/signup-requests`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`/api/teacher/courses/${course.id}/orders`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -494,9 +504,14 @@ function ParticipantsPanel({ course }: { course: Course }) {
         requests?: Array<Record<string, unknown> & { id?: string }>;
         error?: string;
       };
+      const ordersData = (await ordersRes.json().catch(() => ({}))) as {
+        orders?: CourseOrderRow[];
+        error?: string;
+      };
       if (!participantsRes.ok) throw new Error(participantsData.error || "Could not load participants");
       if (!submissionsRes.ok) throw new Error(submissionsData.error || "Could not load submissions");
       if (!requestsRes.ok) throw new Error(requestsData.error || "Could not load signup requests");
+      if (!ordersRes.ok) throw new Error(ordersData.error || "Could not load orders");
 
       setParticipants(
         (participantsData.participants ?? []).map((participant) =>
@@ -512,9 +527,10 @@ function ParticipantsPanel({ course }: { course: Course }) {
           normalizeCourseSignupRequest(typeof request.id === "string" ? request.id : "", request)
         )
       );
+      setOrders(Array.isArray(ordersData.orders) ? ordersData.orders : []);
     } catch (err) {
       console.error("Failed to load participants", err);
-      setError("Deltakere kunne ikke hentes akkurat nå.");
+      setError(t("loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -570,7 +586,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
       await loadParticipants();
     } catch (err) {
       console.error("Failed to save participant", err);
-      setError("Deltakeren kunne ikke lagres akkurat nå.");
+      setError(t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -582,7 +598,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
 
     const parsedParticipants = parseParticipantsText(groupForm.participantsText, groupForm.organization);
     if (parsedParticipants.length === 0) {
-      setError("Lim inn minst én deltaker med e-post.");
+      setError(t("groupEmpty"));
       return;
     }
 
@@ -611,7 +627,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
       await loadParticipants();
     } catch (err) {
       console.error("Failed to add group participants", err);
-      setError("Gruppen kunne ikke legges til akkurat nå.");
+      setError(t("groupSaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -619,7 +635,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
 
   async function deleteParticipant(participant: CourseParticipant) {
     if (!user) return;
-    const ok = window.confirm(`Slette ${participant.name}?`);
+    const ok = window.confirm(t("deleteConfirm", { name: participant.name }));
     if (!ok) return;
 
     try {
@@ -637,7 +653,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
       await loadParticipants();
     } catch (err) {
       console.error("Failed to delete participant", err);
-      setError("Deltakeren kunne ikke slettes akkurat nå.");
+      setError(t("deleteFailed"));
     }
   }
 
@@ -662,7 +678,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
       await loadParticipants();
     } catch (err) {
       console.error("Failed to update signup request", err);
-      setError("Forespørselen kunne ikke oppdateres akkurat nå.");
+      setError(t("requestFailed"));
     } finally {
       setSaving(false);
     }
@@ -672,15 +688,24 @@ function ParticipantsPanel({ course }: { course: Course }) {
     (sum, session) => sum + session.resources.filter((resource) => resource.visibility !== "teacher").length,
     0
   );
+  const acceptedRequests = requests.filter((request) => request.status === "accepted").length;
+  const newRequests = requests.filter((request) => request.status === "new").length;
+  const paidParticipantCount = participants.filter((participant) => {
+    const order = getParticipantOrder(participant, orders);
+    return order ? isPaidCourseOrder(order) : false;
+  }).length;
+  const manualParticipantCount = participants.filter((participant) =>
+    getParticipantOrigin(participant, requests, orders, t).kind === "manual"
+  ).length;
 
   return (
     <div className="grid gap-4">
       <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-          <h2 className="m-0 text-lg font-extrabold text-slate-900">Participants</h2>
+          <h2 className="m-0 text-lg font-extrabold text-slate-900">{t("title")}</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Manage course participants and signup requests for this course.
+            {t("intro")}
           </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -692,7 +717,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
               }}
               className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900"
             >
-              Add group
+              {t("addGroup")}
             </button>
             <button
               type="button"
@@ -704,22 +729,22 @@ function ParticipantsPanel({ course }: { course: Course }) {
               }}
               className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-4 text-sm font-bold text-white"
             >
-              Add participant
+              {t("addParticipant")}
             </button>
           </div>
         </div>
         <div className="mt-4 grid gap-2 text-xs font-bold text-slate-700 md:grid-cols-4">
           <div className="rounded-lg border border-slate-200 bg-white p-3">
-            Participants: {participants.length}
+            {t("stats.participants", { count: participants.length })}
           </div>
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
-            Signup requests: {requests.length}
+            {t("stats.paid", { count: paidParticipantCount })}
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
+            {t("stats.requests", { newCount: newRequests, acceptedCount: acceptedRequests })}
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-3">
-            Course resources: {totalResourceCount}
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-3">
-            Submissions: {submissions.length}
+            {t("stats.manual", { manualCount: manualParticipantCount, submissionCount: submissions.length })}
           </div>
         </div>
       </section>
@@ -733,7 +758,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
       {showForm ? (
         <form onSubmit={saveParticipant} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
           <div className="grid gap-3 md:grid-cols-2">
-            <Field label="Name">
+            <Field label={t("fields.name")}>
               <input
                 value={form.name}
                 onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
@@ -741,7 +766,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
                 required
               />
             </Field>
-            <Field label="Email">
+            <Field label={t("fields.email")}>
               <input
                 type="email"
                 value={form.email}
@@ -750,22 +775,22 @@ function ParticipantsPanel({ course }: { course: Course }) {
                 required
               />
             </Field>
-            <Field label="Phone">
+            <Field label={t("fields.phone")}>
               <input
                 value={form.phone}
                 onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
               />
             </Field>
-            <Field label="School / organization">
+            <Field label={t("fields.organization")}>
               <input
                 value={form.organization}
                 onChange={(event) => setForm((prev) => ({ ...prev, organization: event.target.value }))}
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                placeholder="For eksempel: Solvang skole"
+                placeholder={t("placeholders.organization")}
               />
             </Field>
-            <Field label="Status">
+            <Field label={t("fields.status")}>
               <select
                 value={form.status}
                 onChange={(event) =>
@@ -776,29 +801,33 @@ function ParticipantsPanel({ course }: { course: Course }) {
                 }
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
               >
-                <option value="invited">invited</option>
-                <option value="enrolled">enrolled</option>
-                <option value="active">active</option>
-                <option value="completed">completed</option>
-                <option value="cancelled">cancelled</option>
+                <option value="invited">{t("status.invited")}</option>
+                <option value="enrolled">{t("status.enrolled")}</option>
+                <option value="active">{t("status.active")}</option>
+                <option value="completed">{t("status.completed")}</option>
+                <option value="cancelled">{t("status.cancelled")}</option>
               </select>
             </Field>
           </div>
-          <Field label="Note">
+          <Field label={t("fields.note")}>
             <textarea
               value={form.note}
               onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
               rows={2}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-              placeholder="Internt notat, f.eks. KI-kurs for lærere"
+              placeholder={t("placeholders.note")}
             />
           </Field>
           <div className="flex flex-wrap justify-end gap-2">
             <button type="button" onClick={resetForm} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold">
-              Cancel
+              {t("actions.cancel")}
             </button>
             <button type="submit" disabled={saving} className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-60">
-              {saving ? "Saving..." : editingId ? "Save participant" : "Add participant"}
+              {saving
+                ? t("actions.saving")
+                : editingId
+                  ? t("actions.saveParticipant")
+                  : t("actions.addParticipant")}
             </button>
           </div>
         </form>
@@ -807,21 +836,21 @@ function ParticipantsPanel({ course }: { course: Course }) {
       {showGroupForm ? (
         <form onSubmit={saveGroupParticipants} className="grid gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
           <div>
-            <h3 className="m-0 text-base font-extrabold text-emerald-950">Add group / school</h3>
+            <h3 className="m-0 text-base font-extrabold text-emerald-950">{t("group.title")}</h3>
             <p className="mt-1 text-sm text-emerald-900">
-              Lim inn én deltaker per linje. Eksempler: “Ola Nordmann, ola@skole.no” eller bare “ola@skole.no”.
+              {t("group.intro")}
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            <Field label="School / organization">
+            <Field label={t("fields.organization")}>
               <input
                 value={groupForm.organization}
                 onChange={(event) => setGroupForm((prev) => ({ ...prev, organization: event.target.value }))}
                 className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm"
-                placeholder="For eksempel: Solvang skole"
+                placeholder={t("placeholders.organization")}
               />
             </Field>
-            <Field label="Status">
+            <Field label={t("fields.status")}>
               <select
                 value={groupForm.status}
                 onChange={(event) =>
@@ -829,13 +858,13 @@ function ParticipantsPanel({ course }: { course: Course }) {
                 }
                 className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm"
               >
-                <option value="invited">invited</option>
-                <option value="enrolled">enrolled</option>
-                <option value="active">active</option>
+                <option value="invited">{t("status.invited")}</option>
+                <option value="enrolled">{t("status.enrolled")}</option>
+                <option value="active">{t("status.active")}</option>
               </select>
             </Field>
           </div>
-          <Field label="Participants">
+          <Field label={t("fields.participants")}>
             <textarea
               value={groupForm.participantsText}
               onChange={(event) => setGroupForm((prev) => ({ ...prev, participantsText: event.target.value }))}
@@ -845,13 +874,13 @@ function ParticipantsPanel({ course }: { course: Course }) {
               required
             />
           </Field>
-          <Field label="Shared note">
+          <Field label={t("fields.sharedNote")}>
             <textarea
               value={groupForm.note}
               onChange={(event) => setGroupForm((prev) => ({ ...prev, note: event.target.value }))}
               rows={2}
               className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm"
-              placeholder="Internt notat, f.eks. KI-kurs for ungdomsskolelærere"
+              placeholder={t("placeholders.groupNote")}
             />
           </Field>
           <div className="flex flex-wrap justify-end gap-2">
@@ -863,10 +892,10 @@ function ParticipantsPanel({ course }: { course: Course }) {
               }}
               className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-bold"
             >
-              Cancel
+              {t("actions.cancel")}
             </button>
             <button type="submit" disabled={saving} className="rounded-lg border border-emerald-800 bg-emerald-800 px-4 py-2 text-sm font-bold text-white disabled:opacity-60">
-              {saving ? "Adding..." : "Add group"}
+              {saving ? t("actions.adding") : t("actions.addGroup")}
             </button>
           </div>
         </form>
@@ -874,28 +903,38 @@ function ParticipantsPanel({ course }: { course: Course }) {
 
       {loading ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-          Laster deltakere...
+          {t("loading")}
         </div>
       ) : participants.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-          Ingen deltakere ennå.
+          {t("empty")}
         </div>
       ) : (
         <div className="grid gap-3">
-          {participants.map((participant) => (
+          {participants.map((participant) => {
+            const order = getParticipantOrder(participant, orders);
+            const origin = getParticipantOrigin(participant, requests, orders, t);
+
+            return (
             <div key={participant.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="m-0 text-base font-extrabold text-slate-950">{participant.name}</h3>
                   <p className="m-0 mt-1 text-sm text-slate-700">{participant.email}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <ParticipantOriginBadge origin={origin} />
+                    {order ? <ParticipantPaymentBadge order={order} t={t} /> : null}
+                  </div>
                   {participant.phone ? <p className="m-0 mt-1 text-sm text-slate-600">{participant.phone}</p> : null}
                   {participant.organization ? (
                     <p className="m-0 mt-1 text-sm font-semibold text-slate-700">{participant.organization}</p>
                   ) : null}
                   {participant.note ? <p className="m-0 mt-2 text-sm text-slate-600">{participant.note}</p> : null}
                   <p className="m-0 mt-2 text-xs text-slate-500">
-                    Created: {participant.createdAt?.toDate().toLocaleString() ?? "-"} · Updated:{" "}
-                    {participant.updatedAt?.toDate().toLocaleString() ?? "-"}
+                    {t("meta.createdUpdated", {
+                      created: participant.createdAt?.toDate().toLocaleString() ?? "-",
+                      updated: participant.updatedAt?.toDate().toLocaleString() ?? "-",
+                    })}
                   </p>
                   <ParticipantProgressSummary
                     progress={getParticipantProgress(participant, submissions, totalResourceCount)}
@@ -903,32 +942,33 @@ function ParticipantsPanel({ course }: { course: Course }) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700">
-                    {participant.status}
+                    {formatParticipantStatus(participant.status, t)}
                   </span>
                   {participant.roleSnapshot ? (
                     <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                      {participant.roleSnapshot}
+                      {formatParticipantRole(participant.roleSnapshot, t)}
                     </span>
                   ) : null}
                   <button type="button" onClick={() => startEdit(participant)} className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-bold">
-                    Edit
+                    {t("actions.edit")}
                   </button>
                   <button type="button" onClick={() => void deleteParticipant(participant)} className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
-                    Delete
+                    {t("actions.delete")}
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 
       <section className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="m-0 text-base font-extrabold text-slate-950">Signup requests</h3>
+            <h3 className="m-0 text-base font-extrabold text-slate-950">{t("requests.title")}</h3>
             <p className="mt-1 text-sm text-slate-600">
-              Interesseforespørsler fra offentlig kursside.
+              {t("requests.intro")}
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
@@ -937,7 +977,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
         </div>
         {requests.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600">
-            Ingen forespørsler ennå.
+            {t("requests.empty")}
           </div>
         ) : (
           <div className="grid gap-2">
@@ -956,7 +996,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-                      {request.status}
+                      {formatSignupRequestStatus(request.status, t)}
                     </span>
                     <button
                       type="button"
@@ -964,7 +1004,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
                       onClick={() => void updateRequest(request.id, "contacted")}
                       className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-bold disabled:opacity-60"
                     >
-                      Contacted
+                      {t("actions.contacted")}
                     </button>
                     <button
                       type="button"
@@ -972,7 +1012,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
                       onClick={() => void updateRequest(request.id, "accept")}
                       className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 disabled:opacity-60"
                     >
-                      Accept
+                      {t("actions.accept")}
                     </button>
                     <button
                       type="button"
@@ -980,7 +1020,7 @@ function ParticipantsPanel({ course }: { course: Course }) {
                       onClick={() => void updateRequest(request.id, "reject")}
                       className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 disabled:opacity-60"
                     >
-                      Reject
+                      {t("actions.reject")}
                     </button>
                   </div>
                 </div>
@@ -991,6 +1031,117 @@ function ParticipantsPanel({ course }: { course: Course }) {
       </section>
     </div>
   );
+}
+
+type ParticipantOrigin =
+  | { kind: "paid"; label: string }
+  | { kind: "signup"; label: string }
+  | { kind: "manual"; label: string }
+  | { kind: "unknown"; label: string };
+
+function getParticipantOrder(
+  participant: CourseParticipant,
+  orders: CourseOrderRow[]
+): CourseOrderRow | null {
+  const email = participant.email.trim().toLowerCase();
+  if (participant.orderId) {
+    const byId = orders.find((order) => order.id === participant.orderId);
+    if (byId) return byId;
+  }
+
+  const byEmail = orders.find((order) => order.buyerEmail.trim().toLowerCase() === email);
+  return byEmail ?? null;
+}
+
+function getParticipantOrigin(
+  participant: CourseParticipant,
+  requests: CourseSignupRequest[],
+  orders: CourseOrderRow[],
+  t: ReturnType<typeof useTranslations>
+): ParticipantOrigin {
+  const order = getParticipantOrder(participant, orders);
+  if (participant.source === "stripeCheckout" || order) {
+    return { kind: "paid", label: t("origin.paidCheckout") };
+  }
+
+  if (participant.source === "signupRequest" || participant.signupRequestId) {
+    const request = requests.find((item) => item.id === participant.signupRequestId);
+    return {
+      kind: "signup",
+      label:
+        request?.status === "accepted" || !request
+          ? t("origin.requestAccepted")
+          : t("origin.requestStatus", { status: formatSignupRequestStatus(request.status, t) }),
+    };
+  }
+
+  if (participant.source === "manual_import") return { kind: "manual", label: t("origin.groupImport") };
+  if (participant.source === "manual" || !participant.source) return { kind: "manual", label: t("origin.manual") };
+  return { kind: "unknown", label: participant.source };
+}
+
+function ParticipantOriginBadge({ origin }: { origin: ParticipantOrigin }) {
+  const className =
+    origin.kind === "paid"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : origin.kind === "signup"
+        ? "border-sky-200 bg-sky-50 text-sky-800"
+        : origin.kind === "manual"
+          ? "border-slate-200 bg-white text-slate-700"
+          : "border-amber-200 bg-amber-50 text-amber-800";
+
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs font-bold ${className}`}>
+      {origin.label}
+    </span>
+  );
+}
+
+function ParticipantPaymentBadge({ order, t }: { order: CourseOrderRow; t: ReturnType<typeof useTranslations> }) {
+  const label =
+    order.status === "paid_held"
+      ? t("payment.paidHeld")
+      : order.status === "paid"
+        ? t("payment.paid")
+        : order.status === "checkout_created"
+          ? t("payment.checkoutStarted")
+          : formatOrderStatus(order);
+  const className = isPaidCourseOrder(order)
+    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+    : order.status === "failed" || order.status === "refunded"
+      ? "border-rose-200 bg-rose-50 text-rose-800"
+      : "border-amber-200 bg-amber-50 text-amber-800";
+
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs font-bold ${className}`}>
+      {label}
+    </span>
+  );
+}
+
+function formatParticipantStatus(status: ParticipantStatus, t: ReturnType<typeof useTranslations>): string {
+  if (status === "invited") return t("status.invited");
+  if (status === "enrolled") return t("status.enrolled");
+  if (status === "active") return t("status.active");
+  if (status === "completed") return t("status.completed");
+  if (status === "cancelled") return t("status.cancelled");
+  return status;
+}
+
+function formatParticipantRole(role: string, t: ReturnType<typeof useTranslations>): string {
+  if (role === "student") return t("roles.student");
+  if (role === "teacher") return t("roles.teacher");
+  if (role === "parent") return t("roles.parent");
+  if (role === "admin") return t("roles.admin");
+  return role;
+}
+
+function formatSignupRequestStatus(status: CourseSignupRequest["status"], t: ReturnType<typeof useTranslations>): string {
+  if (status === "new") return t("requests.status.new");
+  if (status === "accepted") return t("requests.status.accepted");
+  if (status === "rejected") return t("requests.status.rejected");
+  if (status === "contacted") return t("requests.status.contacted");
+  return status;
 }
 
 type CourseSubmissionRow = {
@@ -1058,6 +1209,7 @@ function getParticipantProgress(
 }
 
 function ParticipantProgressSummary({ progress }: { progress: ParticipantProgress }) {
+  const t = useTranslations("academy.dashboard.participants.progress");
   const percent =
     progress.totalResourceCount === 0
       ? 0
@@ -1067,26 +1219,26 @@ function ParticipantProgressSummary({ progress }: { progress: ParticipantProgres
     <div className="mt-3 grid gap-2 rounded-lg border border-slate-200 bg-white p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs font-black uppercase tracking-wide text-slate-500">
-          Course progress
+          {t("title")}
         </span>
         <span className="text-xs font-bold text-slate-700">{percent}%</span>
       </div>
       <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-700">
         <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-          {progress.submittedCount}/{progress.totalResourceCount} delivered
+          {t("delivered", { done: progress.submittedCount, total: progress.totalResourceCount })}
         </span>
         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">
-          {progress.approvedCount} approved
+          {t("approved", { count: progress.approvedCount })}
         </span>
         <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-900">
-          {progress.needsWorkCount} needs work
+          {t("needsWork", { count: progress.needsWorkCount })}
         </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div className="h-full rounded-full bg-slate-900" style={{ width: `${percent}%` }} />
       </div>
       <div className="text-xs text-slate-500">
-        Last activity: {formatMaybeIsoDate(progress.lastActivityAt)}
+        {t("lastActivity", { date: formatMaybeIsoDate(progress.lastActivityAt) })}
       </div>
     </div>
   );
@@ -1108,15 +1260,16 @@ type CourseSubmissionDetail = {
 
 type SubmissionFilter = "all" | "unreviewed" | "needs_work" | "approved";
 
-const SUBMISSION_FILTERS: Array<{ id: SubmissionFilter; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "unreviewed", label: "Awaiting review" },
-  { id: "needs_work", label: "Needs work" },
-  { id: "approved", label: "Approved" },
+const SUBMISSION_FILTERS: Array<{ id: SubmissionFilter; labelKey: string }> = [
+  { id: "all", labelKey: "all" },
+  { id: "unreviewed", labelKey: "unreviewed" },
+  { id: "needs_work", labelKey: "needs_work" },
+  { id: "approved", labelKey: "approved" },
 ];
 
 function CourseSubmissionsPanel({ course }: { course: Course }) {
   const locale = useLocale();
+  const t = useTranslations("academy.dashboard.submissions");
   const { user } = useUserProfile();
   const [submissions, setSubmissions] = useState<CourseSubmissionRow[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<CourseSubmissionDetail | null>(null);
@@ -1146,7 +1299,7 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
       setSubmissions(Array.isArray(data.submissions) ? data.submissions : []);
     } catch (err) {
       console.error("Failed to load course submissions", err);
-      setError("Besvarelser kunne ikke hentes akkurat nå.");
+      setError(t("loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -1172,7 +1325,7 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
       setReviewStatusDraft(data.submission.reviewStatus || "none");
     } catch (err) {
       console.error("Failed to load course submission", err);
-      setError("Besvarelsen kunne ikke åpnes akkurat nå.");
+      setError(t("openFailed"));
     } finally {
       setDetailLoadingId(null);
     }
@@ -1205,7 +1358,7 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
       await loadSubmissions();
     } catch (err) {
       console.error("Failed to save instructor feedback", err);
-      setError("Instruktørfeedback kunne ikke lagres akkurat nå.");
+      setError(t("feedbackSaveFailed"));
     } finally {
       setFeedbackSaving(false);
     }
@@ -1233,9 +1386,9 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
       <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-slate-900">Submissions</h2>
+            <h2 className="m-0 text-lg font-extrabold text-slate-900">{t("title")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Review participant work submitted from course resources.
+              {t("intro")}
             </p>
           </div>
           <button
@@ -1243,21 +1396,21 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
             onClick={() => void loadSubmissions()}
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-900"
           >
-            Refresh
+            {t("refresh")}
           </button>
         </div>
         <div className="mt-4 grid gap-2 text-xs font-bold text-slate-700 md:grid-cols-4">
           <div className="rounded-lg border border-slate-200 bg-white p-3">
-            Total: {submissionCounts.all}
+            {t("stats.total", { count: submissionCounts.all })}
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-3">
-            Awaiting review: {submissionCounts.unreviewed}
+            {t("stats.awaiting", { count: submissionCounts.unreviewed })}
           </div>
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
-            Needs work: {submissionCounts.needs_work}
+            {t("stats.needsWork", { count: submissionCounts.needs_work })}
           </div>
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">
-            Approved: {submissionCounts.approved}
+            {t("stats.approved", { count: submissionCounts.approved })}
           </div>
         </div>
       </section>
@@ -1284,7 +1437,7 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
                   }`}
                 >
-                  {filter.label} ({submissionCounts[filter.id]})
+                  {t(`filters.${filter.labelKey}`)} ({submissionCounts[filter.id]})
                 </button>
               );
             })}
@@ -1294,16 +1447,15 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
 
       {loading ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-          Laster besvarelser...
+          {t("loading")}
         </div>
       ) : submissions.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-          Ingen kursbesvarelser ennå. Når deltakere åpner oppgaver fra kursrommet og lagrer eller leverer,
-          dukker de opp her.
+          {t("empty")}
         </div>
       ) : filteredSubmissions.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-          Ingen besvarelser i dette filteret.
+          {t("emptyFilter")}
         </div>
       ) : (
         <div className="grid gap-3">
@@ -1312,10 +1464,10 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="m-0 text-base font-extrabold text-slate-950">
-                    {submission.courseResourceTitle || submission.lessonId || "Lesson"}
+                    {submission.courseResourceTitle || submission.lessonId || t("labels.lesson")}
                   </h3>
                   <p className="m-0 mt-1 text-sm text-slate-600">
-                    Deltaker: {submission.participantName || submission.participantEmail || submission.uid || "-"}
+                    {t("labels.participant", { value: submission.participantName || submission.participantEmail || submission.uid || "-" })}
                   </p>
                   {submission.participantOrganization ? (
                     <p className="m-0 mt-1 text-sm font-semibold text-slate-600">
@@ -1323,11 +1475,11 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
                     </p>
                   ) : null}
                   <p className="m-0 mt-1 text-sm text-slate-600">
-                    Samling: {submission.courseSessionNumber ?? "-"}
+                    {t("labels.session", { value: submission.courseSessionNumber ?? "-" })}
                     {submission.courseSessionTitle ? ` · ${submission.courseSessionTitle}` : ""}
                   </p>
                   <p className="m-0 mt-2 text-xs text-slate-500">
-                    Updated: {formatMaybeIsoDate(submission.updatedAt)}
+                    {t("labels.updated", { value: formatMaybeIsoDate(submission.updatedAt) })}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1335,17 +1487,17 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
                     {submission.status}
                   </span>
                   <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700">
-                    {submission.feedback ? "feedback" : "no feedback"}
+                    {submission.feedback ? t("labels.feedback") : t("labels.noFeedback")}
                   </span>
                   <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700">
-                    {formatReviewStatus(submission.reviewStatus)}
+                    {formatReviewStatus(submission.reviewStatus, t)}
                   </span>
                   <button
                     type="button"
                     onClick={() => void openSubmission(submission.id)}
                     className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-900"
                   >
-                    {detailLoadingId === submission.id ? "Opening..." : "View"}
+                    {detailLoadingId === submission.id ? t("labels.opening") : t("labels.view")}
                   </button>
                 </div>
               </div>
@@ -1359,9 +1511,9 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
           <div className="max-h-[82vh] w-full max-w-3xl overflow-auto rounded-lg border border-slate-200 bg-white p-5 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="m-0 text-lg font-extrabold text-slate-950">Submission</h3>
+                <h3 className="m-0 text-lg font-extrabold text-slate-950">{t("labels.submission")}</h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  {selectedSubmission.lessonId ? `Lesson: ${selectedSubmission.lessonId}` : "Manual course task"} · Status: {selectedSubmission.status}
+                  {selectedSubmission.lessonId ? `Lesson: ${selectedSubmission.lessonId}` : t("labels.manualTask")} · {t("labels.status", { value: selectedSubmission.status })}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1371,7 +1523,7 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
                     target="_blank"
                     className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-bold text-slate-900 no-underline"
                   >
-                    Open task
+                    {t("labels.openTask")}
                   </Link>
                 ) : null}
                 <button
@@ -1379,44 +1531,44 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
                   onClick={() => setSelectedSubmission(null)}
                   className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-bold text-slate-900"
                 >
-                  Close
+                  {t("labels.close")}
                 </button>
               </div>
             </div>
 
             <div className="mt-4 grid gap-3">
               <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <h4 className="m-0 text-sm font-extrabold text-slate-900">Answers</h4>
+                <h4 className="m-0 text-sm font-extrabold text-slate-900">{t("labels.answers")}</h4>
                 <AnswerList answers={selectedSubmission.answers} />
               </section>
 
               <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <h4 className="m-0 text-sm font-extrabold text-slate-900">Feedback</h4>
+                <h4 className="m-0 text-sm font-extrabold text-slate-900">{t("labels.aiFeedback")}</h4>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                  {selectedSubmission.feedback || "Ingen feedback lagret ennå."}
+                  {selectedSubmission.feedback || t("labels.noSavedFeedback")}
                 </p>
               </section>
 
               <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                <h4 className="m-0 text-sm font-extrabold text-emerald-950">Instructor feedback</h4>
+                <h4 className="m-0 text-sm font-extrabold text-emerald-950">{t("labels.instructorFeedback")}</h4>
                 <textarea
                   value={instructorFeedbackDraft}
                   onChange={(event) => setInstructorFeedbackDraft(event.target.value)}
                   rows={5}
                   maxLength={5000}
                   className="mt-2 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm leading-6 text-slate-800"
-                  placeholder="Skriv en kort tilbakemelding eller et internt oppfølgingsnotat."
+                  placeholder={t("labels.instructorPlaceholder")}
                 />
                 <div className="mt-3 grid gap-2 text-sm font-bold text-emerald-950">
-                  <span>Status</span>
+                  <span>{t("labels.status", { value: "" }).replace(":", "").trim()}</span>
                   <select
                     value={reviewStatusDraft}
                     onChange={(event) => setReviewStatusDraft(event.target.value)}
                     className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-800"
                   >
-                    <option value="none">No status</option>
-                    <option value="needs_work">Needs work</option>
-                    <option value="approved">Approved</option>
+                    <option value="none">{t("labels.noStatus")}</option>
+                    <option value="needs_work">{t("filters.needs_work")}</option>
+                    <option value="approved">{t("filters.approved")}</option>
                   </select>
                 </div>
                 <div className="mt-3 flex justify-end">
@@ -1426,7 +1578,7 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
                     disabled={feedbackSaving}
                     className="rounded-lg border border-emerald-800 bg-emerald-800 px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
                   >
-                    {feedbackSaving ? "Saving..." : "Save instructor feedback"}
+                    {feedbackSaving ? t("labels.saving") : t("labels.saveFeedback")}
                   </button>
                 </div>
               </section>
@@ -1439,10 +1591,11 @@ function CourseSubmissionsPanel({ course }: { course: Course }) {
 }
 
 function AnswerList({ answers }: { answers: Record<string, unknown> }) {
+  const t = useTranslations("academy.dashboard.submissions.labels");
   const entries = Object.entries(answers).filter(([, value]) => !isEmptyAnswer(value));
 
   if (entries.length === 0) {
-    return <p className="mt-2 text-sm text-slate-600">Ingen svar lagret ennå.</p>;
+    return <p className="mt-2 text-sm text-slate-600">{t("noAnswers")}</p>;
   }
 
   return (
@@ -1450,7 +1603,7 @@ function AnswerList({ answers }: { answers: Record<string, unknown> }) {
       {entries.map(([key, value], index) => (
         <div key={key} className="rounded-lg border border-slate-200 bg-white p-3">
           <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-            Answer {index + 1}
+            {t("answer", { number: index + 1 })}
           </div>
           <div className="mt-1 text-xs font-semibold text-slate-500">{key}</div>
           <div className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">
@@ -1484,6 +1637,7 @@ const EMPTY_MESSAGE_FORM = {
 };
 
 function MessagesPanel({ course }: { course: Course }) {
+  const t = useTranslations("academy.dashboard.messages");
   const { user } = useUserProfile();
   const [messages, setMessages] = useState<CourseMessage[]>([]);
   const [form, setForm] = useState(EMPTY_MESSAGE_FORM);
@@ -1515,7 +1669,7 @@ function MessagesPanel({ course }: { course: Course }) {
       );
     } catch (err) {
       console.error("Failed to load messages", err);
-      setError("Meldinger kunne ikke hentes akkurat nå.");
+      setError(t("loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -1550,7 +1704,7 @@ function MessagesPanel({ course }: { course: Course }) {
       await loadMessages();
     } catch (err) {
       console.error("Failed to save message", err);
-      setError(err instanceof Error ? err.message : "Meldingen kunne ikke sendes akkurat nå.");
+      setError(err instanceof Error ? err.message : t("sendFailed"));
     } finally {
       setSaving(false);
     }
@@ -1565,9 +1719,9 @@ function MessagesPanel({ course }: { course: Course }) {
       <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-slate-900">Messages</h2>
+            <h2 className="m-0 text-lg font-extrabold text-slate-900">{t("title")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Send course messages and keep a simple message history.
+              {t("intro")}
             </p>
           </div>
           <button
@@ -1575,21 +1729,21 @@ function MessagesPanel({ course }: { course: Course }) {
             onClick={() => setShowForm(true)}
             className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-4 text-sm font-bold text-white"
           >
-            New message
+            {t("newMessage")}
           </button>
         </div>
         <div className="mt-4 grid gap-2 text-xs font-bold text-slate-700 md:grid-cols-4">
           <div className="rounded-lg border border-slate-200 bg-white p-3">
-            Messages: {messages.length}
+            {t("stats.messages", { count: messages.length })}
           </div>
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
-            Sent: {sentCount}
+            {t("stats.sent", { count: sentCount })}
           </div>
           <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-rose-900">
-            Failed: {failedCount}
+            {t("stats.failed", { count: failedCount })}
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-3">
-            Drafts: {draftCount}
+            {t("stats.drafts", { count: draftCount })}
           </div>
         </div>
       </section>
@@ -1602,7 +1756,7 @@ function MessagesPanel({ course }: { course: Course }) {
 
       {showForm ? (
         <form onSubmit={saveMessage} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <Field label="Subject">
+          <Field label={t("fields.subject")}>
             <input
               value={form.subject}
               onChange={(event) => setForm((prev) => ({ ...prev, subject: event.target.value }))}
@@ -1610,7 +1764,7 @@ function MessagesPanel({ course }: { course: Course }) {
               required
             />
           </Field>
-          <Field label="Body">
+          <Field label={t("fields.body")}>
             <textarea
               value={form.body}
               onChange={(event) => setForm((prev) => ({ ...prev, body: event.target.value }))}
@@ -1620,24 +1774,24 @@ function MessagesPanel({ course }: { course: Course }) {
               required
             />
           </Field>
-          <Field label="Recipients">
+          <Field label={t("fields.recipients")}>
             <select
               value={form.recipients}
               onChange={(event) => setForm((prev) => ({ ...prev, recipients: event.target.value }))}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
             >
-              <option value="all">all participants</option>
-              <option value="active_enrolled">enrolled/active participants</option>
-              <option value="signup_new">signup requests with status new</option>
-              <option value="signup_contacted">signup requests with status contacted</option>
+              <option value="all">{t("recipients.all")}</option>
+              <option value="active_enrolled">{t("recipients.active")}</option>
+              <option value="signup_new">{t("recipients.signupNew")}</option>
+              <option value="signup_contacted">{t("recipients.signupContacted")}</option>
             </select>
           </Field>
           <div className="flex flex-wrap justify-end gap-2">
             <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold">
-              Cancel
+              {t("actions.cancel")}
             </button>
             <button type="submit" disabled={saving} className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-60">
-              {saving ? "Sending..." : "Send email"}
+              {saving ? t("actions.sending") : t("actions.send")}
             </button>
           </div>
         </form>
@@ -1645,11 +1799,11 @@ function MessagesPanel({ course }: { course: Course }) {
 
       {loading ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-          Laster meldinger...
+          {t("loading")}
         </div>
       ) : messages.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-          Ingen meldinger ennå.
+          {t("empty")}
         </div>
       ) : (
         <div className="grid gap-3">
@@ -1660,7 +1814,10 @@ function MessagesPanel({ course }: { course: Course }) {
                   <h3 className="m-0 text-base font-extrabold text-slate-950">{message.subject}</h3>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{message.body}</p>
                   <p className="m-0 mt-2 text-xs text-slate-500">
-                    {message.recipientsCount} recipients · {message.createdAt?.toDate().toLocaleString() ?? "-"}
+                    {t("meta", {
+                      count: message.recipientsCount,
+                      date: message.createdAt?.toDate().toLocaleString() ?? "-",
+                    })}
                   </p>
                   {message.errorMessage ? (
                     <p className="m-0 mt-2 text-xs font-semibold text-rose-700">
@@ -1681,33 +1838,97 @@ function MessagesPanel({ course }: { course: Course }) {
 }
 
 function ContentResourcesView({ course }: { course: Course }) {
+  const t = useTranslations("academy.dashboard.content");
   const sessionsWithResources = course.coursePlan.filter((session) => session.resources.length > 0);
   const resourceCount = sessionsWithResources.reduce((sum, session) => sum + session.resources.length, 0);
 
+  function printContent() {
+    window.print();
+  }
+
   return (
-    <div className="grid gap-4">
+    <div className="course-content-print grid gap-4">
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+
+          .course-content-print,
+          .course-content-print * {
+            visibility: visible;
+          }
+
+          .course-content-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 24px;
+            background: white;
+          }
+
+          .course-content-actions {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo321ny.png"
+            alt="321skole"
+            className="h-12 w-12 rounded-lg object-contain"
+          />
+          <div>
+            <div className="text-xs font-black uppercase tracking-wide text-slate-500">
+              321Academy
+            </div>
+            <h1 className="m-0 mt-1 text-2xl font-black text-slate-950">
+              {course.title || t("fallbackTitle")}
+            </h1>
+          </div>
+        </div>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="m-0 text-lg font-extrabold text-slate-900">Content</h2>
+          <h2 className="m-0 text-lg font-extrabold text-slate-900">{t("title")}</h2>
           <p className="mt-1 text-sm text-slate-600">
-            {resourceCount} ressurser fordelt på {sessionsWithResources.length} samlinger.
+            {t("summary", { resources: resourceCount, sessions: sessionsWithResources.length })}
           </p>
+        </div>
+        <div className="course-content-actions flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={printContent}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
+          >
+            {t("print")}
+          </button>
+          <button
+            type="button"
+            onClick={printContent}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-sm font-bold text-white hover:bg-slate-800"
+          >
+            {t("pdf")}
+          </button>
         </div>
       </div>
 
       {resourceCount === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-          Ingen ressurser er lagt til ennå. Bruk Sessions for å legge til fra My Content, Library eller egne lenker.
+          {t("empty")}
         </div>
       ) : (
         <div className="grid gap-3">
           {sessionsWithResources.map((session) => (
             <section key={session.sessionNumber} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                Session {session.sessionNumber}
+                {t("session", { number: session.sessionNumber })}
               </div>
               <h3 className="m-0 mt-1 text-base font-extrabold text-slate-950">
-                {session.title || "Uten tittel"}
+                {session.title || t("untitled")}
               </h3>
               <div className="mt-3 grid gap-2">
                 {session.resources.map((resource) => (
@@ -1723,6 +1944,7 @@ function ContentResourcesView({ course }: { course: Course }) {
 }
 
 function ResourceSummary({ resource }: { resource: CourseSessionResource }) {
+  const t = useTranslations("academy.dashboard.content");
   const sourceLabel =
     resource.sourceType === "library"
       ? "Library"
@@ -1744,7 +1966,7 @@ function ResourceSummary({ resource }: { resource: CourseSessionResource }) {
             {sourceLabel}
           </span>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
-            {formatResourceVisibility(resource.visibility)}
+            {formatResourceVisibility(resource.visibility, t)}
           </span>
         </div>
       </div>
@@ -1755,17 +1977,20 @@ function ResourceSummary({ resource }: { resource: CourseSessionResource }) {
           rel="noreferrer"
           className="mt-2 inline-flex text-sm font-bold text-slate-900 underline"
         >
-          Open resource
+          {t("openResource")}
         </a>
       ) : null}
     </div>
   );
 }
 
-function formatResourceVisibility(visibility: CourseSessionResource["visibility"]): string {
-  if (visibility === "teacher") return "Teacher only";
-  if (visibility === "public") return "Public preview";
-  return "Participants";
+function formatResourceVisibility(
+  visibility: CourseSessionResource["visibility"],
+  t: ReturnType<typeof useTranslations>
+): string {
+  if (visibility === "teacher") return t("visibility.teacher");
+  if (visibility === "public") return t("visibility.public");
+  return t("visibility.participants");
 }
 
 type CourseActionSummary = {
@@ -1776,13 +2001,13 @@ type CourseActionSummary = {
   paidOrderCount: number | null;
 };
 
-function getCourseSaleReadiness(course: Course) {
+function getCourseSaleReadiness(course: Course, t: ReturnType<typeof useTranslations>) {
   const missing: string[] = [];
-  if (course.status !== "published" && course.status !== "active") missing.push("publish course");
-  if (course.sales.saleStatus !== "ready") missing.push("set sale status to ready");
-  if (course.sales.priceAmountOre <= 0) missing.push("set price");
-  if (course.sales.taxProfile.deliveryType !== "live_instruction") missing.push("live instruction delivery");
-  if (course.sales.taxProfile.vatTreatment !== "vat_exempt_education") missing.push("VAT treatment");
+  if (course.status !== "published" && course.status !== "active") missing.push(t("readiness.publish"));
+  if (course.sales.saleStatus !== "ready") missing.push(t("readiness.saleStatus"));
+  if (course.sales.priceAmountOre <= 0) missing.push(t("readiness.price"));
+  if (course.sales.taxProfile.deliveryType !== "live_instruction") missing.push(t("readiness.live"));
+  if (course.sales.taxProfile.vatTreatment !== "vat_exempt_education") missing.push(t("readiness.vat"));
 
   return { ready: missing.length === 0, missing };
 }
@@ -1796,6 +2021,7 @@ function Overview({
   locale: string;
   onOpenSection: (section: string) => void;
 }) {
+  const t = useTranslations("academy.dashboard.overview");
   const { user } = useUserProfile();
   const [summary, setSummary] = useState<CourseActionSummary>({
     participantCount: null,
@@ -1805,7 +2031,7 @@ function Overview({
     paidOrderCount: null,
   });
   const nextSession = getNextSession(course);
-  const saleReadiness = getCourseSaleReadiness(course);
+  const saleReadiness = getCourseSaleReadiness(course, t);
 
   useEffect(() => {
     let cancelled = false;
@@ -1884,7 +2110,7 @@ function Overview({
 
   return (
     <div className="grid gap-4">
-      <h2 className="m-0 text-lg font-extrabold text-slate-900">Overview</h2>
+      <h2 className="m-0 text-lg font-extrabold text-slate-900">{t("title")}</h2>
       <section
         className={`rounded-lg border p-4 ${
           saleReadiness.ready
@@ -1895,49 +2121,49 @@ function Overview({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="m-0 text-base font-black">
-              {saleReadiness.ready ? "Course sale is ready" : "Course sale needs attention"}
+              {saleReadiness.ready ? t("saleReady") : t("saleNeedsAttention")}
             </h3>
             <p className="mt-1 text-sm leading-6">
               {saleReadiness.ready
-                ? "The public page can show Buy course when Stripe Connect is connected."
-                : `Missing: ${saleReadiness.missing.join(", ")}`}
+                ? t("saleReadyText")
+                : t("missing", { items: saleReadiness.missing.join(", ") })}
             </p>
           </div>
           <Link
-            href={`/${locale}/teacher/courses/${course.id}/marketing`}
+            href={`/${locale}/teacher/courses/${course.id}/sales`}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-white/60 bg-white px-3 text-sm font-bold text-slate-950 no-underline hover:bg-slate-50"
           >
-            Sales setup
+            {t("salesSetup")}
           </Link>
         </div>
       </section>
       <div className="grid gap-3 md:grid-cols-5">
         <OverviewActionCard
-          label="Awaiting review"
+          label={t("cards.awaitingReview")}
           value={summary.awaitingReviewCount}
           tone="slate"
           onClick={() => onOpenSection("Submissions")}
         />
         <OverviewActionCard
-          label="Needs work"
+          label={t("cards.needsWork")}
           value={summary.needsWorkCount}
           tone="amber"
           onClick={() => onOpenSection("Submissions")}
         />
         <OverviewActionCard
-          label="New signup requests"
+          label={t("cards.newSignupRequests")}
           value={summary.newSignupCount}
           tone="emerald"
           onClick={() => onOpenSection("Participants")}
         />
         <OverviewActionCard
-          label="Participants"
+          label={t("cards.participants")}
           value={summary.participantCount}
           tone="slate"
           onClick={() => onOpenSection("Participants")}
         />
         <OverviewActionCard
-          label="Paid orders"
+          label={t("cards.paidOrders")}
           value={summary.paidOrderCount}
           tone="emerald"
           onClick={() => onOpenSection("Payments")}
@@ -1968,19 +2194,20 @@ function NextSessionOverview({
   onOpenSessions: () => void;
   onOpenMessages: () => void;
 }) {
+  const t = useTranslations("academy.dashboard.overview.nextSession");
   if (!nextSession) {
     return (
       <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5">
-        <h3 className="m-0 text-base font-extrabold text-slate-950">Next session</h3>
+        <h3 className="m-0 text-base font-extrabold text-slate-950">{t("title")}</h3>
         <p className="mt-2 text-sm text-slate-600">
-          Ingen planlagt samling ennå.
+          {t("none")}
         </p>
         <button
           type="button"
           onClick={onOpenSessions}
           className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900"
         >
-          Open sessions
+          {t("openSessions")}
         </button>
       </div>
     );
@@ -1996,13 +2223,13 @@ function NextSessionOverview({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xs font-black uppercase tracking-wide text-emerald-800">
-            Next session
+            {t("title")}
           </div>
           <h3 className="m-0 mt-2 text-lg font-black text-emerald-950">
-            {nextSession.title || `Session ${nextSession.sessionNumber}`}
+            {nextSession.title || t("fallbackTitle", { number: nextSession.sessionNumber })}
           </h3>
           <p className="mt-1 text-sm font-semibold text-emerald-900">
-            {formatSessionDate(nextSession.startsAt)} · {nextSession.durationMinutes || 120} min
+            {formatSessionDate(nextSession.startsAt, t("dateNotSet"))} · {nextSession.durationMinutes || 120} min
           </p>
         </div>
         <span className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-bold text-emerald-900">
@@ -2018,13 +2245,13 @@ function NextSessionOverview({
 
       <div className="mt-4 grid gap-2 text-xs font-bold text-emerald-950 md:grid-cols-3">
         <div className="rounded-lg border border-emerald-200 bg-white p-3">
-          Participant resources: {participantResources.length}
+          {t("participantResources", { count: participantResources.length })}
         </div>
         <div className="rounded-lg border border-emerald-200 bg-white p-3">
-          Teacher only: {teacherOnlyResources}
+          {t("teacherOnly", { count: teacherOnlyResources })}
         </div>
         <div className="rounded-lg border border-emerald-200 bg-white p-3">
-          Meeting link: {nextSession.meetingUrl ? "ready" : "missing"}
+          {t("meetingLink", { status: nextSession.meetingUrl ? t("ready") : t("missing") })}
         </div>
       </div>
 
@@ -2034,7 +2261,7 @@ function NextSessionOverview({
             href={sessionRoomHref}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-800 bg-emerald-800 px-3 text-sm font-bold text-white no-underline"
           >
-            Open meeting
+            {t("openMeeting")}
           </Link>
         ) : null}
         <button
@@ -2042,14 +2269,14 @@ function NextSessionOverview({
           onClick={onOpenSessions}
           className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 text-sm font-bold text-emerald-950"
         >
-          Edit session
+          {t("editSession")}
         </button>
         <button
           type="button"
           onClick={onOpenMessages}
           className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-300 bg-white px-3 text-sm font-bold text-emerald-950"
         >
-          Message participants
+          {t("messageParticipants")}
         </button>
       </div>
     </section>
@@ -2103,8 +2330,8 @@ function getNextSession(course: Course) {
   );
 }
 
-function formatSessionDate(value: string): string {
-  if (!value) return "Dato ikke satt";
+function formatSessionDate(value: string, emptyText: string): string {
+  if (!value) return emptyText;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
@@ -2117,10 +2344,10 @@ function formatMaybeIsoDate(value: string): string {
   return date.toLocaleString();
 }
 
-function formatReviewStatus(value: string): string {
-  if (value === "approved") return "Approved";
-  if (value === "needs_work") return "Needs work";
-  return "No status";
+function formatReviewStatus(value: string, t: ReturnType<typeof useTranslations>): string {
+  if (value === "approved") return t("filters.approved");
+  if (value === "needs_work") return t("filters.needs_work");
+  return t("labels.noStatus");
 }
 
 function parseParticipantsText(text: string, organization: string) {

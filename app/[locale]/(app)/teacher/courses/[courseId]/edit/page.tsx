@@ -1,19 +1,16 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
 import { AcademyGate } from "../../AcademyGate";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   DEFAULT_COURSE_FORM,
   normalizeCoursePlan,
-  syncCoursePlanSessionCount,
   type CourseFormValues,
-  type CourseStatus,
 } from "@/lib/courses/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { CourseWorkspaceNav } from "../CourseWorkspaceNav";
@@ -39,6 +36,7 @@ export default function EditCoursePage() {
 
 function EditCourseContent() {
   const locale = useLocale();
+  const t = useTranslations("academy.editCourse");
   const router = useRouter();
   const params = useParams<{ courseId?: string }>();
   const courseId = typeof params?.courseId === "string" ? params.courseId : "";
@@ -48,7 +46,6 @@ function EditCourseContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [warning, setWarning] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +53,7 @@ function EditCourseContent() {
     async function loadCourse() {
       if (!user || !courseId) {
         setLoading(false);
-        setError("Fant ikke kurs.");
+        setError(t("errors.notFound"));
         return;
       }
 
@@ -66,7 +63,7 @@ function EditCourseContent() {
 
         const course = await fetchTeacherCourse(user, courseId);
         if (course.ownerUid !== user.uid) {
-          setError("Bare eier kan redigere dette kurset.");
+          setError(t("errors.ownerOnly"));
           return;
         }
 
@@ -83,12 +80,12 @@ function EditCourseContent() {
             numberOfSessions: course.numberOfSessions,
             numberOfWeeks: course.numberOfWeeks,
             status: course.status,
-            coursePlan: syncCoursePlanSessionCount(course.coursePlan, course.numberOfSessions),
+            coursePlan: course.coursePlan,
           });
         }
       } catch (err) {
         console.error("Failed to load course for edit", err);
-        if (!cancelled) setError("Kurset kunne ikke hentes akkurat nå.");
+        if (!cancelled) setError(t("errors.loadFailed"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -99,27 +96,10 @@ function EditCourseContent() {
     return () => {
       cancelled = true;
     };
-  }, [courseId, user]);
+  }, [courseId, t, user]);
 
   function updateField<K extends keyof CourseFormValues>(key: K, value: CourseFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function handleSessionCountChange(nextCount: number) {
-    setValues((prev) => {
-      const nextPlan = syncCoursePlanSessionCount(prev.coursePlan, nextCount);
-      setWarning(
-        nextCount < prev.coursePlan.length
-          ? "Antall økter er lavere enn planen. Eksisterende økter beholdes til du rydder dem manuelt senere."
-          : ""
-      );
-
-      return {
-        ...prev,
-        numberOfSessions: nextCount,
-        coursePlan: nextPlan,
-      };
-    });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -128,7 +108,7 @@ function EditCourseContent() {
 
     const title = values.title.trim();
     if (!title) {
-      setError("Tittel må fylles ut.");
+      setError(t("errors.titleRequired"));
       return;
     }
 
@@ -162,15 +142,15 @@ function EditCourseContent() {
       router.push(`/${locale}/teacher/courses/${courseId}`);
     } catch (err) {
       console.error("Failed to update course", err);
-      setError("Kurset kunne ikke lagres akkurat nå.");
+      setError(t("errors.saveFailed"));
       setSaving(false);
     }
   }
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
-        Laster kurs...
+      <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 text-sm text-slate-500">
+        {t("loading")}
       </div>
     );
   }
@@ -185,10 +165,10 @@ function EditCourseContent() {
         active="edit"
       />
       <form onSubmit={handleSubmit} className="grid gap-5">
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h1 className="m-0 text-2xl font-black text-slate-950">Edit course</h1>
+        <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+          <h1 className="m-0 text-2xl font-black text-slate-950">{t("title")}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Oppdater overordnet kursinformasjon. Samlinger, datoer og ressurser redigeres i Edit sessions.
+            {t("intro")}
           </p>
         </section>
 
@@ -198,77 +178,74 @@ function EditCourseContent() {
           </div>
         ) : null}
 
-        {warning ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            {warning}
-          </div>
-        ) : null}
-
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <Field label="Title">
+        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+          <Field label={t("fields.title")}>
             <Input value={values.title} onChange={(event) => updateField("title", event.target.value)} required />
           </Field>
 
-          <Field label="Description">
+          <Field label={t("fields.description")}>
             <Textarea value={values.description} onChange={(event) => updateField("description", event.target.value)} rows={4} />
           </Field>
 
-          <Field label="Learning goals">
+          <Field label={t("fields.learningGoals")}>
             <Textarea value={values.learningGoals} onChange={(event) => updateField("learningGoals", event.target.value)} rows={4} />
           </Field>
 
-          <Field label="Target audience">
+          <Field label={t("fields.targetAudience")}>
             <Textarea value={values.targetAudience} onChange={(event) => updateField("targetAudience", event.target.value)} rows={3} />
           </Field>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Language">
-              <Input value={values.language} onChange={(event) => updateField("language", event.target.value)} />
+            <Field label={t("fields.language")}>
+              <LockedValue
+                value={values.language || "-"}
+                note={t("notes.language")}
+              />
             </Field>
 
-            <Field label="Level">
-              <Select value={values.level} onChange={(event) => updateField("level", event.target.value)}>
-                {COURSE_LEVEL_OPTIONS.map((level) => (
-                  <option key={level.value} value={level.value}>
-                    {level.label}
-                  </option>
-                ))}
-              </Select>
+            <Field label={t("fields.level")}>
+              <LockedValue
+                value={formatCourseLevel(values.level)}
+                note={t("notes.level")}
+              />
             </Field>
 
-            <Field label="Price text">
-              <Input value={values.priceText} onChange={(event) => updateField("priceText", event.target.value)} />
-            </Field>
-
-            <Field label="Status">
-              <Select value={values.status} onChange={(event) => updateField("status", event.target.value as CourseStatus)}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-              </Select>
-            </Field>
-
-            <Field label="Max participants">
+            <Field label={t("fields.maxParticipants")}>
               <Input type="number" min={0} value={values.maxParticipants} onChange={(event) => updateField("maxParticipants", Number(event.target.value))} />
+              <p className="m-0 text-xs font-semibold leading-5 text-amber-700">
+                {t("notes.maxParticipants")}
+              </p>
             </Field>
 
-            <Field label="Number of sessions">
-              <Input type="number" min={0} value={values.numberOfSessions} onChange={(event) => handleSessionCountChange(Number(event.target.value))} />
+            <Field label={t("fields.status")}>
+              <LockedValue
+                value={values.status}
+                note={t("notes.status")}
+              />
             </Field>
 
-            <Field label="Number of weeks">
-              <Input type="number" min={0} value={values.numberOfWeeks} onChange={(event) => updateField("numberOfWeeks", Number(event.target.value))} />
+            <Field label={t("fields.numberOfSessions")}>
+              <LockedValue
+                value={String(values.numberOfSessions)}
+                note={t("notes.sessions")}
+              />
+            </Field>
+
+            <Field label={t("fields.numberOfWeeks")}>
+              <LockedValue
+                value={String(values.numberOfWeeks)}
+                note={t("notes.weeks")}
+              />
             </Field>
           </div>
         </section>
 
         <div className="flex flex-wrap justify-end gap-3">
           <Button type="button" variant="secondary" onClick={() => router.push(`/${locale}/teacher/courses/${courseId}`)}>
-            Cancel
+            {t("actions.cancel")}
           </Button>
           <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? "Saving..." : "Save course"}
+            {saving ? t("actions.saving") : t("actions.save")}
           </Button>
         </div>
       </form>
@@ -286,11 +263,25 @@ function normalizeCourseLevel(value: string): string {
   return normalized;
 }
 
+function formatCourseLevel(value: string): string {
+  const normalized = normalizeCourseLevel(value);
+  return COURSE_LEVEL_OPTIONS.find((level) => level.value === normalized)?.label ?? normalized;
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2 text-sm font-bold text-slate-800">
       <span>{label}</span>
       {children}
     </label>
+  );
+}
+
+function LockedValue({ value, note }: { value: string; note: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+      <div className="text-sm font-black text-slate-950">{value}</div>
+      <p className="m-0 mt-1 text-xs font-semibold leading-5 text-slate-500">{note}</p>
+    </div>
   );
 }

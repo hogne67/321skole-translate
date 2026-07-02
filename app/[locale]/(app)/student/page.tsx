@@ -625,7 +625,7 @@ export default function StudentDashboard() {
               </Link>
 
               <Link
-                href={`/${locale}/courses`}
+                href={`/${locale}/academy/courses/marketplace`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -1260,7 +1260,7 @@ export default function StudentDashboard() {
                     fontWeight: 700,
                   }}
                 >
-                  321Academy
+                  {t("academy.badge")}
                   <span
                     style={{
                       borderRadius: 999,
@@ -1272,7 +1272,7 @@ export default function StudentDashboard() {
                       textTransform: "uppercase",
                     }}
                   >
-                    Beta
+                    {t("academy.beta")}
                   </span>
                 </div>
 
@@ -1285,7 +1285,7 @@ export default function StudentDashboard() {
                     lineHeight: 1.15,
                   }}
                 >
-                  Courses
+                  {t("academy.title")}
                 </h2>
 
                 <p
@@ -1297,8 +1297,7 @@ export default function StudentDashboard() {
                     lineHeight: 1.5,
                   }}
                 >
-                  Her vil kurs du deltar på vises senere. Foreløpig er dette en tidlig
-                  beta uten automatisk tilgang, betaling eller kobling til oppgaver.
+                  {t("academy.description")}
                 </p>
               </div>
             </div>
@@ -1327,11 +1326,11 @@ export default function StudentDashboard() {
                   boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
                 }}
               >
-                My courses
+                {t("academy.actions.myCourses")}
               </Link>
 
               <Link
-                href={`/${locale}/321lessons`}
+                href={`/${locale}/courses`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -1346,7 +1345,7 @@ export default function StudentDashboard() {
                   border: "1px solid #cbd5e1",
                 }}
               >
-                Browse public courses
+                {t("academy.actions.browse")}
               </Link>
             </div>
           </div>

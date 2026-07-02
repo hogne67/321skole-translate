@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
 import { collection, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { AcademyGate } from "../../AcademyGate";
@@ -42,6 +42,7 @@ type LibraryLesson = {
 };
 
 type PickerMode = "myContent" | "library";
+type ScheduleRepeat = "weekdays" | "weekly" | "biweekly" | "monthly";
 
 export default function CourseSessionsPage() {
   return (
@@ -53,6 +54,7 @@ export default function CourseSessionsPage() {
 
 function CourseSessionsContent() {
   const locale = useLocale();
+  const t = useTranslations("academy.sessions");
   const router = useRouter();
   const params = useParams<{ courseId?: string }>();
   const courseId = typeof params?.courseId === "string" ? params.courseId : "";
@@ -65,6 +67,7 @@ function CourseSessionsContent() {
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("18:00");
   const [durationMinutes, setDurationMinutes] = useState(120);
+  const [scheduleRepeat, setScheduleRepeat] = useState<ScheduleRepeat>("weekly");
   const [expandedSessions, setExpandedSessions] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,7 +78,7 @@ function CourseSessionsContent() {
 
     async function loadCourse() {
       if (!user || !courseId) {
-        setError("Fant ikke kurs.");
+        setError(t("errors.notFound"));
         setLoading(false);
         return;
       }
@@ -97,7 +100,7 @@ function CourseSessionsContent() {
         }
       } catch (err) {
         console.error("Failed to load sessions", err);
-        if (!cancelled) setError("Samlingene kunne ikke hentes akkurat nå.");
+        if (!cancelled) setError(t("errors.loadFailed"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -108,7 +111,7 @@ function CourseSessionsContent() {
     return () => {
       cancelled = true;
     };
-  }, [courseId, user]);
+  }, [courseId, t, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -241,13 +244,14 @@ function CourseSessionsContent() {
     );
   }
 
-  function applyWeeklySchedule() {
+  function applyQuickSchedule() {
     const baseDate = startDate && startTime ? new Date(`${startDate}T${startTime}`) : null;
+
     setCoursePlan((prev) =>
       prev.map((session, index) => {
         const startsAt =
           baseDate && !Number.isNaN(baseDate.getTime())
-            ? new Date(baseDate.getTime() + index * 7 * 24 * 60 * 60 * 1000).toISOString()
+            ? addScheduleInterval(baseDate, index, scheduleRepeat).toISOString()
             : session.startsAt;
 
         return {
@@ -285,7 +289,7 @@ function CourseSessionsContent() {
   }
 
   function removeSession(sessionNumber: number) {
-    const ok = window.confirm(`Fjerne session ${sessionNumber}?`);
+    const ok = window.confirm(t("session.confirmRemove", { number: sessionNumber }));
     if (!ok) return;
 
     setCoursePlan((prev) =>
@@ -336,17 +340,17 @@ function CourseSessionsContent() {
       router.push(`/${locale}/teacher/courses/${course.id}`);
     } catch (err) {
       console.error("Failed to save sessions", err);
-      setError("Samlingene kunne ikke lagres akkurat nå.");
+      setError(t("errors.saveFailed"));
       setSaving(false);
     }
   }
 
   if (loading) {
-    return <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Laster samlinger...</div>;
+    return <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 text-sm text-slate-500">{t("loading")}</div>;
   }
 
   if (!course) {
-    return <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error || "Fant ikke kurs."}</div>;
+    return <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error || t("errors.notFound")}</div>;
   }
 
   return (
@@ -359,24 +363,13 @@ function CourseSessionsContent() {
         active="sessions"
       />
       <form onSubmit={saveSessions} className="grid gap-5">
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="m-0 text-2xl font-black text-slate-950">Sessions</h1>
+              <h1 className="m-0 text-2xl font-black text-slate-950">{t("title")}</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Rediger hver kursdag. Her ligger forslag, møteinfo, hjemmeforslag og ressurser fra My Content, Library eller egne lenker.
+                {t("intro")}
               </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => router.push(`/${locale}/teacher/courses/${course.id}`)}>
-                Back to course
-              </Button>
-              <Link
-                href={`/${locale}/teacher/courses/${course.id}?section=Content`}
-                className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
-              >
-                Content
-              </Link>
             </div>
           </div>
         </section>
@@ -388,35 +381,46 @@ function CourseSessionsContent() {
               disabled={saving}
               className="inline-flex h-11 min-w-56 items-center justify-center rounded-xl border border-emerald-700 bg-emerald-700 px-8 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {saving ? "Saving..." : "Save sessions"}
+              {saving ? t("actions.saving") : t("actions.save")}
             </button>
           </div>
         </div>
 
         {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div> : null}
 
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <div>
-            <h2 className="m-0 text-lg font-extrabold text-slate-950">Quick schedule</h2>
+            <h2 className="m-0 text-lg font-extrabold text-slate-950">{t("quickSchedule.title")}</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              Sett startdato, tidspunkt og standard varighet. Dette fyller samlingene ukentlig nedover.
+              {t("quickSchedule.intro")}
             </p>
           </div>
-          <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
-            <Field label="Startdato">
+          <div className="grid gap-3 md:grid-cols-4">
+            <Field label={t("quickSchedule.fields.startDate")}>
               <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
             </Field>
-            <Field label="Klokkeslett">
+            <Field label={t("quickSchedule.fields.time")}>
               <Input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
             </Field>
-            <Field label="Varighet minutter">
+            <Field label={t("quickSchedule.fields.duration")}>
               <Input type="number" min={1} value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))} />
             </Field>
-            <div className="flex items-end">
-              <Button type="button" variant="secondary" onClick={applyWeeklySchedule}>
-                Apply
+            <Field label={t("quickSchedule.fields.repeat")}>
+              <Select value={scheduleRepeat} onChange={(event) => setScheduleRepeat(event.target.value as ScheduleRepeat)}>
+                <option value="weekdays">{t("quickSchedule.repeat.weekdays")}</option>
+                <option value="weekly">{t("quickSchedule.repeat.weekly")}</option>
+                <option value="biweekly">{t("quickSchedule.repeat.biweekly")}</option>
+                <option value="monthly">{t("quickSchedule.repeat.monthly")}</option>
+              </Select>
+            </Field>
+          </div>
+          <div className="rounded-lg border border-sky-200 bg-white p-3 text-sm font-semibold leading-6 text-slate-700">
+            {t("quickSchedule.note")}
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={applyQuickSchedule}>
+                {t("actions.apply")}
               </Button>
-            </div>
           </div>
         </section>
 
@@ -425,31 +429,35 @@ function CourseSessionsContent() {
             const expanded = expandedSessions[session.sessionNumber] === true;
 
             return (
-              <div key={session.sessionNumber} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div key={session.sessionNumber} className="overflow-hidden rounded-lg border border-sky-100 bg-sky-50/80 shadow-sm">
                 <div className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 ${sessionToneClass(session.status)}`}>
                   <div className="min-w-0">
                     <div className="text-xs font-black uppercase tracking-wide opacity-70">
-                      Session {session.sessionNumber}
+                      {t("session.label", { number: session.sessionNumber })}
                     </div>
                     <h2 className="m-0 mt-1 truncate text-base font-black">
-                      {session.title || "Uten tittel"}
+                      {session.title || t("session.untitled")}
                     </h2>
                   </div>
                   <div className="text-right text-sm font-extrabold">
-                    {formatCompactSessionDate(session.startsAt)}
+                    {formatCompactSessionDate(session.startsAt, t("session.dateNotSet"))}
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                   <p className="m-0 min-w-0 flex-1 truncate text-sm text-slate-600">
-                    {session.description || "Ingen beskrivelse ennå."}
+                    {session.description || t("session.noDescription")}
                   </p>
                   <button
                     type="button"
                     onClick={() => toggleSession(session.sessionNumber)}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-lg font-black text-slate-900 hover:bg-slate-50"
                     aria-expanded={expanded}
-                    aria-label={expanded ? `Lukk session ${session.sessionNumber}` : `Åpne session ${session.sessionNumber}`}
+                    aria-label={
+                      expanded
+                        ? t("session.closeAria", { number: session.sessionNumber })
+                        : t("session.openAria", { number: session.sessionNumber })
+                    }
                   >
                     {expanded ? "−" : "+"}
                   </button>
@@ -462,7 +470,7 @@ function CourseSessionsContent() {
                         href={`/${locale}/teacher/courses/${course.id}/sessions/${session.sessionNumber}`}
                         className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-3 text-sm font-bold text-white no-underline hover:bg-emerald-800"
                       >
-                        Open session room
+                        {t("actions.openSessionRoom")}
                       </Link>
                       <Button
                         type="button"
@@ -470,20 +478,20 @@ function CourseSessionsContent() {
                         size="sm"
                         onClick={() => removeSession(session.sessionNumber)}
                       >
-                        Remove session
+                        {t("actions.removeSession")}
                       </Button>
                     </div>
 
                     <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
                       <div className="grid gap-3 md:grid-cols-2">
-                        <Field label="Starts at">
+                        <Field label={t("fields.startsAt")}>
                           <Input
                             type="datetime-local"
                             value={toDateTimeLocalValue(session.startsAt)}
                             onChange={(event) => updateSession(index, "startsAt", fromDateTimeLocalValue(event.target.value))}
                           />
                         </Field>
-                        <Field label="Duration minutes">
+                        <Field label={t("fields.durationMinutes")}>
                           <Input
                             type="number"
                             min={0}
@@ -491,30 +499,30 @@ function CourseSessionsContent() {
                             onChange={(event) => updateSession(index, "durationMinutes", Number(event.target.value))}
                           />
                         </Field>
-                        <Field label="Meeting URL">
+                        <Field label={t("fields.meetingUrl")}>
                           <Input value={session.meetingUrl} onChange={(event) => updateSession(index, "meetingUrl", event.target.value)} placeholder="https://..." />
                         </Field>
-                        <Field label="Status">
+                        <Field label={t("fields.status")}>
                           <Select value={session.status} onChange={(event) => updateSession(index, "status", event.target.value as CourseSessionStatus)}>
-                            <option value="planned">planned</option>
-                            <option value="completed">completed</option>
-                            <option value="cancelled">cancelled</option>
+                            <option value="planned">{t("status.planned")}</option>
+                            <option value="completed">{t("status.completed")}</option>
+                            <option value="cancelled">{t("status.cancelled")}</option>
                           </Select>
                         </Field>
                       </div>
                     </div>
 
                     <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
-                      <Field label="Title">
+                      <Field label={t("fields.title")}>
                         <Input value={session.title} onChange={(event) => updateSession(index, "title", event.target.value)} />
                       </Field>
-                      <Field label="Description">
+                      <Field label={t("fields.description")}>
                         <Textarea value={session.description} onChange={(event) => updateSession(index, "description", event.target.value)} rows={3} />
                       </Field>
-                      <Field label="Content suggestions">
+                      <Field label={t("fields.contentSuggestions")}>
                         <Textarea value={session.contentSuggestions} onChange={(event) => updateSession(index, "contentSuggestions", event.target.value)} rows={3} />
                       </Field>
-                      <Field label="Homework suggestion">
+                      <Field label={t("fields.homework")}>
                         <Textarea value={session.homework} onChange={(event) => updateSession(index, "homework", event.target.value)} rows={2} />
                       </Field>
                     </div>
@@ -522,27 +530,27 @@ function CourseSessionsContent() {
                     <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <h3 className="m-0 text-base font-extrabold text-slate-950">Resources</h3>
+                          <h3 className="m-0 text-base font-extrabold text-slate-950">{t("resources.title")}</h3>
                           <p className="mt-1 text-sm text-slate-600">
-                            Lenker, PDF-lenker, 321school-placeholder eller manuelle notater.
+                            {t("resources.intro")}
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <Button type="button" variant="secondary" size="sm" onClick={() => setPicker({ sessionIndex: index, mode: "myContent" })}>
-                            Add from My Content
+                            {t("actions.addFromMyContent")}
                           </Button>
                           <Button type="button" variant="secondary" size="sm" onClick={() => setPicker({ sessionIndex: index, mode: "library" })}>
-                            Add from Library
+                            {t("actions.addFromLibrary")}
                           </Button>
                           <Button type="button" variant="secondary" size="sm" onClick={() => addResource(index)}>
-                            Add resource
+                            {t("actions.addResource")}
                           </Button>
                         </div>
                       </div>
 
                       {session.resources.length === 0 ? (
                         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                          Ingen ressurser lagt til ennå.
+                          {t("resources.empty")}
                         </div>
                       ) : (
                         <div className="grid gap-3">
@@ -551,7 +559,7 @@ function CourseSessionsContent() {
                               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-3">
                                 <div>
                                   <div className="text-xs font-black uppercase tracking-wide text-sky-700">
-                                    Resource {resourceIndex + 1}
+                                    {t("resources.label", { number: resourceIndex + 1 })}
                                   </div>
                                   <div className="mt-1 flex flex-wrap gap-2">
                                     <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-800">
@@ -568,50 +576,50 @@ function CourseSessionsContent() {
                                   size="sm"
                                   onClick={() => removeResource(index, resourceIndex)}
                                 >
-                                  Remove
+                                  {t("actions.remove")}
                                 </Button>
                               </div>
                               <div className="grid gap-3 md:grid-cols-3">
-                                <Field label="Type">
+                                <Field label={t("fields.type")}>
                                   <Select
                                     value={resource.type}
                                     onChange={(event) =>
                                       updateResource(index, resourceIndex, "type", event.target.value as CourseSessionResourceType)
                                     }
                                   >
-                                    <option value="link">External link</option>
-                                    <option value="pdf">PDF / file link</option>
-                                    <option value="platform">321school content later</option>
-                                    <option value="note">Manual note</option>
+                                    <option value="link">{t("resources.type.link")}</option>
+                                    <option value="pdf">{t("resources.type.pdf")}</option>
+                                    <option value="platform">{t("resources.type.platform")}</option>
+                                    <option value="note">{t("resources.type.note")}</option>
                                   </Select>
                                 </Field>
-                                <Field label="Visibility">
+                                <Field label={t("fields.visibility")}>
                                   <Select
                                     value={resource.visibility}
                                     onChange={(event) =>
                                       updateResource(index, resourceIndex, "visibility", event.target.value as CourseSessionResourceVisibility)
                                     }
                                   >
-                                    <option value="participants">Participants</option>
-                                    <option value="teacher">Teacher only</option>
-                                    <option value="public">Public preview</option>
+                                    <option value="participants">{t("resources.visibility.participants")}</option>
+                                    <option value="teacher">{t("resources.visibility.teacher")}</option>
+                                    <option value="public">{t("resources.visibility.public")}</option>
                                   </Select>
                                 </Field>
-                                <Field label="Title">
+                                <Field label={t("fields.title")}>
                                   <Input
                                     value={resource.title}
                                     onChange={(event) => updateResource(index, resourceIndex, "title", event.target.value)}
                                   />
                                 </Field>
                               </div>
-                              <Field label="URL">
+                              <Field label={t("fields.url")}>
                                 <Input
                                   value={resource.url}
                                   onChange={(event) => updateResource(index, resourceIndex, "url", event.target.value)}
-                                  placeholder={resource.type === "note" ? "Valgfritt" : "https://..."}
+                                  placeholder={resource.type === "note" ? t("resources.optional") : "https://..."}
                                 />
                               </Field>
-                              <Field label="Description">
+                              <Field label={t("fields.description")}>
                                 <Textarea
                                   value={resource.description}
                                   onChange={(event) => updateResource(index, resourceIndex, "description", event.target.value)}
@@ -630,7 +638,7 @@ function CourseSessionsContent() {
                         onClick={() => toggleSession(session.sessionNumber)}
                         className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
                       >
-                        Close session
+                        {t("actions.closeSession")}
                       </button>
                     </div>
                   </div>
@@ -645,9 +653,9 @@ function CourseSessionsContent() {
           onClick={addSession}
           className="rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50 p-5 text-left transition hover:border-emerald-500 hover:bg-emerald-100"
         >
-          <div className="text-base font-black text-emerald-950">+ Add new session</div>
+          <div className="text-base font-black text-emerald-950">{t("actions.addNewSession")}</div>
           <div className="mt-1 text-sm font-semibold text-emerald-800">
-            Legg til en ny samling nederst i kursplanen.
+            {t("session.addNewDescription")}
           </div>
         </button>
 
@@ -685,9 +693,9 @@ function CourseSessionsContent() {
                   visibility: "participants",
                   sourceId: lesson.id,
                   sourceType: "myContent",
-                  title: lesson.title || "Lesson",
+                  title: lesson.title || t("resources.lesson"),
                   url: lesson.href,
-                  description: "321school content. Studenttilgang kobles på senere.",
+                  description: t("resources.myContentDescription"),
                 },
               ],
             }
@@ -710,9 +718,9 @@ function CourseSessionsContent() {
                   visibility: "participants",
                   sourceId: lesson.id,
                   sourceType: "library",
-                  title: lesson.title || "Library lesson",
+                  title: lesson.title || t("resources.libraryLesson"),
                   url: lesson.href,
-                  description: "Library content. Studenttilgang kobles på senere.",
+                  description: t("resources.libraryDescription"),
                 },
               ],
             }
@@ -735,14 +743,15 @@ function ContentPicker({
   onPick: (lesson: Extract<ContentItem, { type: "lesson" }> | LibraryLesson) => void;
   onClose: () => void;
 }) {
+  const t = useTranslations("academy.sessions");
   const [search, setSearch] = useState("");
   const lessons = mode === "library" ? libraryLessons : myLessons;
   const filteredLessons = lessons.filter((lesson) => matchesLessonSearch(lesson, search)).slice(0, 80);
-  const title = mode === "library" ? "Add from Library" : "Add from My Content";
+  const title = mode === "library" ? t("picker.libraryTitle") : t("picker.myContentTitle");
   const emptyText =
     mode === "library"
-      ? "Fant ingen library-ressurser akkurat nå."
-      : "Fant ingen lessons i My Content akkurat nå.";
+      ? t("picker.libraryEmpty")
+      : t("picker.myContentEmpty");
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
@@ -751,18 +760,18 @@ function ContentPicker({
           <div>
             <h2 className="m-0 text-lg font-extrabold text-slate-950">{title}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Legger bare en peker til innholdet. Studenttilgang kommer senere.
+              {t("picker.intro")}
             </p>
           </div>
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-            Close
+            {t("actions.close")}
           </Button>
         </div>
 
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Søk etter tittel, nivå eller språk"
+          placeholder={t("picker.searchPlaceholder")}
         />
 
         {filteredLessons.length === 0 ? (
@@ -778,7 +787,7 @@ function ContentPicker({
                 onClick={() => onPick(lesson)}
                 className="rounded-lg border border-slate-200 bg-white p-3 text-left hover:bg-slate-50"
               >
-                <div className="font-extrabold text-slate-950">{lesson.title || "Lesson"}</div>
+                <div className="font-extrabold text-slate-950">{lesson.title || t("resources.lesson")}</div>
                 <div className="mt-1 text-xs text-slate-500">
                   {lesson.status || "draft"} {lesson.level ? `· ${lesson.level}` : ""}
                 </div>
@@ -830,8 +839,35 @@ function fromDateTimeLocalValue(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toISOString();
 }
 
-function formatCompactSessionDate(value: string): string {
-  if (!value) return "Dato ikke satt";
+function addScheduleInterval(baseDate: Date, index: number, repeat: ScheduleRepeat): Date {
+  if (repeat === "weekdays") return addBusinessDays(baseDate, index);
+
+  const next = new Date(baseDate);
+  if (repeat === "monthly") {
+    next.setMonth(baseDate.getMonth() + index);
+    return next;
+  }
+
+  const days = repeat === "biweekly" ? 14 : 7;
+  next.setDate(baseDate.getDate() + index * days);
+  return next;
+}
+
+function addBusinessDays(baseDate: Date, index: number): Date {
+  const next = new Date(baseDate);
+  let added = 0;
+
+  while (added < index) {
+    next.setDate(next.getDate() + 1);
+    const day = next.getDay();
+    if (day !== 0 && day !== 6) added += 1;
+  }
+
+  return next;
+}
+
+function formatCompactSessionDate(value: string, emptyText: string): string {
+  if (!value) return emptyText;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString(undefined, {

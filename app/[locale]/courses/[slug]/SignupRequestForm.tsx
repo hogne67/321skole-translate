@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export function SignupRequestForm({
   slug,
@@ -9,6 +10,7 @@ export function SignupRequestForm({
   slug: string;
   compact?: boolean;
 }) {
+  const t = useTranslations("academy.publicCourse.signup");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -41,10 +43,10 @@ export function SignupRequestForm({
       if (!res.ok) throw new Error(data.error || "Could not save request");
 
       setForm({ name: "", email: "", phone: "", message: "", website: "" });
-      setStatus("Takk. Forespørselen er sendt.");
+      setStatus(t("success"));
     } catch (err) {
       console.error("Failed to submit signup request", err);
-      setError("Forespørselen kunne ikke sendes akkurat nå.");
+      setError(t("error"));
     } finally {
       setSaving(false);
     }
@@ -54,11 +56,11 @@ export function SignupRequestForm({
     <form onSubmit={submit} className="mt-6 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
       <div>
         <h2 className="m-0 text-lg font-black text-slate-950">
-          {compact ? "Contact instructor" : "Meld interesse"}
+          {compact ? t("contactTitle") : t("requestTitle")}
         </h2>
         {compact ? (
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Use this if you have questions before buying or need a manual follow-up.
+            {t("compactHelp")}
           </p>
         ) : null}
       </div>
@@ -74,7 +76,7 @@ export function SignupRequestForm({
         </label>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="Name">
+        <Field label={t("name")}>
           <input
             value={form.name}
             onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
@@ -83,7 +85,7 @@ export function SignupRequestForm({
             required
           />
         </Field>
-        <Field label="Email">
+        <Field label={t("email")}>
           <input
             type="email"
             value={form.email}
@@ -93,7 +95,7 @@ export function SignupRequestForm({
             required
           />
         </Field>
-        <Field label="Phone">
+        <Field label={t("phone")}>
           <input
             value={form.phone}
             onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
@@ -102,7 +104,7 @@ export function SignupRequestForm({
           />
         </Field>
       </div>
-      <Field label="Message">
+      <Field label={t("message")}>
         <textarea
           value={form.message}
           onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
@@ -118,7 +120,7 @@ export function SignupRequestForm({
         disabled={saving}
         className="inline-flex h-11 w-fit items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-5 text-sm font-black text-white disabled:opacity-60"
       >
-        {saving ? "Sending..." : compact ? "Send request" : "Request a place"}
+        {saving ? t("sending") : compact ? t("sendRequest") : t("requestPlace")}
       </button>
     </form>
   );

@@ -138,6 +138,19 @@
       "actions": {
         "openSpaces": "Open classes"
       }
+    },
+    "academy": {
+      "badge": "321Academy",
+      "beta": "Beta",
+      "title": "Courses",
+      "description": "Plan, publish and follow up courses in a dedicated course flow. The module is beta and kept separate from Lessons, Spaces and Library for now.",
+      "actions": {
+        "myCourses": "My courses",
+        "marketplace": "Course marketplace",
+        "generate": "Generate course",
+        "published": "Published courses",
+        "attending": "Courses I attend"
+      }
     }
   }
 }

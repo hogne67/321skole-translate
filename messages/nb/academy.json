@@ -1,0 +1,1020 @@
+{
+  "academy": {
+    "common": {
+      "untitled": "Uten tittel",
+      "draft": "draft"
+    },
+    "workspace": {
+      "subtitle": "321Academy kursarbeidsområde",
+      "backToCourses": "Tilbake til kurs",
+      "nav": {
+        "overview": "Oversikt",
+        "edit": "Rediger kurs",
+        "sessions": "Rediger samlinger",
+        "content": "Innhold",
+        "marketing": "Markedsføring",
+        "sales": "Salg",
+        "participants": "Deltakere",
+        "payments": "Betalinger",
+        "submissions": "Innleveringer",
+        "messages": "Meldinger"
+      }
+    },
+    "teacherCourses": {
+      "title": "321Academy",
+      "intro": "Lag, organiser og følg opp kurs for egne deltakere.",
+      "createCourse": "+ Lag kurs",
+      "stripeReturned": "Stripe-oppsettet er tilbake. Åpne et kurs og sjekk Markedsføring → Salg for å bekrefte utbetalingsstatus.",
+      "filters": {
+        "myCourses": "Mine kurs",
+        "published": "Publiserte kurs",
+        "participating": "Kurs jeg deltar på",
+        "marketplace": "Kursmarked"
+      },
+      "headings": {
+        "courses": "Kurs",
+        "published": "Publiserte kurs",
+        "noCourses": "Ingen kurs ennå",
+        "noParticipating": "Ingen kurs du deltar på ennå"
+      },
+      "searchPlaceholder": "Søk i kurs",
+      "sort": {
+        "newest": "Nyeste først",
+        "oldest": "Eldste først",
+        "titleAz": "Tittel A-Å",
+        "titleZa": "Tittel Å-A"
+      },
+      "states": {
+        "loading": "Laster kurs...",
+        "loadFailed": "Kunne ikke hente kurs akkurat nå.",
+        "publishFailed": "Publisering kunne ikke oppdateres akkurat nå.",
+        "emptyText": "Start med et enkelt kursutkast. Du kan fylle inn detaljer nå og bygge videre senere.",
+        "participatingEmptyText": "Når du er deltaker på et kurs, vises det her uten at du må forlate lærerområdet."
+      },
+      "actions": {
+        "openCourse": "Åpne kurs",
+        "openCourseRoom": "Åpne kursrom",
+        "publish": "Publiser",
+        "unpublish": "Avpubliser",
+        "working": "Jobber...",
+        "publicPage": "Offentlig side",
+        "shareLink": "Del lenke",
+        "copied": "Kopiert",
+        "copyFailed": "Kunne ikke kopiere",
+        "preview": "Forhåndsvis"
+      },
+      "sale": {
+        "notPublished": "Ikke publisert",
+        "saleOff": "Salg av",
+        "noPrice": "Ingen pris",
+        "review": "Må vurderes",
+        "ready": "Klar for salg"
+      },
+      "meta": {
+        "sessions": "{count} samlinger",
+        "resources": "{count} ressurser",
+        "next": "Neste: {date}",
+        "notScheduled": "ikke planlagt"
+      }
+    },
+    "marketplace": {
+      "metadataTitle": "321Academy kurs",
+      "metadataDescription": "Se publiserte kurs fra 321Academy.",
+      "badge": "321Academy",
+      "title": "Kurs",
+      "intro": "Se instruktørledede kurs. Betalte kurs kan kjøpes direkte, og gratis eller manuelle kurs kan ta imot forespørsler.",
+      "myCourseRoom": "Mitt kursrom",
+      "emptyTitle": "Ingen publiserte kurs ennå",
+      "emptyText": "Publiserte 321Academy-kurs vil vises her.",
+      "levelFallback": "Nivå",
+      "languageFallback": "Språk",
+      "instructor": "Instruktør: {name}",
+      "descriptionFallback": "Kursbeskrivelse kommer snart.",
+      "start": "Start",
+      "startComing": "Startdato kommer",
+      "price": "Pris",
+      "contact": "Kontakt",
+      "sessions": "Samlinger",
+      "weeks": "Uker",
+      "flexible": "Fleksibelt",
+      "viewCourse": "Se kurs"
+    },
+    "studentCourses": {
+      "title": "Kurs",
+      "intro": "Kurs der e-posten din er lagt til som deltaker.",
+      "backToDashboard": "Tilbake til dashboard",
+      "loadFailed": "Kursene kunne ikke hentes akkurat nå.",
+      "checkoutTitle": "Betaling fullført",
+      "checkoutAdded": "{title} er lagt til i kursrommet ditt.",
+      "checkoutAddedFallback": "Kurset er lagt til i kursrommet ditt.",
+      "openCourseRoom": "Åpne kursrom",
+      "loading": "Laster kurs...",
+      "emptyTitle": "Ingen kurs ennå",
+      "emptyText": "Når en instruktør legger til denne e-posten som deltaker, vises kurset her.",
+      "untitled": "Kurs uten tittel",
+      "sessions": "{count} samlinger",
+      "nextSession": "Neste samling",
+      "session": "Samling {number}",
+      "startsIn": "Starter om",
+      "notScheduled": "Ingen samling er planlagt ennå.",
+      "joinVideo": "Bli med på videosamling",
+      "videoLater": "Videorommet legges til senere.",
+      "dateNotSet": "Dato ikke satt",
+      "notSet": "Ikke satt",
+      "now": "Nå",
+      "daysHours": "{days}d {hours}t",
+      "hoursMinutes": "{hours}t {minutes}m",
+      "minutes": "{minutes}m",
+      "status": {
+        "invited": "invitert",
+        "enrolled": "påmeldt",
+        "active": "aktiv",
+        "completed": "fullført",
+        "cancelled": "avlyst"
+      }
+    },
+    "studentCourseRoom": {
+      "notFound": "Fant ikke kurs.",
+      "loadFailed": "Kursrommet kunne ikke hentes akkurat nå.",
+      "saveFailed": "Innleveringen kunne ikke lagres akkurat nå.",
+      "saved": "Lagret",
+      "loading": "Laster kursrom...",
+      "backToCourses": "Tilbake til kurs",
+      "publicPage": "Offentlig kursside",
+      "eyebrow": "321Academy kursrom",
+      "untitled": "Uten tittel",
+      "noDescription": "Ingen beskrivelse ennå.",
+      "levelMissing": "Nivå ikke satt",
+      "languageMissing": "Språk ikke satt",
+      "sessionsCount": "{count} samlinger",
+      "weeksCount": "{count} uker",
+      "nav": {
+        "overview": "Oversikt",
+        "tasks": "Oppgaver",
+        "progress": "Progresjon",
+        "feedback": "Tilbakemelding",
+        "messages": "Meldinger",
+        "info": "Kursinfo",
+        "sessions": "Samlinger"
+      },
+      "stats": {
+        "todo": "Å gjøre",
+        "submitted": "Levert",
+        "approved": "Godkjent",
+        "progress": "Progresjon"
+      },
+      "nextSession": "Neste samling",
+      "session": "Samling {number}",
+      "openSessionRoom": "Åpne samlingsrom",
+      "noSessionScheduled": "Ingen samling er planlagt ennå.",
+      "tasks": {
+        "title": "Å gjøre",
+        "intro": "Åpne kursoppgaver og ressurser som ikke er godkjent ennå.",
+        "empty": "Alt som er lagt ut er godkjent eller ferdig for nå."
+      },
+      "progress": {
+        "title": "Min progresjon",
+        "summary": "{submitted}/{total} ressurser levert · {approved} godkjent",
+        "empty": "Ingen kursressurser er lagt ut ennå."
+      },
+      "feedback": {
+        "title": "Tilbakemelding fra instruktør",
+        "intro": "Siste vurderinger og kommentarer fra kursholder.",
+        "empty": "Ingen vurderinger ennå.",
+        "courseTask": "Kursoppgave",
+        "resource": "Ressurs",
+        "noComment": "Ingen kommentar, bare status er satt.",
+        "updated": "Oppdatert: {date}"
+      },
+      "messages": {
+        "title": "Meldinger",
+        "intro": "Beskjeder fra kursinstruktør vises her.",
+        "empty": "Ingen beskjeder ennå.",
+        "fallback": "Beskjed"
+      },
+      "info": {
+        "learningGoals": "Læringsmål",
+        "targetAudience": "Målgruppe",
+        "missing": "Ikke fylt ut"
+      },
+      "sessions": {
+        "title": "Samlinger",
+        "empty": "Ingen samlinger er lagt inn ennå.",
+        "untitled": "Samling uten tittel",
+        "noDescription": "Ingen beskrivelse ennå.",
+        "open": "Åpne",
+        "close": "Lukk",
+        "resources": "{count} ressurser",
+        "submitted": "{submitted}/{total} levert",
+        "openMeeting": "Åpne møte",
+        "resourcesTitle": "Ressurser for denne samlingen",
+        "openLesson": "Åpne oppgave",
+        "openResource": "Åpne ressurs",
+        "opensLater": "Plattformressurs åpnes her senere.",
+        "comment": "Kommentar til instruktør",
+        "commentPlaceholder": "Skriv en kort kommentar, eller lever tomt hvis dette bare skal markeres som gjort.",
+        "saving": "Lagrer...",
+        "submit": "Lever",
+        "noResources": "Ingen ressurser er lagt til i denne samlingen ennå.",
+        "homework": "Lekser:",
+        "closeSession": "Lukk samling"
+      },
+      "status": {
+        "draft": "Utkast",
+        "submitted": "Levert",
+        "approved": "Godkjent",
+        "needsWork": "Trenger arbeid",
+        "awaiting": "Venter på vurdering",
+        "notSubmitted": "Ikke levert ennå",
+        "planned": "planlagt",
+        "completed": "gjennomført",
+        "cancelled": "avlyst"
+      },
+      "dateNotSet": "Dato ikke satt"
+    },
+    "studentSessionRoom": {
+      "notFound": "Fant ikke denne samlingen.",
+      "loadFailed": "Samlingen kunne ikke hentes akkurat nå.",
+      "loading": "Laster samling...",
+      "backToCourseRoom": "Tilbake til kursrom",
+      "courseFallback": "Kurs",
+      "session": "Samling {number}",
+      "noDescription": "Ingen beskrivelse ennå.",
+      "status": {
+        "planned": "planlagt",
+        "completed": "gjennomført",
+        "cancelled": "avlyst",
+        "draft": "Utkast",
+        "submitted": "Levert",
+        "approved": "Godkjent",
+        "needsWork": "Trenger arbeid",
+        "awaiting": "Venter på vurdering",
+        "notSubmitted": "Ikke levert ennå"
+      },
+      "video": {
+        "eyebrow": "Live samling",
+        "title": "Videorom",
+        "intro": "Bli med i livesamlingen her når instruktøren har åpnet rommet.",
+        "fullscreen": "Fullskjerm",
+        "exitFullscreen": "Avslutt fullskjerm",
+        "placeholder": "Daily/møterom",
+        "starting": "Starter...",
+        "reconnect": "Koble til video på nytt",
+        "join": "Bli med i videosamling",
+        "notAvailable": "Dette møtet er ikke tilgjengelig ennå. Prøv igjen nærmere tidspunktet for samlingen."
+      },
+      "info": {
+        "starts": "Starter",
+        "duration": "Varighet",
+        "resources": "Ressurser",
+        "submitted": "Levert"
+      },
+      "resources": {
+        "title": "Ressurser for samlingen",
+        "intro": "Materiell og oppgaver knyttet til denne samlingen.",
+        "empty": "Ingen ressurser er lagt til i denne samlingen ennå.",
+        "openLesson": "Åpne oppgave",
+        "openResource": "Åpne ressurs",
+        "opensLater": "Denne ressursen åpnes her senere."
+      },
+      "agenda": {
+        "title": "Agenda",
+        "empty": "Instruktøren har ikke lagt inn agenda ennå.",
+        "homework": "Lekser"
+      },
+      "dateNotSet": "Dato ikke satt"
+    },
+    "teacherPreview": {
+      "loading": "Laster forhåndsvisning...",
+      "notFound": "Fant ikke kurs.",
+      "loadFailed": "Forhåndsvisningen kunne ikke hentes akkurat nå.",
+      "eyebrow": "321Academy preview",
+      "untitled": "Uten tittel",
+      "noDescription": "Ingen beskrivelse ennå.",
+      "joinButton": "Bli med / meld deg på",
+      "badges": {
+        "level": "Nivå",
+        "language": "Språk",
+        "sessions": "Samlinger",
+        "price": "Pris"
+      },
+      "missing": "Ikke fylt ut",
+      "learningGoals": "Læringsmål",
+      "targetAudience": "Målgruppe",
+      "coursePlan": "Kursplan",
+      "noSessions": "Ingen samlinger er lagt inn ennå.",
+      "session": "Samling {number}",
+      "noSessionTitle": "Uten tittel",
+      "noSessionDescription": "Ingen beskrivelse.",
+      "contentSuggestions": "Forslag til innhold:",
+      "resources": "Ressurser",
+      "openResource": "Åpne ressurs",
+      "meetingLink": "Møtelenke",
+      "meetingLater": "Møtelenke kommer senere",
+      "homework": "Lekser:",
+      "noHomework": "Ingen lekser.",
+      "back": "Tilbake til kursdashboard",
+      "dateNotSet": "Dato ikke satt",
+      "visibility": {
+        "teacher": "Kun lærer",
+        "public": "Offentlig preview",
+        "participants": "Deltakere"
+      }
+    },
+    "publicCourse": {
+      "brand": "321Academy",
+      "instructor": "Instruktør: {name}",
+      "noDescription": "Ingen beskrivelse ennå.",
+      "badges": {
+        "level": "Nivå",
+        "language": "Språk",
+        "sessions": "Samlinger",
+        "weeks": "Uker",
+        "maxParticipants": "Maks deltakere",
+        "available": "Ledig",
+        "price": "Pris"
+      },
+      "places": "{count} plasser",
+      "missing": "Ikke fylt ut",
+      "buy": "Kjøp kurs",
+      "paymentHeld": "Betalingen holdes trygt av 321School og utbetales til instruktør etter kursgjennomføring.",
+      "full": "Kurset er fullt akkurat nå. Du kan fortsatt kontakte instruktøren.",
+      "learningGoals": "Læringsmål",
+      "targetAudience": "Målgruppe",
+      "about": "Om kurset",
+      "coursePlan": "Kursplan",
+      "noSessions": "Ingen samlinger er publisert ennå.",
+      "session": "Samling {number}",
+      "untitled": "Uten tittel",
+      "noSessionDescription": "Ingen beskrivelse.",
+      "contentSuggestions": "Forslag til innhold:",
+      "resources": "Ressurser",
+      "openResource": "Åpne ressurs",
+      "availableAfterEnrollment": "Tilgjengelig etter påmelding",
+      "meetingAfterEnrollment": "Møtelenke blir tilgjengelig etter påmelding",
+      "homework": "Lekser:",
+      "noHomework": "Ingen lekser.",
+      "dateNotSet": "Dato ikke satt",
+      "signup": {
+        "contactTitle": "Kontakt instruktør",
+        "requestTitle": "Meld interesse",
+        "compactHelp": "Bruk dette hvis du har spørsmål før kjøp eller trenger manuell oppfølging.",
+        "name": "Navn",
+        "email": "E-post",
+        "phone": "Telefon",
+        "message": "Melding",
+        "success": "Takk. Forespørselen er sendt.",
+        "error": "Forespørselen kunne ikke sendes akkurat nå.",
+        "sending": "Sender...",
+        "sendRequest": "Send forespørsel",
+        "requestPlace": "Meld interesse"
+      },
+      "checkout": {
+        "signin": "Logg inn før du kjøper dette kurset.",
+        "failed": "Kunne ikke starte betaling",
+        "opening": "Åpner betaling..."
+      }
+    },
+    "teacherSessionRoom": {
+      "loading": "Laster samling...",
+      "notFound": "Fant ikke denne samlingen.",
+      "loadFailed": "Samlingen kunne ikke hentes akkurat nå.",
+      "dailyUnavailable": "Møtet er ikke tilgjengelig ennå. Prøv igjen nærmere starttidspunktet.",
+      "dailyLoadFailed": "Daily-scriptet kunne ikke lastes",
+      "dailyCouldNotLoad": "Daily kunne ikke lastes",
+      "videoStartFailed": "Kunne ikke starte videosamling",
+      "fullscreenFailed": "Kunne ikke bytte fullskjerm.",
+      "backToCourse": "Tilbake til kurs",
+      "eyebrow": "Instruktørrom · Samling {number}",
+      "fallbackTitle": "Samling {number}",
+      "noDescription": "Ingen beskrivelse av samlingen ennå.",
+      "editSessions": "Rediger samlinger",
+      "hostRoom": "Vertrom",
+      "videoTitle": "Videosamling",
+      "videoIntro": "Bli med via denne siden som instruktør. Dette lager en vertsnøkkel for det private Daily-rommet.",
+      "fullscreen": "Fullskjerm",
+      "exitFullscreen": "Avslutt fullskjerm",
+      "embedLabel": "Daily instruktørvisning",
+      "starting": "Starter...",
+      "reconnect": "Koble til video på nytt",
+      "startJoin": "Start / bli med",
+      "cards": {
+        "starts": "Starter",
+        "duration": "Varighet",
+        "resources": "Ressurser",
+        "meetingLink": "Møtelenke",
+        "ready": "Klar",
+        "createdOnJoin": "Opprettes ved oppstart"
+      },
+      "sessionPlan": "Plan for samlingen",
+      "noAgenda": "Ingen agenda er lagt til ennå.",
+      "dateNotSet": "Dato ikke satt"
+    },
+    "editCourse": {
+      "title": "Rediger kurs",
+      "intro": "Oppdater overordnet kursinformasjon. Samlinger, datoer og ressurser redigeres i Rediger samlinger.",
+      "loading": "Laster kurs...",
+      "errors": {
+        "notFound": "Fant ikke kurs.",
+        "ownerOnly": "Bare eier kan redigere dette kurset.",
+        "loadFailed": "Kurset kunne ikke hentes akkurat nå.",
+        "titleRequired": "Tittel må fylles ut.",
+        "saveFailed": "Kurset kunne ikke lagres akkurat nå."
+      },
+      "fields": {
+        "title": "Tittel",
+        "description": "Beskrivelse",
+        "learningGoals": "Læringsmål",
+        "targetAudience": "Målgruppe",
+        "language": "Språk",
+        "level": "Nivå",
+        "maxParticipants": "Maks deltakere",
+        "status": "Status",
+        "numberOfSessions": "Antall samlinger",
+        "numberOfWeeks": "Antall uker"
+      },
+      "notes": {
+        "language": "Språk låses etter at kurset er opprettet fordi det påvirker forventninger, materiell og markedsføring.",
+        "level": "Nivå låses etter oppsett. Lag et nytt kurs hvis målgruppenivået endres mye.",
+        "maxParticipants": "Endring her kan påvirke salgskapasitet og tilgjengelighet på offentlig kursside.",
+        "status": "Publisering og salgsstatus styres fra kursoversikten og Salg.",
+        "sessions": "Bruk Rediger samlinger for å legge til, fjerne eller planlegge samlinger.",
+        "weeks": "Kursvarighet brukes i oppsett, utbetaling og lisensestimat."
+      },
+      "actions": {
+        "cancel": "Avbryt",
+        "saving": "Lagrer...",
+        "save": "Lagre kurs"
+      }
+    },
+    "sessions": {
+      "title": "Samlinger",
+      "intro": "Rediger hver kursdag. Her ligger forslag, møteinfo, hjemmeforslag og ressurser fra Mitt innhold, biblioteket eller egne lenker.",
+      "loading": "Laster samlinger...",
+      "errors": {
+        "notFound": "Fant ikke kurs.",
+        "loadFailed": "Samlingene kunne ikke hentes akkurat nå.",
+        "saveFailed": "Samlingene kunne ikke lagres akkurat nå."
+      },
+      "actions": {
+        "saving": "Lagrer...",
+        "save": "Lagre samlinger",
+        "apply": "Bruk",
+        "openSessionRoom": "Åpne samlingsrom",
+        "removeSession": "Fjern samling",
+        "addFromMyContent": "Legg til fra Mitt innhold",
+        "addFromLibrary": "Legg til fra bibliotek",
+        "addResource": "Legg til ressurs",
+        "remove": "Fjern",
+        "closeSession": "Lukk samling",
+        "addNewSession": "+ Legg til ny samling",
+        "close": "Lukk"
+      },
+      "quickSchedule": {
+        "title": "Quick schedule",
+        "intro": "Sett startdato, klokkeslett og gjentakelse. Dette fyller datoer for alle samlinger, og du kan endre hver samling manuelt etterpå.",
+        "note": "\"Påfølgende ukedager\" legger samlingene på neste arbeidsdag etter hverandre og hopper over lørdag og søndag. Alle datoer og tidspunkt kan endres manuelt etterpå.",
+        "fields": {
+          "startDate": "Startdato",
+          "time": "Klokkeslett",
+          "duration": "Varighet minutter",
+          "repeat": "Gjentakelse"
+        },
+        "repeat": {
+          "weekdays": "Påfølgende ukedager",
+          "weekly": "Hver uke",
+          "biweekly": "Annenhver uke",
+          "monthly": "Hver måned"
+        }
+      },
+      "session": {
+        "label": "Samling {number}",
+        "untitled": "Uten tittel",
+        "noDescription": "Ingen beskrivelse ennå.",
+        "openAria": "Åpne samling {number}",
+        "closeAria": "Lukk samling {number}",
+        "confirmRemove": "Fjerne samling {number}?",
+        "dateNotSet": "Dato ikke satt",
+        "addNewDescription": "Legg til en ny samling nederst i kursplanen."
+      },
+      "fields": {
+        "startsAt": "Starter",
+        "durationMinutes": "Varighet minutter",
+        "meetingUrl": "Møtelenke",
+        "status": "Status",
+        "title": "Tittel",
+        "description": "Beskrivelse",
+        "contentSuggestions": "Innholdsforslag",
+        "homework": "Hjemmeforslag",
+        "type": "Type",
+        "visibility": "Synlighet",
+        "url": "URL"
+      },
+      "status": {
+        "planned": "planlagt",
+        "completed": "gjennomført",
+        "cancelled": "avlyst"
+      },
+      "resources": {
+        "title": "Ressurser",
+        "intro": "Lenker, PDF-lenker, 321school-placeholder eller manuelle notater.",
+        "empty": "Ingen ressurser lagt til ennå.",
+        "label": "Ressurs {number}",
+        "optional": "Valgfritt",
+        "lesson": "Oppgave",
+        "libraryLesson": "Bibliotekoppgave",
+        "myContentDescription": "321school content. Studenttilgang kobles på senere.",
+        "libraryDescription": "Bibliotekinnhold. Studenttilgang kobles på senere.",
+        "type": {
+          "link": "Ekstern lenke",
+          "pdf": "PDF / fillenke",
+          "platform": "321school-innhold senere",
+          "note": "Manuelt notat"
+        },
+        "visibility": {
+          "participants": "Deltakere",
+          "teacher": "Kun lærer",
+          "public": "Offentlig preview"
+        }
+      },
+      "picker": {
+        "libraryTitle": "Legg til fra bibliotek",
+        "myContentTitle": "Legg til fra Mitt innhold",
+        "intro": "Dette legger bare en peker til innholdet. Studenttilgang kommer senere.",
+        "searchPlaceholder": "Søk etter tittel, nivå eller språk",
+        "libraryEmpty": "Fant ingen library-ressurser akkurat nå.",
+        "myContentEmpty": "Fant ingen oppgaver i Mitt innhold akkurat nå."
+      }
+    },
+    "marketing": {
+      "loading": "Laster markedsføring...",
+      "title": "Markedsføring",
+      "intro": "Kursbilde, offentlig tekst og presentasjonsfelt for kurskort og offentlige sider.",
+      "errors": {
+        "notFound": "Fant ikke kurs.",
+        "loadFailed": "Kurset kunne ikke hentes akkurat nå.",
+        "saveFailed": "Markedsføringsfeltene kunne ikke lagres akkurat nå.",
+        "generic": "Noe gikk galt.",
+        "copyFailed": "Kunne ikke kopiere akkurat nå.",
+        "chooseImage": "Velg en bildefil.",
+        "imageTooLarge": "Bildet er for stort. Maks 8MB.",
+        "uploadFailed": "Bildeopplasting feilet.",
+        "imagePromptRequired": "Skriv en bildeprompt først.",
+        "imageGenerationFailed": "Bildegenerering feilet.",
+        "noImageReturned": "Bildegenerering returnerte ikke noe bilde.",
+        "marketingGenerationFailed": "Kunne ikke generere markedsføringstekst."
+      },
+      "actions": {
+        "preview": "Forhåndsvis kurs",
+        "openPublicPage": "Åpne offentlig side",
+        "copyLink": "Kopier lenke",
+        "copyText": "Kopier tekst",
+        "share": "Del",
+        "downloadQr": "Last ned QR",
+        "uploadImage": "Last opp bilde",
+        "generateWithAi": "Generer med KI",
+        "useSuggestedPrompt": "Bruk foreslått prompt",
+        "generatingImage": "Genererer...",
+        "generateImage": "Generer bilde",
+        "removeImage": "Fjern bilde",
+        "generatingMarketing": "Genererer markedsføring...",
+        "generateMarketing": "Generer markedsføringstekst",
+        "backToDashboard": "Tilbake til dashboard",
+        "saving": "Lagrer...",
+        "save": "Lagre markedsføring"
+      },
+      "messages": {
+        "linkCopied": "Lenke kopiert.",
+        "shareTextCopied": "Delingstekst kopiert.",
+        "shareDialogOpened": "Delingsvindu åpnet.",
+        "imageUploaded": "Bildet er lastet opp. Husk å lagre markedsføring.",
+        "imageGenerated": "KI-bilde er generert. Husk å lagre markedsføring.",
+        "marketingGenerated": "Markedsføringsforslag lagt til. Se over og rediger før du lagrer."
+      },
+      "share": {
+        "title": "Del kurs",
+        "intro": "Del offentlig kursside med lenke, QR-kode eller sosiale medier.",
+        "publishFirst": "Publiser kurset først for å lage en delbar offentlig lenke.",
+        "link": "Delingslenke",
+        "text": "Delingstekst",
+        "qrAlt": "QR-kode for kursside",
+        "qrFallback": "QR"
+      },
+      "fields": {
+        "marketingFields": "Markedsføringsfelt",
+        "courseImage": "Kursbilde",
+        "imageLocked": "Låst til 16:9 slik at bildet fungerer i markedsføring, kurskort og offentlig deling.",
+        "uploadImage": "Last opp bilde",
+        "pasteImageUrl": "Eller lim inn bilde-URL",
+        "imageStyle": "Bildestil",
+        "aiImagePrompt": "KI-bildeprompt",
+        "shortSummary": "Kort offentlig sammendrag",
+        "salesText": "Salgstekst",
+        "seoTitle": "SEO-tittel",
+        "seoDescription": "SEO-beskrivelse"
+      },
+      "image": {
+        "uploadHelp": "Bruk jpg, png eller webp. Maks 8MB.",
+        "uploading": "Laster opp...",
+        "promptPlaceholder": "Beskriv kursbildet. Unngå tekst inne i bildet.",
+        "promptHelp": "Bygget fra kursbeskrivelse og marketingtekst. Du kan redigere før generering.",
+        "illustration": "Illustrasjon",
+        "realistic": "Realistisk",
+        "previewAlt": "Kursbilde",
+        "placeholder": "16:9 kursbilde",
+        "source": "Kilde: {source}",
+        "sourceAi": "KI",
+        "sourceUpload": "Opplasting/URL",
+        "sourceNone": "Ingen"
+      },
+      "placeholders": {
+        "summary": "Kort tekst som kan vises høyt på offentlig kursside.",
+        "salesText": "Mer utfyllende tekst om hvem kurset passer for og hva deltakerne får ut av det."
+      },
+      "aiPrompt": {
+        "line1": "Create a premium 16:9 front-page marketing image for a professional course.",
+        "line2": "The image should feel like something used to sell the course: polished, optimistic, trustworthy and high quality.",
+        "line3": "Show happy, confident, successful people in a positive learning situation connected to the course topic.",
+        "line4": "The mood should communicate progress, mastery, collaboration and practical value.",
+        "line5": "Use a clean modern composition with warm natural light and enough visual space for a course title to be placed outside the image later.",
+        "line6": "Do not include any text, letters, numbers, logos, watermarks, UI screens with readable text, or brand names inside the image.",
+        "courseTitle": "Course title: {value}",
+        "courseFallback": "Course",
+        "courseDescription": "Course description: {value}",
+        "learningGoals": "Learning goals: {value}",
+        "targetAudience": "Target audience: {value}",
+        "salesAngle": "Sales angle: {value}",
+        "courseLanguage": "Course language: {value}",
+        "level": "Level: {value}"
+      }
+    },
+    "sales": {
+      "loading": "Laster salg...",
+      "title": "Salg",
+      "intro": "Pris, checkout-status, avgiftsklassifisering og utbetalingsmodell for dette kurset.",
+      "errors": {
+        "notFound": "Fant ikke kurs.",
+        "loadFailed": "Kurset kunne ikke hentes akkurat nå.",
+        "connectStatusFailed": "Kunne ikke hente Stripe Connect-status.",
+        "connectStartFailed": "Kunne ikke starte Stripe-onboarding.",
+        "saveFailed": "Salgsoppsettet kunne ikke lagres akkurat nå.",
+        "generic": "Noe gikk galt."
+      },
+      "messages": {
+        "saved": "Salgsoppsettet er lagret."
+      },
+      "readiness": {
+        "checkoutReady": "Checkout klar",
+        "notReady": "Ikke klar",
+        "checking": "Sjekker...",
+        "connected": "Tilkoblet",
+        "incomplete": "Onboarding ikke fullført",
+        "notConnected": "Ikke tilkoblet"
+      },
+      "payoutEstimate": {
+        "title": "Estimert utbetaling til instruktør",
+        "intro": "Estimat basert på gjeldende kurspris. Endelig utbetaling avhenger av betalingsgebyrer, lisensfratrekk og admin-gjennomgang.",
+        "instructor": "Instruktørestimat",
+        "firstRelease": "Første 75% frislipp",
+        "holdback": "Holdes til fullføring",
+        "noPrice": "Sett en kurspris for å se utbetalingsestimatet."
+      },
+      "checkout": {
+        "title": "Checkout-status",
+        "intro": "Den offentlige siden kan selge kurset når Stripe er koblet til, pris er satt, salgsstatus er klar, og avgiftsprofilen er vurdert.",
+        "stripeTitle": "Stripe Connect",
+        "stripeIntro": "Instruktører må koble til Stripe Express før betalte påmeldinger og senere utbetalinger. Betalinger holdes av plattformen til leveringsmilepæler er vurdert.",
+        "readyText": "Offentlig checkout er klar. Den offentlige kurssiden kan vise kjøpsknapp etter at du lagrer disse innstillingene.",
+        "notReadyText": "Offentlig checkout er ikke klar ennå. Krever: Stripe koblet til, salgsstatus klar, pris satt og avgiftsprofil for live undervisning.",
+        "openStripe": "Åpne Stripe-oppsett",
+        "continueSetup": "Fortsett oppsett",
+        "connectStripe": "Koble til Stripe"
+      },
+      "price": {
+        "title": "Pris",
+        "saleStatus": "Salgsstatus",
+        "currency": "Valuta",
+        "price": "Pris",
+        "notForSale": "Ikke til salgs ennå",
+        "readyWhenConnected": "Klar når Stripe er koblet til",
+        "needsReview": "Må vurderes"
+      },
+      "tax": {
+        "title": "Avgiftsklassifisering",
+        "intro": "Standard er live instruktørledet undervisning. Blandet eller innspilt digitalt innhold bør vurderes før salg.",
+        "deliveryType": "Leveringstype",
+        "vatTreatment": "Mva-behandling",
+        "vatNote": "Mva-notat",
+        "live": "Live instruktørledet kurs",
+        "mixed": "Blandet innhold, må vurderes",
+        "recorded": "Innspilt digitalt innhold",
+        "needsReview": "Må vurderes",
+        "vatExempt": "Mva-fri undervisning",
+        "vatableDigital": "Mva-pliktig digital tjeneste"
+      },
+      "payoutPreview": {
+        "title": "Utbetalingsoversikt",
+        "intro": "Estimater brukt i 321School sin hold- og frislippmodell.",
+        "gross": "Bruttopris",
+        "paymentFee": "Estimert betalingsgebyr",
+        "dailyAi": "Estimert Daily/KI",
+        "license": "Lisensfratrekk for kurs",
+        "netRevenue": "Netto inntekt",
+        "instructor": "Instruktørestimat",
+        "platformMargin": "Plattformmargin",
+        "reserve": "Plattform/kostnadsreserve",
+        "firstPayout": "Første utbetaling etter 75% gjennomføring",
+        "held": "Holdes til fullføring",
+        "holdNotice": "Betalte påmeldinger holdes først av 321School. Opptil 75% av instruktørestimatet kan frigis etter at 75% av kurset er gjennomført. De resterende 25% holdes til fullføring og et kort klagevindu er passert."
+      },
+      "actions": {
+        "backToDashboard": "Tilbake til dashboard",
+        "saving": "Lagrer...",
+        "save": "Lagre salg"
+      }
+    },
+    "dashboard": {
+      "loading": "Laster kurs...",
+      "errors": {
+        "notFound": "Fant ikke kurs.",
+        "loadFailed": "Kurset kunne ikke hentes akkurat nå.",
+        "placeholder": "Denne delen er satt av som plassholder i første versjon."
+      },
+      "payments": {
+        "title": "Betalinger",
+        "intro": "Enkel betalingskontroll for dette kurset. Beløpene er estimater fra checkout-loggen.",
+        "resync": "Synk Stripe",
+        "checking": "Sjekker...",
+        "loadFailed": "Betalinger kunne ikke hentes akkurat nå.",
+        "resyncFailed": "Betalingsstatus kunne ikke synkroniseres akkurat nå.",
+        "resyncDone": "Sjekket {checked} ventende ordre. Oppdatert {updated}.",
+        "loading": "Laster betalinger...",
+        "empty": "Ingen betalingsordre ennå.",
+        "pendingNotice": "Noen checkout-er venter fortsatt. Det betyr som regel at brukeren åpnet checkout uten å fullføre betaling, eller at webhook fortsatt behandles.",
+        "payoutReview": "Første utbetaling kan vurderes",
+        "payoutPolicy": "Sikkerhet for utbetaling",
+        "payoutText": "Nye betalte kursordre holdes av plattformen. Når minst 75% av samlingene er fullført{required}, kan opptil 75% av instruktørestimatet frigis manuelt. De resterende 25% holdes til kurset er fullført og klagevinduet er passert.",
+        "requiredSessions": " ({required} av {total})",
+        "stats": {
+          "paidOrders": "Betalte ordre",
+          "grossPaid": "Brutto betalt",
+          "instructor": "Instruktørestimat",
+          "held": "Holdt for utbetaling",
+          "firstRelease": "Første frislipp-estimat",
+          "fees": "Plattform/gebyr",
+          "pendingFailed": "Venter / feilet",
+          "delivery": "Gjennomføring",
+          "sessions": "{done}/{total} samlinger"
+        },
+        "table": {
+          "buyer": "Kjøper",
+          "status": "Status",
+          "gross": "Brutto",
+          "instructor": "Instruktør",
+          "platform": "Plattform/gebyr",
+          "paid": "Betalt",
+          "unknown": "Ukjent",
+          "activeLicense": "Hadde aktiv lisens",
+          "payout": "Utbetaling: {status}"
+        }
+      },
+      "participants": {
+        "title": "Deltakere",
+        "intro": "Administrer kursdeltakere og interesseforespørsler for dette kurset.",
+        "addGroup": "Legg til gruppe",
+        "addParticipant": "Legg til deltaker",
+        "loadFailed": "Deltakere kunne ikke hentes akkurat nå.",
+        "saveFailed": "Deltakeren kunne ikke lagres akkurat nå.",
+        "groupEmpty": "Lim inn minst én deltaker med e-post.",
+        "groupSaveFailed": "Gruppen kunne ikke legges til akkurat nå.",
+        "deleteConfirm": "Slette {name}?",
+        "deleteFailed": "Deltakeren kunne ikke slettes akkurat nå.",
+        "requestFailed": "Forespørselen kunne ikke oppdateres akkurat nå.",
+        "loading": "Laster deltakere...",
+        "empty": "Ingen deltakere ennå.",
+        "stats": {
+          "participants": "Deltakere: {count}",
+          "paid": "Betalt: {count}",
+          "requests": "Forespørsler: {newCount} nye / {acceptedCount} godkjent",
+          "manual": "Manuell: {manualCount} · Innleveringer: {submissionCount}"
+        },
+        "fields": {
+          "name": "Navn",
+          "email": "E-post",
+          "phone": "Telefon",
+          "organization": "Skole / organisasjon",
+          "status": "Status",
+          "note": "Notat",
+          "participants": "Deltakere",
+          "sharedNote": "Felles notat"
+        },
+        "placeholders": {
+          "organization": "For eksempel: Solvang skole",
+          "note": "Internt notat, f.eks. KI-kurs for lærere",
+          "groupNote": "Internt notat, f.eks. KI-kurs for ungdomsskolelærere"
+        },
+        "actions": {
+          "cancel": "Avbryt",
+          "saving": "Lagrer...",
+          "adding": "Legger til...",
+          "saveParticipant": "Lagre deltaker",
+          "addParticipant": "Legg til deltaker",
+          "addGroup": "Legg til gruppe",
+          "edit": "Rediger",
+          "delete": "Slett",
+          "contacted": "Kontaktet",
+          "accept": "Godkjenn",
+          "reject": "Avvis"
+        },
+        "group": {
+          "title": "Legg til gruppe / skole",
+          "intro": "Lim inn én deltaker per linje. Eksempler: “Ola Nordmann, ola@skole.no” eller bare “ola@skole.no”."
+        },
+        "requests": {
+          "title": "Interesseforespørsler",
+          "intro": "Interesseforespørsler fra offentlig kursside.",
+          "empty": "Ingen forespørsler ennå.",
+          "status": {
+            "new": "ny",
+            "accepted": "godkjent",
+            "rejected": "avvist",
+            "contacted": "kontaktet"
+          }
+        },
+        "progress": {
+          "title": "Kursprogresjon",
+          "delivered": "{done}/{total} levert",
+          "approved": "{count} godkjent",
+          "needsWork": "{count} trenger arbeid",
+          "lastActivity": "Siste aktivitet: {date}"
+        },
+        "meta": {
+          "createdUpdated": "Opprettet: {created} · Oppdatert: {updated}"
+        },
+        "status": {
+          "invited": "invitert",
+          "enrolled": "påmeldt",
+          "active": "aktiv",
+          "completed": "fullført",
+          "cancelled": "avlyst"
+        },
+        "roles": {
+          "student": "student",
+          "teacher": "lærer",
+          "parent": "forelder",
+          "admin": "admin"
+        },
+        "origin": {
+          "paidCheckout": "Betalt checkout",
+          "requestAccepted": "Forespørsel godkjent",
+          "requestStatus": "Forespørsel: {status}",
+          "groupImport": "Gruppeimport",
+          "manual": "Manuell"
+        },
+        "payment": {
+          "paidHeld": "Betalt / holdes",
+          "paid": "Betalt",
+          "checkoutStarted": "Checkout startet"
+        }
+      },
+      "submissions": {
+        "title": "Innleveringer",
+        "intro": "Se gjennom arbeid deltakere har levert fra kursressurser.",
+        "refresh": "Oppdater",
+        "loadFailed": "Besvarelser kunne ikke hentes akkurat nå.",
+        "openFailed": "Besvarelsen kunne ikke åpnes akkurat nå.",
+        "feedbackSaveFailed": "Instruktørtilbakemelding kunne ikke lagres akkurat nå.",
+        "loading": "Laster besvarelser...",
+        "empty": "Ingen kursbesvarelser ennå. Når deltakere åpner oppgaver fra kursrommet og lagrer eller leverer, dukker de opp her.",
+        "emptyFilter": "Ingen besvarelser i dette filteret.",
+        "stats": {
+          "total": "Totalt: {count}",
+          "awaiting": "Venter vurdering: {count}",
+          "needsWork": "Trenger arbeid: {count}",
+          "approved": "Godkjent: {count}"
+        },
+        "filters": {
+          "all": "Alle",
+          "unreviewed": "Venter vurdering",
+          "needs_work": "Trenger arbeid",
+          "approved": "Godkjent"
+        },
+        "labels": {
+          "lesson": "Oppgave",
+          "participant": "Deltaker: {value}",
+          "session": "Samling: {value}",
+          "updated": "Oppdatert: {value}",
+          "feedback": "tilbakemelding",
+          "noFeedback": "ingen tilbakemelding",
+          "opening": "Åpner...",
+          "view": "Vis",
+          "submission": "Innlevering",
+          "manualTask": "Manuell kursoppgave",
+          "status": "Status: {value}",
+          "openTask": "Åpne oppgave",
+          "close": "Lukk",
+          "answers": "Svar",
+          "noAnswers": "Ingen svar lagret ennå.",
+          "answer": "Svar {number}",
+          "aiFeedback": "Tilbakemelding",
+          "noSavedFeedback": "Ingen tilbakemelding lagret ennå.",
+          "instructorFeedback": "Instruktørtilbakemelding",
+          "instructorPlaceholder": "Skriv en kort tilbakemelding eller et internt oppfølgingsnotat.",
+          "noStatus": "Ingen status",
+          "saveFeedback": "Lagre instruktørtilbakemelding",
+          "saving": "Lagrer..."
+        }
+      },
+      "messages": {
+        "title": "Meldinger",
+        "intro": "Send kursmeldinger og behold en enkel meldingshistorikk.",
+        "newMessage": "Ny melding",
+        "loadFailed": "Meldinger kunne ikke hentes akkurat nå.",
+        "sendFailed": "Meldingen kunne ikke sendes akkurat nå.",
+        "loading": "Laster meldinger...",
+        "empty": "Ingen meldinger ennå.",
+        "stats": {
+          "messages": "Meldinger: {count}",
+          "sent": "Sendt: {count}",
+          "failed": "Feilet: {count}",
+          "drafts": "Utkast: {count}"
+        },
+        "fields": {
+          "subject": "Emne",
+          "body": "Melding",
+          "recipients": "Mottakere"
+        },
+        "recipients": {
+          "all": "alle deltakere",
+          "active": "påmeldte/aktive deltakere",
+          "signupNew": "interesseforespørsler med status ny",
+          "signupContacted": "interesseforespørsler med status kontaktet"
+        },
+        "actions": {
+          "cancel": "Avbryt",
+          "sending": "Sender...",
+          "send": "Send e-post"
+        },
+        "meta": "{count} mottakere · {date}"
+      },
+      "content": {
+        "fallbackTitle": "Kursinnhold",
+        "title": "Innhold",
+        "summary": "{resources} ressurser fordelt på {sessions} samlinger.",
+        "print": "Skriv ut",
+        "pdf": "PDF",
+        "empty": "Ingen ressurser er lagt til ennå. Bruk Samlinger for å legge til fra Mitt innhold, biblioteket eller egne lenker.",
+        "session": "Samling {number}",
+        "untitled": "Uten tittel",
+        "openResource": "Åpne ressurs",
+        "visibility": {
+          "teacher": "Kun lærer",
+          "public": "Offentlig preview",
+          "participants": "Deltakere"
+        }
+      },
+      "overview": {
+        "title": "Oversikt",
+        "saleReady": "Kurssalget er klart",
+        "saleNeedsAttention": "Kurssalget trenger oppfølging",
+        "saleReadyText": "Den offentlige siden kan vise kjøpsknapp når Stripe Connect er koblet til.",
+        "missing": "Mangler: {items}",
+        "salesSetup": "Salgsoppsett",
+        "cards": {
+          "awaitingReview": "Venter vurdering",
+          "needsWork": "Trenger arbeid",
+          "newSignupRequests": "Nye forespørsler",
+          "participants": "Deltakere",
+          "paidOrders": "Betalte ordre"
+        },
+        "nextSession": {
+          "title": "Neste samling",
+          "none": "Ingen planlagt samling ennå.",
+          "openSessions": "Åpne samlinger",
+          "fallbackTitle": "Samling {number}",
+          "participantResources": "Deltakerressurser: {count}",
+          "teacherOnly": "Kun lærer: {count}",
+          "meetingLink": "Møtelenke: {status}",
+          "ready": "klar",
+          "missing": "mangler",
+          "openMeeting": "Åpne møte",
+          "editSession": "Rediger samling",
+          "messageParticipants": "Send melding til deltakere",
+          "dateNotSet": "Dato ikke satt"
+        },
+        "readiness": {
+          "publish": "publiser kurs",
+          "saleStatus": "sett salgsstatus til klar",
+          "price": "sett pris",
+          "live": "live instruktørledet levering",
+          "vat": "mva-behandling"
+        },
+        "reviewStatus": {
+          "approved": "Godkjent",
+          "needsWork": "Trenger arbeid",
+          "none": "Ingen status"
+        }
+      }
+    }
+  }
+}

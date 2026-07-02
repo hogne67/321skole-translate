@@ -1703,7 +1703,7 @@ export default function TeacherPage() {
                       fontWeight: 700,
                     }}
                   >
-                    321Academy
+                    {t("academy.badge")}
                     <span
                       style={{
                         borderRadius: 999,
@@ -1715,7 +1715,7 @@ export default function TeacherPage() {
                         textTransform: "uppercase",
                       }}
                     >
-                      Beta
+                      {t("academy.beta")}
                     </span>
                   </div>
 
@@ -1728,7 +1728,7 @@ export default function TeacherPage() {
                       lineHeight: 1.15,
                     }}
                   >
-                    Courses
+                    {t("academy.title")}
                   </h2>
 
                   <p
@@ -1740,8 +1740,7 @@ export default function TeacherPage() {
                       lineHeight: 1.5,
                     }}
                   >
-                    Planlegg, publiser og følg opp kurs i en egen, tynn kursflyt. Modulen
-                    er i beta og holdes adskilt fra Lessons, Spaces og Library foreløpig.
+                    {t("academy.description")}
                   </p>
                 </div>
               </div>
@@ -1770,11 +1769,11 @@ export default function TeacherPage() {
                     boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
                   }}
                 >
-                  My courses
+                  {t("academy.actions.myCourses")}
                 </Link>
 
                 <Link
-                  href={withLocale(locale, "/courses")}
+                  href={withLocale(locale, "/academy/courses/marketplace")}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -1789,7 +1788,7 @@ export default function TeacherPage() {
                     border: "1px solid #cbd5e1",
                   }}
                 >
-                  Course marketplace
+                  {t("academy.actions.marketplace")}
                 </Link>
 
                 <Link
@@ -1808,7 +1807,7 @@ export default function TeacherPage() {
                     border: "1px solid #86efac",
                   }}
                 >
-                  Generate course
+                  {t("academy.actions.generate")}
                 </Link>
 
                 <Link
@@ -1827,7 +1826,7 @@ export default function TeacherPage() {
                     border: "1px solid #cbd5e1",
                   }}
                 >
-                  Published courses
+                  {t("academy.actions.published")}
                 </Link>
 
                 <Link
@@ -1846,7 +1845,7 @@ export default function TeacherPage() {
                     border: "1px solid #cbd5e1",
                   }}
                 >
-                  Courses I attend
+                  {t("academy.actions.attending")}
                 </Link>
               </div>
             </div>

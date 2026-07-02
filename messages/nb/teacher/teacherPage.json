@@ -138,6 +138,19 @@
       "actions": {
         "openSpaces": "Åpne klasserom"
       }
+    },
+    "academy": {
+      "badge": "321Academy",
+      "beta": "Beta",
+      "title": "Kurs",
+      "description": "Planlegg, publiser og følg opp kurs i en egen kursflyt. Modulen er i beta og holdes adskilt fra Lessons, Spaces og Library foreløpig.",
+      "actions": {
+        "myCourses": "Mine kurs",
+        "marketplace": "Kursmarked",
+        "generate": "Lag kurs",
+        "published": "Publiserte kurs",
+        "attending": "Kurs jeg deltar på"
+      }
     }
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function CourseCheckoutButton({ enabled, label = "Buy course" }: Props) {
+  const t = useTranslations("academy.publicCourse.checkout");
   const params = useParams<{ locale?: string; slug?: string }>();
   const locale = typeof params?.locale === "string" ? params.locale : "nb";
   const slug = typeof params?.slug === "string" ? params.slug : "";
@@ -20,7 +22,7 @@ export function CourseCheckoutButton({ enabled, label = "Buy course" }: Props) {
   async function startCheckout() {
     if (!enabled || busy) return;
     if (!user) {
-      setMessage("Sign in before buying this course.");
+      setMessage(t("signin"));
       return;
     }
 
@@ -46,11 +48,11 @@ export function CourseCheckoutButton({ enabled, label = "Buy course" }: Props) {
           window.location.href = `/${locale}/academy/courses/${data.courseId}`;
           return;
         }
-        throw new Error(data.error || "Could not start checkout");
+        throw new Error(data.error || t("failed"));
       }
       window.location.href = data.url;
     } catch (err) {
-      const text = err instanceof Error ? err.message : "Could not start checkout";
+      const text = err instanceof Error ? err.message : t("failed");
       setMessage(text);
       setBusy(false);
     }
@@ -66,7 +68,7 @@ export function CourseCheckoutButton({ enabled, label = "Buy course" }: Props) {
         onClick={() => void startCheckout()}
         className="inline-flex h-11 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-5 text-sm font-black text-white hover:bg-emerald-800 disabled:opacity-60"
       >
-        {busy ? "Opening checkout..." : label}
+        {busy ? t("opening") : label}
       </button>
       {message ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">

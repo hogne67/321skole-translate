@@ -58,7 +58,7 @@ function TeacherCourseStudentPreviewContent() {
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+      <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 text-sm text-slate-500">
         Laster deltakervisning...
       </div>
     );
@@ -76,7 +76,7 @@ function TeacherCourseStudentPreviewContent() {
 
   return (
     <main className="mx-auto grid max-w-5xl gap-5">
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="text-xs font-black uppercase tracking-wide text-slate-500">
@@ -132,12 +132,12 @@ function TeacherCourseStudentPreviewContent() {
         </section>
       ) : null}
 
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <TextBlock title="Learning goals" value={course.learningGoals || "Ikke fylt ut"} />
         <TextBlock title="Target audience" value={course.targetAudience || "Ikke fylt ut"} />
       </section>
 
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <h2 className="m-0 text-xl font-black text-slate-950">Sessions</h2>
         {course.coursePlan.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">

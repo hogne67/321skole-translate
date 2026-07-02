@@ -668,6 +668,142 @@ export default function ParentPage() {
           />
         </section>
       )}
+
+      <section
+        style={{
+          marginTop: 24,
+          border: "1px solid #cbd5e1",
+          borderRadius: 22,
+          background: "#f8fafc",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ padding: 16 }}>
+          <div
+            style={{
+              border: "1px solid #bbf7d0",
+              borderRadius: 18,
+              background: "#ffffff",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <div style={{ minWidth: 0, flex: "1 1 420px" }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    border: "1px solid #86efac",
+                    background: "#f0fdf4",
+                    color: "#166534",
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {t("academy.badge")}
+                  <span
+                    style={{
+                      borderRadius: 999,
+                      background: "#dcfce7",
+                      color: "#14532d",
+                      padding: "2px 7px",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {t("academy.beta")}
+                  </span>
+                </div>
+
+                <h2
+                  style={{
+                    margin: "10px 0 0",
+                    fontSize: 24,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    lineHeight: 1.15,
+                  }}
+                >
+                  {t("academy.title")}
+                </h2>
+
+                <p
+                  style={{
+                    margin: "8px 0 0",
+                    fontSize: 14,
+                    color: "#475569",
+                    maxWidth: 720,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {t("academy.description")}
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              <Link
+                href={`/${locale}/academy/courses`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  background: "#166534",
+                  color: "#ffffff",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                }}
+              >
+                {t("academy.actions.myCourses")}
+              </Link>
+
+              <Link
+                href={`/${locale}/academy/courses/marketplace`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  border: "1px solid #cbd5e1",
+                }}
+              >
+                {t("academy.actions.browse")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

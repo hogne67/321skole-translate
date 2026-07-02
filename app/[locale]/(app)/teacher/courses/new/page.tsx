@@ -87,7 +87,7 @@ function NewCourseContent() {
   return (
     <main className="mx-auto max-w-4xl">
       <form onSubmit={handleSubmit} className="grid gap-5">
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <h1 className="m-0 text-2xl font-black text-slate-950">Create course</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
             Opprett et kursutkast for 321Academy. Du kan bygge plan, innhold og innstillinger i
@@ -101,7 +101,7 @@ function NewCourseContent() {
           </div>
         ) : null}
 
-        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <Field label="Title">
             <Input
               value={values.title}

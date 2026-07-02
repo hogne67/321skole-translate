@@ -96,6 +96,16 @@
     },
     "stats": {
       "percentUsed": "{percent}% brukt"
+    },
+    "academy": {
+      "badge": "321Academy",
+      "beta": "Beta",
+      "title": "Kurs du kan delta på",
+      "description": "Følg kurs som deltaker, enten du deltar som forelder, elev eller fagperson. Kurstilgang er uavhengig av hovedrollen din.",
+      "actions": {
+        "myCourses": "Mine kurs",
+        "browse": "Se kurs"
+      }
     }
   }
 }

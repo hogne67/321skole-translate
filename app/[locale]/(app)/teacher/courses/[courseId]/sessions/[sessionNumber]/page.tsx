@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { type Course } from "@/lib/courses/types";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -28,11 +28,9 @@ declare global {
   }
 }
 
-const DAILY_NOT_AVAILABLE_MESSAGE =
-  "This meeting is not available yet. Try again closer to the session start time.";
-
 export default function TeacherCourseSessionPage() {
   const locale = useLocale();
+  const t = useTranslations("academy.teacherSessionRoom");
   const params = useParams<{ courseId?: string; sessionNumber?: string }>();
   const courseId = typeof params?.courseId === "string" ? params.courseId : "";
   const sessionNumber = Number(params?.sessionNumber);
@@ -54,7 +52,7 @@ export default function TeacherCourseSessionPage() {
     async function loadCourse() {
       if (!user || !courseId || !Number.isFinite(sessionNumber)) {
         setLoading(false);
-        setError("Could not find this session.");
+        setError(t("notFound"));
         return;
       }
 
@@ -65,7 +63,7 @@ export default function TeacherCourseSessionPage() {
         if (!cancelled) setCourse(loadedCourse);
       } catch (err) {
         console.error("Failed to load teacher session room", err);
-        if (!cancelled) setError("This session could not be loaded right now.");
+        if (!cancelled) setError(t("loadFailed"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -76,7 +74,7 @@ export default function TeacherCourseSessionPage() {
     return () => {
       cancelled = true;
     };
-  }, [courseId, sessionNumber, user]);
+  }, [courseId, sessionNumber, t, user]);
 
   useEffect(() => {
     function handleFullscreenChange() {
@@ -116,10 +114,10 @@ export default function TeacherCourseSessionPage() {
         token?: string;
         error?: string;
       };
-      if (!res.ok || !data.roomUrl) throw new Error(data.error || "Could not start video session");
+      if (!res.ok || !data.roomUrl) throw new Error(data.error || t("videoStartFailed"));
 
-      await loadDailyScript();
-      if (!window.Daily || !dailyContainerRef.current) throw new Error("Daily could not be loaded");
+      await loadDailyScript(t("dailyLoadFailed"));
+      if (!window.Daily || !dailyContainerRef.current) throw new Error(t("dailyCouldNotLoad"));
 
       dailyFrameRef.current?.destroy();
       dailyContainerRef.current.innerHTML = "";
@@ -138,7 +136,7 @@ export default function TeacherCourseSessionPage() {
       enableDailyIframeFullscreen(dailyContainerRef.current);
       setDailyLoaded(true);
     } catch (err) {
-      const message = getDailyJoinErrorMessage(err);
+      const message = getDailyJoinErrorMessage(err, t("dailyUnavailable"));
       console.info("Teacher Daily session could not be joined.", message);
       setDailyError(message);
     } finally {
@@ -157,25 +155,25 @@ export default function TeacherCourseSessionPage() {
         await target.requestFullscreen();
       }
     } catch (err) {
-      console.info("Fullscreen could not be toggled.", err);
+      console.info(t("fullscreenFailed"), err);
     }
   }
 
   if (loading) {
-    return <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Loading session...</div>;
+    return <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 text-sm text-slate-500">{t("loading")}</div>;
   }
 
   if (error || !course || !session) {
     return (
       <main className="mx-auto grid max-w-4xl gap-4">
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-          {error || "Could not find this session."}
+          {error || t("notFound")}
         </div>
         <Link
           href={`/${locale}/teacher/courses/${courseId}`}
           className="inline-flex h-10 w-fit items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
         >
-          Back to course
+          {t("backToCourse")}
         </Link>
       </main>
     );
@@ -191,24 +189,24 @@ export default function TeacherCourseSessionPage() {
         active="sessions"
       />
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-              Instructor session room · Session {session.sessionNumber}
+              {t("eyebrow", { number: session.sessionNumber })}
             </div>
             <h1 className="m-0 mt-2 text-2xl font-black text-slate-950">
-              {session.title || `Session ${session.sessionNumber}`}
+              {session.title || t("fallbackTitle", { number: session.sessionNumber })}
             </h1>
             <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-slate-600">
-              {session.description || "No session description yet."}
+              {session.description || t("noDescription")}
             </p>
           </div>
           <Link
             href={`/${locale}/teacher/courses/${course.id}/sessions`}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
           >
-            Edit sessions
+            {t("editSessions")}
           </Link>
         </div>
       </section>
@@ -227,11 +225,11 @@ export default function TeacherCourseSessionPage() {
           <div className={`flex flex-wrap items-start justify-between gap-3 ${isFullscreen && dailyLoaded ? "hidden" : ""}`}>
             <div>
               <div className="text-xs font-black uppercase tracking-wide text-emerald-300">
-                Host room
+                {t("hostRoom")}
               </div>
-              <h2 className="m-0 mt-2 text-xl font-black">Video session</h2>
+              <h2 className="m-0 mt-2 text-xl font-black">{t("videoTitle")}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                Join through this page as instructor. This creates a host token for the private Daily room.
+                {t("videoIntro")}
               </p>
             </div>
             <button
@@ -239,7 +237,7 @@ export default function TeacherCourseSessionPage() {
               onClick={() => void openVideoFullscreen()}
               className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 bg-white/10 px-3 text-sm font-bold text-white hover:bg-white/15"
             >
-              Fullscreen
+              {t("fullscreen")}
             </button>
           </div>
           {isFullscreen ? (
@@ -248,7 +246,7 @@ export default function TeacherCourseSessionPage() {
               onClick={() => void document.exitFullscreen()}
               className="absolute right-4 top-4 z-[9999] inline-flex h-10 items-center justify-center rounded-lg border border-white/30 bg-black/70 px-4 text-sm font-black text-white shadow-lg backdrop-blur hover:bg-black/80"
             >
-              Exit fullscreen
+              {t("exitFullscreen")}
             </button>
           ) : null}
 
@@ -256,7 +254,7 @@ export default function TeacherCourseSessionPage() {
             <div>
               <div className="text-5xl font-black text-white/20">321</div>
               <p className="mt-3 text-sm font-semibold text-slate-300">
-                Daily instructor embed
+                {t("embedLabel")}
               </p>
               <button
                 type="button"
@@ -264,7 +262,7 @@ export default function TeacherCourseSessionPage() {
                 disabled={joiningDaily}
                 className="mt-5 inline-flex h-11 items-center justify-center rounded-lg border border-emerald-400 bg-emerald-400 px-5 text-sm font-black text-slate-950 hover:bg-emerald-300 disabled:opacity-60"
               >
-                {joiningDaily ? "Starting..." : dailyLoaded ? "Reconnect video" : "Start / join session"}
+                {joiningDaily ? t("starting") : dailyLoaded ? t("reconnect") : t("startJoin")}
               </button>
               {dailyError ? (
                 <div className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 text-sm font-semibold text-rose-100">
@@ -286,17 +284,17 @@ export default function TeacherCourseSessionPage() {
         </div>
 
         <aside className="grid gap-4">
-          <InfoCard label="Starts" value={formatSessionDate(session.startsAt)} />
-          <InfoCard label="Duration" value={`${session.durationMinutes || 120} min`} />
-          <InfoCard label="Resources" value={`${session.resources.length}`} />
-          <InfoCard label="Meeting link" value={session.meetingUrl ? "Ready" : "Created on join"} />
+          <InfoCard label={t("cards.starts")} value={formatSessionDate(session.startsAt, locale, t("dateNotSet"))} />
+          <InfoCard label={t("cards.duration")} value={`${session.durationMinutes || 120} min`} />
+          <InfoCard label={t("cards.resources")} value={`${session.resources.length}`} />
+          <InfoCard label={t("cards.meetingLink")} value={session.meetingUrl ? t("cards.ready") : t("cards.createdOnJoin")} />
         </aside>
       </section>
 
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="m-0 text-xl font-black text-slate-950">Session plan</h2>
+      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+        <h2 className="m-0 text-xl font-black text-slate-950">{t("sessionPlan")}</h2>
         <p className="m-0 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-          {session.contentSuggestions || session.description || "No agenda has been added yet."}
+          {session.contentSuggestions || session.description || t("noAgenda")}
         </p>
       </section>
     </main>
@@ -305,14 +303,14 @@ export default function TeacherCourseSessionPage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-4 shadow-sm">
       <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-2 text-lg font-black text-slate-950">{value || "-"}</div>
     </div>
   );
 }
 
-function loadDailyScript(): Promise<void> {
+function loadDailyScript(failureMessage = "Daily script failed to load"): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
   if (window.Daily) return Promise.resolve();
 
@@ -320,7 +318,7 @@ function loadDailyScript(): Promise<void> {
   if (existing) {
     return new Promise((resolve, reject) => {
       existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("Daily script failed to load")), {
+      existing.addEventListener("error", () => reject(new Error(failureMessage)), {
         once: true,
       });
     });
@@ -333,7 +331,7 @@ function loadDailyScript(): Promise<void> {
     script.crossOrigin = "anonymous";
     script.dataset.dailyJs = "true";
     script.addEventListener("load", () => resolve(), { once: true });
-    script.addEventListener("error", () => reject(new Error("Daily script failed to load")), {
+    script.addEventListener("error", () => reject(new Error(failureMessage)), {
       once: true,
     });
     document.head.appendChild(script);
@@ -356,7 +354,7 @@ function enableDailyIframeFullscreen(container: HTMLElement | null) {
   iframe.setAttribute("allowfullscreen", "true");
 }
 
-function getDailyJoinErrorMessage(error: unknown): string {
+function getDailyJoinErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim()) return error.message;
 
   if (error && typeof error === "object") {
@@ -369,12 +367,12 @@ function getDailyJoinErrorMessage(error: unknown): string {
     if (info) return info;
   }
 
-  return DAILY_NOT_AVAILABLE_MESSAGE;
+  return fallback;
 }
 
-function formatSessionDate(value: string): string {
-  if (!value) return "Date not set";
+function formatSessionDate(value: string, locale: string, fallback: string): string {
+  if (!value) return fallback;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }

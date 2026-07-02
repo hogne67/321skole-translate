@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 
@@ -78,8 +78,12 @@ type CourseRoomSection =
   | "info"
   | "sessions";
 
+type Translator = ReturnType<typeof useTranslations>;
+
 export default function StudentCourseRoomPage() {
   const locale = useLocale();
+  const t = useTranslations("academy.studentCourseRoom");
+  const participantStatusT = useTranslations("academy.studentCourses.status");
   const params = useParams<{ courseId?: string }>();
   const courseId = typeof params?.courseId === "string" ? params.courseId : "";
   const { user } = useUserProfile();
@@ -99,7 +103,7 @@ export default function StudentCourseRoomPage() {
     async function loadCourse() {
       if (!user || !courseId) {
         setLoading(false);
-        setError("Fant ikke kurs.");
+        setError(t("notFound"));
         return;
       }
 
@@ -114,7 +118,7 @@ export default function StudentCourseRoomPage() {
           course?: StudentCourseRoom;
           error?: string;
         };
-        if (!res.ok || !data.course) throw new Error(data.error || "Could not load course");
+        if (!res.ok || !data.course) throw new Error(data.error || t("loadFailed"));
         if (!cancelled) {
           setCourse(data.course);
           setManualComments(
@@ -128,7 +132,7 @@ export default function StudentCourseRoomPage() {
         }
       } catch (err) {
         console.error("Failed to load student course room", err);
-        if (!cancelled) setError("Kursrommet kunne ikke hentes akkurat nå.");
+        if (!cancelled) setError(t("loadFailed"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -139,7 +143,7 @@ export default function StudentCourseRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [courseId, user]);
+  }, [courseId, t, user]);
 
   async function submitManualResource(
     event: FormEvent<HTMLFormElement>,
@@ -200,7 +204,7 @@ export default function StudentCourseRoomPage() {
           resourceSubmissions: [...existingResources, nextSubmission],
         };
       });
-      setManualSuccessById((prev) => ({ ...prev, [resourceId]: "Lagret" }));
+      setManualSuccessById((prev) => ({ ...prev, [resourceId]: t("saved") }));
       window.setTimeout(() => {
         setManualSuccessById((prev) => ({ ...prev, [resourceId]: "" }));
       }, 1600);
@@ -208,7 +212,7 @@ export default function StudentCourseRoomPage() {
       console.error("Failed to save manual course submission", err);
       setManualErrorById((prev) => ({
         ...prev,
-        [resourceId]: "Innleveringen kunne ikke lagres akkurat nå.",
+        [resourceId]: t("saveFailed"),
       }));
     } finally {
       setManualSavingId("");
@@ -218,8 +222,8 @@ export default function StudentCourseRoomPage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-5xl px-3 py-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">
-          Laster kursrom...
+        <div className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 text-sm text-slate-600">
+          {t("loading")}
         </div>
       </main>
     );
@@ -229,13 +233,13 @@ export default function StudentCourseRoomPage() {
     return (
       <main className="mx-auto grid max-w-4xl gap-4 px-3 py-4">
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-          {error || "Fant ikke kurs."}
+          {error || t("notFound")}
         </div>
         <Link
           href={`/${locale}/academy/courses`}
           className="inline-flex h-10 w-fit items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
         >
-          Back to courses
+          {t("backToCourses")}
         </Link>
       </main>
     );
@@ -284,32 +288,32 @@ export default function StudentCourseRoomPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-              321Academy course room
+              {t("eyebrow")}
             </div>
             <h1 className="m-0 mt-2 break-words text-2xl font-black text-slate-950">
-              {course.title || "Uten tittel"}
+              {course.title || t("untitled")}
             </h1>
             <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-slate-600">
-              {course.description || "Ingen beskrivelse ennå."}
+              {course.description || t("noDescription")}
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold capitalize text-slate-600">
-            {course.participantStatus}
+            {formatParticipantStatus(course.participantStatus, participantStatusT)}
           </span>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-slate-600">
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-            {course.level || "Level ikke satt"}
+            {course.level || t("levelMissing")}
           </span>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-            {course.language || "Språk ikke satt"}
+            {course.language || t("languageMissing")}
           </span>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-            {course.numberOfSessions} samlinger
+            {t("sessionsCount", { count: course.numberOfSessions })}
           </span>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-            {course.numberOfWeeks} uker
+            {t("weeksCount", { count: course.numberOfWeeks })}
           </span>
         </div>
 
@@ -318,7 +322,7 @@ export default function StudentCourseRoomPage() {
             href={`/${locale}/academy/courses`}
             className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
           >
-            Back to courses
+            {t("backToCourses")}
           </Link>
           {course.publicUrl ? (
             <a
@@ -327,7 +331,7 @@ export default function StudentCourseRoomPage() {
               rel="noreferrer"
               className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
             >
-            Public course page
+            {t("publicPage")}
           </a>
         ) : null}
       </div>
@@ -341,51 +345,52 @@ export default function StudentCourseRoomPage() {
             messages: course.announcements.length,
             sessions: course.coursePlan.length,
           }}
+          t={t}
         />
       </section>
 
       {activeSection === "overview" ? (
         <section className="grid gap-4">
           <div className="grid gap-3 md:grid-cols-4">
-            <OverviewStatCard label="To do" value={toDoResources.length} tone="amber" />
-            <OverviewStatCard label="Submitted" value={submittedResourceCount} tone="slate" />
-            <OverviewStatCard label="Approved" value={approvedResourceCount} tone="emerald" />
-            <OverviewStatCard label="Progress" value={`${progressPercent}%`} tone="slate" />
+            <OverviewStatCard label={t("stats.todo")} value={toDoResources.length} tone="amber" />
+            <OverviewStatCard label={t("stats.submitted")} value={submittedResourceCount} tone="slate" />
+            <OverviewStatCard label={t("stats.approved")} value={approvedResourceCount} tone="emerald" />
+            <OverviewStatCard label={t("stats.progress")} value={`${progressPercent}%`} tone="slate" />
           </div>
           {nextSession ? (
         <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
           <div className="text-xs font-black uppercase tracking-wide text-emerald-800">
-            Next session
+            {t("nextSession")}
           </div>
           <h2 className="m-0 mt-2 text-lg font-black text-emerald-950">
-            {nextSession.title || `Samling ${nextSession.sessionNumber}`}
+            {nextSession.title || t("session", { number: nextSession.sessionNumber })}
           </h2>
           <p className="mt-1 text-sm font-semibold text-emerald-900">
-            {formatSessionDate(nextSession.startsAt)} · {nextSession.durationMinutes || 120} min
+            {formatSessionDate(nextSession.startsAt, locale, t("dateNotSet"))} · {nextSession.durationMinutes || 120} min
           </p>
           <Link
             href={`/${locale}/academy/courses/${course.id}/sessions/${nextSession.sessionNumber}`}
             className="mt-3 inline-flex h-10 items-center justify-center rounded-lg border border-emerald-800 bg-emerald-800 px-4 text-sm font-bold text-white no-underline hover:bg-emerald-900"
           >
-            Open session room
+            {t("openSessionRoom")}
           </Link>
         </section>
           ) : (
             <section className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5">
-              <h2 className="m-0 text-lg font-black text-slate-950">Next session</h2>
-              <p className="mt-2 text-sm text-slate-600">No session is scheduled yet.</p>
+              <h2 className="m-0 text-lg font-black text-slate-950">{t("nextSession")}</h2>
+              <p className="mt-2 text-sm text-slate-600">{t("noSessionScheduled")}</p>
             </section>
           )}
         </section>
       ) : null}
 
       {activeSection === "tasks" ? (
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="m-0 text-xl font-black text-slate-950">To do</h2>
+            <h2 className="m-0 text-xl font-black text-slate-950">{t("tasks.title")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Åpne kursoppgaver og ressurser som ikke er godkjent ennå.
+              {t("tasks.intro")}
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
@@ -394,15 +399,15 @@ export default function StudentCourseRoomPage() {
         </div>
         {toDoResources.length === 0 ? (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm font-bold text-emerald-800">
-            Alt som er lagt ut er godkjent eller ferdig for nå.
+            {t("tasks.empty")}
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {toDoResources.map((resource) => (
               <article key={resource.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                  Samling {resource.sessionNumber}
-                  {resource.startsAt ? ` · ${formatSessionDate(resource.startsAt)}` : ""}
+                  {t("session", { number: resource.sessionNumber })}
+                  {resource.startsAt ? ` · ${formatSessionDate(resource.startsAt, locale, t("dateNotSet"))}` : ""}
                 </div>
                 <h3 className="m-0 mt-2 text-base font-extrabold text-slate-950">
                   {resource.title || resource.type}
@@ -414,8 +419,10 @@ export default function StudentCourseRoomPage() {
                 ) : null}
                 <ResourceSubmissionStatus
                   submission={resourceSubmissionByResourceId.get(resource.id)}
+                  t={t}
+                  locale={locale}
                 />
-                <ToDoResourceAction courseId={course.id} locale={locale} resource={resource} />
+                <ToDoResourceAction courseId={course.id} locale={locale} resource={resource} t={t} />
               </article>
             ))}
           </div>
@@ -424,12 +431,16 @@ export default function StudentCourseRoomPage() {
       ) : null}
 
       {activeSection === "progress" ? (
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="m-0 text-xl font-black text-slate-950">My progress</h2>
+            <h2 className="m-0 text-xl font-black text-slate-950">{t("progress.title")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              {submittedResourceCount}/{visibleResources.length} ressurser levert · {approvedResourceCount} godkjent
+              {t("progress.summary", {
+                submitted: submittedResourceCount,
+                total: visibleResources.length,
+                approved: approvedResourceCount,
+              })}
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
@@ -438,20 +449,22 @@ export default function StudentCourseRoomPage() {
         </div>
         {visibleResources.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-            Ingen kursressurser er lagt ut ennå.
+            {t("progress.empty")}
           </div>
         ) : (
           <div className="grid gap-2 md:grid-cols-2">
             {visibleResources.map((resource) => (
               <div key={resource.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                  Samling {resource.sessionNumber}
+                  {t("session", { number: resource.sessionNumber })}
                 </div>
                 <div className="mt-1 font-extrabold text-slate-950">
                   {resource.title || resource.type}
                 </div>
                 <ResourceSubmissionStatus
                   submission={resourceSubmissionByResourceId.get(resource.id)}
+                  t={t}
+                  locale={locale}
                 />
               </div>
             ))}
@@ -461,12 +474,12 @@ export default function StudentCourseRoomPage() {
       ) : null}
 
       {activeSection === "feedback" ? (
-      <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="grid gap-3 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="m-0 text-xl font-black text-slate-950">Feedback from instructor</h2>
+            <h2 className="m-0 text-xl font-black text-slate-950">{t("feedback.title")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Siste vurderinger og kommentarer fra kursholder.
+              {t("feedback.intro")}
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
@@ -475,7 +488,7 @@ export default function StudentCourseRoomPage() {
         </div>
         {feedbackItems.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-            Ingen vurderinger ennå.
+            {t("feedback.empty")}
           </div>
         ) : (
           <div className="grid gap-3">
@@ -484,14 +497,16 @@ export default function StudentCourseRoomPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                      {resource?.sessionNumber ? `Samling ${resource.sessionNumber}` : "Kursoppgave"}
+                      {resource?.sessionNumber
+                        ? t("session", { number: resource.sessionNumber })
+                        : t("feedback.courseTask")}
                     </div>
                     <h3 className="m-0 mt-1 text-base font-extrabold text-slate-950">
-                      {resource?.title || "Ressurs"}
+                      {resource?.title || t("feedback.resource")}
                     </h3>
                   </div>
                   <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700">
-                    {formatReviewStatus(submission.reviewStatus)}
+                    {formatReviewStatus(submission.reviewStatus, t)}
                   </span>
                 </div>
                 {submission.instructorFeedback ? (
@@ -500,11 +515,13 @@ export default function StudentCourseRoomPage() {
                   </p>
                 ) : (
                   <p className="mt-3 text-sm text-slate-600">
-                    Ingen kommentar, bare status er satt.
+                    {t("feedback.noComment")}
                   </p>
                 )}
                 <div className="mt-3 text-xs font-bold text-slate-500">
-                  Oppdatert: {formatMaybeDate(submission.updatedAt)}
+                  {t("feedback.updated", {
+                    date: formatMaybeDate(submission.updatedAt, locale),
+                  })}
                 </div>
               </article>
             ))}
@@ -514,12 +531,12 @@ export default function StudentCourseRoomPage() {
       ) : null}
 
       {activeSection === "messages" ? (
-      <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="grid gap-3 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="m-0 text-xl font-black text-slate-950">Announcements</h2>
+            <h2 className="m-0 text-xl font-black text-slate-950">{t("messages.title")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Beskjeder fra kursinstruktør vises her.
+              {t("messages.intro")}
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
@@ -528,7 +545,7 @@ export default function StudentCourseRoomPage() {
         </div>
         {course.announcements.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-            Ingen beskjeder ennå.
+            {t("messages.empty")}
           </div>
         ) : (
           <div className="grid gap-3">
@@ -536,10 +553,10 @@ export default function StudentCourseRoomPage() {
               <article key={announcement.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h3 className="m-0 text-base font-extrabold text-slate-950">
-                    {announcement.subject || "Beskjed"}
+                    {announcement.subject || t("messages.fallback")}
                   </h3>
                   <span className="text-xs font-bold text-slate-500">
-                    {formatMaybeDate(announcement.createdAt)}
+                    {formatMaybeDate(announcement.createdAt, locale)}
                   </span>
                 </div>
                 {announcement.body ? (
@@ -555,18 +572,18 @@ export default function StudentCourseRoomPage() {
       ) : null}
 
       {activeSection === "info" ? (
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <TextBlock title="Learning goals" value={course.learningGoals || "Ikke fylt ut"} />
-        <TextBlock title="Target audience" value={course.targetAudience || "Ikke fylt ut"} />
+      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+        <TextBlock title={t("info.learningGoals")} value={course.learningGoals || t("info.missing")} />
+        <TextBlock title={t("info.targetAudience")} value={course.targetAudience || t("info.missing")} />
       </section>
       ) : null}
 
       {activeSection === "sessions" ? (
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="m-0 text-xl font-black text-slate-950">Sessions</h2>
+      <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+        <h2 className="m-0 text-xl font-black text-slate-950">{t("sessions.title")}</h2>
         {course.coursePlan.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-            Ingen samlinger er lagt inn ennå.
+            {t("sessions.empty")}
           </div>
         ) : (
           <div className="grid gap-3">
@@ -595,27 +612,28 @@ export default function StudentCourseRoomPage() {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-xs font-black uppercase tracking-wide opacity-70">
-                          Session {session.sessionNumber}
+                          {t("session", { number: session.sessionNumber })}
                         </div>
                         <h3 className="m-0 mt-1 break-words text-base font-extrabold">
-                          {session.title || "Untitled session"}
+                          {session.title || t("sessions.untitled")}
                         </h3>
                       </div>
                       <div className="flex flex-wrap items-center justify-end gap-2 text-xs font-bold">
                         <span className="rounded-full border border-white/60 bg-white/80 px-3 py-1">
-                          {formatSessionDate(session.startsAt)}
+                          {formatSessionDate(session.startsAt, locale, t("dateNotSet"))}
                         </span>
                         <span className="rounded-full border border-white/60 bg-white/80 px-3 py-1 capitalize">
-                          {session.status}
+                          {formatSessionStatus(session.status, t)}
                         </span>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="m-0 line-clamp-2 text-sm leading-6 opacity-90">
-                        {session.description || "No description yet."}
+                        {session.description || t("sessions.noDescription")}
                       </p>
                       <span className="rounded-full border border-white/60 bg-white/80 px-3 py-1 text-xs font-bold">
-                        {expanded ? "Close" : "Open"} · {session.resources.length} resources
+                        {expanded ? t("sessions.close") : t("sessions.open")} ·{" "}
+                        {t("sessions.resources", { count: session.resources.length })}
                       </span>
                     </div>
                   </button>
@@ -627,7 +645,10 @@ export default function StudentCourseRoomPage() {
                           {session.durationMinutes || 120} min
                         </span>
                         <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-                          {submittedInSession}/{session.resources.length} submitted
+                          {t("sessions.submitted", {
+                            submitted: submittedInSession,
+                            total: session.resources.length,
+                          })}
                         </span>
                       </div>
 
@@ -638,14 +659,14 @@ export default function StudentCourseRoomPage() {
                           rel="noreferrer"
                           className="inline-flex h-9 w-fit items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-sm font-bold text-white no-underline hover:bg-slate-800"
                         >
-                          Open meeting
+                          {t("sessions.openMeeting")}
                         </a>
                       ) : null}
 
                       {session.resources.length > 0 ? (
                         <div className="grid gap-2">
                           <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                            Resources for this session
+                            {t("sessions.resourcesTitle")}
                           </div>
                           {session.resources.map((resource) => (
                             <div key={resource.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
@@ -669,7 +690,7 @@ export default function StudentCourseRoomPage() {
                                   href={`/${locale}/student/lesson/${resource.sourceId}?courseId=${encodeURIComponent(course.id)}&sessionNumber=${encodeURIComponent(String(session.sessionNumber))}&resourceId=${encodeURIComponent(resource.id)}`}
                                   className="mt-2 inline-flex text-sm font-bold text-slate-900 underline"
                                 >
-                                  Open lesson
+                                  {t("sessions.openLesson")}
                                 </Link>
                               ) : resource.openMode === "link" && resource.url ? (
                                 <a
@@ -678,17 +699,19 @@ export default function StudentCourseRoomPage() {
                                   rel="noreferrer"
                                   className="mt-2 inline-flex text-sm font-bold text-slate-900 underline"
                                 >
-                                  Open resource
+                                  {t("sessions.openResource")}
                                 </a>
                               ) : resource.openMode === "later" ? (
                                 <div className="mt-2 text-xs font-bold text-slate-500">
-                                  Platform resource opens here later.
+                                  {t("sessions.opensLater")}
                                 </div>
                               ) : null}
                               {resource.openMode === "lesson" ? (
                                 <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                                   <ResourceSubmissionStatus
                                     submission={resourceSubmissionByResourceId.get(resource.id)}
+                                    t={t}
+                                    locale={locale}
                                   />
                                 </div>
                               ) : null}
@@ -700,7 +723,7 @@ export default function StudentCourseRoomPage() {
                                   className="mt-3 grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3"
                                 >
                                   <label className="grid gap-2 text-xs font-bold text-slate-700">
-                                    <span>Comment for instructor</span>
+                                    <span>{t("sessions.comment")}</span>
                                     <textarea
                                       value={manualComments[resource.id] ?? ""}
                                       onChange={(event) =>
@@ -712,19 +735,23 @@ export default function StudentCourseRoomPage() {
                                       rows={3}
                                       maxLength={3000}
                                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal leading-6 text-slate-800"
-                                      placeholder="Write a short comment, or submit empty if this should only be marked as done."
+                                      placeholder={t("sessions.commentPlaceholder")}
                                     />
                                   </label>
                                   <div className="flex flex-wrap items-center justify-between gap-2">
                                     <ManualSubmissionStatus
                                       submission={manualSubmissionByResourceId.get(resource.id)}
+                                      t={t}
+                                      locale={locale}
                                     />
                                     <button
                                       type="submit"
                                       disabled={manualSavingId === resource.id}
                                       className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-sm font-bold text-white disabled:opacity-60"
                                     >
-                                      {manualSavingId === resource.id ? "Saving..." : "Submit"}
+                                      {manualSavingId === resource.id
+                                        ? t("sessions.saving")
+                                        : t("sessions.submit")}
                                     </button>
                                   </div>
                                   {manualSuccessById[resource.id] ? (
@@ -744,13 +771,13 @@ export default function StudentCourseRoomPage() {
                         </div>
                       ) : (
                         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                          No resources have been added to this session yet.
+                          {t("sessions.noResources")}
                         </div>
                       )}
 
                       {session.homework ? (
                         <p className="m-0 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                          <strong>Homework:</strong> {session.homework}
+                          <strong>{t("sessions.homework")}</strong> {session.homework}
                         </p>
                       ) : null}
 
@@ -765,7 +792,7 @@ export default function StudentCourseRoomPage() {
                           }
                           className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
                         >
-                          Close session
+                          {t("sessions.closeSession")}
                         </button>
                       </div>
                     </div>
@@ -785,6 +812,7 @@ function CourseRoomNav({
   activeSection,
   onChange,
   counts,
+  t,
 }: {
   activeSection: CourseRoomSection;
   onChange: (section: CourseRoomSection) => void;
@@ -794,15 +822,16 @@ function CourseRoomNav({
     messages: number;
     sessions: number;
   };
+  t: Translator;
 }) {
   const items: Array<{ id: CourseRoomSection; label: string; count?: number }> = [
-    { id: "overview", label: "Overview" },
-    { id: "tasks", label: "Tasks", count: counts.tasks },
-    { id: "progress", label: "Progress" },
-    { id: "feedback", label: "Feedback", count: counts.feedback },
-    { id: "messages", label: "Messages", count: counts.messages },
-    { id: "info", label: "Course info" },
-    { id: "sessions", label: "Sessions", count: counts.sessions },
+    { id: "overview", label: t("nav.overview") },
+    { id: "tasks", label: t("nav.tasks"), count: counts.tasks },
+    { id: "progress", label: t("nav.progress") },
+    { id: "feedback", label: t("nav.feedback"), count: counts.feedback },
+    { id: "messages", label: t("nav.messages"), count: counts.messages },
+    { id: "info", label: t("nav.info") },
+    { id: "sessions", label: t("nav.sessions"), count: counts.sessions },
   ];
 
   return (
@@ -863,19 +892,23 @@ function OverviewStatCard({
 
 function ManualSubmissionStatus({
   submission,
+  t,
+  locale,
 }: {
   submission?: StudentCourseRoom["manualSubmissions"][number];
+  t: Translator;
+  locale: string;
 }) {
   if (!submission) {
-    return <span className="text-xs font-bold text-slate-500">Ikke levert ennå</span>;
+    return <span className="text-xs font-bold text-slate-500">{t("status.notSubmitted")}</span>;
   }
 
   return (
     <div className="grid gap-1 text-xs text-slate-600">
       <span className="font-bold">
-        Levert · {formatMaybeDate(submission.updatedAt)}
+        {t("status.submitted")} · {formatMaybeDate(submission.updatedAt, locale)}
       </span>
-      <span className="font-bold">{formatReviewStatus(submission.reviewStatus)}</span>
+      <span className="font-bold">{formatReviewStatus(submission.reviewStatus, t)}</span>
       {submission.instructorFeedback ? (
         <span className="whitespace-pre-wrap text-slate-700">
           {submission.instructorFeedback}
@@ -887,19 +920,23 @@ function ManualSubmissionStatus({
 
 function ResourceSubmissionStatus({
   submission,
+  t,
+  locale,
 }: {
   submission?: StudentCourseRoom["resourceSubmissions"][number];
+  t: Translator;
+  locale: string;
 }) {
   if (!submission) {
-    return <div className="mt-2 text-xs font-bold text-slate-500">Ikke levert ennå</div>;
+    return <div className="mt-2 text-xs font-bold text-slate-500">{t("status.notSubmitted")}</div>;
   }
 
   return (
     <div className="mt-2 grid gap-1 text-xs text-slate-600">
       <span className="font-bold">
-        {formatSubmissionStatus(submission.status)} · {formatMaybeDate(submission.updatedAt)}
+        {formatSubmissionStatus(submission.status, t)} · {formatMaybeDate(submission.updatedAt, locale)}
       </span>
-      <span className="font-bold">{formatReviewStatus(submission.reviewStatus)}</span>
+      <span className="font-bold">{formatReviewStatus(submission.reviewStatus, t)}</span>
       {submission.instructorFeedback ? (
         <span className="whitespace-pre-wrap text-slate-700">
           {submission.instructorFeedback}
@@ -913,12 +950,14 @@ function ToDoResourceAction({
   courseId,
   locale,
   resource,
+  t,
 }: {
   courseId: string;
   locale: string;
   resource: StudentCourseRoom["coursePlan"][number]["resources"][number] & {
     sessionNumber: number;
   };
+  t: Translator;
 }) {
   if (resource.openMode === "lesson" && resource.sourceId) {
     return (
@@ -926,7 +965,7 @@ function ToDoResourceAction({
         href={`/${locale}/student/lesson/${resource.sourceId}?courseId=${encodeURIComponent(courseId)}&sessionNumber=${encodeURIComponent(String(resource.sessionNumber))}&resourceId=${encodeURIComponent(resource.id)}`}
         className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-sm font-bold text-white no-underline"
       >
-        Open lesson
+        {t("sessions.openLesson")}
       </Link>
     );
   }
@@ -939,28 +978,44 @@ function ToDoResourceAction({
         rel="noreferrer"
         className="mt-3 inline-flex h-9 items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 text-sm font-bold text-white no-underline"
       >
-        Open resource
+        {t("sessions.openResource")}
       </a>
     );
   }
 
   return (
     <div className="mt-3 text-xs font-bold text-slate-500">
-      Åpnes fra samlingslisten under.
+      {t("sessions.opensLater")}
     </div>
   );
 }
 
-function formatSubmissionStatus(value: string): string {
-  if (value === "draft") return "Utkast";
-  if (value === "submitted") return "Levert";
-  return value || "Levert";
+function formatParticipantStatus(value: string, t: Translator): string {
+  if (value === "invited") return t("invited");
+  if (value === "enrolled") return t("enrolled");
+  if (value === "active") return t("active");
+  if (value === "completed") return t("completed");
+  if (value === "cancelled") return t("cancelled");
+  return value || t("enrolled");
 }
 
-function formatReviewStatus(value: string): string {
-  if (value === "approved") return "Godkjent";
-  if (value === "needs_work") return "Trenger arbeid";
-  return "Venter på vurdering";
+function formatSubmissionStatus(value: string, t: Translator): string {
+  if (value === "draft") return t("status.draft");
+  if (value === "submitted") return t("status.submitted");
+  return value || t("status.submitted");
+}
+
+function formatReviewStatus(value: string, t: Translator): string {
+  if (value === "approved") return t("status.approved");
+  if (value === "needs_work") return t("status.needsWork");
+  return t("status.awaiting");
+}
+
+function formatSessionStatus(value: string, t: Translator): string {
+  if (value === "planned") return t("status.planned");
+  if (value === "completed") return t("status.completed");
+  if (value === "cancelled") return t("status.cancelled");
+  return value || t("status.planned");
 }
 
 function getParticipantSessionTone(status: string): string {
@@ -991,16 +1046,16 @@ function getNextSession(course: StudentCourseRoom) {
   return planned.find((session) => !session.startsAt || new Date(session.startsAt).getTime() >= now) ?? planned[0] ?? null;
 }
 
-function formatSessionDate(value: string): string {
-  if (!value) return "Dato ikke satt";
+function formatSessionDate(value: string, locale: string, fallback: string): string {
+  if (!value) return fallback;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }
 
-function formatMaybeDate(value: string): string {
+function formatMaybeDate(value: string, locale: string): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  return date.toLocaleString(locale);
 }

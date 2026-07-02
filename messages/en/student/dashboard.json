@@ -125,6 +125,16 @@
     },
     "stats": {
       "percentUsed": "{percent}% used"
+    },
+    "academy": {
+      "badge": "321Academy",
+      "beta": "Beta",
+      "title": "Courses",
+      "description": "Courses you attend will appear here. This is an early beta for course rooms, live sessions and shared assignments.",
+      "actions": {
+        "myCourses": "My courses",
+        "browse": "Browse public courses"
+      }
     }
   }
 }

@@ -1,0 +1,1020 @@
+{
+  "academy": {
+    "common": {
+      "untitled": "Sem título",
+      "draft": "draft"
+    },
+    "workspace": {
+      "subtitle": "Área de trabalho do curso 321Academy",
+      "backToCourses": "Voltar aos cursos",
+      "nav": {
+        "overview": "Visão geral",
+        "edit": "Editar curso",
+        "sessions": "Editar sessões",
+        "content": "Conteúdo",
+        "marketing": "Marketing",
+        "sales": "Vendas",
+        "participants": "Participantes",
+        "payments": "Pagamentos",
+        "submissions": "Entregas",
+        "messages": "Mensagens"
+      }
+    },
+    "teacherCourses": {
+      "title": "321Academy",
+      "intro": "Crie, organize e acompanhe cursos para seus próprios participantes.",
+      "createCourse": "+ Criar curso",
+      "stripeReturned": "A configuração do Stripe retornou. Abra um curso e verifique Marketing → Sales setup para confirmar o status de pagamento.",
+      "filters": {
+        "myCourses": "Meus cursos",
+        "published": "Cursos publicados",
+        "participating": "Cursos em que participo",
+        "marketplace": "Marketplace de cursos"
+      },
+      "headings": {
+        "courses": "Cursos",
+        "published": "Cursos publicados",
+        "noCourses": "Ainda não há cursos",
+        "noParticipating": "Ainda não há cursos em que você participa"
+      },
+      "searchPlaceholder": "Buscar cursos",
+      "sort": {
+        "newest": "Mais recentes primeiro",
+        "oldest": "Mais antigos primeiro",
+        "titleAz": "Título A-Z",
+        "titleZa": "Título Z-A"
+      },
+      "states": {
+        "loading": "Carregando cursos...",
+        "loadFailed": "Não foi possível carregar os cursos agora.",
+        "publishFailed": "Não foi possível atualizar a publicação agora.",
+        "emptyText": "Comece com um rascunho simples. Você pode adicionar detalhes agora e continuar depois.",
+        "participatingEmptyText": "Quando você participar de um curso, ele aparecerá aqui sem sair da área de professor."
+      },
+      "actions": {
+        "openCourse": "Abrir curso",
+        "openCourseRoom": "Abrir sala do curso",
+        "publish": "Publicar",
+        "unpublish": "Despublicar",
+        "working": "Trabalhando...",
+        "publicPage": "Página pública",
+        "shareLink": "Compartilhar link",
+        "copied": "Copiado",
+        "copyFailed": "Não foi possível copiar",
+        "preview": "Pré-visualizar"
+      },
+      "sale": {
+        "notPublished": "Não publicado",
+        "saleOff": "Venda desativada",
+        "noPrice": "Sem preço",
+        "review": "Revisar",
+        "ready": "Pronto para venda"
+      },
+      "meta": {
+        "sessions": "{count} sessões",
+        "resources": "{count} recursos",
+        "next": "Próxima: {date}",
+        "notScheduled": "não agendada"
+      }
+    },
+    "marketplace": {
+      "metadataTitle": "Cursos 321Academy",
+      "metadataDescription": "Veja cursos publicados da 321Academy.",
+      "badge": "321Academy",
+      "title": "Cursos",
+      "intro": "Explore cursos conduzidos por instrutores. Cursos pagos podem ser comprados diretamente, e cursos gratuitos ou manuais podem receber solicitações.",
+      "myCourseRoom": "Minha sala de cursos",
+      "emptyTitle": "Ainda não há cursos publicados",
+      "emptyText": "Cursos publicados da 321Academy aparecerão aqui.",
+      "levelFallback": "Nível",
+      "languageFallback": "Idioma",
+      "instructor": "Instrutor: {name}",
+      "descriptionFallback": "A descrição do curso será adicionada em breve.",
+      "start": "Início",
+      "startComing": "Data de início em breve",
+      "price": "Preço",
+      "contact": "Contato",
+      "sessions": "Sessões",
+      "weeks": "Semanas",
+      "flexible": "Flexível",
+      "viewCourse": "Ver curso"
+    },
+    "studentCourses": {
+      "title": "Cursos",
+      "intro": "Cursos em que seu e-mail foi adicionado como participante.",
+      "backToDashboard": "Voltar ao painel",
+      "loadFailed": "Não foi possível carregar os cursos agora.",
+      "checkoutTitle": "Pagamento concluído",
+      "checkoutAdded": "{title} foi adicionado à sua sala de cursos.",
+      "checkoutAddedFallback": "O curso foi adicionado à sua sala de cursos.",
+      "openCourseRoom": "Abrir sala do curso",
+      "loading": "Carregando cursos...",
+      "emptyTitle": "Ainda não há cursos",
+      "emptyText": "Quando um instrutor adicionar este e-mail como participante, o curso aparecerá aqui.",
+      "untitled": "Curso sem título",
+      "sessions": "{count} sessões",
+      "nextSession": "Próxima sessão",
+      "session": "Sessão {number}",
+      "startsIn": "Começa em",
+      "notScheduled": "Nenhuma sessão foi agendada ainda.",
+      "joinVideo": "Entrar na sessão de vídeo",
+      "videoLater": "A sala de vídeo será adicionada mais tarde.",
+      "dateNotSet": "Data não definida",
+      "notSet": "Não definido",
+      "now": "Agora",
+      "daysHours": "{days}d {hours}h",
+      "hoursMinutes": "{hours}h {minutes}m",
+      "minutes": "{minutes}m",
+      "status": {
+        "invited": "convidado",
+        "enrolled": "inscrito",
+        "active": "ativo",
+        "completed": "concluído",
+        "cancelled": "cancelado"
+      }
+    },
+    "studentCourseRoom": {
+      "notFound": "Curso não encontrado.",
+      "loadFailed": "Não foi possível carregar a sala do curso agora.",
+      "saveFailed": "Não foi possível salvar a entrega agora.",
+      "saved": "Salvo",
+      "loading": "Carregando sala do curso...",
+      "backToCourses": "Voltar aos cursos",
+      "publicPage": "Página pública do curso",
+      "eyebrow": "Sala do curso 321Academy",
+      "untitled": "Sem título",
+      "noDescription": "Ainda não há descrição.",
+      "levelMissing": "Nível não definido",
+      "languageMissing": "Idioma não definido",
+      "sessionsCount": "{count} sessões",
+      "weeksCount": "{count} semanas",
+      "nav": {
+        "overview": "Visão geral",
+        "tasks": "Tarefas",
+        "progress": "Progresso",
+        "feedback": "Feedback",
+        "messages": "Mensagens",
+        "info": "Info do curso",
+        "sessions": "Sessões"
+      },
+      "stats": {
+        "todo": "A fazer",
+        "submitted": "Entregues",
+        "approved": "Aprovadas",
+        "progress": "Progresso"
+      },
+      "nextSession": "Próxima sessão",
+      "session": "Sessão {number}",
+      "openSessionRoom": "Abrir sala da sessão",
+      "noSessionScheduled": "Nenhuma sessão foi agendada ainda.",
+      "tasks": {
+        "title": "A fazer",
+        "intro": "Abra tarefas e recursos do curso que ainda não foram aprovados.",
+        "empty": "Tudo que foi compartilhado está aprovado ou concluído por enquanto."
+      },
+      "progress": {
+        "title": "Meu progresso",
+        "summary": "{submitted}/{total} recursos entregues · {approved} aprovados",
+        "empty": "Nenhum recurso do curso foi compartilhado ainda."
+      },
+      "feedback": {
+        "title": "Feedback do instrutor",
+        "intro": "Últimas avaliações e comentários do instrutor.",
+        "empty": "Nenhuma avaliação ainda.",
+        "courseTask": "Tarefa do curso",
+        "resource": "Recurso",
+        "noComment": "Sem comentário, apenas o status foi definido.",
+        "updated": "Atualizado: {date}"
+      },
+      "messages": {
+        "title": "Mensagens",
+        "intro": "Mensagens do instrutor aparecem aqui.",
+        "empty": "Nenhuma mensagem ainda.",
+        "fallback": "Mensagem"
+      },
+      "info": {
+        "learningGoals": "Objetivos de aprendizagem",
+        "targetAudience": "Público-alvo",
+        "missing": "Não preenchido"
+      },
+      "sessions": {
+        "title": "Sessões",
+        "empty": "Nenhuma sessão foi adicionada ainda.",
+        "untitled": "Sessão sem título",
+        "noDescription": "Ainda não há descrição.",
+        "open": "Abrir",
+        "close": "Fechar",
+        "resources": "{count} recursos",
+        "submitted": "{submitted}/{total} entregues",
+        "openMeeting": "Abrir reunião",
+        "resourcesTitle": "Recursos desta sessão",
+        "openLesson": "Abrir atividade",
+        "openResource": "Abrir recurso",
+        "opensLater": "O recurso da plataforma abrirá aqui mais tarde.",
+        "comment": "Comentário para o instrutor",
+        "commentPlaceholder": "Escreva um comentário curto, ou envie vazio se isto deve apenas ser marcado como concluído.",
+        "saving": "Salvando...",
+        "submit": "Enviar",
+        "noResources": "Nenhum recurso foi adicionado a esta sessão ainda.",
+        "homework": "Tarefa:",
+        "closeSession": "Fechar sessão"
+      },
+      "status": {
+        "draft": "Rascunho",
+        "submitted": "Entregue",
+        "approved": "Aprovado",
+        "needsWork": "Precisa de revisão",
+        "awaiting": "Aguardando revisão",
+        "notSubmitted": "Ainda não entregue",
+        "planned": "planejada",
+        "completed": "concluída",
+        "cancelled": "cancelada"
+      },
+      "dateNotSet": "Data não definida"
+    },
+    "studentSessionRoom": {
+      "notFound": "Não foi possível encontrar esta sessão.",
+      "loadFailed": "Não foi possível carregar esta sessão agora.",
+      "loading": "Carregando sessão...",
+      "backToCourseRoom": "Voltar à sala do curso",
+      "courseFallback": "Curso",
+      "session": "Sessão {number}",
+      "noDescription": "Ainda sem descrição.",
+      "status": {
+        "planned": "planejada",
+        "completed": "concluída",
+        "cancelled": "cancelada",
+        "draft": "Rascunho",
+        "submitted": "Entregue",
+        "approved": "Aprovado",
+        "needsWork": "Precisa de ajustes",
+        "awaiting": "Aguardando avaliação",
+        "notSubmitted": "Ainda não entregue"
+      },
+      "video": {
+        "eyebrow": "Sessão ao vivo",
+        "title": "Sala de vídeo",
+        "intro": "Entre na sessão ao vivo aqui quando o instrutor abrir a sala.",
+        "fullscreen": "Tela cheia",
+        "exitFullscreen": "Sair da tela cheia",
+        "placeholder": "Sala Daily/reunião",
+        "starting": "Iniciando...",
+        "reconnect": "Reconectar vídeo",
+        "join": "Entrar na sessão de vídeo",
+        "notAvailable": "Esta reunião ainda não está disponível. Tente novamente mais perto do horário da sessão."
+      },
+      "info": {
+        "starts": "Início",
+        "duration": "Duração",
+        "resources": "Recursos",
+        "submitted": "Entregue"
+      },
+      "resources": {
+        "title": "Recursos da sessão",
+        "intro": "Materiais e tarefas conectados a esta sessão.",
+        "empty": "Nenhum recurso foi adicionado a esta sessão ainda.",
+        "openLesson": "Abrir tarefa",
+        "openResource": "Abrir recurso",
+        "opensLater": "Este recurso será aberto aqui depois."
+      },
+      "agenda": {
+        "title": "Agenda",
+        "empty": "O instrutor ainda não adicionou uma agenda.",
+        "homework": "Tarefa de casa"
+      },
+      "dateNotSet": "Data não definida"
+    },
+    "teacherPreview": {
+      "loading": "Carregando pré-visualização...",
+      "notFound": "Curso não encontrado.",
+      "loadFailed": "Não foi possível carregar a pré-visualização agora.",
+      "eyebrow": "Pré-visualização 321Academy",
+      "untitled": "Sem título",
+      "noDescription": "Ainda não há descrição.",
+      "joinButton": "Entrar no curso / inscrever-se",
+      "badges": {
+        "level": "Nível",
+        "language": "Idioma",
+        "sessions": "Encontros",
+        "price": "Preço"
+      },
+      "missing": "Não preenchido",
+      "learningGoals": "Objetivos de aprendizagem",
+      "targetAudience": "Público-alvo",
+      "coursePlan": "Plano do curso",
+      "noSessions": "Nenhum encontro foi adicionado ainda.",
+      "session": "Encontro {number}",
+      "noSessionTitle": "Sem título",
+      "noSessionDescription": "Sem descrição.",
+      "contentSuggestions": "Sugestões de conteúdo:",
+      "resources": "Recursos",
+      "openResource": "Abrir recurso",
+      "meetingLink": "Link da reunião",
+      "meetingLater": "O link da reunião será adicionado depois",
+      "homework": "Tarefa:",
+      "noHomework": "Sem tarefa.",
+      "back": "Voltar ao painel do curso",
+      "dateNotSet": "Data não definida",
+      "visibility": {
+        "teacher": "Somente professor",
+        "public": "Pré-visualização pública",
+        "participants": "Participantes"
+      }
+    },
+    "publicCourse": {
+      "brand": "321Academy",
+      "instructor": "Instrutor: {name}",
+      "noDescription": "Ainda não há descrição.",
+      "badges": {
+        "level": "Nível",
+        "language": "Idioma",
+        "sessions": "Encontros",
+        "weeks": "Semanas",
+        "maxParticipants": "Máx. participantes",
+        "available": "Disponível",
+        "price": "Preço"
+      },
+      "places": "{count} vagas",
+      "missing": "Não preenchido",
+      "buy": "Comprar curso",
+      "paymentHeld": "O pagamento é mantido com segurança pela 321School e liberado ao instrutor conforme a realização do curso.",
+      "full": "Este curso está cheio no momento. Você ainda pode entrar em contato com o instrutor.",
+      "learningGoals": "Objetivos de aprendizagem",
+      "targetAudience": "Público-alvo",
+      "about": "Sobre este curso",
+      "coursePlan": "Plano do curso",
+      "noSessions": "Nenhum encontro foi publicado ainda.",
+      "session": "Encontro {number}",
+      "untitled": "Sem título",
+      "noSessionDescription": "Sem descrição.",
+      "contentSuggestions": "Sugestões de conteúdo:",
+      "resources": "Recursos",
+      "openResource": "Abrir recurso",
+      "availableAfterEnrollment": "Disponível após a inscrição",
+      "meetingAfterEnrollment": "Link da reunião disponível após a inscrição",
+      "homework": "Tarefa:",
+      "noHomework": "Sem tarefa.",
+      "dateNotSet": "Data não definida",
+      "signup": {
+        "contactTitle": "Entrar em contato com o instrutor",
+        "requestTitle": "Solicitar vaga",
+        "compactHelp": "Use isto se tiver dúvidas antes de comprar ou precisar de acompanhamento manual.",
+        "name": "Nome",
+        "email": "E-mail",
+        "phone": "Telefone",
+        "message": "Mensagem",
+        "success": "Obrigado. Sua solicitação foi enviada.",
+        "error": "Não foi possível enviar a solicitação agora.",
+        "sending": "Enviando...",
+        "sendRequest": "Enviar solicitação",
+        "requestPlace": "Solicitar vaga"
+      },
+      "checkout": {
+        "signin": "Entre antes de comprar este curso.",
+        "failed": "Não foi possível iniciar o checkout",
+        "opening": "Abrindo checkout..."
+      }
+    },
+    "teacherSessionRoom": {
+      "loading": "Carregando sessão...",
+      "notFound": "Não foi possível encontrar esta sessão.",
+      "loadFailed": "Não foi possível carregar esta sessão agora.",
+      "dailyUnavailable": "Esta reunião ainda não está disponível. Tente novamente mais perto do horário de início.",
+      "dailyLoadFailed": "Não foi possível carregar o script do Daily",
+      "dailyCouldNotLoad": "Não foi possível carregar o Daily",
+      "videoStartFailed": "Não foi possível iniciar a sessão de vídeo",
+      "fullscreenFailed": "Não foi possível alternar tela cheia.",
+      "backToCourse": "Voltar ao curso",
+      "eyebrow": "Sala do instrutor · Sessão {number}",
+      "fallbackTitle": "Sessão {number}",
+      "noDescription": "Ainda não há descrição para esta sessão.",
+      "editSessions": "Editar sessões",
+      "hostRoom": "Sala do anfitrião",
+      "videoTitle": "Sessão de vídeo",
+      "videoIntro": "Entre por esta página como instrutor. Isto cria um token de anfitrião para a sala privada do Daily.",
+      "fullscreen": "Tela cheia",
+      "exitFullscreen": "Sair da tela cheia",
+      "embedLabel": "Visualização Daily do instrutor",
+      "starting": "Iniciando...",
+      "reconnect": "Reconectar vídeo",
+      "startJoin": "Iniciar / entrar",
+      "cards": {
+        "starts": "Início",
+        "duration": "Duração",
+        "resources": "Recursos",
+        "meetingLink": "Link da reunião",
+        "ready": "Pronto",
+        "createdOnJoin": "Criado ao entrar"
+      },
+      "sessionPlan": "Plano da sessão",
+      "noAgenda": "Nenhuma agenda foi adicionada ainda.",
+      "dateNotSet": "Data não definida"
+    },
+    "editCourse": {
+      "title": "Editar curso",
+      "intro": "Atualize as informações principais do curso. Sessões, datas e recursos são editados em Editar sessões.",
+      "loading": "Carregando curso...",
+      "errors": {
+        "notFound": "Curso não encontrado.",
+        "ownerOnly": "Somente o proprietário pode editar este curso.",
+        "loadFailed": "Não foi possível carregar o curso agora.",
+        "titleRequired": "O título é obrigatório.",
+        "saveFailed": "Não foi possível salvar o curso agora."
+      },
+      "fields": {
+        "title": "Título",
+        "description": "Descrição",
+        "learningGoals": "Objetivos de aprendizagem",
+        "targetAudience": "Público-alvo",
+        "language": "Idioma",
+        "level": "Nível",
+        "maxParticipants": "Máx. participantes",
+        "status": "Status",
+        "numberOfSessions": "Número de sessões",
+        "numberOfWeeks": "Número de semanas"
+      },
+      "notes": {
+        "language": "O idioma fica bloqueado após a criação do curso porque afeta expectativas, materiais e marketing.",
+        "level": "O nível fica bloqueado após a configuração. Crie um novo curso se o nível mudar bastante.",
+        "maxParticipants": "Alterar isso pode afetar a capacidade de venda e a disponibilidade na página pública do curso.",
+        "status": "Publicação e status de vendas são gerenciados na visão geral do curso e em Vendas.",
+        "sessions": "Use Editar sessões para adicionar, remover ou agendar sessões.",
+        "weeks": "A duração do curso faz parte da configuração e das estimativas de pagamento/licença."
+      },
+      "actions": {
+        "cancel": "Cancelar",
+        "saving": "Salvando...",
+        "save": "Salvar curso"
+      }
+    },
+    "sessions": {
+      "title": "Sessões",
+      "intro": "Edite cada dia do curso. Aqui ficam sugestões, informações de reunião, tarefas e recursos de My Content, Library ou links próprios.",
+      "loading": "Carregando sessões...",
+      "errors": {
+        "notFound": "Curso não encontrado.",
+        "loadFailed": "Não foi possível carregar as sessões agora.",
+        "saveFailed": "Não foi possível salvar as sessões agora."
+      },
+      "actions": {
+        "saving": "Salvando...",
+        "save": "Salvar sessões",
+        "apply": "Aplicar",
+        "openSessionRoom": "Abrir sala da sessão",
+        "removeSession": "Remover sessão",
+        "addFromMyContent": "Adicionar de My Content",
+        "addFromLibrary": "Adicionar da Library",
+        "addResource": "Adicionar recurso",
+        "remove": "Remover",
+        "closeSession": "Fechar sessão",
+        "addNewSession": "+ Adicionar nova sessão",
+        "close": "Fechar"
+      },
+      "quickSchedule": {
+        "title": "Agenda rápida",
+        "intro": "Defina data inicial, horário e repetição. Isso preenche as datas de todas as sessões, e você pode ajustar cada uma manualmente depois.",
+        "note": "\"Dias úteis consecutivos\" coloca as sessões no próximo dia útil e pula sábado e domingo. Todas as datas e horários podem ser alterados manualmente depois.",
+        "fields": {
+          "startDate": "Data inicial",
+          "time": "Horário",
+          "duration": "Duração em minutos",
+          "repeat": "Repetição"
+        },
+        "repeat": {
+          "weekdays": "Dias úteis consecutivos",
+          "weekly": "Toda semana",
+          "biweekly": "A cada duas semanas",
+          "monthly": "Todo mês"
+        }
+      },
+      "session": {
+        "label": "Sessão {number}",
+        "untitled": "Sem título",
+        "noDescription": "Ainda sem descrição.",
+        "openAria": "Abrir sessão {number}",
+        "closeAria": "Fechar sessão {number}",
+        "confirmRemove": "Remover sessão {number}?",
+        "dateNotSet": "Data não definida",
+        "addNewDescription": "Adicione uma nova sessão ao final do plano do curso."
+      },
+      "fields": {
+        "startsAt": "Início",
+        "durationMinutes": "Duração em minutos",
+        "meetingUrl": "Link da reunião",
+        "status": "Status",
+        "title": "Título",
+        "description": "Descrição",
+        "contentSuggestions": "Sugestões de conteúdo",
+        "homework": "Sugestão de tarefa",
+        "type": "Tipo",
+        "visibility": "Visibilidade",
+        "url": "URL"
+      },
+      "status": {
+        "planned": "planned",
+        "completed": "completed",
+        "cancelled": "cancelled"
+      },
+      "resources": {
+        "title": "Recursos",
+        "intro": "Links, links de PDF, placeholders do 321school ou notas manuais.",
+        "empty": "Nenhum recurso adicionado ainda.",
+        "label": "Recurso {number}",
+        "optional": "Opcional",
+        "lesson": "Atividade",
+        "libraryLesson": "Atividade da biblioteca",
+        "myContentDescription": "Conteúdo 321school. O acesso do aluno será conectado depois.",
+        "libraryDescription": "Conteúdo da Library. O acesso do aluno será conectado depois.",
+        "type": {
+          "link": "Link externo",
+          "pdf": "PDF / link de arquivo",
+          "platform": "Conteúdo 321school depois",
+          "note": "Nota manual"
+        },
+        "visibility": {
+          "participants": "Participantes",
+          "teacher": "Somente professor",
+          "public": "Preview público"
+        }
+      },
+      "picker": {
+        "libraryTitle": "Adicionar da Library",
+        "myContentTitle": "Adicionar de My Content",
+        "intro": "Isso apenas adiciona uma referência ao conteúdo. O acesso do aluno vem depois.",
+        "searchPlaceholder": "Buscar por título, nível ou idioma",
+        "libraryEmpty": "Nenhum recurso da Library encontrado agora.",
+        "myContentEmpty": "Nenhuma lesson em My Content encontrada agora."
+      }
+    },
+    "marketing": {
+      "loading": "Carregando marketing...",
+      "title": "Marketing",
+      "intro": "Imagem do curso, texto público e campos de apresentação para cards e páginas públicas.",
+      "errors": {
+        "notFound": "Curso não encontrado.",
+        "loadFailed": "Não foi possível carregar o curso agora.",
+        "saveFailed": "Não foi possível salvar os campos de marketing agora.",
+        "generic": "Algo deu errado.",
+        "copyFailed": "Não foi possível copiar agora.",
+        "chooseImage": "Escolha um arquivo de imagem.",
+        "imageTooLarge": "A imagem é muito grande. Máx. 8MB.",
+        "uploadFailed": "Falha no upload da imagem.",
+        "imagePromptRequired": "Escreva um prompt de imagem primeiro.",
+        "imageGenerationFailed": "Falha ao gerar imagem.",
+        "noImageReturned": "A geração não retornou imagem.",
+        "marketingGenerationFailed": "Não foi possível gerar texto de marketing."
+      },
+      "actions": {
+        "preview": "Pré-visualizar curso",
+        "openPublicPage": "Abrir página pública",
+        "copyLink": "Copiar link",
+        "copyText": "Copiar texto",
+        "share": "Compartilhar",
+        "downloadQr": "Baixar QR",
+        "uploadImage": "Enviar imagem",
+        "generateWithAi": "Gerar com IA",
+        "useSuggestedPrompt": "Usar prompt sugerido",
+        "generatingImage": "Gerando...",
+        "generateImage": "Gerar imagem",
+        "removeImage": "Remover imagem",
+        "generatingMarketing": "Gerando marketing...",
+        "generateMarketing": "Gerar texto de marketing",
+        "backToDashboard": "Voltar ao painel",
+        "saving": "Salvando...",
+        "save": "Salvar marketing"
+      },
+      "messages": {
+        "linkCopied": "Link copiado.",
+        "shareTextCopied": "Texto copiado.",
+        "shareDialogOpened": "Diálogo de compartilhamento aberto.",
+        "imageUploaded": "Imagem enviada. Lembre-se de salvar o marketing.",
+        "imageGenerated": "Imagem de IA gerada. Lembre-se de salvar o marketing.",
+        "marketingGenerated": "Sugestões de marketing adicionadas. Revise e edite antes de salvar."
+      },
+      "share": {
+        "title": "Compartilhar curso",
+        "intro": "Compartilhe a página pública com link, QR code ou redes sociais.",
+        "publishFirst": "Publique o curso primeiro para criar um link público compartilhável.",
+        "link": "Link de compartilhamento",
+        "text": "Texto de compartilhamento",
+        "qrAlt": "QR code da página do curso",
+        "qrFallback": "QR"
+      },
+      "fields": {
+        "marketingFields": "Campos de marketing",
+        "courseImage": "Imagem do curso",
+        "imageLocked": "Travado em 16:9 para funcionar em marketing, cards de curso e compartilhamento público.",
+        "uploadImage": "Enviar imagem",
+        "pasteImageUrl": "Ou cole URL da imagem",
+        "imageStyle": "Estilo da imagem",
+        "aiImagePrompt": "Prompt de imagem IA",
+        "shortSummary": "Resumo público curto",
+        "salesText": "Texto de venda",
+        "seoTitle": "Título SEO",
+        "seoDescription": "Descrição SEO"
+      },
+      "image": {
+        "uploadHelp": "Use jpg, png ou webp. Máx. 8MB.",
+        "uploading": "Enviando...",
+        "promptPlaceholder": "Descreva a imagem do curso. Evite texto dentro da imagem.",
+        "promptHelp": "Criado a partir da descrição do curso e do texto de marketing. Você pode editar antes de gerar.",
+        "illustration": "Ilustração",
+        "realistic": "Realista",
+        "previewAlt": "Imagem do curso",
+        "placeholder": "Imagem do curso 16:9",
+        "source": "Fonte: {source}",
+        "sourceAi": "IA",
+        "sourceUpload": "Upload/URL",
+        "sourceNone": "Nenhuma"
+      },
+      "placeholders": {
+        "summary": "Texto curto mostrado no alto da página pública do curso.",
+        "salesText": "Texto mais detalhado sobre quem deve fazer o curso e o que os participantes ganham."
+      },
+      "aiPrompt": {
+        "line1": "Create a premium 16:9 front-page marketing image for a professional course.",
+        "line2": "The image should feel like something used to sell the course: polished, optimistic, trustworthy and high quality.",
+        "line3": "Show happy, confident, successful people in a positive learning situation connected to the course topic.",
+        "line4": "The mood should communicate progress, mastery, collaboration and practical value.",
+        "line5": "Use a clean modern composition with warm natural light and enough visual space for a course title to be placed outside the image later.",
+        "line6": "Do not include any text, letters, numbers, logos, watermarks, UI screens with readable text, or brand names inside the image.",
+        "courseTitle": "Course title: {value}",
+        "courseFallback": "Course",
+        "courseDescription": "Course description: {value}",
+        "learningGoals": "Learning goals: {value}",
+        "targetAudience": "Target audience: {value}",
+        "salesAngle": "Sales angle: {value}",
+        "courseLanguage": "Course language: {value}",
+        "level": "Level: {value}"
+      }
+    },
+    "sales": {
+      "loading": "Carregando vendas...",
+      "title": "Vendas",
+      "intro": "Preço, prontidão do checkout, classificação fiscal e política de pagamento deste curso.",
+      "errors": {
+        "notFound": "Curso não encontrado.",
+        "loadFailed": "Não foi possível carregar o curso agora.",
+        "connectStatusFailed": "Não foi possível carregar o status do Stripe Connect.",
+        "connectStartFailed": "Não foi possível iniciar onboarding do Stripe.",
+        "saveFailed": "Não foi possível salvar as vendas agora.",
+        "generic": "Algo deu errado."
+      },
+      "messages": {
+        "saved": "Configuração de vendas salva."
+      },
+      "readiness": {
+        "checkoutReady": "Checkout pronto",
+        "notReady": "Não pronto",
+        "checking": "Verificando...",
+        "connected": "Conectado",
+        "incomplete": "Onboarding incompleto",
+        "notConnected": "Não conectado"
+      },
+      "payoutEstimate": {
+        "title": "Estimativa de pagamento do instrutor",
+        "intro": "Estimativa baseada no preço atual do curso. O pagamento final depende de taxas, dedução de licença e revisão administrativa.",
+        "instructor": "Estimativa do instrutor",
+        "firstRelease": "Primeira liberação de 75%",
+        "holdback": "Retido até conclusão",
+        "noPrice": "Defina um preço para ver a estimativa."
+      },
+      "checkout": {
+        "title": "Prontidão do checkout",
+        "intro": "A página pública pode vender este curso quando Stripe estiver conectado, preço definido, status pronto e perfil fiscal revisado.",
+        "stripeTitle": "Stripe Connect",
+        "stripeIntro": "Instrutores devem conectar Stripe Express antes de inscrições pagas e pagamentos futuros. Pagamentos ficam retidos pela plataforma até revisão dos marcos de entrega.",
+        "readyText": "O checkout público está pronto. A página pública pode mostrar Comprar curso depois de salvar estas configurações.",
+        "notReadyText": "O checkout público ainda não está pronto. Necessário: Stripe conectado, status pronto, preço definido e perfil fiscal de aula ao vivo.",
+        "openStripe": "Abrir configuração Stripe",
+        "continueSetup": "Continuar configuração",
+        "connectStripe": "Conectar Stripe"
+      },
+      "price": {
+        "title": "Preço",
+        "saleStatus": "Status de venda",
+        "currency": "Moeda",
+        "price": "Preço",
+        "notForSale": "Ainda não à venda",
+        "readyWhenConnected": "Pronto quando Stripe conectar",
+        "needsReview": "Precisa revisão"
+      },
+      "tax": {
+        "title": "Classificação fiscal",
+        "intro": "Padrão é ensino ao vivo com instrutor. Conteúdo misto ou gravado deve ser revisado antes da venda.",
+        "deliveryType": "Tipo de entrega",
+        "vatTreatment": "Tratamento de IVA",
+        "vatNote": "Nota de IVA",
+        "live": "Curso ao vivo com instrutor",
+        "mixed": "Conteúdo misto, revisar",
+        "recorded": "Conteúdo digital gravado",
+        "needsReview": "Precisa revisão",
+        "vatExempt": "Educação isenta de IVA",
+        "vatableDigital": "Serviço digital tributável"
+      },
+      "payoutPreview": {
+        "title": "Prévia de pagamento",
+        "intro": "Estimativas usadas no modelo de retenção e liberação da 321School.",
+        "gross": "Preço bruto",
+        "paymentFee": "Taxa estimada de pagamento",
+        "dailyAi": "Daily/IA estimado",
+        "license": "Dedução de licença do curso",
+        "netRevenue": "Receita líquida",
+        "instructor": "Estimativa do instrutor",
+        "platformMargin": "Margem da plataforma",
+        "reserve": "Reserva plataforma/custos",
+        "firstPayout": "Primeiro pagamento após 75% entregue",
+        "held": "Retido até conclusão",
+        "holdNotice": "Inscrições pagas são retidas primeiro pela 321School. Até 75% da estimativa do instrutor pode ser liberada após 75% do curso ser concluído. Os 25% restantes ficam retidos até conclusão e uma curta janela de reclamação."
+      },
+      "actions": {
+        "backToDashboard": "Voltar ao painel",
+        "saving": "Salvando...",
+        "save": "Salvar vendas"
+      }
+    },
+    "dashboard": {
+      "loading": "Carregando curso...",
+      "errors": {
+        "notFound": "Curso não encontrado.",
+        "loadFailed": "Não foi possível carregar o curso agora.",
+        "placeholder": "This section is reserved as a placeholder in the first version."
+      },
+      "payments": {
+        "title": "Pagamentos",
+        "intro": "Simple payment control for this course. Amounts are estimates from the checkout ledger.",
+        "resync": "Resync Stripe",
+        "checking": "Checking...",
+        "loadFailed": "Payments could not be loaded right now.",
+        "resyncFailed": "Payment status could not be resynced right now.",
+        "resyncDone": "Checked {checked} pending orders. Updated {updated}.",
+        "loading": "Carregando pagamentos...",
+        "empty": "No payment orders yet.",
+        "pendingNotice": "Some checkouts are still pending. This usually means the user opened checkout but payment has not completed yet, or the webhook is still processing.",
+        "payoutReview": "First payout can be reviewed",
+        "payoutPolicy": "Payout safety policy",
+        "payoutText": "New paid course orders are held by the platform. When at least 75% of sessions are completed{required}, up to 75% of the instructor estimate can be released manually. The remaining 25% is kept until the course is completed and the complaint window has passed.",
+        "requiredSessions": " ({required} of {total})",
+        "stats": {
+          "paidOrders": "Paid orders",
+          "grossPaid": "Gross paid",
+          "instructor": "Instructor earned estimate",
+          "held": "Held for payout",
+          "firstRelease": "First release estimate",
+          "fees": "Application fee / platform side",
+          "pendingFailed": "Pending / failed",
+          "delivery": "Course delivery",
+          "sessions": "{done}/{total} sessions"
+        },
+        "table": {
+          "buyer": "Buyer",
+          "status": "Status",
+          "gross": "Gross",
+          "instructor": "Instructor",
+          "platform": "Platform/Fee",
+          "paid": "Paid",
+          "unknown": "Unknown",
+          "activeLicense": "Had active license",
+          "payout": "Payout: {status}"
+        }
+      },
+      "participants": {
+        "title": "Participantes",
+        "intro": "Gerencie participantes e solicitações de inscrição deste curso.",
+        "addGroup": "Adicionar grupo",
+        "addParticipant": "Adicionar participante",
+        "loadFailed": "Não foi possível carregar os participantes agora.",
+        "saveFailed": "Não foi possível salvar o participante agora.",
+        "groupEmpty": "Cole pelo menos um participante com e-mail.",
+        "groupSaveFailed": "Não foi possível adicionar o grupo agora.",
+        "deleteConfirm": "Excluir {name}?",
+        "deleteFailed": "Não foi possível excluir o participante agora.",
+        "requestFailed": "Não foi possível atualizar a solicitação agora.",
+        "loading": "Carregando participantes...",
+        "empty": "Nenhum participante ainda.",
+        "stats": {
+          "participants": "Participantes: {count}",
+          "paid": "Pagos: {count}",
+          "requests": "Solicitações: {newCount} novas / {acceptedCount} aceitas",
+          "manual": "Manual: {manualCount} · Entregas: {submissionCount}"
+        },
+        "fields": {
+          "name": "Nome",
+          "email": "Email",
+          "phone": "Telefone",
+          "organization": "Escola / organização",
+          "status": "Status",
+          "note": "Nota",
+          "participants": "Participantes",
+          "sharedNote": "Nota compartilhada"
+        },
+        "placeholders": {
+          "organization": "Por exemplo: Escola Solvang",
+          "note": "Nota interna, por exemplo curso de IA para professores",
+          "groupNote": "Nota interna, por exemplo curso de IA para professores do ensino fundamental"
+        },
+        "actions": {
+          "cancel": "Cancelar",
+          "saving": "Salvando...",
+          "adding": "Adicionando...",
+          "saveParticipant": "Salvar participante",
+          "addParticipant": "Adicionar participante",
+          "addGroup": "Adicionar grupo",
+          "edit": "Editar",
+          "delete": "Excluir",
+          "contacted": "Contactado",
+          "accept": "Aceitar",
+          "reject": "Rejeitar"
+        },
+        "group": {
+          "title": "Adicionar grupo / escola",
+          "intro": "Cole um participante por linha. Exemplos: “Ola Nordmann, ola@school.no” ou apenas “ola@school.no”."
+        },
+        "requests": {
+          "title": "Solicitações de inscrição",
+          "intro": "Solicitações vindas da página pública do curso.",
+          "empty": "Nenhuma solicitação ainda.",
+          "status": {
+            "new": "nova",
+            "accepted": "aceita",
+            "rejected": "rejeitada",
+            "contacted": "contactada"
+          }
+        },
+        "progress": {
+          "title": "Progresso do curso",
+          "delivered": "{done}/{total} entregues",
+          "approved": "{count} aprovadas",
+          "needsWork": "{count} precisam de revisão",
+          "lastActivity": "Última atividade: {date}"
+        },
+        "meta": {
+          "createdUpdated": "Criado: {created} · Atualizado: {updated}"
+        },
+        "status": {
+          "invited": "convidado",
+          "enrolled": "inscrito",
+          "active": "ativo",
+          "completed": "concluído",
+          "cancelled": "cancelado"
+        },
+        "roles": {
+          "student": "aluno",
+          "teacher": "professor",
+          "parent": "responsável",
+          "admin": "admin"
+        },
+        "origin": {
+          "paidCheckout": "Checkout pago",
+          "requestAccepted": "Solicitação aceita",
+          "requestStatus": "Solicitação: {status}",
+          "groupImport": "Importação de grupo",
+          "manual": "Manual"
+        },
+        "payment": {
+          "paidHeld": "Pago / retido",
+          "paid": "Pago",
+          "checkoutStarted": "Checkout iniciado"
+        }
+      },
+      "submissions": {
+        "title": "Entregas",
+        "intro": "Revise trabalhos enviados pelos participantes a partir dos recursos do curso.",
+        "refresh": "Atualizar",
+        "loadFailed": "Não foi possível carregar as entregas agora.",
+        "openFailed": "Não foi possível abrir a entrega agora.",
+        "feedbackSaveFailed": "Não foi possível salvar o feedback do instrutor agora.",
+        "loading": "Carregando entregas...",
+        "empty": "Ainda não há entregas do curso. Quando participantes abrem tarefas na sala do curso e salvam ou enviam, elas aparecem aqui.",
+        "emptyFilter": "Nenhuma entrega neste filtro.",
+        "stats": {
+          "total": "Total: {count}",
+          "awaiting": "Aguardando revisão: {count}",
+          "needsWork": "Precisa de revisão: {count}",
+          "approved": "Aprovadas: {count}"
+        },
+        "filters": {
+          "all": "Todas",
+          "unreviewed": "Aguardando revisão",
+          "needs_work": "Precisa de revisão",
+          "approved": "Aprovada"
+        },
+        "labels": {
+          "lesson": "Atividade",
+          "participant": "Participante: {value}",
+          "session": "Sessão: {value}",
+          "updated": "Atualizado: {value}",
+          "feedback": "feedback",
+          "noFeedback": "sem feedback",
+          "opening": "Abrindo...",
+          "view": "Ver",
+          "submission": "Entrega",
+          "manualTask": "Tarefa manual do curso",
+          "status": "Status: {value}",
+          "openTask": "Abrir tarefa",
+          "close": "Fechar",
+          "answers": "Respostas",
+          "noAnswers": "Nenhuma resposta salva ainda.",
+          "answer": "Resposta {number}",
+          "aiFeedback": "Feedback",
+          "noSavedFeedback": "Nenhum feedback salvo ainda.",
+          "instructorFeedback": "Feedback do instrutor",
+          "instructorPlaceholder": "Escreva um feedback curto ou uma nota interna de acompanhamento.",
+          "noStatus": "Sem status",
+          "saveFeedback": "Salvar feedback do instrutor",
+          "saving": "Salvando..."
+        }
+      },
+      "messages": {
+        "title": "Mensagens",
+        "intro": "Envie mensagens do curso e mantenha um histórico simples.",
+        "newMessage": "Nova mensagem",
+        "loadFailed": "Não foi possível carregar as mensagens agora.",
+        "sendFailed": "Não foi possível enviar a mensagem agora.",
+        "loading": "Carregando mensagens...",
+        "empty": "Nenhuma mensagem ainda.",
+        "stats": {
+          "messages": "Messages: {count}",
+          "sent": "Sent: {count}",
+          "failed": "Failed: {count}",
+          "drafts": "Drafts: {count}"
+        },
+        "fields": {
+          "subject": "Subject",
+          "body": "Body",
+          "recipients": "Destinatários"
+        },
+        "recipients": {
+          "all": "all participants",
+          "active": "participantes inscritos/ativos",
+          "signupNew": "signup requests with status new",
+          "signupContacted": "signup requests with status contacted"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "sending": "Sending...",
+          "send": "Enviar e-mail"
+        },
+        "meta": "{count} recipients · {date}"
+      },
+      "content": {
+        "fallbackTitle": "Conteúdo do curso",
+        "title": "Conteúdo",
+        "summary": "{resources} recursos em {sessions} sessões.",
+        "print": "Imprimir",
+        "pdf": "PDF",
+        "empty": "Nenhum recurso foi adicionado ainda. Use Sessões para adicionar de My Content, Library ou links próprios.",
+        "session": "Sessão {number}",
+        "untitled": "Sem título",
+        "openResource": "Abrir recurso",
+        "visibility": {
+          "teacher": "Somente professor",
+          "public": "Preview público",
+          "participants": "Participantes"
+        }
+      },
+      "overview": {
+        "title": "Visão geral",
+        "saleReady": "A venda do curso está pronta",
+        "saleNeedsAttention": "A venda do curso precisa de atenção",
+        "saleReadyText": "A página pública pode mostrar Comprar curso quando Stripe Connect estiver conectado.",
+        "missing": "Falta: {items}",
+        "salesSetup": "Configuração de vendas",
+        "cards": {
+          "awaitingReview": "Aguardando revisão",
+          "needsWork": "Precisa ajuste",
+          "newSignupRequests": "Novas solicitações",
+          "participants": "Participantes",
+          "paidOrders": "Pedidos pagos"
+        },
+        "nextSession": {
+          "title": "Próxima sessão",
+          "none": "Nenhuma sessão planejada ainda.",
+          "openSessions": "Abrir sessões",
+          "fallbackTitle": "Sessão {number}",
+          "participantResources": "Recursos dos participantes: {count}",
+          "teacherOnly": "Somente professor: {count}",
+          "meetingLink": "Link da reunião: {status}",
+          "ready": "pronto",
+          "missing": "faltando",
+          "openMeeting": "Abrir reunião",
+          "editSession": "Editar sessão",
+          "messageParticipants": "Enviar mensagem aos participantes",
+          "dateNotSet": "Data não definida"
+        },
+        "readiness": {
+          "publish": "publicar curso",
+          "saleStatus": "definir status de venda como pronto",
+          "price": "definir preço",
+          "live": "entrega ao vivo com instrutor",
+          "vat": "tratamento de IVA"
+        },
+        "reviewStatus": {
+          "approved": "Aprovado",
+          "needsWork": "Precisa ajuste",
+          "none": "Sem status"
+        }
+      }
+    }
+  }
+}

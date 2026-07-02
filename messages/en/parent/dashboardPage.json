@@ -96,6 +96,16 @@
     },
     "stats": {
       "percentUsed": "{percent}% used"
+    },
+    "academy": {
+      "badge": "321Academy",
+      "beta": "Beta",
+      "title": "Courses you can join",
+      "description": "Follow courses as a participant, whether you are joining as a parent, learner or professional. Course access is independent of your main role.",
+      "actions": {
+        "myCourses": "My courses",
+        "browse": "Browse courses"
+      }
     }
   }
 }

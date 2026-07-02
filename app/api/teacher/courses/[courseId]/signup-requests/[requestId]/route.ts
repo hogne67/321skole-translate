@@ -147,6 +147,8 @@ export async function PATCH(
           participantUid: identity.participantUid,
           roleSnapshot: identity.roleSnapshot,
           phone: safeString(fresh.phone),
+          source: "signupRequest",
+          signupRequestId: requestId,
           status: "enrolled",
           createdAt: now,
           updatedAt: now,
