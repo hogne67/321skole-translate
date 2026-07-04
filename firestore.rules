@@ -612,6 +612,81 @@ allow update: if signedIn()
     }
 
     /* =========================
+       PLANNERS / 321PLANNER
+    ========================= */
+    match /planners/{plannerId} {
+      function isTeacherLike() {
+        return isTeacher() || hasRole("teacher") || isAdmin();
+      }
+
+      function plannerKeys() {
+        return [
+          "ownerUid",
+          "status",
+          "frame",
+          "curriculum",
+          "document",
+          "copiedFromPlannerId",
+          "createdAt",
+          "updatedAt"
+        ];
+      }
+
+      function requiredPlannerKeys() {
+        return [
+          "ownerUid",
+          "status",
+          "frame",
+          "curriculum",
+          "document",
+          "createdAt",
+          "updatedAt"
+        ];
+      }
+
+      function validPlannerStatus(status) {
+        return status == "draft"
+          || status == "active"
+          || status == "archived";
+      }
+
+      function validPlannerPayload(data) {
+        return data.keys().hasAll(requiredPlannerKeys())
+          && data.keys().hasOnly(plannerKeys())
+          && data.ownerUid is string
+          && validPlannerStatus(data.status)
+          && data.frame is map
+          && data.curriculum is map
+          && data.document is map
+          && (!("copiedFromPlannerId" in data) || data.copiedFromPlannerId is string)
+          && data.createdAt is timestamp
+          && data.updatedAt is timestamp;
+      }
+
+      function isPlannerOwner() {
+        return signedIn()
+          && resource != null
+          && resource.data.ownerUid is string
+          && resource.data.ownerUid == myUid();
+      }
+
+      allow read: if isAdmin() || isPlannerOwner();
+
+      allow create: if signedIn()
+        && isTeacherLike()
+        && validPlannerPayload(request.resource.data)
+        && request.resource.data.ownerUid == myUid();
+
+      allow update: if (isAdmin() || isPlannerOwner())
+        && validPlannerPayload(request.resource.data)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp;
+
+      allow delete: if isAdmin() || isPlannerOwner();
+    }
+
+    /* =========================
        SPACES
     ========================= */
     match /spaces/{spaceId} {

@@ -31,6 +31,7 @@ export function navItemsForRole(role: Role, options: NavOptions = {}): NavItem[]
       ...(options.academyEnabled
         ? [{ href: "/teacher/courses", labelKey: "academy" } satisfies NavItem]
         : []),
+      { href: "/teacher/planner", labelKey: "planner" },
       { href: "/teacher/spaces", labelKey: "spaces" },
       { href: "/tools", labelKey: "tools" },
     ];
