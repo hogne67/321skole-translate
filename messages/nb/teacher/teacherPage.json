@@ -151,6 +151,16 @@
         "published": "Publiserte kurs",
         "attending": "Kurs jeg deltar på"
       }
+    },
+    "planner": {
+      "badge": "321Planner",
+      "beta": "Beta",
+      "title": "Planner",
+      "description": "Lag årsplaner og periodeplaner med kontrollert læreplangrunnlag, lokale rammer og redigerbare AI-forslag.",
+      "actions": {
+        "open": "Åpne Planner",
+        "new": "Lag ny plan"
+      }
     }
   }
 }

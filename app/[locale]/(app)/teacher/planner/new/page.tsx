@@ -1,123 +1,250 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { Sparkles, Save, ArrowLeft } from "lucide-react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { ArrowLeft, CalendarDays, CheckCircle2 } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { SearchableSelect } from "@/components/SearchableSelect";
+import { NO_MUNICIPALITIES } from "@/lib/geo/noMunicipalities";
 import {
   DEFAULT_CURRICULUM_SOURCE,
+  DEFAULT_LOCAL_FRAMEWORK,
   DEFAULT_PLANNER_DOCUMENT,
   DEFAULT_PLANNER_FRAME,
-  type CurriculumSource,
-  type CurriculumSourceType,
-  type PlannerAiLevel,
-  type PlannerDocument,
   type PlannerFrame,
-  type PlannerIndividualDetails,
-  type PlannerType,
+  type PlannerSchoolCalendar,
+  type PlannerSchoolCalendarSource,
 } from "@/lib/planner/types";
+import type { OfficialCurriculumBasis } from "@/lib/planner/officialCurriculum";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { OfficialBasisView } from "./OfficialBasisView";
 
 const COUNTRIES = ["Norge", "England", "Brasil", "Egendefinert"];
-const SCHOOL_TYPES = [
-  "Barnehage",
-  "Barneskole",
-  "Ungdomsskole",
-  "Videregående",
-  "Voksenopplæring",
-  "Universitet",
-  "Arbeidsrettet opplæring",
+const SCHOOL_TYPES = ["Barneskole", "Ungdomsskole", "Videregående", "Voksenopplæring"];
+const LEVELS_BY_SCHOOL_TYPE: Record<string, string[]> = {
+  Barneskole: ["1. trinn", "2. trinn", "3. trinn", "4. trinn", "5. trinn", "6. trinn", "7. trinn"],
+  Ungdomsskole: ["8. trinn", "9. trinn", "10. trinn"],
+  Videregående: ["Vg1", "Vg2", "Vg3", "Vg3 påbygg"],
+  Voksenopplæring: ["FOV modul 1", "FOV modul 2", "FOV modul 3", "FOV modul 4", "FOV modul 4S", "FOV modul 4Y"],
+};
+const GENERAL_SUBJECT_OPTIONS = [
+  { value: "Norsk", label: "Norsk" },
+  { value: "Matematikk", label: "Matematikk" },
+  { value: "Engelsk", label: "Engelsk" },
+  { value: "Naturfag", label: "Naturfag" },
+  { value: "Samfunnsfag", label: "Samfunnsfag" },
+  { value: "KRLE", label: "KRLE" },
+  { value: "Kroppsøving", label: "Kroppsøving" },
+  { value: "Kunst og håndverk", label: "Kunst og håndverk" },
+  { value: "Musikk", label: "Musikk" },
+  { value: "Mat og helse", label: "Mat og helse" },
+  { value: "Annet fag / yrkesfag", label: "Annet fag / yrkesfag" },
 ];
-const SUBJECTS = ["Norsk", "Matematikk", "Naturfag", "Samfunnsfag", "Engelsk", "Helsefag", "Yrkesfag"];
-const LEVELS = ["Barnehage", "1. trinn", "2. trinn", "3. trinn", "4. trinn", "5. trinn", "6. trinn", "7. trinn", "8. trinn", "9. trinn", "10. trinn", "Videregående", "A1", "A2", "B1", "B2", "C1", "C2", "Moduler (FOV)"];
-const LANGUAGES = ["Norsk", "Engelsk", "Portugisisk", "Spansk", "Arabisk", "Somali", "Ukrainsk"];
-const FRAMEWORKS = ["LK20 / FOV", "National Curriculum", "BNCC", "Egendefinert rammeverk"];
+const FOV_SUBJECT_OPTIONS = [
+  { value: "Norsk - FOV", label: "Norsk - FOV" },
+  {
+    value: "Norsk for språklige minoriteter - FOV",
+    label: "Norsk for språklige minoriteter - FOV (norsk for innvandrere)",
+  },
+  { value: "Matematikk - FOV", label: "Matematikk - FOV" },
+  { value: "Engelsk - FOV", label: "Engelsk - FOV" },
+  { value: "Samfunnsfag - FOV", label: "Samfunnsfag - FOV" },
+  { value: "Naturfag - FOV", label: "Naturfag - FOV" },
+  { value: "Annet fag / yrkesfag", label: "Annet fag / yrkesfag" },
+];
+const PLAN_LANGUAGE_OPTIONS = [
+  { value: "Norsk", label: "Norsk" },
+  { value: "Engelsk", label: "Engelsk" },
+  { value: "Portugisisk", label: "Portugisisk" },
+  { value: "Spansk", label: "Spansk" },
+  { value: "Arabisk", label: "Arabisk" },
+  { value: "Somali", label: "Somali" },
+  { value: "Ukrainsk", label: "Ukrainsk" },
+];
+const MUNICIPALITY_OPTIONS = NO_MUNICIPALITIES.map((municipality) => ({
+  value: municipality.name,
+  label: municipality.name,
+}));
+
+function currentSchoolYear() {
+  const now = new Date();
+  const startYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  return `${startYear}/${startYear + 1}`;
+}
+
+function profileCountry(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "no" || normalized === "norway" || normalized === "norge") return "Norge";
+  if (normalized === "gb" || normalized === "england" || normalized === "uk") return "England";
+  if (normalized === "br" || normalized === "brazil" || normalized === "brasil") return "Brasil";
+  return value.trim() || "Norge";
+}
 
 export default function NewPlannerPage() {
   const locale = useLocale();
   const router = useRouter();
-  const { user } = useUserProfile();
-  const [frame, setFrame] = useState<PlannerFrame>(DEFAULT_PLANNER_FRAME);
-  const [curriculum, setCurriculum] = useState<CurriculumSource>(DEFAULT_CURRICULUM_SOURCE);
-  const [document, setDocument] = useState<PlannerDocument>(DEFAULT_PLANNER_DOCUMENT);
-  const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const { user, profile, loading: profileLoading } = useUserProfile();
+  const profileApplied = useRef(false);
+  const [frame, setFrame] = useState<PlannerFrame>(() => ({
+    ...DEFAULT_PLANNER_FRAME,
+    schoolYear: currentSchoolYear(),
+    schoolType: "",
+    subject: "",
+    level: "",
+    language: "Norsk",
+  }));
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [subjectChoice, setSubjectChoice] = useState("");
   const [error, setError] = useState("");
-  const hasDraft = Boolean(document.title || document.description || document.periods.length);
+  const [officialBasis, setOfficialBasis] = useState<OfficialCurriculumBasis | null>(null);
+  const [fetchingOfficialBasis, setFetchingOfficialBasis] = useState(false);
+  const [creatingGroundPlan, setCreatingGroundPlan] = useState(false);
+
+  useEffect(() => {
+    if (profileLoading || profileApplied.current) return;
+    profileApplied.current = true;
+
+    const country = profileCountry(profile?.org?.country || "Norge");
+    const municipality = profile?.org?.municipality || profile?.municipality || "";
+    const teacherName = profile?.displayName || user?.displayName || "";
+    const municipalityMatch = NO_MUNICIPALITIES.find(
+      (item) => item.name.toLocaleLowerCase("nb-NO") === municipality.toLocaleLowerCase("nb-NO")
+    );
+
+    setFrame((prev) => ({
+      ...prev,
+      country,
+      municipality,
+      teacherName,
+      schoolCalendar: {
+        ...prev.schoolCalendar,
+        municipalityCode: municipalityMatch?.code || "",
+      },
+    }));
+  }, [profile, profileLoading, user]);
 
   function updateFrame<K extends keyof PlannerFrame>(key: K, value: PlannerFrame[K]) {
     setFrame((prev) => ({ ...prev, [key]: value }));
   }
 
-  function updateCurriculum<K extends keyof CurriculumSource>(key: K, value: CurriculumSource[K]) {
-    setCurriculum((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function updateDocument<K extends keyof PlannerDocument>(key: K, value: PlannerDocument[K]) {
-    setDocument((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function updateIndividualDetails<K extends keyof PlannerIndividualDetails>(
-    key: K,
-    value: PlannerIndividualDetails[K]
-  ) {
-    setDocument((prev) => ({
+  function updateMunicipality(municipality: string) {
+    const match = NO_MUNICIPALITIES.find(
+      (item) => item.name.toLocaleLowerCase("nb-NO") === municipality.toLocaleLowerCase("nb-NO")
+    );
+    setFrame((prev) => ({
       ...prev,
-      individualDetails: {
-        ...prev.individualDetails,
+      municipality,
+      schoolCalendar: {
+        ...prev.schoolCalendar,
+        municipalityCode: match?.code || "",
+      },
+    }));
+  }
+
+  function updateCalendar<K extends keyof PlannerSchoolCalendar>(
+    key: K,
+    value: PlannerSchoolCalendar[K]
+  ) {
+    setFrame((prev) => ({
+      ...prev,
+      schoolCalendar: {
+        ...prev.schoolCalendar,
         [key]: value,
       },
     }));
   }
 
-  async function generateDraft() {
-    if (!user || generating) return;
+  const issues = [
+    !frame.country.trim() ? "Velg land" : "",
+    !frame.municipality.trim() ? "Fyll ut kommune" : "",
+    !frame.schoolName.trim() ? "Fyll ut navn på skole" : "",
+    !frame.teacherName.trim() ? "Fyll ut navn på lærer" : "",
+    !frame.schoolYear.trim() ? "Fyll ut skoleår" : "",
+    frame.schoolCalendar.source === "manual" && !frame.schoolCalendar.firstSchoolDay
+      ? "Fyll ut første skoledag"
+      : "",
+    frame.schoolCalendar.source === "manual" && !frame.schoolCalendar.lastSchoolDay
+      ? "Fyll ut siste skoledag"
+      : "",
+  ].filter(Boolean);
 
+  function reviewStep(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (issues.length > 0) {
+      setError(`Kontroller dette først: ${issues.join(", ")}.`);
+      return;
+    }
+    setError("");
+    setStep(2);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const curriculumIssues = [
+    !frame.schoolType.trim() ? "Velg skoleslag" : "",
+    !frame.level.trim() ? "Velg trinn eller nivå" : "",
+    !frame.subject.trim() ? "Velg eller skriv fag" : "",
+  ].filter(Boolean);
+
+  function reviewCurriculumSelection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (curriculumIssues.length > 0) {
+      setError(`Kontroller dette først: ${curriculumIssues.join(", ")}.`);
+      return;
+    }
+    setError("");
+    setStep(3);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function fetchOfficialBasis() {
+    if (!user || fetchingOfficialBasis) return;
     try {
-      setGenerating(true);
+      setFetchingOfficialBasis(true);
       setError("");
       const token = await user.getIdToken();
-      const res = await fetch("/api/teacher/planner/generate", {
+      const response = await fetch("/api/teacher/planner/official-basis", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ frame, curriculum, document }),
+        body: JSON.stringify({
+          country: frame.country,
+          subject: frame.subject,
+          level: frame.level,
+        }),
       });
-      const data = (await res.json().catch(() => ({}))) as {
-        document?: PlannerDocument;
+      const data = (await response.json().catch(() => ({}))) as {
+        basis?: OfficialCurriculumBasis;
         error?: string;
       };
-      if (!res.ok || !data.document) throw new Error(data.error || "Could not generate planner");
-      setDocument(data.document);
-    } catch (err) {
-      console.error("Failed to generate planner", err);
-      setError(err instanceof Error ? err.message : "Kunne ikke generere plan akkurat nå.");
+      if (!response.ok || !data.basis) {
+        throw new Error(data.error || "Det offisielle læreplangrunnlaget kunne ikke hentes.");
+      }
+      setOfficialBasis(data.basis);
+    } catch (fetchError) {
+      setOfficialBasis(null);
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Det offisielle læreplangrunnlaget kunne ikke hentes."
+      );
     } finally {
-      setGenerating(false);
+      setFetchingOfficialBasis(false);
     }
   }
 
-  async function savePlanner(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!user || saving) return;
-
-    const title = document.title.trim();
-    if (!title) {
-      setError("Planen må ha en tittel før den kan lagres.");
-      return;
-    }
-
+  async function createGroundPlan() {
+    if (!user || !officialBasis || creatingGroundPlan) return;
     try {
-      setSaving(true);
+      setCreatingGroundPlan(true);
       setError("");
       const token = await user.getIdToken();
-      const res = await fetch("/api/teacher/planner", {
+      const response = await fetch("/api/teacher/planner", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -126,32 +253,246 @@ export default function NewPlannerPage() {
         body: JSON.stringify({
           status: "draft",
           frame,
-          curriculum,
-          document,
+          curriculum: {
+            ...DEFAULT_CURRICULUM_SOURCE,
+            framework: `${officialBasis.source.title} (${officialBasis.source.planCode})`,
+          },
+          officialBasis,
+          localFramework: DEFAULT_LOCAL_FRAMEWORK,
+          document: {
+            ...DEFAULT_PLANNER_DOCUMENT,
+            title: `${frame.subject} ${frame.level} – ${frame.schoolYear}`,
+            description: `Offisiell grunnplan for ${frame.subject}, ${frame.level}, ${frame.schoolYear}.`,
+          },
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { plannerId?: string; error?: string };
-      if (!res.ok || !data.plannerId) throw new Error(data.error || "Could not save planner");
-      router.push(`/${locale}/teacher/planner/${data.plannerId}`);
-    } catch (err) {
-      console.error("Failed to save planner", err);
-      setError("Planen kunne ikke lagres akkurat nå.");
-      setSaving(false);
+      const data = (await response.json().catch(() => ({}))) as { plannerId?: string; error?: string };
+      if (!response.ok || !data.plannerId) {
+        throw new Error(data.error || "Grunnplanen kunne ikke opprettes.");
+      }
+      router.push(`/${locale}/teacher/planner/${data.plannerId}?section=Lokalt%20grunnlag`);
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Grunnplanen kunne ikke opprettes.");
+      setCreatingGroundPlan(false);
     }
   }
 
+  if (step === 3) {
+    return (
+      <main className="mx-auto grid max-w-4xl gap-5">
+        <header className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-700" aria-hidden="true" />
+            <div>
+              <p className="m-0 text-xs font-black uppercase text-emerald-800">Steg 1 er klart</p>
+              <h1 className="m-0 mt-1 text-2xl font-black text-slate-950">Grunnopplysninger og skolerute</h1>
+              <p className="mb-0 mt-2 text-sm leading-6 text-slate-600">
+                Ingen læreplantekst eller pedagogiske forslag er generert. Opplysningene er nå klare for et kontrollert oppslag mot offisiell læreplan.
+              </p>
+            </div>
+          </div>
+        </header>
+
+        <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-5">
+          <SummaryRow label="Land" value={frame.country} />
+          <SummaryRow label="Kommune" value={frame.municipality} />
+          <SummaryRow label="Skole" value={frame.schoolName} />
+          <SummaryRow label="Lærer" value={frame.teacherName} />
+          <SummaryRow label="Skoleår" value={frame.schoolYear} />
+          <SummaryRow label="Skoleslag" value={frame.schoolType} />
+          <SummaryRow label="Trinn / nivå" value={frame.level} />
+          <SummaryRow label="Fag" value={frame.subject} />
+          <SummaryRow label="Planspråk" value={frame.language} />
+          <SummaryRow
+            label="Skolerute"
+            value={
+              frame.schoolCalendar.source === "manual"
+                ? "Fylt ut manuelt"
+                : `Offisiell skolerute for ${frame.municipality} må hentes og verifiseres`
+            }
+          />
+          {frame.schoolCalendar.source === "manual" ? (
+            <>
+              <SummaryRow label="Første skoledag" value={frame.schoolCalendar.firstSchoolDay} />
+              <SummaryRow label="Siste skoledag" value={frame.schoolCalendar.lastSchoolDay} />
+            </>
+          ) : null}
+        </section>
+
+        {error ? (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+            {error}
+          </div>
+        ) : null}
+
+        {officialBasis ? <OfficialBasisView basis={officialBasis} selectedLevel={frame.level} /> : null}
+
+        {officialBasis ? (
+          <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <p className="m-0 max-w-2xl text-sm font-semibold leading-6 text-emerald-950">
+              Bekreft grunnlaget for å lagre Udir-kilden og åpne den lokale årsrammen. Det opprettes fortsatt ingen perioder eller aktiviteter.
+            </p>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={creatingGroundPlan}
+              onClick={() => void createGroundPlan()}
+            >
+              {creatingGroundPlan ? "Oppretter grunnplan..." : "Bekreft og opprett grunnplan"}
+            </Button>
+          </section>
+        ) : null}
+
+        <div className="flex flex-wrap justify-between gap-3">
+          <Button type="button" variant="secondary" onClick={() => { setError(""); setOfficialBasis(null); setStep(2); }}>
+            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+            Endre fag og trinn
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            disabled={fetchingOfficialBasis}
+            onClick={() => void fetchOfficialBasis()}
+          >
+            {fetchingOfficialBasis
+              ? "Henter og kontrollerer..."
+              : officialBasis
+                ? "Hent på nytt fra Udir"
+                : "Hent offisielt læreplangrunnlag"}
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  if (step === 2) {
+    const levelOptions = LEVELS_BY_SCHOOL_TYPE[frame.schoolType] || [];
+    const subjectOptions = frame.schoolType === "Voksenopplæring" ? FOV_SUBJECT_OPTIONS : GENERAL_SUBJECT_OPTIONS;
+    return (
+      <main className="mx-auto max-w-4xl">
+        <form onSubmit={reviewCurriculumSelection} className="grid gap-5">
+          <header className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="m-0 text-xs font-black uppercase text-emerald-800">Steg 2 av 3</p>
+                <h1 className="m-0 mt-2 text-2xl font-black text-slate-950">Finn riktig læreplan</h1>
+                <p className="mb-0 mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  Skoleslag, trinn og fag brukes bare til å identifisere riktig offisiell læreplan og riktig timetall.
+                </p>
+              </div>
+              <Button type="button" variant="secondary" onClick={() => { setError(""); setStep(1); }}>
+                <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+                Tilbake
+              </Button>
+            </div>
+          </header>
+
+          {error ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Skoleslag">
+                <Select
+                  value={frame.schoolType}
+                  onChange={(event) => {
+                    updateFrame("schoolType", event.target.value);
+                    updateFrame("level", "");
+                    updateFrame("subject", "");
+                    setSubjectChoice("");
+                    setOfficialBasis(null);
+                  }}
+                >
+                  <option value="">Velg skoleslag</option>
+                  {SCHOOL_TYPES.map((schoolType) => (
+                    <option key={schoolType} value={schoolType}>{schoolType}</option>
+                  ))}
+                </Select>
+              </Field>
+
+              <Field label="Trinn eller nivå">
+                <Select
+                  value={frame.level}
+                  onChange={(event) => {
+                    updateFrame("level", event.target.value);
+                    setOfficialBasis(null);
+                  }}
+                  disabled={!frame.schoolType}
+                >
+                  <option value="">{frame.schoolType ? "Velg trinn eller nivå" : "Velg skoleslag først"}</option>
+                  {levelOptions.map((level) => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </Select>
+              </Field>
+
+              <Field label="Fag">
+                <Select
+                  value={subjectChoice}
+                  onChange={(event) => {
+                    const choice = event.target.value;
+                    setSubjectChoice(choice);
+                    updateFrame("subject", choice === "Annet fag / yrkesfag" ? "" : choice);
+                    setOfficialBasis(null);
+                  }}
+                >
+                  <option value="">Velg fag</option>
+                  {subjectOptions.map((subject) => (
+                    <option key={subject.value} value={subject.value}>{subject.label}</option>
+                  ))}
+                </Select>
+              </Field>
+
+              {subjectChoice === "Annet fag / yrkesfag" ? (
+                <Field label="Navn på fag eller programfag">
+                  <Input
+                    value={frame.subject}
+                    onChange={(event) => updateFrame("subject", event.target.value)}
+                    placeholder="Skriv offisielt fagnavn"
+                  />
+                </Field>
+              ) : null}
+
+              <Field label="Planspråk">
+                <Select value={frame.language} onChange={(event) => updateFrame("language", event.target.value)}>
+                  {PLAN_LANGUAGE_OPTIONS.map((language) => (
+                    <option key={language.value} value={language.value}>{language.label}</option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
+              Offisielle Udir-mål hentes og vises på norsk. Planspråket brukes bare til lokale/genererte felt som periodemål, arbeidsmåter, vurdering og ukeplaner.
+            </div>
+          </section>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="m-0 text-sm font-semibold text-slate-600">
+              {curriculumIssues.length === 0
+                ? "Klar til å kontrollere valget."
+                : `${curriculumIssues.length} opplysninger gjenstår.`}
+            </p>
+            <Button type="submit" variant="primary">Kontroller valget</Button>
+          </div>
+        </form>
+      </main>
+    );
+  }
+
   return (
-    <main className="mx-auto max-w-5xl">
-      <form onSubmit={savePlanner} className="grid gap-5">
-        <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
+    <main className="mx-auto max-w-4xl">
+      <form onSubmit={reviewStep} className="grid gap-5">
+        <header className="rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-800">
-                Ny 321Planner
-              </div>
-              <h1 className="m-0 mt-3 text-2xl font-black text-slate-950">Lag ny plan</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Velg rammene, la AI lage et førsteutkast, og rediger før du lagrer planen.
+              <p className="m-0 text-xs font-black uppercase text-emerald-800">Steg 1 av 3</p>
+              <h1 className="m-0 mt-2 text-2xl font-black text-slate-950">Grunnopplysninger og skolerute</h1>
+              <p className="mb-0 mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                Først registrerer vi bare sikre opplysninger om skolen og skoleåret. Læreplan og faglig innhold kommer i neste steg.
               </p>
             </div>
             <Button type="button" variant="secondary" onClick={() => router.push(`/${locale}/teacher/planner`)}>
@@ -159,220 +500,208 @@ export default function NewPlannerPage() {
               Tilbake
             </Button>
           </div>
-        </section>
+        </header>
 
         {error ? (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>
+          <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+            {error}
+          </div>
         ) : null}
 
-        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
-          <div>
-            <h2 className="m-0 text-lg font-extrabold text-slate-950">1. Planinformasjon</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
-              Dette er rammene AI bruker for å foreslå en realistisk plan.
-            </p>
-          </div>
-
+        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Land">
               <Select value={frame.country} onChange={(event) => updateFrame("country", event.target.value)}>
-                {COUNTRIES.map((country) => <option key={country} value={country}>{country}</option>)}
+                {COUNTRIES.map((country) => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
               </Select>
             </Field>
-            <Field label="Skoleslag">
-              <Select value={frame.schoolType} onChange={(event) => updateFrame("schoolType", event.target.value)}>
-                {SCHOOL_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-              </Select>
-            </Field>
-            <Field label="Fag">
-              <Select value={frame.subject} onChange={(event) => updateFrame("subject", event.target.value)}>
-                {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
-              </Select>
-            </Field>
-            <Field label="Nivå">
-              <Select value={frame.level} onChange={(event) => updateFrame("level", event.target.value)}>
-                {LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
-              </Select>
-            </Field>
-            <Field label="Språk">
-              <Select value={frame.language} onChange={(event) => updateFrame("language", event.target.value)}>
-                {LANGUAGES.map((language) => <option key={language} value={language}>{language}</option>)}
-              </Select>
-            </Field>
-            <Field label="Skoleår">
-              <Input value={frame.schoolYear} onChange={(event) => updateFrame("schoolYear", event.target.value)} />
-            </Field>
-            <Field label="Antall undervisningsuker">
-              <Input
-                type="number"
-                min={1}
-                max={52}
-                value={frame.teachingWeeks}
-                onChange={(event) => updateFrame("teachingWeeks", Number(event.target.value))}
-              />
-            </Field>
-            <Field label="Antall timer">
-              <Input
-                type="number"
-                min={1}
-                value={frame.totalHours}
-                onChange={(event) => updateFrame("totalHours", Number(event.target.value))}
-              />
-            </Field>
-            <Field label="Plantype">
-              <Select value={frame.planType} onChange={(event) => updateFrame("planType", event.target.value as PlannerType)}>
-                <option value="annual">Årsplan</option>
-                <option value="individual">Individuell plan</option>
-              </Select>
-            </Field>
-            <Field label="AI-nivå">
-              <Select value={frame.aiLevel} onChange={(event) => updateFrame("aiLevel", event.target.value as PlannerAiLevel)}>
-                <option value="short">Kort</option>
-                <option value="standard">Standard</option>
-                <option value="detailed">Detaljert</option>
-              </Select>
-            </Field>
-          </div>
 
-          <Field label="Tema eller fokusområde">
-            <Textarea
-              value={frame.focusArea}
-              onChange={(event) => updateFrame("focusArea", event.target.value)}
-              rows={3}
-              placeholder="F.eks. muntlig deltakelse, yrkesrettet norsk, eksamensforberedelse eller individuell progresjon."
-            />
-          </Field>
-        </section>
-
-        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
-          <div>
-            <h2 className="m-0 text-lg font-extrabold text-slate-950">2. Faglig grunnlag</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
-              Velg offisiell læreplan, skriv inn egen tekst eller legg inn navn på dokumentet som grunnlag.
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Kilde">
-              <Select
-                value={curriculum.type}
-                onChange={(event) => updateCurriculum("type", event.target.value as CurriculumSourceType)}
-              >
-                <option value="official">Offisiell læreplan</option>
-                <option value="custom">Egen tekst</option>
-                <option value="upload">Last opp dokument</option>
-              </Select>
-            </Field>
-            <Field label="Rammeverk">
-              <Select value={curriculum.framework} onChange={(event) => updateCurriculum("framework", event.target.value)}>
-                {FRAMEWORKS.map((framework) => <option key={framework} value={framework}>{framework}</option>)}
-              </Select>
-            </Field>
-          </div>
-
-          {curriculum.type === "custom" ? (
-            <Field label="Egen læreplantekst">
-              <Textarea
-                value={curriculum.customText}
-                onChange={(event) => updateCurriculum("customText", event.target.value)}
-                rows={6}
-              />
-            </Field>
-          ) : null}
-
-          {curriculum.type === "upload" ? (
-            <Field label="Dokumentnavn">
-              <Input
-                value={curriculum.uploadName}
-                onChange={(event) => updateCurriculum("uploadName", event.target.value)}
-                placeholder="F.eks. lokal_lareplan_norsk.pdf"
-              />
-            </Field>
-          ) : null}
-
-          {frame.planType === "individual" ? (
-            <div className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4">
-              <div>
-                <h3 className="m-0 text-base font-black text-slate-950">Individuell plan</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Valgfritt grunnlag som AI kan bruke for å foreslå tilpasset progresjon.
-                </p>
-              </div>
-              <Field label="Elev / deltaker">
+            {frame.country === "Norge" ? (
+              <FieldGroup label="Kommune">
+                <SearchableSelect
+                  value={frame.municipality}
+                  options={MUNICIPALITY_OPTIONS}
+                  placeholder="Søk etter kommune"
+                  onChange={updateMunicipality}
+                  fullWidth
+                  resultLabel="kommuner"
+                  showOptionValue={false}
+                />
+              </FieldGroup>
+            ) : (
+              <Field label="Kommune eller område">
                 <Input
-                  value={document.individualDetails.learnerName}
-                  onChange={(event) => updateIndividualDetails("learnerName", event.target.value)}
+                  value={frame.municipality}
+                  onChange={(event) => updateMunicipality(event.target.value)}
+                  placeholder="Skriv kommune eller område"
                 />
               </Field>
-              <Field label="Utgangspunkt og behov">
-                <Textarea
-                  value={document.individualDetails.learnerContext}
-                  onChange={(event) => updateIndividualDetails("learnerContext", event.target.value)}
-                  rows={3}
-                />
-              </Field>
-              <Field label="Tilrettelegging eller fokus">
-                <Textarea
-                  value={document.individualDetails.adaptations}
-                  onChange={(event) => updateIndividualDetails("adaptations", event.target.value)}
-                  rows={3}
-                />
-              </Field>
-            </div>
-          ) : null}
+            )}
 
-          <div className="flex justify-end">
-            <Button type="button" variant="primary" disabled={generating} onClick={() => void generateDraft()}>
-              <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
-              {generating ? "Lager forslag..." : "Generer førsteutkast"}
-            </Button>
-          </div>
-        </section>
-
-        <section className="grid gap-4 rounded-lg border border-sky-100 bg-sky-50/80 p-5 shadow-sm">
-          <div>
-            <h2 className="m-0 text-lg font-extrabold text-slate-950">3. Rediger førsteutkast</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
-              Alt her kan endres nå, og mer detaljert etter at planen er lagret.
-            </p>
-          </div>
-
-          <Field label="Tittel">
-            <Input value={document.title} onChange={(event) => updateDocument("title", event.target.value)} />
-          </Field>
-          <Field label="Beskrivelse">
-            <Textarea value={document.description} onChange={(event) => updateDocument("description", event.target.value)} rows={4} />
-          </Field>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Læringsmål">
-              <Textarea value={document.learningGoals} onChange={(event) => updateDocument("learningGoals", event.target.value)} rows={5} />
+            <Field label="Navn på skole">
+              <Input
+                value={frame.schoolName}
+                onChange={(event) => updateFrame("schoolName", event.target.value)}
+                placeholder="Skriv skolens navn"
+              />
             </Field>
-            <Field label="Vurderingsformer">
-              <Textarea value={document.assessmentForms} onChange={(event) => updateDocument("assessmentForms", event.target.value)} rows={5} />
+
+            <Field label="Navn på lærer">
+              <Input
+                value={frame.teacherName}
+                onChange={(event) => updateFrame("teacherName", event.target.value)}
+                placeholder={profileLoading ? "Henter fra profil..." : "Skriv lærerens navn"}
+              />
+            </Field>
+
+            <Field label="Skoleår">
+              <Input
+                value={frame.schoolYear}
+                onChange={(event) => updateFrame("schoolYear", event.target.value)}
+                placeholder="2026/2027"
+              />
+            </Field>
+
+            <Field label="Skolerute">
+              <Select
+                value={frame.schoolCalendar.source}
+                onChange={(event) =>
+                  updateCalendar("source", event.target.value as PlannerSchoolCalendarSource)
+                }
+              >
+                <option value="municipality">
+                  {frame.municipality ? `Bruk skoleruten for ${frame.municipality}` : "Bruk kommunens skolerute"}
+                </option>
+                <option value="manual">Fyll ut selv</option>
+              </Select>
             </Field>
           </div>
-          {hasDraft ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
-              Utkastet har {document.periods.length} perioder og {document.activities.length} aktivitetsforslag.
+
+          {frame.schoolCalendar.source === "municipality" ? (
+            <div className="flex items-start gap-3 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
+              <CalendarDays className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <p className="m-0">
+                Skoleruten skal bare fylles automatisk når datoene kan bekreftes fra kommunens offisielle nettside. Hvis en sikker kilde ikke finnes, må datoene fylles ut manuelt.
+              </p>
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-              Ingen AI-utkast ennå. Du kan også fylle inn tittel og tekst manuelt.
-            </div>
+            <ManualSchoolCalendar calendar={frame.schoolCalendar} onChange={updateCalendar} />
           )}
         </section>
 
-        <div className="flex flex-wrap justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={() => router.push(`/${locale}/teacher/planner`)}>
-            Avbryt
-          </Button>
-          <Button type="submit" variant="primary" disabled={saving}>
-            <Save className="mr-2 h-4 w-4" aria-hidden="true" />
-            {saving ? "Lagrer..." : "Lagre plan"}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="m-0 text-sm font-semibold text-slate-600">
+            {issues.length === 0 ? "Alle grunnopplysninger er fylt ut." : `${issues.length} opplysninger gjenstår.`}
+          </p>
+          <Button type="submit" variant="primary">
+            Kontroller og fortsett
           </Button>
         </div>
       </form>
     </main>
+  );
+}
+
+function ManualSchoolCalendar({
+  calendar,
+  onChange,
+}: {
+  calendar: PlannerSchoolCalendar;
+  onChange: <K extends keyof PlannerSchoolCalendar>(key: K, value: PlannerSchoolCalendar[K]) => void;
+}) {
+  return (
+    <section className="grid gap-4 border-t border-slate-200 pt-4">
+      <div>
+        <h2 className="m-0 text-base font-black text-slate-950">Fyll ut skoleruten</h2>
+        <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
+          Første og siste skoledag er obligatorisk. Ferier og fridager kan fylles ut når de er kjent.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <DateField
+          label="Første skoledag"
+          value={calendar.firstSchoolDay}
+          onChange={(value) => onChange("firstSchoolDay", value)}
+        />
+        <DateField
+          label="Siste skoledag"
+          value={calendar.lastSchoolDay}
+          onChange={(value) => onChange("lastSchoolDay", value)}
+        />
+        <DateRange
+          label="Høstferie"
+          start={calendar.autumnBreakStart}
+          end={calendar.autumnBreakEnd}
+          onStart={(value) => onChange("autumnBreakStart", value)}
+          onEnd={(value) => onChange("autumnBreakEnd", value)}
+        />
+        <DateRange
+          label="Juleferie"
+          start={calendar.christmasBreakStart}
+          end={calendar.christmasBreakEnd}
+          onStart={(value) => onChange("christmasBreakStart", value)}
+          onEnd={(value) => onChange("christmasBreakEnd", value)}
+        />
+        <DateRange
+          label="Vinterferie"
+          start={calendar.winterBreakStart}
+          end={calendar.winterBreakEnd}
+          onStart={(value) => onChange("winterBreakStart", value)}
+          onEnd={(value) => onChange("winterBreakEnd", value)}
+        />
+        <DateRange
+          label="Påskeferie"
+          start={calendar.easterBreakStart}
+          end={calendar.easterBreakEnd}
+          onStart={(value) => onChange("easterBreakStart", value)}
+          onEnd={(value) => onChange("easterBreakEnd", value)}
+        />
+      </div>
+
+      <Field label="Planleggingsdager / fridager">
+        <Textarea
+          value={calendar.planningDays}
+          onChange={(event) => onChange("planningDays", event.target.value)}
+          rows={4}
+          placeholder="Skriv én dato eller periode per linje"
+        />
+      </Field>
+    </section>
+  );
+}
+
+function DateRange({
+  label,
+  start,
+  end,
+  onStart,
+  onEnd,
+}: {
+  label: string;
+  start: string;
+  end: string;
+  onStart: (value: string) => void;
+  onEnd: (value: string) => void;
+}) {
+  return (
+    <fieldset className="grid gap-2 rounded-lg border border-slate-200 p-3">
+      <legend className="px-1 text-sm font-black text-slate-800">{label}</legend>
+      <div className="grid grid-cols-2 gap-2">
+        <DateField label="Fra" value={start} onChange={onStart} />
+        <DateField label="Til" value={end} onChange={onEnd} />
+      </div>
+    </fieldset>
+  );
+}
+
+function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <Field label={label}>
+      <Input type="date" value={value} onChange={(event) => onChange(event.target.value)} />
+    </Field>
   );
 }
 
@@ -382,5 +711,23 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span>{label}</span>
       {children}
     </label>
+  );
+}
+
+function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-2 text-sm font-bold text-slate-800">
+      <span>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid gap-1 border-b border-slate-100 pb-3 last:border-0 last:pb-0 sm:grid-cols-[180px_1fr]">
+      <span className="text-sm font-bold text-slate-500">{label}</span>
+      <span className="text-sm font-bold text-slate-950">{value || "Ikke fylt ut"}</span>
+    </div>
   );
 }

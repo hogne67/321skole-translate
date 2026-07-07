@@ -130,6 +130,11 @@ export function PlannerDocumentView({
                   <TextBlock label="Arbeidsmåter" value={period.methods} />
                   <TextBlock label="Vurdering" value={period.assessment} />
                 </div>
+                <OfficialGoals
+                  goalIds={period.officialGoalIds}
+                  goals={planner.officialBasis?.competenceGoals ?? []}
+                />
+                <PeriodLearningGoals goals={period.learningGoals} />
                 <LinkedGoals
                   title="Koblede læringsmål"
                   goalIds={period.linkedGoalIds}
@@ -295,9 +300,17 @@ export function StudentPlannerDocumentView({
                     {period.weeks || "Uker ikke satt"}
                   </span>
                 </div>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                  {period.goals || period.content || "Vi jobber med målene i planen."}
-                </p>
+                {period.learningGoals.length > 0 ? (
+                  <ul className="mb-0 mt-3 grid gap-2 pl-5 text-sm leading-6 text-slate-700">
+                    {period.learningGoals.map((goal) => (
+                      <li key={goal.id}>{goal.studentLanguage || goal.goal}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                    {period.goals || period.content || "Vi jobber med målene i planen."}
+                  </p>
+                )}
                 <LinkedGoals
                   title="Mål i denne perioden"
                   goalIds={period.linkedGoalIds}
@@ -383,6 +396,48 @@ function LinkedGoals({
           <li key={goal.id}>{goal.studentLanguage || goal.goal || "-"}</li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function OfficialGoals({ goalIds, goals }: { goalIds: string[]; goals: string[] }) {
+  const selectedGoals = goalIds
+    .map((goalId) => {
+      const match = goalId.match(/^udir-goal-(\d+)$/);
+      return match ? goals[Number(match[1]) - 1] : undefined;
+    })
+    .filter((goal): goal is string => Boolean(goal));
+  if (selectedGoals.length === 0) return null;
+
+  return (
+    <div className="mt-4">
+      <div className="text-xs font-black uppercase tracking-wide text-slate-500">Offisielle kompetansemål</div>
+      <ul className="mb-0 mt-2 grid gap-2 pl-5 text-sm leading-6 text-slate-700">
+        {selectedGoals.map((goal, index) => <li key={`${index}-${goal}`}>{goal}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+function PeriodLearningGoals({ goals }: { goals: Planner["document"]["periods"][number]["learningGoals"] }) {
+  if (goals.length === 0) return null;
+  return (
+    <div className="mt-4">
+      <div className="text-xs font-black uppercase tracking-wide text-slate-500">Lokale læringsmål</div>
+      <div className="mt-2 grid gap-2">
+        {goals.map((goal, index) => (
+          <div key={goal.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700">
+            <div className="font-black text-slate-950">Mål {index + 1}: {goal.goal}</div>
+            <div className="mt-1"><strong>Elev-/deltakerspråk:</strong> {goal.studentLanguage}</div>
+            <div className="mt-1 text-xs font-bold text-slate-500">
+              Bygger på Udir-mål {goal.sourceOfficialGoalIds
+                .map((goalId) => goalId.match(/^udir-goal-(\d+)$/)?.[1])
+                .filter(Boolean)
+                .join(", ") || "ikke angitt"}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

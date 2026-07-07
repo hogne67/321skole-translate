@@ -6,8 +6,11 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import { getNextSchoolYear, titleForCopiedPlanner } from "@/lib/planner/schoolYear";
 import {
   normalizeCurriculumSource,
+  normalizeOfficialCurriculumBasis,
   normalizePlannerDocument,
   normalizePlannerFrame,
+  normalizePlannerLocalFramework,
+  serializeOfficialCurriculumBasis,
 } from "@/lib/planner/types";
 
 function json(data: unknown, status = 200) {
@@ -58,6 +61,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ plannerId: str
 
     const frame = normalizePlannerFrame(current.frame);
     const curriculum = normalizeCurriculumSource(current.curriculum);
+    const officialBasis = normalizeOfficialCurriculumBasis(current.officialBasis);
+    const localFramework = normalizePlannerLocalFramework(current.localFramework);
     const document = normalizePlannerDocument(current.document);
     const nextSchoolYear = getNextSchoolYear(frame.schoolYear);
     const now = new Date();
@@ -79,6 +84,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ plannerId: str
         schoolYear: nextSchoolYear,
       },
       curriculum,
+      officialBasis: serializeOfficialCurriculumBasis(officialBasis),
+      localFramework,
       document: copiedDocument,
       copiedFromPlannerId: plannerId,
       createdAt: now,

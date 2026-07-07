@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import type { MouseEvent } from "react";
-import { CalendarDays, Eye, FileText, Home, NotebookPen, Printer, Settings } from "lucide-react";
+import { CalendarDays, Eye, FileText, Home, Map, NotebookPen, Printer, Settings } from "lucide-react";
 
-type ActiveKey = "overview" | "annual" | "semesters" | "periods" | "activities" | "reflections" | "print" | "settings";
+type ActiveKey = "overview" | "annual" | "local" | "semesters" | "periods" | "activities" | "reflections" | "print" | "settings";
 
 type PlannerWorkspaceNavProps = {
   locale: string;
@@ -18,6 +18,7 @@ type PlannerWorkspaceNavProps = {
 const NAV_ITEMS = [
   { key: "overview", label: "Oversikt", href: "", icon: Home },
   { key: "annual", label: "Årsplan", section: "Årsplan", icon: FileText },
+  { key: "local", label: "Lokalt grunnlag", section: "Lokalt grunnlag", icon: Map },
   { key: "semesters", label: "Semesterplaner", section: "Semesterplaner", icon: CalendarDays },
   { key: "periods", label: "Periodeplaner", section: "Periodeplaner", icon: CalendarDays },
   { key: "activities", label: "Aktiviteter", section: "Aktiviteter", icon: Eye },

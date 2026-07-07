@@ -80,6 +80,8 @@ export function plannerToMarkdown(planner: Planner, options: PlannerExportOption
         ["Vurdering", period.assessment],
         ["Refleksjon", period.reflection],
       ]);
+      pushOfficialGoals(lines, period.officialGoalIds, planner.officialBasis?.competenceGoals ?? []);
+      pushPeriodLearningGoals(lines, period.learningGoals);
       pushLinkedGoals(lines, "Koblede læringsmål", period.linkedGoalIds, document.concreteLearningGoals);
 
       if (showWeekPlans && period.weekPlans.length > 0) {
@@ -168,10 +170,20 @@ export function plannerToStudentMarkdown(planner: Planner, options: Pick<Planner
     pushHeading(lines, 2, options.periodId ? "Dette jobber vi med nå" : "Slik jobber vi gjennom året");
     periods.forEach((period) => {
       pushHeading(lines, 3, period.title || "Periode");
-      pushMeta(lines, [
-        ["Uker", period.weeks],
-        ["Dette jobber vi med", period.goals || period.content],
-      ]);
+      pushMeta(
+        lines,
+        period.learningGoals.length > 0
+          ? [["Uker", period.weeks]]
+          : [
+              ["Uker", period.weeks],
+              ["Dette jobber vi med", period.goals || period.content],
+            ]
+      );
+      if (period.learningGoals.length > 0) {
+        lines.push("**Mål i denne perioden:**");
+        period.learningGoals.forEach((goal) => lines.push(`- ${goal.studentLanguage || goal.goal}`));
+        lines.push("");
+      }
       pushLinkedGoals(lines, "Mål i denne perioden", period.linkedGoalIds, document.concreteLearningGoals);
     });
   }
@@ -217,6 +229,38 @@ function pushLinkedGoals(
   lines.push(`**${title}:**`);
   linkedGoals.forEach((goal) => {
     lines.push(`- ${goal.studentLanguage || goal.goal || "-"}`);
+  });
+  lines.push("");
+}
+
+function pushOfficialGoals(lines: string[], goalIds: string[], goals: string[]) {
+  const selectedGoals = goalIds
+    .map((goalId) => {
+      const match = goalId.match(/^udir-goal-(\d+)$/);
+      return match ? goals[Number(match[1]) - 1] : undefined;
+    })
+    .filter((goal): goal is string => Boolean(goal));
+  if (selectedGoals.length === 0) return;
+
+  lines.push("**Offisielle kompetansemål:**");
+  selectedGoals.forEach((goal) => lines.push(`- ${goal}`));
+  lines.push("");
+}
+
+function pushPeriodLearningGoals(
+  lines: string[],
+  goals: Planner["document"]["periods"][number]["learningGoals"]
+) {
+  if (goals.length === 0) return;
+  lines.push("**Lokale læringsmål:**");
+  goals.forEach((goal, index) => {
+    lines.push(`${index + 1}. ${goal.goal}`);
+    lines.push(`   - Elev-/deltakerspråk: ${goal.studentLanguage}`);
+    const sourceNumbers = goal.sourceOfficialGoalIds
+      .map((goalId) => goalId.match(/^udir-goal-(\d+)$/)?.[1])
+      .filter(Boolean)
+      .join(", ");
+    lines.push(`   - Bygger på Udir-mål: ${sourceNumbers || "ikke angitt"}`);
   });
   lines.push("");
 }

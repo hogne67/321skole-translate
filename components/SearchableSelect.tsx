@@ -13,6 +13,8 @@ export function SearchableSelect({
   onChange,
   buttonWidth = 260,
   fullWidth = false,
+  resultLabel = "valg",
+  showOptionValue = true,
 }: {
   label?: string;
   value: string;
@@ -21,6 +23,8 @@ export function SearchableSelect({
   onChange: (value: string) => void;
   buttonWidth?: number;
   fullWidth?: boolean;
+  resultLabel?: string;
+  showOptionValue?: boolean;
 }) {
 
   const [open, setOpen] = useState(false);
@@ -183,7 +187,9 @@ export function SearchableSelect({
                     }}
                   >
                     <div style={{ fontWeight: 700 }}>{o.label}</div>
-                    <div style={{ fontSize: 12, opacity: 0.6 }}>{o.value}</div>
+                    {showOptionValue ? (
+                      <div style={{ fontSize: 12, opacity: 0.6 }}>{o.value}</div>
+                    ) : null}
                   </button>
                 );
               })
@@ -199,7 +205,7 @@ export function SearchableSelect({
             }}
           >
             <div style={{ fontSize: 12, opacity: 0.7 }}>
-              {filtered.length} språk
+              {filtered.length} {resultLabel}
             </div>
             <button
               type="button"

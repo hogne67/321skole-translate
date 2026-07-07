@@ -151,6 +151,16 @@
         "published": "Cursos publicados",
         "attending": "Cursos em que participo"
       }
+    },
+    "planner": {
+      "badge": "321Planner",
+      "beta": "Beta",
+      "title": "Planner",
+      "description": "Crie planos anuais e planos por período com currículo controlado, orientações locais e sugestões editáveis com IA.",
+      "actions": {
+        "open": "Abrir Planner",
+        "new": "Criar novo plano"
+      }
     }
   }
 }

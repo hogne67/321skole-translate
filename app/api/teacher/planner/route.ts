@@ -8,6 +8,8 @@ import {
   normalizePlanner,
   normalizePlannerDocument,
   normalizePlannerFrame,
+  normalizePlannerLocalFramework,
+  serializeOfficialCurriculumBasis,
   type PlannerStatus,
 } from "@/lib/planner/types";
 
@@ -16,6 +18,8 @@ type PlannerBody = {
   frame?: unknown;
   curriculum?: unknown;
   document?: unknown;
+  officialBasis?: unknown;
+  localFramework?: unknown;
 };
 
 function json(data: unknown, status = 200) {
@@ -105,6 +109,8 @@ export async function POST(req: Request) {
       status: normalizeStatus(body.status),
       frame,
       curriculum: normalizeCurriculumSource(body.curriculum),
+      officialBasis: serializeOfficialCurriculumBasis(body.officialBasis),
+      localFramework: normalizePlannerLocalFramework(body.localFramework),
       document: {
         ...document,
         title,

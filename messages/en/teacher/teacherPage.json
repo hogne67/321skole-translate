@@ -151,6 +151,16 @@
         "published": "Published courses",
         "attending": "Courses I attend"
       }
+    },
+    "planner": {
+      "badge": "321Planner",
+      "beta": "Beta",
+      "title": "Planner",
+      "description": "Create annual and period plans with controlled curriculum basis, local frameworks and editable AI suggestions.",
+      "actions": {
+        "open": "Open Planner",
+        "new": "Create new plan"
+      }
     }
   }
 }

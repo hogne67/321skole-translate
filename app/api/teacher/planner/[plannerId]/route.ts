@@ -8,6 +8,8 @@ import {
   normalizePlanner,
   normalizePlannerDocument,
   normalizePlannerFrame,
+  normalizePlannerLocalFramework,
+  serializeOfficialCurriculumBasis,
   type PlannerStatus,
 } from "@/lib/planner/types";
 
@@ -16,6 +18,8 @@ type PlannerBody = {
   frame?: unknown;
   curriculum?: unknown;
   document?: unknown;
+  officialBasis?: unknown;
+  localFramework?: unknown;
 };
 
 type PlannerActionBody = {
@@ -114,6 +118,8 @@ export async function PUT(req: Request, ctx: { params: Promise<{ plannerId: stri
         status: normalizeStatus(body.status),
         frame,
         curriculum: normalizeCurriculumSource(body.curriculum),
+        officialBasis: serializeOfficialCurriculumBasis(body.officialBasis),
+        localFramework: normalizePlannerLocalFramework(body.localFramework),
         document: {
           ...document,
           title: document.title.trim() || `${frame.subject} ${frame.schoolYear}`,
