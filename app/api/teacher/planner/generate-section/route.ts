@@ -302,7 +302,7 @@ Return exact JSON:
               `.trim()
               : kind === "activities"
                 ? `
-Create activity suggestions for this annual plan.
+Create practical classroom activity suggestions for this annual plan.
 
 Frame:
 - Country: ${frame.country}
@@ -318,10 +318,15 @@ Existing plan:
 - Work methods: ${document.workMethods}
 - Assessment forms: ${document.assessmentForms}
 - Periods: ${document.periods
-                  .map((period) => `${period.title || "Untitled"} (${period.weeks}): ${period.goals || period.content}`)
+                  .map((period) => `${period.id}: ${period.title || "Untitled"} (${period.weeks}): ${period.goals || period.content}`)
                   .join("\n")}
 
-Create 6 to 10 practical activity suggestions. Do not create full lesson content. Write in the plan language.
+Create 6 to 10 practical activity suggestions.
+These are teacher-led classroom activities such as group work, presentation, exploration, discussion, practical work, role play, station work, or short projects.
+Do not create reading texts, worksheets, digital platform tasks, textbook exercises, quizzes, or assignments meant for Spaces.
+For each activity, create a print-ready teaching plan that a teacher can use directly as a standalone classroom activity.
+The teaching plan should be concise but complete, with purpose, estimated time, organization, materials if needed, step-by-step flow, teacher support, student output, and simple assessment/follow-up.
+Write in the plan language.
 Set "period" to the exact period title from the list above. If no period fits, use an empty string.
 
 Return exact JSON:
@@ -333,7 +338,8 @@ Return exact JSON:
       "period": string,
       "description": string,
       "method": string,
-      "assessment": string
+      "assessment": string,
+      "teachingPlan": string
     }
   ]
 }

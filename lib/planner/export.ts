@@ -1,6 +1,7 @@
 import type { Planner } from "./types";
 
 export type PlannerExportOptions = {
+  showCompactOverview?: boolean;
   showWeekPlans?: boolean;
   showReflectionLog?: boolean;
   showYearEndSummary?: boolean;
@@ -9,6 +10,7 @@ export type PlannerExportOptions = {
 
 export function plannerToMarkdown(planner: Planner, options: PlannerExportOptions = {}): string {
   const { document, frame, curriculum } = planner;
+  const showCompactOverview = options.showCompactOverview !== false;
   const showWeekPlans = options.showWeekPlans !== false;
   const showReflectionLog = options.showReflectionLog !== false;
   const showYearEndSummary = options.showYearEndSummary !== false;
@@ -27,6 +29,7 @@ export function plannerToMarkdown(planner: Planner, options: PlannerExportOption
   ]);
 
   pushSection(lines, "Planramme", document.description);
+  if (showCompactOverview) pushCompactOverview(lines, planner, periods);
   pushSection(lines, "Fagets relevans", document.subjectRelevance);
   pushSection(lines, "Sentrale verdier", document.coreValues);
   pushSection(lines, "Kjerneelementer", document.coreElements);
@@ -112,6 +115,7 @@ export function plannerToMarkdown(planner: Planner, options: PlannerExportOption
         ["Metode", activity.method],
         ["Vurdering", activity.assessment],
       ]);
+      pushSection(lines, "Undervisningsopplegg", activity.teachingPlan);
     });
   }
 
@@ -208,11 +212,119 @@ function pushSection(lines: string[], title: string, value: string) {
   lines.push(value.trim() || "-", "");
 }
 
+function pushCompactOverview(lines: string[], planner: Planner, periods: Planner["document"]["periods"]) {
+  const calendarEvents = getCalendarEvents(planner);
+  const localInitiatives = [
+    ...planner.localFramework.interdisciplinaryProjects.map((item) => ({ ...item, kind: "Prosjekt" })),
+    ...planner.localFramework.themeWeeks.map((item) => ({ ...item, kind: "Temauke" })),
+  ].filter((item) => item.title.trim() || item.description.trim());
+
+  if (calendarEvents.length === 0 && localInitiatives.length === 0 && periods.length === 0) return;
+
+  pushHeading(lines, 2, "Kort planoversikt");
+
+  if (calendarEvents.length > 0) {
+    pushHeading(lines, 3, "Skolerute");
+    calendarEvents.forEach((event) => {
+      lines.push(
+        `- ${event.title || "Skolerute"}: ${formatDateRange(event.startDate, event.endDate)} (${formatWeekRange(
+          event.startDate,
+          event.endDate
+        )})`
+      );
+    });
+    lines.push("");
+  }
+
+  if (localInitiatives.length > 0) {
+    pushHeading(lines, 3, "Lokale prosjekt og temauker");
+    localInitiatives.forEach((item) => {
+      lines.push(`- ${item.kind}: ${item.title || "Uten tittel"}`);
+      const timing = [formatDateRange(item.startDate, item.endDate), item.timing, item.locked ? "Låst i årsplan" : ""]
+        .filter(Boolean)
+        .join(" · ");
+      if (timing) lines.push(`  - Tid: ${timing}`);
+      if (item.description.trim()) lines.push(`  - Beskrivelse: ${item.description.trim()}`);
+    });
+    lines.push("");
+  }
+
+  if (periods.length > 0) {
+    pushHeading(lines, 3, "Perioder og læringsmål");
+    periods.forEach((period) => {
+      lines.push(`- ${period.title || "Periode"} (${period.weeks || "uker/dato ikke satt"})`);
+      const learningGoals = period.learningGoals.map((goal) => goal.studentLanguage || goal.goal).filter(Boolean);
+      if (learningGoals.length > 0) {
+        learningGoals.forEach((goal) => lines.push(`  - Mål: ${goal}`));
+      } else if (period.goals.trim()) {
+        lines.push(`  - Mål: ${period.goals.trim()}`);
+      }
+      if (period.content.trim()) lines.push(`  - Innhold: ${period.content.trim()}`);
+    });
+    lines.push("");
+  }
+}
+
 function pushMeta(lines: string[], items: Array<[string, string]>) {
   items.forEach(([label, value]) => {
     lines.push(`**${label}:** ${value.trim() || "-"}`);
   });
   lines.push("");
+}
+
+function getCalendarEvents(planner: Planner) {
+  const calendar = planner.frame.schoolCalendar;
+  const events = calendar.events.length > 0
+    ? calendar.events
+    : [
+        { id: "autumn-break", title: "Høstferie", startDate: calendar.autumnBreakStart, endDate: calendar.autumnBreakEnd },
+        { id: "christmas-break", title: "Juleferie", startDate: calendar.christmasBreakStart, endDate: calendar.christmasBreakEnd },
+        { id: "winter-break", title: "Vinterferie", startDate: calendar.winterBreakStart, endDate: calendar.winterBreakEnd },
+        { id: "easter-break", title: "Påskeferie", startDate: calendar.easterBreakStart, endDate: calendar.easterBreakEnd },
+        { id: "public-holiday", title: "Offentlig fridag", startDate: calendar.mayDay, endDate: calendar.mayDay },
+        { id: "national-day", title: "Nasjonaldag", startDate: calendar.constitutionDay, endDate: calendar.constitutionDay },
+        { id: "ascension-day", title: "Kristi himmelfartsdag", startDate: calendar.ascensionDay, endDate: calendar.ascensionDay },
+        { id: "whit-monday", title: "Pinse", startDate: calendar.whitMonday, endDate: calendar.whitMonday },
+      ];
+  return events
+    .filter((event) => event.title.trim() || event.startDate || event.endDate)
+    .map((event) => ({
+      ...event,
+      title: event.title.trim() || "Skolerute",
+      endDate: event.endDate || event.startDate,
+    }));
+}
+
+function formatDate(value: string): string {
+  if (!value) return "-";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("nb-NO", { dateStyle: "short" }).format(date);
+}
+
+function formatDateRange(startDate: string, endDate: string): string {
+  if (!startDate && !endDate) return "";
+  if (!endDate || startDate === endDate) return formatDate(startDate);
+  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+}
+
+function formatWeekRange(startDate: string, endDate: string): string {
+  const startWeek = getIsoWeekNumber(startDate);
+  const endWeek = getIsoWeekNumber(endDate || startDate);
+  if (!startWeek && !endWeek) return "uke ikke satt";
+  if (!endWeek || startWeek === endWeek) return `uke ${startWeek}`;
+  return `uke ${startWeek}-${endWeek}`;
+}
+
+function getIsoWeekNumber(value: string): number | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  return Math.ceil(((utcDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 function pushLinkedGoals(

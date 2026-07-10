@@ -40,8 +40,23 @@ export type PlannerSchoolCalendar = {
   winterBreakEnd: string;
   easterBreakStart: string;
   easterBreakEnd: string;
+  mayDay: string;
+  constitutionDay: string;
+  ascensionDay: string;
+  whitMonday: string;
   lastSchoolDay: string;
   planningDays: string;
+  otherDays: string;
+  officialSchoolDays: number;
+  localSchoolDaysOverride: number;
+  events: PlannerSchoolCalendarEvent[];
+};
+
+export type PlannerSchoolCalendarEvent = {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
 };
 
 export type CurriculumSource = {
@@ -81,6 +96,7 @@ export type PlannerActivity = {
   description: string;
   method: string;
   assessment: string;
+  teachingPlan: string;
 };
 
 export type PlannerWeekPlan = {
@@ -204,8 +220,16 @@ export const DEFAULT_PLANNER_FRAME: PlannerFrame = {
     winterBreakEnd: "",
     easterBreakStart: "",
     easterBreakEnd: "",
+    mayDay: "",
+    constitutionDay: "",
+    ascensionDay: "",
+    whitMonday: "",
     lastSchoolDay: "",
     planningDays: "",
+    otherDays: "",
+    officialSchoolDays: 190,
+    localSchoolDaysOverride: 0,
+    events: [],
   },
 };
 
@@ -327,6 +351,9 @@ export function normalizePlannerFrame(value: unknown): PlannerFrame {
 
 export function normalizePlannerSchoolCalendar(value: unknown): PlannerSchoolCalendar {
   const record = isRecord(value) ? value : {};
+  const events = Array.isArray(record.events)
+    ? record.events.map((event, index) => normalizePlannerSchoolCalendarEvent(event, index))
+    : [];
   return {
     source: record.source === "manual" ? "manual" : "municipality",
     municipalityCode: stringOrDefault(record.municipalityCode),
@@ -340,8 +367,26 @@ export function normalizePlannerSchoolCalendar(value: unknown): PlannerSchoolCal
     winterBreakEnd: stringOrDefault(record.winterBreakEnd),
     easterBreakStart: stringOrDefault(record.easterBreakStart),
     easterBreakEnd: stringOrDefault(record.easterBreakEnd),
+    mayDay: stringOrDefault(record.mayDay),
+    constitutionDay: stringOrDefault(record.constitutionDay),
+    ascensionDay: stringOrDefault(record.ascensionDay),
+    whitMonday: stringOrDefault(record.whitMonday),
     lastSchoolDay: stringOrDefault(record.lastSchoolDay),
     planningDays: stringOrDefault(record.planningDays),
+    otherDays: stringOrDefault(record.otherDays),
+    officialSchoolDays: numberOrDefault(record.officialSchoolDays, 190),
+    localSchoolDaysOverride: numberOrDefault(record.localSchoolDaysOverride, 0),
+    events,
+  };
+}
+
+function normalizePlannerSchoolCalendarEvent(value: unknown, index: number): PlannerSchoolCalendarEvent {
+  const record = isRecord(value) ? value : {};
+  return {
+    id: stringOrDefault(record.id, `calendar-event-${index + 1}`),
+    title: stringOrDefault(record.title),
+    startDate: stringOrDefault(record.startDate),
+    endDate: stringOrDefault(record.endDate),
   };
 }
 
@@ -411,6 +456,7 @@ export function normalizePlannerActivity(value: unknown, index: number): Planner
     description: stringOrDefault(record.description),
     method: stringOrDefault(record.method),
     assessment: stringOrDefault(record.assessment),
+    teachingPlan: stringOrDefault(record.teachingPlan),
   };
 }
 

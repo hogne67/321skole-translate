@@ -101,6 +101,7 @@ export default function NewPlannerPage() {
   const [subjectChoice, setSubjectChoice] = useState("");
   const [error, setError] = useState("");
   const [officialBasis, setOfficialBasis] = useState<OfficialCurriculumBasis | null>(null);
+  const [officialFetchFailed, setOfficialFetchFailed] = useState(false);
   const [fetchingOfficialBasis, setFetchingOfficialBasis] = useState(false);
   const [creatingGroundPlan, setCreatingGroundPlan] = useState(false);
 
@@ -205,6 +206,7 @@ export default function NewPlannerPage() {
     try {
       setFetchingOfficialBasis(true);
       setError("");
+      setOfficialFetchFailed(false);
       const token = await user.getIdToken();
       const response = await fetch("/api/teacher/planner/official-basis", {
         method: "POST",
@@ -226,8 +228,10 @@ export default function NewPlannerPage() {
         throw new Error(data.error || "Det offisielle læreplangrunnlaget kunne ikke hentes.");
       }
       setOfficialBasis(data.basis);
+      setOfficialFetchFailed(false);
     } catch (fetchError) {
       setOfficialBasis(null);
+      setOfficialFetchFailed(true);
       setError(
         fetchError instanceof Error
           ? fetchError.message
@@ -263,6 +267,16 @@ export default function NewPlannerPage() {
             ...DEFAULT_PLANNER_DOCUMENT,
             title: `${frame.subject} ${frame.level} – ${frame.schoolYear}`,
             description: `Offisiell grunnplan for ${frame.subject}, ${frame.level}, ${frame.schoolYear}.`,
+            subjectRelevance: `${officialBasis.source.title}. Planen bygger på verifisert læreplangrunnlag fra Utdanningsdirektoratet, hentet ${formatDateTime(officialBasis.source.fetchedAt)}.`,
+            coreValues: "Rediger lokale verdier og prioriteringer her dersom skolen har egne føringer.",
+            coreElements: formatCurriculumSectionsForDocument(officialBasis.coreElements),
+            interdisciplinaryThemes: formatCurriculumSectionsForDocument(officialBasis.interdisciplinaryThemes),
+            basicSkills: formatCurriculumSectionsForDocument(officialBasis.basicSkills),
+            learningGoals: `Kompetansemålene ligger kontrollert under Offisielt grunnlag og fordeles videre i periodeplanene. Valgt målsett: ${officialBasis.competenceLevel}.`,
+            assessmentForms: "Fyll inn vurderingsformer etter lokale føringer og periodenes mål.",
+            workMethods: "Fyll inn arbeidsmåter etter lokale rammer, elevgruppe og periodenes innhold.",
+            annualOverview: "Årsoversikten bygges videre når perioder opprettes og mål fordeles.",
+            reflection: "Bruk refleksjonsfanen gjennom året, og oppsummer erfaringer før planen kopieres til neste skoleår.",
           },
         }),
       });
@@ -271,6 +285,58 @@ export default function NewPlannerPage() {
         throw new Error(data.error || "Grunnplanen kunne ikke opprettes.");
       }
       router.push(`/${locale}/teacher/planner/${data.plannerId}?section=Lokalt%20grunnlag`);
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Grunnplanen kunne ikke opprettes.");
+      setCreatingGroundPlan(false);
+    }
+  }
+
+  async function createManualGroundPlan() {
+    if (!user || creatingGroundPlan) return;
+    try {
+      setCreatingGroundPlan(true);
+      setError("");
+      const token = await user.getIdToken();
+      const response = await fetch("/api/teacher/planner", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "draft",
+          frame,
+          curriculum: {
+            ...DEFAULT_CURRICULUM_SOURCE,
+            type: "custom",
+            framework: "Manuelt grunnlag - ikke hentet fra Udir",
+            customText: "",
+          },
+          officialBasis: null,
+          localFramework: DEFAULT_LOCAL_FRAMEWORK,
+          document: {
+            ...DEFAULT_PLANNER_DOCUMENT,
+            title: `${frame.subject} ${frame.level} – ${frame.schoolYear}`,
+            description: `Manuell grunnplan for ${frame.subject}, ${frame.level}, ${frame.schoolYear}.`,
+            subjectRelevance:
+              "Offisielt læreplangrunnlag er ikke hentet. Lærer må lime inn eller fylle ut korrekt grunnlag før perioder og mål fordeles.",
+            coreValues: "Fyll inn relevante verdier og lokale føringer.",
+            coreElements: "Fyll inn kjerneelementer eller tilsvarende grunnlag manuelt.",
+            interdisciplinaryThemes: "Fyll inn tverrfaglige temaer eller lokale satsinger manuelt.",
+            basicSkills: "Fyll inn grunnleggende ferdigheter eller tilsvarende ferdighetsområder manuelt.",
+            learningGoals: "Fyll inn kompetansemål/læringsmål manuelt før de fordeles i perioder.",
+            assessmentForms: "Fyll inn vurderingsformer etter lokale føringer.",
+            workMethods: "Fyll inn arbeidsmåter etter lokale rammer og elevgruppe.",
+            annualOverview: "Årsoversikten bygges videre når grunnlaget og periodene er klare.",
+            reflection: "Bruk refleksjonsfanen gjennom året, og oppsummer erfaringer før planen kopieres til neste skoleår.",
+          },
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { plannerId?: string; error?: string };
+      if (!response.ok || !data.plannerId) {
+        throw new Error(data.error || "Grunnplanen kunne ikke opprettes.");
+      }
+      router.push(`/${locale}/teacher/planner/${data.plannerId}?section=Offisielt%20grunnlag`);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Grunnplanen kunne ikke opprettes.");
       setCreatingGroundPlan(false);
@@ -308,7 +374,7 @@ export default function NewPlannerPage() {
             value={
               frame.schoolCalendar.source === "manual"
                 ? "Fylt ut manuelt"
-                : `Offisiell skolerute for ${frame.municipality} må hentes og verifiseres`
+                : `Ikke hentet ennå. Fyll ut manuelt hvis datoene skal brukes.`
             }
           />
           {frame.schoolCalendar.source === "manual" ? (
@@ -340,6 +406,25 @@ export default function NewPlannerPage() {
             >
               {creatingGroundPlan ? "Oppretter grunnplan..." : "Bekreft og opprett grunnplan"}
             </Button>
+          </section>
+        ) : null}
+
+        {!officialBasis && officialFetchFailed ? (
+          <section className="grid gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="m-0 text-sm font-semibold leading-6 text-amber-950">
+              Du kan opprette planen uten hentet Udir-grunnlag, men den blir merket som manuelt grunnlag.
+              Læreren må lime inn eller fylle ut korrekt offisiell informasjon før mål fordeles.
+            </p>
+            <div>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={creatingGroundPlan}
+                onClick={() => void createManualGroundPlan()}
+              >
+                {creatingGroundPlan ? "Oppretter plan..." : "Opprett plan med manuelt grunnlag"}
+              </Button>
+            </div>
           </section>
         ) : null}
 
@@ -572,7 +657,9 @@ export default function NewPlannerPage() {
                 }
               >
                 <option value="municipality">
-                  {frame.municipality ? `Bruk skoleruten for ${frame.municipality}` : "Bruk kommunens skolerute"}
+                  {frame.municipality
+                    ? `Kommunal skolerute for ${frame.municipality} - ikke hentet ennå`
+                    : "Kommunal skolerute - ikke hentet ennå"}
                 </option>
                 <option value="manual">Fyll ut selv</option>
               </Select>
@@ -583,7 +670,7 @@ export default function NewPlannerPage() {
             <div className="flex items-start gap-3 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
               <CalendarDays className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
               <p className="m-0">
-                Skoleruten skal bare fylles automatisk når datoene kan bekreftes fra kommunens offisielle nettside. Hvis en sikker kilde ikke finnes, må datoene fylles ut manuelt.
+                Skoleruten hentes ikke automatisk ennå. Velg «Fyll ut selv» hvis perioder skal følge faktiske datoer.
               </p>
             </div>
           ) : (
@@ -602,6 +689,19 @@ export default function NewPlannerPage() {
       </form>
     </main>
   );
+}
+
+function formatCurriculumSectionsForDocument(sections: OfficialCurriculumBasis["coreElements"]) {
+  return sections
+    .map((section) => [section.title, section.text].filter(Boolean).join(": "))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("nb-NO", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 
 function ManualSchoolCalendar({
@@ -659,6 +759,18 @@ function ManualSchoolCalendar({
           onStart={(value) => onChange("easterBreakStart", value)}
           onEnd={(value) => onChange("easterBreakEnd", value)}
         />
+        <DateField label="1. mai" value={calendar.mayDay} onChange={(value) => onChange("mayDay", value)} />
+        <DateField
+          label="17. mai"
+          value={calendar.constitutionDay}
+          onChange={(value) => onChange("constitutionDay", value)}
+        />
+        <DateField
+          label="Kristi himmelfartsdag"
+          value={calendar.ascensionDay}
+          onChange={(value) => onChange("ascensionDay", value)}
+        />
+        <DateField label="Pinse" value={calendar.whitMonday} onChange={(value) => onChange("whitMonday", value)} />
       </div>
 
       <Field label="Planleggingsdager / fridager">
@@ -667,6 +779,14 @@ function ManualSchoolCalendar({
           onChange={(event) => onChange("planningDays", event.target.value)}
           rows={4}
           placeholder="Skriv én dato eller periode per linje"
+        />
+      </Field>
+      <Field label="Andre dager">
+        <Textarea
+          value={calendar.otherDays}
+          onChange={(event) => onChange("otherDays", event.target.value)}
+          rows={4}
+          placeholder="Legg til andre lokale fridager, halve dager eller merkedager"
         />
       </Field>
     </section>
@@ -691,7 +811,7 @@ function DateRange({
       <legend className="px-1 text-sm font-black text-slate-800">{label}</legend>
       <div className="grid grid-cols-2 gap-2">
         <DateField label="Fra" value={start} onChange={onStart} />
-        <DateField label="Til" value={end} onChange={onEnd} />
+        <DateField label="Til og med" value={end} onChange={onEnd} />
       </div>
     </fieldset>
   );

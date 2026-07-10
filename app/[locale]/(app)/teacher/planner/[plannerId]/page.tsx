@@ -42,6 +42,8 @@ import {
   type PlannerPeriodLearningGoal,
   type PlannerPeriodStatus,
   type PlannerReflectionEntry,
+  type PlannerSchoolCalendar,
+  type PlannerSchoolCalendarEvent,
   type PlannerStatus,
   type PlannerType,
   type PlannerWeekPlan,
@@ -51,7 +53,7 @@ import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { PlannerWorkspaceNav } from "./PlannerWorkspaceNav";
 
-type ActiveKey = "overview" | "annual" | "local" | "semesters" | "periods" | "activities" | "reflections" | "print" | "settings";
+type ActiveKey = "overview" | "official" | "annual" | "local" | "calendar" | "semesters" | "periods" | "activities" | "reflections" | "print" | "settings";
 
 const COUNTRIES = ["Norge", "England", "Brasil", "Egendefinert"];
 const SCHOOL_TYPES = [
@@ -426,6 +428,24 @@ export default function PlannerDashboardPage() {
   function updateFrame<K extends keyof PlannerFrame>(key: K, value: PlannerFrame[K]) {
     setDirty(true);
     setPlanner((prev) => (prev ? { ...prev, frame: { ...prev.frame, [key]: value } } : prev));
+  }
+
+  function updateSchoolCalendar<K extends keyof PlannerSchoolCalendar>(key: K, value: PlannerSchoolCalendar[K]) {
+    setDirty(true);
+    setPlanner((prev) =>
+      prev
+        ? {
+            ...prev,
+            frame: {
+              ...prev.frame,
+              schoolCalendar: {
+                ...prev.frame.schoolCalendar,
+                [key]: value,
+              },
+            },
+          }
+        : prev
+    );
   }
 
   function updateCurriculum<K extends keyof CurriculumSource>(key: K, value: CurriculumSource[K]) {
@@ -947,6 +967,7 @@ export default function PlannerDashboardPage() {
                   description: "",
                   method: "",
                   assessment: "",
+                  teachingPlan: "",
                 },
               ],
             },
@@ -961,7 +982,7 @@ export default function PlannerDashboardPage() {
   function removeActivity(index: number) {
     const activity = planner?.document.activities[index];
     const hasContent = activity
-      ? [activity.title, activity.period, activity.description, activity.method, activity.assessment].some(
+      ? [activity.title, activity.period, activity.description, activity.method, activity.assessment, activity.teachingPlan].some(
           (value) => value.trim().length > 0
         )
       : false;
@@ -1403,10 +1424,14 @@ export default function PlannerDashboardPage() {
   }
 
   const active: ActiveKey =
-    section === "Årsplan" || section === "Annual Plan"
+    section === "Offisielt grunnlag" || section === "Official Basis"
+      ? "official"
+      : section === "Årsplan" || section === "Annual Plan"
       ? "annual"
       : section === "Lokalt grunnlag"
         ? "local"
+      : section === "Skolerute" || section === "School Calendar"
+        ? "calendar"
       : section === "Semesterplaner" || section === "Semester Plans"
         ? "semesters"
         : section === "Periodeplaner" || section === "Period Plans"
@@ -1547,6 +1572,8 @@ export default function PlannerDashboardPage() {
             onActivatePeriod={activatePeriod}
             onCompleteActivePeriod={completeActivePeriod}
           />
+        ) : active === "official" ? (
+          <OfficialBasisPanel planner={planner} />
         ) : active === "annual" ? (
           <AnnualPlanEditor
             planner={planner}
@@ -1558,6 +1585,11 @@ export default function PlannerDashboardPage() {
             framework={planner.localFramework}
             officialBasis={planner.officialBasis}
             onUpdate={updateLocalFramework}
+          />
+        ) : active === "calendar" ? (
+          <SchoolCalendarEditor
+            frame={planner.frame}
+            onUpdate={updateSchoolCalendar}
           />
         ) : active === "semesters" ? (
           <SemesterPlansPanel planner={planner} />
@@ -1894,7 +1926,19 @@ function Overview({
 }
 
 function getPlannerReadiness(planner: Planner) {
+  const hasVerifiedOfficialBasis = Boolean(
+    planner.officialBasis?.source.title.trim() && planner.officialBasis.competenceGoals.length > 0
+  );
+  const hasManualBasis = Boolean(
+    !planner.officialBasis && planner.curriculum.type !== "official" && planner.curriculum.customText.trim()
+  );
+  const hasCurriculumBasis = hasVerifiedOfficialBasis || hasManualBasis;
   const checks = [
+    {
+      ok: hasCurriculumBasis,
+      label: planner.officialBasis ? "Sjekk offisielt grunnlag" : "Fyll inn manuelt læreplangrunnlag",
+      href: "?section=Offisielt%20grunnlag",
+    },
     {
       ok: Boolean(planner.document.title.trim() && planner.document.description.trim()),
       label: "Skriv tittel og beskrivelse",
@@ -1935,11 +1979,6 @@ function getPlannerReadiness(planner: Planner) {
       label: "Legg inn aktiviteter",
       href: "?section=Aktiviteter",
     },
-    {
-      ok: Boolean(planner.curriculum.framework.trim()),
-      label: "Sjekk læreplangrunnlag",
-      href: "?section=Innstillinger",
-    },
   ];
 
   if (planner.frame.planType === "individual") {
@@ -1965,6 +2004,13 @@ function getPlannerReadiness(planner: Planner) {
 }
 
 function PlannerWorkflowPanel({ planner, locale }: { planner: Planner; locale: string }) {
+  const hasVerifiedOfficialBasis = Boolean(
+    planner.officialBasis?.source.title.trim() && planner.officialBasis.competenceGoals.length > 0
+  );
+  const hasManualBasis = Boolean(
+    !planner.officialBasis && planner.curriculum.type !== "official" && planner.curriculum.customText.trim()
+  );
+  const hasCurriculumBasis = hasVerifiedOfficialBasis || hasManualBasis;
   const hasAnnualPlan = Boolean(planner.document.title.trim() && planner.document.description.trim());
   const hasLocalFramework =
     Boolean(planner.localFramework.localGoals.trim() || planner.localFramework.localGuidelines.trim()) ||
@@ -1979,10 +2025,14 @@ function PlannerWorkflowPanel({ planner, locale }: { planner: Planner; locale: s
 
   const steps = [
     {
-      label: "1. Lag førsteutkast",
-      done: hasAnnualPlan,
-      href: `/${locale}/teacher/planner/${planner.id}?section=%C3%85rsplan`,
-      detail: hasAnnualPlan ? "Årsplandelen har innhold." : "Fyll ut eller forbedre årsplandelen.",
+      label: "1. Sjekk grunnlaget",
+      done: hasCurriculumBasis,
+      href: `/${locale}/teacher/planner/${planner.id}?section=Offisielt%20grunnlag`,
+      detail: hasCurriculumBasis
+        ? planner.officialBasis
+          ? "Offisielt læreplangrunnlag er hentet."
+          : "Manuelt læreplangrunnlag er lagt inn."
+        : "Kontroller Udir-grunnlag eller legg inn manuelt grunnlag.",
     },
     {
       label: "2. Avklar lokale rammer",
@@ -1991,31 +2041,28 @@ function PlannerWorkflowPanel({ planner, locale }: { planner: Planner; locale: s
       detail: hasLocalFramework ? "Lokalt grunnlag er lagt inn." : "Legg inn lokale føringer, prosjekter eller temauker.",
     },
     {
-      label: "3. Bygg perioder",
+      label: "3. Se årsplanen",
+      done: hasAnnualPlan,
+      href: `/${locale}/teacher/planner/${planner.id}?section=%C3%85rsplan`,
+      detail: hasAnnualPlan ? "Årsplandelen har innhold." : "Fyll ut eller kontroller årsplandelen.",
+    },
+    {
+      label: "4. Bygg perioder",
       done: hasPeriods,
       href: `/${locale}/teacher/planner/${planner.id}?section=Periodeplaner`,
       detail: hasPeriods ? "Perioder er lagt inn." : "Generer eller legg inn perioder.",
     },
     {
-      label: "4. Fyll periodene",
+      label: "5. Fyll periodene",
       done: hasPeriodContent,
       href: `/${locale}/teacher/planner/${planner.id}?section=Periodeplaner`,
       detail: hasPeriodContent ? "Periodene har mål og innhold." : "Fyll periodene med kompetansemål, lokale mål og innhold.",
     },
     {
-      label: "5. Legg inn aktiviteter",
+      label: "6. Legg inn aktiviteter",
       done: hasActivities,
       href: `/${locale}/teacher/planner/${planner.id}?section=Aktiviteter`,
       detail: hasActivities ? "Aktiviteter er lagt inn." : "Legg inn praktiske arbeidsmåter og vurdering.",
-    },
-    {
-      label: "6. Se lærer- og elevversjon",
-      done: hasStudentReady,
-      href: plannerDocumentHref(locale, planner.id, "preview", {
-        audience: "student",
-        periodId: activePeriod?.id,
-      }),
-      detail: hasStudentReady ? "Elevversjonen er klar til kontroll." : "Elevversjonen blir best når mål og perioder er koblet.",
     },
   ];
 
@@ -2136,6 +2183,171 @@ function SemesterPlansPanel({ planner }: { planner: Planner }) {
   );
 }
 
+function OfficialBasisPanel({ planner }: { planner: Planner }) {
+  const basis = planner.officialBasis;
+  if (!basis) {
+    return (
+      <div className="grid gap-4 rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950">
+        <h2 className="m-0 text-xl font-black text-slate-950">Offisielt grunnlag</h2>
+        <p className="m-0 font-semibold">
+          Planen har ikke lagret verifisert Udir-grunnlag. Ikke fordel kompetansemål automatisk før korrekt grunnlag er limt inn eller fylt ut manuelt.
+        </p>
+        <div className="grid gap-2 rounded-lg border border-amber-200 bg-white p-4">
+          <div className="font-black text-slate-950">Må fylles/kontrolleres manuelt</div>
+          <ul className="m-0 grid gap-1 pl-5 leading-6">
+            <li>Kompetansemål eller tilsvarende læringsmål</li>
+            <li>Kjerneelementer eller faglige hovedområder</li>
+            <li>Tverrfaglige temaer og grunnleggende ferdigheter der dette finnes</li>
+            <li>Timetall eller lokal timefordeling</li>
+          </ul>
+        </div>
+        <p className="m-0 font-semibold">
+          Bruk fanen Årsplan og Innstillinger til å lime inn grunnlaget foreløpig. Senere kan vi lage en egen strukturert innliming her.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-5">
+      <div>
+        <h2 className="m-0 text-xl font-black text-slate-950">Offisielt grunnlag</h2>
+        <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
+          Dette er den kontrollerte delen som er hentet fra Udir. Bruk den som grunnlag, men rediger ikke teksten her.
+        </p>
+      </div>
+
+      <section className="grid gap-3 rounded-lg border border-emerald-200 bg-white p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-black uppercase tracking-wide text-emerald-800">
+              {basis.source.provider}
+            </div>
+            <h3 className="m-0 mt-1 text-lg font-black text-slate-950">
+              {basis.source.title} ({basis.source.planCode})
+            </h3>
+            <p className="mb-0 mt-1 text-sm font-semibold text-slate-600">
+              Status: {basis.source.status || "Ikke oppgitt"} · Målsett: {basis.competenceLevel}
+            </p>
+          </div>
+          <a
+            href={basis.source.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
+          >
+            Åpne hos Udir
+          </a>
+        </div>
+        <div className="grid gap-2 border-t border-slate-200 pt-3 text-sm sm:grid-cols-3">
+          <SourceFact label="Gyldig fra" value={basis.source.validFrom} />
+          <SourceFact label="Sist endret" value={basis.source.lastChanged} />
+          <SourceFact label="Hentet" value={formatSavedTime(new Date(basis.source.fetchedAt))} />
+        </div>
+      </section>
+
+      <OfficialBasisSection title={`Kompetansemål etter ${basis.competenceLevel}`}>
+        <ol className="m-0 grid gap-2 pl-5 text-sm leading-6 text-slate-800">
+          {basis.competenceGoals.map((goal, index) => (
+            <li key={`${index}-${goal}`}>{goal}</li>
+          ))}
+        </ol>
+      </OfficialBasisSection>
+      <OfficialCurriculumSections title="Kjerneelementer" sections={basis.coreElements} />
+      <OfficialCurriculumSections title="Tverrfaglige temaer" sections={basis.interdisciplinaryThemes} />
+      <OfficialCurriculumSections title="Grunnleggende ferdigheter" sections={basis.basicSkills} />
+      <OfficialBasisSection title="Timetall">
+        <p className="m-0 whitespace-pre-wrap text-sm leading-6 text-slate-700">{basis.hours.note || "Ikke oppgitt"}</p>
+        {basis.hours.sections.length > 0 ? (
+          <div className="mt-4 grid gap-4">
+            {basis.hours.sections.map((section) => (
+              <div key={section.title} className="overflow-x-auto">
+                <h4 className="m-0 mb-2 text-sm font-black text-slate-950">{section.title}</h4>
+                <table className="w-full border-collapse text-left text-sm">
+                  <tbody>
+                    {section.rows.map((row, rowIndex) => (
+                      <tr key={`${section.title}-${rowIndex}`} className="border-b border-slate-200">
+                        {row.map((cell, cellIndex) => {
+                          const Cell = rowIndex === 0 ? "th" : "td";
+                          return (
+                            <Cell key={`${rowIndex}-${cellIndex}`} className="px-2 py-2 align-top first:pl-0">
+                              {cell}
+                            </Cell>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mb-0 mt-2 text-sm font-semibold text-amber-800">
+            Timetall må kontrolleres og fylles lokalt hvis det ikke kan hentes sikkert.
+          </p>
+        )}
+      </OfficialBasisSection>
+    </div>
+  );
+}
+
+function OfficialCurriculumSections({
+  title,
+  sections,
+}: {
+  title: string;
+  sections: Planner["officialBasis"] extends infer B
+    ? B extends NonNullable<Planner["officialBasis"]>
+      ? B["coreElements"]
+      : never
+    : never;
+}) {
+  return (
+    <OfficialBasisSection title={title}>
+      <div className="grid gap-4">
+        {sections.map((section, index) => (
+          <div key={`${title}-${index}`}>
+            {section.title ? <h4 className="m-0 text-sm font-black text-slate-950">{section.title}</h4> : null}
+            <p className="mb-0 mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">{section.text}</p>
+          </div>
+        ))}
+      </div>
+    </OfficialBasisSection>
+  );
+}
+
+function OfficialBasisSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-4">
+      <h3 className="m-0 mb-3 text-base font-black text-slate-950">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function SourceFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs font-bold uppercase text-slate-500">{label}</div>
+      <div className="mt-1 font-bold text-slate-950">{value || "Ikke oppgitt"}</div>
+    </div>
+  );
+}
+
+function formatCurriculumSectionsForDocument(sections: NonNullable<Planner["officialBasis"]>["coreElements"]) {
+  return sections
+    .map((section) => [section.title, section.text].filter(Boolean).join(": "))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("nb-NO", { dateStyle: "short", timeStyle: "short" }).format(date);
+}
+
 function AnnualPlanEditor({
   planner,
   updateDocument,
@@ -2150,6 +2362,66 @@ function AnnualPlanEditor({
 }) {
   const document = planner.document;
   const individual = document.individualDetails;
+  const canBuildFromOfficialBasis = Boolean(planner.officialBasis);
+
+  function buildAnnualPlanFromOfficialBasis() {
+    const basis = planner.officialBasis;
+    if (!basis) return;
+
+    const hasAnnualText = [
+      document.title,
+      document.description,
+      document.subjectRelevance,
+      document.coreValues,
+      document.coreElements,
+      document.interdisciplinaryThemes,
+      document.basicSkills,
+      document.learningGoals,
+      document.assessmentForms,
+      document.workMethods,
+      document.annualOverview,
+    ].some((value) => value.trim());
+
+    if (
+      hasAnnualText &&
+      !window.confirm("Dette fyller årsplanen med en kortversjon fra offisielt grunnlag. Eksisterende tekst kan bli erstattet. Vil du fortsette?")
+    ) {
+      return;
+    }
+
+    updateDocument("title", `${planner.frame.subject} ${planner.frame.level} - ${planner.frame.schoolYear}`);
+    updateDocument(
+      "description",
+      `Årsplan for ${planner.frame.subject} ${planner.frame.level} ved ${planner.frame.schoolName || "skolen"}.`
+    );
+    updateDocument(
+      "subjectRelevance",
+      `${basis.source.title}. Planen bygger på verifisert læreplangrunnlag fra Utdanningsdirektoratet, hentet ${formatDateTime(
+        basis.source.fetchedAt
+      )}.`
+    );
+    updateDocument("coreValues", "Sentrale verdier må kontrolleres og tilpasses lokalt av lærer.");
+    updateDocument("coreElements", formatCurriculumSectionsForDocument(basis.coreElements));
+    updateDocument("interdisciplinaryThemes", formatCurriculumSectionsForDocument(basis.interdisciplinaryThemes));
+    updateDocument("basicSkills", formatCurriculumSectionsForDocument(basis.basicSkills));
+    updateDocument(
+      "learningGoals",
+      `Kompetansemålene ligger kontrollert under Offisielt grunnlag og fordeles videre i periodeplanene. Valgt målsett: ${basis.competenceLevel}.`
+    );
+    updateDocument(
+      "assessmentForms",
+      "Vurderingsformer må fastsettes lokalt av lærer og skole, og bør kobles til periodenes mål og arbeidsmåter."
+    );
+    updateDocument(
+      "workMethods",
+      "Arbeidsmåter beskrives og konkretiseres videre i periodeplanene ut fra lokale rammer, elevgruppe og fagets egenart."
+    );
+    updateDocument(
+      "annualOverview",
+      "Årsoversikten bygges videre i fanen Periodeplaner. Fordelingen må kontrolleres av lærer før planen tas i bruk."
+    );
+  }
+
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2159,6 +2431,12 @@ function AnnualPlanEditor({
             Rediger den samlede årsplandelen. Elevnære mål og konkretisering jobbes videre med i periodene.
           </p>
         </div>
+        {canBuildFromOfficialBasis ? (
+          <Button type="button" variant="secondary" onClick={buildAnnualPlanFromOfficialBasis}>
+            <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
+            Fyll fra offisielt grunnlag
+          </Button>
+        ) : null}
       </div>
       <Field label="Tittel">
         <Input value={document.title} onChange={(event) => updateDocument("title", event.target.value)} />
@@ -2365,6 +2643,15 @@ function PeriodEditor({
           arbeidsmåter og vurdering for periodene. Uker, titler, refleksjon og ukeplaner endres ikke.
           Forslaget må kontrolleres før du lagrer.
         </p>
+      ) : null}
+      {periods.length > 0 && officialGoals.length === 0 ? (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-950">
+          <InfoIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <p className="m-0">
+            Automatisk fordeling av perioder krever verifiserte kompetansemål fra Udir. For manuelle planer kan du
+            fortsatt legge inn kompetansemål, lokale mål, innhold, arbeidsmåter og vurdering direkte i hver periode.
+          </p>
+        </div>
       ) : null}
       {lockedLocalInitiatives.length > 0 ? (
         <div className="rounded-lg border border-sky-200 bg-white p-3">
@@ -2796,7 +3083,7 @@ function ActivityEditor({
       {activities.length === 0 ? (
         <div className="grid gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
           <p className="m-0">
-            Ingen aktiviteter er lagt inn ennå. Lag forslag til arbeidsmåter og vurdering, eller legg inn en aktivitet manuelt.
+            Ingen aktiviteter er lagt inn ennå. Lag forslag til praktiske undervisningsaktiviteter, eller legg inn en aktivitet manuelt.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="primary" disabled={generating} onClick={onGenerate}>
@@ -2855,6 +3142,14 @@ function ActivityEditor({
               >
                 <Copy className="h-4 w-4" aria-hidden="true" />
               </button>
+              <button
+                type="button"
+                onClick={() => printActivityTeachingPlan(activity)}
+                className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-slate-700"
+                title="Skriv ut undervisningsopplegg"
+              >
+                <Printer className="h-4 w-4" aria-hidden="true" />
+              </button>
               <button type="button" onClick={() => onRemove(index)} className="inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-white px-2 text-rose-700">
                 <Trash2 className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -2878,12 +3173,66 @@ function ActivityEditor({
                 <Textarea value={activity.assessment} onChange={(event) => onUpdate(index, { assessment: event.target.value })} rows={3} />
               </Field>
             </div>
+            <Field label="Print-klart undervisningsopplegg">
+              <Textarea
+                value={activity.teachingPlan}
+                onChange={(event) => onUpdate(index, { teachingPlan: event.target.value })}
+                rows={8}
+                placeholder="Formål, tidsbruk, organisering, gjennomføring, lærerstøtte, deling/presentasjon og enkel vurdering."
+              />
+            </Field>
           </div>
           ))}
         </>
       )}
     </div>
   );
+}
+
+function printActivityTeachingPlan(activity: PlannerActivity) {
+  const printWindow = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
+  if (!printWindow) return;
+
+  const title = activity.title.trim() || "Undervisningsopplegg";
+  const sections = [
+    ["Periode", activity.period],
+    ["Beskrivelse", activity.description],
+    ["Metode", activity.method],
+    ["Vurdering", activity.assessment],
+    ["Undervisningsopplegg", activity.teachingPlan],
+  ].filter(([, value]) => value.trim());
+
+  printWindow.document.write(`<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; line-height: 1.5; }
+    h1 { font-size: 26px; margin: 0 0 18px; }
+    h2 { font-size: 15px; margin: 22px 0 6px; }
+    p { white-space: pre-wrap; margin: 0; }
+    .meta { color: #475569; font-size: 13px; margin-bottom: 20px; }
+    @media print { body { margin: 18mm; } button { display: none; } }
+  </style>
+</head>
+<body>
+  <button onclick="window.print()" style="float:right;padding:8px 12px">Skriv ut</button>
+  <h1>${escapeHtml(title)}</h1>
+  <div class="meta">321Planner - undervisningsopplegg</div>
+  ${sections.map(([label, value]) => `<section><h2>${escapeHtml(label)}</h2><p>${escapeHtml(value)}</p></section>`).join("")}
+</body>
+</html>`);
+  printWindow.document.close();
+  printWindow.focus();
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 type PeriodPlanStatus = {
@@ -3079,11 +3428,22 @@ function formatPeriodList(periods: PlannerPeriod[]): string {
 function activityMatchesPeriod(activity: PlannerActivity, period: PlannerPeriod): boolean {
   const activityPeriod = normalizePeriodReference(activity.period);
   if (!activityPeriod) return false;
-  return activityPeriod === normalizePeriodReference(period.title) || activityPeriod === normalizePeriodReference(period.id);
+  const periodTitle = normalizePeriodReference(period.title);
+  const periodId = normalizePeriodReference(period.id);
+  if (activityPeriod === periodTitle || activityPeriod === periodId) return true;
+  if (periodTitle && (activityPeriod.includes(periodTitle) || periodTitle.includes(activityPeriod))) return true;
+
+  const activityNumber = firstNumber(activityPeriod);
+  const periodNumber = firstNumber(periodTitle) ?? firstNumber(periodId);
+  return Boolean(activityNumber && periodNumber && activityNumber === periodNumber);
 }
 
 function normalizePeriodReference(value: string): string {
-  return value.trim().toLowerCase();
+  return value.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
+}
+
+function firstNumber(value: string): string | null {
+  return value.match(/\d+/)?.[0] ?? null;
 }
 
 function PeriodLearningGoalsEditor({
@@ -3493,6 +3853,349 @@ function LocalFrameworkEditor({
       />
     </div>
   );
+}
+
+function SchoolCalendarEditor({
+  frame,
+  onUpdate,
+}: {
+  frame: PlannerFrame;
+  onUpdate: <K extends keyof PlannerSchoolCalendar>(key: K, value: PlannerSchoolCalendar[K]) => void;
+}) {
+  const calendar = frame.schoolCalendar;
+  const events = calendar.events.length > 0 ? calendar.events : createDefaultSchoolCalendarEvents(calendar);
+  const summary = summarizeSchoolCalendar(calendar, events);
+  const [editingSchoolDays, setEditingSchoolDays] = useState(calendar.localSchoolDaysOverride > 0);
+  const schoolDayTarget = calendar.localSchoolDaysOverride || calendar.officialSchoolDays || 190;
+
+  function updateEvent(index: number, patch: Partial<PlannerSchoolCalendarEvent>) {
+    onUpdate("events", events.map((event, eventIndex) => (eventIndex === index ? { ...event, ...patch } : event)));
+  }
+
+  function addEvent(title = "Planleggingsdag / fridag") {
+    onUpdate("events", [...events, { id: `calendar-event-${Date.now()}`, title, startDate: "", endDate: "" }]);
+  }
+
+  function removeEvent(index: number) {
+    onUpdate("events", events.filter((_, eventIndex) => eventIndex !== index));
+  }
+
+  return (
+    <div className="grid gap-5">
+      <div>
+        <h2 className="m-0 text-xl font-black text-slate-950">Skolerute</h2>
+        <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
+          Skolerute hentes ikke automatisk ennå. Fyll inn datoene manuelt når periodene skal følge faktiske skoledager.
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-950">
+        Kommunen er lagret som {frame.municipality || "ikke valgt"}, men datoene under er bare sikre hvis de er kontrollert og fylt inn manuelt.
+      </div>
+
+      <section className="grid gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+        <div>
+          <h3 className="m-0 text-base font-black text-slate-950">Kvalitetssjekk av skolerute</h3>
+          <p className="mb-0 mt-1 text-sm leading-6 text-slate-700">
+            Tellingen er veiledende. Helger trekkes ikke inn som registrerte fridager.
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <CalendarSummaryStat label="Registrerte fridager" value={summary.freeWeekdays} />
+          <CalendarSummaryStat
+            label={calendar.localSchoolDaysOverride > 0 ? "Lokalt antall skoledager" : "Offisielle skoledager"}
+            value={schoolDayTarget}
+            hint={calendar.localSchoolDaysOverride > 0 ? "Manuelt endret" : "Norge: 190"}
+          />
+        </div>
+        <div className="rounded-lg border border-emerald-200 bg-white p-3 text-sm leading-6 text-slate-700">
+          <div>
+            Planen bruker {schoolDayTarget} skoledager. Registrerte fridager brukes som hjelp når perioder og utskrift
+            skal følge skoleruta, men de endrer ikke antall skoledager automatisk.
+          </div>
+          {editingSchoolDays ? (
+            <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,220px)_auto] sm:items-end">
+              <Field label="Lokalt antall skoledager">
+                <Input
+                  type="number"
+                  min={1}
+                  value={calendar.localSchoolDaysOverride || calendar.officialSchoolDays || 190}
+                  onChange={(event) => onUpdate("localSchoolDaysOverride", Number(event.target.value) || 0)}
+                />
+              </Field>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  onUpdate("localSchoolDaysOverride", 0);
+                  setEditingSchoolDays(false);
+                }}
+              >
+                Bruk offisielt antall
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" variant="secondary" onClick={() => setEditingSchoolDays(true)}>
+              Endre lokalt antall skoledager
+            </Button>
+          )}
+        </div>
+        {summary.warnings.length > 0 ? (
+          <div className="rounded-lg border border-amber-200 bg-white p-3 text-sm font-semibold leading-6 text-amber-950">
+            <div className="font-black text-slate-950">Mulige sjekkpunkter</div>
+            <ul className="m-0 mt-2 grid gap-1 pl-5">
+              {summary.warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="m-0 rounded-lg border border-emerald-200 bg-white p-3 text-sm font-semibold text-emerald-900">
+            Ingen helgedatoer eller omvendte datointervaller funnet.
+          </p>
+        )}
+      </section>
+
+      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Kilde">
+            <Select value={calendar.source} onChange={(event) => onUpdate("source", event.target.value as PlannerSchoolCalendar["source"])}>
+              <option value="municipality">Kommunal skolerute - ikke hentet automatisk</option>
+              <option value="manual">Fyll ut selv</option>
+            </Select>
+          </Field>
+          <Field label="Kildelenke">
+            <div className="grid gap-2">
+              <Input value={calendar.sourceUrl} onChange={(event) => onUpdate("sourceUrl", event.target.value)} placeholder="Lim inn kommunens skolerute-lenke" />
+              {calendar.sourceUrl.trim() ? (
+                <a
+                  href={normalizeExternalUrl(calendar.sourceUrl)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm font-bold text-emerald-800 underline-offset-4 hover:underline"
+                >
+                  Åpne lenke
+                </a>
+              ) : null}
+            </div>
+          </Field>
+          <DateInput label="Startdato årsplan" value={calendar.firstSchoolDay} onChange={(value) => onUpdate("firstSchoolDay", value)} />
+          <DateInput label="Sluttdato årsplan" value={calendar.lastSchoolDay} onChange={(value) => onUpdate("lastSchoolDay", value)} />
+        </div>
+
+        <div className="grid gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="m-0 text-base font-black text-slate-950">Ferier, fridager og lokale unntak</h3>
+              <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
+                Navnene er bare forslag. Endre dem, bruk fra/til også på enkeltdager, og legg inn inneklemte dager ved behov.
+              </p>
+            </div>
+            <Button type="button" variant="secondary" onClick={() => addEvent()}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Legg til
+            </Button>
+          </div>
+
+          <div className="grid gap-2">
+            {events.map((event, index) => (
+              <div key={event.id} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 lg:grid-cols-[minmax(160px,1fr)_minmax(150px,180px)_minmax(150px,180px)_auto] lg:items-end">
+                <Field label="Navn">
+                  <Input value={event.title} onChange={(changeEvent) => updateEvent(index, { title: changeEvent.target.value })} />
+                </Field>
+                <DateInput label="Fra" value={event.startDate} onChange={(value) => updateEvent(index, { startDate: value })} />
+                <DateInput label="Til og med" value={event.endDate} onChange={(value) => updateEvent(index, { endDate: value })} />
+                <button
+                  type="button"
+                  onClick={() => removeEvent(index)}
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-200 bg-white px-3 text-rose-700"
+                  title="Fjern rad"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <Button type="button" variant="secondary" onClick={() => addEvent("Planleggingsdag / fridag")}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Legg til planleggingsdag / fridag
+          </Button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DateInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  const weekNumber = getIsoWeekNumber(value);
+  const weekend = isWeekendDate(value);
+  return (
+    <Field label={label}>
+      <div className="grid gap-1">
+        <Input type="date" value={value} onChange={(event) => onChange(event.target.value)} />
+        <span className="text-xs font-semibold text-slate-500">{weekNumber ? `Uke ${weekNumber}` : "Uke vises når dato er valgt"}</span>
+        {weekend ? <span className="text-xs font-bold text-amber-700">Dette er lørdag/søndag</span> : null}
+      </div>
+    </Field>
+  );
+}
+
+function CalendarSummaryStat({ label, value, hint }: { label: string; value: number | null; hint?: string }) {
+  return (
+    <div className="rounded-lg border border-emerald-200 bg-white p-3">
+      <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 text-2xl font-black text-slate-950">{value === null ? "-" : value}</div>
+      {hint ? <div className="mt-1 text-xs font-bold text-slate-500">{hint}</div> : null}
+    </div>
+  );
+}
+
+function summarizeSchoolCalendar(calendar: PlannerSchoolCalendar, events: PlannerSchoolCalendarEvent[]) {
+  const freeDates = new Set<string>();
+  const warnings: string[] = [];
+
+  if (calendar.firstSchoolDay && isWeekendDate(calendar.firstSchoolDay)) {
+    warnings.push("Startdato årsplan er lagt på en lørdag eller søndag.");
+  }
+  if (calendar.lastSchoolDay && isWeekendDate(calendar.lastSchoolDay)) {
+    warnings.push("Sluttdato årsplan er lagt på en lørdag eller søndag.");
+  }
+  if (compareDates(calendar.firstSchoolDay, calendar.lastSchoolDay) > 0) {
+    warnings.push("Startdato årsplan kommer etter sluttdato årsplan.");
+  }
+
+  for (const event of events) {
+    const title = event.title.trim() || "Skolerute";
+    const startDate = event.startDate;
+    const endDate = event.endDate || event.startDate;
+    if (!startDate && !endDate) continue;
+    if (compareDates(startDate, endDate) > 0) {
+      warnings.push(`${title}: fra-dato kommer etter til-og-med-dato.`);
+      continue;
+    }
+    if (startDate && isWeekendDate(startDate)) warnings.push(`${title}: fra-dato er lørdag eller søndag.`);
+    if (endDate && endDate !== startDate && isWeekendDate(endDate)) {
+      warnings.push(`${title}: til-og-med-dato er lørdag eller søndag.`);
+    }
+    for (const date of listDatesInclusive(startDate || endDate, endDate || startDate)) {
+      if (!isWeekendDate(date)) freeDates.add(date);
+    }
+  }
+
+  const freeWeekdays = freeDates.size;
+  return {
+    freeWeekdays,
+    warnings,
+  };
+}
+
+function listDatesInclusive(startDate: string, endDate: string): string[] {
+  const start = parseDateInput(startDate);
+  const end = parseDateInput(endDate);
+  if (!start || !end || start.getTime() > end.getTime()) return [];
+  const dates: string[] = [];
+  for (const date = new Date(start); date.getTime() <= end.getTime(); date.setUTCDate(date.getUTCDate() + 1)) {
+    dates.push(date.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+function compareDates(left: string, right: string): number {
+  if (!left || !right) return 0;
+  const leftDate = parseDateInput(left);
+  const rightDate = parseDateInput(right);
+  if (!leftDate || !rightDate) return 0;
+  return leftDate.getTime() - rightDate.getTime();
+}
+
+function parseDateInput(value: string): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isWeekendDate(value: string): boolean {
+  const date = parseDateInput(value);
+  if (!date) return false;
+  const day = date.getUTCDay();
+  return day === 0 || day === 6;
+}
+
+function normalizeExternalUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "#";
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function createDefaultSchoolCalendarEvents(calendar: PlannerSchoolCalendar): PlannerSchoolCalendarEvent[] {
+  return [
+    {
+      id: "autumn-break",
+      title: "Høstferie",
+      startDate: calendar.autumnBreakStart,
+      endDate: calendar.autumnBreakEnd,
+    },
+    {
+      id: "christmas-break",
+      title: "Juleferie",
+      startDate: calendar.christmasBreakStart,
+      endDate: calendar.christmasBreakEnd,
+    },
+    {
+      id: "winter-break",
+      title: "Vinterferie",
+      startDate: calendar.winterBreakStart,
+      endDate: calendar.winterBreakEnd,
+    },
+    {
+      id: "easter-break",
+      title: "Påskeferie",
+      startDate: calendar.easterBreakStart,
+      endDate: calendar.easterBreakEnd,
+    },
+    {
+      id: "public-holiday",
+      title: "Offentlig fridag",
+      startDate: calendar.mayDay,
+      endDate: calendar.mayDay,
+    },
+    {
+      id: "national-day",
+      title: "Nasjonaldag",
+      startDate: calendar.constitutionDay,
+      endDate: calendar.constitutionDay,
+    },
+    {
+      id: "ascension-day",
+      title: "Kristi himmelfartsdag",
+      startDate: calendar.ascensionDay,
+      endDate: calendar.ascensionDay,
+    },
+    {
+      id: "whit-monday",
+      title: "Pinse",
+      startDate: calendar.whitMonday,
+      endDate: calendar.whitMonday,
+    },
+    {
+      id: "planning-days",
+      title: "Planleggingsdag / fridag",
+      startDate: "",
+      endDate: "",
+    },
+  ];
+}
+
+function getIsoWeekNumber(value: string): number | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  return Math.ceil(((utcDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 function InitiativeEditor({

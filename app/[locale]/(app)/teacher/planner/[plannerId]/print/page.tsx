@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Clipboard, Download, Printer } from "lucide-react";
+import { ArrowLeft, Clipboard, Download, Printer, Share2 } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useParams, useSearchParams } from "next/navigation";
 import { copyTextToClipboard, downloadPlannerMarkdown } from "@/lib/planner/clientExport";
@@ -22,6 +22,7 @@ export default function PlannerPrintPage() {
     searchParams.get("audience") === "student" ? "student" : "teacher"
   );
   const [selectedPeriodId, setSelectedPeriodId] = useState(searchParams.get("periodId") || "");
+  const [showCompactOverview, setShowCompactOverview] = useState(true);
   const [showWeekPlans, setShowWeekPlans] = useState(true);
   const [showReflectionLog, setShowReflectionLog] = useState(true);
   const [showYearEndSummary, setShowYearEndSummary] = useState(true);
@@ -73,8 +74,43 @@ export default function PlannerPrintPage() {
     await copyTextToClipboard(
       documentMode === "student"
         ? plannerToStudentMarkdown(planner, { periodId: selectedPeriodId || undefined })
-        : getMarkdownExport(planner, showWeekPlans, showReflectionLog, showYearEndSummary, selectedPeriodId)
+        : getMarkdownExport(
+            planner,
+            showCompactOverview,
+            showWeekPlans,
+            showReflectionLog,
+            showYearEndSummary,
+            selectedPeriodId
+          )
     );
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  async function shareMarkdown() {
+    if (!planner) return;
+    const text =
+      documentMode === "student"
+        ? plannerToStudentMarkdown(planner, { periodId: selectedPeriodId || undefined })
+        : getMarkdownExport(
+            planner,
+            showCompactOverview,
+            showWeekPlans,
+            showReflectionLog,
+            showYearEndSummary,
+            selectedPeriodId
+          );
+
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      try {
+        await navigator.share({ title: planner.document.title || "321Planner", text });
+        return;
+      } catch {
+        // Fall back to copying below.
+      }
+    }
+
+    await copyTextToClipboard(text);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   }
@@ -85,7 +121,14 @@ export default function PlannerPrintPage() {
       planner,
       documentMode === "student"
         ? plannerToStudentMarkdown(planner, { periodId: selectedPeriodId || undefined })
-        : getMarkdownExport(planner, showWeekPlans, showReflectionLog, showYearEndSummary, selectedPeriodId)
+        : getMarkdownExport(
+            planner,
+            showCompactOverview,
+            showWeekPlans,
+            showReflectionLog,
+            showYearEndSummary,
+            selectedPeriodId
+          )
     );
   }
 
@@ -165,6 +208,14 @@ export default function PlannerPrintPage() {
             </button>
             <button
               type="button"
+              onClick={() => void shareMarkdown()}
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
+            >
+              <Share2 className="h-4 w-4" aria-hidden="true" />
+              Del
+            </button>
+            <button
+              type="button"
               onClick={downloadMarkdown}
               className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
             >
@@ -205,6 +256,15 @@ export default function PlannerPrintPage() {
           <label className="inline-flex items-center gap-2">
             <input
               type="checkbox"
+              checked={showCompactOverview}
+              onChange={(event) => setShowCompactOverview(event.target.checked)}
+              className="h-4 w-4"
+            />
+            Kort planoversikt
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
               checked={showWeekPlans}
               onChange={(event) => setShowWeekPlans(event.target.checked)}
               className="h-4 w-4"
@@ -239,6 +299,7 @@ export default function PlannerPrintPage() {
           <PlannerDocumentView
             planner={planner}
             options={{
+              showCompactOverview,
               showWeekPlans,
               showReflectionLog,
               showYearEndSummary,
@@ -253,12 +314,14 @@ export default function PlannerPrintPage() {
 
 function getMarkdownExport(
   planner: Planner,
+  showCompactOverview: boolean,
   showWeekPlans: boolean,
   showReflectionLog: boolean,
   showYearEndSummary: boolean,
   periodId: string
 ) {
   return plannerToMarkdown(planner, {
+    showCompactOverview,
     showWeekPlans,
     showReflectionLog,
     showYearEndSummary,
