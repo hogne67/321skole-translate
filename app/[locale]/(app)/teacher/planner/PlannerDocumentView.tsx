@@ -239,6 +239,49 @@ export function PlannerDocumentView({
   );
 }
 
+export function CompactPlannerDocumentView({
+  planner,
+  options = {},
+}: {
+  planner: Planner;
+  options?: Pick<PlannerDocumentViewOptions, "periodId">;
+}) {
+  const { document, frame, curriculum } = planner;
+  const periods = getScopedPeriods(planner, options.periodId);
+
+  return (
+    <article className="planner-document grid gap-5 rounded-lg border border-slate-200 bg-white p-6 text-slate-950 shadow-sm">
+      <header className="border-b border-slate-200 pb-5">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo321ny.png" alt="321skole" className="h-12 w-12 rounded-lg object-contain" />
+          <div>
+            <div className="text-xs font-black uppercase tracking-wide text-slate-500">321Planner</div>
+            <h1 className="m-0 mt-1 text-3xl font-black text-slate-950">{document.title || "Uten tittel"}</h1>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-2 text-sm text-slate-700 md:grid-cols-4">
+          <Meta label="Fag" value={frame.subject} />
+          <Meta label="Nivå" value={frame.level} />
+          <Meta label="Skoleår" value={frame.schoolYear} />
+          <Meta label="Timer" value={`${frame.totalHours}`} />
+        </div>
+      </header>
+
+      <Section title="Planramme">
+        <p>{document.description}</p>
+        <div className="mt-3 grid gap-2 text-sm md:grid-cols-3">
+          <Meta label="Land" value={frame.country} />
+          <Meta label="Skoleslag" value={frame.schoolType} />
+          <Meta label="Læreplangrunnlag" value={curriculum.framework || curriculum.type} />
+        </div>
+      </Section>
+
+      <CompactPlannerOverview planner={planner} periods={periods} />
+    </article>
+  );
+}
+
 export function StudentPlannerDocumentView({
   planner,
   options = {},
@@ -349,6 +392,7 @@ function CompactPlannerOverview({
 }) {
   const calendarEvents = getCalendarEvents(planner);
   const localInitiatives = getLocalInitiatives(planner);
+  const teachingWeeks = getTeachingWeeksForPlanner(planner);
   if (calendarEvents.length === 0 && localInitiatives.length === 0 && periods.length === 0) return null;
 
   return (
@@ -421,24 +465,38 @@ function CompactPlannerOverview({
                 </tr>
               </thead>
               <tbody>
-                {periods.map((period) => (
-                  <tr key={period.id} className="border-b border-emerald-100 align-top">
-                    <td className="py-2 pr-3 font-bold text-slate-900">{period.title || "Periode"}</td>
-                    <td className="py-2 pr-3">{period.weeks || "-"}</td>
-                    <td className="py-2 pr-3">
-                      {period.learningGoals.length > 0 ? (
-                        <ul className="m-0 grid gap-1 pl-4">
-                          {period.learningGoals.map((goal) => (
-                            <li key={goal.id}>{goal.studentLanguage || goal.goal}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        period.goals || "-"
-                      )}
-                    </td>
-                    <td className="py-2 pr-3">{period.content || "-"}</td>
-                  </tr>
-                ))}
+                {periods.map((period) => {
+                  const periodInitiatives = getInitiativesForPeriod(period, localInitiatives, teachingWeeks);
+                  return (
+                    <tr key={period.id} className="border-b border-emerald-100 align-top">
+                      <td className="py-2 pr-3 font-bold text-slate-900">{period.title || "Periode"}</td>
+                      <td className="py-2 pr-3">{formatPeriodCalendarRange(period.weeks, teachingWeeks)}</td>
+                      <td className="py-2 pr-3">
+                        {period.learningGoals.length > 0 ? (
+                          <ul className="m-0 grid gap-1 pl-4">
+                            {period.learningGoals.map((goal) => (
+                              <li key={goal.id}>{goal.studentLanguage || goal.goal}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          period.goals || "-"
+                        )}
+                      </td>
+                      <td className="py-2 pr-3">
+                        <div className="whitespace-pre-wrap">{period.content || "-"}</div>
+                        {periodInitiatives.length > 0 ? (
+                          <div className="mt-2 grid gap-1">
+                            {periodInitiatives.map((item) => (
+                              <div key={`${period.id}-${item.kind}-${item.id}`} className="rounded border border-emerald-100 bg-white px-2 py-1 text-xs font-bold text-emerald-900">
+                                Lokal ramme: {item.kind} - {item.title || "Uten tittel"}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -450,7 +508,7 @@ function CompactPlannerOverview({
 
 function getCalendarEvents(planner: Planner) {
   const calendar = planner.frame.schoolCalendar;
-  const events = calendar.events.length > 0
+  const storedEvents = calendar.events.length > 0
     ? calendar.events
     : [
         { id: "autumn-break", title: "Høstferie", startDate: calendar.autumnBreakStart, endDate: calendar.autumnBreakEnd },
@@ -462,20 +520,230 @@ function getCalendarEvents(planner: Planner) {
         { id: "ascension-day", title: "Kristi himmelfartsdag", startDate: calendar.ascensionDay, endDate: calendar.ascensionDay },
         { id: "whit-monday", title: "Pinse", startDate: calendar.whitMonday, endDate: calendar.whitMonday },
       ];
+  const events = [
+    { id: "school-start", title: "Skolestart", startDate: calendar.firstSchoolDay, endDate: calendar.firstSchoolDay },
+    ...storedEvents,
+    { id: "summer-break-start", title: "Sommerferie starter", startDate: calendar.lastSchoolDay, endDate: calendar.lastSchoolDay },
+  ];
+
   return events
-    .filter((event) => event.title.trim() || event.startDate || event.endDate)
+    .filter((event) => event.startDate || event.endDate)
     .map((event) => ({
       ...event,
       title: event.title.trim() || "Skolerute",
       endDate: event.endDate || event.startDate,
-    }));
+    }))
+    .sort(compareCalendarItems);
 }
 
 function getLocalInitiatives(planner: Planner) {
   return [
     ...planner.localFramework.interdisciplinaryProjects.map((item) => ({ ...item, kind: "Prosjekt" })),
     ...planner.localFramework.themeWeeks.map((item) => ({ ...item, kind: "Temauke" })),
-  ].filter((item) => item.title.trim() || item.description.trim());
+  ].filter((item) => item.title.trim() || item.description.trim()).sort(compareCalendarItems);
+}
+
+type TeachingWeekForPrint = {
+  teachingWeek: number;
+  startDate: string;
+  endDate: string;
+  calendarWeek: number;
+};
+
+function getTeachingWeeksForPlanner(planner: Planner): TeachingWeekForPrint[] {
+  const calendar = planner.frame.schoolCalendar;
+  const firstDay = parseDate(calendar.firstSchoolDay);
+  const lastDay = parseDate(calendar.lastSchoolDay);
+  if (!firstDay || !lastDay || firstDay > lastDay) return [];
+
+  const freeDates = new Set<string>();
+  const events = calendar.events.length > 0 ? calendar.events : getFallbackCalendarEvents(calendar);
+  for (const event of events) {
+    const startDate = event.startDate || event.endDate;
+    const endDate = event.endDate || event.startDate;
+    for (const date of listDatesInclusive(startDate, endDate)) {
+      if (isWeekday(date)) freeDates.add(date);
+    }
+  }
+
+  const weeks: TeachingWeekForPrint[] = [];
+  let monday = startOfIsoWeek(firstDay);
+  const finalMonday = startOfIsoWeek(lastDay);
+
+  while (monday <= finalMonday && weeks.length < 60) {
+    const schoolDates: string[] = [];
+    for (let offset = 0; offset < 5; offset += 1) {
+      const date = addDays(monday, offset);
+      const key = toDateKey(date);
+      if (date >= firstDay && date <= lastDay && !freeDates.has(key)) schoolDates.push(key);
+    }
+
+    if (schoolDates.length > 0) {
+      weeks.push({
+        teachingWeek: weeks.length + 1,
+        startDate: schoolDates[0],
+        endDate: schoolDates[schoolDates.length - 1],
+        calendarWeek: getIsoWeekNumber(schoolDates[0]) ?? weeks.length + 1,
+      });
+    }
+
+    monday = addDays(monday, 7);
+  }
+
+  return weeks;
+}
+
+function formatPeriodCalendarRange(periodWeeks: string, teachingWeeks: TeachingWeekForPrint[]): string {
+  if (teachingWeeks.length === 0) return periodWeeks || "-";
+  const range = parseTeachingWeekRange(periodWeeks);
+  if (!range) return periodWeeks || "-";
+  const selected = teachingWeeks.filter((week) => week.teachingWeek >= range.start && week.teachingWeek <= range.end);
+  if (selected.length === 0) return periodWeeks || "-";
+  const first = selected[0];
+  const last = selected[selected.length - 1];
+  const weekLabel =
+    first.calendarWeek === last.calendarWeek ? `Uke ${first.calendarWeek}` : `Uke ${first.calendarWeek}-${last.calendarWeek}`;
+  return `${weekLabel} (${formatDateRange(first.startDate, last.endDate)})`;
+}
+
+function getInitiativesForPeriod(
+  period: Planner["document"]["periods"][number],
+  initiatives: ReturnType<typeof getLocalInitiatives>,
+  teachingWeeks: TeachingWeekForPrint[]
+) {
+  const periodRange = getPeriodDateRange(period.weeks, teachingWeeks);
+  return initiatives.filter((initiative) => {
+    const initiativeStart = initiative.startDate || initiative.endDate;
+    const initiativeEnd = initiative.endDate || initiative.startDate;
+    if (periodRange && initiativeStart && initiativeEnd) {
+      return dateRangesOverlap(periodRange.startDate, periodRange.endDate, initiativeStart, initiativeEnd);
+    }
+
+    const periodWeeks = weekNumbersFromText(period.weeks);
+    const initiativeWeeks = [
+      ...new Set([
+        ...weekNumbersFromText(initiative.timing),
+        ...weekNumbersFromDates(initiativeStart, initiativeEnd),
+      ]),
+    ];
+    return initiativeWeeks.length > 0 && periodWeeks.some((week) => initiativeWeeks.includes(week));
+  });
+}
+
+function getPeriodDateRange(periodWeeks: string, teachingWeeks: TeachingWeekForPrint[]) {
+  const range = parseTeachingWeekRange(periodWeeks);
+  if (!range) return null;
+  const selected = teachingWeeks.filter((week) => week.teachingWeek >= range.start && week.teachingWeek <= range.end);
+  if (selected.length === 0) return null;
+  return {
+    startDate: selected[0].startDate,
+    endDate: selected[selected.length - 1].endDate,
+  };
+}
+
+function dateRangesOverlap(leftStart: string, leftEnd: string, rightStart: string, rightEnd: string): boolean {
+  const leftStartDate = parseDate(leftStart);
+  const leftEndDate = parseDate(leftEnd);
+  const rightStartDate = parseDate(rightStart);
+  const rightEndDate = parseDate(rightEnd);
+  if (!leftStartDate || !leftEndDate || !rightStartDate || !rightEndDate) return false;
+  return leftStartDate <= rightEndDate && rightStartDate <= leftEndDate;
+}
+
+function weekNumbersFromText(value: string): number[] {
+  const numbers = new Set<number>();
+  for (const match of value.matchAll(/uke\s*(\d+)(?:\s*[-–]\s*(\d+))?/gi)) {
+    const start = Number(match[1]);
+    const end = match[2] ? Number(match[2]) : start;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    for (let week = start; week <= end && week <= start + 60; week += 1) numbers.add(week);
+  }
+  return [...numbers];
+}
+
+function weekNumbersFromDates(startDate: string, endDate: string): number[] {
+  if (!startDate && !endDate) return [];
+  const numbers = new Set<number>();
+  for (const date of listDatesInclusive(startDate || endDate, endDate || startDate)) {
+    const week = getIsoWeekNumber(date);
+    if (week) numbers.add(week);
+  }
+  return [...numbers];
+}
+
+function parseTeachingWeekRange(value: string): { start: number; end: number } | null {
+  const range = value.match(/Undervisningsuke\s*(\d+)\s*[-–]\s*(\d+)/i);
+  if (range) return { start: Number(range[1]), end: Number(range[2]) };
+  const single = value.match(/Undervisningsuke\s*(\d+)/i);
+  if (single) return { start: Number(single[1]), end: Number(single[1]) };
+  return null;
+}
+
+function getFallbackCalendarEvents(calendar: Planner["frame"]["schoolCalendar"]) {
+  return [
+    { id: "autumn-break", title: "Høstferie", startDate: calendar.autumnBreakStart, endDate: calendar.autumnBreakEnd },
+    { id: "christmas-break", title: "Juleferie", startDate: calendar.christmasBreakStart, endDate: calendar.christmasBreakEnd },
+    { id: "winter-break", title: "Vinterferie", startDate: calendar.winterBreakStart, endDate: calendar.winterBreakEnd },
+    { id: "easter-break", title: "Påskeferie", startDate: calendar.easterBreakStart, endDate: calendar.easterBreakEnd },
+    { id: "public-holiday", title: "Offentlig fridag", startDate: calendar.mayDay, endDate: calendar.mayDay },
+    { id: "national-day", title: "Nasjonaldag", startDate: calendar.constitutionDay, endDate: calendar.constitutionDay },
+    { id: "ascension-day", title: "Kristi himmelfartsdag", startDate: calendar.ascensionDay, endDate: calendar.ascensionDay },
+    { id: "whit-monday", title: "Pinse", startDate: calendar.whitMonday, endDate: calendar.whitMonday },
+  ];
+}
+
+function compareCalendarItems(left: { startDate: string; endDate?: string }, right: { startDate: string; endDate?: string }) {
+  const leftTime = calendarSortTime(left.startDate || left.endDate || "");
+  const rightTime = calendarSortTime(right.startDate || right.endDate || "");
+  return leftTime - rightTime;
+}
+
+function calendarSortTime(value: string): number {
+  if (!value) return Number.MAX_SAFE_INTEGER;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime();
+}
+
+function parseDate(value: string): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfIsoWeek(date: Date): Date {
+  const day = date.getDay() || 7;
+  return addDays(date, 1 - day);
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function listDatesInclusive(startDate: string, endDate: string): string[] {
+  const start = parseDate(startDate);
+  const end = parseDate(endDate);
+  if (!start || !end || start > end) return [];
+  const dates: string[] = [];
+  for (let date = new Date(start); date <= end; date = addDays(date, 1)) {
+    dates.push(toDateKey(date));
+  }
+  return dates;
+}
+
+function isWeekday(value: string): boolean {
+  const date = parseDate(value);
+  if (!date) return false;
+  const day = date.getDay();
+  return day >= 1 && day <= 5;
 }
 
 function formatDate(value: string): string {
@@ -487,12 +755,14 @@ function formatDate(value: string): string {
 
 function formatDateRange(startDate: string, endDate: string): string {
   if (!startDate && !endDate) return "";
+  if (!startDate) return `Til og med ${formatDate(endDate)}`;
+  if (!endDate) return `Fra ${formatDate(startDate)}`;
   if (!endDate || startDate === endDate) return formatDate(startDate);
   return `${formatDate(startDate)} - ${formatDate(endDate)}`;
 }
 
 function formatWeekRange(startDate: string, endDate: string): string {
-  const startWeek = getIsoWeekNumber(startDate);
+  const startWeek = getIsoWeekNumber(startDate || endDate);
   const endWeek = getIsoWeekNumber(endDate || startDate);
   if (!startWeek && !endWeek) return "-";
   if (!endWeek || startWeek === endWeek) return `Uke ${startWeek}`;

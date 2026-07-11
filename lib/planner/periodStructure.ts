@@ -17,7 +17,9 @@ export function createBlankPeriodStructure(frame: PlannerFrame, requestedCount: 
   const availableWeeks = usedCalendarDates ? calendarWeeks.length : Math.max(1, frame.teachingWeeks);
   const count = Math.min(availableWeeks, Math.max(1, Math.round(requestedCount)));
   const totalWeeks = Math.max(count, availableWeeks);
-  const groups = splitEvenly(totalWeeks, count);
+  const groups = usedCalendarDates
+    ? splitBySemesters(calendarWeeks, count)
+    : splitEvenly(totalWeeks, count);
   let weekOffset = 0;
 
   const periods = groups.map((groupSize, index): PlannerPeriod => {
@@ -53,13 +55,7 @@ function getTeachingWeeksFromCalendar(frame: PlannerFrame): SchoolWeek[] {
   const lastDay = parseDate(frame.schoolCalendar.lastSchoolDay);
   if (!firstDay || !lastDay || firstDay > lastDay) return [];
 
-  const breaks = [
-    [frame.schoolCalendar.autumnBreakStart, frame.schoolCalendar.autumnBreakEnd],
-    [frame.schoolCalendar.christmasBreakStart, frame.schoolCalendar.christmasBreakEnd],
-    [frame.schoolCalendar.winterBreakStart, frame.schoolCalendar.winterBreakEnd],
-    [frame.schoolCalendar.easterBreakStart, frame.schoolCalendar.easterBreakEnd],
-  ]
-    .map(([start, end]) => ({ start: parseDate(start), end: parseDate(end) }))
+  const breaks = getCalendarBreaks(frame)
     .filter((period): period is { start: Date; end: Date } => Boolean(period.start && period.end));
 
   const weeks: SchoolWeek[] = [];
@@ -79,10 +75,44 @@ function getTeachingWeeksFromCalendar(frame: PlannerFrame): SchoolWeek[] {
   return weeks;
 }
 
+function getCalendarBreaks(frame: PlannerFrame): Array<{ start: Date | null; end: Date | null }> {
+  const explicitEvents = frame.schoolCalendar.events.filter((event) => event.startDate || event.endDate);
+  if (explicitEvents.length > 0) {
+    return explicitEvents.map((event) => {
+      const startValue = event.startDate || event.endDate;
+      const endValue = event.endDate || event.startDate;
+      return { start: parseDate(startValue), end: parseDate(endValue) };
+    });
+  }
+
+  return [
+    [frame.schoolCalendar.autumnBreakStart, frame.schoolCalendar.autumnBreakEnd],
+    [frame.schoolCalendar.christmasBreakStart, frame.schoolCalendar.christmasBreakEnd],
+    [frame.schoolCalendar.winterBreakStart, frame.schoolCalendar.winterBreakEnd],
+    [frame.schoolCalendar.easterBreakStart, frame.schoolCalendar.easterBreakEnd],
+    [frame.schoolCalendar.mayDay, frame.schoolCalendar.mayDay],
+    [frame.schoolCalendar.constitutionDay, frame.schoolCalendar.constitutionDay],
+    [frame.schoolCalendar.ascensionDay, frame.schoolCalendar.ascensionDay],
+    [frame.schoolCalendar.whitMonday, frame.schoolCalendar.whitMonday],
+  ].map(([start, end]) => ({ start: parseDate(start), end: parseDate(end) }));
+}
+
 function splitEvenly(total: number, count: number): number[] {
   const base = Math.floor(total / count);
   const remainder = total % count;
   return Array.from({ length: count }, (_, index) => base + (index >= count - remainder ? 1 : 0));
+}
+
+function splitBySemesters(weeks: SchoolWeek[], count: number): number[] {
+  if (weeks.length === 0) return splitEvenly(count, count);
+  const firstYear = weeks[0].year;
+  const autumnWeeks = weeks.filter((week) => week.year === firstYear).length;
+  const springWeeks = weeks.length - autumnWeeks;
+  if (autumnWeeks === 0 || springWeeks === 0) return splitEvenly(weeks.length, count);
+
+  const autumnCount = Math.max(1, Math.min(count - 1, Math.floor((autumnWeeks / weeks.length) * count)));
+  const springCount = Math.max(1, count - autumnCount);
+  return [...splitEvenly(autumnWeeks, autumnCount), ...splitEvenly(springWeeks, springCount)];
 }
 
 function formatCalendarWeeks(weeks: SchoolWeek[]): string {

@@ -1,5 +1,36 @@
 import { normalizePlannerPeriodLearningGoal, type PlannerPeriodLearningGoal } from "@/lib/planner/types";
 
+export function validateSinglePeriodLearningGoal(
+  value: unknown,
+  validOfficialGoalIds: string[]
+): PlannerPeriodLearningGoal | null {
+  const record = isRecord(value) ? value : {};
+  const rawGoal = isRecord(record.periodLearningGoal)
+    ? record.periodLearningGoal
+    : Array.isArray(record.periodLearningGoals)
+      ? record.periodLearningGoals[0]
+      : null;
+  if (!rawGoal) return null;
+
+  const validSourceIds = new Set(validOfficialGoalIds);
+  const normalized = normalizePlannerPeriodLearningGoal(rawGoal, 0);
+  const sourceOfficialGoalIds = [...new Set(normalized.sourceOfficialGoalIds)];
+  if (
+    !normalized.goal.trim() ||
+    !normalized.studentLanguage.trim() ||
+    sourceOfficialGoalIds.length === 0 ||
+    sourceOfficialGoalIds.some((goalId) => !validSourceIds.has(goalId))
+  ) {
+    return null;
+  }
+
+  return {
+    ...normalized,
+    id: "period-learning-goal-1",
+    sourceOfficialGoalIds,
+  };
+}
+
 export function validatePeriodLearningGoals(
   value: unknown,
   selectedOfficialGoalIds: string[]

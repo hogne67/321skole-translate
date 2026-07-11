@@ -36,31 +36,37 @@ export function validateOfficialGoalDistribution(
   lockedInitiatives: PlannerLocalInitiative[] = []
 ): OfficialGoalDistributionResult | null {
   const record = isRecord(value) ? value : {};
-  if (!Array.isArray(record.goalAssignments)) return null;
+  if (officialGoalCount <= 0 || periods.length === 0) return null;
 
   const validPeriodIds = new Set(periods.map((period) => period.id));
   const validGoalIds = new Set(Array.from({ length: officialGoalCount }, (_, index) => `udir-goal-${index + 1}`));
-  const assignments = record.goalAssignments.map((item) => {
+  const rawAssignments = Array.isArray(record.goalAssignments) ? record.goalAssignments : [];
+  const assignmentMap = new Map<string, Set<string>>();
+
+  rawAssignments.forEach((item) => {
     const assignment = isRecord(item) ? item : {};
-    return {
-      officialGoalId: typeof assignment.officialGoalId === "string" ? assignment.officialGoalId : "",
-      periodIds: Array.isArray(assignment.periodIds)
-        ? assignment.periodIds.filter((id): id is string => typeof id === "string")
-        : [],
-    };
+    const officialGoalId = typeof assignment.officialGoalId === "string" ? assignment.officialGoalId : "";
+    if (!validGoalIds.has(officialGoalId)) return;
+
+    const periodIds = Array.isArray(assignment.periodIds)
+      ? assignment.periodIds.filter((id): id is string => typeof id === "string" && validPeriodIds.has(id))
+      : [];
+    if (periodIds.length === 0) return;
+
+    assignmentMap.set(officialGoalId, new Set([...(assignmentMap.get(officialGoalId) ?? []), ...periodIds]));
   });
 
-  const hasUnknownValue = assignments.some(
-    (assignment) =>
-      !validGoalIds.has(assignment.officialGoalId) ||
-      assignment.periodIds.length === 0 ||
-      assignment.periodIds.some((periodId) => !validPeriodIds.has(periodId))
-  );
-  if (hasUnknownValue) return null;
+  for (let index = 0; index < officialGoalCount; index += 1) {
+    const goalId = `udir-goal-${index + 1}`;
+    if (assignmentMap.has(goalId)) continue;
+    const targetPeriod = periods[Math.floor((index * periods.length) / officialGoalCount)] ?? periods[0];
+    assignmentMap.set(goalId, new Set([targetPeriod.id]));
+  }
 
-  const returnedGoalIds = assignments.map((assignment) => assignment.officialGoalId);
-  if (new Set(returnedGoalIds).size !== officialGoalCount) return null;
-  if ([...validGoalIds].some((goalId) => !returnedGoalIds.includes(goalId))) return null;
+  const assignments = [...assignmentMap.entries()].map(([officialGoalId, periodIds]) => ({
+    officialGoalId,
+    periodIds: [...periodIds],
+  }));
 
   let officialGoalPeriodLinks = periods.map((period) => ({
     periodId: period.id,
@@ -130,10 +136,10 @@ export function validateOfficialGoalDistribution(
     const suggestion = isRecord(item) ? item : {};
     return {
       periodId: typeof suggestion.periodId === "string" ? suggestion.periodId : "",
-      goals: safeText(suggestion.goals, 700),
-      content: safeText(suggestion.content, 1000),
-      methods: safeText(suggestion.methods, 1000),
-      assessment: safeText(suggestion.assessment, 1000),
+      goals: sanitizePlanningText(suggestion.goals, "goals", 700),
+      content: sanitizePlanningText(suggestion.content, "content", 1000),
+      methods: sanitizePlanningText(suggestion.methods, "methods", 1000),
+      assessment: sanitizePlanningText(suggestion.assessment, "assessment", 1000),
     };
   });
   const seenPlanningPeriodIds = new Set<string>();
@@ -200,13 +206,19 @@ function targetLearningGoalCount(periods: PlannerPeriod[], period: PlannerPeriod
 }
 
 function estimateWeekCount(value: string): number {
-  const range = value.match(/(?:uke|Undervisningsuke)\s*(\d+)\s*-\s*(\d+)/i);
-  if (range) {
-    const start = Number(range[1]);
-    const end = Number(range[2]);
-    if (Number.isFinite(start) && Number.isFinite(end) && end >= start) return end - start + 1;
+  const numbers = new Set<number>();
+  for (const match of value.matchAll(/(?:uke|undervisningsuke)\s*(\d+)(?:\s*[-–]\s*(\d+))?/gi)) {
+    const start = Number(match[1]);
+    const end = match[2] ? Number(match[2]) : start;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    if (end >= start) {
+      for (let week = start; week <= end && week <= start + 8; week += 1) numbers.add(week);
+    } else {
+      for (let week = start; week <= 53; week += 1) numbers.add(week);
+      for (let week = 1; week <= end; week += 1) numbers.add(week);
+    }
   }
-  return /(?:uke|Undervisningsuke)\s*\d+/i.test(value) ? 1 : 3;
+  return numbers.size > 0 ? numbers.size : 3;
 }
 
 function createFallbackLearningGoal(
@@ -240,10 +252,10 @@ function createFallbackLearningGoal(
 function createFallbackPlanningSuggestion(period: PlannerPeriod): PeriodPlanningSuggestion {
   return {
     periodId: period.id,
-    goals: "Arbeid med de valgte kompetansemålene gjennom konkrete lokale læringsmål for perioden.",
-    content: "Velg faglig innhold som gir elevene mulighet til å arbeide grundig med periodens mål.",
-    methods: "Bruk modellering, felles arbeid, samarbeid og individuell øving med tydelige stoppunkter underveis.",
-    assessment: "Følg elevenes utvikling gjennom observasjon, samtale, korte elevprodukter og egenvurdering.",
+    goals: defaultPlanningText("goals"),
+    content: defaultPlanningText("content"),
+    methods: defaultPlanningText("methods"),
+    assessment: defaultPlanningText("assessment"),
   };
 }
 
@@ -344,4 +356,37 @@ function weekNumbers(value: string): number[] {
 
 function safeText(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function sanitizePlanningText(value: unknown, field: keyof Omit<PeriodPlanningSuggestion, "periodId">, maxLength: number): string {
+  const text = safeText(value, maxLength);
+  if (!text || isPlaceholderPlanningText(text)) return defaultPlanningText(field);
+  return text;
+}
+
+function isPlaceholderPlanningText(value: string): boolean {
+  const text = value.toLowerCase();
+  return [
+    "velg faglig innhold",
+    "velg innhold",
+    "fyll inn",
+    "sett inn",
+    "choose content",
+    "select content",
+    "fill in",
+    "insert content",
+  ].some((phrase) => text.includes(phrase));
+}
+
+function defaultPlanningText(field: keyof Omit<PeriodPlanningSuggestion, "periodId">): string {
+  if (field === "goals") {
+    return "Arbeid med periodens valgte kompetansemål gjennom konkrete lokale læringsmål.";
+  }
+  if (field === "content") {
+    return "Faglig innhold hentes fra temaer, tekster, oppgaver og situasjoner som passer til periodens kompetansemål.";
+  }
+  if (field === "methods") {
+    return "Bruk felles modellering, samtale, samarbeid og individuell øving med tydelige stoppunkter underveis.";
+  }
+  return "Følg elevenes utvikling gjennom observasjon, samtale, korte elevprodukter og egenvurdering.";
 }

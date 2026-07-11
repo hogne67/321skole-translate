@@ -7,7 +7,7 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan } from "@/lib/featureAccess";
 import { validateOfficialGoalDistribution } from "@/lib/planner/officialGoalDistribution";
-import { validatePeriodLearningGoals } from "@/lib/planner/periodLearningGoals";
+import { validatePeriodLearningGoals, validateSinglePeriodLearningGoal } from "@/lib/planner/periodLearningGoals";
 import {
   normalizeCurriculumSource,
   normalizePlannerActivity,
@@ -30,6 +30,8 @@ export const runtime = "nodejs";
 type GenerateSectionBody = {
   kind?: unknown;
   periodIndex?: unknown;
+  goalIndex?: unknown;
+  activityIndex?: unknown;
   frame?: unknown;
   curriculum?: unknown;
   document?: unknown;
@@ -106,6 +108,11 @@ function parseActivities(value: unknown): PlannerActivity[] {
   return activities.map((activity, index) => normalizePlannerActivity(activity, index));
 }
 
+function parseTeachingPlan(value: unknown): string {
+  const record = isRecord(value) ? value : {};
+  return typeof record.teachingPlan === "string" ? record.teachingPlan.trim().slice(0, 6000) : "";
+}
+
 function parseWeekPlans(value: unknown): PlannerWeekPlan[] {
   const record = isRecord(value) ? value : {};
   const weekPlans = Array.isArray(record.weekPlans) ? record.weekPlans : [];
@@ -128,6 +135,22 @@ function formatLocalInitiativeTimingForPrompt(item: PlannerLocalInitiative): str
   if (item.startDate && item.endDate) return `${item.startDate} to ${item.endDate}`;
   if (item.startDate) return item.startDate;
   return item.timing || "No timing";
+}
+
+function activityMatchesPeriod(activity: PlannerActivity, period: PlannerPeriod): boolean {
+  const activityPeriod = normalizeReference(activity.period);
+  if (!activityPeriod) return false;
+  const periodTitle = normalizeReference(period.title);
+  const periodId = normalizeReference(period.id);
+  if (activityPeriod === periodTitle || activityPeriod === periodId) return true;
+  if (periodTitle && (activityPeriod.includes(periodTitle) || periodTitle.includes(activityPeriod))) return true;
+  const activityNumber = activityPeriod.match(/\d+/)?.[0] ?? null;
+  const periodNumber = periodTitle.match(/\d+/)?.[0] ?? periodId.match(/\d+/)?.[0] ?? null;
+  return Boolean(activityNumber && periodNumber && activityNumber === periodNumber);
+}
+
+function normalizeReference(value: string): string {
+  return value.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
 }
 
 function parseGoalLinks(value: unknown) {
@@ -201,6 +224,8 @@ export async function POST(req: Request) {
     const body = (await req.json().catch(() => ({}))) as GenerateSectionBody;
     const kind = typeof body.kind === "string" ? body.kind : "";
     const periodIndex = typeof body.periodIndex === "number" ? body.periodIndex : Number(body.periodIndex);
+    const goalIndex = typeof body.goalIndex === "number" ? body.goalIndex : Number(body.goalIndex);
+    const activityIndex = typeof body.activityIndex === "number" ? body.activityIndex : Number(body.activityIndex);
     const frame = normalizePlannerFrame(body.frame);
     const curriculum = normalizeCurriculumSource(body.curriculum);
     const document = normalizePlannerDocument(body.document);
@@ -212,10 +237,12 @@ export async function POST(req: Request) {
       kind !== "annual" &&
       kind !== "periods" &&
       kind !== "activities" &&
+      kind !== "activityTeachingPlan" &&
       kind !== "weeks" &&
       kind !== "studentGoals" &&
       kind !== "goalLinks" &&
       kind !== "officialGoalDistribution" &&
+      kind !== "periodLearningGoal" &&
       kind !== "periodLearningGoals" &&
       kind !== "reflectionSummary"
     ) {
@@ -226,8 +253,23 @@ export async function POST(req: Request) {
       Number.isFinite(periodIndex) && periodIndex >= 0
         ? document.periods[Math.floor(periodIndex)]
         : null;
+    const selectedGoal =
+      selectedPeriod && Number.isFinite(goalIndex) && goalIndex >= 0
+        ? selectedPeriod.learningGoals[Math.floor(goalIndex)]
+        : null;
+    const selectedActivity =
+      Number.isFinite(activityIndex) && activityIndex >= 0
+        ? document.activities[Math.floor(activityIndex)]
+        : null;
+    const selectedActivityPeriod = selectedActivity
+      ? document.periods.find((period) => activityMatchesPeriod(selectedActivity, period)) ?? null
+      : null;
+    const selectedGoalOfficialGoalIds =
+      selectedGoal?.sourceOfficialGoalIds.filter((goalId) => selectedPeriod?.officialGoalIds.includes(goalId)) ?? [];
+    const singleGoalOfficialGoalIds =
+      selectedGoalOfficialGoalIds.length > 0 ? selectedGoalOfficialGoalIds : selectedPeriod?.officialGoalIds ?? [];
 
-    if ((kind === "weeks" || kind === "periodLearningGoals") && !selectedPeriod) {
+    if ((kind === "weeks" || kind === "periodLearningGoal" || kind === "periodLearningGoals") && !selectedPeriod) {
       return json({ error: "Missing selected period" }, 400);
     }
 
@@ -237,6 +279,14 @@ export async function POST(req: Request) {
 
     if (kind === "periodLearningGoals" && (!officialBasis || !selectedPeriod?.officialGoalIds.length)) {
       return json({ error: "The selected period needs verified official goals" }, 400);
+    }
+
+    if (kind === "periodLearningGoal" && (!officialBasis || singleGoalOfficialGoalIds.length === 0)) {
+      return json({ error: "The learning goal needs at least one verified official goal" }, 400);
+    }
+
+    if (kind === "activityTeachingPlan" && !selectedActivity) {
+      return json({ error: "Missing selected activity" }, 400);
     }
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -318,12 +368,20 @@ Existing plan:
 - Work methods: ${document.workMethods}
 - Assessment forms: ${document.assessmentForms}
 - Periods: ${document.periods
-                  .map((period) => `${period.id}: ${period.title || "Untitled"} (${period.weeks}): ${period.goals || period.content}`)
+                  .map(
+                    (period) =>
+                      `${period.id}: ${period.title || "Untitled"} (${period.weeks})
+  Local learning goals: ${
+    period.learningGoals.map((goal) => goal.studentLanguage || goal.goal).filter(Boolean).join("; ") || period.goals || "None registered"
+  }
+  Content: ${period.content || "None registered"}`
+                  )
                   .join("\n")}
 
 Create 6 to 10 practical activity suggestions.
 These are teacher-led classroom activities such as group work, presentation, exploration, discussion, practical work, role play, station work, or short projects.
 Do not create reading texts, worksheets, digital platform tasks, textbook exercises, quizzes, or assignments meant for Spaces.
+Each activity should connect naturally to one period and its local learning goals.
 For each activity, create a print-ready teaching plan that a teacher can use directly as a standalone classroom activity.
 The teaching plan should be concise but complete, with purpose, estimated time, organization, materials if needed, step-by-step flow, teacher support, student output, and simple assessment/follow-up.
 Write in the plan language.
@@ -342,6 +400,52 @@ Return exact JSON:
       "teachingPlan": string
     }
   ]
+}
+              `.trim()
+                : kind === "activityTeachingPlan"
+                  ? `
+Create one print-ready teaching plan for the selected classroom activity.
+
+Strict rules:
+- Write in the plan language.
+- Make it usable as a standalone teacher document.
+- Keep it practical and concise.
+- Do not create reading texts, worksheets, quizzes, homework, digital platform tasks, or assignments meant for Spaces.
+- Do not invent official curriculum text.
+- Use the period and local learning goals as context when they are supplied.
+- Use clear section headings inside the text.
+
+Frame:
+- Country: ${frame.country}
+- School type: ${frame.schoolType}
+- Subject: ${frame.subject}
+- Level: ${frame.level}
+- Language: ${frame.language}
+
+Activity:
+- Title: ${selectedActivity?.title || "Untitled activity"}
+- Period: ${selectedActivity?.period || "No period"}
+- Description: ${selectedActivity?.description || "No description"}
+- Method: ${selectedActivity?.method || "No method"}
+- Assessment: ${selectedActivity?.assessment || "No assessment"}
+- Current teaching plan: ${selectedActivity?.teachingPlan || "No teaching plan yet"}
+
+Connected period:
+- Title: ${selectedActivityPeriod?.title || "No connected period"}
+- Weeks: ${selectedActivityPeriod?.weeks || "No weeks"}
+- Content: ${selectedActivityPeriod?.content || "No content"}
+- Local learning goals: ${
+  selectedActivityPeriod?.learningGoals.map((goal) => goal.studentLanguage || goal.goal).filter(Boolean).join("; ") ||
+  "No local learning goals"
+}
+
+Local framework:
+- Local goals and priorities: ${localFramework.localGoals || "None registered"}
+- Local guidelines: ${localFramework.localGuidelines || "None registered"}
+
+Return exact JSON:
+{
+  "teachingPlan": string
 }
               `.trim()
                 : kind === "weeks"
@@ -493,6 +597,47 @@ Return exact JSON:
   ]
 }
               `.trim()
+                  : kind === "periodLearningGoal"
+                    ? `
+Create one improved concrete local learning goal for one period, based only on the supplied official curriculum goals.
+
+Strict rules:
+- Create exactly one learning goal.
+- The learning goal must be observable and suitable for planning, but must not contain activities or assessment tasks.
+- Add a plain student/participant version of the same goal.
+- The learning goal must reference at least one supplied official goal ID.
+- Use only the official goal IDs supplied below.
+- Do not quote, rewrite, summarize, or claim that the local learning goal is official curriculum text.
+- Return no activities, teaching methods, assessment criteria, or lesson content.
+
+Subject: ${frame.subject}
+Level: ${frame.level}
+Period: ${selectedPeriod?.title} (${selectedPeriod?.weeks})
+Current teacher formulation: ${selectedGoal?.goal || "No existing formulation"}
+Current student/participant version: ${selectedGoal?.studentLanguage || "No existing formulation"}
+Period content: ${selectedPeriod?.content || "No content registered"}
+Local goals and priorities: ${localFramework.localGoals || "None registered"}
+Local guidelines: ${localFramework.localGuidelines || "None registered"}
+
+Official goals to use:
+${singleGoalOfficialGoalIds
+  .map((goalId) => {
+    const match = goalId.match(/^udir-goal-(\d+)$/);
+    const goal = match ? officialBasis?.competenceGoals[Number(match[1]) - 1] : "";
+    return `- ${goalId}: ${goal}`;
+  })
+  .join("\n")}
+
+Return exact JSON:
+{
+  "periodLearningGoal": {
+    "id": string,
+    "goal": string,
+    "studentLanguage": string,
+    "sourceOfficialGoalIds": string[]
+  }
+}
+                    `.trim()
                   : kind === "periodLearningGoals"
                     ? `
 Create concrete local learning goals for one period, based only on the selected official curriculum goals.
@@ -557,13 +702,16 @@ Strict rules:
 - For four- or five-week periods, create at least 3 local learning goals and no more than 4.
 - Each local learning goal must be observable and suitable for planning, but must not include activities, teaching methods, assessment tasks, or lesson content.
 - Each local learning goal must have a plain student/participant version.
+- Keep each teacher-facing learning goal to one short sentence.
+- Keep each student/participant version to one short "Jeg kan ..." sentence.
 - Each local learning goal must reference at least one official goal ID assigned to that same period.
 - Also create period planning suggestions for every period.
 - Period planning suggestions must be concise, editable teacher notes, not a finished lesson plan.
 - "goals" should summarize the local focus for the period without copying official curriculum text.
-- "content" should suggest broad content/themes for the period.
-- "methods" should suggest suitable working methods.
-- "assessment" should suggest formative or summative assessment approaches.
+- "content" should suggest concrete but broad content/themes for the period in 1 to 2 sentences.
+- "methods" should suggest suitable working methods in 1 to 2 sentences.
+- "assessment" should suggest formative or summative assessment approaches in 1 to 2 sentences.
+- Do not use placeholder text such as "choose content", "select content", "velg faglig innhold", or "fill in".
 - Do not create week plans, detailed activities, worksheets, homework, or long lesson sequences.
 - Locked local projects and theme weeks must be respected and placed in the period that best matches their timing.
 - Mention locked local projects/theme weeks in the relevant period's content or methods.
@@ -775,6 +923,14 @@ Return exact JSON:
       return json({ ...distribution, quota: quotaAfter }, 200);
     }
 
+    if (kind === "periodLearningGoal") {
+      const goal = validateSinglePeriodLearningGoal(parsed, singleGoalOfficialGoalIds);
+      if (!goal) {
+        return json({ error: "AI returned an invalid period learning goal" }, 500);
+      }
+      return json({ periodLearningGoal: goal, quota: quotaAfter }, 200);
+    }
+
     if (kind === "periodLearningGoals") {
       const result = validatePeriodLearningGoals(parsed, selectedPeriod?.officialGoalIds ?? []);
       if (!result) {
@@ -796,6 +952,12 @@ Return exact JSON:
       const nextYearNotes = typeof record.nextYearNotes === "string" ? record.nextYearNotes : "";
       if (!yearEndSummary && !nextYearNotes) return json({ error: "Could not summarize reflections" }, 500);
       return json({ yearEndSummary, nextYearNotes, quota: quotaAfter }, 200);
+    }
+
+    if (kind === "activityTeachingPlan") {
+      const teachingPlan = parseTeachingPlan(parsed);
+      if (!teachingPlan) return json({ error: "Could not generate teaching plan" }, 500);
+      return json({ teachingPlan, quota: quotaAfter }, 200);
     }
 
     const activities = parseActivities(parsed);

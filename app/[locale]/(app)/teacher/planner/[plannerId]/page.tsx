@@ -127,8 +127,12 @@ export default function PlannerDashboardPage() {
   >("");
   const [summarizingReflections, setSummarizingReflections] = useState(false);
   const [generatingWeekIndex, setGeneratingWeekIndex] = useState<number | null>(null);
+  const [generatingPeriodGoalsIndex, setGeneratingPeriodGoalsIndex] = useState<number | null>(null);
+  const [generatingPeriodGoalKey, setGeneratingPeriodGoalKey] = useState<string | null>(null);
+  const [generatingActivityPlanIndex, setGeneratingActivityPlanIndex] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [aiReviewNotice, setAiReviewNotice] = useState<{ title: string; items: string[] } | null>(null);
   const [localBackup, setLocalBackup] = useState<PlannerBackup | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<PlannerBackup | null>(null);
   const [message, setMessage] = useState("");
@@ -269,6 +273,7 @@ export default function PlannerDashboardPage() {
       setLastSavedAt(new Date());
       setLocalBackup(null);
       setUndoSnapshot(null);
+      setAiReviewNotice(null);
       if (backupKey) window.localStorage.removeItem(backupKey);
       setMessage("Planen er lagret.");
       window.setTimeout(() => setMessage(""), 1800);
@@ -631,24 +636,50 @@ export default function PlannerDashboardPage() {
   }
 
   function createPeriodStructure(count: number) {
-    if (!planner || planner.document.periods.length > 0) return;
+    if (!planner) return;
+    const hasExistingPeriods = planner.document.periods.length > 0;
+    if (
+      hasExistingPeriods &&
+      !window.confirm(
+        "Dette oppdaterer periodeinndelingen fra skoleruta. Tittel, mål, innhold og refleksjon beholdes så langt det passer med samme periodenummer. Vil du fortsette?"
+      )
+    ) {
+      return;
+    }
+
     const result = createBlankPeriodStructure(planner.frame, count);
+    const previousPlanner = createPlannerBackup(planner);
+    const previousPeriods = planner.document.periods;
+    const nextPeriods = result.periods.map((period, index) => {
+      const previous = previousPeriods[index];
+      return previous
+        ? {
+            ...previous,
+            title: previous.title.trim() ? previous.title : period.title,
+            weeks: period.weeks,
+          }
+        : period;
+    });
+
     setDirty(true);
+    setUndoSnapshot(previousPlanner);
     setPlanner((prev) =>
       prev
         ? {
             ...prev,
             document: {
               ...prev.document,
-              periods: result.periods,
+              periods: nextPeriods,
             },
           }
         : prev
     );
     setMessage(
-      result.usedCalendarDates
-        ? "Tom periodestruktur er opprettet fra registrert skolerute. Ingen faglig tekst er generert."
-        : "Tom periodestruktur er opprettet fra antall undervisningsuker. Ingen datoer eller faglig tekst er antatt."
+      hasExistingPeriods
+        ? "Periodeinndelingen er oppdatert fra skoleruta. Eksisterende periodetekst er beholdt så langt det passer."
+        : result.usedCalendarDates
+          ? "Tom periodestruktur er opprettet fra registrert skolerute. Ingen faglig tekst er generert."
+          : "Tom periodestruktur er opprettet fra antall undervisningsuker. Ingen datoer eller faglig tekst er antatt."
     );
   }
 
@@ -1047,6 +1078,78 @@ export default function PlannerDashboardPage() {
     });
   }
 
+  async function generateActivityTeachingPlan(index: number) {
+    if (!user || !planner || generatingActivityPlanIndex !== null) return;
+    const activity = planner.document.activities[index];
+    if (!activity) return;
+    if (
+      activity.teachingPlan.trim().length > 0 &&
+      !window.confirm("Dette erstatter undervisningsopplegget for denne aktiviteten. Vil du fortsette?")
+    ) {
+      return;
+    }
+
+    try {
+      setGeneratingActivityPlanIndex(index);
+      setError("");
+      setMessage("");
+      const token = await user.getIdToken();
+      const res = await fetch("/api/teacher/planner/generate-section", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "activityTeachingPlan",
+          activityIndex: index,
+          frame: planner.frame,
+          curriculum: planner.curriculum,
+          document: planner.document,
+          officialBasis: planner.officialBasis,
+          localFramework: planner.localFramework,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        teachingPlan?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.teachingPlan?.trim()) {
+        throw new Error(data.error || "Could not generate teaching plan");
+      }
+
+      setUndoSnapshot(createPlannerBackup(planner));
+      setDirty(true);
+      setPlanner((prev) =>
+        prev
+          ? {
+              ...prev,
+              document: {
+                ...prev.document,
+                activities: prev.document.activities.map((item, activityIndex) =>
+                  activityIndex === index ? { ...item, teachingPlan: data.teachingPlan ?? item.teachingPlan } : item
+                ),
+              },
+            }
+          : prev
+      );
+      setAiReviewNotice({
+        title: "Undervisningsopplegg er laget",
+        items: [
+          "Kontroller tidsbruk, organisering og lærerrolle før utskrift.",
+          "Sjekk at opplegget passer periodens læringsmål og elevgruppen.",
+          "Lagre når du vil beholde undervisningsopplegget.",
+        ],
+      });
+      setMessage("Print-klart undervisningsopplegg er lagt inn for aktiviteten. Kontroller før du lagrer.");
+    } catch (err) {
+      console.error("Generate activity teaching plan failed", err);
+      setError(err instanceof Error ? err.message : "Kunne ikke lage undervisningsopplegg akkurat nå.");
+    } finally {
+      setGeneratingActivityPlanIndex(null);
+    }
+  }
+
   function updateReflectionEntry(index: number, patch: Partial<PlannerReflectionEntry>) {
     setDirty(true);
     setPlanner((prev) =>
@@ -1248,6 +1351,14 @@ export default function PlannerDashboardPage() {
         setPlanner((prev) =>
           prev ? { ...prev, document: { ...prev.document, activities: data.activities ?? [] } } : prev
         );
+        setAiReviewNotice({
+          title: "Aktivitetsforslag er lagt inn",
+          items: [
+            "Kontroller at aktivitetene passer til periodene og læringsmålene.",
+            "Sjekk at undervisningsopplegget kan brukes direkte eller enkelt justeres.",
+            "Lagre når du vil beholde forslagene.",
+          ],
+        });
         setMessage("Nye aktivitetsforslag er lagt inn. Husk å lagre hvis du vil beholde dem.");
       } else if (kind === "studentGoals" && data.concreteLearningGoals?.length) {
         setUndoSnapshot(previousPlanner);
@@ -1274,6 +1385,18 @@ export default function PlannerDashboardPage() {
         const planningSuggestions = new Map(
           (data.periodPlanningSuggestions ?? []).map((suggestion) => [suggestion.periodId, suggestion])
         );
+        const periodsWithGoals = data.officialGoalPeriodLinks.filter((link) => link.officialGoalIds.length > 0).length;
+        const localLearningGoalCount = (data.periodLearningGoalLinks ?? []).reduce(
+          (sum, link) => sum + link.learningGoals.length,
+          0
+        );
+        const periodsWithPlanning = (data.periodPlanningSuggestions ?? []).filter(
+          (suggestion) =>
+            suggestion.goals.trim() &&
+            suggestion.content.trim() &&
+            suggestion.methods.trim() &&
+            suggestion.assessment.trim()
+        ).length;
         setUndoSnapshot(previousPlanner);
         setDirty(true);
         setPlanner((prev) =>
@@ -1295,7 +1418,17 @@ export default function PlannerDashboardPage() {
               }
             : prev
         );
-        setMessage("Forslag til kompetansemål, lokale læringsmål og periodeinnhold er lagt inn, men ikke lagret. Kontroller periodene før du lagrer.");
+        setAiReviewNotice({
+          title: "AI har fylt periodene med forslag",
+          items: [
+            "Kontroller at kompetansemålene ligger i riktige perioder.",
+            "Les gjennom de konkrete læringsmålene i lærer- og elevspråk.",
+            "Sjekk at innhold, arbeidsmåter og vurdering passer lokale rammer før du lagrer.",
+          ],
+        });
+        setMessage(
+          `Forslag er lagt inn for ${periodsWithGoals} perioder: ${localLearningGoalCount} konkrete læringsmål og planinnhold i ${periodsWithPlanning} perioder. Kontroller før du lagrer.`
+        );
       } else if (kind === "goalLinks" && (data.periodLinks?.length || data.weekLinks?.length)) {
         const validGoalIds = new Set(planner.document.concreteLearningGoals.map((goal) => goal.id));
         const periodLinkMap = new Map(
@@ -1352,6 +1485,154 @@ export default function PlannerDashboardPage() {
       );
     } finally {
       setGeneratingSection("");
+    }
+  }
+
+  async function generatePeriodLearningGoals(periodIndex: number) {
+    if (!user || !planner || generatingPeriodGoalsIndex !== null) return;
+    const period = planner.document.periods[periodIndex];
+    if (!period) return;
+    if (!planner.officialBasis?.competenceGoals.length) {
+      setError("Planen mangler verifiserte kompetansemål fra Udir.");
+      return;
+    }
+    if (period.officialGoalIds.length === 0) {
+      setError("Velg kompetansemål for perioden før du lager konkrete læringsmål.");
+      return;
+    }
+    if (
+      period.learningGoals.length > 0 &&
+      !window.confirm("Dette erstatter de konkrete læringsmålene i denne perioden. Vil du fortsette?")
+    ) {
+      return;
+    }
+
+    try {
+      setGeneratingPeriodGoalsIndex(periodIndex);
+      setError("");
+      setMessage("");
+      const token = await user.getIdToken();
+      const res = await fetch("/api/teacher/planner/generate-section", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "periodLearningGoals",
+          periodIndex,
+          frame: planner.frame,
+          curriculum: planner.curriculum,
+          document: planner.document,
+          officialBasis: planner.officialBasis,
+          localFramework: planner.localFramework,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        periodLearningGoals?: PlannerPeriodLearningGoal[];
+        error?: string;
+      };
+      if (!res.ok || !data.periodLearningGoals?.length) {
+        throw new Error(data.error || "Could not create period learning goals");
+      }
+
+      setUndoSnapshot(createPlannerBackup(planner));
+      setDirty(true);
+      setPlanner((prev) =>
+        prev
+          ? {
+              ...prev,
+              document: {
+                ...prev.document,
+                periods: prev.document.periods.map((item, index) =>
+                  index === periodIndex ? { ...item, learningGoals: data.periodLearningGoals ?? [] } : item
+                ),
+              },
+            }
+          : prev
+      );
+      setMessage("Nye konkrete læringsmål er lagt inn for perioden. Kontroller formuleringene før du lagrer.");
+    } catch (err) {
+      console.error("Generate period learning goals failed", err);
+      setError(err instanceof Error ? err.message : "Kunne ikke lage konkrete læringsmål akkurat nå.");
+    } finally {
+      setGeneratingPeriodGoalsIndex(null);
+    }
+  }
+
+  async function generateSinglePeriodLearningGoal(periodIndex: number, goalIndex: number) {
+    if (!user || !planner || generatingPeriodGoalKey !== null) return;
+    const period = planner.document.periods[periodIndex];
+    const currentGoal = period?.learningGoals[goalIndex];
+    if (!period || !currentGoal) return;
+    if (!planner.officialBasis?.competenceGoals.length) {
+      setError("Planen mangler verifiserte kompetansemål fra Udir.");
+      return;
+    }
+    if (period.officialGoalIds.length === 0) {
+      setError("Velg kompetansemål for perioden før du lager konkrete læringsmål.");
+      return;
+    }
+
+    const generationKey = `${periodIndex}:${goalIndex}`;
+    try {
+      setGeneratingPeriodGoalKey(generationKey);
+      setError("");
+      setMessage("");
+      const token = await user.getIdToken();
+      const res = await fetch("/api/teacher/planner/generate-section", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "periodLearningGoal",
+          periodIndex,
+          goalIndex,
+          frame: planner.frame,
+          curriculum: planner.curriculum,
+          document: planner.document,
+          officialBasis: planner.officialBasis,
+          localFramework: planner.localFramework,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        periodLearningGoal?: PlannerPeriodLearningGoal;
+        error?: string;
+      };
+      if (!res.ok || !data.periodLearningGoal) {
+        throw new Error(data.error || "Could not create period learning goal");
+      }
+
+      setUndoSnapshot(createPlannerBackup(planner));
+      setDirty(true);
+      setPlanner((prev) =>
+        prev
+          ? {
+              ...prev,
+              document: {
+                ...prev.document,
+                periods: prev.document.periods.map((item, itemIndex) =>
+                  itemIndex === periodIndex
+                    ? {
+                        ...item,
+                        learningGoals: item.learningGoals.map((goal, index) =>
+                          index === goalIndex ? { ...data.periodLearningGoal!, id: goal.id } : goal
+                        ),
+                      }
+                    : item
+                ),
+              },
+            }
+          : prev
+      );
+      setMessage("Ett konkret læringsmål er erstattet med et nytt forslag. Kontroller formuleringen før du lagrer.");
+    } catch (err) {
+      console.error("Generate single period learning goal failed", err);
+      setError(err instanceof Error ? err.message : "Kunne ikke lage nytt læringsmål akkurat nå.");
+    } finally {
+      setGeneratingPeriodGoalKey(null);
     }
   }
 
@@ -1445,7 +1726,7 @@ export default function PlannerDashboardPage() {
               : "overview";
 
   return (
-    <main className="mx-auto grid max-w-5xl gap-5">
+    <main className={`mx-auto grid max-w-5xl gap-5 ${dirty ? "pb-28" : ""}`}>
       <PlannerWorkspaceNav
         locale={locale}
         plannerId={planner.id}
@@ -1543,13 +1824,23 @@ export default function PlannerDashboardPage() {
           {message}
         </div>
       ) : null}
+      {dirty && aiReviewNotice ? (
+        <section className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+          <div className="font-black">{aiReviewNotice.title}</div>
+          <ul className="mb-0 mt-2 grid gap-1 pl-5 leading-6">
+            {aiReviewNotice.items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {undoSnapshot ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700">
           <div>
-            <div className="font-black text-slate-950">AI-endring kan angres</div>
+            <div className="font-black text-slate-950">Siste endring kan angres</div>
             <div className="mt-1 font-semibold">
-              Du kan hente tilbake planen slik den var før siste AI-forslag.
+              Du kan hente tilbake planen slik den var før siste større endring.
             </div>
           </div>
           <button
@@ -1557,7 +1848,7 @@ export default function PlannerDashboardPage() {
             onClick={restoreUndoSnapshot}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 hover:bg-slate-50"
           >
-            Angre AI-endring
+            Angre endring
           </button>
         </div>
       ) : null}
@@ -1603,6 +1894,12 @@ export default function PlannerDashboardPage() {
             onAddPeriodGoal={addPeriodLearningGoal}
             onUpdatePeriodGoal={updatePeriodLearningGoal}
             onRemovePeriodGoal={removePeriodLearningGoal}
+            generatingPeriodGoalsIndex={generatingPeriodGoalsIndex}
+            onGeneratePeriodLearningGoals={(periodIndex) => void generatePeriodLearningGoals(periodIndex)}
+            generatingPeriodGoalKey={generatingPeriodGoalKey}
+            onGenerateSinglePeriodLearningGoal={(periodIndex, goalIndex) =>
+              void generateSinglePeriodLearningGoal(periodIndex, goalIndex)
+            }
             activities={planner.document.activities}
             onAddActivityForPeriod={(periodTitle) => addActivity(periodTitle)}
             generatingWeekIndex={generatingWeekIndex}
@@ -1621,8 +1918,11 @@ export default function PlannerDashboardPage() {
         ) : active === "activities" ? (
           <ActivityEditor
             activities={planner.document.activities}
+            periods={planner.document.periods}
             generating={generatingSection === "activities"}
+            generatingTeachingPlanIndex={generatingActivityPlanIndex}
             onGenerate={() => void generatePlannerSection("activities")}
+            onGenerateTeachingPlan={(activityIndex) => void generateActivityTeachingPlan(activityIndex)}
             onAdd={addActivity}
             onUpdate={updateActivity}
             onMove={moveActivity}
@@ -1684,11 +1984,46 @@ export default function PlannerDashboardPage() {
           <Eye className="h-4 w-4" aria-hidden="true" />
           Forhåndsvisning
         </Link>
-        <Button type="button" variant="primary" disabled={saving || !dirty} onClick={() => void savePlanner()}>
-          <Save className="mr-2 h-4 w-4" aria-hidden="true" />
-          {saving ? "Lagrer..." : dirty ? "Lagre ulagrede endringer" : "Lagret"}
-        </Button>
+        {!dirty ? (
+          <Button type="button" variant="primary" disabled>
+            <Save className="mr-2 h-4 w-4" aria-hidden="true" />
+            Lagret
+          </Button>
+        ) : null}
       </div>
+
+      {dirty ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-amber-200 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.12)] backdrop-blur">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-black text-slate-950">Du har ulagrede endringer</div>
+              <div className="mt-0.5 text-sm font-semibold text-slate-600">
+                Lagre før du deler, skriver ut eller tester siste versjon i preview.
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/${locale}/teacher/planner/${planner.id}/preview`}
+                onClick={(event) => {
+                  if (
+                    !window.confirm("Du har ulagrede endringer. Forhåndsvisningen viser sist lagrede versjon. Vil du gå videre?")
+                  ) {
+                    event.preventDefault();
+                  }
+                }}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
+              >
+                <Eye className="h-4 w-4" aria-hidden="true" />
+                Forhåndsvisning
+              </Link>
+              <Button type="button" variant="primary" disabled={saving} onClick={() => void savePlanner()}>
+                <Save className="mr-2 h-4 w-4" aria-hidden="true" />
+                {saving ? "Lagrer..." : "Lagre ulagrede endringer"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -2115,11 +2450,7 @@ function PlannerWorkflowPanel({ planner, locale }: { planner: Planner; locale: s
 
 function SemesterPlansPanel({ planner }: { planner: Planner }) {
   const periods = planner.document.periods;
-  const midpoint = Math.ceil(periods.length / 2);
-  const semesters = [
-    { title: "Semester 1", periods: periods.slice(0, midpoint) },
-    { title: "Semester 2", periods: periods.slice(midpoint) },
-  ];
+  const semesters = getSemesterGroups(planner);
 
   return (
     <div className="grid gap-4">
@@ -2157,7 +2488,7 @@ function SemesterPlansPanel({ planner }: { planner: Planner }) {
                             {formatPeriodStatus(period.status)}
                           </span>
                           <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-600">
-                            {period.weeks || "Uker ikke satt"}
+                            {formatSemesterPeriodRange(planner, period)}
                           </span>
                         </div>
                       </div>
@@ -2181,6 +2512,181 @@ function SemesterPlansPanel({ planner }: { planner: Planner }) {
       )}
     </div>
   );
+}
+
+type SemesterTeachingWeek = {
+  teachingWeek: number;
+  startDate: string;
+  endDate: string;
+  calendarWeek: number;
+  year: number;
+};
+
+function getSemesterGroups(planner: Planner): Array<{ title: string; periods: PlannerPeriod[] }> {
+  const periods = planner.document.periods;
+  const teachingWeeks = getSemesterTeachingWeeks(planner);
+  if (teachingWeeks.length === 0) {
+    const midpoint = Math.ceil(periods.length / 2);
+    return [
+      { title: "Høstsemester", periods: periods.slice(0, midpoint) },
+      { title: "Vårsemester", periods: periods.slice(midpoint) },
+    ];
+  }
+
+  const firstYear = teachingWeeks[0].year;
+  const fallbackSplitIndex = getSemesterPeriodSplitIndex(periods.length, teachingWeeks);
+  const autumnPeriods: PlannerPeriod[] = [];
+  const springPeriods: PlannerPeriod[] = [];
+
+  for (const [index, period] of periods.entries()) {
+    const selectedWeeks = getWeeksForPeriod(period, teachingWeeks);
+    const firstWeek = selectedWeeks[0];
+    if (!firstWeek) {
+      if (index < fallbackSplitIndex) autumnPeriods.push(period);
+      else springPeriods.push(period);
+    } else if (firstWeek.year === firstYear) {
+      autumnPeriods.push(period);
+    } else {
+      springPeriods.push(period);
+    }
+  }
+
+  return [
+    { title: "Høstsemester", periods: autumnPeriods },
+    { title: "Vårsemester", periods: springPeriods },
+  ];
+}
+
+function getSemesterPeriodSplitIndex(periodCount: number, teachingWeeks: SemesterTeachingWeek[]): number {
+  if (periodCount <= 1 || teachingWeeks.length === 0) return Math.ceil(periodCount / 2);
+  const firstYear = teachingWeeks[0].year;
+  const autumnWeeks = teachingWeeks.filter((week) => week.year === firstYear).length;
+  if (autumnWeeks === 0 || autumnWeeks === teachingWeeks.length) return Math.ceil(periodCount / 2);
+  return Math.max(1, Math.min(periodCount - 1, Math.floor((autumnWeeks / teachingWeeks.length) * periodCount)));
+}
+
+function formatSemesterPeriodRange(planner: Planner, period: PlannerPeriod): string {
+  const teachingWeeks = getSemesterTeachingWeeks(planner);
+  const selectedWeeks = getWeeksForPeriod(period, teachingWeeks);
+  if (selectedWeeks.length === 0) return period.weeks || "Uker ikke satt";
+  const first = selectedWeeks[0];
+  const last = selectedWeeks[selectedWeeks.length - 1];
+  const weekLabel =
+    first.calendarWeek === last.calendarWeek ? `uke ${first.calendarWeek}` : `uke ${first.calendarWeek}-${last.calendarWeek}`;
+  return `${weekLabel} (${formatDateRangeForSemester(first.startDate, last.endDate)})`;
+}
+
+function getWeeksForPeriod(period: PlannerPeriod, teachingWeeks: SemesterTeachingWeek[]): SemesterTeachingWeek[] {
+  const range = parseTeachingWeekRangeForSemester(period.weeks);
+  if (!range) return [];
+  return teachingWeeks.filter((week) => week.teachingWeek >= range.start && week.teachingWeek <= range.end);
+}
+
+function parseTeachingWeekRangeForSemester(value: string): { start: number; end: number } | null {
+  const range = value.match(/Undervisningsuke\s*(\d+)\s*[-–]\s*(\d+)/i);
+  if (range) return { start: Number(range[1]), end: Number(range[2]) };
+  const single = value.match(/Undervisningsuke\s*(\d+)/i);
+  if (single) return { start: Number(single[1]), end: Number(single[1]) };
+  return null;
+}
+
+function getSemesterTeachingWeeks(planner: Planner): SemesterTeachingWeek[] {
+  const calendar = planner.frame.schoolCalendar;
+  const firstDay = parsePlannerDate(calendar.firstSchoolDay);
+  const lastDay = parsePlannerDate(calendar.lastSchoolDay);
+  if (!firstDay || !lastDay || firstDay > lastDay) return [];
+
+  const freeDates = new Set<string>();
+  const events = calendar.events.length > 0 ? calendar.events : createDefaultSchoolCalendarEvents(calendar);
+  for (const event of events) {
+    for (const date of listPlannerDatesInclusive(event.startDate || event.endDate, event.endDate || event.startDate)) {
+      if (isPlannerWeekday(date)) freeDates.add(date);
+    }
+  }
+
+  const weeks: SemesterTeachingWeek[] = [];
+  let monday = startOfPlannerIsoWeek(firstDay);
+  const finalMonday = startOfPlannerIsoWeek(lastDay);
+
+  while (monday <= finalMonday && weeks.length < 60) {
+    const schoolDates: string[] = [];
+    for (let offset = 0; offset < 5; offset += 1) {
+      const date = addPlannerDays(monday, offset);
+      const key = toPlannerDateKey(date);
+      if (date >= firstDay && date <= lastDay && !freeDates.has(key)) schoolDates.push(key);
+    }
+
+    if (schoolDates.length > 0) {
+      const firstSchoolDate = schoolDates[0];
+      const date = parsePlannerDate(firstSchoolDate);
+      weeks.push({
+        teachingWeek: weeks.length + 1,
+        startDate: firstSchoolDate,
+        endDate: schoolDates[schoolDates.length - 1],
+        calendarWeek: getIsoWeekNumber(firstSchoolDate) ?? weeks.length + 1,
+        year: date?.getFullYear() ?? firstDay.getFullYear(),
+      });
+    }
+
+    monday = addPlannerDays(monday, 7);
+  }
+
+  return weeks;
+}
+
+function parsePlannerDate(value: string): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfPlannerIsoWeek(date: Date): Date {
+  const day = date.getDay() || 7;
+  return addPlannerDays(date, 1 - day);
+}
+
+function addPlannerDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toPlannerDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function listPlannerDatesInclusive(startDate: string, endDate: string): string[] {
+  const start = parsePlannerDate(startDate);
+  const end = parsePlannerDate(endDate);
+  if (!start || !end || start > end) return [];
+  const dates: string[] = [];
+  for (let date = new Date(start); date <= end; date = addPlannerDays(date, 1)) {
+    dates.push(toPlannerDateKey(date));
+  }
+  return dates;
+}
+
+function isPlannerWeekday(value: string): boolean {
+  const date = parsePlannerDate(value);
+  if (!date) return false;
+  const day = date.getDay();
+  return day >= 1 && day <= 5;
+}
+
+function formatDateRangeForSemester(startDate: string, endDate: string): string {
+  if (!startDate && !endDate) return "";
+  if (!endDate || startDate === endDate) return formatDateForSemester(startDate);
+  return `${formatDateForSemester(startDate)} - ${formatDateForSemester(endDate)}`;
+}
+
+function formatDateForSemester(value: string): string {
+  if (!value) return "-";
+  const date = parsePlannerDate(value);
+  if (!date) return value;
+  return new Intl.DateTimeFormat("nb-NO", { dateStyle: "short" }).format(date);
 }
 
 function OfficialBasisPanel({ planner }: { planner: Planner }) {
@@ -2549,6 +3055,10 @@ function PeriodEditor({
   onAddPeriodGoal,
   onUpdatePeriodGoal,
   onRemovePeriodGoal,
+  generatingPeriodGoalsIndex,
+  onGeneratePeriodLearningGoals,
+  generatingPeriodGoalKey,
+  onGenerateSinglePeriodLearningGoal,
   activities,
   onAddActivityForPeriod,
   generatingWeekIndex,
@@ -2572,6 +3082,10 @@ function PeriodEditor({
   onAddPeriodGoal: (periodIndex: number) => void;
   onUpdatePeriodGoal: (periodIndex: number, goalIndex: number, patch: Partial<PlannerPeriodLearningGoal>) => void;
   onRemovePeriodGoal: (periodIndex: number, goalIndex: number) => void;
+  generatingPeriodGoalsIndex: number | null;
+  onGeneratePeriodLearningGoals: (periodIndex: number) => void;
+  generatingPeriodGoalKey: string | null;
+  onGenerateSinglePeriodLearningGoal: (periodIndex: number, goalIndex: number) => void;
   activities: PlannerActivity[];
   onAddActivityForPeriod: (periodTitle: string) => void;
   generatingWeekIndex: number | null;
@@ -2717,6 +3231,36 @@ function PeriodEditor({
         </section>
       ) : (
         <>
+          <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="m-0 text-sm font-black text-slate-950">Periodestruktur</h3>
+                <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
+                  Oppdater ukeområdene hvis skoleruta eller periodelengden er endret. Eksisterende tekst beholdes etter periodenummer.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,220px)_auto] sm:items-end">
+                <Field label="Periodelengde">
+                  <Select
+                    value={periodStructure}
+                    onChange={(event) =>
+                      setPeriodStructure(event.target.value as (typeof PERIOD_STRUCTURE_OPTIONS)[number]["value"])
+                    }
+                  >
+                    {PERIOD_STRUCTURE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} ({option.description})
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Button type="button" variant="secondary" onClick={() => onCreateStructure(selectedPeriodStructure.count)}>
+                  <CalendarRange className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Oppdater fra skolerute
+                </Button>
+              </div>
+            </div>
+          </section>
           <nav className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white p-3">
             {periods.map((period, index) => (
               <button
@@ -2744,6 +3288,7 @@ function PeriodEditor({
               const period = selectedPeriod;
               const index = selectedPeriodIndex;
               const periodActivities = activities.filter((activity) => activityMatchesPeriod(activity, period));
+              const periodLocalInitiatives = localInitiatives.filter((item) => localInitiativeMatchesPeriod(item, period));
 
               return (
                 <>
@@ -2818,6 +3363,23 @@ function PeriodEditor({
               </Select>
             </Field>
           </div>
+            {periodLocalInitiatives.length > 0 ? (
+              <section className="grid gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3">
+                <div className="text-sm font-black text-slate-950">Lokale rammer i denne perioden</div>
+                <div className="grid gap-2">
+                  {periodLocalInitiatives.map((item) => (
+                    <div key={`${item.kind}-${item.id}`} className="rounded-lg border border-sky-200 bg-white p-3 text-sm leading-6 text-slate-700">
+                      <div className="font-black text-slate-950">
+                        {item.kind}: {item.title || "Uten tittel"}
+                        {item.locked ? <span className="ml-2 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs text-sky-900">Låst</span> : null}
+                      </div>
+                      <div className="font-semibold text-slate-600">{formatLocalInitiativeTiming(item) || "Tidspunkt ikke fullstendig fylt ut"}</div>
+                      {item.description ? <div className="mt-1 whitespace-pre-wrap">{item.description}</div> : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
             {officialGoals.length > 0 ? (
               <OfficialGoalSelector
                 goals={officialGoals}
@@ -2832,6 +3394,12 @@ function PeriodEditor({
             <PeriodLearningGoalsEditor
               period={period}
               periodIndex={index}
+              officialGoals={officialGoals}
+              generating={generatingPeriodGoalsIndex === index}
+              canGenerate={period.officialGoalIds.length > 0}
+              onGenerate={() => onGeneratePeriodLearningGoals(index)}
+              generatingGoalKey={generatingPeriodGoalKey}
+              onGenerateGoal={(goalIndex) => onGenerateSinglePeriodLearningGoal(index, goalIndex)}
               onAdd={() => onAddPeriodGoal(index)}
               onUpdate={(goalIndex, patch) => onUpdatePeriodGoal(index, goalIndex, patch)}
               onRemove={(goalIndex) => onRemovePeriodGoal(index, goalIndex)}
@@ -3044,8 +3612,11 @@ function PeriodEditor({
 
 function ActivityEditor({
   activities,
+  periods,
   generating,
+  generatingTeachingPlanIndex,
   onGenerate,
+  onGenerateTeachingPlan,
   onAdd,
   onUpdate,
   onMove,
@@ -3053,14 +3624,21 @@ function ActivityEditor({
   onRemove,
 }: {
   activities: PlannerActivity[];
+  periods: PlannerPeriod[];
   generating: boolean;
+  generatingTeachingPlanIndex: number | null;
   onGenerate: () => void;
+  onGenerateTeachingPlan: (activityIndex: number) => void;
   onAdd: () => void;
   onUpdate: (index: number, patch: Partial<PlannerActivity>) => void;
   onMove: (index: number, direction: -1 | 1) => void;
   onDuplicate: (index: number) => void;
   onRemove: (index: number) => void;
 }) {
+  function findActivityPeriod(activity: PlannerActivity): PlannerPeriod | null {
+    return periods.find((period) => activityMatchesPeriod(activity, period)) ?? null;
+  }
+
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -3107,9 +3685,13 @@ function ActivityEditor({
               >
                 {index + 1}. {activity.title || "Uten tittel"}
               </a>
-            ))}
+          ))}
           </nav>
-          {activities.map((activity, index) => (
+          {activities.map((activity, index) => {
+            const period = findActivityPeriod(activity);
+            const periodGoals = period?.learningGoals ?? [];
+            const generatingTeachingPlan = generatingTeachingPlanIndex === index;
+            return (
           <div
             key={activity.id}
             id={`planner-activity-${activity.id}`}
@@ -3142,14 +3724,6 @@ function ActivityEditor({
               >
                 <Copy className="h-4 w-4" aria-hidden="true" />
               </button>
-              <button
-                type="button"
-                onClick={() => printActivityTeachingPlan(activity)}
-                className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-slate-700"
-                title="Skriv ut undervisningsopplegg"
-              >
-                <Printer className="h-4 w-4" aria-hidden="true" />
-              </button>
               <button type="button" onClick={() => onRemove(index)} className="inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-white px-2 text-rose-700">
                 <Trash2 className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -3159,9 +3733,34 @@ function ActivityEditor({
                 <Input value={activity.title} onChange={(event) => onUpdate(index, { title: event.target.value })} />
               </Field>
               <Field label="Periode">
-                <Input value={activity.period} onChange={(event) => onUpdate(index, { period: event.target.value })} />
+                <Select value={activity.period} onChange={(event) => onUpdate(index, { period: event.target.value })}>
+                  <option value="">Ikke knyttet til periode</option>
+                  {periods.map((periodOption) => (
+                    <option key={periodOption.id} value={periodOption.title || periodOption.id}>
+                      {periodOption.title || `Periode ${periods.indexOf(periodOption) + 1}`}
+                    </option>
+                  ))}
+                </Select>
               </Field>
             </div>
+            {period ? (
+              <section className="rounded-lg border border-emerald-200 bg-white p-3 text-sm text-slate-700">
+                <div className="font-black text-slate-950">Knyttet til {period.title || "periode"}</div>
+                {periodGoals.length > 0 ? (
+                  <ul className="mb-0 mt-2 grid gap-1 pl-5 leading-6">
+                    {periodGoals.map((goal) => (
+                      <li key={goal.id}>{goal.studentLanguage || goal.goal}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mb-0 mt-2 text-slate-600">Perioden har ikke konkrete læringsmål ennå.</p>
+                )}
+              </section>
+            ) : (
+              <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                Aktiviteten er ikke knyttet til en periode ennå.
+              </p>
+            )}
             <Field label="Beskrivelse">
               <Textarea value={activity.description} onChange={(event) => onUpdate(index, { description: event.target.value })} rows={3} />
             </Field>
@@ -3173,16 +3772,39 @@ function ActivityEditor({
                 <Textarea value={activity.assessment} onChange={(event) => onUpdate(index, { assessment: event.target.value })} rows={3} />
               </Field>
             </div>
-            <Field label="Print-klart undervisningsopplegg">
+            <section className="grid gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm font-black text-slate-950">Print-klart undervisningsopplegg</div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={generatingTeachingPlan}
+                    onClick={() => onGenerateTeachingPlan(index)}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
+                    {generatingTeachingPlan ? "Lager opplegg..." : activity.teachingPlan.trim() ? "Lag nytt opplegg" : "Lag undervisningsopplegg"}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => printActivityTeachingPlan(activity)}
+                    className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                  >
+                    <Printer className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Skriv ut
+                  </button>
+                </div>
+              </div>
               <Textarea
                 value={activity.teachingPlan}
                 onChange={(event) => onUpdate(index, { teachingPlan: event.target.value })}
                 rows={8}
                 placeholder="Formål, tidsbruk, organisering, gjennomføring, lærerstøtte, deling/presentasjon og enkel vurdering."
               />
-            </Field>
+            </section>
           </div>
-          ))}
+            );
+          })}
         </>
       )}
     </div>
@@ -3418,7 +4040,48 @@ function formatOfficialGoalId(goalId: string): string {
 function formatLocalInitiativeTiming(item: PlannerLocalInitiative): string {
   if (item.startDate && item.endDate) return `${item.startDate} til ${item.endDate}`;
   if (item.startDate) return item.startDate;
+  if (item.endDate) return `Til og med ${item.endDate}`;
   return item.timing;
+}
+
+function localInitiativeMatchesPeriod(
+  initiative: PlannerLocalInitiative & { kind?: string },
+  period: PlannerPeriod
+): boolean {
+  const periodWeeks = weekNumbersFromText(period.weeks);
+  const initiativeWeeks = [
+    ...new Set([
+      ...weekNumbersFromText(initiative.timing),
+      ...weekNumbersFromDates(initiative.startDate || initiative.endDate, initiative.endDate || initiative.startDate),
+    ]),
+  ];
+  if (initiativeWeeks.length > 0 && periodWeeks.length > 0) {
+    return initiativeWeeks.some((week) => periodWeeks.includes(week));
+  }
+
+  const timing = initiative.timing.trim().toLowerCase();
+  return Boolean(timing && period.weeks.toLowerCase().includes(timing));
+}
+
+function weekNumbersFromText(value: string): number[] {
+  const numbers = new Set<number>();
+  for (const match of value.matchAll(/uke\s*(\d+)(?:\s*[-–]\s*(\d+))?/gi)) {
+    const start = Number(match[1]);
+    const end = match[2] ? Number(match[2]) : start;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    for (let week = start; week <= end && week <= start + 60; week += 1) numbers.add(week);
+  }
+  return [...numbers];
+}
+
+function weekNumbersFromDates(startDate: string, endDate: string): number[] {
+  if (!startDate && !endDate) return [];
+  const numbers = new Set<number>();
+  for (const date of listDatesInclusive(startDate || endDate, endDate || startDate)) {
+    const week = getIsoWeekNumber(date);
+    if (week) numbers.add(week);
+  }
+  return [...numbers];
 }
 
 function formatPeriodList(periods: PlannerPeriod[]): string {
@@ -3449,26 +4112,54 @@ function firstNumber(value: string): string | null {
 function PeriodLearningGoalsEditor({
   period,
   periodIndex,
+  officialGoals,
+  generating,
+  canGenerate,
+  onGenerate,
+  generatingGoalKey,
+  onGenerateGoal,
   onAdd,
   onUpdate,
   onRemove,
 }: {
   period: PlannerPeriod;
   periodIndex: number;
+  officialGoals: string[];
+  generating: boolean;
+  canGenerate: boolean;
+  onGenerate: () => void;
+  generatingGoalKey: string | null;
+  onGenerateGoal: (goalIndex: number) => void;
   onAdd: () => void;
   onUpdate: (goalIndex: number, patch: Partial<PlannerPeriodLearningGoal>) => void;
   onRemove: (goalIndex: number) => void;
 }) {
+  const selectedOfficialGoalIds = new Set(period.officialGoalIds);
+
+  function toggleGoalSource(goalIndex: number, goalId: string) {
+    const goal = period.learningGoals[goalIndex];
+    if (!goal) return;
+    const nextIds = goal.sourceOfficialGoalIds.includes(goalId)
+      ? goal.sourceOfficialGoalIds.filter((id) => id !== goalId)
+      : [...goal.sourceOfficialGoalIds, goalId];
+    onUpdate(goalIndex, { sourceOfficialGoalIds: nextIds });
+  }
+
   return (
-    <section className="grid gap-3 rounded-lg border border-sky-200 bg-white p-3">
+    <section className="grid gap-3 rounded-lg border border-sky-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="m-0 text-sm font-black text-slate-950">Lokale læringsmål for perioden</h3>
+          <h3 className="m-0 text-base font-black text-slate-950">Periodens konkrete læringsmål</h3>
           <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
-            Konkrete og redigerbare mål som bygger på Udir-målene ovenfor. Disse er ikke offisiell læreplantekst.
+            Bryt kompetansemålene ned til mål læreren kan undervise mot, og elevene kan forstå og vise.
+            Dette er lokale arbeidsmål, ikke offisiell læreplantekst.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="primary" disabled={!canGenerate || generating} onClick={onGenerate}>
+            <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
+            {generating ? "Lager mål..." : "Lag nye mål"}
+          </Button>
           <Button type="button" variant="secondary" disabled={period.learningGoals.length >= 4} onClick={onAdd}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Legg til mål
@@ -3478,37 +4169,128 @@ function PeriodLearningGoalsEditor({
 
       {period.learningGoals.length === 0 ? (
         <p className="m-0 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
-          Ingen lokale læringsmål er lagt inn. Velg Udir-mål først, og lag deretter et kontrollert forslag eller skriv målene selv.
+          {canGenerate
+            ? "Ingen konkrete læringsmål er lagt inn. Lag et forslag fra valgte kompetansemål, eller legg inn mål manuelt."
+            : "Ingen konkrete læringsmål er lagt inn. Velg kompetansemål først, eller legg inn mål manuelt."}
         </p>
       ) : (
         <div className="grid gap-3">
-          {period.learningGoals.map((goal, goalIndex) => (
+          {period.learningGoals.map((goal, goalIndex) => {
+            const unknownSourceIds = goal.sourceOfficialGoalIds.filter((goalId) => !selectedOfficialGoalIds.has(goalId));
+            const isGeneratingGoal = generatingGoalKey === `${periodIndex}:${goalIndex}`;
+            return (
               <div key={goal.id} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                    Lokalt mål {goalIndex + 1} · periode {periodIndex + 1}
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-wide text-slate-500">
+                      Mål {goalIndex + 1} · periode {periodIndex + 1}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {goal.sourceOfficialGoalIds.length > 0 ? (
+                        goal.sourceOfficialGoalIds.map((goalId) => (
+                          <span
+                            key={goalId}
+                            className={`rounded-full border px-2 py-0.5 text-xs font-bold ${
+                              selectedOfficialGoalIds.has(goalId)
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                : "border-amber-200 bg-amber-50 text-amber-900"
+                            }`}
+                          >
+                            {formatOfficialGoalId(goalId)}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-900">
+                          Mangler kobling til kompetansemål
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onRemove(goalIndex)}
-                    className="inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-white px-2 text-rose-700"
-                    title="Slett lokalt læringsmål"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={!canGenerate || isGeneratingGoal}
+                      onClick={() => onGenerateGoal(goalIndex)}
+                      className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-2 text-xs font-bold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      title="Lag nytt forslag for dette ene målet"
+                    >
+                      <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                      {isGeneratingGoal ? "Lager..." : "Nytt forslag"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRemove(goalIndex)}
+                      className="inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-white px-2 text-rose-700"
+                      title="Slett lokalt læringsmål"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
-                <Field label="Konkret læringsmål">
-                  <Textarea value={goal.goal} onChange={(event) => onUpdate(goalIndex, { goal: event.target.value })} rows={2} />
-                </Field>
-                <Field label="Elev-/deltakerspråk">
-                  <Textarea
-                    value={goal.studentLanguage}
-                    onChange={(event) => onUpdate(goalIndex, { studentLanguage: event.target.value })}
-                    rows={2}
-                  />
-                </Field>
+                {unknownSourceIds.length > 0 ? (
+                  <p className="m-0 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-900">
+                    Dette målet peker på et kompetansemål som ikke er valgt i perioden. Velg målet over, eller juster koblingen senere.
+                  </p>
+                ) : null}
+                {period.officialGoalIds.length > 0 ? (
+                  <details className="rounded-lg border border-slate-200 bg-white p-3">
+                    <summary className="cursor-pointer list-none text-sm font-black text-slate-900">
+                      Endre kobling til kompetansemål
+                    </summary>
+                    <p className="mb-0 mt-2 text-sm leading-6 text-slate-600">
+                      Hak av kompetansemålene dette konkrete læringsmålet bygger på. Dette styrer også nytt AI-forslag for akkurat dette målet.
+                    </p>
+                    <div className="mt-3 grid gap-2">
+                      {period.officialGoalIds.map((goalId) => {
+                        const match = goalId.match(/^udir-goal-(\d+)$/);
+                        const officialGoalText = match ? officialGoals[Number(match[1]) - 1] : "";
+                        const checked = goal.sourceOfficialGoalIds.includes(goalId);
+                        return (
+                          <label
+                            key={goalId}
+                            className={`grid cursor-pointer grid-cols-[auto_1fr] gap-3 rounded-lg border p-3 text-sm leading-6 ${
+                              checked
+                                ? "border-emerald-300 bg-emerald-50 text-emerald-950"
+                                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleGoalSource(goalIndex, goalId)}
+                              className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
+                            />
+                            <span>
+                              <strong className="text-slate-950">{formatOfficialGoalId(goalId)}:</strong>{" "}
+                              {officialGoalText || "Kompetansemål"}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </details>
+                ) : null}
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <Field label="Lærerformulering">
+                    <Textarea
+                      value={goal.goal}
+                      onChange={(event) => onUpdate(goalIndex, { goal: event.target.value })}
+                      rows={3}
+                      placeholder="Hva skal elevene arbeide mot faglig?"
+                    />
+                  </Field>
+                  <Field label="Elev-/deltakerspråk">
+                    <Textarea
+                      value={goal.studentLanguage}
+                      onChange={(event) => onUpdate(goalIndex, { studentLanguage: event.target.value })}
+                      rows={3}
+                      placeholder="Jeg kan ..."
+                    />
+                  </Field>
+                </div>
               </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
@@ -4034,7 +4816,11 @@ function DateInput({ label, value, onChange }: { label: string; value: string; o
     <Field label={label}>
       <div className="grid gap-1">
         <Input type="date" value={value} onChange={(event) => onChange(event.target.value)} />
-        <span className="text-xs font-semibold text-slate-500">{weekNumber ? `Uke ${weekNumber}` : "Uke vises når dato er valgt"}</span>
+        <span className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-xs font-bold ${
+          weekNumber ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-500"
+        }`}>
+          {weekNumber ? `Uke ${weekNumber}` : "Uke vises når dato er valgt"}
+        </span>
         {weekend ? <span className="text-xs font-bold text-amber-700">Dette er lørdag/søndag</span> : null}
       </div>
     </Field>

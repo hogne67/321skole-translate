@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Clipboard, Download, Printer, Share2 } from "lucide-react";
+import { ArrowLeft, Check, Clipboard, Download, Printer, Share2 } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useParams, useSearchParams } from "next/navigation";
 import { copyTextToClipboard, downloadPlannerMarkdown } from "@/lib/planner/clientExport";
 import { plannerToMarkdown, plannerToStudentMarkdown } from "@/lib/planner/export";
 import { normalizePlanner, type Planner } from "@/lib/planner/types";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { PlannerDocumentView, StudentPlannerDocumentView } from "../../PlannerDocumentView";
+import { CompactPlannerDocumentView, PlannerDocumentView, StudentPlannerDocumentView } from "../../PlannerDocumentView";
 
 export default function PlannerPrintPage() {
   const locale = useLocale();
@@ -22,7 +22,7 @@ export default function PlannerPrintPage() {
     searchParams.get("audience") === "student" ? "student" : "teacher"
   );
   const [selectedPeriodId, setSelectedPeriodId] = useState(searchParams.get("periodId") || "");
-  const [showCompactOverview, setShowCompactOverview] = useState(true);
+  const [teacherPrintMode, setTeacherPrintMode] = useState<"short" | "full">("short");
   const [showWeekPlans, setShowWeekPlans] = useState(true);
   const [showReflectionLog, setShowReflectionLog] = useState(true);
   const [showYearEndSummary, setShowYearEndSummary] = useState(true);
@@ -76,7 +76,7 @@ export default function PlannerPrintPage() {
         ? plannerToStudentMarkdown(planner, { periodId: selectedPeriodId || undefined })
         : getMarkdownExport(
             planner,
-            showCompactOverview,
+            teacherPrintMode,
             showWeekPlans,
             showReflectionLog,
             showYearEndSummary,
@@ -94,7 +94,7 @@ export default function PlannerPrintPage() {
         ? plannerToStudentMarkdown(planner, { periodId: selectedPeriodId || undefined })
         : getMarkdownExport(
             planner,
-            showCompactOverview,
+            teacherPrintMode,
             showWeekPlans,
             showReflectionLog,
             showYearEndSummary,
@@ -123,7 +123,7 @@ export default function PlannerPrintPage() {
         ? plannerToStudentMarkdown(planner, { periodId: selectedPeriodId || undefined })
         : getMarkdownExport(
             planner,
-            showCompactOverview,
+            teacherPrintMode,
             showWeekPlans,
             showReflectionLog,
             showYearEndSummary,
@@ -252,54 +252,41 @@ export default function PlannerPrintPage() {
           </div>
         ) : null}
         {documentMode === "teacher" ? (
-          <div className="flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800">
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={showCompactOverview}
-              onChange={(event) => setShowCompactOverview(event.target.checked)}
-              className="h-4 w-4"
-            />
-            Kort planoversikt
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={showWeekPlans}
-              onChange={(event) => setShowWeekPlans(event.target.checked)}
-              className="h-4 w-4"
-            />
-            Ukeplaner
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={showReflectionLog}
-              onChange={(event) => setShowReflectionLog(event.target.checked)}
-              className="h-4 w-4"
-            />
-            Refleksjonslogg
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={showYearEndSummary}
-              onChange={(event) => setShowYearEndSummary(event.target.checked)}
-              className="h-4 w-4"
-            />
-            Årsoppsummering
-          </label>
+          <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <PrintModeButton
+                active={teacherPrintMode === "short"}
+                title="Kort utskrift"
+                description="Kun kort planoversikt med skolerute, lokale rammer og periodemål."
+                onClick={() => setTeacherPrintMode("short")}
+              />
+              <PrintModeButton
+                active={teacherPrintMode === "full"}
+                title="Full plan"
+                description="Hele årsplanen med valgte detaljer."
+                onClick={() => setTeacherPrintMode("full")}
+              />
+            </div>
+            {teacherPrintMode === "full" ? (
+              <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3">
+                <ToggleButton active={showWeekPlans} label="Ukeplaner" onClick={() => setShowWeekPlans((value) => !value)} />
+                <ToggleButton active={showReflectionLog} label="Refleksjonslogg" onClick={() => setShowReflectionLog((value) => !value)} />
+                <ToggleButton active={showYearEndSummary} label="Årsoppsummering" onClick={() => setShowYearEndSummary((value) => !value)} />
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>
       <div className="planner-print-content">
         {documentMode === "student" ? (
           <StudentPlannerDocumentView planner={planner} options={{ periodId: selectedPeriodId || undefined }} />
+        ) : teacherPrintMode === "short" ? (
+          <CompactPlannerDocumentView planner={planner} options={{ periodId: selectedPeriodId || undefined }} />
         ) : (
           <PlannerDocumentView
             planner={planner}
             options={{
-              showCompactOverview,
+              showCompactOverview: false,
               showWeekPlans,
               showReflectionLog,
               showYearEndSummary,
@@ -314,17 +301,73 @@ export default function PlannerPrintPage() {
 
 function getMarkdownExport(
   planner: Planner,
-  showCompactOverview: boolean,
+  teacherPrintMode: "short" | "full",
   showWeekPlans: boolean,
   showReflectionLog: boolean,
   showYearEndSummary: boolean,
   periodId: string
 ) {
   return plannerToMarkdown(planner, {
-    showCompactOverview,
+    compactOnly: teacherPrintMode === "short",
+    showCompactOverview: teacherPrintMode === "short",
     showWeekPlans,
     showReflectionLog,
     showYearEndSummary,
     periodId: periodId || undefined,
   });
+}
+
+function PrintModeButton({
+  active,
+  title,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex min-h-20 items-start gap-3 rounded-lg border p-3 text-left transition ${
+        active
+          ? "border-emerald-700 bg-emerald-50 text-emerald-950 ring-2 ring-emerald-700"
+          : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+      }`}
+    >
+      <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+        active ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-300 bg-white"
+      }`}>
+        {active ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+      </span>
+      <span>
+        <span className="block font-black">{title}</span>
+        <span className="mt-1 block text-sm font-semibold leading-5 text-slate-600">{description}</span>
+      </span>
+    </button>
+  );
+}
+
+function ToggleButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-black transition ${
+        active
+          ? "border-emerald-700 bg-emerald-700 text-white"
+          : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+      }`}
+    >
+      <span className={`inline-flex h-4 w-4 items-center justify-center rounded border ${
+        active ? "border-white bg-white text-emerald-700" : "border-slate-300 bg-white"
+      }`}>
+        {active ? <Check className="h-3 w-3" aria-hidden="true" /> : null}
+      </span>
+      {label}
+    </button>
+  );
 }

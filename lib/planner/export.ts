@@ -1,6 +1,7 @@
 import type { Planner } from "./types";
 
 export type PlannerExportOptions = {
+  compactOnly?: boolean;
   showCompactOverview?: boolean;
   showWeekPlans?: boolean;
   showReflectionLog?: boolean;
@@ -10,6 +11,7 @@ export type PlannerExportOptions = {
 
 export function plannerToMarkdown(planner: Planner, options: PlannerExportOptions = {}): string {
   const { document, frame, curriculum } = planner;
+  const compactOnly = options.compactOnly === true;
   const showCompactOverview = options.showCompactOverview !== false;
   const showWeekPlans = options.showWeekPlans !== false;
   const showReflectionLog = options.showReflectionLog !== false;
@@ -30,6 +32,7 @@ export function plannerToMarkdown(planner: Planner, options: PlannerExportOption
 
   pushSection(lines, "Planramme", document.description);
   if (showCompactOverview) pushCompactOverview(lines, planner, periods);
+  if (compactOnly) return lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
   pushSection(lines, "Fagets relevans", document.subjectRelevance);
   pushSection(lines, "Sentrale verdier", document.coreValues);
   pushSection(lines, "Kjerneelementer", document.coreElements);
@@ -217,7 +220,7 @@ function pushCompactOverview(lines: string[], planner: Planner, periods: Planner
   const localInitiatives = [
     ...planner.localFramework.interdisciplinaryProjects.map((item) => ({ ...item, kind: "Prosjekt" })),
     ...planner.localFramework.themeWeeks.map((item) => ({ ...item, kind: "Temauke" })),
-  ].filter((item) => item.title.trim() || item.description.trim());
+  ].filter((item) => item.title.trim() || item.description.trim()).sort(compareCalendarItems);
 
   if (calendarEvents.length === 0 && localInitiatives.length === 0 && periods.length === 0) return;
 
@@ -250,16 +253,21 @@ function pushCompactOverview(lines: string[], planner: Planner, periods: Planner
   }
 
   if (periods.length > 0) {
+    const teachingWeeks = getTeachingWeeksForPlanner(planner);
     pushHeading(lines, 3, "Perioder og læringsmål");
     periods.forEach((period) => {
-      lines.push(`- ${period.title || "Periode"} (${period.weeks || "uker/dato ikke satt"})`);
+      lines.push(`- ${period.title || "Periode"} (${formatPeriodCalendarRange(period.weeks, teachingWeeks)})`);
       const learningGoals = period.learningGoals.map((goal) => goal.studentLanguage || goal.goal).filter(Boolean);
       if (learningGoals.length > 0) {
         learningGoals.forEach((goal) => lines.push(`  - Mål: ${goal}`));
       } else if (period.goals.trim()) {
         lines.push(`  - Mål: ${period.goals.trim()}`);
       }
-      if (period.content.trim()) lines.push(`  - Innhold: ${period.content.trim()}`);
+      if (period.content.trim()) pushIndentedLine(lines, "Innhold", period.content);
+      const periodInitiatives = getInitiativesForPeriod(period, localInitiatives, teachingWeeks);
+      periodInitiatives.forEach((item) => {
+        lines.push(`  - Lokal ramme: ${item.kind} - ${item.title || "Uten tittel"}`);
+      });
     });
     lines.push("");
   }
@@ -272,9 +280,20 @@ function pushMeta(lines: string[], items: Array<[string, string]>) {
   lines.push("");
 }
 
+function pushIndentedLine(lines: string[], label: string, value: string) {
+  const parts = value
+    .trim()
+    .split(/\r?\n/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return;
+  lines.push(`  - ${label}: ${parts[0]}`);
+  parts.slice(1).forEach((part) => lines.push(`    ${part}`));
+}
+
 function getCalendarEvents(planner: Planner) {
   const calendar = planner.frame.schoolCalendar;
-  const events = calendar.events.length > 0
+  const storedEvents = calendar.events.length > 0
     ? calendar.events
     : [
         { id: "autumn-break", title: "Høstferie", startDate: calendar.autumnBreakStart, endDate: calendar.autumnBreakEnd },
@@ -286,13 +305,223 @@ function getCalendarEvents(planner: Planner) {
         { id: "ascension-day", title: "Kristi himmelfartsdag", startDate: calendar.ascensionDay, endDate: calendar.ascensionDay },
         { id: "whit-monday", title: "Pinse", startDate: calendar.whitMonday, endDate: calendar.whitMonday },
       ];
+  const events = [
+    { id: "school-start", title: "Skolestart", startDate: calendar.firstSchoolDay, endDate: calendar.firstSchoolDay },
+    ...storedEvents,
+    { id: "summer-break-start", title: "Sommerferie starter", startDate: calendar.lastSchoolDay, endDate: calendar.lastSchoolDay },
+  ];
+
   return events
-    .filter((event) => event.title.trim() || event.startDate || event.endDate)
+    .filter((event) => event.startDate || event.endDate)
     .map((event) => ({
       ...event,
       title: event.title.trim() || "Skolerute",
       endDate: event.endDate || event.startDate,
-    }));
+    }))
+    .sort(compareCalendarItems);
+}
+
+function compareCalendarItems(left: { startDate: string; endDate?: string }, right: { startDate: string; endDate?: string }) {
+  const leftTime = calendarSortTime(left.startDate || left.endDate || "");
+  const rightTime = calendarSortTime(right.startDate || right.endDate || "");
+  return leftTime - rightTime;
+}
+
+function calendarSortTime(value: string): number {
+  if (!value) return Number.MAX_SAFE_INTEGER;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime();
+}
+
+type TeachingWeekForExport = {
+  teachingWeek: number;
+  startDate: string;
+  endDate: string;
+  calendarWeek: number;
+};
+
+function getTeachingWeeksForPlanner(planner: Planner): TeachingWeekForExport[] {
+  const calendar = planner.frame.schoolCalendar;
+  const firstDay = parseDate(calendar.firstSchoolDay);
+  const lastDay = parseDate(calendar.lastSchoolDay);
+  if (!firstDay || !lastDay || firstDay > lastDay) return [];
+
+  const freeDates = new Set<string>();
+  const events = calendar.events.length > 0 ? calendar.events : getFallbackCalendarEvents(calendar);
+  for (const event of events) {
+    const startDate = event.startDate || event.endDate;
+    const endDate = event.endDate || event.startDate;
+    for (const date of listDatesInclusive(startDate, endDate)) {
+      if (isWeekday(date)) freeDates.add(date);
+    }
+  }
+
+  const weeks: TeachingWeekForExport[] = [];
+  let monday = startOfIsoWeek(firstDay);
+  const finalMonday = startOfIsoWeek(lastDay);
+
+  while (monday <= finalMonday && weeks.length < 60) {
+    const schoolDates: string[] = [];
+    for (let offset = 0; offset < 5; offset += 1) {
+      const date = addDays(monday, offset);
+      const key = toDateKey(date);
+      if (date >= firstDay && date <= lastDay && !freeDates.has(key)) schoolDates.push(key);
+    }
+
+    if (schoolDates.length > 0) {
+      weeks.push({
+        teachingWeek: weeks.length + 1,
+        startDate: schoolDates[0],
+        endDate: schoolDates[schoolDates.length - 1],
+        calendarWeek: getIsoWeekNumber(schoolDates[0]) ?? weeks.length + 1,
+      });
+    }
+
+    monday = addDays(monday, 7);
+  }
+
+  return weeks;
+}
+
+function formatPeriodCalendarRange(periodWeeks: string, teachingWeeks: TeachingWeekForExport[]): string {
+  if (teachingWeeks.length === 0) return periodWeeks || "uker/dato ikke satt";
+  const range = parseTeachingWeekRange(periodWeeks);
+  if (!range) return periodWeeks || "uker/dato ikke satt";
+  const selected = teachingWeeks.filter((week) => week.teachingWeek >= range.start && week.teachingWeek <= range.end);
+  if (selected.length === 0) return periodWeeks || "uker/dato ikke satt";
+  const first = selected[0];
+  const last = selected[selected.length - 1];
+  const weekLabel =
+    first.calendarWeek === last.calendarWeek ? `uke ${first.calendarWeek}` : `uke ${first.calendarWeek}-${last.calendarWeek}`;
+  return `${weekLabel} (${formatDateRange(first.startDate, last.endDate)})`;
+}
+
+function getInitiativesForPeriod(
+  period: Planner["document"]["periods"][number],
+  initiatives: Array<Planner["localFramework"]["interdisciplinaryProjects"][number] & { kind: string }>,
+  teachingWeeks: TeachingWeekForExport[]
+) {
+  const periodRange = getPeriodDateRange(period.weeks, teachingWeeks);
+  return initiatives.filter((initiative) => {
+    const initiativeStart = initiative.startDate || initiative.endDate;
+    const initiativeEnd = initiative.endDate || initiative.startDate;
+    if (periodRange && initiativeStart && initiativeEnd) {
+      return dateRangesOverlap(periodRange.startDate, periodRange.endDate, initiativeStart, initiativeEnd);
+    }
+
+    const periodWeeks = weekNumbersFromText(period.weeks);
+    const initiativeWeeks = [
+      ...new Set([
+        ...weekNumbersFromText(initiative.timing),
+        ...weekNumbersFromDates(initiativeStart, initiativeEnd),
+      ]),
+    ];
+    return initiativeWeeks.length > 0 && periodWeeks.some((week) => initiativeWeeks.includes(week));
+  });
+}
+
+function getPeriodDateRange(periodWeeks: string, teachingWeeks: TeachingWeekForExport[]) {
+  const range = parseTeachingWeekRange(periodWeeks);
+  if (!range) return null;
+  const selected = teachingWeeks.filter((week) => week.teachingWeek >= range.start && week.teachingWeek <= range.end);
+  if (selected.length === 0) return null;
+  return {
+    startDate: selected[0].startDate,
+    endDate: selected[selected.length - 1].endDate,
+  };
+}
+
+function dateRangesOverlap(leftStart: string, leftEnd: string, rightStart: string, rightEnd: string): boolean {
+  const leftStartDate = parseDate(leftStart);
+  const leftEndDate = parseDate(leftEnd);
+  const rightStartDate = parseDate(rightStart);
+  const rightEndDate = parseDate(rightEnd);
+  if (!leftStartDate || !leftEndDate || !rightStartDate || !rightEndDate) return false;
+  return leftStartDate <= rightEndDate && rightStartDate <= leftEndDate;
+}
+
+function weekNumbersFromText(value: string): number[] {
+  const numbers = new Set<number>();
+  for (const match of value.matchAll(/uke\s*(\d+)(?:\s*[-–]\s*(\d+))?/gi)) {
+    const start = Number(match[1]);
+    const end = match[2] ? Number(match[2]) : start;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    for (let week = start; week <= end && week <= start + 60; week += 1) numbers.add(week);
+  }
+  return [...numbers];
+}
+
+function weekNumbersFromDates(startDate: string, endDate: string): number[] {
+  if (!startDate && !endDate) return [];
+  const numbers = new Set<number>();
+  for (const date of listDatesInclusive(startDate || endDate, endDate || startDate)) {
+    const week = getIsoWeekNumber(date);
+    if (week) numbers.add(week);
+  }
+  return [...numbers];
+}
+
+function parseTeachingWeekRange(value: string): { start: number; end: number } | null {
+  const range = value.match(/Undervisningsuke\s*(\d+)\s*[-–]\s*(\d+)/i);
+  if (range) return { start: Number(range[1]), end: Number(range[2]) };
+  const single = value.match(/Undervisningsuke\s*(\d+)/i);
+  if (single) return { start: Number(single[1]), end: Number(single[1]) };
+  return null;
+}
+
+function getFallbackCalendarEvents(calendar: Planner["frame"]["schoolCalendar"]) {
+  return [
+    { id: "autumn-break", title: "Høstferie", startDate: calendar.autumnBreakStart, endDate: calendar.autumnBreakEnd },
+    { id: "christmas-break", title: "Juleferie", startDate: calendar.christmasBreakStart, endDate: calendar.christmasBreakEnd },
+    { id: "winter-break", title: "Vinterferie", startDate: calendar.winterBreakStart, endDate: calendar.winterBreakEnd },
+    { id: "easter-break", title: "Påskeferie", startDate: calendar.easterBreakStart, endDate: calendar.easterBreakEnd },
+    { id: "public-holiday", title: "Offentlig fridag", startDate: calendar.mayDay, endDate: calendar.mayDay },
+    { id: "national-day", title: "Nasjonaldag", startDate: calendar.constitutionDay, endDate: calendar.constitutionDay },
+    { id: "ascension-day", title: "Kristi himmelfartsdag", startDate: calendar.ascensionDay, endDate: calendar.ascensionDay },
+    { id: "whit-monday", title: "Pinse", startDate: calendar.whitMonday, endDate: calendar.whitMonday },
+  ];
+}
+
+function parseDate(value: string): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfIsoWeek(date: Date): Date {
+  const day = date.getDay() || 7;
+  return addDays(date, 1 - day);
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function listDatesInclusive(startDate: string, endDate: string): string[] {
+  const start = parseDate(startDate);
+  const end = parseDate(endDate);
+  if (!start || !end || start > end) return [];
+  const dates: string[] = [];
+  for (let date = new Date(start); date <= end; date = addDays(date, 1)) {
+    dates.push(toDateKey(date));
+  }
+  return dates;
+}
+
+function isWeekday(value: string): boolean {
+  const date = parseDate(value);
+  if (!date) return false;
+  const day = date.getDay();
+  return day >= 1 && day <= 5;
 }
 
 function formatDate(value: string): string {
@@ -304,12 +533,14 @@ function formatDate(value: string): string {
 
 function formatDateRange(startDate: string, endDate: string): string {
   if (!startDate && !endDate) return "";
+  if (!startDate) return `Til og med ${formatDate(endDate)}`;
+  if (!endDate) return `Fra ${formatDate(startDate)}`;
   if (!endDate || startDate === endDate) return formatDate(startDate);
   return `${formatDate(startDate)} - ${formatDate(endDate)}`;
 }
 
 function formatWeekRange(startDate: string, endDate: string): string {
-  const startWeek = getIsoWeekNumber(startDate);
+  const startWeek = getIsoWeekNumber(startDate || endDate);
   const endWeek = getIsoWeekNumber(endDate || startDate);
   if (!startWeek && !endWeek) return "uke ikke satt";
   if (!endWeek || startWeek === endWeek) return `uke ${startWeek}`;
