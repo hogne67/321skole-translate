@@ -1,4 +1,4 @@
-import type { Planner } from "./types";
+import type { Planner, PlannerPeriod } from "./types";
 
 export type PlannerExportOptions = {
   compactOnly?: boolean;
@@ -254,12 +254,12 @@ function pushCompactOverview(lines: string[], planner: Planner, periods: Planner
 
   if (periods.length > 0) {
     const teachingWeeks = getTeachingWeeksForPlanner(planner);
+    const officialGoals = planner.officialBasis?.competenceGoals ?? [];
     pushHeading(lines, 3, "Perioder og læringsmål");
     periods.forEach((period) => {
       lines.push(`- ${period.title || "Periode"} (${formatPeriodCalendarRange(period.weeks, teachingWeeks)})`);
-      const learningGoals = period.learningGoals.map((goal) => goal.studentLanguage || goal.goal).filter(Boolean);
-      if (learningGoals.length > 0) {
-        learningGoals.forEach((goal) => lines.push(`  - Mål: ${goal}`));
+      if (period.learningGoals.length > 0) {
+        pushGroupedPeriodLearningGoals(lines, period, officialGoals);
       } else if (period.goals.trim()) {
         lines.push(`  - Mål: ${period.goals.trim()}`);
       }
@@ -271,6 +271,43 @@ function pushCompactOverview(lines: string[], planner: Planner, periods: Planner
     });
     lines.push("");
   }
+}
+
+function pushGroupedPeriodLearningGoals(lines: string[], period: PlannerPeriod, officialGoals: string[]) {
+  const selectedGoalIds = period.officialGoalIds.length > 0
+    ? period.officialGoalIds
+    : [...new Set(period.learningGoals.flatMap((goal) => goal.sourceOfficialGoalIds))];
+  const pushedGoalIndexes = new Set<number>();
+
+  selectedGoalIds.forEach((goalId) => {
+    const groupedGoals = period.learningGoals
+      .map((goal, index) => ({ goal, index }))
+      .filter((item) => item.goal.sourceOfficialGoalIds.includes(goalId));
+    if (groupedGoals.length === 0) return;
+
+    const officialText = officialGoalText(goalId, officialGoals);
+    lines.push(`  - Kompetansemål ${formatOfficialGoalNumber(goalId)}: ${officialText || "Ikke angitt"}`);
+    groupedGoals.forEach(({ goal, index }) => {
+      pushedGoalIndexes.add(index);
+      const text = goal.studentLanguage || goal.goal;
+      if (text.trim()) lines.push(`    - Elevmål: ${text.trim()}`);
+    });
+  });
+
+  period.learningGoals.forEach((goal, index) => {
+    if (pushedGoalIndexes.has(index)) return;
+    const text = goal.studentLanguage || goal.goal;
+    if (text.trim()) lines.push(`  - Elevmål: ${text.trim()}`);
+  });
+}
+
+function officialGoalText(goalId: string, officialGoals: string[]): string {
+  const index = Number(goalId.match(/^udir-goal-(\d+)$/)?.[1] ?? 0) - 1;
+  return index >= 0 ? officialGoals[index] ?? "" : "";
+}
+
+function formatOfficialGoalNumber(goalId: string): string {
+  return goalId.match(/^udir-goal-(\d+)$/)?.[1] ?? goalId;
 }
 
 function pushMeta(lines: string[], items: Array<[string, string]>) {

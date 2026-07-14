@@ -33,7 +33,7 @@ export function createBlankPeriodStructure(frame: PlannerFrame, requestedCount: 
       status: "planned",
       title: `Periode ${index + 1}`,
       weeks: usedCalendarDates
-        ? formatCalendarWeeks(selectedWeeks)
+        ? formatCalendarWeeks(selectedWeeks, start, end)
         : `Undervisningsuke ${start}-${end}`,
       officialGoalIds: [],
       learningGoals: [],
@@ -62,7 +62,9 @@ function getTeachingWeeksFromCalendar(frame: PlannerFrame): SchoolWeek[] {
   let monday = startOfIsoWeek(firstDay);
   const finalMonday = startOfIsoWeek(lastDay);
 
-  while (monday <= finalMonday && weeks.length < 60) {
+  const maxTeachingWeeks = Math.max(1, frame.teachingWeeks || 60);
+
+  while (monday <= finalMonday && weeks.length < maxTeachingWeeks) {
     const friday = addUtcDays(monday, 4);
     const overlapsBreak = breaks.some((period) => weekdayOverlap(monday, friday, period.start, period.end) >= 3);
     if (!overlapsBreak) {
@@ -110,12 +112,35 @@ function splitBySemesters(weeks: SchoolWeek[], count: number): number[] {
   const springWeeks = weeks.length - autumnWeeks;
   if (autumnWeeks === 0 || springWeeks === 0) return splitEvenly(weeks.length, count);
 
-  const autumnCount = Math.max(1, Math.min(count - 1, Math.floor((autumnWeeks / weeks.length) * count)));
+  const targetPeriodLength = Math.max(1, Math.round(weeks.length / count));
+  const autumnCount = Math.max(1, Math.min(count - 1, Math.floor(autumnWeeks / targetPeriodLength)));
   const springCount = Math.max(1, count - autumnCount);
-  return [...splitEvenly(autumnWeeks, autumnCount), ...splitEvenly(springWeeks, springCount)];
+  return [
+    ...splitSemesterWithExtendedTail(autumnWeeks, autumnCount, targetPeriodLength),
+    ...splitSemesterWithExtendedTail(springWeeks, springCount, targetPeriodLength),
+  ];
 }
 
-function formatCalendarWeeks(weeks: SchoolWeek[]): string {
+function splitSemesterWithExtendedTail(totalWeeks: number, periodCount: number, targetLength: number): number[] {
+  if (periodCount <= 1) return [totalWeeks];
+  if (totalWeeks <= periodCount || targetLength <= 1) return splitEvenly(totalWeeks, periodCount);
+
+  const groups: number[] = [];
+  let remainingWeeks = totalWeeks;
+  let remainingPeriods = periodCount;
+
+  while (remainingPeriods > 1) {
+    const size = Math.max(1, Math.min(targetLength, remainingWeeks - (remainingPeriods - 1)));
+    groups.push(size);
+    remainingWeeks -= size;
+    remainingPeriods -= 1;
+  }
+
+  groups.push(remainingWeeks);
+  return groups;
+}
+
+function formatCalendarWeeks(weeks: SchoolWeek[], teachingWeekStart: number, teachingWeekEnd: number): string {
   if (weeks.length === 0) return "Uker ikke satt";
   const ranges: Array<{ start: SchoolWeek; end: SchoolWeek }> = [];
 
@@ -128,12 +153,17 @@ function formatCalendarWeeks(weeks: SchoolWeek[]): string {
     else ranges.push({ start: current, end: current });
   }
 
-  return ranges
+  const teachingWeekLabel =
+    teachingWeekStart === teachingWeekEnd
+      ? `Undervisningsuke ${teachingWeekStart}`
+      : `Undervisningsuke ${teachingWeekStart}-${teachingWeekEnd}`;
+  const calendarLabel = ranges
     .map(({ start, end }) => {
       const weekLabel = start.week === end.week ? `uke ${start.week}` : `uke ${start.week}-${end.week}`;
       return start.year === end.year ? `${weekLabel} (${start.year})` : `${weekLabel} (${start.year}/${end.year})`;
     })
     .join(", ");
+  return `${teachingWeekLabel} (${calendarLabel})`;
 }
 
 function parseDate(value: string): Date | null {

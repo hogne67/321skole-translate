@@ -518,7 +518,7 @@ export default function PlannerDashboardPage() {
     );
   }
 
-  function addPeriodLearningGoal(periodIndex: number) {
+  function addPeriodLearningGoal(periodIndex: number, officialGoalId = "") {
     setDirty(true);
     setPlanner((prev) =>
       prev
@@ -527,7 +527,7 @@ export default function PlannerDashboardPage() {
             document: {
               ...prev.document,
               periods: prev.document.periods.map((period, currentPeriodIndex) =>
-                currentPeriodIndex === periodIndex && period.learningGoals.length < 4
+                currentPeriodIndex === periodIndex && period.learningGoals.length < 8
                   ? {
                       ...period,
                       learningGoals: [
@@ -536,7 +536,7 @@ export default function PlannerDashboardPage() {
                           id: `period-learning-goal-${Date.now()}`,
                           goal: "",
                           studentLanguage: "",
-                          sourceOfficialGoalIds: [],
+                          sourceOfficialGoalIds: officialGoalId ? [officialGoalId] : [],
                         },
                       ],
                     }
@@ -750,8 +750,11 @@ export default function PlannerDashboardPage() {
       if (nextIndex < 0 || nextIndex >= prev.document.periods.length) return prev;
 
       const periods = [...prev.document.periods];
-      const [period] = periods.splice(index, 1);
-      periods.splice(nextIndex, 0, period);
+      const current = periods[index];
+      const target = periods[nextIndex];
+      if (!current || !target) return prev;
+      periods[index] = mergePeriodFrameWithContent(current, target);
+      periods[nextIndex] = mergePeriodFrameWithContent(target, current);
 
       return {
         ...prev,
@@ -761,6 +764,21 @@ export default function PlannerDashboardPage() {
         },
       };
     });
+  }
+
+  function mergePeriodFrameWithContent(framePeriod: PlannerPeriod, contentPeriod: PlannerPeriod): PlannerPeriod {
+    return {
+      ...framePeriod,
+      officialGoalIds: contentPeriod.officialGoalIds,
+      learningGoals: contentPeriod.learningGoals,
+      linkedGoalIds: contentPeriod.linkedGoalIds,
+      goals: contentPeriod.goals,
+      content: contentPeriod.content,
+      methods: contentPeriod.methods,
+      assessment: contentPeriod.assessment,
+      reflection: contentPeriod.reflection,
+      weekPlans: contentPeriod.weekPlans,
+    };
   }
 
   function updateWeekPlan(periodIndex: number, weekIndex: number, patch: Partial<PlannerWeekPlan>) {
@@ -3079,7 +3097,7 @@ function PeriodEditor({
   onCreateStructure: (count: number) => void;
   generatingDistribution: boolean;
   onSuggestDistribution: () => void;
-  onAddPeriodGoal: (periodIndex: number) => void;
+  onAddPeriodGoal: (periodIndex: number, officialGoalId?: string) => void;
   onUpdatePeriodGoal: (periodIndex: number, goalIndex: number, patch: Partial<PlannerPeriodLearningGoal>) => void;
   onRemovePeriodGoal: (periodIndex: number, goalIndex: number) => void;
   generatingPeriodGoalsIndex: number | null;
@@ -3238,6 +3256,9 @@ function PeriodEditor({
                 <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
                   Oppdater ukeområdene hvis skoleruta eller periodelengden er endret. Eksisterende tekst beholdes etter periodenummer.
                 </p>
+                <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
+                  Datoene følger skoleruta. Pilene inne i en periode flytter bare faglig innhold til forrige eller neste periode.
+                </p>
               </div>
               <div className="grid gap-2 sm:grid-cols-[minmax(0,220px)_auto] sm:items-end">
                 <Field label="Periodelengde">
@@ -3293,6 +3314,9 @@ function PeriodEditor({
               return (
                 <>
             <div className="flex flex-wrap justify-end gap-2">
+              <span className="inline-flex min-h-8 items-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-600">
+                Pilene flytter innhold
+              </span>
               <Link
                 href={plannerDocumentHref(locale, planner.id, "preview", {
                   audience: "student",
@@ -3318,7 +3342,7 @@ function PeriodEditor({
                 disabled={index === 0}
                 onClick={() => onMove(index, -1)}
                 className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-slate-700 disabled:opacity-40"
-                title="Flytt opp"
+                title="Flytt faglig innhold til forrige periode"
               >
                 <ArrowUp className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -3327,7 +3351,7 @@ function PeriodEditor({
                 disabled={index === periods.length - 1}
                 onClick={() => onMove(index, 1)}
                 className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-slate-700 disabled:opacity-40"
-                title="Flytt ned"
+                title="Flytt faglig innhold til neste periode"
               >
                 <ArrowDown className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -3400,7 +3424,7 @@ function PeriodEditor({
               onGenerate={() => onGeneratePeriodLearningGoals(index)}
               generatingGoalKey={generatingPeriodGoalKey}
               onGenerateGoal={(goalIndex) => onGenerateSinglePeriodLearningGoal(index, goalIndex)}
-              onAdd={() => onAddPeriodGoal(index)}
+              onAdd={(officialGoalId) => onAddPeriodGoal(index, officialGoalId)}
               onUpdate={(goalIndex, patch) => onUpdatePeriodGoal(index, goalIndex, patch)}
               onRemove={(goalIndex) => onRemovePeriodGoal(index, goalIndex)}
             />
@@ -3689,6 +3713,7 @@ function ActivityEditor({
           </nav>
           {activities.map((activity, index) => {
             const period = findActivityPeriod(activity);
+            const periodSelectValue = period ? period.title || period.id : activity.period;
             const periodGoals = period?.learningGoals ?? [];
             const generatingTeachingPlan = generatingTeachingPlanIndex === index;
             return (
@@ -3733,11 +3758,11 @@ function ActivityEditor({
                 <Input value={activity.title} onChange={(event) => onUpdate(index, { title: event.target.value })} />
               </Field>
               <Field label="Periode">
-                <Select value={activity.period} onChange={(event) => onUpdate(index, { period: event.target.value })}>
+                <Select value={periodSelectValue} onChange={(event) => onUpdate(index, { period: event.target.value })}>
                   <option value="">Ikke knyttet til periode</option>
-                  {periods.map((periodOption) => (
+                  {periods.map((periodOption, periodIndex) => (
                     <option key={periodOption.id} value={periodOption.title || periodOption.id}>
-                      {periodOption.title || `Periode ${periods.indexOf(periodOption) + 1}`}
+                      {periodOption.title || `Periode ${periodIndex + 1}`}
                     </option>
                   ))}
                 </Select>
@@ -3787,11 +3812,19 @@ function ActivityEditor({
                   </Button>
                   <button
                     type="button"
-                    onClick={() => printActivityTeachingPlan(activity)}
+                    onClick={() => printActivityDocument(activity, "teacher", periodGoals)}
                     className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
                   >
                     <Printer className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Skriv ut
+                    Lærerutskrift
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => printActivityDocument(activity, "student", periodGoals)}
+                    className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                  >
+                    <Printer className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Elevutskrift
                   </button>
                 </div>
               </div>
@@ -3811,42 +3844,108 @@ function ActivityEditor({
   );
 }
 
-function printActivityTeachingPlan(activity: PlannerActivity) {
-  const printWindow = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
+function printActivityDocument(
+  activity: PlannerActivity,
+  audience: "teacher" | "student",
+  periodGoals: PlannerPeriodLearningGoal[] = []
+) {
+  const printWindow = window.open("", "_blank", "width=900,height=1100");
   if (!printWindow) return;
 
   const title = activity.title.trim() || "Undervisningsopplegg";
-  const sections = [
+  const teacherSections = [
     ["Periode", activity.period],
     ["Beskrivelse", activity.description],
     ["Metode", activity.method],
     ["Vurdering", activity.assessment],
     ["Undervisningsopplegg", activity.teachingPlan],
   ].filter(([, value]) => value.trim());
+  const studentGoals = extractStudentGoals(activity, periodGoals);
+  const studentIntro = activity.description.trim() || "Arbeid med aktiviteten sammen med gruppen din. Skriv korte notater underveis.";
+  const documentTitle = audience === "teacher" ? title : `${title} - elevark`;
 
+  printWindow.document.open();
   printWindow.document.write(`<!doctype html>
 <html lang="nb">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(title)}</title>
+  <title>${escapeHtml(documentTitle)}</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; line-height: 1.5; }
-    h1 { font-size: 26px; margin: 0 0 18px; }
-    h2 { font-size: 15px; margin: 22px 0 6px; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; line-height: 1.5; background: #fff; }
+    .print-button { float: right; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font-weight: 700; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+    .brand img { width: 54px; height: 54px; object-fit: contain; }
+    .kicker { color: #64748b; font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .brand-title { font-size: 16px; font-weight: 900; }
+    h1 { font-size: 28px; margin: 0 0 10px; line-height: 1.15; }
+    h2 { font-size: 15px; margin: 22px 0 8px; text-transform: uppercase; color: #334155; letter-spacing: .04em; }
     p { white-space: pre-wrap; margin: 0; }
+    ul { margin: 8px 0 0; padding-left: 22px; }
+    li { margin: 4px 0; }
     .meta { color: #475569; font-size: 13px; margin-bottom: 20px; }
-    @media print { body { margin: 18mm; } button { display: none; } }
+    .section { break-inside: avoid; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+    .box { min-height: 92px; border: 1px solid #cbd5e1; border-radius: 10px; margin-top: 10px; background: linear-gradient(#fff 31px, #e2e8f0 32px); background-size: 100% 32px; }
+    .small-box { min-height: 58px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .name-line { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 22px 0; color: #475569; font-size: 13px; }
+    .line { border-bottom: 1px solid #94a3b8; min-height: 24px; }
+    @media print {
+      body { margin: 16mm; }
+      .print-button { display: none; }
+      .box { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
   </style>
 </head>
 <body>
-  <button onclick="window.print()" style="float:right;padding:8px 12px">Skriv ut</button>
-  <h1>${escapeHtml(title)}</h1>
-  <div class="meta">321Planner - undervisningsopplegg</div>
-  ${sections.map(([label, value]) => `<section><h2>${escapeHtml(label)}</h2><p>${escapeHtml(value)}</p></section>`).join("")}
+  <button class="print-button" onclick="window.print()">Skriv ut</button>
+  <header class="brand">
+    <img src="/logo321ny.png" alt="321skole" />
+    <div>
+      <div class="kicker">321Planner</div>
+      <div class="brand-title">${audience === "teacher" ? "Læreropplegg" : "Elevark"}</div>
+    </div>
+  </header>
+  ${
+    audience === "teacher"
+      ? `
+        <h1>${escapeHtml(title)}</h1>
+        <div class="meta">321Planner - print-klart undervisningsopplegg</div>
+        ${teacherSections
+          .map(([label, value]) => `<section class="section"><h2>${escapeHtml(label)}</h2><p>${escapeHtml(value)}</p></section>`)
+          .join("")}
+      `
+      : `
+        <h1>${escapeHtml(title)}</h1>
+        <div class="meta">${activity.period.trim() ? `${escapeHtml(activity.period)} · ` : ""}321Planner elevark</div>
+        <div class="name-line">
+          <div>Navn<div class="line"></div></div>
+          <div>Dato<div class="line"></div></div>
+        </div>
+        <section class="section"><h2>Dette skal vi gjøre</h2><p>${escapeHtml(studentIntro)}</p></section>
+        ${
+          studentGoals.length > 0
+            ? `<section class="section"><h2>Mål</h2><ul>${studentGoals.map((goal) => `<li>${escapeHtml(goal)}</li>`).join("")}</ul></section>`
+            : ""
+        }
+        <section class="section"><h2>Mine notater</h2><div class="box"></div></section>
+        <section class="section"><h2>Dette fant vi ut</h2><div class="box"></div></section>
+        <section class="section"><h2>Dette vil jeg huske</h2><div class="box small-box"></div></section>
+      `
+  }
 </body>
 </html>`);
   printWindow.document.close();
   printWindow.focus();
+}
+
+function extractStudentGoals(activity: PlannerActivity, periodGoals: PlannerPeriodLearningGoal[]): string[] {
+  const directGoals = periodGoals.map((goal) => goal.studentLanguage || goal.goal).filter((goal) => goal.trim().length > 0);
+  if (directGoals.length > 0) return directGoals.slice(0, 4);
+
+  const candidateText = activity.description + "\n" + activity.teachingPlan;
+  const matches = candidateText.match(/Jeg kan [^\n.!?]+[.!?]/g) ?? [];
+  return [...new Set(matches.map((match) => match.trim()))].slice(0, 4);
 }
 
 function escapeHtml(value: string) {
@@ -4130,20 +4229,42 @@ function PeriodLearningGoalsEditor({
   onGenerate: () => void;
   generatingGoalKey: string | null;
   onGenerateGoal: (goalIndex: number) => void;
-  onAdd: () => void;
+  onAdd: (officialGoalId?: string) => void;
   onUpdate: (goalIndex: number, patch: Partial<PlannerPeriodLearningGoal>) => void;
   onRemove: (goalIndex: number) => void;
 }) {
   const selectedOfficialGoalIds = new Set(period.officialGoalIds);
+  const goalsWithIndex = period.learningGoals.map((goal, goalIndex) => ({ goal, goalIndex }));
 
-  function toggleGoalSource(goalIndex: number, goalId: string) {
-    const goal = period.learningGoals[goalIndex];
-    if (!goal) return;
-    const nextIds = goal.sourceOfficialGoalIds.includes(goalId)
-      ? goal.sourceOfficialGoalIds.filter((id) => id !== goalId)
-      : [...goal.sourceOfficialGoalIds, goalId];
-    onUpdate(goalIndex, { sourceOfficialGoalIds: nextIds });
+  function officialGoalText(goalId: string): string {
+    const match = goalId.match(/^udir-goal-(\d+)$/);
+    return match ? officialGoals[Number(match[1]) - 1] ?? "" : "";
   }
+
+  function primarySourceId(goal: PlannerPeriodLearningGoal): string {
+    return goal.sourceOfficialGoalIds.find((goalId) => selectedOfficialGoalIds.has(goalId)) ?? goal.sourceOfficialGoalIds[0] ?? "";
+  }
+
+  function updateStudentGoal(goalIndex: number, value: string, officialGoalId?: string) {
+    const existing = period.learningGoals[goalIndex];
+    onUpdate(goalIndex, {
+      goal: value,
+      studentLanguage: value,
+      sourceOfficialGoalIds:
+        existing?.sourceOfficialGoalIds.length
+          ? existing.sourceOfficialGoalIds
+          : officialGoalId
+            ? [officialGoalId]
+            : [],
+    });
+  }
+
+  const officialGoalGroups = period.officialGoalIds.map((goalId) => ({
+    goalId,
+    goals: goalsWithIndex.filter((item) => primarySourceId(item.goal) === goalId),
+  }));
+  const unlinkedGoals = goalsWithIndex.filter((item) => !selectedOfficialGoalIds.has(primarySourceId(item.goal)));
+  const canAddMoreGoals = period.learningGoals.length < 8;
 
   return (
     <section className="grid gap-3 rounded-lg border border-sky-200 bg-white p-4">
@@ -4151,146 +4272,179 @@ function PeriodLearningGoalsEditor({
         <div>
           <h3 className="m-0 text-base font-black text-slate-950">Periodens konkrete læringsmål</h3>
           <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
-            Bryt kompetansemålene ned til mål læreren kan undervise mot, og elevene kan forstå og vise.
-            Dette er lokale arbeidsmål, ikke offisiell læreplantekst.
+            Kompetansemålene er rammen. Under hvert mål legger du korte elevmål som kan undervises mot,
+            forstås og vurderes i perioden.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="primary" disabled={!canGenerate || generating} onClick={onGenerate}>
             <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
-            {generating ? "Lager mål..." : "Lag nye mål"}
+            {generating ? "Lager elevmål..." : "Lag elevmål på nytt"}
           </Button>
-          <Button type="button" variant="secondary" disabled={period.learningGoals.length >= 4} onClick={onAdd}>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!canAddMoreGoals}
+            onClick={() => onAdd(period.officialGoalIds[0])}
+          >
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Legg til mål
           </Button>
         </div>
       </div>
 
-      {period.learningGoals.length === 0 ? (
+      {period.officialGoalIds.length === 0 ? (
         <p className="m-0 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
-          {canGenerate
-            ? "Ingen konkrete læringsmål er lagt inn. Lag et forslag fra valgte kompetansemål, eller legg inn mål manuelt."
-            : "Ingen konkrete læringsmål er lagt inn. Velg kompetansemål først, eller legg inn mål manuelt."}
+          Velg kompetansemål for perioden først. Da kan du legge elevmål direkte under riktig kompetansemål.
         </p>
       ) : (
         <div className="grid gap-3">
-          {period.learningGoals.map((goal, goalIndex) => {
-            const unknownSourceIds = goal.sourceOfficialGoalIds.filter((goalId) => !selectedOfficialGoalIds.has(goalId));
-            const isGeneratingGoal = generatingGoalKey === `${periodIndex}:${goalIndex}`;
+          {officialGoalGroups.map((group) => {
+            const text = officialGoalText(group.goalId);
             return (
-              <div key={goal.id} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                      Mål {goalIndex + 1} · periode {periodIndex + 1}
+              <div key={group.goalId} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="grid gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="text-xs font-black uppercase tracking-wide text-emerald-800">
+                      {formatOfficialGoalId(group.goalId)}
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {goal.sourceOfficialGoalIds.length > 0 ? (
-                        goal.sourceOfficialGoalIds.map((goalId) => (
-                          <span
-                            key={goalId}
-                            className={`rounded-full border px-2 py-0.5 text-xs font-bold ${
-                              selectedOfficialGoalIds.has(goalId)
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                : "border-amber-200 bg-amber-50 text-amber-900"
-                            }`}
-                          >
-                            {formatOfficialGoalId(goalId)}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-900">
-                          Mangler kobling til kompetansemål
-                        </span>
-                      )}
-                    </div>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-emerald-800">
+                      {group.goals.length} elevmål
+                    </span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={!canGenerate || isGeneratingGoal}
-                      onClick={() => onGenerateGoal(goalIndex)}
-                      className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-2 text-xs font-bold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Lag nytt forslag for dette ene målet"
-                    >
-                      <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                      {isGeneratingGoal ? "Lager..." : "Nytt forslag"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onRemove(goalIndex)}
-                      className="inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-white px-2 text-rose-700"
-                      title="Slett lokalt læringsmål"
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-                {unknownSourceIds.length > 0 ? (
-                  <p className="m-0 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-900">
-                    Dette målet peker på et kompetansemål som ikke er valgt i perioden. Velg målet over, eller juster koblingen senere.
+                  <p className="m-0 text-sm leading-6 text-emerald-950">
+                    {text || "Kompetansemål"}
                   </p>
-                ) : null}
-                {period.officialGoalIds.length > 0 ? (
-                  <details className="rounded-lg border border-slate-200 bg-white p-3">
-                    <summary className="cursor-pointer list-none text-sm font-black text-slate-900">
-                      Endre kobling til kompetansemål
-                    </summary>
-                    <p className="mb-0 mt-2 text-sm leading-6 text-slate-600">
-                      Hak av kompetansemålene dette konkrete læringsmålet bygger på. Dette styrer også nytt AI-forslag for akkurat dette målet.
-                    </p>
-                    <div className="mt-3 grid gap-2">
-                      {period.officialGoalIds.map((goalId) => {
-                        const match = goalId.match(/^udir-goal-(\d+)$/);
-                        const officialGoalText = match ? officialGoals[Number(match[1]) - 1] : "";
-                        const checked = goal.sourceOfficialGoalIds.includes(goalId);
-                        return (
-                          <label
-                            key={goalId}
-                            className={`grid cursor-pointer grid-cols-[auto_1fr] gap-3 rounded-lg border p-3 text-sm leading-6 ${
-                              checked
-                                ? "border-emerald-300 bg-emerald-50 text-emerald-950"
-                                : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleGoalSource(goalIndex, goalId)}
-                              className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
-                            />
-                            <span>
-                              <strong className="text-slate-950">{formatOfficialGoalId(goalId)}:</strong>{" "}
-                              {officialGoalText || "Kompetansemål"}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </details>
-                ) : null}
-                <div className="grid gap-3 lg:grid-cols-2">
-                  <Field label="Lærerformulering">
-                    <Textarea
-                      value={goal.goal}
-                      onChange={(event) => onUpdate(goalIndex, { goal: event.target.value })}
-                      rows={3}
-                      placeholder="Hva skal elevene arbeide mot faglig?"
-                    />
-                  </Field>
-                  <Field label="Elev-/deltakerspråk">
-                    <Textarea
-                      value={goal.studentLanguage}
-                      onChange={(event) => onUpdate(goalIndex, { studentLanguage: event.target.value })}
-                      rows={3}
-                      placeholder="Jeg kan ..."
-                    />
-                  </Field>
                 </div>
+                {group.goals.length === 0 ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3">
+                    <p className="m-0 text-sm text-slate-600">Ingen elevmål er lagt til for dette kompetansemålet ennå.</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={!canAddMoreGoals}
+                      onClick={() => onAdd(group.goalId)}
+                    >
+                      <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Legg til elevmål
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    {group.goals.map(({ goal, goalIndex }, localIndex) => {
+                      const isGeneratingGoal = generatingGoalKey === `${periodIndex}:${goalIndex}`;
+                      return (
+                        <div key={goal.id} className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="text-xs font-black uppercase tracking-wide text-slate-500">
+                              Elevmål {localIndex + 1}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                disabled={!canGenerate || isGeneratingGoal}
+                                onClick={() => onGenerateGoal(goalIndex)}
+                                className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-2 text-xs font-bold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                title="Lag nytt forslag for dette elevmålet"
+                              >
+                                <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                                {isGeneratingGoal ? "Lager..." : "Nytt forslag"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onRemove(goalIndex)}
+                                className="inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-white px-2 text-rose-700"
+                                title="Slett elevmål"
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            </div>
+                          </div>
+                          <Field label="Elev-/deltakermål">
+                            <Textarea
+                              value={goal.studentLanguage || goal.goal}
+                              onChange={(event) => updateStudentGoal(goalIndex, event.target.value, group.goalId)}
+                              rows={2}
+                              placeholder="Jeg kan ..."
+                            />
+                          </Field>
+                        </div>
+                      );
+                    })}
+                    <div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={!canAddMoreGoals}
+                        onClick={() => onAdd(group.goalId)}
+                      >
+                        <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Legg til elevmål
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
+          {unlinkedGoals.length > 0 ? (
+            <div className="grid gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <div>
+                <h4 className="m-0 text-sm font-black text-amber-950">Mål uten tydelig kobling</h4>
+                <p className="mb-0 mt-1 text-sm leading-6 text-amber-900">
+                  Disse målene kommer fra eldre struktur eller peker på et kompetansemål som ikke er valgt i perioden.
+                  Flytt dem ved å slette og legge til elevmålet under riktig kompetansemål.
+                </p>
+              </div>
+              {unlinkedGoals.map(({ goal, goalIndex }) => {
+                const isGeneratingGoal = generatingGoalKey === `${periodIndex}:${goalIndex}`;
+                return (
+                  <div key={goal.id} className="grid gap-2 rounded-lg border border-amber-200 bg-white p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-black uppercase tracking-wide text-amber-800">
+                        {goal.sourceOfficialGoalIds.map(formatOfficialGoalId).join(", ") || "Uten kobling"}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={!canGenerate || isGeneratingGoal}
+                          onClick={() => onGenerateGoal(goalIndex)}
+                          className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-300 bg-white px-2 text-xs font-bold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          title="Lag nytt forslag for dette elevmålet"
+                        >
+                          <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                          {isGeneratingGoal ? "Lager..." : "Nytt forslag"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onRemove(goalIndex)}
+                          className="inline-flex h-8 items-center justify-center rounded-lg border border-rose-200 bg-white px-2 text-rose-700"
+                          title="Slett elevmål"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                    <Field label="Elev-/deltakermål">
+                      <Textarea
+                        value={goal.studentLanguage || goal.goal}
+                        onChange={(event) => updateStudentGoal(goalIndex, event.target.value)}
+                        rows={2}
+                        placeholder="Jeg kan ..."
+                      />
+                    </Field>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+          {period.learningGoals.length === 0 ? (
+            <p className="m-0 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
+              {canGenerate
+                ? "Ingen elevmål er lagt inn. Lag et forslag fra valgte kompetansemål, eller legg inn mål manuelt."
+                : "Ingen elevmål er lagt inn."}
+            </p>
+          ) : null}
         </div>
       )}
     </section>
@@ -4308,6 +4462,12 @@ function OfficialGoalSelector({
 }) {
   const [open, setOpen] = useState(false);
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
+  const selectedGoalItems = selectedIds
+    .map((goalId) => {
+      const index = Number(goalId.match(/^udir-goal-(\d+)$/)?.[1] ?? 0) - 1;
+      return { goalId, index, text: index >= 0 ? goals[index] ?? "" : "" };
+    })
+    .filter((item) => item.text.trim());
 
   function toggleGoal(goalId: string) {
     onChange(selectedIds.includes(goalId) ? selectedIds.filter((id) => id !== goalId) : [...selectedIds, goalId]);
@@ -4329,14 +4489,48 @@ function OfficialGoalSelector({
     >
       <summary className="cursor-pointer list-none">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="m-0 text-sm font-black text-slate-950">Endre eller legg til kompetansemål for perioden</h3>
+          <h3 className="m-0 text-sm font-black text-slate-950">Kompetansemål i perioden</h3>
           <span className="text-xs font-bold text-emerald-800">{selectedIds.length} av {goals.length} valgt</span>
         </div>
+        {selectedGoalItems.length > 0 ? (
+          <div className="mt-2 grid gap-1">
+            {selectedGoalItems.map((item) => (
+              <p key={item.goalId} className="m-0 text-sm leading-6 text-slate-700">
+                <strong className="text-slate-950">Mål {item.index + 1}:</strong> {item.text}
+              </p>
+            ))}
+          </div>
+        ) : (
+          <p className="mb-0 mt-2 text-sm text-slate-600">Ingen kompetansemål er valgt for perioden.</p>
+        )}
       </summary>
       <div className="mt-3 border-t border-slate-200 pt-3">
         <p className="mb-0 mt-2 text-sm leading-6 text-slate-600">
-          Hak av kompetansemålene perioden faktisk skal arbeide med. Teksten er hentet ordrett fra det lagrede Udir-grunnlaget.
+          Bytt eller legg til kompetansemål perioden faktisk skal arbeide med. Etter endring kan du lage nye elevmål for
+          de valgte målene.
         </p>
+        {selectedGoalItems.length > 0 ? (
+          <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+            <div className="text-xs font-black uppercase tracking-wide text-emerald-800">Valgt nå</div>
+            <div className="mt-2 grid gap-2">
+              {selectedGoalItems.map((item) => (
+                <label key={item.goalId} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-emerald-950">
+                  <input
+                    type="checkbox"
+                    checked
+                    onChange={() => toggleGoal(item.goalId)}
+                    className="mt-1 h-4 w-4 shrink-0"
+                  />
+                  <span>
+                    <span className="font-black">Kompetansemål {item.index + 1}: </span>
+                    {item.text}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <div className="mt-3 text-xs font-black uppercase tracking-wide text-slate-500">Alle kompetansemål</div>
         <div className="mt-3 grid gap-2">
           {goals.map((goal, index) => {
             const goalId = `udir-goal-${index + 1}`;

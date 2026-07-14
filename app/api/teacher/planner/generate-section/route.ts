@@ -108,6 +108,101 @@ function parseActivities(value: unknown): PlannerActivity[] {
   return activities.map((activity, index) => normalizePlannerActivity(activity, index));
 }
 
+function parsePeriodActivities(value: unknown, periods: PlannerPeriod[]): PlannerActivity[] {
+  if (periods.length === 0) return parseActivities(value);
+
+  const generatedActivities = parseActivities(value);
+  const usedGeneratedIndexes = new Set<number>();
+
+  return periods.flatMap((period, periodIndex) => {
+    const periodTitle = getPeriodTitle(period, periodIndex);
+    const targetCount = targetActivityCountForPeriod(period);
+    const selectedActivities: PlannerActivity[] = [];
+
+    generatedActivities.forEach((activity, activityIndex) => {
+      if (usedGeneratedIndexes.has(activityIndex) || selectedActivities.length >= targetCount) return;
+      if (!activityMatchesPeriod(activity, period)) return;
+      usedGeneratedIndexes.add(activityIndex);
+      selectedActivities.push(activity);
+    });
+
+    while (selectedActivities.length < targetCount) {
+      const unassignedIndex = generatedActivities.findIndex(
+        (activity, activityIndex) =>
+          !usedGeneratedIndexes.has(activityIndex) &&
+          (!activity.period.trim() || !periods.some((candidate) => activityMatchesPeriod(activity, candidate)))
+      );
+
+      if (unassignedIndex === -1) break;
+      usedGeneratedIndexes.add(unassignedIndex);
+      selectedActivities.push(generatedActivities[unassignedIndex]);
+    }
+
+    while (selectedActivities.length < targetCount) {
+      selectedActivities.push(createFallbackActivity(period, periodIndex, selectedActivities.length));
+    }
+
+    return selectedActivities.slice(0, targetCount).map((activity, activityIndex) => ({
+      ...activity,
+      id: activity.id.trim() || `activity-${period.id}-${activityIndex + 1}`,
+      title: activity.title.trim() || fallbackActivityTitle(period, activityIndex),
+      period: periodTitle,
+      description: activity.description.trim() || fallbackActivityDescription(period),
+      method: activity.method.trim() || period.methods.trim() || "Samarbeid, samtale og kort deling i klassen.",
+      assessment: activity.assessment.trim() || period.assessment.trim() || "Observer deltakelse og korte elevprodukter.",
+      teachingPlan: activity.teachingPlan.trim(),
+    }));
+  });
+}
+
+function getPeriodTitle(period: PlannerPeriod, index: number): string {
+  return period.title.trim() || `Periode ${index + 1}`;
+}
+
+function targetActivityCountForPeriod(period: PlannerPeriod): number {
+  if (period.officialGoalIds.length >= 2) return 2;
+  return 1;
+}
+
+function createFallbackActivity(period: PlannerPeriod, periodIndex: number, activityIndex: number): PlannerActivity {
+  const topic = fallbackActivityTopic(period);
+  return {
+    id: `activity-${period.id}-${activityIndex + 1}`,
+    title: fallbackActivityTitle(period, activityIndex),
+    period: getPeriodTitle(period, periodIndex),
+    description: fallbackActivityDescription(period),
+    method: period.methods.trim() || "Samarbeid, samtale og kort deling i klassen.",
+    assessment: period.assessment.trim() || "Observer deltakelse og korte elevprodukter.",
+    teachingPlan: `Formål: Elevene arbeider praktisk med ${topic}.\nTidsbruk: 75-90 minutter.\nGjennomføring: Start med en kort felles samtale. La elevene arbeide parvis eller i små grupper. Avslutt med god tid til deling og oppsummering.\nVurdering: Se etter om elevene kan forklare hva de har gjort og knytte arbeidet til periodens mål.`,
+  };
+}
+
+function fallbackActivityTitle(period: PlannerPeriod, activityIndex: number): string {
+  const prefix = activityIndex === 0 ? "Aktivitet" : `Aktivitet ${activityIndex + 1}`;
+  return `${prefix}: ${capitalizeFirst(fallbackActivityTopic(period))}`;
+}
+
+function fallbackActivityDescription(period: PlannerPeriod): string {
+  return `Elevene arbeider med ${fallbackActivityTopic(period)} gjennom en kort praktisk aktivitet.`;
+}
+
+function fallbackActivityTopic(period: PlannerPeriod): string {
+  const firstLearningGoal = period.learningGoals
+    .map((goal) => goal.studentLanguage || goal.goal)
+    .find((goal) => goal.trim().length > 0);
+  const rawTopic = firstLearningGoal || period.content || period.goals || period.title || "periodens mål";
+  return rawTopic
+    .replace(/^jeg kan\s+/i, "")
+    .replace(/[.!?]+$/g, "")
+    .trim()
+    .slice(0, 90)
+    .toLowerCase();
+}
+
+function capitalizeFirst(value: string): string {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+}
+
 function parseTeachingPlan(value: unknown): string {
   const record = isRecord(value) ? value : {};
   return typeof record.teachingPlan === "string" ? record.teachingPlan.trim().slice(0, 6000) : "";
@@ -201,6 +296,36 @@ function plannerLanguageInstruction(language: string): string {
   ].join(" ");
 }
 
+function levelProgressionInstruction(level: string): string {
+  const grade = Number(level.match(/\d+/)?.[0] ?? 0);
+  if (!Number.isFinite(grade) || grade <= 0) {
+    return "Adapt local learning goals to the stated level. Make them concrete, realistic, and suitable for the learners.";
+  }
+  if (grade <= 5) {
+    return [
+      "This is an early grade within a multi-year curriculum cycle.",
+      "Make local learning goals introductory, concrete, and accessible.",
+      "Prefer verbs such as undersøke, beskrive, samtale om, finne eksempler, bruke enkle kilder, forklare med egne ord, and sammenligne enkle eksempler.",
+      "Break complex official goals into small steps: understand key words, try a simple method, and tell or show findings to others.",
+      "Example: for an official goal about conducting a social studies investigation and presenting results digitally, suitable grade 5 goals are like 'Jeg kan forklare ordet undersøkelse', 'Jeg kan lage en enkel undersøkelse', and 'Jeg kan fortelle om undersøkelsen til andre i klassen'.",
+      "After the method has been introduced, later goals may practice the method inside the current theme, for example 'Jeg kan lage et enkelt spørsmål om bærekraft' or 'Jeg kan finne eksempler på spor fra fortiden'.",
+      "Avoid making the local goals too analytical or advanced unless the official goal clearly requires it.",
+    ].join(" ");
+  }
+  if (grade >= 7) {
+    return [
+      "This is a later grade within a multi-year curriculum cycle.",
+      "Local learning goals may be more analytical and independent.",
+      "Use deeper work such as drøfte, vurdere, begrunne, sammenligne, analysere, and presentere when supported by the official goal.",
+    ].join(" ");
+  }
+  return [
+    "This is a middle grade within a multi-year curriculum cycle.",
+    "Balance introductory work and deeper work.",
+    "Let local learning goals build progression toward later analytical work.",
+  ].join(" ");
+}
+
 export async function POST(req: Request) {
   try {
     const access = await requireTeacherAccess(req);
@@ -232,6 +357,7 @@ export async function POST(req: Request) {
     const officialBasis = normalizeOfficialCurriculumBasis(body.officialBasis);
     const localFramework = normalizePlannerLocalFramework(body.localFramework);
     const languageInstruction = plannerLanguageInstruction(frame.language);
+    const progressionInstruction = levelProgressionInstruction(frame.level);
 
     if (
       kind !== "annual" &&
@@ -367,25 +493,34 @@ Existing plan:
 - Learning goals: ${document.learningGoals}
 - Work methods: ${document.workMethods}
 - Assessment forms: ${document.assessmentForms}
-- Periods: ${document.periods
+- Periods and required activity count: ${document.periods
                   .map(
-                    (period) =>
-                      `${period.id}: ${period.title || "Untitled"} (${period.weeks})
+                    (period, index) =>
+                      `${period.id}: ${getPeriodTitle(period, index)} (${period.weeks})
+  Required activities for this period: ${targetActivityCountForPeriod(period)}
+  Official goal IDs in focus: ${period.officialGoalIds.join(", ") || "None registered"}
   Local learning goals: ${
     period.learningGoals.map((goal) => goal.studentLanguage || goal.goal).filter(Boolean).join("; ") || period.goals || "None registered"
   }
-  Content: ${period.content || "None registered"}`
+  Content: ${period.content || "None registered"}
+  Methods: ${period.methods || "None registered"}
+  Assessment: ${period.assessment || "None registered"}`
                   )
                   .join("\n")}
 
-Create 6 to 10 practical activity suggestions.
+Create activity suggestions period by period.
+For every period listed above, create exactly the required number of activities.
+If a period has one official competence goal in focus, create one activity suggestion.
+If a period has two official competence goals in focus, create two activity suggestions, one for each main focus when possible.
+Do not create more than two activities for one period.
 These are teacher-led classroom activities such as group work, presentation, exploration, discussion, practical work, role play, station work, or short projects.
 Do not create reading texts, worksheets, digital platform tasks, textbook exercises, quizzes, or assignments meant for Spaces.
 Each activity should connect naturally to one period and its local learning goals.
 For each activity, create a print-ready teaching plan that a teacher can use directly as a standalone classroom activity.
 The teaching plan should be concise but complete, with purpose, estimated time, organization, materials if needed, step-by-step flow, teacher support, student output, and simple assessment/follow-up.
+Estimate enough time for real classroom use. Practical social activities often need 75-90 minutes, and larger group work or presentations may need 90-120 minutes. Avoid unrealistically short time estimates unless the activity is clearly a short starter.
 Write in the plan language.
-Set "period" to the exact period title from the list above. If no period fits, use an empty string.
+Set "period" to the exact period title from the list above. Never leave "period" empty when the activity belongs to a listed period.
 
 Return exact JSON:
 {
@@ -602,13 +737,21 @@ Return exact JSON:
 Create one improved concrete local learning goal for one period, based only on the supplied official curriculum goals.
 
 Strict rules:
-- Create exactly one learning goal.
+- Create exactly one short student-facing learning goal.
 - The learning goal must be observable and suitable for planning, but must not contain activities or assessment tasks.
-- Add a plain student/participant version of the same goal.
+- Do not create a separate teacher formulation. Set "goal" and "studentLanguage" to the same student-facing text.
+- The text should normally start with "Jeg kan" unless another short student-friendly phrasing is clearly better.
+- For grades 1 to 6, the student-facing goal must never be longer than 15 words.
+- For grades 1 to 6, translate curriculum language into words a 10-year-old can use.
+- For grades 1 to 6, never copy long subordinate clauses from official curriculum goals into the student goal.
+- For grades 1 to 6, do not start student goals with "Jeg kan drøfte" or "Jeg kan reflektere". Use "Jeg kan samtale om", "Jeg kan forklare", or "Jeg kan fortelle hva jeg tenker" instead.
+- Every student-facing goal must be a complete Norwegian sentence ending with punctuation.
+- Never end abruptly after words such as "knyttet", "er", "om", "som", "og", "til", or "med".
 - The learning goal must reference at least one supplied official goal ID.
 - Use only the official goal IDs supplied below.
 - Do not quote, rewrite, summarize, or claim that the local learning goal is official curriculum text.
 - Return no activities, teaching methods, assessment criteria, or lesson content.
+- Grade progression: ${progressionInstruction}
 
 Subject: ${frame.subject}
 Level: ${frame.level}
@@ -643,14 +786,24 @@ Return exact JSON:
 Create concrete local learning goals for one period, based only on the selected official curriculum goals.
 
 Strict rules:
-- Create 1 to 4 concrete learning goals.
+- Create student-facing learning goals grouped by the selected official curriculum goals.
+- For each selected official goal, create 1 to 3 short student-facing learning goals.
+- If the period has two selected official goals, create learning goals for both, normally 2 for each official goal.
 - Each learning goal must be observable and suitable for planning, but must not contain activities or assessment tasks.
-- Add a plain student/participant version of the same goal.
+- Do not create separate teacher formulations. Set "goal" and "studentLanguage" to the same student-facing text.
+- Each text should normally start with "Jeg kan" unless another short student-friendly phrasing is clearly better.
+- For grades 1 to 6, each student-facing goal must never be longer than 15 words.
+- For grades 1 to 6, translate curriculum language into words a 10-year-old can use.
+- For grades 1 to 6, never copy long subordinate clauses from official curriculum goals into student goals.
+- For grades 1 to 6, do not start student goals with "Jeg kan drøfte" or "Jeg kan reflektere". Use "Jeg kan samtale om", "Jeg kan forklare", or "Jeg kan fortelle hva jeg tenker" instead.
+- Every student-facing goal must be a complete Norwegian sentence ending with punctuation.
+- Never end abruptly after words such as "knyttet", "er", "om", "som", "og", "til", or "med".
 - Every learning goal must reference at least one supplied official goal ID.
 - Every supplied official goal ID must be referenced by at least one learning goal.
 - Use only the official goal IDs supplied below.
 - Do not quote, rewrite, summarize, or claim that the local learning goals are official curriculum text.
 - Return no activities, teaching methods, assessment criteria, or lesson content.
+- Grade progression: ${progressionInstruction}
 
 Subject: ${frame.subject}
 Level: ${frame.level}
@@ -690,6 +843,36 @@ Strict rules:
 - Every period must have at least one official goal ID.
 - Return exactly one assignment object for every official goal ID, in the same order as the supplied list.
 - Keep each period focused. Do not assign many official goals to every period.
+- Do not simply assign official goal 1 to period 1, goal 2 to period 2, and so on unless that is genuinely the best pedagogical sequence.
+- First look for natural placement based on local projects/theme weeks, period timing, broad subject themes, method progression and grade progression.
+- If a locked local project/theme week overlaps a period, consider whether one or more official goals fit that project especially well, and place those goals in that period when professionally reasonable.
+- Preserve full curriculum coverage even when thematic placement changes the order.
+- Treat the first official goal assigned to a period as the period's primary focus.
+- When a period has two official goals, treat the first as the primary focus and the second as a supporting focus.
+- Choose supporting goals because they share a core element, method, concept, skill, theme, or natural progression with the primary goal, not just because they are unused.
+- Local learning goals, content, methods and assessment should build on the primary focus and, when relevant, connect naturally to the supporting focus.
+- Do not mix unrelated goals inside the same local learning goal.
+- Avoid repeating the same "Jeg kan" formula across periods. Vary sentence structure and active verbs.
+- Keep student-facing goals short enough for the grade, normally 6 to 12 words for grade 5.
+- For grades 1 to 6, each student-facing goal must never be longer than 15 words. If it is longer, the answer is wrong.
+- For grade 5, prefer concrete verbs such as finne, lage, beskrive, forklare med egne ord, samtale om, sammenligne to eksempler, sortere and vise. Use heavier verbs such as drofte, reflektere and analysere only when the student goal is still simple and concrete.
+- For grade 5, do not copy long official phrases into student goals. Break them into small, understandable actions.
+- For grades 1 to 6, translate curriculum language into words a 10-year-old can use.
+- For grades 1 to 6, never copy long subordinate clauses from official curriculum goals into student goals.
+- For grades 1 to 6, do not start student goals with "Jeg kan drøfte" or "Jeg kan reflektere". Use "Jeg kan samtale om", "Jeg kan forklare", or "Jeg kan fortelle hva jeg tenker" instead.
+- Every student-facing goal must be a complete Norwegian sentence ending with punctuation.
+- Never end abruptly after words such as "knyttet", "er", "om", "som", "og", "til", or "med".
+- If the official goal contains "reflektere over", the grade 5 student goal can often be "Jeg kan fortelle hva jeg tenker om ..." or "Jeg kan forklare med egne ord ...".
+- If the official goal contains "drøfte", the grade 5 student goal can often be "Jeg kan samtale om ..." or "Jeg kan gi en grunn for ...".
+- Avoid awkward copied phrases such as "Jeg kan finne eksempler som viser noe om gi eksempler på ...".
+- Do not use the same method sentence, such as "Jeg kan finne eksempler..." or "Jeg kan lage et enkelt spørsmål...", in every period.
+- Keep all local learning goals in the same period thematically connected.
+- Use active verbs suitable for the level, for example undersoke, beskrive, sortere, samtale om, kjenne igjen, forklare sammenhengen mellom, finne eksempler, lage en enkel undersokelse.
+- When pairing a supporting official goal with a primary goal, choose a goal from the same broad theme or method. Examples of broad themes are sources/method, media/digital life, history/change, geography/sustainability, democracy/rights/laws, identity/diversity/belonging, economy/consumption.
+- Do not pair identity/body/boundaries goals with historical livelihood or technology goals unless the period content explicitly creates that connection.
+- Do not pair laws/rules/norms with sustainability unless the period content explicitly works with laws, rules or democratic decisions about sustainability.
+- Let social studies investigation become a method thread: after it is introduced, later periods may practice it through the period's theme, such as geography, democracy or sustainability.
+- When the number of official goals is close to or higher than the number of periods, assign one primary official goal per period whenever possible.
 - If there are fewer official goals than periods, repeat selected goals so no periods are left empty.
 - For periods that are about one week long, let the same official goal continue across 2 to 3 consecutive week periods when that is pedagogically better than changing goal every week.
 - For about three-week periods, a goal may be repeated in two periods when needed to cover the full year.
@@ -697,13 +880,26 @@ Strict rules:
 - If a goal appears in more than one period, those periods should normally be close together in the sequence.
 - Use the sequence and week ranges of the periods.
 - Also create local learning goals for every period.
-- For one-week periods, create 1 local learning goal.
-- For three-week periods, create exactly 3 local learning goals.
-- For four- or five-week periods, create at least 3 local learning goals and no more than 4.
+- Local learning goals must be grouped by the official goal they belong to.
+- For one-week periods, create 1 local learning goal for each official goal in focus.
+- For three-week periods with one official goal in focus, create exactly 3 local learning goals for that goal.
+- For three-week periods with two official goals in focus, create exactly 2 local learning goals for each official goal.
+- For four- or five-week periods, create at least 3 local learning goals per primary official goal, and at least 2 for a supporting official goal.
 - Each local learning goal must be observable and suitable for planning, but must not include activities, teaching methods, assessment tasks, or lesson content.
-- Each local learning goal must have a plain student/participant version.
-- Keep each teacher-facing learning goal to one short sentence.
-- Keep each student/participant version to one short "Jeg kan ..." sentence.
+- Do not create separate teacher formulations. Set "goal" and "studentLanguage" to the same student-facing text.
+- Keep each learning goal to one short "Jeg kan ..." sentence.
+- Do not use repeated generic filler goals such as "Jeg kan vise hva jeg har lært" or "Jeg kan bruke riktige begreper" unless the supplied official goal specifically requires that focus.
+- When a period has 3 local learning goals, make the goals cover different concrete parts of the selected official goal or goals.
+- If a period has two official goals, do not let all local learning goals come from only one of them.
+- A local learning goal must use the theme of its own sourceOfficialGoalIds. Do not borrow topic labels from another period or another official goal.
+- If sourceOfficialGoalIds points to geography, do not write goals about sources, identity, digital judgement or democracy unless that source goal actually contains that theme.
+- If sourceOfficialGoalIds points to laws, rules and norms, write goals about laws and rules, not digital judgement.
+- If sourceOfficialGoalIds points to democracy, write goals about democracy or influence, not sources.
+- If sourceOfficialGoalIds points to digital interaction, write goals about digital interaction or judgement, not identity and body boundaries.
+- Do not use the word "påvirke" alone to decide the topic. Use the actual source goal theme: sources, geography, democracy, identity, laws, sustainability, and so on.
+- Do not turn human rights or equality goals into goals about fordommer unless the source goal explicitly mentions fordommer, rasisme or diskriminering.
+- For social studies and similar subjects, prefer goals about investigating, comparing, explaining, using sources, perspectives, participation, rights, geography, history, society, and consequences when relevant to the supplied official goal.
+- Grade progression: ${progressionInstruction}
 - Each local learning goal must reference at least one official goal ID assigned to that same period.
 - Also create period planning suggestions for every period.
 - Period planning suggestions must be concise, editable teacher notes, not a finished lesson plan.
@@ -714,7 +910,9 @@ Strict rules:
 - Do not use placeholder text such as "choose content", "select content", "velg faglig innhold", or "fill in".
 - Do not create week plans, detailed activities, worksheets, homework, or long lesson sequences.
 - Locked local projects and theme weeks must be respected and placed in the period that best matches their timing.
-- Mention locked local projects/theme weeks in the relevant period's content or methods.
+- Locked local projects/theme weeks must shape the relevant period's "content" and "methods", not only be mentioned as a note.
+- If a locked project includes group work, presentation, practical product, theme week, or shared school focus, include that naturally in the matching period's broad content and working methods.
+- Keep the official goals as the curriculum basis, but let the local project decide a practical angle for the period when timing overlaps.
 - Local projects and theme weeks are context only and must not be changed.
 
 Subject: ${frame.subject}
@@ -916,15 +1114,16 @@ Return exact JSON:
       const distribution = validateOfficialGoalDistribution(
         parsed,
         document.periods,
-        officialBasis?.competenceGoals.length ?? 0,
-        [...localFramework.interdisciplinaryProjects, ...localFramework.themeWeeks].filter((item) => item.locked)
+        officialBasis?.competenceGoals ?? [],
+        [...localFramework.interdisciplinaryProjects, ...localFramework.themeWeeks].filter((item) => item.locked),
+        frame.level
       );
       if (!distribution) return json({ error: "AI returned an invalid or incomplete official goal distribution" }, 500);
       return json({ ...distribution, quota: quotaAfter }, 200);
     }
 
     if (kind === "periodLearningGoal") {
-      const goal = validateSinglePeriodLearningGoal(parsed, singleGoalOfficialGoalIds);
+      const goal = validateSinglePeriodLearningGoal(parsed, singleGoalOfficialGoalIds, frame.level);
       if (!goal) {
         return json({ error: "AI returned an invalid period learning goal" }, 500);
       }
@@ -932,7 +1131,7 @@ Return exact JSON:
     }
 
     if (kind === "periodLearningGoals") {
-      const result = validatePeriodLearningGoals(parsed, selectedPeriod?.officialGoalIds ?? []);
+      const result = validatePeriodLearningGoals(parsed, selectedPeriod?.officialGoalIds ?? [], frame.level);
       if (!result) {
         return json({ error: "AI returned invalid or incomplete period learning goals" }, 500);
       }
@@ -960,7 +1159,7 @@ Return exact JSON:
       return json({ teachingPlan, quota: quotaAfter }, 200);
     }
 
-    const activities = parseActivities(parsed);
+    const activities = parsePeriodActivities(parsed, document.periods);
     if (activities.length === 0) return json({ error: "Could not generate activities" }, 500);
     return json({ activities, quota: quotaAfter }, 200);
   } catch (error) {
