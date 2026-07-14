@@ -547,6 +547,7 @@ export function normalizeOfficialCurriculumBasis(value: unknown): OfficialCurric
     },
     competenceLevel: stringOrDefault(value.competenceLevel),
     competenceGoals: stringArrayOrDefault(value.competenceGoals).slice(0, 200),
+    assessment: normalizeOfficialSections(value.assessment),
     coreElements: normalizeOfficialSections(value.coreElements),
     interdisciplinaryThemes: normalizeOfficialSections(value.interdisciplinaryThemes),
     basicSkills: normalizeOfficialSections(value.basicSkills),

@@ -27,6 +27,7 @@ export type OfficialCurriculumBasis = {
   };
   competenceLevel: string;
   competenceGoals: string[];
+  assessment: OfficialCurriculumSection[];
   coreElements: OfficialCurriculumSection[];
   interdisciplinaryThemes: OfficialCurriculumSection[];
   basicSkills: OfficialCurriculumSection[];
@@ -103,6 +104,7 @@ export async function fetchOfficialCurriculumBasis(input: {
   const hoursHtml = await fetchUdirHtml(urls.hours);
 
   const competenceGoals = extractCompetenceGoals(competenceHtml);
+  const assessment = extractAssessmentSections(competenceHtml);
   const coreElements = extractCurriculumSections(coreElementsHtml);
   const interdisciplinaryThemes = extractCurriculumSections(themesHtml);
   const basicSkills = extractCurriculumSections(basicSkillsHtml);
@@ -132,6 +134,7 @@ export async function fetchOfficialCurriculumBasis(input: {
     },
     competenceLevel: competenceLink.label,
     competenceGoals,
+    assessment,
     coreElements,
     interdisciplinaryThemes,
     basicSkills,
@@ -237,6 +240,14 @@ function extractCompetenceGoals(html: string): string[] {
     .get()
     .filter(Boolean);
   return Array.from(new Set(goals));
+}
+
+function extractAssessmentSections(html: string): OfficialCurriculumSection[] {
+  return extractCurriculumSections(html).filter((section) => {
+    const title = section.title.toLocaleLowerCase("nb-NO");
+    const text = section.text.toLocaleLowerCase("nb-NO");
+    return title.includes("vurdering") || text.includes("underveisvurdering");
+  });
 }
 
 function extractCurriculumSections(html: string): OfficialCurriculumSection[] {

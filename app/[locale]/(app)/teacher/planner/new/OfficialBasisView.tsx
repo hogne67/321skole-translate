@@ -51,6 +51,7 @@ export function OfficialBasisView({
         </ol>
       </OfficialSection>
 
+      <CurriculumSections title="Kompetansemål og vurdering" sections={basis.assessment} />
       <CurriculumSections title="Kjerneelementer" sections={basis.coreElements} />
       <CurriculumSections title="Tverrfaglige temaer" sections={basis.interdisciplinaryThemes} />
       <CurriculumSections title="Grunnleggende ferdigheter" sections={basis.basicSkills} />

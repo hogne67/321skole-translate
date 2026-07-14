@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { User } from "firebase/auth";
 import {
   ArrowDown,
   ArrowUp,
@@ -54,6 +55,19 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { PlannerWorkspaceNav } from "./PlannerWorkspaceNav";
 
 type ActiveKey = "overview" | "official" | "annual" | "local" | "calendar" | "semesters" | "periods" | "activities" | "reflections" | "print" | "settings";
+
+type SchoolCalendarImportResult = {
+  sourceUrl: string;
+  sourceTitle: string;
+  fetchedAt: string;
+  confidence: "high" | "medium" | "low";
+  notes: string[];
+  debugLines: string[];
+  firstSchoolDay: string;
+  lastSchoolDay: string;
+  officialSchoolDays: number;
+  events: PlannerSchoolCalendarEvent[];
+};
 
 const COUNTRIES = ["Norge", "England", "Brasil", "Egendefinert"];
 const SCHOOL_TYPES = [
@@ -1897,6 +1911,7 @@ export default function PlannerDashboardPage() {
           />
         ) : active === "calendar" ? (
           <SchoolCalendarEditor
+            user={user}
             frame={planner.frame}
             onUpdate={updateSchoolCalendar}
           />
@@ -2777,6 +2792,7 @@ function OfficialBasisPanel({ planner }: { planner: Planner }) {
           ))}
         </ol>
       </OfficialBasisSection>
+      <OfficialCurriculumSections title="Kompetansemål og vurdering" sections={basis.assessment} />
       <OfficialCurriculumSections title="Kjerneelementer" sections={basis.coreElements} />
       <OfficialCurriculumSections title="Tverrfaglige temaer" sections={basis.interdisciplinaryThemes} />
       <OfficialCurriculumSections title="Grunnleggende ferdigheter" sections={basis.basicSkills} />
@@ -2830,12 +2846,18 @@ function OfficialCurriculumSections({
   return (
     <OfficialBasisSection title={title}>
       <div className="grid gap-4">
-        {sections.map((section, index) => (
-          <div key={`${title}-${index}`}>
-            {section.title ? <h4 className="m-0 text-sm font-black text-slate-950">{section.title}</h4> : null}
-            <p className="mb-0 mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">{section.text}</p>
-          </div>
-        ))}
+        {sections.length > 0 ? (
+          sections.map((section, index) => (
+            <div key={`${title}-${index}`}>
+              {section.title ? <h4 className="m-0 text-sm font-black text-slate-950">{section.title}</h4> : null}
+              <p className="mb-0 mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">{section.text}</p>
+            </div>
+          ))
+        ) : (
+          <p className="m-0 text-sm font-semibold text-amber-800">
+            Denne delen ble ikke hentet sikkert fra Udir for denne planen.
+          </p>
+        )}
       </div>
     </OfficialBasisSection>
   );
@@ -3435,7 +3457,7 @@ function PeriodEditor({
                 onChange={(linkedGoalIds) => onUpdate(index, { linkedGoalIds })}
               />
             ) : null}
-            <Field label="Notater om periodens mål (valgfritt)">
+            <Field label="Faglig fokus for perioden (valgfritt)">
               <Textarea value={period.goals} onChange={(event) => onUpdate(index, { goals: event.target.value })} rows={3} />
             </Field>
             <Field label="Innhold">
@@ -3445,7 +3467,7 @@ function PeriodEditor({
               <Field label="Arbeidsmåter">
                 <Textarea value={period.methods} onChange={(event) => onUpdate(index, { methods: event.target.value })} rows={3} />
               </Field>
-              <Field label="Vurdering">
+              <Field label="Underveisvurdering">
                 <Textarea value={period.assessment} onChange={(event) => onUpdate(index, { assessment: event.target.value })} rows={3} />
               </Field>
             </div>
@@ -4832,9 +4854,11 @@ function LocalFrameworkEditor({
 }
 
 function SchoolCalendarEditor({
+  user,
   frame,
   onUpdate,
 }: {
+  user: User | null;
   frame: PlannerFrame;
   onUpdate: <K extends keyof PlannerSchoolCalendar>(key: K, value: PlannerSchoolCalendar[K]) => void;
 }) {
@@ -4842,6 +4866,9 @@ function SchoolCalendarEditor({
   const events = calendar.events.length > 0 ? calendar.events : createDefaultSchoolCalendarEvents(calendar);
   const summary = summarizeSchoolCalendar(calendar, events);
   const [editingSchoolDays, setEditingSchoolDays] = useState(calendar.localSchoolDaysOverride > 0);
+  const [importingCalendar, setImportingCalendar] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [importResult, setImportResult] = useState<SchoolCalendarImportResult | null>(null);
   const schoolDayTarget = calendar.localSchoolDaysOverride || calendar.officialSchoolDays || 190;
 
   function updateEvent(index: number, patch: Partial<PlannerSchoolCalendarEvent>) {
@@ -4856,12 +4883,55 @@ function SchoolCalendarEditor({
     onUpdate("events", events.filter((_, eventIndex) => eventIndex !== index));
   }
 
+  async function importCalendarFromLink() {
+    if (!user || importingCalendar) return;
+    setImportingCalendar(true);
+    setImportError("");
+    setImportResult(null);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/teacher/planner/import-school-calendar", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: calendar.sourceUrl,
+          schoolYear: frame.schoolYear,
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        calendar?: SchoolCalendarImportResult;
+        error?: string;
+      };
+      if (!response.ok || !data.calendar) {
+        throw new Error(data.error || "Kunne ikke hente skolerute fra lenken.");
+      }
+      setImportResult(data.calendar);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Kunne ikke hente skolerute fra lenken.");
+    } finally {
+      setImportingCalendar(false);
+    }
+  }
+
+  function applyImportedCalendar(result: SchoolCalendarImportResult) {
+    onUpdate("source", "municipality");
+    onUpdate("sourceUrl", result.sourceUrl);
+    if (result.firstSchoolDay) onUpdate("firstSchoolDay", result.firstSchoolDay);
+    if (result.lastSchoolDay) onUpdate("lastSchoolDay", result.lastSchoolDay);
+    if (result.officialSchoolDays > 0) onUpdate("officialSchoolDays", result.officialSchoolDays);
+    onUpdate("events", result.events);
+    setImportResult(null);
+  }
+
   return (
     <div className="grid gap-5">
       <div>
         <h2 className="m-0 text-xl font-black text-slate-950">Skolerute</h2>
         <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
-          Skolerute hentes ikke automatisk ennå. Fyll inn datoene manuelt når periodene skal følge faktiske skoledager.
+          Fyll inn datoene manuelt, eller prøv å hente forslag fra kommunens skolerute-lenke. Forslag må kontrolleres før du lagrer.
         </p>
       </div>
 
@@ -4943,21 +5013,116 @@ function SchoolCalendarEditor({
           <Field label="Kildelenke">
             <div className="grid gap-2">
               <Input value={calendar.sourceUrl} onChange={(event) => onUpdate("sourceUrl", event.target.value)} placeholder="Lim inn kommunens skolerute-lenke" />
-              {calendar.sourceUrl.trim() ? (
-                <a
-                  href={normalizeExternalUrl(calendar.sourceUrl)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm font-bold text-emerald-800 underline-offset-4 hover:underline"
+              <div className="flex flex-wrap gap-2">
+                {calendar.sourceUrl.trim() ? (
+                  <a
+                    href={normalizeExternalUrl(calendar.sourceUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 items-center text-sm font-bold text-emerald-800 underline-offset-4 hover:underline"
+                  >
+                    Åpne lenke
+                  </a>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!calendar.sourceUrl.trim() || importingCalendar || !user}
+                  onClick={() => void importCalendarFromLink()}
                 >
-                  Åpne lenke
-                </a>
+                  {importingCalendar ? "Henter..." : "Prøv å hente fra lenke"}
+                </Button>
+              </div>
+              {importError ? (
+                <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                  {importError}
+                </p>
               ) : null}
             </div>
           </Field>
           <DateInput label="Startdato årsplan" value={calendar.firstSchoolDay} onChange={(value) => onUpdate("firstSchoolDay", value)} />
           <DateInput label="Sluttdato årsplan" value={calendar.lastSchoolDay} onChange={(value) => onUpdate("lastSchoolDay", value)} />
         </div>
+
+        {importResult ? (
+          <section className="grid gap-3 rounded-lg border border-sky-200 bg-sky-50 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="m-0 text-base font-black text-slate-950">Forslag hentet fra kommunal lenke</h3>
+                <p className="mb-0 mt-1 text-sm leading-6 text-slate-700">
+                  Kontroller datoene før du bruker dem. Dette er et forslag, ikke en garanti for komplett skolerute.
+                </p>
+              </div>
+              <span className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-bold text-sky-900">
+                Sikkerhet: {importResult.confidence === "medium" ? "middels" : importResult.confidence === "high" ? "høy" : "lav"}
+              </span>
+            </div>
+            <div className="grid gap-2 text-sm sm:grid-cols-3">
+              <SourceFact label="Kilde" value={importResult.sourceTitle} />
+              <SourceFact label="Skolestart" value={importResult.firstSchoolDay || "Ikke funnet"} />
+              <SourceFact label="Siste skoledag" value={importResult.lastSchoolDay || "Ikke funnet"} />
+            </div>
+            {importResult.officialSchoolDays > 0 ? (
+              <p className="m-0 text-sm font-semibold text-slate-700">
+                Fant {importResult.officialSchoolDays} skoledager i teksten.
+              </p>
+            ) : null}
+            {importResult.events.length > 0 ? (
+              <div className="overflow-x-auto rounded-lg border border-sky-200 bg-white">
+                <table className="w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-sky-100">
+                      <th className="px-3 py-2">Navn</th>
+                      <th className="px-3 py-2">Fra</th>
+                      <th className="px-3 py-2">Til og med</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importResult.events.map((event) => (
+                      <tr key={event.id} className="border-b border-sky-50 last:border-b-0">
+                        <td className="px-3 py-2 font-semibold">{event.title}</td>
+                        <td className="px-3 py-2">{event.startDate}</td>
+                        <td className="px-3 py-2">{event.endDate}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+            {importResult.notes.length > 0 ? (
+              <div className="rounded-lg border border-amber-200 bg-white p-3 text-sm font-semibold leading-6 text-amber-900">
+                <div className="font-black text-slate-950">Må kontrolleres</div>
+                <ul className="m-0 mt-2 grid gap-1 pl-5">
+                  {importResult.notes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {importResult.debugLines.length > 0 ? (
+              <details className="rounded-lg border border-sky-200 bg-white p-3 text-sm leading-6 text-slate-700">
+                <summary className="cursor-pointer font-black text-slate-950">
+                  Tekstlinjer brukt i tolkingen
+                </summary>
+                <ol className="mb-0 mt-2 grid gap-1 pl-5">
+                  {importResult.debugLines.map((line, index) => (
+                    <li key={`${index}-${line}`} className="whitespace-pre-wrap">
+                      {line}
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="primary" onClick={() => applyImportedCalendar(importResult)}>
+                Bruk forslag
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setImportResult(null)}>
+                Forkast forslag
+              </Button>
+            </div>
+          </section>
+        ) : null}
 
         <div className="grid gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">

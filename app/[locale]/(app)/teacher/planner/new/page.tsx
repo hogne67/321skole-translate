@@ -273,7 +273,9 @@ export default function NewPlannerPage() {
             interdisciplinaryThemes: formatCurriculumSectionsForDocument(officialBasis.interdisciplinaryThemes),
             basicSkills: formatCurriculumSectionsForDocument(officialBasis.basicSkills),
             learningGoals: `Kompetansemålene ligger kontrollert under Offisielt grunnlag og fordeles videre i periodeplanene. Valgt målsett: ${officialBasis.competenceLevel}.`,
-            assessmentForms: "Fyll inn vurderingsformer etter lokale føringer og periodenes mål.",
+            assessmentForms:
+              formatCurriculumSectionsForDocument(officialBasis.assessment) ||
+              "Fyll inn underveisvurdering og vurderingsformer etter lokale føringer og periodenes mål.",
             workMethods: "Fyll inn arbeidsmåter etter lokale rammer, elevgruppe og periodenes innhold.",
             annualOverview: "Årsoversikten bygges videre når perioder opprettes og mål fordeles.",
             reflection: "Bruk refleksjonsfanen gjennom året, og oppsummer erfaringer før planen kopieres til neste skoleår.",
