@@ -105,10 +105,11 @@ const PERIOD_STATUSES: Array<{ value: PlannerPeriodStatus; label: string }> = [
 ];
 const PERIOD_STRUCTURE_OPTIONS = [
   { value: "weekly", label: "1 uke", description: "38 perioder", count: 38 },
+  { value: "two-weeks", label: "2 uker", description: "19 perioder", count: 19 },
   { value: "three-weeks", label: "3 uker", description: "12 perioder", count: 12 },
   { value: "four-weeks", label: "4 uker", description: "9 perioder", count: 9 },
-  { value: "five-weeks", label: "5 uker", description: "7 perioder", count: 7 },
 ] as const;
+type PeriodStructureValue = (typeof PERIOD_STRUCTURE_OPTIONS)[number]["value"];
 
 type PlannerBackup = {
   savedAt: string;
@@ -128,6 +129,7 @@ export default function PlannerDashboardPage() {
   const { user } = useUserProfile();
   const plannerId = typeof params?.plannerId === "string" ? params.plannerId : "";
   const section = searchParams.get("section") || "Oversikt";
+  const shouldReturnToOverviewAfterSave = searchParams.get("fastTrackReturn") === "overview";
   const [planner, setPlanner] = useState<Planner | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -136,6 +138,7 @@ export default function PlannerDashboardPage() {
   const [selectedSpaceId, setSelectedSpaceId] = useState("");
   const [sharingToSpace, setSharingToSpace] = useState(false);
   const [sharePanelOpen, setSharePanelOpen] = useState(false);
+  const [periodStructure, setPeriodStructure] = useState<PeriodStructureValue>("three-weeks");
   const [generatingSection, setGeneratingSection] = useState<
     "annual" | "periods" | "activities" | "studentGoals" | "goalLinks" | "officialGoalDistribution" | ""
   >("");
@@ -290,14 +293,18 @@ export default function PlannerDashboardPage() {
       setAiReviewNotice(null);
       if (backupKey) window.localStorage.removeItem(backupKey);
       setMessage("Planen er lagret.");
-      window.setTimeout(() => setMessage(""), 1800);
+      if (shouldReturnToOverviewAfterSave) {
+        router.push(`/${locale}/teacher/planner/${planner.id}?section=Oversikt`);
+      } else {
+        window.setTimeout(() => setMessage(""), 1800);
+      }
     } catch (err) {
       console.error("Failed to save planner", err);
       setError("Planen kunne ikke lagres akkurat nå.");
     } finally {
       setSaving(false);
     }
-  }, [backupKey, planner, saving, user]);
+  }, [backupKey, locale, planner, router, saving, shouldReturnToOverviewAfterSave, user]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -649,8 +656,8 @@ export default function PlannerDashboardPage() {
     );
   }
 
-  function createPeriodStructure(count: number) {
-    if (!planner) return;
+  function createPeriodStructure(count: number): boolean {
+    if (!planner) return false;
     const hasExistingPeriods = planner.document.periods.length > 0;
     if (
       hasExistingPeriods &&
@@ -658,7 +665,7 @@ export default function PlannerDashboardPage() {
         "Dette oppdaterer periodeinndelingen fra skoleruta. Tittel, mål, innhold og refleksjon beholdes så langt det passer med samme periodenummer. Vil du fortsette?"
       )
     ) {
-      return;
+      return false;
     }
 
     const result = createBlankPeriodStructure(planner.frame, count);
@@ -695,6 +702,7 @@ export default function PlannerDashboardPage() {
           ? "Tom periodestruktur er opprettet fra registrert skolerute. Ingen faglig tekst er generert."
           : "Tom periodestruktur er opprettet fra antall undervisningsuker. Ingen datoer eller faglig tekst er antatt."
     );
+    return true;
   }
 
   function removePeriod(index: number) {
@@ -1243,8 +1251,8 @@ export default function PlannerDashboardPage() {
 
   async function generatePlannerSection(
     kind: "annual" | "periods" | "activities" | "studentGoals" | "goalLinks" | "officialGoalDistribution"
-  ) {
-    if (!user || !planner || generatingSection) return;
+  ): Promise<boolean> {
+    if (!user || !planner || generatingSection) return false;
 
     const hasAnnualContent = [
       planner.document.description,
@@ -1278,27 +1286,27 @@ export default function PlannerDashboardPage() {
             period.weekPlans.some((weekPlan) => weekPlan.linkedGoalIds.length > 0)
         ));
 
-    if (shouldConfirm && !window.confirm(confirmationMessages[kind])) return;
+    if (shouldConfirm && !window.confirm(confirmationMessages[kind])) return false;
 
     if (kind === "goalLinks") {
       if (planner.document.concreteLearningGoals.length === 0) {
         setError("Lag konkrete læringsmål før du foreslår målkoblinger.");
-        return;
+        return false;
       }
       if (planner.document.periods.length === 0) {
         setError("Legg inn perioder før du foreslår målkoblinger.");
-        return;
+        return false;
       }
     }
 
     if (kind === "officialGoalDistribution") {
       if (!planner.officialBasis?.competenceGoals.length) {
         setError("Planen mangler verifiserte kompetansemål fra Udir.");
-        return;
+        return false;
       }
       if (planner.document.periods.length === 0) {
         setError("Opprett perioder før du foreslår fordeling av kompetansemål.");
-        return;
+        return false;
       }
     }
 
@@ -1500,6 +1508,7 @@ export default function PlannerDashboardPage() {
       } else {
         throw new Error("AI returned no suggestions");
       }
+      return true;
     } catch (err) {
       console.error("Failed to generate planner section", err);
       setError(
@@ -1515,6 +1524,7 @@ export default function PlannerDashboardPage() {
                   ? "Kunne ikke foreslå en kontrollert fordeling av kompetansemål akkurat nå."
                 : "Kunne ikke foreslå målkoblinger akkurat nå."
       );
+      return false;
     } finally {
       setGeneratingSection("");
     }
@@ -1891,7 +1901,28 @@ export default function PlannerDashboardPage() {
             planner={planner}
             locale={locale}
             copying={copying}
+            periodStructure={periodStructure}
+            fastTrackRunning={Boolean(generatingSection)}
             onDuplicate={duplicatePlanner}
+            onPeriodStructureChange={setPeriodStructure}
+            onOpenFastTrackSection={(targetSection) =>
+              router.push(`/${locale}/teacher/planner/${planner.id}?section=${encodeURIComponent(targetSection)}&fastTrackReturn=overview`)
+            }
+            onCreateFastTrackPeriods={() => {
+              const selectedPeriodStructure =
+                PERIOD_STRUCTURE_OPTIONS.find((option) => option.value === periodStructure) ?? PERIOD_STRUCTURE_OPTIONS[2];
+              if (createPeriodStructure(selectedPeriodStructure.count)) {
+                router.push(`/${locale}/teacher/planner/${planner.id}?section=Oversikt`);
+              }
+            }}
+            onGenerateFastTrackPeriods={async () => {
+              const ok = await generatePlannerSection("officialGoalDistribution");
+              if (ok) router.push(`/${locale}/teacher/planner/${planner.id}?section=Periodeplaner`);
+            }}
+            onGenerateFastTrackActivities={async () => {
+              const ok = await generatePlannerSection("activities");
+              if (ok) router.push(`/${locale}/teacher/planner/${planner.id}?section=Aktiviteter`);
+            }}
             onActivatePeriod={activatePeriod}
             onCompleteActivePeriod={completeActivePeriod}
           />
@@ -1921,6 +1952,8 @@ export default function PlannerDashboardPage() {
           <PeriodEditor
             locale={locale}
             planner={planner}
+            periodStructure={periodStructure}
+            onPeriodStructureChange={setPeriodStructure}
             onCreateStructure={createPeriodStructure}
             generatingDistribution={generatingSection === "officialGoalDistribution"}
             onSuggestDistribution={() => void generatePlannerSection("officialGoalDistribution")}
@@ -2116,14 +2149,28 @@ function Overview({
   planner,
   locale,
   copying,
+  periodStructure,
+  fastTrackRunning,
   onDuplicate,
+  onPeriodStructureChange,
+  onOpenFastTrackSection,
+  onCreateFastTrackPeriods,
+  onGenerateFastTrackPeriods,
+  onGenerateFastTrackActivities,
   onActivatePeriod,
   onCompleteActivePeriod,
 }: {
   planner: Planner;
   locale: string;
   copying: boolean;
+  periodStructure: PeriodStructureValue;
+  fastTrackRunning: boolean;
   onDuplicate: () => void;
+  onPeriodStructureChange: (value: PeriodStructureValue) => void;
+  onOpenFastTrackSection: (section: string) => void;
+  onCreateFastTrackPeriods: () => void;
+  onGenerateFastTrackPeriods: () => void;
+  onGenerateFastTrackActivities: () => void;
   onActivatePeriod: (index: number) => void;
   onCompleteActivePeriod: () => void;
 }) {
@@ -2253,6 +2300,17 @@ function Overview({
         <Info label="Skoleår" value={planner.frame.schoolYear} />
       </div>
 
+      <FastTrackPanel
+        planner={planner}
+        periodStructure={periodStructure}
+        running={fastTrackRunning}
+        onPeriodStructureChange={onPeriodStructureChange}
+        onOpenSection={onOpenFastTrackSection}
+        onCreatePeriods={onCreateFastTrackPeriods}
+        onGeneratePeriods={onGenerateFastTrackPeriods}
+        onGenerateActivities={onGenerateFastTrackActivities}
+      />
+
       <PlannerWorkflowPanel planner={planner} locale={locale} />
 
       <section className="rounded-lg border border-slate-200 bg-white p-4">
@@ -2290,6 +2348,195 @@ function Overview({
         ) : null}
       </section>
     </div>
+  );
+}
+
+function FastTrackPanel({
+  planner,
+  periodStructure,
+  running,
+  onPeriodStructureChange,
+  onOpenSection,
+  onCreatePeriods,
+  onGeneratePeriods,
+  onGenerateActivities,
+}: {
+  planner: Planner;
+  periodStructure: PeriodStructureValue;
+  running: boolean;
+  onPeriodStructureChange: (value: PeriodStructureValue) => void;
+  onOpenSection: (section: string) => void;
+  onCreatePeriods: () => void;
+  onGeneratePeriods: () => void;
+  onGenerateActivities: () => void;
+}) {
+  const selectedPeriodStructure =
+    PERIOD_STRUCTURE_OPTIONS.find((option) => option.value === periodStructure) ?? PERIOD_STRUCTURE_OPTIONS[2];
+  const hasOfficialBasis = Boolean(planner.officialBasis?.competenceGoals.length);
+  const hasCalendar = Boolean(
+    planner.frame.schoolCalendar.firstSchoolDay && planner.frame.schoolCalendar.lastSchoolDay
+  );
+  const hasLocalFramework =
+    Boolean(planner.localFramework.localGoals.trim() || planner.localFramework.localGuidelines.trim()) ||
+    planner.localFramework.interdisciplinaryProjects.length > 0 ||
+    planner.localFramework.themeWeeks.length > 0;
+  const hasPeriods = planner.document.periods.length > 0;
+  const hasPeriodContent =
+    hasPeriods && planner.document.periods.every((period) => period.learningGoals.length > 0 && period.content.trim());
+  const hasActivities = planner.document.activities.length > 0;
+  const hasWeekPlans = planner.document.periods.some((period) => period.weekPlans.length > 0);
+  const steps = [
+    {
+      label: "1. Offisielt grunnlag",
+      detail: hasOfficialBasis
+        ? `${planner.officialBasis?.competenceGoals.length ?? 0} kompetansemål er hentet.`
+        : "Hent eller fyll inn offisielt grunnlag før du genererer.",
+      done: hasOfficialBasis,
+      actionLabel: hasOfficialBasis ? "Se grunnlag" : "Hent grunnlag",
+      action: () => onOpenSection("Offisielt grunnlag"),
+      primary: !hasOfficialBasis,
+    },
+    {
+      label: "2. Velg periodelengde",
+      detail: `${selectedPeriodStructure.label} er valgt (${selectedPeriodStructure.description}). Dette brukes når periodene opprettes.`,
+      done: Boolean(periodStructure),
+      control: (
+        <Select value={periodStructure} onChange={(event) => onPeriodStructureChange(event.target.value as PeriodStructureValue)}>
+          {PERIOD_STRUCTURE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label} ({option.description})
+            </option>
+          ))}
+        </Select>
+      ),
+    },
+    {
+      label: "3. Lokale rammer",
+      detail: hasLocalFramework
+        ? "Lokale mål, føringer, prosjekt eller temauker er lagt inn."
+        : "Legg gjerne inn lokale mål, føringer, prosjekt eller temauker før periodene fylles.",
+      done: hasLocalFramework,
+      actionLabel: hasLocalFramework ? "Endre lokale rammer" : "Legg inn lokale rammer",
+      action: () => onOpenSection("Lokalt grunnlag"),
+      primary: !hasLocalFramework,
+    },
+    {
+      label: "4. Skolerute",
+      detail: hasCalendar
+        ? "Skolestart og siste skoledag er satt."
+        : "Legg inn eller hent skolerute hvis periodene skal følge faktiske datoer.",
+      done: hasCalendar,
+      actionLabel: hasCalendar ? "Endre skolerute" : "Legg inn skolerute",
+      action: () => onOpenSection("Skolerute"),
+      primary: !hasCalendar,
+    },
+    {
+      label: "5. Opprett perioder",
+      detail: hasPeriods
+        ? `${planner.document.periods.length} perioder er opprettet.`
+        : `Opprett ${selectedPeriodStructure.description.toLowerCase()} fra skolerute eller undervisningsuker.`,
+      done: hasPeriods,
+      actionLabel: hasPeriods ? "Oppdater perioder" : "Opprett perioder",
+      action: onCreatePeriods,
+      primary: !hasPeriods,
+      disabled: !hasOfficialBasis,
+    },
+    {
+      label: "6. Fyll perioder",
+      detail: hasPeriodContent
+        ? "Periodene har kompetansemål, elevmål, innhold, arbeidsmåter og underveisvurdering."
+        : "Generer forslag til kompetansemål, elevmål, innhold, arbeidsmåter og underveisvurdering.",
+      done: hasPeriodContent,
+      actionLabel: running ? "Genererer..." : hasPeriodContent ? "Generer på nytt" : "Generer periodemål",
+      action: onGeneratePeriods,
+      primary: !hasPeriodContent,
+      disabled: running || !hasOfficialBasis || !hasPeriods,
+    },
+    {
+      label: "7. Aktiviteter",
+      detail: hasActivities ? "Aktiviteter er lagt inn." : "Valgfritt: lag praktiske aktivitetsforslag knyttet til periodene.",
+      done: hasActivities,
+      actionLabel: running ? "Genererer..." : hasActivities ? "Generer på nytt" : "Generer aktiviteter",
+      action: onGenerateActivities,
+      primary: !hasActivities,
+      disabled: running || !hasPeriodContent,
+      optional: true,
+    },
+    {
+      label: "8. Ukeplaner",
+      detail: hasWeekPlans
+        ? "Ukeplaner er lagt inn i én eller flere perioder."
+        : "Valgfritt: åpne periodeplaner og generer ukeplaner der du trenger mer detalj.",
+      done: hasWeekPlans,
+      actionLabel: "Åpne periodeplaner",
+      action: () => onOpenSection("Periodeplaner"),
+      optional: true,
+    },
+  ];
+
+  return (
+    <section className="rounded-lg border border-emerald-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-black uppercase tracking-wide text-emerald-800">Fast track</div>
+          <h3 className="m-0 mt-1 text-lg font-black text-slate-950">Lag komplett førsteutkast</h3>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+            321school bygger nå en årsplan basert på læreplanen, skoleruta og de lokale rammene du har valgt.
+            Alle forslag kan redigeres etterpå.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2">
+        {steps.map((step) => (
+          <div
+            key={step.label}
+            className={`grid gap-3 rounded-lg border p-3 lg:grid-cols-[minmax(0,1fr)_minmax(180px,260px)] lg:items-center ${
+              step.done
+                ? "border-emerald-200 bg-emerald-50"
+                : step.optional
+                  ? "border-slate-200 bg-slate-50"
+                  : "border-amber-200 bg-amber-50"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-black ${
+                  step.done ? "border-emerald-700 bg-emerald-700 text-white" : "border-amber-300 bg-white text-amber-900"
+                }`}
+              >
+                {step.done ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : step.optional ? "?" : "!"}
+              </span>
+              <div>
+                <div className="text-sm font-black text-slate-950">
+                  {step.label}
+                  {step.optional ? <span className="ml-2 text-xs font-bold text-slate-500">(valgfritt)</span> : null}
+                </div>
+                <p className="m-0 mt-1 text-sm leading-6 text-slate-700">{step.detail}</p>
+              </div>
+            </div>
+            <div className="lg:justify-self-end">
+              {step.control ? (
+                step.control
+              ) : (
+                <Button
+                  type="button"
+                  variant={step.primary ? "primary" : "secondary"}
+                  disabled={step.disabled}
+                  onClick={step.action}
+                >
+                  {step.actionLabel}
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="m-0 mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold leading-6 text-slate-700">
+        Fast track leder deg gjennom de viktigste valgene. Det som genereres er et førsteutkast, og alt kan endres etterpå.
+      </p>
+    </section>
   );
 }
 
@@ -3089,6 +3336,8 @@ function AnnualPlanEditor({
 function PeriodEditor({
   locale,
   planner,
+  periodStructure,
+  onPeriodStructureChange,
   onCreateStructure,
   generatingDistribution,
   onSuggestDistribution,
@@ -3116,6 +3365,8 @@ function PeriodEditor({
 }: {
   locale: string;
   planner: Planner;
+  periodStructure: PeriodStructureValue;
+  onPeriodStructureChange: (value: PeriodStructureValue) => void;
   onCreateStructure: (count: number) => void;
   generatingDistribution: boolean;
   onSuggestDistribution: () => void;
@@ -3141,7 +3392,6 @@ function PeriodEditor({
   onDuplicateWeekPlan: (periodIndex: number, weekIndex: number) => void;
   onRemoveWeekPlan: (periodIndex: number, weekIndex: number) => void;
 }) {
-  const [periodStructure, setPeriodStructure] = useState<(typeof PERIOD_STRUCTURE_OPTIONS)[number]["value"]>("three-weeks");
   const [activePeriodId, setActivePeriodId] = useState("");
   const periods = planner.document.periods;
   const activePeriodIndex = periods.findIndex((period) => period.id === activePeriodId);
@@ -3235,9 +3485,7 @@ function PeriodEditor({
             <Field label="Periodelengde">
               <Select
                 value={periodStructure}
-                onChange={(event) =>
-                  setPeriodStructure(event.target.value as (typeof PERIOD_STRUCTURE_OPTIONS)[number]["value"])
-                }
+                onChange={(event) => onPeriodStructureChange(event.target.value as PeriodStructureValue)}
               >
                 {PERIOD_STRUCTURE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -3286,9 +3534,7 @@ function PeriodEditor({
                 <Field label="Periodelengde">
                   <Select
                     value={periodStructure}
-                    onChange={(event) =>
-                      setPeriodStructure(event.target.value as (typeof PERIOD_STRUCTURE_OPTIONS)[number]["value"])
-                    }
+                    onChange={(event) => onPeriodStructureChange(event.target.value as PeriodStructureValue)}
                   >
                     {PERIOD_STRUCTURE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -4215,7 +4461,6 @@ function activityMatchesPeriod(activity: PlannerActivity, period: PlannerPeriod)
   const periodTitle = normalizePeriodReference(period.title);
   const periodId = normalizePeriodReference(period.id);
   if (activityPeriod === periodTitle || activityPeriod === periodId) return true;
-  if (periodTitle && (activityPeriod.includes(periodTitle) || periodTitle.includes(activityPeriod))) return true;
 
   const activityNumber = firstNumber(activityPeriod);
   const periodNumber = firstNumber(periodTitle) ?? firstNumber(periodId);
@@ -4869,6 +5114,7 @@ function SchoolCalendarEditor({
   const [importingCalendar, setImportingCalendar] = useState(false);
   const [importError, setImportError] = useState("");
   const [importResult, setImportResult] = useState<SchoolCalendarImportResult | null>(null);
+  const [calendarFile, setCalendarFile] = useState<File | null>(null);
   const schoolDayTarget = calendar.localSchoolDaysOverride || calendar.officialSchoolDays || 190;
 
   function updateEvent(index: number, patch: Partial<PlannerSchoolCalendarEvent>) {
@@ -4916,6 +5162,38 @@ function SchoolCalendarEditor({
     }
   }
 
+  async function importCalendarFromFile() {
+    if (!user || importingCalendar || !calendarFile) return;
+    setImportingCalendar(true);
+    setImportError("");
+    setImportResult(null);
+    try {
+      const token = await user.getIdToken();
+      const formData = new FormData();
+      formData.set("schoolYear", frame.schoolYear);
+      formData.set("file", calendarFile);
+      const response = await fetch("/api/teacher/planner/import-school-calendar", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        calendar?: SchoolCalendarImportResult;
+        error?: string;
+      };
+      if (!response.ok || !data.calendar) {
+        throw new Error(data.error || "Kunne ikke hente skolerute fra filen.");
+      }
+      setImportResult(data.calendar);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Kunne ikke hente skolerute fra filen.");
+    } finally {
+      setImportingCalendar(false);
+    }
+  }
+
   function applyImportedCalendar(result: SchoolCalendarImportResult) {
     onUpdate("source", "municipality");
     onUpdate("sourceUrl", result.sourceUrl);
@@ -4935,120 +5213,85 @@ function SchoolCalendarEditor({
         </p>
       </div>
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-950">
+      <div className="rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-2 text-sm font-semibold leading-6 text-amber-950">
         Kommunen er lagret som {frame.municipality || "ikke valgt"}, men datoene under er bare sikre hvis de er kontrollert og fylt inn manuelt.
       </div>
 
-      <section className="grid gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-        <div>
-          <h3 className="m-0 text-base font-black text-slate-950">Kvalitetssjekk av skolerute</h3>
-          <p className="mb-0 mt-1 text-sm leading-6 text-slate-700">
-            Tellingen er veiledende. Helger trekkes ikke inn som registrerte fridager.
-          </p>
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <CalendarSummaryStat label="Registrerte fridager" value={summary.freeWeekdays} />
-          <CalendarSummaryStat
-            label={calendar.localSchoolDaysOverride > 0 ? "Lokalt antall skoledager" : "Offisielle skoledager"}
-            value={schoolDayTarget}
-            hint={calendar.localSchoolDaysOverride > 0 ? "Manuelt endret" : "Norge: 190"}
-          />
-        </div>
-        <div className="rounded-lg border border-emerald-200 bg-white p-3 text-sm leading-6 text-slate-700">
-          <div>
-            Planen bruker {schoolDayTarget} skoledager. Registrerte fridager brukes som hjelp når perioder og utskrift
-            skal følge skoleruta, men de endrer ikke antall skoledager automatisk.
-          </div>
-          {editingSchoolDays ? (
-            <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,220px)_auto] sm:items-end">
-              <Field label="Lokalt antall skoledager">
-                <Input
-                  type="number"
-                  min={1}
-                  value={calendar.localSchoolDaysOverride || calendar.officialSchoolDays || 190}
-                  onChange={(event) => onUpdate("localSchoolDaysOverride", Number(event.target.value) || 0)}
-                />
-              </Field>
+      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4">
+        <div className="grid gap-3 lg:grid-cols-2">
+          <section className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div>
+              <h3 className="m-0 text-sm font-black text-slate-950">Hent fra nettside</h3>
+              <p className="m-0 mt-1 text-xs font-semibold leading-5 text-slate-500">
+                Lim inn kommunens skolerute. Forslaget må kontrolleres.
+              </p>
+            </div>
+            <Field label="Kildelenke">
+              <Input value={calendar.sourceUrl} onChange={(event) => onUpdate("sourceUrl", event.target.value)} placeholder="Lim inn kommunens skolerute-lenke" />
+            </Field>
+            <div className="flex flex-wrap gap-2">
+              {calendar.sourceUrl.trim() ? (
+                <a
+                  href={normalizeExternalUrl(calendar.sourceUrl)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 items-center text-sm font-bold text-emerald-800 underline-offset-4 hover:underline"
+                >
+                  Åpne lenke
+                </a>
+              ) : null}
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => {
-                  onUpdate("localSchoolDaysOverride", 0);
-                  setEditingSchoolDays(false);
-                }}
+                disabled={!calendar.sourceUrl.trim() || importingCalendar || !user}
+                onClick={() => void importCalendarFromLink()}
               >
-                Bruk offisielt antall
+                {importingCalendar ? "Henter..." : "Hent fra lenke"}
               </Button>
             </div>
-          ) : (
-            <Button type="button" variant="secondary" onClick={() => setEditingSchoolDays(true)}>
-              Endre lokalt antall skoledager
-            </Button>
-          )}
-        </div>
-        {summary.warnings.length > 0 ? (
-          <div className="rounded-lg border border-amber-200 bg-white p-3 text-sm font-semibold leading-6 text-amber-950">
-            <div className="font-black text-slate-950">Mulige sjekkpunkter</div>
-            <ul className="m-0 mt-2 grid gap-1 pl-5">
-              {summary.warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="m-0 rounded-lg border border-emerald-200 bg-white p-3 text-sm font-semibold text-emerald-900">
-            Ingen helgedatoer eller omvendte datointervaller funnet.
-          </p>
-        )}
-      </section>
+          </section>
 
-      <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Kilde">
-            <Select value={calendar.source} onChange={(event) => onUpdate("source", event.target.value as PlannerSchoolCalendar["source"])}>
-              <option value="municipality">Kommunal skolerute - ikke hentet automatisk</option>
-              <option value="manual">Fyll ut selv</option>
-            </Select>
-          </Field>
-          <Field label="Kildelenke">
-            <div className="grid gap-2">
-              <Input value={calendar.sourceUrl} onChange={(event) => onUpdate("sourceUrl", event.target.value)} placeholder="Lim inn kommunens skolerute-lenke" />
-              <div className="flex flex-wrap gap-2">
-                {calendar.sourceUrl.trim() ? (
-                  <a
-                    href={normalizeExternalUrl(calendar.sourceUrl)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-9 items-center text-sm font-bold text-emerald-800 underline-offset-4 hover:underline"
-                  >
-                    Åpne lenke
-                  </a>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={!calendar.sourceUrl.trim() || importingCalendar || !user}
-                  onClick={() => void importCalendarFromLink()}
-                >
-                  {importingCalendar ? "Henter..." : "Prøv å hente fra lenke"}
-                </Button>
-              </div>
-              {importError ? (
-                <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
-                  {importError}
-                </p>
-              ) : null}
+          <section className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div>
+              <h3 className="m-0 text-sm font-black text-slate-950">Hent fra PDF eller Word</h3>
+              <p className="m-0 mt-1 text-xs font-semibold leading-5 text-slate-500">
+                Bruk når skoleruta ligger som dokument. AI-lesing må kontrolleres ekstra.
+              </p>
             </div>
-          </Field>
-          <DateInput label="Startdato årsplan" value={calendar.firstSchoolDay} onChange={(value) => onUpdate("firstSchoolDay", value)} />
-          <DateInput label="Sluttdato årsplan" value={calendar.lastSchoolDay} onChange={(value) => onUpdate("lastSchoolDay", value)} />
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(event) => setCalendarFile(event.target.files?.[0] ?? null)}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!calendarFile || importingCalendar || !user}
+              onClick={() => void importCalendarFromFile()}
+            >
+              {importingCalendar ? "Leser..." : "Hent fra fil"}
+            </Button>
+          </section>
         </div>
+
+        <Field label="Kilde">
+          <Select value={calendar.source} onChange={(event) => onUpdate("source", event.target.value as PlannerSchoolCalendar["source"])}>
+            <option value="municipality">Kommunal skolerute - ikke hentet automatisk</option>
+            <option value="manual">Fyll ut selv</option>
+          </Select>
+        </Field>
+
+        {importError ? (
+          <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+            {importError}
+          </p>
+        ) : null}
 
         {importResult ? (
           <section className="grid gap-3 rounded-lg border border-sky-200 bg-sky-50 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="m-0 text-base font-black text-slate-950">Forslag hentet fra kommunal lenke</h3>
+                <h3 className="m-0 text-base font-black text-slate-950">Forslag hentet fra skolerute</h3>
                 <p className="mb-0 mt-1 text-sm leading-6 text-slate-700">
                   Kontroller datoene før du bruker dem. Dette er et forslag, ikke en garanti for komplett skolerute.
                 </p>
@@ -5138,6 +5381,66 @@ function SchoolCalendarEditor({
             </Button>
           </div>
 
+          <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+            <DateInput label="Startdato årsplan" value={calendar.firstSchoolDay} onChange={(value) => onUpdate("firstSchoolDay", value)} />
+            <DateInput label="Sluttdato årsplan" value={calendar.lastSchoolDay} onChange={(value) => onUpdate("lastSchoolDay", value)} />
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700">
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                <span><strong>{summary.freeWeekdays}</strong> registrerte fridager</span>
+                <span><strong>{schoolDayTarget}</strong> skoledager</span>
+              </div>
+              <details className="mt-1">
+                <summary className="cursor-pointer text-xs font-black text-slate-600">Kvalitetssjekk</summary>
+                <div className="mt-2 grid gap-2">
+                  <p className="m-0 text-xs leading-5 text-slate-600">
+                    Tellingen er veiledende. Fridager hjelper perioder og utskrift, men endrer ikke antall skoledager automatisk.
+                  </p>
+                  {editingSchoolDays ? (
+                    <div className="grid gap-2 sm:grid-cols-[minmax(0,180px)_auto] sm:items-end">
+                      <Field label="Lokalt antall skoledager">
+                        <Input
+                          type="number"
+                          min={1}
+                          value={calendar.localSchoolDaysOverride || calendar.officialSchoolDays || 190}
+                          onChange={(event) => onUpdate("localSchoolDaysOverride", Number(event.target.value) || 0)}
+                        />
+                      </Field>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                          onUpdate("localSchoolDaysOverride", 0);
+                          setEditingSchoolDays(false);
+                        }}
+                      >
+                        Bruk offisielt
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditingSchoolDays(true)}
+                      className="w-fit text-xs font-black text-emerald-800 underline-offset-4 hover:underline"
+                    >
+                      Endre lokalt antall skoledager
+                    </button>
+                  )}
+                  {summary.warnings.length > 0 ? (
+                    <ul className="m-0 grid gap-1 pl-5 text-xs font-semibold leading-5 text-amber-900">
+                      {summary.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="m-0 text-xs font-semibold text-emerald-800">
+                      Ingen helgedatoer eller omvendte datointervaller funnet.
+                    </p>
+                  )}
+                </div>
+              </details>
+            </div>
+          </div>
+
           <div className="grid gap-2">
             {events.map((event, index) => (
               <div key={event.id} className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 lg:grid-cols-[minmax(160px,1fr)_minmax(150px,180px)_minmax(150px,180px)_auto] lg:items-end">
@@ -5183,16 +5486,6 @@ function DateInput({ label, value, onChange }: { label: string; value: string; o
         {weekend ? <span className="text-xs font-bold text-amber-700">Dette er lørdag/søndag</span> : null}
       </div>
     </Field>
-  );
-}
-
-function CalendarSummaryStat({ label, value, hint }: { label: string; value: number | null; hint?: string }) {
-  return (
-    <div className="rounded-lg border border-emerald-200 bg-white p-3">
-      <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 text-2xl font-black text-slate-950">{value === null ? "-" : value}</div>
-      {hint ? <div className="mt-1 text-xs font-bold text-slate-500">{hint}</div> : null}
-    </div>
   );
 }
 

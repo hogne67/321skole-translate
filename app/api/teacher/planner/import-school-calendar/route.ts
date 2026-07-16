@@ -1,12 +1,14 @@
 import "server-only";
 
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import { NextResponse } from "next/server";
 import { hasAdminAccess } from "@/lib/courses/academyAccess";
 import { getEffectivePlan } from "@/lib/featureAccess";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
+  extractTextFromDocx,
+  importSchoolCalendarFromText,
   importSchoolCalendarFromUrl,
   type ImportedSchoolCalendarEvent,
   type SchoolCalendarAiReader,
@@ -18,6 +20,8 @@ type ImportSchoolCalendarBody = {
   url?: unknown;
   schoolYear?: unknown;
 };
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
@@ -159,14 +163,114 @@ function normalizeAiCalendarResponse(output: string | undefined) {
   };
 }
 
+async function readCalendarFromUploadedFile(input: {
+  file: File;
+  schoolYear: string;
+  aiReader: SchoolCalendarAiReader | null;
+}): Promise<Awaited<ReturnType<typeof importSchoolCalendarFromText>>> {
+  if (!input.file.name.trim()) throw new Error("Velg en PDF- eller Word-fil først.");
+  if (input.file.size <= 0) throw new Error("Filen er tom.");
+  if (input.file.size > MAX_UPLOAD_BYTES) throw new Error("Filen er for stor. Maks størrelse er 10 MB.");
+
+  const fileName = input.file.name;
+  const lowerName = fileName.toLowerCase();
+  const mimeType = input.file.type || contentTypeFromFileName(fileName);
+  const buffer = Buffer.from(await input.file.arrayBuffer());
+
+  if (lowerName.endsWith(".docx")) {
+    const text = extractTextFromDocx(buffer);
+    return importSchoolCalendarFromText({
+      sourceUrl: `Opplastet fil: ${fileName}`,
+      sourceTitle: fileName,
+      schoolYear: input.schoolYear,
+      text,
+      aiReader: input.aiReader ?? undefined,
+    });
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("PDF og eldre Word-filer krever AI-lesing, men OPENAI_API_KEY mangler.");
+  }
+  if (!isSupportedAiFile(lowerName, mimeType)) {
+    throw new Error("Last opp PDF, DOCX eller Word-dokument.");
+  }
+
+  const extracted = await readUploadedCalendarWithAi({ buffer, fileName, mimeType, schoolYear: input.schoolYear });
+  return importSchoolCalendarFromText({
+    sourceUrl: `Opplastet fil: ${fileName}`,
+    sourceTitle: fileName,
+    schoolYear: input.schoolYear,
+    text: extracted,
+  });
+}
+
+async function readUploadedCalendarWithAi(input: {
+  buffer: Buffer;
+  fileName: string;
+  mimeType: string;
+  schoolYear: string;
+}): Promise<string> {
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const uploaded = await client.files.create({
+    file: await toFile(input.buffer, input.fileName, { type: input.mimeType }),
+    purpose: "user_data",
+    expires_after: { anchor: "created_at", seconds: 3600 },
+  });
+
+  try {
+    const response = await client.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      temperature: 0,
+      input: [
+        {
+          role: "system",
+          content:
+            "Du leser en opplastet norsk skolerute. Returner bare korte tekstlinjer fra dokumentet som inneholder skoleår, første/siste skoledag, ferier, fridager, planleggingsdager og datoer. Ikke finn på datoer.",
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: `Finn relevante tekstlinjer for skolerute ${input.schoolYear}. Ta med datoene slik de står i dokumentet. Hvis du er usikker, ta med linjen og skriv 'må kontrolleres'.`,
+            },
+            {
+              type: "input_file",
+              file_id: uploaded.id,
+            },
+          ],
+        },
+      ],
+    });
+    return response.output_text?.trim() || "";
+  } finally {
+    await client.files.delete(uploaded.id).catch(() => null);
+  }
+}
+
+function contentTypeFromFileName(fileName: string): string {
+  const lowerName = fileName.toLowerCase();
+  if (lowerName.endsWith(".pdf")) return "application/pdf";
+  if (lowerName.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (lowerName.endsWith(".doc")) return "application/msword";
+  return "application/octet-stream";
+}
+
+function isSupportedAiFile(fileName: string, mimeType: string): boolean {
+  return (
+    fileName.endsWith(".pdf") ||
+    fileName.endsWith(".doc") ||
+    fileName.endsWith(".docx") ||
+    mimeType === "application/pdf" ||
+    mimeType === "application/msword" ||
+    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  );
+}
+
 export async function POST(req: Request) {
   try {
     const access = await requireTeacherAccess(req);
     if ("error" in access) return access.error;
-
-    const body = (await req.json().catch(() => ({}))) as ImportSchoolCalendarBody;
-    const url = typeof body.url === "string" ? body.url : "";
-    const schoolYear = typeof body.schoolYear === "string" ? body.schoolYear : "";
 
     const aiReader = makeSchoolCalendarAiReader();
     const profile = access.profile;
@@ -183,7 +287,20 @@ export async function POST(req: Request) {
       if (!featureStatus.allowed) return quotaErrorResponse(featureStatus.reason);
     }
 
-    const calendar = await importSchoolCalendarFromUrl({ url, schoolYear, aiReader: aiReader ?? undefined });
+    const contentType = req.headers.get("content-type") ?? "";
+    let calendar;
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      const file = formData.get("file");
+      const schoolYear = typeof formData.get("schoolYear") === "string" ? String(formData.get("schoolYear")) : "";
+      if (!(file instanceof File)) throw new Error("Velg en PDF- eller Word-fil først.");
+      calendar = await readCalendarFromUploadedFile({ file, schoolYear, aiReader });
+    } else {
+      const body = (await req.json().catch(() => ({}))) as ImportSchoolCalendarBody;
+      const url = typeof body.url === "string" ? body.url : "";
+      const schoolYear = typeof body.schoolYear === "string" ? body.schoolYear : "";
+      calendar = await importSchoolCalendarFromUrl({ url, schoolYear, aiReader: aiReader ?? undefined });
+    }
 
     if (aiReader) {
       await consumeFeatureAdmin({ uid: access.uid, feature: "ai_generate_text" });

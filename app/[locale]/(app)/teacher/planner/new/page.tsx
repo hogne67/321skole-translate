@@ -56,15 +56,6 @@ const FOV_SUBJECT_OPTIONS = [
   { value: "Naturfag - FOV", label: "Naturfag - FOV" },
   { value: "Annet fag / yrkesfag", label: "Annet fag / yrkesfag" },
 ];
-const PLAN_LANGUAGE_OPTIONS = [
-  { value: "Norsk", label: "Norsk" },
-  { value: "Engelsk", label: "Engelsk" },
-  { value: "Portugisisk", label: "Portugisisk" },
-  { value: "Spansk", label: "Spansk" },
-  { value: "Arabisk", label: "Arabisk" },
-  { value: "Somali", label: "Somali" },
-  { value: "Ukrainsk", label: "Ukrainsk" },
-];
 const MUNICIPALITY_OPTIONS = NO_MUNICIPALITIES.map((municipality) => ({
   value: municipality.name,
   label: municipality.name,
@@ -286,7 +277,7 @@ export default function NewPlannerPage() {
       if (!response.ok || !data.plannerId) {
         throw new Error(data.error || "Grunnplanen kunne ikke opprettes.");
       }
-      router.push(`/${locale}/teacher/planner/${data.plannerId}?section=Lokalt%20grunnlag`);
+      router.push(`/${locale}/teacher/planner/${data.plannerId}?section=Oversikt`);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Grunnplanen kunne ikke opprettes.");
       setCreatingGroundPlan(false);
@@ -338,7 +329,7 @@ export default function NewPlannerPage() {
       if (!response.ok || !data.plannerId) {
         throw new Error(data.error || "Grunnplanen kunne ikke opprettes.");
       }
-      router.push(`/${locale}/teacher/planner/${data.plannerId}?section=Offisielt%20grunnlag`);
+      router.push(`/${locale}/teacher/planner/${data.plannerId}?section=Oversikt`);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Grunnplanen kunne ikke opprettes.");
       setCreatingGroundPlan(false);
@@ -370,13 +361,12 @@ export default function NewPlannerPage() {
           <SummaryRow label="Skoleslag" value={frame.schoolType} />
           <SummaryRow label="Trinn / nivå" value={frame.level} />
           <SummaryRow label="Fag" value={frame.subject} />
-          <SummaryRow label="Planspråk" value={frame.language} />
           <SummaryRow
             label="Skolerute"
             value={
               frame.schoolCalendar.source === "manual"
                 ? "Fylt ut manuelt"
-                : `Ikke hentet ennå. Fyll ut manuelt hvis datoene skal brukes.`
+                : "Ikke hentet ennå. Kan hentes eller fylles ut etter at planen er opprettet."
             }
           />
           {frame.schoolCalendar.source === "manual" ? (
@@ -543,24 +533,17 @@ export default function NewPlannerPage() {
                 </Field>
               ) : null}
 
-              <Field label="Planspråk">
-                <Select value={frame.language} onChange={(event) => updateFrame("language", event.target.value)}>
-                  {PLAN_LANGUAGE_OPTIONS.map((language) => (
-                    <option key={language.value} value={language.value}>{language.label}</option>
-                  ))}
-                </Select>
-              </Field>
             </div>
 
             <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
-              Offisielle Udir-mål hentes og vises på norsk. Planspråket brukes bare til lokale/genererte felt som periodemål, arbeidsmåter, vurdering og ukeplaner.
+              Offisielle Udir-mål hentes og vises slik de er publisert. Lokale og AI-genererte forslag skrives på norsk i denne første versjonen.
             </div>
           </section>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="m-0 text-sm font-semibold text-slate-600">
               {curriculumIssues.length === 0
-                ? "Klar til å kontrollere valget."
+                ? "Klar til å hente og kontrollere offisielt læreplangrunnlag."
                 : `${curriculumIssues.length} opplysninger gjenstår.`}
             </p>
             <Button type="submit" variant="primary">Kontroller valget</Button>
@@ -659,9 +642,7 @@ export default function NewPlannerPage() {
                 }
               >
                 <option value="municipality">
-                  {frame.municipality
-                    ? `Kommunal skolerute for ${frame.municipality} - ikke hentet ennå`
-                    : "Kommunal skolerute - ikke hentet ennå"}
+                  Skolerute kan hentes eller fylles ut senere
                 </option>
                 <option value="manual">Fyll ut selv</option>
               </Select>
@@ -672,7 +653,7 @@ export default function NewPlannerPage() {
             <div className="flex items-start gap-3 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
               <CalendarDays className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
               <p className="m-0">
-                Skoleruten hentes ikke automatisk ennå. Velg «Fyll ut selv» hvis perioder skal følge faktiske datoer.
+                Du kan hente forslag fra kommunal lenke eller fylle inn datoer manuelt etter at planen er opprettet.
               </p>
             </div>
           ) : (
@@ -685,7 +666,7 @@ export default function NewPlannerPage() {
             {issues.length === 0 ? "Alle grunnopplysninger er fylt ut." : `${issues.length} opplysninger gjenstår.`}
           </p>
           <Button type="submit" variant="primary">
-            Kontroller og fortsett
+            Fortsett til læreplangrunnlag
           </Button>
         </div>
       </form>

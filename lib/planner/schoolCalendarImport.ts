@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { inflateRawSync } from "node:zlib";
 
 export type ImportedSchoolCalendarEvent = {
   id: string;
@@ -85,6 +86,30 @@ export async function importSchoolCalendarFromUrl(input: {
   const sourceTitle = normalizeText($("title").first().text()) || new URL(url).hostname;
   const structuredLines = extractStructuredLines($);
   const fullText = normalizeText(structuredLines.join("\n") || $("body").text());
+
+  return importSchoolCalendarFromText({
+    sourceUrl: url,
+    sourceTitle,
+    schoolYear: input.schoolYear,
+    text: fullText,
+    structuredLines,
+    aiReader: input.aiReader,
+  });
+}
+
+export async function importSchoolCalendarFromText(input: {
+  sourceUrl: string;
+  sourceTitle: string;
+  schoolYear: string;
+  text: string;
+  structuredLines?: string[];
+  aiReader?: SchoolCalendarAiReader;
+}): Promise<ImportedSchoolCalendar> {
+  const fullText = normalizeText(input.text);
+  if (!fullText) throw new Error("Fant ikke lesbar tekst i skoleruten.");
+  if (fullText.length > 1_000_000) throw new Error("Skoleruteteksten var uventet stor.");
+
+  const structuredLines = input.structuredLines?.length ? input.structuredLines : splitUsefulLines(fullText);
   const schoolYearLines = selectSchoolYearLines(structuredLines, input.schoolYear);
   const schoolYearText = schoolYearLines.join("\n") || selectSchoolYearText(fullText, input.schoolYear);
   const lines = splitUsefulLines(schoolYearText || fullText);
@@ -102,8 +127,8 @@ export async function importSchoolCalendarFromUrl(input: {
   const fallbackEvents = findEvents(sourceLines, schoolYear);
   const aiResult = input.aiReader
     ? await input.aiReader({
-        sourceUrl: url,
-        sourceTitle,
+        sourceUrl: input.sourceUrl,
+        sourceTitle: input.sourceTitle,
         schoolYear: input.schoolYear,
         text: schoolYearText || fullText,
         lines: sourceLines,
@@ -123,12 +148,14 @@ export async function importSchoolCalendarFromUrl(input: {
   if (!firstSchoolDay) notes.push("Fant ikke sikker startdato for skoleåret.");
   if (!lastSchoolDay) notes.push("Fant ikke sikker sluttdato for skoleåret.");
   if (events.length === 0) notes.push("Fant ingen tydelige ferier eller fridager.");
+  const calendarQualityNotes = getCalendarQualityNotes(events);
+  notes.push(...calendarQualityNotes);
   if (aiResult?.notes?.length) notes.push(...aiResult.notes.slice(0, 4));
 
-  const confidence = firstSchoolDay && lastSchoolDay && events.length >= 3 ? "medium" : "low";
+  const confidence = firstSchoolDay && lastSchoolDay && events.length >= 3 && calendarQualityNotes.length === 0 ? "medium" : "low";
   return {
-    sourceUrl: url,
-    sourceTitle,
+    sourceUrl: input.sourceUrl,
+    sourceTitle: input.sourceTitle,
     fetchedAt: new Date().toISOString(),
     confidence,
     notes,
@@ -138,6 +165,69 @@ export async function importSchoolCalendarFromUrl(input: {
     officialSchoolDays,
     events,
   };
+}
+
+export function extractTextFromDocx(buffer: Buffer): string {
+  const documentXml = readZipEntry(buffer, "word/document.xml");
+  if (!documentXml) throw new Error("Fant ikke hovedteksten i Word-dokumentet.");
+  return xmlText(documentXml);
+}
+
+function readZipEntry(buffer: Buffer, targetName: string): string {
+  const endOffset = findEndOfCentralDirectory(buffer);
+  if (endOffset < 0) return "";
+
+  const centralDirectorySize = buffer.readUInt32LE(endOffset + 12);
+  const centralDirectoryOffset = buffer.readUInt32LE(endOffset + 16);
+  const centralDirectoryEnd = centralDirectoryOffset + centralDirectorySize;
+  let offset = centralDirectoryOffset;
+
+  while (offset < centralDirectoryEnd && buffer.readUInt32LE(offset) === 0x02014b50) {
+    const method = buffer.readUInt16LE(offset + 10);
+    const compressedSize = buffer.readUInt32LE(offset + 20);
+    const fileNameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    const localHeaderOffset = buffer.readUInt32LE(offset + 42);
+    const fileName = buffer.toString("utf8", offset + 46, offset + 46 + fileNameLength);
+
+    if (fileName === targetName) {
+      const localFileNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+      const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
+      const dataStart = localHeaderOffset + 30 + localFileNameLength + localExtraLength;
+      const compressed = buffer.subarray(dataStart, dataStart + compressedSize);
+      if (method === 0) return compressed.toString("utf8");
+      if (method === 8) return inflateRawSync(compressed).toString("utf8");
+      throw new Error("Word-dokumentet bruker en komprimering vi ikke kan lese ennå.");
+    }
+
+    offset += 46 + fileNameLength + extraLength + commentLength;
+  }
+
+  return "";
+}
+
+function findEndOfCentralDirectory(buffer: Buffer): number {
+  const minOffset = Math.max(0, buffer.length - 66_000);
+  for (let offset = buffer.length - 22; offset >= minOffset; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === 0x06054b50) return offset;
+  }
+  return -1;
+}
+
+function xmlText(value: string): string {
+  return value
+    .replace(/<w:tab\/>/g, "\t")
+    .replace(/<\/w:p>/g, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/\s+\n/g, "\n")
+    .replace(/\n\s+/g, "\n")
+    .trim();
 }
 
 function cleanImportedEvents(
@@ -187,7 +277,89 @@ function mergeCalendarEvents(
 }
 
 function tidyCalendarEvents(events: ImportedSchoolCalendarEvent[]): ImportedSchoolCalendarEvent[] {
-  return combineSameDayNamedHolidays(removeDuplicateCoveredHolidays(events));
+  return combineSameDayNamedHolidays(removeDuplicateCoveredHolidays(mergeNearbyBreakEvents(events)));
+}
+
+function mergeNearbyBreakEvents(events: ImportedSchoolCalendarEvent[]): ImportedSchoolCalendarEvent[] {
+  const sorted = [...events].sort((left, right) => left.startDate.localeCompare(right.startDate));
+  const merged: ImportedSchoolCalendarEvent[] = [];
+
+  for (const event of sorted) {
+    const previous = merged[merged.length - 1];
+    if (previous && sameMergeableBreakTitle(previous, event) && eventIsInside(event, previous)) {
+      continue;
+    }
+    if (previous && sameMergeableBreakTitle(previous, event) && eventIsInside(previous, event)) {
+      merged[merged.length - 1] = { ...event, id: `${previous.id}-${event.id}` };
+      continue;
+    }
+    if (previous && shouldMergeBreakEvents(previous, event)) {
+      previous.endDate = maxIsoDate(previous.endDate, event.endDate);
+      previous.id = `${previous.id}-${event.id}`;
+      continue;
+    }
+    merged.push({ ...event });
+  }
+
+  return merged;
+}
+
+function shouldMergeBreakEvents(previous: ImportedSchoolCalendarEvent, next: ImportedSchoolCalendarEvent): boolean {
+  if (!sameMergeableBreakTitle(previous, next)) return false;
+  const gap = daysBetween(previous.endDate, next.startDate) - 1;
+  const previousDays = daysBetween(previous.startDate, previous.endDate) + 1;
+  const nextDays = daysBetween(next.startDate, next.endDate) + 1;
+  if (gap > 0 && previousDays >= 5 && nextDays <= 1) return false;
+  return gap >= 0 && gap <= 7;
+}
+
+function sameMergeableBreakTitle(left: ImportedSchoolCalendarEvent, right: ImportedSchoolCalendarEvent): boolean {
+  const normalized = normalizeEventTitle(left.title);
+  return normalized === normalizeEventTitle(right.title) && isMergeableBreakTitle(normalized);
+}
+
+function isMergeableBreakTitle(title: string): boolean {
+  return ["høstferie", "juleferie", "vinterferie", "påskeferie"].includes(normalizeEventTitle(title));
+}
+
+function getCalendarQualityNotes(events: ImportedSchoolCalendarEvent[]): string[] {
+  const notes: string[] = [];
+  const breakCounts = new Map<string, number>();
+
+  for (const event of events) {
+    const normalized = normalizeEventTitle(event.title);
+    if (!isMergeableBreakTitle(normalized)) continue;
+    breakCounts.set(normalized, (breakCounts.get(normalized) ?? 0) + 1);
+  }
+
+  for (const [title, count] of breakCounts.entries()) {
+    if (count > 1) {
+      notes.push(
+        `${formatBreakTitle(title)} ser oppdelt eller litt uvanlig ut. Kontroller datoene ekstra. Du kan redigere linjene enkelt før du lagrer.`
+      );
+    }
+  }
+
+  return notes;
+}
+
+function formatBreakTitle(normalizedTitle: string): string {
+  if (normalizedTitle === "høstferie") return "Høstferien";
+  if (normalizedTitle === "juleferie") return "Juleferien";
+  if (normalizedTitle === "vinterferie") return "Vinterferien";
+  if (normalizedTitle === "påskeferie") return "Påskeferien";
+  return "Skoleruten";
+}
+
+function maxIsoDate(left: string, right: string): string {
+  return left >= right ? left : right;
+}
+
+function daysBetween(left: string, right: string): number {
+  const leftDate = new Date(`${left}T00:00:00Z`);
+  const rightDate = new Date(`${right}T00:00:00Z`);
+  if (Number.isNaN(leftDate.getTime()) || Number.isNaN(rightDate.getTime())) return Number.POSITIVE_INFINITY;
+  return Math.round((rightDate.getTime() - leftDate.getTime()) / 86_400_000);
 }
 
 function removeDuplicateCoveredHolidays(events: ImportedSchoolCalendarEvent[]): ImportedSchoolCalendarEvent[] {

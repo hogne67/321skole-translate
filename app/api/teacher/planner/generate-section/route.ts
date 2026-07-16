@@ -160,8 +160,25 @@ function getPeriodTitle(period: PlannerPeriod, index: number): string {
 }
 
 function targetActivityCountForPeriod(period: PlannerPeriod): number {
+  if (estimatePeriodWeekCount(period.weeks) <= 1) return 1;
   if (period.officialGoalIds.length >= 2) return 2;
   return 1;
+}
+
+function estimatePeriodWeekCount(value: string): number {
+  const numbers = new Set<number>();
+  for (const match of value.matchAll(/(?:uke|undervisningsuke)\s*(\d+)(?:\s*[-–]\s*(\d+))?/gi)) {
+    const start = Number(match[1]);
+    const end = match[2] ? Number(match[2]) : start;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    if (end >= start) {
+      for (let week = start; week <= end && week <= start + 8; week += 1) numbers.add(week);
+    } else {
+      for (let week = start; week <= 53; week += 1) numbers.add(week);
+      for (let week = 1; week <= end; week += 1) numbers.add(week);
+    }
+  }
+  return numbers.size > 0 ? numbers.size : 3;
 }
 
 function createFallbackActivity(period: PlannerPeriod, periodIndex: number, activityIndex: number): PlannerActivity {
@@ -238,7 +255,6 @@ function activityMatchesPeriod(activity: PlannerActivity, period: PlannerPeriod)
   const periodTitle = normalizeReference(period.title);
   const periodId = normalizeReference(period.id);
   if (activityPeriod === periodTitle || activityPeriod === periodId) return true;
-  if (periodTitle && (activityPeriod.includes(periodTitle) || periodTitle.includes(activityPeriod))) return true;
   const activityNumber = activityPeriod.match(/\d+/)?.[0] ?? null;
   const periodNumber = periodTitle.match(/\d+/)?.[0] ?? periodId.match(/\d+/)?.[0] ?? null;
   return Boolean(activityNumber && periodNumber && activityNumber === periodNumber);
@@ -844,6 +860,10 @@ Strict rules:
 - Return exactly one assignment object for every official goal ID, in the same order as the supplied list.
 - Keep each period focused. Do not assign many official goals to every period.
 - Do not simply assign official goal 1 to period 1, goal 2 to period 2, and so on unless that is genuinely the best pedagogical sequence.
+- For week-based plans, do not follow the official curriculum list mechanically. Build a pedagogical sequence based on foundational skills, subject logic, local timing and natural progression.
+- For two-week plans with many periods, also avoid the official curriculum list mechanically. Use subject logic and progression, then repeat or combine goals only when pedagogically useful.
+- For early Norwegian, phonological awareness, listening, books, play, letters, reading and writing should be placed in a practical learning progression, not just copied in the published order.
+- For science, place inquiry, safety, models and data early when relevant, then build through technology, chemistry, energy/climate, ecology/biology, body/health and earth science in a coherent progression.
 - First look for natural placement based on local projects/theme weeks, period timing, broad subject themes, method progression and grade progression.
 - If a locked local project/theme week overlaps a period, consider whether one or more official goals fit that project especially well, and place those goals in that period when professionally reasonable.
 - Preserve full curriculum coverage even when thematic placement changes the order.

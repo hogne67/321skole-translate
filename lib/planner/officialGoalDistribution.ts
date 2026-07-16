@@ -86,6 +86,9 @@ export function validateOfficialGoalDistribution(
       .filter((assignment) => assignment.periodIds.includes(period.id))
       .map((assignment) => assignment.officialGoalId),
   }));
+  if (shouldUseStructuredGoalSequence(periods, officialGoalCount)) {
+    officialGoalPeriodLinks = createStructuredGoalSequence(periods, officialGoals, level);
+  }
   officialGoalPeriodLinks = balanceGoalCoverageAcrossPeriods(officialGoalPeriodLinks, officialGoalCount);
   officialGoalPeriodLinks = diversifyRepeatedPrimaryGoals(officialGoalPeriodLinks, officialGoalCount);
   officialGoalPeriodLinks = applyLockedInitiativeGoalFocus(
@@ -227,6 +230,123 @@ export function validateOfficialGoalDistribution(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function shouldUseStructuredGoalSequence(periods: PlannerPeriod[], officialGoalCount: number): boolean {
+  return periods.length >= 8 && officialGoalCount > 0;
+}
+
+function createStructuredGoalSequence(
+  periods: PlannerPeriod[],
+  officialGoals: string[],
+  level: string
+): OfficialGoalPeriodLink[] {
+  const orderedGoalIds = pedagogicalGoalOrder(officialGoals, level);
+  const repeatCounts = weekRepeatCounts(periods.length, orderedGoalIds.length);
+  const sequence = orderedGoalIds.flatMap((goalId, index) => Array.from({ length: repeatCounts[index] ?? 1 }, () => goalId));
+
+  return periods.map((period, index) => ({
+    periodId: period.id,
+    officialGoalIds: [sequence[index] ?? orderedGoalIds[orderedGoalIds.length - 1] ?? "udir-goal-1"],
+  }));
+}
+
+function weekRepeatCounts(periodCount: number, goalCount: number): number[] {
+  if (goalCount <= 0) return [];
+  const base = Math.max(1, Math.floor(periodCount / goalCount));
+  const extra = periodCount % goalCount;
+  return Array.from({ length: goalCount }, (_, index) => base + (index < extra ? 1 : 0));
+}
+
+function pedagogicalGoalOrder(officialGoals: string[], level: string): string[] {
+  return officialGoals
+    .map((goal, index) => ({
+      goalId: `udir-goal-${index + 1}`,
+      index,
+      score: pedagogicalGoalScore(goal, level),
+    }))
+    .sort((left, right) => left.score - right.score || left.index - right.index)
+    .map((item) => item.goalId);
+}
+
+function pedagogicalGoalScore(goal: string, level: string): number {
+  const text = goal.toLowerCase();
+  const grade = Number(level.match(/\d+/)?.[0] ?? 0);
+  if (Number.isFinite(grade) && grade > 0 && grade <= 2) {
+    if (/rim|rytme|språklyd|stavelser|bokstavlyd/.test(text)) return 1;
+    if (/lytte|samtale|skjønnlitteratur|sakprosa|bøker|bibliotek/.test(text)) return 2;
+    if (/lek|sang|tegning|kreative/.test(text)) return 3;
+    if (/lese med sammenheng|leseforståelse|lesing/.test(text)) return 4;
+    if (/ta ordet|meninger|fortelle muntlig|beskrive/.test(text)) return 5;
+    if (/skrive tekster|hånd|tastatur|store og små bokstaver|punktum|spørsmålstegn|utropstegn/.test(text)) return 6;
+    if (/skrift med bilder|ord og uttrykk|talespråk|skriftspråk/.test(text)) return 7;
+    return 8;
+  }
+  if (isScienceGoal(text)) return scienceGoalScore(text);
+  if (isPhysicalEducationGoal(text)) return physicalEducationGoalScore(text);
+  const primaryTag = primarySemanticGoalTag(goal);
+  const order = [
+    "method-source-investigation",
+    "media-digital",
+    "history-change",
+    "geography-sustainability",
+    "democracy-rights-laws",
+    "conflict-society",
+    "identity-diversity-belonging",
+    "economy-consumption",
+  ];
+  const index = order.indexOf(primaryTag);
+  return index >= 0 ? index + 1 : 20;
+}
+
+function isPhysicalEducationGoal(text: string): boolean {
+  return /trening|helse|velvære|lek|dans|friluftsliv|idrett|bevegelsesaktivitet|svømme|svømmeteknikk|livredning|førstehjelp|kart|orientere|uteaktivitet|sporløs|kroppsidentitet|selvbilde|skader|sykdom/.test(text);
+}
+
+function physicalEducationGoalScore(text: string): number {
+  if (/trening|helse|velvære|lek|idrettsaktiviteter|bevegelsesaktiviteter/.test(text)) return 1;
+  if (/trene på|utvikle ferdigheter|varierte bevegelsesaktiviteter/.test(text)) return 2;
+  if (/dans|danseaktiviteter|dansekomposisjoner/.test(text)) return 3;
+  if (/ulikhet|inkludere alle|forutsetninger/.test(text)) return 4;
+  if (/kropp i media|kroppsidentitet|selvbilde|samfunnet påvirker/.test(text)) return 5;
+  if (/skader|sykdom/.test(text)) return 6;
+  if (/framgang for andre|medvirke til framgang/.test(text)) return 7;
+  if (/kart|digitale verktøy|orientere seg/.test(text)) return 8;
+  if (/svømme|svømmeteknikker|lengre distanse/.test(text)) return 9;
+  if (/friluftsliv|overnatting ute|naturopplevelser|årstider/.test(text)) return 10;
+  if (/risiko|sikkerhet|sporløs|trygg ferdsel|uteaktiviteter/.test(text)) return 11;
+  if (/livredning|ved vann|på vann|i vann/.test(text)) return 12;
+  if (/førstehjelp|livreddende/.test(text)) return 13;
+  return 20;
+}
+
+function isScienceGoal(text: string): boolean {
+  return /naturfag|hypotes|variabel|data|modell|forsøk|forskning|teknolog|programmering|atom|kjem|reaksjon|drivhus|klima|energi|evolusjon|biologisk|økosystem|celle|fotosyntese|celleånding|platetektonikk|nervesystem|hormon|immunforsvar|vaksin|seksuell|reproduktiv|naturressurs/.test(text);
+}
+
+function scienceGoalScore(text: string): number {
+  if (/stille spørsmål|hypotes|variabel|samle data/.test(text)) return 1;
+  if (/analysere|innsamlede data|forklaringene|kvaliteten/.test(text)) return 2;
+  if (/risikovurder|sikkerhetstiltak/.test(text)) return 3;
+  if (/modell|modeller/.test(text)) return 4;
+  if (/forskning|ny kunnskap|kritisk tilnærming/.test(text)) return 5;
+  if (/teknologiske systemer|sender og mottaker|programmering/.test(text)) return 6;
+  if (/atom|periodesystem|grunnstoff|kjemiske forbindelser/.test(text)) return 7;
+  if (/kjemiske reaksjoner|massebevaring|forbrenningsreaksjoner/.test(text)) return 8;
+  if (/energi|energibevaring|energikvalitet|omdanne|transportere|lagre energi/.test(text)) return 9;
+  if (/energiproduksjon|energibruk|miljøet/.test(text)) return 10;
+  if (/drivhuseffekten|klimaendringer/.test(text)) return 11;
+  if (/økosystem|abiotiske|biotiske|kretsløp/.test(text)) return 12;
+  if (/celler|oppbygning og funksjon/.test(text)) return 13;
+  if (/fotosyntese|celleånding|karbonkretsløpet/.test(text)) return 14;
+  if (/evolusjon|biologisk mangfold/.test(text)) return 15;
+  if (/naturressurser|tap av biologisk mangfold|bærekraftig/.test(text)) return 16;
+  if (/samers tradisjonelle kunnskap|forvaltning av naturen/.test(text)) return 17;
+  if (/platetektonikk|jordas utvikling/.test(text)) return 18;
+  if (/nervesystem|hormonsystem|rusmidler|legemidler|miljøgifter|doping/.test(text)) return 19;
+  if (/immunforsvar|vaksiner|folkehelsen/.test(text)) return 20;
+  if (/seksuell|reproduktiv helse/.test(text)) return 21;
+  return 30;
 }
 
 function balanceGoalCoverageAcrossPeriods(
@@ -577,6 +697,10 @@ function usesStrictStudentLanguage(level: string): boolean {
   return Number.isFinite(grade) && grade >= 1 && grade <= 6;
 }
 
+function usesSimpleTopicLanguage(level: string): boolean {
+  return usesStrictStudentLanguage(level) || /fov|modul|voksenopplæring/i.test(level);
+}
+
 function isBadStudentLanguage(value: string, sourceText = "", level = ""): boolean {
   if (!value.trim()) return true;
   if (countWords(value) > 15) return true;
@@ -595,6 +719,7 @@ function hasWrongExplicitTopic(value: string, sourceText: string, level: string)
   const studentTopic = explicitStudentTopic(value);
   if (!studentTopic) return false;
   const allowedTopics = semanticStudentTopics(sourceText, level);
+  if (allowedTopics.length === 0) return true;
   return allowedTopics.length > 0 && !allowedTopics.includes(studentTopic);
 }
 
@@ -615,6 +740,7 @@ function explicitStudentTopic(value: string): string {
     "reklame og forbruk",
     "møter mellom mennesker",
     "en enkel undersøkelse",
+    "samfunnsfaglig skriving",
   ];
   return topics.find((topic) => text.includes(topic)) ?? "";
 }
@@ -661,12 +787,25 @@ function semanticStudentTopic(value: string, level = ""): string {
 }
 
 function semanticStudentTopics(value: string, level = ""): string[] {
-  if (!usesStrictStudentLanguage(level)) return [];
+  if (!usesSimpleTopicLanguage(level)) return [];
   const text = value.toLowerCase();
   const topics: string[] = [];
   const add = (topic: string, pattern: RegExp) => {
     if (pattern.test(text)) topics.push(topic);
   };
+  add("rim og språklyder", /rim|rytme|språklyd|stavelser/);
+  add("bokstaver og lyder", /bokstavlyd|bokstaver|trekke bokstavlyder/);
+  add("bøker og tekster", /skjønnlitteratur|sakprosa|bokmål|nynorsk|bøker|bibliotek/);
+  add("lek og tekstopplevelser", /tekstopplevelser|lek|sang|tegning|kreative aktiviteter/);
+  add("ord som påvirker andre", /ord vi bruker.*påvirke|påvirke andre/);
+  add("lesing og forståelse", /lese med sammenheng|leseforståelse/);
+  add("samtale og meninger", /ta ordet|begrunne egne meninger|samtaler/);
+  add("muntlig og skriftlig fortelling", /beskrive og fortelle|fortelle muntlig|skriftlig/);
+  add("skriving for hånd og tastatur", /skrive tekster for hånd|tastatur/);
+  add("tegnsetting", /store og små bokstaver|punktum|spørsmålstegn|utropstegn/);
+  add("tekst og bilder", /skrift med bilder|kombinerer skrift/);
+  add("ord og uttrykk", /ord og uttrykk|betydningen til ord/);
+  add("talespråk og skriftspråk", /talespråk|skriftspråk/);
   add("en enkel undersøkelse", /undersøk|resultat|digital(e)? verktøy/);
   add("nyheter og fakta", /nyhet|fakta|mening|medie/);
   add("digital dømmekraft", /digital samhandling|dømmekraft/);
@@ -685,6 +824,9 @@ function semanticStudentTopics(value: string, level = ""): string[] {
   add("lover og regler", /lover|regler|normer/);
   add("møter mellom mennesker", /møter mellom mennesker|samfunn har vært organisert/);
   add("bærekraft", /global|bærekraft|samarbeid mellom land/);
+  add("arbeidsliv", /arbeidsliv|fagforening|regulering|teknologi påvirker arbeidslivet/);
+  add("norsk økonomi", /norsk økonomi|økonomiske forhold/);
+  add("samfunnsfaglig skriving", /skrive tekster|samfunnsfaglige beskrivelser|forklaringer/);
   return [...new Set(topics)];
 }
 
@@ -785,12 +927,13 @@ function createFallbackPlanningSuggestion(
   officialGoals: string[] = []
 ): PeriodPlanningSuggestion {
   const topic = topicFromOfficialGoalIds(sourceOfficialGoalIds, officialGoals);
+  const variantIndex = fallbackPlanningVariantIndex(period);
   return {
     periodId: period.id,
-    goals: defaultPlanningText("goals", topic),
-    content: defaultPlanningText("content", topic),
-    methods: defaultPlanningText("methods", topic),
-    assessment: defaultPlanningText("assessment", topic),
+    goals: defaultPlanningText("goals", topic, variantIndex),
+    content: defaultPlanningText("content", topic, variantIndex),
+    methods: defaultPlanningText("methods", topic, variantIndex),
+    assessment: defaultPlanningText("assessment", topic, variantIndex),
   };
 }
 
@@ -815,6 +958,12 @@ function topicFromOfficialGoalIds(sourceOfficialGoalIds: string[], officialGoals
     .map((goalId) => officialGoals[officialGoalIndex(goalId)] ?? "")
     .find((text) => text.trim().length > 0);
   return localGoalTopic(sourceText);
+}
+
+function fallbackPlanningVariantIndex(period: PlannerPeriod): number {
+  const source = `${period.title} ${period.weeks} ${period.id}`;
+  const number = Number(source.match(/\d+/)?.[0] ?? 0);
+  return Number.isFinite(number) && number > 0 ? number - 1 : 0;
 }
 
 function applyLockedInitiatives(
@@ -977,15 +1126,40 @@ function isPlaceholderPlanningText(value: string): boolean {
   ].some((phrase) => text.includes(phrase));
 }
 
-function defaultPlanningText(field: keyof Omit<PeriodPlanningSuggestion, "periodId">, topic = "periodens kompetansemål"): string {
+function defaultPlanningText(
+  field: keyof Omit<PeriodPlanningSuggestion, "periodId">,
+  topic = "periodens kompetansemål",
+  variantIndex = 0
+): string {
+  const index = Math.abs(variantIndex) % 4;
   if (field === "goals") {
-    return `Arbeid med ${topic} gjennom konkrete lokale læringsmål.`;
+    return [
+      `Arbeid med ${topic} gjennom konkrete lokale læringsmål.`,
+      `Bygg en enkel faglig forståelse av ${topic}.`,
+      `Knytt periodens mål til sentrale begreper og eksempler innen ${topic}.`,
+      `La deltakerne vise forståelse for ${topic} på en konkret måte.`,
+    ][index];
   }
   if (field === "content") {
-    return `Bruk tekster, kilder, eksempler og samtaler som hjelper elevene å undersøke ${topic}.`;
+    return [
+      `Bruk aktuelle eksempler, korte kilder og samtaler som åpner ${topic}.`,
+      `Knytt ${topic} til deltakernes erfaringer, nyheter eller lokalsamfunnet.`,
+      `Arbeid med ett konkret case som viser viktige sider ved ${topic}.`,
+      `Samle begreper, eksempler og spørsmål som gjør ${topic} forståelig.`,
+    ][index];
   }
   if (field === "methods") {
-    return `Bruk felles modellering, samtale, samarbeid og korte elevprodukter i arbeid med ${topic}.`;
+    return [
+      `Bruk felles modellering, samtale og korte samarbeidsoppgaver.`,
+      `La deltakerne arbeide parvis eller i små grupper før felles oppsummering.`,
+      `Veksle mellom korte lærerinnspill, kildearbeid og muntlig deling.`,
+      `Bruk en praktisk oppgave, felles begrepsarbeid og kort refleksjon.`,
+    ][index];
   }
-  return `Følg elevenes forståelse gjennom observasjon, samtale, korte elevprodukter og egenvurdering knyttet til ${topic}.`;
+  return [
+    `Følg forståelsen gjennom samtale, observasjon og korte elevprodukter.`,
+    `Se etter om deltakerne bruker begreper og eksempler fra ${topic}.`,
+    `Bruk muntlig oppsummering eller kort egenvurdering som underveisvurdering.`,
+    `La deltakerne forklare ett eksempel eller én sammenheng fra perioden.`,
+  ][index];
 }
