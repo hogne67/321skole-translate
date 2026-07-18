@@ -149,6 +149,7 @@ export type PlannerLocalInitiative = {
 
 export type PlannerLocalFramework = {
   annualHours: number;
+  weeklyHours: number;
   localGoals: string;
   localGuidelines: string;
   interdisciplinaryProjects: PlannerLocalInitiative[];
@@ -272,6 +273,7 @@ export const DEFAULT_PLANNER_DOCUMENT: PlannerDocument = {
 
 export const DEFAULT_LOCAL_FRAMEWORK: PlannerLocalFramework = {
   annualHours: 0,
+  weeklyHours: 0,
   localGoals: "",
   localGuidelines: "",
   interdisciplinaryProjects: [],
@@ -298,6 +300,11 @@ function stringOrDefault(value: unknown, fallback = ""): string {
 function numberOrDefault(value: unknown, fallback: number): number {
   const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) && n >= 0 ? Math.round(n) : fallback;
+}
+
+function decimalNumberOrDefault(value: unknown, fallback: number): number {
+  const n = typeof value === "number" ? value : Number(String(value).replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : fallback;
 }
 
 function stringArrayOrDefault(value: unknown): string[] {
@@ -507,6 +514,7 @@ export function normalizePlannerLocalFramework(value: unknown): PlannerLocalFram
   const record = isRecord(value) ? value : {};
   return {
     annualHours: numberOrDefault(record.annualHours, 0),
+    weeklyHours: decimalNumberOrDefault(record.weeklyHours, 0),
     localGoals: stringOrDefault(record.localGoals),
     localGuidelines: stringOrDefault(record.localGuidelines),
     interdisciplinaryProjects: normalizeLocalInitiatives(record.interdisciplinaryProjects, "project"),

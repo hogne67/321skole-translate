@@ -22,6 +22,7 @@ import {
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { useLocale } from "next-intl";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -1936,6 +1937,7 @@ export default function PlannerDashboardPage() {
           />
         ) : active === "local" ? (
           <LocalFrameworkEditor
+            frame={planner.frame}
             framework={planner.localFramework}
             officialBasis={planner.officialBasis}
             onUpdate={updateLocalFramework}
@@ -2136,11 +2138,12 @@ function plannerDocumentHref(
   locale: string,
   plannerId: string,
   target: "preview" | "print",
-  options: { audience?: "student"; periodId?: string | undefined } = {}
+  options: { audience?: "student"; periodId?: string | undefined; printMode?: "short" | "full" } = {}
 ) {
   const params = new URLSearchParams();
   if (options.audience === "student") params.set("audience", "student");
   if (options.periodId) params.set("periodId", options.periodId);
+  if (options.printMode && options.printMode !== "short") params.set("mode", options.printMode);
   const query = params.toString();
   return `/${locale}/teacher/planner/${plannerId}/${target}${query ? `?${query}` : ""}`;
 }
@@ -2302,6 +2305,7 @@ function Overview({
 
       <FastTrackPanel
         planner={planner}
+        locale={locale}
         periodStructure={periodStructure}
         running={fastTrackRunning}
         onPeriodStructureChange={onPeriodStructureChange}
@@ -2353,6 +2357,7 @@ function Overview({
 
 function FastTrackPanel({
   planner,
+  locale,
   periodStructure,
   running,
   onPeriodStructureChange,
@@ -2362,6 +2367,7 @@ function FastTrackPanel({
   onGenerateActivities,
 }: {
   planner: Planner;
+  locale: string;
   periodStructure: PeriodStructureValue;
   running: boolean;
   onPeriodStructureChange: (value: PeriodStructureValue) => void;
@@ -2384,7 +2390,6 @@ function FastTrackPanel({
   const hasPeriodContent =
     hasPeriods && planner.document.periods.every((period) => period.learningGoals.length > 0 && period.content.trim());
   const hasActivities = planner.document.activities.length > 0;
-  const hasWeekPlans = planner.document.periods.some((period) => period.weekPlans.length > 0);
   const steps = [
     {
       label: "1. Offisielt grunnlag",
@@ -2462,16 +2467,6 @@ function FastTrackPanel({
       disabled: running || !hasPeriodContent,
       optional: true,
     },
-    {
-      label: "8. Ukeplaner",
-      detail: hasWeekPlans
-        ? "Ukeplaner er lagt inn i én eller flere perioder."
-        : "Valgfritt: åpne periodeplaner og generer ukeplaner der du trenger mer detalj.",
-      done: hasWeekPlans,
-      actionLabel: "Åpne periodeplaner",
-      action: () => onOpenSection("Periodeplaner"),
-      optional: true,
-    },
   ];
 
   return (
@@ -2485,6 +2480,15 @@ function FastTrackPanel({
             Alle forslag kan redigeres etterpå.
           </p>
         </div>
+        <TrainingVideoPlayer
+          title="Slik bruker du fast track i 321Planner"
+          videoUrl="https://youtu.be/LiI0CUAzhDo"
+          buttonLabel="Se video"
+          buttonTitle="Se instruksjonsvideo for fast track"
+          closeLabel="Lukk"
+          iconOnly
+          className="h-12 w-12"
+        />
       </div>
 
       <div className="mt-4 grid gap-2">
@@ -2536,6 +2540,23 @@ function FastTrackPanel({
       <p className="m-0 mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold leading-6 text-slate-700">
         Fast track leder deg gjennom de viktigste valgene. Det som genereres er et førsteutkast, og alt kan endres etterpå.
       </p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link
+          href={plannerDocumentHref(locale, planner.id, "print")}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-3 text-sm font-bold text-white no-underline hover:bg-slate-800"
+        >
+          <Printer className="h-4 w-4" aria-hidden="true" />
+          Kort utskrift
+        </Link>
+        <Link
+          href={plannerDocumentHref(locale, planner.id, "print", { printMode: "full" })}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
+        >
+          <Printer className="h-4 w-4" aria-hidden="true" />
+          Full plan
+        </Link>
+      </div>
     </section>
   );
 }
@@ -2635,8 +2656,6 @@ function PlannerWorkflowPanel({ planner, locale }: { planner: Planner; locale: s
   const hasPeriodContent =
     hasPeriods && planner.document.periods.every((period) => period.learningGoals.length > 0 && period.content.trim());
   const hasActivities = planner.document.activities.length > 0;
-  const hasStudentReady = hasAnnualPlan && hasPeriods && hasPeriodContent;
-  const activePeriod = planner.document.periods.find((period) => period.status === "active");
 
   const steps = [
     {
@@ -2690,16 +2709,6 @@ function PlannerWorkflowPanel({ planner, locale }: { planner: Planner; locale: s
             En praktisk løype fra førsteutkast til dokumenter som kan brukes med elever og deltakere.
           </p>
         </div>
-        <Link
-          href={plannerDocumentHref(locale, planner.id, "print", {
-            audience: hasStudentReady ? "student" : undefined,
-            periodId: activePeriod?.id,
-          })}
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-3 text-sm font-bold text-white no-underline hover:bg-slate-800"
-        >
-          <Printer className="h-4 w-4" aria-hidden="true" />
-          Test utskrift
-        </Link>
       </div>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         {steps.map((step) => (
@@ -5024,14 +5033,20 @@ function ReflectionLogEditor({
 }
 
 function LocalFrameworkEditor({
+  frame,
   framework,
   officialBasis,
   onUpdate,
 }: {
+  frame: PlannerFrame;
   framework: PlannerLocalFramework;
   officialBasis: Planner["officialBasis"];
   onUpdate: <K extends keyof PlannerLocalFramework>(key: K, value: PlannerLocalFramework[K]) => void;
 }) {
+  const weeklyFromAnnual = framework.annualHours > 0 && frame.teachingWeeks > 0 ? framework.annualHours / frame.teachingWeeks : 0;
+  const annualFromWeekly = framework.weeklyHours > 0 ? framework.weeklyHours * frame.teachingWeeks : 0;
+  const officialHoursSummary = formatOfficialHoursSummary(officialBasis);
+
   return (
     <div className="grid gap-5">
       <div>
@@ -5051,17 +5066,55 @@ function LocalFrameworkEditor({
         )}
       </div>
 
-      <Field label="Lokalt timetall for dette skoleåret">
-        <Input
-          type="number"
-          min={0}
-          value={framework.annualHours}
-          onChange={(event) => onUpdate("annualHours", Number(event.target.value))}
-        />
-      </Field>
-      <p className="m-0 text-sm leading-6 text-slate-600">
-        Dette er skolens lokale fordeling. Udirs offisielle timetall beholdes uendret i grunnlaget.
-      </p>
+      <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
+        <div>
+          <h3 className="m-0 text-base font-black text-slate-950">Timetall</h3>
+          <p className="mb-0 mt-1 text-sm leading-6 text-slate-600">
+            Udirs timetall kan være oppgitt samlet for flere trinn. Skriv inn skolens lokale fordeling for dette skoleåret.
+            Dette brukes som planleggingsstøtte og vises i utskrift, men endrer ikke kompetansemålene.
+          </p>
+        </div>
+        {officialHoursSummary ? (
+          <details className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm leading-6 text-sky-950">
+            <summary className="cursor-pointer font-black text-slate-950">
+              Offisielt timetall fra Udir
+            </summary>
+            <p className="m-0 mt-1 whitespace-pre-wrap">{officialHoursSummary}</p>
+          </details>
+        ) : null}
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="Lokalt timetall per uke">
+            <Input
+              type="number"
+              min={0}
+              step="0.25"
+              value={framework.weeklyHours || ""}
+              onChange={(event) => onUpdate("weeklyHours", Number(event.target.value.replace(",", ".")) || 0)}
+              placeholder="F.eks. 1,5"
+            />
+          </Field>
+          <Field label="Lokalt timetall for skoleåret">
+            <Input
+              type="number"
+              min={0}
+              value={framework.annualHours || ""}
+              onChange={(event) => onUpdate("annualHours", Number(event.target.value) || 0)}
+              placeholder="F.eks. 57"
+            />
+          </Field>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold leading-6 text-slate-700">
+          {framework.weeklyHours > 0 ? (
+            <div>{formatNumber(framework.weeklyHours)} t/uke x {frame.teachingWeeks} undervisningsuker = ca. {formatNumber(annualFromWeekly)} timer per år.</div>
+          ) : null}
+          {framework.annualHours > 0 ? (
+            <div>{framework.annualHours} timer per år fordelt på {frame.teachingWeeks} undervisningsuker = ca. {formatNumber(weeklyFromAnnual)} t/uke.</div>
+          ) : null}
+          {framework.weeklyHours <= 0 && framework.annualHours <= 0 ? (
+            <div>Legg inn uketimer eller årstimer for å få en enkel lokal beregning.</div>
+          ) : null}
+        </div>
+      </section>
 
       <Field label="Lokale mål og prioriteringer">
         <Textarea
@@ -5085,6 +5138,7 @@ function LocalFrameworkEditor({
         title="Tverrfaglige prosjekter"
         emptyText="Ingen lokale tverrfaglige prosjekter er lagt inn."
         items={framework.interdisciplinaryProjects}
+        officialThemeOptions={officialBasis?.interdisciplinaryThemes ?? []}
         onChange={(items) => onUpdate("interdisciplinaryProjects", items)}
       />
 
@@ -5096,6 +5150,24 @@ function LocalFrameworkEditor({
       />
     </div>
   );
+}
+
+function formatOfficialHoursSummary(officialBasis: Planner["officialBasis"]): string {
+  if (!officialBasis) return "";
+  const lines: string[] = [];
+  if (officialBasis.hours.note.trim()) lines.push(officialBasis.hours.note.trim());
+  for (const section of officialBasis.hours.sections) {
+    if (section.title.trim()) lines.push(section.title.trim());
+    for (const row of section.rows.slice(0, 8)) {
+      const text = row.filter(Boolean).join(" - ").trim();
+      if (text) lines.push(text);
+    }
+  }
+  return lines.slice(0, 10).join("\n");
+}
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 2 }).format(value);
 }
 
 function SchoolCalendarEditor({
@@ -5640,11 +5712,13 @@ function InitiativeEditor({
   title,
   emptyText,
   items,
+  officialThemeOptions = [],
   onChange,
 }: {
   title: string;
   emptyText: string;
   items: PlannerLocalInitiative[];
+  officialThemeOptions?: Array<{ title: string; text: string }>;
   onChange: (items: PlannerLocalInitiative[]) => void;
 }) {
   function addItem() {
@@ -5656,6 +5730,16 @@ function InitiativeEditor({
 
   function updateItem(index: number, patch: Partial<PlannerLocalInitiative>) {
     onChange(items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
+  }
+
+  function selectedOfficialTheme(item: PlannerLocalInitiative) {
+    return officialThemeOptions.find((option) => normalizeComparableTitle(option.title) === normalizeComparableTitle(item.title));
+  }
+
+  function applyOfficialTheme(index: number, themeTitle: string) {
+    const option = officialThemeOptions.find((theme) => theme.title === themeTitle);
+    if (!option) return;
+    updateItem(index, { title: option.title });
   }
 
   return (
@@ -5675,6 +5759,21 @@ function InitiativeEditor({
         <div className="grid gap-4">
           {items.map((item, index) => (
             <div key={item.id} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
+              {officialThemeOptions.length > 0 ? (
+                <Field label="Velg Udir-tema">
+                  <Select
+                    value={selectedOfficialTheme(item)?.title ?? ""}
+                    onChange={(event) => applyOfficialTheme(index, event.target.value)}
+                  >
+                    <option value="">Egendefinert prosjekt</option>
+                    {officialThemeOptions.map((option) => (
+                      <option key={option.title} value={option.title}>
+                        {option.title}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              ) : null}
               <div className="flex justify-end">
                 <button
                   type="button"
@@ -5720,14 +5819,29 @@ function InitiativeEditor({
                   rows={3}
                 />
               </Field>
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm font-semibold leading-6 text-emerald-950">
+              {selectedOfficialTheme(item) ? (
+                <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm leading-6 text-sky-950">
+                  <div className="font-black text-slate-950">Offisiell Udir-tekst: {selectedOfficialTheme(item)?.title}</div>
+                  <p className="m-0 mt-1 whitespace-pre-wrap">{selectedOfficialTheme(item)?.text}</p>
+                </div>
+              ) : null}
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm font-semibold leading-6 ${
+                  item.locked
+                    ? "border-emerald-700 bg-emerald-700 text-white shadow-sm"
+                    : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-white"
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={item.locked}
                   onChange={(event) => updateItem(index, { locked: event.target.checked })}
-                  className="mt-1 h-4 w-4 shrink-0"
+                  className="mt-1 h-4 w-4 shrink-0 accent-emerald-700"
                 />
-                <span>Lås i årsplanen. Perioder og AI-forslag bruker dato først, og tekst/uke som fallback.</span>
+                <span>
+                  {item.locked ? "Låst i årsplanen" : "Lås i årsplanen"}.
+                  Perioder og AI-forslag bruker dato først, og tekst/uke som fallback.
+                </span>
               </label>
             </div>
           ))}
@@ -5735,6 +5849,10 @@ function InitiativeEditor({
       )}
     </section>
   );
+}
+
+function normalizeComparableTitle(value: string): string {
+  return value.toLocaleLowerCase("nb-NO").replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
 }
 
 function SettingsEditor({

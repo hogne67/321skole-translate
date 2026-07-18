@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Archive, Copy, FileText, Plus, Search, RotateCcw } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
+import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 import { normalizePlanner, type Planner, type PlannerStatus } from "@/lib/planner/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 
@@ -173,13 +174,24 @@ export default function TeacherPlannerPage() {
               Lag, rediger, lagre og skriv ut årsplaner som kan brukes videre gjennom skoleåret.
             </p>
           </div>
-          <Link
-            href={withLocale(locale, "/teacher/planner/new")}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-bold text-white no-underline hover:bg-emerald-800"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Lag ny plan
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <TrainingVideoPlayer
+              title="Slik lager du en plan i 321Planner"
+              videoUrl="https://youtu.be/jhzmYK11m1U"
+              buttonLabel="Se video"
+              buttonTitle="Se instruksjonsvideo for 321Planner"
+              closeLabel="Lukk"
+              iconOnly
+              className="h-12 w-12"
+            />
+            <Link
+              href={withLocale(locale, "/teacher/planner/new")}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-bold text-white no-underline hover:bg-emerald-800"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Lag ny plan
+            </Link>
+          </div>
         </div>
       </section>
 

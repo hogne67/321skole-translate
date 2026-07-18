@@ -410,6 +410,15 @@ export async function POST(req: Request) {
       selectedGoal?.sourceOfficialGoalIds.filter((goalId) => selectedPeriod?.officialGoalIds.includes(goalId)) ?? [];
     const singleGoalOfficialGoalIds =
       selectedGoalOfficialGoalIds.length > 0 ? selectedGoalOfficialGoalIds : selectedPeriod?.officialGoalIds ?? [];
+    const officialGoalsById = Object.fromEntries(
+      (officialBasis?.competenceGoals ?? []).map((goal, index) => [`udir-goal-${index + 1}`, goal])
+    );
+    const expectedPeriodLearningGoalCount =
+      selectedPeriod?.learningGoals.length && selectedPeriod.learningGoals.length > 0
+        ? selectedPeriod.learningGoals.length
+        : selectedPeriod?.officialGoalIds.length && selectedPeriod.officialGoalIds.length > 1
+          ? Math.min(8, selectedPeriod.officialGoalIds.length * 2)
+          : 3;
 
     if ((kind === "weeks" || kind === "periodLearningGoal" || kind === "periodLearningGoals") && !selectedPeriod) {
       return json({ error: "Missing selected period" }, 400);
@@ -765,6 +774,8 @@ Strict rules:
 - Never end abruptly after words such as "knyttet", "er", "om", "som", "og", "til", or "med".
 - The learning goal must reference at least one supplied official goal ID.
 - Use only the official goal IDs supplied below.
+- Do not repeat the current goal or the other goals already used in this period.
+- Make the new suggestion meaningfully different from the current text by focusing on another part of the official goal, a different active verb, or a different level of understanding.
 - Do not quote, rewrite, summarize, or claim that the local learning goal is official curriculum text.
 - Return no activities, teaching methods, assessment criteria, or lesson content.
 - Grade progression: ${progressionInstruction}
@@ -774,6 +785,11 @@ Level: ${frame.level}
 Period: ${selectedPeriod?.title} (${selectedPeriod?.weeks})
 Current teacher formulation: ${selectedGoal?.goal || "No existing formulation"}
 Current student/participant version: ${selectedGoal?.studentLanguage || "No existing formulation"}
+Other existing period goals to avoid:
+${selectedPeriod?.learningGoals
+  .filter((_, index) => index !== Math.floor(goalIndex))
+  .map((goal) => `- ${goal.studentLanguage || goal.goal}`)
+  .join("\n") || "- None"}
 Period content: ${selectedPeriod?.content || "No content registered"}
 Local goals and priorities: ${localFramework.localGoals || "None registered"}
 Local guidelines: ${localFramework.localGuidelines || "None registered"}
@@ -803,6 +819,8 @@ Create concrete local learning goals for one period, based only on the selected 
 
 Strict rules:
 - Create student-facing learning goals grouped by the selected official curriculum goals.
+- Create exactly ${expectedPeriodLearningGoalCount} short student-facing learning goals in total for this period.
+- If the period has one selected official goal, normally create 3 learning goals for that goal.
 - For each selected official goal, create 1 to 3 short student-facing learning goals.
 - If the period has two selected official goals, create learning goals for both, normally 2 for each official goal.
 - Each learning goal must be observable and suitable for planning, but must not contain activities or assessment tasks.
@@ -817,6 +835,7 @@ Strict rules:
 - Every learning goal must reference at least one supplied official goal ID.
 - Every supplied official goal ID must be referenced by at least one learning goal.
 - Use only the official goal IDs supplied below.
+- Do not repeat existing period goals. If you create several goals from the same official goal, each must cover a different concrete part of that official goal.
 - Do not quote, rewrite, summarize, or claim that the local learning goals are official curriculum text.
 - Return no activities, teaching methods, assessment criteria, or lesson content.
 - Grade progression: ${progressionInstruction}
@@ -826,6 +845,8 @@ Level: ${frame.level}
 Period: ${selectedPeriod?.title} (${selectedPeriod?.weeks})
 Local goals and priorities: ${localFramework.localGoals || "None registered"}
 Local guidelines: ${localFramework.localGuidelines || "None registered"}
+Existing period goals to avoid:
+${selectedPeriod?.learningGoals.map((goal) => `- ${goal.studentLanguage || goal.goal}`).join("\n") || "- None"}
 
 Selected official goals:
 ${selectedPeriod?.officialGoalIds
@@ -1143,7 +1164,11 @@ Return exact JSON:
     }
 
     if (kind === "periodLearningGoal") {
-      const goal = validateSinglePeriodLearningGoal(parsed, singleGoalOfficialGoalIds, frame.level);
+      const goal = validateSinglePeriodLearningGoal(parsed, singleGoalOfficialGoalIds, frame.level, {
+        officialGoalsById,
+        avoidTexts: selectedPeriod?.learningGoals.map((item) => item.studentLanguage || item.goal) ?? [],
+        variantOffset: Number.isFinite(goalIndex) ? Math.floor(goalIndex) : 0,
+      });
       if (!goal) {
         return json({ error: "AI returned an invalid period learning goal" }, 500);
       }
@@ -1151,7 +1176,15 @@ Return exact JSON:
     }
 
     if (kind === "periodLearningGoals") {
-      const result = validatePeriodLearningGoals(parsed, selectedPeriod?.officialGoalIds ?? [], frame.level);
+      const result = validatePeriodLearningGoals(
+        parsed,
+        selectedPeriod?.officialGoalIds ?? [],
+        frame.level,
+        {
+          officialGoalsById,
+          expectedGoalCount: expectedPeriodLearningGoalCount,
+        }
+      );
       if (!result) {
         return json({ error: "AI returned invalid or incomplete period learning goals" }, 500);
       }

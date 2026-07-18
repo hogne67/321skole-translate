@@ -22,7 +22,9 @@ export default function PlannerPrintPage() {
     searchParams.get("audience") === "student" ? "student" : "teacher"
   );
   const [selectedPeriodId, setSelectedPeriodId] = useState(searchParams.get("periodId") || "");
-  const [teacherPrintMode, setTeacherPrintMode] = useState<"short" | "full">("short");
+  const [teacherPrintMode, setTeacherPrintMode] = useState<"short" | "full">(
+    searchParams.get("mode") === "full" ? "full" : "short"
+  );
   const [showWeekPlans, setShowWeekPlans] = useState(true);
   const [showReflectionLog, setShowReflectionLog] = useState(true);
   const [showYearEndSummary, setShowYearEndSummary] = useState(true);
