@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { DashboardIntro } from "@/components/DashboardIntro";
+import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
-import { PartnerDashboardCard } from "@/components/PartnerDashboardCard";
 import { useUsage } from "@/lib/useUsage";
 import {
   getBucketLimit,
@@ -84,44 +84,6 @@ function getProgressTone(used: number, limit: number): {
     badgeColor: "#047857",
     badgeBorder: "#a7f3d0",
     fill: "#10b981",
-  };
-}
-
-function getBillingTone(status?: string | null): {
-  bg: string;
-  color: string;
-  border: string;
-} {
-  const value = (status ?? "").toLowerCase();
-
-  if (value === "active") {
-    return {
-      bg: "#ecfdf5",
-      color: "#047857",
-      border: "#a7f3d0",
-    };
-  }
-
-  if (value === "trialing") {
-    return {
-      bg: "#eff6ff",
-      color: "#1d4ed8",
-      border: "#bfdbfe",
-    };
-  }
-
-  if (value === "past_due" || value === "unpaid" || value === "incomplete") {
-    return {
-      bg: "#fff7ed",
-      color: "#c2410c",
-      border: "#fdba74",
-    };
-  }
-
-  return {
-    bg: "#f8fafc",
-    color: "#475569",
-    border: "#cbd5e1",
   };
 }
 
@@ -331,10 +293,13 @@ export default function ParentPage() {
   const billingPlanLabel = formatPlanLabel(rawBillingPlan, t);
   const effectivePlanLabel = formatPlanLabel(effectivePlan, t);
   const billingStatusLabel = formatBillingStatus(rawBillingStatus, t);
-  const billingTone = getBillingTone(rawBillingStatus);
+  const billingSummary = t("billing.summary", {
+    plan: billingPlanLabel,
+    effectivePlan: effectivePlanLabel,
+    role: t("billing.fields.parentRole"),
+    status: billingStatusLabel,
+  });
 
-  const hasActiveSubscription =
-    rawBillingStatus === "active" || rawBillingStatus === "trialing";
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
 
@@ -390,241 +355,26 @@ export default function ParentPage() {
       <section
         style={{
           marginTop: 20,
-          border: "1px solid #cbd5e1",
-          borderRadius: 22,
-          background: "#f8fafc",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          overflow: "hidden",
+          display: "grid",
+          gap: 10,
         }}
       >
         {hasActivePartnerAccess ? (
-          <div style={{ padding: "16px 16px 0" }}>
-            <PartnerDashboardCard
-              title={t("partnerCard.title")}
-              text={t("partnerCard.text")}
-              extraText={t("partnerCard.extraText")}
-              actionHref={`/${locale}/partner`}
-              actionLabel={t("partnerCard.action")}
-            />
-          </div>
+          <DashboardShortcutRow
+            title={t("partnerCard.title")}
+            text={t("partnerCard.text")}
+            href={`/${locale}/partner`}
+            actionLabel={t("billing.actions.open")}
+            tone="teal"
+          />
         ) : null}
 
-        <div style={{ padding: 16 }}>
-          <div
-            style={{
-              border: "1px solid #dbeafe",
-              borderRadius: 18,
-              background:
-                "linear-gradient(180deg, rgba(239,246,255,0.92) 0%, rgba(255,255,255,1) 120px)",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-              padding: 16,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                gap: 14,
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              <div style={{ minWidth: 0, flex: "1 1 420px" }}>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    border: "1px solid #bfdbfe",
-                    background: "#eff6ff",
-                    color: "#1d4ed8",
-                    borderRadius: 999,
-                    padding: "6px 10px",
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  {t("billing.badge")}
-                </div>
-
-                <h2
-                  style={{
-                    margin: "10px 0 0",
-                    fontSize: 24,
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    lineHeight: 1.15,
-                  }}
-                >
-                  {t("billing.title")}
-                </h2>
-
-                <p
-                  style={{
-                    margin: "8px 0 0",
-                    fontSize: 14,
-                    color: "#475569",
-                    maxWidth: 720,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {t("billing.description")}
-                </p>
-              </div>
-
-              <span
-                style={{
-                  borderRadius: 999,
-                  padding: "6px 10px",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  background: billingTone.bg,
-                  color: billingTone.color,
-                  border: `1px solid ${billingTone.border}`,
-                }}
-              >
-                {billingStatusLabel}
-              </span>
-            </div>
-
-            <div
-              style={{
-                marginTop: 16,
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              }}
-            >
-              <div
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 16,
-                  background: "#ffffff",
-                  padding: 14,
-                }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
-                  {t("billing.fields.plan")}
-                </div>
-                <div style={{ marginTop: 8, fontSize: 24, fontWeight: 800, color: "#111827" }}>
-                  {billingPlanLabel}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 16,
-                  background: "#ffffff",
-                  padding: 14,
-                }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
-                  {t("billing.fields.usagePlan")}
-                </div>
-                <div style={{ marginTop: 8, fontSize: 24, fontWeight: 800, color: "#111827" }}>
-                  {effectivePlanLabel}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 16,
-                  background: "#ffffff",
-                  padding: 14,
-                }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
-                  {t("billing.fields.role")}
-                </div>
-                <div style={{ marginTop: 8, fontSize: 24, fontWeight: 800, color: "#111827" }}>
-                  {t("billing.fields.parentRole")}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 16,
-                  background: "#ffffff",
-                  padding: 14,
-                }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>
-                  {t("billing.fields.status")}
-                </div>
-                <div style={{ marginTop: 8, fontSize: 24, fontWeight: 800, color: "#111827" }}>
-                  {billingStatusLabel}
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                marginTop: 16,
-                border: `1px solid ${billingTone.border}`,
-                background: billingTone.bg,
-                color: billingTone.color,
-                borderRadius: 16,
-                padding: "14px 16px",
-                fontSize: 14,
-                lineHeight: 1.5,
-              }}
-            >
-              {hasActiveSubscription
-                ? t("billing.messages.activeSubscription")
-                : t("billing.messages.noSubscription")}
-            </div>
-
-            <div
-              style={{
-                marginTop: 16,
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 10,
-              }}
-            >
-              <Link
-                href={`/${locale}/pricing`}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 12,
-                  padding: "10px 14px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  background: "#2563eb",
-                  color: "#ffffff",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-                }}
-              >
-                {t("billing.actions.seePlans")}
-              </Link>
-
-              <Link
-                href={`/${locale}/account/billing`}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 12,
-                  padding: "10px 14px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  background: "#ffffff",
-                  color: "#0f172a",
-                  border: "1px solid #cbd5e1",
-                }}
-              >
-                {t("billing.actions.manage")}
-              </Link>
-            </div>
-          </div>
-        </div>
+        <DashboardShortcutRow
+          title={t("billing.title")}
+          text={billingSummary}
+          href={`/${locale}/account/billing`}
+          actionLabel={t("billing.actions.open")}
+        />
       </section>
 
       {!loading && (

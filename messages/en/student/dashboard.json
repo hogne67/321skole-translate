@@ -68,6 +68,7 @@
       "badge": "Plan and billing",
       "title": "Your subscription",
       "description": "See your current plan, subscription status, and next steps.",
+      "summary": "{plan} · Effective plan: {effectivePlan} · Role: {role} · Status: {status}",
       "fields": {
         "plan": "Plan",
         "usagePlan": "Effective plan",
@@ -95,6 +96,7 @@
         "noSubscription": "You are currently using the free plan. Upgrade when you need more capacity."
       },
       "actions": {
+        "open": "Open",
         "seePlans": "See plans",
         "manage": "Manage subscription"
       }

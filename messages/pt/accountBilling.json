@@ -1,23 +1,44 @@
 {
   "accountBilling": {
     "title": "Assinatura",
-    "subtitle": "Aqui você pode ver seu plano, status e gerenciar sua assinatura Stripe.",
+    "subtitle": "Veja a que você tem acesso, escolha um plano e gerencie o pagamento quando tiver uma assinatura ativa.",
     "eyebrow": "Conta e cobrança",
     "loadingAuth": "Carregando login ...",
     "mustBeSignedIn": "Você precisa estar conectado para ver sua assinatura.",
-    "currentStatus": "Status atual",
+    "currentStatus": "Seu acesso",
     "upgradeSection": "Fazer upgrade ou mudar de plano",
     "upgradeLead": {
-      "teacher": "Escolha a capacidade que combina com o número de estudantes e seu uso das ferramentas de IA.",
-      "studentParent": "Para uso frequente, Pro é o plano que libera mais capacidade e mais recursos de IA."
+      "teacher": "Escolha a capacidade que combina com o número de estudantes, turmas e uso das ferramentas de IA.",
+      "studentParent": "Para uso frequente, o Pro oferece mais capacidade para IA, geradores e impressões."
     },
     "technicalSection": "Detalhes técnicos",
     "noPlansForUser": "Nenhum plano válido foi encontrado para este usuário.",
+    "roles": {
+      "teacher": "Professor",
+      "student": "Aluno",
+      "parent": "Responsável"
+    },
+    "access": {
+      "headlines": {
+        "free": "{plan} está ativo para sua conta.",
+        "paid": "{plan} está ativo como assinatura paga.",
+        "partner": "Seu acesso de parceiro oferece Plus.",
+        "school": "A licença da sua escola oferece acesso Plus.",
+        "paymentIssue": "Seu pagamento precisa de atenção."
+      },
+      "leads": {
+        "free": "Você pode continuar usando o plano grátis ou escolher um plano se precisar de mais capacidade.",
+        "paid": "Você pode gerenciar pagamento, cancelamento e mudança de plano no portal de cobrança.",
+        "partner": "Enquanto a parceria estiver ativa, você recebe acesso equivalente ao Plus sem uma assinatura pessoal paga.",
+        "school": "Este acesso vem da sua escola e não conta como uma assinatura pessoal no Stripe.",
+        "paymentIssue": "Abra o portal de cobrança para revisar os dados de pagamento ou trocar a forma de pagamento."
+      }
+    },
     "fields": {
       "role": "Função",
-      "plan": "Plano",
+      "plan": "Acesso ativo",
       "subscriptionPlan": "Plano da assinatura",
-      "billingStatus": "Status de cobrança",
+      "billingStatus": "Assinatura paga",
       "renewsOrEnds": "Renova / termina",
       "cancelAtPeriodEnd": "Termina no fim do período",
       "provider": "Provedor",
@@ -36,7 +57,8 @@
       "opening": "Abrindo ...",
       "currentPlan": "Plano atual",
       "loading": "Carregando ...",
-      "choosePlan": "Escolher {plan}"
+      "choosePlan": "Escolher {plan}",
+      "fullComparison": "Ver comparação completa"
     },
     "plans": {
       "free": "Grátis",
@@ -61,12 +83,20 @@
       "canceled": "Cancelada",
       "unpaid": "Não paga",
       "incomplete": "Incompleta",
-      "inactive": "Não ativa"
+      "inactive": "Sem plano pago"
     },
     "statusBox": {
       "active": "Sua assinatura está ativa. Você pode gerenciar os dados de pagamento, cancelar ou mudar de plano no portal de cobrança.",
       "paymentIssue": "Há um problema de pagamento na sua assinatura. Abra o portal de cobrança e revise as informações de pagamento.",
-      "inactive": "Você não tem uma assinatura paga ativa no momento. Você pode escolher um novo plano abaixo."
+      "inactive": "Você não tem uma assinatura paga ativa no momento. O plano grátis, acesso de parceiro ou licença escolar ainda podem dar acesso."
+    },
+    "highlights": {
+      "students": "{count} estudantes",
+      "spaces": "{count} turmas",
+      "aiFeedback": "{count} usos de feedback com IA",
+      "premiumGenerators": "{count} usos de geradores premium",
+      "pdfPrints": "{count} impressões PDF",
+      "aiImages": "{count} imagens com IA"
     },
     "errors": {
       "mustBeSignedIn": "Você precisa estar conectado.",

@@ -1,23 +1,44 @@
 {
   "accountBilling": {
     "title": "Abonnement",
-    "subtitle": "Her kan du se planen din, status og administrere Stripe-abonnementet ditt.",
+    "subtitle": "Se hva du har tilgang til, velg plan og administrer betaling når du har et aktivt abonnement.",
     "eyebrow": "Konto og betaling",
     "loadingAuth": "Laster innlogging ...",
     "mustBeSignedIn": "Du må være logget inn for å se abonnementet ditt.",
-    "currentStatus": "Nåværende status",
+    "currentStatus": "Din tilgang",
     "upgradeSection": "Oppgrader eller bytt plan",
     "upgradeLead": {
-      "teacher": "Velg kapasiteten som passer antall studenter og hvor mye du bruker AI-verktøyene.",
-      "studentParent": "For jevn bruk er Pro planen som åpner mer kapasitet og flere AI-funksjoner."
+      "teacher": "Velg kapasiteten som passer antall elever, klasserom og hvor mye du bruker KI-verktøyene.",
+      "studentParent": "For jevn bruk gir Pro mer kapasitet til KI, generatorer og utskrifter."
     },
     "technicalSection": "Tekniske detaljer",
     "noPlansForUser": "Fant ingen gyldige planer for denne brukeren.",
+    "roles": {
+      "teacher": "Lærer",
+      "student": "Elev",
+      "parent": "Foresatt"
+    },
+    "access": {
+      "headlines": {
+        "free": "{plan} er aktiv for kontoen din.",
+        "paid": "{plan} er aktiv som betalt abonnement.",
+        "partner": "Partner-tilgangen din gir deg Plus.",
+        "school": "Skolelisensen din gir deg Plus-tilgang.",
+        "paymentIssue": "Betalingen trenger oppmerksomhet."
+      },
+      "leads": {
+        "free": "Du kan fortsette gratis, eller velge en plan hvis du trenger mer kapasitet.",
+        "paid": "Du kan administrere betaling, kansellering og planendringer i betalingsportalen.",
+        "partner": "Så lenge partnerskapet er aktivt, får du tilgang tilsvarende Plus uten personlig betalt abonnement.",
+        "school": "Tilgangen kommer fra skolen din og teller ikke som et personlig Stripe-abonnement.",
+        "paymentIssue": "Åpne betalingsportalen for å kontrollere betalingsinformasjon eller bytte betalingsmåte."
+      }
+    },
     "fields": {
       "role": "Rolle",
-      "plan": "Plan",
+      "plan": "Aktiv tilgang",
       "subscriptionPlan": "Abonnementsplan",
-      "billingStatus": "Betalingsstatus",
+      "billingStatus": "Betalt abonnement",
       "renewsOrEnds": "Fornyes / avsluttes",
       "cancelAtPeriodEnd": "Avsluttes ved periodeslutt",
       "provider": "Leverandør",
@@ -36,7 +57,8 @@
       "opening": "Åpner ...",
       "currentPlan": "Nåværende plan",
       "loading": "Laster ...",
-      "choosePlan": "Velg {plan}"
+      "choosePlan": "Velg {plan}",
+      "fullComparison": "Se full sammenligning"
     },
     "plans": {
       "free": "Gratis",
@@ -61,12 +83,20 @@
       "canceled": "Avsluttet",
       "unpaid": "Ubetalt",
       "incomplete": "Ufullført",
-      "inactive": "Ikke aktiv"
+      "inactive": "Ingen betalt plan"
     },
     "statusBox": {
       "active": "Abonnementet ditt er aktivt. Du kan administrere betalingsdetaljer, kansellere eller endre plan i betalingsportalen.",
       "paymentIssue": "Det er et betalingsproblem på abonnementet ditt. Åpne betalingsportalen og kontroller betalingsinformasjonen.",
-      "inactive": "Du har ikke et aktivt betalt abonnement akkurat nå. Du kan velge en ny plan nedenfor."
+      "inactive": "Du har ikke et aktivt betalt abonnement akkurat nå. Gratisplan, partner-tilgang eller skolelisens kan likevel gi deg tilgang."
+    },
+    "highlights": {
+      "students": "{count} elever",
+      "spaces": "{count} klasserom",
+      "aiFeedback": "{count} KI-tilbakemeldinger",
+      "premiumGenerators": "{count} premiumgeneratorer",
+      "pdfPrints": "{count} PDF-utskrifter",
+      "aiImages": "{count} KI-bilder"
     },
     "errors": {
       "mustBeSignedIn": "Du må være logget inn.",

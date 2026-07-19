@@ -56,6 +56,7 @@
       "badge": "Plano e cobrança",
       "title": "Sua assinatura",
       "description": "Veja seu plano atual, status da assinatura e próximos passos.",
+      "summary": "{plan} · Plano efetivo: {effectivePlan} · Função: {role} · Status: {status}",
       "fields": {
         "plan": "Plano",
         "usagePlan": "Plano efetivo",
@@ -83,6 +84,7 @@
         "noSubscription": "Você está usando o plano gratuito no momento. Faça upgrade quando precisar de mais capacidade."
       },
       "actions": {
+        "open": "Abrir",
         "seePlans": "Ver planos",
         "manage": "Gerenciar assinatura"
       }

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useLocale, useTranslations } from "next-intl";
+import { getEffectivePlan, type PlanKey } from "@/lib/featureAccess";
 
 type BillingPlan = "free" | "basic" | "plus" | "pro";
 type BillingRole = "student" | "teacher" | "parent";
@@ -36,6 +38,11 @@ type UserDocData = {
   billing?: BillingData;
   roles?: Record<string, boolean>;
   org?: { role?: BillingRole };
+  partnerAccess?: boolean;
+  partnerStatus?: string | null;
+  schoolId?: string | null;
+  schoolRole?: string | null;
+  schoolStatus?: string | null;
 };
 
 type CheckoutPlan = "basic" | "plus" | "pro";
@@ -84,6 +91,14 @@ function allowedPlansForRole(role: BillingRole | null): CheckoutPlan[] {
 function capitalize(value: string): string {
   if (!value) return value;
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function isActiveSubscription(status: BillingStatus | null | undefined): boolean {
+  return status === "active" || status === "trialing";
+}
+
+function hasPaymentIssue(status: BillingStatus | null | undefined): boolean {
+  return status === "past_due" || status === "unpaid" || status === "incomplete";
 }
 
 function getStatusTone(status: BillingStatus | null | undefined): {
@@ -204,13 +219,35 @@ export default function BillingPage() {
   const role = useMemo(() => resolveRole(userData), [userData]);
   const allowedPlans = useMemo(() => allowedPlansForRole(role), [role]);
 
-  const effectivePlan = userData?.plan ?? "free";
   const billing = userData?.billing ?? null;
   const status = billing?.status ?? "inactive";
   const statusTone = getStatusTone(status);
+  const hasActivePaidSubscription = isActiveSubscription(status);
+  const hasActivePartnerAccess =
+    userData?.partnerAccess === true && userData?.partnerStatus === "active";
+  const hasActiveSchoolAccess = Boolean(
+    userData?.schoolId &&
+      userData?.schoolStatus === "active" &&
+      (userData?.schoolRole === "school_teacher" || userData?.schoolRole === "school_admin")
+  );
+  const isAdmin = userData?.roles?.admin === true;
+  const effectivePlan: PlanKey = getEffectivePlan({
+    plan: userData?.plan ?? null,
+    billing,
+    partnerAccess: userData?.partnerAccess ?? null,
+    partnerStatus: userData?.partnerStatus ?? null,
+    schoolId: userData?.schoolId ?? null,
+    schoolRole: userData?.schoolRole ?? null,
+    schoolStatus: userData?.schoolStatus ?? null,
+  });
 
   function labelForPlan(plan: BillingPlan | null | undefined) {
     return t(`plans.${plan ?? "free"}`);
+  }
+
+  function labelForRole(roleValue: BillingRole | null) {
+    if (!roleValue) return t("common.empty");
+    return t(`roles.${roleValue}`);
   }
 
   function descriptionForPlan(plan: CheckoutPlan) {
@@ -270,6 +307,49 @@ export default function BillingPage() {
   }
 
   const renewalText = formatDate(billing?.currentPeriodEnd ?? null);
+
+  function accessHeadline() {
+    if (hasPaymentIssue(status)) return t("access.headlines.paymentIssue");
+    if (hasActivePartnerAccess) return t("access.headlines.partner");
+    if (hasActiveSchoolAccess) return t("access.headlines.school");
+    if (hasActivePaidSubscription) {
+      return t("access.headlines.paid", { plan: labelForPlan(billing?.plan ?? effectivePlan) });
+    }
+    return t("access.headlines.free", { plan: labelForPlan(effectivePlan) });
+  }
+
+  function accessLead() {
+    if (hasPaymentIssue(status)) return t("access.leads.paymentIssue");
+    if (hasActivePartnerAccess) return t("access.leads.partner");
+    if (hasActiveSchoolAccess) return t("access.leads.school");
+    if (hasActivePaidSubscription) return t("access.leads.paid");
+    return t("access.leads.free");
+  }
+
+  function planHighlights(plan: CheckoutPlan): string[] {
+    if (role === "teacher") {
+      const values = {
+        basic: { students: 30, spaces: 10, feedback: 100, generators: 30 },
+        plus: { students: 100, spaces: 30, feedback: 300, generators: 100 },
+        pro: { students: 300, spaces: 100, feedback: 1000, generators: 500 },
+      }[plan];
+
+      return [
+        t("highlights.students", { count: values.students }),
+        t("highlights.spaces", { count: values.spaces }),
+        t("highlights.aiFeedback", { count: values.feedback }),
+        t("highlights.premiumGenerators", { count: values.generators }),
+      ];
+    }
+
+    const studentParentValues = { feedback: 100, prints: 20, generators: 30, images: 30 };
+    return [
+      t("highlights.aiFeedback", { count: studentParentValues.feedback }),
+      t("highlights.pdfPrints", { count: studentParentValues.prints }),
+      t("highlights.premiumGenerators", { count: studentParentValues.generators }),
+      t("highlights.aiImages", { count: studentParentValues.images }),
+    ];
+  }
 
   async function getToken(): Promise<string> {
     const auth = getAuth();
@@ -374,11 +454,11 @@ export default function BillingPage() {
   }
 
   function getStatusMessage() {
-    if (status === "active" || status === "trialing") {
+    if (hasActivePaidSubscription) {
       return t("statusBox.active");
     }
 
-    if (status === "past_due" || status === "unpaid" || status === "incomplete") {
+    if (hasPaymentIssue(status)) {
       return t("statusBox.paymentIssue");
     }
 
@@ -405,7 +485,8 @@ export default function BillingPage() {
             <div style={sectionHeaderStyle}>
               <div>
                 <h2 style={sectionTitleStyle}>{t("currentStatus")}</h2>
-                <p style={sectionLeadStyle}>{getStatusMessage()}</p>
+                <p style={accessHeadlineStyle}>{accessHeadline()}</p>
+                <p style={sectionLeadStyle}>{accessLead()}</p>
               </div>
 
               <span
@@ -423,7 +504,7 @@ export default function BillingPage() {
             <div style={summaryGridStyle}>
               <InfoItem
                 label={t("fields.role")}
-                value={role ? capitalize(role) : t("common.empty")}
+                value={labelForRole(role)}
               />
               <InfoItem label={t("fields.plan")} value={labelForPlan(effectivePlan)} />
               <InfoItem
@@ -433,19 +514,19 @@ export default function BillingPage() {
               <InfoItem label={t("fields.renewsOrEnds")} value={renewalText} />
             </div>
 
-            <div style={actionsRowStyle}>
-              <button
-                onClick={openPortal}
-                disabled={portalLoading || !billing?.customerId}
-                style={{
-                  ...secondaryButtonStyle,
-                  opacity: !billing?.customerId ? 0.55 : 1,
-                  cursor: !billing?.customerId ? "not-allowed" : "pointer",
-                }}
-              >
-                {portalLoading ? t("buttons.opening") : t("buttons.manageSubscription")}
-              </button>
-            </div>
+            <p style={statusNoteStyle}>{getStatusMessage()}</p>
+
+            {billing?.customerId ? (
+              <div style={actionsRowStyle}>
+                <button
+                  onClick={openPortal}
+                  disabled={portalLoading}
+                  style={secondaryButtonStyle}
+                >
+                  {portalLoading ? t("buttons.opening") : t("buttons.manageSubscription")}
+                </button>
+              </div>
+            ) : null}
           </section>
 
           <section style={cardStyle}>
@@ -458,6 +539,10 @@ export default function BillingPage() {
                     : t("upgradeLead.studentParent")}
                 </p>
               </div>
+
+              <Link href={`/${locale}/pricing`} style={pricingLinkStyle}>
+                {t("buttons.fullComparison")}
+              </Link>
             </div>
 
             {allowedPlans.length === 0 ? (
@@ -493,6 +578,15 @@ export default function BillingPage() {
                         {descriptionForPlan(plan)}
                       </div>
 
+                      <ul style={highlightListStyle}>
+                        {planHighlights(plan).map((highlight) => (
+                          <li key={highlight} style={highlightItemStyle}>
+                            <span aria-hidden="true" style={highlightDotStyle} />
+                            <span>{highlight}</span>
+                          </li>
+                        ))}
+                      </ul>
+
                       <div style={{ marginTop: 16 }}>
                         <button
                           onClick={() => startCheckout(plan)}
@@ -513,40 +607,42 @@ export default function BillingPage() {
             )}
           </section>
 
-          <details style={detailsStyle}>
-            <summary style={detailsSummaryStyle}>{t("technicalSection")}</summary>
+          {isAdmin ? (
+            <details style={detailsStyle}>
+              <summary style={detailsSummaryStyle}>{t("technicalSection")}</summary>
 
-            <div style={gridStyle}>
-              <InfoItem
-                label={t("fields.subscriptionPlan")}
-                value={labelForPlan(billing?.plan ?? "free")}
-              />
-              <InfoItem
-                label={t("fields.cancelAtPeriodEnd")}
-                value={billing?.cancelAtPeriodEnd ? t("common.yes") : t("common.no")}
-              />
-              <InfoItem
-                label={t("fields.provider")}
-                value={billing?.provider ? String(billing.provider) : t("common.empty")}
-              />
-              <InfoItem
-                label={t("fields.roleProduct")}
-                value={billing?.roleProduct ? capitalize(String(billing.roleProduct)) : t("common.empty")}
-              />
-              <InfoItem
-                label={t("fields.customerId")}
-                value={billing?.customerId || t("common.empty")}
-              />
-              <InfoItem
-                label={t("fields.subscriptionId")}
-                value={billing?.subscriptionId || t("common.empty")}
-              />
-              <InfoItem
-                label={t("fields.priceId")}
-                value={billing?.priceId || t("common.empty")}
-              />
-            </div>
-          </details>
+              <div style={gridStyle}>
+                <InfoItem
+                  label={t("fields.subscriptionPlan")}
+                  value={labelForPlan(billing?.plan ?? "free")}
+                />
+                <InfoItem
+                  label={t("fields.cancelAtPeriodEnd")}
+                  value={billing?.cancelAtPeriodEnd ? t("common.yes") : t("common.no")}
+                />
+                <InfoItem
+                  label={t("fields.provider")}
+                  value={billing?.provider ? String(billing.provider) : t("common.empty")}
+                />
+                <InfoItem
+                  label={t("fields.roleProduct")}
+                  value={billing?.roleProduct ? capitalize(String(billing.roleProduct)) : t("common.empty")}
+                />
+                <InfoItem
+                  label={t("fields.customerId")}
+                  value={billing?.customerId || t("common.empty")}
+                />
+                <InfoItem
+                  label={t("fields.subscriptionId")}
+                  value={billing?.subscriptionId || t("common.empty")}
+                />
+                <InfoItem
+                  label={t("fields.priceId")}
+                  value={billing?.priceId || t("common.empty")}
+                />
+              </div>
+            </details>
+          ) : null}
 
           {message ? <div style={messageStyle}>{message}</div> : null}
         </>
@@ -627,12 +723,31 @@ const sectionTitleStyle: React.CSSProperties = {
   margin: 0,
 };
 
+const accessHeadlineStyle: React.CSSProperties = {
+  margin: "8px 0 0",
+  color: "#0f172a",
+  fontSize: 18,
+  fontWeight: 800,
+  lineHeight: 1.3,
+};
+
 const sectionLeadStyle: React.CSSProperties = {
   color: "#64748b",
   fontSize: 14,
   lineHeight: 1.5,
   margin: "6px 0 0",
   maxWidth: 620,
+};
+
+const statusNoteStyle: React.CSSProperties = {
+  margin: "14px 0 0",
+  border: "1px solid #e2e8f0",
+  borderRadius: 12,
+  background: "#f8fafc",
+  color: "#475569",
+  padding: "12px 14px",
+  fontSize: 14,
+  lineHeight: 1.45,
 };
 
 const statusPillStyle: React.CSSProperties = {
@@ -664,7 +779,9 @@ const planCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 14,
   padding: 18,
-  minHeight: 178,
+  minHeight: 262,
+  display: "flex",
+  flexDirection: "column",
 };
 
 const planCardTopStyle: React.CSSProperties = {
@@ -684,6 +801,32 @@ const planDescriptionStyle: React.CSSProperties = {
   color: "#64748b",
   marginTop: 12,
   lineHeight: 1.5,
+};
+
+const highlightListStyle: React.CSSProperties = {
+  listStyle: "none",
+  padding: 0,
+  margin: "14px 0 0",
+  display: "grid",
+  gap: 8,
+  color: "#334155",
+  fontSize: 14,
+  lineHeight: 1.35,
+};
+
+const highlightItemStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 8,
+  alignItems: "flex-start",
+};
+
+const highlightDotStyle: React.CSSProperties = {
+  width: 7,
+  height: 7,
+  marginTop: 6,
+  borderRadius: 999,
+  background: "#0f766e",
+  flex: "0 0 auto",
 };
 
 const currentBadgeStyle: React.CSSProperties = {
@@ -708,8 +851,9 @@ const primaryButtonStyle: React.CSSProperties = {
   padding: "10px 14px",
   background: "#0f766e",
   color: "#fff",
-  fontWeight: 600,
+  fontWeight: 700,
   cursor: "pointer",
+  marginTop: "auto",
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
@@ -717,8 +861,22 @@ const secondaryButtonStyle: React.CSSProperties = {
   borderRadius: 12,
   padding: "10px 14px",
   background: "#fff",
-  fontWeight: 600,
+  fontWeight: 700,
   cursor: "pointer",
+};
+
+const pricingLinkStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  border: "1px solid #cbd5e1",
+  borderRadius: 12,
+  padding: "10px 14px",
+  background: "#fff",
+  color: "#0f172a",
+  fontSize: 14,
+  fontWeight: 700,
+  textDecoration: "none",
 };
 
 const actionsRowStyle: React.CSSProperties = {
@@ -734,6 +892,8 @@ const disabledButtonStyle: React.CSSProperties = {
   padding: "10px 14px",
   background: "#f8fafc",
   color: "#94a3b8",
+  fontWeight: 700,
+  marginTop: "auto",
 };
 
 const messageStyle: React.CSSProperties = {
