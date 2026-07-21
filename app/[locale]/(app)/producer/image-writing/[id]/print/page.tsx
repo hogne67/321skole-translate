@@ -11,6 +11,7 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 
 type ImageTask = {
   id?: string;
+  taskType?: string;
   imageUrl?: string;
   instruction?: string;
   supportWords?: unknown[];
@@ -25,6 +26,7 @@ type Lesson = {
   producerName?: string;
   level?: string;
   language?: string;
+  taskType?: string;
   status?: string;
   lessonType?: string;
   coverImageUrl?: string;
@@ -45,6 +47,7 @@ const printCopy = {
     kicker: "321school arbeidsark",
     fallbackTitle: "Skriveoppgave med bilde",
     language: "Språk",
+    taskType: "Oppgavetype",
     producer: "Produsent",
     level: "Nivå",
     name: "Navn",
@@ -68,6 +71,7 @@ const printCopy = {
     kicker: "321school worksheet",
     fallbackTitle: "Image writing task",
     language: "Language",
+    taskType: "Task type",
     producer: "Producer",
     level: "Level",
     name: "Name",
@@ -91,6 +95,7 @@ const printCopy = {
     kicker: "321school folha de atividade",
     fallbackTitle: "Tarefa de escrita com imagem",
     language: "Idioma",
+    taskType: "Tipo de tarefa",
     producer: "Produtor",
     level: "Nível",
     name: "Nome",
@@ -107,6 +112,32 @@ const printCopy = {
 
 function pickPrintLanguage(value: unknown): PrintLanguage {
   return value === "en" || value === "pt" ? value : "nb";
+}
+
+function printTaskTypeLabel(language: PrintLanguage, value: unknown): string {
+  const taskType = String(value || "").trim();
+  const labels: Record<PrintLanguage, Record<string, string>> = {
+    nb: {
+      describe: "Beskriv bildet",
+      story: "Skriv en historie",
+      dialogue: "Skriv en dialog",
+      reflection: "Reflekter",
+    },
+    en: {
+      describe: "Describe the picture",
+      story: "Write a story",
+      dialogue: "Write a dialogue",
+      reflection: "Reflect",
+    },
+    pt: {
+      describe: "Descrever a imagem",
+      story: "Escrever uma história",
+      dialogue: "Escrever um diálogo",
+      reflection: "Refletir",
+    },
+  };
+
+  return labels[language][taskType] || "";
 }
 
 function uidNow() {
@@ -189,7 +220,9 @@ export default function ImageWritingPrintPage() {
   const showSupportWordsOnPrint = task?.printSupportWords === true;
   const showSuccessCriteriaOnPrint = task?.printSuccessCriteria === true;
   const imageUrl = String(task?.imageUrl || lesson?.coverImageUrl || "").trim();
-  const text = printCopy[pickPrintLanguage(lesson?.language)];
+  const printLanguage = pickPrintLanguage(lesson?.language);
+  const text = printCopy[printLanguage];
+  const taskTypeText = printTaskTypeLabel(printLanguage, task?.taskType || lesson?.taskType);
 
   if (loading) return <main style={{ padding: 20 }}>{printCopy.nb.loading}</main>;
 
@@ -392,6 +425,7 @@ export default function ImageWritingPrintPage() {
                 <div className="pdf-meta">{text.producer}: {lesson.producerName.trim()}</div>
               ) : null}
               {lesson.level?.trim() ? <div className="pdf-meta">{text.level}: {lesson.level.trim()}</div> : null}
+              {taskTypeText ? <div className="pdf-meta">{text.taskType}: {taskTypeText}</div> : null}
             </div>
           </div>
 

@@ -132,6 +132,7 @@ type Task = {
 
 type ImageWritingTask = {
   id?: string;
+  taskType?: string;
   imageUrl?: string;
   imageDescription?: string;
   instruction?: string;
@@ -588,6 +589,34 @@ function imageWritingStudentLabels(language: unknown) {
   };
 }
 
+function imageWritingTaskTypeLabel(language: unknown, value: unknown): string {
+  const taskType = String(value || "").trim();
+  const lang = String(language || "").trim().toLowerCase();
+  const labels = {
+    nb: {
+      describe: "Beskriv bildet",
+      story: "Skriv en historie",
+      dialogue: "Skriv en dialog",
+      reflection: "Reflekter",
+    },
+    en: {
+      describe: "Describe the picture",
+      story: "Write a story",
+      dialogue: "Write a dialogue",
+      reflection: "Reflect",
+    },
+    pt: {
+      describe: "Descrever a imagem",
+      story: "Escrever uma história",
+      dialogue: "Escrever um diálogo",
+      reflection: "Refletir",
+    },
+  };
+
+  const languageKey = lang === "en" || lang === "pt" ? lang : "nb";
+  return labels[languageKey][taskType as keyof (typeof labels)["nb"]] || "";
+}
+
 function getStableTaskId(t: Task, idx: number): string {
   if (t?.id != null && String(t.id).trim()) return String(t.id).trim();
 
@@ -1031,6 +1060,10 @@ export default function StudentLessonPage() {
   const imageWritingLabels = useMemo(
     () => imageWritingStudentLabels(lesson?.language),
     [lesson?.language]
+  );
+  const imageWritingTypeLabel = useMemo(
+    () => imageWritingTaskTypeLabel(lesson?.language, imageWritingTask?.taskType || lesson?.taskType),
+    [imageWritingTask?.taskType, lesson?.language, lesson?.taskType]
   );
 
   const textFollow = useMemo(() => {
@@ -2477,7 +2510,26 @@ export default function StudentLessonPage() {
             flexWrap: "wrap",
           }}
         >
-          <h2 style={sectionHeadingStyle}>{t("tasks.title")}</h2>
+          <div>
+            <h2 style={sectionHeadingStyle}>{t("tasks.title")}</h2>
+            {isImageWriting && imageWritingTypeLabel ? (
+              <div
+                style={{
+                  marginTop: 4,
+                  display: "inline-flex",
+                  border: "1px solid rgba(59,130,246,0.22)",
+                  borderRadius: 999,
+                  padding: "5px 9px",
+                  background: "rgba(59,130,246,0.08)",
+                  color: "#1e40af",
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+              >
+                {imageWritingTypeLabel}
+              </div>
+            ) : null}
+          </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button type="button" onClick={() => setShowAnswers((v) => !v)} style={btnStyle}>

@@ -101,6 +101,7 @@ function pickName(data: Record<string, unknown> | null | undefined): string {
 function sourceLabels(language: Language) {
   if (language === "en") {
     return {
+      taskType: "Task type",
       imageDescription: "Image description:",
       supportWords: "Support words",
       successCriteria: "Success criteria",
@@ -109,6 +110,7 @@ function sourceLabels(language: Language) {
   }
   if (language === "pt") {
     return {
+      taskType: "Tipo de tarefa",
       imageDescription: "Descrição da imagem:",
       supportWords: "Palavras de apoio",
       successCriteria: "Critérios de sucesso",
@@ -116,11 +118,37 @@ function sourceLabels(language: Language) {
     };
   }
   return {
+    taskType: "Oppgavetype",
     imageDescription: "Bildebeskrivelse:",
     supportWords: "Støtteord",
     successCriteria: "Kriterier",
     texttype: "Skriveoppgave med bilde",
   };
+}
+
+function taskTypeLabel(language: Language, taskType: TaskType) {
+  const labels: Record<Language, Record<TaskType, string>> = {
+    nb: {
+      describe: "Beskriv bildet",
+      story: "Skriv en historie",
+      dialogue: "Skriv en dialog",
+      reflection: "Reflekter",
+    },
+    en: {
+      describe: "Describe the picture",
+      story: "Write a story",
+      dialogue: "Write a dialogue",
+      reflection: "Reflect",
+    },
+    pt: {
+      describe: "Descrever a imagem",
+      story: "Escrever uma história",
+      dialogue: "Escrever um diálogo",
+      reflection: "Refletir",
+    },
+  };
+
+  return labels[language][taskType];
 }
 
 function makeTaskId() {
@@ -172,10 +200,12 @@ export async function POST(req: Request) {
     const printSupportWords = first.printSupportWords === true;
     const printSuccessCriteria = first.printSuccessCriteria === true;
     const labels = sourceLabels(language);
+    const taskTypeText = taskTypeLabel(language, taskType);
     const now = new Date();
 
     const imageTask = {
       id: taskId,
+      taskType,
       imageUrl,
       imageSource,
       ...(imageSource === "ai_generated" ? { imagePrompt } : {}),
@@ -189,6 +219,8 @@ export async function POST(req: Request) {
     };
 
     const sourceText = [
+      `${labels.taskType}: ${taskTypeText}`,
+      "",
       instruction,
       "",
       labels.imageDescription,
@@ -229,6 +261,7 @@ export async function POST(req: Request) {
           printSuccessCriteria,
           imageDescription,
           imageUrl,
+          taskType,
         },
       ],
       estimatedMinutes: 20,

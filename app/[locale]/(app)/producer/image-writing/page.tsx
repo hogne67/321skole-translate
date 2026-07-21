@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import { getAuth } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
@@ -11,6 +12,8 @@ type Language = "nb" | "en" | "pt";
 type Level = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 type TaskType = "describe" | "story" | "dialogue" | "reflection";
 type ImageMode = "uploaded" | "ai_generated";
+type PrintMode = "short" | "medium" | "long";
+type TaskDefaultSet = { instruction: string; supportWords: string; successCriteria: string };
 
 const levels: Level[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const languages: Language[] = ["nb", "en", "pt"];
@@ -53,10 +56,18 @@ const copy = {
       pageTitle: "Skriv til bilde",
       pageIntro: "Første versjon lagrer én bildebasert skriveoppgave som vanlig innhold.",
       myContent: "Mitt innhold",
+      videoTitle: "Instruksjonsvideo",
+      videoPlaceholder: "Video kommer her",
       title: "Tittel",
       language: "Språk",
       level: "Nivå",
       taskType: "Oppgavetype",
+      sectionTask: "1. Oppgave",
+      sectionImage: "2. Bilde",
+      sectionInstruction: "3. Elevinstruksjon",
+      sectionSupport: "4. Hjelp og utskrift",
+      editSuggestionsHint: "Forslagene kan redigeres. Ta bort eller legg til det som passer for elevene.",
+      resetSuggestions: "Nullstill forslag",
       uploadMode: "Last opp / bilde-URL",
       aiMode: "AI-generert",
       uploadImage: "Last opp bilde",
@@ -73,6 +84,12 @@ const copy = {
       support: "Forslag til støtteord",
       criteria: "Forslag til suksesskriterier",
       printHelp: "Ekstra hjelp på utskrift",
+      printShort: "Kort",
+      printMedium: "Middels",
+      printLong: "Lang",
+      printShortHint: "Bilde, instruksjon og svarlinjer.",
+      printMediumHint: "Legger også ved støtteord.",
+      printLongHint: "Legger ved støtteord og suksesskriterier.",
       none: "Ingen",
       save: "Lagre til Mitt innhold",
       saving: "Lagrer...",
@@ -85,6 +102,7 @@ const copy = {
     },
     messages: {
       uploaded: "Bildet er lastet opp.",
+      uploadFailed: "Opplasting feilet.",
       loginUpload: "Du må være innlogget for å laste opp bilde.",
       imageOnly: "Velg en bildefil.",
       tooLarge: "Filen er for stor. Maks 8 MB.",
@@ -94,6 +112,8 @@ const copy = {
       noImage: "Bildegenerering ga ingen bilde-URL.",
       generated: "AI-bildet er generert. Husk å skrive bildebeskrivelse før lagring.",
       loginSave: "Du må være innlogget for å lagre.",
+      missingRequired: "Fyll ut obligatoriske felt før du lagrer:",
+      completeRequired: "Fyll ut obligatoriske felt før du lagrer.",
       saveFailed: "Lagring feilet.",
       saved: "Skriveoppgaven er lagret i Mitt innhold.",
     },
@@ -135,10 +155,18 @@ const copy = {
       pageTitle: "Write to a Picture",
       pageIntro: "First version saves one image-based writing task as regular content.",
       myContent: "My content",
+      videoTitle: "Instruction video",
+      videoPlaceholder: "Video coming here",
       title: "Title",
       language: "Language",
       level: "Level",
       taskType: "Task type",
+      sectionTask: "1. Task",
+      sectionImage: "2. Image",
+      sectionInstruction: "3. Student instruction",
+      sectionSupport: "4. Support and printout",
+      editSuggestionsHint: "You can edit the suggestions. Remove or add what fits your students.",
+      resetSuggestions: "Reset suggestions",
       uploadMode: "Upload / image URL",
       aiMode: "AI-generated",
       uploadImage: "Upload image",
@@ -155,6 +183,12 @@ const copy = {
       support: "Suggested support words",
       criteria: "Suggested success criteria",
       printHelp: "Extra help on printout",
+      printShort: "Short",
+      printMedium: "Medium",
+      printLong: "Long",
+      printShortHint: "Image, instruction and answer lines.",
+      printMediumHint: "Also includes support words.",
+      printLongHint: "Includes support words and success criteria.",
       none: "None",
       save: "Save to My content",
       saving: "Saving...",
@@ -167,6 +201,7 @@ const copy = {
     },
     messages: {
       uploaded: "The image has been uploaded.",
+      uploadFailed: "Upload failed.",
       loginUpload: "You must be logged in to upload an image.",
       imageOnly: "Choose an image file.",
       tooLarge: "The file is too large. Max 8 MB.",
@@ -176,6 +211,8 @@ const copy = {
       noImage: "Image generation returned no image URL.",
       generated: "The AI image has been generated. Remember to write an image description before saving.",
       loginSave: "You must be logged in to save.",
+      missingRequired: "Complete required fields before saving:",
+      completeRequired: "Complete required fields before saving.",
       saveFailed: "Saving failed.",
       saved: "The writing task has been saved to My content.",
     },
@@ -217,10 +254,18 @@ const copy = {
       pageTitle: "Escrever a partir de imagem",
       pageIntro: "A primeira versão salva uma tarefa de escrita baseada em imagem como conteúdo normal.",
       myContent: "Meu conteúdo",
+      videoTitle: "Vídeo de instrução",
+      videoPlaceholder: "Vídeo em breve",
       title: "Título",
       language: "Idioma",
       level: "Nível",
       taskType: "Tipo de tarefa",
+      sectionTask: "1. Tarefa",
+      sectionImage: "2. Imagem",
+      sectionInstruction: "3. Instrução para o estudante",
+      sectionSupport: "4. Apoio e impressão",
+      editSuggestionsHint: "Você pode editar as sugestões. Remova ou adicione o que combina com os estudantes.",
+      resetSuggestions: "Redefinir sugestões",
       uploadMode: "Enviar / URL da imagem",
       aiMode: "Gerada por IA",
       uploadImage: "Enviar imagem",
@@ -237,6 +282,12 @@ const copy = {
       support: "Sugestões de palavras de apoio",
       criteria: "Sugestões de critérios de sucesso",
       printHelp: "Ajuda extra na impressão",
+      printShort: "Curta",
+      printMedium: "Média",
+      printLong: "Longa",
+      printShortHint: "Imagem, instrução e linhas de resposta.",
+      printMediumHint: "Também inclui palavras de apoio.",
+      printLongHint: "Inclui palavras de apoio e critérios de sucesso.",
       none: "Nenhuma",
       save: "Salvar em Meu conteúdo",
       saving: "Salvando...",
@@ -249,6 +300,7 @@ const copy = {
     },
     messages: {
       uploaded: "A imagem foi enviada.",
+      uploadFailed: "Falha ao enviar.",
       loginUpload: "Você precisa estar conectado para enviar uma imagem.",
       imageOnly: "Escolha um arquivo de imagem.",
       tooLarge: "O arquivo é grande demais. Máximo de 8 MB.",
@@ -258,6 +310,8 @@ const copy = {
       noImage: "A geração da imagem não retornou uma URL.",
       generated: "A imagem de IA foi gerada. Lembre-se de escrever a descrição da imagem antes de salvar.",
       loginSave: "Você precisa estar conectado para salvar.",
+      missingRequired: "Preencha os campos obrigatórios antes de salvar:",
+      completeRequired: "Preencha os campos obrigatórios antes de salvar.",
       saveFailed: "Falha ao salvar.",
       saved: "A tarefa de escrita foi salva em Meu conteúdo.",
     },
@@ -269,8 +323,220 @@ const copy = {
   messages: Record<string, string>;
 }>;
 
+const taskDefaults: Record<Language, Record<TaskType, TaskDefaultSet>> = {
+  nb: {
+    describe: copy.nb.defaults,
+    story: {
+      instruction: "Skriv en kort historie på 80 til 150 ord som passer til bildet. Historien skal ha en begynnelse, en midtdel og en avslutning.",
+      supportWords: [
+        "En dag ...",
+        "Plutselig ...",
+        "Etterpå ...",
+        "Personen oppdaget ...",
+        "Problemet var ...",
+        "Heldigvis ...",
+        "Til slutt ...",
+        "Historien ender med ...",
+      ].join("\n"),
+      successCriteria: [
+        "Har historien en tydelig begynnelse, midtdel og slutt?",
+        "Passer historien til bildet?",
+        "Har jeg med personer, sted og handling?",
+        "Har jeg brukt detaljer som gjør historien levende?",
+      ].join("\n"),
+    },
+    dialogue: {
+      instruction: "Skriv en dialog mellom to eller flere personer som kan passe til bildet. Bruk replikker og vis hvem som snakker.",
+      supportWords: [
+        "Person A: ...",
+        "Person B: ...",
+        "Hei, ...",
+        "Hva gjør du?",
+        "Jeg tror ...",
+        "Hvorfor ...?",
+        "Det høres ut som ...",
+        "Til slutt sier ...",
+      ].join("\n"),
+      successCriteria: [
+        "Er det tydelig hvem som snakker?",
+        "Passer dialogen til bildet?",
+        "Har dialogen minst fire replikker?",
+        "Viser dialogen tanker, følelser eller handling?",
+      ].join("\n"),
+    },
+    reflection: {
+      instruction: "Skriv en refleksjon om bildet. Forklar hva du legger merke til, hva du tror skjer, og hvilke tanker bildet gir deg.",
+      supportWords: [
+        "Jeg legger merke til ...",
+        "Jeg tror ... fordi ...",
+        "Dette kan bety ...",
+        "Bildet får meg til å tenke på ...",
+        "På den ene siden ...",
+        "På den andre siden ...",
+        "Jeg lurer på ...",
+        "Min mening er ...",
+      ].join("\n"),
+      successCriteria: [
+        "Har jeg forklart hva jeg ser og hva jeg tenker?",
+        "Har jeg begrunnet meningene mine?",
+        "Har jeg brukt detaljer fra bildet?",
+        "Har jeg stilt spørsmål eller vist undring?",
+      ].join("\n"),
+    },
+  },
+  en: {
+    describe: copy.en.defaults,
+    story: {
+      instruction: "Write a short story of 80 to 150 words that fits the picture. The story should have a beginning, middle, and ending.",
+      supportWords: [
+        "One day ...",
+        "Suddenly ...",
+        "After that ...",
+        "The person discovered ...",
+        "The problem was ...",
+        "Luckily ...",
+        "In the end ...",
+        "The story ends with ...",
+      ].join("\n"),
+      successCriteria: [
+        "Does the story have a clear beginning, middle, and ending?",
+        "Does the story fit the picture?",
+        "Have I included people, place, and action?",
+        "Have I used details that make the story vivid?",
+      ].join("\n"),
+    },
+    dialogue: {
+      instruction: "Write a dialogue between two or more people that could fit the picture. Use speech lines and show who is speaking.",
+      supportWords: [
+        "Person A: ...",
+        "Person B: ...",
+        "Hi, ...",
+        "What are you doing?",
+        "I think ...",
+        "Why ...?",
+        "That sounds like ...",
+        "In the end, ... says ...",
+      ].join("\n"),
+      successCriteria: [
+        "Is it clear who is speaking?",
+        "Does the dialogue fit the picture?",
+        "Does the dialogue have at least four speech lines?",
+        "Does the dialogue show thoughts, feelings, or action?",
+      ].join("\n"),
+    },
+    reflection: {
+      instruction: "Write a reflection about the picture. Explain what you notice, what you think is happening, and what thoughts the picture gives you.",
+      supportWords: [
+        "I notice ...",
+        "I think ... because ...",
+        "This could mean ...",
+        "The picture makes me think of ...",
+        "On one hand ...",
+        "On the other hand ...",
+        "I wonder ...",
+        "My opinion is ...",
+      ].join("\n"),
+      successCriteria: [
+        "Have I explained what I see and what I think?",
+        "Have I given reasons for my opinions?",
+        "Have I used details from the picture?",
+        "Have I asked questions or shown curiosity?",
+      ].join("\n"),
+    },
+  },
+  pt: {
+    describe: copy.pt.defaults,
+    story: {
+      instruction: "Escreva uma história curta de 80 a 150 palavras que combine com a imagem. A história deve ter começo, meio e fim.",
+      supportWords: [
+        "Um dia ...",
+        "De repente ...",
+        "Depois disso ...",
+        "A pessoa descobriu ...",
+        "O problema era ...",
+        "Felizmente ...",
+        "No final ...",
+        "A história termina com ...",
+      ].join("\n"),
+      successCriteria: [
+        "A história tem começo, meio e fim claros?",
+        "A história combina com a imagem?",
+        "Incluí pessoas, lugar e ação?",
+        "Usei detalhes que deixam a história mais viva?",
+      ].join("\n"),
+    },
+    dialogue: {
+      instruction: "Escreva um diálogo entre duas ou mais pessoas que combine com a imagem. Use falas e mostre quem está falando.",
+      supportWords: [
+        "Pessoa A: ...",
+        "Pessoa B: ...",
+        "Olá, ...",
+        "O que você está fazendo?",
+        "Eu acho que ...",
+        "Por que ...?",
+        "Isso parece ...",
+        "No final, ... diz ...",
+      ].join("\n"),
+      successCriteria: [
+        "Está claro quem está falando?",
+        "O diálogo combina com a imagem?",
+        "O diálogo tem pelo menos quatro falas?",
+        "O diálogo mostra pensamentos, sentimentos ou ação?",
+      ].join("\n"),
+    },
+    reflection: {
+      instruction: "Escreva uma reflexão sobre a imagem. Explique o que você observa, o que acha que está acontecendo e que pensamentos a imagem provoca.",
+      supportWords: [
+        "Eu observo ...",
+        "Eu acho que ... porque ...",
+        "Isso pode significar ...",
+        "A imagem me faz pensar em ...",
+        "Por um lado ...",
+        "Por outro lado ...",
+        "Eu me pergunto ...",
+        "Minha opinião é ...",
+      ].join("\n"),
+      successCriteria: [
+        "Expliquei o que vejo e o que penso?",
+        "Justifiquei minhas opiniões?",
+        "Usei detalhes da imagem?",
+        "Fiz perguntas ou mostrei curiosidade?",
+      ].join("\n"),
+    },
+  },
+};
+
+const taskTypeDescriptions: Record<Language, Record<TaskType, string>> = {
+  nb: {
+    describe: "Eleven beskriver motiv, detaljer og egne observasjoner.",
+    story: "Eleven bruker bildet som startpunkt for en fortelling.",
+    dialogue: "Eleven skriver replikker mellom personer i eller rundt bildet.",
+    reflection: "Eleven forklarer tanker, tolkninger og spørsmål bildet vekker.",
+  },
+  en: {
+    describe: "The student describes the motif, details, and observations.",
+    story: "The student uses the picture as a starting point for a story.",
+    dialogue: "The student writes speech lines between people in or around the picture.",
+    reflection: "The student explains thoughts, interpretations, and questions prompted by the picture.",
+  },
+  pt: {
+    describe: "O estudante descreve o motivo, os detalhes e suas observações.",
+    story: "O estudante usa a imagem como ponto de partida para uma história.",
+    dialogue: "O estudante escreve falas entre pessoas na imagem ou ao redor dela.",
+    reflection: "O estudante explica pensamentos, interpretações e perguntas que a imagem provoca.",
+  },
+};
+
 function isDefaultValue(value: string, key: keyof typeof copy.nb.defaults) {
-  return languages.some((lang) => value.trim() === copy[lang].defaults[key].trim());
+  return languages.some((lang) =>
+    (Object.keys(taskDefaults[lang]) as TaskType[]).some(
+      (type) => value.trim() === taskDefaults[lang][type][key].trim()
+    )
+  );
+}
+
+function getTaskDefaults(language: Language, taskType: TaskType): TaskDefaultSet {
+  return taskDefaults[language][taskType];
 }
 
 function newId() {
@@ -300,22 +566,28 @@ function fieldLabel(text: string, required = false) {
   );
 }
 
+function languageFromLocale(locale: string): Language {
+  if (locale === "en" || locale === "pt") return locale;
+  return "nb";
+}
+
 export default function ImageWritingProducerPage() {
   const locale = useLocale();
+  const router = useRouter();
+  const uiLanguage = languageFromLocale(locale);
 
   const [title, setTitle] = useState("");
-  const [language, setLanguage] = useState<Language>("nb");
+  const [language, setLanguage] = useState<Language>(() => uiLanguage);
   const [level, setLevel] = useState<Level>("A2");
   const [taskType, setTaskType] = useState<TaskType>("describe");
   const [imageMode, setImageMode] = useState<ImageMode>("uploaded");
   const [imageUrl, setImageUrl] = useState("");
   const [imagePrompt, setImagePrompt] = useState("");
   const [imageDescription, setImageDescription] = useState("");
-  const [instruction, setInstruction] = useState(copy.nb.defaults.instruction);
-  const [supportWords, setSupportWords] = useState(copy.nb.defaults.supportWords);
-  const [successCriteria, setSuccessCriteria] = useState(copy.nb.defaults.successCriteria);
-  const [printSupportWords, setPrintSupportWords] = useState(false);
-  const [printSuccessCriteria, setPrintSuccessCriteria] = useState(false);
+  const [instruction, setInstruction] = useState(() => getTaskDefaults(uiLanguage, "describe").instruction);
+  const [supportWords, setSupportWords] = useState(() => getTaskDefaults(uiLanguage, "describe").supportWords);
+  const [successCriteria, setSuccessCriteria] = useState(() => getTaskDefaults(uiLanguage, "describe").successCriteria);
+  const [printMode, setPrintMode] = useState<PrintMode>("medium");
 
   const [uploading, setUploading] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
@@ -326,21 +598,44 @@ export default function ImageWritingProducerPage() {
   const [draftImageLessonId] = useState(
     () => `image-writing-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   );
-  const ui = copy[language].ui;
-  const messages = copy[language].messages;
-  const taskTypeLabels = copy[language].taskTypes;
+  const ui = copy[uiLanguage].ui;
+  const messages = copy[uiLanguage].messages;
+  const taskTypeLabels = copy[uiLanguage].taskTypes;
+  const taskTypeDescription = taskTypeDescriptions[uiLanguage][taskType];
 
   function changeLanguage(next: Language) {
     setLanguage(next);
+    const nextDefaults = getTaskDefaults(next, taskType);
     if (isDefaultValue(instruction, "instruction")) {
-      setInstruction(copy[next].defaults.instruction);
+      setInstruction(nextDefaults.instruction);
     }
     if (isDefaultValue(supportWords, "supportWords")) {
-      setSupportWords(copy[next].defaults.supportWords);
+      setSupportWords(nextDefaults.supportWords);
     }
     if (isDefaultValue(successCriteria, "successCriteria")) {
-      setSuccessCriteria(copy[next].defaults.successCriteria);
+      setSuccessCriteria(nextDefaults.successCriteria);
     }
+  }
+
+  function changeTaskType(next: TaskType) {
+    setTaskType(next);
+    const nextDefaults = getTaskDefaults(language, next);
+    if (isDefaultValue(instruction, "instruction")) {
+      setInstruction(nextDefaults.instruction);
+    }
+    if (isDefaultValue(supportWords, "supportWords")) {
+      setSupportWords(nextDefaults.supportWords);
+    }
+    if (isDefaultValue(successCriteria, "successCriteria")) {
+      setSuccessCriteria(nextDefaults.successCriteria);
+    }
+  }
+
+  function resetSuggestions() {
+    const defaults = getTaskDefaults(language, taskType);
+    setInstruction(defaults.instruction);
+    setSupportWords(defaults.supportWords);
+    setSuccessCriteria(defaults.successCriteria);
   }
 
   const canSave = useMemo(
@@ -352,6 +647,16 @@ export default function ImageWritingProducerPage() {
       (imageMode !== "ai_generated" || imagePrompt.trim()),
     [title, imageUrl, imageDescription, instruction, imageMode, imagePrompt]
   );
+
+  function missingRequiredFields() {
+    const missing: string[] = [];
+    if (!title.trim()) missing.push(ui.title);
+    if (!imageUrl.trim()) missing.push(imageMode === "ai_generated" ? ui.imageUrlShort : ui.imageUrl);
+    if (imageMode === "ai_generated" && !imagePrompt.trim()) missing.push(ui.prompt);
+    if (!imageDescription.trim()) missing.push(ui.imageDescription);
+    if (!instruction.trim()) missing.push(ui.instruction);
+    return missing;
+  }
 
   async function uploadImage(file: File) {
     setError(null);
@@ -378,7 +683,7 @@ export default function ImageWritingProducerPage() {
       setImageMode("uploaded");
       setMessage(messages.uploaded);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Opplasting feilet.");
+      setError(e instanceof Error ? e.message : messages.uploadFailed);
     } finally {
       setUploading(false);
     }
@@ -438,6 +743,13 @@ export default function ImageWritingProducerPage() {
   async function saveLesson() {
     setError(null);
     setMessage(null);
+
+    const missing = missingRequiredFields();
+    if (missing.length) {
+      setError(`${messages.missingRequired} ${missing.join(", ")}`);
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -466,8 +778,8 @@ export default function ImageWritingProducerPage() {
               instruction,
               supportWords: splitLines(supportWords),
               successCriteria: splitLines(successCriteria),
-              printSupportWords,
-              printSuccessCriteria,
+              printSupportWords: printMode === "medium" || printMode === "long",
+              printSuccessCriteria: printMode === "long",
             },
           ],
         }),
@@ -478,6 +790,7 @@ export default function ImageWritingProducerPage() {
 
       setSavedId(data.id || null);
       setMessage(messages.saved);
+      router.push(`/${locale}/content`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : messages.saveFailed);
     } finally {
@@ -486,18 +799,25 @@ export default function ImageWritingProducerPage() {
   }
 
   return (
-    <main style={{ width: "100%", maxWidth: 980, margin: "0 auto", padding: "18px 12px 80px" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>{ui.pageTitle}</h1>
-          <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.45 }}>
+    <main style={pageShell}>
+      <header style={heroHeader}>
+        <div style={{ minWidth: 0, flex: "1 1 520px" }}>
+          <div style={eyebrow}>321School Studio</div>
+          <h1 style={{ margin: 0, fontSize: 34, lineHeight: 1.08, color: "#0f172a" }}>{ui.pageTitle}</h1>
+          <p style={{ margin: "10px 0 0", color: "#475569", lineHeight: 1.5, maxWidth: 620 }}>
             {ui.pageIntro}
           </p>
         </div>
 
-        <Link href={`/${locale}/content`} style={secondaryLink}>
-          {ui.myContent}
-        </Link>
+        <div style={videoPlaceholder}>
+          <div style={playCircle} aria-hidden="true">
+            <span style={playTriangle} />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>{ui.videoTitle}</div>
+            <div style={{ marginTop: 3, fontSize: 13, color: "#64748b" }}>{ui.videoPlaceholder}</div>
+          </div>
+        </div>
       </header>
 
       {error ? <div style={alertError}>{error}</div> : null}
@@ -505,174 +825,197 @@ export default function ImageWritingProducerPage() {
 
       <section style={layout}>
         <div style={panel}>
-          <div style={gridTwo}>
-            <label style={field}>
-              {fieldLabel(ui.title, true)}
-              <input value={title} onChange={(e) => setTitle(e.target.value)} style={input} />
-            </label>
+          <div style={sectionBlock}>
+            <div style={sectionTitle}>{ui.sectionTask}</div>
+            <div style={gridTwo}>
+              <label style={field}>
+                {fieldLabel(ui.title, true)}
+                <input value={title} onChange={(e) => setTitle(e.target.value)} style={input} />
+              </label>
 
-            <label style={field}>
-              {fieldLabel(ui.language)}
-              <select value={language} onChange={(e) => changeLanguage(e.target.value as Language)} style={input}>
-                {languages.map((item) => (
-                  <option key={item} value={item}>
-                    {item.toUpperCase()}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label style={field}>
+                {fieldLabel(ui.language)}
+                <select value={language} onChange={(e) => changeLanguage(e.target.value as Language)} style={input}>
+                  {languages.map((item) => (
+                    <option key={item} value={item}>
+                      {item.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label style={field}>
-              {fieldLabel(ui.level)}
-              <select value={level} onChange={(e) => setLevel(e.target.value as Level)} style={input}>
-                {levels.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label style={field}>
+                {fieldLabel(ui.level)}
+                <select value={level} onChange={(e) => setLevel(e.target.value as Level)} style={input}>
+                  {levels.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
-            <label style={field}>
+            <div style={{ marginTop: 14 }}>
               {fieldLabel(ui.taskType)}
-              <select value={taskType} onChange={(e) => setTaskType(e.target.value as TaskType)} style={input}>
+              <div style={taskTypeGrid}>
                 {(Object.keys(taskTypeLabels) as TaskType[]).map((value) => (
-                  <option key={value} value={value}>
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => changeTaskType(value)}
+                    style={taskType === value ? taskTypeCardActive : taskTypeCard}
+                  >
                     {taskTypeLabels[value]}
-                  </option>
+                  </button>
                 ))}
-              </select>
-            </label>
-          </div>
-
-          <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={() => setImageMode("uploaded")}
-              style={imageMode === "uploaded" ? selectedButton : button}
-            >
-              {ui.uploadMode}
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageMode("ai_generated")}
-              style={imageMode === "ai_generated" ? selectedButton : button}
-            >
-              {ui.aiMode}
-            </button>
-          </div>
-
-          {imageMode === "uploaded" ? (
-            <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-              <label style={field}>
-                {fieldLabel(ui.uploadImage)}
-                <input
-                  type="file"
-                  accept="image/*"
-                  disabled={uploading}
-                  onChange={(e) => {
-                    const file = e.currentTarget.files?.[0];
-                    if (file) void uploadImage(file);
-                    e.currentTarget.value = "";
-                  }}
-                />
-              </label>
-              <label style={field}>
-                {fieldLabel(ui.imageUrl, true)}
-                <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} style={input} />
-              </label>
-            </div>
-          ) : (
-            <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-              <label style={field}>
-                {fieldLabel(ui.prompt, true)}
-                <textarea
-                  value={imagePrompt}
-                  onChange={(e) => setImagePrompt(e.target.value)}
-                  rows={3}
-                  style={textarea}
-                  placeholder={ui.promptPlaceholder}
-                />
-              </label>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                <button
-                  type="button"
-                  onClick={generateAiImage}
-                  disabled={generatingImage || !imagePrompt.trim()}
-                  style={primaryButton}
-                >
-                  {generatingImage ? ui.generating : ui.generate}
-                </button>
-                <span style={{ color: "#64748b", fontSize: 13 }}>
-                  {ui.storageHint}
-                </span>
               </div>
-              <label style={field}>
-                {fieldLabel(ui.imageUrlShort, true)}
-                <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} style={input} />
-              </label>
+              <p style={{ ...helperText, margin: "8px 0 0" }}>{taskTypeDescription}</p>
             </div>
-          )}
-
-          <label style={{ ...field, marginTop: 14 }}>
-            {fieldLabel(ui.imageDescription, true)}
-            <textarea
-              value={imageDescription}
-              onChange={(e) => setImageDescription(e.target.value)}
-              rows={5}
-              style={textarea}
-              placeholder={ui.imageDescriptionPlaceholder}
-            />
-          </label>
-
-          <label style={{ ...field, marginTop: 14 }}>
-            {fieldLabel(ui.instruction, true)}
-            <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={3} style={textarea} />
-          </label>
-
-          <div style={{ ...gridTwo, marginTop: 14 }}>
-            <label style={field}>
-              {fieldLabel(ui.support)}
-              <textarea value={supportWords} onChange={(e) => setSupportWords(e.target.value)} rows={4} style={textarea} />
-            </label>
-            <label style={field}>
-              {fieldLabel(ui.criteria)}
-              <textarea value={successCriteria} onChange={(e) => setSuccessCriteria(e.target.value)} rows={4} style={textarea} />
-            </label>
           </div>
 
-          <div style={{ marginTop: 14 }}>
-            {fieldLabel(ui.printHelp)}
+          <div style={sectionBlock}>
+            <div style={sectionTitle}>{ui.sectionImage}</div>
             <div style={segmentedRow}>
               <button
                 type="button"
-                onClick={() => {
-                  setPrintSupportWords(false);
-                  setPrintSuccessCriteria(false);
-                }}
-                style={!printSupportWords && !printSuccessCriteria ? segmentActive : segmentButton}
+                onClick={() => setImageMode("uploaded")}
+                style={imageMode === "uploaded" ? selectedButton : button}
               >
-                {ui.none}
+                {ui.uploadMode}
               </button>
               <button
                 type="button"
-                onClick={() => setPrintSupportWords((value) => !value)}
-                style={printSupportWords ? segmentActive : segmentButton}
+                onClick={() => setImageMode("ai_generated")}
+                style={imageMode === "ai_generated" ? selectedButton : button}
               >
-                {ui.support.replace(/^Forslag til |^Suggested |^Sugestões de /, "")}
+                {ui.aiMode}
               </button>
-              <button
-                type="button"
-                onClick={() => setPrintSuccessCriteria((value) => !value)}
-                style={printSuccessCriteria ? segmentActive : segmentButton}
-              >
-                {ui.criteria.replace(/^Forslag til |^Suggested |^Sugestões de /, "")}
+            </div>
+
+            {imageMode === "uploaded" ? (
+              <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+                <label style={field}>
+                  {fieldLabel(ui.uploadImage)}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const file = e.currentTarget.files?.[0];
+                      if (file) void uploadImage(file);
+                      e.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                <label style={field}>
+                  {fieldLabel(ui.imageUrl, true)}
+                  <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} style={input} />
+                </label>
+              </div>
+            ) : (
+              <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+                <label style={field}>
+                  {fieldLabel(ui.prompt, true)}
+                  <textarea
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                    rows={3}
+                    style={textarea}
+                    placeholder={ui.promptPlaceholder}
+                  />
+                </label>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={generateAiImage}
+                    disabled={generatingImage || !imagePrompt.trim()}
+                    style={primaryButton}
+                  >
+                    {generatingImage ? ui.generating : ui.generate}
+                  </button>
+                  <span style={{ color: "#64748b", fontSize: 13 }}>
+                    {ui.storageHint}
+                  </span>
+                </div>
+                <label style={field}>
+                  {fieldLabel(ui.imageUrlShort, true)}
+                  <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} style={input} />
+                </label>
+              </div>
+            )}
+
+            <label style={{ ...field, marginTop: 14 }}>
+              {fieldLabel(ui.imageDescription, true)}
+              <textarea
+                value={imageDescription}
+                onChange={(e) => setImageDescription(e.target.value)}
+                rows={4}
+                style={textarea}
+                placeholder={ui.imageDescriptionPlaceholder}
+              />
+            </label>
+          </div>
+
+          <div style={sectionBlock}>
+            <div style={sectionTitle}>{ui.sectionInstruction}</div>
+            <label style={field}>
+              {fieldLabel(ui.instruction, true)}
+              <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={3} style={textarea} />
+            </label>
+          </div>
+
+          <div style={sectionBlock}>
+            <div style={sectionHeaderRow}>
+              <div>
+                <div style={{ ...sectionTitle, marginBottom: 4 }}>{ui.sectionSupport}</div>
+                <p style={{ ...helperText, margin: 0 }}>{ui.editSuggestionsHint}</p>
+              </div>
+              <button type="button" onClick={resetSuggestions} style={smallButton}>
+                {ui.resetSuggestions}
               </button>
+            </div>
+            <div style={{ ...gridTwo, marginTop: 12 }}>
+              <label style={field}>
+                {fieldLabel(ui.support)}
+                <textarea value={supportWords} onChange={(e) => setSupportWords(e.target.value)} rows={4} style={textarea} />
+              </label>
+              <label style={field}>
+                {fieldLabel(ui.criteria)}
+                <textarea value={successCriteria} onChange={(e) => setSuccessCriteria(e.target.value)} rows={4} style={textarea} />
+              </label>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              {fieldLabel(ui.printHelp)}
+              <div style={printModeGrid}>
+                {([
+                  ["short", ui.printShort, ui.printShortHint],
+                  ["medium", ui.printMedium, ui.printMediumHint],
+                  ["long", ui.printLong, ui.printLongHint],
+                ] as Array<[PrintMode, string, string]>).map(([value, label, hint]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setPrintMode(value)}
+                    style={printMode === value ? printChoiceActive : printChoice}
+                  >
+                    <span style={{ fontWeight: 900 }}>{label}</span>
+                    <span style={{ ...helperText, color: printMode === value ? "#1e40af" : "#64748b" }}>{hint}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="button" onClick={saveLesson} disabled={!canSave || saving} style={primaryButton}>
+            <button
+              type="button"
+              onClick={saveLesson}
+              disabled={saving}
+              title={!canSave ? messages.completeRequired : undefined}
+              style={{ ...primaryButton, opacity: canSave || saving ? 1 : 0.78 }}
+            >
               {saving ? ui.saving : ui.save}
             </button>
             {savedId ? (
@@ -705,13 +1048,25 @@ export default function ImageWritingProducerPage() {
               </div>
             </div>
           ) : null}
-          {splitLines(supportWords).length ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {printMode !== "short" && splitLines(supportWords).length ? (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
               {splitLines(supportWords).map((word) => (
                 <span key={word} style={pill}>
                   {word}
                 </span>
               ))}
+            </div>
+          ) : null}
+          {printMode === "long" && splitLines(successCriteria).length ? (
+            <div style={previewCriteriaBox}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "#64748b", marginBottom: 6 }}>
+                {ui.criteria}
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.45, color: "#334155" }}>
+                {splitLines(successCriteria).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </div>
           ) : null}
         </aside>
@@ -721,18 +1076,104 @@ export default function ImageWritingProducerPage() {
 }
 
 const layout: React.CSSProperties = {
-  marginTop: 18,
+  marginTop: 20,
   display: "grid",
   gridTemplateColumns: "minmax(0, 1.4fr) minmax(280px, 0.8fr)",
-  gap: 16,
+  gap: 18,
   alignItems: "start",
 };
 
+const pageShell: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 1040,
+  margin: "0 auto",
+  padding: "20px 14px 84px",
+};
+
+const heroHeader: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "stretch",
+  gap: 16,
+  flexWrap: "wrap",
+  border: "1px solid #dbeafe",
+  borderRadius: 24,
+  background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 56%, #eef6ff 100%)",
+  padding: 22,
+  boxShadow: "0 18px 45px rgba(15,23,42,0.07)",
+};
+
+const eyebrow: React.CSSProperties = {
+  marginBottom: 7,
+  color: "#0f766e",
+  fontSize: 12,
+  fontWeight: 900,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+};
+
+const videoPlaceholder: React.CSSProperties = {
+  minWidth: 220,
+  flex: "0 1 280px",
+  border: "1px dashed #93c5fd",
+  borderRadius: 20,
+  background: "rgba(239,246,255,0.82)",
+  padding: 14,
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+};
+
+const playCircle: React.CSSProperties = {
+  width: 42,
+  height: 42,
+  borderRadius: 999,
+  background: "#2563eb",
+  display: "grid",
+  placeItems: "center",
+  boxShadow: "0 8px 18px rgba(37,99,235,0.22)",
+  flex: "0 0 auto",
+};
+
+const playTriangle: React.CSSProperties = {
+  width: 0,
+  height: 0,
+  borderTop: "8px solid transparent",
+  borderBottom: "8px solid transparent",
+  borderLeft: "12px solid #ffffff",
+  marginLeft: 3,
+};
+
 const panel: React.CSSProperties = {
-  border: "1px solid #dbe3ef",
-  borderRadius: 8,
-  background: "white",
-  padding: 16,
+  border: "1px solid #dbeafe",
+  borderRadius: 22,
+  background: "rgba(255,255,255,0.96)",
+  padding: 18,
+  boxShadow: "0 14px 34px rgba(15,23,42,0.06)",
+};
+
+const sectionBlock: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 18,
+  background: "#ffffff",
+  padding: 14,
+  marginBottom: 14,
+};
+
+const sectionHeaderRow: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+  flexWrap: "wrap",
+  marginBottom: 12,
+};
+
+const sectionTitle: React.CSSProperties = {
+  marginBottom: 12,
+  color: "#0f172a",
+  fontSize: 15,
+  fontWeight: 950,
 };
 
 const gridTwo: React.CSSProperties = {
@@ -743,6 +1184,12 @@ const gridTwo: React.CSSProperties = {
 
 const field: React.CSSProperties = { display: "grid", gap: 6 };
 
+const helperText: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: 12,
+  lineHeight: 1.35,
+};
+
 const segmentedRow: React.CSSProperties = {
   display: "flex",
   gap: 8,
@@ -750,31 +1197,43 @@ const segmentedRow: React.CSSProperties = {
   marginTop: 8,
 };
 
-const segmentButton: React.CSSProperties = {
-  borderWidth: 2,
-  borderStyle: "solid",
-  borderColor: "#cbd5e1",
-  borderRadius: 8,
-  padding: "9px 12px",
-  background: "#fff",
-  color: "#334155",
-  fontWeight: 850,
+const taskTypeGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+  gap: 10,
+  marginTop: 8,
 };
 
-const segmentActive: React.CSSProperties = {
-  ...segmentButton,
-  borderColor: "#2563eb",
-  background: "#dbeafe",
+const taskTypeCard: React.CSSProperties = {
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "#cbd5e1",
+  borderRadius: 16,
+  padding: "12px 11px",
+  background: "#f8fafc",
   color: "#0f172a",
-  boxShadow: "0 0 0 2px rgba(37,99,235,0.18)",
+  fontWeight: 900,
+  textAlign: "left",
+  cursor: "pointer",
+  minHeight: 58,
+};
+
+const taskTypeCardActive: React.CSSProperties = {
+  ...taskTypeCard,
+  borderColor: "#2563eb",
+  background: "#eff6ff",
+  color: "#1d4ed8",
+  boxShadow: "0 0 0 3px rgba(37,99,235,0.12)",
 };
 
 const input: React.CSSProperties = {
   width: "100%",
   border: "1px solid #cbd5e1",
-  borderRadius: 8,
+  borderRadius: 12,
   padding: "10px 11px",
   boxSizing: "border-box",
+  background: "#ffffff",
+  boxShadow: "inset 0 1px 2px rgba(15,23,42,0.03)",
 };
 
 const textarea: React.CSSProperties = {
@@ -784,26 +1243,39 @@ const textarea: React.CSSProperties = {
 };
 
 const button: React.CSSProperties = {
-  border: "1px solid #cbd5e1",
-  borderRadius: 8,
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "#cbd5e1",
+  borderRadius: 12,
   padding: "10px 12px",
   background: "white",
   fontWeight: 800,
+  cursor: "pointer",
 };
 
 const selectedButton: React.CSSProperties = {
   ...button,
-  border: "2px solid #2563eb",
+  borderWidth: 2,
+  borderColor: "#2563eb",
   padding: "9px 11px",
   background: "#eff6ff",
   color: "#1d4ed8",
+  boxShadow: "0 0 0 3px rgba(37,99,235,0.12)",
 };
 
 const primaryButton: React.CSSProperties = {
   ...button,
-  background: "#dcfce7",
-  borderColor: "#86efac",
-  color: "#166534",
+  background: "#0f766e",
+  borderColor: "#0f766e",
+  color: "#ffffff",
+  boxShadow: "0 8px 18px rgba(15,118,110,0.16)",
+};
+
+const smallButton: React.CSSProperties = {
+  ...button,
+  borderRadius: 999,
+  padding: "7px 10px",
+  fontSize: 12,
 };
 
 const secondaryLink: React.CSSProperties = {
@@ -819,7 +1291,7 @@ const alertError: React.CSSProperties = {
   border: "1px solid #fecaca",
   background: "#fef2f2",
   color: "#991b1b",
-  borderRadius: 8,
+  borderRadius: 14,
   padding: 12,
 };
 
@@ -828,7 +1300,46 @@ const alertOk: React.CSSProperties = {
   border: "1px solid #bbf7d0",
   background: "#f0fdf4",
   color: "#166534",
-  borderRadius: 8,
+  borderRadius: 14,
+  padding: 12,
+};
+
+const printModeGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: 8,
+  marginTop: 8,
+};
+
+const printChoice: React.CSSProperties = {
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "#cbd5e1",
+  borderRadius: 14,
+  padding: "9px 10px",
+  background: "#f8fafc",
+  color: "#0f172a",
+  display: "grid",
+  gap: 3,
+  textAlign: "left",
+  cursor: "pointer",
+  minWidth: 0,
+};
+
+const printChoiceActive: React.CSSProperties = {
+  ...printChoice,
+  borderColor: "#2563eb",
+  background: "#eff6ff",
+  boxShadow: "0 0 0 3px rgba(37,99,235,0.12)",
+};
+
+const previewCriteriaBox: React.CSSProperties = {
+  marginTop: 14,
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "#e2e8f0",
+  borderRadius: 12,
+  background: "#f8fafc",
   padding: 12,
 };
 
@@ -836,8 +1347,8 @@ const imagePreview: React.CSSProperties = {
   width: "100%",
   aspectRatio: "16 / 10",
   border: "1px solid #cbd5e1",
-  borderRadius: 8,
-  background: "#f8fafc",
+  borderRadius: 18,
+  background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
   overflow: "hidden",
   display: "grid",
   placeItems: "center",
@@ -846,7 +1357,7 @@ const imagePreview: React.CSSProperties = {
 const pill: React.CSSProperties = {
   border: "1px solid #cbd5e1",
   borderRadius: 999,
-  padding: "5px 9px",
+  padding: "6px 10px",
   background: "#f8fafc",
   fontSize: 13,
   fontWeight: 700,
