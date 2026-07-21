@@ -57,7 +57,7 @@ const copy = {
       pageIntro: "Første versjon lagrer én bildebasert skriveoppgave som vanlig innhold.",
       myContent: "Mitt innhold",
       videoTitle: "Instruksjonsvideo",
-      videoPlaceholder: "Video kommer her",
+      videoPlaceholder: "Se hvordan du lager en skriveoppgave",
       title: "Tittel",
       language: "Språk",
       level: "Nivå",
@@ -156,7 +156,7 @@ const copy = {
       pageIntro: "First version saves one image-based writing task as regular content.",
       myContent: "My content",
       videoTitle: "Instruction video",
-      videoPlaceholder: "Video coming here",
+      videoPlaceholder: "See how to create a writing task",
       title: "Title",
       language: "Language",
       level: "Level",
@@ -255,7 +255,7 @@ const copy = {
       pageIntro: "A primeira versão salva uma tarefa de escrita baseada em imagem como conteúdo normal.",
       myContent: "Meu conteúdo",
       videoTitle: "Vídeo de instrução",
-      videoPlaceholder: "Vídeo em breve",
+      videoPlaceholder: "Veja como criar uma tarefa de escrita",
       title: "Título",
       language: "Idioma",
       level: "Nível",
@@ -809,15 +809,29 @@ export default function ImageWritingProducerPage() {
           </p>
         </div>
 
-        <div style={videoPlaceholder}>
-          <div style={playCircle} aria-hidden="true">
-            <span style={playTriangle} />
+        <a
+          href="https://youtu.be/CmAMXZr3y5g"
+          target="_blank"
+          rel="noreferrer"
+          style={videoLink}
+          aria-label={ui.videoTitle}
+        >
+          <div style={videoThumb}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://img.youtube.com/vi/CmAMXZr3y5g/mqdefault.jpg"
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            <div style={playCircle} aria-hidden="true">
+              <span style={playTriangle} />
+            </div>
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>{ui.videoTitle}</div>
             <div style={{ marginTop: 3, fontSize: 13, color: "#64748b" }}>{ui.videoPlaceholder}</div>
           </div>
-        </div>
+        </a>
       </header>
 
       {error ? <div style={alertError}>{error}</div> : null}
@@ -1112,27 +1126,45 @@ const eyebrow: React.CSSProperties = {
   textTransform: "uppercase",
 };
 
-const videoPlaceholder: React.CSSProperties = {
-  minWidth: 220,
-  flex: "0 1 280px",
-  border: "1px dashed #93c5fd",
+const videoLink: React.CSSProperties = {
+  minWidth: 250,
+  flex: "0 1 320px",
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "#bfdbfe",
   borderRadius: 20,
-  background: "rgba(239,246,255,0.82)",
-  padding: 14,
+  background: "rgba(255,255,255,0.88)",
+  padding: 10,
   display: "flex",
   alignItems: "center",
   gap: 12,
+  color: "inherit",
+  textDecoration: "none",
+  boxShadow: "0 10px 24px rgba(37,99,235,0.09)",
+};
+
+const videoThumb: React.CSSProperties = {
+  position: "relative",
+  width: 92,
+  aspectRatio: "16 / 9",
+  borderRadius: 14,
+  overflow: "hidden",
+  background: "#dbeafe",
+  flex: "0 0 auto",
 };
 
 const playCircle: React.CSSProperties = {
-  width: 42,
-  height: 42,
+  position: "absolute",
+  left: "50%",
+  top: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 36,
+  height: 36,
   borderRadius: 999,
   background: "#2563eb",
   display: "grid",
   placeItems: "center",
   boxShadow: "0 8px 18px rgba(37,99,235,0.22)",
-  flex: "0 0 auto",
 };
 
 const playTriangle: React.CSSProperties = {
