@@ -8,6 +8,7 @@ import type {
     AutoGrade,
     SentenceSeg,
     Task,
+    TextSize,
     TranslatedTask,
     TranslatingState,
     TtsLang,
@@ -16,6 +17,7 @@ import type { LessonTextSection, LessonTextSectionKey } from "./lessonTextSectio
 
 type Props = {
     lessonLanguage?: string;
+    textSize: TextSize;
     sourceTextSafe: string;
     translatedText: string | null;
     lessonTextSections: LessonTextSection[];
@@ -100,6 +102,7 @@ type Props = {
 
 export default function StandardAssignmentSection({
     lessonLanguage,
+    textSize,
     sourceTextSafe,
     translatedText,
     lessonTextSections,
@@ -143,6 +146,7 @@ export default function StandardAssignmentSection({
             {sourceTextSafe.trim() ? (
                 <StudentAssignmentTextSection
                     sourceTextSafe={sourceTextSafe}
+                    textSize={textSize}
                     translatedText={translatedText}
                     lessonTextSections={lessonTextSections}
                     translatedSectionMap={translatedSectionMap}

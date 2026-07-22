@@ -15,7 +15,36 @@
     "buttons": {
       "save": "Salvar",
       "saveToMyContent": "Salvar em Meus conteúdos",
+      "preview": "Pré-visualização",
+      "saveAndPreview": "Salvar e pré-visualizar",
       "saving": "Salvando…"
+    },
+    "sticky": {
+      "title": "Pronto para salvar",
+      "body": "Ao salvar, você será enviado para Meus conteúdos. Se a atividade já foi publicada antes e foi alterada, publique-a novamente lá."
+    },
+    "previewPage": {
+      "loading": "Carregando pré-visualização…",
+      "badge": "Pré-visualização",
+      "noticeTitle": "Apenas visualização de controle",
+      "noticeBody": "Esta página não pode ser compartilhada com alunos. Tradução, áudio e feedback aparecem na página do aluno depois que a atividade é salva, publicada ou compartilhada.",
+      "backToEditor": "Voltar ao editor",
+      "coverTitle": "Imagem de capa",
+      "coverAlt": "Imagem de capa da atividade",
+      "tasksHelp": "Revise enunciados, alternativas e gabaritos antes de salvar ou publicar.",
+      "answerKey": "Gabarito",
+      "openNote": "Atividades abertas recebem campos de escrita e feedback na página do aluno.",
+      "noSaving": "A pré-visualização não salva nada.",
+      "errors": {
+        "title": "Erro",
+        "notFound": "Atividade não encontrada.",
+        "loadFailed": "Não foi possível carregar a pré-visualização."
+      },
+      "taskTypes": {
+        "truefalse": "Verdadeiro / falso",
+        "mcq": "Múltipla escolha",
+        "open": "Resposta aberta"
+      }
     },
     "errors": {
       "title": "Erro",
@@ -37,12 +66,15 @@
       "missingAuthToken": "Falta o token de autenticação."
     },
     "intro": {
-      "finishLesson": "Agora finalize a atividade com metadados, imagem de capa e ajustes finais."
+      "finishLesson": "Agora finalize a atividade com metadados, imagem de capa e ajustes finais.",
+      "videoTitle": "Vídeo de instrução",
+      "videoPlaceholder": "Vídeo em breve"
     },
     "summary": {
       "title": "Título",
       "tasks": "Atividades",
       "words": "Palavras",
+      "status": "Status",
       "imageGeneration": "Geração de imagens"
     },
     "sections": {
@@ -63,11 +95,18 @@
       "tags": "Tags",
       "tagsHelp": "Separe as tags com vírgulas.",
       "estimatedMinutes": "Minutos estimados",
+      "textSize": "Tamanho do texto",
+      "textSizeHelp": "Será usado depois no texto de leitura, na pré-visualização e na impressão.",
       "releaseMode": "Modo de exibição",
       "releaseModeHelp": "Escolha se o texto e as atividades devem aparecer juntos ou o texto primeiro.",
       "status": "Status",
       "text": "Texto",
       "coverImageCredit": "Fonte da imagem"
+    },
+    "textSizes": {
+      "normal": "Normal",
+      "large": "Grande",
+      "xlarge": "Extra grande"
     },
     "fieldsExtra": {
       "textType": "Tipo de texto",

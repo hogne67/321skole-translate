@@ -13,6 +13,7 @@ import { logUsageEvent } from "@/lib/usageClient";
 
 type TaskType = "truefalse" | "mcq" | "open";
 type AnswerSpace = "short" | "medium" | "long";
+type TextSize = "normal" | "large" | "xlarge";
 
 type Task = {
   id: string;
@@ -39,6 +40,7 @@ type Lesson = {
   language?: string;
   tags?: string[];
   estimatedMinutes?: number;
+  textSize?: TextSize;
 };
 
 function uidNow() {
@@ -63,6 +65,11 @@ function lineCountFor(space?: AnswerSpace) {
 
 function isTruthyString(v: unknown) {
   return String(v).toLowerCase() === "true";
+}
+
+function normalizeTextSize(value: unknown): TextSize {
+  if (value === "large" || value === "xlarge") return value;
+  return "normal";
 }
 
 function getErrorMessage(err: unknown): string {
@@ -204,6 +211,8 @@ export default function ProducerPrintPage() {
     return sortTasks(t0).filter((x) => safeText(x.prompt).trim().length > 0);
   }, [lesson]);
 
+  const textSize = normalizeTextSize(lesson?.textSize);
+
   if (loading) {
     return <main style={{ padding: 20 }}>{t("states.loading")}</main>;
   }
@@ -317,7 +326,7 @@ export default function ProducerPrintPage() {
 
           <section className="pdf-section">
             <h2 className="pdf-h2">{t("sections.readingText")}</h2>
-            <div className="pdf-reading">
+            <div className={`pdf-reading is-${textSize}`}>
               {safeText(lesson.sourceText)
                 .split("\n")
                 .map((p, i) => (
@@ -590,6 +599,16 @@ export default function ProducerPrintPage() {
         .pdf-reading {
           font-size: 14px;
           line-height: 1.68;
+        }
+
+        .pdf-reading.is-large {
+          font-size: 16px;
+          line-height: 1.72;
+        }
+
+        .pdf-reading.is-xlarge {
+          font-size: 18px;
+          line-height: 1.75;
         }
 
         .pdf-reading p {

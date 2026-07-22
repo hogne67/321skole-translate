@@ -3,7 +3,6 @@
 
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 
 type ToolBadge = "NEW" | "POPULAR" | "BETA" | "PREMIUM";
 
@@ -87,18 +86,6 @@ export default function ToolsPage() {
                 >
                 {t("open")}
                 </Link>
-
-                {tool.id === "assignmentGenerator" ? (
-                  <TrainingVideoPlayer
-                    title={t("trainingVideos.assignmentGenerator.title")}
-                    videoUrl="https://youtu.be/J2UsvKRtlgw?si=l-Gean7b9o7dXFYW"
-                    buttonLabel={t("trainingVideos.assignmentGenerator.button")}
-                    buttonTitle={t("trainingVideos.assignmentGenerator.buttonTitle")}
-                    closeLabel={t("trainingVideos.close")}
-                    iconOnly
-                    className="h-12 w-12"
-                  />
-                ) : null}
               </div>
             </div>
           ))}

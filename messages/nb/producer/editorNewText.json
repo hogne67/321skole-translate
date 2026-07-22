@@ -15,7 +15,36 @@
     "buttons": {
       "save": "Lagre",
       "saveToMyContent": "Lagre til Mitt innhold",
+      "preview": "Forhåndsvisning",
+      "saveAndPreview": "Lagre og forhåndsvis",
       "saving": "Lagrer…"
+    },
+    "sticky": {
+      "title": "Klar til å lagre",
+      "body": "Når du lagrer, sendes du til Mitt innhold. Hvis oppgaven har vært publisert tidligere og er endret, må den publiseres på nytt der."
+    },
+    "previewPage": {
+      "loading": "Laster forhåndsvisning…",
+      "badge": "Forhåndsvisning",
+      "noticeTitle": "Kun kontrollvisning",
+      "noticeBody": "Denne siden kan ikke deles med elever. Oversettelse, lyd og feedback vises først på elevsiden etter at oppgaven er lagret, publisert eller delt.",
+      "backToEditor": "Tilbake til editor",
+      "coverTitle": "Forsidebilde",
+      "coverAlt": "Forsidebilde for oppgaven",
+      "tasksHelp": "Se gjennom spørsmål, alternativer og fasit før du lagrer eller publiserer.",
+      "answerKey": "Fasit",
+      "openNote": "Åpne oppgaver får skrivefelt og feedback på elevsiden.",
+      "noSaving": "Forhåndsvisningen lagrer ingenting.",
+      "errors": {
+        "title": "Feil",
+        "notFound": "Fant ikke oppgaven.",
+        "loadFailed": "Kunne ikke laste forhåndsvisningen."
+      },
+      "taskTypes": {
+        "truefalse": "Riktig / feil",
+        "mcq": "Flervalg",
+        "open": "Åpent svar"
+      }
     },
     "errors": {
       "title": "Feil",
@@ -37,12 +66,15 @@
       "missingAuthToken": "Mangler autentiseringstoken."
     },
     "intro": {
-      "finishLesson": "Nå ferdigstiller du oppgaven med metadata, forsidebilde og siste justeringer."
+      "finishLesson": "Nå ferdigstiller du oppgaven med metadata, forsidebilde og siste justeringer.",
+      "videoTitle": "Instruksjonsvideo",
+      "videoPlaceholder": "Video kommer her"
     },
     "summary": {
       "title": "Tittel",
       "tasks": "Oppgaver",
       "words": "Ord",
+      "status": "Status",
       "imageGeneration": "Bildegenerering"
     },
     "sections": {
@@ -63,11 +95,18 @@
       "tags": "Tagger",
       "tagsHelp": "Skill tagger med komma.",
       "estimatedMinutes": "Estimert antall minutter",
+      "textSize": "Skriftstørrelse",
+      "textSizeHelp": "Brukes senere for lesetekst, forhåndsvisning og utskrift.",
       "releaseMode": "Visningsmodus",
       "releaseModeHelp": "Velg om tekst og oppgaver skal vises sammen eller tekst først.",
       "status": "Status",
       "text": "Tekst",
       "coverImageCredit": "Bildekilde"
+    },
+    "textSizes": {
+      "normal": "Normal",
+      "large": "Stor",
+      "xlarge": "Ekstra stor"
     },
     "fieldsExtra": {
       "textType": "Teksttype",

@@ -3,6 +3,7 @@ import React from "react";
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 
 type PdfTaskType = "truefalse" | "mcq" | "open";
+type TextSize = "normal" | "large" | "xlarge";
 
 type PdfTask = {
   type: PdfTaskType;
@@ -23,6 +24,7 @@ export type PdfLesson = {
   coverImageUrl?: string;
   logoUrl?: string;
   sourceText?: string;
+  textSize?: TextSize;
 
   includeAnswerKey?: boolean;
 
@@ -130,6 +132,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 1.5,
   },
+  paragraphLarge: {
+    fontSize: 16,
+    lineHeight: 1.55,
+  },
+  paragraphXlarge: {
+    fontSize: 18,
+    lineHeight: 1.6,
+  },
 
   // Tasks
   tasksHeading: {
@@ -190,6 +200,21 @@ function normalizeText(s?: string) {
   return (s ?? "").toString();
 }
 
+function normalizeTextSize(value: unknown): TextSize {
+  if (value === "large" || value === "xlarge") return value;
+  return "normal";
+}
+
+function getPdfParagraphStyle(textSize: TextSize) {
+  if (textSize === "xlarge") {
+    return [styles.paragraph, styles.paragraphXlarge];
+  }
+  if (textSize === "large") {
+    return [styles.paragraph, styles.paragraphLarge];
+  }
+  return styles.paragraph;
+}
+
 function formatAnswer(a: unknown): string {
   if (a === null || a === undefined) return "";
   if (typeof a === "string") return a;
@@ -211,6 +236,7 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
 
   const tasks = (lesson.tasks || []).filter((t) => (t.prompt ?? "").trim().length > 0);
   const showText = (lesson.sourceText ?? "").trim().length > 0;
+  const textSize = normalizeTextSize(lesson.textSize);
 
   const logoSrc =
     lesson.logoUrl?.trim() ||
@@ -262,7 +288,7 @@ export function WorksheetPdf({ lesson }: { lesson: PdfLesson }) {
 
         <View style={styles.textBlock}>
           <Text style={styles.textHeading}>Text</Text>
-          <Text style={styles.paragraph}>
+          <Text style={getPdfParagraphStyle(textSize)}>
             {showText ? normalizeText(lesson.sourceText) : " "}
           </Text>
         </View>

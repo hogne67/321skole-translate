@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
@@ -58,6 +59,7 @@ const copy = {
       myContent: "Mitt innhold",
       videoTitle: "Instruksjonsvideo",
       videoPlaceholder: "Se hvordan du lager en skriveoppgave",
+      closeVideo: "Lukk video",
       title: "Tittel",
       language: "Språk",
       level: "Nivå",
@@ -157,6 +159,7 @@ const copy = {
       myContent: "My content",
       videoTitle: "Instruction video",
       videoPlaceholder: "See how to create a writing task",
+      closeVideo: "Close video",
       title: "Title",
       language: "Language",
       level: "Level",
@@ -256,6 +259,7 @@ const copy = {
       myContent: "Meu conteúdo",
       videoTitle: "Vídeo de instrução",
       videoPlaceholder: "Veja como criar uma tarefa de escrita",
+      closeVideo: "Fechar vídeo",
       title: "Título",
       language: "Idioma",
       level: "Nível",
@@ -592,9 +596,11 @@ export default function ImageWritingProducerPage() {
   const [uploading, setUploading] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [draftImageLessonId] = useState(
     () => `image-writing-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   );
@@ -602,6 +608,29 @@ export default function ImageWritingProducerPage() {
   const messages = copy[uiLanguage].messages;
   const taskTypeLabels = copy[uiLanguage].taskTypes;
   const taskTypeDescription = taskTypeDescriptions[uiLanguage][taskType];
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 720);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  useEffect(() => {
+    if (!videoOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setVideoOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [videoOpen]);
 
   function changeLanguage(next: Language) {
     setLanguage(next);
@@ -647,6 +676,107 @@ export default function ImageWritingProducerPage() {
       (imageMode !== "ai_generated" || imagePrompt.trim()),
     [title, imageUrl, imageDescription, instruction, imageMode, imagePrompt]
   );
+
+  const pageShellStyle: React.CSSProperties = {
+    ...pageShell,
+    ...(isMobile
+      ? {
+          padding: "14px 10px 84px",
+        }
+      : {}),
+  };
+
+  const heroHeaderStyle: React.CSSProperties = {
+    ...heroHeader,
+    ...(isMobile
+      ? {
+          borderRadius: 22,
+          padding: 18,
+          gap: 14,
+        }
+      : {}),
+  };
+
+  const heroTitleStyle: React.CSSProperties = {
+    margin: 0,
+    fontSize: isMobile ? 30 : 34,
+    lineHeight: 1.08,
+    color: "#0f172a",
+  };
+
+  const heroIntroStyle: React.CSSProperties = {
+    margin: "10px 0 0",
+    color: "#475569",
+    lineHeight: 1.5,
+    maxWidth: 620,
+    fontSize: isMobile ? 16 : undefined,
+  };
+
+  const videoLinkStyle: React.CSSProperties = {
+    ...videoLink,
+    ...(isMobile
+      ? {
+          width: "100%",
+          minWidth: 0,
+          flex: "1 1 100%",
+          borderRadius: 18,
+        }
+      : {}),
+  };
+
+  const videoThumbStyle: React.CSSProperties = {
+    ...videoThumb,
+    ...(isMobile
+      ? {
+          width: 104,
+        }
+      : {}),
+  };
+
+  const layoutStyle: React.CSSProperties = isMobile
+    ? {
+        ...layout,
+        display: "flex",
+        flexDirection: "column",
+        gap: 14,
+      }
+    : layout;
+
+  const formPanelStyle: React.CSSProperties = {
+    ...panel,
+    ...(isMobile ? { padding: 14, borderRadius: 20 } : {}),
+  };
+
+  const previewPanelStyle: React.CSSProperties = {
+    ...panel,
+    ...(isMobile
+      ? {
+          order: -1,
+          padding: 14,
+          borderRadius: 20,
+        }
+      : {}),
+  };
+
+  const gridTwoStyle: React.CSSProperties = {
+    ...gridTwo,
+    ...(isMobile ? { gridTemplateColumns: "1fr" } : {}),
+  };
+
+  const taskTypeGridStyle: React.CSSProperties = {
+    ...taskTypeGrid,
+    ...(isMobile ? { gridTemplateColumns: "1fr" } : {}),
+  };
+
+  const printModeGridStyle: React.CSSProperties = {
+    ...printModeGrid,
+    ...(isMobile ? { gridTemplateColumns: "1fr" } : {}),
+  };
+
+  const imagePreviewStyle: React.CSSProperties = {
+    ...imagePreview,
+    ...(isMobile ? { borderRadius: 16, aspectRatio: "16 / 10" } : {}),
+  };
 
   function missingRequiredFields() {
     const missing: string[] = [];
@@ -799,24 +929,23 @@ export default function ImageWritingProducerPage() {
   }
 
   return (
-    <main style={pageShell}>
-      <header style={heroHeader}>
+    <main style={pageShellStyle}>
+      <header style={heroHeaderStyle}>
         <div style={{ minWidth: 0, flex: "1 1 520px" }}>
           <div style={eyebrow}>321School Studio</div>
-          <h1 style={{ margin: 0, fontSize: 34, lineHeight: 1.08, color: "#0f172a" }}>{ui.pageTitle}</h1>
-          <p style={{ margin: "10px 0 0", color: "#475569", lineHeight: 1.5, maxWidth: 620 }}>
+          <h1 style={heroTitleStyle}>{ui.pageTitle}</h1>
+          <p style={heroIntroStyle}>
             {ui.pageIntro}
           </p>
         </div>
 
-        <a
-          href="https://youtu.be/CmAMXZr3y5g"
-          target="_blank"
-          rel="noreferrer"
-          style={videoLink}
+        <button
+          type="button"
+          onClick={() => setVideoOpen(true)}
+          style={videoLinkStyle}
           aria-label={ui.videoTitle}
         >
-          <div style={videoThumb}>
+          <div style={videoThumbStyle}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://img.youtube.com/vi/CmAMXZr3y5g/mqdefault.jpg"
@@ -831,17 +960,39 @@ export default function ImageWritingProducerPage() {
             <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>{ui.videoTitle}</div>
             <div style={{ marginTop: 3, fontSize: 13, color: "#64748b" }}>{ui.videoPlaceholder}</div>
           </div>
-        </a>
+        </button>
       </header>
+
+      {videoOpen ? (
+        <div style={videoOverlay} role="dialog" aria-modal="true" aria-label={ui.videoTitle} onClick={() => setVideoOpen(false)}>
+          <div style={videoModal} onClick={(event) => event.stopPropagation()}>
+            <div style={videoModalHeader}>
+              <div style={{ fontSize: 18, fontWeight: 950, color: "#0f172a" }}>{ui.videoTitle}</div>
+              <button type="button" onClick={() => setVideoOpen(false)} style={closeVideoButton} aria-label={ui.closeVideo}>
+                <X size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+            <div style={videoFrameShell}>
+              <iframe
+                src="https://www.youtube-nocookie.com/embed/CmAMXZr3y5g?autoplay=1&rel=0&modestbranding=1"
+                title={ui.videoTitle}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                style={videoFrame}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {error ? <div style={alertError}>{error}</div> : null}
       {message ? <div style={alertOk}>{message}</div> : null}
 
-      <section style={layout}>
-        <div style={panel}>
+      <section style={layoutStyle}>
+        <div style={formPanelStyle}>
           <div style={sectionBlock}>
             <div style={sectionTitle}>{ui.sectionTask}</div>
-            <div style={gridTwo}>
+            <div style={gridTwoStyle}>
               <label style={field}>
                 {fieldLabel(ui.title, true)}
                 <input value={title} onChange={(e) => setTitle(e.target.value)} style={input} />
@@ -872,7 +1023,7 @@ export default function ImageWritingProducerPage() {
 
             <div style={{ marginTop: 14 }}>
               {fieldLabel(ui.taskType)}
-              <div style={taskTypeGrid}>
+              <div style={taskTypeGridStyle}>
                 {(Object.keys(taskTypeLabels) as TaskType[]).map((value) => (
                   <button
                     key={value}
@@ -989,7 +1140,7 @@ export default function ImageWritingProducerPage() {
                 {ui.resetSuggestions}
               </button>
             </div>
-            <div style={{ ...gridTwo, marginTop: 12 }}>
+            <div style={{ ...gridTwoStyle, marginTop: 12 }}>
               <label style={field}>
                 {fieldLabel(ui.support)}
                 <textarea value={supportWords} onChange={(e) => setSupportWords(e.target.value)} rows={4} style={textarea} />
@@ -1002,7 +1153,7 @@ export default function ImageWritingProducerPage() {
 
             <div style={{ marginTop: 14 }}>
               {fieldLabel(ui.printHelp)}
-              <div style={printModeGrid}>
+              <div style={printModeGridStyle}>
                 {([
                   ["short", ui.printShort, ui.printShortHint],
                   ["medium", ui.printMedium, ui.printMediumHint],
@@ -1040,9 +1191,9 @@ export default function ImageWritingProducerPage() {
           </div>
         </div>
 
-        <aside style={panel}>
+        <aside style={previewPanelStyle}>
           <div style={{ fontWeight: 900, marginBottom: 10 }}>{ui.preview}</div>
-          <div style={imagePreview}>
+          <div style={imagePreviewStyle}>
             {imageUrl.trim() ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={imageUrl.trim()} alt={title || ui.imageAlt} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
@@ -1139,8 +1290,9 @@ const videoLink: React.CSSProperties = {
   alignItems: "center",
   gap: 12,
   color: "inherit",
-  textDecoration: "none",
   boxShadow: "0 10px 24px rgba(37,99,235,0.09)",
+  cursor: "pointer",
+  textAlign: "left",
 };
 
 const videoThumb: React.CSSProperties = {
@@ -1174,6 +1326,60 @@ const playTriangle: React.CSSProperties = {
   borderBottom: "8px solid transparent",
   borderLeft: "12px solid #ffffff",
   marginLeft: 3,
+};
+
+const videoOverlay: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 50,
+  display: "grid",
+  placeItems: "center",
+  background: "rgba(15,23,42,0.72)",
+  padding: 16,
+};
+
+const videoModal: React.CSSProperties = {
+  width: "min(960px, 100%)",
+  overflow: "hidden",
+  borderRadius: 22,
+  background: "#ffffff",
+  boxShadow: "0 24px 70px rgba(0,0,0,0.28)",
+};
+
+const videoModalHeader: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+  borderBottomWidth: 1,
+  borderBottomStyle: "solid",
+  borderBottomColor: "#e2e8f0",
+  padding: "16px 18px",
+};
+
+const closeVideoButton: React.CSSProperties = {
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "#cbd5e1",
+  borderRadius: 12,
+  background: "#ffffff",
+  color: "#334155",
+  width: 38,
+  height: 38,
+  display: "grid",
+  placeItems: "center",
+  cursor: "pointer",
+};
+
+const videoFrameShell: React.CSSProperties = {
+  aspectRatio: "16 / 9",
+  background: "#000000",
+};
+
+const videoFrame: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  border: 0,
 };
 
 const panel: React.CSSProperties = {

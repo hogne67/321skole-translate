@@ -2,6 +2,8 @@ import type { ReadingTestConfig } from "@/components/student/ReadingTestPlayer";
 import type { MathWorksheet } from "@/lib/math/geometry/types";
 import type { FractionWorksheet } from "@/lib/math/fractions/types";
 
+export type TextSize = "normal" | "large" | "xlarge";
+
 export type Lesson = {
     title?: string;
     level?: string;
@@ -17,6 +19,7 @@ export type Lesson = {
     lessonType?: string;
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
+    textSize?: TextSize;
     mathWorksheet?: MathWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;
     mathType?: string;
@@ -46,6 +49,7 @@ export type AssignmentDoc = {
     lessonType?: string;
     taskType?: string;
     readingTestConfig?: ReadingTestConfig | null;
+    textSize?: TextSize;
 
     mathWorksheet?: MathWorksheet | null;
     fractionWorksheet?: FractionWorksheet | null;

@@ -32,6 +32,7 @@ import type {
   SubmissionDoc,
   SubmissionStatus,
   Task,
+  TextSize,
   TranslatedSection,
   TranslatedTask,
   TranslatingState,
@@ -638,6 +639,7 @@ export default function StudentAssignmentPage() {
             lessonType: aDoc.lessonType ?? d.lessonType,
             taskType: aDoc.taskType ?? d.taskType,
             readingTestConfig: aDoc.readingTestConfig ?? d.readingTestConfig ?? null,
+            textSize: normalizeTextSize(aDoc.textSize ?? d.textSize),
             mathWorksheet: aDoc.mathWorksheet ?? d.mathWorksheet ?? null,
             fractionWorksheet: aDoc.fractionWorksheet ?? d.fractionWorksheet ?? null,
             mathType: aDoc.mathType ?? d.mathType,
@@ -1377,6 +1379,7 @@ export default function StudentAssignmentPage() {
         {!isReadingTest && !isGeometryAssignment && !isFractionAssignment ? (
           <StandardAssignmentSection
             lessonLanguage={String(lesson?.language ?? assignment?.language ?? "")}
+            textSize={normalizeTextSize(lesson?.textSize ?? assignment?.textSize)}
             sourceTextSafe={displayedSourceTextSafe}
             translatedText={translatedText}
             lessonTextSections={lessonTextSections}
@@ -1471,4 +1474,9 @@ export default function StudentAssignmentPage() {
       />
     </main>
   );
+}
+
+function normalizeTextSize(value: unknown): TextSize {
+  if (value === "large" || value === "xlarge") return value;
+  return "normal";
 }

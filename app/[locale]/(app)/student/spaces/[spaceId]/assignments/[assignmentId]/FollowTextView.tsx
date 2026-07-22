@@ -1,11 +1,13 @@
 "use client";
 
+import type React from "react";
 import type { SentenceSeg } from "./types";
 
 type Props = {
     mode: "original" | "translation";
     segs: SentenceSeg[];
     fallbackText: string;
+    textStyle?: React.CSSProperties;
     activeTextMode: "original" | "translation" | null;
     activeSentenceIndex: number | null;
     canSeek: boolean;
@@ -18,6 +20,7 @@ export default function FollowTextView({
     mode,
     segs,
     fallbackText,
+    textStyle,
     activeTextMode,
     activeSentenceIndex,
     canSeek,
@@ -30,7 +33,7 @@ export default function FollowTextView({
     }
 
     if (!segs || segs.length === 0) {
-        return <span style={{ whiteSpace: "pre-wrap" }}>{fallbackText}</span>;
+        return <span style={{ whiteSpace: "pre-wrap", ...textStyle }}>{fallbackText}</span>;
     }
 
     return (
@@ -53,6 +56,7 @@ export default function FollowTextView({
                                 : "transparent",
                             transition: "background 120ms ease",
                             lineHeight: 1.6,
+                            ...textStyle,
                         }}
                         title={canSeek ? clickToSeekLabel : undefined}
                     >

@@ -1,15 +1,28 @@
 "use client";
 
+import type React from "react";
 import FollowTextView from "./FollowTextView";
 import type { SentenceSeg, TranslatingState, TtsLang } from "./types";
 import { playButtonStyle, softBlueButtonStyle } from "./assignmentStyles";
 import { segmentSentences } from "./audioHelpers";
 import type { LessonTextSection, LessonTextSectionKey } from "./lessonTextSections";
+import type { TextSize } from "./types";
 
 type TFn = (key: string, values?: Record<string, unknown>) => string;
 
+function getReadingTextStyle(textSize: TextSize): React.CSSProperties {
+    if (textSize === "xlarge") {
+        return { fontSize: 21, lineHeight: 1.75 };
+    }
+    if (textSize === "large") {
+        return { fontSize: 18, lineHeight: 1.7 };
+    }
+    return { fontSize: 16, lineHeight: 1.6 };
+}
+
 type Props = {
     sourceTextSafe: string;
+    textSize: TextSize;
     translatedText: string | null;
     lessonTextSections: LessonTextSection[];
     translatedSectionMap: Map<string, string>;
@@ -51,6 +64,7 @@ type Props = {
 
 export default function StudentAssignmentTextSection({
     sourceTextSafe,
+    textSize,
     translatedText,
     lessonTextSections,
     translatedSectionMap,
@@ -75,6 +89,7 @@ export default function StudentAssignmentTextSection({
     onSeekSentence,
 }: Props) {
     const showSectionCards = lessonTextSections.length >= 2;
+    const readingTextStyle = getReadingTextStyle(textSize);
 
     return (
         <section style={{ display: "grid", gap: 14 }}>
@@ -183,6 +198,7 @@ export default function StudentAssignmentTextSection({
                                         mode="original"
                                         segs={sectionSegs}
                                         fallbackText={section.text}
+                                        textStyle={readingTextStyle}
                                         activeTextMode={isSectionActive ? activeTextMode : null}
                                         activeSentenceIndex={activeSentenceIndex}
                                         canSeek={hasAudio && activeTextMode === "original" && isSectionActive}
@@ -204,7 +220,7 @@ export default function StudentAssignmentTextSection({
                                             <div style={{ fontSize: 12, opacity: 0.72, marginBottom: 6 }}>
                                                 {t("translate.translatedLabel")}
                                             </div>
-                                            <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>{translatedSection}</div>
+                                            <div style={{ whiteSpace: "pre-wrap", ...readingTextStyle }}>{translatedSection}</div>
                                         </div>
                                     ) : null}
                                 </div>
@@ -224,6 +240,7 @@ export default function StudentAssignmentTextSection({
                         mode="original"
                         segs={originalSegs}
                         fallbackText={sourceTextSafe}
+                        textStyle={readingTextStyle}
                         activeTextMode={activeTextMode}
                         activeSentenceIndex={activeSentenceIndex}
                         canSeek={hasAudio && activeTextMode === "original"}
@@ -292,6 +309,7 @@ export default function StudentAssignmentTextSection({
                                 mode="translation"
                                 segs={translationSegs}
                                 fallbackText={String(translatedText ?? "")}
+                                textStyle={readingTextStyle}
                                 activeTextMode={activeTextMode}
                                 activeSentenceIndex={activeSentenceIndex}
                                 canSeek={hasAudio && activeTextMode === "translation"}

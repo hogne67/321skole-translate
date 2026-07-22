@@ -43,6 +43,7 @@ type SourceLessonData = {
   lessonType?: string;
   taskType?: string;
   readingTestConfig?: unknown;
+  textSize?: string;
 
   mathWorksheet?: unknown;
   fractionWorksheet?: unknown;
@@ -119,6 +120,7 @@ function pickSourceLessonData(
     lessonType: nonEmptyOrUndefined(d.lessonType),
     taskType: nonEmptyOrUndefined(d.taskType),
     readingTestConfig: d.readingTestConfig ?? null,
+    textSize: nonEmptyOrUndefined(d.textSize),
 
     mathWorksheet: d.mathWorksheet ?? null,
     fractionWorksheet: d.fractionWorksheet ?? null,
@@ -382,6 +384,7 @@ export async function POST(
           ? "math_fractions"
           : source.taskType ?? null,
         readingTestConfig: source.readingTestConfig ?? null,
+        textSize: source.textSize ?? null,
 
         mathWorksheet: isFractions ? fractionWorksheet : source.mathWorksheet ?? null,
         fractionWorksheet: isFractions ? fractionWorksheet : source.fractionWorksheet ?? null,

@@ -556,6 +556,7 @@ export default function TeacherPage() {
   const [busyStudentUid, setBusyStudentUid] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [studentsOpen, setStudentsOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const [submissionStats, setSubmissionStats] = useState<SubmissionDashboardStats>(emptyStats());
   const [submissionStatsLoading, setSubmissionStatsLoading] = useState(true);
@@ -598,6 +599,70 @@ export default function TeacherPage() {
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
   const showCoursesSection = canAccessAcademy(profile);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 720);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const dashboardShellStyle: React.CSSProperties = {
+    maxWidth: 1120,
+    margin: "0 auto",
+    padding: isMobile ? "8px 6px 20px" : "12px 12px 20px",
+    boxSizing: "border-box",
+    width: "100%",
+  };
+
+  const shortcutSectionStyle: React.CSSProperties = {
+    marginTop: isMobile ? 16 : 20,
+    display: "grid",
+    gap: isMobile ? 8 : 10,
+  };
+
+  const statGridStyle: React.CSSProperties = {
+    marginTop: isMobile ? 16 : 20,
+    display: "grid",
+    gap: isMobile ? 10 : 12,
+    gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))",
+  };
+
+  const dashboardSectionStyle: React.CSSProperties = {
+    marginTop: isMobile ? 18 : 24,
+    border: "1px solid #cbd5e1",
+    borderRadius: isMobile ? 18 : 22,
+    background: "#f8fafc",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+    overflow: "hidden",
+  };
+
+  const dashboardSectionBlueStyle: React.CSSProperties = {
+    ...dashboardSectionStyle,
+    background: "#e2e8f0",
+  };
+
+  const sectionInsetStyle: React.CSSProperties = {
+    padding: isMobile ? 8 : 16,
+  };
+
+  const sectionCardStyle: React.CSSProperties = {
+    border: "1px solid #dbeafe",
+    borderRadius: isMobile ? 16 : 18,
+    background: "#ffffff",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+    padding: isMobile ? 12 : 16,
+  };
+
+  const sectionCardGreenStyle: React.CSSProperties = {
+    ...sectionCardStyle,
+    border: "1px solid #bbf7d0",
+  };
+
+  const sectionCardPlannerStyle: React.CSSProperties = {
+    ...sectionCardStyle,
+    border: "1px solid #bfdbfe",
+  };
 
   async function reloadStudents(currentUid?: string) {
     if (!currentUid || !db) {
@@ -814,15 +879,7 @@ export default function TeacherPage() {
   const showUpgradeCta = shouldShowUpgradeCta(studentsUsed, studentsLimit);
 
   return (
-    <main
-      style={{
-        maxWidth: 1120,
-        margin: "0 auto",
-        padding: "12px 12px 20px",
-        boxSizing: "border-box",
-        width: "100%",
-      }}
-    >
+    <main style={dashboardShellStyle}>
       <DashboardIntro
         userIsAnon={isAnon}
         helloAnon={t("dashboardIntro.helloAnon")}
@@ -848,13 +905,7 @@ export default function TeacherPage() {
 
       <InstallAppButton />
 
-      <section
-        style={{
-          marginTop: 20,
-          display: "grid",
-          gap: 10,
-        }}
-      >
+      <section style={shortcutSectionStyle}>
         {hasActivePartnerAccess ? (
           <DashboardShortcutRow
             title={t("partnerCard.title")}
@@ -873,14 +924,7 @@ export default function TeacherPage() {
         />
       </section>
 
-      <section
-        style={{
-          marginTop: 20,
-          display: "grid",
-          gap: 12,
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        }}
-      >
+      <section style={statGridStyle}>
         <StatCard
           title={t("cards.premiumGenerators")}
           used={generatorsUsed}
@@ -911,26 +955,9 @@ export default function TeacherPage() {
         />
       </section>
 
-      <section
-        style={{
-          marginTop: 24,
-          border: "1px solid #cbd5e1",
-          borderRadius: 22,
-          background: "#f8fafc",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: 16 }}>
-          <div
-            style={{
-              border: "1px solid #dbeafe",
-              borderRadius: 18,
-              background: "#ffffff",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-              padding: 16,
-            }}
-          >
+      <section style={dashboardSectionStyle}>
+        <div style={sectionInsetStyle}>
+          <div style={sectionCardStyle}>
             <div
               style={{
                 display: "flex",
@@ -1052,25 +1079,13 @@ export default function TeacherPage() {
         </div>
       </section>
 
-      <section
-        style={{
-          marginTop: 24,
-          border: "1px solid #cbd5e1",
-          borderRadius: 22,
-          background: "#e2e8f0",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: 16 }}>
+      <section style={dashboardSectionBlueStyle}>
+        <div style={sectionInsetStyle}>
           <div
             style={{
-              border: "1px solid #dbeafe",
-              borderRadius: 18,
+              ...sectionCardStyle,
               background:
                 "linear-gradient(180deg, rgba(239,246,255,0.92) 0%, rgba(255,255,255,1) 120px)",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-              padding: 16,
             }}
           >
             <div
@@ -1519,26 +1534,9 @@ export default function TeacherPage() {
       </section>
 
       {showCoursesSection ? (
-        <section
-          style={{
-            marginTop: 24,
-            border: "1px solid #cbd5e1",
-            borderRadius: 22,
-            background: "#f8fafc",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ padding: 16 }}>
-            <div
-              style={{
-                border: "1px solid #bbf7d0",
-                borderRadius: 18,
-                background: "#ffffff",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                padding: 16,
-              }}
-            >
+        <section style={dashboardSectionStyle}>
+          <div style={sectionInsetStyle}>
+            <div style={sectionCardGreenStyle}>
               <div
                 style={{
                   display: "flex",
@@ -1716,24 +1714,16 @@ export default function TeacherPage() {
       {locale === "nb" ? (
         <section
           style={{
-            marginTop: 24,
+            marginTop: isMobile ? 18 : 24,
             border: "1px solid #bfdbfe",
-            borderRadius: 22,
+            borderRadius: isMobile ? 18 : 22,
             background: "#eff6ff",
             boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
             overflow: "hidden",
           }}
         >
-          <div style={{ padding: 16 }}>
-            <div
-              style={{
-                border: "1px solid #bfdbfe",
-                borderRadius: 18,
-                background: "#ffffff",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                padding: 16,
-              }}
-            >
+          <div style={sectionInsetStyle}>
+            <div style={sectionCardPlannerStyle}>
               <div
                 style={{
                   display: "flex",

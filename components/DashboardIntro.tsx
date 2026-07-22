@@ -133,14 +133,14 @@ export function DashboardIntro(props: Props) {
   return (
     <section
       style={{
-        padding: "14px 12px",
+        padding: "clamp(10px, 3vw, 14px) clamp(10px, 3.2vw, 12px)",
         border: "1px solid rgba(0,0,0,0.08)",
-        borderRadius: 14,
+        borderRadius: 12,
         background: "rgba(0,0,0,0.02)",
-        marginBottom: 14,
+        marginBottom: 12,
       }}
     >
-      <h2 style={{ margin: 0, fontSize: 18 }}>{helloText}</h2>
+      <h2 style={{ margin: 0, fontSize: "clamp(17px, 5vw, 18px)", lineHeight: 1.18 }}>{helloText}</h2>
 
       <p
         style={{
@@ -155,7 +155,7 @@ export function DashboardIntro(props: Props) {
         <span>{youAreNode}</span>
       </p>
 
-      <p style={{ margin: "8px 0 0", opacity: 0.8 }}>{activityNode}</p>
+      <p style={{ margin: "8px 0 0", opacity: 0.8, lineHeight: 1.45 }}>{activityNode}</p>
 
       {props.userIsAnon ? (
         <div style={{ marginTop: 10 }}>

@@ -16,6 +16,7 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { trackCreateLesson } from "@/lib/analytics";
 import { trackEvent } from "@/lib/trackEvent";
 import { getTextTypeLabel, type TextTypeKey } from "@/lib/textTypes";
+import { X } from "lucide-react";
 
 type MCQ = {
   q: string;
@@ -475,6 +476,28 @@ export default function NewTextPage() {
   const locale = useLocale();
   const t = useTranslations("generateNewText");
   const { profile } = useUserProfile();
+  const videoCopy = useMemo(() => {
+    const lang = locale.toLocaleLowerCase();
+    if (lang.startsWith("en")) {
+      return {
+        title: "Instruction video",
+        body: "See how to create a worksheet lesson",
+        close: "Close video",
+      };
+    }
+    if (lang.startsWith("pt")) {
+      return {
+        title: "Vídeo de instrução",
+        body: "Veja como criar uma lesson com tarefas",
+        close: "Fechar vídeo",
+      };
+    }
+    return {
+      title: "Instruksjonsvideo",
+      body: "Se hvordan du lager en worksheet lesson",
+      close: "Lukk video",
+    };
+  }, [locale]);
 
   useEffect(() => {
     trackEvent("lesson_generator_open", {
@@ -572,6 +595,111 @@ export default function NewTextPage() {
     color: "#0f172a",
   });
 
+  const videoLink: CSSProperties = {
+    minWidth: 250,
+    flex: "0 1 320px",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#bfdbfe",
+    borderRadius: 20,
+    background: "rgba(255,255,255,0.88)",
+    padding: 10,
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    color: "inherit",
+    boxShadow: "0 10px 24px rgba(37,99,235,0.09)",
+    cursor: "pointer",
+    textAlign: "left",
+  };
+
+  const videoThumb: CSSProperties = {
+    position: "relative",
+    width: 92,
+    aspectRatio: "16 / 9",
+    borderRadius: 14,
+    overflow: "hidden",
+    background: "#dbeafe",
+    flex: "0 0 auto",
+  };
+
+  const playCircle: CSSProperties = {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    background: "#2563eb",
+    display: "grid",
+    placeItems: "center",
+    boxShadow: "0 8px 18px rgba(37,99,235,0.22)",
+  };
+
+  const playTriangle: CSSProperties = {
+    width: 0,
+    height: 0,
+    borderTop: "8px solid transparent",
+    borderBottom: "8px solid transparent",
+    borderLeft: "12px solid #ffffff",
+    marginLeft: 3,
+  };
+
+  const videoOverlay: CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    zIndex: 50,
+    display: "grid",
+    placeItems: "center",
+    background: "rgba(15,23,42,0.72)",
+    padding: 16,
+  };
+
+  const videoModal: CSSProperties = {
+    width: "min(960px, 100%)",
+    overflow: "hidden",
+    borderRadius: 22,
+    background: "#ffffff",
+    boxShadow: "0 24px 70px rgba(0,0,0,0.28)",
+  };
+
+  const videoModalHeader: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
+    borderBottomWidth: 1,
+    borderBottomStyle: "solid",
+    borderBottomColor: "#e2e8f0",
+    padding: "16px 18px",
+  };
+
+  const closeVideoButton: CSSProperties = {
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#cbd5e1",
+    borderRadius: 12,
+    background: "#ffffff",
+    color: "#334155",
+    width: 38,
+    height: 38,
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+  };
+
+  const videoFrameShell: CSSProperties = {
+    aspectRatio: "16 / 9",
+    background: "#000000",
+  };
+
+  const videoFrame: CSSProperties = {
+    width: "100%",
+    height: "100%",
+    border: 0,
+  };
+
   const [isNarrow, setIsNarrow] = useState(false);
   useEffect(() => {
     const onResize = () => setIsNarrow(window.innerWidth < 900);
@@ -657,6 +785,7 @@ export default function NewTextPage() {
   const [textGenerationMode, setTextGenerationMode] = useState<"standard" | "factcheck" | null>(null);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [tasksDirty, setTasksDirty] = useState(false);
@@ -673,6 +802,23 @@ export default function NewTextPage() {
     ? effectiveA1StartHighFrequencyTheme
     : effectiveA1StartPatternTopic;
   const effectiveTopic = isA1Start ? effectiveA1StartTopic : prompt.trim();
+
+  useEffect(() => {
+    if (!videoOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setVideoOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [videoOpen]);
+
   useEffect(() => {
     const nextLanguage = getDefaultContentLanguage(locale);
     setLanguage(nextLanguage);
@@ -1309,10 +1455,68 @@ export default function NewTextPage() {
       }}
     >
       <div className="pageCard" style={{ ...cardStyle, padding: 20 }}>
-        <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 26, fontWeight: 800 }}>
-          {t("title")}
-        </h1>
-        <p style={{ marginTop: 0, marginBottom: 10, opacity: 0.8 }}>{t("subtitle")}</p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "stretch",
+            gap: 16,
+            flexWrap: "wrap",
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ minWidth: 0, flex: "1 1 520px" }}>
+            <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 26, fontWeight: 800 }}>
+              {t("title")}
+            </h1>
+            <p style={{ marginTop: 0, marginBottom: 0, opacity: 0.8 }}>{t("subtitle")}</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setVideoOpen(true)}
+            style={videoLink}
+            aria-label={videoCopy.title}
+          >
+            <div style={videoThumb}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://img.youtube.com/vi/X8lX6hSRNvs/mqdefault.jpg"
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <div style={playCircle} aria-hidden="true">
+                <span style={playTriangle} />
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>{videoCopy.title}</div>
+              <div style={{ marginTop: 3, fontSize: 13, color: "#64748b" }}>{videoCopy.body}</div>
+            </div>
+          </button>
+        </div>
+
+        {videoOpen ? (
+          <div style={videoOverlay} role="dialog" aria-modal="true" aria-label={videoCopy.title} onClick={() => setVideoOpen(false)}>
+            <div style={videoModal} onClick={(event) => event.stopPropagation()}>
+              <div style={videoModalHeader}>
+                <div style={{ fontSize: 18, fontWeight: 950, color: "#0f172a" }}>{videoCopy.title}</div>
+                <button type="button" onClick={() => setVideoOpen(false)} style={closeVideoButton} aria-label={videoCopy.close}>
+                  <X size={18} strokeWidth={2.5} />
+                </button>
+              </div>
+              <div style={videoFrameShell}>
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/X8lX6hSRNvs?autoplay=1&rel=0&modestbranding=1"
+                  title={videoCopy.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  style={videoFrame}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <section
           style={{

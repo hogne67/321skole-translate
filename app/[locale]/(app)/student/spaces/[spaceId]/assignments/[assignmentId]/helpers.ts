@@ -74,6 +74,7 @@ export function assignmentToLesson(a: AssignmentDoc): Lesson {
         lessonType: a.lessonType,
         taskType: a.taskType,
         readingTestConfig: a.readingTestConfig ?? null,
+        textSize: a.textSize,
         mathWorksheet: a.mathWorksheet ?? null,
         fractionWorksheet: a.fractionWorksheet ?? null,
         mathType: a.mathType,

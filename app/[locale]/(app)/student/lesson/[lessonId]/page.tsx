@@ -34,6 +34,8 @@ const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   label: l.label,
 }));
 
+type TextSize = "normal" | "large" | "xlarge";
+
 type Lesson = {
   ownerId?: string;
   title: string;
@@ -50,6 +52,7 @@ type Lesson = {
   imageTasks?: unknown;
   readingTestConfig?: unknown;
   isActive?: boolean;
+  textSize?: TextSize;
   sourceCollection?: "published_lessons" | "lessons";
   publishedLessonId?: string | null;
 };
@@ -93,6 +96,7 @@ type PublishedLessonDoc = {
   imageTasks?: unknown;
   readingTestConfig?: unknown;
   isActive?: boolean;
+  textSize?: TextSize;
 };
 
 type PrivateLessonDoc = {
@@ -110,6 +114,7 @@ type PrivateLessonDoc = {
   imageTasks?: unknown;
   readingTestConfig?: unknown;
   status?: "draft" | "published";
+  textSize?: TextSize;
 };
 
 type TaskType = "mcq" | "truefalse" | "open";
@@ -401,6 +406,21 @@ function splitHighFrequencySections(text: string, language?: string): LessonText
   return [...mainSections, ...restSections];
 }
 
+function normalizeTextSize(value: unknown): TextSize {
+  if (value === "large" || value === "xlarge") return value;
+  return "normal";
+}
+
+function getStudentReadingTextStyle(textSize: TextSize): React.CSSProperties {
+  if (textSize === "xlarge") {
+    return { fontSize: 21, lineHeight: 1.75 };
+  }
+  if (textSize === "large") {
+    return { fontSize: 18, lineHeight: 1.7 };
+  }
+  return { fontSize: 16, lineHeight: 1.6 };
+}
+
 function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
   const d = data as Partial<PublishedLessonDoc>;
   return {
@@ -417,6 +437,7 @@ function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
     imageTasks: d.imageTasks,
     readingTestConfig: d.readingTestConfig,
     isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
+    textSize: normalizeTextSize(d.textSize),
   };
 }
 
@@ -437,6 +458,7 @@ function asPrivateLessonDoc(data: DocumentData): PrivateLessonDoc {
     imageTasks: d.imageTasks,
     readingTestConfig: d.readingTestConfig,
     status: d.status === "published" ? "published" : "draft",
+    textSize: normalizeTextSize(d.textSize),
   };
 }
 
@@ -1479,6 +1501,7 @@ export default function StudentLessonPage() {
               imageTasks: rawData.imageTasks,
               readingTestConfig: rawData.readingTestConfig,
               isActive: rawData.isActive,
+              textSize: rawData.textSize,
               sourceText: (rawData.sourceText ?? rawData.text ?? "") as string,
               text: rawData.text,
               status: "published",
@@ -1529,6 +1552,7 @@ export default function StudentLessonPage() {
             taskType: rawPrivate.taskType,
             imageTasks: rawPrivate.imageTasks,
             readingTestConfig: rawPrivate.readingTestConfig,
+            textSize: rawPrivate.textSize,
             sourceText: (rawPrivate.sourceText ?? rawPrivate.text ?? "") as string,
             text: rawPrivate.text,
             status: rawPrivate.status ?? "draft",
@@ -2038,6 +2062,8 @@ export default function StudentLessonPage() {
     .slice()
     .sort((a, b) => (a?.order ?? 999) - (b?.order ?? 999));
 
+  const readingTextStyle = getStudentReadingTextStyle(normalizeTextSize(lesson.textSize));
+
   const renderFollowText = (
     mode: AudioMode,
     segs: SentenceSeg[],
@@ -2046,7 +2072,7 @@ export default function StudentLessonPage() {
     if (!fallbackText.trim()) return <span style={{ opacity: 0.6 }}>{t("text.noText")}</span>;
 
     if (!segs || segs.length === 0) {
-      return <span style={{ whiteSpace: "pre-wrap" }}>{fallbackText}</span>;
+      return <span style={{ whiteSpace: "pre-wrap", ...readingTextStyle }}>{fallbackText}</span>;
     }
 
     return (
@@ -2080,9 +2106,9 @@ export default function StudentLessonPage() {
                 borderRadius: 8,
                 background: isActive ? "rgba(255, 230, 120, 0.65)" : "transparent",
                 transition: "background 120ms ease",
-                lineHeight: 1.6,
                 marginTop: isSectionHeading && i > 0 ? 14 : 0,
                 fontWeight: isSectionHeading ? 800 : 400,
+                ...readingTextStyle,
               }}
               title={canSeek ? t("text.clickToSeek") : undefined}
             >
@@ -2097,7 +2123,7 @@ export default function StudentLessonPage() {
   const renderSoundTrainingText = (section: LessonTextSection) => {
     const segs = segmentSentences(section.text).segs;
     if (segs.length === 0) {
-      return <div style={soundTrainingTextStyle}>{section.text}</div>;
+      return <div style={{ ...soundTrainingTextStyle, ...readingTextStyle }}>{section.text}</div>;
     }
 
     return (
@@ -2122,9 +2148,8 @@ export default function StudentLessonPage() {
                 borderRadius: 8,
                 background: isActive ? "rgba(255, 230, 120, 0.65)" : "transparent",
                 transition: "background 120ms ease",
-                lineHeight: 1.65,
-                fontSize: 17,
                 color: "#0f172a",
+                ...readingTextStyle,
               }}
               title={activeSoundSectionKey === section.key && audioRef.current ? t("text.clickToSeek") : undefined}
             >
@@ -2435,7 +2460,7 @@ export default function StudentLessonPage() {
                 {translatedSectionMap.get(section.key) ? (
                   <div style={soundTrainingTranslationStyle}>
                     <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{t("translate.translatedLabel")}</div>
-                    <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>
+                    <div style={{ whiteSpace: "pre-wrap", ...readingTextStyle }}>
                       {translatedSectionMap.get(section.key)}
                     </div>
                   </div>

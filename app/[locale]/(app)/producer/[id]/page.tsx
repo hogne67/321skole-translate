@@ -11,18 +11,23 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useUsage } from "@/lib/useUsage";
+import { Eye, Save } from "lucide-react";
 import {
   getBucketLimit,
   getEffectivePlan,
   type AppRole,
   type PlanKey,
 } from "@/lib/featureAccess";
+import { LANGUAGES } from "@/lib/languages";
+import { getTextTypeLabel, normalizeTextTypeKey, TEXT_TYPE_KEYS, type TextTypeKey } from "@/lib/textTypes";
 
 type TaskType = "truefalse" | "mcq" | "open";
 type ReleaseMode = "ALL_AT_ONCE" | "TEXT_FIRST";
 type AnswerSpace = "short" | "medium" | "long";
 type CoverFormat = "16:9";
 type LessonStatus = "draft" | "published";
+type LevelKey = "A1_START" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+type TextSize = "normal" | "large" | "xlarge";
 
 type CoverImageSource = "upload" | "ai";
 type CoverImageStyle = "illustration" | "realistic";
@@ -52,6 +57,7 @@ type Lesson = {
   language?: string;
   estimatedMinutes?: number;
   releaseMode?: ReleaseMode;
+  textSize?: TextSize;
   textType?: string;
 
   producerName?: string;
@@ -116,6 +122,11 @@ function normalizeStatus(s: unknown): LessonStatus {
 
 function normalizeReleaseMode(v: unknown): ReleaseMode {
   return v === "TEXT_FIRST" ? "TEXT_FIRST" : "ALL_AT_ONCE";
+}
+
+function normalizeTextSize(v: unknown): TextSize {
+  if (v === "large" || v === "xlarge") return v;
+  return "normal";
 }
 
 function normalizeCoverFormat(v: unknown): CoverFormat {
@@ -212,6 +223,67 @@ type GenerateCoverResponse = {
   };
 };
 
+const LEVEL_OPTIONS: LevelKey[] = ["A1_START", "A1", "A2", "B1", "B2", "C1", "C2"];
+
+const EDITOR_TEXT_TYPE_KEYS = TEXT_TYPE_KEYS.filter(
+  (key) =>
+    key !== "reading_test" &&
+    key !== "pattern_sentences" &&
+    key !== "high_frequency_words" &&
+    key !== "sound_reading_ladder"
+) as TextTypeKey[];
+
+function levelLabel(level: LevelKey) {
+  return level === "A1_START" ? "A1 Start" : level;
+}
+
+const LANGUAGE_LABELS_BY_LOCALE: Record<"nb" | "en" | "pt", Record<string, string>> = {
+  nb: {
+    nb: "Norsk (bokmål)",
+    nn: "Norsk (nynorsk)",
+    se: "Nordsamisk",
+    en: "Engelsk",
+    "pt-BR": "Portugisisk (Brasil)",
+    "pt-PT": "Portugisisk (Portugal)",
+  },
+  en: {
+    nb: "Norwegian Bokmål",
+    nn: "Norwegian Nynorsk",
+    se: "Northern Sami",
+    en: "English",
+    "pt-BR": "Portuguese (Brazil)",
+    "pt-PT": "Portuguese (Portugal)",
+  },
+  pt: {
+    nb: "Norueguês bokmål",
+    nn: "Norueguês nynorsk",
+    se: "Sami do norte",
+    en: "Inglês",
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+  },
+};
+
+function getLabelLocale(locale: string): "nb" | "en" | "pt" {
+  const normalized = locale.toLocaleLowerCase();
+  if (normalized.startsWith("en")) return "en";
+  if (normalized.startsWith("pt")) return "pt";
+  return "nb";
+}
+
+function getLanguageDisplayLabel(code: string, label: string, locale: string): string {
+  const localizedName = LANGUAGE_LABELS_BY_LOCALE[getLabelLocale(locale)][code] || label.split("–")[0]?.trim() || label;
+  return `${code} - ${localizedName}`;
+}
+
+function normalizeLevelValue(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  const normalized = raw.toLocaleUpperCase().replace(/[\s-]+/g, "_");
+  if (normalized === "A1START") return "A1_START";
+  if (LEVEL_OPTIONS.includes(normalized as LevelKey)) return normalized;
+  return raw;
+}
+
 export default function ProducerLessonEditorPage() {
   const t = useTranslations("editorNewText");
   const locale = useLocale();
@@ -260,10 +332,21 @@ export default function ProducerLessonEditorPage() {
 
   const [topic, setTopic] = useState("");
   const [textType, setTextType] = useState("");
+  const normalizedTextType = normalizeTextTypeKey(textType);
+  const textTypeSelectValue =
+    normalizedTextType && EDITOR_TEXT_TYPE_KEYS.includes(normalizedTextType)
+      ? normalizedTextType
+      : "other";
   const [tagsText, setTagsText] = useState("");
   const [language, setLanguage] = useState(t("defaults.language"));
+  const languageOptions = useMemo(() => {
+    const current = language.trim();
+    const hasCurrent = !current || LANGUAGES.some((option) => option.code === current);
+    return hasCurrent ? LANGUAGES : [{ code: current, label: current }, ...LANGUAGES];
+  }, [language]);
   const [estimatedMinutes, setEstimatedMinutes] = useState<number>(20);
   const [releaseMode, setReleaseMode] = useState<ReleaseMode>("ALL_AT_ONCE");
+  const [textSize, setTextSize] = useState<TextSize>("normal");
 
   const [producerName, setProducerName] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
@@ -365,7 +448,7 @@ export default function ProducerLessonEditorPage() {
         }
 
         setTitle(typeof data.title === "string" ? data.title : "");
-        setLevel(typeof data.level === "string" ? data.level : "");
+        setLevel(normalizeLevelValue(data.level));
         setSourceText(typeof data.sourceText === "string" ? data.sourceText : "");
         setStatus(normalizeStatus(data.status));
         setTasks(Array.isArray(data.tasks) ? (data.tasks as Task[]) : []);
@@ -376,6 +459,7 @@ export default function ProducerLessonEditorPage() {
         setLanguage(typeof data.language === "string" ? data.language : t("defaults.language"));
         setEstimatedMinutes(typeof data.estimatedMinutes === "number" ? data.estimatedMinutes : 20);
         setReleaseMode(normalizeReleaseMode(data.releaseMode));
+        setTextSize(normalizeTextSize(data.textSize));
 
         if (typeof data.producerName === "string" && data.producerName.trim()) {
           setProducerName(data.producerName.trim());
@@ -550,7 +634,7 @@ export default function ProducerLessonEditorPage() {
     }
   }
 
-  async function persistLesson(goToMyContent = false) {
+  async function persistLesson(destination: "stay" | "myContent" | "preview" = "stay") {
     setErr(null);
     setSaving(true);
 
@@ -586,6 +670,7 @@ export default function ProducerLessonEditorPage() {
           language: language.trim(),
           estimatedMinutes: Number.isFinite(estimatedMinutes) ? Number(estimatedMinutes) : 20,
           releaseMode,
+          textSize,
 
           producerName: producerName.trim(),
           coverImageUrl: coverImageUrl.trim(),
@@ -604,8 +689,10 @@ export default function ProducerLessonEditorPage() {
 
       setTasks(normalized);
 
-      if (goToMyContent) {
+      if (destination === "myContent") {
         router.push(myContentHref);
+      } else if (destination === "preview") {
+        router.push(`/${locale}/producer/${lessonId}/preview`);
       }
     } catch (e: unknown) {
       setErr(localizeError(getErrorMessage(e) || t("errors.saveFailed")));
@@ -615,7 +702,11 @@ export default function ProducerLessonEditorPage() {
   }
 
   async function saveAndGoToMyContent() {
-    await persistLesson(true);
+    await persistLesson("myContent");
+  }
+
+  async function saveAndPreview() {
+    await persistLesson("preview");
   }
 
   function addTask(type: TaskType) {
@@ -691,17 +782,94 @@ export default function ProducerLessonEditorPage() {
     opacity: 0.72,
   };
 
-  const primaryButton: React.CSSProperties = {
-    padding: "10px 14px",
-    borderRadius: 12,
-    border: "1px solid #86efac",
-    background: "#16a34a",
-    color: "white",
-    fontWeight: 900,
-    cursor: saving ? "not-allowed" : "pointer",
-    opacity: saving ? 0.7 : 1,
-    whiteSpace: "nowrap",
+  const heroHeaderStyle: React.CSSProperties = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "stretch",
+    gap: 16,
+    flexWrap: "wrap",
+    border: "1px solid #dbeafe",
+    borderRadius: 24,
+    background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 56%, #eef6ff 100%)",
+    padding: 22,
+    boxShadow: "0 18px 45px rgba(15,23,42,0.07)",
   };
+
+  const quietBackLinkStyle: React.CSSProperties = {
+    display: "inline-flex",
+    width: "fit-content",
+    color: "#475569",
+    fontSize: 13,
+    fontWeight: 800,
+    textDecoration: "none",
+  };
+
+  const videoPlaceholderStyle: React.CSSProperties = {
+    minWidth: 250,
+    flex: "0 1 320px",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#bfdbfe",
+    borderRadius: 20,
+    background: "rgba(255,255,255,0.88)",
+    padding: 10,
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    color: "inherit",
+    boxShadow: "0 10px 24px rgba(37,99,235,0.09)",
+  };
+
+  const videoThumbStyle: React.CSSProperties = {
+    position: "relative",
+    width: 92,
+    aspectRatio: "16 / 9",
+    borderRadius: 14,
+    overflow: "hidden",
+    background: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)",
+    flex: "0 0 auto",
+  };
+
+  const playCircleStyle: React.CSSProperties = {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    background: "#2563eb",
+    display: "grid",
+    placeItems: "center",
+    boxShadow: "0 8px 18px rgba(37,99,235,0.22)",
+  };
+
+  const playTriangleStyle: React.CSSProperties = {
+    width: 0,
+    height: 0,
+    borderTop: "8px solid transparent",
+    borderBottom: "8px solid transparent",
+    borderLeft: "12px solid #ffffff",
+    marginLeft: 3,
+  };
+
+  function getTextSizeButtonStyle(value: TextSize): React.CSSProperties {
+    const active = textSize === value;
+    return {
+      minHeight: 48,
+      padding: "10px 14px",
+      borderWidth: 1,
+      borderStyle: "solid",
+      borderColor: active ? "#2563eb" : "#cbd5e1",
+      borderRadius: 14,
+      background: active ? "#eff6ff" : "rgba(255,255,255,0.72)",
+      color: active ? "#1d4ed8" : "#0f172a",
+      fontWeight: 900,
+      cursor: "pointer",
+      boxShadow: active ? "0 0 0 3px rgba(37,99,235,0.12)" : "none",
+      textAlign: "left",
+    };
+  }
 
   if (loading) {
     return (
@@ -754,45 +922,35 @@ export default function ProducerLessonEditorPage() {
           margin: "0 auto",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <Link href={backHref}>{t("nav.back")}</Link>
-            <h1 style={{ fontSize: 26, fontWeight: 900, marginTop: 10 }}>
+        <div style={heroHeaderStyle}>
+          <div style={{ minWidth: 0, flex: "1 1 520px" }}>
+            <Link href={backHref} style={quietBackLinkStyle}>{t("nav.back")}</Link>
+            <h1 style={{ fontSize: 30, lineHeight: 1.08, fontWeight: 950, margin: "12px 0 0", color: "#0f172a" }}>
               {t("pageTitle")}
             </h1>
-            <div style={{ fontSize: 13, opacity: 0.7, marginTop: 4 }}>
-              {t("metaLine", { id: lessonId, uid: uid ?? "—", status })}
-            </div>
-            <div style={{ fontSize: 14, opacity: 0.78, marginTop: 8 }}>
+            <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.5, marginTop: 10, maxWidth: 620 }}>
               {t("intro.finishLesson")}
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={saveAndGoToMyContent}
-              disabled={saving}
-              style={primaryButton}
-              title={t("buttons.saveToMyContent")}
-            >
-              {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
-            </button>
+          <div style={videoPlaceholderStyle}>
+            <div style={videoThumbStyle} aria-hidden="true">
+              <div style={playCircleStyle}>
+                <span style={playTriangleStyle} />
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>{t("intro.videoTitle")}</div>
+              <div style={{ marginTop: 3, fontSize: 13, color: "#64748b" }}>{t("intro.videoPlaceholder")}</div>
+            </div>
           </div>
         </div>
 
         <section
           style={{
             ...sectionStyle,
-            background: "#d6d9edef",
+            background: "#eef6ff",
+            border: "1px solid #dbeafe",
             display: "grid",
             gap: 10,
           }}
@@ -823,6 +981,13 @@ export default function ProducerLessonEditorPage() {
                 {t("summary.words")}
               </div>
               <div style={{ fontWeight: 800, marginTop: 4 }}>{wordCount}</div>
+            </div>
+
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {t("summary.status")}
+              </div>
+              <div style={{ fontWeight: 800, marginTop: 4 }}>{t(`statuses.${status}`)}</div>
             </div>
 
             <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#fff" }}>
@@ -860,22 +1025,32 @@ export default function ProducerLessonEditorPage() {
             <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
               <label style={{ display: "grid", gap: 6 }}>
                 <div style={{ fontWeight: 800 }}>{t("fields.levelOptional")} *</div>
-                <input
+                <select
                   value={level}
                   onChange={(e) => setLevel(e.target.value)}
                   style={fieldStyle}
-                  placeholder={t("placeholders.level")}
-                />
+                >
+                  {LEVEL_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {levelLabel(option)}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label style={{ display: "grid", gap: 6 }}>
                 <div style={{ fontWeight: 800 }}>{t("fields.language")}</div>
-                <input
+                <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
                   style={fieldStyle}
-                  placeholder={t("placeholders.language")}
-                />
+                >
+                  {languageOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {getLanguageDisplayLabel(option.code, option.label, locale)}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
 
@@ -911,12 +1086,28 @@ export default function ProducerLessonEditorPage() {
               <div style={{ fontWeight: 800 }}>
                 {t("fieldsExtra.textType")}
               </div>
-              <input
-                value={textType}
-                onChange={(e) => setTextType(e.target.value)}
+              <select
+                value={textTypeSelectValue}
+                onChange={(e) => {
+                  const next = e.target.value as TextTypeKey;
+                  setTextType(next === "other" ? "" : next);
+                }}
                 style={fieldStyle}
-                placeholder={t("placeholdersExtra.textType")}
-              />
+              >
+                {EDITOR_TEXT_TYPE_KEYS.map((key) => (
+                  <option key={key} value={key}>
+                    {getTextTypeLabel(key, locale)}
+                  </option>
+                ))}
+              </select>
+              {textTypeSelectValue === "other" ? (
+                <input
+                  value={textType}
+                  onChange={(e) => setTextType(e.target.value)}
+                  style={fieldStyle}
+                  placeholder={t("placeholdersExtra.textType")}
+                />
+              ) : null}
               <div style={smallHelpStyle}>
                 {t("fieldsExtra.textTypeHelp")}
               </div>
@@ -1282,43 +1473,39 @@ export default function ProducerLessonEditorPage() {
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>
-            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
-              <label style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 800 }}>{t("fields.estimatedMinutes")}</div>
-                <input
-                  type="number"
-                  min={1}
-                  value={estimatedMinutes}
-                  onChange={(e) => setEstimatedMinutes(Number(e.target.value))}
-                  style={fieldStyle}
-                />
-              </label>
-
-              <label style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 800 }}>{t("fields.releaseMode")}</div>
-                <select
-                  value={releaseMode}
-                  onChange={(e) => setReleaseMode(normalizeReleaseMode(e.target.value))}
-                  style={fieldStyle}
-                >
-                  <option value="ALL_AT_ONCE">{t("releaseModes.allAtOnce")}</option>
-                  <option value="TEXT_FIRST">{t("releaseModes.textFirst")}</option>
-                </select>
-                <div style={smallHelpStyle}>{t("fields.releaseModeHelp")}</div>
-              </label>
-            </div>
-
             <label style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 800 }}>{t("fields.status")}</div>
-              <select
-                value={status}
-                onChange={(e) => setStatus(normalizeStatus(e.target.value))}
+              <div style={{ fontWeight: 800 }}>{t("fields.estimatedMinutes")}</div>
+              <input
+                type="number"
+                min={1}
+                value={estimatedMinutes}
+                onChange={(e) => setEstimatedMinutes(Number(e.target.value))}
                 style={fieldStyle}
-              >
-                <option value="draft">{t("statuses.draft")}</option>
-                <option value="published">{t("statuses.published")}</option>
-              </select>
+              />
             </label>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 800 }}>{t("fields.textSize")}</div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {(["normal", "large", "xlarge"] as TextSize[]).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setTextSize(value)}
+                    style={getTextSizeButtonStyle(value)}
+                  >
+                    {t(`textSizes.${value}`)}
+                  </button>
+                ))}
+              </div>
+              <div style={smallHelpStyle}>{t("fields.textSizeHelp")}</div>
+            </div>
 
             <label style={{ display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 800 }}>{t("fields.text")}</div>
@@ -1511,34 +1698,96 @@ export default function ProducerLessonEditorPage() {
       <div
         style={{
           position: "fixed",
-          left: "50%",
-          transform: "translateX(-50%)",
-          bottom: 16,
-          zIndex: 1000,
-          pointerEvents: "none",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 40,
+          borderTop: "1px solid #bfdbfe",
+          background: "rgba(255,255,255,0.95)",
+          padding: "12px 16px",
+          boxShadow: "0 -10px 30px rgba(15,23,42,0.12)",
+          backdropFilter: "blur(10px)",
         }}
       >
-        <button
-          type="button"
-          onClick={saveAndGoToMyContent}
-          disabled={saving}
+        <div
           style={{
-            pointerEvents: "auto",
-            padding: "12px 16px",
-            borderRadius: 14,
-            border: "1px solid #86efac",
-            background: "#16a34a",
-            color: "white",
-            fontWeight: 900,
-            cursor: saving ? "not-allowed" : "pointer",
-            opacity: saving ? 0.92 : 1,
-            boxShadow: "0 10px 24px rgba(22,163,74,0.28)",
-            whiteSpace: "nowrap",
+            maxWidth: 980,
+            margin: "0 auto",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
           }}
-          title={t("buttons.saveToMyContent")}
         >
-          {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
-        </button>
+          <div style={{ minWidth: 240, flex: "1 1 420px" }}>
+            <div style={{ fontSize: 14, fontWeight: 950, color: "#0f172a" }}>{t("sticky.title")}</div>
+            <div style={{ marginTop: 2, fontSize: 13, fontWeight: 650, color: "#475569", lineHeight: 1.35 }}>
+              {t("sticky.body")}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={saveAndPreview}
+              disabled={saving}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                minHeight: 40,
+                borderWidth: 1,
+                borderStyle: "solid",
+                borderColor: "#cbd5e1",
+                borderRadius: 12,
+                background: "#ffffff",
+                color: "#0f172a",
+                padding: "9px 13px",
+                fontSize: 13,
+                fontWeight: 900,
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.82 : 1,
+              }}
+              title={t("buttons.saveAndPreview")}
+            >
+              <Eye size={16} strokeWidth={2.4} aria-hidden="true" />
+              {saving ? t("buttons.saving") : t("buttons.saveAndPreview")}
+            </button>
+
+            <button
+              type="button"
+              onClick={saveAndGoToMyContent}
+              disabled={saving}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                minHeight: 40,
+                borderWidth: 1,
+                borderStyle: "solid",
+                borderColor: "#0f172a",
+                borderRadius: 12,
+                background: "#0f172a",
+                color: "#ffffff",
+                padding: "9px 14px",
+                fontSize: 13,
+                fontWeight: 950,
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.82 : 1,
+                boxShadow: "0 10px 24px rgba(15,23,42,0.22)",
+                whiteSpace: "nowrap",
+              }}
+              title={t("buttons.saveToMyContent")}
+            >
+              <Save size={16} strokeWidth={2.4} aria-hidden="true" />
+              {saving ? t("buttons.saving") : t("buttons.saveToMyContent")}
+            </button>
+          </div>
+        </div>
       </div>
     </>
   );

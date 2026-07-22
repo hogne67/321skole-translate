@@ -15,7 +15,36 @@
     "buttons": {
       "save": "Save",
       "saveToMyContent": "Save to My content",
+      "preview": "Preview",
+      "saveAndPreview": "Save and preview",
       "saving": "Saving…"
+    },
+    "sticky": {
+      "title": "Ready to save",
+      "body": "When you save, you will be sent to My content. If the lesson was published before and has changed, publish it again there."
+    },
+    "previewPage": {
+      "loading": "Loading preview…",
+      "badge": "Preview",
+      "noticeTitle": "Control view only",
+      "noticeBody": "This page cannot be shared with students. Translation, audio and feedback appear on the student page after the lesson is saved, published or shared.",
+      "backToEditor": "Back to editor",
+      "coverTitle": "Cover image",
+      "coverAlt": "Lesson cover image",
+      "tasksHelp": "Review prompts, options and answer keys before saving or publishing.",
+      "answerKey": "Answer key",
+      "openNote": "Open tasks get writing fields and feedback on the student page.",
+      "noSaving": "The preview does not save anything.",
+      "errors": {
+        "title": "Error",
+        "notFound": "Lesson not found.",
+        "loadFailed": "Could not load the preview."
+      },
+      "taskTypes": {
+        "truefalse": "True / false",
+        "mcq": "Multiple choice",
+        "open": "Open answer"
+      }
     },
     "errors": {
       "title": "Error",
@@ -37,12 +66,15 @@
       "missingAuthToken": "Missing auth token."
     },
     "intro": {
-      "finishLesson": "Now finish the lesson with metadata, cover image and final adjustments."
+      "finishLesson": "Now finish the lesson with metadata, cover image and final adjustments.",
+      "videoTitle": "Instruction video",
+      "videoPlaceholder": "Video coming here"
     },
     "summary": {
       "title": "Title",
       "tasks": "Tasks",
       "words": "Words",
+      "status": "Status",
       "imageGeneration": "Image generation"
     },
     "sections": {
@@ -63,11 +95,18 @@
       "tags": "Tags",
       "tagsHelp": "Separate tags with commas.",
       "estimatedMinutes": "Estimated minutes",
+      "textSize": "Text size",
+      "textSizeHelp": "Will be used later for reading text, preview and print.",
       "releaseMode": "Release mode",
       "releaseModeHelp": "Choose whether text and tasks should be shown together or text first.",
       "status": "Status",
       "text": "Text",
       "coverImageCredit": "Image source"
+    },
+    "textSizes": {
+      "normal": "Normal",
+      "large": "Large",
+      "xlarge": "Extra large"
     },
     "fieldsExtra": {
       "textType": "Text type",
