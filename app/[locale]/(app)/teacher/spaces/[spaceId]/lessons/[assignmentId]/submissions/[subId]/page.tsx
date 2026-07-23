@@ -614,7 +614,7 @@ function Inner() {
 
   if (!hasParams) {
     return (
-      <div className="mx-auto box-border w-full max-w-6xl min-w-0 p-4">
+      <div className="mx-auto box-border w-full max-w-6xl min-w-0 p-3 sm:p-4">
         <div className="text-sm text-slate-600">
           {t("errors.missingParams")}
         </div>
@@ -630,8 +630,8 @@ function Inner() {
 
   if (!sub) {
     return (
-      <div className="mx-auto box-border w-full max-w-6xl min-w-0 p-4">
-        <div className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+      <div className="mx-auto box-border w-full max-w-6xl min-w-0 p-3 sm:p-4">
+        <div className="rounded-2xl border border-slate-300 bg-white p-3 shadow-sm sm:p-5">
           <h1 className="m-0 text-xl font-semibold text-slate-900">
             {t("missing.title")}
           </h1>
@@ -840,7 +840,7 @@ function Inner() {
         </div>
       </div>
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-blue-300 bg-blue-100 p-4 shadow-md sm:p-5">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-blue-300 bg-blue-100 p-3 shadow-md sm:p-5">
         {isFractionAssignment ? (
           <div className="text-sm text-slate-600">
             Brøkbesvarelse er levert. Automatisk vurdering kommer senere.
@@ -1017,13 +1017,13 @@ function Inner() {
       </div>
 
       {!canOperate && (
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-700 shadow-sm">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-3 text-sm text-slate-700 shadow-sm sm:p-4">
           {t("notice.noTeacherRights")}
         </div>
       )}
 
       <div className="submissionGrid">
-        <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-md sm:p-5">
+        <div className="box-border min-w-0 rounded-2xl border border-slate-300 bg-white p-3 shadow-md sm:p-5">
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <div className="text-base font-semibold text-slate-900">

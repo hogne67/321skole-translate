@@ -56,6 +56,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous);
 
   const cleanPathname = (pathname || "").split("?")[0].replace(/\/+$/, "");
+  const pathWithoutLocale = cleanPathname.replace(/^\/(en|no|nb|pt)(?=\/|$)/, "") || "/";
   const isLibrary = cleanPathname.endsWith("/321lessons");
   const isProducer = (pathname || "").includes("/producer");
   const isAnonymousOpenLesson =
@@ -126,15 +127,45 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     tNav,
   ]);
 
+  const isSpacesDetailPage =
+    pathWithoutLocale.startsWith("/teacher/spaces/") ||
+    pathWithoutLocale.startsWith("/student/spaces/") ||
+    pathWithoutLocale.startsWith("/parent/spaces/");
+  const isLessonViewPage =
+    pathWithoutLocale.startsWith("/student/lesson/") ||
+    pathWithoutLocale.startsWith("/lesson/");
+  const isToolPage = pathWithoutLocale === "/tools" || pathWithoutLocale.startsWith("/tools/");
+  const isProducerPage = pathWithoutLocale === "/producer" || pathWithoutLocale.startsWith("/producer/");
+  const isCoursePage =
+    pathWithoutLocale === "/teacher/courses" ||
+    pathWithoutLocale.startsWith("/teacher/courses/") ||
+    pathWithoutLocale === "/student/courses" ||
+    pathWithoutLocale.startsWith("/student/courses/");
+  const isPlannerPage =
+    pathWithoutLocale === "/teacher/planner" ||
+    pathWithoutLocale.startsWith("/teacher/planner/");
+  const isPrintViewPage = pathWithoutLocale.includes("/print");
+  const isTopLevelNavPage = items.some((item) => item.href === pathWithoutLocale);
+  const hideAppChrome = isPrintViewPage;
+  const useCompactSectionHeader =
+    isTopLevelNavPage ||
+    isSpacesDetailPage ||
+    isLessonViewPage ||
+    isToolPage ||
+    isProducerPage ||
+    isCoursePage ||
+    isPlannerPage ||
+    isPrintViewPage;
+
   return (
     <div className="app-scope tw-scope appShellRoot">
-      <TopNav />
-      <LibraryBar />
+      {!hideAppChrome ? <TopNav /> : null}
+      {!hideAppChrome ? <LibraryBar /> : null}
 
       {isLibrary ? (
         <div className="libraryWrap">
           <h1 className="libraryTitle">{title}</h1>
-          {showSchoolTeacherIndicator ? <SchoolTeacherIndicator /> : null}
+          {showSchoolTeacherIndicator && !hideAppChrome ? <SchoolTeacherIndicator /> : null}
           {children}
         </div>
       ) : (
@@ -142,6 +173,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           title={title}
           items={items}
           fullWidth={isProducer}
+          hideHeader={hideAppChrome}
+          hideTitle={useCompactSectionHeader}
+          containedHeader={useCompactSectionHeader}
           blockedToolsMessage={
             user?.isAnonymous ? tModes("anonymousCreateLessonRequired") : undefined
           }

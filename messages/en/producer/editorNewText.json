@@ -68,7 +68,8 @@
     "intro": {
       "finishLesson": "Now finish the lesson with metadata, cover image and final adjustments.",
       "videoTitle": "Instruction video",
-      "videoPlaceholder": "Video coming here"
+      "videoPlaceholder": "See how to finish the lesson",
+      "closeVideo": "Close video"
     },
     "summary": {
       "title": "Title",

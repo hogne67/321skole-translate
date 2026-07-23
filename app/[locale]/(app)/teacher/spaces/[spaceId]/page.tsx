@@ -383,7 +383,7 @@ function SpaceOpenSwitch({
   description?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-3 py-3 sm:px-4">
       <div className="min-w-0">
         <div className="text-sm font-medium text-slate-900">{label}</div>
         {description ? <div className="mt-0.5 text-xs text-slate-600">{description}</div> : null}
@@ -938,8 +938,8 @@ function Inner() {
   const canManage = access === "allowed" && Boolean(user?.uid) && canOperateSpace;
 
   return (
-    <div className="mx-auto w-full max-w-5xl min-w-0 space-y-4">
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+    <div className="mx-auto w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{String(space.title ?? "")}</h1>
@@ -963,7 +963,7 @@ function Inner() {
         </div>
       )}
 
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4">
           <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
@@ -1030,7 +1030,7 @@ function Inner() {
         </div>
       </div>
 
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
@@ -1062,7 +1062,7 @@ function Inner() {
 
         <div className="mt-4 grid min-w-0 gap-3">
           {visibleAssignments.length === 0 ? (
-            <div className="rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+            <div className="rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
               {t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}
             </div>
           ) : (
@@ -1264,7 +1264,7 @@ function Inner() {
         >
           <div className="mx-auto w-full max-w-4xl min-w-0" onClick={(e) => e.stopPropagation()}>
             <div className="max-h-[90vh] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-xl">
-              <div className="border-b border-slate-200 p-4 sm:p-5">
+              <div className="border-b border-slate-200 p-3 sm:p-5">
                 <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="text-lg font-semibold text-slate-900">{t("assignModal.title")}</div>
@@ -1371,12 +1371,12 @@ function Inner() {
                 </div>
               </div>
 
-              <div className="max-h-[calc(90vh-270px)] min-w-0 overflow-y-auto p-4 sm:p-5">
+              <div className="max-h-[calc(90vh-270px)] min-w-0 overflow-y-auto p-3 sm:p-5">
                 <div className="grid min-w-0 gap-3">
                   {assignTab === "myContent" && (
                     <>
                       {pagedMy.length === 0 ? (
-                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm text-slate-600 sm:p-4">
                           {t("assignModal.noResults")}
                         </div>
                       ) : (
@@ -1425,7 +1425,7 @@ function Inner() {
                   {assignTab === "library" && (
                     <>
                       {filteredLibrary.length === 0 ? (
-                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                        <div className="rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm text-slate-600 sm:p-4">
                           {t("assignModal.noResults")}
                         </div>
                       ) : (

@@ -273,8 +273,8 @@ function TeacherSpacesInner() {
   }
 
   return (
-    <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
@@ -369,7 +369,7 @@ function TeacherSpacesInner() {
         </div>
       </div>
 
-      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+      <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="mb-4 min-w-0">
           <div className="text-base font-semibold text-slate-900">{t("title")}</div>
           <div className="mt-1 break-words text-sm text-slate-600">
@@ -389,7 +389,7 @@ function TeacherSpacesInner() {
               <div
                 key={r.id}
                 className={[
-                  "min-w-0 overflow-hidden rounded-2xl border bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5",
+                  "min-w-0 overflow-hidden rounded-2xl border bg-white p-3 shadow-sm transition hover:shadow-md sm:p-5",
                   open ? "border-emerald-300" : "border-slate-300",
                 ].join(" ")}
               >
@@ -549,7 +549,7 @@ function TeacherSpacesInner() {
           })}
 
           {filtered.length === 0 && (
-            <div className="rounded-2xl border border-slate-300 bg-white p-6 text-sm text-slate-600 shadow-sm">
+            <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-600 shadow-sm sm:p-6">
               {t("empty.title")}
               <div className="mt-2">{t("empty.hint")}</div>
             </div>

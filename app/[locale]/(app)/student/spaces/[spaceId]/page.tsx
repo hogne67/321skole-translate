@@ -558,8 +558,8 @@ export default function StudentSpaceDetailPage() {
 
   if (missing) {
     return (
-      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-3 shadow-sm sm:p-5">
           <h1 className="m-0 text-xl font-semibold text-slate-900">{t("missing.title")}</h1>
           <div className="mt-2 text-sm text-slate-600">{t("missing.subtitle")}</div>
           <div className="mt-4">
@@ -574,8 +574,8 @@ export default function StudentSpaceDetailPage() {
 
   if (err) {
     return (
-      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-red-300 bg-red-50 p-5 shadow-sm">
+      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-red-300 bg-red-50 p-3 shadow-sm sm:p-5">
           <h1 className="m-0 text-xl font-semibold text-slate-900">{t("error.title")}</h1>
           <div className="mt-3 whitespace-pre-wrap text-sm text-red-700">{err}</div>
           <div className="mt-4">
@@ -591,8 +591,8 @@ export default function StudentSpaceDetailPage() {
   if (!space) return <div className="w-full py-4 text-sm text-slate-600">{t("loading")}</div>;
 
   return (
-    <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+    <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">
@@ -620,7 +620,7 @@ export default function StudentSpaceDetailPage() {
         </div>
       ) : null}
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-base font-semibold text-slate-900">{t("all.title")}</div>
 
@@ -633,7 +633,7 @@ export default function StudentSpaceDetailPage() {
         {assignErr ? (
           <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{assignErr}</div>
         ) : visibleAssignments.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
             {t("all.none")}
           </div>
         ) : (
@@ -656,7 +656,7 @@ export default function StudentSpaceDetailPage() {
               return (
                 <div
                   key={it.id}
-                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
+                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4"
                 >
                   <div className="min-w-0">
                     <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -735,7 +735,7 @@ export default function StudentSpaceDetailPage() {
         )}
       </div>
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
         <div className="text-base font-semibold text-slate-900">{t("archive.title")}</div>
 
         {!uid ? (
@@ -745,7 +745,7 @@ export default function StudentSpaceDetailPage() {
         ) : subsErr ? (
           <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{subsErr}</div>
         ) : archivedSubs.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
             {t("archive.none")}
           </div>
         ) : (
@@ -759,7 +759,7 @@ export default function StudentSpaceDetailPage() {
               return (
                 <div
                   key={g.assignmentId}
-                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
+                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4"
                 >
                   <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">

@@ -68,7 +68,8 @@
     "intro": {
       "finishLesson": "Agora finalize a atividade com metadados, imagem de capa e ajustes finais.",
       "videoTitle": "Vídeo de instrução",
-      "videoPlaceholder": "Vídeo em breve"
+      "videoPlaceholder": "Veja como finalizar a atividade",
+      "closeVideo": "Fechar vídeo"
     },
     "summary": {
       "title": "Título",

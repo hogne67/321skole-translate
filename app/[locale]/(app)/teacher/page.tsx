@@ -887,7 +887,7 @@ export default function TeacherPage() {
         guestLabel={t("dashboardIntro.guest")}
         loggedInLabel={t("dashboardIntro.loggedIn")}
         youAre={t.raw("dashboardIntro.youAre")}
-        activity={t.raw("dashboardIntro.activity")}
+        activity=""
         recommendRegister={t("dashboardIntro.recommendRegister")}
         remainingLabel={t.raw("dashboardIntro.remaining")}
         roleLabelStudent={t("dashboardIntro.roles.student")}

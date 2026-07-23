@@ -535,7 +535,7 @@ export default function ParentSpaceDetailPage() {
     return (
       <div
         key={it.id}
-        className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
+        className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4"
       >
         <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
@@ -609,8 +609,8 @@ export default function ParentSpaceDetailPage() {
 
   if (missing) {
     return (
-      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
+      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-3 shadow-sm sm:p-5">
           <h1 className="m-0 text-xl font-semibold text-slate-900">
             {tx("missing.title", "Space not found")}
           </h1>
@@ -629,8 +629,8 @@ export default function ParentSpaceDetailPage() {
 
   if (err) {
     return (
-      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-red-300 bg-red-50 p-5 shadow-sm">
+      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-red-300 bg-red-50 p-3 shadow-sm sm:p-5">
           <h1 className="m-0 text-xl font-semibold text-slate-900">
             {tx("error.title", "Something went wrong")}
           </h1>
@@ -650,8 +650,8 @@ export default function ParentSpaceDetailPage() {
   }
 
   return (
-    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{spaceTitle}</h1>
@@ -680,7 +680,7 @@ export default function ParentSpaceDetailPage() {
         </div>
       </div>
 
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:p-5">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-sm sm:p-5">
         <div className="text-base font-semibold text-emerald-950">
           {t("childRoomCard.title")}
         </div>
@@ -699,12 +699,12 @@ export default function ParentSpaceDetailPage() {
         </Link>
       </section>
 
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm sm:p-5">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-sky-200 bg-sky-50 p-3 shadow-sm sm:p-5">
         <div className="text-base font-semibold text-sky-950">{t("goals.sectionTitle")}</div>
 
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
           {activeGoal ? (
-            <div className="rounded-xl border border-sky-200 bg-white p-4">
+            <div className="rounded-xl border border-sky-200 bg-white p-3 sm:p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge text={t("goals.active")} tone="good" />
                 {typeof activeGoal.data.targetCount === "number" ? (
@@ -726,13 +726,13 @@ export default function ParentSpaceDetailPage() {
               ) : null}
             </div>
           ) : (
-            <div className="rounded-xl border border-sky-200 bg-white p-4 text-sm leading-6 text-sky-900">
+            <div className="rounded-xl border border-sky-200 bg-white p-3 text-sm leading-6 text-sky-900 sm:p-4">
               {t("goals.empty")}
             </div>
           )}
 
           <form
-            className="rounded-xl border border-sky-200 bg-white p-4"
+            className="rounded-xl border border-sky-200 bg-white p-3 sm:p-4"
             onSubmit={(e) => {
               e.preventDefault();
               createGoal();
@@ -776,7 +776,7 @@ export default function ParentSpaceDetailPage() {
         </div>
       </section>
 
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="text-base font-semibold text-slate-900">
           {tx("all.title", "All lessons")}
         </div>
@@ -784,7 +784,7 @@ export default function ParentSpaceDetailPage() {
         {assignErr ? (
           <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{assignErr}</div>
         ) : activeAssignments.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
             {tx("all.none", "No lessons yet.")}
           </div>
         ) : (
@@ -794,13 +794,13 @@ export default function ParentSpaceDetailPage() {
         )}
       </section>
 
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
         <div className="text-base font-semibold text-slate-900">
           {tx("archive.title", "Archived assignments")}
         </div>
 
         {archivedAssignments.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+          <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
             {tx("archive.none", "No archived assignments yet.")}
           </div>
         ) : (

@@ -370,6 +370,7 @@ export default function StudentDashboard() {
   const [statsLoading, setStatsLoading] = useState(true);
   const [hasSpaces, setHasSpaces] = useState(false);
   const [spaceCount, setSpaceCount] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const [submissionStats, setSubmissionStats] =
     useState<SubmissionDashboardStats>(emptyStats());
 
@@ -397,6 +398,13 @@ export default function StudentDashboard() {
     return () => {
       alive = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 720);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
 
   useEffect(() => {
@@ -489,16 +497,55 @@ export default function StudentDashboard() {
   const downloadsUsed = usage["downloads"] ?? 0;
   const downloadsLimit = getBucketLimit(role, effectivePlan, "downloads");
 
+  const dashboardShellStyle: React.CSSProperties = {
+    maxWidth: 1120,
+    margin: "0 auto",
+    padding: isMobile ? "8px 6px 20px" : "12px 12px 20px",
+    boxSizing: "border-box",
+    width: "100%",
+  };
+
+  const shortcutSectionStyle: React.CSSProperties = {
+    marginTop: isMobile ? 16 : 20,
+    display: "grid",
+    gap: isMobile ? 8 : 10,
+  };
+
+  const statGridStyle: React.CSSProperties = {
+    marginTop: isMobile ? 16 : 20,
+    display: "grid",
+    gap: isMobile ? 10 : 12,
+    gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))",
+  };
+
+  const dashboardSectionStyle: React.CSSProperties = {
+    marginTop: isMobile ? 18 : 24,
+    border: "1px solid #cbd5e1",
+    borderRadius: isMobile ? 18 : 22,
+    background: "#f8fafc",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+    overflow: "hidden",
+  };
+
+  const sectionInsetStyle: React.CSSProperties = {
+    padding: isMobile ? 8 : 16,
+  };
+
+  const sectionCardStyle: React.CSSProperties = {
+    border: "1px solid #bbf7d0",
+    borderRadius: isMobile ? 16 : 18,
+    background: "#ffffff",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+    padding: isMobile ? 12 : 16,
+  };
+
+  const sectionCardBlueStyle: React.CSSProperties = {
+    ...sectionCardStyle,
+    border: "1px solid #dbeafe",
+  };
+
   return (
-    <main
-      style={{
-        maxWidth: 1120,
-        margin: "0 auto",
-        padding: "12px 12px 20px",
-        boxSizing: "border-box",
-        width: "100%",
-      }}
-    >
+    <main style={dashboardShellStyle}>
       <DashboardIntro
         userIsAnon={isAnon}
         helloAnon={t("dashboardIntro.helloAnon")}
@@ -507,7 +554,7 @@ export default function StudentDashboard() {
         loggedInLabel={t("dashboardIntro.loggedIn")}
         youAre={t.raw("dashboardIntro.youAre")}
         youAreAnon={t.raw("dashboardIntro.youAreAnon")}
-        activity={t.raw("dashboardIntro.activity")}
+        activity={isAnon ? t.raw("dashboardIntro.activity") : ""}
         recommendRegister={t("dashboardIntro.recommendRegister")}
         remainingLabel={t.raw("dashboardIntro.remaining")}
         roleLabelStudent={t("dashboardIntro.roles.student")}
@@ -528,12 +575,12 @@ export default function StudentDashboard() {
       {isAnon ? (
         <section
           style={{
-            marginTop: 18,
+            marginTop: isMobile ? 16 : 18,
             border: "1px solid #bfdbfe",
-            borderRadius: 18,
+            borderRadius: isMobile ? 16 : 18,
             background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)",
             boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-            padding: 16,
+            padding: isMobile ? 12 : 16,
           }}
         >
           <div
@@ -612,13 +659,7 @@ export default function StudentDashboard() {
         </section>
       ) : null}
 
-      <section
-        style={{
-          marginTop: 20,
-          display: "grid",
-          gap: 10,
-        }}
-      >
+      <section style={shortcutSectionStyle}>
         {hasActivePartnerAccess ? (
           <DashboardShortcutRow
             title={t("partnerCard.title")}
@@ -639,12 +680,7 @@ export default function StudentDashboard() {
 
       {!usageLoading && (
         <section
-          style={{
-            marginTop: 20,
-            display: "grid",
-            gap: 12,
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          }}
+          style={statGridStyle}
         >
           <StatCard
             title={t("usage.cards.premiumGenerators")}
@@ -678,26 +714,9 @@ export default function StudentDashboard() {
       )}
 
       {!statsLoading && (
-        <section
-          style={{
-            marginTop: 24,
-            border: "1px solid #cbd5e1",
-            borderRadius: 22,
-            background: "#f8fafc",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ padding: 16 }}>
-            <div
-              style={{
-                border: "1px solid #dbeafe",
-                borderRadius: 18,
-                background: "#ffffff",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                padding: 16,
-              }}
-            >
+        <section style={dashboardSectionStyle}>
+          <div style={sectionInsetStyle}>
+            <div style={sectionCardBlueStyle}>
               <div
                 style={{
                   display: "flex",
@@ -883,26 +902,9 @@ export default function StudentDashboard() {
         </section>
       )}
 
-      <section
-        style={{
-          marginTop: 24,
-          border: "1px solid #cbd5e1",
-          borderRadius: 22,
-          background: "#f8fafc",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: 16 }}>
-          <div
-            style={{
-              border: "1px solid #dbeafe",
-              borderRadius: 18,
-              background: "#ffffff",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-              padding: 16,
-            }}
-          >
+      <section style={dashboardSectionStyle}>
+        <div style={sectionInsetStyle}>
+          <div style={sectionCardBlueStyle}>
             <h2
               style={{
                 margin: 0,
@@ -966,26 +968,9 @@ export default function StudentDashboard() {
         </div>
       </section>
 
-      <section
-        style={{
-          marginTop: 24,
-          border: "1px solid #cbd5e1",
-          borderRadius: 22,
-          background: "#f8fafc",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: 16 }}>
-          <div
-            style={{
-              border: "1px solid #bbf7d0",
-              borderRadius: 18,
-              background: "#ffffff",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-              padding: 16,
-            }}
-          >
+      <section style={dashboardSectionStyle}>
+        <div style={sectionInsetStyle}>
+          <div style={sectionCardStyle}>
             <div
               style={{
                 display: "flex",

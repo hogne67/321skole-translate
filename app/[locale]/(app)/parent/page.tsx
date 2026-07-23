@@ -244,6 +244,7 @@ export default function ParentPage() {
 
   const [isAnon, setIsAnon] = useState(true);
   const [uid, setUid] = useState<string | undefined>(undefined);
+  const [isMobile, setIsMobile] = useState(false);
 
   const { usage, loading } = useUsage(uid);
 
@@ -269,6 +270,13 @@ export default function ParentPage() {
     return () => {
       alive = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 720);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
 
   const planValue =
@@ -317,16 +325,50 @@ export default function ParentPage() {
   const downloadsUsed = usage["downloads"] ?? 0;
   const downloadsLimit = getBucketLimit(role, effectivePlan, "downloads");
 
+  const dashboardShellStyle: React.CSSProperties = {
+    maxWidth: 1120,
+    margin: "0 auto",
+    padding: isMobile ? "8px 6px 20px" : "12px 12px 20px",
+    boxSizing: "border-box",
+    width: "100%",
+  };
+
+  const shortcutSectionStyle: React.CSSProperties = {
+    marginTop: isMobile ? 16 : 20,
+    display: "grid",
+    gap: isMobile ? 8 : 10,
+  };
+
+  const statGridStyle: React.CSSProperties = {
+    marginTop: isMobile ? 16 : 20,
+    display: "grid",
+    gap: isMobile ? 10 : 12,
+    gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))",
+  };
+
+  const dashboardSectionStyle: React.CSSProperties = {
+    marginTop: isMobile ? 18 : 24,
+    border: "1px solid #cbd5e1",
+    borderRadius: isMobile ? 18 : 22,
+    background: "#f8fafc",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+    overflow: "hidden",
+  };
+
+  const sectionInsetStyle: React.CSSProperties = {
+    padding: isMobile ? 8 : 16,
+  };
+
+  const sectionCardStyle: React.CSSProperties = {
+    border: "1px solid #bbf7d0",
+    borderRadius: isMobile ? 16 : 18,
+    background: "#ffffff",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+    padding: isMobile ? 12 : 16,
+  };
+
   return (
-    <main
-      style={{
-        maxWidth: 1120,
-        margin: "0 auto",
-        padding: "12px 12px 20px",
-        boxSizing: "border-box",
-        width: "100%",
-      }}
-    >
+    <main style={dashboardShellStyle}>
       <DashboardIntro
         userIsAnon={isAnon}
         helloAnon={t("dashboardIntro.helloAnon")}
@@ -334,7 +376,7 @@ export default function ParentPage() {
         guestLabel={t("dashboardIntro.guest")}
         loggedInLabel={t("dashboardIntro.loggedIn")}
         youAre={t.raw("dashboardIntro.youAre")}
-        activity={t.raw("dashboardIntro.activity")}
+        activity=""
         recommendRegister={t("dashboardIntro.recommendRegister")}
         remainingLabel={t.raw("dashboardIntro.remaining")}
         roleLabelStudent={t("dashboardIntro.roles.student")}
@@ -352,13 +394,7 @@ export default function ParentPage() {
 
       <InstallAppButton />
 
-      <section
-        style={{
-          marginTop: 20,
-          display: "grid",
-          gap: 10,
-        }}
-      >
+      <section style={shortcutSectionStyle}>
         {hasActivePartnerAccess ? (
           <DashboardShortcutRow
             title={t("partnerCard.title")}
@@ -378,14 +414,7 @@ export default function ParentPage() {
       </section>
 
       {!loading && (
-        <section
-          style={{
-            marginTop: 20,
-            display: "grid",
-            gap: 12,
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          }}
-        >
+        <section style={statGridStyle}>
           <StatCard
             title={t("usage.cards.premiumGenerators")}
             used={generatorsUsed}
@@ -419,26 +448,9 @@ export default function ParentPage() {
         </section>
       )}
 
-      <section
-        style={{
-          marginTop: 24,
-          border: "1px solid #cbd5e1",
-          borderRadius: 22,
-          background: "#f8fafc",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: 16 }}>
-          <div
-            style={{
-              border: "1px solid #bbf7d0",
-              borderRadius: 18,
-              background: "#ffffff",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-              padding: 16,
-            }}
-          >
+      <section style={dashboardSectionStyle}>
+        <div style={sectionInsetStyle}>
+          <div style={sectionCardStyle}>
             <div
               style={{
                 display: "flex",

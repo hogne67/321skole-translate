@@ -433,8 +433,8 @@ export default function TeacherSpaceAssignedTaskPage() {
 
   return (
     <AuthGate requireRole="teacher">
-      <main className="mx-auto box-border w-full max-w-6xl min-w-0 space-y-4">
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+      <main className="mx-auto box-border w-full max-w-6xl min-w-0 space-y-3 sm:space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
           <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-slate-500">{t("submissions.title")}</div>
@@ -464,7 +464,7 @@ export default function TeacherSpaceAssignedTaskPage() {
           </div>
         ) : null}
 
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
           <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("header.taskInfo")}</div>
 
@@ -504,7 +504,7 @@ export default function TeacherSpaceAssignedTaskPage() {
           </div>
         </div>
 
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <div className="text-base font-semibold text-slate-900">{t("submissions.title")}</div>
@@ -517,7 +517,7 @@ export default function TeacherSpaceAssignedTaskPage() {
           {loadingSubs ? (
             <p className="mt-4 text-sm text-slate-600">{t("submissions.loading")}</p>
           ) : submissions.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-600">
+            <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
               {t("submissions.empty")}
             </div>
           ) : (
@@ -545,7 +545,7 @@ export default function TeacherSpaceAssignedTaskPage() {
                 return (
                   <div
                     key={s.id}
-                    className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
+                    className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4"
                   >
                     <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div className="min-w-0 flex-1">

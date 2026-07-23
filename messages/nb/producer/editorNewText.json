@@ -68,7 +68,8 @@
     "intro": {
       "finishLesson": "Nå ferdigstiller du oppgaven med metadata, forsidebilde og siste justeringer.",
       "videoTitle": "Instruksjonsvideo",
-      "videoPlaceholder": "Video kommer her"
+      "videoPlaceholder": "Se hvordan du ferdigstiller oppgaven",
+      "closeVideo": "Lukk video"
     },
     "summary": {
       "title": "Tittel",

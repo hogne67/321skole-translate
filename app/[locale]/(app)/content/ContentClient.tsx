@@ -1757,8 +1757,8 @@ export default function ContentClient() {
   ];
 
   return (
-    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-4">
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+    <main className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3">
           <div className="min-w-0">
             <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">
@@ -1771,7 +1771,7 @@ export default function ContentClient() {
         </div>
       </section>
 
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-4 shadow-md sm:p-5">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
         <div className="min-w-0">
           <input
             value={q}
@@ -1837,14 +1837,14 @@ export default function ContentClient() {
       </section>
 
       {err ? (
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 shadow-sm sm:p-4">
           <div className="mb-1 font-black">{t("errors.label")}</div>
           <div className="whitespace-pre-wrap">{err}</div>
         </div>
       ) : null}
 
       {notes.length > 0 ? (
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4">
           {notes.map((n) => (
             <div key={n} className="text-sm text-slate-700">
               • {n}
@@ -1854,7 +1854,7 @@ export default function ContentClient() {
       ) : null}
 
       {warnings.length > 0 ? (
-        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-amber-300 bg-amber-50 p-3 shadow-sm sm:p-4">
           {warnings.map((w) => (
             <div key={w} className="text-sm text-amber-900">
               • {w}
@@ -1863,7 +1863,7 @@ export default function ContentClient() {
         </div>
       ) : null}
 
-      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-4 shadow-md sm:p-5">
+      <section className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="min-w-0">
           <div className="text-base font-semibold text-slate-900">
             {isParent ? t("parent.contentTitle") : t("title")}
@@ -1877,7 +1877,7 @@ export default function ContentClient() {
           {loading ? <div className="text-sm text-slate-600">{t("states.loadingContent")}</div> : null}
 
           {!loading && filtered.length === 0 ? (
-            <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm text-slate-600 shadow-sm">
+            <div className="rounded-2xl border border-slate-300 bg-white p-3 text-sm text-slate-600 shadow-sm sm:p-4">
               {emptyHint}
             </div>
           ) : null}
@@ -1951,7 +1951,7 @@ export default function ContentClient() {
               return (
                 <div
                   key={key}
-                  className="box-border block w-full max-w-full min-w-0 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm"
+                  className="box-border block w-full max-w-full min-w-0 rounded-2xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4"
                 >
                   <div className="flex min-w-0 max-w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 max-w-full flex-1">

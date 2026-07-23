@@ -11,7 +11,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useUsage } from "@/lib/useUsage";
-import { Eye, Save } from "lucide-react";
+import { Eye, Save, X } from "lucide-react";
 import {
   getBucketLimit,
   getEffectivePlan,
@@ -354,6 +354,7 @@ export default function ProducerLessonEditorPage() {
   const [coverImageFormat, setCoverImageFormat] = useState<CoverFormat>("16:9");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [generatingCover, setGeneratingCover] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
 
   const [coverImageSource, setCoverImageSource] = useState<CoverImageSource>("upload");
   const [aiCoverStyle, setAiCoverStyle] = useState<CoverImageStyle>("illustration");
@@ -409,6 +410,22 @@ export default function ProducerLessonEditorPage() {
     });
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    if (!videoOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setVideoOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [videoOpen]);
 
   useEffect(() => {
     let alive = true;
@@ -818,6 +835,8 @@ export default function ProducerLessonEditorPage() {
     gap: 12,
     color: "inherit",
     boxShadow: "0 10px 24px rgba(37,99,235,0.09)",
+    cursor: "pointer",
+    textAlign: "left",
   };
 
   const videoThumbStyle: React.CSSProperties = {
@@ -851,6 +870,60 @@ export default function ProducerLessonEditorPage() {
     borderBottom: "8px solid transparent",
     borderLeft: "12px solid #ffffff",
     marginLeft: 3,
+  };
+
+  const videoOverlayStyle: React.CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    zIndex: 80,
+    display: "grid",
+    placeItems: "center",
+    background: "rgba(15,23,42,0.72)",
+    padding: 16,
+  };
+
+  const videoModalStyle: React.CSSProperties = {
+    width: "min(960px, 100%)",
+    overflow: "hidden",
+    borderRadius: 22,
+    background: "#ffffff",
+    boxShadow: "0 24px 70px rgba(0,0,0,0.28)",
+  };
+
+  const videoModalHeaderStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
+    borderBottomWidth: 1,
+    borderBottomStyle: "solid",
+    borderBottomColor: "#e2e8f0",
+    padding: "16px 18px",
+  };
+
+  const closeVideoButtonStyle: React.CSSProperties = {
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#cbd5e1",
+    borderRadius: 12,
+    background: "#ffffff",
+    color: "#334155",
+    width: 38,
+    height: 38,
+    display: "grid",
+    placeItems: "center",
+    cursor: "pointer",
+  };
+
+  const videoFrameShellStyle: React.CSSProperties = {
+    aspectRatio: "16 / 9",
+    background: "#000000",
+  };
+
+  const videoFrameStyle: React.CSSProperties = {
+    width: "100%",
+    height: "100%",
+    border: 0,
   };
 
   function getTextSizeButtonStyle(value: TextSize): React.CSSProperties {
@@ -933,8 +1006,19 @@ export default function ProducerLessonEditorPage() {
             </div>
           </div>
 
-          <div style={videoPlaceholderStyle}>
+          <button
+            type="button"
+            onClick={() => setVideoOpen(true)}
+            style={videoPlaceholderStyle}
+            aria-label={t("intro.videoTitle")}
+          >
             <div style={videoThumbStyle} aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://img.youtube.com/vi/jKj6wIqcAuA/mqdefault.jpg"
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
               <div style={playCircleStyle}>
                 <span style={playTriangleStyle} />
               </div>
@@ -943,8 +1027,41 @@ export default function ProducerLessonEditorPage() {
               <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>{t("intro.videoTitle")}</div>
               <div style={{ marginTop: 3, fontSize: 13, color: "#64748b" }}>{t("intro.videoPlaceholder")}</div>
             </div>
-          </div>
+          </button>
         </div>
+
+        {videoOpen ? (
+          <div
+            style={videoOverlayStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("intro.videoTitle")}
+            onClick={() => setVideoOpen(false)}
+          >
+            <div style={videoModalStyle} onClick={(event) => event.stopPropagation()}>
+              <div style={videoModalHeaderStyle}>
+                <div style={{ fontSize: 18, fontWeight: 950, color: "#0f172a" }}>{t("intro.videoTitle")}</div>
+                <button
+                  type="button"
+                  onClick={() => setVideoOpen(false)}
+                  style={closeVideoButtonStyle}
+                  aria-label={t("intro.closeVideo")}
+                >
+                  <X size={18} strokeWidth={2.5} />
+                </button>
+              </div>
+              <div style={videoFrameShellStyle}>
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/jKj6wIqcAuA?autoplay=1&rel=0&modestbranding=1"
+                  title={t("intro.videoTitle")}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  style={videoFrameStyle}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <section
           style={{

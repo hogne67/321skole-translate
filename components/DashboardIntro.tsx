@@ -128,7 +128,9 @@ export function DashboardIntro(props: Props) {
       role: roleLabel,
     });
 
-  const activityNode = renderSimpleRichText(props.activity, {});
+  const activityNode = props.activity.trim()
+    ? renderSimpleRichText(props.activity, {})
+    : null;
 
   return (
     <section
@@ -155,7 +157,9 @@ export function DashboardIntro(props: Props) {
         <span>{youAreNode}</span>
       </p>
 
-      <p style={{ margin: "8px 0 0", opacity: 0.8, lineHeight: 1.45 }}>{activityNode}</p>
+      {activityNode ? (
+        <p style={{ margin: "8px 0 0", opacity: 0.8, lineHeight: 1.45 }}>{activityNode}</p>
+      ) : null}
 
       {props.userIsAnon ? (
         <div style={{ marginTop: 10 }}>

@@ -13,7 +13,9 @@ export default function SectionShell({
   children,
   fullWidth = false,
   hideHeader = false,
+  hideTitle = false,
   hideNav = false,
+  containedHeader = false,
   blockedToolsMessage,
   blockedToolsLoginLabel,
 }: {
@@ -23,7 +25,9 @@ export default function SectionShell({
   children: React.ReactNode;
   fullWidth?: boolean;
   hideHeader?: boolean;
+  hideTitle?: boolean;
   hideNav?: boolean;
+  containedHeader?: boolean;
   blockedToolsMessage?: string;
   blockedToolsLoginLabel?: string;
 }) {
@@ -84,88 +88,92 @@ export default function SectionShell({
   return (
     <div className="shellRoot">
       {!hideHeader && (
-        <div className="sectionHeader">
-          <div className="sectionTitleRow">
-            <div className="sectionTitleWrap">
-              <h1 className="sectionTitle">{title}</h1>
-              {subtitle ? <p className="sectionSubtitle">{subtitle}</p> : null}
-            </div>
+        <div className={`sectionHeader ${containedHeader ? "contained" : ""}`}>
+          <div className="sectionHeaderInner">
+            {!hideTitle ? (
+              <div className="sectionTitleRow">
+                <div className="sectionTitleWrap">
+                  <h1 className="sectionTitle">{title}</h1>
+                  {subtitle ? <p className="sectionSubtitle">{subtitle}</p> : null}
+                </div>
 
-            {primaryItem && !hideNav ? (
-              <Link
-                href={withLocale(primaryItem.href)}
-                className="mobilePrimaryBtn"
-                onClick={(event) => handleNavClick(event, primaryItem.href)}
-              >
-                {primaryItem.label}
-              </Link>
+                {primaryItem && !hideNav ? (
+                  <Link
+                    href={withLocale(primaryItem.href)}
+                    className="mobilePrimaryBtn"
+                    onClick={(event) => handleNavClick(event, primaryItem.href)}
+                  >
+                    {primaryItem.label}
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
+
+            {!hideNav && (
+              <div className={`sectionNav ${hideTitle ? "withoutTitle" : ""}`} aria-label="Section navigation">
+                {navItems.map((it, index) => {
+                  const isTools = isToolsItem(it.href);
+                  const isActive = isItemActive(it.href);
+                  const isPrimary = index === 0 && isTools;
+                  const isMobilePrimary = !hideTitle && primaryItem?.href === it.href;
+
+                  const background = isTools
+                    ? "#deebde"
+                    : isActive
+                      ? "#eef6ff"
+                      : "#ffffff";
+
+                  const color = isTools
+                    ? "#1f7a1f"
+                    : isActive
+                      ? "#0f172a"
+                      : "#1f2937";
+
+                  const border = isTools
+                    ? "1px solid #81beb3"
+                    : isActive
+                      ? "1px solid #bfd7f7"
+                      : "1px solid rgba(0,0,0,0.12)";
+
+                  const boxShadow = isTools ? "0 1px 2px rgba(0,0,0,0.10)" : "none";
+
+                  return (
+                    <Link
+                      key={it.href}
+                      href={withLocale(it.href)}
+                      onClick={(event) => handleNavClick(event, it.href)}
+                      className={`navLink ${isTools ? "navLinkTools" : ""} ${isPrimary ? "navLinkPrimary" : ""
+                        } ${isMobilePrimary ? "hideOnMobile" : ""}`}
+                      style={{
+                        textDecoration: "none",
+                        borderRadius: 999,
+                        padding: "8px 14px",
+                        whiteSpace: "nowrap",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background,
+                        color,
+                        border,
+                        boxShadow,
+                      }}
+                    >
+                      {it.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+
+            {navNotice ? (
+              <div className="navNotice" role="status">
+                <span>{navNotice}</span>
+                <Link href={loginHref()}>{blockedToolsLoginLabel || "Log in"}</Link>
+              </div>
             ) : null}
           </div>
-
-          {!hideNav && (
-            <div className="sectionNav" aria-label="Section navigation">
-              {navItems.map((it, index) => {
-                const isTools = isToolsItem(it.href);
-                const isActive = isItemActive(it.href);
-                const isPrimary = index === 0 && isTools;
-                const isMobilePrimary = primaryItem?.href === it.href;
-
-                const background = isTools
-                  ? "#deebde"
-                  : isActive
-                    ? "#eef6ff"
-                    : "#ffffff";
-
-                const color = isTools
-                  ? "#1f7a1f"
-                  : isActive
-                    ? "#0f172a"
-                    : "#1f2937";
-
-                const border = isTools
-                  ? "1px solid #81beb3"
-                  : isActive
-                    ? "1px solid #bfd7f7"
-                    : "1px solid rgba(0,0,0,0.12)";
-
-                const boxShadow = isTools ? "0 1px 2px rgba(0,0,0,0.10)" : "none";
-
-                return (
-                  <Link
-                    key={it.href}
-                    href={withLocale(it.href)}
-                    onClick={(event) => handleNavClick(event, it.href)}
-                    className={`navLink ${isTools ? "navLinkTools" : ""} ${isPrimary ? "navLinkPrimary" : ""
-                      } ${isMobilePrimary ? "hideOnMobile" : ""}`}
-                    style={{
-                      textDecoration: "none",
-                      borderRadius: 999,
-                      padding: "8px 14px",
-                      whiteSpace: "nowrap",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background,
-                      color,
-                      border,
-                      boxShadow,
-                    }}
-                  >
-                    {it.label}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-
-          {navNotice ? (
-            <div className="navNotice" role="status">
-              <span>{navNotice}</span>
-              <Link href={loginHref()}>{blockedToolsLoginLabel || "Log in"}</Link>
-            </div>
-          ) : null}
         </div>
       )}
 
@@ -182,9 +190,23 @@ export default function SectionShell({
           width: 100%;
           max-width: 100%;
           min-width: 0;
-          padding: 14px 16px 8px;
+          padding: 0;
           border-bottom: 1px solid rgba(0, 0, 0, 0.08);
           background: #fff;
+        }
+
+        .sectionHeaderInner {
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
+          padding: 14px 16px 8px;
+        }
+
+        .sectionHeader.contained .sectionHeaderInner {
+          max-width: 1120px;
+          margin: 0 auto;
+          padding-left: 12px;
+          padding-right: 12px;
         }
 
         .sectionTitleRow {
@@ -229,6 +251,10 @@ export default function SectionShell({
           padding-bottom: 6px;
         }
 
+        .sectionNav.withoutTitle {
+          margin-top: 0;
+        }
+
         .navNotice {
           margin-top: 8px;
           display: flex;
@@ -268,7 +294,16 @@ export default function SectionShell({
 
         @media (max-width: 560px) {
           .sectionHeader {
+            padding: 0;
+          }
+
+          .sectionHeaderInner {
             padding: 10px 10px 6px;
+          }
+
+          .sectionHeader.contained .sectionHeaderInner {
+            padding-left: 10px;
+            padding-right: 10px;
           }
 
           .sectionTitle {
