@@ -1711,6 +1711,7 @@ export default function StudentLessonPage() {
           // ignore
         }
         flash(t("flash.saved"));
+        router.push(`/${locale}/content`);
         return;
       }
 
@@ -3148,6 +3149,34 @@ export default function StudentLessonPage() {
             backdropFilter: "blur(8px)",
           }}
         >
+          {isMobileView ? (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+              <div style={mobileSpeedGroupStyle}>
+                <button
+                  type="button"
+                  style={playbackRate === 0.8 ? mobileAwareSpeedActiveStyle(true) : mobileAwareSpeedStyle(true)}
+                  onClick={() => setPlaybackRate(0.8)}
+                >
+                  0.8x
+                </button>
+                <button
+                  type="button"
+                  style={playbackRate === 1 ? mobileAwareSpeedActiveStyle(true) : mobileAwareSpeedStyle(true)}
+                  onClick={() => setPlaybackRate(1)}
+                >
+                  1x
+                </button>
+                <button
+                  type="button"
+                  style={playbackRate === 1.2 ? mobileAwareSpeedActiveStyle(true) : mobileAwareSpeedStyle(true)}
+                  onClick={() => setPlaybackRate(1.2)}
+                >
+                  1.2x
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <div style={{ display: "flex", alignItems: "center", gap: isMobileView ? 6 : 8, flexWrap: "wrap" }}>
             <button
               type="button"
@@ -3206,9 +3235,10 @@ export default function StudentLessonPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: isMobileView ? 6 : 8,
-                flex: isMobileView ? "1 1 calc(100% - 142px)" : "1 1 280px",
-                minWidth: isMobileView ? 120 : 220,
+                flex: isMobileView ? "1 1 100%" : "1 1 280px",
+                minWidth: isMobileView ? "100%" : 220,
                 marginLeft: isMobileView ? 0 : 4,
+                order: isMobileView ? 3 : 0,
               }}
             >
               <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(currentTime)}</span>
@@ -3227,35 +3257,37 @@ export default function StudentLessonPage() {
                   a.currentTime = v;
                   setCurrentTime(v);
                 }}
-                style={{ flex: 1, opacity: audioRef.current ? 1 : 0.45 }}
+                style={{ flex: 1, height: isMobileView ? 4 : undefined, opacity: audioRef.current ? 1 : 0.45 }}
               />
 
               <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(duration)}</span>
             </div>
 
-            <div style={isMobileView ? mobileSpeedGroupStyle : speedGroupStyle}>
-              <button
-                type="button"
-                style={playbackRate === 0.8 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
-                onClick={() => setPlaybackRate(0.8)}
-              >
-                0.8x
-              </button>
-              <button
-                type="button"
-                style={playbackRate === 1 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
-                onClick={() => setPlaybackRate(1)}
-              >
-                1x
-              </button>
-              <button
-                type="button"
-                style={playbackRate === 1.2 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
-                onClick={() => setPlaybackRate(1.2)}
-              >
-                1.2x
-              </button>
-            </div>
+            {!isMobileView ? (
+              <div style={speedGroupStyle}>
+                <button
+                  type="button"
+                  style={playbackRate === 0.8 ? mobileAwareSpeedActiveStyle(false) : mobileAwareSpeedStyle(false)}
+                  onClick={() => setPlaybackRate(0.8)}
+                >
+                  0.8x
+                </button>
+                <button
+                  type="button"
+                  style={playbackRate === 1 ? mobileAwareSpeedActiveStyle(false) : mobileAwareSpeedStyle(false)}
+                  onClick={() => setPlaybackRate(1)}
+                >
+                  1x
+                </button>
+                <button
+                  type="button"
+                  style={playbackRate === 1.2 ? mobileAwareSpeedActiveStyle(false) : mobileAwareSpeedStyle(false)}
+                  onClick={() => setPlaybackRate(1.2)}
+                >
+                  1.2x
+                </button>
+              </div>
+            ) : null}
 
             <button
               type="button"
@@ -3270,7 +3302,7 @@ export default function StudentLessonPage() {
                 flex: isMobileView ? "1 1 0" : "0 0 auto",
               }}
             >
-              {saving ? t("actions.saving") : isCourseMode ? "Save draft" : t("actions.saveShort")}
+              {saving ? t("actions.saving") : isCourseMode ? "Save draft" : t("actions.saveToMyContent")}
             </button>
           </div>
         </div>
