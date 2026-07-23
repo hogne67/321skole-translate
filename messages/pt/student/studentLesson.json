@@ -1,0 +1,126 @@
+{
+  "studentLesson": {
+    "loading": "Carregando...",
+    "noData": "Sem dados.",
+    "fallback": {
+      "lessonTitle": "Lição"
+    },
+    "nav": {
+      "backToDashboard": "Voltar para Meu conteúdo",
+      "backToPreview": "Voltar para prévia",
+      "backToLibrary": "Voltar para biblioteca"
+    },
+    "errors": {
+      "missingLessonId": "lessonId ausente no URL.",
+      "notPublished": "Esta lição não está publicada ou foi despublicada.",
+      "notFound": "Esta lição não está publicada ou não existe.",
+      "noAccess": "Esta lição não está publicada, ou você não tem acesso.",
+      "generic": "Algo deu errado",
+      "couldNotSave": "Não foi possível salvar",
+      "couldNotSubmit": "Não foi possível enviar"
+    },
+    "anon": {
+      "savedLocally": "Você está anônimo: as respostas são salvas neste dispositivo."
+    },
+    "image": {
+      "title": "Imagem",
+      "alt": "Imagem da lição",
+      "noImageTitle": "Sem imagem ainda",
+      "noImageHint": "Este espaço é reservado para uma imagem enviada."
+    },
+    "actions": {
+      "saving": "Salvando...",
+      "saveOnDevice": "Salvar neste dispositivo",
+      "saveShort": "Salvar",
+      "saveToMyContent": "Salvar no Meu conteúdo"
+    },
+    "translate": {
+      "label": "Traduzir para",
+      "languageLabel": "Escolha o idioma da tradução",
+      "title": "Tradução",
+      "searchPlaceholder": "Buscar idioma...",
+      "translating": "Traduzindo...",
+      "compactAction": "Traduzir",
+      "translateText": "Traduzir texto",
+      "translateTasks": "Traduzir tarefas",
+      "reset": "Redefinir tradução",
+      "failed": "Falha na tradução",
+      "translatedLabel": "Traduzido"
+    },
+    "text": {
+      "title": "Texto",
+      "speed": "Velocidade",
+      "generating": "Gerando...",
+      "nowPlaying": "Reproduzindo agora",
+      "audioSourceOriginal": "Texto original",
+      "audioSourceTranslation": "Texto traduzido",
+      "playAudio": "Reproduzir áudio",
+      "loginToPlayAudio": "Entre para reproduzir áudio",
+      "playOriginal": "Ouvir original",
+      "playTranslation": "Ouvir tradução",
+      "stop": "Parar",
+      "pause": "Pausar",
+      "continue": "Continuar",
+      "replaySentence": "Repetir frase",
+      "prev": "Anterior",
+      "next": "Próximo",
+      "hideTranslation": "Ocultar tradução",
+      "showTranslation": "Mostrar tradução",
+      "noText": "Sem texto",
+      "clickToSeek": "Clique para pular no áudio"
+    },
+    "tasks": {
+      "title": "Tarefas",
+      "showAnswers": "Mostrar respostas",
+      "hideAnswers": "Ocultar respostas",
+      "clearAnswers": "Limpar respostas",
+      "noTasks": "Nenhuma tarefa nesta lição.",
+      "taskLabel": "Tarefa {n}",
+      "showTranslation": "Mostrar tradução",
+      "hideTranslation": "Ocultar tradução",
+      "showAllTranslations": "Mostrar todas as traduções",
+      "hideAllTranslations": "Ocultar todas as traduções",
+      "correct": "Correto",
+      "wrong": "Incorreto",
+      "yourAnswer": "Sua resposta",
+      "writeAnswerPlaceholder": "Escreva sua resposta...",
+      "true": "Verdadeiro",
+      "false": "Falso"
+    },
+    "feedback": {
+      "title": "Feedback",
+      "subtitle": "Envie suas respostas para receber feedback.",
+      "submitting": "Enviando...",
+      "generatingNew": "Gerando novo feedback...",
+      "usage": "Você tem {remaining} de {limit} feedbacks restantes.",
+      "limitReached": "Você usou todos os feedbacks deste período.",
+      "limitReachedShort": "Limite atingido",
+      "loginForFeedback": "Entrar para feedback",
+      "getFeedback": "Obter resposta / feedback",
+      "generate": "Gerar feedback",
+      "playAudio": "Reproduzir feedback",
+      "translateFeedback": "Traduzir feedback",
+      "translateButtonTitle": "Traduzir feedback",
+      "translating": "Traduzindo...",
+      "resultLabel": "Resultado",
+      "anonHint": "Modo anônimo: respostas salvas localmente. Entre para feedback de IA.",
+      "noFeedbackYet": "Ainda sem feedback. Envie quando estiver pronto.",
+      "translatedFeedbackLabel": "Feedback traduzido",
+      "translateFailed": "Falha ao traduzir feedback",
+      "loginToGetFeedback": "Entre para obter feedback de IA",
+      "errors": {
+        "answerAtLeastOne": "Responda pelo menos uma tarefa primeiro"
+      }
+    },
+    "tts": {
+      "failed": "Falha no TTS"
+    },
+    "flash": {
+      "saved": "Salvo",
+      "submitted": "Enviado",
+      "answerAtLeastOne": "Responda pelo menos uma tarefa primeiro",
+      "loginToGetFeedback": "Entre para obter feedback de IA",
+      "clearedAnswers": "Respostas limpas"
+    }
+  }
+}

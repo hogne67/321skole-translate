@@ -1295,12 +1295,16 @@
     "actions": {
       "saving": "Saving…",
       "saveOnDevice": "SAVE ON THIS DEVICE",
+      "saveShort": "Save",
       "saveToMyContent": "SAVE TO MY CONTENT"
     },
     "translate": {
       "label": "Translate to",
+      "languageLabel": "Choose translation language",
+      "title": "Translation",
       "searchPlaceholder": "Search language…",
       "translating": "Translating…",
+      "compactAction": "Translate",
       "translateText": "Translate text",
       "translateTasks": "Translate tasks",
       "reset": "Reset translation",
@@ -1311,6 +1315,11 @@
       "title": "Text",
       "speed": "Speed",
       "generating": "Generating…",
+      "nowPlaying": "Now playing",
+      "audioSourceOriginal": "Original text",
+      "audioSourceTranslation": "Translated text",
+      "playAudio": "Play audio",
+      "loginToPlayAudio": "Log in to play audio",
       "playOriginal": "🔊 Play original",
       "playTranslation": "🔊 Play translation",
       "stop": "⏹ Stop",
@@ -1344,18 +1353,28 @@
     },
     "feedback": {
       "title": "Feedback",
+      "subtitle": "Submit your answers to get feedback.",
       "submitting": "Submitting…",
+      "generatingNew": "Generating new feedback…",
+      "usage": "You have {remaining} of {limit} feedbacks left.",
+      "limitReached": "You have used all feedback for this period.",
+      "limitReachedShort": "Limit reached",
       "loginForFeedback": "LOG IN FOR FEEDBACK",
       "getFeedback": "GET ANSWER / FEEDBACK",
       "generate": "Generate feedback",
+      "playAudio": "Play feedback",
       "translateFeedback": "TRANSLATE FEEDBACK",
       "translateButtonTitle": "Translate feedback",
       "translating": "Translating…",
+      "resultLabel": "Result",
       "anonHint": "Anonymous mode: answers saved locally. Log in for AI feedback.",
       "noFeedbackYet": "No feedback yet. Submit when ready.",
       "translatedFeedbackLabel": "Translated feedback",
       "translateFailed": "Translate feedback failed",
-      "loginToGetFeedback": "Log in to get AI feedback"
+      "loginToGetFeedback": "Log in to get AI feedback",
+      "errors": {
+        "answerAtLeastOne": "Answer at least one task first"
+      }
     },
     "tts": {
       "failed": "TTS failed"

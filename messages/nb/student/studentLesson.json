@@ -1,0 +1,126 @@
+{
+  "studentLesson": {
+    "loading": "Laster...",
+    "noData": "Ingen data.",
+    "fallback": {
+      "lessonTitle": "Oppgave"
+    },
+    "nav": {
+      "backToDashboard": "Tilbake til Mitt innhold",
+      "backToPreview": "Tilbake til forhåndsvisning",
+      "backToLibrary": "Tilbake til biblioteket"
+    },
+    "errors": {
+      "missingLessonId": "Mangler lessonId i URL.",
+      "notPublished": "Denne oppgaven er ikke publisert eller er avpublisert.",
+      "notFound": "Denne oppgaven er ikke publisert eller finnes ikke.",
+      "noAccess": "Denne oppgaven er ikke publisert, eller du har ikke tilgang.",
+      "generic": "Noe gikk galt",
+      "couldNotSave": "Kunne ikke lagre",
+      "couldNotSubmit": "Kunne ikke sende inn"
+    },
+    "anon": {
+      "savedLocally": "Du er anonym: svar lagres på denne enheten."
+    },
+    "image": {
+      "title": "Bilde",
+      "alt": "Oppgavebilde",
+      "noImageTitle": "Ingen bilde ennå",
+      "noImageHint": "Denne plassen er reservert for et opplastet bilde."
+    },
+    "actions": {
+      "saving": "Lagrer...",
+      "saveOnDevice": "Lagre på denne enheten",
+      "saveShort": "Lagre",
+      "saveToMyContent": "Lagre til Mitt innhold"
+    },
+    "translate": {
+      "label": "Oversett til",
+      "languageLabel": "Velg oversettelsesspråk",
+      "title": "Oversettelse",
+      "searchPlaceholder": "Søk språk...",
+      "translating": "Oversetter...",
+      "compactAction": "Oversett",
+      "translateText": "Oversett tekst",
+      "translateTasks": "Oversett oppgaver",
+      "reset": "Nullstill oversettelse",
+      "failed": "Oversettelse feilet",
+      "translatedLabel": "Oversatt"
+    },
+    "text": {
+      "title": "Tekst",
+      "speed": "Hastighet",
+      "generating": "Genererer...",
+      "nowPlaying": "Spiller nå",
+      "audioSourceOriginal": "Originaltekst",
+      "audioSourceTranslation": "Oversatt tekst",
+      "playAudio": "Spill lyd",
+      "loginToPlayAudio": "Logg inn for å spille lyd",
+      "playOriginal": "Spill original",
+      "playTranslation": "Spill oversettelse",
+      "stop": "Stopp",
+      "pause": "Pause",
+      "continue": "Fortsett",
+      "replaySentence": "Spill setning på nytt",
+      "prev": "Forrige",
+      "next": "Neste",
+      "hideTranslation": "Skjul oversettelse",
+      "showTranslation": "Vis oversettelse",
+      "noText": "Ingen tekst",
+      "clickToSeek": "Klikk for å hoppe i lyden"
+    },
+    "tasks": {
+      "title": "Oppgaver",
+      "showAnswers": "Vis svar",
+      "hideAnswers": "Skjul svar",
+      "clearAnswers": "Tøm svar",
+      "noTasks": "Ingen oppgaver i denne leksjonen.",
+      "taskLabel": "Oppgave {n}",
+      "showTranslation": "Vis oversettelse",
+      "hideTranslation": "Skjul oversettelse",
+      "showAllTranslations": "Vis alle oversettelser",
+      "hideAllTranslations": "Skjul alle oversettelser",
+      "correct": "Riktig",
+      "wrong": "Feil",
+      "yourAnswer": "Ditt svar",
+      "writeAnswerPlaceholder": "Skriv svaret ditt...",
+      "true": "Sant",
+      "false": "Usant"
+    },
+    "feedback": {
+      "title": "Tilbakemelding",
+      "subtitle": "Send inn svarene dine for å få tilbakemelding.",
+      "submitting": "Sender inn...",
+      "generatingNew": "Lager ny tilbakemelding...",
+      "usage": "Du har {remaining} av {limit} tilbakemeldinger igjen.",
+      "limitReached": "Du har brukt opp tilbakemeldingene dine for denne perioden.",
+      "limitReachedShort": "Grense nådd",
+      "loginForFeedback": "Logg inn for tilbakemelding",
+      "getFeedback": "Få svar / tilbakemelding",
+      "generate": "Generer tilbakemelding",
+      "playAudio": "Spill feedback",
+      "translateFeedback": "Oversett tilbakemelding",
+      "translateButtonTitle": "Oversett tilbakemelding",
+      "translating": "Oversetter...",
+      "resultLabel": "Resultat",
+      "anonHint": "Anonym modus: svar lagres lokalt. Logg inn for AI-tilbakemelding.",
+      "noFeedbackYet": "Ingen tilbakemelding ennå. Send inn når du er klar.",
+      "translatedFeedbackLabel": "Oversatt tilbakemelding",
+      "translateFailed": "Kunne ikke oversette tilbakemelding",
+      "loginToGetFeedback": "Logg inn for å få AI-tilbakemelding",
+      "errors": {
+        "answerAtLeastOne": "Svar på minst én oppgave først"
+      }
+    },
+    "tts": {
+      "failed": "TTS feilet"
+    },
+    "flash": {
+      "saved": "Lagret",
+      "submitted": "Sendt inn",
+      "answerAtLeastOne": "Svar på minst én oppgave først",
+      "loginToGetFeedback": "Logg inn for å få AI-tilbakemelding",
+      "clearedAnswers": "Svar tømt"
+    }
+  }
+}

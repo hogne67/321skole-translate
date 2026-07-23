@@ -39,6 +39,7 @@ import studentSpaces from "./student/studentSpaces.json";
 import studentSpaceDetail from "./student/studentspaceDetail.json";
 import studentAssignment from "./student/studentAssignment.json";
 import studentSubmission from "./student/studentSubmission.json";
+import studentLesson from "./student/studentLesson.json";
 import studentDashboard from "./student/dashboard.json";
 import studentDashboardIntro from "./student/dashboardIntro.json";
 import studentBoard from "./student/studentBoard.json";
@@ -128,6 +129,7 @@ const nbMessages = {
   ...studentSpaceDetail,
   ...studentAssignment,
   ...studentSubmission,
+  ...studentLesson,
   ...studentDashboard,
   ...studentDashboardIntro,
   ...studentBoard,

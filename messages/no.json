@@ -1295,12 +1295,16 @@
     "actions": {
       "saving": "Lagrer…",
       "saveOnDevice": "LAGRE PÅ DENNE ENHETEN",
+      "saveShort": "Lagre",
       "saveToMyContent": "LAGRE TIL MITT INNHOLD"
     },
     "translate": {
       "label": "Oversett til",
+      "languageLabel": "Velg oversettelsesspråk",
+      "title": "Oversettelse",
       "searchPlaceholder": "Søk språk…",
       "translating": "Oversetter…",
+      "compactAction": "Oversett",
       "translateText": "Oversett tekst",
       "translateTasks": "Oversett oppgaver",
       "reset": "Nullstill oversettelse",
@@ -1311,6 +1315,11 @@
       "title": "Tekst",
       "speed": "Hastighet",
       "generating": "Genererer…",
+      "nowPlaying": "Spiller nå",
+      "audioSourceOriginal": "Originaltekst",
+      "audioSourceTranslation": "Oversatt tekst",
+      "playAudio": "Spill lyd",
+      "loginToPlayAudio": "Logg inn for å spille lyd",
       "playOriginal": "🔊 Spill original",
       "playTranslation": "🔊 Spill oversettelse",
       "stop": "⏹ Stopp",
@@ -1344,18 +1353,28 @@
     },
     "feedback": {
       "title": "Tilbakemelding",
+      "subtitle": "Send inn svarene dine for å få tilbakemelding.",
       "submitting": "Sender inn…",
+      "generatingNew": "Lager ny tilbakemelding…",
+      "usage": "Du har {remaining} av {limit} tilbakemeldinger igjen.",
+      "limitReached": "Du har brukt opp tilbakemeldingene dine for denne perioden.",
+      "limitReachedShort": "Grense nådd",
       "loginForFeedback": "LOGG INN FOR TILBAKEMELDING",
       "getFeedback": "FÅ SVAR / TILBAKEMELDING",
       "generate": "Generer tilbakemelding",
+      "playAudio": "Spill feedback",
       "translateFeedback": "OVERSETT TILBAKEMELDING",
       "translateButtonTitle": "Oversett tilbakemelding",
       "translating": "Oversetter…",
+      "resultLabel": "Resultat",
       "anonHint": "Anonym modus: svar lagres lokalt. Logg inn for AI-tilbakemelding.",
       "noFeedbackYet": "Ingen tilbakemelding ennå. Send inn når du er klar.",
       "translatedFeedbackLabel": "Oversatt tilbakemelding",
       "translateFailed": "Kunne ikke oversette tilbakemelding",
-      "loginToGetFeedback": "Logg inn for å få AI-tilbakemelding"
+      "loginToGetFeedback": "Logg inn for å få AI-tilbakemelding",
+      "errors": {
+        "answerAtLeastOne": "Svar på minst én oppgave først"
+      }
     },
     "tts": {
       "failed": "TTS feilet"

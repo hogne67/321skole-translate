@@ -918,7 +918,7 @@ function buildSvarString(lessonObj: Lesson, answersObj: AnswersMap): string {
 }
 
 export default function StudentLessonPage() {
-  const t = useTranslations("lessonsLanding");
+  const t = useTranslations("studentLesson");
   const tReading = useTranslations("readingTestPlayer");
   const locale = useLocale();
 
@@ -951,6 +951,7 @@ export default function StudentLessonPage() {
 
   const [uid, setUid] = useState<string | null>(null);
   const [isAnon, setIsAnon] = useState<boolean>(true);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   const [answers, setAnswers] = useState<AnswersMap>({});
   const [saving, setSaving] = useState(false);
@@ -1018,6 +1019,13 @@ export default function StudentLessonPage() {
   const [activeTextMode, setActiveTextMode] = useState<AudioMode | null>(null);
   const [activeSentenceIndex, setActiveSentenceIndex] = useState<number | null>(null);
   const [activeSoundSectionKey, setActiveSoundSectionKey] = useState<LessonTextSectionKey | null>(null);
+
+  useEffect(() => {
+    const update = () => setIsMobileView(window.innerWidth < 720);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const sourceTextSafe = useMemo(() => {
     const txt = (lesson?.sourceText ?? lesson?.text ?? "").toString();
@@ -2314,7 +2322,7 @@ export default function StudentLessonPage() {
       </section>
       ) : null}
 
-      <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={lessonUtilityRowStyle}>
         {!isReadingTest ? (
           <div style={translateToolStyle}>
             <SearchableSelect
@@ -2344,16 +2352,17 @@ export default function StudentLessonPage() {
         ) : null}
 
         <button
+          type="button"
           onClick={saveDraft}
           disabled={saving || !uid}
+          aria-label={isCourseMode ? "Save course draft" : t("actions.saveToMyContent")}
+          title={isCourseMode ? "Save course draft" : t("actions.saveToMyContent")}
           style={{
-            ...greenBtnStyle,
-            fontWeight: 700,
+            ...saveToContentBtnStyle,
             opacity: saving ? 0.6 : 1,
-            minWidth: 120,
           }}
         >
-          {saving ? t("actions.saving") : isCourseMode ? "Save course draft" : t("actions.save")}
+          {saving ? t("actions.saving") : isCourseMode ? "Save draft" : t("actions.saveShort")}
         </button>
       </div>
 
@@ -3146,14 +3155,15 @@ export default function StudentLessonPage() {
         <div
           style={{
             position: "fixed",
-            left: "50%",
-            width: "calc(100% - 24px)",
+            left: isMobileView ? 8 : "50%",
+            right: isMobileView ? 8 : undefined,
+            width: isMobileView ? "auto" : "calc(100% - 24px)",
             maxWidth: 980,
-            bottom: 12,
-            transform: "translateX(-50%)",
+            bottom: isMobileView ? 8 : 12,
+            transform: isMobileView ? "none" : "translateX(-50%)",
             zIndex: 60,
-            padding: 12,
-            borderRadius: 16,
+            padding: isMobileView ? 8 : 12,
+            borderRadius: isMobileView ? 14 : 16,
             border: "1px solid rgba(0,0,0,0.14)",
             background: "rgba(255,255,255,0.96)",
             boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
@@ -3165,12 +3175,12 @@ export default function StudentLessonPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 10,
+              gap: isMobileView ? 6 : 10,
               flexWrap: "wrap",
-              marginBottom: 8,
+              marginBottom: isMobileView ? 6 : 8,
             }}
           >
-            <div style={{ fontSize: 13, opacity: 0.8, fontWeight: 600 }}>
+            <div style={{ fontSize: 13, opacity: 0.8, fontWeight: 700, flex: "1 1 180px" }}>
               {t("text.nowPlaying")}: {stickyAudioLabel}
             </div>
 
@@ -3178,50 +3188,47 @@ export default function StudentLessonPage() {
               <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>{t("text.speed")}</span>
               <button
                 type="button"
-                style={playbackRate === 0.8 ? speedBtnActiveStyle : speedBtnStyle}
+                style={playbackRate === 0.8 ? compactSpeedBtnActiveStyle : compactSpeedBtnStyle}
                 onClick={() => setPlaybackRate(0.8)}
               >
                 0.8x
               </button>
               <button
                 type="button"
-                style={playbackRate === 1 ? speedBtnActiveStyle : speedBtnStyle}
+                style={playbackRate === 1 ? compactSpeedBtnActiveStyle : compactSpeedBtnStyle}
                 onClick={() => setPlaybackRate(1)}
               >
                 1x
               </button>
               <button
                 type="button"
-                style={playbackRate === 1.2 ? speedBtnActiveStyle : speedBtnStyle}
+                style={playbackRate === 1.2 ? compactSpeedBtnActiveStyle : compactSpeedBtnStyle}
                 onClick={() => setPlaybackRate(1.2)}
               >
                 1.2x
               </button>
-              <span style={{ fontSize: 12, minWidth: 42, textAlign: "right", color: "#64748b" }}>
-                {playbackRate.toFixed(1)}x
-              </span>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" style={{ ...btnStyle, minWidth: 44 }} onClick={prevSentence} title={t("text.prev")}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobileView ? 6 : 8, flexWrap: "wrap" }}>
+            <button type="button" style={{ ...audioPlayerBtnStyle, minWidth: 40 }} onClick={prevSentence} title={t("text.prev")}>
               ⏮
             </button>
 
             <button
               type="button"
-              style={{ ...yellowBtnStyle, minWidth: 52, fontWeight: 700 }}
+              style={{ ...audioPlayerPrimaryBtnStyle, minWidth: 46, fontWeight: 800 }}
               onClick={isPlaying ? pauseAudio : resumeAudio}
               title={isPlaying ? t("text.pause") : t("text.continue")}
             >
               {isPlaying ? "⏸" : "▶"}
             </button>
 
-            <button type="button" style={{ ...redBtnStyle, minWidth: 44 }} onClick={stopAudio} title={t("text.stop")}>
+            <button type="button" style={{ ...audioPlayerStopBtnStyle, minWidth: 40 }} onClick={stopAudio} title={t("text.stop")}>
               ⏹
             </button>
 
-            <button type="button" style={{ ...btnStyle, minWidth: 44 }} onClick={nextSentence} title={t("text.next")}>
+            <button type="button" style={{ ...audioPlayerBtnStyle, minWidth: 40 }} onClick={nextSentence} title={t("text.next")}>
               ⏭
             </button>
 
@@ -3229,10 +3236,10 @@ export default function StudentLessonPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                flex: "1 1 280px",
-                minWidth: 220,
-                marginLeft: 4,
+                gap: isMobileView ? 6 : 8,
+                flex: isMobileView ? "1 1 100%" : "1 1 280px",
+                minWidth: isMobileView ? "100%" : 220,
+                marginLeft: isMobileView ? 0 : 4,
               }}
             >
               <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(currentTime)}</span>
@@ -3339,6 +3346,15 @@ const translateToolStyle: React.CSSProperties = {
   background: "rgba(239,246,255,0.82)",
 };
 
+const lessonUtilityRowStyle: React.CSSProperties = {
+  marginTop: 14,
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 8,
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+};
+
 const audioIconBtnStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -3385,8 +3401,14 @@ const speedBtnStyle: React.CSSProperties = {
   fontWeight: 700,
 };
 
-const speedBtnActiveStyle: React.CSSProperties = {
+const compactSpeedBtnStyle: React.CSSProperties = {
   ...speedBtnStyle,
+  padding: "6px 9px",
+  minHeight: 32,
+};
+
+const compactSpeedBtnActiveStyle: React.CSSProperties = {
+  ...compactSpeedBtnStyle,
   border: "1px solid rgba(37,99,235,0.70)",
   background: "rgba(59,130,246,0.16)",
   color: "#1d4ed8",
@@ -3432,16 +3454,37 @@ const greenBtnStyle: React.CSSProperties = {
   color: "#166534",
 };
 
-const yellowBtnStyle: React.CSSProperties = {
+const audioPlayerBtnStyle: React.CSSProperties = {
   ...btnStyle,
+  padding: "8px 10px",
+  minHeight: 40,
+  borderRadius: 12,
+};
+
+const audioPlayerPrimaryBtnStyle: React.CSSProperties = {
+  ...audioPlayerBtnStyle,
   border: "1px solid rgba(202,138,4,0.45)",
   background: "rgba(250,204,21,0.20)",
   color: "#854d0e",
 };
 
-const redBtnStyle: React.CSSProperties = {
-  ...btnStyle,
+const audioPlayerStopBtnStyle: React.CSSProperties = {
+  ...audioPlayerBtnStyle,
   border: "1px solid rgba(220,38,38,0.42)",
   background: "rgba(239,68,68,0.16)",
   color: "#b91c1c",
+};
+
+const saveToContentBtnStyle: React.CSSProperties = {
+  ...btnStyle,
+  border: "1px solid rgba(22,163,74,0.34)",
+  background: "rgba(255,255,255,0.94)",
+  color: "#166534",
+  fontSize: 13,
+  fontWeight: 800,
+  minHeight: 40,
+  minWidth: 0,
+  padding: "8px 11px",
+  boxShadow: "none",
+  whiteSpace: "nowrap",
 };

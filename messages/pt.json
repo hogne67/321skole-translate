@@ -1295,12 +1295,16 @@
     "actions": {
       "saving": "Salvando…",
       "saveOnDevice": "SALVAR NESTE DISPOSITIVO",
+      "saveShort": "Salvar",
       "saveToMyContent": "SALVAR NO MEU CONTEÚDO"
     },
     "translate": {
       "label": "Traduzir para",
+      "languageLabel": "Escolha o idioma da tradução",
+      "title": "Tradução",
       "searchPlaceholder": "Buscar idioma…",
       "translating": "Traduzindo…",
+      "compactAction": "Traduzir",
       "translateText": "Traduzir texto",
       "translateTasks": "Traduzir tarefas",
       "reset": "Redefinir tradução",
@@ -1311,6 +1315,11 @@
       "title": "Texto",
       "speed": "Velocidade",
       "generating": "Gerando…",
+      "nowPlaying": "Reproduzindo agora",
+      "audioSourceOriginal": "Texto original",
+      "audioSourceTranslation": "Texto traduzido",
+      "playAudio": "Reproduzir áudio",
+      "loginToPlayAudio": "Entre para reproduzir áudio",
       "playOriginal": "🔊 Ouvir original",
       "playTranslation": "🔊 Ouvir tradução",
       "stop": "⏹ Parar",
@@ -1344,18 +1353,28 @@
     },
     "feedback": {
       "title": "Feedback",
+      "subtitle": "Envie suas respostas para receber feedback.",
       "submitting": "Enviando…",
+      "generatingNew": "Gerando novo feedback…",
+      "usage": "Você tem {remaining} de {limit} feedbacks restantes.",
+      "limitReached": "Você usou todos os feedbacks deste período.",
+      "limitReachedShort": "Limite atingido",
       "loginForFeedback": "ENTRAR PARA FEEDBACK",
       "getFeedback": "OBTER RESPOSTA / FEEDBACK",
       "generate": "Gerar feedback",
+      "playAudio": "Reproduzir feedback",
       "translateFeedback": "TRADUZIR FEEDBACK",
       "translateButtonTitle": "Traduzir feedback",
       "translating": "Traduzindo…",
+      "resultLabel": "Resultado",
       "anonHint": "Modo anônimo: respostas salvas localmente. Entre para feedback de IA.",
       "noFeedbackYet": "Ainda sem feedback. Envie quando estiver pronto.",
       "translatedFeedbackLabel": "Feedback traduzido",
       "translateFailed": "Falha ao traduzir feedback",
-      "loginToGetFeedback": "Entre para obter feedback de IA"
+      "loginToGetFeedback": "Entre para obter feedback de IA",
+      "errors": {
+        "answerAtLeastOne": "Responda pelo menos uma tarefa primeiro"
+      }
     },
     "tts": {
       "failed": "Falha no TTS"

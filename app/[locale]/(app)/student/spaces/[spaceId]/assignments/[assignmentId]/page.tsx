@@ -77,7 +77,6 @@ import AssignmentPageState from "./AssignmentPageState";
 import StandardAssignmentSection from "./StandardAssignmentSection";
 import { getAssignmentDerivedState } from "./assignmentDerivedState";
 import { useAssignmentAudio } from "./useAssignmentAudio";
-import StudentAssignmentStickyActions from "./StudentAssignmentStickyActions";
 import { DraftButton } from "./AssignmentActionButtons";
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
@@ -1177,11 +1176,6 @@ export default function StudentAssignmentPage() {
     );
   }
 
-  const stickyAudioLabel =
-    activeTextMode === "translation"
-      ? t("text.translation")
-      : t("text.original");
-
   const showStatusCard = !!(sid || submissionId || editingSubmissionId || liveStatus);
   const effectiveStatus = normalizeStatus(liveStatus ?? (editingSubmissionId ? "draft" : sid ? "submitted" : ""));
   const lock = isLockedByTeacher();
@@ -1433,21 +1427,9 @@ export default function StudentAssignmentPage() {
         t={tString}
       />
 
-      <StudentAssignmentStickyActions
-        showSubmitButton={showSubmitButton}
-        submitting={submitting}
-        lock={lock}
-        uid={uid}
-        submitLabel={submitLabel}
-        submitDisabled={submitDisabled}
-        isReadingTest={isReadingTest}
-        t={tString}
-        onSubmit={() => submitToSpace("manual")}
-      />
-
       <StudentAssignmentAudioBar
-        visible={!!audioRef.current}
-        label={stickyAudioLabel}
+        visible={(showSubmitButton && !isReadingTest && !lock && !!uid) || !!audioRef.current}
+        audioActive={!!audioRef.current}
         playbackRate={playbackRate}
         isPlaying={isPlaying}
         currentTime={currentTime}
@@ -1471,6 +1453,11 @@ export default function StudentAssignmentPage() {
           if (!a) return;
           a.currentTime = value;
         }}
+        showSubmitButton={showSubmitButton && !isReadingTest && !lock && !!uid}
+        submitting={submitting}
+        submitLabel={submitLabel}
+        submitDisabled={submitDisabled}
+        onSubmit={() => submitToSpace("manual")}
       />
     </main>
   );

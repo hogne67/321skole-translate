@@ -1,0 +1,126 @@
+{
+  "studentLesson": {
+    "loading": "Loading...",
+    "noData": "No data.",
+    "fallback": {
+      "lessonTitle": "Lesson"
+    },
+    "nav": {
+      "backToDashboard": "Back to My content",
+      "backToPreview": "Back to preview",
+      "backToLibrary": "Back to library"
+    },
+    "errors": {
+      "missingLessonId": "Missing lessonId in URL.",
+      "notPublished": "This lesson is not published or has been unpublished.",
+      "notFound": "This lesson is not published or does not exist.",
+      "noAccess": "This lesson is not published, or you do not have access.",
+      "generic": "Something went wrong",
+      "couldNotSave": "Could not save",
+      "couldNotSubmit": "Could not submit"
+    },
+    "anon": {
+      "savedLocally": "You are anonymous: answers are saved on this device."
+    },
+    "image": {
+      "title": "Image",
+      "alt": "Lesson image",
+      "noImageTitle": "No image yet",
+      "noImageHint": "This space is reserved for an uploaded image."
+    },
+    "actions": {
+      "saving": "Saving...",
+      "saveOnDevice": "Save on this device",
+      "saveShort": "Save",
+      "saveToMyContent": "Save to My content"
+    },
+    "translate": {
+      "label": "Translate to",
+      "languageLabel": "Choose translation language",
+      "title": "Translation",
+      "searchPlaceholder": "Search language...",
+      "translating": "Translating...",
+      "compactAction": "Translate",
+      "translateText": "Translate text",
+      "translateTasks": "Translate tasks",
+      "reset": "Reset translation",
+      "failed": "Translate failed",
+      "translatedLabel": "Translated"
+    },
+    "text": {
+      "title": "Text",
+      "speed": "Speed",
+      "generating": "Generating...",
+      "nowPlaying": "Now playing",
+      "audioSourceOriginal": "Original text",
+      "audioSourceTranslation": "Translated text",
+      "playAudio": "Play audio",
+      "loginToPlayAudio": "Log in to play audio",
+      "playOriginal": "Play original",
+      "playTranslation": "Play translation",
+      "stop": "Stop",
+      "pause": "Pause",
+      "continue": "Continue",
+      "replaySentence": "Replay sentence",
+      "prev": "Previous",
+      "next": "Next",
+      "hideTranslation": "Hide translation",
+      "showTranslation": "Show translation",
+      "noText": "No text",
+      "clickToSeek": "Click to jump in audio"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "showAnswers": "Show answers",
+      "hideAnswers": "Hide answers",
+      "clearAnswers": "Clear answers",
+      "noTasks": "No tasks in this lesson.",
+      "taskLabel": "Task {n}",
+      "showTranslation": "Show translation",
+      "hideTranslation": "Hide translation",
+      "showAllTranslations": "Show all translations",
+      "hideAllTranslations": "Hide all translations",
+      "correct": "Correct",
+      "wrong": "Wrong",
+      "yourAnswer": "Your answer",
+      "writeAnswerPlaceholder": "Write your answer...",
+      "true": "True",
+      "false": "False"
+    },
+    "feedback": {
+      "title": "Feedback",
+      "subtitle": "Submit your answers to get feedback.",
+      "submitting": "Submitting...",
+      "generatingNew": "Generating new feedback...",
+      "usage": "You have {remaining} of {limit} feedbacks left.",
+      "limitReached": "You have used all feedback for this period.",
+      "limitReachedShort": "Limit reached",
+      "loginForFeedback": "Log in for feedback",
+      "getFeedback": "Get answer / feedback",
+      "generate": "Generate feedback",
+      "playAudio": "Play feedback",
+      "translateFeedback": "Translate feedback",
+      "translateButtonTitle": "Translate feedback",
+      "translating": "Translating...",
+      "resultLabel": "Result",
+      "anonHint": "Anonymous mode: answers saved locally. Log in for AI feedback.",
+      "noFeedbackYet": "No feedback yet. Submit when ready.",
+      "translatedFeedbackLabel": "Translated feedback",
+      "translateFailed": "Translate feedback failed",
+      "loginToGetFeedback": "Log in to get AI feedback",
+      "errors": {
+        "answerAtLeastOne": "Answer at least one task first"
+      }
+    },
+    "tts": {
+      "failed": "TTS failed"
+    },
+    "flash": {
+      "saved": "Saved",
+      "submitted": "Submitted",
+      "answerAtLeastOne": "Answer at least one task first",
+      "loginToGetFeedback": "Log in to get AI feedback",
+      "clearedAnswers": "Cleared answers"
+    }
+  }
+}
