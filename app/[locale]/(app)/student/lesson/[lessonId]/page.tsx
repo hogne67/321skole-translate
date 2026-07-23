@@ -1114,15 +1114,6 @@ export default function StudentLessonPage() {
     return m;
   }, [translatedTasks]);
 
-  const stickyAudioLabel =
-    activeTextMode === "text_translation" || activeTextMode === "feedback_translation"
-      ? t("text.audioSourceTranslation")
-      : activeTextMode === "feedback_original"
-        ? t("feedback.title")
-        : activeTextMode === "task_original"
-          ? t("tasks.title")
-          : t("text.audioSourceOriginal");
-
   const loginHref = useMemo(() => {
     const next = `/${locale}/student/lesson/${lessonId}`;
     return `/${locale}/login?next=${encodeURIComponent(next)}`;
@@ -2351,19 +2342,6 @@ export default function StudentLessonPage() {
           </button>
         ) : null}
 
-        <button
-          type="button"
-          onClick={saveDraft}
-          disabled={saving || !uid}
-          aria-label={isCourseMode ? "Save course draft" : t("actions.saveToMyContent")}
-          title={isCourseMode ? "Save course draft" : t("actions.saveToMyContent")}
-          style={{
-            ...saveToContentBtnStyle,
-            opacity: saving ? 0.6 : 1,
-          }}
-        >
-          {saving ? t("actions.saving") : isCourseMode ? "Save draft" : t("actions.saveShort")}
-        </button>
       </div>
 
       {isReadingTest ? (
@@ -3151,7 +3129,7 @@ export default function StudentLessonPage() {
         </Link>
       </section>
 
-      {audioRef.current ? (
+      {!isReadingTest ? (
         <div
           style={{
             position: "fixed",
@@ -3162,7 +3140,7 @@ export default function StudentLessonPage() {
             bottom: isMobileView ? 8 : 12,
             transform: isMobileView ? "none" : "translateX(-50%)",
             zIndex: 60,
-            padding: isMobileView ? 8 : 12,
+            padding: isMobileView ? 8 : 10,
             borderRadius: isMobileView ? 14 : 16,
             border: "1px solid rgba(0,0,0,0.14)",
             background: "rgba(255,255,255,0.96)",
@@ -3170,65 +3148,56 @@ export default function StudentLessonPage() {
             backdropFilter: "blur(8px)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: isMobileView ? 6 : 10,
-              flexWrap: "wrap",
-              marginBottom: isMobileView ? 6 : 8,
-            }}
-          >
-            <div style={{ fontSize: 13, opacity: 0.8, fontWeight: 700, flex: "1 1 180px" }}>
-              {t("text.nowPlaying")}: {stickyAudioLabel}
-            </div>
-
-            <div style={speedGroupStyle}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>{t("text.speed")}</span>
-              <button
-                type="button"
-                style={playbackRate === 0.8 ? compactSpeedBtnActiveStyle : compactSpeedBtnStyle}
-                onClick={() => setPlaybackRate(0.8)}
-              >
-                0.8x
-              </button>
-              <button
-                type="button"
-                style={playbackRate === 1 ? compactSpeedBtnActiveStyle : compactSpeedBtnStyle}
-                onClick={() => setPlaybackRate(1)}
-              >
-                1x
-              </button>
-              <button
-                type="button"
-                style={playbackRate === 1.2 ? compactSpeedBtnActiveStyle : compactSpeedBtnStyle}
-                onClick={() => setPlaybackRate(1.2)}
-              >
-                1.2x
-              </button>
-            </div>
-          </div>
-
           <div style={{ display: "flex", alignItems: "center", gap: isMobileView ? 6 : 8, flexWrap: "wrap" }}>
-            <button type="button" style={{ ...audioPlayerBtnStyle, minWidth: 40 }} onClick={prevSentence} title={t("text.prev")}>
+            <button
+              type="button"
+              disabled={!audioRef.current}
+              style={{
+                ...(isMobileView ? mobileAudioPlayerBtnStyle : audioPlayerBtnStyle),
+                opacity: audioRef.current ? 1 : 0.45,
+              }}
+              onClick={prevSentence}
+              title={t("text.prev")}
+            >
               ⏮
             </button>
 
             <button
               type="button"
-              style={{ ...audioPlayerPrimaryBtnStyle, minWidth: 46, fontWeight: 800 }}
+              disabled={!audioRef.current}
+              style={{
+                ...(isMobileView ? mobileAudioPlayerPrimaryBtnStyle : audioPlayerPrimaryBtnStyle),
+                opacity: audioRef.current ? 1 : 0.45,
+              }}
               onClick={isPlaying ? pauseAudio : resumeAudio}
               title={isPlaying ? t("text.pause") : t("text.continue")}
             >
               {isPlaying ? "⏸" : "▶"}
             </button>
 
-            <button type="button" style={{ ...audioPlayerStopBtnStyle, minWidth: 40 }} onClick={stopAudio} title={t("text.stop")}>
+            <button
+              type="button"
+              disabled={!audioRef.current}
+              style={{
+                ...(isMobileView ? mobileAudioPlayerStopBtnStyle : audioPlayerStopBtnStyle),
+                opacity: audioRef.current ? 1 : 0.45,
+              }}
+              onClick={stopAudio}
+              title={t("text.stop")}
+            >
               ⏹
             </button>
 
-            <button type="button" style={{ ...audioPlayerBtnStyle, minWidth: 40 }} onClick={nextSentence} title={t("text.next")}>
+            <button
+              type="button"
+              disabled={!audioRef.current}
+              style={{
+                ...(isMobileView ? mobileAudioPlayerBtnStyle : audioPlayerBtnStyle),
+                opacity: audioRef.current ? 1 : 0.45,
+              }}
+              onClick={nextSentence}
+              title={t("text.next")}
+            >
               ⏭
             </button>
 
@@ -3237,8 +3206,8 @@ export default function StudentLessonPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: isMobileView ? 6 : 8,
-                flex: isMobileView ? "1 1 100%" : "1 1 280px",
-                minWidth: isMobileView ? "100%" : 220,
+                flex: isMobileView ? "1 1 calc(100% - 142px)" : "1 1 280px",
+                minWidth: isMobileView ? 120 : 220,
                 marginLeft: isMobileView ? 0 : 4,
               }}
             >
@@ -3250,6 +3219,7 @@ export default function StudentLessonPage() {
                 max={Math.max(0.01, duration || 0)}
                 step={0.05}
                 value={Math.min(currentTime, duration || currentTime)}
+                disabled={!audioRef.current}
                 onChange={(e) => {
                   const a = audioRef.current;
                   if (!a) return;
@@ -3257,11 +3227,51 @@ export default function StudentLessonPage() {
                   a.currentTime = v;
                   setCurrentTime(v);
                 }}
-                style={{ flex: 1 }}
+                style={{ flex: 1, opacity: audioRef.current ? 1 : 0.45 }}
               />
 
               <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(duration)}</span>
             </div>
+
+            <div style={isMobileView ? mobileSpeedGroupStyle : speedGroupStyle}>
+              <button
+                type="button"
+                style={playbackRate === 0.8 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
+                onClick={() => setPlaybackRate(0.8)}
+              >
+                0.8x
+              </button>
+              <button
+                type="button"
+                style={playbackRate === 1 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
+                onClick={() => setPlaybackRate(1)}
+              >
+                1x
+              </button>
+              <button
+                type="button"
+                style={playbackRate === 1.2 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
+                onClick={() => setPlaybackRate(1.2)}
+              >
+                1.2x
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={saveDraft}
+              disabled={saving || !uid}
+              aria-label={isCourseMode ? "Save course draft" : t("actions.saveToMyContent")}
+              title={isCourseMode ? "Save course draft" : t("actions.saveToMyContent")}
+              style={{
+                ...(isMobileView ? mobileStickySaveBtnStyle : stickySaveBtnStyle),
+                opacity: saving || !uid ? 0.6 : 1,
+                cursor: saving || !uid ? "not-allowed" : "pointer",
+                flex: isMobileView ? "1 1 0" : "0 0 auto",
+              }}
+            >
+              {saving ? t("actions.saving") : isCourseMode ? "Save draft" : t("actions.saveShort")}
+            </button>
           </div>
         </div>
       ) : null}
@@ -3391,6 +3401,11 @@ const speedGroupStyle: React.CSSProperties = {
   background: "rgba(248,250,252,0.9)",
 };
 
+const mobileSpeedGroupStyle: React.CSSProperties = {
+  ...speedGroupStyle,
+  gap: 4,
+};
+
 const speedBtnStyle: React.CSSProperties = {
   border: "1px solid rgba(15,23,42,0.16)",
   borderRadius: 10,
@@ -3414,6 +3429,29 @@ const compactSpeedBtnActiveStyle: React.CSSProperties = {
   color: "#1d4ed8",
   boxShadow: "0 0 0 2px rgba(59,130,246,0.10)",
 };
+
+const mobileCompactSpeedBtnStyle: React.CSSProperties = {
+  ...compactSpeedBtnStyle,
+  padding: "5px 7px",
+  minHeight: 30,
+  fontSize: 12,
+};
+
+const mobileCompactSpeedBtnActiveStyle: React.CSSProperties = {
+  ...mobileCompactSpeedBtnStyle,
+  border: "1px solid rgba(37,99,235,0.70)",
+  background: "rgba(59,130,246,0.16)",
+  color: "#1d4ed8",
+  boxShadow: "0 0 0 2px rgba(59,130,246,0.10)",
+};
+
+function mobileAwareSpeedStyle(isMobileView: boolean): React.CSSProperties {
+  return isMobileView ? mobileCompactSpeedBtnStyle : compactSpeedBtnStyle;
+}
+
+function mobileAwareSpeedActiveStyle(isMobileView: boolean): React.CSSProperties {
+  return isMobileView ? mobileCompactSpeedBtnActiveStyle : compactSpeedBtnActiveStyle;
+}
 
 const btnStyle: React.CSSProperties = {
   border: "1px solid #d1d5db",
@@ -3461,11 +3499,27 @@ const audioPlayerBtnStyle: React.CSSProperties = {
   borderRadius: 12,
 };
 
+const mobileAudioPlayerBtnStyle: React.CSSProperties = {
+  ...audioPlayerBtnStyle,
+  minWidth: 36,
+  minHeight: 36,
+  padding: "6px 8px",
+  borderRadius: 11,
+};
+
 const audioPlayerPrimaryBtnStyle: React.CSSProperties = {
   ...audioPlayerBtnStyle,
   border: "1px solid rgba(202,138,4,0.45)",
   background: "rgba(250,204,21,0.20)",
   color: "#854d0e",
+};
+
+const mobileAudioPlayerPrimaryBtnStyle: React.CSSProperties = {
+  ...audioPlayerPrimaryBtnStyle,
+  minWidth: 38,
+  minHeight: 36,
+  padding: "6px 8px",
+  borderRadius: 11,
 };
 
 const audioPlayerStopBtnStyle: React.CSSProperties = {
@@ -3475,16 +3529,32 @@ const audioPlayerStopBtnStyle: React.CSSProperties = {
   color: "#b91c1c",
 };
 
-const saveToContentBtnStyle: React.CSSProperties = {
+const mobileAudioPlayerStopBtnStyle: React.CSSProperties = {
+  ...audioPlayerStopBtnStyle,
+  minWidth: 36,
+  minHeight: 36,
+  padding: "6px 8px",
+  borderRadius: 11,
+};
+
+const stickySaveBtnStyle: React.CSSProperties = {
   ...btnStyle,
-  border: "1px solid rgba(22,163,74,0.34)",
-  background: "rgba(255,255,255,0.94)",
-  color: "#166534",
-  fontSize: 13,
-  fontWeight: 800,
+  border: "1px solid rgba(22,163,74,0.35)",
+  background: "rgb(22,163,74)",
+  color: "white",
+  fontSize: 14,
+  fontWeight: 900,
   minHeight: 40,
-  minWidth: 0,
-  padding: "8px 11px",
+  minWidth: 96,
+  padding: "8px 14px",
   boxShadow: "none",
   whiteSpace: "nowrap",
+};
+
+const mobileStickySaveBtnStyle: React.CSSProperties = {
+  ...stickySaveBtnStyle,
+  minWidth: 94,
+  minHeight: 36,
+  padding: "6px 10px",
+  fontSize: 14,
 };

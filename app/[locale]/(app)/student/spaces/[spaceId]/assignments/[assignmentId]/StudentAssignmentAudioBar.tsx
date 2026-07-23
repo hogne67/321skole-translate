@@ -92,7 +92,11 @@ export default function StudentAssignmentAudioBar({
                 <button
                     type="button"
                     disabled={!audioActive}
-                    style={{ ...audioButtonStyle, ...softBlueButtonStyle, opacity: audioActive ? 1 : 0.45 }}
+                    style={{
+                        ...(isMobileView ? mobileAudioButtonStyle : audioButtonStyle),
+                        ...softBlueButtonStyle,
+                        opacity: audioActive ? 1 : 0.45,
+                    }}
                     onClick={onPrevSentence}
                     title={t("tts.prev")}
                 >
@@ -103,7 +107,7 @@ export default function StudentAssignmentAudioBar({
                     type="button"
                     disabled={!audioActive}
                     style={{
-                        ...audioPrimaryButtonStyle,
+                        ...(isMobileView ? mobileAudioPrimaryButtonStyle : audioPrimaryButtonStyle),
                         ...(isPlaying ? pauseButtonStyle : playButtonStyle),
                         opacity: audioActive ? 1 : 0.45,
                     }}
@@ -116,7 +120,11 @@ export default function StudentAssignmentAudioBar({
                 <button
                     type="button"
                     disabled={!audioActive}
-                    style={{ ...audioButtonStyle, ...stopButtonStyle, opacity: audioActive ? 1 : 0.45 }}
+                    style={{
+                        ...(isMobileView ? mobileAudioButtonStyle : audioButtonStyle),
+                        ...stopButtonStyle,
+                        opacity: audioActive ? 1 : 0.45,
+                    }}
                     onClick={onStop}
                     title={t("tts.stop")}
                 >
@@ -126,7 +134,11 @@ export default function StudentAssignmentAudioBar({
                 <button
                     type="button"
                     disabled={!audioActive}
-                    style={{ ...audioButtonStyle, ...softBlueButtonStyle, opacity: audioActive ? 1 : 0.45 }}
+                    style={{
+                        ...(isMobileView ? mobileAudioButtonStyle : audioButtonStyle),
+                        ...softBlueButtonStyle,
+                        opacity: audioActive ? 1 : 0.45,
+                    }}
                     onClick={onReplay}
                     title={t("tts.replay")}
                 >
@@ -136,7 +148,11 @@ export default function StudentAssignmentAudioBar({
                 <button
                     type="button"
                     disabled={!audioActive}
-                    style={{ ...audioButtonStyle, ...softBlueButtonStyle, opacity: audioActive ? 1 : 0.45 }}
+                    style={{
+                        ...(isMobileView ? mobileAudioButtonStyle : audioButtonStyle),
+                        ...softBlueButtonStyle,
+                        opacity: audioActive ? 1 : 0.45,
+                    }}
                     onClick={onNextSentence}
                     title={t("tts.next")}
                 >
@@ -148,8 +164,8 @@ export default function StudentAssignmentAudioBar({
                         display: "flex",
                         alignItems: "center",
                         gap: isMobileView ? 6 : 8,
-                        flex: isMobileView ? "1 1 100%" : "1 1 240px",
-                        minWidth: isMobileView ? "100%" : 180,
+                        flex: isMobileView ? "1 1 calc(100% - 142px)" : "1 1 240px",
+                        minWidth: isMobileView ? 120 : 180,
                         marginLeft: isMobileView ? 0 : 4,
                     }}
                 >
@@ -174,15 +190,15 @@ export default function StudentAssignmentAudioBar({
                 </div>
 
                 <div style={speedGroupStyle}>
-                    <button type="button" style={speedButtonStyle} onClick={onDecreaseRate}>
+                    <button type="button" style={isMobileView ? mobileSpeedButtonStyle : speedButtonStyle} onClick={onDecreaseRate}>
                         −
                     </button>
 
-                    <span style={speedValueStyle}>
+                    <span style={isMobileView ? mobileSpeedValueStyle : speedValueStyle}>
                         {playbackRate.toFixed(2)}x
                     </span>
 
-                    <button type="button" style={speedButtonStyle} onClick={onIncreaseRate}>
+                    <button type="button" style={isMobileView ? mobileSpeedButtonStyle : speedButtonStyle} onClick={onIncreaseRate}>
                         +
                     </button>
                 </div>
@@ -196,7 +212,8 @@ export default function StudentAssignmentAudioBar({
                             ...submitButtonStyle,
                             opacity: submitDisabled ? 0.6 : 1,
                             cursor: submitDisabled ? "not-allowed" : "pointer",
-                            flex: isMobileView ? "1 1 100%" : "0 0 auto",
+                            flex: isMobileView ? "1 1 0" : "0 0 auto",
+                            minWidth: isMobileView ? 132 : undefined,
                         }}
                     >
                         {submitting ? t("actions.saving") : submitLabel}
@@ -241,12 +258,39 @@ const audioButtonStyle: CSSProperties = {
     borderRadius: 12,
 };
 
+const mobileAudioButtonStyle: CSSProperties = {
+    minWidth: 36,
+    minHeight: 36,
+    padding: "6px 8px",
+    borderRadius: 11,
+};
+
 const audioPrimaryButtonStyle: CSSProperties = {
     minWidth: 46,
     minHeight: 40,
     padding: "8px 10px",
     borderRadius: 12,
     fontWeight: 900,
+};
+
+const mobileAudioPrimaryButtonStyle: CSSProperties = {
+    minWidth: 38,
+    minHeight: 36,
+    padding: "6px 8px",
+    borderRadius: 11,
+    fontWeight: 900,
+};
+
+const mobileSpeedButtonStyle: CSSProperties = {
+    ...speedButtonStyle,
+    minWidth: 30,
+    minHeight: 30,
+    padding: "4px 7px",
+};
+
+const mobileSpeedValueStyle: CSSProperties = {
+    ...speedValueStyle,
+    minWidth: 40,
 };
 
 const submitButtonStyle: CSSProperties = {

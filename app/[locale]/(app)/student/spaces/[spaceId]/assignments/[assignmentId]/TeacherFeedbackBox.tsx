@@ -72,7 +72,7 @@ export default function TeacherFeedbackBox({
                         opacity: !cleanText || ttsBusy != null ? 0.6 : 1,
                     }}
                 >
-                    {ttsBusy === "teacherFeedback" ? t("tts.working") : t("tts.playOriginal")}
+                    {ttsBusy === "teacherFeedback" ? t("tts.working") : t("tts.playAudio")}
                 </button>
             </div>
 

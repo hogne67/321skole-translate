@@ -1231,7 +1231,7 @@ export default function StudentAssignmentPage() {
     );
 
   return (
-    <main style={{ width: "100%", maxWidth: 980, margin: "0 auto", padding: "12px 8px 170px", boxSizing: "border-box" }}>
+    <main style={{ width: "100%", maxWidth: 980, margin: "0 auto", padding: "12px 6px 170px", boxSizing: "border-box" }}>
       <AssignmentPageHeader
         mainTitle={isReadingTest ? "Lesetest" : mainTitle}
         metaLine={metaLine}

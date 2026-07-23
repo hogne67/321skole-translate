@@ -102,6 +102,7 @@
     "tts": {
       "title": "áudio",
       "speed": "Velocidade",
+      "playAudio": "Reproduzir áudio",
       "playOriginal": "🔊 Reproduzir original",
       "playTranslation": "🔊 Reproduzir tradução",
       "stop": "⏹ Parar",

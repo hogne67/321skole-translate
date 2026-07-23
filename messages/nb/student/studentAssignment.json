@@ -102,6 +102,7 @@
     "tts": {
       "title": "Lyd",
       "speed": "Hastighet",
+      "playAudio": "Spill lyd",
       "playOriginal": "🔊 Spill av original",
       "playTranslation": "🔊 Spill av oversettelse",
       "stop": "⏹ Stopp",
