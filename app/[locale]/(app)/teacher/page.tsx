@@ -541,6 +541,87 @@ function DashboardShortcutRow({
   );
 }
 
+function SchoolBillingPromo({ locale, t }: { locale: string; t: ReturnType<typeof useTranslations> }) {
+  return (
+    <div
+      style={{
+        marginTop: 12,
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        border: "1px solid #bae6fd",
+        borderRadius: 14,
+        background: "linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%)",
+        padding: "12px 14px",
+      }}
+    >
+      <div style={{ minWidth: 0, flex: "1 1 380px" }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 14,
+            fontWeight: 800,
+            color: "#0f172a",
+            lineHeight: 1.3,
+          }}
+        >
+          {t("schoolPromo.title")}
+        </p>
+        <p
+          style={{
+            margin: "3px 0 0",
+            fontSize: 13,
+            color: "#475569",
+            lineHeight: 1.4,
+          }}
+        >
+          {t("schoolPromo.text")}
+        </p>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <Link
+          href={withLocale(locale, "/skoler/bestilling")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 10,
+            padding: "9px 12px",
+            fontSize: 13,
+            fontWeight: 800,
+            textDecoration: "none",
+            background: "#0f172a",
+            color: "#ffffff",
+          }}
+        >
+          {t("schoolPromo.actions.order")}
+        </Link>
+        <Link
+          href={withLocale(locale, "/skoler")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 10,
+            padding: "9px 12px",
+            fontSize: 13,
+            fontWeight: 800,
+            textDecoration: "none",
+            background: "#ffffff",
+            color: "#0f172a",
+            border: "1px solid #cbd5e1",
+          }}
+        >
+          {t("schoolPromo.actions.readMore")}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function TeacherPage() {
   const locale = useLocale();
   const t = useTranslations("teacherPage");
@@ -1076,6 +1157,8 @@ export default function TeacherPage() {
               </Link>
             </div>
           </div>
+
+          <SchoolBillingPromo locale={locale} t={t} />
         </div>
       </section>
 

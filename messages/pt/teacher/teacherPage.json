@@ -141,6 +141,14 @@
         "openSpaces": "Abrir turmas"
       }
     },
+    "schoolPromo": {
+      "title": "Isso pode ser algo para sua escola?",
+      "text": "Temos licenças próprias para escolas. Compartilhe com a direção, se quiser.",
+      "actions": {
+        "order": "Pedir aqui",
+        "readMore": "Ler mais"
+      }
+    },
     "academy": {
       "badge": "321Academy",
       "beta": "Beta",

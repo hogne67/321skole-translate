@@ -141,6 +141,14 @@
         "openSpaces": "Open classes"
       }
     },
+    "schoolPromo": {
+      "title": "Could this be right for your school?",
+      "text": "We have dedicated school licenses. Feel free to share this with leadership.",
+      "actions": {
+        "order": "Order here",
+        "readMore": "Read more"
+      }
+    },
     "academy": {
       "badge": "321Academy",
       "beta": "Beta",

@@ -1,10 +1,10 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useLocale } from "next-intl";
-import { ArrowLeft, Check, ClipboardList } from "lucide-react";
+import { ArrowLeft, Check, ClipboardList, HelpCircle, Mail, Phone, ShoppingCart } from "lucide-react";
 
 const TEACHER_PRICE = 75;
 
@@ -24,6 +24,8 @@ function formatCurrency(value: number) {
 export default function OrderFormClient() {
   const locale = useLocale();
   const [teacherCount, setTeacherCount] = useState(10);
+  const [requestType, setRequestType] = useState<"order" | "info">("order");
+  const [preferredContact, setPreferredContact] = useState<"email" | "phone">("email");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const monthlyTotal = useMemo(() => teacherCount * TEACHER_PRICE, [teacherCount]);
@@ -40,6 +42,8 @@ export default function OrderFormClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...payload,
+        requestType,
+        preferredContact,
         teacherCount,
         monthlyTotal,
       }),
@@ -86,8 +90,54 @@ export default function OrderFormClient() {
             vikarer som skal lage, dele og følge opp læring.
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form onSubmit={handleSubmit} className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+            <fieldset>
+              <legend className="text-sm font-semibold text-slate-900">Hva ønsker dere?</legend>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <ChoiceCard
+                  checked={requestType === "order"}
+                  description="321skole tar kontakt for avtale, opprettelse av skolestruktur og administrasjon."
+                  icon={<ShoppingCart size={18} />}
+                  label="Vi bestiller"
+                  name="requestType"
+                  onChange={() => setRequestType("order")}
+                  value="order"
+                />
+                <ChoiceCard
+                  checked={requestType === "info"}
+                  description="Vi vil avklare pris, oppstart eller praktiske detaljer først."
+                  icon={<HelpCircle size={18} />}
+                  label="Vi vil ha mer informasjon"
+                  name="requestType"
+                  onChange={() => setRequestType("info")}
+                  value="info"
+                />
+              </div>
+            </fieldset>
+
+            <fieldset className="mt-6">
+              <legend className="text-sm font-semibold text-slate-900">Hvordan skal vi kontakte dere?</legend>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <ContactChoice
+                  checked={preferredContact === "email"}
+                  icon={<Mail size={17} />}
+                  label="E-post"
+                  name="preferredContact"
+                  onChange={() => setPreferredContact("email")}
+                  value="email"
+                />
+                <ContactChoice
+                  checked={preferredContact === "phone"}
+                  icon={<Phone size={17} />}
+                  label="Telefon"
+                  name="preferredContact"
+                  onChange={() => setPreferredContact("phone")}
+                  value="phone"
+                />
+              </div>
+            </fieldset>
+
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-7 md:gap-y-5">
               <Field label="Skole / virksomhet" name="school" required />
               <Field label="Kommune" name="municipality" required />
               <Field label="Adresse" name="address" required />
@@ -148,13 +198,19 @@ export default function OrderFormClient() {
                 disabled={status === "sending"}
                 className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
               >
-                {status === "sending" ? "Sender..." : "Send bestilling"}
+                {status === "sending"
+                  ? "Sender..."
+                  : requestType === "order"
+                    ? "Send bestilling"
+                    : "Send forespørsel"}
               </button>
 
               {status === "sent" ? (
                 <p className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
                   <Check size={16} />
-                  Bestillingen er sendt. Vi tar kontakt.
+                  {requestType === "order"
+                    ? "Bestillingen er sendt. Vi tar kontakt."
+                    : "Forespørselen er sendt. Vi tar kontakt."}
                 </p>
               ) : null}
 
@@ -211,6 +267,75 @@ export default function OrderFormClient() {
         </aside>
       </div>
     </main>
+  );
+}
+
+function ChoiceCard(props: {
+  checked: boolean;
+  description: string;
+  icon: ReactNode;
+  label: string;
+  name: string;
+  onChange: () => void;
+  value: string;
+}) {
+  return (
+    <label
+      className={[
+        "flex cursor-pointer gap-3 rounded-xl border p-4 transition",
+        props.checked ? "border-sky-500 bg-sky-50" : "border-slate-200 bg-white hover:border-slate-300",
+      ].join(" ")}
+    >
+      <input
+        checked={props.checked}
+        className="sr-only"
+        name={props.name}
+        onChange={props.onChange}
+        type="radio"
+        value={props.value}
+      />
+      <span
+        className={[
+          "mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+          props.checked ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600",
+        ].join(" ")}
+      >
+        {props.icon}
+      </span>
+      <span>
+        <span className="block text-sm font-semibold text-slate-950">{props.label}</span>
+        <span className="mt-1 block text-sm leading-5 text-slate-600">{props.description}</span>
+      </span>
+    </label>
+  );
+}
+
+function ContactChoice(props: {
+  checked: boolean;
+  icon: ReactNode;
+  label: string;
+  name: string;
+  onChange: () => void;
+  value: string;
+}) {
+  return (
+    <label
+      className={[
+        "inline-flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition",
+        props.checked ? "border-sky-500 bg-sky-50 text-sky-900" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300",
+      ].join(" ")}
+    >
+      <input
+        checked={props.checked}
+        className="sr-only"
+        name={props.name}
+        onChange={props.onChange}
+        type="radio"
+        value={props.value}
+      />
+      {props.icon}
+      {props.label}
+    </label>
   );
 }
 

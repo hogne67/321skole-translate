@@ -141,6 +141,14 @@
         "openSpaces": "Åpne klasserom"
       }
     },
+    "schoolPromo": {
+      "title": "Er dette noe for din skole?",
+      "text": "Vi har egne lisenser for skole. Del gjerne med ledelsen.",
+      "actions": {
+        "order": "Bestill her",
+        "readMore": "Les mer"
+      }
+    },
     "academy": {
       "badge": "321Academy",
       "beta": "Beta",

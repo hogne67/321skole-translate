@@ -10,6 +10,8 @@ type SchoolOrderPayload = {
   email?: string;
   phone?: string;
   role?: string;
+  requestType?: string;
+  preferredContact?: string;
   comment?: string;
   teacherCount?: number;
   monthlyTotal?: number;
@@ -51,6 +53,8 @@ export async function POST(request: Request) {
   const email = cleanString(body.email);
   const phone = cleanString(body.phone);
   const role = cleanString(body.role);
+  const requestType = body.requestType === "info" ? "Mer informasjon" : "Bestilling";
+  const preferredContact = body.preferredContact === "phone" ? "Telefon" : "E-post";
   const comment = cleanString(body.comment);
   const teacherCount = Math.max(1, Math.min(200, Number(body.teacherCount) || 1));
   const monthlyTotal = teacherCount * 75;
@@ -60,11 +64,13 @@ export async function POST(request: Request) {
   }
 
   const to = process.env.SCHOOL_ORDER_TO || process.env.CONTACT_EMAIL || "post@321skole.no";
-  const subject = `Skolebestilling: ${school}`;
+  const subject = `${requestType}: ${school}`;
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#0f172a;">
-      <h1 style="font-size:22px;">Ny skolebestilling</h1>
+      <h1 style="font-size:22px;">Ny henvendelse fra skole</h1>
       <table style="border-collapse:collapse;">
+        ${row("Type", requestType)}
+        ${row("Ønsket kontakt", preferredContact)}
         ${row("Skole", school)}
         ${row("Kommune", municipality)}
         ${row("Adresse", address)}

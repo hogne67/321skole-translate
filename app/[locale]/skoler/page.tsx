@@ -29,6 +29,7 @@ export default async function SchoolsLandingPage() {
 
       <HeroSection locale={locale} />
       <SchoolValueSection locale={locale} />
+      <YearPlansSection locale={locale} />
       <OrderCtaSection locale={locale} />
     </main>
   );
@@ -73,9 +74,8 @@ function PublicHeader(props: {
                 <Link
                   key={l.code}
                   href={`/${l.code}/skoler`}
-                  className={`block px-3 py-2 text-xs hover:bg-slate-50 ${
-                    l.code === props.locale ? "font-semibold text-slate-900" : "text-slate-700"
-                  }`}
+                  className={`block px-3 py-2 text-xs hover:bg-slate-50 ${l.code === props.locale ? "font-semibold text-slate-900" : "text-slate-700"
+                    }`}
                 >
                   {l.label}
                 </Link>
@@ -114,10 +114,10 @@ function HeroSection(props: { locale: string }) {
           </p>
 
           <div className="mt-6 block overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-2 md:hidden">
-            <div className="relative aspect-[4/5] w-full">
+            <div className="relative aspect-video w-full">
               <Image
-                src="/landingschool/school_principle.png"
-                alt="Skoleleder som ser på 321skole"
+                src="/landingschool/hero_school_to_16_9.png"
+                alt="Lærere som bruker 321skole"
                 fill
                 priority
                 className="object-cover object-center"
@@ -143,10 +143,10 @@ function HeroSection(props: { locale: string }) {
         </div>
 
         <div className="mt-10 hidden rounded-3xl border border-white/20 bg-white/10 p-3 shadow-sm backdrop-blur md:block">
-          <div className="relative aspect-[21/9] w-full overflow-hidden rounded-2xl bg-slate-100">
+          <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-100">
             <Image
-              src="/landingschool/school_principle.png"
-              alt="Skoleleder som ser på 321skole"
+              src="/landingschool/hero_school_to_16_9.png"
+              alt="Lærere som bruker 321skole"
               fill
               priority
               className="object-cover object-center"
@@ -249,6 +249,75 @@ function SchoolValueSection(props: { locale: string }) {
   );
 }
 
+function YearPlansSection(props: { locale: string }) {
+  return (
+    <section className="bg-white">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-12 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-12 md:py-20">
+        <div>
+          <p className="inline-flex rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-800">
+            Årsplaner
+          </p>
+
+          <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-slate-950 md:mt-5 md:text-5xl">
+            Lag årsplaner som henger sammen med det dere faktisk gjør.
+          </h2>
+
+          <p className="mt-4 max-w-xl text-base leading-7 text-slate-700 md:text-lg">
+            321skole hjelper lærere å bygge gode årsplaner, fordele temaer over
+            skoleåret og koble planene til læringsopplegg som kan brukes med
+            én gang.
+          </p>
+
+          <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <YearPlanPoint
+              icon={<ClipboardCheck size={18} />}
+              title="Rask struktur"
+              text="Få oversikt over perioder, temaer og mål."
+            />
+            <YearPlanPoint
+              icon={<BookOpen size={18} />}
+              title="Klar kobling"
+              text="Knytt planen til oppgaver og undervisning."
+            />
+            <YearPlanPoint
+              icon={<ShieldCheck size={18} />}
+              title="Kontroll"
+              text="Juster underveis når skoleåret endrer seg."
+            />
+          </div>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={localizedPath(props.locale, "/skoler/bestilling")}
+              className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+            >
+              Bestill for skolen
+            </Link>
+
+            <Link
+              href={localizedPath(props.locale, "/login")}
+              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
+            >
+              Prøv gratis
+            </Link>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 p-2 shadow-sm">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem]">
+            <Image
+              src="/landingschool/teacher_satisfied.jpeg"
+              alt="Fornøyd lærer med årsplaner i 321skole"
+              fill
+              className="object-cover object-center"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function OrderCtaSection(props: { locale: string }) {
   return (
     <section className="bg-slate-950 text-white">
@@ -306,6 +375,22 @@ function FeatureCard(props: {
         <p className="text-sm font-semibold text-slate-950">{props.title}</p>
       </div>
       <p className="mt-2 text-sm leading-5 text-slate-700">{props.text}</p>
+    </div>
+  );
+}
+
+function YearPlanPoint(props: {
+  icon: ReactNode;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-emerald-700 shadow-sm">
+        {props.icon}
+      </div>
+      <p className="mt-3 text-sm font-semibold text-slate-950">{props.title}</p>
+      <p className="mt-1 text-sm leading-5 text-slate-600">{props.text}</p>
     </div>
   );
 }
