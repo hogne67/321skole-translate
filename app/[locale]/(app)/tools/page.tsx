@@ -16,7 +16,8 @@ const premiumTools: Tool[] = [
   { id: "assignmentGenerator", href: "/producer/texts/new", badge: "PREMIUM" },
   { id: "imageWritingGenerator", href: "/producer/image-writing", badge: "NEW" },
   { id: "readingTestGenerator", href: "/producer/reading-tests/new", badge: "PREMIUM" },
-  { id: "geometryGenerator", href: "/producer/math/geometry", badge: "NEW" },
+  { id: "geometryGenerator", href: "/producer/math/geometry?new=1", badge: "NEW" },
+  { id: "academyGenerator", href: "/teacher/courses/generate", badge: "PREMIUM" },
 ];
 
 const tools: Tool[] = [
@@ -39,6 +40,11 @@ function badgeClass(badge?: ToolBadge) {
 export default function ToolsPage() {
   const locale = useLocale();
   const t = useTranslations("toolsIndex");
+  const visiblePremiumTools =
+    locale === "nb"
+      ? [...premiumTools, { id: "plannerGenerator", href: "/teacher/planner", badge: "PREMIUM" as const }]
+      : premiumTools;
+
   return (
     <main className="mx-auto w-full max-w-5xl min-w-0 px-3 py-6 sm:px-4 sm:py-8">
       {/* Header */}
@@ -56,9 +62,10 @@ export default function ToolsPage() {
         </h2>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {premiumTools.map((tool) => (
-            <div
+          {visiblePremiumTools.map((tool) => (
+            <Link
               key={tool.id}
+              href={`/${locale}${tool.href}`}
               className="group relative flex min-h-[160px] flex-col justify-between rounded-2xl border border-sky-300 bg-sky-100 p-4 sm:p-5 no-underline shadow-sm transition-all hover:border-sky-400 hover:bg-sky-200 hover:shadow-md"
             >
               <div className="absolute left-0 top-0 h-1 w-full rounded-t-2xl bg-sky-500" />
@@ -79,15 +86,10 @@ export default function ToolsPage() {
                 {t(`premium.items.${tool.id}.description`)}
               </p>
 
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <Link
-                  href={`/${locale}${tool.href}`}
-                  className="text-sm font-semibold text-slate-900 no-underline hover:text-sky-800"
-                >
+              <div className="mt-4 text-sm font-semibold text-slate-900 group-hover:text-sky-800">
                 {t("open")}
-                </Link>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>

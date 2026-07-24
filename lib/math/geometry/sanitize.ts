@@ -5,6 +5,7 @@ import type {
   FigureKind,
   FigureSpec,
   GeometryLevel,
+  GeometryAnswerSpace,
   GeometryTopic,
   MathWorksheet,
   MathWorksheetTask,
@@ -39,6 +40,10 @@ function isDifficulty(value: unknown): value is Difficulty {
 
 function isGeometryLevel(value: unknown): value is GeometryLevel {
   return value === "grade_3_4" || value === "grade_5_7" || value === "grade_8_10";
+}
+
+function isGeometryAnswerSpace(value: unknown): value is GeometryAnswerSpace {
+  return value === "small" || value === "medium" || value === "large";
 }
 
 export function isFigureKind(value: unknown): value is FigureKind {
@@ -239,6 +244,9 @@ export function sanitizeWorksheet(value: unknown): MathWorksheet | null {
     instructions,
     showAnswerKey: value.showAnswerKey === true,
     showFormulas: value.showFormulas === true,
+    answerSpace: isGeometryAnswerSpace(value.answerSpace)
+      ? value.answerSpace
+      : undefined,
     selectedShapes: Array.isArray(value.selectedShapes)
       ? value.selectedShapes.filter(isFigureKind)
       : [],

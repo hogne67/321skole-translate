@@ -3134,50 +3134,18 @@ export default function StudentLessonPage() {
         <div
           style={{
             position: "fixed",
-            left: isMobileView ? 8 : "50%",
-            right: isMobileView ? 8 : undefined,
-            width: isMobileView ? "auto" : "calc(100% - 24px)",
-            maxWidth: 980,
-            bottom: isMobileView ? 8 : 12,
-            transform: isMobileView ? "none" : "translateX(-50%)",
+            left: 0,
+            right: 0,
+            bottom: 0,
             zIndex: 60,
-            padding: isMobileView ? 8 : 10,
-            borderRadius: isMobileView ? 14 : 16,
-            border: "1px solid rgba(0,0,0,0.14)",
+            padding: isMobileView ? "10px 12px calc(10px + env(safe-area-inset-bottom))" : "10px 12px",
+            borderTop: "1px solid rgba(0,0,0,0.10)",
             background: "rgba(255,255,255,0.96)",
-            boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+            boxShadow: "0 -10px 30px rgba(15,23,42,0.10)",
             backdropFilter: "blur(8px)",
           }}
         >
-          {isMobileView ? (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
-              <div style={mobileSpeedGroupStyle}>
-                <button
-                  type="button"
-                  style={playbackRate === 0.8 ? mobileAwareSpeedActiveStyle(true) : mobileAwareSpeedStyle(true)}
-                  onClick={() => setPlaybackRate(0.8)}
-                >
-                  0.8x
-                </button>
-                <button
-                  type="button"
-                  style={playbackRate === 1 ? mobileAwareSpeedActiveStyle(true) : mobileAwareSpeedStyle(true)}
-                  onClick={() => setPlaybackRate(1)}
-                >
-                  1x
-                </button>
-                <button
-                  type="button"
-                  style={playbackRate === 1.2 ? mobileAwareSpeedActiveStyle(true) : mobileAwareSpeedStyle(true)}
-                  onClick={() => setPlaybackRate(1.2)}
-                >
-                  1.2x
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          <div style={{ display: "flex", alignItems: "center", gap: isMobileView ? 6 : 8, flexWrap: "wrap" }}>
+          <div style={{ maxWidth: 980, margin: "0 auto", display: "flex", alignItems: "center", gap: isMobileView ? 6 : 8, flexWrap: "wrap" }}>
             <button
               type="button"
               disabled={!audioRef.current}
@@ -3263,31 +3231,29 @@ export default function StudentLessonPage() {
               <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>{fmtTime(duration)}</span>
             </div>
 
-            {!isMobileView ? (
-              <div style={speedGroupStyle}>
-                <button
-                  type="button"
-                  style={playbackRate === 0.8 ? mobileAwareSpeedActiveStyle(false) : mobileAwareSpeedStyle(false)}
-                  onClick={() => setPlaybackRate(0.8)}
-                >
-                  0.8x
-                </button>
-                <button
-                  type="button"
-                  style={playbackRate === 1 ? mobileAwareSpeedActiveStyle(false) : mobileAwareSpeedStyle(false)}
-                  onClick={() => setPlaybackRate(1)}
-                >
-                  1x
-                </button>
-                <button
-                  type="button"
-                  style={playbackRate === 1.2 ? mobileAwareSpeedActiveStyle(false) : mobileAwareSpeedStyle(false)}
-                  onClick={() => setPlaybackRate(1.2)}
-                >
-                  1.2x
-                </button>
-              </div>
-            ) : null}
+            <div style={isMobileView ? mobileSpeedGroupStyle : speedGroupStyle}>
+              <button
+                type="button"
+                style={playbackRate === 0.8 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
+                onClick={() => setPlaybackRate(0.8)}
+              >
+                0.8x
+              </button>
+              <button
+                type="button"
+                style={playbackRate === 1 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
+                onClick={() => setPlaybackRate(1)}
+              >
+                1x
+              </button>
+              <button
+                type="button"
+                style={playbackRate === 1.2 ? mobileAwareSpeedActiveStyle(isMobileView) : mobileAwareSpeedStyle(isMobileView)}
+                onClick={() => setPlaybackRate(1.2)}
+              >
+                1.2x
+              </button>
+            </div>
 
             <button
               type="button"
@@ -3299,7 +3265,10 @@ export default function StudentLessonPage() {
                 ...(isMobileView ? mobileStickySaveBtnStyle : stickySaveBtnStyle),
                 opacity: saving || !uid ? 0.6 : 1,
                 cursor: saving || !uid ? "not-allowed" : "pointer",
-                flex: isMobileView ? "1 1 0" : "0 0 auto",
+                flex: isMobileView ? "1 1 100%" : "0 0 auto",
+                width: isMobileView ? "100%" : undefined,
+                order: isMobileView ? 4 : 0,
+                marginTop: isMobileView ? 2 : 0,
               }}
             >
               {saving ? t("actions.saving") : isCourseMode ? "Save draft" : t("actions.saveToMyContent")}
@@ -3571,8 +3540,8 @@ const mobileAudioPlayerStopBtnStyle: React.CSSProperties = {
 
 const stickySaveBtnStyle: React.CSSProperties = {
   ...btnStyle,
-  border: "1px solid rgba(22,163,74,0.35)",
-  background: "rgb(22,163,74)",
+  border: "1px solid #0f172a",
+  background: "#0f172a",
   color: "white",
   fontSize: 14,
   fontWeight: 900,

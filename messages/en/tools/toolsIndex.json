@@ -35,6 +35,10 @@
         "geometryGenerator": {
           "title": "Geometry generator",
           "description": "Create printable geometry worksheets with shapes, perimeter and area."
+        },
+        "academyGenerator": {
+          "title": "Create course",
+          "description": "Build courses with sessions, resources and a clear structure for participants."
         }
       }
     },

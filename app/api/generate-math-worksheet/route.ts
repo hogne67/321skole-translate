@@ -69,6 +69,7 @@ type MathWorksheet = {
   instructions: string;
   showAnswerKey: boolean;
   showFormulas: boolean;
+  answerSpace?: AnswerSpace;
   selectedShapes: FigureKind[];
   tasks: MathWorksheetTask[];
 };
@@ -84,6 +85,7 @@ type GenerateMathWorksheetRequest = {
   showFormulas?: boolean;
   answerSpace?: string;
   selectedShapes?: string[];
+  countUsage?: boolean;
 };
 
 type RequestUserContext = {
@@ -1285,6 +1287,7 @@ function generateWorksheet(params: {
     instructions: localizePrompt(params.language, "instructions"),
     showAnswerKey: params.showAnswerKey,
     showFormulas: params.showFormulas,
+    answerSpace: params.answerSpace,
     selectedShapes: params.selectedShapes,
     tasks,
   };
@@ -1419,22 +1422,29 @@ export async function POST(req: Request) {
       feature: "producer_create_math_worksheet",
     });
 
-    if (!status.allowed) {
+    const body = (await req.json()) as GenerateMathWorksheetRequest;
+    const shouldCountUsage = body.countUsage !== false;
+    const canReuseCountedDraft =
+      !shouldCountUsage && status.reason === "limit_reached";
+
+    if (!status.allowed && !canReuseCountedDraft) {
       return mapStatusToResponse(status);
     }
 
-    const body = (await req.json()) as GenerateMathWorksheetRequest;
     const params = normalizeRequest(body);
     const worksheet = generateWorksheet(params);
 
-    await consumeFeatureAdmin({
-      uid: user.uid,
-      feature: "producer_create_math_worksheet",
-    });
+    if (shouldCountUsage) {
+      await consumeFeatureAdmin({
+        uid: user.uid,
+        feature: "producer_create_math_worksheet",
+      });
+    }
 
     return NextResponse.json({
       ok: true,
       worksheet,
+      counted: shouldCountUsage,
     });
   } catch (error) {
     console.error("generate-math-worksheet failed:", error);

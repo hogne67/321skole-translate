@@ -1,9 +1,24 @@
 {
   "mathGeometry": {
-    "pageTitle": "Geometriark-generator",
-    "pageSubtitle": "Lag utskriftsvennlige ark med figurer, omkrets og areal.",
+    "mathBrand": "321school matematikk",
+    "pageTitle": "Geometri",
+    "pageSubtitle": "Lag leksjoner med omkrets og areal som er klar for utskrift eller digital utfylling.",
     "builder": "Innstillinger",
     "preview": "Forhåndsvisning",
+    "generatorIntro": "Velg nivå, tema og figurer. Bruk bunnpanelet for å lage arket og åpne kontrollvisning.",
+    "generateHelp": "Velg innstillinger og bruk bunnpanelet for å lage og forhåndsvise.",
+    "readyToPreview": "Arket er klart for kontrollvisning.",
+    "sections": {
+      "setup": "1. Oppsett",
+      "shapes": "2. Velg figurer",
+      "options": "3. Vis i oppgaver",
+      "answerKey": "4. Fasit",
+      "generate": "5. Generer"
+    },
+    "video": {
+      "title": "Instruksjonsvideo",
+      "placeholder": "Video kommer her"
+    },
 
     "language": "Språk",
     "languages": {
@@ -45,12 +60,15 @@
     "hints": "Hint",
     "showFormulas": "Vis formler",
     "showAnswerKey": "Fasit",
+    "answerKeyHelp": "Inkluder fasit i utskrift.",
 
     "usageLeft": "Gjenstår",
     "seePlans": "Se planer",
 
     "generate": "Lag geometriark",
+    "generateAndPreview": "Lag og forhåndsvis",
     "generating": "Lager...",
+    "saveAndPreview": "Lagre og forhåndsvis",
     "saveToMyContent": "Lagre til mitt innhold",
     "saving": "Lagrer...",
     "print": "Skriv ut / lagre som PDF",
@@ -65,6 +83,25 @@
     "limitReached": "Månedsgrensen er nådd",
 
     "selectAtLeastOneShape": "Velg minst én figur",
+
+    "saveBar": {
+      "title": "Klar til kontrollvisning",
+      "description": "Lag arket og se gjennom det før du lagrer til Mitt innhold."
+    },
+
+    "controlPreview": {
+      "eyebrow": "Kontrollvisning",
+      "title": "Kontrollvisning",
+      "description": "Se gjennom arket før du skriver ut, deler eller bruker det med elever.",
+      "cardTitle": "Kun for lærer",
+      "cardBody": "Denne siden kan ikke deles med elever. PDF og deling håndteres fra Mitt innhold etter lagring.",
+      "bottomTitle": "Kontrollvisning",
+      "bottomBody": "Arket er lagret. Gå til Mitt innhold for PDF, deling og videre bruk.",
+      "draftBottomBody": "Se gjennom arket. Gå tilbake for å endre, eller lagre til Mitt innhold når det er klart.",
+      "backAndEdit": "Tilbake og endre",
+      "backToGenerator": "Ny versjon",
+      "openMyContent": "Åpne Mitt innhold"
+    },
 
     "worksheet": "Oppgaver",
     "name": "Navn",

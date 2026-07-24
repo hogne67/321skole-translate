@@ -1,9 +1,10 @@
 // app\[locale]\(app)\producer\math\geometry\page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { doc, getDoc } from "firebase/firestore";
 import { useLocale, useTranslations } from "next-intl";
 import { auth, db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -12,16 +13,6 @@ import {
   type FeatureStatus,
 } from "@/lib/featureGuard";
 import type { BillingSnapshot, PlanKey } from "@/lib/featureAccess";
-import GeometryWorksheetView from "@/components/generators/math/geometry/GeometryWorksheetView";
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-  type DocumentData,
-  type QueryDocumentSnapshot,
-} from "firebase/firestore";
 import type {
   FigureKind,
   MathWorksheet,
@@ -30,8 +21,8 @@ import type {
   Difficulty,
   GeometryLevel,
 } from "@/lib/math/geometry/types";
+import { sanitizeWorksheet } from "@/lib/math/geometry/sanitize";
 
-type SavedWorksheetLanguage = "no" | "en" | "pt";
 type AnswerSpace = "small" | "medium" | "large";
 
 type GenerateResponse =
@@ -43,22 +34,6 @@ type GenerateResponse =
       ok: false;
       error: string;
     };
-
-type SaveWorksheetResponse = {
-  ok?: boolean;
-  error?: string;
-  id?: string;
-  worksheetId?: string;
-  lessonId?: string;
-};
-
-type TeacherSpaceRow = {
-  id: string;
-  title: string;
-  code: string;
-  isOpen: boolean;
-  createdAt?: unknown;
-};
 
 const ALL_FIGURES: FigureKind[] = [
   "square",
@@ -73,21 +48,35 @@ const ALL_FIGURES: FigureKind[] = [
 ];
 
 type TFn = (key: string) => string;
+const GEOMETRY_DRAFT_STORAGE_KEY = "321school.math.geometry.previewDraft";
 
-function fallbackWorksheet(language: WorksheetLanguage, t: TFn): MathWorksheet {
-  return {
-    version: 1,
-    title: t("fallback.title"),
-    language,
-    level: "grade_5_7",
-    topic: "all",
-    difficulty: "easy",
-    instructions: t("fallback.instructions"),
-    showAnswerKey: false,
-    showFormulas: false,
-    selectedShapes: ALL_FIGURES,
-    tasks: [],
-  };
+function isWorksheetLanguage(value: unknown): value is WorksheetLanguage {
+  return value === "nb" || value === "en" || value === "pt";
+}
+
+function isGeometryLevel(value: unknown): value is GeometryLevel {
+  return value === "grade_3_4" || value === "grade_5_7" || value === "grade_8_10";
+}
+
+function isGeometryTopic(value: unknown): value is GeometryTopic {
+  return value === "shapes" || value === "perimeter" || value === "area" || value === "all";
+}
+
+function isDifficulty(value: unknown): value is Difficulty {
+  return value === "easy" || value === "medium" || value === "hard";
+}
+
+function isAnswerSpace(value: unknown): value is AnswerSpace {
+  return value === "small" || value === "medium" || value === "large";
+}
+
+function isFigureKind(value: unknown): value is FigureKind {
+  return typeof value === "string" && ALL_FIGURES.includes(value as FigureKind);
+}
+
+function clampTaskCount(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.max(4, Math.min(12, Math.round(value)));
 }
 
 function safePlan(plan: unknown): PlanKey {
@@ -154,42 +143,6 @@ function getShapeLabel(t: TFn, kind: FigureKind) {
   return t(kind);
 }
 
-function normalizeLanguageForSave(
-  language: WorksheetLanguage
-): SavedWorksheetLanguage {
-  return language === "nb" ? "no" : language;
-}
-
-function normalizeWorksheetForSave(worksheet: MathWorksheet) {
-  return {
-    ...worksheet,
-    language: normalizeLanguageForSave(worksheet.language),
-  };
-}
-
-async function readErrorMessage(
-  response: Response,
-  fallback: string
-): Promise<string> {
-  try {
-    const text = await response.text();
-    if (!text) return fallback;
-
-    try {
-      const json = JSON.parse(text) as { error?: string; message?: string };
-      if (typeof json.error === "string" && json.error.trim()) return json.error;
-      if (typeof json.message === "string" && json.message.trim()) {
-        return json.message;
-      }
-      return fallback;
-    } catch {
-      return text.trim() || fallback;
-    }
-  } catch {
-    return fallback;
-  }
-}
-
 function getStatusMessage(status: FeatureStatus | null, t: TFn): string {
   if (!status?.reason) return "";
   if (status.reason === "teacher_only") return t("teacherOnly");
@@ -232,84 +185,11 @@ function ToggleChip({
   );
 }
 
-function getShareButtonLabel(locale: string) {
-  if (locale === "nb") return "Del til klasserom";
-  if (locale === "pt") return "Compartilhar com turma";
-  return "Share to classroom";
-}
-
-function getSharingLabel(locale: string) {
-  if (locale === "nb") return "Lagrer...";
-  if (locale === "pt") return "Salvando...";
-  return "Saving...";
-}
-
-function getShareInfoTitle(locale: string) {
-  if (locale === "nb") return "Digital utfylling";
-  if (locale === "pt") return "Preenchimento digital";
-  return "Digital completion";
-}
-
-function getShareInfoBody(locale: string) {
-  if (locale === "nb") {
-    return "Lagre geometryarket og velg deretter hvilket klasserom det skal deles til. Oppgaven blir automatisk satt som aktiv i rommet.";
-  }
-  if (locale === "pt") {
-    return "Salve a folha de geometria e escolha para qual turma ela deve ser compartilhada. A atividade será marcada automaticamente como ativa.";
-  }
-  return "Save the geometry worksheet and then choose which classroom to share it to. The task will automatically be set as active in that room.";
-}
-
-function getMissingSavedIdMessage(locale: string) {
-  if (locale === "nb") {
-    return "Arket ble lagret, men save-ruta returnerte ingen id.";
-  }
-  if (locale === "pt") {
-    return "A folha foi salva, mas a rota de salvamento não retornou nenhum id.";
-  }
-  return "The worksheet was saved, but the save route returned no id.";
-}
-
-function getChooseSpaceTitle(locale: string) {
-  if (locale === "nb") return "Velg klasserom";
-  if (locale === "pt") return "Escolha a turma";
-  return "Choose classroom";
-}
-
-function getChooseSpaceBody(locale: string) {
-  if (locale === "nb") {
-    return "Velg hvilket rom du vil dele geometryarket til. Oppgaven blir automatisk delt og satt som aktiv.";
-  }
-  if (locale === "pt") {
-    return "Escolha para qual turma você quer compartilhar a folha de geometria. A atividade será compartilhada e marcada como ativa automaticamente.";
-  }
-  return "Choose which classroom to share the geometry worksheet to. The task will automatically be shared and set as active.";
-}
-
-function getAssignLabel(locale: string) {
-  if (locale === "nb") return "Del hit";
-  if (locale === "pt") return "Compartilhar aqui";
-  return "Share here";
-}
-
-function getAssigningLabel(locale: string) {
-  if (locale === "nb") return "Deler...";
-  if (locale === "pt") return "Compartilhando...";
-  return "Sharing...";
-}
-
-function getCloseLabel(locale: string) {
-  if (locale === "nb") return "Lukk";
-  if (locale === "pt") return "Fechar";
-  return "Close";
-}
-
 export default function ProducerMathGeometryPage() {
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations("mathGeometry");
-  const tBrand = useTranslations("brandLogo");
-  const printRef = useRef<HTMLDivElement | null>(null);
 
   const initialLanguage: WorksheetLanguage =
     locale === "nb" || locale === "en" || locale === "pt" ? locale : "en";
@@ -321,25 +201,14 @@ export default function ProducerMathGeometryPage() {
   const [topic, setTopic] = useState<GeometryTopic>("all");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [taskCount, setTaskCount] = useState<number>(6);
-  const [includeHints, setIncludeHints] = useState<boolean>(true);
+  const [includeHints, setIncludeHints] = useState<boolean>(false);
   const [showAnswerKey, setShowAnswerKey] = useState<boolean>(false);
   const [showFormulas, setShowFormulas] = useState<boolean>(false);
   const [answerSpace, setAnswerSpace] = useState<AnswerSpace>("medium");
-  const [selectedShapes, setSelectedShapes] = useState<FigureKind[]>(ALL_FIGURES);
-  const [worksheet, setWorksheet] = useState<MathWorksheet>(() =>
-    fallbackWorksheet(initialLanguage, t)
-  );
+  const [selectedShapes, setSelectedShapes] = useState<FigureKind[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [saving, setSaving] = useState<boolean>(false);
-  const [sharing, setSharing] = useState<boolean>(false);
-  const [assigningSpaceId, setAssigningSpaceId] = useState<string | null>(null);
-  const [savedWorksheetId, setSavedWorksheetId] = useState<string | null>(null);
-  const [shareModalOpen, setShareModalOpen] = useState<boolean>(false);
-  const [spaceSearch, setSpaceSearch] = useState<string>("");
-  const [teacherSpaces, setTeacherSpaces] = useState<TeacherSpaceRow[]>([]);
-  const [spacesLoading, setSpacesLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [usageInfo, setUsageInfo] = useState<string>("");
+  const [hasCountedDraft, setHasCountedDraft] = useState<boolean>(false);
 
   const [featureStatus, setFeatureStatus] = useState<FeatureStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState<boolean>(true);
@@ -364,6 +233,117 @@ export default function ProducerMathGeometryPage() {
   const schoolId = profile?.schoolId ?? null;
   const schoolRole = profile?.schoolRole ?? null;
   const schoolStatus = profile?.schoolStatus ?? null;
+  const editId = searchParams.get("edit")?.trim() || "";
+  const startNew = searchParams.get("new") === "1";
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadEditableWorksheet() {
+      if (startNew) {
+        window.sessionStorage.removeItem(GEOMETRY_DRAFT_STORAGE_KEY);
+        setLanguage(initialLanguage);
+        setLevel("grade_5_7");
+        setTopic("all");
+        setDifficulty("easy");
+        setTaskCount(6);
+        setIncludeHints(false);
+        setShowAnswerKey(false);
+        setShowFormulas(false);
+        setAnswerSpace("medium");
+        setSelectedShapes([]);
+        setHasCountedDraft(false);
+        return true;
+      }
+
+      if (!editId) return false;
+
+      try {
+        const snap = await getDoc(doc(db, "lessons", editId));
+        if (!active || !snap.exists()) return true;
+
+        const data = snap.data() as { mathWorksheet?: unknown };
+        const savedWorksheet = sanitizeWorksheet(data.mathWorksheet);
+        if (!savedWorksheet) return true;
+
+        setLanguage(savedWorksheet.language);
+        setLevel(savedWorksheet.level);
+        setTopic(savedWorksheet.topic);
+        setDifficulty(savedWorksheet.difficulty);
+        setTaskCount(Math.max(4, Math.min(12, savedWorksheet.tasks.length || 6)));
+        setIncludeHints(savedWorksheet.tasks.some((task) => !!task.hint));
+        setShowAnswerKey(savedWorksheet.showAnswerKey);
+        setShowFormulas(savedWorksheet.showFormulas);
+        setAnswerSpace(savedWorksheet.answerSpace ?? "medium");
+        setSelectedShapes(savedWorksheet.selectedShapes.filter(isFigureKind));
+        setHasCountedDraft(true);
+        window.sessionStorage.setItem(
+          GEOMETRY_DRAFT_STORAGE_KEY,
+          JSON.stringify({
+            worksheet: savedWorksheet,
+            settings: {
+              language: savedWorksheet.language,
+              level: savedWorksheet.level,
+              topic: savedWorksheet.topic,
+              difficulty: savedWorksheet.difficulty,
+              taskCount: Math.max(4, Math.min(12, savedWorksheet.tasks.length || 6)),
+              includeHints: savedWorksheet.tasks.some((task) => !!task.hint),
+              showAnswerKey: savedWorksheet.showAnswerKey,
+              showFormulas: savedWorksheet.showFormulas,
+              answerSpace: savedWorksheet.answerSpace ?? "medium",
+              selectedShapes: savedWorksheet.selectedShapes,
+            },
+            usageCounted: true,
+            createdAt: new Date().toISOString(),
+          })
+        );
+      } catch {
+        // Keep the blank generator if the saved lesson cannot be loaded.
+      }
+
+      return true;
+    }
+
+    void loadEditableWorksheet().then((handledEdit) => {
+      if (!active || handledEdit) return;
+
+    try {
+      const rawDraft = window.sessionStorage.getItem(GEOMETRY_DRAFT_STORAGE_KEY);
+      if (!rawDraft) return;
+
+      const draft = JSON.parse(rawDraft) as {
+        settings?: Record<string, unknown>;
+        usageCounted?: unknown;
+      };
+      const settings = draft.settings;
+      if (!settings) return;
+
+      setHasCountedDraft(draft.usageCounted === true);
+
+      if (isWorksheetLanguage(settings.language)) setLanguage(settings.language);
+      if (isGeometryLevel(settings.level)) setLevel(settings.level);
+      if (isGeometryTopic(settings.topic)) setTopic(settings.topic);
+      if (isDifficulty(settings.difficulty)) setDifficulty(settings.difficulty);
+      if (typeof settings.includeHints === "boolean") setIncludeHints(settings.includeHints);
+      if (typeof settings.showAnswerKey === "boolean") setShowAnswerKey(settings.showAnswerKey);
+      if (typeof settings.showFormulas === "boolean") setShowFormulas(settings.showFormulas);
+      if (isAnswerSpace(settings.answerSpace)) setAnswerSpace(settings.answerSpace);
+
+      const restoredTaskCount = clampTaskCount(settings.taskCount);
+      if (restoredTaskCount !== null) setTaskCount(restoredTaskCount);
+
+      if (Array.isArray(settings.selectedShapes)) {
+        setSelectedShapes(settings.selectedShapes.filter(isFigureKind));
+      }
+    } catch {
+      // Ignore older or invalid drafts.
+    }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [editId, initialLanguage, startNew]);
 
   useEffect(() => {
     let active = true;
@@ -424,69 +404,11 @@ export default function ProducerMathGeometryPage() {
     schoolStatus,
   ]);
 
-  useEffect(() => {
-    if (!uid) {
-      setTeacherSpaces([]);
-      setSpacesLoading(false);
-      return;
-    }
-
-    setSpacesLoading(true);
-
-    const q = query(
-      collection(db, "spaces"),
-      where("ownerId", "==", uid),
-      orderBy("createdAt", "desc")
-    );
-
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const next: TeacherSpaceRow[] = snap.docs.map(
-          (d: QueryDocumentSnapshot<DocumentData>) => {
-            const data = (d.data() ?? {}) as Record<string, unknown>;
-            return {
-              id: d.id,
-              title:
-                typeof data.title === "string" && data.title.trim()
-                  ? data.title.trim()
-                  : "Untitled space",
-              code:
-                typeof data.code === "string" && data.code.trim()
-                  ? data.code.trim()
-                  : "—",
-              isOpen: data.isOpen === true,
-              createdAt: data.createdAt,
-            };
-          }
-        );
-
-        setTeacherSpaces(next);
-        setSpacesLoading(false);
-      },
-      () => {
-        setTeacherSpaces([]);
-        setSpacesLoading(false);
-      }
-    );
-
-    return () => unsub();
-  }, [uid]);
-
   const generatorsLimit = featureStatus?.limit ?? 0;
   const generatorsRemaining = featureStatus?.remaining ?? 0;
-  const featureBlocked = featureStatus ? !featureStatus.allowed : false;
-
-  const filteredSpaces = useMemo(() => {
-    const s = spaceSearch.trim().toLowerCase();
-    if (!s) return teacherSpaces;
-
-    return teacherSpaces.filter((space) => {
-      const title = space.title.toLowerCase();
-      const code = space.code.toLowerCase();
-      return title.includes(s) || code.includes(s);
-    });
-  }, [teacherSpaces, spaceSearch]);
+  const featureBlocked = featureStatus
+    ? !featureStatus.allowed && !(hasCountedDraft && featureStatus.reason === "limit_reached")
+    : false;
 
   async function refreshFeatureStatus() {
     if (!uid) return;
@@ -526,7 +448,7 @@ export default function ProducerMathGeometryPage() {
     setSelectedShapes([]);
   }
 
-  async function handleGenerate() {
+  async function handleGenerateAndPreview() {
     if (!uid) {
       setError(t("upgradeRequired"));
       return;
@@ -544,11 +466,11 @@ export default function ProducerMathGeometryPage() {
 
     setLoading(true);
     setError("");
-    setUsageInfo("");
 
     try {
       const currentUser = auth.currentUser;
       const idToken = currentUser ? await currentUser.getIdToken() : null;
+      const shouldCountUsage = !hasCountedDraft;
 
       const response = await fetch("/api/generate-math-worksheet", {
         method: "POST",
@@ -567,6 +489,7 @@ export default function ProducerMathGeometryPage() {
           showFormulas,
           answerSpace,
           selectedShapes,
+          countUsage: shouldCountUsage,
         }),
       });
 
@@ -581,16 +504,42 @@ export default function ProducerMathGeometryPage() {
         return;
       }
 
-      setWorksheet({
+      const generatedWorksheet: MathWorksheet = {
         ...data.worksheet,
         version: 1,
         language:
           data.worksheet.language === "en" || data.worksheet.language === "pt"
             ? data.worksheet.language
             : "nb",
-      });
-      setUsageInfo(t("successGenerated"));
-      await refreshFeatureStatus();
+        answerSpace,
+      };
+
+      window.sessionStorage.setItem(
+        GEOMETRY_DRAFT_STORAGE_KEY,
+        JSON.stringify({
+          worksheet: generatedWorksheet,
+          settings: {
+            language,
+            level,
+            topic,
+            difficulty,
+            taskCount,
+            includeHints,
+            showAnswerKey,
+            showFormulas,
+            answerSpace,
+            selectedShapes,
+          },
+          usageCounted: true,
+          createdAt: new Date().toISOString(),
+        })
+      );
+
+      setHasCountedDraft(true);
+      if (shouldCountUsage) {
+        await refreshFeatureStatus();
+      }
+      router.push(`/${locale}/producer/math/draft/preview`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failed"));
     } finally {
@@ -598,1143 +547,303 @@ export default function ProducerMathGeometryPage() {
     }
   }
 
-  async function saveWorksheetAndGetId(): Promise<string | null> {
-    if (!uid) {
-      setError(t("saveFailed"));
-      return null;
-    }
-
-    if (worksheet.tasks.length === 0) {
-      setError(t("saveFailed"));
-      return null;
-    }
-
-    const currentUser = auth.currentUser;
-    const idToken = currentUser ? await currentUser.getIdToken() : null;
-
-    const payload = {
-      worksheet: normalizeWorksheetForSave(worksheet),
-      source: "math-geometry-generator",
-    };
-
-    const response = await fetch("/api/producer/save-math-worksheet", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const message = await readErrorMessage(response, t("saveFailed"));
-      setError(message);
-      return null;
-    }
-
-    const data = (await response.json()) as SaveWorksheetResponse;
-
-    if (!data.ok) {
-      setError(data.error || t("saveFailed"));
-      return null;
-    }
-
-    const savedId = data.id || data.worksheetId || data.lessonId || null;
-    return savedId;
-  }
-
-  async function handleSaveToMyContent() {
-    setSaving(true);
-    setError("");
-    setUsageInfo("");
-
-    try {
-      const savedId = await saveWorksheetAndGetId();
-      if (!savedId) return;
-
-      setSavedWorksheetId(savedId);
-      setUsageInfo(t("savedToMyContent"));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("saveFailed"));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleShareToSpaces() {
-    setSharing(true);
-    setError("");
-    setUsageInfo("");
-
-    try {
-      const savedId = await saveWorksheetAndGetId();
-
-      if (!savedId) {
-        setError(getMissingSavedIdMessage(locale));
-        return;
-      }
-
-      setSavedWorksheetId(savedId);
-      setUsageInfo(
-        locale === "nb"
-          ? "Arket er lagret. Velg klasserom."
-          : locale === "pt"
-            ? "A folha foi salva. Escolha a turma."
-            : "Worksheet saved. Choose classroom."
-      );
-      setShareModalOpen(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("saveFailed"));
-    } finally {
-      setSharing(false);
-    }
-  }
-
-  async function handleAssignToSpace(spaceId: string) {
-    if (!savedWorksheetId) {
-      setError(getMissingSavedIdMessage(locale));
-      return;
-    }
-
-    setAssigningSpaceId(spaceId);
-    setError("");
-    setUsageInfo("");
-
-    try {
-      const currentUser = auth.currentUser;
-      const idToken = currentUser ? await currentUser.getIdToken() : null;
-
-      if (!idToken) {
-        setError(t("saveFailed"));
-        return;
-      }
-
-      const response = await fetch(`/api/teacher/spaces/${spaceId}/assign`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          sourceType: "myContent",
-          sourceId: savedWorksheetId,
-          title: worksheet.title,
-          level: worksheet.level,
-          language: worksheet.language,
-        }),
-      });
-
-      if (!response.ok) {
-        const message = await readErrorMessage(response, t("saveFailed"));
-        setError(message);
-        return;
-      }
-
-      setShareModalOpen(false);
-      setUsageInfo(
-        locale === "nb"
-          ? "Oppgaven er delt og satt som aktiv."
-          : locale === "pt"
-            ? "A atividade foi compartilhada e marcada como ativa."
-            : "Task shared and set as active."
-      );
-
-      router.push(`/${locale}/teacher/spaces/${spaceId}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("saveFailed"));
-    } finally {
-      setAssigningSpaceId(spaceId);
-      setAssigningSpaceId(null);
-    }
-  }
-
-  function handlePrint() {
-    const content = printRef.current;
-    if (!content) return;
-
-    const printWindow = window.open("", "_blank", "width=1000,height=1400");
-    if (!printWindow) return;
-
-    const styles = `
-      <style>
-        @page {
-          size: A4;
-          margin: 15mm;
-        }
-
-        html, body {
-          margin: 0;
-          padding: 0;
-          background: #fff;
-          font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-          color: #111827;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-
-        .print-root {
-          max-width: 980px;
-          margin: 0 auto;
-          padding: 0;
-        }
-
-        .print-card {
-          background: #fff;
-        }
-
-        .print-brandbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 20px;
-          padding-bottom: 14px;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .print-brandleft {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 0;
-        }
-
-        .print-brandlogo {
-          width: 64px;
-          height: auto;
-          object-fit: contain;
-          flex-shrink: 0;
-        }
-
-        .print-brandtext {
-          min-width: 0;
-        }
-
-        .print-brandtitle {
-          font-size: 20px;
-          font-weight: 800;
-          line-height: 1.1;
-          color: #0f172a;
-        }
-
-        .print-brandsite {
-          margin-top: 2px;
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 600;
-        }
-
-        .print-title-wrap {
-          margin-bottom: 24px;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 16px;
-        }
-
-        .print-top-row {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .print-title {
-          font-size: 24px;
-          line-height: 1.2;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .print-instructions {
-          margin-top: 8px;
-          font-size: 14px;
-          color: #475569;
-        }
-
-        .print-badge {
-          flex-shrink: 0;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 8px 12px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #334155;
-        }
-
-        .print-meta-grid {
-          margin-top: 20px;
-          display: grid;
-          gap: 12px;
-        }
-
-        .print-meta-box {
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 12px;
-          font-size: 14px;
-          color: #334155;
-        }
-
-        .print-task-list {
-          display: grid;
-          gap: 20px;
-        }
-
-        .print-task {
-          border: 1px solid #e2e8f0;
-          border-radius: 24px;
-          padding: 20px;
-          break-inside: avoid;
-          page-break-inside: avoid;
-        }
-
-        .print-task-head {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-
-        .print-task-num {
-          width: 28px;
-          height: 28px;
-          border-radius: 9999px;
-          background: #0f172a;
-          color: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 600;
-          flex-shrink: 0;
-          margin-top: 2px;
-        }
-
-        .print-task-prompt {
-          font-size: 16px;
-          font-weight: 600;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .print-task-grid {
-          display: grid;
-          gap: 16px;
-        }
-
-        .print-figure-box {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          align-items: center;
-          justify-content: center;
-          background: #f8fafc;
-          border-radius: 16px;
-          padding: 12px;
-          min-height: 150px;
-        }
-
-        .print-answer-box {
-          border: 1px dashed #cbd5e1;
-          border-radius: 16px;
-          background: #fff;
-          padding: 12px;
-        }
-
-        .print-answer-label {
-          font-size: 14px;
-          font-weight: 500;
-          color: #475569;
-        }
-
-        .print-formula,
-        .print-hint,
-        .print-answer-key,
-        .print-explanation {
-          margin-top: 12px;
-          border-radius: 16px;
-          padding: 12px;
-          font-size: 14px;
-          color: #334155;
-        }
-
-        .print-formula {
-          background: #eff6ff;
-        }
-
-        .print-hint {
-          background: #fffbeb;
-        }
-
-        .print-answer-key {
-          background: #ecfdf5;
-        }
-
-        .print-explanation {
-          background: #f8fafc;
-        }
-
-        .print-strong {
-          font-weight: 600;
-          color: #0f172a;
-        }
-
-        .print-pre {
-          white-space: pre-line;
-        }
-
-        .print-page-break {
-          break-before: page;
-          page-break-before: always;
-          height: 0;
-          margin: 0;
-          padding: 0;
-        }
-
-        .figure-meta-text {
-          font-size: 12px;
-          color: #475569;
-          text-align: center;
-          line-height: 1.4;
-          margin: 0;
-        }
-
-        svg {
-          max-width: 100%;
-          height: auto;
-        }
-
-        @media (min-width: 640px) {
-          .print-top-row {
-            flex-direction: row;
-            align-items: flex-start;
-            justify-content: space-between;
-          }
-
-          .print-meta-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .print-task-grid {
-            grid-template-columns: 220px minmax(0, 1fr);
-          }
-        }
-
-        @media (max-width: 640px) {
-          .print-brandbar {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-        }
-      </style>
-    `;
-
-    printWindow.document.open();
-    printWindow.document.write(`
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${worksheet.title}</title>
-          ${styles}
-        </head>
-        <body>
-          ${content.outerHTML}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-
-    const images = Array.from(printWindow.document.images);
-    const doPrint = () => {
-      printWindow.focus();
-      printWindow.print();
-    };
-
-    if (images.length === 0) {
-      doPrint();
-      return;
-    }
-
-    let loaded = 0;
-    const done = () => {
-      loaded += 1;
-      if (loaded >= images.length) {
-        doPrint();
-      }
-    };
-
-    images.forEach((img) => {
-      if (img.complete) {
-        done();
-      } else {
-        img.onload = done;
-        img.onerror = done;
-      }
-    });
-  }
-
   return (
-    <main className="min-h-screen bg-slate-50 print:bg-white">
+    <main className="min-h-screen bg-slate-50 pb-44 print:bg-white">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
-        <div className="mb-6 print:hidden">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            {t("pageTitle")}
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
-            {t("pageSubtitle")}
-          </p>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] print:block">
-          <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm print:hidden">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">
-                {t("builder")}
-              </h2>
+        <section className="rounded-[28px] border border-blue-100 bg-white p-5 shadow-sm sm:p-7 lg:p-8">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-teal-700">
+                {t("mathBrand")}
+              </p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+                {t("pageTitle")}
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600 sm:text-base">
+                {t("pageSubtitle")}
+              </p>
             </div>
 
-            <div className="space-y-4">
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {t("language")}
-                </span>
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value as WorksheetLanguage)}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-0 transition focus:border-slate-400"
-                >
-                  <option value="nb">{t("languages.nb")}</option>
-                  <option value="en">{t("languages.en")}</option>
-                  <option value="pt">{t("languages.pt")}</option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {t("level")}
-                </span>
-                <select
-                  value={level}
-                  onChange={(e) => setLevel(e.target.value as GeometryLevel)}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                >
-                  <option value="grade_3_4">{t("grade34")}</option>
-                  <option value="grade_5_7">{t("grade57")}</option>
-                  <option value="grade_8_10">{t("grade810")}</option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {t("topic")}
-                </span>
-                <select
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value as GeometryTopic)}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                >
-                  <option value="shapes">{t("shapes")}</option>
-                  <option value="perimeter">{t("perimeter")}</option>
-                  <option value="area">{t("area")}</option>
-                  <option value="all">{t("all")}</option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {t("difficulty")}
-                </span>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                >
-                  <option value="easy">{t("easy")}</option>
-                  <option value="medium">{t("medium")}</option>
-                  <option value="hard">{t("hard")}</option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {t("taskCount")}
-                </span>
-                <input
-                  type="number"
-                  min={4}
-                  max={12}
-                  value={taskCount}
-                  onChange={(e) => setTaskCount(Number(e.target.value))}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {t("answerSpace")}
-                </span>
-                <select
-                  value={answerSpace}
-                  onChange={(e) => setAnswerSpace(e.target.value as AnswerSpace)}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                >
-                  <option value="small">{t("small")}</option>
-                  <option value="medium">{t("mediumSpace")}</option>
-                  <option value="large">{t("large")}</option>
-                </select>
-              </label>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-slate-700">
-                    {t("chooseShapes")}
-                  </p>
-
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={selectAllShapes}
-                      className="rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-                    >
-                      {t("selectAll")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={clearAllShapes}
-                      className="rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-                    >
-                      {t("clearAll")}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {ALL_FIGURES.map((shape) => {
-                    const checked = selectedShapes.includes(shape);
-
-                    return (
-                      <button
-                        key={shape}
-                        type="button"
-                        onClick={() => toggleShape(shape)}
-                        className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-left text-sm transition ${
-                          checked
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                        }`}
-                        aria-pressed={checked}
-                      >
-                        <span
-                          className={`flex h-5 w-5 items-center justify-center rounded border text-xs font-bold ${
-                            checked
-                              ? "border-emerald-500 bg-emerald-500 text-white"
-                              : "border-slate-300 bg-white text-transparent"
-                          }`}
-                        >
-                          ✓
-                        </span>
-                        <span>{getShapeLabel(t, shape)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {selectedShapes.length === 0 ? (
-                  <p className="mt-3 text-sm text-red-600">
-                    {t("selectAtLeastOneShape")}
-                  </p>
-                ) : (
-                  <p className="mt-3 text-xs text-slate-500">
-                    {t("selectedCount")}: {selectedShapes.length}
-                  </p>
-                )}
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="mb-3 text-sm font-medium text-slate-700">
-                  {t("options")}
-                </p>
-
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <ToggleChip
-                    label={t("hints")}
-                    active={includeHints}
-                    onClick={() => setIncludeHints((v) => !v)}
-                  />
-                  <ToggleChip
-                    label={t("showFormulas")}
-                    active={showFormulas}
-                    onClick={() => setShowFormulas((v) => !v)}
-                  />
-                  <ToggleChip
-                    label={t("showAnswerKey")}
-                    active={showAnswerKey}
-                    onClick={() => setShowAnswerKey((v) => !v)}
-                  />
+            <div className="flex w-full items-center gap-4 rounded-3xl border border-blue-200 bg-white p-4 shadow-sm md:max-w-sm">
+              <div className="grid h-14 w-20 shrink-0 place-items-center rounded-2xl border border-blue-200 bg-slate-100">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/25">
+                  ▶
                 </div>
               </div>
-
-              {!statusLoading && featureStatus ? (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  {t("usageLeft")}: {generatorsRemaining} / {generatorsLimit}
+              <div className="min-w-0">
+                <div className="text-sm font-black text-slate-950">
+                  {t("video.title")}
                 </div>
-              ) : null}
-
-              {!statusLoading && featureBlocked ? (
-                <Link
-                  href={`/${locale}/pricing`}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-                >
-                  {t("seePlans")}
-                </Link>
-              ) : null}
-
-              {error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {error}
+                <div className="mt-1 text-sm font-semibold leading-5 text-slate-500">
+                  {t("video.placeholder")}
                 </div>
-              ) : null}
-
-              {!error && usageInfo ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                  {usageInfo}
-                </div>
-              ) : null}
-
-              <div className="grid gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleGenerate}
-                  disabled={loading || statusLoading || featureBlocked}
-                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {loading ? t("generating") : t("generate")}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleShareToSpaces}
-                  disabled={
-                    sharing ||
-                    saving ||
-                    loading ||
-                    worksheet.tasks.length === 0 ||
-                    !uid
-                  }
-                  className="inline-flex items-center justify-center rounded-2xl border border-sky-300 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-900 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {sharing ? getSharingLabel(locale) : getShareButtonLabel(locale)}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSaveToMyContent}
-                  disabled={saving || sharing || worksheet.tasks.length === 0 || !uid}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {saving ? t("saving") : t("saveToMyContent")}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-                >
-                  {t("print")}
-                </button>
-              </div>
-
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm font-semibold text-slate-900">
-                  {getShareInfoTitle(locale)}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-700">
-                  {getShareInfoBody(locale)}
-                </p>
-              </div>
-            </div>
-          </aside>
-
-          <section className="rounded-3xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none">
-            <div className="border-b border-slate-200 px-6 py-4 print:hidden">
-              <h2 className="text-lg font-semibold text-slate-900">
-                {t("preview")}
-              </h2>
-            </div>
-
-            <div className="px-6 py-6 print:px-0 print:py-0">
-              <GeometryWorksheetView
-                worksheet={worksheet}
-                answerSpace={answerSpace}
-                includeHints={includeHints}
-                t={t}
-                tBrand={tBrand}
-                printRef={printRef}
-                showIdentityFields={true}
-                showFigureMeta={true}
-                emptyStateKey="generate"
-              />
-            </div>
-          </section>
-        </div>
-      </div>
-
-      {shareModalOpen ? (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4"
-          onClick={() => setShareModalOpen(false)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="mx-auto w-full max-w-3xl min-w-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="max-h-[90vh] min-w-0 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-xl">
-              <div className="border-b border-slate-200 p-4 sm:p-5">
-                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="text-lg font-semibold text-slate-900">
-                      {getChooseSpaceTitle(locale)}
-                    </div>
-                    <div className="mt-1 break-words text-sm text-slate-600">
-                      {getChooseSpaceBody(locale)}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShareModalOpen(false)}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 sm:w-auto"
-                  >
-                    {getCloseLabel(locale)}
-                  </button>
-                </div>
-
-                <input
-                  value={spaceSearch}
-                  onChange={(e) => setSpaceSearch(e.target.value)}
-                  placeholder={locale === "nb" ? "Søk etter klasserom eller kode" : locale === "pt" ? "Buscar turma ou código" : "Search classroom or code"}
-                  className="mt-4 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                />
-              </div>
-
-              <div className="max-h-[calc(90vh-180px)] min-w-0 overflow-y-auto p-4 sm:p-5">
-                {spacesLoading ? (
-                  <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                    {locale === "nb" ? "Laster klasserom..." : locale === "pt" ? "Carregando turmas..." : "Loading classrooms..."}
-                  </div>
-                ) : filteredSpaces.length === 0 ? (
-                  <div className="rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                    {locale === "nb" ? "Ingen klasserom funnet." : locale === "pt" ? "Nenhuma turma encontrada." : "No classrooms found."}
-                  </div>
-                ) : (
-                  <div className="grid min-w-0 gap-3">
-                    {filteredSpaces.map((space) => (
-                      <div
-                        key={space.id}
-                        className="w-full min-w-0 rounded-xl border border-slate-300 bg-white p-4"
-                      >
-                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0 flex-1">
-                            <div className="break-words font-semibold text-slate-900">
-                              {space.title}
-                            </div>
-                            <div className="mt-1 break-words text-sm text-slate-600">
-                              {locale === "nb" ? "Kode" : locale === "pt" ? "Código" : "Code"}: {space.code}
-                              {" · "}
-                              {space.isOpen
-                                ? locale === "nb"
-                                  ? "Åpent"
-                                  : locale === "pt"
-                                    ? "Aberto"
-                                    : "Open"
-                                : locale === "nb"
-                                  ? "Lukket"
-                                  : locale === "pt"
-                                    ? "Fechado"
-                                    : "Closed"}
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleAssignToSpace(space.id)}
-                            disabled={assigningSpaceId !== null}
-                            className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 sm:w-auto"
-                          >
-                            {assigningSpaceId === space.id
-                              ? getAssigningLabel(locale)
-                              : getAssignLabel(locale)}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="mt-5 rounded-[28px] border border-blue-100 bg-white p-4 shadow-sm sm:p-6">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight text-slate-950">
+                {t("builder")}
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
+                {t("generatorIntro")}
+              </p>
+            </div>
+
+            {!statusLoading && featureStatus ? (
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm">
+                {t("usageLeft")}: {generatorsRemaining} / {generatorsLimit}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-4 grid gap-4">
+            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5">
+              <h3 className="text-base font-black text-slate-950">
+                {t("sections.setup")}
+              </h3>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    {t("language")}
+                  </span>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value as WorksheetLanguage)}
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-0 transition focus:border-slate-400"
+                  >
+                    <option value="nb">{t("languages.nb")}</option>
+                    <option value="en">{t("languages.en")}</option>
+                    <option value="pt">{t("languages.pt")}</option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    {t("level")}
+                  </span>
+                  <select
+                    value={level}
+                    onChange={(e) => setLevel(e.target.value as GeometryLevel)}
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                  >
+                    <option value="grade_3_4">{t("grade34")}</option>
+                    <option value="grade_5_7">{t("grade57")}</option>
+                    <option value="grade_8_10">{t("grade810")}</option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    {t("topic")}
+                  </span>
+                  <select
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value as GeometryTopic)}
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                  >
+                    <option value="shapes">{t("shapes")}</option>
+                    <option value="perimeter">{t("perimeter")}</option>
+                    <option value="area">{t("area")}</option>
+                    <option value="all">{t("all")}</option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    {t("difficulty")}
+                  </span>
+                  <select
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                  >
+                    <option value="easy">{t("easy")}</option>
+                    <option value="medium">{t("medium")}</option>
+                    <option value="hard">{t("hard")}</option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    {t("taskCount")}
+                  </span>
+                  <input
+                    type="number"
+                    min={4}
+                    max={12}
+                    value={taskCount}
+                    onChange={(e) => setTaskCount(Number(e.target.value))}
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    {t("answerSpace")}
+                  </span>
+                  <select
+                    value={answerSpace}
+                    onChange={(e) => setAnswerSpace(e.target.value as AnswerSpace)}
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                  >
+                    <option value="small">{t("small")}</option>
+                    <option value="medium">{t("mediumSpace")}</option>
+                    <option value="large">{t("large")}</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-black text-slate-950">
+                    {t("sections.shapes")}
+                  </h3>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {t("selectedCount")}: {selectedShapes.length}
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={selectAllShapes}
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100"
+                  >
+                    {t("selectAll")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearAllShapes}
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-100"
+                  >
+                    {t("clearAll")}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {ALL_FIGURES.map((shape) => {
+                  const checked = selectedShapes.includes(shape);
+
+                  return (
+                    <button
+                      key={shape}
+                      type="button"
+                      onClick={() => toggleShape(shape)}
+                      className={`flex min-h-12 items-center gap-3 rounded-2xl border px-3 py-2 text-left text-sm font-bold transition ${
+                        checked
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                      aria-pressed={checked}
+                    >
+                      <span
+                        className={`flex h-5 w-5 items-center justify-center rounded border text-xs font-black ${
+                          checked
+                            ? "border-emerald-500 bg-emerald-500 text-white"
+                            : "border-slate-300 bg-white text-transparent"
+                        }`}
+                      >
+                        ✓
+                      </span>
+                      <span>{getShapeLabel(t, shape)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedShapes.length === 0 ? (
+                <p className="mt-3 text-sm font-semibold text-red-600">
+                  {t("selectAtLeastOneShape")}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4">
+            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5">
+              <h3 className="text-base font-black text-slate-950">
+                {t("sections.options")}
+              </h3>
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <ToggleChip
+                  label={t("hints")}
+                  active={includeHints}
+                  onClick={() => setIncludeHints((v) => !v)}
+                />
+                <ToggleChip
+                  label={t("showFormulas")}
+                  active={showFormulas}
+                  onClick={() => setShowFormulas((v) => !v)}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5">
+              <h3 className="text-base font-black text-slate-950">
+                {t("sections.answerKey")}
+              </h3>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                {t("answerKeyHelp")}
+              </p>
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <ToggleChip
+                  label={t("showAnswerKey")}
+                  active={showAnswerKey}
+                  onClick={() => setShowAnswerKey((v) => !v)}
+                />
+              </div>
+            </div>
+
+            {!statusLoading && featureBlocked ? (
+              <Link
+                href={`/${locale}/pricing`}
+                className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-slate-50"
+              >
+                {t("seePlans")}
+              </Link>
+            ) : null}
+          </div>
+        </section>
+
+          {error ? (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              {error}
+            </div>
+          ) : null}
+
+      </div>
+
+      <section className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-14px_40px_rgba(15,23,42,0.12)] backdrop-blur print:hidden">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-black text-slate-950">
+              {t("saveBar.title")}
+            </p>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-600 sm:text-sm">
+              {t("saveBar.description")}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <button
+              type="button"
+              onClick={handleGenerateAndPreview}
+              disabled={loading || statusLoading || featureBlocked || selectedShapes.length === 0 || !uid}
+              className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? t("generating") : t("generateAndPreview")}
+            </button>
+          </div>
         </div>
-      ) : null}
+      </section>
 
-      <style jsx global>{`
-        .print-root {
-          max-width: 980px;
-          margin: 0 auto;
-          padding: 0;
-        }
-
-        .print-card {
-          background: #fff;
-        }
-
-        .print-brandbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 20px;
-          padding-bottom: 14px;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .print-brandleft {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 0;
-        }
-
-        .print-brandlogo {
-          width: 64px;
-          height: auto;
-          object-fit: contain;
-          flex-shrink: 0;
-        }
-
-        .print-brandtext {
-          min-width: 0;
-        }
-
-        .print-brandtitle {
-          font-size: 20px;
-          font-weight: 800;
-          line-height: 1.1;
-          color: #0f172a;
-        }
-
-        .print-brandsite {
-          margin-top: 2px;
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 600;
-        }
-
-        .print-title-wrap {
-          margin-bottom: 24px;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 16px;
-        }
-
-        .print-top-row {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .print-title {
-          font-size: 24px;
-          line-height: 1.2;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .print-instructions {
-          margin-top: 8px;
-          font-size: 14px;
-          color: #475569;
-        }
-
-        .print-badge {
-          flex-shrink: 0;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 8px 12px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #334155;
-        }
-
-        .print-meta-grid {
-          margin-top: 20px;
-          display: grid;
-          gap: 12px;
-        }
-
-        .print-meta-box {
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 12px;
-          font-size: 14px;
-          color: #334155;
-        }
-
-        .print-task-list {
-          display: grid;
-          gap: 20px;
-        }
-
-        .print-task {
-          border: 1px solid #e2e8f0;
-          border-radius: 24px;
-          padding: 20px;
-          break-inside: avoid;
-          page-break-inside: avoid;
-        }
-
-        .print-task-head {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-
-        .print-task-num {
-          width: 28px;
-          height: 28px;
-          border-radius: 9999px;
-          background: #0f172a;
-          color: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 600;
-          flex-shrink: 0;
-          margin-top: 2px;
-        }
-
-        .print-task-prompt {
-          font-size: 16px;
-          font-weight: 600;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .print-task-grid {
-          display: grid;
-          gap: 16px;
-        }
-
-        .print-figure-box {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          align-items: center;
-          justify-content: center;
-          background: #f8fafc;
-          border-radius: 16px;
-          padding: 12px;
-          min-height: 150px;
-        }
-
-        .print-answer-box {
-          border: 1px dashed #cbd5e1;
-          border-radius: 16px;
-          background: #fff;
-          padding: 12px;
-        }
-
-        .print-answer-label {
-          font-size: 14px;
-          font-weight: 500;
-          color: #475569;
-        }
-
-        .print-formula,
-        .print-hint,
-        .print-answer-key,
-        .print-explanation {
-          margin-top: 12px;
-          border-radius: 16px;
-          padding: 12px;
-          font-size: 14px;
-          color: #334155;
-        }
-
-        .print-formula {
-          background: #eff6ff;
-        }
-
-        .print-hint {
-          background: #fffbeb;
-        }
-
-        .print-answer-key {
-          background: #ecfdf5;
-        }
-
-        .print-explanation {
-          background: #f8fafc;
-        }
-
-        .print-strong {
-          font-weight: 600;
-          color: #0f172a;
-        }
-
-        .print-pre {
-          white-space: pre-line;
-        }
-
-        .print-page-break {
-          break-before: page;
-          page-break-before: always;
-          height: 0;
-          margin: 0;
-          padding: 0;
-        }
-
-        .figure-meta-text {
-          font-size: 12px;
-          color: #475569;
-          text-align: center;
-          line-height: 1.4;
-          margin: 0;
-        }
-
-        svg {
-          max-width: 100%;
-          height: auto;
-        }
-
-        @media (min-width: 640px) {
-          .print-top-row {
-            flex-direction: row;
-            align-items: flex-start;
-            justify-content: space-between;
-          }
-
-          .print-meta-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .print-task-grid {
-            grid-template-columns: 220px minmax(0, 1fr);
-          }
-        }
-
-        @media (max-width: 640px) {
-          .print-brandbar {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-        }
-      `}</style>
     </main>
   );
 }

@@ -73,22 +73,18 @@ export default function StudentAssignmentAudioBar({
         <div
             style={{
                 position: "fixed",
-                left: isMobileView ? 8 : "50%",
-                right: isMobileView ? 8 : undefined,
-                width: isMobileView ? "auto" : "calc(100% - 24px)",
-                maxWidth: 980,
-                bottom: isMobileView ? 8 : 12,
-                transform: isMobileView ? "none" : "translateX(-50%)",
+                left: 0,
+                right: 0,
+                bottom: 0,
                 zIndex: 60,
-                padding: isMobileView ? 8 : 10,
-                borderRadius: isMobileView ? 14 : 16,
-                border: "1px solid rgba(0,0,0,0.14)",
+                padding: isMobileView ? "10px 12px calc(10px + env(safe-area-inset-bottom))" : "10px 12px",
+                borderTop: "1px solid rgba(0,0,0,0.10)",
                 background: "rgba(255,255,255,0.96)",
-                boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+                boxShadow: "0 -10px 30px rgba(15,23,42,0.10)",
                 backdropFilter: "blur(8px)",
             }}
         >
-            <div style={{ display: "flex", alignItems: "center", gap: isMobileView ? 6 : 8, flexWrap: "wrap" }}>
+            <div style={{ maxWidth: 980, margin: "0 auto", display: "flex", alignItems: "center", gap: isMobileView ? 6 : 8, flexWrap: "wrap" }}>
                 <button
                     type="button"
                     disabled={!audioActive}
@@ -164,9 +160,10 @@ export default function StudentAssignmentAudioBar({
                         display: "flex",
                         alignItems: "center",
                         gap: isMobileView ? 6 : 8,
-                        flex: isMobileView ? "1 1 calc(100% - 142px)" : "1 1 240px",
-                        minWidth: isMobileView ? 120 : 180,
+                        flex: isMobileView ? "1 1 100%" : "1 1 240px",
+                        minWidth: isMobileView ? "100%" : 180,
                         marginLeft: isMobileView ? 0 : 4,
+                        order: isMobileView ? 3 : 0,
                     }}
                 >
                     <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>
@@ -181,7 +178,7 @@ export default function StudentAssignmentAudioBar({
                         value={Math.min(currentTime, duration || currentTime)}
                         onChange={(e) => onSeek(Number(e.target.value))}
                         disabled={!audioActive}
-                        style={{ flex: 1, opacity: audioActive ? 1 : 0.45 }}
+                        style={{ flex: 1, height: isMobileView ? 4 : undefined, opacity: audioActive ? 1 : 0.45 }}
                     />
 
                     <span style={{ fontSize: 12, opacity: 0.75, width: 40 }}>
@@ -212,8 +209,11 @@ export default function StudentAssignmentAudioBar({
                             ...submitButtonStyle,
                             opacity: submitDisabled ? 0.6 : 1,
                             cursor: submitDisabled ? "not-allowed" : "pointer",
-                            flex: isMobileView ? "1 1 0" : "0 0 auto",
-                            minWidth: isMobileView ? 132 : undefined,
+                            flex: isMobileView ? "1 1 100%" : "0 0 auto",
+                            width: isMobileView ? "100%" : undefined,
+                            minWidth: isMobileView ? "100%" : undefined,
+                            order: isMobileView ? 4 : 0,
+                            marginTop: isMobileView ? 2 : 0,
                         }}
                     >
                         {submitting ? t("actions.saving") : submitLabel}
@@ -294,8 +294,8 @@ const mobileSpeedValueStyle: CSSProperties = {
 };
 
 const submitButtonStyle: CSSProperties = {
-    border: "1px solid rgba(22,163,74,0.35)",
-    background: "rgb(22,163,74)",
+    border: "1px solid #0f172a",
+    background: "#0f172a",
     color: "white",
     borderRadius: 12,
     minHeight: 40,

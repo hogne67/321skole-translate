@@ -9,6 +9,7 @@ type WorksheetLanguage = "no" | "en" | "pt";
 type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
 type Difficulty = "easy" | "medium" | "hard";
 type GeometryLevel = "grade_3_4" | "grade_5_7" | "grade_8_10";
+type AnswerSpace = "small" | "medium" | "large";
 
 type FigureKind =
   | "rectangle"
@@ -64,6 +65,7 @@ type MathWorksheet = {
   instructions: string;
   showAnswerKey: boolean;
   showFormulas: boolean;
+  answerSpace?: AnswerSpace;
   selectedShapes: FigureKind[];
   tasks: MathWorksheetTask[];
 };
@@ -95,6 +97,10 @@ function isDifficulty(value: unknown): value is Difficulty {
 
 function isGeometryLevel(value: unknown): value is GeometryLevel {
   return value === "grade_3_4" || value === "grade_5_7" || value === "grade_8_10";
+}
+
+function isAnswerSpace(value: unknown): value is AnswerSpace {
+  return value === "small" || value === "medium" || value === "large";
 }
 
 function isFigureKind(value: unknown): value is FigureKind {
@@ -263,6 +269,7 @@ function sanitizeWorksheet(value: unknown): MathWorksheet | null {
     instructions,
     showAnswerKey: value.showAnswerKey === true,
     showFormulas: value.showFormulas === true,
+    answerSpace: isAnswerSpace(value.answerSpace) ? value.answerSpace : undefined,
     selectedShapes,
     tasks,
   };
@@ -335,6 +342,7 @@ export async function POST(req: Request) {
 
     const plainText = buildPlainTextSummary(worksheet);
     const source = safeString(body.source, "math-geometry-generator");
+    const savedAt = new Date().toISOString();
 
     const docData = stripUndefinedDeep({
       ownerId: uid,
@@ -348,6 +356,8 @@ export async function POST(req: Request) {
       status: "published",
       lessonType: "math_geometry",
       taskType: "math_geometry",
+      mathType: "geometry",
+      contentType: "geometry_worksheet",
       textType: "worksheet",
       topic: worksheet.topic,
       difficulty: worksheet.difficulty,
@@ -366,12 +376,14 @@ export async function POST(req: Request) {
         difficulty: worksheet.difficulty,
         showAnswerKey: worksheet.showAnswerKey,
         showFormulas: worksheet.showFormulas,
+        answerSpace: worksheet.answerSpace,
         selectedShapes: worksheet.selectedShapes,
         tasks: worksheet.tasks,
       },
 
       tasks: worksheet.tasks,
       meta: ["math", "worksheet", "geometry"],
+      savedAt,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });

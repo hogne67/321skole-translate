@@ -1,9 +1,24 @@
 {
   "mathGeometry": {
-    "pageTitle": "Geometry worksheet generator",
-    "pageSubtitle": "Create printable worksheets with shapes, perimeter and area.",
+    "mathBrand": "321school mathematics",
+    "pageTitle": "Geometry",
+    "pageSubtitle": "Create lessons with perimeter and area that are ready for printing or digital completion.",
     "builder": "Settings",
     "preview": "Preview",
+    "generatorIntro": "Choose level, topic and shapes. Use the bottom panel to create the worksheet and open the control preview.",
+    "generateHelp": "Choose settings and use the bottom panel to create and preview.",
+    "readyToPreview": "The worksheet is ready for control preview.",
+    "sections": {
+      "setup": "1. Setup",
+      "shapes": "2. Choose shapes",
+      "options": "3. Show in tasks",
+      "answerKey": "4. Answer key",
+      "generate": "5. Generate"
+    },
+    "video": {
+      "title": "Instruction video",
+      "placeholder": "Video coming here"
+    },
 
     "language": "Language",
     "languages": {
@@ -45,12 +60,15 @@
     "hints": "Hints",
     "showFormulas": "Show formulas",
     "showAnswerKey": "Answer key",
+    "answerKeyHelp": "Include answer key in print.",
 
     "usageLeft": "Remaining",
     "seePlans": "See plans",
 
     "generate": "Generate worksheet",
+    "generateAndPreview": "Create and preview",
     "generating": "Generating...",
+    "saveAndPreview": "Save and preview",
     "saveToMyContent": "Save to my content",
     "saving": "Saving...",
     "print": "Print / save as PDF",
@@ -65,6 +83,25 @@
     "limitReached": "Monthly limit reached",
 
     "selectAtLeastOneShape": "Select at least one shape",
+
+    "saveBar": {
+      "title": "Ready for preview",
+      "description": "Create the worksheet and review it before saving it to My content."
+    },
+
+    "controlPreview": {
+      "eyebrow": "Control preview",
+      "title": "Control preview",
+      "description": "Review the worksheet before printing, sharing or using it with students.",
+      "cardTitle": "Teacher only",
+      "cardBody": "This page cannot be shared with students. PDF and sharing are handled from My content after saving.",
+      "bottomTitle": "Control preview",
+      "bottomBody": "The worksheet is saved. Go to My content for PDF, sharing and further use.",
+      "draftBottomBody": "Review the worksheet. Go back to edit, or save to My content when it is ready.",
+      "backAndEdit": "Back and edit",
+      "backToGenerator": "New version",
+      "openMyContent": "Open My content"
+    },
 
     "worksheet": "Worksheet",
     "producer": "Producer",

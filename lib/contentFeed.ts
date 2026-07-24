@@ -78,6 +78,7 @@ function isArchived(d: unknown): boolean {
 function toDateSafe(v: unknown): Date | null {
   if (!v) return null;
   if (v instanceof Timestamp) return v.toDate();
+  if (v instanceof Date) return v;
 
   if (typeof v === "object" && v !== null) {
     const anyV = v as { seconds?: unknown; nanoseconds?: unknown };
@@ -87,7 +88,11 @@ function toDateSafe(v: unknown): Date | null {
     }
   }
 
-  if (v instanceof Date) return v;
+  if (typeof v === "string" || typeof v === "number") {
+    const date = new Date(v);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
   return null;
 }
 
@@ -118,6 +123,7 @@ function pickUpdated(d: unknown): Date | null {
   const x = d as Record<string, unknown> | null;
   return (
     toDateSafe(x?.updatedAt) ||
+    toDateSafe(x?.savedAt) ||
     toDateSafe(x?.modifiedAt) ||
     toDateSafe(x?.lastEditedAt) ||
     toDateSafe(x?.createdAt) ||
@@ -217,12 +223,18 @@ function deriveMathMeta(d: unknown): string[] {
     joined.includes("math_generator") ||
     joined.includes("math-generator") ||
     joined.includes("math_worksheet") ||
+    joined.includes("math_geometry") ||
     joined.includes("geometry_worksheet")
   ) {
     out.push("math");
   }
 
-  if (joined.includes("geometry") || joined.includes("geometri") || joined.includes("geometry_worksheet")) {
+  if (
+    joined.includes("geometry") ||
+    joined.includes("geometri") ||
+    joined.includes("geometry_worksheet") ||
+    joined.includes("math_geometry")
+  ) {
     out.push("geometry");
   }
 
@@ -304,6 +316,9 @@ function hrefForLesson(locale: string, mode: AppMode, lessonId: string, lessonTy
   }
 
   if (mode === "teacher" || mode === "creator") {
+    if (normalizedLessonType === "image_writing") {
+      return withLocale(locale, `/producer/image-writing?edit=${lessonId}`);
+    }
     return withLocale(locale, `/producer/${lessonId}`);
   }
 

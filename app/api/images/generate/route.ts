@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
   getBucketLimit,
@@ -228,6 +229,10 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(b64, "base64");
+    const croppedBuffer = await sharp(buffer)
+      .resize(1536, 864, { fit: "cover", position: "centre" })
+      .webp({ quality: 90 })
+      .toBuffer();
 
     const bucketName = getBucketName();
     const bucket = storage.bucket(bucketName);
@@ -238,7 +243,7 @@ export async function POST(req: NextRequest) {
 
     const file = bucket.file(storagePath);
 
-    await file.save(buffer, {
+    await file.save(croppedBuffer, {
       contentType: "image/webp",
       resumable: false,
       metadata: {
@@ -250,6 +255,7 @@ export async function POST(req: NextRequest) {
           generatedBy: "openai",
           imageStyle: style,
           promptMode,
+          aspectRatio: "16:9",
         },
       },
     });

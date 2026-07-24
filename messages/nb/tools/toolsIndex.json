@@ -35,6 +35,14 @@
         "geometryGenerator": {
           "title": "Geometrigenerator",
           "description": "Lag utskrivbare geometrioppgaver med figurer, omkrets og areal."
+        },
+        "academyGenerator": {
+          "title": "Lag kurs",
+          "description": "Bygg kurs med økter, ressurser og struktur for deltakere."
+        },
+        "plannerGenerator": {
+          "title": "Lag årsplan",
+          "description": "Lag årsplaner og periodeplaner med læreplangrunnlag og redigerbare forslag."
         }
       }
     },

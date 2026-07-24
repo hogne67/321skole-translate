@@ -244,6 +244,7 @@ function isMathContent(it: ContentItem) {
   const exactMathTags = new Set([
     "math",
     "math_worksheet",
+    "math_geometry",
     "math-generator",
     "math_generator",
     "geometry",
@@ -276,7 +277,7 @@ function getMathSubtype(it: ContentItem): string | null {
   const lessonSignals = normalizedLessonSignals(it);
   const all = new Set<string>([...meta, ...lessonSignals]);
 
-  if (all.has("geometry") || all.has("geometry_worksheet")) return "geometry";
+  if (all.has("geometry") || all.has("geometry_worksheet") || all.has("math_geometry")) return "geometry";
   if (all.has("algebra")) return "algebra";
   if (all.has("fractions") || all.has("fraction_worksheet")) return "fractions";
   if (all.has("percent")) return "percent";
@@ -407,7 +408,11 @@ export default function ContentClient() {
     if (isReadingTestLesson(it)) {
       return readingTestPlayHref(it.activePublishedId || it.id);
     }
-    if (getMathSubtype(it) === "fractions") {
+    const mathSubtype = getMathSubtype(it);
+    if (mathSubtype === "geometry") {
+      return `/${locale}/producer/math/${it.id}/preview`;
+    }
+    if (mathSubtype === "fractions") {
       return `/${locale}/producer/math/${it.id}/print`;
     }
     const pid = it.activePublishedId || it.id;
@@ -419,7 +424,10 @@ export default function ContentClient() {
       return `/${locale}/producer/reading-tests/${it.id}`;
     }
     if (isImageWritingLesson(it)) {
-      return `/${locale}/student/lesson/${it.id}`;
+      return `/${locale}/producer/image-writing?edit=${it.id}`;
+    }
+    if (getMathSubtype(it) === "geometry") {
+      return `/${locale}/producer/math/geometry?edit=${it.id}`;
     }
     return `/${locale}/producer/${it.id}`;
   }
@@ -1468,7 +1476,7 @@ export default function ContentClient() {
     const canPublish = isTeacherApproved && !isDeleted;
     const canDelete = (isTeacher || isParent || isStudent) && !busy;
     const canShareToSpace = mySpaces.length > 0 && (isTeacher || isParent) && !isDeleted;
-    const canEdit = (isTeacher || isParent || isStudent) && !isDeleted && !isImageWriting;
+    const canEdit = (isTeacher || isParent || isStudent) && !isDeleted;
     const canShareReadingTest = !isDeleted && isReadingTest && (isTeacher || isParent || isStudent);
     const canSharePublic = isTeacher && !isDeleted && !isReadingTest;
     const canPdf = isTeacher && !isDeleted && !isReadingTest;
@@ -1502,14 +1510,33 @@ export default function ContentClient() {
           disabled: busy,
           onClick: () => openMathAttemptFromLesson(ls.id),
         },
+        ...(canEdit && mathSubtype === "geometry"
+          ? [
+            {
+              key: "edit",
+              label: t("actions.edit"),
+              disabled: busy,
+              onClick: () => router.push(editHref),
+            },
+          ]
+          : []),
+        {
+          key: "shareToSpace",
+          label: t("actions.shareToSpace"),
+          disabled: busy || !canShareToSpace,
+          onClick: () =>
+            openPickSpace({
+              lessonId: ls.id,
+              title: titleForCard(ls),
+              sourceType: "myContent",
+              sourceId: ls.id,
+            }),
+        },
         ...(canPdf
           ? [
             {
               key: "pdf",
-              label:
-                mathSubtypeText && mathSubtype !== "math"
-                  ? `${mathSubtypeText}-PDF`
-                  : t("math.pdf"),
+              label: t("actions.pdf"),
               disabled: busy,
               onClick: () => router.push(pdfHref),
             },
@@ -1635,7 +1662,7 @@ export default function ContentClient() {
       ];
     }
     if (it.type === "space") return ["open", "board", "copyCode", "share", "copyJoinLink"];
-    if (isMathArchiveItem(it)) return ["openMath", "pdf", "delete", "restore"];
+    if (isMathArchiveItem(it)) return ["openMath", "edit", "shareToSpace", "pdf", "delete", "restore"];
     return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "addToCourse", "pdf", "delete", "restore"];
   }
 

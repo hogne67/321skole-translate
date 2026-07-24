@@ -300,14 +300,16 @@ export default function ReadingTestEditorPage() {
     padding: 18,
   };
 
-  const buttonSuccess: CSSProperties = {
-    padding: "10px 14px",
+  const buttonDark: CSSProperties = {
+    padding: "11px 16px",
     borderRadius: 12,
-    border: "1px solid #14532d",
-    background: "#15803d",
-    color: "#fff",
-    fontWeight: 700,
+    border: "1px solid #0f172a",
+    background: "#0f172a",
+    color: "#ffffff",
+    fontWeight: 850,
     cursor: "pointer",
+    boxShadow: "0 8px 18px rgba(15,23,42,0.16)",
+    whiteSpace: "nowrap",
   };
 
   const buttonSmall: CSSProperties = {
@@ -1236,29 +1238,33 @@ export default function ReadingTestEditorPage() {
           className="stickySaveSection"
           style={{
             position: "fixed",
-            left: 12,
-            right: 12,
-            bottom: 12,
+            left: 0,
+            right: 0,
+            bottom: 0,
             zIndex: 50,
-            width: "calc(100% - 24px)",
-            maxWidth: 1180,
-            marginLeft: "auto",
-            marginRight: "auto",
+            width: "100%",
+            borderTopWidth: 1,
+            borderTopStyle: "solid",
+            borderTopColor: "rgba(0,0,0,0.10)",
+            background: "rgba(255,255,255,0.96)",
+            padding: "10px 12px calc(10px + env(safe-area-inset-bottom))",
+            boxShadow: "0 -10px 30px rgba(15,23,42,0.10)",
+            backdropFilter: "blur(8px)",
           }}
         >
           <div
             style={{
-              ...cardStyle,
+              width: "100%",
+              maxWidth: 1180,
+              margin: "0 auto",
               display: "flex",
               gap: 12,
               alignItems: "center",
               justifyContent: "space-between",
               flexWrap: "wrap",
-              background: "#ecfdf5",
-              borderColor: "#86efac",
             }}
           >
-            <div>
+            <div style={{ minWidth: 280, flex: "1 1 560px" }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
               {t("saveBar.title")}
               </h2>
@@ -1272,7 +1278,7 @@ export default function ReadingTestEditorPage() {
               onClick={save}
               disabled={saving}
               style={{
-                ...buttonSuccess,
+                ...buttonDark,
                 opacity: saving ? 0.7 : 1,
                 cursor: saving ? "not-allowed" : "pointer",
               }}

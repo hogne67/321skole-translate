@@ -35,6 +35,10 @@
         "geometryGenerator": {
           "title": "Gerador de geometria",
           "description": "Crie atividades de geometria para impressão com figuras, perímetro e área."
+        },
+        "academyGenerator": {
+          "title": "Criar curso",
+          "description": "Crie cursos com sessões, recursos e uma estrutura clara para participantes."
         }
       }
     },

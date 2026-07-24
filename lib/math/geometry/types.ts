@@ -5,6 +5,7 @@ export type StoredWorksheetLanguage = "nb" | "no" | "en" | "pt";
 export type GeometryTopic = "shapes" | "perimeter" | "area" | "all";
 export type Difficulty = "easy" | "medium" | "hard";
 export type GeometryLevel = "grade_3_4" | "grade_5_7" | "grade_8_10";
+export type GeometryAnswerSpace = "small" | "medium" | "large";
 
 export type FigureKind =
   | "rectangle"
@@ -69,6 +70,7 @@ export type MathWorksheet = {
   instructions: string;
   showAnswerKey: boolean;
   showFormulas: boolean;
+  answerSpace?: GeometryAnswerSpace;
   selectedShapes: FigureKind[];
   tasks: MathWorksheetTask[];
 };

@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useLocale } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 
 type Language = "nb" | "en" | "pt";
 type Level = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
@@ -77,11 +77,15 @@ const copy = {
       imageUrlShort: "Bilde-URL",
       prompt: "Prompt til AI-bilde",
       promptPlaceholder: "Beskriv bildet du vil lage. Unngå tekst i selve bildet.",
+      promptSuggestion: "Velg promptforslag",
+      promptSuggestionPlaceholder: "Velg et forslag...",
       generate: "Generer bilde",
       generating: "Genererer...",
       storageHint: "Bildet lagres i Firebase Storage og kan brukes før oppgaven lagres.",
+      aspectHint: "Standardformatet er 16:9. Bilder vises i denne rammen og kan bli beskåret.",
       imageDescription: "Bildebeskrivelse / imageDescription",
       imageDescriptionPlaceholder: "Beskriv motiv, personer, sted, handling og viktige detaljer som AI skal vurdere teksten mot.",
+      imagePreviewTitle: "Valgt bilde",
       instruction: "Instruksjon til eleven",
       support: "Forslag til støtteord",
       criteria: "Forslag til suksesskriterier",
@@ -93,7 +97,12 @@ const copy = {
       printMediumHint: "Legger også ved støtteord.",
       printLongHint: "Legger ved støtteord og suksesskriterier.",
       none: "Ingen",
+      saveAndPreview: "Lagre og forhåndsvis",
       save: "Lagre til Mitt innhold",
+      saveChanges: "Lagre endringer",
+      savePanelTitle: "Klar til å lagre",
+      editPanelTitle: "Klar til å lagre endringer",
+      savePanelInfo: "Du sendes til Mitt innhold når du lagrer, og der kan du skrive ut oppgaven i PDF eller dele den digitalt til klasserom.",
       saving: "Lagrer...",
       openPreview: "Åpne/forhåndsvis",
       preview: "Forhåndsvisning",
@@ -118,6 +127,11 @@ const copy = {
       completeRequired: "Fyll ut obligatoriske felt før du lagrer.",
       saveFailed: "Lagring feilet.",
       saved: "Skriveoppgaven er lagret i Mitt innhold.",
+      loadingEdit: "Laster skriveoppgaven...",
+      editLoadFailed: "Kunne ikke åpne skriveoppgaven for redigering.",
+      notFound: "Fant ikke skriveoppgaven.",
+      notOwner: "Du kan bare redigere skriveoppgaver du eier.",
+      unsupportedLesson: "Denne oppgaven kan ikke redigeres i 321School Studio.",
     },
   },
   en: {
@@ -177,11 +191,15 @@ const copy = {
       imageUrlShort: "Image URL",
       prompt: "AI image prompt",
       promptPlaceholder: "Describe the image you want to create. Avoid text inside the image.",
+      promptSuggestion: "Choose prompt suggestion",
+      promptSuggestionPlaceholder: "Choose a suggestion...",
       generate: "Generate image",
       generating: "Generating...",
       storageHint: "The image is saved in Firebase Storage and can be used before the task is saved.",
+      aspectHint: "The standard format is 16:9. Images are shown in this frame and may be cropped.",
       imageDescription: "Image description / imageDescription",
       imageDescriptionPlaceholder: "Describe the motif, people, place, action and important details AI should assess the text against.",
+      imagePreviewTitle: "Selected image",
       instruction: "Instruction for the student",
       support: "Suggested support words",
       criteria: "Suggested success criteria",
@@ -193,7 +211,12 @@ const copy = {
       printMediumHint: "Also includes support words.",
       printLongHint: "Includes support words and success criteria.",
       none: "None",
+      saveAndPreview: "Save and preview",
       save: "Save to My content",
+      saveChanges: "Save changes",
+      savePanelTitle: "Ready to save",
+      editPanelTitle: "Ready to save changes",
+      savePanelInfo: "You will be sent to My content when you save. From there you can print the task as PDF or share it digitally with a classroom.",
       saving: "Saving...",
       openPreview: "Open/preview",
       preview: "Preview",
@@ -218,6 +241,11 @@ const copy = {
       completeRequired: "Complete required fields before saving.",
       saveFailed: "Saving failed.",
       saved: "The writing task has been saved to My content.",
+      loadingEdit: "Loading the writing task...",
+      editLoadFailed: "Could not open the writing task for editing.",
+      notFound: "Could not find the writing task.",
+      notOwner: "You can only edit writing tasks you own.",
+      unsupportedLesson: "This task cannot be edited in 321School Studio.",
     },
   },
   pt: {
@@ -277,11 +305,15 @@ const copy = {
       imageUrlShort: "URL da imagem",
       prompt: "Prompt da imagem de IA",
       promptPlaceholder: "Descreva a imagem que você quer criar. Evite texto dentro da imagem.",
+      promptSuggestion: "Escolher sugestao de prompt",
+      promptSuggestionPlaceholder: "Escolha uma sugestao...",
       generate: "Gerar imagem",
       generating: "Gerando...",
       storageHint: "A imagem é salva no Firebase Storage e pode ser usada antes de salvar a tarefa.",
+      aspectHint: "O formato padrao e 16:9. As imagens sao mostradas neste quadro e podem ser cortadas.",
       imageDescription: "Descrição da imagem / imageDescription",
       imageDescriptionPlaceholder: "Descreva o motivo, pessoas, lugar, ação e detalhes importantes que a IA deve usar para avaliar o texto.",
+      imagePreviewTitle: "Imagem escolhida",
       instruction: "Instrução para o estudante",
       support: "Sugestões de palavras de apoio",
       criteria: "Sugestões de critérios de sucesso",
@@ -293,7 +325,12 @@ const copy = {
       printMediumHint: "Também inclui palavras de apoio.",
       printLongHint: "Inclui palavras de apoio e critérios de sucesso.",
       none: "Nenhuma",
+      saveAndPreview: "Salvar e visualizar",
       save: "Salvar em Meu conteúdo",
+      saveChanges: "Salvar alterações",
+      savePanelTitle: "Pronto para salvar",
+      editPanelTitle: "Pronto para salvar alterações",
+      savePanelInfo: "Você será enviado para Meu conteúdo ao salvar. Lá você pode imprimir a tarefa em PDF ou compartilhá-la digitalmente com a turma.",
       saving: "Salvando...",
       openPreview: "Abrir/visualizar",
       preview: "Visualização",
@@ -318,6 +355,11 @@ const copy = {
       completeRequired: "Preencha os campos obrigatórios antes de salvar.",
       saveFailed: "Falha ao salvar.",
       saved: "A tarefa de escrita foi salva em Meu conteúdo.",
+      loadingEdit: "Carregando a tarefa de escrita...",
+      editLoadFailed: "Não foi possível abrir a tarefa para edição.",
+      notFound: "Não foi possível encontrar a tarefa.",
+      notOwner: "Você só pode editar tarefas que pertencem a você.",
+      unsupportedLesson: "Esta tarefa não pode ser editada no 321School Studio.",
     },
   },
 } satisfies Record<Language, {
@@ -326,6 +368,45 @@ const copy = {
   ui: Record<string, string>;
   messages: Record<string, string>;
 }>;
+
+const promptSuggestions: Record<Language, string[]> = {
+  nb: [
+    "Lag et bilde med en mor, far og to barn, en jente og en gutt, som er i butikken. De har epler, bananer og poteter i handlekurven.",
+    "Lag et bilde av en elev som sitter ved et vindu og skriver i en bok mens det regner ute.",
+    "Lag et bilde av tre venner som spiller fotball på en skolegård en solrik dag.",
+    "Lag et bilde av en familie som lager middag sammen på kjøkkenet.",
+    "Lag et bilde av en person som venter på bussen med en ryggsekk og en kopp varm drikke.",
+    "Lag et bilde av en klasse som besøker et bibliotek og leter etter bøker.",
+    "Lag et bilde av en gutt og en jente som finner en gammel nøkkel i en park.",
+    "Lag et bilde av en rolig norsk fjord med fjell, små hus og en person som går langs vannet.",
+    "Lag et bilde av en elev som hjelper en ny klassekamerat i friminuttet.",
+    "Lag et bilde av et marked med frukt, grønnsaker, mennesker og mange små detaljer.",
+  ],
+  en: [
+    "Create an image of a mother, father and two children, a girl and a boy, in a grocery store. They have apples, bananas and potatoes in the shopping cart.",
+    "Create an image of a student sitting by a window and writing in a notebook while it rains outside.",
+    "Create an image of three friends playing football in a schoolyard on a sunny day.",
+    "Create an image of a family cooking dinner together in the kitchen.",
+    "Create an image of a person waiting for the bus with a backpack and a cup of hot drink.",
+    "Create an image of a class visiting a library and looking for books.",
+    "Create an image of a boy and a girl finding an old key in a park.",
+    "Create an image of a calm Norwegian fjord with mountains, small houses and a person walking by the water.",
+    "Create an image of a student helping a new classmate during recess.",
+    "Create an image of a market with fruit, vegetables, people and many small details.",
+  ],
+  pt: [
+    "Crie uma imagem de uma mae, um pai e duas criancas, uma menina e um menino, em uma loja. Eles tem macas, bananas e batatas no carrinho.",
+    "Crie uma imagem de um estudante sentado perto de uma janela escrevendo em um caderno enquanto chove la fora.",
+    "Crie uma imagem de tres amigos jogando futebol no patio da escola em um dia ensolarado.",
+    "Crie uma imagem de uma familia preparando o jantar junta na cozinha.",
+    "Crie uma imagem de uma pessoa esperando o onibus com uma mochila e um copo de bebida quente.",
+    "Crie uma imagem de uma turma visitando uma biblioteca e procurando livros.",
+    "Crie uma imagem de um menino e uma menina encontrando uma chave antiga em um parque.",
+    "Crie uma imagem de um fiorde noruegues calmo com montanhas, casas pequenas e uma pessoa caminhando perto da agua.",
+    "Crie uma imagem de um estudante ajudando um novo colega durante o intervalo.",
+    "Crie uma imagem de um mercado com frutas, verduras, pessoas e muitos pequenos detalhes.",
+  ],
+};
 
 const taskDefaults: Record<Language, Record<TaskType, TaskDefaultSet>> = {
   nb: {
@@ -561,6 +642,42 @@ function splitLines(value: string) {
     .filter(Boolean);
 }
 
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function stringListValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => stringValue(item).trim()).filter(Boolean).join("\n");
+  }
+  return stringValue(value);
+}
+
+function pickLanguageValue(value: unknown, fallback: Language): Language {
+  return value === "en" || value === "pt" || value === "nb" ? value : fallback;
+}
+
+function pickLevelValue(value: unknown): Level {
+  return value === "A1" ||
+    value === "A2" ||
+    value === "B1" ||
+    value === "B2" ||
+    value === "C1" ||
+    value === "C2"
+    ? value
+    : "A2";
+}
+
+function pickTaskTypeValue(value: unknown): TaskType {
+  return value === "story" || value === "dialogue" || value === "reflection" || value === "describe"
+    ? value
+    : "describe";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function fieldLabel(text: string, required = false) {
   return (
     <div style={{ fontSize: 13, fontWeight: 850, color: "#334155" }}>
@@ -578,7 +695,10 @@ function languageFromLocale(locale: string): Language {
 export default function ImageWritingProducerPage() {
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const uiLanguage = languageFromLocale(locale);
+  const editLessonId = searchParams.get("edit")?.trim() || "";
+  const isEditMode = Boolean(editLessonId);
 
   const [title, setTitle] = useState("");
   const [language, setLanguage] = useState<Language>(() => uiLanguage);
@@ -592,6 +712,7 @@ export default function ImageWritingProducerPage() {
   const [supportWords, setSupportWords] = useState(() => getTaskDefaults(uiLanguage, "describe").supportWords);
   const [successCriteria, setSuccessCriteria] = useState(() => getTaskDefaults(uiLanguage, "describe").successCriteria);
   const [printMode, setPrintMode] = useState<PrintMode>("medium");
+  const [imageTaskId, setImageTaskId] = useState(() => newId());
 
   const [uploading, setUploading] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
@@ -599,7 +720,7 @@ export default function ImageWritingProducerPage() {
   const [videoOpen, setVideoOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [savedId, setSavedId] = useState<string | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [draftImageLessonId] = useState(
     () => `image-writing-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -631,6 +752,71 @@ export default function ImageWritingProducerPage() {
       document.body.style.overflow = "";
     };
   }, [videoOpen]);
+
+  useEffect(() => {
+    if (!editLessonId) return;
+
+    let cancelled = false;
+    setLoadingEdit(true);
+    setError(null);
+    setMessage(null);
+
+    const unsubscribe = onAuthStateChanged(getAuth(), async (user) => {
+      if (!user) {
+        if (!cancelled) {
+          setError(messages.loginSave);
+          setLoadingEdit(false);
+        }
+        return;
+      }
+
+      try {
+        const snap = await getDoc(doc(db, "lessons", editLessonId));
+        if (!snap.exists()) throw new Error(messages.notFound);
+
+        const data = snap.data() as Record<string, unknown>;
+        const ownerId = stringValue(data.ownerId) || stringValue(data.uid);
+        if (ownerId && ownerId !== user.uid) throw new Error(messages.notOwner);
+
+        const lessonType = String(data.lessonType ?? data.textType ?? data.texttype ?? "").trim().toLowerCase();
+        if (lessonType !== "image_writing") throw new Error(messages.unsupportedLesson);
+
+        const imageTasks = Array.isArray(data.imageTasks) ? data.imageTasks : [];
+        const firstTask = isRecord(imageTasks[0]) ? imageTasks[0] : {};
+        const nextLanguage = pickLanguageValue(data.language, uiLanguage);
+        const nextTaskType = pickTaskTypeValue(firstTask.taskType ?? data.taskType);
+
+        if (cancelled) return;
+
+        setTitle(stringValue(data.title));
+        setLanguage(nextLanguage);
+        setLevel(pickLevelValue(data.level));
+        setTaskType(nextTaskType);
+        setImageTaskId(stringValue(firstTask.id) || newId());
+        setImageMode(firstTask.imageSource === "ai_generated" ? "ai_generated" : "uploaded");
+        setImageUrl(stringValue(firstTask.imageUrl) || stringValue(data.coverImageUrl));
+        setImagePrompt(stringValue(firstTask.imagePrompt));
+        setImageDescription(stringValue(firstTask.imageDescription));
+        setInstruction(stringValue(firstTask.instruction) || getTaskDefaults(nextLanguage, nextTaskType).instruction);
+        setSupportWords(stringListValue(firstTask.supportWords) || getTaskDefaults(nextLanguage, nextTaskType).supportWords);
+        setSuccessCriteria(
+          stringListValue(firstTask.successCriteria) || getTaskDefaults(nextLanguage, nextTaskType).successCriteria
+        );
+        setPrintMode(firstTask.printSuccessCriteria === true ? "long" : firstTask.printSupportWords === true ? "medium" : "short");
+        setLoadingEdit(false);
+      } catch (e: unknown) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : messages.editLoadFailed);
+          setLoadingEdit(false);
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [editLessonId, messages.editLoadFailed, messages.loginSave, messages.notFound, messages.notOwner, messages.unsupportedLesson, uiLanguage]);
 
   function changeLanguage(next: Language) {
     setLanguage(next);
@@ -681,7 +867,7 @@ export default function ImageWritingProducerPage() {
     ...pageShell,
     ...(isMobile
       ? {
-          padding: "14px 10px 84px",
+          padding: "14px 10px 150px",
         }
       : {}),
   };
@@ -733,29 +919,14 @@ export default function ImageWritingProducerPage() {
       : {}),
   };
 
-  const layoutStyle: React.CSSProperties = isMobile
-    ? {
-        ...layout,
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }
-    : layout;
+  const layoutStyle: React.CSSProperties = {
+    ...layout,
+    ...(isMobile ? { marginTop: 14 } : {}),
+  };
 
   const formPanelStyle: React.CSSProperties = {
     ...panel,
     ...(isMobile ? { padding: 14, borderRadius: 20 } : {}),
-  };
-
-  const previewPanelStyle: React.CSSProperties = {
-    ...panel,
-    ...(isMobile
-      ? {
-          order: -1,
-          padding: 14,
-          borderRadius: 20,
-        }
-      : {}),
   };
 
   const gridTwoStyle: React.CSSProperties = {
@@ -771,11 +942,6 @@ export default function ImageWritingProducerPage() {
   const printModeGridStyle: React.CSSProperties = {
     ...printModeGrid,
     ...(isMobile ? { gridTemplateColumns: "1fr" } : {}),
-  };
-
-  const imagePreviewStyle: React.CSSProperties = {
-    ...imagePreview,
-    ...(isMobile ? { borderRadius: 16, aspectRatio: "16 / 10" } : {}),
   };
 
   function missingRequiredFields() {
@@ -870,7 +1036,7 @@ export default function ImageWritingProducerPage() {
     }
   }
 
-  async function saveLesson() {
+  async function saveLesson(destination: "content" | "preview" = "content") {
     setError(null);
     setMessage(null);
 
@@ -885,6 +1051,71 @@ export default function ImageWritingProducerPage() {
     try {
       const user = getAuth().currentUser;
       if (!user) throw new Error(messages.loginSave);
+      const taskId = imageTaskId || newId();
+      const supportWordList = splitLines(supportWords);
+      const successCriteriaList = splitLines(successCriteria);
+      const imageTask = {
+        id: taskId,
+        taskType,
+        imageUrl,
+        imageSource: imageMode,
+        ...(imageMode === "ai_generated" ? { imagePrompt } : {}),
+        imageDescription,
+        instruction,
+        supportWords: supportWordList,
+        successCriteria: successCriteriaList,
+        printSupportWords: printMode === "medium" || printMode === "long",
+        printSuccessCriteria: printMode === "long",
+      };
+
+      if (isEditMode) {
+        const sourceText = [
+          `${ui.taskType}: ${taskTypeLabels[taskType]}`,
+          "",
+          instruction,
+          "",
+          `${ui.imageDescription}:`,
+          imageDescription,
+          supportWordList.length ? `${ui.support}: ${supportWordList.join(", ")}` : "",
+          successCriteriaList.length ? `${ui.criteria}: ${successCriteriaList.join("; ")}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        await updateDoc(doc(db, "lessons", editLessonId), {
+          title: title.trim(),
+          language,
+          level,
+          taskType,
+          lessonType: "image_writing",
+          textType: "image_writing",
+          sourceText,
+          text: sourceText,
+          coverImageUrl: imageUrl,
+          imageTasks: [imageTask],
+          tasks: [
+            {
+              id: taskId,
+              order: 1,
+              type: "open",
+              prompt: instruction,
+              supportWords: supportWordList,
+              successCriteria: successCriteriaList,
+              printSupportWords: printMode === "medium" || printMode === "long",
+              printSuccessCriteria: printMode === "long",
+              imageDescription,
+              imageUrl,
+              taskType,
+            },
+          ],
+          updatedAt: serverTimestamp(),
+        });
+
+        setMessage(messages.saved);
+        router.push(destination === "preview" ? `/${locale}/producer/image-writing/${editLessonId}/preview` : `/${locale}/content`);
+        return;
+      }
+
       const token = await user.getIdToken();
 
       const res = await fetch("/api/producer/save-image-writing", {
@@ -898,34 +1129,30 @@ export default function ImageWritingProducerPage() {
           language,
           level,
           taskType,
-          imageTasks: [
-            {
-              id: newId(),
-              imageUrl,
-              imageSource: imageMode,
-              imagePrompt: imageMode === "ai_generated" ? imagePrompt : undefined,
-              imageDescription,
-              instruction,
-              supportWords: splitLines(supportWords),
-              successCriteria: splitLines(successCriteria),
-              printSupportWords: printMode === "medium" || printMode === "long",
-              printSuccessCriteria: printMode === "long",
-            },
-          ],
+          imageTasks: [imageTask],
         }),
       });
 
       const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
       if (!res.ok) throw new Error(data.error || messages.saveFailed);
 
-      setSavedId(data.id || null);
       setMessage(messages.saved);
-      router.push(`/${locale}/content`);
+      router.push(destination === "preview" && data.id ? `/${locale}/producer/image-writing/${data.id}/preview` : `/${locale}/content`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : messages.saveFailed);
     } finally {
       setSaving(false);
     }
+  }
+
+  if (loadingEdit) {
+    return (
+      <main style={pageShellStyle}>
+        <section style={heroHeaderStyle}>
+          <div style={{ fontWeight: 900, color: "#0f172a" }}>{messages.loadingEdit}</div>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -1090,6 +1317,23 @@ export default function ImageWritingProducerPage() {
                     placeholder={ui.promptPlaceholder}
                   />
                 </label>
+                <label style={field}>
+                  {fieldLabel(ui.promptSuggestion)}
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) setImagePrompt(e.target.value);
+                    }}
+                    style={input}
+                  >
+                    <option value="">{ui.promptSuggestionPlaceholder}</option>
+                    {promptSuggestions[uiLanguage].map((suggestion, index) => (
+                      <option key={suggestion} value={suggestion}>
+                        {index + 1}. {suggestion}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                   <button
                     type="button"
@@ -1109,6 +1353,19 @@ export default function ImageWritingProducerPage() {
                 </label>
               </div>
             )}
+
+            <div style={imageWorkPreviewCard}>
+              <div style={{ ...sectionTitle, marginBottom: 6 }}>{ui.imagePreviewTitle}</div>
+              <p style={{ ...helperText, margin: "0 0 10px" }}>{ui.aspectHint}</p>
+              <div style={imageWorkPreview}>
+                {imageUrl.trim() ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imageUrl.trim()} alt={title || ui.imageAlt} style={imageWorkPreviewImg} />
+                ) : (
+                  <span style={{ color: "#64748b", fontWeight: 700 }}>{ui.imagePlaceholder}</span>
+                )}
+              </div>
+            </div>
 
             <label style={{ ...field, marginTop: 14 }}>
               {fieldLabel(ui.imageDescription, true)}
@@ -1173,86 +1430,57 @@ export default function ImageWritingProducerPage() {
             </div>
           </div>
 
-          <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
+        </div>
+      </section>
+
+      <div style={stickyBottomShell}>
+        <div style={stickyBottomInner}>
+          <div style={{ minWidth: 280, flex: "1 1 520px" }}>
+            <div style={{ fontWeight: 900, color: "#0f172a" }}>
+              {isEditMode ? ui.editPanelTitle : ui.savePanelTitle}
+            </div>
+            <div style={{ marginTop: 3, color: "#475569", fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
+              {ui.savePanelInfo}
+            </div>
+          </div>
+
+          <div style={stickyActionGroup}>
             <button
               type="button"
-              onClick={saveLesson}
-              disabled={saving}
+              onClick={() => saveLesson("preview")}
+              disabled={saving || loadingEdit}
               title={!canSave ? messages.completeRequired : undefined}
-              style={{ ...primaryButton, opacity: canSave || saving ? 1 : 0.78 }}
+              style={{ ...stickySecondaryButton, opacity: canSave || saving ? 1 : 0.72 }}
             >
-              {saving ? ui.saving : ui.save}
+              {ui.saveAndPreview}
             </button>
-            {savedId ? (
-              <Link href={`/${locale}/student/lesson/${savedId}`} style={secondaryLink}>
-                {ui.openPreview}
-              </Link>
-            ) : null}
+
+            <button
+              type="button"
+              onClick={() => saveLesson("content")}
+              disabled={saving || loadingEdit}
+              title={!canSave ? messages.completeRequired : undefined}
+              style={{ ...stickyPrimaryButton, opacity: canSave || saving ? 1 : 0.72 }}
+            >
+              {saving ? ui.saving : isEditMode ? ui.saveChanges : ui.save}
+            </button>
           </div>
         </div>
-
-        <aside style={previewPanelStyle}>
-          <div style={{ fontWeight: 900, marginBottom: 10 }}>{ui.preview}</div>
-          <div style={imagePreviewStyle}>
-            {imageUrl.trim() ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl.trim()} alt={title || ui.imageAlt} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-            ) : (
-              <span style={{ color: "#64748b" }}>{ui.imagePlaceholder}</span>
-            )}
-          </div>
-          <h2 style={{ margin: "16px 0 8px", fontSize: 20 }}>{title || ui.untitled}</h2>
-          <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, color: "#334155" }}>{instruction}</p>
-          {imageDescription.trim() ? (
-            <div style={{ marginTop: 12, padding: 12, border: "1px solid #e2e8f0", borderRadius: 8, background: "#f8fafc" }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "#64748b", marginBottom: 6 }}>
-                {ui.aiContext}
-              </div>
-              <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45, color: "#334155" }}>
-                {imageDescription}
-              </div>
-            </div>
-          ) : null}
-          {printMode !== "short" && splitLines(supportWords).length ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
-              {splitLines(supportWords).map((word) => (
-                <span key={word} style={pill}>
-                  {word}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          {printMode === "long" && splitLines(successCriteria).length ? (
-            <div style={previewCriteriaBox}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "#64748b", marginBottom: 6 }}>
-                {ui.criteria}
-              </div>
-              <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.45, color: "#334155" }}>
-                {splitLines(successCriteria).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </aside>
-      </section>
+      </div>
     </main>
   );
 }
 
 const layout: React.CSSProperties = {
   marginTop: 20,
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1.4fr) minmax(280px, 0.8fr)",
-  gap: 18,
-  alignItems: "start",
+  display: "block",
 };
 
 const pageShell: React.CSSProperties = {
   width: "100%",
   maxWidth: 1040,
   margin: "0 auto",
-  padding: "20px 14px 84px",
+  padding: "20px 14px 132px",
 };
 
 const heroHeader: React.CSSProperties = {
@@ -1385,17 +1613,17 @@ const videoFrame: React.CSSProperties = {
 const panel: React.CSSProperties = {
   border: "1px solid #dbeafe",
   borderRadius: 22,
-  background: "rgba(255,255,255,0.96)",
+  background: "#f8fbff",
   padding: 18,
   boxShadow: "0 14px 34px rgba(15,23,42,0.06)",
 };
 
 const sectionBlock: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
+  border: "1px solid #cfe0f3",
   borderRadius: 18,
-  background: "#ffffff",
-  padding: 14,
-  marginBottom: 14,
+  background: "#eaf6fb",
+  padding: 18,
+  marginBottom: 16,
 };
 
 const sectionHeaderRow: React.CSSProperties = {
@@ -1509,6 +1737,32 @@ const primaryButton: React.CSSProperties = {
   boxShadow: "0 8px 18px rgba(15,118,110,0.16)",
 };
 
+const imageWorkPreviewCard: React.CSSProperties = {
+  marginTop: 16,
+  border: "1px solid #cfe0f3",
+  borderRadius: 16,
+  background: "rgba(255,255,255,0.72)",
+  padding: 12,
+};
+
+const imageWorkPreview: React.CSSProperties = {
+  width: "100%",
+  aspectRatio: "16 / 9",
+  border: "1px solid #cbd5e1",
+  borderRadius: 14,
+  background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
+  display: "grid",
+  placeItems: "center",
+  overflow: "hidden",
+};
+
+const imageWorkPreviewImg: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  display: "block",
+};
+
 const smallButton: React.CSSProperties = {
   ...button,
   borderRadius: 999,
@@ -1516,12 +1770,57 @@ const smallButton: React.CSSProperties = {
   fontSize: 12,
 };
 
-const secondaryLink: React.CSSProperties = {
-  ...button,
-  textDecoration: "none",
-  color: "#0f172a",
-  display: "inline-flex",
+const stickyBottomShell: React.CSSProperties = {
+  position: "fixed",
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 60,
+  padding: "10px 12px calc(10px + env(safe-area-inset-bottom))",
+  borderTop: "1px solid rgba(0,0,0,0.10)",
+  background: "rgba(255,255,255,0.96)",
+  boxShadow: "0 -10px 30px rgba(15,23,42,0.10)",
+  backdropFilter: "blur(8px)",
+};
+
+const stickyBottomInner: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 1040,
+  margin: "0 auto",
+  display: "flex",
   alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+  flexWrap: "wrap",
+};
+
+const stickyActionGroup: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
+const stickyPrimaryButton: React.CSSProperties = {
+  ...button,
+  borderColor: "#0f172a",
+  background: "#0f172a",
+  color: "#ffffff",
+  borderRadius: 12,
+  padding: "11px 16px",
+  boxShadow: "0 8px 18px rgba(15,23,42,0.16)",
+  whiteSpace: "nowrap",
+};
+
+const stickySecondaryButton: React.CSSProperties = {
+  ...button,
+  borderColor: "#cbd5e1",
+  background: "#ffffff",
+  color: "#0f172a",
+  borderRadius: 12,
+  padding: "11px 16px",
+  whiteSpace: "nowrap",
 };
 
 const alertError: React.CSSProperties = {
@@ -1569,34 +1868,4 @@ const printChoiceActive: React.CSSProperties = {
   borderColor: "#2563eb",
   background: "#eff6ff",
   boxShadow: "0 0 0 3px rgba(37,99,235,0.12)",
-};
-
-const previewCriteriaBox: React.CSSProperties = {
-  marginTop: 14,
-  borderWidth: 1,
-  borderStyle: "solid",
-  borderColor: "#e2e8f0",
-  borderRadius: 12,
-  background: "#f8fafc",
-  padding: 12,
-};
-
-const imagePreview: React.CSSProperties = {
-  width: "100%",
-  aspectRatio: "16 / 10",
-  border: "1px solid #cbd5e1",
-  borderRadius: 18,
-  background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)",
-  overflow: "hidden",
-  display: "grid",
-  placeItems: "center",
-};
-
-const pill: React.CSSProperties = {
-  border: "1px solid #cbd5e1",
-  borderRadius: 999,
-  padding: "6px 10px",
-  background: "#f8fafc",
-  fontSize: 13,
-  fontWeight: 700,
 };

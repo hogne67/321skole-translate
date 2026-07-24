@@ -1,9 +1,24 @@
 {
   "mathGeometry": {
-    "pageTitle": "Gerador de fichas de geometria",
-    "pageSubtitle": "Cria fichas imprimíveis com figuras, perímetro e área.",
+    "mathBrand": "321school matemática",
+    "pageTitle": "Geometria",
+    "pageSubtitle": "Cria lições com perímetro e área prontas para impressão ou preenchimento digital.",
     "builder": "Definições",
     "preview": "Pré-visualização",
+    "generatorIntro": "Escolhe nível, tema e figuras. Usa o painel inferior para criar a ficha e abrir a pré-visualização de controlo.",
+    "generateHelp": "Escolhe as definições e usa o painel inferior para criar e pré-visualizar.",
+    "readyToPreview": "A ficha está pronta para pré-visualização de controlo.",
+    "sections": {
+      "setup": "1. Configuração",
+      "shapes": "2. Escolher figuras",
+      "options": "3. Mostrar nas tarefas",
+      "answerKey": "4. Gabarito",
+      "generate": "5. Gerar"
+    },
+    "video": {
+      "title": "Vídeo de instrução",
+      "placeholder": "Vídeo em breve"
+    },
 
     "language": "Idioma",
     "languages": {
@@ -45,12 +60,15 @@
     "hints": "Dicas",
     "showFormulas": "Mostrar fórmulas",
     "showAnswerKey": "Gabarito",
+    "answerKeyHelp": "Incluir gabarito na impressão.",
 
     "usageLeft": "Restante",
     "seePlans": "Ver planos",
 
     "generate": "Gerar ficha",
+    "generateAndPreview": "Criar e pré-visualizar",
     "generating": "A gerar...",
+    "saveAndPreview": "Guardar e pré-visualizar",
     "saveToMyContent": "Guardar no meu conteúdo",
     "saving": "A guardar...",
     "print": "Imprimir / guardar em PDF",
@@ -65,6 +83,25 @@
     "limitReached": "Limite mensal atingido",
 
     "selectAtLeastOneShape": "Seleciona pelo menos uma figura",
+
+    "saveBar": {
+      "title": "Pronta para pré-visualização",
+      "description": "Cria a ficha e revê-a antes de a guardar em O meu conteúdo."
+    },
+
+    "controlPreview": {
+      "eyebrow": "Pré-visualização de controlo",
+      "title": "Pré-visualização de controlo",
+      "description": "Revê a ficha antes de imprimir, partilhar ou usar com alunos.",
+      "cardTitle": "Apenas para professor",
+      "cardBody": "Esta página não pode ser partilhada com alunos. PDF e partilha são geridos em O meu conteúdo depois de guardar.",
+      "bottomTitle": "Pré-visualização de controlo",
+      "bottomBody": "A ficha está guardada. Vai a O meu conteúdo para PDF, partilha e uso posterior.",
+      "draftBottomBody": "Revê a ficha. Volta para editar ou guarda em O meu conteúdo quando estiver pronta.",
+      "backAndEdit": "Voltar e editar",
+      "backToGenerator": "Nova versão",
+      "openMyContent": "Abrir O meu conteúdo"
+    },
 
     "worksheet": "Tarefas",
     "name": "Nome",
