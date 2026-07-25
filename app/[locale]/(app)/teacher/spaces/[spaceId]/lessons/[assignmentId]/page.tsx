@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
@@ -29,6 +30,8 @@ type LessonDoc = {
   description?: string;
   level?: string;
   language?: string;
+  coverImageUrl?: string;
+  imageUrl?: string;
   status?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
@@ -47,6 +50,8 @@ type SpaceAssignmentDoc = {
   description?: string;
   level?: string;
   language?: string;
+  coverImageUrl?: string;
+  imageUrl?: string;
   createdAt?: unknown;
   assignedAt?: unknown;
   assignedByUid?: string;
@@ -426,6 +431,13 @@ export default function TeacherSpaceAssignedTaskPage() {
   const desc = lesson?.description ?? assignment?.description ?? "";
   const level = lesson?.level ?? assignment?.level ?? "";
   const language = lesson?.language ?? assignment?.language ?? "";
+  const coverImageUrl = lesson?.coverImageUrl ?? lesson?.imageUrl ?? assignment?.coverImageUrl ?? assignment?.imageUrl ?? "";
+  const sourceLabel =
+    assignment?.sourceType === "library"
+      ? t("meta.library")
+      : assignment?.sourceType === "myContent"
+        ? t("meta.myContent")
+        : dash;
 
   const ownerId = space?.ownerId ?? null;
   const isOwner = Boolean(uidNow && ownerId && uidNow === ownerId);
@@ -441,10 +453,6 @@ export default function TeacherSpaceAssignedTaskPage() {
               <h1 className="mt-1 break-words text-2xl font-semibold text-slate-900">
                 {space?.title || t("fallback.space")}
               </h1>
-              <div className="mt-2 break-words text-base text-slate-700">
-                {loadingLesson ? tCommon("loading") : title}
-              </div>
-              <div className="mt-2 break-words text-sm text-slate-600">{t("header.subtitle")}</div>
             </div>
 
             <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
@@ -465,41 +473,55 @@ export default function TeacherSpaceAssignedTaskPage() {
         ) : null}
 
         <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-5">
-          <div className="min-w-0">
-            <div className="text-base font-semibold text-slate-900">{t("header.taskInfo")}</div>
+          <div className="grid min-w-0 gap-4 lg:grid-cols-[220px_1fr] lg:items-stretch">
+            <div className="min-h-[150px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              {coverImageUrl ? (
+                <Image
+                  src={coverImageUrl}
+                  alt={title}
+                  width={440}
+                  height={300}
+                  className="h-full min-h-[150px] w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full min-h-[150px] items-center justify-center bg-gradient-to-br from-slate-900 to-slate-600 px-5 text-center text-4xl font-semibold text-white">
+                  {(title || t("fallback.task")).slice(0, 1).toUpperCase()}
+                </div>
+              )}
+            </div>
 
-            {!loadingLesson && !assignment ? (
-              <p className="mt-3 break-words text-sm text-slate-600">
-                {t("header.assignmentMissing")}{" "}
-                <code>
-                  spaces/{spaceId}/lessons/{assignmentId}
-                </code>
-                .
-              </p>
-            ) : null}
+            <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-sm font-semibold text-slate-500">{t("header.taskInfo")}</div>
+              <h2 className="mt-2 break-words text-2xl font-semibold text-slate-950">
+                {loadingLesson ? tCommon("loading") : title}
+              </h2>
 
-            {!loadingLesson && assignment && !lesson ? (
-              <p className="mt-3 break-words text-sm text-slate-600">
-                {t("header.sourceMissing")}
-                <br />
-                sourceType: <code>{assignment.sourceType ?? dash}</code> · sourceId:{" "}
-                <code>{assignment.sourceId ?? dash}</code>
-              </p>
-            ) : null}
-
-            {desc ? <p className="mt-3 break-words text-sm text-slate-700">{desc}</p> : null}
-
-            <div className="mt-4 flex flex-wrap gap-2 text-sm">
-              {level ? (
-                <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-slate-700">
-                  {t("meta.level")}: {level}
-                </span>
+              {!loadingLesson && !assignment ? (
+                <p className="mt-3 break-words text-sm text-slate-600">
+                  {t("header.assignmentMissing")}{" "}
+                  <code>
+                    spaces/{spaceId}/lessons/{assignmentId}
+                  </code>
+                  .
+                </p>
               ) : null}
-              {language ? (
-                <span className="rounded-full border border-slate-300 bg-white px-3 py-1 text-slate-700">
-                  {t("meta.language")}: {language}
-                </span>
+
+              {!loadingLesson && assignment && !lesson ? (
+                <p className="mt-3 break-words text-sm text-slate-600">
+                  {t("header.sourceMissing")}
+                  <br />
+                  sourceType: <code>{assignment.sourceType ?? dash}</code> · sourceId:{" "}
+                  <code>{assignment.sourceId ?? dash}</code>
+                </p>
               ) : null}
+
+              {desc ? <p className="mt-3 break-words text-sm leading-6 text-slate-700">{desc}</p> : null}
+
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <InfoTile label={t("meta.level")} value={level || dash} />
+                <InfoTile label={t("meta.language")} value={language || dash} />
+                <InfoTile label={t("meta.source")} value={sourceLabel} />
+              </div>
             </div>
           </div>
         </div>
@@ -563,7 +585,7 @@ export default function TeacherSpaceAssignedTaskPage() {
                         <button
                           type="button"
                           onClick={() => router.push(openHref)}
-                          className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+                          className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
                         >
                           {t("actions.openSubmission")}
                         </button>
@@ -577,5 +599,14 @@ export default function TeacherSpaceAssignedTaskPage() {
         </div>
       </main>
     </AuthGate>
+  );
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+      <div className="text-xs font-semibold uppercase text-slate-500">{label}</div>
+      <div className="mt-1 break-words text-sm font-semibold text-slate-950">{value}</div>
+    </div>
   );
 }

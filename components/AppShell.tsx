@@ -145,8 +145,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathWithoutLocale === "/teacher/planner" ||
     pathWithoutLocale.startsWith("/teacher/planner/");
   const isPrintViewPage = pathWithoutLocale.includes("/print");
+  const isBoardDisplayPage = pathWithoutLocale.includes("/board/display");
   const isTopLevelNavPage = items.some((item) => item.href === pathWithoutLocale);
-  const hideAppChrome = isPrintViewPage;
+  const hideAppChrome = isPrintViewPage || isBoardDisplayPage;
   const useCompactSectionHeader =
     isTopLevelNavPage ||
     isSpacesDetailPage ||
@@ -155,7 +156,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     isProducerPage ||
     isCoursePage ||
     isPlannerPage ||
-    isPrintViewPage;
+    isPrintViewPage ||
+    isBoardDisplayPage;
+
+  if (isBoardDisplayPage) {
+    return (
+      <div className="app-scope tw-scope appShellRoot">
+        {children}
+        <style jsx>{`
+          .appShellRoot {
+            width: 100%;
+            min-width: 0;
+            overflow-x: clip;
+          }
+
+          :global(html),
+          :global(body) {
+            max-width: 100%;
+            overflow-x: clip;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="app-scope tw-scope appShellRoot">

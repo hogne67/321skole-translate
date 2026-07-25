@@ -7,8 +7,9 @@
     "newSpaceTitle": "Opprett et nytt space",
     "newSpaceLockedTitle": "Krever attestering + lærer-/produsentmodus",
     "trainingVideo": {
-      "button": "Se opplæring",
+      "button": "Instruksjonsvideo",
       "buttonTitle": "Se opplæring om spaces",
+      "description": "Se hvordan du oppretter og deler spaces",
       "close": "Lukk",
       "title": "Opplæring: spaces"
     },

@@ -235,7 +235,8 @@ service cloud.firestore {
     || (signedIn() && responseId.matches('^.+_' + myUid() + '$'));
 
   function isTextResponseId() {
-    return responseId.matches('^.+_' + myUid() + '$');
+    return responseId.matches('^.+_text_.+$')
+      || responseId.matches('^.+_' + myUid() + '$');
   }
   function textKeysOk() {
     return request.resource.data.keys().hasOnly([

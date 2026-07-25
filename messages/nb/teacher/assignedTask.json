@@ -12,7 +12,10 @@
     },
     "meta": {
       "level": "Nivå",
-      "language": "Språk"
+      "language": "Språk",
+      "source": "Kilde",
+      "myContent": "Mitt innhold",
+      "library": "Bibliotek"
     },
     "error": {
       "title": "Feil"

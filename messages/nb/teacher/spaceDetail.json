@@ -6,12 +6,12 @@
     },
     "actions": {
       "back": "← Tilbake",
-      "submissions": "Besvarelser",
+      "submissions": "Se alle besvarelser",
       "setActive": "Sett som aktiv",
       "archive": "Arkiver",
       "restore": "Gjenopprett",
       "createNewLesson": "+ Lag ny oppgave",
-      "printRoom": "Print/PDF romkode"
+      "printRoom": "Skriv ut invitasjon"
     },
     "access": {
       "mustBeSignedIn": "Du må være logget inn.",
@@ -40,10 +40,10 @@
     },
     "assignments": {
       "title": "Oppgaver",
-      "subtitle": "Tildel oppgaver fra Mitt innhold eller Biblioteket. Elevene ser oppgavene etter at de har blitt med i spacet.",
+      "subtitle": "Oppgaver tildeles fra Mitt innhold. Her kan du følge med på status, beskjeder, frister og besvarelser i dette spacet.",
       "assignTask": "Tildel ny oppgave",
       "showArchived": "Vis arkiverte oppgaver",
-      "emptyHtml": "Ingen oppgaver ennå. Klikk på <b>Tildel ny oppgave</b>.",
+      "emptyHtml": "Ingen oppgaver ennå. Gå til <b>Mitt innhold</b> for å tildele oppgaver til dette spacet.",
       "count": "{count} · {label}"
     },
     "assignTrainingVideo": {

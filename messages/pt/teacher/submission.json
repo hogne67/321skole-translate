@@ -1,6 +1,7 @@
 {
   "submission": {
     "title": "Entrega",
+    "titleFrom": "Entrega de",
     "actions": {
       "back": "← Voltar"
     },
@@ -17,7 +18,9 @@
       "autoScoreTitle": "Avaliação automática",
       "studentLabel": "Aluno:",
       "delivered": "Enviado:",
+      "deliveredLabel": "Enviado",
       "deliveredUnknown": "Enviado: (desconhecido)",
+      "unknown": "Desconhecido",
       "guest": "Visitante (não conectado)",
       "loggedIn": "Conectado",
       "quickOverviewTitle": "Visão geral",

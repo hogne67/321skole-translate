@@ -14,7 +14,13 @@
       "live": "LIVE",
       "notLive": "Not live",
       "session": "session",
-      "mode": "mode"
+      "mode": "mode",
+      "liveBoard": "Live board"
+    },
+    "waiting": {
+      "title": "The teacher is preparing the next activity",
+      "text": "The board opens automatically when the teacher sends something live. You can keep this page open.",
+      "badge": "Waiting for live board"
     },
     "tabs": {
       "question": "Today's question",
@@ -26,16 +32,27 @@
       "label": "Name / group",
       "placeholder": "Write your name or group name"
     },
+    "setup": {
+      "title": "Set up your note",
+      "text": "Choose the name and color that appear on the board.",
+      "continue": "Continue to the question",
+      "edit": "Edit name and color"
+    },
     "answer": {
       "label": "Your answer",
       "placeholder": "Write briefly…",
-      "send": "Send to board"
+      "send": "Send to board",
+      "sent": "Your answer has been sent to the board."
     },
     "poll": {
       "fallbackQuestion": "What do you think?",
       "noOptions": "No answer options yet.",
       "send": "Send vote",
       "sent": "Thank you! Your vote has been sent.",
+      "sentButton": "Vote sent",
+      "sentTitle": "Your vote is registered",
+      "choose": "Choose one option",
+      "selected": "Selected",
       "anonymousHint": "Your vote is anonymous (we do not store name/uid)."
     },
     "wordwall": {
@@ -46,6 +63,7 @@
       "previewFallback": "Your word appears here…",
       "send": "Send word",
       "sent": "Thank you! Your word has been sent.",
+      "yourWords": "Your sent words",
       "anonymousHint": "Wordwall is anonymous. We only store the word, not name or uid."
     },
     "sticky": {

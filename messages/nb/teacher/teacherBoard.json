@@ -6,7 +6,8 @@
     },
     "common": {
       "loading": "Laster…",
-      "mode": "modus"
+      "mode": "modus",
+      "answers": "{count} svar"
     },
     "errors": {
       "fetchState": "Kunne ikke laste tavlestatus."
@@ -36,17 +37,53 @@
       "newRound": "Ny runde",
       "clearAnswers": "Fjern svar",
       "showAnswers": "Vis svar igjen",
-      "presentation": "Presentasjon",
-      "showControlPanel": "Vis kontrollpanel",
-      "fullscreen": "Fullskjerm",
-      "exitFullscreen": "Avslutt fullskjerm",
       "hideTimer": "Skjul tidtaker",
       "showTimer": "Vis tidtaker",
-      "clear": "Tøm"
+      "clear": "Tøm",
+      "display": "Vis på storskjerm"
+    },
+    "surface": {
+      "work": "Arbeidsflate",
+      "live": "Liveflate",
+      "workHint": "Lag innholdet her. Bruk sendekontrollen nederst for live, skjerm og tidtaker."
+    },
+    "control": {
+      "title": "Sendekontroll",
+      "answersHidden": "Svar er skjult",
+      "contentHint": "Bruk sendekontrollen nederst for å oppdatere liveflaten eller starte ny runde."
+    },
+    "studentPreview": {
+      "title": "Elevvisning",
+      "live": "Live",
+      "waiting": "Venter",
+      "notLive": "Ikke live nå",
+      "header": "elevtavle",
+      "waitingTitle": "Læreren gjør klart neste aktivitet",
+      "waitingText": "Elevene beholder siden oppe og får innholdet når du sender live.",
+      "wordPlaceholder": "Skriv ett ord eller en kort frase",
+      "textPlaceholder": "Skriv kort...",
+      "sendWord": "Send ord",
+      "sendText": "Send til tavlen",
+      "hint": "Dette er en kompakt forhåndsvisning av elevskjermen."
+    },
+    "display": {
+      "brand": "321skole tavle",
+      "live": "Live i klasserommet",
+      "waitingStatus": "Venter på neste aktivitet",
+      "loading": "Laster tavle...",
+      "waitingTitle": "Læreren gjør klart neste aktivitet",
+      "waitingText": "Behold skjermen oppe. Tavla oppdateres automatisk.",
+      "fullscreen": "Fullskjerm",
+      "exitFullscreen": "Avslutt fullskjerm",
+      "previousAnswersHidden": "Tidligere svar er skjult",
+      "previousWordsHidden": "Tidligere ord er skjult",
+      "noResponses": "Ingen svar ennå.",
+      "noWords": "Ingen ord ennå.",
+      "noOptions": "Ingen svaralternativer ennå.",
+      "unknownStudent": "Elev"
     },
     "tabs": {
       "question": "Dagens spørsmål",
-      "notes": "Notater",
       "poll": "Avstemning",
       "wordwall": "Ordsamling"
     },
@@ -75,13 +112,14 @@
       "clearAnswers": "Fjern svar",
       "showAnswers": "Vis svar",
       "anonymousHint": "Svarene er anonyme: vi lagrer ikke navn eller uid.",
-      "previewTitle": "Forhåndsvisning",
       "resultsTitle": "Resultater",
       "responsesCount": "{count} svar",
       "noSession": "Ingen aktiv økt",
       "startHint": "Start en avstemning for å se resultater."
     },
     "wordwall": {
+      "setupTitle": "Lag ordsamling",
+      "setupText": "Skriv instruksjonen elevene får. Ordene samles og like ord vokser automatisk.",
       "promptLabel": "Oppgave / instruksjon",
       "promptPlaceholder": "Eksempel: Skriv ett ord som passer til teksten.",
       "update": "Oppdater ordsamling",
@@ -89,16 +127,9 @@
       "clearAnswers": "Fjern svar",
       "showAnswers": "Vis svar",
       "anonymousHint": "Ordsamlingen er anonym. Like ord slås sammen automatisk, og vokser når flere skriver det samme.",
-      "previewTitle": "Forhåndsvisning",
+      "liveTitle": "Live ordsamling",
       "noSession": "Ingen aktiv økt.",
       "noneYet": "Ingen ord ennå."
-    },
-    "notes": {
-      "title": "Notater (lokalt)",
-      "clear": "Tøm",
-      "clearTitle": "Visk / tøm",
-      "placeholder": "Skriv notater her… (lagres ikke i Firestore)",
-      "localOnly": "Dette er kun synlig for deg på denne enheten. Elevene ser det ikke."
     },
     "timer": {
       "title": "Tidtaker",
@@ -106,9 +137,6 @@
       "clear": "Fjern tidtaker",
       "toggleTitle": "Vis/skjul tidslinje",
       "stop": "Stopp"
-    },
-    "preview": {
-      "title": "Forhåndsvisning"
     },
     "countdown": {
       "label": "Tid igjen"

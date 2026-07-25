@@ -6,12 +6,12 @@
     },
     "actions": {
       "back": "← Back",
-      "submissions": "Submissions",
+      "submissions": "See all submissions",
       "setActive": "Set active",
       "archive": "Archive",
       "restore": "Restore",
       "createNewLesson": "+ Create new lesson",
-      "printRoom": "Print/PDF room code"
+      "printRoom": "Print invitation"
     },
     "access": {
       "mustBeSignedIn": "You must be signed in.",
@@ -40,10 +40,10 @@
     },
     "assignments": {
       "title": "Assignments",
-      "subtitle": "Assign tasks from My Content or Library. Students see assigned tasks after they join the space.",
+      "subtitle": "Assignments are assigned from My Content. Here you can follow status, messages, due dates and submissions in this space.",
       "assignTask": "Assign new task",
       "showArchived": "Show archived tasks",
-      "emptyHtml": "No assignments yet. Click <b>Assign task</b>.",
+      "emptyHtml": "No assignments yet. Go to <b>My Content</b> to assign tasks to this space.",
       "count": "{count} · {label}"
     },
     "assignTrainingVideo": {

@@ -7,8 +7,9 @@
     "newSpaceTitle": "Criar um novo space",
     "newSpaceLockedTitle": "Requer validação + modo Professor/Criador",
     "trainingVideo": {
-      "button": "Ver guia",
+      "button": "Vídeo de instrução",
       "buttonTitle": "Ver guia sobre spaces",
+      "description": "Veja como criar e compartilhar spaces",
       "close": "Fechar",
       "title": "Guia: spaces"
     },

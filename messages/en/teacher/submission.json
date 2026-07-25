@@ -1,6 +1,7 @@
 {
   "submission": {
     "title": "Submission",
+    "titleFrom": "Submission from",
     "actions": {
       "back": "← Back"
     },
@@ -17,8 +18,9 @@
       "autoScoreTitle": "Auto score",
       "studentLabel": "Student:",
       "delivered": "Submitted:",
-      "deliveredLabel": "Submitted:",
+      "deliveredLabel": "Submitted",
       "deliveredUnknown": "Submitted: (unknown)",
+      "unknown": "Unknown",
       "guest": "Guest (not logged in)",
       "loggedIn": "Logged in",
       "loggedInWithUid": "Logged in · uid: {uid}",

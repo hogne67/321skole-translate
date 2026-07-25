@@ -6,7 +6,8 @@
     },
     "common": {
       "loading": "Carregando…",
-      "mode": "modo"
+      "mode": "modo",
+      "answers": "{count} respostas"
     },
     "errors": {
       "fetchState": "Não foi possível carregar o estado do quadro."
@@ -36,17 +37,53 @@
       "newRound": "Nova rodada",
       "clearAnswers": "Limpar respostas",
       "showAnswers": "Mostrar respostas novamente",
-      "presentation": "Apresentação",
-      "showControlPanel": "Mostrar painel de controle",
-      "fullscreen": "Tela cheia",
-      "exitFullscreen": "Sair da tela cheia",
       "hideTimer": "Ocultar temporizador",
       "showTimer": "Mostrar temporizador",
-      "clear": "Limpar"
+      "clear": "Limpar",
+      "display": "Mostrar na tela grande"
+    },
+    "surface": {
+      "work": "Área de trabalho",
+      "live": "Área ao vivo",
+      "workHint": "Crie o conteúdo aqui. Use os controles de transmissão na parte inferior para ao vivo, tela e temporizador."
+    },
+    "control": {
+      "title": "Controles de transmissão",
+      "answersHidden": "As respostas estão ocultas",
+      "contentHint": "Use os controles de transmissão na parte inferior para atualizar a área ao vivo ou iniciar uma nova rodada."
+    },
+    "studentPreview": {
+      "title": "Visualização do aluno",
+      "live": "Ao vivo",
+      "waiting": "Aguardando",
+      "notLive": "Não está ao vivo",
+      "header": "quadro do aluno",
+      "waitingTitle": "O professor está preparando a próxima atividade",
+      "waitingText": "Os alunos mantêm a página aberta e recebem o conteúdo quando você iniciar ao vivo.",
+      "wordPlaceholder": "Escreva uma palavra ou frase curta",
+      "textPlaceholder": "Escreva brevemente...",
+      "sendWord": "Enviar palavra",
+      "sendText": "Enviar para o quadro",
+      "hint": "Esta é uma prévia compacta da tela do aluno."
+    },
+    "display": {
+      "brand": "Quadro 321skole",
+      "live": "Ao vivo na sala de aula",
+      "waitingStatus": "Aguardando a próxima atividade",
+      "loading": "Carregando quadro...",
+      "waitingTitle": "O professor está preparando a próxima atividade",
+      "waitingText": "Mantenha a tela aberta. O quadro é atualizado automaticamente.",
+      "fullscreen": "Tela cheia",
+      "exitFullscreen": "Sair da tela cheia",
+      "previousAnswersHidden": "As respostas anteriores estão ocultas",
+      "previousWordsHidden": "As palavras anteriores estão ocultas",
+      "noResponses": "Nenhuma resposta ainda.",
+      "noWords": "Nenhuma palavra ainda.",
+      "noOptions": "Nenhuma opção de resposta ainda.",
+      "unknownStudent": "Aluno"
     },
     "tabs": {
       "question": "Pergunta do dia",
-      "notes": "Notas",
       "poll": "Enquete",
       "wordwall": "Nuvem de palavras"
     },
@@ -75,13 +112,14 @@
       "clearAnswers": "Limpar respostas",
       "showAnswers": "Mostrar respostas",
       "anonymousHint": "As respostas são anônimas: não armazenamos nomes ou uid.",
-      "previewTitle": "Pré-visualização",
       "resultsTitle": "Resultados",
       "responsesCount": "{count} respostas",
       "noSession": "Nenhuma sessão ativa",
       "startHint": "Inicie uma enquete para ver os resultados."
     },
     "wordwall": {
+      "setupTitle": "Criar nuvem de palavras",
+      "setupText": "Escreva a instrução que os alunos verão. As palavras são reunidas, e palavras iguais crescem automaticamente.",
       "promptLabel": "Enunciado / instrução",
       "promptPlaceholder": "Exemplo: Escreva uma palavra que combine com o texto.",
       "update": "Atualizar nuvem de palavras",
@@ -89,16 +127,9 @@
       "clearAnswers": "Limpar respostas",
       "showAnswers": "Mostrar respostas",
       "anonymousHint": "A nuvem de palavras é anônima. Palavras iguais são agrupadas automaticamente e crescem quando mais alunos escrevem a mesma palavra.",
-      "previewTitle": "Pré-visualização",
+      "liveTitle": "Nuvem de palavras ao vivo",
       "noSession": "Nenhuma sessão ativa.",
       "noneYet": "Nenhuma palavra ainda."
-    },
-    "notes": {
-      "title": "Notas (local)",
-      "clear": "Limpar",
-      "clearTitle": "Apagar / limpar",
-      "placeholder": "Escreva suas notas aqui… (não são salvas no Firestore)",
-      "localOnly": "Isto é visível apenas para você neste dispositivo. Os alunos não podem ver."
     },
     "timer": {
       "title": "Temporizador",
@@ -106,9 +137,6 @@
       "clear": "Remover temporizador",
       "toggleTitle": "Mostrar/ocultar barra de tempo",
       "stop": "Parar"
-    },
-    "preview": {
-      "title": "Pré-visualização"
     },
     "countdown": {
       "label": "Tempo restante"

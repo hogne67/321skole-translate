@@ -1,6 +1,7 @@
 {
   "submission": {
     "title": "Innlevering",
+    "titleFrom": "Innlevering fra",
     "actions": {
       "back": "← Tilbake"
     },
@@ -17,7 +18,9 @@
       "autoScoreTitle": "Automatisk vurdering",
       "studentLabel": "Elev:",
       "delivered": "Levert:",
+      "deliveredLabel": "Levert",
       "deliveredUnknown": "Levert: (ukjent)",
+      "unknown": "Ukjent",
       "guest": "Gjest (ikke logget inn)",
       "loggedIn": "Logget inn",
       "quickOverviewTitle": "Kort oversikt",

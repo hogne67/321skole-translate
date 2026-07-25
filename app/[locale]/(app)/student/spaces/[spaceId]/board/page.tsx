@@ -8,6 +8,7 @@ import { db, auth } from "@/lib/firebase";
 import { doc, onSnapshot, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { Clock3, MonitorPause } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
@@ -17,7 +18,6 @@ function requireDb(x: Firestore | null | undefined): Firestore {
 
 type BoardMode = "text" | "poll" | "wordwall";
 type NoteColor = "amber" | "emerald" | "sky" | "rose" | "violet";
-type TabKey = "question" | "notes" | "poll" | "wordwall";
 
 type BoardState = {
   active?: boolean;
@@ -27,6 +27,7 @@ type BoardState = {
   endsAt?: number | null;
   timerStartedAt?: number | null;
   timerTotalSec?: number | null;
+  timerVisible?: boolean;
 
   clearedAt?: number | null;
 
@@ -126,15 +127,20 @@ export default function StudentBoardPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  const [tab, setTab] = useState<TabKey>("question");
-
   const [groupName, setGroupName] = useState<string>(() => {
     if (typeof window === "undefined") return "";
     return localStorage.getItem("boardGroupName") ?? "";
   });
+  const [textSetupDone, setTextSetupDone] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("boardTextSetupDone") === "true";
+  });
 
   const [text, setText] = useState("");
-  const [sent, setSent] = useState<string | null>(null);
+  const [textSent, setTextSent] = useState(false);
+  const [pollSent, setPollSent] = useState(false);
+  const [wordwallSent, setWordwallSent] = useState(false);
+  const [sentWordwallWords, setSentWordwallWords] = useState<string[]>([]);
 
   const [noteColor, setNoteColor] = useState<NoteColor>(() => {
     if (typeof window === "undefined") return "amber";
@@ -183,6 +189,10 @@ export default function StudentBoardPage() {
   }, [groupName]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("boardTextSetupDone", textSetupDone ? "true" : "false");
+  }, [textSetupDone]);
+
+  useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("boardNoteColor", noteColor);
   }, [noteColor]);
 
@@ -194,46 +204,73 @@ export default function StudentBoardPage() {
     state?.mode === "poll" ? "poll" : state?.mode === "wordwall" ? "wordwall" : "text";
 
   useEffect(() => {
-    setSent(null);
+    setTextSent(false);
+    setPollSent(false);
+    setWordwallSent(false);
+    setSentWordwallWords([]);
     setText("");
     setPollChoice("");
     setWordwallWord("");
   }, [sessionId]);
 
   useEffect(() => {
-    if (!active) return;
-    if (mode === "poll") setTab("poll");
-    else if (mode === "wordwall") setTab("wordwall");
-    else setTab("question");
-  }, [active, mode]);
+    if (!spaceId || !sessionId || typeof window === "undefined") return;
+    const raw = localStorage.getItem(`boardWordwallWords:${spaceId}:${sessionId}`);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setSentWordwallWords(parsed.filter((word) => typeof word === "string" && word.trim()).slice(0, 12));
+      }
+    } catch {
+      //
+    }
+  }, [spaceId, sessionId]);
+
+  useEffect(() => {
+    if (safeString(groupName)) return;
+    const fallbackName =
+      safeString((profile as UserProfileLike | null)?.displayName) ||
+      safeString(user?.displayName);
+    if (fallbackName) setGroupName(fallbackName);
+  }, [groupName, profile, user?.displayName]);
 
   const displayNameForPreview =
+    safeString(groupName) ||
     safeString((profile as UserProfileLike | null)?.displayName) ||
     safeString(user?.displayName) ||
-    safeString(groupName) ||
     t("fallbackStudentName");
 
   async function sendText() {
-    if (!spaceId || !sessionId || !uid) return;
+    if (!spaceId || !sessionId || !user || !uid) return;
 
-    const responseId = `${sessionId}_${uid}`;
-    const ref = doc(dbx, "spaces", spaceId, "boardResponses", responseId);
+    const answerText = safeString(text);
+    if (!answerText) return;
 
-    await setDoc(
-      ref,
-      {
-        sessionId,
-        uid,
-        displayName: displayNameForPreview,
-        groupName: safeString(groupName),
-        text: safeString(text) ?? "",
-        noteColor,
-        createdAt: serverTimestamp(),
+    const group = safeString(groupName);
+    const token = await user.getIdToken();
+
+    const res = await fetch(`/api/spaces/${encodeURIComponent(spaceId)}/board/text-response`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      { merge: true }
-    );
+      body: JSON.stringify({
+        sessionId,
+        displayName: displayNameForPreview,
+        groupName: group,
+        text: answerText,
+        noteColor,
+      }),
+    });
 
-    setSent(t("sent"));
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: unknown };
+      throw new Error(typeof data.error === "string" ? data.error : "Could not save response");
+    }
+
+    setTextSent(true);
     setText("");
   }
 
@@ -256,7 +293,7 @@ export default function StudentBoardPage() {
       { merge: true }
     );
 
-    setSent(t("poll.sent"));
+    setPollSent(true);
   }
 
   async function sendWordwall() {
@@ -278,7 +315,14 @@ export default function StudentBoardPage() {
       { merge: true }
     );
 
-    setSent(t("wordwall.sent"));
+    setWordwallSent(true);
+    setSentWordwallWords((words) => {
+      const next = [word, ...words].slice(0, 12);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`boardWordwallWords:${spaceId}:${sessionId}`, JSON.stringify(next));
+      }
+      return next;
+    });
     setWordwallWord("");
   }
 
@@ -293,7 +337,7 @@ export default function StudentBoardPage() {
   const liveBadgeText = loading
     ? t("loading")
     : active
-      ? `${t("status.live")}${sessionId ? ` • ${t("status.session")}: ${sessionId.slice(0, 8)}…` : ""} • ${t("status.mode")}: ${mode}`
+      ? t("status.liveBoard")
       : t("status.notLive");
 
   return (
@@ -321,22 +365,7 @@ export default function StudentBoardPage() {
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
-              <TabButton active={tab === "question"} onClick={() => setTab("question")}>
-                {t("tabs.question")}
-              </TabButton>
-              <TabButton active={tab === "notes"} onClick={() => setTab("notes")}>
-                {t("tabs.notes")}
-              </TabButton>
-              <TabButton active={tab === "poll"} onClick={() => setTab("poll")}>
-                {t("tabs.poll")}
-              </TabButton>
-              <TabButton active={tab === "wordwall"} onClick={() => setTab("wordwall")}>
-                {t("tabs.wordwall")}
-              </TabButton>
-            </div>
-
-            {typeof state?.endsAt === "number" ? (
+            {state?.timerVisible !== false && typeof state?.endsAt === "number" ? (
               <div className="mt-3">
                 <TimerBarStudent
                   endsAt={state?.endsAt}
@@ -353,21 +382,35 @@ export default function StudentBoardPage() {
             </div>
           )}
 
-          <div className="mt-4 rounded-xl border bg-background p-4 shadow-sm">
-            {loading ? (
+          {loading ? (
+            <div className="mt-4 rounded-xl border bg-background p-4 shadow-sm">
               <div className="text-sm text-muted-foreground">{t("loading")}</div>
-            ) : !active ? (
-              <div className="text-sm text-muted-foreground">{t("inactive")}</div>
-            ) : tab === "notes" ? (
-              <StudentNotesPanel />
-            ) : tab === "poll" ? (
+            </div>
+          ) : !active ? (
+            <div className="mt-6 flex min-h-[420px] flex-col items-center justify-center rounded-2xl border bg-slate-50 px-6 py-12 text-center shadow-sm">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
+                <MonitorPause className="h-8 w-8 text-slate-700" aria-hidden="true" />
+              </div>
+              <div className="mt-6 max-w-lg">
+                <div className="text-2xl font-semibold text-slate-950">{t("waiting.title")}</div>
+                <div className="mt-3 text-base leading-7 text-slate-600">{t("waiting.text")}</div>
+              </div>
+              <div className="mt-7 inline-flex items-center gap-2 rounded-full border bg-white px-4 py-2 text-sm font-medium text-slate-600">
+                <Clock3 className="h-4 w-4" aria-hidden="true" />
+                {t("waiting.badge")}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-2xl border bg-background p-5 shadow-sm md:p-6">
+            {mode === "poll" ? (
               <>
-                <div className="text-base font-semibold">{pollQuestion}</div>
+                <div className="text-sm font-medium text-muted-foreground">{t("poll.choose")}</div>
+                <div className="mt-2 text-2xl font-semibold leading-tight text-slate-950">{pollQuestion}</div>
 
                 {pollOptions.length === 0 ? (
-                  <div className="mt-2 text-sm text-muted-foreground">{t("poll.noOptions")}</div>
+                  <div className="mt-4 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">{t("poll.noOptions")}</div>
                 ) : (
-                  <div className="mt-3 grid gap-2">
+                  <div className="mt-5 grid gap-3">
                     {pollOptions.map((opt) => {
                       const selected = pollChoice === opt;
                       return (
@@ -375,38 +418,52 @@ export default function StudentBoardPage() {
                           key={opt}
                           onClick={() => setPollChoice(opt)}
                           className={[
-                            "rounded-lg border px-3 py-2 text-left text-sm",
-                            selected ? "border-black bg-black text-white" : "hover:bg-muted",
+                            "flex min-h-14 items-center justify-between gap-4 rounded-xl border px-4 py-3 text-left text-base font-medium transition",
+                            selected ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "bg-white hover:bg-slate-50",
                           ].join(" ")}
                         >
-                          {opt}
+                          <span>{opt}</span>
+                          {selected ? <span className="rounded-full bg-white/15 px-2 py-1 text-xs">{t("poll.selected")}</span> : null}
                         </button>
                       );
                     })}
                   </div>
                 )}
 
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <div className="text-sm text-muted-foreground">{sent ?? ""}</div>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  {pollSent ? (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                      <div className="font-semibold">{t("poll.sentTitle")}</div>
+                      <div className="mt-0.5">{t("poll.sent")}</div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground" />
+                  )}
                   <button
                     onClick={sendPoll}
-                    disabled={!safeString(pollChoice)}
-                    className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                    disabled={!safeString(pollChoice) || pollSent}
+                    className={[
+                      "rounded-xl px-5 py-3 text-sm font-semibold shadow-sm",
+                      pollSent
+                        ? "cursor-default bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200"
+                        : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none",
+                    ].join(" ")}
                   >
-                    {t("poll.send")}
+                    {pollSent ? t("poll.sentButton") : t("poll.send")}
                   </button>
                 </div>
 
-                <div className="mt-2 text-xs text-muted-foreground">
+                <div className="mt-4 text-xs text-muted-foreground">
                   {t("poll.anonymousHint")}
                 </div>
               </>
-            ) : tab === "wordwall" ? (
+            ) : mode === "wordwall" ? (
               <>
-                <div className="text-base font-semibold">{wordwallPrompt}</div>
+                <div className="text-sm font-medium text-muted-foreground">{t("tabs.wordwall")}</div>
+                <div className="mt-2 text-3xl font-semibold leading-tight text-slate-950 md:text-4xl">{wordwallPrompt}</div>
 
-                <div className="mt-4">
-                  <label className="mb-1 block text-sm font-medium">{t("wordwall.label")}</label>
+                <div className="mt-7">
+                  <label className="mb-2 block text-sm font-medium">{t("wordwall.label")}</label>
                   <input
                     value={wordwallWord}
                     onChange={(e) => setWordwallWord(e.target.value)}
@@ -416,186 +473,173 @@ export default function StudentBoardPage() {
                         void sendWordwall();
                       }
                     }}
-                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                    className="w-full rounded-2xl border px-4 py-4 text-xl font-semibold"
                     placeholder={t("wordwall.placeholder")}
                     maxLength={60}
                   />
                 </div>
 
-                <div className="mt-3 rounded-xl border bg-muted/40 p-4">
-                  <div className="mb-2 text-sm font-medium">{t("wordwall.previewTitle")}</div>
-                  <div className="text-2xl font-semibold leading-tight">
-                    {safeString(normalizeWordwallWord(wordwallWord)) ?? t("wordwall.previewFallback")}
+                <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto] md:items-start">
+                  <div className="rounded-2xl border bg-slate-50 p-5">
+                    <div className="mb-2 text-sm font-medium text-slate-600">{t("wordwall.previewTitle")}</div>
+                    <div className="text-3xl font-semibold leading-tight text-slate-950">
+                      {safeString(normalizeWordwallWord(wordwallWord)) ?? t("wordwall.previewFallback")}
+                    </div>
                   </div>
-                </div>
 
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <div className="text-sm text-muted-foreground">{sent ?? ""}</div>
                   <button
                     onClick={sendWordwall}
                     disabled={!safeString(normalizeWordwallWord(wordwallWord))}
-                    className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                    className="rounded-xl bg-emerald-600 px-6 py-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none md:min-w-36"
                   >
                     {t("wordwall.send")}
                   </button>
                 </div>
 
-                <div className="mt-2 text-xs text-muted-foreground">
+                {wordwallSent ? (
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                    {t("wordwall.sent")}
+                  </div>
+                ) : null}
+
+                {sentWordwallWords.length > 0 ? (
+                  <div className="mt-6">
+                    <div className="mb-3 text-sm font-medium text-slate-700">{t("wordwall.yourWords")}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {sentWordwallWords.map((word, index) => (
+                        <span
+                          key={`${word}-${index}`}
+                          className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-base font-semibold text-emerald-950"
+                        >
+                          {word}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="mt-6 text-xs text-muted-foreground">
                   {t("wordwall.anonymousHint")}
                 </div>
               </>
             ) : (
               <>
-                <div className="text-base font-semibold">{title}</div>
-                <div className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{prompt}</div>
+                {!textSetupDone ? (
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">{t("tabs.question")}</div>
+                    <div className="mt-2 text-3xl font-semibold leading-tight text-slate-950">{t("setup.title")}</div>
+                    <div className="mt-2 text-base leading-7 text-slate-600">{t("setup.text")}</div>
 
-                <div className="mt-4 grid gap-2">
-                  <label className="text-sm font-medium">{t("groupName.label")}</label>
-                  <input
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                    className="w-full rounded-lg border px-3 py-2 text-sm"
-                    placeholder={t("groupName.placeholder")}
-                  />
-                </div>
+                    <div className="mt-7 grid gap-5">
+                      <div className="grid gap-2">
+                        <label className="text-sm font-medium">{t("groupName.label")}</label>
+                        <input
+                          value={groupName}
+                          onChange={(e) => setGroupName(e.target.value)}
+                          className="w-full rounded-xl border px-4 py-3 text-base"
+                          placeholder={t("groupName.placeholder")}
+                        />
+                      </div>
 
-                <div className="mt-4">
-                  <div className="mb-2 text-sm font-medium">{t("sticky.colorLabel")}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {(["amber", "emerald", "sky", "rose", "violet"] as NoteColor[]).map((c) => {
-                      const activeC = noteColor === c;
-                      return (
-                        <button
-                          key={c}
-                          onClick={() => setNoteColor(c)}
-                          className={[
-                            "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm",
-                            activeC ? "border-black" : "hover:bg-muted",
-                          ].join(" ")}
-                          title={colorLabel(t, c)}
-                        >
-                          <span className={["h-3 w-3 rounded-full", colorSwatchClass(c)].join(" ")} />
-                          {colorLabel(t, c)}
-                        </button>
-                      );
-                    })}
+                      <div>
+                        <div className="mb-3 text-sm font-medium">{t("sticky.colorLabel")}</div>
+                        <div className="flex flex-wrap gap-2">
+                          {(["amber", "emerald", "sky", "rose", "violet"] as NoteColor[]).map((c) => {
+                            const activeC = noteColor === c;
+                            return (
+                              <button
+                                key={c}
+                                onClick={() => setNoteColor(c)}
+                                className={[
+                                  "flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition",
+                                  activeC ? "border-slate-950 bg-slate-950 text-white" : "bg-white hover:bg-slate-50",
+                                ].join(" ")}
+                                title={colorLabel(t, c)}
+                              >
+                                <span className={["h-3 w-3 rounded-full", colorSwatchClass(c)].join(" ")} />
+                                {colorLabel(t, c)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className={["rounded-2xl border p-5 shadow-sm", noteAccentClass(noteColor)].join(" ")}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-base font-semibold">{displayNameForPreview}</div>
+                          <div className="text-[11px] text-muted-foreground">{t("sticky.previewTag")}</div>
+                        </div>
+                        <div className="mt-3 text-sm leading-relaxed">{t("sticky.previewFallback")}</div>
+                      </div>
+
+                      <button
+                        onClick={() => setTextSetupDone(true)}
+                        disabled={!safeString(groupName)}
+                        className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none"
+                      >
+                        {t("setup.continue")}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className={["h-3 w-3 rounded-full", colorSwatchClass(noteColor)].join(" ")} />
+                        <span className="font-semibold">{displayNameForPreview}</span>
+                        <span className="text-slate-500">{colorLabel(t, noteColor)}</span>
+                      </div>
+                      <button
+                        onClick={() => setTextSetupDone(false)}
+                        className="rounded-full border bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                      >
+                        {t("setup.edit")}
+                      </button>
+                    </div>
 
-                <div className="mt-4">
-                  <label className="mb-1 block text-sm font-medium">{t("answer.label")}</label>
+                    <div className="mt-8 text-sm font-medium text-muted-foreground">{title}</div>
+                    <div className="mt-2 whitespace-pre-wrap text-3xl font-semibold leading-tight text-slate-950 md:text-4xl">{prompt}</div>
 
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
+                    <div className="mt-7">
+                      <label className="mb-2 block text-sm font-medium">{t("answer.label")}</label>
                       <textarea
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        className="min-h-[140px] w-full rounded-lg border px-3 py-2 text-sm"
+                        className="min-h-[220px] w-full rounded-2xl border px-4 py-3 text-base leading-7"
                         placeholder={t("answer.placeholder")}
                       />
 
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <div className="text-sm text-muted-foreground">{sent ?? ""}</div>
+                      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        {textSent ? (
+                          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                            {t("answer.sent")}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground" />
+                        )}
                         <button
                           onClick={sendText}
                           disabled={!uid || !sessionId || !safeString(text)}
-                          className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                          className={[
+                            "rounded-xl px-5 py-3 text-sm font-semibold",
+                            textSent && !safeString(text)
+                              ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200"
+                              : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600",
+                          ].join(" ")}
                         >
-                          {t("answer.send")}
+                          {textSent && !safeString(text) ? t("sent") : t("answer.send")}
                         </button>
                       </div>
                     </div>
-
-                    <div className="md:pt-[2px]">
-                      <div className="mb-2 text-sm font-medium">{t("sticky.previewTitle")}</div>
-
-                      <div className={["rounded-2xl border p-4 shadow-sm", noteAccentClass(noteColor)].join(" ")}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="text-sm font-semibold">{displayNameForPreview}</div>
-                          <div className="text-[11px] text-muted-foreground">{t("sticky.previewTag")}</div>
-                        </div>
-
-                        <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
-                          {safeString(text) ?? t("sticky.previewFallback")}
-                        </div>
-
-                        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className={["h-2.5 w-2.5 rounded-full", colorSwatchClass(noteColor)].join(" ")} />
-                          <span>{colorLabel(t, noteColor)}</span>
-                        </div>
-                      </div>
-
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {t("sticky.previewHint")}
-                      </div>
-                    </div>
                   </div>
-                </div>
+                )}
               </>
             )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </AuthGate>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={[
-        "rounded-full border px-3 py-1.5 text-sm font-medium",
-        active ? "border-black bg-black text-white" : "bg-background hover:bg-muted",
-      ].join(" ")}
-    >
-      {children}
-    </button>
-  );
-}
-
-function StudentNotesPanel() {
-  const t = useTranslations("studentBoard");
-
-  const [text, setText] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem("studentBoardNotes") ?? "";
-  });
-
-  useEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem("studentBoardNotes", text);
-  }, [text]);
-
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-sm font-medium">{t("notes.title")}</div>
-        <button
-          onClick={() => setText("")}
-          className="rounded-md border px-2.5 py-1.5 text-xs font-medium"
-          title={t("notes.clearTitle")}
-        >
-          {t("notes.clear")}
-        </button>
-      </div>
-
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="min-h-[260px] w-full rounded-lg border px-3 py-2 text-sm"
-        placeholder={t("notes.placeholder")}
-      />
-
-      <div className="mt-2 text-xs text-muted-foreground">{t("notes.localOnly")}</div>
-    </div>
   );
 }
 

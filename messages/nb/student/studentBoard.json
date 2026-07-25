@@ -14,7 +14,13 @@
       "live": "LIVE",
       "notLive": "Ikke live",
       "session": "økt",
-      "mode": "modus"
+      "mode": "modus",
+      "liveBoard": "Live tavle"
+    },
+    "waiting": {
+      "title": "Læreren gjør klart neste aktivitet",
+      "text": "Tavlen åpner automatisk når læreren sender noe live. Du kan beholde denne siden oppe.",
+      "badge": "Venter på live tavle"
     },
     "tabs": {
       "question": "Dagens spørsmål",
@@ -26,16 +32,27 @@
       "label": "Navn / gruppe",
       "placeholder": "Skriv navnet ditt eller gruppenavn"
     },
+    "setup": {
+      "title": "Gjør klar lappen din",
+      "text": "Velg navnet og fargen som vises på tavlen.",
+      "continue": "Fortsett til spørsmålet",
+      "edit": "Endre navn og farge"
+    },
     "answer": {
       "label": "Ditt svar",
       "placeholder": "Skriv kort…",
-      "send": "Send til tavlen"
+      "send": "Send til tavlen",
+      "sent": "Svaret er sendt til tavlen."
     },
     "poll": {
       "fallbackQuestion": "Hva mener du?",
       "noOptions": "Ingen svaralternativer ennå.",
       "send": "Send stemme",
       "sent": "Takk! Stemmen din er sendt.",
+      "sentButton": "Stemme sendt",
+      "sentTitle": "Stemmen din er registrert",
+      "choose": "Velg ett alternativ",
+      "selected": "Valgt",
       "anonymousHint": "Stemmen din er anonym (vi lagrer ikke navn/uid)."
     },
     "wordwall": {
@@ -46,6 +63,7 @@
       "previewFallback": "Ordet ditt vises her…",
       "send": "Send ord",
       "sent": "Takk! Ordet ditt er sendt.",
+      "yourWords": "Dine sendte ord",
       "anonymousHint": "Ordsamlingen er anonym. Vi lagrer kun ordet, ikke navn eller uid."
     },
     "sticky": {

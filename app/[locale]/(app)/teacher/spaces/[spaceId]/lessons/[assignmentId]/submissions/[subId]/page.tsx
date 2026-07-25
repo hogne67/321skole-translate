@@ -19,7 +19,6 @@ import { getBucketLimitFromProfile } from "@/lib/featureAccess";
 import { useLocale, useTranslations } from "next-intl";
 import { authedPost } from "@/lib/authedPost";
 import type { GeometryAnswersByTaskId } from "@/lib/math/geometry/submissionTypes";
-import Badge from "@/components/teacher/submissions/Badge";
 import StatusPill from "@/components/teacher/submissions/StatusPill";
 import type {
   AiResp,
@@ -32,7 +31,6 @@ import type {
 } from "@/lib/submissions/types";
 import {
   formatDuration,
-  formatLessonLevel,
   formatMaybeDate,
   getAutoEntry,
   getErrorInfo,
@@ -662,7 +660,6 @@ function Inner() {
 
   const lessonTitle = lesson?.title ?? assignment?.title ?? t("fallback.task");
   const lessonLevel = lesson?.level ?? assignment?.level ?? "";
-  const lessonLevelLabel = formatLessonLevel(lessonLevel);
   const sourceText = String(lesson?.sourceText ?? lesson?.text ?? "");
   const rawCover = String(lesson?.coverImageUrl ?? "").trim() || null;
 
@@ -793,39 +790,49 @@ function Inner() {
 
   return (
     <div className="mx-auto box-border w-full max-w-6xl min-w-0 space-y-3">
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-sm">
+      <div className="box-border w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-3 shadow-sm sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              {t("title")}
+            <div className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+              {t("titleFrom")}
             </div>
 
-            <h1 className="mt-1 break-words text-xl font-semibold text-slate-900">
+            <h1 className="mt-1 break-words text-2xl font-semibold text-slate-950">
               {studentName ||
                 (authInfo.isAnon ? t("fallback.guest") : authInfo.uid || "—")}
             </h1>
 
-            <div className="mt-1 break-words text-sm text-slate-700">
-              {lessonTitle}
-            </div>
-
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
-              {lessonLevelLabel ? <Badge text={lessonLevelLabel} /> : null}
-
+            <div className="mt-4 flex flex-wrap gap-2">
               {createdAt ? (
-                <span>
-                  {t("meta.delivered")} <b>{createdAt}</b>
-                </span>
+                <div className="rounded-2xl border border-sky-200 bg-white/90 px-4 py-2 shadow-sm">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                    {t("meta.deliveredLabel")}
+                  </div>
+                  <div className="mt-0.5 text-sm font-semibold text-slate-950">{createdAt}</div>
+                </div>
               ) : (
-                <span>{t("meta.deliveredUnknown")}</span>
+                <div className="rounded-2xl border border-sky-200 bg-white/90 px-4 py-2 shadow-sm">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                    {t("meta.deliveredLabel")}
+                  </div>
+                  <div className="mt-0.5 text-sm font-semibold text-slate-950">
+                    {t("meta.unknown")}
+                  </div>
+                </div>
               )}
 
               {normalizedStatus === "needs_work" ||
                 normalizedStatus === "reviewed" ||
                 normalizedStatus === "approved" ? (
-                <StatusPill status={rawStatus} t={(k) => t(k)} />
+                <div className="rounded-2xl border border-emerald-200 bg-white/90 px-4 py-2 shadow-sm">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                    {t("meta.statusLabel")}
+                  </div>
+                  <div className="mt-0.5">
+                    <StatusPill status={rawStatus} t={(k) => t(k)} />
+                  </div>
+                </div>
               ) : null}
-
             </div>
           </div>
 

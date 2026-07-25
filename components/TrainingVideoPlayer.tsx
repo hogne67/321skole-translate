@@ -13,6 +13,8 @@ type TrainingVideoPlayerProps = {
   description?: string;
   className?: string;
   iconOnly?: boolean;
+  thumbnail?: boolean;
+  thumbnailUrl?: string;
 };
 
 type VideoSource =
@@ -67,9 +69,13 @@ export default function TrainingVideoPlayer({
   description,
   className,
   iconOnly = false,
+  thumbnail = false,
+  thumbnailUrl,
 }: TrainingVideoPlayerProps) {
   const [open, setOpen] = React.useState(false);
   const source = React.useMemo(() => resolveVideoSource(videoUrl), [videoUrl]);
+  const youtubeId = React.useMemo(() => getYouTubeId(videoUrl), [videoUrl]);
+  const resolvedThumbnailUrl = thumbnailUrl ?? (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : null);
   const titleId = React.useId();
 
   React.useEffect(() => {
@@ -97,18 +103,42 @@ export default function TrainingVideoPlayer({
         aria-label={iconOnly ? buttonTitle ?? buttonLabel : undefined}
         className={cn(
           "inline-flex items-center justify-center gap-2 text-sm font-bold transition active:translate-y-px",
-          iconOnly
-            ? "h-12 w-12 rounded-full border-0 bg-transparent p-0 shadow-none hover:scale-105"
-            : "h-10 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 shadow-sm hover:bg-slate-50",
+          thumbnail
+            ? "min-h-[84px] w-full min-w-0 max-w-[320px] justify-start gap-3 rounded-[20px] border border-blue-200 bg-white/90 p-2.5 text-left text-slate-900 shadow-[0_10px_24px_rgba(37,99,235,0.09)] hover:bg-white sm:min-w-[250px]"
+            : iconOnly
+              ? "h-12 w-12 rounded-full border-0 bg-transparent p-0 shadow-none hover:scale-105"
+              : "h-10 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 shadow-sm hover:bg-slate-50",
           className
         )}
       >
-        {iconOnly ? (
+        {thumbnail ? (
+          <>
+            <span className="relative block aspect-video w-[92px] shrink-0 overflow-hidden rounded-[14px] bg-blue-100">
+              {resolvedThumbnailUrl ? (
+                <img src={resolvedThumbnailUrl} alt="" className="h-full w-full object-cover" aria-hidden="true" />
+              ) : null}
+              <span
+                className="absolute left-1/2 top-1/2 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-blue-600 shadow-[0_8px_18px_rgba(37,99,235,0.22)]"
+                aria-hidden="true"
+              >
+                <span className="ml-0.5 h-0 w-0 border-y-[8px] border-l-[12px] border-y-transparent border-l-white" />
+              </span>
+            </span>
+            <span className="min-w-0">
+              <span className="block break-words text-[13px] font-black leading-5 text-slate-950">{buttonLabel}</span>
+              {description ? (
+                <span className="mt-0.5 block break-words text-[13px] font-medium leading-5 text-slate-500">
+                  {description}
+                </span>
+              ) : null}
+            </span>
+          </>
+        ) : iconOnly ? (
           <img src="/videobutton.png" alt="" className="h-full w-full rounded-full object-contain" aria-hidden="true" />
         ) : (
           <PlayCircle className="h-4 w-4" aria-hidden="true" />
         )}
-        {iconOnly ? null : <span>{buttonLabel}</span>}
+        {iconOnly || thumbnail ? null : <span>{buttonLabel}</span>}
       </button>
 
       {open ? (

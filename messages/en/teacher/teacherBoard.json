@@ -6,7 +6,8 @@
     },
     "common": {
       "loading": "Loading…",
-      "mode": "mode"
+      "mode": "mode",
+      "answers": "{count} responses"
     },
     "errors": {
       "fetchState": "Could not load board state."
@@ -36,17 +37,53 @@
       "newRound": "New round",
       "clearAnswers": "Clear answers",
       "showAnswers": "Show answers again",
-      "presentation": "Presentation",
-      "showControlPanel": "Show control panel",
-      "fullscreen": "Fullscreen",
-      "exitFullscreen": "Exit fullscreen",
       "hideTimer": "Hide timer",
       "showTimer": "Show timer",
-      "clear": "Clear"
+      "clear": "Clear",
+      "display": "Show on big screen"
+    },
+    "surface": {
+      "work": "Work surface",
+      "live": "Live surface",
+      "workHint": "Create content here. Use the broadcast controls at the bottom for live, display and timer."
+    },
+    "control": {
+      "title": "Broadcast controls",
+      "answersHidden": "Answers are hidden",
+      "contentHint": "Use the broadcast controls at the bottom to update the live surface or start a new round."
+    },
+    "studentPreview": {
+      "title": "Student view",
+      "live": "Live",
+      "waiting": "Waiting",
+      "notLive": "Not live now",
+      "header": "student board",
+      "waitingTitle": "The teacher is preparing the next activity",
+      "waitingText": "Students keep the page open and receive content when you go live.",
+      "wordPlaceholder": "Write one word or a short phrase",
+      "textPlaceholder": "Write briefly...",
+      "sendWord": "Send word",
+      "sendText": "Send to board",
+      "hint": "This is a compact preview of the student screen."
+    },
+    "display": {
+      "brand": "321skole board",
+      "live": "Live in the classroom",
+      "waitingStatus": "Waiting for the next activity",
+      "loading": "Loading board...",
+      "waitingTitle": "The teacher is preparing the next activity",
+      "waitingText": "Keep the screen open. The board updates automatically.",
+      "fullscreen": "Fullscreen",
+      "exitFullscreen": "Exit fullscreen",
+      "previousAnswersHidden": "Previous answers are hidden",
+      "previousWordsHidden": "Previous words are hidden",
+      "noResponses": "No responses yet.",
+      "noWords": "No words yet.",
+      "noOptions": "No answer options yet.",
+      "unknownStudent": "Student"
     },
     "tabs": {
       "question": "Today's question",
-      "notes": "Notes",
       "poll": "Poll",
       "wordwall": "Wordwall"
     },
@@ -75,13 +112,14 @@
       "clearAnswers": "Clear answers",
       "showAnswers": "Show answers",
       "anonymousHint": "Poll responses are anonymous: we do not store names or uid.",
-      "previewTitle": "Preview",
       "resultsTitle": "Poll results",
       "responsesCount": "{count} responses",
       "noSession": "No active session",
       "startHint": "Start a poll to see results."
     },
     "wordwall": {
+      "setupTitle": "Create wordwall",
+      "setupText": "Write the prompt students see. Words are collected, and matching words grow automatically.",
       "promptLabel": "Prompt / instruction",
       "promptPlaceholder": "Example: Write one word that fits the text.",
       "update": "Update wordwall",
@@ -89,16 +127,9 @@
       "clearAnswers": "Clear answers",
       "showAnswers": "Show answers",
       "anonymousHint": "Wordwall is anonymous. Identical words are merged automatically, and words grow larger when more students write the same word.",
-      "previewTitle": "Preview",
+      "liveTitle": "Live wordwall",
       "noSession": "No active session.",
       "noneYet": "No words yet."
-    },
-    "notes": {
-      "title": "Notes (local)",
-      "clear": "Clear",
-      "clearTitle": "Eraser / clear",
-      "placeholder": "Write notes here… (not saved to Firestore)",
-      "localOnly": "This is only for you on this device (local storage). Students cannot see this."
     },
     "timer": {
       "title": "Timer",
@@ -106,9 +137,6 @@
       "clear": "Remove timer",
       "toggleTitle": "Show/hide timer bar",
       "stop": "Stop"
-    },
-    "preview": {
-      "title": "Preview"
     },
     "countdown": {
       "label": "Time left"

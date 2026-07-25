@@ -14,7 +14,13 @@
       "live": "AO VIVO",
       "notLive": "Não está ao vivo",
       "session": "sessão",
-      "mode": "modo"
+      "mode": "modo",
+      "liveBoard": "Quadro ao vivo"
+    },
+    "waiting": {
+      "title": "O professor está preparando a próxima atividade",
+      "text": "O quadro abre automaticamente quando o professor enviar algo ao vivo. Você pode manter esta página aberta.",
+      "badge": "Aguardando quadro ao vivo"
     },
     "tabs": {
       "question": "Pergunta de hoje",
@@ -26,16 +32,27 @@
       "label": "Nome / grupo",
       "placeholder": "Escreva seu nome ou nome do grupo"
     },
+    "setup": {
+      "title": "Prepare seu post-it",
+      "text": "Escolha o nome e a cor que aparecem no quadro.",
+      "continue": "Continuar para a pergunta",
+      "edit": "Editar nome e cor"
+    },
     "answer": {
       "label": "Sua resposta",
       "placeholder": "Escreva brevemente…",
-      "send": "Enviar para o quadro"
+      "send": "Enviar para o quadro",
+      "sent": "Sua resposta foi enviada para o quadro."
     },
     "poll": {
       "fallbackQuestion": "O que você acha?",
       "noOptions": "Ainda não há opções de resposta.",
       "send": "Enviar voto",
       "sent": "Obrigado! Seu voto foi enviado.",
+      "sentButton": "Voto enviado",
+      "sentTitle": "Seu voto foi registrado",
+      "choose": "Escolha uma opção",
+      "selected": "Selecionado",
       "anonymousHint": "Seu voto é anônimo (não armazenamos nome/uid)."
     },
     "wordwall": {
@@ -46,6 +63,7 @@
       "previewFallback": "Sua palavra aparece aqui…",
       "send": "Enviar palavra",
       "sent": "Obrigado! Sua palavra foi enviada.",
+      "yourWords": "Suas palavras enviadas",
       "anonymousHint": "A nuvem de palavras é anônima. Armazenamos apenas a palavra, não nome ou uid."
     },
     "sticky": {

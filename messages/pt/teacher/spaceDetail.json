@@ -6,12 +6,12 @@
     },
     "actions": {
       "back": "← Voltar",
-      "submissions": "Respostas",
+      "submissions": "Ver todas as respostas",
       "setActive": "Definir como ativa",
       "archive": "Arquivar",
       "restore": "Restaurar",
       "createNewLesson": "+ Criar nova atividade",
-      "printRoom": "Imprimir/PDF código"
+      "printRoom": "Imprimir convite"
     },
     "access": {
       "mustBeSignedIn": "Você precisa estar conectado.",
@@ -40,10 +40,10 @@
     },
     "assignments": {
       "title": "Atividades",
-      "subtitle": "Atribua atividades de Meu conteúdo ou da Biblioteca. Os alunos veem as atividades atribuídas depois de entrarem no space.",
+      "subtitle": "As atividades são atribuídas em Meu conteúdo. Aqui você acompanha status, mensagens, prazos e respostas neste space.",
       "assignTask": "Atribuir nova atividade",
       "showArchived": "Mostrar atividades arquivadas",
-      "emptyHtml": "Ainda não há atividades. Clique em <b>Atribuir nova atividade</b>.",
+      "emptyHtml": "Ainda não há atividades. Vá para <b>Meu conteúdo</b> para atribuir atividades a este space.",
       "count": "{count} · {label}"
     },
     "assignTrainingVideo": {

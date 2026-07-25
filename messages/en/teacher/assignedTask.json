@@ -12,7 +12,10 @@
     },
     "meta": {
       "level": "Level",
-      "language": "Language"
+      "language": "Language",
+      "source": "Source",
+      "myContent": "My Content",
+      "library": "Library"
     },
     "error": {
       "title": "Error"
