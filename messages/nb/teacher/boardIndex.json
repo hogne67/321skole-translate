@@ -1,0 +1,52 @@
+{
+  "teacherBoardIndex": {
+    "loading": "Laster tavler...",
+    "access": {
+      "title": "Tavle er for lærere",
+      "text": "Logg inn med en lærerbruker for å åpne og styre tavler i dine spaces."
+    },
+    "hero": {
+      "eyebrow": "Live klasseromstavle",
+      "title": "Tavle",
+      "text": "Bruk Tavle til spørsmål, avstemninger og ordsamlinger på storskjerm, mens elevene svarer live fra sine egne enheter."
+    },
+    "stats": {
+      "rooms": "Rom",
+      "active": "Live nå",
+      "activities": "Aktiviteter",
+      "activitiesValue": "5"
+    },
+    "video": {
+      "title": "Instruksjonsvideo",
+      "text": "Her legger vi inn en kort opplæringsvideo når tavla er testet i ekte klasserom.",
+      "placeholder": "Videoplass klar"
+    },
+    "guide": {
+      "title": "Slik brukes tavla",
+      "step1": "1. Velg rommet du skal undervise i.",
+      "step2": "2. Åpne storskjermvisning og dra den til skjermen i klasserommet.",
+      "step3": "3. Start live aktivitet fra lærerflaten når elevene skal delta."
+    },
+    "rooms": {
+      "title": "Velg tavle i rom",
+      "text": "Åpne tavla for et space, eller se raskt om en tavle allerede er live.",
+      "manage": "Administrer spaces",
+      "empty": "Du har ingen spaces ennå.",
+      "untitled": "Uten navn",
+      "live": "Live",
+      "notLive": "Ikke live",
+      "notStarted": "Ikke startet",
+      "ready": "Klar til bruk",
+      "activeMode": "Aktivitet: {mode}",
+      "openBoard": "Åpne tavle"
+    },
+    "modes": {
+      "text": "Dagens spørsmål",
+      "poll": "Avstemning",
+      "wordwall": "Ordsamling",
+      "image": "Bilde",
+      "clock": "Klokke",
+      "quiz": "Quiz"
+    }
+  }
+}

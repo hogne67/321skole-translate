@@ -16,6 +16,18 @@ declare global {
 export default function PwaInstallSupport() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
+    const path = window.location.pathname;
+
+    if (path.includes("/board")) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          void registration.unregister();
+        });
+      }).catch(() => {
+        //
+      });
+      return;
+    }
 
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Install prompt will simply stay unavailable if registration fails.

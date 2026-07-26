@@ -2,7 +2,6 @@
 export type Role = "student" | "teacher" | "parent" | "admin" | "creator";
 
 export type NavItem = { href: string; labelKey: string };
-export type NavOptions = { academyEnabled?: boolean };
 
 function homeForRole(role: Role) {
   if (role === "teacher") return "/teacher";
@@ -19,7 +18,7 @@ function homeForRole(role: Role) {
  * - hrefs are internal and WITHOUT locale prefix
  * - labelKey must exist inside the "nav" namespace
  */
-export function navItemsForRole(role: Role, options: NavOptions = {}): NavItem[] {
+export function navItemsForRole(role: Role): NavItem[] {
   const base: NavItem[] = [
     { href: homeForRole(role), labelKey: "dashboard" },
     { href: "/content", labelKey: "myContent" },
@@ -28,9 +27,7 @@ export function navItemsForRole(role: Role, options: NavOptions = {}): NavItem[]
   if (role === "teacher") {
     return [
       ...base,
-      ...(options.academyEnabled
-        ? [{ href: "/teacher/courses", labelKey: "academy" } satisfies NavItem]
-        : []),
+      { href: "/teacher/board", labelKey: "board" },
       { href: "/teacher/spaces", labelKey: "spaces" },
       { href: "/tools", labelKey: "tools" },
     ];

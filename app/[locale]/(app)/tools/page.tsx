@@ -13,6 +13,7 @@ type Tool = {
 };
 
 const premiumTools: Tool[] = [
+  { id: "quizGenerator", href: "/tools/quiz", badge: "NEW" },
   { id: "assignmentGenerator", href: "/producer/texts/new", badge: "PREMIUM" },
   { id: "imageWritingGenerator", href: "/producer/image-writing", badge: "NEW" },
   { id: "readingTestGenerator", href: "/producer/reading-tests/new", badge: "PREMIUM" },

@@ -26,7 +26,10 @@
       "question": "Dagens spørsmål",
       "notes": "Notater",
       "poll": "Avstemning",
-      "wordwall": "Ordsamling"
+      "wordwall": "Ordsamling",
+      "image": "Bilde",
+      "clock": "Klokke",
+      "quiz": "Quiz"
     },
     "groupName": {
       "label": "Navn / gruppe",
@@ -65,6 +68,42 @@
       "sent": "Takk! Ordet ditt er sendt.",
       "yourWords": "Dine sendte ord",
       "anonymousHint": "Ordsamlingen er anonym. Vi lagrer kun ordet, ikke navn eller uid."
+    },
+    "image": {
+      "fallbackPrompt": "Skriv en setning om bildet.",
+      "noImage": "Bildet vises når læreren har lagt det inn.",
+      "answerLabel": "Din setning",
+      "answerPlaceholder": "Skriv en setning eller observasjon..."
+    },
+    "quiz": {
+      "nameTitle": "Gjør deg klar for quiz",
+      "nameText": "Velg navnet eller gruppenavnet som læreren kan bruke i resultatene.",
+      "namePlaceholder": "Navn eller gruppenavn",
+      "emojiLabel": "Velg symbol",
+      "join": "Start quiz",
+      "changeName": "Endre navn",
+      "updateAnswer": "Oppdater svar",
+      "correct": "Riktig",
+      "yourAnswer": "Ditt svar",
+      "correctFeedback": "Riktig svar.",
+      "wrongFeedback": "Ikke helt riktig denne gangen.",
+      "noAnswerFeedback": "Du rakk ikke å sende et svar.",
+      "yourResult": "Ditt resultat",
+      "correctCount": "{correct} riktige av {total}",
+      "points": "{points} poeng",
+      "finishedTitle": "Quizen er ferdig",
+      "finishedText": "Se tavla for sluttresultatet.",
+      "waiting": "Quizen åpner straks.",
+      "progress": "Spørsmål {current} av {total}"
+    },
+    "clock": {
+      "fallbackTitle": "Klasseklokke",
+      "week": "uke",
+      "goalsTitle": "Dagens mål",
+      "todosTitle": "Gjøremål",
+      "noGoals": "Ingen mål er lagt inn.",
+      "noTodos": "Ingen gjøremål er lagt inn.",
+      "stopwatchTitle": "Stoppeklokke"
     },
     "sticky": {
       "colorLabel": "Farge på lapp",

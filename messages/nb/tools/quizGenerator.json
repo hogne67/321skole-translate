@@ -1,0 +1,61 @@
+{
+  "quizGenerator": {
+    "title": "Quiz-generator",
+    "subtitle": "Lag en redigerbar quiz fra et tema eller en tekst. Første versjon er laget for å bygge gode quizutkast som senere kan sendes live på tavla.",
+    "sourceModes": {
+      "topic": "Tema",
+      "text": "Tekst"
+    },
+    "fields": {
+      "topic": "Tema",
+      "sourceText": "Tekst fra lesson eller oppgave",
+      "language": "Språk",
+      "level": "Nivå",
+      "focus": "Fokus",
+      "count": "Spørsmål",
+      "seconds": "Tid per spørsmål",
+      "secondsShort": "Sekunder"
+    },
+    "focus": {
+      "understanding": "Forståelse",
+      "vocabulary": "Ord og begreper",
+      "discussion": "Samtale",
+      "exam": "Prøveøving"
+    },
+    "placeholders": {
+      "topic": "F.eks. demokrati, brøk, Norge, arbeidsliv...",
+      "sourceText": "Lim inn tekst fra en lesson eller en oppgave...",
+      "description": "Kort beskrivelse av quizen...",
+      "explanation": "Kort forklaring til riktig svar..."
+    },
+    "actions": {
+      "generate": "Lag quiz",
+      "generating": "Lager quiz...",
+      "copy": "Kopier",
+      "copied": "Kopiert",
+      "save": "Lagre quiz",
+      "saving": "Lagrer...",
+      "saved": "Quiz lagret.",
+      "sendToBoard": "Send til tavle",
+      "sendingToBoard": "Sender...",
+      "sentToBoard": "Quiz sendt til tavle.",
+      "noSpaces": "Ingen rom",
+      "regenerate": "Lag på nytt",
+      "remove": "Fjern spørsmål",
+      "addQuestion": "Legg til spørsmål"
+    },
+    "library": {
+      "title": "Mine quizer",
+      "subtitle": "Lagrede utkast vises her. Bibliotek og deling bygges videre på denne strukturen.",
+      "refresh": "Oppdater",
+      "loading": "Laster...",
+      "empty": "Ingen lagrede quizer ennå.",
+      "meta": "{count} spørsmål · {level}"
+    },
+    "empty": {
+      "title": "Klar for første quiz",
+      "text": "Velg tema eller lim inn tekst. AI lager spørsmål, alternativer, fasit og korte forklaringer som du kan redigere."
+    },
+    "questionLabel": "Spørsmål {number}"
+  }
+}

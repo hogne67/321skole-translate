@@ -32,6 +32,7 @@ import toolsSentenceFixerFree from "./tools/sentenceFixerFree.json";
 import toolsSpeakingTopicFree from "./tools/speakingTopicFree.json";
 import toolsTranslateFree from "./tools/translateFree.json";
 import toolsVocabFree from "./tools/vocabFree.json";
+import toolsQuizGenerator from "./tools/quizGenerator.json";
 
 import studentSpaces from "./student/studentSpaces.json";
 import studentSpaceDetail from "./student/studentspaceDetail.json";
@@ -56,6 +57,7 @@ import teacherSpaceDetail from "./teacher/spaceDetail.json";
 import teacherAssignedTask from "./teacher/assignedTask.json";
 import teacherSubmission from "./teacher/submission.json";
 import teacherBoard from "./teacher/teacherBoard.json";
+import teacherBoardIndex from "./teacher/boardIndex.json";
 import teacherMembers from "./teacher/teacherMembers.json";
 import teacherPage from "./teacher/teacherPage.json";
 
@@ -100,6 +102,7 @@ const messages = {
   ...toolsSpeakingTopicFree,
   ...toolsTranslateFree,
   ...toolsVocabFree,
+  ...toolsQuizGenerator,
 
   ...studentSpaces,
   ...studentSpaceDetail,
@@ -124,6 +127,7 @@ const messages = {
   ...teacherAssignedTask,
   ...teacherSubmission,
   ...teacherBoard,
+  ...teacherBoardIndex,
   ...teacherMembers,
   ...teacherPage,
 

@@ -1,0 +1,61 @@
+{
+  "quizGenerator": {
+    "title": "Gerador de quiz",
+    "subtitle": "Crie um quiz editável a partir de um tema ou texto. Esta primeira versão cria bons rascunhos que depois podem ser enviados ao quadro ao vivo.",
+    "sourceModes": {
+      "topic": "Tema",
+      "text": "Texto"
+    },
+    "fields": {
+      "topic": "Tema",
+      "sourceText": "Texto da lição ou tarefa",
+      "language": "Idioma",
+      "level": "Nível",
+      "focus": "Foco",
+      "count": "Perguntas",
+      "seconds": "Tempo por pergunta",
+      "secondsShort": "Segundos"
+    },
+    "focus": {
+      "understanding": "Compreensão",
+      "vocabulary": "Palavras e conceitos",
+      "discussion": "Discussão",
+      "exam": "Preparação para teste"
+    },
+    "placeholders": {
+      "topic": "Por exemplo democracia, frações, Noruega, vida profissional...",
+      "sourceText": "Cole texto de uma lição ou tarefa...",
+      "description": "Breve descrição do quiz...",
+      "explanation": "Breve explicação da resposta correta..."
+    },
+    "actions": {
+      "generate": "Criar quiz",
+      "generating": "Criando quiz...",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "save": "Salvar quiz",
+      "saving": "Salvando...",
+      "saved": "Quiz salvo.",
+      "sendToBoard": "Enviar ao quadro",
+      "sendingToBoard": "Enviando...",
+      "sentToBoard": "Quiz enviado ao quadro.",
+      "noSpaces": "Nenhuma sala",
+      "regenerate": "Criar novamente",
+      "remove": "Remover pergunta",
+      "addQuestion": "Adicionar pergunta"
+    },
+    "library": {
+      "title": "Meus quizzes",
+      "subtitle": "Rascunhos salvos aparecem aqui. Biblioteca e partilha serão construídas sobre esta estrutura.",
+      "refresh": "Atualizar",
+      "loading": "Carregando...",
+      "empty": "Nenhum quiz salvo ainda.",
+      "meta": "{count} perguntas · {level}"
+    },
+    "empty": {
+      "title": "Pronto para o primeiro quiz",
+      "text": "Escolha um tema ou cole texto. A IA cria perguntas, alternativas, respostas corretas e explicações curtas que você pode editar."
+    },
+    "questionLabel": "Pergunta {number}"
+  }
+}

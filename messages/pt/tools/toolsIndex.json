@@ -20,6 +20,10 @@
     "premium": {
       "title": "Geradores premium",
       "items": {
+        "quizGenerator": {
+          "title": "Gerador de quiz",
+          "description": "Crie quizzes editáveis a partir de um tema ou texto de lição com IA."
+        },
         "assignmentGenerator": {
           "title": "Gerador de atividades",
           "description": "Crie tarefas estruturadas com suporte de IA."

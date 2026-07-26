@@ -20,6 +20,10 @@
     "premium": {
       "title": "Premium generators",
       "items": {
+        "quizGenerator": {
+          "title": "Quiz generator",
+          "description": "Create editable quizzes from a topic or lesson text with AI."
+        },
         "assignmentGenerator": {
           "title": "Worksheet generator",
           "description": "Create structured assignments with AI support."

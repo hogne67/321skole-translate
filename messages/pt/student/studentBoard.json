@@ -26,7 +26,10 @@
       "question": "Pergunta de hoje",
       "notes": "Notas",
       "poll": "Enquete",
-      "wordwall": "Nuvem de palavras"
+      "wordwall": "Nuvem de palavras",
+      "image": "Imagem",
+      "clock": "Relógio",
+      "quiz": "Quiz"
     },
     "groupName": {
       "label": "Nome / grupo",
@@ -65,6 +68,42 @@
       "sent": "Obrigado! Sua palavra foi enviada.",
       "yourWords": "Suas palavras enviadas",
       "anonymousHint": "A nuvem de palavras é anônima. Armazenamos apenas a palavra, não nome ou uid."
+    },
+    "image": {
+      "fallbackPrompt": "Escreva uma frase sobre a imagem.",
+      "noImage": "A imagem aparece quando o professor a adiciona.",
+      "answerLabel": "Sua frase",
+      "answerPlaceholder": "Escreva uma frase ou observação..."
+    },
+    "quiz": {
+      "nameTitle": "Prepare-se para o quiz",
+      "nameText": "Escolha o nome ou nome do grupo que o professor pode usar nos resultados.",
+      "namePlaceholder": "Nome ou nome do grupo",
+      "emojiLabel": "Escolha um símbolo",
+      "join": "Iniciar quiz",
+      "changeName": "Alterar nome",
+      "updateAnswer": "Atualizar resposta",
+      "correct": "Correto",
+      "yourAnswer": "Sua resposta",
+      "correctFeedback": "Resposta correta.",
+      "wrongFeedback": "Não está totalmente correto desta vez.",
+      "noAnswerFeedback": "Você não enviou uma resposta a tempo.",
+      "yourResult": "Seu resultado",
+      "correctCount": "{correct} corretas de {total}",
+      "points": "{points} pontos",
+      "finishedTitle": "O quiz terminou",
+      "finishedText": "Veja o quadro para o resultado final.",
+      "waiting": "O quiz abrirá em instantes.",
+      "progress": "Pergunta {current} de {total}"
+    },
+    "clock": {
+      "fallbackTitle": "Relógio da turma",
+      "week": "semana",
+      "goalsTitle": "Objetivos de hoje",
+      "todosTitle": "Tarefas",
+      "noGoals": "Nenhum objetivo foi adicionado.",
+      "noTodos": "Nenhuma tarefa foi adicionada.",
+      "stopwatchTitle": "Cronômetro"
     },
     "sticky": {
       "colorLabel": "Cor do post-it",

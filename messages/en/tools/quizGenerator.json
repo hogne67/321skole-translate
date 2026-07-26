@@ -1,0 +1,61 @@
+{
+  "quizGenerator": {
+    "title": "Quiz generator",
+    "subtitle": "Create an editable quiz from a topic or text. This first version is built for good quiz drafts that can later be sent live to the board.",
+    "sourceModes": {
+      "topic": "Topic",
+      "text": "Text"
+    },
+    "fields": {
+      "topic": "Topic",
+      "sourceText": "Lesson or task text",
+      "language": "Language",
+      "level": "Level",
+      "focus": "Focus",
+      "count": "Questions",
+      "seconds": "Time per question",
+      "secondsShort": "Seconds"
+    },
+    "focus": {
+      "understanding": "Understanding",
+      "vocabulary": "Words and concepts",
+      "discussion": "Discussion",
+      "exam": "Test practice"
+    },
+    "placeholders": {
+      "topic": "For example democracy, fractions, Norway, working life...",
+      "sourceText": "Paste text from a lesson or task...",
+      "description": "Short quiz description...",
+      "explanation": "Short explanation for the correct answer..."
+    },
+    "actions": {
+      "generate": "Create quiz",
+      "generating": "Creating quiz...",
+      "copy": "Copy",
+      "copied": "Copied",
+      "save": "Save quiz",
+      "saving": "Saving...",
+      "saved": "Quiz saved.",
+      "sendToBoard": "Send to board",
+      "sendingToBoard": "Sending...",
+      "sentToBoard": "Quiz sent to board.",
+      "noSpaces": "No rooms",
+      "regenerate": "Regenerate",
+      "remove": "Remove question",
+      "addQuestion": "Add question"
+    },
+    "library": {
+      "title": "My quizzes",
+      "subtitle": "Saved drafts appear here. Library and sharing will build on this structure.",
+      "refresh": "Refresh",
+      "loading": "Loading...",
+      "empty": "No saved quizzes yet.",
+      "meta": "{count} questions · {level}"
+    },
+    "empty": {
+      "title": "Ready for the first quiz",
+      "text": "Choose a topic or paste text. AI creates questions, options, answer keys and short explanations that you can edit."
+    },
+    "questionLabel": "Question {number}"
+  }
+}

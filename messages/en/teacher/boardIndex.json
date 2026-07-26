@@ -1,0 +1,52 @@
+{
+  "teacherBoardIndex": {
+    "loading": "Loading boards...",
+    "access": {
+      "title": "Board is for teachers",
+      "text": "Sign in with a teacher account to open and control boards in your Spaces."
+    },
+    "hero": {
+      "eyebrow": "Live classroom board",
+      "title": "Board",
+      "text": "Use Board for questions, polls and wordwalls on a big screen while students respond live from their own devices."
+    },
+    "stats": {
+      "rooms": "Rooms",
+      "active": "Live now",
+      "activities": "Activities",
+      "activitiesValue": "5"
+    },
+    "video": {
+      "title": "Training video",
+      "text": "This is where we will add a short training video once the board has been tested in a real classroom.",
+      "placeholder": "Video placeholder ready"
+    },
+    "guide": {
+      "title": "How to use the board",
+      "step1": "1. Choose the room you are teaching in.",
+      "step2": "2. Open the big-screen view and move it to the classroom display.",
+      "step3": "3. Start a live activity from the teacher surface when students should participate."
+    },
+    "rooms": {
+      "title": "Choose board by room",
+      "text": "Open the board for a Space, or quickly see whether a board is already live.",
+      "manage": "Manage Spaces",
+      "empty": "You do not have any Spaces yet.",
+      "untitled": "Untitled",
+      "live": "Live",
+      "notLive": "Not live",
+      "notStarted": "Not started",
+      "ready": "Ready to use",
+      "activeMode": "Activity: {mode}",
+      "openBoard": "Open board"
+    },
+    "modes": {
+      "text": "Today's question",
+      "poll": "Poll",
+      "wordwall": "Wordwall",
+      "image": "Image",
+      "clock": "Clock",
+      "quiz": "Quiz"
+    }
+  }
+}

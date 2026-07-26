@@ -26,7 +26,10 @@
       "question": "Today's question",
       "notes": "Notes",
       "poll": "Poll",
-      "wordwall": "Wordwall"
+      "wordwall": "Wordwall",
+      "image": "Image",
+      "clock": "Clock",
+      "quiz": "Quiz"
     },
     "groupName": {
       "label": "Name / group",
@@ -65,6 +68,42 @@
       "sent": "Thank you! Your word has been sent.",
       "yourWords": "Your sent words",
       "anonymousHint": "Wordwall is anonymous. We only store the word, not name or uid."
+    },
+    "image": {
+      "fallbackPrompt": "Write a sentence about the image.",
+      "noImage": "The image appears when the teacher has added it.",
+      "answerLabel": "Your sentence",
+      "answerPlaceholder": "Write a sentence or observation..."
+    },
+    "quiz": {
+      "nameTitle": "Get ready for the quiz",
+      "nameText": "Choose the name or group name the teacher can use in the results.",
+      "namePlaceholder": "Name or group name",
+      "emojiLabel": "Choose symbol",
+      "join": "Start quiz",
+      "changeName": "Change name",
+      "updateAnswer": "Update answer",
+      "correct": "Correct",
+      "yourAnswer": "Your answer",
+      "correctFeedback": "Correct answer.",
+      "wrongFeedback": "Not quite right this time.",
+      "noAnswerFeedback": "You did not send an answer in time.",
+      "yourResult": "Your result",
+      "correctCount": "{correct} correct of {total}",
+      "points": "{points} points",
+      "finishedTitle": "The quiz is finished",
+      "finishedText": "Look at the board for the final result.",
+      "waiting": "The quiz will open in a moment.",
+      "progress": "Question {current} of {total}"
+    },
+    "clock": {
+      "fallbackTitle": "Class clock",
+      "week": "week",
+      "goalsTitle": "Today's goals",
+      "todosTitle": "Tasks",
+      "noGoals": "No goals have been added.",
+      "noTodos": "No tasks have been added.",
+      "stopwatchTitle": "Stopwatch"
     },
     "sticky": {
       "colorLabel": "Sticky note color",

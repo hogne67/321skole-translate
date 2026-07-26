@@ -20,6 +20,10 @@
     "premium": {
       "title": "Premium-generatorer",
       "items": {
+        "quizGenerator": {
+          "title": "Quiz-generator",
+          "description": "Lag redigerbare quizer fra tema eller lesson-tekst med AI."
+        },
         "assignmentGenerator": {
           "title": "Oppgavegenerator",
           "description": "Lag strukturerte oppgaver med AI-støtte."
