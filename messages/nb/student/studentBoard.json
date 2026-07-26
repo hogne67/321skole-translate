@@ -82,6 +82,8 @@
       "emojiLabel": "Velg symbol",
       "join": "Start quiz",
       "changeName": "Endre navn",
+      "readyTitle": "Du er klar",
+      "readyText": "Quizen starter når læreren trykker start på tavla.",
       "updateAnswer": "Oppdater svar",
       "correct": "Riktig",
       "yourAnswer": "Ditt svar",

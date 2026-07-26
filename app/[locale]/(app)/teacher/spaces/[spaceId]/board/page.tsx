@@ -69,9 +69,14 @@ type BoardState = {
     quizDescription?: string;
     quizQuestions?: BoardQuizQuestion[];
     quizCurrentIndex?: number;
+    quizStarted?: boolean;
     quizShowAnswer?: boolean;
     quizFinished?: boolean;
     quizQuestionStartedAtByIndex?: Record<string, number>;
+    quizAutomationRunning?: boolean;
+    quizAutomationPaused?: boolean;
+    quizAutomationPhase?: string | null;
+    quizAutomationPhaseEndsAt?: number | null;
   };
   updatedAt?: unknown;
 };
@@ -1166,7 +1171,23 @@ export default function TeacherBoardPage() {
 
   async function setQuizShowAnswer(show: boolean) {
     if (!stateRef) return;
-    await setDoc(stateRef, { data: { quizShowAnswer: show }, updatedAt: serverTimestamp() }, { merge: true });
+    await setDoc(
+      stateRef,
+      {
+        data: {
+          quizShowAnswer: show,
+          quizAutomationRunning: false,
+          quizAutomationPaused: false,
+          quizAutomationPhase: null,
+          quizAutomationPhaseEndsAt: null,
+        },
+        endsAt: null,
+        timerStartedAt: null,
+        timerTotalSec: null,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
   }
 
   async function pushQuizSameSession() {
@@ -1193,9 +1214,14 @@ export default function TeacherBoardPage() {
           quizDescription: safeString(state?.data?.quizDescription) ?? "",
           quizQuestions: boardQuizQuestions,
           quizCurrentIndex: 0,
+          quizStarted: false,
           quizShowAnswer: false,
           quizFinished: false,
           quizQuestionStartedAtByIndex: { 0: startedAt },
+          quizAutomationRunning: false,
+          quizAutomationPaused: false,
+          quizAutomationPhase: null,
+          quizAutomationPhaseEndsAt: null,
         },
         updatedAt: serverTimestamp(),
       },

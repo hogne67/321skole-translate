@@ -64,6 +64,7 @@ type BoardState = {
     quizDescription?: string;
     quizQuestions?: BoardQuizQuestion[];
     quizCurrentIndex?: number;
+    quizStarted?: boolean;
     quizShowAnswer?: boolean;
     quizFinished?: boolean;
   };
@@ -465,6 +466,7 @@ export default function StudentBoardPage() {
   const quizQuestions = Array.isArray(state?.data?.quizQuestions) ? state.data.quizQuestions : [];
   const quizIndex = Math.max(0, Math.min(quizQuestions.length - 1, typeof state?.data?.quizCurrentIndex === "number" ? state.data.quizCurrentIndex : 0));
   const quizQuestion = quizQuestions[quizIndex] ?? null;
+  const quizStarted = state?.data?.quizStarted === true;
   const quizOptions = normalizeOptions(quizQuestion?.options);
   const quizSavedAnswer = quizAnswers[quizIndex];
   const quizSent = quizSentKey === `${sessionId}:${quizIndex}` || Boolean(quizSavedAnswer);
@@ -676,6 +678,25 @@ export default function StudentBoardPage() {
                     >
                       {t("quiz.join")}
                     </button>
+                  </>
+                ) : !quizStarted ? (
+                  <>
+                    <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                      <div>
+                        <span className="font-semibold text-slate-950">{quizDisplayName}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setQuizSetupDone(false)}
+                        className="rounded-full border bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                      >
+                        {t("quiz.changeName")}
+                      </button>
+                    </div>
+                    <div className="mt-6 rounded-2xl border border-violet-200 bg-violet-50 px-5 py-6 text-violet-950">
+                      <div className="text-2xl font-semibold">{t("quiz.readyTitle")}</div>
+                      <div className="mt-2 text-base leading-7">{t("quiz.readyText")}</div>
+                    </div>
                   </>
                 ) : (
                   <>

@@ -82,6 +82,8 @@
       "emojiLabel": "Choose symbol",
       "join": "Start quiz",
       "changeName": "Change name",
+      "readyTitle": "You are ready",
+      "readyText": "The quiz starts when the teacher presses start on the board.",
       "updateAnswer": "Update answer",
       "correct": "Correct",
       "yourAnswer": "Your answer",

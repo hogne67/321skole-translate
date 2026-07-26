@@ -17,6 +17,7 @@ function requireDb(x: Firestore | null | undefined): Firestore {
 type BoardMode = "text" | "poll" | "wordwall" | "image" | "clock" | "quiz";
 type NoteColor = "amber" | "emerald" | "sky" | "rose" | "violet";
 type WordwallEnergy = "calm" | "live" | "energy";
+type QuizAutomationPhase = "question" | "answer" | "result" | "next" | "finished";
 type BoardQuizQuestion = {
   question?: string;
   options?: string[];
@@ -57,10 +58,19 @@ type BoardState = {
     quizDescription?: string;
     quizQuestions?: BoardQuizQuestion[];
     quizCurrentIndex?: number;
+    quizStarted?: boolean;
     quizShowAnswer?: boolean;
     quizShowScoreboard?: boolean;
     quizFinished?: boolean;
     quizQuestionStartedAtByIndex?: Record<string, number>;
+    quizAutomationRunning?: boolean;
+    quizAutomationPaused?: boolean;
+    quizAutomationPhase?: QuizAutomationPhase;
+    quizAutomationPhaseEndsAt?: number | null;
+    quizAutomationAnswerSec?: number;
+    quizAutomationFasitSec?: number;
+    quizAutomationResultSec?: number;
+    quizAutomationNextSec?: number;
   };
 };
 
@@ -92,6 +102,10 @@ type WordwallItem = {
 
 const DISPLAY_STAGE_WIDTH = 1920;
 const DISPLAY_STAGE_HEIGHT = 1080;
+const DEFAULT_AUTO_ANSWER_SEC = 30;
+const DEFAULT_AUTO_FASIT_SEC = 20;
+const DEFAULT_AUTO_RESULT_SEC = 20;
+const DEFAULT_AUTO_NEXT_SEC = 5;
 
 function safeString(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
@@ -241,6 +255,10 @@ export default function TeacherBoardDisplayPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [stageScale, setStageScale] = useState(1);
+  const [selectedAutoAnswerSec, setSelectedAutoAnswerSec] = useState(DEFAULT_AUTO_ANSWER_SEC);
+  const [selectedAutoFasitSec, setSelectedAutoFasitSec] = useState(DEFAULT_AUTO_FASIT_SEC);
+  const [selectedAutoResultSec, setSelectedAutoResultSec] = useState(DEFAULT_AUTO_RESULT_SEC);
+  const [selectedAutoNextSec, setSelectedAutoNextSec] = useState(DEFAULT_AUTO_NEXT_SEC);
 
   const dbx = useMemo(() => requireDb(db), []);
   const stateRef = useMemo(() => (spaceId ? doc(dbx, "spaces", spaceId, "board", "state") : null), [dbx, spaceId]);
@@ -388,9 +406,18 @@ export default function TeacherBoardDisplayPage() {
   );
   const quizIndex = Math.max(0, Math.min(quizQuestions.length - 1, typeof state?.data?.quizCurrentIndex === "number" ? state.data.quizCurrentIndex : 0));
   const quizQuestion = quizQuestions[quizIndex] ?? null;
+  const quizStarted = state?.data?.quizStarted === true;
   const quizShowAnswer = state?.data?.quizShowAnswer === true;
   const quizShowScoreboard = state?.data?.quizShowScoreboard === true;
   const quizFinished = state?.data?.quizFinished === true;
+  const quizAutomationRunning = state?.data?.quizAutomationRunning === true;
+  const quizAutomationPaused = state?.data?.quizAutomationPaused === true;
+  const quizAutomationPhase = state?.data?.quizAutomationPhase;
+  const quizAutomationPhaseEndsAt = typeof state?.data?.quizAutomationPhaseEndsAt === "number" ? state.data.quizAutomationPhaseEndsAt : null;
+  const quizAutomationAnswerSec = typeof state?.data?.quizAutomationAnswerSec === "number" ? state.data.quizAutomationAnswerSec : DEFAULT_AUTO_ANSWER_SEC;
+  const quizAutomationFasitSec = typeof state?.data?.quizAutomationFasitSec === "number" ? state.data.quizAutomationFasitSec : DEFAULT_AUTO_FASIT_SEC;
+  const quizAutomationResultSec = typeof state?.data?.quizAutomationResultSec === "number" ? state.data.quizAutomationResultSec : DEFAULT_AUTO_RESULT_SEC;
+  const quizAutomationNextSec = typeof state?.data?.quizAutomationNextSec === "number" ? state.data.quizAutomationNextSec : DEFAULT_AUTO_NEXT_SEC;
   const quizCurrentResponses = quizResponses.filter((r) => r.data.quizQuestionIndex === quizIndex);
   const quizCounts = new Map<string, number>();
   for (const r of quizCurrentResponses) {
@@ -450,7 +477,8 @@ export default function TeacherBoardDisplayPage() {
   const featuredImageResponse = featuredImageResponseId ? imageResponses.find((r) => r.id === featuredImageResponseId) : null;
 
   useEffect(() => {
-    if (!stateRef || mode !== "quiz" || !activeSessionId || !timerEndsAtMs || timerEndsAtMs > now || quizShowAnswer) return;
+    if (quizAutomationRunning) return;
+    if (!stateRef || mode !== "quiz" || !quizStarted || !activeSessionId || !timerEndsAtMs || timerEndsAtMs > now || quizShowAnswer) return;
     const timerKey = `${activeSessionId}:${quizIndex}:${timerEndsAtMs}`;
     if (handledQuizTimerRef.current === timerKey) return;
     handledQuizTimerRef.current = timerKey;
@@ -461,7 +489,101 @@ export default function TeacherBoardDisplayPage() {
       timerTotalSec: null,
       updatedAt: serverTimestamp(),
     });
-  }, [activeSessionId, mode, now, quizIndex, quizShowAnswer, stateRef, timerEndsAtMs]);
+  }, [activeSessionId, mode, now, quizAutomationRunning, quizIndex, quizShowAnswer, quizStarted, stateRef, timerEndsAtMs]);
+
+  useEffect(() => {
+    if (!stateRef || mode !== "quiz" || !quizStarted || !activeSessionId || !quizAutomationRunning || quizAutomationPaused || !quizAutomationPhaseEndsAt || quizAutomationPhaseEndsAt > now) return;
+
+    const nextStartedAt = Date.now();
+    if (quizAutomationPhase === "question") {
+      void updateDoc(stateRef, {
+        "data.quizShowAnswer": true,
+        "data.quizShowScoreboard": false,
+        "data.quizAutomationPhase": "answer",
+        "data.quizAutomationPhaseEndsAt": nextStartedAt + quizAutomationFasitSec * 1000,
+        endsAt: null,
+        timerStartedAt: null,
+        timerTotalSec: null,
+        updatedAt: serverTimestamp(),
+      });
+    } else if (quizAutomationPhase === "answer") {
+      if (quizIndex >= quizQuestions.length - 1) {
+        void updateDoc(stateRef, {
+          "data.quizShowScoreboard": true,
+          "data.quizFinished": true,
+          "data.quizAutomationRunning": false,
+          "data.quizAutomationPaused": false,
+          "data.quizAutomationPhase": "finished",
+          "data.quizAutomationPhaseEndsAt": null,
+          endsAt: null,
+          timerStartedAt: null,
+          timerTotalSec: null,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        void updateDoc(stateRef, {
+          "data.quizShowScoreboard": true,
+          "data.quizFinished": false,
+          "data.quizAutomationPhase": "result",
+          "data.quizAutomationPhaseEndsAt": nextStartedAt + quizAutomationResultSec * 1000,
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } else if (quizAutomationPhase === "result") {
+      if (quizIndex >= quizQuestions.length - 1) {
+        void updateDoc(stateRef, {
+          "data.quizShowScoreboard": true,
+          "data.quizFinished": true,
+          "data.quizAutomationRunning": false,
+          "data.quizAutomationPaused": false,
+          "data.quizAutomationPhase": "finished",
+          "data.quizAutomationPhaseEndsAt": null,
+          endsAt: null,
+          timerStartedAt: null,
+          timerTotalSec: null,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        void updateDoc(stateRef, {
+          "data.quizAutomationPhase": "next",
+          "data.quizAutomationPhaseEndsAt": nextStartedAt + quizAutomationNextSec * 1000,
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } else if (quizAutomationPhase === "next") {
+      const nextIndex = quizIndex + 1;
+      void updateDoc(stateRef, {
+        "data.quizCurrentIndex": nextIndex,
+        "data.quizShowAnswer": false,
+        "data.quizShowScoreboard": false,
+        "data.quizFinished": false,
+        [`data.quizQuestionStartedAtByIndex.${nextIndex}`]: nextStartedAt,
+        "data.quizAutomationPhase": "question",
+        "data.quizAutomationPhaseEndsAt": nextStartedAt + quizAutomationAnswerSec * 1000,
+        endsAt: nextStartedAt + quizAutomationAnswerSec * 1000,
+        timerStartedAt: nextStartedAt,
+        timerTotalSec: quizAutomationAnswerSec,
+        timerVisible: true,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  }, [
+    activeSessionId,
+    mode,
+    now,
+    quizAutomationAnswerSec,
+    quizAutomationFasitSec,
+    quizAutomationNextSec,
+    quizAutomationPaused,
+    quizAutomationPhase,
+    quizAutomationPhaseEndsAt,
+    quizAutomationResultSec,
+    quizAutomationRunning,
+    quizIndex,
+    quizQuestions.length,
+    quizStarted,
+    stateRef,
+  ]);
 
   async function togglePinnedWord(key: string) {
     if (!stateRef) return;
@@ -581,9 +703,14 @@ export default function TeacherBoardDisplayPage() {
     if (!stateRef) return;
     await updateDoc(stateRef, {
       "data.quizCurrentIndex": index,
+      "data.quizStarted": true,
       "data.quizShowAnswer": false,
       "data.quizShowScoreboard": false,
       "data.quizFinished": false,
+      "data.quizAutomationRunning": false,
+      "data.quizAutomationPaused": false,
+      "data.quizAutomationPhase": null,
+      "data.quizAutomationPhaseEndsAt": null,
       [`data.quizQuestionStartedAtByIndex.${index}`]: Date.now(),
       endsAt: null,
       timerStartedAt: null,
@@ -597,6 +724,13 @@ export default function TeacherBoardDisplayPage() {
     await updateDoc(stateRef, {
       "data.quizShowAnswer": show,
       "data.quizShowScoreboard": false,
+      "data.quizAutomationRunning": false,
+      "data.quizAutomationPaused": false,
+      "data.quizAutomationPhase": null,
+      "data.quizAutomationPhaseEndsAt": null,
+      endsAt: null,
+      timerStartedAt: null,
+      timerTotalSec: null,
       updatedAt: serverTimestamp(),
     });
   }
@@ -606,6 +740,10 @@ export default function TeacherBoardDisplayPage() {
     await updateDoc(stateRef, {
       "data.quizShowScoreboard": show,
       "data.quizFinished": false,
+      "data.quizAutomationRunning": false,
+      "data.quizAutomationPaused": false,
+      "data.quizAutomationPhase": null,
+      "data.quizAutomationPhaseEndsAt": null,
       endsAt: null,
       timerStartedAt: null,
       timerTotalSec: null,
@@ -617,10 +755,98 @@ export default function TeacherBoardDisplayPage() {
     if (!stateRef) return;
     await updateDoc(stateRef, {
       "data.quizShowScoreboard": true,
+      "data.quizStarted": true,
       "data.quizFinished": true,
+      "data.quizAutomationRunning": false,
+      "data.quizAutomationPaused": false,
+      "data.quizAutomationPhase": "finished",
+      "data.quizAutomationPhaseEndsAt": null,
       endsAt: null,
       timerStartedAt: null,
       timerTotalSec: null,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async function startQuizManual() {
+    if (!stateRef || !quizQuestion) return;
+    const startedAt = Date.now();
+    await updateDoc(stateRef, {
+      "data.quizCurrentIndex": quizIndex,
+      "data.quizStarted": true,
+      "data.quizShowAnswer": false,
+      "data.quizShowScoreboard": false,
+      "data.quizFinished": false,
+      "data.quizAutomationRunning": false,
+      "data.quizAutomationPaused": false,
+      "data.quizAutomationPhase": null,
+      "data.quizAutomationPhaseEndsAt": null,
+      [`data.quizQuestionStartedAtByIndex.${quizIndex}`]: startedAt,
+      endsAt: null,
+      timerStartedAt: null,
+      timerTotalSec: null,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async function startQuizAutomation() {
+    if (!stateRef || !quizQuestion) return;
+    const startedAt = Date.now();
+    await updateDoc(stateRef, {
+      "data.quizShowAnswer": false,
+      "data.quizStarted": true,
+      "data.quizShowScoreboard": false,
+      "data.quizFinished": false,
+      [`data.quizQuestionStartedAtByIndex.${quizIndex}`]: startedAt,
+      "data.quizAutomationRunning": true,
+      "data.quizAutomationPaused": false,
+      "data.quizAutomationPhase": "question",
+      "data.quizAutomationPhaseEndsAt": startedAt + selectedAutoAnswerSec * 1000,
+      "data.quizAutomationAnswerSec": selectedAutoAnswerSec,
+      "data.quizAutomationFasitSec": selectedAutoFasitSec,
+      "data.quizAutomationResultSec": selectedAutoResultSec,
+      "data.quizAutomationNextSec": selectedAutoNextSec,
+      endsAt: startedAt + selectedAutoAnswerSec * 1000,
+      timerStartedAt: startedAt,
+      timerTotalSec: selectedAutoAnswerSec,
+      timerVisible: true,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async function pauseQuizAutomation() {
+    if (!stateRef) return;
+    await updateDoc(stateRef, {
+      "data.quizAutomationPaused": true,
+      endsAt: null,
+      timerStartedAt: null,
+      timerTotalSec: null,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async function resumeQuizAutomation() {
+    if (!stateRef || !quizAutomationPhase) return;
+    const startedAt = Date.now();
+    const seconds =
+      quizAutomationPhase === "question"
+        ? quizAutomationAnswerSec
+        : quizAutomationPhase === "answer"
+          ? quizAutomationFasitSec
+          : quizAutomationPhase === "result"
+            ? quizAutomationResultSec
+            : quizAutomationNextSec;
+    await updateDoc(stateRef, {
+      "data.quizAutomationPaused": false,
+      "data.quizAutomationPhaseEndsAt": startedAt + seconds * 1000,
+      ...(quizAutomationPhase === "question"
+        ? {
+            endsAt: startedAt + seconds * 1000,
+            timerStartedAt: startedAt,
+            timerTotalSec: seconds,
+            timerVisible: true,
+          }
+        : {}),
       updatedAt: serverTimestamp(),
     });
   }
@@ -646,73 +872,97 @@ export default function TeacherBoardDisplayPage() {
               <div className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-300">{t("display.brand")}</div>
               <div className="mt-2 text-xl text-zinc-300">{active ? t("display.live") : t("display.waitingStatus")}</div>
             </div>
-            {active && mode === "quiz" && quizQuestion ? (
+            {active && mode === "quiz" && quizStarted && quizQuestion ? (
               <div className="absolute left-1/2 top-9 z-20 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-white/10 bg-zinc-900/90 p-2 shadow-2xl shadow-black/30 backdrop-blur">
-                <button
-                  type="button"
-                  onClick={() => setQuizQuestion(Math.max(0, quizIndex - 1))}
-                  disabled={quizIndex <= 0}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35"
-                >
-                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                  Forrige
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuizShowAnswer(!quizShowAnswer)}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-black text-zinc-950 hover:bg-emerald-200"
-                >
-                  {quizShowAnswer ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-                  {quizShowAnswer ? "Skjul svar" : "Vis svar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuizShowScoreboard(!quizShowScoreboard)}
-                  className={[
-                    "inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-black",
-                    quizShowScoreboard ? "bg-violet-300 text-zinc-950 hover:bg-violet-200" : "border border-white/10 bg-white/5 text-white hover:bg-white/10",
-                  ].join(" ")}
-                >
-                  Resultat
-                </button>
-                <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
-                  <Timer className="ml-2 h-4 w-4 text-emerald-300" aria-hidden="true" />
-                  {[
-                    { label: "15 sek", seconds: 15 },
-                    { label: "30 sek", seconds: 30 },
-                    { label: "1 min", seconds: 60 },
-                  ].map((item) => (
-                    <button
-                      key={item.seconds}
-                      type="button"
-                      onClick={() => startCountdown(item.seconds)}
-                      className="h-9 rounded-lg bg-zinc-950 px-3 text-sm font-bold text-white ring-1 ring-white/15 hover:bg-zinc-800"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                  {displayTimerActive ? (
+                {quizAutomationRunning ? (
+                  quizAutomationPaused ? (
                     <button
                       type="button"
-                      onClick={clearCountdown}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-950 text-zinc-100 ring-1 ring-white/15 hover:bg-zinc-800"
-                      title="Stopp timer"
+                      onClick={resumeQuizAutomation}
+                      className="inline-flex h-11 items-center gap-2 rounded-xl bg-violet-300 px-4 text-sm font-black text-zinc-950 hover:bg-violet-200"
                     >
-                      <X className="h-4 w-4" aria-hidden="true" />
+                      <Play className="h-4 w-4" aria-hidden="true" />
+                      Fortsett
                     </button>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => (quizIndex >= quizQuestions.length - 1 ? finishQuiz() : setQuizQuestion(Math.min(quizQuestions.length - 1, quizIndex + 1)))}
-                  className={[
-                    "inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold",
-                    quizIndex >= quizQuestions.length - 1 ? "bg-violet-300 text-zinc-950 hover:bg-violet-200" : "border border-white/10 bg-white/5 text-white hover:bg-white/10",
-                  ].join(" ")}
-                >
-                  {quizIndex >= quizQuestions.length - 1 ? "Sluttresultat" : "Neste"}
-                  {quizIndex >= quizQuestions.length - 1 ? null : <ChevronRight className="h-4 w-4" aria-hidden="true" />}
-                </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={pauseQuizAutomation}
+                      className="inline-flex h-11 items-center gap-2 rounded-xl bg-zinc-950 px-4 text-sm font-bold text-white ring-1 ring-white/15 hover:bg-zinc-800"
+                    >
+                      <PauseCircle className="h-4 w-4" aria-hidden="true" />
+                      Pause
+                    </button>
+                  )
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setQuizQuestion(Math.max(0, quizIndex - 1))}
+                      disabled={quizIndex <= 0}
+                      className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35"
+                    >
+                      <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                      Forrige
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuizShowAnswer(!quizShowAnswer)}
+                      className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-300 px-4 text-sm font-black text-zinc-950 hover:bg-emerald-200"
+                    >
+                      {quizShowAnswer ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                      {quizShowAnswer ? "Skjul svar" : "Vis svar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuizShowScoreboard(!quizShowScoreboard)}
+                      className={[
+                        "inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-black",
+                        quizShowScoreboard ? "bg-violet-300 text-zinc-950 hover:bg-violet-200" : "border border-white/10 bg-white/5 text-white hover:bg-white/10",
+                      ].join(" ")}
+                    >
+                      Resultat
+                    </button>
+                    <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
+                      <Timer className="ml-2 h-4 w-4 text-emerald-300" aria-hidden="true" />
+                      {[
+                        { label: "15 sek", seconds: 15 },
+                        { label: "30 sek", seconds: 30 },
+                        { label: "1 min", seconds: 60 },
+                      ].map((item) => (
+                        <button
+                          key={item.seconds}
+                          type="button"
+                          onClick={() => startCountdown(item.seconds)}
+                          className="h-9 rounded-lg bg-zinc-950 px-3 text-sm font-bold text-white ring-1 ring-white/15 hover:bg-zinc-800"
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                      {displayTimerActive ? (
+                        <button
+                          type="button"
+                          onClick={clearCountdown}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-950 text-zinc-100 ring-1 ring-white/15 hover:bg-zinc-800"
+                          title="Stopp timer"
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => (quizIndex >= quizQuestions.length - 1 ? finishQuiz() : setQuizQuestion(Math.min(quizQuestions.length - 1, quizIndex + 1)))}
+                      className={[
+                        "inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold",
+                        quizIndex >= quizQuestions.length - 1 ? "bg-violet-300 text-zinc-950 hover:bg-violet-200" : "border border-white/10 bg-white/5 text-white hover:bg-white/10",
+                      ].join(" ")}
+                    >
+                      {quizIndex >= quizQuestions.length - 1 ? "Sluttresultat" : "Neste"}
+                      {quizIndex >= quizQuestions.length - 1 ? null : <ChevronRight className="h-4 w-4" aria-hidden="true" />}
+                    </button>
+                  </>
+                )}
               </div>
             ) : null}
             <div className="flex items-start gap-3">
@@ -740,6 +990,22 @@ export default function TeacherBoardDisplayPage() {
                 answersHidden={answersHidden}
                 hiddenText={t("display.previousAnswersHidden")}
                 noOptionsText={t("display.noOptions")}
+              />
+            ) : mode === "quiz" && !quizStarted ? (
+              <QuizStartDisplay
+                title={safeString(state?.data?.quizTitle) ?? "Quiz"}
+                description={safeString(state?.data?.quizDescription) ?? ""}
+                totalQuestions={quizQuestions.length}
+                answerSec={selectedAutoAnswerSec}
+                fasitSec={selectedAutoFasitSec}
+                resultSec={selectedAutoResultSec}
+                nextSec={selectedAutoNextSec}
+                onAnswerSecChange={setSelectedAutoAnswerSec}
+                onFasitSecChange={setSelectedAutoFasitSec}
+                onResultSecChange={setSelectedAutoResultSec}
+                onNextSecChange={setSelectedAutoNextSec}
+                onStartManual={startQuizManual}
+                onStartAuto={startQuizAutomation}
               />
             ) : mode === "quiz" && quizShowScoreboard ? (
               <QuizScoreboardDisplay title={safeString(state?.data?.quizTitle) ?? "Quiz"} scores={quizScores} totalQuestions={quizQuestions.length} finished={quizFinished} />
@@ -850,6 +1116,9 @@ export default function TeacherBoardDisplayPage() {
             <div className="absolute bottom-8 left-20 right-20 z-20">
               <DisplayTimer endsAt={state?.endsAt} startedAt={state?.timerStartedAt} totalSec={state?.timerTotalSec} />
             </div>
+          ) : null}
+          {quizAutomationRunning && !quizAutomationPaused && quizAutomationPhase === "next" && quizAutomationPhaseEndsAt ? (
+            <NextQuestionCountdown endsAt={quizAutomationPhaseEndsAt} />
           ) : null}
           </div>
         </div>
@@ -962,6 +1231,107 @@ function PollDisplay({
   );
 }
 
+function QuizStartDisplay({
+  title,
+  description,
+  totalQuestions,
+  answerSec,
+  fasitSec,
+  resultSec,
+  nextSec,
+  onAnswerSecChange,
+  onFasitSecChange,
+  onResultSecChange,
+  onNextSecChange,
+  onStartManual,
+  onStartAuto,
+}: {
+  title: string;
+  description: string;
+  totalQuestions: number;
+  answerSec: number;
+  fasitSec: number;
+  resultSec: number;
+  nextSec: number;
+  onAnswerSecChange: (seconds: number) => void;
+  onFasitSecChange: (seconds: number) => void;
+  onResultSecChange: (seconds: number) => void;
+  onNextSecChange: (seconds: number) => void;
+  onStartManual: () => void;
+  onStartAuto: () => void;
+}) {
+  return (
+    <div className="flex min-h-[760px] w-full items-center justify-center">
+      <div className="max-w-6xl text-center">
+        <div className="text-sm font-semibold uppercase tracking-[0.18em] text-violet-300">Quiz klar</div>
+        <h1 className="mt-5 text-5xl font-black leading-tight md:text-7xl">{title}</h1>
+        {description ? <p className="mx-auto mt-6 max-w-3xl text-2xl leading-relaxed text-zinc-300">{description}</p> : null}
+        <div className="mt-8 inline-flex rounded-full border border-white/10 bg-white/5 px-5 py-2 text-xl font-semibold text-zinc-200">
+          {totalQuestions} spørsmål
+        </div>
+        <div className="mx-auto mt-8 grid max-w-5xl gap-3 rounded-[2rem] border border-white/10 bg-white/5 p-5 text-left md:grid-cols-2">
+          <QuizStartTimeGroup label="Svarfrist" value={answerSec} options={[15, 30, 60]} onChange={onAnswerSecChange} />
+          <QuizStartTimeGroup label="Fasit" value={fasitSec} options={[10, 20, 30]} onChange={onFasitSecChange} />
+          <QuizStartTimeGroup label="Resultat" value={resultSec} options={[10, 20, 30]} onChange={onResultSecChange} />
+          <QuizStartTimeGroup label="Neste" value={nextSec} options={[5, 10]} onChange={onNextSecChange} />
+        </div>
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <button
+            type="button"
+            onClick={onStartManual}
+            className="inline-flex min-h-16 items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-8 text-2xl font-black text-white hover:bg-white/15"
+          >
+            <Play className="h-7 w-7" aria-hidden="true" />
+            Start manuelt
+          </button>
+          <button
+            type="button"
+            onClick={onStartAuto}
+            className="inline-flex min-h-16 items-center gap-3 rounded-2xl bg-violet-300 px-8 text-2xl font-black text-zinc-950 hover:bg-violet-200"
+          >
+            <Timer className="h-7 w-7" aria-hidden="true" />
+            Start auto
+          </button>
+        </div>
+        <p className="mt-8 text-xl text-zinc-400">Deltakerne kan gjøre seg klare på egen skjerm.</p>
+      </div>
+    </div>
+  );
+}
+
+function QuizStartTimeGroup({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  options: number[];
+  onChange: (seconds: number) => void;
+}) {
+  return (
+    <div className="rounded-2xl bg-zinc-950/70 p-4">
+      <div className="mb-3 text-sm font-black uppercase tracking-[0.16em] text-zinc-400">{label}</div>
+      <div className="flex flex-wrap gap-2">
+        {options.map((seconds) => (
+          <button
+            key={seconds}
+            type="button"
+            onClick={() => onChange(seconds)}
+            className={[
+              "min-h-11 rounded-xl px-4 text-base font-black",
+              value === seconds ? "bg-emerald-300 text-zinc-950" : "border border-white/10 bg-white/5 text-white hover:bg-white/10",
+            ].join(" ")}
+          >
+            {seconds >= 60 ? `${seconds / 60} min` : `${seconds} sek`}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function QuizDisplay({
   title,
   question,
@@ -1036,14 +1406,16 @@ function QuizScoreboardDisplay({
   const topThree = scores.slice(0, 3);
   const maxScore = Math.max(1, ...scores.map((score) => score.score));
   const podiumOrder = [topThree[1], topThree[0], topThree[2]].filter(Boolean);
-  const podiumClasses = ["mt-20 min-h-[210px]", "mt-0 min-h-[280px]", "mt-32 min-h-[170px]"];
+  const podiumClasses = finished ? ["mt-24 min-h-[230px]", "mt-0 min-h-[330px] ring-4 ring-emerald-300/40", "mt-36 min-h-[190px]"] : ["mt-20 min-h-[210px]", "mt-0 min-h-[280px]", "mt-32 min-h-[170px]"];
   const podiumLabels = ["2", "1", "3"];
 
   return (
     <div className="w-full">
       <div className="text-sm font-semibold uppercase tracking-[0.18em] text-violet-300">{title}</div>
-      <h1 className="mt-5 text-5xl font-semibold leading-tight md:text-7xl">{finished ? "Sluttresultat" : "Resultat så langt"}</h1>
-      {finished ? <div className="mt-4 text-2xl font-semibold text-zinc-300">Takk for innsatsen!</div> : null}
+      <h1 className={["mt-5 font-semibold leading-tight", finished ? "text-6xl md:text-8xl" : "text-5xl md:text-7xl"].join(" ")}>
+        {finished ? "Quizen er ferdig!" : "Resultat så langt"}
+      </h1>
+      {finished ? <div className="mt-5 text-3xl font-semibold text-emerald-200">Sluttresultat · takk for innsatsen!</div> : null}
       {scores.length === 0 ? (
         <div className="mt-16 rounded-3xl border border-white/10 bg-white/5 p-10 text-3xl text-zinc-300">Ingen svar ennå.</div>
       ) : (
@@ -1087,6 +1459,26 @@ function QuizScoreboardDisplay({
           ) : null}
         </>
       )}
+    </div>
+  );
+}
+
+function NextQuestionCountdown({ endsAt }: { endsAt: number }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 200);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const seconds = Math.max(0, Math.ceil((endsAt - now) / 1000));
+
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-zinc-950/45 backdrop-blur-[2px]">
+      <div className="rounded-[2rem] border border-white/10 bg-zinc-950/90 px-16 py-12 text-center shadow-2xl shadow-black/40">
+        <div className="text-xl font-black uppercase tracking-[0.18em] text-emerald-300">Neste spørsmål</div>
+        <div className="mt-4 font-mono text-8xl font-black tabular-nums text-white">{seconds}</div>
+      </div>
     </div>
   );
 }
