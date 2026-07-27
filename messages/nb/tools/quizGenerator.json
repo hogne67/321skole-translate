@@ -1,41 +1,115 @@
 {
   "quizGenerator": {
     "title": "Quiz-generator",
-    "subtitle": "Lag en redigerbar quiz fra et tema eller en tekst. Første versjon er laget for å bygge gode quizutkast som senere kan sendes live på tavla.",
+    "subtitle": "Lag en redigerbar quiz fra et tema eller en tekst. Når quizen er klar, legger du til bilde og lagrer den i Mitt innhold.",
     "sourceModes": {
       "topic": "Tema",
       "text": "Tekst"
     },
+    "steps": {
+      "source": {
+        "kicker": "Steg 1",
+        "title": "Kilde",
+        "text": "Start med tema, tekst eller en oppgave."
+      },
+      "quiz": {
+        "kicker": "Steg 2",
+        "title": "Quiz",
+        "text": "Velg innstillinger og generer.",
+        "ready": "Quizen er klar til redigering."
+      },
+      "finish": {
+        "kicker": "Steg 3",
+        "title": "Redigering",
+        "text": "Sjekk utkastet før du går videre.",
+        "ready": "Utkastet er klart."
+      }
+    },
+    "source": {
+      "title": "Velg grunnlag",
+      "text": "Lag en ny quiz fra et tema, lim inn tekst, eller hent tekst fra en oppgave du allerede har laget.",
+      "pickContent": "Velg oppgave",
+      "contentText": "Tekstgrunnlag",
+      "refresh": "Oppdater",
+      "loading": "Laster...",
+      "noContent": "Ingen oppgaver funnet"
+    },
+    "sourceChoices": {
+      "new": {
+        "title": "Ny quiz",
+        "text": "Skriv tema eller prompt og la AI lage spørsmål."
+      },
+      "paste": {
+        "title": "Lim inn tekst",
+        "text": "Bruk egen tekst som grunnlag for quizen."
+      },
+      "content": {
+        "title": "Hent fra oppgave",
+        "text": "Velg en oppgave fra Mitt innhold."
+      }
+    },
+    "settings": {
+      "title": "Innstillinger",
+      "text": "Velg spørsmålstype og antall spørsmål."
+    },
+    "editor": {
+      "title": "Sjekk utkastet",
+      "text": "Se gjennom spørsmål, svar og forklaringer. Når utkastet er klart, går du videre til redigeringssiden."
+    },
+    "finish": {
+      "kicker": "Fullføring",
+      "title": "Gå videre",
+      "text": "På neste side legger du inn bilde, metadata og lagrer quizen i Mitt innhold."
+    },
     "fields": {
-      "topic": "Tema",
+      "topic": "Forklar quizen kort",
+      "topicHelp": "Skriv tema, målgruppe eller hva quizen skal handle om.",
       "sourceText": "Tekst fra lesson eller oppgave",
       "language": "Språk",
       "level": "Nivå",
-      "focus": "Fokus",
+      "focus": "Kategori",
+      "questionMode": "Oppgavetype",
       "count": "Spørsmål",
       "seconds": "Tid per spørsmål",
       "secondsShort": "Sekunder"
     },
+    "questionModes": {
+      "mixed": "Blanding",
+      "multiple_choice": "Flervalg",
+      "true_false": "Sant/usant"
+    },
     "focus": {
-      "understanding": "Forståelse",
-      "vocabulary": "Ord og begreper",
-      "discussion": "Samtale",
-      "exam": "Prøveøving"
+      "language": "Språk og tekst",
+      "math": "Matematikk",
+      "science": "Naturfag",
+      "social_studies": "Samfunnsfag",
+      "english": "Engelsk",
+      "work_life": "Arbeidsliv",
+      "citizenship": "Demokrati og medborgerskap",
+      "culture": "Kultur og samfunn",
+      "health": "Helse og livsmestring",
+      "sports": "Sport og idrett",
+      "food": "Mat og drikke",
+      "wildlife": "Dyreliv",
+      "other": "Annet"
     },
     "placeholders": {
-      "topic": "F.eks. demokrati, brøk, Norge, arbeidsliv...",
+      "topic": "F.eks. lag en kort quiz om demokrati for A2, med enkle spørsmål...",
       "sourceText": "Lim inn tekst fra en lesson eller en oppgave...",
       "description": "Kort beskrivelse av quizen...",
       "explanation": "Kort forklaring til riktig svar..."
     },
     "actions": {
-      "generate": "Lag quiz",
-      "generating": "Lager quiz...",
+      "generate": "Generer quiz",
+      "generating": "Genererer quiz...",
       "copy": "Kopier",
       "copied": "Kopiert",
       "save": "Lagre quiz",
+      "saveToContent": "Lagre til Mitt innhold",
       "saving": "Lagrer...",
       "saved": "Quiz lagret.",
+      "savedToContent": "Quiz lagret i Mitt innhold.",
+      "continueToEditor": "Gå til redigering",
       "sendToBoard": "Send til tavle",
       "sendingToBoard": "Sender...",
       "sentToBoard": "Quiz sendt til tavle.",
@@ -43,6 +117,15 @@
       "regenerate": "Lag på nytt",
       "remove": "Fjern spørsmål",
       "addQuestion": "Legg til spørsmål"
+    },
+    "cover": {
+      "title": "Bilde for publisering",
+      "text": "Quizen må ha et bilde før den lagres i Mitt innhold. Du kan generere et enkelt 16:9-bilde eller lime inn en bildeadresse.",
+      "promptPlaceholder": "Beskriv bildet kort...",
+      "generate": "Generer bilde",
+      "generating": "Lager bilde...",
+      "urlPlaceholder": "Bildeadresse...",
+      "required": "Bilde kreves før lagring"
     },
     "library": {
       "title": "Mine quizer",

@@ -31,6 +31,7 @@
       "submission": "Innsendt oppgave",
       "mathWorksheet": "Matteoppgave",
       "readingTest": "Lesetest",
+      "quiz": "Quiz",
       "ownGenerated": "Egen generert",
       "content": "Innhold"
     },
@@ -100,6 +101,9 @@
       "share": "Del",
       "shareTitle": "Del (lenke + QR)",
       "shareToSpace": "Del til Spaces",
+      "startQuiz": "Start quiz",
+      "shareToBoard": "Del til tavle",
+      "shareQuizPublic": "Del offentlig",
       "pdf": "PDF",
       "delete": "Slett",
       "restore": "Gjenopprett",
@@ -188,10 +192,20 @@
       },
       "defaultTitle": "Oppgave"
     },
+    "shareQuiz": {
+      "text": "Jeg deler en quiz fra 321quiz."
+    },
     "shareToSpace": {
       "title": "Del til Spaces",
       "noSpaces": "Du har ingen Spaces ennå.",
-      "createsLabel": "Oppretter:"
+      "createsLabel": "Oppretter:",
+      "searchPlaceholder": "Søk etter rom...",
+      "noMatches": "Ingen rom matcher søket.",
+      "showMore": "Vis flere rom"
+    },
+    "shareToBoard": {
+      "title": "Del til tavle",
+      "createsLabel": "Sender til:"
     },
     "confirm": {
       "deleteLesson": "Slette oppgave{title}?\n\nDette vil arkivere den.\nDet vil også forsøke å avpublisere den.\n\nEn administrator kan gjenopprette den senere.",

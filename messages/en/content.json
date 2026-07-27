@@ -31,6 +31,7 @@
       "submission": "Submitted assignment",
       "mathWorksheet": "Math assignment",
       "readingTest": "Reading test",
+      "quiz": "Quiz",
       "ownGenerated": "Own generated",
       "content": "Content"
     },
@@ -100,6 +101,9 @@
       "share": "Share",
       "shareTitle": "Share (link + QR)",
       "shareToSpace": "Share to Spaces",
+      "startQuiz": "Start quiz",
+      "shareToBoard": "Share to board",
+      "shareQuizPublic": "Share publicly",
       "pdf": "PDF",
       "delete": "Delete",
       "restore": "Restore",
@@ -188,10 +192,20 @@
       },
       "defaultTitle": "Lesson"
     },
+    "shareQuiz": {
+      "text": "I'm sharing a quiz from 321quiz."
+    },
     "shareToSpace": {
       "title": "Share to Spaces",
       "noSpaces": "You don’t have any Spaces yet.",
-      "createsLabel": "Creates:"
+      "createsLabel": "Creates:",
+      "searchPlaceholder": "Search rooms...",
+      "noMatches": "No rooms match your search.",
+      "showMore": "Show more rooms"
+    },
+    "shareToBoard": {
+      "title": "Share to board",
+      "createsLabel": "Sends to:"
     },
     "confirm": {
       "deleteLesson": "Delete task{title}?\n\nThis will archive it.\nIt will also attempt to unpublish it.\n\nAn admin can restore it later.",

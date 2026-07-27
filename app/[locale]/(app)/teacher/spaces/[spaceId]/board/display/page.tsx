@@ -1273,7 +1273,7 @@ function QuizStartDisplay({
           <QuizStartTimeGroup label="Svarfrist" value={answerSec} options={[15, 30, 60]} onChange={onAnswerSecChange} />
           <QuizStartTimeGroup label="Fasit" value={fasitSec} options={[10, 20, 30]} onChange={onFasitSecChange} />
           <QuizStartTimeGroup label="Resultat" value={resultSec} options={[10, 20, 30]} onChange={onResultSecChange} />
-          <QuizStartTimeGroup label="Neste" value={nextSec} options={[5, 10]} onChange={onNextSecChange} />
+          <QuizStartTimeGroup label="Nedtelling" value={nextSec} options={[5, 10]} onChange={onNextSecChange} />
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <button

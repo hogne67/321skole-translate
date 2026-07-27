@@ -3,24 +3,52 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AuthGate from "@/components/AuthGate";
+import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import type { SpaceDoc } from "@/lib/spacesClient";
-import { collection, doc, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { ExternalLink, MonitorUp, PlayCircle, Radio, Sparkles } from "lucide-react";
+import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { ArrowLeft, ArrowRight, ExternalLink, Library, MonitorUp, Radio, Sparkles } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 type SpaceRow = { id: string; data: SpaceDoc & { createdAt?: unknown } };
 type BoardMode = "text" | "poll" | "wordwall" | "image" | "clock" | "quiz";
+type SortKey = "newest" | "title_az" | "live";
 type BoardState = {
   active?: boolean;
   mode?: BoardMode | string;
   sessionId?: string;
   updatedAt?: unknown;
 };
+type TimestampLike = { toMillis: () => number };
+type QuizRow = {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  level: string;
+  language: string;
+  questionCount: number;
+  publishedAt: number;
+};
 
-function safeString(v: unknown): string | null {
-  return typeof v === "string" && v.trim() ? v.trim() : null;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isTimestampLike(value: unknown): value is TimestampLike {
+  return isRecord(value) && typeof value.toMillis === "function";
+}
+
+function asMillis(value: unknown): number {
+  if (isTimestampLike(value)) return value.toMillis();
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (isRecord(value) && typeof value.seconds === "number") return value.seconds * 1000;
+  return 0;
+}
+
+function safeString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
 function modeLabel(t: (key: string) => string, mode: unknown) {
@@ -30,6 +58,33 @@ function modeLabel(t: (key: string) => string, mode: unknown) {
   if (mode === "clock") return t("modes.clock");
   if (mode === "quiz") return t("modes.quiz");
   return t("modes.text");
+}
+
+function questionCountFrom(data: Record<string, unknown>): number {
+  const quiz = isRecord(data.quiz) ? data.quiz : {};
+  const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+  if (questions.length) return questions.length;
+  const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+  return tasks.length;
+}
+
+function coerceQuiz(id: string, raw: unknown): QuizRow | null {
+  const data = isRecord(raw) ? raw : {};
+  const quiz = isRecord(data.quiz) ? data.quiz : {};
+  const lessonType = safeString(data.lessonType || data.contentType || data.textType || data.texttype).toLowerCase();
+  const isQuiz = lessonType === "quiz" || Array.isArray(quiz.questions);
+  if (!isQuiz || data.isActive === false) return null;
+
+  return {
+    id,
+    title: safeString(data.title || quiz.title, "Quiz uten tittel"),
+    description: safeString(data.description || quiz.description),
+    imageUrl: safeString(data.coverImageUrl || data.imageUrl),
+    level: safeString(data.level || quiz.level),
+    language: safeString(data.language || quiz.language),
+    questionCount: questionCountFrom(data),
+    publishedAt: asMillis(data.publishedAt || data.updatedAt || data.createdAt),
+  };
 }
 
 export default function TeacherBoardIndexPage() {
@@ -47,6 +102,10 @@ function TeacherBoardIndexInner() {
 
   const [spaces, setSpaces] = useState<SpaceRow[]>([]);
   const [boardStates, setBoardStates] = useState<Record<string, BoardState | null>>({});
+  const [spaceSearch, setSpaceSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("live");
+  const [spacePage, setSpacePage] = useState(0);
+  const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
 
   const canUse = profile?.role === "teacher" || profile?.role === "admin";
 
@@ -88,10 +147,53 @@ function TeacherBoardIndexInner() {
     return () => unsubs.forEach((unsub) => unsub());
   }, [spaces]);
 
+  useEffect(() => {
+    if (!canUse) return;
+
+    const q = query(collection(db, "published_lessons"), where("lessonType", "==", "quiz"), where("isActive", "==", true), limit(18));
+    getDocs(q)
+      .then((snap) => {
+        const next = snap.docs
+          .map((item) => coerceQuiz(item.id, item.data()))
+          .filter((item): item is QuizRow => item !== null)
+          .sort((a, b) => b.publishedAt - a.publishedAt)
+          .slice(0, 6);
+        setQuizzes(next);
+      })
+      .catch(() => setQuizzes([]));
+  }, [canUse]);
+
   const activeCount = useMemo(
     () => spaces.filter((space) => boardStates[space.id]?.active === true).length,
     [boardStates, spaces]
   );
+
+  const filteredSpaces = useMemo(() => {
+    const search = spaceSearch.trim().toLowerCase();
+    const list = spaces.filter((space) => {
+      const title = safeString(space.data.title).toLowerCase();
+      const code = safeString(space.data.code).toLowerCase();
+      return !search || title.includes(search) || code.includes(search);
+    });
+
+    return [...list].sort((a, b) => {
+      if (sortKey === "title_az") return safeString(a.data.title).localeCompare(safeString(b.data.title), "nb");
+      if (sortKey === "live") {
+        const al = boardStates[a.id]?.active === true ? 1 : 0;
+        const bl = boardStates[b.id]?.active === true ? 1 : 0;
+        if (al !== bl) return bl - al;
+      }
+      return asMillis(b.data.createdAt) - asMillis(a.data.createdAt);
+    });
+  }, [boardStates, spaceSearch, sortKey, spaces]);
+
+  useEffect(() => {
+    setSpacePage(0);
+  }, [spaceSearch, sortKey]);
+
+  const pageSize = 8;
+  const pageCount = Math.max(1, Math.ceil(filteredSpaces.length / pageSize));
+  const visibleSpaces = filteredSpaces.slice(spacePage * pageSize, spacePage * pageSize + pageSize);
 
   if (loading) {
     return <div className="mx-auto w-full max-w-6xl px-4 py-6 text-sm text-slate-600">{t("loading")}</div>;
@@ -107,121 +209,197 @@ function TeacherBoardIndexInner() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-4">
-      <section className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
-        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="p-5 sm:p-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
-              <MonitorUp className="h-4 w-4" aria-hidden="true" />
-              {t("hero.eyebrow")}
-            </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950">{t("hero.title")}</h1>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">{t("hero.text")}</p>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4">
+      <section className="rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <h1 className="m-0 text-2xl font-semibold tracking-tight text-slate-900">{t("hero.title")}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("hero.text")}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
               <InfoPill label={t("stats.rooms")} value={String(spaces.length)} />
               <InfoPill label={t("stats.active")} value={String(activeCount)} />
               <InfoPill label={t("stats.activities")} value={t("stats.activitiesValue")} />
             </div>
           </div>
 
-          <div className="border-t border-blue-100 bg-blue-50/50 p-5 sm:p-6 lg:border-l lg:border-t-0">
-            <div className="rounded-2xl border border-blue-200 bg-white p-4 shadow-sm">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white">
-                  <PlayCircle className="h-6 w-6" aria-hidden="true" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-base font-semibold text-slate-950">{t("video.title")}</h2>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">{t("video.text")}</p>
-                </div>
-              </div>
-              <div className="mt-4 rounded-xl border border-dashed border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-900">
-                {t("video.placeholder")}
-              </div>
-            </div>
+          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
+            <TrainingVideoPlayer
+              title={t("video.title")}
+              videoUrl="https://youtu.be/7zjhziVmGvc"
+              buttonLabel={t("video.button")}
+              buttonTitle={t("video.buttonTitle")}
+              closeLabel={t("video.close")}
+              description={t("video.text")}
+              thumbnail
+            />
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-sm font-semibold text-amber-950">
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            {t("guide.title")}
-          </div>
-          <ol className="mt-4 space-y-3 text-sm leading-6 text-amber-950">
-            <li>{t("guide.step1")}</li>
-            <li>{t("guide.step2")}</li>
-            <li>{t("guide.step3")}</li>
-          </ol>
-        </aside>
-
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-2 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">{t("rooms.title")}</h2>
-              <p className="mt-1 text-sm text-slate-600">{t("rooms.text")}</p>
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <MonitorUp className="h-5 w-5 text-slate-700" aria-hidden="true" />
+              <h2 className="text-xl font-black text-slate-950">{t("rooms.title")}</h2>
             </div>
-            <Link
-              href={`/${locale}/teacher/spaces`}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+            <p className="mt-1 text-sm text-slate-600">{t("rooms.text")}</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto] lg:w-[680px]">
+            <input
+              value={spaceSearch}
+              onChange={(event) => setSpaceSearch(event.target.value)}
+              placeholder={t("rooms.search")}
+              className="min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+            <select
+              value={sortKey}
+              onChange={(event) => setSortKey(event.target.value as SortKey)}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
             >
+              <option value="live">{t("rooms.sort.live")}</option>
+              <option value="newest">{t("rooms.sort.newest")}</option>
+              <option value="title_az">{t("rooms.sort.title")}</option>
+            </select>
+            <Link href={`/${locale}/teacher/spaces`} className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold hover:bg-slate-50">
               {t("rooms.manage")}
             </Link>
           </div>
+        </div>
 
-          {spaces.length === 0 ? (
-            <div className="p-5 text-sm text-slate-600">{t("rooms.empty")}</div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {spaces.map((space) => {
+        {spaces.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">{t("rooms.empty")}</div>
+        ) : (
+          <>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {visibleSpaces.map((space) => {
                 const state = boardStates[space.id] ?? null;
                 const isLive = state?.active === true;
-                const title = safeString(space.data.title) ?? t("rooms.untitled");
+                const title = safeString(space.data.title, t("rooms.untitled"));
 
                 return (
-                  <div key={space.id} className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-base font-semibold text-slate-950">{title}</h3>
-                        <span
-                          className={[
-                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-                            isLive ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600",
-                          ].join(" ")}
-                        >
-                          <span className={["h-2 w-2 rounded-full", isLive ? "bg-emerald-500" : "bg-slate-400"].join(" ")} />
-                          {isLive ? t("rooms.live") : state ? t("rooms.notLive") : t("rooms.notStarted")}
-                        </span>
+                  <Link
+                    key={space.id}
+                    href={`/${locale}/teacher/spaces/${space.id}/board`}
+                    className="group min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 no-underline transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-black text-slate-950">{title}</h3>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                          <Radio className="h-4 w-4" aria-hidden="true" />
+                          <span>{isLive ? t("rooms.activeMode", { mode: modeLabel(t, state?.mode) }) : t("rooms.ready")}</span>
+                        </div>
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                        <Radio className="h-4 w-4" aria-hidden="true" />
-                        <span>{isLive ? t("rooms.activeMode", { mode: modeLabel(t, state?.mode) }) : t("rooms.ready")}</span>
-                      </div>
+                      <span className={["inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-black", isLive ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"].join(" ")}>
+                        <span className={["h-2 w-2 rounded-full", isLive ? "bg-emerald-500" : "bg-slate-400"].join(" ")} />
+                        {isLive ? t("rooms.live") : state ? t("rooms.notLive") : t("rooms.notStarted")}
+                      </span>
                     </div>
-
-                    <Link
-                      href={`/${locale}/teacher/spaces/${space.id}/board`}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-                    >
+                    <div className="mt-4 inline-flex items-center gap-2 text-sm font-black text-slate-950 group-hover:text-blue-700">
                       {t("rooms.openBoard")}
                       <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                    </Link>
-                  </div>
+                    </div>
+                  </Link>
                 );
               })}
             </div>
-          )}
-        </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-slate-500">{t("rooms.showing", { shown: visibleSpaces.length, total: filteredSpaces.length })}</div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSpacePage((page) => Math.max(0, page - 1))}
+                  disabled={spacePage === 0}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {t("rooms.prev")}
+                </button>
+                <span className="rounded-full bg-slate-100 px-3 py-2 text-sm font-bold text-slate-600">{spacePage + 1} / {pageCount}</span>
+                <button
+                  type="button"
+                  onClick={() => setSpacePage((page) => Math.min(pageCount - 1, page + 1))}
+                  disabled={spacePage >= pageCount - 1}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {t("rooms.next")}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </section>
+
+      <section className="overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-violet-100 bg-violet-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-violet-700">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              {t("quiz.kicker")}
+            </div>
+            <h2 className="mt-1 text-xl font-black text-slate-950">{t("quiz.title")}</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/${locale}/tools/quiz`} className="inline-flex items-center justify-center rounded-xl bg-violet-700 px-4 py-2 text-sm font-black text-white hover:bg-violet-800">
+              {t("quiz.create")}
+            </Link>
+            <Link href={`/${locale}/321quiz`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-black text-violet-800 hover:bg-violet-50">
+              <Library className="h-4 w-4" />
+              {t("quiz.library")}
+            </Link>
+          </div>
+        </div>
+
+        {quizzes.length ? (
+          <div className="grid gap-3 p-4 md:grid-cols-3">
+            {quizzes.map((quiz, index) => (
+              <Link
+                key={quiz.id}
+                href={`/${locale}/321quiz/${quiz.id}`}
+                className="group overflow-hidden rounded-2xl border border-slate-200 bg-white no-underline shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                style={{ animation: `boardQuizFloat 4s ease-in-out ${index * 0.18}s infinite` }}
+              >
+                <div className="aspect-video bg-violet-50">
+                  {quiz.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={quiz.imageUrl} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm font-black uppercase tracking-[0.18em] text-violet-700">321quiz</div>
+                  )}
+                </div>
+                <div className="space-y-2 p-4">
+                  <div className="flex flex-wrap gap-2 text-xs font-black text-slate-600">
+                    <span className="rounded-full bg-violet-50 px-2.5 py-1 text-violet-800">{quiz.questionCount} spørsmål</span>
+                    {quiz.level ? <span className="rounded-full bg-slate-100 px-2.5 py-1">{quiz.level}</span> : null}
+                    {quiz.language ? <span className="rounded-full bg-slate-100 px-2.5 py-1">{quiz.language}</span> : null}
+                  </div>
+                  <h3 className="line-clamp-2 text-lg font-black leading-tight text-slate-950 group-hover:text-violet-700">{quiz.title}</h3>
+                  {quiz.description ? <p className="line-clamp-2 text-sm leading-6 text-slate-600">{quiz.description}</p> : null}
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 text-sm text-slate-600">{t("quiz.empty")}</div>
+        )}
+      </section>
+
+      <style jsx global>{`
+        @keyframes boardQuizFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+      `}</style>
     </div>
   );
 }
 
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
       <div className="text-xs font-medium text-slate-500">{label}</div>
       <div className="mt-1 text-lg font-semibold text-slate-950">{value}</div>
     </div>

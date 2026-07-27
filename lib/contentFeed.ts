@@ -319,6 +319,9 @@ function hrefForLesson(locale: string, mode: AppMode, lessonId: string, lessonTy
     if (normalizedLessonType === "image_writing") {
       return withLocale(locale, `/producer/image-writing?edit=${lessonId}`);
     }
+    if (normalizedLessonType === "quiz") {
+      return withLocale(locale, `/producer/quiz/${lessonId}`);
+    }
     return withLocale(locale, `/producer/${lessonId}`);
   }
 

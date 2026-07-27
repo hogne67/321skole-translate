@@ -1,41 +1,115 @@
 {
   "quizGenerator": {
     "title": "Gerador de quiz",
-    "subtitle": "Crie um quiz editável a partir de um tema ou texto. Esta primeira versão cria bons rascunhos que depois podem ser enviados ao quadro ao vivo.",
+    "subtitle": "Crie um quiz editável a partir de um tema ou texto. Quando estiver pronto, adicione uma imagem e salve em Meu conteúdo.",
     "sourceModes": {
       "topic": "Tema",
       "text": "Texto"
     },
+    "steps": {
+      "source": {
+        "kicker": "Etapa 1",
+        "title": "Fonte",
+        "text": "Comece com tema, texto ou tarefa."
+      },
+      "quiz": {
+        "kicker": "Etapa 2",
+        "title": "Quiz",
+        "text": "Escolha as definições e gere.",
+        "ready": "O quiz está pronto para edição."
+      },
+      "finish": {
+        "kicker": "Etapa 3",
+        "title": "Edição",
+        "text": "Revise o rascunho antes de continuar.",
+        "ready": "O rascunho está pronto."
+      }
+    },
+    "source": {
+      "title": "Escolha a fonte",
+      "text": "Crie um novo quiz a partir de um tema, cole texto ou use texto de uma tarefa já criada.",
+      "pickContent": "Escolher tarefa",
+      "contentText": "Texto de origem",
+      "refresh": "Atualizar",
+      "loading": "Carregando...",
+      "noContent": "Nenhuma tarefa encontrada"
+    },
+    "sourceChoices": {
+      "new": {
+        "title": "Novo quiz",
+        "text": "Escreva um tema ou prompt e deixe a IA criar perguntas."
+      },
+      "paste": {
+        "title": "Colar texto",
+        "text": "Use seu próprio texto como base do quiz."
+      },
+      "content": {
+        "title": "Usar tarefa",
+        "text": "Escolha uma tarefa em Meu conteúdo."
+      }
+    },
+    "settings": {
+      "title": "Configurações",
+      "text": "Escolha o tipo e a quantidade de perguntas."
+    },
+    "editor": {
+      "title": "Revisar rascunho",
+      "text": "Revise perguntas, respostas e explicações. Quando o rascunho estiver pronto, continue para o editor."
+    },
+    "finish": {
+      "kicker": "Finalização",
+      "title": "Continuar",
+      "text": "Na próxima página você adiciona imagem, metadados e salva o quiz em Meu conteúdo."
+    },
     "fields": {
-      "topic": "Tema",
+      "topic": "Descreva brevemente o quiz",
+      "topicHelp": "Escreva o tema, o público ou sobre o que o quiz deve tratar.",
       "sourceText": "Texto da lição ou tarefa",
       "language": "Idioma",
       "level": "Nível",
-      "focus": "Foco",
+      "focus": "Categoria",
+      "questionMode": "Tipo de pergunta",
       "count": "Perguntas",
       "seconds": "Tempo por pergunta",
       "secondsShort": "Segundos"
     },
+    "questionModes": {
+      "mixed": "Mistura",
+      "multiple_choice": "Múltipla escolha",
+      "true_false": "Verdadeiro/falso"
+    },
     "focus": {
-      "understanding": "Compreensão",
-      "vocabulary": "Palavras e conceitos",
-      "discussion": "Discussão",
-      "exam": "Preparação para teste"
+      "language": "Língua e texto",
+      "math": "Matemática",
+      "science": "Ciências",
+      "social_studies": "Estudos sociais",
+      "english": "Inglês",
+      "work_life": "Vida profissional",
+      "citizenship": "Democracia e cidadania",
+      "culture": "Cultura e sociedade",
+      "health": "Saúde e competências para a vida",
+      "sports": "Esporte e educação física",
+      "food": "Comida e bebida",
+      "wildlife": "Vida animal",
+      "other": "Outro"
     },
     "placeholders": {
-      "topic": "Por exemplo democracia, frações, Noruega, vida profissional...",
+      "topic": "Ex.: crie um quiz curto sobre democracia para A2, com perguntas simples...",
       "sourceText": "Cole texto de uma lição ou tarefa...",
       "description": "Breve descrição do quiz...",
       "explanation": "Breve explicação da resposta correta..."
     },
     "actions": {
-      "generate": "Criar quiz",
-      "generating": "Criando quiz...",
+      "generate": "Gerar quiz",
+      "generating": "Gerando quiz...",
       "copy": "Copiar",
       "copied": "Copiado",
       "save": "Salvar quiz",
+      "saveToContent": "Salvar em Meu conteúdo",
       "saving": "Salvando...",
       "saved": "Quiz salvo.",
+      "savedToContent": "Quiz salvo em Meu conteúdo.",
+      "continueToEditor": "Ir para o editor",
       "sendToBoard": "Enviar ao quadro",
       "sendingToBoard": "Enviando...",
       "sentToBoard": "Quiz enviado ao quadro.",
@@ -43,6 +117,15 @@
       "regenerate": "Criar novamente",
       "remove": "Remover pergunta",
       "addQuestion": "Adicionar pergunta"
+    },
+    "cover": {
+      "title": "Imagem para publicação",
+      "text": "O quiz precisa de uma imagem antes de ser salvo em Meu conteúdo. Gere uma imagem simples em 16:9 ou cole uma URL de imagem.",
+      "promptPlaceholder": "Descreva brevemente a imagem...",
+      "generate": "Gerar imagem",
+      "generating": "Gerando imagem...",
+      "urlPlaceholder": "URL da imagem...",
+      "required": "Imagem obrigatória antes de salvar"
     },
     "library": {
       "title": "Meus quizzes",

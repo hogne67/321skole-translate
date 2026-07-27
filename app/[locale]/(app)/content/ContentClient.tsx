@@ -12,6 +12,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import QRCode from "qrcode";
@@ -219,6 +220,14 @@ function isImageWritingLesson(it: ContentItem) {
   return it.type === "lesson" && normalizedLessonSignals(it).includes("image_writing");
 }
 
+function isQuizLesson(it: ContentItem) {
+  return it.type === "lesson" && normalizedLessonSignals(it).includes("quiz");
+}
+
+function newBoardSessionId() {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function normalizedMetaSet(it: ContentItem) {
   return new Set((it.meta ?? []).map((m) => String(m).trim().toLowerCase()).filter(Boolean));
 }
@@ -351,16 +360,28 @@ export default function ContentClient() {
   const [aiVariants, setAiVariants] = useState<string[]>([]);
 
   const [pickSpaceOpen, setPickSpaceOpen] = useState(false);
+  const [pickSpaceQuery, setPickSpaceQuery] = useState("");
+  const [pickSpaceVisibleCount, setPickSpaceVisibleCount] = useState(8);
   const [pickLesson, setPickLesson] = useState<{
     lessonId: string;
     title: string;
     sourceType: "myContent" | "library";
     sourceId: string;
+    mode?: "space" | "board";
   } | null>(null);
 
   const [parentSpaceMeta, setParentSpaceMeta] = useState<Record<string, ParentSpaceMeta>>({});
 
   const mySpaces = useMemo(() => items.filter((x) => x.type === "space"), [items]);
+  const filteredPickSpaces = useMemo(() => {
+    const needle = pickSpaceQuery.trim().toLowerCase();
+    if (!needle) return mySpaces;
+    return mySpaces.filter((space) => {
+      const haystack = [space.title, ...(space.meta ?? [])].join(" ").toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [mySpaces, pickSpaceQuery]);
+  const visiblePickSpaces = filteredPickSpaces.slice(0, pickSpaceVisibleCount);
 
   const safeMsg = useCallback((key: string, fallback: string, values?: Record<string, unknown>) => {
     try {
@@ -423,6 +444,9 @@ export default function ContentClient() {
     if (isReadingTestLesson(it)) {
       return `/${locale}/producer/reading-tests/${it.id}`;
     }
+    if (isQuizLesson(it)) {
+      return `/${locale}/producer/quiz/${it.id}`;
+    }
     if (isImageWritingLesson(it)) {
       return `/${locale}/producer/image-writing?edit=${it.id}`;
     }
@@ -481,6 +505,7 @@ export default function ContentClient() {
     if (it.type === "lesson") {
       if (isMathContent(it)) return safeMsg("cardTypes.mathWorksheet", "Matteoppgave");
       if (isReadingTestLesson(it)) return safeMsg("cardTypes.readingTest", "Lesetest");
+      if (isQuizLesson(it)) return safeMsg("cardTypes.quiz", "Quiz");
       if (isImageWritingLesson(it)) return "Skriveoppgave med bilde";
       return safeMsg("cardTypes.ownGenerated", "Egen generert");
     }
@@ -887,6 +912,24 @@ export default function ContentClient() {
     });
   }
 
+  async function openShareForQuiz(it: Extract<ContentItem, { type: "lesson" }>) {
+    const publishedId = String(it.activePublishedId || "").trim();
+    if (!publishedId) {
+      setErr(safeMsg("errors.publishFailed", "Kunne ikke oppdatere publiseringsstatus"));
+      return;
+    }
+
+    const title = titleForCard(it);
+    await openShareModal({
+      title,
+      url: `${getOrigin()}/${locale}/321quiz/${publishedId}`,
+      text: safeMsg("shareQuiz.text", `Jeg deler en quiz fra 321quiz: ${title}`),
+      kind: "generic",
+      lesson: it,
+      tone: "friendly",
+    });
+  }
+
   async function openShareForSpace(it: Extract<ContentItem, { type: "space" }>) {
     const code = it.joinCode ? encodeURIComponent(it.joinCode) : "";
     const url = code
@@ -908,18 +951,28 @@ export default function ContentClient() {
     title: string;
     sourceType: "myContent" | "library";
     sourceId: string;
+    mode?: "space" | "board";
   }) {
     setPickLesson(opts);
+    setPickSpaceQuery("");
+    setPickSpaceVisibleCount(8);
     setPickSpaceOpen(true);
   }
 
   function closePickSpace() {
     setPickSpaceOpen(false);
     setPickLesson(null);
+    setPickSpaceQuery("");
+    setPickSpaceVisibleCount(8);
   }
 
   async function assignLessonToSpace(spaceId: string) {
     if (!pickLesson) return;
+
+    if (pickLesson.mode === "board") {
+      await sendQuizToBoard(spaceId);
+      return;
+    }
 
     const key = `shareToSpace:${spaceId}:${pickLesson.sourceType}:${pickLesson.sourceId}`;
     setErr(null);
@@ -1469,6 +1522,7 @@ export default function ContentClient() {
     const isDeleted = isDeletedItem(ls);
     const isReadingTest = isReadingTestLesson(ls);
     const isImageWriting = isImageWritingLesson(ls);
+    const isQuiz = isQuizLesson(ls);
     const isMath = isMathContent(ls);
     const mathSubtype = getMathSubtype(ls);
     const mathSubtypeText = mathSubtypeLabel(mathSubtype);
@@ -1539,6 +1593,68 @@ export default function ContentClient() {
               label: t("actions.pdf"),
               disabled: busy,
               onClick: () => router.push(pdfHref),
+            },
+          ]
+          : []),
+        {
+          key: "delete",
+          label: t("actions.delete"),
+          danger: true,
+          disabled: busy || !canDelete,
+          onClick: () => deleteLessonSoft(ls.id, titleForCard(ls)),
+        },
+      ];
+    }
+
+    if (isQuiz) {
+      return [
+        ...restoreAction,
+        ...(canEdit
+          ? [
+            {
+              key: "edit",
+              label: t("actions.edit"),
+              disabled: busy,
+              onClick: () => router.push(editHref),
+            },
+          ]
+          : []),
+        {
+          key: "startQuiz",
+          label: safeMsg("actions.startQuiz", "Start quiz"),
+          disabled: busy,
+          onClick: () => startQuizSession(ls.id),
+        },
+        {
+          key: "shareToBoard",
+          label: safeMsg("actions.shareToBoard", "Del til tavle"),
+          disabled: busy || !canShareToSpace,
+          onClick: () =>
+            openPickSpace({
+              lessonId: ls.id,
+              title: titleForCard(ls),
+              sourceType: "myContent",
+              sourceId: ls.id,
+              mode: "board",
+            }),
+        },
+        ...(isTeacher
+          ? [
+            {
+              key: isPublished ? "unpublish" : "publish",
+              label: busy ? t("actions.working") : isPublished ? t("actions.unpublish") : t("actions.publish"),
+              disabled: busy || !canPublish,
+              onClick: () => setPublished(ls.id, !isPublished),
+            },
+          ]
+          : []),
+        ...(isPublished && ls.activePublishedId
+          ? [
+            {
+              key: "shareQuizPublic",
+              label: safeMsg("actions.shareQuizPublic", "Del offentlig"),
+              disabled: busy,
+              onClick: () => openShareForQuiz(ls),
             },
           ]
           : []),
@@ -1663,7 +1779,77 @@ export default function ContentClient() {
     }
     if (it.type === "space") return ["open", "board", "copyCode", "share", "copyJoinLink"];
     if (isMathArchiveItem(it)) return ["openMath", "edit", "shareToSpace", "pdf", "delete", "restore"];
+    if (isQuizLesson(it)) return ["edit", "startQuiz", "shareToBoard", "publish", "unpublish", "shareQuizPublic", "delete", "restore"];
     return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "addToCourse", "pdf", "delete", "restore"];
+  }
+
+  async function sendQuizToBoard(spaceId: string) {
+    if (!pickLesson) return;
+
+    const key = `quizToBoard:${spaceId}:${pickLesson.lessonId}`;
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      const lessonSnap = await getDoc(doc(db, "lessons", pickLesson.lessonId));
+      if (!lessonSnap.exists()) throw new Error(t("errors.lessonNotFound"));
+      const data = lessonSnap.data() as Record<string, unknown>;
+      const quiz = isRecord(data.quiz) ? data.quiz : {};
+      const questions = Array.isArray(quiz.questions) ? quiz.questions : Array.isArray(data.tasks) ? data.tasks : [];
+
+      await setDoc(
+        doc(db, "spaces", spaceId, "board", "state"),
+        {
+          active: true,
+          sessionId: newBoardSessionId(),
+          mode: "quiz",
+          endsAt: null,
+          timerStartedAt: null,
+          timerTotalSec: null,
+          timerVisible: false,
+          clearedAt: null,
+          data: {
+            quizTitle: safeString(quiz.title) || safeString(data.title) || pickLesson.title,
+            quizDescription: safeString(quiz.description) || safeString(data.description),
+            quizQuestions: questions,
+            quizCurrentIndex: 0,
+            quizStarted: false,
+            quizShowAnswer: false,
+            quizFinished: false,
+            quizQuestionStartedAtByIndex: { 0: Date.now() },
+            quizAutomationRunning: false,
+            quizAutomationPaused: false,
+            quizAutomationPhase: null,
+            quizAutomationPhaseEndsAt: null,
+          },
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      closePickSpace();
+      router.push(`/${locale}/teacher/spaces/${spaceId}/board`);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : t("errors.assignFailed"));
+    } finally {
+      setBusy(key, false);
+    }
+  }
+
+  async function startQuizSession(lessonId: string) {
+    const key = `startQuiz:${lessonId}`;
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      const res = await authedPost<{ sessionId?: string; error?: string }>("/api/quiz-sessions/start", { lessonId });
+      if (!res.sessionId) throw new Error(res.error || "Kunne ikke starte quiz.");
+      router.push(`/${locale}/quiz/host/${res.sessionId}`);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Kunne ikke starte quiz.");
+    } finally {
+      setBusy(key, false);
+    }
   }
 
   function desktopActions(it: ContentItem, actions: ActionItem[]) {
@@ -2311,7 +2497,7 @@ export default function ContentClient() {
           >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
               <div className="min-w-0">
-                <div className="font-black text-slate-900">{t("shareToSpace.title")}</div>
+                <div className="font-black text-slate-900">{pickLesson.mode === "board" ? safeMsg("shareToBoard.title", "Del til tavle") : t("shareToSpace.title")}</div>
                 <div className="truncate text-sm text-slate-600">{pickLesson.title}</div>
               </div>
               <button
@@ -2326,26 +2512,56 @@ export default function ContentClient() {
               {mySpaces.length === 0 ? (
                 <div className="text-sm text-slate-600">{t("shareToSpace.noSpaces")}</div>
               ) : (
-                <div className="grid gap-2">
-                  {mySpaces.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => assignLessonToSpace(s.id)}
-                      className="rounded-2xl border border-slate-300 bg-white p-4 text-left font-black text-slate-900 hover:bg-zinc-50"
-                    >
-                      {(s.title || t("titles.space")).trim() || t("titles.space")}
-                      <div className="mt-1 text-xs font-semibold text-slate-500">
-                        {(s.meta?.join(" · ") ?? "").trim()}
+                <div>
+                  <input
+                    value={pickSpaceQuery}
+                    onChange={(e) => {
+                      setPickSpaceQuery(e.target.value);
+                      setPickSpaceVisibleCount(8);
+                    }}
+                    className="mb-3 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm font-semibold outline-none focus:border-slate-500"
+                    placeholder={safeMsg("shareToSpace.searchPlaceholder", "Søk etter rom...")}
+                  />
+
+                  {filteredPickSpaces.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-600">
+                      {safeMsg("shareToSpace.noMatches", "Ingen rom matcher søket.")}
+                    </div>
+                  ) : (
+                    <div className="max-h-[440px] overflow-y-auto pr-1">
+                      <div className="grid gap-2">
+                        {visiblePickSpaces.map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => assignLessonToSpace(s.id)}
+                            className="rounded-2xl border border-slate-300 bg-white p-4 text-left font-black text-slate-900 hover:bg-zinc-50"
+                          >
+                            {(s.title || t("titles.space")).trim() || t("titles.space")}
+                            <div className="mt-1 text-xs font-semibold text-slate-500">
+                              {(s.meta?.join(" · ") ?? "").trim()}
+                            </div>
+                          </button>
+                        ))}
                       </div>
+                    </div>
+                  )}
+
+                  {filteredPickSpaces.length > visiblePickSpaces.length ? (
+                    <button
+                      type="button"
+                      onClick={() => setPickSpaceVisibleCount((current) => current + 8)}
+                      className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm font-black text-slate-800 hover:bg-zinc-50"
+                    >
+                      {safeMsg("shareToSpace.showMore", "Vis flere")}
                     </button>
-                  ))}
+                  ) : null}
                 </div>
               )}
             </div>
 
             <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
-              {t("shareToSpace.createsLabel")}{" "}
-              <code>{`spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
+              {pickLesson.mode === "board" ? safeMsg("shareToBoard.createsLabel", "Sender til:") : t("shareToSpace.createsLabel")}{" "}
+              <code>{pickLesson.mode === "board" ? "spaces/{spaceId}/board/state" : `spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
             </div>
           </div>
         </div>

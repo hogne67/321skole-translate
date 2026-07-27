@@ -1,0 +1,395 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
+import { ArrowRight, Eye, Pause, Play, RotateCcw, Trophy } from "lucide-react";
+
+type Question = {
+  question: string;
+  options: string[];
+  correctIndex?: number;
+  explanation?: string;
+};
+
+type ScoreRow = {
+  participantId: string;
+  alias: string;
+  emoji: string;
+  score: number;
+  correct: number;
+  totalQuestions: number;
+};
+
+type SessionView = {
+  id: string;
+  code: string;
+  status: "lobby" | "active" | "finished";
+  mode: "manual" | "auto";
+  title: string;
+  description: string;
+  currentIndex: number;
+  showAnswer: boolean;
+  questionStartedAt: number | null;
+  answerShownAt: number | null;
+  answerSeconds: number;
+  revealSeconds: number;
+  resultsSeconds: number;
+  nextSeconds: number;
+  questions: Question[];
+  participantCount: number;
+  currentAnswerCount: number;
+  counts: Record<string, number>;
+  scores: ScoreRow[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function safeString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function normalizeSession(value: unknown): SessionView | null {
+  if (!isRecord(value)) return null;
+  const session = isRecord(value.session) ? value.session : {};
+  const questions = Array.isArray(session.questions) ? session.questions : [];
+  const scores = Array.isArray(session.scores) ? session.scores : [];
+  return {
+    id: safeString(session.id),
+    code: safeString(session.code),
+    status: session.status === "active" || session.status === "finished" ? session.status : "lobby",
+    mode: session.mode === "auto" ? "auto" : "manual",
+    title: safeString(session.title, "321 quiz"),
+    description: safeString(session.description),
+    currentIndex: typeof session.currentIndex === "number" ? session.currentIndex : 0,
+    showAnswer: session.showAnswer === true,
+    questionStartedAt: typeof session.questionStartedAt === "number" ? session.questionStartedAt : null,
+    answerShownAt: typeof session.answerShownAt === "number" ? session.answerShownAt : null,
+    answerSeconds: typeof session.answerSeconds === "number" ? session.answerSeconds : 30,
+    revealSeconds: typeof session.revealSeconds === "number" ? session.revealSeconds : 20,
+    resultsSeconds: typeof session.resultsSeconds === "number" ? session.resultsSeconds : 20,
+    nextSeconds: typeof session.nextSeconds === "number" ? session.nextSeconds : 5,
+    questions: questions.filter(isRecord).map((q) => ({
+      question: safeString(q.question),
+      options: Array.isArray(q.options) ? q.options.map((item) => safeString(item)).filter(Boolean) : [],
+      correctIndex: typeof q.correctIndex === "number" ? q.correctIndex : undefined,
+      explanation: safeString(q.explanation),
+    })),
+    participantCount: typeof session.participantCount === "number" ? session.participantCount : 0,
+    currentAnswerCount: typeof session.currentAnswerCount === "number" ? session.currentAnswerCount : 0,
+    counts: isRecord(session.counts) ? Object.fromEntries(Object.entries(session.counts).map(([key, count]) => [key, typeof count === "number" ? count : 0])) : {},
+    scores: scores.filter(isRecord).map((score) => ({
+      participantId: safeString(score.participantId),
+      alias: safeString(score.alias, "Deltaker"),
+      emoji: safeString(score.emoji),
+      score: typeof score.score === "number" ? score.score : 0,
+      correct: typeof score.correct === "number" ? score.correct : 0,
+      totalQuestions: typeof score.totalQuestions === "number" ? score.totalQuestions : 0,
+    })),
+  };
+}
+
+export default function QuizSessionDisplayPage() {
+  const params = useParams<{ sessionId: string }>();
+  const sessionId = params.sessionId;
+  const [user, setUser] = useState<User | null>(getAuth().currentUser);
+  const [session, setSession] = useState<SessionView | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [answerSeconds, setAnswerSeconds] = useState(30);
+  const [revealSeconds, setRevealSeconds] = useState(20);
+  const [resultsSeconds, setResultsSeconds] = useState(20);
+  const [nextSeconds, setNextSeconds] = useState(5);
+
+  const question = session?.questions[session.currentIndex] ?? null;
+  const totalAnswers = session?.currentAnswerCount ?? 0;
+
+  const secondsLeft = useMemo(() => {
+    if (!session || session.status !== "active") return null;
+    const startedAt = session.showAnswer ? session.answerShownAt : session.questionStartedAt;
+    if (!startedAt) return null;
+    const total = session.showAnswer ? session.revealSeconds : session.answerSeconds;
+    return Math.max(0, total - Math.floor((Date.now() - startedAt) / 1000));
+  }, [session]);
+
+  const load = useCallback(async () => {
+    const current = getAuth().currentUser;
+    if (!current) return;
+    const token = await current.getIdToken();
+    const res = await fetch(`/api/quiz-sessions/${encodeURIComponent(sessionId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => ({}))) as unknown;
+    if (!res.ok) {
+      setError(isRecord(data) && typeof data.error === "string" ? data.error : "Kunne ikke hente økten.");
+      return;
+    }
+    const nextSession = normalizeSession(data);
+    setSession(nextSession);
+    if (nextSession?.status === "lobby") {
+      setAnswerSeconds(nextSession.answerSeconds);
+      setRevealSeconds(nextSession.revealSeconds);
+      setResultsSeconds(nextSession.resultsSeconds);
+      setNextSeconds(nextSession.nextSeconds);
+    }
+    setError("");
+  }, [sessionId]);
+
+  useEffect(() => onAuthStateChanged(getAuth(), setUser), []);
+
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => void load(), 900);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
+  const control = useCallback(async (action: string, mode?: "manual" | "auto") => {
+    const current = getAuth().currentUser;
+    if (!current) return;
+    setBusy(true);
+    setError("");
+    try {
+      const token = await current.getIdToken();
+      const res = await fetch(`/api/quiz-sessions/${encodeURIComponent(sessionId)}/control`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action, mode, answerSeconds, revealSeconds, resultsSeconds, nextSeconds }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: unknown };
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke styre økten.");
+      await load();
+    } catch (event) {
+      setError(event instanceof Error ? event.message : "Kunne ikke styre økten.");
+    } finally {
+      setBusy(false);
+    }
+  }, [answerSeconds, load, nextSeconds, resultsSeconds, revealSeconds, sessionId]);
+
+  useEffect(() => {
+    if (!session || session.mode !== "auto" || session.status !== "active" || busy) return;
+    if (!session.showAnswer && session.questionStartedAt && Date.now() - session.questionStartedAt >= session.answerSeconds * 1000) {
+      void control("showAnswer");
+      return;
+    }
+    if (session.showAnswer && session.answerShownAt && Date.now() - session.answerShownAt >= session.revealSeconds * 1000) {
+      void control("next");
+    }
+  }, [busy, control, session]);
+
+  if (!user) {
+    return <main className="min-h-screen bg-[#08090b] p-10 text-white">Logg inn for å vise quiz.</main>;
+  }
+
+  return (
+    <main className="min-h-screen bg-[#08090b] px-8 py-8 text-white">
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1800px] flex-col">
+        <header className="flex items-start justify-between gap-6">
+          <div>
+            <div className="text-sm font-black uppercase tracking-[0.22em] text-emerald-300">321skole tavle</div>
+            <div className="mt-2 text-2xl font-bold text-white/90">Live i klasserommet</div>
+          </div>
+          <div className="rounded-2xl bg-white/10 px-5 py-3 text-right">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">Kode</div>
+            <div className="text-3xl font-black tracking-[0.18em]">{session?.code || "------"}</div>
+          </div>
+        </header>
+
+        {error ? <div className="mt-5 rounded-2xl bg-rose-500/20 p-4 font-bold text-rose-100">{error}</div> : null}
+
+        {session?.status === "finished" ? (
+          <Finished scores={session.scores} />
+        ) : session?.status === "active" && question ? (
+          <div className="mt-10 flex flex-1 flex-col">
+            <div className="flex items-start justify-between gap-8">
+              <div>
+                <div className="text-sm font-black uppercase tracking-[0.22em] text-violet-300">{session.title}</div>
+                <div className="mt-2 text-xl font-bold text-white/65">Spørsmål {session.currentIndex + 1} av {session.questions.length} · {totalAnswers} svar</div>
+                <h1 className="mt-8 max-w-5xl text-6xl font-black leading-[1.05] tracking-tight">{question.question}</h1>
+              </div>
+              <div className="flex flex-wrap justify-end gap-2">
+                <button onClick={() => control("showAnswer")} disabled={busy || session.showAnswer} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-300 px-5 py-4 font-black text-slate-950 disabled:opacity-40">
+                  <Eye className="h-5 w-5" />
+                  Vis svar
+                </button>
+                <button onClick={() => control("next")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-4 font-black disabled:opacity-40">
+                  Neste
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-10 grid gap-5">
+              {question.options.map((option, index) => {
+                const count = session.counts[option] ?? 0;
+                const pct = Math.round((count / (totalAnswers || 1)) * 100);
+                const correct = session.showAnswer && index === question.correctIndex;
+                return (
+                  <div key={option} className={["rounded-[2rem] p-6", correct ? "bg-emerald-300 text-slate-950" : "bg-white/[0.07] text-white"].join(" ")}>
+                    <div className="flex items-center justify-between gap-5 text-3xl font-black">
+                      <div className="flex items-center gap-4">
+                        {correct ? <span className="rounded-full bg-slate-950 px-4 py-2 text-lg text-white">Riktig</span> : null}
+                        {option}
+                      </div>
+                      <div>{count} · {pct}%</div>
+                    </div>
+                    <div className="mt-5 h-5 overflow-hidden rounded-full bg-black/20">
+                      <div className={["h-full rounded-full", correct ? "bg-slate-950" : "bg-violet-400"].join(" ")} style={{ width: `${pct}%` }} />
+                    </div>
+                    {correct && question.explanation ? <div className="mt-5 max-w-4xl text-2xl font-bold leading-snug">{question.explanation}</div> : null}
+                  </div>
+                );
+              })}
+            </div>
+
+            {secondsLeft !== null ? <TimerLine secondsLeft={secondsLeft} total={session.showAnswer ? session.revealSeconds : session.answerSeconds} label={session.showAnswer ? "Forklaring" : "Tid igjen"} /> : null}
+          </div>
+        ) : (
+          <Lobby
+            session={session}
+            answerSeconds={answerSeconds}
+            revealSeconds={revealSeconds}
+            resultsSeconds={resultsSeconds}
+            nextSeconds={nextSeconds}
+            setAnswerSeconds={setAnswerSeconds}
+            setRevealSeconds={setRevealSeconds}
+            setResultsSeconds={setResultsSeconds}
+            setNextSeconds={setNextSeconds}
+            onStartManual={() => control("start", "manual")}
+            onStartAuto={() => control("start", "auto")}
+            onSave={() => control("settings")}
+            busy={busy}
+          />
+        )}
+
+        <footer className="mt-auto flex justify-center gap-2 pt-8">
+          <button onClick={() => control("reset")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-black disabled:opacity-40">
+            <RotateCcw className="h-5 w-5" />
+            Nullstill
+          </button>
+          {session?.status === "active" ? (
+            <button onClick={() => control("finish")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-black disabled:opacity-40">
+              <Pause className="h-5 w-5" />
+              Avslutt
+            </button>
+          ) : null}
+        </footer>
+      </div>
+    </main>
+  );
+}
+
+function Lobby({
+  session,
+  answerSeconds,
+  revealSeconds,
+  resultsSeconds,
+  nextSeconds,
+  setAnswerSeconds,
+  setRevealSeconds,
+  setResultsSeconds,
+  setNextSeconds,
+  onStartManual,
+  onStartAuto,
+  onSave,
+  busy,
+}: {
+  session: SessionView | null;
+  answerSeconds: number;
+  revealSeconds: number;
+  resultsSeconds: number;
+  nextSeconds: number;
+  setAnswerSeconds: (value: number) => void;
+  setRevealSeconds: (value: number) => void;
+  setResultsSeconds: (value: number) => void;
+  setNextSeconds: (value: number) => void;
+  onStartManual: () => void;
+  onStartAuto: () => void;
+  onSave: () => void;
+  busy: boolean;
+}) {
+  return (
+    <section className="flex flex-1 items-center justify-center py-12 text-center">
+      <div className="w-full max-w-4xl">
+        <div className="text-sm font-black uppercase tracking-[0.24em] text-violet-300">Quiz klar</div>
+        <h1 className="mt-4 text-7xl font-black tracking-tight">{session?.title ?? "Quiz"}</h1>
+        {session?.description ? <p className="mx-auto mt-5 max-w-2xl text-2xl font-semibold text-white/70">{session.description}</p> : null}
+        <div className="mx-auto mt-8 inline-flex rounded-full bg-white/10 px-6 py-3 text-2xl font-black">{session?.questions.length ?? 0} spørsmål</div>
+
+        <div className="mx-auto mt-8 grid max-w-3xl gap-3 rounded-[2rem] bg-white/10 p-5 sm:grid-cols-2">
+          <DarkChoiceGroup label="Svarfrist" value={answerSeconds} values={[15, 30, 60]} onChange={setAnswerSeconds} />
+          <DarkChoiceGroup label="Riktig svar" value={revealSeconds} values={[10, 20, 30]} onChange={setRevealSeconds} />
+          <DarkChoiceGroup label="Resultat" value={resultsSeconds} values={[10, 20, 30]} onChange={setResultsSeconds} />
+          <DarkChoiceGroup label="Nedtelling" value={nextSeconds} values={[5, 10]} onChange={setNextSeconds} />
+        </div>
+
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <button onClick={onSave} disabled={busy} className="rounded-2xl bg-white/10 px-6 py-4 text-xl font-black disabled:opacity-40">Lagre tider</button>
+          <button onClick={onStartManual} disabled={busy} className="inline-flex items-center gap-3 rounded-2xl bg-white/10 px-7 py-4 text-2xl font-black disabled:opacity-40">
+            <Play className="h-6 w-6" />
+            Start manuelt
+          </button>
+          <button onClick={onStartAuto} disabled={busy} className="inline-flex items-center gap-3 rounded-2xl bg-violet-300 px-7 py-4 text-2xl font-black text-slate-950 disabled:opacity-40">
+            <Play className="h-6 w-6" />
+            Start auto
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DarkChoiceGroup({ label, value, values, onChange }: { label: string; value: number; values: number[]; onChange: (value: number) => void }) {
+  return (
+    <div className="rounded-2xl bg-black/20 p-4 text-left">
+      <div className="text-xs font-black uppercase tracking-[0.18em] text-white/50">{label}</div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {values.map((item) => (
+          <button key={item} onClick={() => onChange(item)} className={["rounded-xl px-4 py-3 font-black", value === item ? "bg-emerald-300 text-slate-950" : "bg-white/10 text-white"].join(" ")}>
+            {item} sek
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TimerLine({ secondsLeft, total, label }: { secondsLeft: number; total: number; label: string }) {
+  const pct = Math.max(0, Math.min(100, ((total - secondsLeft) / Math.max(1, total)) * 100));
+  const color = pct > 75 ? "bg-rose-400" : pct > 50 ? "bg-amber-300" : "bg-emerald-400";
+  return (
+    <div className="mt-auto pt-8">
+      <div className="mb-3 flex items-center justify-between text-xl font-black">
+        <span className="uppercase tracking-[0.14em] text-white/55">{label}</span>
+        <span>{secondsLeft}s</span>
+      </div>
+      <div className="h-5 overflow-hidden rounded-full bg-white/15">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function Finished({ scores }: { scores: ScoreRow[] }) {
+  return (
+    <section className="flex flex-1 items-center justify-center py-12">
+      <div className="w-full max-w-5xl text-center">
+        <Trophy className="mx-auto h-20 w-20 text-amber-300" />
+        <h1 className="mt-5 text-7xl font-black">Quizen er ferdig!</h1>
+        <div className="mt-10 grid gap-4">
+          {scores.slice(0, 5).map((score, index) => (
+            <div key={score.participantId} className={["flex items-center justify-between rounded-[2rem] px-8 py-6 text-left", index === 0 ? "bg-amber-300 text-slate-950" : "bg-white/10"].join(" ")}>
+              <div className="text-4xl font-black">{index + 1}. {score.emoji ? `${score.emoji} ` : ""}{score.alias}</div>
+              <div className="text-right">
+                <div className="text-4xl font-black">{score.score}</div>
+                <div className="text-lg font-bold opacity-70">{score.correct} riktige</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

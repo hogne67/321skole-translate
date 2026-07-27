@@ -31,6 +31,7 @@
       "submission": "Tarefa enviada",
       "mathWorksheet": "Tarefa de matemática",
       "readingTest": "Teste de leitura",
+      "quiz": "Quiz",
       "ownGenerated": "Gerado pelo usuário",
       "content": "Conteúdo"
     },
@@ -100,6 +101,9 @@
       "share": "Compartilhar",
       "shareTitle": "Compartilhar (link + QR)",
       "shareToSpace": "Compartilhar com Spaces",
+      "startQuiz": "Iniciar quiz",
+      "shareToBoard": "Compartilhar com quadro",
+      "shareQuizPublic": "Compartilhar publicamente",
       "pdf": "PDF",
       "delete": "Excluir",
       "restore": "Restaurar",
@@ -188,10 +192,20 @@
       },
       "defaultTitle": "Atividade"
     },
+    "shareQuiz": {
+      "text": "Estou compartilhando um quiz do 321quiz."
+    },
     "shareToSpace": {
       "title": "Compartilhar com Spaces",
       "noSpaces": "Você ainda não tem nenhum Spaces.",
-      "createsLabel": "Cria:"
+      "createsLabel": "Cria:",
+      "searchPlaceholder": "Buscar salas...",
+      "noMatches": "Nenhuma sala corresponde à busca.",
+      "showMore": "Mostrar mais salas"
+    },
+    "shareToBoard": {
+      "title": "Compartilhar com quadro",
+      "createsLabel": "Envia para:"
     },
     "confirm": {
       "deleteLesson": "Excluir atividade{title}?\n\nIsso irá arquivá-la.\nTambém tentará despublicá-la.\n\nUm administrador poderá restaurá-la depois.",

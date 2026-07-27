@@ -266,6 +266,8 @@ export default function TeacherBoardPage() {
   const [err, setErr] = useState<string | null>(null);
 
   const [tab, setTab] = useState<TabKey>("question");
+  const [showQuizDetails, setShowQuizDetails] = useState(false);
+  const [showQuizPreview, setShowQuizPreview] = useState(false);
 
   const present = false;
   const [showTimer, setShowTimer] = useState(true);
@@ -1248,6 +1250,7 @@ export default function TeacherBoardPage() {
   const boardQuizQuestions = Array.isArray(state?.data?.quizQuestions) ? state.data.quizQuestions : [];
   const boardQuizIndex = Math.max(0, Math.min(boardQuizQuestions.length - 1, typeof state?.data?.quizCurrentIndex === "number" ? state.data.quizCurrentIndex : 0));
   const boardQuizQuestion = boardQuizQuestions[boardQuizIndex] ?? null;
+  const boardQuizLive = active && state?.mode === "quiz";
   const boardQuizShowAnswer = state?.data?.quizShowAnswer === true;
   const boardQuizResponses = quizResponses.filter((r) => r.data.quizQuestionIndex === boardQuizIndex);
   const boardQuizCounts = new Map<string, number>();
@@ -1255,15 +1258,6 @@ export default function TeacherBoardPage() {
     const choice = safeString(r.data.quizChoice);
     if (choice) boardQuizCounts.set(choice, (boardQuizCounts.get(choice) ?? 0) + 1);
   }
-  const boardQuizCorrectOption =
-    boardQuizQuestion && Array.isArray(boardQuizQuestion.options) && typeof boardQuizQuestion.correctIndex === "number"
-      ? safeString(boardQuizQuestion.options[boardQuizQuestion.correctIndex])
-      : null;
-  const boardQuizCorrectResponses = boardQuizCorrectOption
-    ? boardQuizResponses.filter((r) => safeString(r.data.quizChoice) === boardQuizCorrectOption)
-    : [];
-  const boardQuizCorrectPct = Math.round((boardQuizCorrectResponses.length / (boardQuizResponses.length || 1)) * 100);
-
   const noteCardClass = present
     ? "rounded-2xl border p-6 shadow-sm transition-transform hover:-translate-y-0.5"
     : "rounded-xl border p-3 shadow-sm transition-transform hover:-translate-y-0.5";
@@ -1281,6 +1275,7 @@ export default function TeacherBoardPage() {
   const newRoundAction =
     tab === "poll" ? startPollNewSession : tab === "wordwall" ? startWordwallNewSession : tab === "image" ? startImageNewSession : tab === "clock" ? startClockNewSession : tab === "quiz" ? startQuizNewSession : startLiveNewSession;
   const responseCount = tab === "quiz" ? boardQuizResponses.length : tab === "poll" ? pollResponses.length : tab === "wordwall" ? wordwallResponses.length : tab === "image" ? imageResponses.length : textResponses.length;
+  const boardActionDisabled = tab === "quiz" && boardQuizQuestions.length === 0;
   const answersHidden = clearedAt !== null;
   const displayHref = spaceId ? `/${locale}/teacher/spaces/${spaceId}/board/display` : "#";
 
@@ -1333,11 +1328,16 @@ export default function TeacherBoardPage() {
                   <TabButton active={tab === "clock"} onClick={() => setTab("clock")}>
                     {t("tabs.clock")}
                   </TabButton>
-                  {state?.mode === "quiz" ? (
-                    <TabButton active={tab === "quiz"} onClick={() => setTab("quiz")}>
-                      {t("tabs.quiz")}
-                    </TabButton>
-                  ) : null}
+                  <TabButton
+                    active={tab === "quiz"}
+                    onClick={() => {
+                      setTab("quiz");
+                      setShowQuizDetails(false);
+                      setShowQuizPreview(false);
+                    }}
+                  >
+                    {t("tabs.quiz")}
+                  </TabButton>
                 </div>
               </div>
 
@@ -1381,90 +1381,160 @@ export default function TeacherBoardPage() {
 
           {err && <div className="mt-4 mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>}
 
-          {tab === "quiz" && state?.mode === "quiz" && boardQuizQuestion ? (
-            <section className="mt-4 rounded-2xl border border-violet-200 bg-white p-5 shadow-sm">
+          {tab === "quiz" ? (
+            boardQuizQuestion && showQuizDetails ? (
+              <section className="mt-4 rounded-2xl border border-violet-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">Live quiz</div>
-                  <h2 className="mt-2 text-2xl font-black text-slate-950">{safeString(state.data?.quizTitle) ?? "Quiz"}</h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Spørsmål {boardQuizIndex + 1} av {boardQuizQuestions.length} · {boardQuizResponses.length} svar
-                  </p>
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">
+                    Aktiv quiz
+                  </div>
+                  <h2 className="mt-2 text-2xl font-black text-slate-950">{safeString(state?.data?.quizTitle) ?? "Quiz"}</h2>
+                  <p className="mt-1 text-sm text-slate-500">{boardQuizQuestions.length} spørsmål · {boardQuizLive ? "Live nå" : "Ikke live"}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setQuizQuestion(Math.max(0, boardQuizIndex - 1))} disabled={boardQuizIndex <= 0} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold disabled:opacity-40">
-                    Forrige
-                  </button>
-                  <button type="button" onClick={() => setQuizShowAnswer(!boardQuizShowAnswer)} className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-800 hover:bg-violet-100">
-                    {boardQuizShowAnswer ? "Skjul fasit" : "Vis fasit"}
-                  </button>
-                  <button type="button" onClick={() => setQuizQuestion(Math.min(boardQuizQuestions.length - 1, boardQuizIndex + 1))} disabled={boardQuizIndex >= boardQuizQuestions.length - 1} className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:opacity-40">
-                    Neste
+                  <button type="button" onClick={() => setShowQuizDetails(false)} className="rounded-xl bg-rose-600 px-3 py-2 text-sm font-bold text-white hover:bg-rose-700">
+                    Lukk aktiv quiz
                   </button>
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                <div>
-                  <div className="text-lg font-black text-slate-950">{boardQuizQuestion.question}</div>
-                  <div className="mt-4 grid gap-2">
-                    {(boardQuizQuestion.options ?? []).map((option, index) => {
-                      const isCorrect = boardQuizShowAnswer && index === boardQuizQuestion.correctIndex;
-                      return (
-                        <div key={`${option}-${index}`} className={["rounded-xl border px-4 py-3 text-sm font-bold", isCorrect ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-slate-50 text-slate-900"].join(" ")}>
-                          {option}
-                        </div>
-                      );
-                    })}
+              {showQuizPreview ? (
+                <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+                  <div>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-sm font-black uppercase tracking-wide text-violet-700">Preview</div>
+                      <button type="button" onClick={() => setShowQuizPreview(false)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold hover:bg-slate-50">
+                        Avslutt preview
+                      </button>
+                    </div>
+                    <div className="text-lg font-black text-slate-950">{boardQuizQuestion.question}</div>
+                    <div className="mt-4 grid gap-2">
+                      {(boardQuizQuestion.options ?? []).map((option, index) => {
+                        const isCorrect = boardQuizShowAnswer && index === boardQuizQuestion.correctIndex;
+                        return (
+                          <div key={`${option}-${index}`} className={["rounded-xl border px-4 py-3 text-sm font-bold", isCorrect ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-slate-50 text-slate-900"].join(" ")}>
+                            {option}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {boardQuizShowAnswer && safeString(boardQuizQuestion.explanation) ? (
+                      <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-950">{boardQuizQuestion.explanation}</div>
+                    ) : null}
                   </div>
-                  {boardQuizShowAnswer && safeString(boardQuizQuestion.explanation) ? (
-                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-950">{boardQuizQuestion.explanation}</div>
-                  ) : null}
-                  {boardQuizShowAnswer ? (
-                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                      <div className="text-sm font-black text-emerald-950">
-                        {boardQuizCorrectResponses.length} av {boardQuizResponses.length} svarte riktig ({boardQuizCorrectPct}%)
-                      </div>
-                      {boardQuizCorrectResponses.length ? (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {boardQuizCorrectResponses.slice(0, 12).map((response) => {
-                            const name = safeString(response.data.displayName) ?? safeString(response.data.groupName) ?? "Elev";
-                            return (
-                              <span key={response.id} className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-emerald-900">
-                                {name}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <button type="button" onClick={() => setQuizQuestion(Math.max(0, boardQuizIndex - 1))} disabled={boardQuizIndex <= 0} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold disabled:opacity-40">
+                        Forrige
+                      </button>
+                      <button type="button" onClick={() => setQuizShowAnswer(!boardQuizShowAnswer)} className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-800 hover:bg-violet-100">
+                        {boardQuizShowAnswer ? "Skjul fasit" : "Vis fasit"}
+                      </button>
+                      <button type="button" onClick={() => setQuizQuestion(Math.min(boardQuizQuestions.length - 1, boardQuizIndex + 1))} disabled={boardQuizIndex >= boardQuizQuestions.length - 1} className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:opacity-40">
+                        Neste
+                      </button>
+                    </div>
+                    <div className="text-sm font-black text-slate-950">{boardQuizShowAnswer ? "Resultat" : "Svar nå"}</div>
+                    <div className="mt-3 space-y-2">
+                      {(boardQuizQuestion.options ?? []).map((option, index) => {
+                        const count = boardQuizCounts.get(option) ?? 0;
+                        const pct = Math.round((count / (boardQuizResponses.length || 1)) * 100);
+                        const isCorrect = boardQuizShowAnswer && index === boardQuizQuestion.correctIndex;
+                        return (
+                          <div key={`${option}-result-${index}`} className={["rounded-lg px-3 py-2 text-sm", isCorrect ? "bg-emerald-100 text-emerald-950" : "bg-white"].join(" ")}>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="font-semibold">{option}</span>
+                              <span className={["rounded-full px-2 py-1 text-xs font-black", isCorrect ? "bg-emerald-200" : "bg-slate-100"].join(" ")}>
+                                {count} · {pct}%
                               </span>
-                            );
-                          })}
-                        </div>
+                            </div>
+                            <div className={["mt-2 h-1.5 overflow-hidden rounded-full", isCorrect ? "bg-emerald-200" : "bg-slate-100"].join(" ")}>
+                              <div className={["h-full rounded-full", isCorrect ? "bg-emerald-600" : "bg-violet-500"].join(" ")} style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+                  <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-5">
+                    <div className="space-y-3 text-sm font-semibold leading-6 text-slate-800">
+                      <div>1. Trykk på knappen Start live for å sende til studenter.</div>
+                      <div>2. Åpne knappen Vis på storskjerm i ny leser.</div>
+                      <div>3. Følg instruksjoner på storskjerm om gjennomføring.</div>
+                    </div>
+                    <button type="button" onClick={() => setShowQuizPreview(true)} className="mt-5 rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-bold text-violet-900 hover:bg-violet-50">
+                      Preview med spørsmål
+                    </button>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <div className="text-sm font-black text-slate-950">Kort info</div>
+                    <div className="mt-3 text-sm font-semibold text-slate-600">
+                      {boardQuizQuestions.length} spørsmål · {boardQuizResponses.length} svar
+                    </div>
+                  </div>
+                </div>
+              )}
+              </section>
+            ) : (
+              <section className="mt-4 overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
+                <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
+                  <div className="p-6">
+                    <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">Quiz</div>
+                    <h2 className="sr-only">{boardQuizQuestion ? safeString(state?.data?.quizTitle) ?? "Aktiv quiz" : "Quiz på tavla"}</h2>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <Link
+                        href={`/${locale}/tools/quiz`}
+                        className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 text-sm font-bold text-white hover:bg-violet-800"
+                      >
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                        Lag ny quiz
+                      </Link>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-bold text-violet-900 hover:bg-violet-100"
+                      >
+                        Hent quiz
+                      </button>
+                      {boardQuizQuestion ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowQuizDetails(true)}
+                          className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+                        >
+                          Start aktiv quiz
+                        </button>
                       ) : null}
                     </div>
-                  ) : null}
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-sm font-black text-slate-950">{boardQuizShowAnswer ? "Resultat" : "Svar nå"}</div>
-                  <div className="mt-3 space-y-2">
-                    {(boardQuizQuestion.options ?? []).map((option, index) => {
-                      const count = boardQuizCounts.get(option) ?? 0;
-                      const pct = Math.round((count / (boardQuizResponses.length || 1)) * 100);
-                      const isCorrect = boardQuizShowAnswer && index === boardQuizQuestion.correctIndex;
-                      return (
-                        <div key={`${option}-result-${index}`} className={["rounded-lg px-3 py-2 text-sm", isCorrect ? "bg-emerald-100 text-emerald-950" : "bg-white"].join(" ")}>
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="font-semibold">{option}</span>
-                            <span className={["rounded-full px-2 py-1 text-xs font-black", isCorrect ? "bg-emerald-200" : "bg-slate-100"].join(" ")}>
-                              {count} · {pct}%
-                            </span>
+                  </div>
+                  <div className="border-t border-violet-100 bg-violet-50/70 p-6 lg:border-l lg:border-t-0">
+                    <div className="rounded-2xl border border-violet-200 bg-white p-4 shadow-sm">
+                      {boardQuizQuestion ? (
+                        <>
+                          <div className="text-sm font-black text-violet-950">Aktiv quiz</div>
+                          <div className="mt-4 rounded-xl bg-slate-50 px-3 py-3">
+                            <div className="text-sm font-black text-slate-950">{safeString(state?.data?.quizTitle) ?? "Quiz"}</div>
+                            <div className="mt-1 text-xs font-semibold text-slate-500">
+                              {boardQuizLive ? "Live nå" : "Ikke live"} · {boardQuizQuestions.length} spørsmål
+                            </div>
                           </div>
-                          <div className={["mt-2 h-1.5 overflow-hidden rounded-full", isCorrect ? "bg-emerald-200" : "bg-slate-100"].join(" ")}>
-                            <div className={["h-full rounded-full", isCorrect ? "bg-emerald-600" : "bg-violet-500"].join(" ")} style={{ width: `${pct}%` }} />
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-sm font-black text-violet-950">Ingen aktiv quiz</div>
+                          <div className="mt-4 rounded-xl bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-600">
+                            Lag eller hent en quiz for å starte.
                           </div>
-                        </div>
-                      );
-                    })}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            )
           ) : null}
 
           {tab === "quiz" ? null : tab === "poll" ? (
@@ -2162,6 +2232,7 @@ export default function TeacherBoardPage() {
               {!active ? (
                 <button
                   onClick={newRoundAction}
+                  disabled={boardActionDisabled}
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <Play className="h-4 w-4" aria-hidden="true" />
@@ -2179,6 +2250,7 @@ export default function TeacherBoardPage() {
 
               <button
                 onClick={liveAction}
+                disabled={boardActionDisabled}
                 className={present ? "inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-zinc-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45" : "inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"}
               >
                 <Send className="h-4 w-4" aria-hidden="true" />
@@ -2187,6 +2259,7 @@ export default function TeacherBoardPage() {
 
               <button
                 onClick={newRoundAction}
+                disabled={boardActionDisabled}
                 className={present ? "inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-zinc-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45" : "inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45"}
               >
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />

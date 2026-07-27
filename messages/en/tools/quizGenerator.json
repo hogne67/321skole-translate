@@ -1,41 +1,115 @@
 {
   "quizGenerator": {
     "title": "Quiz generator",
-    "subtitle": "Create an editable quiz from a topic or text. This first version is built for good quiz drafts that can later be sent live to the board.",
+    "subtitle": "Create an editable quiz from a topic or text. When it is ready, add an image and save it to My content.",
     "sourceModes": {
       "topic": "Topic",
       "text": "Text"
     },
+    "steps": {
+      "source": {
+        "kicker": "Step 1",
+        "title": "Source",
+        "text": "Start with a topic, text, or task."
+      },
+      "quiz": {
+        "kicker": "Step 2",
+        "title": "Quiz",
+        "text": "Choose settings and generate.",
+        "ready": "The quiz is ready for editing."
+      },
+      "finish": {
+        "kicker": "Step 3",
+        "title": "Editing",
+        "text": "Review the draft before continuing.",
+        "ready": "The draft is ready."
+      }
+    },
+    "source": {
+      "title": "Choose source",
+      "text": "Create a new quiz from a topic, paste text, or use text from a task you already made.",
+      "pickContent": "Choose task",
+      "contentText": "Source text",
+      "refresh": "Refresh",
+      "loading": "Loading...",
+      "noContent": "No tasks found"
+    },
+    "sourceChoices": {
+      "new": {
+        "title": "New quiz",
+        "text": "Write a topic or prompt and let AI create questions."
+      },
+      "paste": {
+        "title": "Paste text",
+        "text": "Use your own text as the quiz source."
+      },
+      "content": {
+        "title": "Use task",
+        "text": "Choose a task from My content."
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "text": "Choose question type and number of questions."
+    },
+    "editor": {
+      "title": "Review draft",
+      "text": "Review questions, answers and explanations. When the draft is ready, continue to the editor."
+    },
+    "finish": {
+      "kicker": "Finish",
+      "title": "Continue",
+      "text": "On the next page you add image, metadata and save the quiz to My content."
+    },
     "fields": {
-      "topic": "Topic",
+      "topic": "Briefly describe the quiz",
+      "topicHelp": "Write the topic, audience or what the quiz should be about.",
       "sourceText": "Lesson or task text",
       "language": "Language",
       "level": "Level",
-      "focus": "Focus",
+      "focus": "Category",
+      "questionMode": "Question type",
       "count": "Questions",
       "seconds": "Time per question",
       "secondsShort": "Seconds"
     },
+    "questionModes": {
+      "mixed": "Mixed",
+      "multiple_choice": "Multiple choice",
+      "true_false": "True/false"
+    },
     "focus": {
-      "understanding": "Understanding",
-      "vocabulary": "Words and concepts",
-      "discussion": "Discussion",
-      "exam": "Test practice"
+      "language": "Language and text",
+      "math": "Mathematics",
+      "science": "Science",
+      "social_studies": "Social studies",
+      "english": "English",
+      "work_life": "Work life",
+      "citizenship": "Democracy and citizenship",
+      "culture": "Culture and society",
+      "health": "Health and life skills",
+      "sports": "Sports and physical education",
+      "food": "Food and drink",
+      "wildlife": "Wildlife",
+      "other": "Other"
     },
     "placeholders": {
-      "topic": "For example democracy, fractions, Norway, working life...",
+      "topic": "E.g. create a short quiz about democracy for A2, with simple questions...",
       "sourceText": "Paste text from a lesson or task...",
       "description": "Short quiz description...",
       "explanation": "Short explanation for the correct answer..."
     },
     "actions": {
-      "generate": "Create quiz",
-      "generating": "Creating quiz...",
+      "generate": "Generate quiz",
+      "generating": "Generating quiz...",
       "copy": "Copy",
       "copied": "Copied",
       "save": "Save quiz",
+      "saveToContent": "Save to My content",
       "saving": "Saving...",
       "saved": "Quiz saved.",
+      "savedToContent": "Quiz saved to My content.",
+      "continueToEditor": "Go to editor",
       "sendToBoard": "Send to board",
       "sendingToBoard": "Sending...",
       "sentToBoard": "Quiz sent to board.",
@@ -43,6 +117,15 @@
       "regenerate": "Regenerate",
       "remove": "Remove question",
       "addQuestion": "Add question"
+    },
+    "cover": {
+      "title": "Image for publishing",
+      "text": "The quiz needs an image before it is saved to My content. Generate a simple 16:9 image or paste an image URL.",
+      "promptPlaceholder": "Describe the image briefly...",
+      "generate": "Generate image",
+      "generating": "Generating image...",
+      "urlPlaceholder": "Image URL...",
+      "required": "Image required before saving"
     },
     "library": {
       "title": "My quizzes",

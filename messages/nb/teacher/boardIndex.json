@@ -14,23 +14,28 @@
       "rooms": "Rom",
       "active": "Live nå",
       "activities": "Aktiviteter",
-      "activitiesValue": "5"
+      "activitiesValue": "6"
     },
     "video": {
       "title": "Instruksjonsvideo",
       "text": "Her legger vi inn en kort opplæringsvideo når tavla er testet i ekte klasserom.",
-      "placeholder": "Videoplass klar"
-    },
-    "guide": {
-      "title": "Slik brukes tavla",
-      "step1": "1. Velg rommet du skal undervise i.",
-      "step2": "2. Åpne storskjermvisning og dra den til skjermen i klasserommet.",
-      "step3": "3. Start live aktivitet fra lærerflaten når elevene skal delta."
+      "button": "Instruksjonsvideo",
+      "buttonTitle": "Se hvordan du bruker tavla",
+      "close": "Lukk video"
     },
     "rooms": {
       "title": "Velg tavle i rom",
       "text": "Åpne tavla for et space, eller se raskt om en tavle allerede er live.",
       "manage": "Administrer spaces",
+      "search": "Søk etter rom eller kode...",
+      "showing": "Viser {shown} av {total}",
+      "prev": "Forrige",
+      "next": "Neste",
+      "sort": {
+        "live": "Live først",
+        "newest": "Nyeste",
+        "title": "Navn A-Å"
+      },
       "empty": "Du har ingen spaces ennå.",
       "untitled": "Uten navn",
       "live": "Live",
@@ -39,6 +44,13 @@
       "ready": "Klar til bruk",
       "activeMode": "Aktivitet: {mode}",
       "openBoard": "Åpne tavle"
+    },
+    "quiz": {
+      "kicker": "Quiz",
+      "title": "Siste publiserte quizer",
+      "create": "Lag ny quiz",
+      "library": "Åpne 321quiz",
+      "empty": "Ingen publiserte quizer ennå."
     },
     "modes": {
       "text": "Dagens spørsmål",

@@ -14,23 +14,28 @@
       "rooms": "Salas",
       "active": "Ao vivo agora",
       "activities": "Atividades",
-      "activitiesValue": "5"
+      "activitiesValue": "6"
     },
     "video": {
       "title": "Vídeo de instrução",
       "text": "Aqui colocaremos um vídeo curto de treinamento quando o quadro tiver sido testado em uma sala real.",
-      "placeholder": "Espaço do vídeo pronto"
-    },
-    "guide": {
-      "title": "Como usar o quadro",
-      "step1": "1. Escolha a sala em que você vai ensinar.",
-      "step2": "2. Abra a visualização de tela grande e mova-a para a tela da sala.",
-      "step3": "3. Inicie uma atividade ao vivo pela área do professor quando os alunos forem participar."
+      "button": "Vídeo de instrução",
+      "buttonTitle": "Veja como usar o quadro",
+      "close": "Fechar vídeo"
     },
     "rooms": {
       "title": "Escolha o quadro por sala",
       "text": "Abra o quadro de um Space ou veja rapidamente se algum quadro já está ao vivo.",
       "manage": "Administrar Spaces",
+      "search": "Pesquisar sala ou código...",
+      "showing": "Mostrando {shown} de {total}",
+      "prev": "Anterior",
+      "next": "Próximo",
+      "sort": {
+        "live": "Ao vivo primeiro",
+        "newest": "Mais recente",
+        "title": "Nome A-Z"
+      },
       "empty": "Você ainda não tem Spaces.",
       "untitled": "Sem título",
       "live": "Ao vivo",
@@ -39,6 +44,13 @@
       "ready": "Pronto para usar",
       "activeMode": "Atividade: {mode}",
       "openBoard": "Abrir quadro"
+    },
+    "quiz": {
+      "kicker": "Quiz",
+      "title": "Quizzes publicados recentemente",
+      "create": "Criar quiz",
+      "library": "Abrir 321quiz",
+      "empty": "Ainda não há quizzes publicados."
     },
     "modes": {
       "text": "Pergunta de hoje",

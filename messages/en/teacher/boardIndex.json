@@ -14,23 +14,28 @@
       "rooms": "Rooms",
       "active": "Live now",
       "activities": "Activities",
-      "activitiesValue": "5"
+      "activitiesValue": "6"
     },
     "video": {
       "title": "Training video",
       "text": "This is where we will add a short training video once the board has been tested in a real classroom.",
-      "placeholder": "Video placeholder ready"
-    },
-    "guide": {
-      "title": "How to use the board",
-      "step1": "1. Choose the room you are teaching in.",
-      "step2": "2. Open the big-screen view and move it to the classroom display.",
-      "step3": "3. Start a live activity from the teacher surface when students should participate."
+      "button": "Training video",
+      "buttonTitle": "See how to use the board",
+      "close": "Close video"
     },
     "rooms": {
       "title": "Choose board by room",
       "text": "Open the board for a Space, or quickly see whether a board is already live.",
       "manage": "Manage Spaces",
+      "search": "Search room or code...",
+      "showing": "Showing {shown} of {total}",
+      "prev": "Previous",
+      "next": "Next",
+      "sort": {
+        "live": "Live first",
+        "newest": "Newest",
+        "title": "Name A-Z"
+      },
       "empty": "You do not have any Spaces yet.",
       "untitled": "Untitled",
       "live": "Live",
@@ -39,6 +44,13 @@
       "ready": "Ready to use",
       "activeMode": "Activity: {mode}",
       "openBoard": "Open board"
+    },
+    "quiz": {
+      "kicker": "Quiz",
+      "title": "Latest published quizzes",
+      "create": "Create quiz",
+      "library": "Open 321quiz",
+      "empty": "No published quizzes yet."
     },
     "modes": {
       "text": "Today's question",
