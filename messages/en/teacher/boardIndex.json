@@ -24,9 +24,14 @@
       "close": "Close video"
     },
     "rooms": {
-      "title": "Choose board by room",
-      "text": "Open the board for a Space, or quickly see whether a board is already live.",
+      "title": "Go to board",
+      "text": "Choose the room where you want to open the board.",
       "manage": "Manage Spaces",
+      "openPicker": "Choose board",
+      "compactText": "You have {count} rooms. Choose the room where you want to use Board.",
+      "modalTitle": "Choose room",
+      "modalText": "Search or browse your rooms and open the board directly.",
+      "close": "Close",
       "search": "Search room or code...",
       "showing": "Showing {shown} of {total}",
       "prev": "Previous",

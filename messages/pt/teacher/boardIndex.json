@@ -24,9 +24,14 @@
       "close": "Fechar vídeo"
     },
     "rooms": {
-      "title": "Escolha o quadro por sala",
-      "text": "Abra o quadro de um Space ou veja rapidamente se algum quadro já está ao vivo.",
+      "title": "Ir para o quadro",
+      "text": "Escolha a sala onde você quer abrir o quadro.",
       "manage": "Administrar Spaces",
+      "openPicker": "Escolher quadro",
+      "compactText": "Você tem {count} salas. Escolha a sala onde quer usar o quadro.",
+      "modalTitle": "Escolher sala",
+      "modalText": "Pesquise ou navegue pelas suas salas e abra o quadro diretamente.",
+      "close": "Fechar",
       "search": "Pesquisar sala ou código...",
       "showing": "Mostrando {shown} de {total}",
       "prev": "Anterior",

@@ -8,7 +8,7 @@ import AuthGate from "@/components/AuthGate";
 import { auth, db, storage } from "@/lib/firebase";
 import { collection, doc, onSnapshot, setDoc, serverTimestamp, updateDoc, type Firestore } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { Check, Clock, Download, ExternalLink, MonitorUp, PauseCircle, Pencil, Play, RotateCcw, Send, Square, Users, X } from "lucide-react";
+import { Check, Clock, Download, ExternalLink, Menu, MonitorUp, PauseCircle, Pencil, Play, RotateCcw, Send, Square, Users, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
@@ -268,6 +268,7 @@ export default function TeacherBoardPage() {
   const [tab, setTab] = useState<TabKey>("question");
   const [showQuizDetails, setShowQuizDetails] = useState(false);
   const [showQuizPreview, setShowQuizPreview] = useState(false);
+  const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
 
   const present = false;
   const [showTimer, setShowTimer] = useState(true);
@@ -1276,6 +1277,23 @@ export default function TeacherBoardPage() {
     tab === "poll" ? startPollNewSession : tab === "wordwall" ? startWordwallNewSession : tab === "image" ? startImageNewSession : tab === "clock" ? startClockNewSession : tab === "quiz" ? startQuizNewSession : startLiveNewSession;
   const responseCount = tab === "quiz" ? boardQuizResponses.length : tab === "poll" ? pollResponses.length : tab === "wordwall" ? wordwallResponses.length : tab === "image" ? imageResponses.length : textResponses.length;
   const boardActionDisabled = tab === "quiz" && boardQuizQuestions.length === 0;
+
+  const activityTabs: Array<{ key: TabKey; label: string }> = [
+    { key: "question", label: t("tabs.question") },
+    { key: "poll", label: t("tabs.poll") },
+    { key: "wordwall", label: t("tabs.wordwall") },
+    { key: "image", label: t("tabs.image") },
+    { key: "clock", label: t("tabs.clock") },
+    { key: "quiz", label: t("tabs.quiz") },
+  ];
+
+  function selectActivity(next: TabKey) {
+    setTab(next);
+    if (next === "quiz") {
+      setShowQuizDetails(false);
+      setShowQuizPreview(false);
+    }
+  }
   const answersHidden = clearedAt !== null;
   const displayHref = spaceId ? `/${locale}/teacher/spaces/${spaceId}/board/display` : "#";
 
@@ -1312,32 +1330,31 @@ export default function TeacherBoardPage() {
 
                 {!present ? <div className="mt-2 max-w-2xl text-sm text-slate-600">{t("surface.workHint")}</div> : null}
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <TabButton active={tab === "question"} onClick={() => setTab("question")}>
-                    {t("tabs.question")}
-                  </TabButton>
-                  <TabButton active={tab === "poll"} onClick={() => setTab("poll")}>
-                    {t("tabs.poll")}
-                  </TabButton>
-                  <TabButton active={tab === "wordwall"} onClick={() => setTab("wordwall")}>
-                    {t("tabs.wordwall")}
-                  </TabButton>
-                  <TabButton active={tab === "image"} onClick={() => setTab("image")}>
-                    {t("tabs.image")}
-                  </TabButton>
-                  <TabButton active={tab === "clock"} onClick={() => setTab("clock")}>
-                    {t("tabs.clock")}
-                  </TabButton>
-                  <TabButton
-                    active={tab === "quiz"}
-                    onClick={() => {
-                      setTab("quiz");
-                      setShowQuizDetails(false);
-                      setShowQuizPreview(false);
-                    }}
-                  >
-                    {t("tabs.quiz")}
-                  </TabButton>
+                <div className="mt-4">
+                  <div className="hidden flex-wrap gap-2 md:flex">
+                    {activityTabs.map((item) => (
+                      <TabButton key={item.key} active={tab === item.key} onClick={() => selectActivity(item.key)}>
+                        {item.label}
+                      </TabButton>
+                    ))}
+                  </div>
+
+                  <label className="block md:hidden">
+                    <span className={present ? "mb-1 block text-xs font-black uppercase tracking-wide text-zinc-400" : "mb-1 block text-xs font-black uppercase tracking-wide text-slate-500"}>
+                      Aktivitet
+                    </span>
+                    <select
+                      value={tab}
+                      onChange={(event) => selectActivity(event.target.value as TabKey)}
+                      className={present ? "w-full rounded-xl border border-white/15 bg-zinc-900 px-3 py-3 text-sm font-black text-zinc-50 outline-none" : "w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm font-black text-slate-950 outline-none"}
+                    >
+                      {activityTabs.map((item) => (
+                        <option key={item.key} value={item.key}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </div>
 
@@ -2197,11 +2214,33 @@ export default function TeacherBoardPage() {
         <div className="fixed inset-x-0 bottom-0 z-20">
           <div
             className={[
-              "flex w-full flex-col gap-3 border-t p-3 shadow-2xl backdrop-blur md:flex-row md:items-center md:justify-between md:px-6",
+              "flex w-full flex-col gap-2 border-t p-3 shadow-2xl backdrop-blur md:gap-3 md:px-6",
               present ? "border-white/10 bg-zinc-900/95 text-zinc-50" : "border-slate-200 bg-white/95 text-slate-950",
             ].join(" ")}
           >
-            <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <div className="flex min-w-0 items-center justify-between gap-3 md:hidden">
+              <div
+                className={[
+                  "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold",
+                  active ? "bg-emerald-600 text-white" : present ? "bg-white/10 text-zinc-200" : "bg-slate-100 text-slate-700",
+                ].join(" ")}
+              >
+                <span className={["h-2.5 w-2.5 rounded-full", active ? "bg-white" : "bg-slate-400"].join(" ")} />
+                {active ? t("status.live") : t("status.notLive")}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMobileControlsOpen((open) => !open)}
+                className={present ? "inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-black text-zinc-100 hover:bg-white/10" : "inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-black hover:bg-slate-100"}
+                aria-expanded={mobileControlsOpen}
+              >
+                <Menu className="h-4 w-4" aria-hidden="true" />
+                Kontroller
+              </button>
+            </div>
+
+            <div className="hidden min-w-0 flex-wrap items-center gap-3 md:flex">
               <div
                 className={[
                   "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold",
@@ -2228,7 +2267,7 @@ export default function TeacherBoardPage() {
               ) : null}
             </div>
 
-            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
+            <div className="hidden w-full gap-2 md:flex md:w-auto md:flex-wrap md:items-center md:justify-end">
               {!active ? (
                 <button
                   onClick={newRoundAction}
@@ -2294,6 +2333,94 @@ export default function TeacherBoardPage() {
                 {t("actions.display")}
               </Link>
             </div>
+
+            {mobileControlsOpen ? (
+              <div className={present ? "grid grid-cols-2 gap-2 border-t border-white/10 pt-2" : "grid grid-cols-2 gap-2 border-t border-slate-200 pt-2"}>
+                {!active ? (
+                  <button
+                    onClick={() => {
+                      setMobileControlsOpen(false);
+                      void newRoundAction();
+                    }}
+                    disabled={boardActionDisabled}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <Play className="h-4 w-4" aria-hidden="true" />
+                    {t("actions.startLive")}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setMobileControlsOpen(false);
+                      void stopLive();
+                    }}
+                    className={present ? "inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-zinc-100 hover:bg-white/10" : "inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100"}
+                  >
+                    <Square className="h-4 w-4" aria-hidden="true" />
+                    {t("actions.stop")}
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setMobileControlsOpen(false);
+                    void liveAction();
+                  }}
+                  disabled={boardActionDisabled}
+                  className={present ? "inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-zinc-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45" : "inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"}
+                >
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                  {t("actions.updateBoard")}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMobileControlsOpen(false);
+                    void newRoundAction();
+                  }}
+                  disabled={boardActionDisabled}
+                  className={present ? "inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-zinc-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45" : "inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45"}
+                >
+                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                  {t("actions.newRound")}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMobileControlsOpen(false);
+                    void (answersHidden ? showAnswersAgain() : clearAnswersSoft());
+                  }}
+                  disabled={!activeSessionId}
+                  className={present ? "inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-zinc-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45" : "inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45"}
+                >
+                  {answersHidden ? <Users className="h-4 w-4" aria-hidden="true" /> : <PauseCircle className="h-4 w-4" aria-hidden="true" />}
+                  {answersHidden ? t("actions.showAnswers") : t("actions.clearAnswers")}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMobileControlsOpen(false);
+                    void toggleTimerVisibility();
+                  }}
+                  className={present ? "inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-zinc-100 hover:bg-white/10" : "inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100"}
+                  title={t("timer.toggleTitle")}
+                >
+                  <Clock className="h-4 w-4" aria-hidden="true" />
+                  {showTimer ? t("actions.hideTimer") : t("actions.showTimer")}
+                </button>
+
+                <Link
+                  href={displayHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setMobileControlsOpen(false)}
+                  className={present ? "inline-flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-zinc-950 hover:bg-zinc-200" : "inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"}
+                >
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                  {t("actions.display")}
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

@@ -24,9 +24,14 @@
       "close": "Lukk video"
     },
     "rooms": {
-      "title": "Velg tavle i rom",
-      "text": "Åpne tavla for et space, eller se raskt om en tavle allerede er live.",
+      "title": "Gå til tavle",
+      "text": "Velg rommet du vil åpne tavla i.",
       "manage": "Administrer spaces",
+      "openPicker": "Velg tavle",
+      "compactText": "Du har {count} rom. Velg rommet du vil bruke tavle i.",
+      "modalTitle": "Velg rom",
+      "modalText": "Søk eller bla i rommene dine, og åpne tavla direkte.",
+      "close": "Lukk",
       "search": "Søk etter rom eller kode...",
       "showing": "Viser {shown} av {total}",
       "prev": "Forrige",

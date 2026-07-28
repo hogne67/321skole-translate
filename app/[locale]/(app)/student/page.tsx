@@ -6,6 +6,7 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { useEffect, useState } from "react";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
+import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { db } from "@/lib/firebase";
 import {
@@ -677,6 +678,8 @@ export default function StudentDashboard() {
           actionLabel={t("billing.actions.open")}
         />
       </section>
+
+      <QuizDashboardSection locale={locale} />
 
       {!usageLoading && (
         <section

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { CheckCircle2, Clock3, Trophy } from "lucide-react";
+import { Award, CheckCircle2, Clock3, Medal, Trophy } from "lucide-react";
 
 type PublicQuestion = {
   type: string;
@@ -109,6 +109,11 @@ export default function PublicQuizSessionPage() {
   const currentKey = session ? `${session.id}:${session.currentIndex}` : "";
   const sent = sentKey === currentKey;
   const ownScore = useMemo(() => session?.scores.find((score) => score.participantId === participantId) ?? null, [participantId, session?.scores]);
+  const ownRank = useMemo(() => {
+    if (!participantId || !session?.scores.length) return null;
+    const index = session.scores.findIndex((score) => score.participantId === participantId);
+    return index >= 0 ? index + 1 : null;
+  }, [participantId, session?.scores]);
   const secondsLeft = useMemo(() => {
     if (!session || session.status !== "active") return null;
     const startedAt = session.phaseStartedAt || session.questionStartedAt;
@@ -241,11 +246,7 @@ export default function PublicQuizSessionPage() {
           </section>
         ) : session?.status === "finished" ? (
           <section className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-              <Trophy className="h-8 w-8" />
-            </div>
-            <h2 className="mt-5 text-3xl font-black">Quizen er ferdig!</h2>
-            {ownScore ? <p className="mt-2 text-lg font-bold text-slate-700">Du fikk {ownScore.score} poeng og {ownScore.correct} riktige.</p> : null}
+            <PersonalResult rank={ownRank} score={ownScore} />
             <div className="mt-6 grid gap-2">
               {session.scores.slice(0, 5).map((score, index) => (
                 <div key={score.participantId} className={["flex items-center justify-between rounded-2xl p-4", score.participantId === participantId ? "bg-emerald-50 ring-2 ring-emerald-200" : "bg-slate-50"].join(" ")}>
@@ -326,5 +327,54 @@ export default function PublicQuizSessionPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function PersonalResult({ rank, score }: { rank: number | null; score: ScoreRow | null }) {
+  if (rank === 1 && score) {
+    return (
+      <div className="relative overflow-hidden rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-center">
+        <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-amber-200/60" />
+        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-emerald-200/50" />
+        <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-300 text-slate-950 shadow-lg">
+          <Trophy className="h-10 w-10" />
+        </div>
+        <h2 className="relative mt-5 text-4xl font-black">Gratulerer!</h2>
+        <p className="relative mt-2 text-lg font-black text-amber-950">
+          Du vant quizen med {score.score} poeng.
+        </p>
+        <p className="relative mt-1 text-sm font-bold text-slate-700">
+          {score.correct} riktige svar. Skikkelig godt jobbet.
+        </p>
+      </div>
+    );
+  }
+
+  if (rank && rank <= 3 && score) {
+    return (
+      <div className="rounded-[2rem] border border-violet-200 bg-violet-50 p-6 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-violet-200 text-violet-950">
+          <Medal className="h-8 w-8" />
+        </div>
+        <h2 className="mt-5 text-3xl font-black">{rank}. plass!</h2>
+        <p className="mt-2 text-lg font-bold text-slate-700">
+          Du fikk {score.score} poeng og {score.correct} riktige.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[2rem] border border-emerald-100 bg-white p-1 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+        <Award className="h-8 w-8" />
+      </div>
+      <h2 className="mt-5 text-3xl font-black">Quizen er ferdig!</h2>
+      {score ? (
+        <p className="mt-2 text-lg font-bold text-slate-700">
+          Du fikk {score.score} poeng og {score.correct} riktige.
+        </p>
+      ) : null}
+    </div>
   );
 }

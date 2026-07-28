@@ -187,7 +187,7 @@ export default function QuizSessionDisplayPage() {
       return;
     }
     if (session.phase === "reveal" && session.phaseStartedAt && Date.now() - session.phaseStartedAt >= session.revealSeconds * 1000) {
-      void control("showResults");
+      void control(session.currentIndex + 1 >= session.questions.length ? "finish" : "showResults");
       return;
     }
     if (session.phase === "results" && session.phaseStartedAt && Date.now() - session.phaseStartedAt >= session.resultsSeconds * 1000) {
@@ -223,59 +223,64 @@ export default function QuizSessionDisplayPage() {
           <Finished scores={session.scores} />
         ) : session?.status === "active" && question ? (
           <div className="mt-8 flex min-h-0 flex-1 flex-col">
-            <div className="flex items-start justify-between gap-8">
-              <div>
-                <div className="text-sm font-black uppercase tracking-[0.22em] text-violet-300">{session.title}</div>
-                <div className="mt-2 text-xl font-bold text-white/65">Spørsmål {session.currentIndex + 1} av {session.questions.length} · {totalAnswers} svar</div>
-                <h1 className="mt-5 max-w-5xl text-5xl font-black leading-[1.05] tracking-tight">{question.question}</h1>
-              </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                {session.mode === "manual" ? (
-                  <button onClick={() => control("showAnswer")} disabled={busy || session.showAnswer} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-300 px-5 py-4 font-black text-slate-950 disabled:opacity-40">
-                    <Eye className="h-5 w-5" />
-                    Vis svar
-                  </button>
-                ) : null}
-                <button onClick={() => control("next")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-4 font-black disabled:opacity-40">
-                  Neste
-                  <ArrowRight className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-
-            {secondsLeft !== null ? (
-              <TimerLine
-                secondsLeft={secondsLeft}
-                total={session.phase === "next" ? session.nextSeconds : session.phase === "results" ? session.resultsSeconds : session.phase === "reveal" ? session.revealSeconds : session.answerSeconds}
-                label={session.phase === "next" ? "Neste spørsmål" : session.phase === "results" ? "Resultat" : session.phase === "reveal" ? "Forklaring" : "Tid igjen"}
-              />
-            ) : null}
-
-            {session.phase === "results" ? <TopResults scores={session.scores} /> : null}
-            {session.phase === "next" ? <NextCountdown secondsLeft={secondsLeft ?? session.nextSeconds} /> : null}
-
-            <div className="mt-6 grid min-h-0 gap-4 overflow-hidden">
-              {question.options.map((option, index) => {
-                const count = session.counts[option] ?? 0;
-                const pct = Math.round((count / (totalAnswers || 1)) * 100);
-                const correct = session.showAnswer && index === question.correctIndex;
-                return (
-                  <div key={option} className={["rounded-[1.5rem] p-5", correct ? "bg-emerald-300 text-slate-950" : "bg-white/[0.07] text-white"].join(" ")}>
-                    <div className="flex items-center justify-between gap-5 text-2xl font-black">
-                      <div className="flex items-center gap-4">
-                        {correct ? <span className="rounded-full bg-slate-950 px-4 py-2 text-lg text-white">Riktig</span> : null}
-                        {option}
-                      </div>
-                      <div>{count} · {pct}%</div>
-                    </div>
-                    <div className="mt-4 h-4 overflow-hidden rounded-full bg-black/20">
-                      <div className={["h-full rounded-full", correct ? "bg-slate-950" : "bg-violet-400"].join(" ")} style={{ width: `${pct}%` }} />
-                    </div>
-                    {correct && question.explanation ? <div className="mt-4 max-w-4xl text-xl font-bold leading-snug">{question.explanation}</div> : null}
+            {session.phase === "results" ? (
+              <CleanResultsScene scores={session.scores} secondsLeft={secondsLeft ?? session.resultsSeconds} total={session.resultsSeconds} />
+            ) : session.phase === "next" ? (
+              <CleanNextScene secondsLeft={secondsLeft ?? session.nextSeconds} total={session.nextSeconds} />
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-8">
+                  <div>
+                    <div className="text-sm font-black uppercase tracking-[0.22em] text-violet-300">{session.title}</div>
+                    <div className="mt-2 text-xl font-bold text-white/65">Spørsmål {session.currentIndex + 1} av {session.questions.length} · {totalAnswers} svar</div>
+                    <h1 className="mt-5 max-w-5xl text-5xl font-black leading-[1.05] tracking-tight">{question.question}</h1>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {session.mode === "manual" ? (
+                      <button onClick={() => control("showAnswer")} disabled={busy || session.showAnswer} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-300 px-5 py-4 font-black text-slate-950 disabled:opacity-40">
+                        <Eye className="h-5 w-5" />
+                        Vis svar
+                      </button>
+                    ) : null}
+                    <button onClick={() => control("next")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-4 font-black disabled:opacity-40">
+                      Neste
+                      <ArrowRight className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {secondsLeft !== null ? (
+                  <TimerLine
+                    secondsLeft={secondsLeft}
+                    total={session.phase === "reveal" ? session.revealSeconds : session.answerSeconds}
+                    label={session.phase === "reveal" ? "Forklaring" : "Tid igjen"}
+                  />
+                ) : null}
+
+                <div className="mt-6 grid min-h-0 gap-4 overflow-hidden">
+                  {question.options.map((option, index) => {
+                    const count = session.counts[option] ?? 0;
+                    const pct = Math.round((count / (totalAnswers || 1)) * 100);
+                    const correct = session.showAnswer && index === question.correctIndex;
+                    return (
+                      <div key={option} className={["rounded-[1.5rem] p-5", correct ? "bg-emerald-300 text-slate-950" : "bg-white/[0.07] text-white"].join(" ")}>
+                        <div className="flex items-center justify-between gap-5 text-2xl font-black">
+                          <div className="flex items-center gap-4">
+                            {correct ? <span className="rounded-full bg-slate-950 px-4 py-2 text-lg text-white">Riktig</span> : null}
+                            {option}
+                          </div>
+                          <div>{count} · {pct}%</div>
+                        </div>
+                        <div className="mt-4 h-4 overflow-hidden rounded-full bg-black/20">
+                          <div className={["h-full rounded-full", correct ? "bg-slate-950" : "bg-violet-400"].join(" ")} style={{ width: `${pct}%` }} />
+                        </div>
+                        {correct && question.explanation ? <div className="mt-4 max-w-4xl text-xl font-bold leading-snug">{question.explanation}</div> : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <Lobby
@@ -425,14 +430,40 @@ function TopResults({ scores }: { scores: ScoreRow[] }) {
   );
 }
 
+function CleanResultsScene({ scores, secondsLeft, total }: { scores: ScoreRow[]; secondsLeft: number; total: number }) {
+  return (
+    <section className="flex flex-1 flex-col justify-center">
+      <div className="text-center">
+        <div className="text-sm font-black uppercase tracking-[0.24em] text-amber-300">Resultat så langt</div>
+        <h1 className="mt-4 text-6xl font-black">Topp 3</h1>
+      </div>
+      <TopResults scores={scores} />
+      <div className="mt-8">
+        <TimerLine secondsLeft={secondsLeft} total={total} label="Videre om" />
+      </div>
+    </section>
+  );
+}
+
+function CleanNextScene({ secondsLeft, total }: { secondsLeft: number; total: number }) {
+  return (
+    <section className="flex flex-1 flex-col justify-center">
+      <NextCountdown secondsLeft={secondsLeft} />
+      <div className="mt-8">
+        <TimerLine secondsLeft={secondsLeft} total={total} label="Neste spørsmål" />
+      </div>
+    </section>
+  );
+}
+
 function NextCountdown({ secondsLeft }: { secondsLeft: number }) {
   return (
-    <section className="mt-5 flex items-center justify-between rounded-[1.5rem] bg-violet-300 px-6 py-5 text-slate-950">
+    <section className="mx-auto flex w-full max-w-5xl items-center justify-between rounded-[2rem] bg-violet-300 px-10 py-10 text-slate-950">
       <div>
         <div className="text-sm font-black uppercase tracking-[0.2em] opacity-70">Neste spørsmål</div>
-        <div className="text-3xl font-black">Gjør dere klare</div>
+        <div className="mt-2 text-5xl font-black">Gjør dere klare</div>
       </div>
-      <div className="text-6xl font-black tabular-nums">{secondsLeft}</div>
+      <div className="text-8xl font-black tabular-nums">{secondsLeft}</div>
     </section>
   );
 }

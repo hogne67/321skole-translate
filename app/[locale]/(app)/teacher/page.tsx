@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { DashboardIntro } from "@/components/DashboardIntro";
+import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { canAccessAcademy } from "@/lib/courses/academyAccess";
 import { db } from "@/lib/firebase";
@@ -1615,6 +1616,8 @@ export default function TeacherPage() {
           </div>
         </div>
       </section>
+
+      <QuizDashboardSection locale={locale} />
 
       {showCoursesSection ? (
         <section style={dashboardSectionStyle}>

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
+import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { useUsage } from "@/lib/useUsage";
 import {
@@ -412,6 +413,8 @@ export default function ParentPage() {
           actionLabel={t("billing.actions.open")}
         />
       </section>
+
+      <QuizDashboardSection locale={locale} />
 
       {!loading && (
         <section style={statGridStyle}>

@@ -8,7 +8,7 @@ import { db } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { ArrowLeft, ArrowRight, ExternalLink, Library, MonitorUp, Radio, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Library, MonitorUp, Radio, Sparkles, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 type SpaceRow = { id: string; data: SpaceDoc & { createdAt?: unknown } };
@@ -103,8 +103,9 @@ function TeacherBoardIndexInner() {
   const [spaces, setSpaces] = useState<SpaceRow[]>([]);
   const [boardStates, setBoardStates] = useState<Record<string, BoardState | null>>({});
   const [spaceSearch, setSpaceSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("live");
+  const [sortKey] = useState<SortKey>("title_az");
   const [spacePage, setSpacePage] = useState(0);
+  const [spacePickerOpen, setSpacePickerOpen] = useState(false);
   const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
 
   const canUse = profile?.role === "teacher" || profile?.role === "admin";
@@ -163,11 +164,6 @@ function TeacherBoardIndexInner() {
       .catch(() => setQuizzes([]));
   }, [canUse]);
 
-  const activeCount = useMemo(
-    () => spaces.filter((space) => boardStates[space.id]?.active === true).length,
-    [boardStates, spaces]
-  );
-
   const filteredSpaces = useMemo(() => {
     const search = spaceSearch.trim().toLowerCase();
     const list = spaces.filter((space) => {
@@ -215,11 +211,6 @@ function TeacherBoardIndexInner() {
           <div className="min-w-0 flex-1">
             <h1 className="m-0 text-2xl font-semibold tracking-tight text-slate-900">{t("hero.title")}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("hero.text")}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <InfoPill label={t("stats.rooms")} value={String(spaces.length)} />
-              <InfoPill label={t("stats.active")} value={String(activeCount)} />
-              <InfoPill label={t("stats.activities")} value={t("stats.activitiesValue")} />
-            </div>
           </div>
 
           <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
@@ -245,93 +236,109 @@ function TeacherBoardIndexInner() {
             </div>
             <p className="mt-1 text-sm text-slate-600">{t("rooms.text")}</p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto] lg:w-[680px]">
-            <input
-              value={spaceSearch}
-              onChange={(event) => setSpaceSearch(event.target.value)}
-              placeholder={t("rooms.search")}
-              className="min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-            />
-            <select
-              value={sortKey}
-              onChange={(event) => setSortKey(event.target.value as SortKey)}
-              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="live">{t("rooms.sort.live")}</option>
-              <option value="newest">{t("rooms.sort.newest")}</option>
-              <option value="title_az">{t("rooms.sort.title")}</option>
-            </select>
-            <Link href={`/${locale}/teacher/spaces`} className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold hover:bg-slate-50">
-              {t("rooms.manage")}
-            </Link>
-          </div>
+          <button
+            type="button"
+            onClick={() => setSpacePickerOpen(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800"
+          >
+            {t("rooms.openPicker")}
+            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+          </button>
         </div>
 
         {spaces.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">{t("rooms.empty")}</div>
         ) : (
-          <>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {visibleSpaces.map((space) => {
-                const state = boardStates[space.id] ?? null;
-                const isLive = state?.active === true;
-                const title = safeString(space.data.title, t("rooms.untitled"));
-
-                return (
-                  <Link
-                    key={space.id}
-                    href={`/${locale}/teacher/spaces/${space.id}/board`}
-                    className="group min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 no-underline transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:shadow-md"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="truncate text-base font-black text-slate-950">{title}</h3>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                          <Radio className="h-4 w-4" aria-hidden="true" />
-                          <span>{isLive ? t("rooms.activeMode", { mode: modeLabel(t, state?.mode) }) : t("rooms.ready")}</span>
-                        </div>
-                      </div>
-                      <span className={["inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-black", isLive ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"].join(" ")}>
-                        <span className={["h-2 w-2 rounded-full", isLive ? "bg-emerald-500" : "bg-slate-400"].join(" ")} />
-                        {isLive ? t("rooms.live") : state ? t("rooms.notLive") : t("rooms.notStarted")}
-                      </span>
-                    </div>
-                    <div className="mt-4 inline-flex items-center gap-2 text-sm font-black text-slate-950 group-hover:text-blue-700">
-                      {t("rooms.openBoard")}
-                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-slate-500">{t("rooms.showing", { shown: visibleSpaces.length, total: filteredSpaces.length })}</div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSpacePage((page) => Math.max(0, page - 1))}
-                  disabled={spacePage === 0}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  {t("rooms.prev")}
-                </button>
-                <span className="rounded-full bg-slate-100 px-3 py-2 text-sm font-bold text-slate-600">{spacePage + 1} / {pageCount}</span>
-                <button
-                  type="button"
-                  onClick={() => setSpacePage((page) => Math.min(pageCount - 1, page + 1))}
-                  disabled={spacePage >= pageCount - 1}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {t("rooms.next")}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </>
+          <div className="mt-4 rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-600">
+            {t("rooms.compactText", { count: spaces.length })}
+          </div>
         )}
       </section>
+
+      {spacePickerOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
+          <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+              <div>
+                <h3 className="text-xl font-black text-slate-950">{t("rooms.modalTitle")}</h3>
+                <p className="mt-1 text-sm text-slate-600">{t("rooms.modalText")}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSpacePickerOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50"
+                aria-label={t("rooms.close")}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-4">
+              <input
+                value={spaceSearch}
+                onChange={(event) => setSpaceSearch(event.target.value)}
+                placeholder={t("rooms.search")}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-500"
+              />
+
+              <div className="mt-3 max-h-[420px] overflow-y-auto pr-1">
+                <div className="grid gap-2">
+                  {visibleSpaces.map((space) => {
+                    const state = boardStates[space.id] ?? null;
+                    const isLive = state?.active === true;
+                    const title = safeString(space.data.title, t("rooms.untitled"));
+
+                    return (
+                      <Link
+                        key={space.id}
+                        href={`/${locale}/teacher/spaces/${space.id}/board`}
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 no-underline hover:border-blue-200 hover:bg-white"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-black text-slate-950">{title}</div>
+                          <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                            <Radio className="h-4 w-4" aria-hidden="true" />
+                            {isLive ? t("rooms.activeMode", { mode: modeLabel(t, state?.mode) }) : t("rooms.ready")}
+                          </div>
+                        </div>
+                        <span className={["inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-black", isLive ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"].join(" ")}>
+                          <span className={["h-2 w-2 rounded-full", isLive ? "bg-emerald-500" : "bg-slate-400"].join(" ")} />
+                          {isLive ? t("rooms.live") : t("rooms.notLive")}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-slate-500">{t("rooms.showing", { shown: visibleSpaces.length, total: filteredSpaces.length })}</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSpacePage((page) => Math.max(0, page - 1))}
+                    disabled={spacePage === 0}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    {t("rooms.prev")}
+                  </button>
+                  <span className="rounded-full bg-slate-100 px-3 py-2 text-sm font-bold text-slate-600">{spacePage + 1} / {pageCount}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSpacePage((page) => Math.min(pageCount - 1, page + 1))}
+                    disabled={spacePage >= pageCount - 1}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {t("rooms.next")}
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-sm">
         <div className="flex flex-col gap-3 border-b border-violet-100 bg-violet-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -393,15 +400,6 @@ function TeacherBoardIndexInner() {
           50% { transform: translateY(-3px); }
         }
       `}</style>
-    </div>
-  );
-}
-
-function InfoPill({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-      <div className="text-xs font-medium text-slate-500">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-slate-950">{value}</div>
     </div>
   );
 }
