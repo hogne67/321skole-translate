@@ -60,6 +60,8 @@ export async function POST(req: Request) {
       showAnswer: false,
       questionStartedAt: null,
       answerShownAt: null,
+      phase: "answer",
+      phaseStartedAt: null,
       answerSeconds: 30,
       revealSeconds: 20,
       resultsSeconds: 20,

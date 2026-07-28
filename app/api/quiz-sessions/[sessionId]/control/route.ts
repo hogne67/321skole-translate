@@ -72,6 +72,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ sessionId: str
           showAnswer: false,
           questionStartedAt: now,
           answerShownAt: null,
+          phase: "answer",
+          phaseStartedAt: now,
           ...timingPayload,
           updatedAt: FieldValue.serverTimestamp(),
         },
@@ -81,7 +83,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ sessionId: str
     }
 
     if (action === "showAnswer") {
-      await sessionRef.set({ showAnswer: true, answerShownAt: now, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      await sessionRef.set({ showAnswer: true, answerShownAt: now, phase: "reveal", phaseStartedAt: now, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      return json({ ok: true });
+    }
+
+    if (action === "showResults") {
+      await sessionRef.set({ showAnswer: true, phase: "results", phaseStartedAt: now, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      return json({ ok: true });
+    }
+
+    if (action === "countdown") {
+      await sessionRef.set({ showAnswer: true, phase: "next", phaseStartedAt: now, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       return json({ ok: true });
     }
 
@@ -97,6 +109,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ sessionId: str
             showAnswer: false,
             questionStartedAt: now,
             answerShownAt: null,
+            phase: "answer",
+            phaseStartedAt: now,
             updatedAt: FieldValue.serverTimestamp(),
           },
           { merge: true }
@@ -124,6 +138,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ sessionId: str
           showAnswer: false,
           questionStartedAt: null,
           answerShownAt: null,
+          phase: "answer",
+          phaseStartedAt: null,
           updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }

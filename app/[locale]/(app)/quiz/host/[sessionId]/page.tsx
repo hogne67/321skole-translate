@@ -106,10 +106,6 @@ export default function QuizHostPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [qrUrl, setQrUrl] = useState("");
-  const [answerSeconds, setAnswerSeconds] = useState(30);
-  const [revealSeconds, setRevealSeconds] = useState(20);
-  const [resultsSeconds, setResultsSeconds] = useState(20);
-  const [nextSeconds, setNextSeconds] = useState(5);
 
   const joinUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -132,12 +128,6 @@ export default function QuizHostPage() {
     }
     const nextSession = normalizeSession(data);
     setSession(nextSession);
-    if (nextSession?.status === "lobby") {
-      setAnswerSeconds(nextSession.answerSeconds);
-      setRevealSeconds(nextSession.revealSeconds);
-      setResultsSeconds(nextSession.resultsSeconds);
-      setNextSeconds(nextSession.nextSeconds);
-    }
     setError(null);
   }, [sessionId]);
 
@@ -167,7 +157,7 @@ export default function QuizHostPage() {
       const res = await fetch(`/api/quiz-sessions/${encodeURIComponent(sessionId)}/control`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action, mode, answerSeconds, revealSeconds, resultsSeconds, nextSeconds }),
+        body: JSON.stringify({ action, mode }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: unknown };
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke styre økten.");
@@ -257,18 +247,6 @@ export default function QuizHostPage() {
                     Visningsskjerm
                   </Link>
                 </div>
-                <TimingControls
-                  answerSeconds={answerSeconds}
-                  revealSeconds={revealSeconds}
-                  resultsSeconds={resultsSeconds}
-                  nextSeconds={nextSeconds}
-                  setAnswerSeconds={setAnswerSeconds}
-                  setRevealSeconds={setRevealSeconds}
-                  setResultsSeconds={setResultsSeconds}
-                  setNextSeconds={setNextSeconds}
-                  onSave={() => control("settings")}
-                  disabled={busy}
-                />
               </div>
             ) : session && question ? (
               <div>
@@ -338,85 +316,6 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-slate-200 bg-white p-3">
       <div className="text-xs font-bold text-slate-500">{label}</div>
       <div className="mt-1 text-2xl font-black">{value}</div>
-    </div>
-  );
-}
-
-function TimingControls({
-  answerSeconds,
-  revealSeconds,
-  resultsSeconds,
-  nextSeconds,
-  setAnswerSeconds,
-  setRevealSeconds,
-  setResultsSeconds,
-  setNextSeconds,
-  onSave,
-  disabled,
-}: {
-  answerSeconds: number;
-  revealSeconds: number;
-  resultsSeconds: number;
-  nextSeconds: number;
-  setAnswerSeconds: (value: number) => void;
-  setRevealSeconds: (value: number) => void;
-  setResultsSeconds: (value: number) => void;
-  setNextSeconds: (value: number) => void;
-  onSave: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <div className="mt-8 w-full max-w-3xl rounded-[2rem] border border-slate-200 bg-slate-50 p-4 text-left">
-      <div className="text-sm font-black uppercase tracking-[0.16em] text-slate-500">Tider for visning</div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <ChoiceGroup label="Svarfrist" value={answerSeconds} values={[15, 30, 60]} suffix="sek" onChange={setAnswerSeconds} />
-        <ChoiceGroup label="Riktig svar" value={revealSeconds} values={[10, 20, 30]} suffix="sek" onChange={setRevealSeconds} />
-        <ChoiceGroup label="Resultat" value={resultsSeconds} values={[10, 20, 30]} suffix="sek" onChange={setResultsSeconds} />
-        <ChoiceGroup label="Nedtelling" value={nextSeconds} values={[5, 10]} suffix="sek" onChange={setNextSeconds} />
-      </div>
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={disabled}
-        className="mt-4 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black hover:bg-slate-100 disabled:opacity-50"
-      >
-        Lagre tider
-      </button>
-    </div>
-  );
-}
-
-function ChoiceGroup({
-  label,
-  value,
-  values,
-  suffix,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  values: number[];
-  suffix: string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className="rounded-2xl bg-white p-3">
-      <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">{label}</div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {values.map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => onChange(item)}
-            className={[
-              "rounded-xl border px-3 py-2 text-sm font-black",
-              value === item ? "border-slate-950 bg-slate-950 text-white" : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50",
-            ].join(" ")}
-          >
-            {item} {suffix}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

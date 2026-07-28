@@ -24,6 +24,8 @@ export type QuizSessionDoc = {
   showAnswer?: boolean;
   questionStartedAt?: number | null;
   answerShownAt?: number | null;
+  phase?: "answer" | "reveal" | "results" | "next";
+  phaseStartedAt?: number | null;
   answerSeconds?: number;
   revealSeconds?: number;
   resultsSeconds?: number;

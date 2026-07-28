@@ -30,6 +30,13 @@ type SessionView = {
   imageUrl: string;
   currentIndex: number;
   showAnswer: boolean;
+  questionStartedAt: number | null;
+  phase: "answer" | "reveal" | "results" | "next";
+  phaseStartedAt: number | null;
+  answerSeconds: number;
+  revealSeconds: number;
+  resultsSeconds: number;
+  nextSeconds: number;
   questions: PublicQuestion[];
   scores: ScoreRow[];
 };
@@ -58,6 +65,13 @@ function normalizeSession(value: unknown): SessionView | null {
     imageUrl: safeString(session.imageUrl),
     currentIndex: typeof session.currentIndex === "number" ? session.currentIndex : 0,
     showAnswer: session.showAnswer === true,
+    questionStartedAt: typeof session.questionStartedAt === "number" ? session.questionStartedAt : null,
+    phase: session.phase === "reveal" || session.phase === "results" || session.phase === "next" ? session.phase : "answer",
+    phaseStartedAt: typeof session.phaseStartedAt === "number" ? session.phaseStartedAt : null,
+    answerSeconds: typeof session.answerSeconds === "number" ? session.answerSeconds : 30,
+    revealSeconds: typeof session.revealSeconds === "number" ? session.revealSeconds : 20,
+    resultsSeconds: typeof session.resultsSeconds === "number" ? session.resultsSeconds : 20,
+    nextSeconds: typeof session.nextSeconds === "number" ? session.nextSeconds : 5,
     questions: questions.filter(isRecord).map((q) => ({
       type: safeString(q.type, "multiple_choice"),
       question: safeString(q.question),
@@ -89,11 +103,25 @@ export default function PublicQuizSessionPage() {
   const [sentKey, setSentKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   const question = session?.questions[session.currentIndex] ?? null;
   const currentKey = session ? `${session.id}:${session.currentIndex}` : "";
   const sent = sentKey === currentKey;
   const ownScore = useMemo(() => session?.scores.find((score) => score.participantId === participantId) ?? null, [participantId, session?.scores]);
+  const secondsLeft = useMemo(() => {
+    if (!session || session.status !== "active") return null;
+    const startedAt = session.phaseStartedAt || session.questionStartedAt;
+    if (!startedAt) return null;
+    const total = session.phase === "next"
+      ? session.nextSeconds
+      : session.phase === "results"
+        ? session.resultsSeconds
+        : session.phase === "reveal"
+          ? session.revealSeconds
+          : session.answerSeconds;
+    return Math.max(0, total - Math.floor((now - startedAt) / 1000));
+  }, [now, session]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/quiz-sessions/${encodeURIComponent(sessionId)}`);
@@ -124,6 +152,11 @@ export default function PublicQuizSessionPage() {
     const timer = window.setInterval(() => void load(), 1400);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     setChoice("");
@@ -235,6 +268,35 @@ export default function PublicQuizSessionPage() {
               <span>Spørsmål {(session?.currentIndex ?? 0) + 1} av {session?.questions.length ?? 0}</span>
               <span>{emoji} {alias}</span>
             </div>
+            {secondsLeft !== null ? (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <div className="mb-2 flex items-center justify-between text-base font-black text-slate-700">
+                  <span>{session?.phase === "next" ? "Neste spørsmål" : session?.phase === "results" ? "Resultat" : session?.phase === "reveal" ? "Riktig svar" : "Tid igjen"}</span>
+                  <span className="rounded-full bg-slate-950 px-3 py-1 text-white">{secondsLeft}s</span>
+                </div>
+                <div className="h-4 overflow-hidden rounded-full bg-white">
+                  <div
+                    className={[
+                      "h-full rounded-full",
+                      session?.phase === "next" ? "bg-violet-500" : session?.phase === "results" ? "bg-amber-400" : "bg-emerald-500",
+                    ].join(" ")}
+                    style={{
+                      width: `${Math.max(0, Math.min(100, (((session?.phase === "next" ? session.nextSeconds : session?.phase === "results" ? session.resultsSeconds : session?.phase === "reveal" ? session.revealSeconds : session?.answerSeconds ?? 30) - secondsLeft) / Math.max(1, session?.phase === "next" ? session.nextSeconds : session?.phase === "results" ? session.resultsSeconds : session?.phase === "reveal" ? session.revealSeconds : session?.answerSeconds ?? 30)) * 100))}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
+            {session?.phase === "results" ? (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-black text-amber-950">
+                Resultat vises på skjermen.
+              </div>
+            ) : null}
+            {session?.phase === "next" ? (
+              <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm font-black text-violet-950">
+                Neste spørsmål starter straks.
+              </div>
+            ) : null}
             <h2 className="mt-4 text-3xl font-black leading-tight">{question.question}</h2>
             <div className="mt-6 grid gap-3">
               {question.options.map((option, index) => {

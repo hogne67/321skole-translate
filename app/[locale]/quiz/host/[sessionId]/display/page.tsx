@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
-import { ArrowRight, Eye, Pause, Play, RotateCcw, Trophy } from "lucide-react";
+import { ArrowRight, Eye, Pause, Play, RotateCcw, X, Trophy } from "lucide-react";
 
 type Question = {
   question: string;
@@ -32,6 +32,8 @@ type SessionView = {
   showAnswer: boolean;
   questionStartedAt: number | null;
   answerShownAt: number | null;
+  phase: "answer" | "reveal" | "results" | "next";
+  phaseStartedAt: number | null;
   answerSeconds: number;
   revealSeconds: number;
   resultsSeconds: number;
@@ -67,6 +69,8 @@ function normalizeSession(value: unknown): SessionView | null {
     showAnswer: session.showAnswer === true,
     questionStartedAt: typeof session.questionStartedAt === "number" ? session.questionStartedAt : null,
     answerShownAt: typeof session.answerShownAt === "number" ? session.answerShownAt : null,
+    phase: session.phase === "reveal" || session.phase === "results" || session.phase === "next" ? session.phase : "answer",
+    phaseStartedAt: typeof session.phaseStartedAt === "number" ? session.phaseStartedAt : null,
     answerSeconds: typeof session.answerSeconds === "number" ? session.answerSeconds : 30,
     revealSeconds: typeof session.revealSeconds === "number" ? session.revealSeconds : 20,
     resultsSeconds: typeof session.resultsSeconds === "number" ? session.resultsSeconds : 20,
@@ -102,15 +106,22 @@ export default function QuizSessionDisplayPage() {
   const [revealSeconds, setRevealSeconds] = useState(20);
   const [resultsSeconds, setResultsSeconds] = useState(20);
   const [nextSeconds, setNextSeconds] = useState(5);
+  const [timingDirty, setTimingDirty] = useState(false);
 
   const question = session?.questions[session.currentIndex] ?? null;
   const totalAnswers = session?.currentAnswerCount ?? 0;
 
   const secondsLeft = useMemo(() => {
     if (!session || session.status !== "active") return null;
-    const startedAt = session.showAnswer ? session.answerShownAt : session.questionStartedAt;
+    const startedAt = session.phaseStartedAt || (session.showAnswer ? session.answerShownAt : session.questionStartedAt);
     if (!startedAt) return null;
-    const total = session.showAnswer ? session.revealSeconds : session.answerSeconds;
+    const total = session.phase === "next"
+      ? session.nextSeconds
+      : session.phase === "results"
+        ? session.resultsSeconds
+        : session.phase === "reveal"
+          ? session.revealSeconds
+          : session.answerSeconds;
     return Math.max(0, total - Math.floor((Date.now() - startedAt) / 1000));
   }, [session]);
 
@@ -129,14 +140,14 @@ export default function QuizSessionDisplayPage() {
     }
     const nextSession = normalizeSession(data);
     setSession(nextSession);
-    if (nextSession?.status === "lobby") {
+    if (nextSession?.status === "lobby" && !timingDirty) {
       setAnswerSeconds(nextSession.answerSeconds);
       setRevealSeconds(nextSession.revealSeconds);
       setResultsSeconds(nextSession.resultsSeconds);
       setNextSeconds(nextSession.nextSeconds);
     }
     setError("");
-  }, [sessionId]);
+  }, [sessionId, timingDirty]);
 
   useEffect(() => onAuthStateChanged(getAuth(), setUser), []);
 
@@ -161,6 +172,7 @@ export default function QuizSessionDisplayPage() {
       const data = (await res.json().catch(() => ({}))) as { error?: unknown };
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke styre økten.");
       await load();
+      if (action === "settings") setTimingDirty(false);
     } catch (event) {
       setError(event instanceof Error ? event.message : "Kunne ikke styre økten.");
     } finally {
@@ -170,11 +182,19 @@ export default function QuizSessionDisplayPage() {
 
   useEffect(() => {
     if (!session || session.mode !== "auto" || session.status !== "active" || busy) return;
-    if (!session.showAnswer && session.questionStartedAt && Date.now() - session.questionStartedAt >= session.answerSeconds * 1000) {
+    if (session.phase === "answer" && session.phaseStartedAt && Date.now() - session.phaseStartedAt >= session.answerSeconds * 1000) {
       void control("showAnswer");
       return;
     }
-    if (session.showAnswer && session.answerShownAt && Date.now() - session.answerShownAt >= session.revealSeconds * 1000) {
+    if (session.phase === "reveal" && session.phaseStartedAt && Date.now() - session.phaseStartedAt >= session.revealSeconds * 1000) {
+      void control("showResults");
+      return;
+    }
+    if (session.phase === "results" && session.phaseStartedAt && Date.now() - session.phaseStartedAt >= session.resultsSeconds * 1000) {
+      void control(session.currentIndex + 1 >= session.questions.length ? "finish" : "countdown");
+      return;
+    }
+    if (session.phase === "next" && session.phaseStartedAt && Date.now() - session.phaseStartedAt >= session.nextSeconds * 1000) {
       void control("next");
     }
   }, [busy, control, session]);
@@ -184,8 +204,8 @@ export default function QuizSessionDisplayPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#08090b] px-8 py-8 text-white">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1800px] flex-col">
+    <main className="h-screen overflow-hidden bg-[#08090b] px-8 py-6 text-white">
+      <div className="mx-auto flex h-full max-w-[1800px] flex-col">
         <header className="flex items-start justify-between gap-6">
           <div>
             <div className="text-sm font-black uppercase tracking-[0.22em] text-emerald-300">321skole tavle</div>
@@ -202,18 +222,20 @@ export default function QuizSessionDisplayPage() {
         {session?.status === "finished" ? (
           <Finished scores={session.scores} />
         ) : session?.status === "active" && question ? (
-          <div className="mt-10 flex flex-1 flex-col">
+          <div className="mt-8 flex min-h-0 flex-1 flex-col">
             <div className="flex items-start justify-between gap-8">
               <div>
                 <div className="text-sm font-black uppercase tracking-[0.22em] text-violet-300">{session.title}</div>
                 <div className="mt-2 text-xl font-bold text-white/65">Spørsmål {session.currentIndex + 1} av {session.questions.length} · {totalAnswers} svar</div>
-                <h1 className="mt-8 max-w-5xl text-6xl font-black leading-[1.05] tracking-tight">{question.question}</h1>
+                <h1 className="mt-5 max-w-5xl text-5xl font-black leading-[1.05] tracking-tight">{question.question}</h1>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
-                <button onClick={() => control("showAnswer")} disabled={busy || session.showAnswer} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-300 px-5 py-4 font-black text-slate-950 disabled:opacity-40">
-                  <Eye className="h-5 w-5" />
-                  Vis svar
-                </button>
+                {session.mode === "manual" ? (
+                  <button onClick={() => control("showAnswer")} disabled={busy || session.showAnswer} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-300 px-5 py-4 font-black text-slate-950 disabled:opacity-40">
+                    <Eye className="h-5 w-5" />
+                    Vis svar
+                  </button>
+                ) : null}
                 <button onClick={() => control("next")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-4 font-black disabled:opacity-40">
                   Neste
                   <ArrowRight className="h-5 w-5" />
@@ -221,30 +243,39 @@ export default function QuizSessionDisplayPage() {
               </div>
             </div>
 
-            <div className="mt-10 grid gap-5">
+            {secondsLeft !== null ? (
+              <TimerLine
+                secondsLeft={secondsLeft}
+                total={session.phase === "next" ? session.nextSeconds : session.phase === "results" ? session.resultsSeconds : session.phase === "reveal" ? session.revealSeconds : session.answerSeconds}
+                label={session.phase === "next" ? "Neste spørsmål" : session.phase === "results" ? "Resultat" : session.phase === "reveal" ? "Forklaring" : "Tid igjen"}
+              />
+            ) : null}
+
+            {session.phase === "results" ? <TopResults scores={session.scores} /> : null}
+            {session.phase === "next" ? <NextCountdown secondsLeft={secondsLeft ?? session.nextSeconds} /> : null}
+
+            <div className="mt-6 grid min-h-0 gap-4 overflow-hidden">
               {question.options.map((option, index) => {
                 const count = session.counts[option] ?? 0;
                 const pct = Math.round((count / (totalAnswers || 1)) * 100);
                 const correct = session.showAnswer && index === question.correctIndex;
                 return (
-                  <div key={option} className={["rounded-[2rem] p-6", correct ? "bg-emerald-300 text-slate-950" : "bg-white/[0.07] text-white"].join(" ")}>
-                    <div className="flex items-center justify-between gap-5 text-3xl font-black">
+                  <div key={option} className={["rounded-[1.5rem] p-5", correct ? "bg-emerald-300 text-slate-950" : "bg-white/[0.07] text-white"].join(" ")}>
+                    <div className="flex items-center justify-between gap-5 text-2xl font-black">
                       <div className="flex items-center gap-4">
                         {correct ? <span className="rounded-full bg-slate-950 px-4 py-2 text-lg text-white">Riktig</span> : null}
                         {option}
                       </div>
                       <div>{count} · {pct}%</div>
                     </div>
-                    <div className="mt-5 h-5 overflow-hidden rounded-full bg-black/20">
+                    <div className="mt-4 h-4 overflow-hidden rounded-full bg-black/20">
                       <div className={["h-full rounded-full", correct ? "bg-slate-950" : "bg-violet-400"].join(" ")} style={{ width: `${pct}%` }} />
                     </div>
-                    {correct && question.explanation ? <div className="mt-5 max-w-4xl text-2xl font-bold leading-snug">{question.explanation}</div> : null}
+                    {correct && question.explanation ? <div className="mt-4 max-w-4xl text-xl font-bold leading-snug">{question.explanation}</div> : null}
                   </div>
                 );
               })}
             </div>
-
-            {secondsLeft !== null ? <TimerLine secondsLeft={secondsLeft} total={session.showAnswer ? session.revealSeconds : session.answerSeconds} label={session.showAnswer ? "Forklaring" : "Tid igjen"} /> : null}
           </div>
         ) : (
           <Lobby
@@ -253,10 +284,10 @@ export default function QuizSessionDisplayPage() {
             revealSeconds={revealSeconds}
             resultsSeconds={resultsSeconds}
             nextSeconds={nextSeconds}
-            setAnswerSeconds={setAnswerSeconds}
-            setRevealSeconds={setRevealSeconds}
-            setResultsSeconds={setResultsSeconds}
-            setNextSeconds={setNextSeconds}
+            setAnswerSeconds={(value) => { setTimingDirty(true); setAnswerSeconds(value); }}
+            setRevealSeconds={(value) => { setTimingDirty(true); setRevealSeconds(value); }}
+            setResultsSeconds={(value) => { setTimingDirty(true); setResultsSeconds(value); }}
+            setNextSeconds={(value) => { setTimingDirty(true); setNextSeconds(value); }}
             onStartManual={() => control("start", "manual")}
             onStartAuto={() => control("start", "auto")}
             onSave={() => control("settings")}
@@ -265,6 +296,10 @@ export default function QuizSessionDisplayPage() {
         )}
 
         <footer className="mt-auto flex justify-center gap-2 pt-8">
+          <button onClick={() => window.close()} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-black">
+            <X className="h-5 w-5" />
+            Lukk visning
+          </button>
           <button onClick={() => control("reset")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-black disabled:opacity-40">
             <RotateCcw className="h-5 w-5" />
             Nullstill
@@ -360,15 +395,45 @@ function TimerLine({ secondsLeft, total, label }: { secondsLeft: number; total: 
   const pct = Math.max(0, Math.min(100, ((total - secondsLeft) / Math.max(1, total)) * 100));
   const color = pct > 75 ? "bg-rose-400" : pct > 50 ? "bg-amber-300" : "bg-emerald-400";
   return (
-    <div className="mt-auto pt-8">
-      <div className="mb-3 flex items-center justify-between text-xl font-black">
+    <div className="mt-5">
+      <div className="mb-2 flex items-center justify-between text-lg font-black">
         <span className="uppercase tracking-[0.14em] text-white/55">{label}</span>
         <span>{secondsLeft}s</span>
       </div>
-      <div className="h-5 overflow-hidden rounded-full bg-white/15">
+      <div className="h-4 overflow-hidden rounded-full bg-white/15">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
+  );
+}
+
+function TopResults({ scores }: { scores: ScoreRow[] }) {
+  const top = scores.slice(0, 3);
+  return (
+    <section className="mt-5 rounded-[1.5rem] bg-white/[0.08] p-5">
+      <div className="text-sm font-black uppercase tracking-[0.2em] text-amber-300">Resultat så langt</div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {top.length ? top.map((score, index) => (
+          <div key={score.participantId} className={["rounded-2xl p-4", index === 0 ? "bg-amber-300 text-slate-950" : "bg-white/10"].join(" ")}>
+            <div className="text-sm font-black opacity-70">{index + 1}. plass</div>
+            <div className="mt-1 truncate text-2xl font-black">{score.emoji ? `${score.emoji} ` : ""}{score.alias}</div>
+            <div className="mt-1 text-xl font-black">{score.score} poeng</div>
+          </div>
+        )) : <div className="text-xl font-bold text-white/60">Ingen svar ennå.</div>}
+      </div>
+    </section>
+  );
+}
+
+function NextCountdown({ secondsLeft }: { secondsLeft: number }) {
+  return (
+    <section className="mt-5 flex items-center justify-between rounded-[1.5rem] bg-violet-300 px-6 py-5 text-slate-950">
+      <div>
+        <div className="text-sm font-black uppercase tracking-[0.2em] opacity-70">Neste spørsmål</div>
+        <div className="text-3xl font-black">Gjør dere klare</div>
+      </div>
+      <div className="text-6xl font-black tabular-nums">{secondsLeft}</div>
+    </section>
   );
 }
 

@@ -83,6 +83,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ sessionId: stri
         showAnswer: session.showAnswer === true,
         questionStartedAt: typeof session.questionStartedAt === "number" ? session.questionStartedAt : null,
         answerShownAt: typeof session.answerShownAt === "number" ? session.answerShownAt : null,
+        phase: session.phase === "reveal" || session.phase === "results" || session.phase === "next" ? session.phase : "answer",
+        phaseStartedAt: typeof session.phaseStartedAt === "number" ? session.phaseStartedAt : null,
         answerSeconds: typeof session.answerSeconds === "number" ? session.answerSeconds : 30,
         revealSeconds: typeof session.revealSeconds === "number" ? session.revealSeconds : 20,
         resultsSeconds: typeof session.resultsSeconds === "number" ? session.resultsSeconds : 20,
