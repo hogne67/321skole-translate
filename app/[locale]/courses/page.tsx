@@ -15,6 +15,9 @@ type PageProps = {
   params: Promise<{
     locale: string;
   }>;
+  searchParams?: Promise<{
+    q?: string;
+  }>;
 };
 
 type MarketplaceCourse = {
@@ -109,42 +112,81 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function PublicCoursesPage({ params }: PageProps) {
+export default async function PublicCoursesPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
-  return <CoursesMarketplaceView locale={locale} />;
+  const sp = searchParams ? await searchParams : {};
+  return <CoursesMarketplaceView locale={locale} q={safeString(sp?.q)} />;
 }
 
 export async function CoursesMarketplaceView({
   locale,
   insideApp = false,
+  q = "",
 }: {
   locale: string;
   insideApp?: boolean;
+  q?: string;
 }) {
   const t = await getTranslations("academy.marketplace");
   const courses = await loadMarketplaceCourses();
+  const searchQuery = q.trim();
+  const normalizedQuery = searchQuery.toLowerCase();
+  const filteredCourses = courses.filter((course) => {
+    if (!normalizedQuery) return true;
+
+    return [
+      course.title,
+      course.description,
+      course.marketing.summary,
+      course.teacherName,
+      course.language,
+      course.level,
+      course.priceText,
+      String(course.numberOfSessions || course.coursePlan.length),
+      formatStartsAt(course.coursePlan, locale, t("startComing")),
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedQuery);
+  });
+  const resetHref = insideApp ? `/${locale}/academy/courses/marketplace` : `/${locale}/courses`;
+  const searchPlaceholder = locale.startsWith("en")
+    ? "Search: title, instructor, topic..."
+    : locale.startsWith("pt")
+      ? "Buscar: titulo, instrutor, tema..."
+      : "Søk: tittel, instruktør, tema...";
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950">
-      <div className="mx-auto grid max-w-6xl gap-6">
-        <section className="rounded-lg border border-sky-100 bg-sky-50/80 p-6 shadow-sm">
-          <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-800">
-            {t("badge")}
-          </div>
-          <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="m-0 text-3xl font-black">{t("title")}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                {t("intro")}
-              </p>
-            </div>
-            <Link
-              href={`/${locale}/academy/courses`}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 no-underline hover:bg-slate-50"
-            >
-              {t("myCourseRoom")}
-            </Link>
-          </div>
+    <main className="min-h-screen bg-slate-50 px-4 py-5 text-slate-950">
+      <div className="mx-auto grid max-w-6xl gap-5">
+        <form className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto_auto]">
+          <input
+            name="q"
+            defaultValue={searchQuery}
+            placeholder={searchPlaceholder}
+            className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-semibold outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+          />
+          <button
+            type="submit"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-950 px-5 py-2 text-sm font-black text-white"
+          >
+            {locale.startsWith("en") ? "Search" : locale.startsWith("pt") ? "Buscar" : "Søk"}
+          </button>
+          <Link
+            href={resetHref}
+            aria-disabled={!searchQuery}
+            className={`inline-flex min-h-11 items-center justify-center rounded-xl border px-5 py-2 text-sm font-black no-underline ${
+              !searchQuery
+                ? "pointer-events-none border-slate-200 bg-slate-50 text-slate-300"
+                : "border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
+            }`}
+          >
+            {locale.startsWith("en") ? "Reset" : locale.startsWith("pt") ? "Redefinir" : "Nullstill"}
+          </Link>
+        </form>
+
+        <section className="text-sm font-semibold text-slate-600">
+          Viser {filteredCourses.length} av {courses.length}
         </section>
 
         {courses.length === 0 ? (
@@ -154,14 +196,43 @@ export async function CoursesMarketplaceView({
               {t("emptyText")}
             </p>
           </section>
+        ) : filteredCourses.length === 0 ? (
+          <section className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+            <h2 className="m-0 text-xl font-black">{t("emptyTitle")}</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              {locale.startsWith("en")
+                ? "No courses matched your search."
+                : locale.startsWith("pt")
+                  ? "Nenhum curso correspondeu a busca."
+                  : "Ingen kurs passet søket."}
+            </p>
+          </section>
         ) : (
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
-              <article
+            {filteredCourses.map((course) => {
+              const href = insideApp
+                ? `/${locale}/academy/courses/marketplace/${course.slug}`
+                : `/${locale}/courses/${course.slug}`;
+              const startText = formatStartsAt(course.coursePlan, locale, t("startComing"));
+              const sessionsCount = course.numberOfSessions || course.coursePlan.length;
+              const price = formatOptionalCoursePrice(course.sales, course.priceText, locale);
+              const summary = course.marketing.summary || course.description || t("descriptionFallback");
+
+              return (
+              <Link
                 key={course.slug}
-                className="grid overflow-hidden rounded-lg border border-sky-100 bg-sky-50/80 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+                href={href}
+                className="grid min-h-full overflow-hidden rounded-[14px] border border-slate-200 bg-white text-slate-950 no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
               >
-                <div className="aspect-video bg-slate-100">
+                <div className="relative aspect-video bg-slate-100">
+                  {sessionsCount ? (
+                    <span className="absolute bottom-3 left-3 z-10 rounded-full bg-lime-200/90 px-3 py-2 text-sm font-black text-slate-950 shadow-sm">
+                      {formatSessionsBadge(sessionsCount, locale)}
+                    </span>
+                  ) : null}
+                  <span className="absolute bottom-3 right-3 z-10 rounded-full bg-white/95 px-3 py-1.5 text-xs font-black text-slate-800 shadow-sm ring-1 ring-slate-200">
+                    {formatStartBadge(startText, locale)}
+                  </span>
                   {course.marketing.coverImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -175,43 +246,33 @@ export async function CoursesMarketplaceView({
                     </div>
                   )}
                 </div>
-                <div className="grid gap-4 p-4">
+                <div className="flex flex-1 flex-col gap-1.5 p-[14px]">
                   <div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge value={course.level || t("levelFallback")} />
-                      <Badge value={course.language || t("languageFallback")} />
-                    </div>
-                    <h2 className="m-0 mt-3 break-words text-lg font-black">{course.title}</h2>
+                    <h2 className="m-0 break-words text-lg font-black leading-tight">{course.title}</h2>
                     {course.teacherName ? (
-                      <p className="mt-1 text-xs font-bold text-slate-500">
+                      <p className="m-0 mt-2 text-sm font-semibold text-slate-600">
                         {t("instructor", { name: course.teacherName })}
                       </p>
                     ) : null}
-                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-700">
-                      {course.marketing.summary || course.description || t("descriptionFallback")}
+                    {price ? (
+                      <p className="m-0 text-sm font-semibold text-slate-600">
+                        {t("price")}: {price}
+                      </p>
+                    ) : null}
+                    <p className="m-0 mt-2 line-clamp-2 text-sm leading-5 text-slate-600">
+                      {summary}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <Info label={t("start")} value={formatStartsAt(course.coursePlan, locale, t("startComing"))} />
-                    <Info label={t("price")} value={formatCoursePrice(course.sales, course.priceText, locale, t("contact"))} />
-                    <Info label={t("sessions")} value={String(course.numberOfSessions || course.coursePlan.length)} />
-                    <Info label={t("weeks")} value={course.numberOfWeeks ? String(course.numberOfWeeks) : t("flexible")} />
-                  </div>
-
-                  <Link
-                    href={
-                      insideApp
-                        ? `/${locale}/academy/courses/marketplace/${course.slug}`
-                        : `/${locale}/courses/${course.slug}`
-                    }
-                    className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-black text-white no-underline hover:bg-emerald-800"
-                  >
+                  <div className="mt-auto flex justify-end pt-3">
+                    <span className="inline-flex min-h-8 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-3 py-1.5 text-xs font-black text-white">
                     {t("viewCourse")}
-                  </Link>
+                    </span>
+                  </div>
                 </div>
-              </article>
-            ))}
+              </Link>
+              );
+            })}
           </section>
         )}
       </div>
@@ -219,24 +280,7 @@ export async function CoursesMarketplaceView({
   );
 }
 
-function Badge({ value }: { value: string }) {
-  return (
-    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600">
-      {value}
-    </span>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <div className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 break-words text-sm font-extrabold text-slate-950">{value}</div>
-    </div>
-  );
-}
-
-function formatCoursePrice(sales: CourseSalesSettings, fallback: string, locale: string, contact: string) {
+function formatOptionalCoursePrice(sales: CourseSalesSettings, fallback: string, locale: string) {
   if (sales.priceAmountOre > 0) {
     return new Intl.NumberFormat(locale, {
       style: "currency",
@@ -245,5 +289,17 @@ function formatCoursePrice(sales: CourseSalesSettings, fallback: string, locale:
     }).format(sales.priceAmountOre / 100);
   }
 
-  return fallback || contact;
+  return fallback;
+}
+
+function formatSessionsBadge(count: number, locale: string) {
+  if (locale.startsWith("en")) return count === 1 ? "1 session" : `${count} sessions`;
+  if (locale.startsWith("pt")) return count === 1 ? "1 encontro" : `${count} encontros`;
+  return count === 1 ? "1 samling" : `${count} samlinger`;
+}
+
+function formatStartBadge(startText: string, locale: string) {
+  if (locale.startsWith("en")) return `Start: ${startText}`;
+  if (locale.startsWith("pt")) return `Inicio: ${startText}`;
+  return `Start: ${startText}`;
 }

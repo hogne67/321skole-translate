@@ -56,7 +56,7 @@
       "badge": "Plano e cobrança",
       "title": "Sua assinatura",
       "description": "Veja seu plano atual, status da assinatura e próximos passos.",
-      "summary": "{plan} · Plano efetivo: {effectivePlan} · Função: {role} · Status: {status}",
+      "summary": "Aqui você pode obter, alterar, renovar ou cancelar sua assinatura.",
       "fields": {
         "plan": "Plano",
         "usagePlan": "Plano efetivo",

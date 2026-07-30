@@ -5,6 +5,7 @@ import React, { useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import TopNav from "@/components/TopNav";
 import LibraryBar from "@/components/LibraryBar";
+import LibraryContentTabs from "@/components/LibraryContentTabs";
 import SectionShell from "@/components/SectionShell";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { navItemsForRole } from "@/lib/navItems";
@@ -57,6 +58,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const cleanPathname = (pathname || "").split("?")[0].replace(/\/+$/, "");
   const pathWithoutLocale = cleanPathname.replace(/^\/(en|no|nb|pt)(?=\/|$)/, "") || "/";
   const isLibrary = cleanPathname.endsWith("/321lessons");
+  const isLibraryContentPage =
+    pathWithoutLocale === "/321lessons" ||
+    pathWithoutLocale === "/321quiz" ||
+    pathWithoutLocale.startsWith("/321quiz/") ||
+    pathWithoutLocale === "/academy/courses/marketplace" ||
+    pathWithoutLocale.startsWith("/academy/courses/marketplace/");
   const isProducer = (pathname || "").includes("/producer");
   const isAnonymousOpenLesson =
     !!user?.isAnonymous && (pathname || "").includes("/student/lesson/");
@@ -140,6 +147,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isPlannerPage =
     pathWithoutLocale === "/teacher/planner" ||
     pathWithoutLocale.startsWith("/teacher/planner/");
+  const isAccountPage =
+    pathWithoutLocale === "/account" ||
+    pathWithoutLocale.startsWith("/account/");
   const isPrintViewPage = pathWithoutLocale.includes("/print");
   const isBoardDisplayPage = pathWithoutLocale.includes("/board/display");
   const isTopLevelNavPage = items.some((item) => item.href === pathWithoutLocale);
@@ -152,6 +162,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     isProducerPage ||
     isCoursePage ||
     isPlannerPage ||
+    isAccountPage ||
     isPrintViewPage ||
     isBoardDisplayPage;
 
@@ -181,9 +192,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {!hideAppChrome ? <TopNav /> : null}
       {!hideAppChrome ? <LibraryBar /> : null}
 
-      {isLibrary ? (
+      {isLibraryContentPage ? (
         <div className="libraryWrap">
-          <h1 className="libraryTitle">{title}</h1>
+          <LibraryContentTabs />
           {showSchoolTeacherIndicator && !hideAppChrome ? <SchoolTeacherIndicator /> : null}
           {children}
         </div>
@@ -219,14 +230,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           width: 100%;
           min-width: 0;
           overflow-x: clip;
-        }
-
-        .libraryTitle {
-          margin: 0 0 14px;
-          font-size: 24px;
-          line-height: 1.2;
-          font-weight: 900;
-          color: #0f172a;
         }
 
         :global(html),

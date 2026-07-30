@@ -67,7 +67,7 @@ export function getBillingMarketFromHost(host: string | null | undefined): Billi
   if (normalized.endsWith("321skole.no")) return "no";
   if (normalized.endsWith("321school.co.uk")) return "uk";
 
-  return "uk";
+  return "no";
 }
 
 export function getBillingPrices(): BillingPriceConfig[] {

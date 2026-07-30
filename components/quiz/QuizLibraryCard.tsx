@@ -9,11 +9,13 @@ import { db } from "@/lib/firebase";
 export type QuizLibraryCardData = {
   id: string;
   title: string;
+  description: string;
   level: string;
   languageLabel: string;
   categoryLabel: string;
   author: string;
   imageUrl: string;
+  questionCount: number;
   ratingAverage: number;
   ratingCount: number;
 };
@@ -66,9 +68,31 @@ function StarRating({
   );
 }
 
+function isPromptLikeDescription(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return false;
+
+  return (
+    normalized.startsWith("lag en quiz") ||
+    normalized.startsWith("lag quiz") ||
+    normalized.startsWith("create a quiz") ||
+    normalized.startsWith("make a quiz") ||
+    normalized.startsWith("generate a quiz") ||
+    normalized.startsWith("crie um quiz") ||
+    normalized.startsWith("gere um quiz")
+  );
+}
+
+function questionCountLabel(count: number, locale: string): string {
+  if (locale.startsWith("en")) return count === 1 ? "1 question" : `${count} questions`;
+  if (locale.startsWith("pt")) return count === 1 ? "1 pergunta" : `${count} perguntas`;
+  return count === 1 ? "1 spørsmål" : `${count} spørsmål`;
+}
+
 export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
   const router = useRouter();
   const href = `/${locale}/321quiz/${quiz.id}`;
+  const description = isPromptLikeDescription(quiz.description) ? "" : quiz.description;
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [ratingBusy, setRatingBusy] = useState(false);
   const [myRating, setMyRating] = useState<number | undefined>(undefined);
@@ -186,7 +210,7 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
 
   return (
     <article
-      className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="group cursor-pointer overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       onClick={() => router.push(href)}
       role="link"
       tabIndex={0}
@@ -202,6 +226,11 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
         <div className="absolute left-3 top-3 z-10 rounded-full bg-lime-200/90 px-3 py-2 text-sm font-black text-slate-950 shadow-sm">
           {quiz.level || "Quiz"}
         </div>
+        {quiz.questionCount > 0 ? (
+          <div className="absolute bottom-3 right-3 z-10 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-950 shadow-sm ring-1 ring-amber-200">
+            {questionCountLabel(quiz.questionCount, locale)}
+          </div>
+        ) : null}
         {quiz.imageUrl ? (
           <img src={quiz.imageUrl} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -211,20 +240,26 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
         )}
       </div>
 
-      <div className="flex min-h-40 flex-col p-4">
-        <h2 className="text-lg font-black leading-tight tracking-tight text-slate-950 group-hover:text-violet-700">
+      <div className="flex min-h-40 flex-col gap-1.5 p-[14px]">
+        <h2 className="m-0 text-lg font-black leading-tight text-slate-950 group-hover:text-slate-950">
           {quiz.title}
         </h2>
 
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm font-semibold text-slate-600">
+        <div className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-slate-600">
           {quiz.languageLabel ? <span>{quiz.languageLabel}</span> : null}
           {quiz.languageLabel && quiz.categoryLabel ? <span className="text-slate-400">•</span> : null}
           {quiz.categoryLabel ? <span>{quiz.categoryLabel}</span> : null}
         </div>
 
-        {quiz.author ? <p className="mt-2 text-sm font-semibold text-slate-600">Forfatter: {quiz.author}</p> : null}
+        {description ? (
+          <p className="m-0 mt-1 line-clamp-2 text-sm leading-5 text-slate-600">{description}</p>
+        ) : null}
 
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4">
+        {quiz.author ? (
+          <p className="m-0 text-sm font-semibold text-slate-600">Forfatter: {quiz.author}</p>
+        ) : null}
+
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-3">
           <StarRating
             value={ratingAverage}
             count={ratingCount}

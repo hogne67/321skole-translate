@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import QuizDetailActionPanel from "@/components/quiz/QuizDetailActionPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -95,35 +96,38 @@ export default async function PublicQuizPage({ params }: PageProps) {
   if (!quiz) notFound();
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <Link href={`/${locale}/321quiz`} className="font-black text-violet-700 hover:text-violet-900">
+    <main className="min-h-screen bg-slate-50 px-4 pb-32 pt-3 text-slate-950">
+      <div className="mx-auto max-w-[980px] space-y-4">
+        <Link href={`/${locale}/321quiz`} className="inline-flex font-black text-slate-700 no-underline hover:text-slate-950">
           Til 321quiz
         </Link>
 
-        <section className="overflow-hidden rounded-[2rem] border border-violet-100 bg-white shadow-sm">
-          <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="p-8 md:p-10">
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-violet-700">321quiz</p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight md:text-6xl">{quiz.title}</h1>
-              {quiz.description ? <p className="mt-4 text-lg text-slate-600">{quiz.description}</p> : null}
+        <header className="rounded-[18px] border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-4 shadow-sm">
+          <h1 className="m-0 text-[clamp(1.5rem,3.5vw,2.2rem)] font-black leading-[1.1] text-slate-950">
+            {quiz.title}
+          </h1>
 
-              <div className="mt-6 flex flex-wrap gap-2 text-sm font-black text-slate-700">
-                <span className="rounded-full bg-violet-50 px-4 py-2 text-violet-700">
-                  {quiz.questions.length} spørsmål
-                </span>
-                {quiz.level ? <span className="rounded-full bg-slate-100 px-4 py-2">{quiz.level}</span> : null}
-                {quiz.language ? <span className="rounded-full bg-slate-100 px-4 py-2">{quiz.language}</span> : null}
-              </div>
+          {quiz.description ? <p className="m-0 mt-3 max-w-3xl text-base leading-7 text-slate-600">{quiz.description}</p> : null}
 
-              {quiz.author ? <p className="mt-5 text-sm font-bold text-slate-500">Laget av {quiz.author}</p> : null}
-            </div>
+          <div className="mt-3 flex flex-wrap gap-2 text-sm font-black text-slate-700">
+            <span className="rounded-full bg-amber-100 px-3 py-1.5 text-amber-950">
+              {quiz.questions.length} spørsmål
+            </span>
+            {quiz.level ? <span className="rounded-full bg-slate-100 px-3 py-1.5">{quiz.level}</span> : null}
+            {quiz.language ? <span className="rounded-full bg-slate-100 px-3 py-1.5">{quiz.language}</span> : null}
+          </div>
 
-            <div className="bg-slate-100">
+          {quiz.author ? <p className="m-0 mt-3 text-sm font-bold text-slate-500">Laget av {quiz.author}</p> : null}
+        </header>
+
+        <section>
+          <div className="rounded-2xl border border-slate-200 bg-white p-[clamp(10px,2.8vw,14px)] shadow-sm">
+            <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-[14px] border border-dashed border-slate-200 bg-white">
               {quiz.imageUrl ? (
-                <img src={quiz.imageUrl} alt="" className="h-full min-h-72 w-full object-cover" />
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={quiz.imageUrl} alt="" className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full min-h-72 items-center justify-center bg-violet-50 text-sm font-black uppercase tracking-[0.2em] text-violet-500">
+                <div className="grid h-full w-full place-items-center bg-violet-50 text-sm font-black uppercase tracking-[0.2em] text-violet-500">
                   321quiz
                 </div>
               )}
@@ -131,18 +135,12 @@ export default async function PublicQuizPage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Forhåndsvisning</p>
-              <h2 className="mt-1 text-2xl font-black">Spørsmål i quizen</h2>
+              <p className="m-0 text-sm font-black uppercase tracking-[0.18em] text-slate-500">Forhåndsvisning</p>
+              <h2 className="m-0 mt-1 text-2xl font-black">Spørsmål i quizen</h2>
             </div>
-            <Link
-              href={`/${locale}/tools/quiz`}
-              className="inline-flex items-center justify-center rounded-2xl border border-violet-200 px-4 py-2 font-black text-violet-800 hover:bg-violet-50"
-            >
-              Lag egen quiz
-            </Link>
           </div>
 
           <div className="mt-6 space-y-3">
@@ -166,6 +164,7 @@ export default async function PublicQuizPage({ params }: PageProps) {
           </div>
         </section>
       </div>
+      <QuizDetailActionPanel locale={locale} quizId={quiz.id} />
     </main>
   );
 }

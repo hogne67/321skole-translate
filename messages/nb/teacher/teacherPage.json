@@ -97,7 +97,7 @@
       "badge": "Plan og betaling",
       "title": "Ditt abonnement",
       "description": "Se planen din, abonnementsstatus og hva du kan gjøre videre.",
-      "summary": "{plan} · Aktiv plan: {effectivePlan} · Rolle: {role} · Status: {status}",
+      "summary": "Her kan du få, endre, fornye eller avslutte abonnement.",
       "fields": {
         "plan": "Plan",
         "usagePlan": "Aktiv plan",

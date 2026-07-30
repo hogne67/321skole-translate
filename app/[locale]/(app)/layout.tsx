@@ -12,6 +12,12 @@ function isAnonymousAllowedPath(pathname: string | null): boolean {
     pathname === "/nb/321lessons" ||
     pathname === "/en/321lessons" ||
     pathname === "/pt/321lessons" ||
+    pathname === "/nb/321quiz" ||
+    pathname === "/en/321quiz" ||
+    pathname === "/pt/321quiz" ||
+    pathname === "/nb/academy/courses/marketplace" ||
+    pathname === "/en/academy/courses/marketplace" ||
+    pathname === "/pt/academy/courses/marketplace" ||
 
     pathname.startsWith("/nb/lesson/") ||
     pathname.startsWith("/en/lesson/") ||

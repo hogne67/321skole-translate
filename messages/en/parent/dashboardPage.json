@@ -56,7 +56,7 @@
       "badge": "Plan and billing",
       "title": "Your subscription",
       "description": "See your current plan, subscription status, and next steps.",
-      "summary": "{plan} · Effective plan: {effectivePlan} · Role: {role} · Status: {status}",
+      "summary": "Here you can get, change, renew, or cancel your subscription.",
       "fields": {
         "plan": "Plan",
         "usagePlan": "Effective plan",
