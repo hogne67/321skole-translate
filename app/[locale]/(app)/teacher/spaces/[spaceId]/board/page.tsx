@@ -271,7 +271,7 @@ export default function TeacherBoardPage() {
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
 
   const present = false;
-  const [showTimer, setShowTimer] = useState(true);
+  const [showTimer, setShowTimer] = useState(false);
 
   const [title, setTitle] = useState<string>(() => t("defaults.title"));
   const [prompt, setPrompt] = useState<string>(() => t("defaults.prompt"));
@@ -1300,17 +1300,17 @@ export default function TeacherBoardPage() {
   return (
     <AuthGate>
       <div className={present ? "min-h-screen bg-zinc-950 text-zinc-50" : "min-h-screen bg-slate-50 text-foreground"}>
-        <div className={present ? "mx-auto max-w-[1500px] p-5 pb-60 md:pb-32" : "mx-auto max-w-[1500px] p-4 pb-60 md:p-6 md:pb-32"}>
+        <div className={present ? "mx-auto max-w-[1500px] p-2 pb-56 sm:p-5 md:pb-32" : "mx-auto max-w-[1500px] px-1 py-2 pb-56 sm:p-4 md:p-6 md:pb-32"}>
           <div
             className={[
-              "sticky top-0 z-10 -mx-4 border-b px-4 py-4 backdrop-blur md:-mx-6 md:px-6",
+              "sticky top-0 z-10 -mx-1 border-b px-2 py-3 backdrop-blur sm:-mx-4 sm:px-4 sm:py-4 md:-mx-6 md:px-6",
               present ? "border-white/10 bg-zinc-950/90" : "border-blue-100 bg-white/95 shadow-sm",
             ].join(" ")}
           >
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
+            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-xl font-semibold">{t("header.title")}</h1>
+                  <h1 className="truncate text-lg font-semibold sm:text-xl">{t("header.title")}</h1>
                   <span className={present ? "rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-zinc-200" : "rounded-full bg-slate-900 px-2.5 py-1 text-xs font-medium text-white"}>
                     {present ? t("surface.live") : t("surface.work")}
                   </span>
@@ -1328,9 +1328,9 @@ export default function TeacherBoardPage() {
                   ) : null}
                 </div>
 
-                {!present ? <div className="mt-2 max-w-2xl text-sm text-slate-600">{t("surface.workHint")}</div> : null}
+                {!present ? <div className="mt-2 hidden max-w-2xl text-sm text-slate-600 sm:block">{t("surface.workHint")}</div> : null}
 
-                <div className="mt-4">
+                <div className="mt-3 sm:mt-4">
                   <div className="hidden flex-wrap gap-2 md:flex">
                     {activityTabs.map((item) => (
                       <TabButton key={item.key} active={tab === item.key} onClick={() => selectActivity(item.key)}>
@@ -1346,7 +1346,7 @@ export default function TeacherBoardPage() {
                     <select
                       value={tab}
                       onChange={(event) => selectActivity(event.target.value as TabKey)}
-                      className={present ? "w-full rounded-xl border border-white/15 bg-zinc-900 px-3 py-3 text-sm font-black text-zinc-50 outline-none" : "w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm font-black text-slate-950 outline-none"}
+                      className={present ? "w-full rounded-xl border border-white/15 bg-zinc-900 px-3 py-2.5 text-sm font-black text-zinc-50 outline-none" : "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-black text-slate-950 outline-none"}
                     >
                       {activityTabs.map((item) => (
                         <option key={item.key} value={item.key}>
@@ -1383,7 +1383,7 @@ export default function TeacherBoardPage() {
             </div>
 
             {showTimer ? (
-              <div className="mt-3">
+              <div className="mt-3 hidden md:block">
                 <TimerBar
                   endsAt={state?.endsAt}
                   startedAt={state?.timerStartedAt}
@@ -1400,7 +1400,7 @@ export default function TeacherBoardPage() {
 
           {tab === "quiz" ? (
             boardQuizQuestion && showQuizDetails ? (
-              <section className="mt-4 rounded-2xl border border-violet-200 bg-white p-5 shadow-sm">
+              <section className="mt-3 rounded-2xl border border-violet-200 bg-white p-3 shadow-sm sm:mt-4 sm:p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">
@@ -1476,8 +1476,8 @@ export default function TeacherBoardPage() {
                   </div>
                 </div>
               ) : (
-                <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                  <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-5">
+                <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px] sm:mt-5 sm:gap-4">
+                  <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-3 sm:p-5">
                     <div className="space-y-3 text-sm font-semibold leading-6 text-slate-800">
                       <div>1. Trykk på knappen Start live for å sende til studenter.</div>
                       <div>2. Åpne knappen Vis på storskjerm i ny leser.</div>
@@ -1487,7 +1487,7 @@ export default function TeacherBoardPage() {
                       Preview med spørsmål
                     </button>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-5">
                     <div className="text-sm font-black text-slate-950">Kort info</div>
                     <div className="mt-3 text-sm font-semibold text-slate-600">
                       {boardQuizQuestions.length} spørsmål · {boardQuizResponses.length} svar
@@ -1497,9 +1497,9 @@ export default function TeacherBoardPage() {
               )}
               </section>
             ) : (
-              <section className="mt-4 overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
+              <section className="mt-3 overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm sm:mt-4">
                 <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
-                  <div className="p-6">
+                  <div className="p-4 sm:p-6">
                     <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">Quiz</div>
                     <h2 className="sr-only">{boardQuizQuestion ? safeString(state?.data?.quizTitle) ?? "Aktiv quiz" : "Quiz på tavla"}</h2>
                     <div className="mt-5 flex flex-wrap gap-2">
@@ -1527,8 +1527,8 @@ export default function TeacherBoardPage() {
                       ) : null}
                     </div>
                   </div>
-                  <div className="border-t border-violet-100 bg-violet-50/70 p-6 lg:border-l lg:border-t-0">
-                    <div className="rounded-2xl border border-violet-200 bg-white p-4 shadow-sm">
+                  <div className="border-t border-violet-100 bg-violet-50/70 p-4 lg:border-l lg:border-t-0 sm:p-6">
+                    <div className="rounded-2xl border border-violet-200 bg-white p-3 shadow-sm sm:p-4">
                       {boardQuizQuestion ? (
                         <>
                           <div className="text-sm font-black text-violet-950">Aktiv quiz</div>
@@ -1555,10 +1555,10 @@ export default function TeacherBoardPage() {
           ) : null}
 
           {tab === "quiz" ? null : tab === "poll" ? (
-            <div className="mt-4 grid gap-4 lg:grid-cols-12">
+            <div className="mt-3 grid gap-3 lg:grid-cols-12 sm:mt-4 sm:gap-4">
               {!present ? (
-                <div className="space-y-4 lg:col-span-5">
-                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm">
+                <div className="space-y-3 lg:col-span-5 sm:space-y-4">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 shadow-sm sm:p-4">
                     <div className="text-sm font-semibold text-amber-950">{t("poll.setupTitle")}</div>
                     <div className="mt-3 space-y-3">
                       <div>
@@ -1582,7 +1582,7 @@ export default function TeacherBoardPage() {
                             dirtyRef.current.poll = true;
                             setPollOptionsRaw(e.target.value);
                           }}
-                          className="min-h-[110px] w-full rounded-lg border px-3 py-2 text-sm"
+                          className="min-h-[92px] w-full rounded-lg border px-3 py-2 text-sm sm:min-h-[110px]"
                           placeholder={t("poll.optionsPlaceholder")}
                         />
                         <div className="mt-1 text-xs text-muted-foreground">{t("poll.optionsHint")}</div>
@@ -1603,7 +1603,7 @@ export default function TeacherBoardPage() {
                       <div className="mt-2 text-3xl font-semibold leading-tight">{safeString(state?.data?.pollQuestion) ?? pollQuestion}</div>
                     </div>
                   ) : null}
-                  <div className={present ? "mb-2 flex items-center justify-between" : "mb-2 flex items-center justify-between border-b border-emerald-100 bg-emerald-50/70 px-5 py-4"}>
+                  <div className={present ? "mb-2 flex items-center justify-between" : "mb-2 flex items-center justify-between border-b border-emerald-100 bg-emerald-50/70 px-3 py-3 sm:px-5 sm:py-4"}>
                     <div className={present ? "text-base font-medium text-zinc-200" : "text-sm font-semibold text-emerald-950"}>{t("poll.resultsTitle")}</div>
                     <div className={present ? "text-sm text-zinc-400" : "rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-emerald-900"}>
                       {activeSessionId ? t("poll.responsesCount", { count: pollResponses.length }) : t("poll.noSession")}
@@ -1611,7 +1611,7 @@ export default function TeacherBoardPage() {
                   </div>
 
                   {activeSessionId ? (
-                    <div className={present ? "space-y-2" : "space-y-2 p-5"}>
+                    <div className={present ? "space-y-2" : "space-y-2 p-3 sm:p-5"}>
                       {(state?.data?.pollOptions ?? normalizeOptions(pollOptionsRaw)).map((opt) => {
                         const count = pollCounts.get(opt) ?? 0;
                         const total = pollResponses.length || 1;
@@ -1632,7 +1632,7 @@ export default function TeacherBoardPage() {
                       })}
                     </div>
                   ) : (
-                    <div className="p-5 text-sm text-muted-foreground">{t("poll.startHint")}</div>
+                    <div className="p-3 text-sm text-muted-foreground sm:p-5">{t("poll.startHint")}</div>
                   )}
                 </div>
               </div>
@@ -1640,11 +1640,11 @@ export default function TeacherBoardPage() {
           ) : null}
 
           {tab === "wordwall" ? (
-            <div className={present ? "mt-4" : "mt-4 grid gap-4 xl:grid-cols-12"}>
+            <div className={present ? "mt-3 sm:mt-4" : "mt-3 grid gap-3 xl:grid-cols-12 sm:mt-4 sm:gap-4"}>
               {!present ? (
-                <div className="space-y-4 xl:col-span-4">
-                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
-                    <div className="mb-4">
+                <div className="space-y-3 xl:col-span-4 sm:space-y-4">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 shadow-sm sm:p-5">
+                    <div className="mb-3 sm:mb-4">
                       <div className="text-sm font-semibold text-slate-950">{t("wordwall.setupTitle")}</div>
                       <div className="mt-1 text-sm leading-6 text-slate-600">{t("wordwall.setupText")}</div>
                     </div>
@@ -1658,7 +1658,7 @@ export default function TeacherBoardPage() {
                             dirtyRef.current.wordwall = true;
                             setWordwallPrompt(e.target.value);
                           }}
-                          className="min-h-[150px] w-full rounded-xl border px-3 py-2 text-sm leading-6"
+                          className="min-h-[110px] w-full rounded-xl border px-3 py-2 text-sm leading-6 sm:min-h-[150px]"
                           placeholder={t("wordwall.promptPlaceholder")}
                         />
                       </div>
@@ -1699,11 +1699,11 @@ export default function TeacherBoardPage() {
                       <div className="mt-2 text-3xl font-semibold leading-tight">{boardWordwallPrompt}</div>
                     </div>
                   ) : (
-                    <div className="border-b border-sky-100 bg-sky-50/70 px-5 py-4">
+                    <div className="border-b border-sky-100 bg-sky-50/70 px-3 py-3 sm:px-5 sm:py-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <div className="text-sm font-semibold text-sky-950">{t("wordwall.liveTitle")}</div>
-                          <div className="mt-1 max-w-3xl text-lg font-semibold leading-7 text-slate-950">{boardWordwallPrompt}</div>
+                          <div className="mt-1 max-w-3xl text-base font-semibold leading-6 text-slate-950 sm:text-lg sm:leading-7">{boardWordwallPrompt}</div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <div className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-sky-900">
@@ -1735,7 +1735,7 @@ export default function TeacherBoardPage() {
                   ) : wordwallItems.length === 0 ? (
                     <div className={present ? "text-sm text-muted-foreground" : "flex min-h-[360px] items-center justify-center p-5 text-center text-sm text-muted-foreground"}>{t("wordwall.noneYet")}</div>
                   ) : (
-                    <div className={present ? "" : "max-h-[calc(100vh-300px)] min-h-[360px] overflow-auto bg-sky-50/40 p-6"}>
+                    <div className={present ? "" : "max-h-[calc(100vh-260px)] min-h-[260px] overflow-auto bg-sky-50/40 p-3 sm:min-h-[360px] sm:p-6"}>
                       {featuredWord ? (
                         <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-100 p-5 text-amber-950 shadow-sm">
                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1800,10 +1800,10 @@ export default function TeacherBoardPage() {
           ) : null}
 
           {tab === "image" ? (
-            <div className="mt-4 grid gap-4 xl:grid-cols-12">
-              <div className="space-y-4 xl:col-span-4">
-                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
-                  <div className="mb-4">
+            <div className="mt-3 grid gap-3 xl:grid-cols-12 sm:mt-4 sm:gap-4">
+              <div className="space-y-3 xl:col-span-4 sm:space-y-4">
+                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 shadow-sm sm:p-5">
+                  <div className="mb-3 sm:mb-4">
                     <div className="text-sm font-semibold text-slate-950">{t("image.setupTitle")}</div>
                     <div className="mt-1 text-sm leading-6 text-slate-600">{t("image.setupText")}</div>
                   </div>
@@ -1828,7 +1828,7 @@ export default function TeacherBoardPage() {
                       <textarea
                         value={imageAiPrompt}
                         onChange={(e) => setImageAiPrompt(e.target.value)}
-                        className="min-h-[92px] w-full rounded-lg border px-3 py-2 text-sm leading-6"
+                        className="min-h-[84px] w-full rounded-lg border px-3 py-2 text-sm leading-6 sm:min-h-[92px]"
                         placeholder={t("image.aiPromptPlaceholder")}
                       />
                       <button
@@ -1866,7 +1866,7 @@ export default function TeacherBoardPage() {
                           dirtyRef.current.image = true;
                           setImagePrompt(e.target.value);
                         }}
-                        className="min-h-[120px] w-full rounded-xl border px-3 py-2 text-sm leading-6"
+                        className="min-h-[92px] w-full rounded-xl border px-3 py-2 text-sm leading-6 sm:min-h-[120px]"
                         placeholder={t("image.promptPlaceholder")}
                       />
                     </div>
@@ -1878,11 +1878,11 @@ export default function TeacherBoardPage() {
 
               <div className="xl:col-span-8">
                 <div className="overflow-hidden rounded-xl border border-violet-200 bg-background shadow-sm">
-                  <div className="border-b border-violet-100 bg-violet-50/70 px-5 py-4">
+                  <div className="border-b border-violet-100 bg-violet-50/70 px-3 py-3 sm:px-5 sm:py-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="text-sm font-semibold text-violet-950">{t("image.liveTitle")}</div>
-                        <div className="mt-1 max-w-3xl text-lg font-semibold leading-7 text-slate-950">{boardImagePrompt}</div>
+                        <div className="mt-1 max-w-3xl text-base font-semibold leading-6 text-slate-950 sm:text-lg sm:leading-7">{boardImagePrompt}</div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <button
@@ -1902,7 +1902,7 @@ export default function TeacherBoardPage() {
                   </div>
 
                   <div className="grid gap-0 bg-violet-50/25 lg:grid-cols-[minmax(260px,0.9fr)_minmax(0,1.1fr)]">
-                    <div className="border-b border-violet-100 p-5 lg:border-b-0 lg:border-r">
+                    <div className="border-b border-violet-100 p-3 lg:border-b-0 lg:border-r sm:p-5">
                       {boardImageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={boardImageUrl} alt="" className="aspect-video w-full rounded-2xl border border-violet-100 object-cover shadow-sm" />
@@ -1913,7 +1913,7 @@ export default function TeacherBoardPage() {
                       )}
                     </div>
 
-                    <div className="min-h-[420px] p-5">
+                    <div className="min-h-[260px] p-3 sm:min-h-[420px] sm:p-5">
                       {featuredImageResponse ? (
                         <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-100 p-5 text-amber-950 shadow-sm">
                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2024,10 +2024,10 @@ export default function TeacherBoardPage() {
           ) : null}
 
           {tab === "clock" ? (
-            <div className="mt-4 grid gap-4 xl:grid-cols-12">
-              <div className="space-y-4 xl:col-span-4">
-                <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-5 shadow-sm">
-                  <div className="mb-4">
+            <div className="mt-3 grid gap-3 xl:grid-cols-12 sm:mt-4 sm:gap-4">
+              <div className="space-y-3 xl:col-span-4 sm:space-y-4">
+                <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 shadow-sm sm:p-5">
+                  <div className="mb-3 sm:mb-4">
                     <div className="text-sm font-semibold text-slate-950">{t("clock.setupTitle")}</div>
                     <div className="mt-1 text-sm leading-6 text-slate-600">{t("clock.setupText")}</div>
                   </div>
@@ -2054,7 +2054,7 @@ export default function TeacherBoardPage() {
                           dirtyRef.current.clock = true;
                           setClockGoals(e.target.value);
                         }}
-                        className="min-h-[130px] w-full rounded-xl border px-3 py-2 text-sm leading-6"
+                        className="min-h-[96px] w-full rounded-xl border px-3 py-2 text-sm leading-6 sm:min-h-[130px]"
                         placeholder={t("clock.goalsPlaceholder")}
                       />
                     </div>
@@ -2067,7 +2067,7 @@ export default function TeacherBoardPage() {
                           dirtyRef.current.clock = true;
                           setClockTodos(e.target.value);
                         }}
-                        className="min-h-[130px] w-full rounded-xl border px-3 py-2 text-sm leading-6"
+                        className="min-h-[96px] w-full rounded-xl border px-3 py-2 text-sm leading-6 sm:min-h-[130px]"
                         placeholder={t("clock.todosPlaceholder")}
                       />
                     </div>
@@ -2084,9 +2084,9 @@ export default function TeacherBoardPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-5">
                   <div className="text-sm font-semibold text-slate-950">{t("clock.stopwatchTitle")}</div>
-                  <div className="mt-3 rounded-2xl bg-slate-950 px-5 py-4 font-mono text-4xl font-bold text-white">{formatDuration(stopwatchMs)}</div>
+                  <div className="mt-3 rounded-2xl bg-slate-950 px-4 py-3 font-mono text-3xl font-bold text-white sm:px-5 sm:py-4 sm:text-4xl">{formatDuration(stopwatchMs)}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -2133,10 +2133,10 @@ export default function TeacherBoardPage() {
           ) : null}
 
           {tab === "question" ? (
-            <div className={present ? "mt-4" : "mt-4 grid gap-4 lg:grid-cols-12"}>
+            <div className={present ? "mt-3 sm:mt-4" : "mt-3 grid gap-3 lg:grid-cols-12 sm:mt-4 sm:gap-4"}>
               {!present ? (
-                <div className="space-y-4 lg:col-span-5">
-                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm">
+                <div className="space-y-3 lg:col-span-5 sm:space-y-4">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 shadow-sm sm:p-4">
                     <div className="space-y-3">
                       <div>
                         <label className="mb-1 block text-sm font-medium">{t("fields.title.label")}</label>
@@ -2159,7 +2159,7 @@ export default function TeacherBoardPage() {
                             dirtyRef.current.prompt = true;
                             setPrompt(e.target.value);
                           }}
-                          className="min-h-[160px] w-full rounded-lg border px-3 py-2 text-sm"
+                          className="min-h-[120px] w-full rounded-lg border px-3 py-2 text-sm sm:min-h-[160px]"
                           placeholder={t("fields.prompt.placeholder")}
                         />
                       </div>
@@ -2172,7 +2172,7 @@ export default function TeacherBoardPage() {
               ) : null}
 
               <div className={present ? "" : "lg:col-span-7"}>
-                <div className={present ? "" : "rounded-xl border border-rose-200 bg-white p-4 shadow-sm"}>
+                <div className={present ? "" : "rounded-xl border border-rose-200 bg-white p-3 shadow-sm sm:p-4"}>
                   {present ? (
                     <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-6">
                       <div className="text-sm font-medium uppercase tracking-wide text-amber-300">{boardTitle}</div>

@@ -346,54 +346,64 @@ export default async function QuizLibraryPage({ params, searchParams }: PageProp
   });
 
   const resetDisabled = !q && languageFilter === defaultLanguage && levelFilter === "all" && categoryFilter === "all";
+  const activeFilterCount = [languageFilter !== defaultLanguage, levelFilter !== "all", categoryFilter !== "all"].filter(Boolean).length;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <form className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_170px_170px_190px_auto]">
+    <main className="min-h-screen bg-slate-50 px-3 py-5 text-slate-950 sm:px-4">
+      <div className="mx-auto w-full max-w-6xl space-y-5">
+        <form className="grid gap-2 rounded-[14px] border border-slate-200 bg-white p-2.5 shadow-[0_10px_24px_rgba(15,23,42,0.10)] sm:gap-3 sm:rounded-2xl sm:p-4 md:grid-cols-[1fr_170px_170px_190px_auto]">
           <input
             name="q"
             defaultValue={sp?.q || ""}
             placeholder="Søk: tittel, kategori, forfatter..."
-            className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+            className="min-h-11 min-w-0 rounded-xl border border-slate-300 px-4 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
           />
-          <select
-            name="language"
-            defaultValue={languageFilter}
-            className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+
+          <input id="quiz-filter-toggle" className="peer hidden" type="checkbox" />
+          <label
+            className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-950 md:hidden"
+            htmlFor="quiz-filter-toggle"
           >
-            <option value="all">Alle språk</option>
-            {languageOptions.map((language) => (
-              <option key={language} value={language}>
-                {languageLabel(language, locale)}
-              </option>
-            ))}
-          </select>
-          <select
-            name="level"
-            defaultValue={levelFilter}
-            className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-          >
-            <option value="all">Nivå</option>
-            {levels.map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </select>
-          <select
-            name="category"
-            defaultValue={categoryFilter}
-            className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-          >
-            <option value="all">Kategori</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {categoryLabel(category)}
-              </option>
-            ))}
-          </select>
-          <div className="flex gap-2">
+            {activeFilterCount > 0 ? `Filtre (${activeFilterCount})` : "Filtre"}
+          </label>
+
+          <div className="hidden grid-cols-1 gap-2 peer-checked:grid md:contents">
+            <select
+              name="language"
+              defaultValue={languageFilter}
+              className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+            >
+              <option value="all">Alle språk</option>
+              {languageOptions.map((language) => (
+                <option key={language} value={language}>
+                  {languageLabel(language, locale)}
+                </option>
+              ))}
+            </select>
+            <select
+              name="level"
+              defaultValue={levelFilter}
+              className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+            >
+              <option value="all">Nivå</option>
+              {levels.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+            <select
+              name="category"
+              defaultValue={categoryFilter}
+              className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 font-semibold outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+            >
+              <option value="all">Kategori</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {categoryLabel(category)}
+                </option>
+              ))}
+            </select>
             <button
               type="submit"
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white"

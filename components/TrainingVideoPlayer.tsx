@@ -104,7 +104,7 @@ export default function TrainingVideoPlayer({
         className={cn(
           "inline-flex items-center justify-center gap-2 text-sm font-bold transition active:translate-y-px",
           thumbnail
-            ? "min-h-[84px] w-full min-w-0 max-w-[320px] justify-start gap-3 rounded-[20px] border border-blue-200 bg-white/90 p-2.5 text-left text-slate-900 shadow-[0_10px_24px_rgba(37,99,235,0.09)] hover:bg-white sm:min-w-[250px]"
+            ? "min-h-[70px] w-full min-w-0 max-w-[320px] justify-start gap-2 rounded-[20px] border border-blue-200 bg-white/90 p-2 text-left text-slate-900 shadow-[0_10px_24px_rgba(37,99,235,0.09)] hover:bg-white sm:min-h-[84px] sm:min-w-[250px] sm:gap-3 sm:p-2.5"
             : iconOnly
               ? "h-12 w-12 rounded-full border-0 bg-transparent p-0 shadow-none hover:scale-105"
               : "h-10 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 shadow-sm hover:bg-slate-50",
@@ -113,21 +113,21 @@ export default function TrainingVideoPlayer({
       >
         {thumbnail ? (
           <>
-            <span className="relative block aspect-video w-[92px] shrink-0 overflow-hidden rounded-[14px] bg-blue-100">
+            <span className="relative block aspect-video w-[76px] shrink-0 overflow-hidden rounded-[14px] bg-blue-100 sm:w-[92px]">
               {resolvedThumbnailUrl ? (
                 <img src={resolvedThumbnailUrl} alt="" className="h-full w-full object-cover" aria-hidden="true" />
               ) : null}
               <span
-                className="absolute left-1/2 top-1/2 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-blue-600 shadow-[0_8px_18px_rgba(37,99,235,0.22)]"
+                className="absolute left-1/2 top-1/2 grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-blue-600 shadow-[0_8px_18px_rgba(37,99,235,0.22)] sm:h-9 sm:w-9"
                 aria-hidden="true"
               >
-                <span className="ml-0.5 h-0 w-0 border-y-[8px] border-l-[12px] border-y-transparent border-l-white" />
+                <span className="ml-0.5 h-0 w-0 border-y-[6px] border-l-[9px] border-y-transparent border-l-white sm:border-y-[8px] sm:border-l-[12px]" />
               </span>
             </span>
             <span className="min-w-0">
               <span className="block break-words text-[13px] font-black leading-5 text-slate-950">{buttonLabel}</span>
               {description ? (
-                <span className="mt-0.5 block break-words text-[13px] font-medium leading-5 text-slate-500">
+                <span className="mt-0.5 hidden break-words text-[13px] font-medium leading-5 text-slate-500 sm:block">
                   {description}
                 </span>
               ) : null}

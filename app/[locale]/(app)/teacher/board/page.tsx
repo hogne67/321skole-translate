@@ -205,12 +205,12 @@ function TeacherBoardIndexInner() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-2 py-3 sm:px-4 sm:py-4">
       <section className="rounded-2xl border border-slate-300 bg-slate-50 p-4 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <h1 className="m-0 text-2xl font-semibold tracking-tight text-slate-900">{t("hero.title")}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("hero.text")}</p>
+            <h1 className="m-0 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">{t("hero.title")}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-5 text-slate-600 sm:leading-6">{t("hero.text")}</p>
           </div>
 
           <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
@@ -222,24 +222,25 @@ function TeacherBoardIndexInner() {
               closeLabel={t("video.close")}
               description={t("video.text")}
               thumbnail
+              className="max-w-none max-sm:min-h-[70px] max-sm:gap-2 max-sm:p-2"
             />
           </div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <MonitorUp className="h-5 w-5 text-slate-700" aria-hidden="true" />
-              <h2 className="text-xl font-black text-slate-950">{t("rooms.title")}</h2>
+              <h2 className="text-xl font-black text-slate-950 sm:text-2xl">{t("rooms.title")}</h2>
             </div>
-            <p className="mt-1 text-sm text-slate-600">{t("rooms.text")}</p>
+            <p className="mt-1 text-sm leading-5 text-slate-600">{t("rooms.text")}</p>
           </div>
           <button
             type="button"
             onClick={() => setSpacePickerOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 sm:w-auto"
           >
             {t("rooms.openPicker")}
             <ChevronDown className="h-4 w-4" aria-hidden="true" />
@@ -248,11 +249,7 @@ function TeacherBoardIndexInner() {
 
         {spaces.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">{t("rooms.empty")}</div>
-        ) : (
-          <div className="mt-4 rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-600">
-            {t("rooms.compactText", { count: spaces.length })}
-          </div>
-        )}
+        ) : null}
       </section>
 
       {spacePickerOpen ? (

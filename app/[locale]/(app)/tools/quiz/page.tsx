@@ -421,41 +421,41 @@ export default function QuizGeneratorPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6">
-      <section className="rounded-2xl border border-violet-200 bg-violet-50/70 p-6 shadow-sm">
+    <main className="mx-auto w-full max-w-6xl px-2 py-3 sm:px-4 sm:py-6">
+      <section className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 shadow-sm sm:p-6">
         <div className="max-w-3xl">
-          <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">321 Quiz Studio</div>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">{t("title")}</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600">{t("subtitle")}</p>
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-violet-700 sm:text-xs sm:tracking-[0.18em]">321 Quiz Studio</div>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:mt-2 sm:text-3xl">{t("title")}</h1>
+          <p className="mt-2 text-sm leading-5 text-slate-600 sm:mt-3 sm:leading-6">{t("subtitle")}</p>
         </div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">{t("steps.source.kicker")}</div>
-            <div className="mt-2 text-lg font-black text-slate-950">{t("steps.source.title")}</div>
-            <p className="mt-1 text-sm text-slate-600">{t("steps.source.text")}</p>
+      <section className="mt-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:mt-5 sm:p-5">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="min-w-0 rounded-2xl border border-violet-100 bg-violet-50 p-3 sm:p-4">
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-violet-700 sm:text-xs sm:tracking-[0.18em]">{t("steps.source.kicker")}</div>
+            <div className="mt-1 truncate text-sm font-black text-slate-950 sm:mt-2 sm:text-lg">{t("steps.source.title")}</div>
+            <p className="mt-1 hidden text-sm text-slate-600 sm:block">{t("steps.source.text")}</p>
           </div>
-          <div className={`rounded-2xl border p-4 ${quiz ? "border-emerald-100 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">{t("steps.quiz.kicker")}</div>
-            <div className="mt-2 text-lg font-black text-slate-950">{t("steps.quiz.title")}</div>
-            <p className="mt-1 text-sm text-slate-600">{quiz ? t("steps.quiz.ready") : t("steps.quiz.text")}</p>
+          <div className={`min-w-0 rounded-2xl border p-3 sm:p-4 ${quiz ? "border-emerald-100 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700 sm:text-xs sm:tracking-[0.18em]">{t("steps.quiz.kicker")}</div>
+            <div className="mt-1 truncate text-sm font-black text-slate-950 sm:mt-2 sm:text-lg">{t("steps.quiz.title")}</div>
+            <p className="mt-1 hidden text-sm text-slate-600 sm:block">{quiz ? t("steps.quiz.ready") : t("steps.quiz.text")}</p>
           </div>
-          <div className={`rounded-2xl border p-4 ${quiz ? "border-emerald-100 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{t("steps.finish.kicker")}</div>
-            <div className="mt-2 text-lg font-black text-slate-950">{t("steps.finish.title")}</div>
-            <p className="mt-1 text-sm text-slate-600">{quiz ? t("steps.finish.ready") : t("steps.finish.text")}</p>
+          <div className={`min-w-0 rounded-2xl border p-3 sm:p-4 ${quiz ? "border-emerald-100 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 sm:text-xs sm:tracking-[0.18em]">{t("steps.finish.kicker")}</div>
+            <div className="mt-1 truncate text-sm font-black text-slate-950 sm:mt-2 sm:text-lg">{t("steps.finish.title")}</div>
+            <p className="mt-1 hidden text-sm text-slate-600 sm:block">{quiz ? t("steps.finish.ready") : t("steps.finish.text")}</p>
           </div>
         </div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:mt-5 sm:p-5">
         <div className="flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-black text-violet-800">1</div>
           <div>
-            <h2 className="text-xl font-black text-slate-950">{t("source.title")}</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">{t("source.text")}</p>
+            <h2 className="text-lg font-black text-slate-950 sm:text-xl">{t("source.title")}</h2>
+            <p className="mt-1 text-sm leading-5 text-slate-600 sm:leading-6">{t("source.text")}</p>
           </div>
         </div>
 
@@ -465,7 +465,7 @@ export default function QuizGeneratorPage() {
               key={mode}
               type="button"
               onClick={() => selectSourceChoice(mode)}
-              className={`rounded-2xl border px-4 py-4 text-left transition ${
+              className={`rounded-2xl border px-3 py-3 text-left transition sm:px-4 sm:py-4 ${
                 sourceChoice === mode ? "border-violet-300 bg-violet-50 shadow-sm" : "border-slate-200 bg-slate-50 hover:border-slate-300"
               }`}
             >
@@ -475,7 +475,7 @@ export default function QuizGeneratorPage() {
           ))}
         </div>
 
-        <div className="mt-5 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:mt-5 sm:gap-4 sm:p-4 md:grid-cols-3">
           <label className="block">
             <span className="text-sm font-semibold text-slate-800">{t("fields.language")}</span>
             <select value={language} onChange={(e) => setLanguage(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm">
@@ -528,7 +528,7 @@ export default function QuizGeneratorPage() {
               <textarea
                 value={sourceText}
                 onChange={(e) => setSourceText(e.target.value)}
-                className="mt-2 min-h-[190px] w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-violet-500"
+                className="mt-2 min-h-[150px] w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-violet-500 sm:min-h-[190px]"
                 placeholder={t("placeholders.sourceText")}
               />
             </label>
@@ -558,7 +558,7 @@ export default function QuizGeneratorPage() {
                 <textarea
                   value={sourceText}
                   onChange={(e) => setSourceText(e.target.value)}
-                  className="mt-2 min-h-[190px] w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-violet-500"
+                  className="mt-2 min-h-[150px] w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-violet-500 sm:min-h-[190px]"
                   placeholder={t("placeholders.sourceText")}
                 />
               </label>
@@ -567,16 +567,16 @@ export default function QuizGeneratorPage() {
         </div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:mt-5 sm:p-5">
         <div className="flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-black text-violet-800">2</div>
           <div>
-            <h2 className="text-xl font-black text-slate-950">{t("settings.title")}</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">{t("settings.text")}</p>
+            <h2 className="text-lg font-black text-slate-950 sm:text-xl">{t("settings.title")}</h2>
+            <p className="mt-1 text-sm leading-5 text-slate-600 sm:leading-6">{t("settings.text")}</p>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 rounded-2xl bg-slate-50 p-4 md:grid-cols-[1fr_1fr_auto]">
+        <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-3 sm:mt-5 sm:gap-4 sm:p-4 md:grid-cols-[1fr_1fr_auto]">
           <label className="block">
             <span className="text-sm font-semibold text-slate-800">{t("fields.questionMode")}</span>
             <select value={questionMode} onChange={(e) => setQuestionMode(e.target.value as QuestionMode)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm">
@@ -608,16 +608,16 @@ export default function QuizGeneratorPage() {
         {err ? <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{err}</div> : null}
       </section>
 
-      <section className="mt-5 min-h-[520px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="mt-4 min-h-[360px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:mt-5 sm:min-h-[520px] sm:p-5">
         <div className="mb-5 flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-black text-violet-800">3</div>
           <div>
-            <h2 className="text-xl font-black text-slate-950">{t("editor.title")}</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">{t("editor.text")}</p>
+            <h2 className="text-lg font-black text-slate-950 sm:text-xl">{t("editor.title")}</h2>
+            <p className="mt-1 text-sm leading-5 text-slate-600 sm:leading-6">{t("editor.text")}</p>
           </div>
         </div>
           {!quiz ? (
-            <div className="flex h-full min-h-[420px] items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-center">
+            <div className="flex h-full min-h-[260px] items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-center sm:min-h-[420px]">
               <div className="max-w-sm px-6">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-violet-700 shadow-sm">
                   <Sparkles className="h-5 w-5" aria-hidden="true" />

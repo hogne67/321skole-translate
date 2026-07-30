@@ -151,21 +151,21 @@ export default function LibraryContentTabs() {
 
         @media (max-width: 560px) {
           .libraryTabs {
-            margin-bottom: 12px;
-            justify-content: flex-start;
+            margin-bottom: 10px;
+            justify-content: center;
           }
 
           .libraryTabsScroller {
-            width: 100%;
+            width: auto;
             border-radius: 16px;
-            padding: 4px;
+            padding: 3px;
           }
 
           .libraryTab {
-            min-height: 34px;
-            min-width: 82px;
-            padding: 7px 12px;
-            font-size: 13px;
+            min-height: 30px;
+            min-width: 68px;
+            padding: 6px 10px;
+            font-size: 12px;
           }
         }
       `}</style>
