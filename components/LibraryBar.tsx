@@ -10,7 +10,7 @@ import { useTranslations } from "next-intl";
    Locale helpers
 ========================= */
 
-const SUPPORTED_LOCALES = ["en", "nb", "pt"] as const;
+const SUPPORTED_LOCALES = ["en", "no", "nb", "pt"] as const;
 type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 function isLocale(x: string | undefined | null): x is Locale {
@@ -68,9 +68,15 @@ export default function LibraryBar() {
 
   const locale = getLocaleFromPathname(pathname);
 
-  // true for /en/321lessons, /nb/321lessons, /pt/321lessons
+  // true for the library content section
   const cleanPathname = (pathname || "").split("?")[0].replace(/\/+$/, "");
-  const isLibrary = cleanPathname.endsWith("/321lessons");
+  const pathWithoutLocale = cleanPathname.replace(/^\/(en|no|nb|pt)(?=\/|$)/, "") || "/";
+  const isLibrary =
+    pathWithoutLocale === "/321lessons" ||
+    pathWithoutLocale === "/321quiz" ||
+    pathWithoutLocale.startsWith("/321quiz/") ||
+    pathWithoutLocale === "/academy/courses/marketplace" ||
+    pathWithoutLocale.startsWith("/academy/courses/marketplace/");
 
   // dashboard link from nav items (avoid fallback "/")
   const dashboardFromNav =

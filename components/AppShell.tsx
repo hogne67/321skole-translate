@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import TopNav from "@/components/TopNav";
 import LibraryBar from "@/components/LibraryBar";
@@ -27,6 +28,7 @@ function normalizeRole(role: unknown, isAnonymous: boolean): AppRole {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const tModes = useTranslations("modes");
   const tNav = useTranslations("nav");
+  const tLibrary = useTranslations("library");
 
   const { user, profile } = useUserProfile();
   const pathname = usePathname();
@@ -56,6 +58,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous);
 
   const cleanPathname = (pathname || "").split("?")[0].replace(/\/+$/, "");
+  const locale = cleanPathname.match(/^\/(en|no|nb|pt)(?=\/|$)/)?.[1] ?? "nb";
   const pathWithoutLocale = cleanPathname.replace(/^\/(en|no|nb|pt)(?=\/|$)/, "") || "/";
   const isLibrary = cleanPathname.endsWith("/321lessons");
   const isLibraryContentPage =
@@ -64,6 +67,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathWithoutLocale.startsWith("/321quiz/") ||
     pathWithoutLocale === "/academy/courses/marketplace" ||
     pathWithoutLocale.startsWith("/academy/courses/marketplace/");
+  const showLibraryClosePanel =
+    pathWithoutLocale === "/321lessons" ||
+    pathWithoutLocale === "/321quiz" ||
+    pathWithoutLocale === "/academy/courses/marketplace";
   const isProducer = (pathname || "").includes("/producer");
   const isAnonymousOpenLesson =
     !!user?.isAnonymous && (pathname || "").includes("/student/lesson/");
@@ -130,6 +137,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     tNav,
   ]);
 
+  const libraryCloseHref = `/${locale}${
+    role === "teacher" || role === "admin" || role === "creator"
+      ? "/teacher"
+      : role === "parent"
+        ? "/parent"
+        : "/student"
+  }`;
+
   const isSpacesDetailPage =
     pathWithoutLocale.startsWith("/teacher/spaces/") ||
     pathWithoutLocale.startsWith("/student/spaces/") ||
@@ -193,10 +208,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {!hideAppChrome ? <LibraryBar /> : null}
 
       {isLibraryContentPage ? (
-        <div className="libraryWrap">
+        <div className={`libraryWrap ${showLibraryClosePanel ? "libraryWrapWithClose" : ""}`}>
           <LibraryContentTabs />
           {showSchoolTeacherIndicator && !hideAppChrome ? <SchoolTeacherIndicator /> : null}
           {children}
+          {showLibraryClosePanel ? <LibraryClosePanel href={libraryCloseHref} label={tLibrary("close")} /> : null}
         </div>
       ) : (
         <SectionShell
@@ -232,10 +248,119 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           overflow-x: clip;
         }
 
+        .libraryWrapWithClose {
+          padding-bottom: 88px;
+        }
+
         :global(html),
         :global(body) {
           max-width: 100%;
           overflow-x: clip;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function LibraryClosePanel({ href, label }: { href: string; label: string }) {
+  return (
+    <div className="libraryClosePanel" aria-label={label}>
+      <Link
+        href={href}
+        className="libraryClosePanelLink no-underline"
+        style={{
+          textDecoration: "none",
+          color: "#dc2626",
+        }}
+      >
+        <span className="libraryCloseArrow" aria-hidden="true">^</span>
+        <span
+          style={{
+            textDecoration: "none",
+            color: "#ffffff",
+          }}
+        >
+          {label}
+        </span>
+        <span className="libraryCloseArrow" aria-hidden="true">^</span>
+      </Link>
+
+      <style jsx global>{`
+        .libraryClosePanel {
+          position: fixed;
+          inset-inline: 0;
+          bottom: 0;
+          z-index: 60;
+          display: flex;
+          justify-content: center;
+          border-top: 1px solid rgba(15, 23, 42, 0.10);
+          background: rgba(255, 255, 255, 0.96);
+          box-shadow: 0 -12px 34px rgba(15, 23, 42, 0.10);
+          padding: 5px 12px calc(5px + env(safe-area-inset-bottom));
+          pointer-events: none;
+          backdrop-filter: blur(10px);
+        }
+
+        .libraryClosePanelLink {
+          pointer-events: auto;
+          display: inline-flex;
+          min-height: 36px;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          border: 1px solid rgba(185, 28, 28, 0.26);
+          border-radius: 999px;
+          background: #dc2626;
+          color: #ffffff;
+          box-shadow: 0 8px 18px rgba(185, 28, 28, 0.18);
+          padding: 7px 16px;
+          font-size: 15px;
+          font-weight: 900;
+          line-height: 1;
+          text-decoration: none !important;
+          transition:
+            transform 140ms ease,
+            box-shadow 140ms ease,
+          background-color 140ms ease;
+        }
+
+        .libraryClosePanelLink:visited,
+        .libraryClosePanelLink:active,
+        .libraryClosePanelLink:hover,
+        .app-scope .libraryClosePanelLink,
+        .app-scope .libraryClosePanelLink:visited,
+        .app-scope .libraryClosePanelLink:active,
+        .app-scope .libraryClosePanelLink:hover {
+          color: #ffffff;
+          text-decoration: none !important;
+          text-decoration-line: none !important;
+        }
+
+        .libraryClosePanelLink span,
+        .app-scope .libraryClosePanelLink span {
+          display: inline-flex;
+          align-items: center;
+          color: #ffffff;
+          text-decoration: none !important;
+          text-decoration-line: none !important;
+        }
+
+        .libraryCloseArrow {
+          font-size: 19px;
+          font-weight: 1000;
+          line-height: 1;
+          transform: translateY(-1px);
+        }
+
+        .libraryClosePanelLink:hover {
+          background: #b91c1c;
+          box-shadow: 0 10px 20px rgba(185, 28, 28, 0.22);
+        }
+
+        @media (min-width: 768px) {
+          .libraryClosePanel {
+            padding-bottom: 6px;
+          }
         }
       `}</style>
     </div>
