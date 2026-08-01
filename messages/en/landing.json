@@ -123,14 +123,20 @@
       "ctaSecondary": "See ready-made lessons"
     },
     "wow": {
-      "eyebrow": "A new way to create teaching",
-      "title": "From idea to finished lesson. In a few clicks.",
-      "description": "321school helps you create, share and follow up learning — without making it complicated.",
-      "imageAlt": "Teacher and student using 321school",
-      "floatingTitle": "Ready to use",
-      "floatingText": "Generate. Adapt. Share. Follow up.",
+      "eyebrow": "More time for students",
+      "title": "Less of the boring work. More of the fun.",
+      "description": "321school brings together the things teachers spend time on every week: lessons, quizzes, board activities, annual plans, assessment, printouts and digital assignments. Less searching, copying and pasting. More time for teaching, conversations and students.",
+      "imageAlt": "Teacher and students in class",
+      "floatingTitle": "More time for students",
+      "floatingText": "Better learning",
+      "points": {
+        "0": "Create lessons, quizzes and assignments in minutes",
+        "1": "Find assessment wording, goals and explanations faster",
+        "2": "Keep digital assignments, board activities and submissions in Spaces",
+        "3": "Spend less time on administration and more time on learning"
+      },
       "ctaPrimary": "Start for free",
-      "ctaSecondary": "Explore the library"
+      "ctaSecondary": "Explore the tools"
     },
     "teacherPower": {
       "eyebrow": "For teachers",
@@ -214,6 +220,26 @@
       "title": "Read as much as you want from the library",
       "description": "It’s free.",
       "badge": "{count} lessons ready right now"
+    },
+    "quizLive": {
+      "eyebrow": "Create quizzes on 321",
+      "title": "A new alternative for classroom quizzes.",
+      "description": "Create quizzes in minutes or choose one from the library. Start live on the board, show a QR code and let students answer on their own devices.",
+      "imageAlt": "Students answering a live quiz from their own devices",
+      "badges": {
+        "live": "Live on the board",
+        "board": "Classroom quiz",
+        "students": "Students answer",
+        "devices": "Phone, tablet or PC"
+      },
+      "points": {
+        "0": "Create quizzes with AI support, or build them yourself.",
+        "1": "Choose a free quiz, textbook text or an assignment from Spaces.",
+        "2": "Start live on the board with answers from phone, tablet or PC.",
+        "3": "All correct answers are shown with a pedagogical explanation."
+      },
+      "ctaPrimary": "Create quiz",
+      "ctaSecondary": "Explore 321quiz"
     },
     "parentHome": {
       "eyebrow": "For parents and homeschooling",

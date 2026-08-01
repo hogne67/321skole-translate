@@ -386,6 +386,8 @@ export default async function HomePage() {
         lessonCountLabel={lessonCountLabel}
       />
 
+      <QuizLiveSection t={t} locale={locale} />
+
       <AiSupportSection t={t} locale={locale} />
 
       <PrintOrDigitalSection t={t} locale={locale} />
@@ -543,25 +545,25 @@ function RoleGatewaySection(props: { t: TFn; locale: string }) {
   const roles = [
     {
       key: "teacher",
-      image: "/landing/symbol_teacher.png",
+      image: "/landing/symbol_teacher_ny.png",
       learnHref: "#ai-support",
       startHref: "/login",
     },
     {
       key: "student",
-      image: "/landing/symbol_student.png",
+      image: "/landing/symbol_student_ny.png",
       learnHref: "#for-students",
       startHref: "/login",
     },
     {
       key: "parent",
-      image: "/landing/symbol_parent.png",
+      image: "/landing/symbol_parent_ny.png",
       learnHref: "#for-parents",
       startHref: "/login",
     },
     {
       key: "school",
-      image: "/landing/symbol_school.png",
+      image: "/landing/symbol_school_ny.png",
       learnHref: "/skoler",
       startHref: "/skoler/bestilling",
     },
@@ -823,7 +825,77 @@ function PrintOrDigitalSection(props: { t: TFn; locale: string }) {
   );
 }
 
+function QuizLiveSection(props: { t: TFn; locale: string }) {
+  const points = [0, 1, 2, 3].map((index) => props.t(`quizLive.points.${index}`));
+
+  return (
+    <section className="relative overflow-hidden bg-white text-slate-950">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.16),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.18),_transparent_38%)]" />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-12 md:py-20">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-[0.94fr_1.06fr] md:items-center md:gap-10">
+          <div>
+            <p className="inline-flex rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-900">
+              {props.t("quizLive.eyebrow")}
+            </p>
+
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight md:mt-5 md:text-6xl">
+              {props.t("quizLive.title")}
+            </h2>
+
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-700 md:mt-5 md:text-xl md:leading-8">
+              {props.t("quizLive.description")}
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {points.map((point) => (
+                <div key={point} className="rounded-2xl border border-emerald-100 bg-white/85 p-4 text-sm font-semibold leading-6 text-slate-800 shadow-sm shadow-emerald-950/5">
+                  {point}
+                </div>
+              ))}
+            </div>
+
+            <SectionButtons
+              locale={props.locale}
+              primaryHref="/tools/quiz"
+              primaryLabel={props.t("quizLive.ctaPrimary")}
+              secondaryHref="/321quiz"
+              secondaryLabel={props.t("quizLive.ctaSecondary")}
+              variant="light"
+            />
+          </div>
+
+          <div className="rounded-[2rem] border border-white bg-white/80 p-2 shadow-xl shadow-sky-900/10 backdrop-blur md:p-3">
+            <div className="relative aspect-[2/3] overflow-hidden rounded-[1.5rem] bg-slate-100">
+              <Image
+                src="/landing/quiz action.jpeg"
+                alt={props.t("quizLive.imageAlt")}
+                fill
+                className="object-cover object-center"
+              />
+
+              <FloatingLabel
+                position="top-left"
+                title={props.t("quizLive.badges.live")}
+                text={props.t("quizLive.badges.board")}
+              />
+
+              <FloatingLabel
+                position="bottom-right"
+                title={props.t("quizLive.badges.students")}
+                text={props.t("quizLive.badges.devices")}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function WowSection(props: { t: TFn; locale: string }) {
+  const points = [0, 1, 2, 3].map((index) => props.t(`wow.points.${index}`));
+
   return (
     <section className="relative overflow-hidden bg-sky-50">
       <div className="absolute inset-0 bg-gradient-to-b from-sky-50 via-white to-emerald-50" />
@@ -849,7 +921,7 @@ function WowSection(props: { t: TFn; locale: string }) {
           <div className="order-2 rounded-[2rem] border border-white bg-white/80 p-2 shadow-xl shadow-sky-900/10 backdrop-blur md:col-start-2 md:row-span-2 md:row-start-1 md:p-3">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
               <Image
-                src="/landing/wow-learning.png"
+                src="/landing/teacher and students.png"
                 alt={props.t("wow.imageAlt")}
                 fill
                 className="object-cover object-center"
@@ -868,11 +940,19 @@ function WowSection(props: { t: TFn; locale: string }) {
 
           {/* TEXT BOTTOM */}
           <div className="order-3 md:col-start-1 md:row-start-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {points.map((point) => (
+                <div key={point} className="rounded-2xl border border-sky-100 bg-white/85 p-4 text-sm font-semibold leading-6 text-slate-800 shadow-sm shadow-sky-950/5">
+                  {point}
+                </div>
+              ))}
+            </div>
+
             <SectionButtons
               locale={props.locale}
               primaryHref="/login"
               primaryLabel={props.t("wow.ctaPrimary")}
-              secondaryHref="/321lessons"
+              secondaryHref="/tools"
               secondaryLabel={props.t("wow.ctaSecondary")}
               variant="light"
             />

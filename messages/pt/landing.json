@@ -123,14 +123,20 @@
       "ctaSecondary": "Ver aulas prontas"
     },
     "wow": {
-      "eyebrow": "Uma nova forma de criar ensino",
-      "title": "Da ideia à aula pronta. Em poucos cliques.",
-      "description": "321escola ajuda você a criar, compartilhar e acompanhar a aprendizagem — sem complicar.",
-      "imageAlt": "Professor e aluno usando 321escola",
-      "floatingTitle": "Pronto para usar",
-      "floatingText": "Gerar. Adaptar. Compartilhar. Acompanhar.",
+      "eyebrow": "Mais tempo para os alunos",
+      "title": "Menos do que é chato. Mais do que dá gosto.",
+      "description": "321escola reúne o que professores usam toda semana: aulas, quizzes, quadro, planos anuais, avaliação, impressão e atividades digitais. Menos procura, cópia e colagem. Mais tempo para ensinar, conversar e acompanhar os alunos.",
+      "imageAlt": "Professor e alunos em aula",
+      "floatingTitle": "Mais tempo para os alunos",
+      "floatingText": "Melhor aprendizagem",
+      "points": {
+        "0": "Crie aulas, quizzes e atividades em poucos minutos",
+        "1": "Encontre critérios, objetivos e explicações mais rápido",
+        "2": "Reúna atividades digitais, quadro e entregas nos Spaces",
+        "3": "Passe menos tempo com administração e mais tempo com aprendizagem"
+      },
       "ctaPrimary": "Começar grátis",
-      "ctaSecondary": "Explorar a biblioteca"
+      "ctaSecondary": "Explorar ferramentas"
     },
     "teacherPower": {
       "eyebrow": "Para professores",
@@ -214,6 +220,26 @@
       "title": "Leia o quanto quiser na biblioteca.",
       "description": "É grátis.",
       "badge": "{count} aulas disponíveis agora"
+    },
+    "quizLive": {
+      "eyebrow": "Crie quizzes no 321",
+      "title": "Uma nova alternativa para quizzes em sala de aula.",
+      "description": "Crie quizzes em poucos minutos ou escolha um da biblioteca. Inicie ao vivo no quadro, mostre o QR code e deixe os alunos responderem nos próprios dispositivos.",
+      "imageAlt": "Alunos respondendo a um quiz ao vivo em seus próprios dispositivos",
+      "badges": {
+        "live": "Ao vivo no quadro",
+        "board": "Quiz em sala",
+        "students": "Alunos respondem",
+        "devices": "Celular, tablet ou PC"
+      },
+      "points": {
+        "0": "Crie quizzes com apoio de IA, ou monte tudo você mesmo.",
+        "1": "Escolha entre quiz livre, texto do livro ou atividade nos Spaces.",
+        "2": "Inicie ao vivo no quadro com respostas por celular, tablet ou PC.",
+        "3": "Todas as respostas corretas aparecem com explicação pedagógica."
+      },
+      "ctaPrimary": "Criar quiz",
+      "ctaSecondary": "Explorar 321quiz"
     },
     "parentHome": {
       "eyebrow": "Para pais e ensino em casa",

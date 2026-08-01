@@ -123,14 +123,20 @@
       "ctaSecondary": "Se ferdige opplegg"
     },
     "wow": {
-      "eyebrow": "En ny måte å lage undervisning på",
-      "title": "Fra idé til ferdig opplegg. På få klikk.",
-      "description": "321skole hjelper deg å lage, dele og følge opp læring — uten at det blir komplisert.",
-      "imageAlt": "Lærer og elev bruker 321skole",
-      "floatingTitle": "Klar til bruk",
-      "floatingText": "Generer. Tilpass. Del. Følg opp.",
+      "eyebrow": "Mer tid til elevene",
+      "title": "Mindre av det som er kjedelig. Mer av det som er gøy.",
+      "description": "321skole samler det lærere bruker tid på hver uke: leksjoner, quizer, tavle, årsplaner, vurdering, utskrift og digitale oppgaver. Mindre leting, kopiering og klipping. Mer tid til undervisning, samtaler og elever.",
+      "imageAlt": "Lærer og elever i undervisning",
+      "floatingTitle": "Mer tid til elevene",
+      "floatingText": "Gir bedre læring",
+      "points": {
+        "0": "Lag leksjoner, quizer og oppgaver på noen minutter",
+        "1": "Finn vurderingsord, mål og forklaringer raskere",
+        "2": "Samle digitale oppgaver, tavle og innleveringer i Spaces",
+        "3": "Bruk mindre tid på administrasjon og mer tid på læring"
+      },
       "ctaPrimary": "Start gratis",
-      "ctaSecondary": "Utforsk biblioteket"
+      "ctaSecondary": "Utforsk verktøyene"
     },
     "teacherPower": {
       "eyebrow": "For lærere",
@@ -214,6 +220,26 @@
       "title": "Les så mye du vil fra bibliotektet.",
       "description": "Det er gratis.",
       "badge": "{count} opplegg klare nå"
+    },
+    "quizLive": {
+      "eyebrow": "Lag quiz på 321",
+      "title": "Et nytt alternativ for quiz i klasserommet.",
+      "description": "Lag quizer enkelt på minutter eller velg en fra biblioteket. Start live på tavla, vis QR-kode og la elevene svare på egne enheter.",
+      "imageAlt": "Elever svarer på live quiz fra egne enheter",
+      "badges": {
+        "live": "Live på tavla",
+        "board": "Quiz i klasserommet",
+        "students": "Elevene svarer",
+        "devices": "Mobil, nettbrett eller PC"
+      },
+      "points": {
+        "0": "Lag quizer med KI-støtte, eller bygg dem selv.",
+        "1": "Velg mellom fri quiz, tekst fra lærebok eller oppgave i Spaces.",
+        "2": "Start live på tavla med svar fra mobil, nettbrett eller PC.",
+        "3": "Alle riktige svar vises med pedagogisk forklaring."
+      },
+      "ctaPrimary": "Lag quiz",
+      "ctaSecondary": "Utforsk 321quiz"
     },
     "parentHome": {
       "eyebrow": "For foreldre og hjemmeskole",
