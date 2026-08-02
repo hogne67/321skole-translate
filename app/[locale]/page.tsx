@@ -497,7 +497,7 @@ function HeroSection(props: { t: TFn; locale: string }) {
           <div className="mt-6 block md:hidden rounded-2xl overflow-hidden border border-white/20 bg-white/10 p-2">
             <div className="relative aspect-[4/5] w-full">
               <Image
-                src="/landing/hero1_1.png"
+                src="/landing/hero_ny.jpg"
                 alt={props.t("hero.imageAlt")}
                 fill
                 className="object-cover object-center"
@@ -506,35 +506,35 @@ function HeroSection(props: { t: TFn; locale: string }) {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row md:mt-8">
-            <Link
-              href={localizedPath(props.locale, "/login")}
-              className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-white/90"
-            >
-              {props.t("hero.ctaPrimary")}
-            </Link>
-
-            <Link
-              href={localizedPath(props.locale, "/321lessons")}
-              className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/15"
-            >
-              {props.t("hero.ctaSecondary")}
-            </Link>
-          </div>
-
         </div>
 
         {/* 💻 IMAGE (DESKTOP ONLY) */}
         <div className="mt-10 hidden md:block rounded-3xl border border-white/20 bg-white/10 p-3 shadow-sm backdrop-blur">
           <div className="relative aspect-[21/9] w-full overflow-hidden rounded-2xl bg-slate-100">
             <Image
-              src="/landing/hero1_1.png"
+              src="/landing/hero_ny.jpg"
               alt={props.t("hero.imageAlt")}
               fill
               className="object-cover object-center"
               priority
             />
           </div>
+        </div>
+
+        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row md:mt-8">
+          <Link
+            href={localizedPath(props.locale, "/login")}
+            className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-white/90"
+          >
+            {props.t("hero.ctaPrimary")}
+          </Link>
+
+          <Link
+            href={localizedPath(props.locale, "/321lessons")}
+            className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/15"
+          >
+            {props.t("hero.ctaSecondary")}
+          </Link>
         </div>
       </div>
     </section>
