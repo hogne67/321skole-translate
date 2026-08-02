@@ -46,14 +46,14 @@
         },
         "parent": {
           "title": "Pais",
-          "text": "Ensino em casa com apoio de IA.",
+          "text": "Apoie a aprendizagem em casa com espaços e atividades próprias.",
           "imageAlt": "Símbolo da função de pais",
           "points": {
-            "0": "Crie espaços para seus filhos",
-            "1": "Distribua atividades",
-            "2": "Dê estrelas e feedback",
-            "3": "Crie suas próprias atividades",
-            "4": "Apoio de IA em todo o caminho"
+            "0": "Crie espaços de aprendizagem para seus filhos",
+            "1": "Distribua atividades no nível certo",
+            "2": "Acompanhe o trabalho e incentive",
+            "3": "Crie suas próprias atividades e quizzes",
+            "4": "Apoio de IA quando a criança precisar de ajuda"
           }
         },
         "school": {
@@ -71,33 +71,33 @@
       }
     },
     "aiSupport": {
-      "eyebrow": "IA que apoia o professor",
-      "title": "Um novo mundo de possibilidades — sem perder o controle.",
-      "description": "Use IA para desenvolver aulas, apoiar os alunos durante o trabalho e dar feedback mais rápido. O professor sempre decide a direção.",
+      "eyebrow": "Apoio de IA com o professor no controle",
+      "title": "Crie aulas melhores mais rápido.",
+      "description": "A 321school usa IA para ajudar com texto, nível, atividades, imagens e feedback. Você escolhe o conteúdo, ajusta a direção e decide o que os alunos veem.",
       "imageAlt": "Professor usando suporte de IA no ensino",
-      "floatingTopTitle": "IA",
+      "floatingTopTitle": "IA que ajuda",
       "floatingTopText": "Professor no controle",
       "floatingBottomTitle": "Tempo economizado",
-      "floatingBottomText": "Mais tempo para aprender",
+      "floatingBottomText": "Mais tempo para os alunos",
       "cards": {
         "develop": {
-          "title": "Desenvolva mais rápido",
-          "text": "Crie textos, atividades, imagens e adaptações em menos tempo."
+          "title": "Da ideia à aula",
+          "text": "Comece com um tema, texto ou objetivo e receba um rascunho editável."
         },
         "support": {
-          "title": "Apoio durante o aprendizado",
-          "text": "Os alunos podem usar tradução, áudio e ajuda quando ficarem travados."
+          "title": "Adapte ao nível",
+          "text": "Simplifique textos, traduza, crie áudio ou explique de novo."
         },
         "feedback": {
-          "title": "Feedback com IA",
-          "text": "Receba suporte para avaliação, resposta e próximos passos."
+          "title": "Feedback sem página em branco",
+          "text": "Receba sugestões para avaliação, respostas e próximos passos."
         },
         "control": {
-          "title": "O professor mantém o controle",
-          "text": "A IA apoia. O professor decide."
+          "title": "O professor decide",
+          "text": "A IA sugere. Você revisa, ajusta e publica."
         }
       },
-      "ctaPrimary": "Experimentar IA",
+      "ctaPrimary": "Testar ferramentas de IA",
       "ctaSecondary": "Ver aulas prontas"
     },
     "printDigital": {
@@ -140,29 +140,29 @@
     },
     "teacherPower": {
       "eyebrow": "Para professores",
-      "title": "Crie mais. Corrija menos. Acompanhe melhor.",
-      "description": "Crie aulas, compartilhe com sua turma e tenha uma visão melhor do que os alunos realmente entendem.",
+      "title": "Planeje mais rápido. Acompanhe melhor.",
+      "description": "Crie aulas, compartilhe com sua turma e acompanhe atividades, respostas e necessidades de apoio — sem perder o fio.",
       "imageAlt": "Professor criando e compartilhando aulas",
-      "floatingTopTitle": "Aula",
-      "floatingTopText": "Pronta para compartilhar",
+      "floatingTopTitle": "Plano pronto",
+      "floatingTopText": "Aula · Quiz · PDF",
       "floatingBottomTitle": "Visão geral",
-      "floatingBottomText": "Respostas · Feedback",
+      "floatingBottomText": "Respostas · Status · Feedback",
       "cards": {
         "create": {
-          "title": "Crie aulas rapidamente",
-          "text": "Gere textos, atividades e imagens — ou use seu próprio conteúdo."
+          "title": "Planeje em minutos",
+          "text": "Crie aulas, quizzes e atividades a partir de tema, objetivo ou conteúdo próprio."
         },
         "share": {
-          "title": "Compartilhe com um clique",
-          "text": "Envie atividades digitalmente ou imprima como PDF."
+          "title": "Compartilhe como precisar",
+          "text": "Envie nos Spaces, use no quadro ou imprima como PDF."
         },
         "overview": {
-          "title": "Veja as respostas juntas",
-          "text": "Acompanhe envios e veja quem precisa de apoio."
+          "title": "Veja quem precisa de você",
+          "text": "Acompanhe status, respostas e entregas sem procurar em vários sistemas."
         },
         "ai": {
-          "title": "Receba apoio da IA",
-          "text": "Utilize IA para auxiliar na avaliação, no feedback e no acompanhamento do progresso."
+          "title": "Resposta mais rápida",
+          "text": "Receba apoio para avaliação, explicações e próximos passos."
         }
       },
       "ctaPrimary": "Começar como professor",
@@ -170,51 +170,51 @@
     },
     "languageLearning": {
       "eyebrow": "Aprenda idiomas no seu nível",
-      "title": "Leia. Ouça. Traduza. Receba feedback instantâneo.",
-      "description": "Encontre textos no seu nível. Use seu idioma quando precisar — e receba ajuda enquanto aprende.",
+      "title": "Leia, ouça e entenda mais — no seu nível.",
+      "description": "Encontre textos no seu nível. Traduza quando travar, ouça enquanto lê e receba explicações que ajudam você a avançar.",
       "imageAlt": "Aluno aprendendo com texto, áudio e tradução",
       "floatingLevelTitle": "Nível",
       "floatingLevelText": "A1 · A2 · B1",
-      "floatingFeedbackTitle": "Feedback",
-      "floatingFeedbackText": "Imediato",
+      "floatingFeedbackTitle": "Ajuda",
+      "floatingFeedbackText": "Quando precisar",
       "cards": {
         "level": {
-          "title": "Textos no nível certo",
-          "text": "Escolha textos simples ou avançados — de A1 a B2."
+          "title": "Textos que combinam",
+          "text": "Escolha textos de A1 a B2 e estude no ritmo certo."
         },
         "motherTongue": {
-          "title": "Suporte no seu idioma",
-          "text": "Traduza palavras, frases e explicações."
+          "title": "Seu idioma como apoio",
+          "text": "Traduza palavras, frases e explicações quando precisar."
         },
         "audio": {
           "title": "Ouça e compreenda",
-          "text": "Ouça o texto enquanto lê e pratique pronúncia."
+          "text": "Ouça o texto enquanto lê e pratique pronúncia, fluência e compreensão."
         },
         "feedback": {
-          "title": "Feedback imediato",
-          "text": "Receba feedback com IA nas respostas."
+          "title": "Respostas com explicação",
+          "text": "Receba feedback que mostra o que você pode melhorar."
         }
       },
       "ctaPrimary": "Encontrar texto",
       "ctaSecondary": "Começar grátis"
     },
     "spacesNew": {
-      "eyebrow": "Salas de aula simplificadas",
-      "title": "Crie turmas. Compartilhe atividades. Veja tudo.",
-      "description": "Crie quantas turmas quiser. Convide alunos e acompanhe — sem confusão.",
+      "eyebrow": "Spaces reúnem o ensino",
+      "title": "Turmas, atividades e respostas em um só lugar.",
+      "description": "Crie Spaces para turmas, grupos ou cursos. Compartilhe aulas, quizzes e atividades, e veja quem começou, entregou e precisa de acompanhamento.",
       "imageAlt": "Professor organizando turmas",
-      "floatingTopTitle": "Turmas",
+      "floatingTopTitle": "Spaces",
       "floatingTopText": "3A · 3B · Grupo",
       "floatingBottomTitle": "Status",
-      "floatingBottomText": "Enviado · Em progresso",
+      "floatingBottomText": "Entregue · Em andamento",
       "checks": {
-        "0": "Turmas ilimitadas",
-        "1": "Compartilhe com um clique",
-        "2": "Veja respostas imediatamente",
-        "3": "Dê feedback — com ou sem IA"
+        "0": "Crie espaços para turmas, grupos e cursos",
+        "1": "Compartilhe aulas, quizzes e atividades em um só lugar",
+        "2": "Acompanhe status, respostas e entregas em tempo real",
+        "3": "Dê feedback com olhar de professor e apoio de IA"
       },
-      "ctaPrimary": "Criar sua primeira turma",
-      "ctaSecondary": "Ver atividades"
+      "ctaPrimary": "Criar um Space",
+      "ctaSecondary": "Explorar atividades"
     },
     "topStrip": {
       "title": "Leia o quanto quiser na biblioteca.",
@@ -242,77 +242,77 @@
       "ctaSecondary": "Explorar 321quiz"
     },
     "parentHome": {
-      "eyebrow": "Para pais e ensino em casa",
-      "title": "Acompanhe a aprendizagem em casa — de forma simples.",
-      "description": "Crie atividades, compartilhe com seus filhos e dê feedback com estrelas, emojis e IA.",
-      "imageAlt": "Pai ajudando filho em casa",
-      "floatingTopTitle": "Casa",
-      "floatingTopText": "Aprendizagem em casa",
-      "floatingBottomTitle": "Feedback",
-      "floatingBottomText": "⭐ 😊 ⭐",
+      "eyebrow": "Para pais e responsáveis",
+      "title": "Torne a aprendizagem em casa mais simples e divertida.",
+      "description": "Crie espaços de aprendizagem, compartilhe atividades e faça pequenos quizzes para deveres, revisão ou aniversários. Acompanhe o trabalho e ofereça apoio seguro.",
+      "imageAlt": "Família aprendendo em casa",
+      "floatingTopTitle": "Aprendizagem em casa",
+      "floatingTopText": "Atividades · Quizzes",
+      "floatingBottomTitle": "Incentivo",
+      "floatingBottomText": "Estrelas · Sorrisos · Feedback",
       "cards": {
         "platform": {
-          "title": "Plataforma para pais",
-          "text": "Crie espaços seguros para aprender."
+          "title": "Espaços de aprendizagem",
+          "text": "Reúna atividades, textos e quizzes em um só lugar."
         },
         "share": {
-          "title": "Compartilhe atividades",
-          "text": "Envie leitura, idioma ou matemática."
+          "title": "Quizzes para aprender e brincar",
+          "text": "Crie quizzes para deveres, revisão, idiomas ou aniversários."
         },
         "ai": {
-          "title": "IA ajuda",
-          "text": "Suporte com textos, tarefas e explicações."
+          "title": "Ajuda quando travar",
+          "text": "Receba apoio com textos, explicações, perguntas e adaptação."
         },
         "warm": {
-          "title": "Feedback com carinho",
-          "text": "Use estrelas, emojis e comentários."
+          "title": "Acompanhe com carinho",
+          "text": "Use estrelas, sorrisos e comentários curtos pelo caminho."
         }
       },
       "ctaPrimary": "Começar como pai",
       "ctaSecondary": "Encontrar atividades"
     },
     "studentFlow": {
-      "eyebrow": "Para alunos",
-      "title": "Pratique sozinho. Melhore. Receba ajuda.",
-      "description": "Como no futebol: quem treina mais, melhora mais. Aqui você pode praticar quando quiser.",
-      "imageAlt": "Aluno praticando sozinho",
-      "floatingTopTitle": "Prática",
-      "floatingTopText": "Quando quiser",
+      "eyebrow": "Para alunos / estudantes",
+      "title": "Aprenda no seu ritmo. Receba ajuda quando precisar.",
+      "description": "Leia textos, ouça, traduza, crie atividades e receba explicações durante o estudo. Ideal para escola, idiomas, educação de adultos ou estudo próprio.",
+      "imageAlt": "Aluno ou estudante aprendendo de forma independente",
+      "floatingTopTitle": "Estudo próprio",
+      "floatingTopText": "No seu ritmo",
       "floatingBottomTitle": "Feedback",
       "floatingBottomText": "Imediato",
       "cards": {
         "create": {
           "title": "Crie suas próprias atividades",
-          "text": "Escreva ou use IA."
+          "text": "Pratique textos, temas ou perguntas que quer dominar."
         },
         "language": {
-          "title": "Aprenda idiomas melhor",
-          "text": "Leia, ouça e traduza."
+          "title": "Apoio de idioma durante o estudo",
+          "text": "Leia, ouça, traduza e entenda as palavras."
         },
         "correction": {
-          "title": "Correção imediata",
-          "text": "Veja o que melhorar."
+          "title": "Entenda seus erros",
+          "text": "Receba explicações, não apenas certo ou errado."
         },
         "feedback": {
-          "title": "Feedback com IA",
-          "text": "Dicas e explicações."
+          "title": "Quizzes e feedback",
+          "text": "Crie quizzes e receba dicas sobre o que praticar."
         }
       },
-      "ctaPrimary": "Começar a praticar",
+      "ctaPrimary": "Começar a aprender",
       "ctaSecondary": "Entrar"
     },
     "ctaLite": {
       "title": "Pronto para começar?",
-      "lead": "Crie, adapte e compartilhe com ferramentas de IA feitas para aprendizagem real.",
+      "lead": "Uma plataforma para aulas, quizzes, Spaces, apoio de idioma, quadro, impressões e feedback.",
       "primary": "Começar",
       "secondary": "Ver planos",
-      "note": "Grátis para começar.",
+      "note": "Grátis para começar. Faça upgrade quando precisar de mais capacidade.",
       "boxTitle": "Você recebe desde o início",
       "checks": [
-        "Crie atividades rapidamente",
-        "Use tradução e áudio",
-        "Compartilhe em turmas",
-        "Reutilize conteúdo facilmente"
+        "Crie aulas, quizzes e atividades em minutos",
+        "Compartilhe e acompanhe trabalhos nos Spaces",
+        "Use apoio de idioma, áudio e feedback explicativo",
+        "Reutilize, adapte e imprima conteúdo facilmente"
       ]
     },
     "footer": {
@@ -320,7 +320,7 @@
       "privacy": "Privacidade",
       "contact": "Contato",
       "rights": "Todos os direitos reservados.",
-      "tagline": "Aprendizagem com IA — para professores, alunos e pais"
+      "tagline": "Aprendizagem para todos — feita para professores, alunos, estudantes e pais no mundo todo."
     }
   }
 }

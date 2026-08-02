@@ -46,14 +46,14 @@
         },
         "parent": {
           "title": "Parent",
-          "text": "Homeschooling with AI support.",
+          "text": "Support learning at home with your own spaces and tasks.",
           "imageAlt": "Symbol for the parent role",
           "points": {
-            "0": "Create child spaces",
-            "1": "Assign tasks",
-            "2": "Give stars and feedback",
-            "3": "Create your own tasks",
-            "4": "AI support all the way"
+            "0": "Create learning spaces for your children",
+            "1": "Assign tasks at the right level",
+            "2": "Follow work and give encouragement",
+            "3": "Create your own tasks and quizzes",
+            "4": "AI support when your child needs help"
           }
         },
         "school": {
@@ -71,33 +71,33 @@
       }
     },
     "aiSupport": {
-      "eyebrow": "AI that supports the teacher",
-      "title": "A new world of possibilities — without losing control.",
-      "description": "Use AI to develop lessons, support students as they work, and give faster feedback. The teacher always decides the direction.",
+      "eyebrow": "AI support with the teacher in control",
+      "title": "Create better lessons faster.",
+      "description": "321school uses AI to help with text, level, tasks, images and feedback. You choose the content, adjust the direction and decide what students see.",
       "imageAlt": "Teacher using AI support in teaching",
-      "floatingTopTitle": "AI support",
+      "floatingTopTitle": "AI that helps",
       "floatingTopText": "Teacher in control",
       "floatingBottomTitle": "Time saved",
-      "floatingBottomText": "More time for learning",
+      "floatingBottomText": "More time for students",
       "cards": {
         "develop": {
-          "title": "Develop faster",
-          "text": "Create texts, tasks, images and adaptations in less time."
+          "title": "From idea to lesson",
+          "text": "Start with a topic, text or goal and get a draft you can edit."
         },
         "support": {
-          "title": "Support during learning",
-          "text": "Students can use translation, audio and help when they get stuck."
+          "title": "Adapt to level",
+          "text": "Simplify text, translate, create audio or explain it again."
         },
         "feedback": {
-          "title": "AI-supported feedback",
-          "text": "Get support for assessment, response and next steps."
+          "title": "Feedback without a blank page",
+          "text": "Get suggestions for assessment language, responses and next steps."
         },
         "control": {
-          "title": "The teacher stays in control",
-          "text": "AI gives support. The teacher makes the decisions."
+          "title": "The teacher decides",
+          "text": "AI suggests. You review, adjust and publish."
         }
       },
-      "ctaPrimary": "Try AI support",
+      "ctaPrimary": "Try the AI tools",
       "ctaSecondary": "See ready-made lessons"
     },
     "printDigital": {
@@ -140,81 +140,81 @@
     },
     "teacherPower": {
       "eyebrow": "For teachers",
-      "title": "Create more. Correct less. Follow up better.",
-      "description": "Create lessons, share them with your class and get a better overview of what students actually understand.",
+      "title": "Plan faster. Follow up better.",
+      "description": "Create lessons, share them with your class and keep track of work, answers and support needs — without losing the thread.",
       "imageAlt": "Teacher creating and sharing lessons",
-      "floatingTopTitle": "Lesson",
-      "floatingTopText": "Ready to share",
+      "floatingTopTitle": "Plan ready",
+      "floatingTopText": "Lesson · Quiz · PDF",
       "floatingBottomTitle": "Overview",
-      "floatingBottomText": "Answers · Feedback",
+      "floatingBottomText": "Answers · Status · Feedback",
       "cards": {
         "create": {
-          "title": "Create lessons fast",
-          "text": "Generate text, tasks and images — or use your own content."
+          "title": "Plan in minutes",
+          "text": "Create lessons, quizzes and tasks from a topic, goal or your own content."
         },
         "share": {
-          "title": "Share with one click",
-          "text": "Send tasks digitally to Spaces or print them as PDF."
+          "title": "Share the way you need",
+          "text": "Send digitally in Spaces, use on the board or print as PDF."
         },
         "overview": {
-          "title": "See answers together",
-          "text": "Follow submissions and see who needs more support."
+          "title": "See who needs you",
+          "text": "Follow status, answers and submissions without checking multiple systems."
         },
         "ai": {
-          "title": "Get AI support",
-          "text": "Use AI to help with assessment, feedback and further progress."
+          "title": "Faster response",
+          "text": "Get support for assessment language, explanations and next steps."
         }
       },
       "ctaPrimary": "Start as a teacher",
-      "ctaSecondary": "See the library"
+      "ctaSecondary": "Explore the library"
     },
     "languageLearning": {
       "eyebrow": "Learn languages at your level",
-      "title": "Read. Listen. Translate. Get feedback instantly.",
-      "description": "Find texts that fit your level. Use your first language when you need support — and get help while you learn.",
+      "title": "Read, listen and understand more — at your level.",
+      "description": "Find texts that fit your level. Translate when you get stuck, listen while you read and get explanations that help you move forward.",
       "imageAlt": "Student learning languages with text, audio, translation and feedback",
       "floatingLevelTitle": "Level",
       "floatingLevelText": "A1 · A2 · B1",
-      "floatingFeedbackTitle": "Feedback",
-      "floatingFeedbackText": "Instantly",
+      "floatingFeedbackTitle": "Help",
+      "floatingFeedbackText": "When you need it",
       "cards": {
         "level": {
-          "title": "Texts at the right level",
-          "text": "Choose simple or more advanced texts — from A1 to B2."
+          "title": "Texts that fit",
+          "text": "Choose texts from A1 to B2 and work at the right pace."
         },
         "motherTongue": {
-          "title": "Support in your first language",
-          "text": "Translate words, sentences and explanations when you get stuck."
+          "title": "Your first language as support",
+          "text": "Translate words, sentences and explanations when you need it."
         },
         "audio": {
           "title": "Listen and understand",
-          "text": "Hear the text while you read, and practise pronunciation and flow."
+          "text": "Hear the text while you read, and practise pronunciation, fluency and understanding."
         },
         "feedback": {
-          "title": "Feedback instantly",
-          "text": "Get AI feedback on your answers right away."
+          "title": "Answers with explanation",
+          "text": "Get feedback that shows what you can improve."
         }
       },
       "ctaPrimary": "Find a text",
       "ctaSecondary": "Start for free"
     },
     "spacesNew": {
-      "eyebrow": "Classrooms made simple",
-      "title": "Create classes. Share tasks. See everything.",
-      "description": "Create as many Spaces as you need. Invite students, share tasks and follow submissions — without chaos.",
+      "eyebrow": "Spaces bring teaching together",
+      "title": "Classes, tasks and answers in one place.",
+      "description": "Create Spaces for classes, groups or courses. Share lessons, quizzes and tasks, and see who has started, submitted and needs follow-up.",
       "imageAlt": "Teacher organizing classes and tasks",
       "floatingTopTitle": "Spaces",
       "floatingTopText": "3A · 3B · Language group",
       "floatingBottomTitle": "Status",
-      "floatingBottomText": "Submitted · In progress",
+      "floatingBottomText": "Submitted · Started",
       "checks": {
-        "0": "Unlimited classrooms",
-        "1": "Share tasks with one click",
-        "2": "See answers right away",
-        "3": "Give feedback — with or without AI"
+        "0": "Create spaces for classes, groups and courses",
+        "1": "Share lessons, quizzes and tasks in one place",
+        "2": "Follow status, answers and submissions as they happen",
+        "3": "Give feedback with teacher judgement and AI support"
       },
-      "ctaPrimary": "Create your first classroom",
-      "ctaSecondary": "See tasks"
+      "ctaPrimary": "Create a Space",
+      "ctaSecondary": "Explore tasks"
     },
     "topStrip": {
       "title": "Read as much as you want from the library",
@@ -242,77 +242,77 @@
       "ctaSecondary": "Explore 321quiz"
     },
     "parentHome": {
-      "eyebrow": "For parents and homeschooling",
-      "title": "Follow your child’s learning at home — in a simple way.",
-      "description": "Create your own tasks, share them with your children and give simple feedback with stars, smileys and AI support.",
-      "imageAlt": "Parent helping a child learn at home",
-      "floatingTopTitle": "Homeschooling",
-      "floatingTopText": "Learning at home",
-      "floatingBottomTitle": "Feedback",
-      "floatingBottomText": "⭐ 😊 ⭐",
+      "eyebrow": "For parents and guardians",
+      "title": "Make learning at home simpler and more fun.",
+      "description": "Create learning spaces, share tasks and make small quizzes for homework, revision or birthdays. Follow the work and give safe support along the way.",
+      "imageAlt": "Family working on learning at home",
+      "floatingTopTitle": "Learning at home",
+      "floatingTopText": "Tasks · Quizzes",
+      "floatingBottomTitle": "Encouragement",
+      "floatingBottomText": "Stars · Smiles · Feedback",
       "cards": {
         "platform": {
-          "title": "A parent platform",
-          "text": "Create safe learning spaces for your children at home."
+          "title": "Personal learning spaces",
+          "text": "Keep your child’s tasks, texts and quizzes in one place."
         },
         "share": {
-          "title": "Share tasks with your children",
-          "text": "Send reading, language or math tasks directly."
+          "title": "Quizzes for learning and fun",
+          "text": "Make quizzes for homework, revision, language practice or birthdays."
         },
         "ai": {
-          "title": "AI helps along the way",
-          "text": "Get support with texts, tasks, explanations and feedback."
+          "title": "Help when you get stuck",
+          "text": "Get support with text, explanations, questions and adaptation."
         },
         "warm": {
-          "title": "Feedback with warmth",
-          "text": "Use stars, smileys and short comments."
+          "title": "Follow up with warmth",
+          "text": "Use stars, smileys and short comments along the way."
         }
       },
       "ctaPrimary": "Start as a parent",
       "ctaSecondary": "Find tasks"
     },
     "studentFlow": {
-      "eyebrow": "For students",
-      "title": "Practise on your own. Improve. Get help along the way.",
-      "description": "A bit like football: those who practise on their own improve the most. Here you can create, practise and get feedback — whenever you want.",
-      "imageAlt": "Student practising independently with digital support",
-      "floatingTopTitle": "Practice",
-      "floatingTopText": "When you want",
+      "eyebrow": "For learners / students",
+      "title": "Learn at your own pace. Get help when you need it.",
+      "description": "Read texts, listen, translate, create your own tasks and get explanations as you work. Perfect for school, languages, adult education or self-study.",
+      "imageAlt": "Learner or student studying independently with digital support",
+      "floatingTopTitle": "Self-study",
+      "floatingTopText": "At your pace",
       "floatingBottomTitle": "Feedback",
       "floatingBottomText": "Instantly",
       "cards": {
         "create": {
           "title": "Create your own tasks",
-          "text": "Write a text or get help creating tasks."
+          "text": "Practise a text, topic or question you want to master."
         },
         "language": {
-          "title": "Learn languages smarter",
-          "text": "Read, listen and translate while you work."
+          "title": "Language support as you work",
+          "text": "Read, listen, translate and get words explained."
         },
         "correction": {
-          "title": "Get correction instantly",
-          "text": "See what you can do — and what you can improve."
+          "title": "Understand your mistakes",
+          "text": "Get explanations, not just right or wrong."
         },
         "feedback": {
-          "title": "Get AI feedback",
-          "text": "Get explanations and tips while you learn."
+          "title": "Quizzes and feedback",
+          "text": "Create quizzes and get tips on what to practise next."
         }
       },
-      "ctaPrimary": "Start practising",
+      "ctaPrimary": "Start learning",
       "ctaSecondary": "Log in"
     },
     "ctaLite": {
       "title": "Ready to get started?",
-      "lead": "Create, adapt, share and support learning with AI-powered tools built for real classrooms and real learners.",
+      "lead": "One learning platform for lessons, quizzes, Spaces, language support, board activities, printouts and feedback.",
       "primary": "Get started",
       "secondary": "See pricing",
       "note": "Free to start. Upgrade only when you need more capacity.",
       "boxTitle": "What you get from day one",
       "checks": [
-        "Create lessons and tasks in minutes",
-        "Use translation, audio and feedback tools",
-        "Share lessons in Spaces",
-        "Export and reuse content easily"
+        "Create lessons, quizzes and tasks in minutes",
+        "Share and follow up work in Spaces",
+        "Use language support, audio and explanatory feedback",
+        "Reuse, adapt and print content easily"
       ]
     },
     "footer": {
@@ -320,7 +320,7 @@
       "privacy": "Privacy",
       "contact": "Contact",
       "rights": "All rights reserved.",
-      "tagline": "AI-powered learning — built for teachers, students and parents"
+      "tagline": "Learning for everyone — built for teachers, learners, students and parents around the world."
     }
   }
 }

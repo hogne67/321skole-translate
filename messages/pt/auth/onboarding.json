@@ -22,11 +22,11 @@
         "label": "Escolha o perfil *",
         "student": "Aluno / estudante",
         "teacher": "Professor",
-        "parent": "Responsável",
+        "parent": "Pais / responsável",
         "hint": "Escolha um perfil para continuar.",
         "studentHint": "Para alunos, estudantes e adultos que querem aprender por conta própria ou com outras pessoas.",
         "teacherHint": "Plataforma de aprendizagem para professores com turmas, salas e quadro digital.",
-        "parentHint": "Para responsáveis que querem ajudar seus filhos a aprender mais. Crie espaços de estudo e ofereça atividades adaptadas."
+        "parentHint": "Para pais e responsáveis que querem apoiar a aprendizagem em casa. Crie espaços de estudo e ofereça atividades adaptadas."
       },
       "fullName": {
         "label": "Nome completo *"
@@ -44,7 +44,7 @@
       }
     },
     "errors": {
-      "missingRole": "Escolha um perfil (Aluno / estudante, Professor ou Responsável).",
+      "missingRole": "Escolha um perfil (Aluno / estudante, Professor ou Pais / responsável).",
       "missingName": "Digite seu nome completo.",
       "missingCountry": "Escolha um país.",
       "missingMunicipalityNo": "Escolha um município.",

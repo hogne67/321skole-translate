@@ -706,7 +706,7 @@ function AiSupportSection(props: { t: TFn; locale: string }) {
           <div className="order-2 md:order-1 rounded-[2rem] border border-white bg-white/80 p-2 shadow-xl shadow-sky-900/10 backdrop-blur md:col-start-1 md:row-span-2 md:row-start-1">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
               <Image
-                src="/landing/ai-support.png"
+                src="/landing/Teacher laptop.png"
                 alt={props.t("aiSupport.imageAlt")}
                 fill
                 className="object-cover object-center"
@@ -989,7 +989,7 @@ function TeacherPowerSection(props: { t: TFn; locale: string }) {
           <div className="order-2 rounded-[2rem] border border-white/10 bg-white/10 p-2 shadow-2xl shadow-black/20 backdrop-blur md:col-start-2 md:row-span-2 md:row-start-1 md:p-3">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-900">
               <Image
-                src="/landing/teacher-power.png"
+                src="/landing/teacher_planning_smiling.png"
                 alt={props.t("teacherPower.imageAlt")}
                 fill
                 className="object-cover object-center"
@@ -1188,11 +1188,11 @@ function SpacesSection(props: { t: TFn; locale: string }) {
 
           {/* TEXT BOTTOM */}
           <div className="order-3 md:col-start-1 md:row-start-2">
-            <div className="mt-2 space-y-2 md:mt-0 md:space-y-3">
-              <SimpleCheck text={props.t("spacesNew.checks.0")} />
-              <SimpleCheck text={props.t("spacesNew.checks.1")} />
-              <SimpleCheck text={props.t("spacesNew.checks.2")} />
-              <SimpleCheck text={props.t("spacesNew.checks.3")} />
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:mt-0">
+              <SpacesFeature index="01" text={props.t("spacesNew.checks.0")} />
+              <SpacesFeature index="02" text={props.t("spacesNew.checks.1")} />
+              <SpacesFeature index="03" text={props.t("spacesNew.checks.2")} />
+              <SpacesFeature index="04" text={props.t("spacesNew.checks.3")} />
             </div>
 
             <SectionButtons
@@ -1281,7 +1281,7 @@ function ParentHomeSection(props: { t: TFn; locale: string }) {
           <div className="order-2 rounded-[2rem] border border-white bg-white/80 p-2 shadow-xl shadow-amber-900/10 backdrop-blur md:col-start-1 md:row-span-2 md:row-start-1 md:p-3">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-100">
               <Image
-                src="/landing/parent-home.png"
+                src="/landing/family_helping.png"
                 alt={props.t("parentHome.imageAlt")}
                 fill
                 className="object-cover object-center"
@@ -1368,7 +1368,7 @@ function StudentFlowSection(props: { t: TFn; locale: string }) {
           <div className="order-2 rounded-[2rem] border border-white/10 bg-white/10 p-2 shadow-2xl shadow-black/20 backdrop-blur md:col-start-2 md:row-span-2 md:row-start-1 md:p-3">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] bg-slate-900">
               <Image
-                src="/landing/student-flow.png"
+                src="/landing/student_study.png"
                 alt={props.t("studentFlow.imageAlt")}
                 fill
                 className="object-cover object-center"
@@ -1675,6 +1675,19 @@ function SimpleCheck(props: { text: string }) {
     <div className="flex gap-3 text-sm text-white/80">
       <span className="text-emerald-400">✓</span>
       <span>{props.text}</span>
+    </div>
+  );
+}
+
+function SpacesFeature(props: { index: string; text: string }) {
+  return (
+    <div className="group flex min-h-[76px] items-start gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-white shadow-sm shadow-sky-950/10 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15">
+      <span className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-white text-sm font-semibold text-sky-700 shadow-sm">
+        {props.index}
+      </span>
+      <span className="pt-1 text-sm font-semibold leading-snug text-white/90">
+        {props.text}
+      </span>
     </div>
   );
 }

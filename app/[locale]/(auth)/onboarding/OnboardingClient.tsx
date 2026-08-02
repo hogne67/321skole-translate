@@ -248,7 +248,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
     if (currentStep === 1) {
       setRoleTouched(true);
       if (!role) {
-        setErr(safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent)."));
+        setErr(safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent / guardian)."));
         return false;
       }
       return true;
@@ -320,7 +320,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
     setRoleTouched(true);
 
     if (!role) {
-      setErr(safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent)."));
+      setErr(safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent / guardian)."));
       return;
     }
 
@@ -737,11 +737,11 @@ export default function OnboardingClient({ nextUrl }: Props) {
                 >
                   <span style={selectedBadge(role === "parent")}>✓</span>
                   <div style={roleEmoji}>👨‍👩‍👧</div>
-                  <div style={roleTitle}>{safeT("fields.role.parent", "Parent")}</div>
+                  <div style={roleTitle}>{safeT("fields.role.parent", "Parent / guardian")}</div>
                   <div style={roleHint}>
                     {safeT(
                       "fields.role.parentHint",
-                      "For guardians who want to help their children learn more. Create your own study spaces and give them adapted tasks."
+                      "For parents and guardians who want to support learning at home. Create your own study spaces and give adapted tasks."
                     )}
                   </div>
                 </button>
@@ -749,7 +749,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
               {showRoleHint ? (
                 <div style={hintBox}>
-                  {safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent).")}
+                  {safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent / guardian).")}
                 </div>
               ) : null}
             </section>
