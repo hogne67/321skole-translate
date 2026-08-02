@@ -248,7 +248,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
     if (currentStep === 1) {
       setRoleTouched(true);
       if (!role) {
-        setErr(safeT("errors.missingRole", "Choose a role (Student, Teacher or Parent)."));
+        setErr(safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent)."));
         return false;
       }
       return true;
@@ -320,7 +320,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
     setRoleTouched(true);
 
     if (!role) {
-      setErr(safeT("errors.missingRole", "Choose a role (Student, Teacher or Parent)."));
+      setErr(safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent)."));
       return;
     }
 
@@ -701,11 +701,11 @@ export default function OnboardingClient({ nextUrl }: Props) {
                 >
                   <span style={selectedBadge(role === "student")}>✓</span>
                   <div style={roleEmoji}>👩‍🎓</div>
-                  <div style={roleTitle}>{safeT("fields.role.student", "Student")}</div>
+                  <div style={roleTitle}>{safeT("fields.role.student", "Learner / student")}</div>
                   <div style={roleHint}>
                     {safeT(
                       "fields.role.studentHint",
-                      "For pupils and students who want to learn more on their own or together with others."
+                      "For pupils, students and adults who want to learn independently or together with others."
                     )}
                   </div>
                 </button>
@@ -749,7 +749,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
               {showRoleHint ? (
                 <div style={hintBox}>
-                  {safeT("errors.missingRole", "Choose a role (Student, Teacher or Parent).")}
+                  {safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent).")}
                 </div>
               ) : null}
             </section>

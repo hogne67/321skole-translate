@@ -22,26 +22,26 @@
       "cards": {
         "teacher": {
           "title": "Teacher",
-          "text": "Create tasks, classes and give feedback.",
+          "text": "Smart tools for modern teachers.",
           "imageAlt": "Symbol for the teacher role",
           "points": {
-            "0": "Create tasks, classes and classrooms",
-            "1": "Invite students and pupils",
-            "2": "Assign tasks",
-            "3": "Reply and give feedback",
-            "4": "AI support all the way"
+            "0": "Create lessons, quizzes and annual plans",
+            "1": "Set up classrooms and invite students",
+            "2": "Assign tasks digitally or as PDFs",
+            "3": "Follow answers and give feedback",
+            "4": "AI support when you need it"
           }
         },
         "student": {
-          "title": "Student",
-          "text": "Study independently and get AI feedback.",
+          "title": "Learner / student",
+          "text": "For pupils, students and adults who want to learn independently.",
           "imageAlt": "Symbol for the student role",
           "points": {
-            "0": "Study independently and get feedback",
-            "1": "Read and translate everything",
-            "2": "Listen to texts and tasks",
-            "3": "Create your own tasks",
-            "4": "AI support all the way"
+            "0": "Read and practise at the right level",
+            "1": "Translate texts and tasks",
+            "2": "Listen to texts, tasks and explanations",
+            "3": "Create your own tasks and quizzes",
+            "4": "Get AI feedback when you need help"
           }
         },
         "parent": {
@@ -58,14 +58,14 @@
         },
         "school": {
           "title": "School",
-          "text": "A complete system for teachers and substitutes.",
+          "text": "One system for schools, teachers and substitutes.",
           "imageAlt": "Symbol for the school solution",
           "points": {
-            "0": "A complete system for teachers and substitutes",
-            "1": "Simple administration",
-            "2": "Excellent statistics and control",
+            "0": "Manage teachers and access with ease",
+            "1": "Give substitutes safe tools from the first lesson",
+            "2": "Follow usage, activity and learning across the school",
             "3": "Pay only for active teachers",
-            "4": "AI supports teachers and substitutes only"
+            "4": "AI support with clear boundaries"
           }
         }
       }

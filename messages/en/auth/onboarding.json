@@ -20,11 +20,11 @@
       "fields": {
         "role": {
           "label": "Choose role *",
-          "student": "Student",
+          "student": "Learner / student",
           "teacher": "Teacher",
           "parent": "Parent",
           "hint": "Choose one role to continue.",
-          "studentHint": "For pupils and students who want to learn more on their own or together with others.",
+          "studentHint": "For pupils, students and adults who want to learn independently or together with others.",
           "teacherHint": "Learning platform for teaching staff with classes, classrooms and digital whiteboard.",
           "parentHint": "For guardians who want to help their children learn more. Create your own study spaces and give them adapted tasks."
         },
@@ -44,7 +44,7 @@
         }
       },
       "errors": {
-        "missingRole": "Choose a role (Student, Teacher or Parent).",
+        "missingRole": "Choose a role (Learner / student, Teacher or Parent).",
         "missingName": "Enter your full name.",
         "missingCountry": "Choose a country.",
         "missingMunicipalityNo": "Choose a municipality.",

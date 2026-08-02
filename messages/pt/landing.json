@@ -22,26 +22,26 @@
       "cards": {
         "teacher": {
           "title": "Professor",
-          "text": "Crie atividades, turmas e dê feedback.",
+          "text": "Boas ferramentas para professores modernos.",
           "imageAlt": "Símbolo da função de professor",
           "points": {
-            "0": "Crie atividades, turmas e salas",
-            "1": "Convide estudantes e alunos",
-            "2": "Distribua atividades",
-            "3": "Responda e dê feedback",
-            "4": "Apoio de IA em todo o caminho"
+            "0": "Crie aulas, quizzes e planos anuais",
+            "1": "Crie salas e convide alunos",
+            "2": "Distribua atividades digitalmente ou em PDF",
+            "3": "Acompanhe respostas e dê feedback",
+            "4": "Apoio de IA quando você precisar"
           }
         },
         "student": {
-          "title": "Aluno",
-          "text": "Estude sozinho e receba feedback com IA.",
+          "title": "Aluno / estudante",
+          "text": "Para alunos, estudantes e adultos que querem aprender por conta própria.",
           "imageAlt": "Símbolo da função de aluno",
           "points": {
-            "0": "Estude sozinho e receba feedback",
-            "1": "Leia e traduza tudo",
-            "2": "Ouça textos e atividades",
-            "3": "Crie suas próprias atividades",
-            "4": "Apoio de IA em todo o caminho"
+            "0": "Leia e pratique no nível certo",
+            "1": "Traduza textos e atividades",
+            "2": "Ouça textos, atividades e explicações",
+            "3": "Crie suas próprias atividades e quizzes",
+            "4": "Receba feedback com IA quando precisar de ajuda"
           }
         },
         "parent": {
@@ -58,14 +58,14 @@
         },
         "school": {
           "title": "Escola",
-          "text": "Sistema completo para professores e substitutos.",
+          "text": "Um sistema para escolas, professores e substitutos.",
           "imageAlt": "Símbolo da solução escolar",
           "points": {
-            "0": "Sistema completo para professores e substitutos",
-            "1": "Administração simples",
-            "2": "Estatísticas e controle excelentes",
+            "0": "Gerencie professores e acessos com facilidade",
+            "1": "Dê aos substitutos ferramentas seguras desde a primeira aula",
+            "2": "Acompanhe uso, atividade e aprendizagem na escola",
             "3": "Pague apenas por professores ativos",
-            "4": "IA como apoio apenas para professores e substitutos"
+            "4": "Apoio de IA com limites claros"
           }
         }
       }

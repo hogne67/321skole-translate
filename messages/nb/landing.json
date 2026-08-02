@@ -22,26 +22,26 @@
       "cards": {
         "teacher": {
           "title": "Lærer",
-          "text": "Lag oppgaver, klasser og gi feedback.",
+          "text": "Gode verktøy for moderne lærere.",
           "imageAlt": "Symbol for lærerrollen",
           "points": {
-            "0": "Lag oppgaver, klasser og klasserom",
-            "1": "Inviter studenter og elever",
-            "2": "Del ut oppgaver",
-            "3": "Svar og gi feedback",
-            "4": "KI-støtte hele veien"
+            "0": "Lag leksjoner, quizer og årsplaner",
+            "1": "Opprett klasserom og inviter elever",
+            "2": "Del ut oppgaver digitalt eller som PDF",
+            "3": "Følg svar og gi tilbakemelding",
+            "4": "KI-støtte når du trenger det"
           }
         },
         "student": {
-          "title": "Student",
-          "text": "Studer selv og få KI-feedback.",
+          "title": "Elev / student",
+          "text": "For elever, studenter og voksne som vil lære selv.",
           "imageAlt": "Symbol for studentrollen",
           "points": {
-            "0": "Studer selv og få feedback",
-            "1": "Les og få oversatt alt",
-            "2": "Lytt til tekst og oppgaver",
-            "3": "Lag egne oppgaver",
-            "4": "KI-støtte hele veien"
+            "0": "Les og øv på riktig nivå",
+            "1": "Få oversatt tekst og oppgaver",
+            "2": "Lytt til tekst, oppgaver og forklaringer",
+            "3": "Lag egne oppgaver og quizer",
+            "4": "Få KI-feedback når du trenger hjelp"
           }
         },
         "parent": {
@@ -58,14 +58,14 @@
         },
         "school": {
           "title": "Skole",
-          "text": "Komplett system for lærere og vikarer.",
+          "text": "Et samlet system for skole, lærere og vikarer.",
           "imageAlt": "Symbol for skoleløsningen",
           "points": {
-            "0": "Komplett system for lærere og vikarer",
-            "1": "Enkel administrasjon",
-            "2": "Suveren statistikk og kontroll",
+            "0": "Administrer lærere og tilganger enkelt",
+            "1": "Gi vikarer trygge verktøy fra første time",
+            "2": "Følg bruk, aktivitet og læring på skolen",
             "3": "Betal kun for aktive lærere",
-            "4": "KI er støtte kun for lærere og vikarer"
+            "4": "KI-støtte med tydelige rammer"
           }
         }
       }

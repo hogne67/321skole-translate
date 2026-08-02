@@ -20,11 +20,11 @@
     "fields": {
       "role": {
         "label": "Velg rolle *",
-        "student": "Student",
+        "student": "Elev / student",
         "teacher": "Lærer",
         "parent": "Forelder",
         "hint": "Velg én rolle for å fortsette.",
-        "studentHint": "For elever og studenter som vil lære mer på egen hånd eller sammen med andre.",
+        "studentHint": "For elever, studenter og voksne som vil lære på egen hånd eller sammen med andre.",
         "teacherHint": "Læringsplattform for lærere med klasser, grupper og digital tavle.",
         "parentHint": "For foresatte som vil hjelpe barna sine med læring. Opprett egne læringsrom og gi tilpassede oppgaver."
       },
@@ -44,7 +44,7 @@
       }
     },
     "errors": {
-      "missingRole": "Velg en rolle (Student, Lærer eller Forelder).",
+      "missingRole": "Velg en rolle (Elev / student, Lærer eller Forelder).",
       "missingName": "Skriv inn fullt navn.",
       "missingCountry": "Velg et land.",
       "missingMunicipalityNo": "Velg en kommune.",
