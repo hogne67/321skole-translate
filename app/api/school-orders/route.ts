@@ -14,7 +14,6 @@ type SchoolOrderPayload = {
   preferredContact?: string;
   comment?: string;
   teacherCount?: number;
-  monthlyTotal?: number;
 };
 
 function cleanString(value: unknown) {
@@ -53,11 +52,10 @@ export async function POST(request: Request) {
   const email = cleanString(body.email);
   const phone = cleanString(body.phone);
   const role = cleanString(body.role);
-  const requestType = body.requestType === "info" ? "Mer informasjon" : "Bestilling";
+  const requestType = body.requestType === "info" ? "Mer informasjon" : "Oppstartsforespørsel";
   const preferredContact = body.preferredContact === "phone" ? "Telefon" : "E-post";
   const comment = cleanString(body.comment);
   const teacherCount = Math.max(1, Math.min(200, Number(body.teacherCount) || 1));
-  const monthlyTotal = teacherCount * 75;
 
   if (!school || !municipality || !address || !place || !contactName || !email) {
     return NextResponse.json({ ok: false, error: "missing_required_fields" }, { status: 400 });
@@ -79,8 +77,7 @@ export async function POST(request: Request) {
         ${row("E-post", email)}
         ${row("Telefon", phone)}
         ${row("Rolle", role)}
-        ${row("Antall lærere", teacherCount)}
-        ${row("Pris per måned", `${monthlyTotal} kr`)}
+        ${row("Omtrent antall voksne", teacherCount)}
       </table>
       <h2 style="margin-top:24px;font-size:16px;">Kommentar</h2>
       <p style="white-space:pre-wrap;">${escapeHtml(comment || "-")}</p>

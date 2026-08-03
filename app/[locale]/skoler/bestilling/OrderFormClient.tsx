@@ -1,34 +1,54 @@
 "use client";
 
-import { FormEvent, ReactNode, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useLocale } from "next-intl";
-import { ArrowLeft, Check, ClipboardList, HelpCircle, Mail, Phone, ShoppingCart } from "lucide-react";
-
-const TEACHER_PRICE = 75;
+import { ArrowLeft, Check, ClipboardList, HelpCircle, Mail, Phone, Rocket } from "lucide-react";
 
 function localizedPath(locale: string, path: string) {
   const clean = path.startsWith("/") ? path : `/${path}`;
   return `/${locale}${clean}`;
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("nb-NO", {
-    style: "currency",
-    currency: "NOK",
-    maximumFractionDigits: 0,
-  }).format(value);
+function schoolAccessNotice(locale: string) {
+  if (locale === "pt") {
+    return {
+      eyebrow: "Escolas",
+      title: "O acesso escolar ainda não está disponível no Brasil.",
+      text: "Estamos preparando a 321escola para escolas fora da Noruega. Em breve, escolas brasileiras poderão solicitar acesso, criar uma estrutura escolar e convidar professores com uma solução adaptada ao Brasil.",
+      primary: "Voltar para 321escola",
+      secondary: "Entrar em contato",
+    };
+  }
+
+  if (locale === "en") {
+    return {
+      eyebrow: "Schools",
+      title: "School access is not ready in your country yet.",
+      text: "We are preparing 321school outside Norway. Soon, schools in more countries will be able to request access, create a school structure, and invite teachers with a setup adapted to their country.",
+      primary: "Back to 321school",
+      secondary: "Contact us",
+    };
+  }
+
+  return null;
+}
+
+function headerLabels(locale: string) {
+  if (locale === "pt") return { back: "Voltar para escolas" };
+  if (locale === "en") return { back: "Back to schools" };
+  return { back: "Til skolesiden" };
 }
 
 export default function OrderFormClient() {
   const locale = useLocale();
+  const unavailable = schoolAccessNotice(locale);
+  const header = headerLabels(locale);
   const [teacherCount, setTeacherCount] = useState(10);
-  const [requestType, setRequestType] = useState<"order" | "info">("order");
+  const [requestType, setRequestType] = useState<"startup" | "info">("startup");
   const [preferredContact, setPreferredContact] = useState<"email" | "phone">("email");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-
-  const monthlyTotal = useMemo(() => teacherCount * TEACHER_PRICE, [teacherCount]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +65,6 @@ export default function OrderFormClient() {
         requestType,
         preferredContact,
         teacherCount,
-        monthlyTotal,
       }),
     });
 
@@ -61,7 +80,7 @@ export default function OrderFormClient() {
             className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-950"
           >
             <ArrowLeft size={16} />
-            Til skolesiden
+            {header.back}
           </Link>
 
           <Link href={localizedPath(locale, "/")} className="flex items-center gap-2">
@@ -77,17 +96,61 @@ export default function OrderFormClient() {
         </div>
       </header>
 
+      {unavailable ? (
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-10 md:grid-cols-[1fr_0.82fr] md:items-center md:py-14">
+          <section>
+            <p className="inline-flex rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-800">
+              {unavailable.eyebrow}
+            </p>
+            <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
+              {unavailable.title}
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700 md:text-lg">
+              {unavailable.text}
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={localizedPath(locale, "/")}
+                className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+              >
+                {unavailable.primary}
+              </Link>
+              <Link
+                href={localizedPath(locale, "/contact")}
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
+              >
+                {unavailable.secondary}
+              </Link>
+            </div>
+          </section>
+
+          <aside>
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-sky-100">
+                <Image
+                  src="/landingschool/teacher_helping.jpg"
+                  alt=""
+                  fill
+                  className="object-cover object-center"
+                />
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : (
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-10 md:grid-cols-[1fr_0.82fr] md:py-14">
         <section>
           <p className="inline-flex rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-800">
-            Bestilling for skoler
+            Oppstart for norske skoler
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
-            Fortell oss hvem dere er, så setter vi opp riktig antall lisenser.
+            Fortell oss litt om skolen, så finner vi riktig oppstart sammen.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700 md:text-lg">
-            Elever er gratis i klasserommet. Dere betaler kun for ansatte og
-            vikarer som skal lage, dele og følge opp læring.
+            I denne fasen setter vi opp skolebruk i dialog med dere. Skolen
+            betaler for lærere og voksne som trenger tilgang. Elevene kan bruke
+            opplegg og aktiviteter i klasserommet uten ekstra kostnad.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -95,17 +158,17 @@ export default function OrderFormClient() {
               <legend className="text-sm font-semibold text-slate-900">Hva ønsker dere?</legend>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <ChoiceCard
-                  checked={requestType === "order"}
-                  description="321skole tar kontakt for avtale, opprettelse av skolestruktur og administrasjon."
-                  icon={<ShoppingCart size={18} />}
-                  label="Vi bestiller"
+                  checked={requestType === "startup"}
+                  description="Vi vil se på behov, skoleoppsett, lærertilgang og en ryddig oppstart."
+                  icon={<Rocket size={18} />}
+                  label="Vi vil planlegge oppstart"
                   name="requestType"
-                  onChange={() => setRequestType("order")}
-                  value="order"
+                  onChange={() => setRequestType("startup")}
+                  value="startup"
                 />
                 <ChoiceCard
                   checked={requestType === "info"}
-                  description="Vi vil avklare pris, oppstart eller praktiske detaljer først."
+                  description="Vi vil avklare muligheter, pris, personvern eller praktiske detaljer først."
                   icon={<HelpCircle size={18} />}
                   label="Vi vil ha mer informasjon"
                   name="requestType"
@@ -152,14 +215,15 @@ export default function OrderFormClient() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <label htmlFor="teacherCount" className="text-sm font-semibold text-slate-900">
-                    Vi bestiller for
+                    Aktuelt omfang
                   </label>
                   <p className="mt-1 text-sm text-slate-600">
-                    Velg antall lærere, ansatte og vikarer som skal ha tilgang.
+                    Velg omtrent hvor mange lærere, ansatte og vikarer som kan
+                    trenge tilgang.
                   </p>
                 </div>
                 <div className="text-3xl font-semibold text-slate-950">
-                  {teacherCount} <span className="text-base font-medium text-slate-600">lærere</span>
+                  {teacherCount} <span className="text-base font-medium text-slate-600">voksne</span>
                 </div>
               </div>
 
@@ -188,7 +252,7 @@ export default function OrderFormClient() {
                 name="comment"
                 rows={4}
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-                placeholder="Eventuelle avdelinger, fakturainfo eller praktiske detaljer."
+                placeholder="Eventuelle avdelinger, ønsket oppstart, fakturainfo eller praktiske detaljer."
               />
             </label>
 
@@ -200,23 +264,23 @@ export default function OrderFormClient() {
               >
                 {status === "sending"
                   ? "Sender..."
-                  : requestType === "order"
-                    ? "Send bestilling"
+                  : requestType === "startup"
+                    ? "Send oppstartsforespørsel"
                     : "Send forespørsel"}
               </button>
 
               {status === "sent" ? (
                 <p className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
                   <Check size={16} />
-                  {requestType === "order"
-                    ? "Bestillingen er sendt. Vi tar kontakt."
+                  {requestType === "startup"
+                    ? "Oppstartsforespørselen er sendt. Vi tar kontakt."
                     : "Forespørselen er sendt. Vi tar kontakt."}
                 </p>
               ) : null}
 
               {status === "error" ? (
                 <p className="text-sm font-semibold text-rose-700">
-                  Bestillingen kunne ikke sendes akkurat nå. Prøv igjen om litt.
+                  Forespørselen kunne ikke sendes akkurat nå. Prøv igjen om litt.
                 </p>
               ) : null}
             </div>
@@ -227,7 +291,7 @@ export default function OrderFormClient() {
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="relative aspect-[4/3] bg-sky-100">
               <Image
-                src="/landingschool/school_teacher_students.png"
+                src="/landingschool/teacher_helping.jpg"
                 alt="Lærer og elever i klasserom"
                 fill
                 className="object-cover object-center"
@@ -240,32 +304,26 @@ export default function OrderFormClient() {
                   <ClipboardList size={20} />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Oppsummering</p>
-                  <p className="text-sm text-slate-600">75 kr per lærer per måned</p>
+                  <p className="text-sm font-semibold text-slate-900">Oppstartsforespørsel</p>
+                  <p className="text-sm text-slate-600">Vi tar kontakt før avtale settes opp</p>
                 </div>
               </div>
 
               <div className="mt-6 space-y-3 rounded-2xl bg-slate-50 p-4">
-                <SummaryRow label="Lærere" value={`${teacherCount}`} />
-                <SummaryRow label="Pris per lærer" value={formatCurrency(TEACHER_PRICE)} />
-                <SummaryRow label="Elever" value="Gratis" />
-                <div className="border-t border-slate-200 pt-3">
-                  <SummaryRow
-                    label="Sum per måned"
-                    value={formatCurrency(monthlyTotal)}
-                    strong
-                  />
-                </div>
+                <SummaryRow label="Omtrent antall voksne" value={`${teacherCount}`} />
+                <SummaryRow label="Elever i klasserommet" value="Uten ekstra kostnad" />
+                <SummaryRow label="Neste steg" value="Avklaring og oppsett" strong />
               </div>
 
               <p className="mt-4 text-sm leading-6 text-slate-600">
-                Antall kan justeres senere. Dere betaler bare for aktive
-                personell-lisenser.
+                Antallet er bare et utgangspunkt. Vi avklarer behov, praktisk
+                oppsett og vilkår før skolen tar stilling.
               </p>
             </div>
           </div>
         </aside>
       </div>
+      )}
     </main>
   );
 }
