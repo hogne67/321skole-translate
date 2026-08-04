@@ -304,31 +304,12 @@ export default function GeometryAttemptPage() {
   }
 
   return (
-    <main style={{ maxWidth: 980, margin: "0 auto", padding: 16 }}>
+    <main style={{ maxWidth: 980, margin: "0 auto", padding: "16px 16px 128px" }}>
       <div style={{ display: "grid", gap: 16 }}>
         {feedbackVisible && (auto || aiFeedback) ? (
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-slate-900">Tilbakemelding</h2>
-
-              <button
-                type="button"
-                onClick={handleGetFeedback}
-                disabled={feedbackLoading}
-                style={{
-                  border: "1px solid rgba(16,185,129,1)",
-                  background: "rgba(16,185,129,1)",
-                  color: "white",
-                  borderRadius: 12,
-                  padding: "10px 14px",
-                  fontWeight: 900,
-                  fontSize: 14,
-                  cursor: feedbackLoading ? "not-allowed" : "pointer",
-                  opacity: feedbackLoading ? 0.7 : 1,
-                }}
-              >
-                {feedbackLoading ? "Oppdaterer..." : "Få tilbakemelding"}
-              </button>
             </div>
 
             {topSummary ? (
@@ -345,35 +326,7 @@ export default function GeometryAttemptPage() {
               </div>
             ) : null}
           </section>
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <button
-              type="button"
-              onClick={handleGetFeedback}
-              disabled={feedbackLoading}
-              style={{
-                border: "1px solid rgba(16,185,129,1)",
-                background: "rgba(16,185,129,1)",
-                color: "white",
-                borderRadius: 12,
-                padding: "12px 16px",
-                fontWeight: 900,
-                fontSize: 15,
-                cursor: feedbackLoading ? "not-allowed" : "pointer",
-                opacity: feedbackLoading ? 0.7 : 1,
-              }}
-            >
-              {feedbackLoading ? "Lager tilbakemelding..." : "Få tilbakemelding"}
-            </button>
-          </div>
-        )}
+        ) : null}
 
         <GeometryWorksheetPracticeView
           worksheet={worksheet}
@@ -416,6 +369,30 @@ export default function GeometryAttemptPage() {
             t={tGeometryAny}
           />
         ) : null}
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-14px_40px_rgba(15,23,42,0.12)] backdrop-blur">
+        <div className="mx-auto flex max-w-[980px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="m-0 text-sm font-black text-slate-950">Klar for tilbakemelding?</p>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-600 sm:text-sm">
+              Du får autokorrekt og AI-tilbakemelding på svarene dine.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGetFeedback}
+            disabled={feedbackLoading}
+            className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {feedbackLoading
+              ? aiFeedback || auto
+                ? "Oppdaterer..."
+                : "Lager tilbakemelding..."
+              : "Få tilbakemelding"}
+          </button>
+        </div>
       </div>
     </main>
   );

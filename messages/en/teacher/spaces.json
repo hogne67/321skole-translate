@@ -3,7 +3,9 @@
       "title": "Spaces",
       "subtitle": "Spaces are class or group rooms where you can share assignments with students, either with the whole class or with a smaller group.",
       "newSpace": "+ Create new space",
+      "newSpaceShort": "+ New",
       "newSpaceLocked": "+ New space (locked)",
+      "newSpaceLockedShort": "+ Locked",
       "newSpaceTitle": "Create a new space",
       "newSpaceLockedTitle": "Requires attestation + Teacher/Creator mode",
       "trainingVideo": {
@@ -31,6 +33,8 @@
           "label": "Filters",
           "openOnly": "Open only",
           "showClosed": "Show closed",
+          "show": "Show filters",
+          "hide": "Hide filters",
           "showClosedTitle": "Turn on to show both open and closed spaces",
           "showing": "Showing: {n}"
         }
@@ -61,6 +65,7 @@
         "boardTitle": "Open the board for this space",
         "printRoom": "Print invitation",
         "printRoomTitle": "Print invitation with room code and QR code",
+        "moreActions": "More",
         "editTitle": "Edit name",
         "editTitleTitle": "Edit room name",
         "editTitleLabel": "Room name",

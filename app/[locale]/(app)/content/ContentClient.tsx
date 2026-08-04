@@ -913,21 +913,36 @@ export default function ContentClient() {
   }
 
   async function openShareForQuiz(it: Extract<ContentItem, { type: "lesson" }>) {
-    const publishedId = String(it.activePublishedId || "").trim();
-    if (!publishedId) {
-      setErr(safeMsg("errors.publishFailed", "Kunne ikke oppdatere publiseringsstatus"));
-      return;
-    }
-
+    const key = `${it.type}:${it.id}`;
     const title = titleForCard(it);
-    await openShareModal({
-      title,
-      url: `${getOrigin()}/${locale}/321quiz/${publishedId}`,
-      text: safeMsg("shareQuiz.text", `Jeg deler en quiz fra 321quiz: ${title}`),
-      kind: "generic",
-      lesson: it,
-      tone: "friendly",
-    });
+    let publishedId = String(it.activePublishedId || "").trim();
+
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      if (!publishedId) {
+        const res = await authedPost<{ publishedId?: string; publishedLessonId?: string; error?: string }>("/api/quiz/share", {
+          lessonId: it.id,
+        });
+        publishedId = res.publishedId || res.publishedLessonId || "";
+        if (!publishedId) throw new Error(res.error || safeMsg("errors.publishFailed", "Kunne ikke oppdatere publiseringsstatus"));
+        await refresh();
+      }
+
+      await openShareModal({
+        title,
+        url: `${getOrigin()}/${locale}/321quiz/${publishedId}`,
+        text: safeMsg("shareQuiz.text", `Jeg deler en quiz fra 321quiz: ${title}`),
+        kind: "generic",
+        lesson: it,
+        tone: "friendly",
+      });
+    } catch (event) {
+      setErr(event instanceof Error ? event.message : safeMsg("errors.publishFailed", "Kunne ikke oppdatere publiseringsstatus"));
+    } finally {
+      setBusy(key, false);
+    }
   }
 
   async function openShareForSpace(it: Extract<ContentItem, { type: "space" }>) {
@@ -1171,14 +1186,6 @@ export default function ContentClient() {
     }
   }
 
-  async function copyText(txt: string) {
-    try {
-      await navigator.clipboard.writeText(txt);
-    } catch {
-      // ignore
-    }
-  }
-
   async function openMathAttemptFromLesson(lessonId: string) {
     const key = `openMath:${lessonId}`;
     setErr(null);
@@ -1246,6 +1253,14 @@ export default function ContentClient() {
       setErr(e instanceof Error ? e.message : "Failed to open math attempt");
     } finally {
       setBusy(key, false);
+    }
+  }
+
+  async function copyText(txt: string) {
+    try {
+      await navigator.clipboard.writeText(txt);
+    } catch {
+      // ignore
     }
   }
 
@@ -1333,6 +1348,8 @@ export default function ContentClient() {
         role === "student" &&
         !isReviewed &&
         !isTeacherSpaceSubmission(ss);
+      const hasStartedSubmission =
+        (ss as Extract<ContentItem, { type: "submission" }> & { hasAnswers?: boolean }).hasAnswers === true;
 
       const canShareSubmissionToSpace =
         (isTeacher || isParent) &&
@@ -1362,7 +1379,9 @@ export default function ContentClient() {
       return [
         {
           key: "open",
-          label: t("actions.open"),
+          label: canEditSubmission && hasStartedSubmission
+            ? t("actions.editAnswers")
+            : t("actions.open"),
           disabled: busy,
           onClick: () => router.push(itemOpenHref(ss)),
         },
@@ -1377,16 +1396,7 @@ export default function ContentClient() {
           ]
           : []),
 
-        ...(canEditSubmission
-          ? [
-            {
-              key: "edit",
-              label: t("actions.editAnswers"),
-              disabled: busy,
-              onClick: () => router.push(itemOpenHref(ss)),
-            },
-          ]
-          : canShowEditDisabled
+        ...(canShowEditDisabled
             ? [
               {
                 key: "edit",
@@ -1558,11 +1568,21 @@ export default function ContentClient() {
     if (isMathArchive) {
       return [
         ...restoreAction,
+        ...(isStudent && !isDeleted
+          ? [
+            {
+              key: "openMath",
+              label: t("math.openDigital"),
+              disabled: busy,
+              onClick: () => openMathAttemptFromLesson(ls.id),
+            },
+          ]
+          : []),
         {
-          key: "openMath",
-          label: t("math.openDigital"),
+          key: "previewMath",
+          label: t("math.openPreview"),
           disabled: busy,
-          onClick: () => openMathAttemptFromLesson(ls.id),
+          onClick: () => router.push(itemOpenHref(ls)),
         },
         ...(canEdit && mathSubtype === "geometry"
           ? [
@@ -1574,18 +1594,22 @@ export default function ContentClient() {
             },
           ]
           : []),
-        {
-          key: "shareToSpace",
-          label: t("actions.shareToSpace"),
-          disabled: busy || !canShareToSpace,
-          onClick: () =>
-            openPickSpace({
-              lessonId: ls.id,
-              title: titleForCard(ls),
-              sourceType: "myContent",
-              sourceId: ls.id,
-            }),
-        },
+        ...(canShareToSpace
+          ? [
+            {
+              key: "shareToSpace",
+              label: t("actions.shareToSpace"),
+              disabled: busy,
+              onClick: () =>
+                openPickSpace({
+                  lessonId: ls.id,
+                  title: titleForCard(ls),
+                  sourceType: "myContent",
+                  sourceId: ls.id,
+                }),
+            },
+          ]
+          : []),
         ...(canPdf
           ? [
             {
@@ -1625,19 +1649,23 @@ export default function ContentClient() {
           disabled: busy,
           onClick: () => startQuizSession(ls.id),
         },
-        {
-          key: "shareToBoard",
-          label: safeMsg("actions.shareToBoard", "Del til tavle"),
-          disabled: busy || !canShareToSpace,
-          onClick: () =>
-            openPickSpace({
-              lessonId: ls.id,
-              title: titleForCard(ls),
-              sourceType: "myContent",
-              sourceId: ls.id,
-              mode: "board",
-            }),
-        },
+        ...(canShareToSpace
+          ? [
+            {
+              key: "shareToBoard",
+              label: safeMsg("actions.shareToBoard", "Del til tavle"),
+              disabled: busy,
+              onClick: () =>
+                openPickSpace({
+                  lessonId: ls.id,
+                  title: titleForCard(ls),
+                  sourceType: "myContent",
+                  sourceId: ls.id,
+                  mode: "board",
+                }),
+            },
+          ]
+          : []),
         ...(isTeacher
           ? [
             {
@@ -1652,12 +1680,19 @@ export default function ContentClient() {
           ? [
             {
               key: "shareQuizPublic",
-              label: safeMsg("actions.shareQuizPublic", "Del offentlig"),
+              label: safeMsg("actions.shareQuizPublic", "Del lenke/QR"),
               disabled: busy,
               onClick: () => openShareForQuiz(ls),
             },
           ]
-          : []),
+          : [
+            {
+              key: "shareQuizPublic",
+              label: busy ? t("actions.working") : safeMsg("actions.shareQuizPublic", "Del lenke/QR"),
+              disabled: busy,
+              onClick: () => openShareForQuiz(ls),
+            },
+          ]),
         {
           key: "delete",
           label: t("actions.delete"),
@@ -1716,18 +1751,22 @@ export default function ContentClient() {
         ]
         : []),
 
-      {
-        key: "shareToSpace",
-        label: t("actions.shareToSpace"),
-        disabled: busy || !canShareToSpace,
-        onClick: () =>
-          openPickSpace({
-            lessonId: ls.id,
-            title: titleForCard(ls),
-            sourceType: "myContent",
-            sourceId: ls.id,
-          }),
-      },
+      ...(canShareToSpace
+        ? [
+          {
+            key: "shareToSpace",
+            label: t("actions.shareToSpace"),
+            disabled: busy,
+            onClick: () =>
+              openPickSpace({
+                lessonId: ls.id,
+                title: titleForCard(ls),
+                sourceType: "myContent",
+                sourceId: ls.id,
+              }),
+          },
+        ]
+        : []),
 
       ...(isTeacher
         ? [
@@ -1778,7 +1817,7 @@ export default function ContentClient() {
       ];
     }
     if (it.type === "space") return ["open", "board", "copyCode", "share", "copyJoinLink"];
-    if (isMathArchiveItem(it)) return ["openMath", "edit", "shareToSpace", "pdf", "delete", "restore"];
+    if (isMathArchiveItem(it)) return ["openMath", "previewMath", "edit", "shareToSpace", "pdf", "delete", "restore"];
     if (isQuizLesson(it)) return ["edit", "startQuiz", "shareToBoard", "publish", "unpublish", "shareQuizPublic", "delete", "restore"];
     return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "addToCourse", "pdf", "delete", "restore"];
   }
@@ -1844,7 +1883,7 @@ export default function ContentClient() {
     try {
       const res = await authedPost<{ sessionId?: string; error?: string }>("/api/quiz-sessions/start", { lessonId });
       if (!res.sessionId) throw new Error(res.error || "Kunne ikke starte quiz.");
-      router.push(`/${locale}/quiz/host/${res.sessionId}`);
+      router.push(`/${locale}/quiz/host/${res.sessionId}/display`);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Kunne ikke starte quiz.");
     } finally {

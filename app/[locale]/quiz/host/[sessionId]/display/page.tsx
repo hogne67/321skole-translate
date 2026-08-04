@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { ArrowRight, Eye, Pause, Play, RotateCcw, X, Trophy } from "lucide-react";
 
@@ -96,12 +96,15 @@ function normalizeSession(value: unknown): SessionView | null {
 }
 
 export default function QuizSessionDisplayPage() {
-  const params = useParams<{ sessionId: string }>();
+  const params = useParams<{ locale: string; sessionId: string }>();
+  const router = useRouter();
+  const locale = params.locale;
   const sessionId = params.sessionId;
   const [user, setUser] = useState<User | null>(getAuth().currentUser);
   const [session, setSession] = useState<SessionView | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [qrUrl, setQrUrl] = useState("");
   const [answerSeconds, setAnswerSeconds] = useState(30);
   const [revealSeconds, setRevealSeconds] = useState(20);
   const [resultsSeconds, setResultsSeconds] = useState(20);
@@ -110,6 +113,10 @@ export default function QuizSessionDisplayPage() {
 
   const question = session?.questions[session.currentIndex] ?? null;
   const totalAnswers = session?.currentAnswerCount ?? 0;
+  const joinUrl = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return `${window.location.origin}/${locale}/quiz/${sessionId}`;
+  }, [locale, sessionId]);
 
   const secondsLeft = useMemo(() => {
     if (!session || session.status !== "active") return null;
@@ -126,7 +133,7 @@ export default function QuizSessionDisplayPage() {
   }, [session]);
 
   const load = useCallback(async () => {
-    const current = getAuth().currentUser;
+    const current = getAuth().currentUser ?? user;
     if (!current) return;
     const token = await current.getIdToken();
     const res = await fetch(`/api/quiz-sessions/${encodeURIComponent(sessionId)}`, {
@@ -147,7 +154,7 @@ export default function QuizSessionDisplayPage() {
       setNextSeconds(nextSession.nextSeconds);
     }
     setError("");
-  }, [sessionId, timingDirty]);
+  }, [sessionId, timingDirty, user]);
 
   useEffect(() => onAuthStateChanged(getAuth(), setUser), []);
 
@@ -158,8 +165,11 @@ export default function QuizSessionDisplayPage() {
   }, [load]);
 
   const control = useCallback(async (action: string, mode?: "manual" | "auto") => {
-    const current = getAuth().currentUser;
-    if (!current) return;
+    const current = getAuth().currentUser ?? user;
+    if (!current) {
+      setError("Logg inn for å styre quizøkten.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -172,13 +182,29 @@ export default function QuizSessionDisplayPage() {
       const data = (await res.json().catch(() => ({}))) as { error?: unknown };
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke styre økten.");
       await load();
-      if (action === "settings") setTimingDirty(false);
+      if (action === "settings" || action === "start") setTimingDirty(false);
     } catch (event) {
       setError(event instanceof Error ? event.message : "Kunne ikke styre økten.");
     } finally {
       setBusy(false);
     }
-  }, [answerSeconds, load, nextSeconds, resultsSeconds, revealSeconds, sessionId]);
+  }, [answerSeconds, load, nextSeconds, resultsSeconds, revealSeconds, sessionId, user]);
+
+  useEffect(() => {
+    if (!joinUrl) return;
+    import("qrcode")
+      .then((mod) => mod.default.toDataURL(joinUrl, { margin: 1, scale: 8 }))
+      .then(setQrUrl)
+      .catch(() => setQrUrl(""));
+  }, [joinUrl]);
+
+  function closeDisplay() {
+    if (window.opener) {
+      window.close();
+      return;
+    }
+    router.push(`/${locale}/content`);
+  }
 
   useEffect(() => {
     if (!session || session.mode !== "auto" || session.status !== "active" || busy) return;
@@ -206,15 +232,22 @@ export default function QuizSessionDisplayPage() {
   return (
     <main className="h-screen overflow-hidden bg-[#08090b] px-8 py-6 text-white">
       <div className="mx-auto flex h-full max-w-[1800px] flex-col">
-        <header className="flex items-start justify-between gap-6">
+        <header className="relative flex items-start justify-center gap-6 text-center">
+          {session?.status !== "lobby" ? (
+            <div className="absolute left-0 top-0 rounded-2xl bg-white/10 px-5 py-3 text-left">
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">Kode</div>
+              <div className="text-3xl font-black tracking-[0.18em]">{session?.code || "------"}</div>
+            </div>
+          ) : null}
+
           <div>
-            <div className="text-sm font-black uppercase tracking-[0.22em] text-emerald-300">321skole tavle</div>
-            <div className="mt-2 text-2xl font-bold text-white/90">Live i klasserommet</div>
+            <div className="text-sm font-black uppercase tracking-[0.22em] text-emerald-300">321skole quiz</div>
+            <div className="mt-2 text-2xl font-bold text-white/90">Storskjermvisning</div>
           </div>
-          <div className="rounded-2xl bg-white/10 px-5 py-3 text-right">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-white/50">Kode</div>
-            <div className="text-3xl font-black tracking-[0.18em]">{session?.code || "------"}</div>
-          </div>
+
+          <button onClick={closeDisplay} className="absolute right-0 top-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white hover:bg-white/15" title="Lukk storskjerm">
+            <X className="h-5 w-5" />
+          </button>
         </header>
 
         {error ? <div className="mt-5 rounded-2xl bg-rose-500/20 p-4 font-bold text-rose-100">{error}</div> : null}
@@ -297,18 +330,18 @@ export default function QuizSessionDisplayPage() {
             onStartAuto={() => control("start", "auto")}
             onSave={() => control("settings")}
             busy={busy}
+            timingDirty={timingDirty}
+            qrUrl={qrUrl}
           />
         )}
 
-        <footer className="mt-auto flex justify-center gap-2 pt-8">
-          <button onClick={() => window.close()} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-black">
-            <X className="h-5 w-5" />
-            Lukk visning
-          </button>
-          <button onClick={() => control("reset")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-black disabled:opacity-40">
-            <RotateCcw className="h-5 w-5" />
-            Nullstill
-          </button>
+        <footer className="mt-auto flex justify-center gap-2 pt-5">
+          {session?.status !== "lobby" ? (
+            <button onClick={() => control("reset")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-black disabled:opacity-40">
+              <RotateCcw className="h-5 w-5" />
+              Nullstill
+            </button>
+          ) : null}
           {session?.status === "active" ? (
             <button onClick={() => control("finish")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-black disabled:opacity-40">
               <Pause className="h-5 w-5" />
@@ -335,6 +368,8 @@ function Lobby({
   onStartAuto,
   onSave,
   busy,
+  timingDirty,
+  qrUrl,
 }: {
   session: SessionView | null;
   answerSeconds: number;
@@ -349,32 +384,49 @@ function Lobby({
   onStartAuto: () => void;
   onSave: () => void;
   busy: boolean;
+  timingDirty: boolean;
+  qrUrl: string;
 }) {
   return (
-    <section className="flex flex-1 items-center justify-center py-12 text-center">
-      <div className="w-full max-w-4xl">
-        <div className="text-sm font-black uppercase tracking-[0.24em] text-violet-300">Quiz klar</div>
-        <h1 className="mt-4 text-7xl font-black tracking-tight">{session?.title ?? "Quiz"}</h1>
-        {session?.description ? <p className="mx-auto mt-5 max-w-2xl text-2xl font-semibold text-white/70">{session.description}</p> : null}
-        <div className="mx-auto mt-8 inline-flex rounded-full bg-white/10 px-6 py-3 text-2xl font-black">{session?.questions.length ?? 0} spørsmål</div>
+    <section className="flex min-h-0 flex-1 items-center py-6">
+      <div className="grid w-full min-h-0 gap-6 xl:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.4fr)]">
+        <div className="rounded-[2rem] bg-white/[0.08] p-5">
+          <div className="text-xs font-black uppercase tracking-[0.22em] text-white/50">Deltakerkode</div>
+          <div className="mt-2 text-7xl font-black tracking-[0.16em] text-white">{session?.code || "------"}</div>
 
-        <div className="mx-auto mt-8 grid max-w-3xl gap-3 rounded-[2rem] bg-white/10 p-5 sm:grid-cols-2">
-          <DarkChoiceGroup label="Svarfrist" value={answerSeconds} values={[15, 30, 60]} onChange={setAnswerSeconds} />
-          <DarkChoiceGroup label="Riktig svar" value={revealSeconds} values={[10, 20, 30]} onChange={setRevealSeconds} />
-          <DarkChoiceGroup label="Resultat" value={resultsSeconds} values={[10, 20, 30]} onChange={setResultsSeconds} />
-          <DarkChoiceGroup label="Nedtelling" value={nextSeconds} values={[5, 10]} onChange={setNextSeconds} />
+          <div className="mt-5 inline-flex rounded-[1.5rem] bg-white p-2">
+            {qrUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={qrUrl} alt="" className="mx-auto h-72 w-72" />
+            ) : (
+              <div className="flex h-72 items-center justify-center text-slate-500">Lager QR...</div>
+            )}
+          </div>
         </div>
 
-        <div className="mt-7 flex flex-wrap justify-center gap-3">
-          <button onClick={onSave} disabled={busy} className="rounded-2xl bg-white/10 px-6 py-4 text-xl font-black disabled:opacity-40">Lagre tider</button>
-          <button onClick={onStartManual} disabled={busy} className="inline-flex items-center gap-3 rounded-2xl bg-white/10 px-7 py-4 text-2xl font-black disabled:opacity-40">
-            <Play className="h-6 w-6" />
-            Start manuelt
-          </button>
-          <button onClick={onStartAuto} disabled={busy} className="inline-flex items-center gap-3 rounded-2xl bg-violet-300 px-7 py-4 text-2xl font-black text-slate-950 disabled:opacity-40">
-            <Play className="h-6 w-6" />
-            Start auto
-          </button>
+        <div className="flex min-h-0 flex-col justify-center text-center">
+          <div className="text-sm font-black uppercase tracking-[0.24em] text-violet-300">Klar til livequiz</div>
+          <h1 className="mt-4 text-6xl font-black tracking-tight">{session?.title ?? "Quiz"}</h1>
+          <div className="mx-auto mt-5 inline-flex rounded-full bg-white/10 px-5 py-2 text-xl font-black">{session?.questions.length ?? 0} spørsmål</div>
+
+          <div className="mx-auto mt-6 grid w-full max-w-3xl gap-2 rounded-[1.5rem] bg-white/10 p-4 sm:grid-cols-2">
+            <DarkChoiceGroup label="Svarfrist" value={answerSeconds} values={[15, 30, 60]} onChange={setAnswerSeconds} />
+            <DarkChoiceGroup label="Riktig svar" value={revealSeconds} values={[10, 20, 30]} onChange={setRevealSeconds} />
+            <DarkChoiceGroup label="Resultat" value={resultsSeconds} values={[10, 20, 30]} onChange={setResultsSeconds} />
+            <DarkChoiceGroup label="Nedtelling" value={nextSeconds} values={[5, 10]} onChange={setNextSeconds} />
+          </div>
+
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <button onClick={onSave} disabled={busy || !timingDirty} className="rounded-2xl bg-white/10 px-5 py-3 text-base font-black disabled:opacity-40">Lagre tider</button>
+            <button onClick={onStartManual} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-xl font-black text-slate-950 disabled:opacity-40">
+              <Play className="h-5 w-5" />
+              Start manuelt
+            </button>
+            <button onClick={onStartAuto} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-violet-300 px-6 py-3 text-xl font-black text-slate-950 disabled:opacity-40">
+              <Play className="h-5 w-5" />
+              Start auto
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -383,11 +435,11 @@ function Lobby({
 
 function DarkChoiceGroup({ label, value, values, onChange }: { label: string; value: number; values: number[]; onChange: (value: number) => void }) {
   return (
-    <div className="rounded-2xl bg-black/20 p-4 text-left">
-      <div className="text-xs font-black uppercase tracking-[0.18em] text-white/50">{label}</div>
-      <div className="mt-3 flex flex-wrap gap-2">
+    <div className="rounded-2xl bg-black/20 p-3 text-left">
+      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-white/50">{label}</div>
+      <div className="mt-2 flex flex-wrap gap-2">
         {values.map((item) => (
-          <button key={item} onClick={() => onChange(item)} className={["rounded-xl px-4 py-3 font-black", value === item ? "bg-emerald-300 text-slate-950" : "bg-white/10 text-white"].join(" ")}>
+          <button key={item} onClick={() => onChange(item)} className={["rounded-xl px-3 py-2 text-sm font-black", value === item ? "bg-emerald-300 text-slate-950" : "bg-white/10 text-white hover:bg-white/15"].join(" ")}>
             {item} sek
           </button>
         ))}

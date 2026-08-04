@@ -615,26 +615,14 @@ export default function MathWorksheetPrintPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 print:bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
+      <div className="mx-auto max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
         <div className="mb-6 print:hidden">
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href={`/${locale}/producer/${lessonId}`}
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-            >
-              {t("backToEditor")}
-            </Link>
-
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-            >
-              {t("print")}
-            </button>
-          </div>
-
-          <p className="mt-3 text-sm text-slate-600">{t("saveAsPdf")}</p>
+          <Link
+            href={`/${locale}/producer/${lessonId}`}
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
+          >
+            {t("backToEditor")}
+          </Link>
         </div>
 
         <section className="rounded-3xl border border-slate-200 bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none">
@@ -665,6 +653,19 @@ export default function MathWorksheetPrintPage() {
             ) : null}
           </div>
         </section>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.10)] backdrop-blur print:hidden">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="m-0 text-sm text-slate-600">{t("saveAsPdf")}</p>
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+          >
+            {t("print")}
+          </button>
+        </div>
       </div>
 
       <style jsx global>{`

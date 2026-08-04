@@ -3,7 +3,9 @@
     "title": "Spaces",
     "subtitle": "Spaces er klasse- eller grupperom der du kan dele oppgaver med elever, enten med hele klassen eller en mindre gruppe.",
     "newSpace": "+ Opprett nytt space",
+    "newSpaceShort": "+ Nytt",
     "newSpaceLocked": "+ Nytt space (låst)",
+    "newSpaceLockedShort": "+ Låst",
     "newSpaceTitle": "Opprett et nytt space",
     "newSpaceLockedTitle": "Krever attestering + lærer-/produsentmodus",
     "trainingVideo": {
@@ -31,6 +33,8 @@
         "label": "Filtre",
         "openOnly": "Kun åpne",
         "showClosed": "Vis lukkede",
+        "show": "Vis filtre",
+        "hide": "Skjul filtre",
         "showClosedTitle": "Skru på for å vise både åpne og lukkede spaces",
         "showing": "Viser: {n}"
       }
@@ -61,6 +65,7 @@
       "boardTitle": "Åpne tavlen for dette spacet",
       "printRoom": "Skriv ut invitasjon",
       "printRoomTitle": "Skriv ut invitasjon med romkode og QR-kode",
+      "moreActions": "Mer",
       "editTitle": "Rediger navn",
       "editTitleTitle": "Rediger navn på rommet",
       "editTitleLabel": "Romnavn",

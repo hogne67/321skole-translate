@@ -2,7 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  limit,
+  query,
+  runTransaction,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { db } from "@/lib/firebase";
 
@@ -101,11 +110,49 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
   const [shareLabel, setShareLabel] = useState("Del");
   const [saveLabel, setSaveLabel] = useState("Legg til i Mitt innhold");
   const [saveBusy, setSaveBusy] = useState(false);
+  const [alreadyAdded, setAlreadyAdded] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
     return onAuthStateChanged(auth, setCurrentUser);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkAlreadyAdded() {
+      if (!currentUser?.uid || currentUser.isAnonymous) {
+        if (!cancelled) {
+          setAlreadyAdded(false);
+          setSaveLabel("Legg til i Mitt innhold");
+        }
+        return;
+      }
+
+      try {
+        const qy = query(
+          collection(db, "lessons"),
+          where("ownerId", "==", currentUser.uid),
+          where("sourcePublishedQuizId", "==", quiz.id),
+          limit(1)
+        );
+        const snap = await getDocs(qy);
+
+        if (!cancelled && !snap.empty) {
+          setAlreadyAdded(true);
+          setSaveLabel("Lagt til");
+        }
+      } catch {
+        // The add action still works through the server even if this lookup fails.
+      }
+    }
+
+    void checkAlreadyAdded();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, quiz.id]);
 
   async function shareQuiz() {
     const url = `${window.location.origin}${href}`;
@@ -199,10 +246,11 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) throw new Error(data.error || "Kunne ikke legge til quiz.");
+      setAlreadyAdded(true);
       setSaveLabel("Lagt til");
     } catch {
       setSaveLabel("Prøv igjen");
-      setTimeout(() => setSaveLabel("Legg til i Mitt innhold"), 1600);
+      setTimeout(() => setSaveLabel(alreadyAdded ? "Lagt til" : "Legg til i Mitt innhold"), 1600);
     } finally {
       setSaveBusy(false);
     }
@@ -282,7 +330,7 @@ export function QuizLibraryCard({ locale, quiz }: QuizLibraryCardProps) {
             </button>
             <button
               type="button"
-              disabled={saveBusy}
+              disabled={saveBusy || alreadyAdded}
               className="inline-flex rounded-lg border border-green-300 bg-green-200 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-green-300 disabled:opacity-60"
               onClick={(event) => {
                 event.preventDefault();

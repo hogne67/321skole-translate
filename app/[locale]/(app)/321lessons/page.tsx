@@ -7,8 +7,10 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   limit,
   onSnapshot,
+  orderBy,
   query,
   runTransaction,
   serverTimestamp,
@@ -57,6 +59,7 @@ type PublishedLesson = {
 
 const LEVELS = ["A1_START", "A1", "A2", "B1", "B2", "C1"];
 const PAGE_SIZES = [25, 50, 100] as const;
+const SAVED_LESSON_STATUS_LIMIT = 500;
 type PageSize = (typeof PAGE_SIZES)[number];
 type SharePreset =
   | "example1"
@@ -376,6 +379,7 @@ export default function LessonsLandingPage() {
 
   const [saveBusyId, setSaveBusyId] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [mySavedLessons, setMySavedLessons] = useState<Record<string, boolean>>({});
 
   const [shareOpen, setShareOpen] = useState(false);
   const [shareTitle, setShareTitle] = useState("");
@@ -661,6 +665,67 @@ export default function LessonsLandingPage() {
     };
   }, [currentUser, pageSlice]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMySavedLessons() {
+      if (!currentUser?.uid || currentUser.isAnonymous) {
+        setMySavedLessons({});
+        return;
+      }
+
+      const ids = pageSlice.map((l) => l.id);
+      if (ids.length === 0) return;
+
+      try {
+        const found = new Set<string>();
+        const visibleIds = new Set(ids);
+        const sources = ["practiceSubmissions", "submissions"] as const;
+
+        for (const source of sources) {
+          const savedQuery = query(
+            collection(db, source),
+            where("uid", "==", currentUser.uid),
+            orderBy("updatedAt", "desc"),
+            limit(SAVED_LESSON_STATUS_LIMIT)
+          );
+          const savedSnap = await getDocs(savedQuery);
+
+          savedSnap.forEach((savedDoc) => {
+            const data = savedDoc.data() as DocumentData;
+            const candidates = [
+              typeof data.publishedLessonId === "string" ? data.publishedLessonId : "",
+              typeof data.lessonId === "string" ? data.lessonId : "",
+            ].filter(Boolean);
+
+            for (const lessonId of candidates) {
+              if (visibleIds.has(lessonId)) found.add(lessonId);
+            }
+          });
+        }
+
+        if (cancelled) return;
+
+        setMySavedLessons((prev) => {
+          const next = { ...prev };
+          ids.forEach((lessonId) => {
+            if (found.has(lessonId)) next[lessonId] = true;
+            else delete next[lessonId];
+          });
+          return next;
+        });
+      } catch {
+        // Biblioteket skal fortsatt fungere selv om statusen for lagrede oppgaver ikke kan leses.
+      }
+    }
+
+    void loadMySavedLessons();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, pageSlice]);
+
   const isResetDisabled = useMemo(() => {
     return qText === "" && level === "all" && lang === defaultLang && textType === "all";
   }, [qText, level, lang, textType, defaultLang]);
@@ -781,26 +846,9 @@ export default function LessonsLandingPage() {
         { merge: true }
       );
 
-      const submissionRef = doc(db, "submissions", stableId);
-      await setDoc(
-        submissionRef,
-        {
-          uid: currentUser.uid,
-          lessonId: lesson.id,
-          publishedLessonId: lesson.id,
-          title: lesson.title || "Untitled",
-          answers: {},
-          status: "draft",
-          kind: "practice",
-          source: "library",
-          meta: ["practice"],
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
+      setMySavedLessons((prev) => ({ ...prev, [lesson.id]: true }));
       setSaveMsg(t("saveToMyContent.success", { title: lesson.title }));
+      router.push(`/${locale}/content`);
     } catch (err) {
       console.error("addToMyContent failed", err);
       const message =
@@ -1308,6 +1356,7 @@ export default function LessonsLandingPage() {
             const ratingAverage = l.ratingAverage ?? 0;
             const ratingCount = l.ratingCount ?? 0;
             const lessonHref = `/${locale}/student/lesson/${l.id}`;
+            const isSaved = Boolean(mySavedLessons[l.id]);
 
             return (
               <div
@@ -1392,7 +1441,7 @@ export default function LessonsLandingPage() {
                         <button
                           type="button"
                           className="libraryBtn"
-                          disabled={!authReady || saveBusyId === l.id}
+                          disabled={!authReady || saveBusyId === l.id || isSaved}
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1403,7 +1452,9 @@ export default function LessonsLandingPage() {
                             ? t("saveToMyContent.loading")
                             : saveBusyId === l.id
                               ? t("saveToMyContent.saving")
-                              : t("saveToMyContent.button")}
+                              : isSaved
+                                ? t("saveToMyContent.added")
+                                : t("saveToMyContent.button")}
                         </button>
                       </div>
                     </div>

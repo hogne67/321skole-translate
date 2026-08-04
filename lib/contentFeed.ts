@@ -54,6 +54,7 @@ export type ContentItem =
     lessonId?: string;
     spaceId?: string;
     assignmentId?: string;
+    hasAnswers?: boolean;
     authorName?: string;
     deletedAt?: Date | null;
   }
@@ -129,6 +130,18 @@ function pickUpdated(d: unknown): Date | null {
     toDateSafe(x?.createdAt) ||
     null
   );
+}
+
+function hasSavedAnswers(d: unknown): boolean {
+  const x = d as Record<string, unknown> | null;
+  const answers = x?.answers;
+  if (!answers || typeof answers !== "object" || Array.isArray(answers)) return false;
+
+  return Object.values(answers as Record<string, unknown>).some((value) => {
+    if (typeof value === "string") return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== null && value !== undefined;
+  });
 }
 
 function pickLessonType(d: unknown): string | undefined {
@@ -747,6 +760,7 @@ async function fetchMyPracticeSubmissions(db: Firestore, uid: string, mode: AppM
         uid,
         lessonId,
         spaceId: undefined,
+        hasAnswers: hasSavedAnswers(d),
         authorName: lessonMeta?.authorName,
         deletedAt: toDateSafe(d.deletedAt),
       });

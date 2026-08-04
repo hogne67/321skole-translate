@@ -51,6 +51,7 @@
       "loading": "Carregando…",
       "saving": "Salvando…",
       "button": "Adicionar em Meu conteúdo",
+      "added": "Adicionado",
       "success": "\"{title}\" foi adicionada em Meu conteúdo."
     },
     "share": {

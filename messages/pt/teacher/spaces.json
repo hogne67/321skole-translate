@@ -3,7 +3,9 @@
     "title": "Spaces",
     "subtitle": "Spaces são salas de aula ou grupos onde você pode compartilhar atividades com os alunos, seja com toda a turma ou com um grupo menor.",
     "newSpace": "+ Criar novo space",
+    "newSpaceShort": "+ Novo",
     "newSpaceLocked": "+ Novo space (bloqueado)",
+    "newSpaceLockedShort": "+ Bloqueado",
     "newSpaceTitle": "Criar um novo space",
     "newSpaceLockedTitle": "Requer validação + modo Professor/Criador",
     "trainingVideo": {
@@ -31,6 +33,8 @@
         "label": "Filtros",
         "openOnly": "Apenas abertos",
         "showClosed": "Mostrar fechados",
+        "show": "Mostrar filtros",
+        "hide": "Ocultar filtros",
         "showClosedTitle": "Ative para mostrar spaces abertos e fechados",
         "showing": "Mostrando: {n}"
       }
@@ -61,6 +65,7 @@
       "boardTitle": "Abrir o quadro deste space",
       "printRoom": "Imprimir convite",
       "printRoomTitle": "Imprimir convite com código da sala e QR code",
+      "moreActions": "Mais",
       "editTitle": "Editar nome",
       "editTitleTitle": "Editar nome da sala",
       "editTitleLabel": "Nome da sala",

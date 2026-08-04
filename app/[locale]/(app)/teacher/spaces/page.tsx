@@ -84,6 +84,7 @@ function TeacherSpacesInner() {
   const [search, setSearch] = useState("");
   const [showClosed, setShowClosed] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [memberCount, setMemberCount] = useState<Record<string, number | undefined>>({});
   const [memberCountBusy, setMemberCountBusy] = useState<Record<string, boolean>>({});
@@ -275,13 +276,39 @@ function TeacherSpacesInner() {
   return (
     <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
-            <p className="mt-2 break-words text-sm text-slate-600">{t("subtitle")}</p>
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
+              <Link
+                href={withLocale(locale, "/teacher/spaces/new")}
+                title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
+                className={[
+                  "inline-flex shrink-0 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold shadow-sm no-underline hover:shadow-md sm:hidden",
+                  canCreateSpace
+                    ? "bg-green-600 text-white hover:bg-green-500"
+                    : "border border-slate-300 bg-white text-slate-800",
+                ].join(" ")}
+              >
+                {canCreateSpace ? t("newSpaceShort") : t("newSpaceLockedShort")}
+              </Link>
+            </div>
+            <p className="mt-1 break-words text-sm text-slate-600 sm:mt-2">{t("subtitle")}</p>
           </div>
 
-          <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
+          <div className="flex w-full min-w-0 flex-wrap gap-2 sm:items-center lg:w-auto lg:justify-end">
+            <Link
+              href={withLocale(locale, "/teacher/spaces/new")}
+              title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
+              className={[
+                "hidden items-center justify-center rounded-xl px-4 py-2 text-base font-semibold shadow-sm no-underline hover:shadow-md sm:inline-flex",
+                canCreateSpace
+                  ? "bg-green-600 text-white hover:bg-green-500"
+                  : "border border-slate-300 bg-white text-slate-800",
+              ].join(" ")}
+            >
+              {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
+            </Link>
             <TrainingVideoPlayer
               title={t("trainingVideo.title")}
               videoUrl="https://youtu.be/7zjhziVmGvc"
@@ -297,14 +324,23 @@ function TeacherSpacesInner() {
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-100 p-3 shadow-md sm:p-4">
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0">
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="min-w-0">
             <div className="text-sm font-semibold text-slate-900">{t("controls.filters.label")}</div>
             <div className="mt-1 break-words text-xs text-slate-600">
               {t("controls.filters.showing", { n: filtered.length })}
             </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              className="inline-flex shrink-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 sm:hidden"
+            >
+              {filtersOpen ? t("controls.filters.hide") : t("controls.filters.show")}
+            </button>
           </div>
 
-          <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(180px,0.8fr)_auto] lg:max-w-3xl">
+          <div className={[filtersOpen ? "grid" : "hidden", "min-w-0 flex-1 grid-cols-1 gap-2 sm:grid sm:grid-cols-[minmax(0,1.4fr)_minmax(180px,0.8fr)_auto] lg:max-w-3xl"].join(" ")}>
             <div className="min-w-0">
               <label className="sr-only" htmlFor="space-search">
                 {t("controls.search.label")}
@@ -358,26 +394,13 @@ function TeacherSpacesInner() {
       </div>
 
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
-        <div className="mb-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-3 flex min-w-0 items-center justify-between gap-3 sm:mb-4">
           <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("title")}</div>
             <div className="mt-1 break-words text-sm text-slate-600">
               {t("controls.filters.showing", { n: filtered.length })}
             </div>
           </div>
-
-          <Link
-            href={withLocale(locale, "/teacher/spaces/new")}
-            title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
-            className={[
-              "inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-base font-semibold shadow-sm no-underline hover:shadow-md sm:w-auto",
-              canCreateSpace
-                ? "bg-green-600 text-white hover:bg-green-500"
-                : "border border-slate-300 bg-white text-slate-800",
-            ].join(" ")}
-          >
-            {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
-          </Link>
         </div>
 
         <div className="grid min-w-0 gap-3">
@@ -446,7 +469,7 @@ function TeacherSpacesInner() {
                           <button
                             type="button"
                             onClick={() => startEditingTitle(r.id, title)}
-                            className="shrink-0 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                            className="hidden shrink-0 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 sm:inline-flex"
                             title={t("list.editTitleTitle")}
                           >
                             {t("list.editTitle")}
@@ -484,7 +507,7 @@ function TeacherSpacesInner() {
                       <b className="text-slate-900">{countBusy ? "…" : count !== undefined ? String(count) : "—"}</b>
                     </div>
 
-                    <div className="mt-3 grid w-full min-w-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-3">
+                    <div className="mt-3 hidden w-full min-w-0 grid-cols-1 gap-2 sm:grid sm:w-auto sm:grid-cols-3">
                       <button
                         type="button"
                         onClick={() => {
@@ -518,11 +541,11 @@ function TeacherSpacesInner() {
                     </div>
                   </div>
 
-                  <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[330px]">
+                  <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[330px]">
                     <button
                       type="button"
                       onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
-                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      className="hidden rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 sm:block"
                       title={t("list.seeMembersTitle")}
                     >
                       {t("list.seeMembers")}
@@ -547,6 +570,62 @@ function TeacherSpacesInner() {
                     </button>
                   </div>
                 </div>
+
+                <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 sm:hidden">
+                  <summary className="cursor-pointer list-none px-3 py-2 text-sm font-semibold text-slate-800">
+                    {t("list.moreActions")}
+                  </summary>
+                  <div className="grid gap-2 border-t border-slate-200 p-3">
+                    <button
+                      type="button"
+                      onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
+                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      title={t("list.seeMembersTitle")}
+                    >
+                      {t("list.seeMembers")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => startEditingTitle(r.id, title)}
+                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      title={t("list.editTitleTitle")}
+                    >
+                      {t("list.editTitle")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const joinPath = withLocale(locale, `/join?code=${encodeURIComponent(code)}`);
+                        const url = `${getOrigin()}${joinPath}`;
+                        copyToClipboard(url, `url_${r.id}`);
+                      }}
+                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      title={t("list.copyJoinLinkTitle")}
+                    >
+                      {t("list.copyJoinLink")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openQr(r.id, code, title)}
+                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                      title={t("list.joinWithQrTitle")}
+                    >
+                      {t("list.joinWithQr")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/print`))}
+                      className="rounded-xl border border-sky-700 bg-white px-3 py-2 text-sm font-medium text-sky-800 hover:bg-sky-50"
+                      title={t("list.printRoomTitle")}
+                    >
+                      {t("list.printRoom")}
+                    </button>
+                  </div>
+                </details>
               </div>
             );
           })}

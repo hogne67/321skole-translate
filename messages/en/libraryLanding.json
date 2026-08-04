@@ -51,6 +51,7 @@
       "loading": "Loading…",
       "saving": "Saving…",
       "button": "Add to My content",
+      "added": "Added",
       "success": "\"{title}\" was added to My content."
     },
     "share": {

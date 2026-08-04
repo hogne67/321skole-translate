@@ -679,8 +679,6 @@ export default function StudentDashboard() {
         />
       </section>
 
-      <QuizDashboardSection locale={locale} />
-
       {!usageLoading && (
         <section
           style={statGridStyle}
@@ -904,6 +902,8 @@ export default function StudentDashboard() {
           </div>
         </section>
       )}
+
+      <QuizDashboardSection locale={locale} />
 
       <section style={dashboardSectionStyle}>
         <div style={sectionInsetStyle}>

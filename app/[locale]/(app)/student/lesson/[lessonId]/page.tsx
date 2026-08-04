@@ -959,6 +959,7 @@ export default function StudentLessonPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [audioLoginNoticeMode, setAudioLoginNoticeMode] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackErr, setFeedbackErr] = useState<string | null>(null);
 
   const [targetLang, setTargetLang] = useState("no");
   const [translatedText, setTranslatedText] = useState<string | null>(null);
@@ -1747,26 +1748,6 @@ export default function StudentLessonPage() {
         { merge: true }
       );
 
-      if (!courseContext) {
-        const subRef = doc(db, "submissions", stableId);
-        await setDoc(
-          subRef,
-          {
-            uid,
-            lessonId,
-            publishedLessonId,
-            answers,
-            readingProgress: isReadingTest ? readingProgress : null,
-            status: "draft",
-            kind: "practice",
-            source,
-            updatedAt: serverTimestamp(),
-            createdAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-      }
-
       flash(t("flash.saved"));
       router.push(courseContext ? courseRoomHref : `/${locale}/content`);
       return;
@@ -1798,6 +1779,7 @@ export default function StudentLessonPage() {
 
     setSubmitting(true);
     setMsg(null);
+    setFeedbackErr(null);
 
     setFeedback(t("feedback.generatingNew"));
     setTranslatedFeedback(null);
@@ -1835,26 +1817,6 @@ export default function StudentLessonPage() {
         },
         { merge: true }
       );
-
-      const subRef = !courseContext ? doc(db, "submissions", stableId) : null;
-      if (subRef) {
-        await setDoc(
-          subRef,
-          {
-            uid,
-            lessonId,
-            publishedLessonId,
-            answers,
-            readingProgress: isReadingTest ? activeReadingProgress : null,
-            status: "submitted",
-            kind: "practice",
-            source,
-            updatedAt: serverTimestamp(),
-            createdAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-      }
 
       const imageDescription = String(imageWritingTask?.imageDescription ?? "").trim();
       const lesetekst = isImageWriting
@@ -1913,21 +1875,13 @@ export default function StudentLessonPage() {
         updatedAt: serverTimestamp(),
       });
 
-      if (subRef) {
-        await updateDoc(subRef, {
-          feedback: fb,
-          feedbackUpdatedAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      }
-
       await incrementUsage(uid, "ai_feedback");
       await reloadUsage();
 
       flash(t("flash.submitted"));
     } catch (e: unknown) {
       const m = (e as { message?: unknown })?.message;
-      setMsg(typeof m === "string" ? m : t("errors.couldNotSubmit"));
+      setFeedbackErr(typeof m === "string" ? m : t("errors.couldNotSubmit"));
       setFeedback(null);
     } finally {
       setSubmitting(false);
@@ -3052,6 +3006,23 @@ export default function StudentLessonPage() {
         {feedbackTranslateErr ? (
           <div style={{ marginTop: 8, color: "crimson", fontSize: 14 }}>
             {feedbackTranslateErr}
+          </div>
+        ) : null}
+
+        {feedbackErr ? (
+          <div
+            style={{
+              marginTop: 8,
+              padding: "10px 12px",
+              border: "1px solid rgba(220,38,38,0.25)",
+              borderRadius: 12,
+              background: "rgba(254,226,226,0.7)",
+              color: "#991b1b",
+              fontSize: 14,
+              fontWeight: 700,
+            }}
+          >
+            {feedbackErr}
           </div>
         ) : null}
 

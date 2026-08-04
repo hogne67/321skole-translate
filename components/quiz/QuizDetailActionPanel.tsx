@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 type QuizDetailActionPanelProps = {
   locale: string;
@@ -66,6 +68,43 @@ export default function QuizDetailActionPanel({ locale, quizId }: QuizDetailActi
     });
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkAlreadyAdded() {
+      if (!currentUser?.uid || currentUser.isAnonymous) {
+        if (!cancelled) {
+          setAdded(false);
+          setButtonLabel(copy.add);
+        }
+        return;
+      }
+
+      try {
+        const qy = query(
+          collection(db, "lessons"),
+          where("ownerId", "==", currentUser.uid),
+          where("sourcePublishedQuizId", "==", quizId),
+          limit(1)
+        );
+        const snap = await getDocs(qy);
+
+        if (!cancelled && !snap.empty) {
+          setAdded(true);
+          setButtonLabel(copy.added);
+        }
+      } catch {
+        // The server import still handles duplicates if this lookup is unavailable.
+      }
+    }
+
+    void checkAlreadyAdded();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [copy.add, copy.added, currentUser, quizId]);
+
   async function addToMyContent() {
     if (!authReady) return;
 
@@ -120,7 +159,7 @@ export default function QuizDetailActionPanel({ locale, quizId }: QuizDetailActi
             type="button"
             className="quizDetailPrimaryButton"
             onClick={addToMyContent}
-            disabled={busy || !authReady}
+            disabled={busy || !authReady || added}
           >
             {buttonLabel}
           </button>
