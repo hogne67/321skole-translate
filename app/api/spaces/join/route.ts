@@ -93,22 +93,22 @@ async function findSpaceByCode(
   return null;
 }
 
-async function isUserAlreadyStudentInSpace(
+async function getActiveStudentMembership(
   db: FirebaseFirestore.Firestore,
   spaceId: string,
   uid: string
-): Promise<boolean> {
+): Promise<FirebaseFirestore.DocumentSnapshot | null> {
   const docId = `${spaceId}_${uid}`;
   const snap = await db.collection("spaceMembers").doc(docId).get();
 
-  if (!snap.exists) return false;
+  if (!snap.exists) return null;
 
   const data = (snap.data() ?? {}) as SpaceMemberFields;
   const role = safeString(data.role);
   const archived = asBoolean(data.archived);
   const status = safeString(data.status).toLowerCase();
 
-  return role === "student" && !archived && data.active !== false && status !== "removed";
+  return role === "student" && !archived && data.active !== false && status !== "removed" ? snap : null;
 }
 
 export async function POST(req: NextRequest) {
@@ -124,14 +124,6 @@ export async function POST(req: NextRequest) {
 
     if (!code) {
       return NextResponse.json({ error: "Missing code." }, { status: 400 });
-    }
-
-    if (!displayName) {
-      return NextResponse.json({ error: "Missing displayName." }, { status: 400 });
-    }
-
-    if (displayName.length > 80) {
-      return NextResponse.json({ error: "Display name is too long." }, { status: 400 });
     }
 
     const app = getAdminApp();
@@ -155,7 +147,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Could not resolve space owner." }, { status: 400 });
     }
 
-    const alreadyMemberInThisSpace = await isUserAlreadyStudentInSpace(adminDb, spaceId, uid);
+    const existingMembership = await getActiveStudentMembership(adminDb, spaceId, uid);
+    const alreadyMemberInThisSpace = Boolean(existingMembership);
+
+    if (alreadyMemberInThisSpace && !displayName) {
+      return NextResponse.json({
+        ok: true,
+        spaceId,
+        title: safeString((spaceData as SpaceOwnerFields).title) || "Untitled space",
+        alreadyMember: true,
+      });
+    }
+
+    if (!displayName) {
+      return NextResponse.json({ error: "Missing displayName." }, { status: 400 });
+    }
+
+    if (displayName.length > 80) {
+      return NextResponse.json({ error: "Display name is too long." }, { status: 400 });
+    }
 
     if (!alreadyMemberInThisSpace) {
       const teacherSnap = await adminDb.collection("users").doc(teacherUid).get();
@@ -199,7 +209,7 @@ export async function POST(req: NextRequest) {
         displayName,
         isAnon: isAnonymous,
         updatedAt: FieldValue.serverTimestamp(),
-        createdAt: FieldValue.serverTimestamp(),
+        ...(alreadyMemberInThisSpace ? {} : { createdAt: FieldValue.serverTimestamp() }),
       },
       { merge: true }
     );

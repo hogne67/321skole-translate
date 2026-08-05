@@ -1,0 +1,351 @@
+import Image from "next/image";
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { CheckCircle2, Database, Eye, LockKeyhole, School, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { getLocale } from "next-intl/server";
+
+type Copy = {
+  back: string;
+  eyebrow: string;
+  title: string;
+  lead: string;
+  updated: string;
+  cards: Array<{ title: string; text: string }>;
+  sections: Array<{ title: string; body: string; points?: string[] }>;
+  contactTitle: string;
+  contactText: string;
+  contactCta: string;
+};
+
+function localizedPath(locale: string, path: string) {
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `/${locale}${clean}`;
+}
+
+function copyFor(locale: string): Copy {
+  if (locale === "en") {
+    return {
+      back: "Back to schools",
+      eyebrow: "Schools, students and privacy",
+      title: "Privacy for schools",
+      lead: "How 321school works with safe school use, anonymous student access, accounts and AI features.",
+      updated: "First version for school assessment. Last updated: 5 August 2026.",
+      cards: [
+        { title: "Anonymous access first", text: "Students can join Spaces with a code or QR code without email or account." },
+        { title: "School-controlled use", text: "In school use, the school should know which digital tools are used with students." },
+        { title: "No direct AI in Spaces", text: "Students in Spaces normally answer teacher-controlled activities, not AI directly." },
+      ],
+      sections: [
+        {
+          title: "Roles in school use",
+          body: "The school or school owner is normally responsible for deciding which digital learning tools are used in teaching. 321school provides the tool and should be assessed by the school before systematic use with students.",
+          points: [
+            "The teacher controls rooms, activities and shared content.",
+            "Students join with code/QR or with an account when approved.",
+            "Parents/guardians can receive information from the school or teacher about how the room is used.",
+          ],
+        },
+        {
+          title: "Anonymous access in Spaces",
+          body: "Anonymous access is designed for low-friction classroom use. A student can join a Space without email and without creating a personal account.",
+          points: [
+            "The teacher can see the name the student enters and the work done in the Space.",
+            "Anonymous access is usually remembered only on the same device and browser.",
+            "Changing device, private browsing, sign-out or clearing browser data may create a new anonymous technical user.",
+            "Anonymous work is not saved to a personal account or available across devices.",
+          ],
+        },
+        {
+          title: "Accounts and children under 13",
+          body: "Accounts give more continuity, but they also mean more persistent processing. For children under 13, we recommend anonymous access in Spaces unless the school or guardians have approved account use.",
+          points: [
+            "With an account, work can be saved and used across devices.",
+            "For school use, account use should be clarified by the school, also for older students.",
+            "Students should not be asked to use a private email address if the school has not approved account use.",
+          ],
+        },
+        {
+          title: "AI in 321school",
+          body: "In Spaces, students normally do not use AI directly. Students answer content shared by the teacher, and the teacher controls the activity. Teachers may have used AI to create or adapt learning content before sharing it.",
+          points: [
+            "Signed-in students can use AI features in self-study, for example feedback on their own answers or generating practice tasks.",
+            "For children under 13, account use and AI features should be clarified by the school or guardians.",
+            "Schools should assess AI use before using it systematically with students.",
+          ],
+        },
+        {
+          title: "What may be stored",
+          body: "The exact data depends on how 321school is used. The principle is to keep student participation as limited as possible, especially in anonymous Spaces.",
+          points: [
+            "Anonymous Spaces: room membership, selected display name, technical user ID and work submitted in the room.",
+            "Student account: profile data, saved work, feedback and activity needed to provide the service.",
+            "Teacher account: rooms, assignments, generated content and administration data.",
+          ],
+        },
+        {
+          title: "Deletion and access",
+          body: "Students, parents and schools may need access, correction or deletion. Requests should normally go through the teacher or school when the use happens in school.",
+          points: [
+            "Teachers can remove or archive students from Spaces.",
+            "School-related deletion requests should be handled with the school as the responsible party.",
+            "More formal routines for data processing agreements, sub-processors and school administration will be expanded as school use grows.",
+          ],
+        },
+      ],
+      contactTitle: "For school assessment",
+      contactText: "This page is a practical overview. Schools that want to use 321school more broadly should ask for a data processing agreement, sub-processor overview and routines for access/deletion.",
+      contactCta: "Request school access",
+    };
+  }
+
+  if (locale === "pt") {
+    return {
+      back: "Voltar para escolas",
+      eyebrow: "Escolas, alunos e privacidade",
+      title: "Privacidade para escolas",
+      lead: "Como a 321school trabalha com uso seguro na escola, acesso anônimo, contas e recursos de IA.",
+      updated: "Primeira versão para avaliação escolar. Atualizado em: 5 de agosto de 2026.",
+      cards: [
+        { title: "Acesso anônimo primeiro", text: "Alunos podem entrar em Spaces com código ou QR sem e-mail e sem conta." },
+        { title: "Uso controlado pela escola", text: "No uso escolar, a escola deve saber quais ferramentas digitais são usadas com alunos." },
+        { title: "Sem IA direta em Spaces", text: "Em Spaces, alunos normalmente respondem atividades controladas pelo professor, não IA diretamente." },
+      ],
+      sections: [
+        {
+          title: "Papéis no uso escolar",
+          body: "A escola ou mantenedora normalmente é responsável por decidir quais ferramentas digitais de aprendizagem são usadas no ensino. A 321school fornece a ferramenta e deve ser avaliada pela escola antes do uso sistemático com alunos.",
+          points: [
+            "O professor controla salas, atividades e conteúdo compartilhado.",
+            "Alunos entram com código/QR ou com conta quando isso foi aprovado.",
+            "Pais/responsáveis podem receber informações da escola ou do professor sobre o uso da sala.",
+          ],
+        },
+        {
+          title: "Acesso anônimo em Spaces",
+          body: "O acesso anônimo foi criado para uso simples em sala de aula. O aluno pode entrar em um Space sem e-mail e sem criar uma conta pessoal.",
+          points: [
+            "O professor pode ver o nome informado pelo aluno e o trabalho feito no Space.",
+            "O acesso anônimo normalmente é lembrado apenas no mesmo dispositivo e navegador.",
+            "Trocar de dispositivo, usar navegação privada, sair da conta ou limpar dados do navegador pode criar um novo usuário técnico anônimo.",
+            "O trabalho anônimo não é salvo em uma conta pessoal nem fica disponível em diferentes dispositivos.",
+          ],
+        },
+        {
+          title: "Contas e crianças menores de 13 anos",
+          body: "Contas dão mais continuidade, mas também significam tratamento mais persistente de dados. Para crianças menores de 13 anos, recomendamos acesso anônimo em Spaces, salvo quando a escola ou os responsáveis tiverem autorizado conta.",
+          points: [
+            "Com conta, o trabalho pode ser salvo e usado em diferentes dispositivos.",
+            "No uso escolar, o uso de conta deve ser esclarecido pela escola, também para alunos mais velhos.",
+            "Alunos não devem ser orientados a usar e-mail particular se a escola não aprovou o uso de conta.",
+          ],
+        },
+        {
+          title: "IA na 321school",
+          body: "Em Spaces, alunos normalmente não usam IA diretamente. Eles respondem conteúdo compartilhado pelo professor, e o professor controla a atividade. O professor pode ter usado IA para criar ou adaptar conteúdo antes de compartilhá-lo.",
+          points: [
+            "Alunos conectados podem usar recursos de IA em estudo individual, por exemplo feedback sobre respostas próprias ou geração de atividades de prática.",
+            "Para crianças menores de 13 anos, conta e recursos de IA devem ser esclarecidos pela escola ou responsáveis.",
+            "Escolas devem avaliar o uso de IA antes de usá-la sistematicamente com alunos.",
+          ],
+        },
+        {
+          title: "O que pode ser armazenado",
+          body: "Os dados exatos dependem de como a 321school é usada. O princípio é manter a participação do aluno o mais limitada possível, especialmente em Spaces anônimos.",
+          points: [
+            "Spaces anônimos: participação na sala, nome escolhido, ID técnico de usuário e trabalho enviado na sala.",
+            "Conta de aluno: dados de perfil, trabalho salvo, feedback e atividade necessária para fornecer o serviço.",
+            "Conta de professor: salas, tarefas, conteúdo gerado e dados de administração.",
+          ],
+        },
+        {
+          title: "Exclusão e acesso",
+          body: "Alunos, responsáveis e escolas podem precisar de acesso, correção ou exclusão. Pedidos normalmente devem passar pelo professor ou pela escola quando o uso acontece no contexto escolar.",
+          points: [
+            "Professores podem remover ou arquivar alunos de Spaces.",
+            "Pedidos escolares de exclusão devem ser tratados com a escola como responsável.",
+            "Rotinas formais para acordo de tratamento de dados, subprocessadores e administração escolar serão ampliadas à medida que o uso escolar crescer.",
+          ],
+        },
+      ],
+      contactTitle: "Para avaliação da escola",
+      contactText: "Esta página é uma visão prática. Escolas que desejam usar a 321school de forma mais ampla devem solicitar acordo de tratamento de dados, visão de subprocessadores e rotinas de acesso/exclusão.",
+      contactCta: "Solicitar acesso escolar",
+    };
+  }
+
+  return {
+    back: "Tilbake til skolesiden",
+    eyebrow: "Skoler, elever og personvern",
+    title: "Personvern for skoler",
+    lead: "Slik jobber 321school med trygg skolebruk, anonym elevtilgang, kontoer og KI-funksjoner.",
+    updated: "Første versjon for skolevurdering. Sist oppdatert: 5. august 2026.",
+    cards: [
+      { title: "Anonym tilgang først", text: "Elever kan bli med i Spaces med kode eller QR uten e-post og uten konto." },
+      { title: "Skolen styrer bruken", text: "Ved skolebruk bør skolen vite hvilke digitale verktøy som brukes med elever." },
+      { title: "Ikke direkte KI i Spaces", text: "I Spaces svarer elever normalt på lærerstyrte aktiviteter, ikke direkte til KI." },
+    ],
+    sections: [
+      {
+        title: "Roller i skolebruk",
+        body: "Skolen eller skoleeier er normalt ansvarlig for å avgjøre hvilke digitale læringsverktøy som brukes i undervisningen. 321school leverer verktøyet og bør vurderes av skolen før systematisk bruk med elever.",
+        points: [
+          "Lærer styrer rom, aktiviteter og innhold som deles.",
+          "Elever blir med med kode/QR eller med konto når det er avklart.",
+          "Foreldre/foresatte kan få informasjon fra skolen eller læreren om hvordan rommet brukes.",
+        ],
+      },
+      {
+        title: "Anonym tilgang i Spaces",
+        body: "Anonym tilgang er laget for lav terskel i klasserommet. Eleven kan bli med i et Space uten e-post og uten å opprette personlig konto.",
+        points: [
+          "Læreren kan se navnet eleven skriver inn og arbeidet som gjøres i rommet.",
+          "Anonym tilgang huskes vanligvis bare på samme enhet og nettleser.",
+          "Bytte av enhet, privat nettlesing, utlogging eller sletting av nettleserdata kan gi en ny anonym teknisk bruker.",
+          "Anonymt arbeid lagres ikke i en personlig konto og er ikke tilgjengelig på tvers av enheter.",
+        ],
+      },
+      {
+        title: "Konto og barn under 13 år",
+        body: "Konto gir mer kontinuitet, men innebærer også mer varig behandling. For barn under 13 år anbefaler vi anonym tilgang i Spaces, med mindre skolen eller foresatte har avklart bruk av konto.",
+        points: [
+          "Med konto kan arbeid lagres og brukes på tvers av enheter.",
+          "Ved skolebruk bør kontobruk være avklart med skolen, også for eldre elever.",
+          "Elever bør ikke bes om å bruke privat e-post hvis skolen ikke har åpnet for konto.",
+        ],
+      },
+      {
+        title: "KI i 321school",
+        body: "I Spaces bruker elever normalt ikke KI direkte. Elever svarer på innhold som lærer har delt, og lærer styrer aktiviteten. Lærer kan ha brukt KI for å lage eller tilpasse læringsinnhold før det deles.",
+        points: [
+          "Innloggede elever/studenter kan i egenstudie bruke KI-funksjoner, for eksempel tilbakemelding på egne svar eller generering av øvingsoppgaver.",
+          "For barn under 13 år bør konto og KI-funksjoner være avklart av skolen eller foresatte.",
+          "Skoler bør vurdere KI-bruk før systematisk bruk med elever.",
+        ],
+      },
+      {
+        title: "Hva kan lagres",
+        body: "Hvilke data som lagres avhenger av hvordan 321school brukes. Prinsippet er å holde elevdeltakelse så begrenset som mulig, særlig i anonyme Spaces.",
+        points: [
+          "Anonyme Spaces: romtilknytning, valgt visningsnavn, teknisk bruker-ID og arbeid som leveres i rommet.",
+          "Elevkonto: profildata, lagret arbeid, tilbakemelding og aktivitet som trengs for å levere tjenesten.",
+          "Lærerkonto: rom, oppgaver, generert innhold og administrasjonsdata.",
+        ],
+      },
+      {
+        title: "Sletting og innsyn",
+        body: "Elever, foresatte og skoler kan ha behov for innsyn, retting eller sletting. Ved skolebruk bør slike forespørsler normalt gå via lærer eller skole.",
+        points: [
+          "Lærere kan fjerne eller arkivere elever fra Spaces.",
+          "Skolerelaterte sletteønsker bør håndteres med skolen som ansvarlig part.",
+          "Mer formelle rutiner for databehandleravtale, underleverandører og skoleadministrasjon utvides etter hvert som skolebruk vokser.",
+        ],
+      },
+    ],
+    contactTitle: "For skolevurdering",
+    contactText: "Denne siden er en praktisk oversikt. Skoler som ønsker bredere bruk av 321school bør be om databehandleravtale, oversikt over underleverandører og rutiner for innsyn/sletting.",
+    contactCta: "Be om skoletilgang",
+  };
+}
+
+export default async function SchoolPrivacyPage() {
+  const locale = (await getLocale()) as string;
+  const text = copyFor(locale);
+
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-950">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+          <Link href={localizedPath(locale, "/")} className="flex items-center gap-3">
+            <Image src="/logo321ny.png" alt="321school" width={38} height={38} priority className="h-9 w-auto object-contain" />
+            <span className="text-lg font-black">321school</span>
+          </Link>
+          <Link href={localizedPath(locale, "/skoler")} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
+            {text.back}
+          </Link>
+        </div>
+      </header>
+
+      <section className="bg-white">
+        <div className="mx-auto grid max-w-6xl gap-8 px-6 py-12 md:grid-cols-[1.1fr_0.9fr] md:items-center md:py-16">
+          <div>
+            <p className="inline-flex rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800">
+              {text.eyebrow}
+            </p>
+            <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight md:text-6xl">{text.title}</h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-700">{text.lead}</p>
+            <p className="mt-5 text-sm font-semibold text-slate-500">{text.updated}</p>
+          </div>
+          <div className="grid gap-3">
+            {text.cards.map((card, index) => (
+              <TrustCard key={card.title} icon={index === 0 ? <UserRound /> : index === 1 ? <School /> : <Sparkles />} title={card.title} text={card.text} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-6xl gap-4 px-6 py-8 md:grid-cols-2">
+        {text.sections.map((section, index) => (
+          <InfoSection
+            key={section.title}
+            icon={index === 0 ? <School /> : index === 1 ? <ShieldCheck /> : index === 2 ? <LockKeyhole /> : index === 3 ? <Sparkles /> : index === 4 ? <Database /> : <Eye />}
+            title={section.title}
+            body={section.body}
+            points={section.points}
+          />
+        ))}
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-14">
+        <div className="rounded-2xl bg-slate-950 p-6 text-white md:p-8">
+          <h2 className="text-2xl font-black">{text.contactTitle}</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/80">{text.contactText}</p>
+          <Link href={localizedPath(locale, "/skoler/bestilling")} className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950 hover:bg-slate-100">
+            {text.contactCta}
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function TrustCard(props: { icon: ReactNode; title: string; text: string }) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+      <div className="flex items-start gap-3">
+        <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-sm [&_svg]:h-5 [&_svg]:w-5">
+          {props.icon}
+        </div>
+        <div>
+          <h2 className="text-base font-black">{props.title}</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{props.text}</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function InfoSection(props: { icon: ReactNode; title: string; body: string; points?: string[] }) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-sky-700 [&_svg]:h-5 [&_svg]:w-5">
+          {props.icon}
+        </div>
+        <div>
+          <h2 className="text-xl font-black">{props.title}</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{props.body}</p>
+        </div>
+      </div>
+      {props.points?.length ? (
+        <ul className="mt-4 grid gap-2">
+          {props.points.map((point) => (
+            <li key={point} className="flex gap-2 text-sm leading-6 text-slate-700">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </article>
+  );
+}

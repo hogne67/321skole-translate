@@ -20,9 +20,9 @@ const LOCALES: Array<{ code: string; label: string }> = [
 ];
 
 function publicLabels(locale: string) {
-  if (locale === "pt") return { login: "Entrar" };
-  if (locale === "en") return { login: "Log in" };
-  return { login: "Logg inn" };
+  if (locale === "pt") return { login: "Entrar", privacy: "Privacidade para escolas" };
+  if (locale === "en") return { login: "Log in", privacy: "School privacy" };
+  return { login: "Logg inn", privacy: "Personvern for skoler" };
 }
 
 function schoolLandingNotice(locale: string) {
@@ -66,6 +66,7 @@ export default async function SchoolsLandingPage() {
         locale={locale}
         schoolLabel={t("brandLogo.school")}
         loginLabel={labels.login}
+        privacyLabel={labels.privacy}
       />
 
       {notice ? (
@@ -87,6 +88,7 @@ function PublicHeader(props: {
   locale: string;
   schoolLabel: string;
   loginLabel: string;
+  privacyLabel: string;
 }) {
   const currentLabel =
     LOCALES.find((l) => l.code === props.locale)?.label ?? props.locale.toUpperCase();
@@ -113,6 +115,13 @@ function PublicHeader(props: {
         </Link>
 
         <div className="flex items-center gap-2">
+          <Link
+            href={localizedPath(props.locale, "/school/privacy")}
+            className="hidden rounded-md px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 sm:inline-flex"
+          >
+            {props.privacyLabel}
+          </Link>
+
           <details className="relative">
             <summary className="list-none cursor-pointer select-none rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50">
               {currentLabel}

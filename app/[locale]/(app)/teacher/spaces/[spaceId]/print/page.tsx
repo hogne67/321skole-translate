@@ -35,9 +35,10 @@ type Copy = {
   freeText: string;
   passwordTitle: string;
   passwordText: string;
+  under13Title: string;
+  under13Text: string;
   parentTitle: string;
   parentText: string;
-  parentPortalText: string;
   qrAlt: string;
   footer: string;
 };
@@ -56,20 +57,21 @@ const copy: Record<string, Copy> = {
     joinText: 'Gå til 321school og trykk på "Spaces". Velg "Bli med i space" og skriv inn koden.',
     anonymousTitle: "Anonym tilgang",
     anonymousText:
-      "Du trenger ikke bruker for å bli med. Som anonym kan du jobbe i rommet, men oppgavene lagres ikke på en personlig konto.",
+      "Eleven kan bli med med romkode eller QR uten konto og uten e-post. Lærer kan se navnet eleven skriver inn og arbeidet som gjøres i rommet. Anonym tilgang huskes vanligvis bare på samme enhet og nettleser.",
     accountTitle: "Innlogget bruker",
     accountText:
-      'Vi anbefaler å lage bruker. Trykk "Logg inn / registrer deg", fyll ut navn og gyldig e-post, og velg "student" når du går videre.',
+      "Konto kan brukes når skolen eller foresatte har åpnet for det. Med konto kan arbeid lagres og brukes på tvers av enheter.",
     freeTitle: "Gratis for elever",
     freeText: "All bruk i spaces er gratis for elever og studenter med gyldig romkode delt av lærer eller skole.",
     passwordTitle: "Brukernavn og passord",
     passwordText:
-      "Bruk riktig e-postadresse, lag et godt passord og ikke del passordet med andre. Mister du tilgang, spør læreren eller en voksen hjemme.",
+      "Hvis eleven bruker konto: bruk riktig e-postadresse, lag et godt passord og ikke del passordet med andre. Mister du tilgang, spør læreren eller en voksen hjemme.",
+    under13Title: "For barn under 13 år",
+    under13Text:
+      "Barn under 13 år bør bruke anonym tilgang med romkode, med mindre skolen eller foresatte har avklart bruk av konto.",
     parentTitle: "Til foreldre/foresatte",
     parentText:
-      "Dette rommet brukes til skolearbeid i 321school. Læreren styrer innholdet som deles og vurderer oppgaver.",
-    parentPortalText:
-      "Foreldre som ønsker foreldreportal, lager egen bruker med en annen e-postadresse enn elevens.",
+      "Dette rommet brukes til skolearbeid i 321school. Elever trenger ikke privat e-post for å bli med anonymt. Ta kontakt med lærer/skole ved spørsmål om bruk eller sletting av elevens arbeid.",
     qrAlt: "QR-kode for å bli med i rommet",
     footer: "321school.com",
   },
@@ -86,20 +88,21 @@ const copy: Record<string, Copy> = {
     joinText: 'Go to 321school and open "Spaces". Choose "Join space" and enter the code.',
     anonymousTitle: "Anonymous access",
     anonymousText:
-      "You do not need an account to join. Anonymous students can work in the room, but work is not saved to a personal account.",
+      "Students can join with a room code or QR code without an account and without email. The teacher can see the name the student enters and the work done in the room. Anonymous access is usually remembered only on the same device and browser.",
     accountTitle: "Signed-in user",
     accountText:
-      'We recommend creating an account. Choose "Log in / register", add your name and a valid email, then choose "student".',
+      "An account can be used when the school or guardians have approved it. With an account, work can be saved and used across devices.",
     freeTitle: "Free for students",
     freeText: "Using spaces is free for students with a valid room code shared by a teacher or school.",
     passwordTitle: "Username and password",
     passwordText:
-      "Use the correct email address, make a strong password, and do not share it. If access is lost, ask the teacher or an adult at home.",
+      "If the student uses an account: use the correct email address, make a strong password, and do not share it. If access is lost, ask the teacher or an adult at home.",
+    under13Title: "For children under 13",
+    under13Text:
+      "Children under 13 should use anonymous access with the room code unless the school or guardians have approved account use.",
     parentTitle: "For parents/guardians",
     parentText:
-      "This room is used for schoolwork in 321school. The teacher controls shared content and gives feedback on assignments.",
-    parentPortalText:
-      "Parents who want to use the parent portal should create a separate account with a different email address.",
+      "This room is used for schoolwork in 321school. Students do not need a private email address to join anonymously. Contact the teacher/school with questions about use or deletion of student work.",
     qrAlt: "QR code to join the room",
     footer: "321school.com",
   },
@@ -116,20 +119,21 @@ const copy: Record<string, Copy> = {
     joinText: 'Acesse o 321school e abra "Spaces". Escolha "Entrar no space" e digite o código.',
     anonymousTitle: "Acesso anônimo",
     anonymousText:
-      "Não é preciso ter usuário para entrar. Como anônimo, o aluno pode trabalhar na sala, mas as tarefas não ficam salvas em uma conta pessoal.",
+      "O aluno pode entrar com código da sala ou QR code sem conta e sem e-mail. O professor pode ver o nome informado pelo aluno e o trabalho feito na sala. O acesso anônimo normalmente é lembrado apenas no mesmo dispositivo e navegador.",
     accountTitle: "Usuário conectado",
     accountText:
-      'Recomendamos criar uma conta. Toque em "Entrar / registrar", preencha nome e e-mail válido, e escolha "student".',
+      "Uma conta pode ser usada quando a escola ou os responsáveis tiverem autorizado. Com conta, o trabalho pode ser salvo e usado em diferentes dispositivos.",
     freeTitle: "Grátis para alunos",
     freeText: "O uso de spaces é grátis para alunos com código válido compartilhado por professor ou escola.",
     passwordTitle: "Usuário e senha",
     passwordText:
-      "Use o e-mail correto, crie uma boa senha e não compartilhe com outras pessoas. Se perder acesso, peça ajuda ao professor ou a um adulto em casa.",
+      "Se o aluno usar conta: use o e-mail correto, crie uma boa senha e não compartilhe com outras pessoas. Se perder acesso, peça ajuda ao professor ou a um adulto em casa.",
+    under13Title: "Para crianças menores de 13 anos",
+    under13Text:
+      "Crianças menores de 13 anos devem usar acesso anônimo com o código da sala, a menos que a escola ou os responsáveis tenham autorizado o uso de conta.",
     parentTitle: "Para pais/responsáveis",
     parentText:
-      "Esta sala é usada para atividades escolares no 321school. O professor controla o conteúdo compartilhado e avalia as tarefas.",
-    parentPortalText:
-      "Responsáveis que desejam usar o portal dos pais devem criar uma conta própria com outro endereço de e-mail.",
+      "Esta sala é usada para atividades escolares no 321school. Alunos não precisam de e-mail particular para entrar anonimamente. Entre em contato com o professor/escola em caso de dúvidas sobre uso ou exclusão do trabalho do aluno.",
     qrAlt: "QR code para entrar na sala",
     footer: "321school.com",
   },
@@ -298,12 +302,9 @@ function SpacePrintInner() {
           <InfoBox title={text.freeTitle}>{text.freeText}</InfoBox>
           <InfoBox title={text.anonymousTitle}>{text.anonymousText}</InfoBox>
           <InfoBox title={text.accountTitle}>{text.accountText}</InfoBox>
+          <InfoBox title={text.under13Title}>{text.under13Text}</InfoBox>
           <InfoBox title={text.passwordTitle}>{text.passwordText}</InfoBox>
-          <InfoBox title={text.parentTitle}>
-            {text.parentText}
-            <br />
-            {text.parentPortalText}
-          </InfoBox>
+          <InfoBox title={text.parentTitle}>{text.parentText}</InfoBox>
         </section>
 
         <footer className="mt-5 rounded-2xl border-2 border-slate-900 bg-slate-50 p-4 text-center text-sm font-semibold text-slate-900">

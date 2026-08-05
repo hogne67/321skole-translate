@@ -17,6 +17,9 @@
       "join": "Entrar",
       "joining": "Entrando…"
     },
+    "status": {
+      "checkingExisting": "Verificando se este dispositivo já entrou…"
+    },
     "errors": {
       "nameRequired": "Digite seu nome antes de entrar.",
       "spaceNotFound": "Nenhum espaço encontrado com este código. Verifique se está correto.",

@@ -17,6 +17,9 @@
       "join": "Bli med",
       "joining": "Blir med…"
     },
+    "status": {
+      "checkingExisting": "Sjekker om denne enheten allerede er med…"
+    },
     "errors": {
       "nameRequired": "Skriv inn navnet ditt før du blir med.",
       "spaceNotFound": "Fant ikke rom med denne koden. Sjekk at koden er riktig.",

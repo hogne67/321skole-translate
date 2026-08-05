@@ -17,6 +17,9 @@
       "join": "Join",
       "joining": "Joining…"
     },
+    "status": {
+      "checkingExisting": "Checking whether this device is already joined…"
+    },
     "errors": {
       "nameRequired": "Please enter your name before joining.",
       "spaceNotFound": "No space found with this code. Check that the code is correct.",

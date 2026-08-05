@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -51,6 +51,7 @@ export default function JoinClient() {
   const [code, setCode] = useState(initialCode);
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function waitForUser(): Promise<User> {
@@ -98,6 +99,52 @@ export default function JoinClient() {
 
     return fallback;
   }
+
+  useEffect(() => {
+    const c = initialCode.trim().toUpperCase();
+    if (!c) return;
+
+    let cancelled = false;
+
+    async function checkExistingMembership() {
+      setCheckingExisting(true);
+
+      try {
+        await ensureAnonymousUser();
+
+        const u = await waitForUser();
+        const token = await u.getIdToken();
+
+        const res = await fetch("/api/spaces/join", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ code: c }),
+        });
+
+        const data = (await res.json().catch(() => ({}))) as JoinApiSuccess | JoinApiError;
+        if (cancelled || !res.ok) return;
+
+        const okData = data as JoinApiSuccess;
+        if (okData.alreadyMember && okData.spaceId) {
+          router.replace(`/${locale}/student/spaces/${okData.spaceId}`);
+        }
+      } catch {
+        // Hvis autosjekken feiler, lar vi vanlig bli-med-skjema stå.
+      } finally {
+        if (!cancelled) setCheckingExisting(false);
+      }
+    }
+
+    void checkExistingMembership();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCode, locale, router]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -160,6 +207,12 @@ export default function JoinClient() {
       <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
 
       <form onSubmit={onSubmit} className="mt-4 grid gap-3 rounded-2xl border bg-white p-4 shadow-sm">
+        {checkingExisting ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            {t("status.checkingExisting")}
+          </div>
+        ) : null}
+
         <div>
           <label htmlFor="space-code" className="text-sm font-medium">
             {t("fields.spaceCode.label")}
