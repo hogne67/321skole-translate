@@ -51,6 +51,10 @@ function safeString(value: unknown, fallback = ""): string {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
+function isOpenSpace(space: SpaceRow): boolean {
+  return space.data.isOpen !== false;
+}
+
 function modeLabel(t: (key: string) => string, mode: unknown) {
   if (mode === "poll") return t("modes.poll");
   if (mode === "wordwall") return t("modes.wordwall");
@@ -167,6 +171,8 @@ function TeacherBoardIndexInner() {
   const filteredSpaces = useMemo(() => {
     const search = spaceSearch.trim().toLowerCase();
     const list = spaces.filter((space) => {
+      if (!isOpenSpace(space)) return false;
+
       const title = safeString(space.data.title).toLowerCase();
       const code = safeString(space.data.code).toLowerCase();
       return !search || title.includes(search) || code.includes(search);
@@ -216,7 +222,7 @@ function TeacherBoardIndexInner() {
           <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
             <TrainingVideoPlayer
               title={t("video.title")}
-              videoUrl="https://youtu.be/7zjhziVmGvc"
+              videoUrl="https://youtu.be/NxJwZ-wAwsU"
               buttonLabel={t("video.button")}
               buttonTitle={t("video.buttonTitle")}
               closeLabel={t("video.close")}

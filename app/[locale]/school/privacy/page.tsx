@@ -15,6 +15,9 @@ type Copy = {
   contactTitle: string;
   contactText: string;
   contactCta: string;
+  subprocessorsCta: string;
+  dataRightsCta: string;
+  dpaCta: string;
 };
 
 function localizedPath(locale: string, path: string) {
@@ -68,6 +71,9 @@ function copyFor(locale: string): Copy {
           title: "AI in 321school",
           body: "In Spaces, students normally do not use AI directly. Students answer content shared by the teacher, and the teacher controls the activity. Teachers may have used AI to create or adapt learning content before sharing it.",
           points: [
+            "Teachers must review and approve generated or pasted text before tasks are created from it.",
+            "Only teachers can choose to publish learning content to the public library, and published content is tied to the teacher's name.",
+            "321school shows warnings where AI use or privacy risk may require extra attention, for example around student names, images and AI feedback.",
             "Signed-in students can use AI features in self-study, for example feedback on their own answers or generating practice tasks.",
             "For children under 13, account use and AI features should be clarified by the school or guardians.",
             "Schools should assess AI use before using it systematically with students.",
@@ -95,6 +101,9 @@ function copyFor(locale: string): Copy {
       contactTitle: "For school assessment",
       contactText: "This page is a practical overview. Schools that want to use 321school more broadly should ask for a data processing agreement, sub-processor overview and routines for access/deletion.",
       contactCta: "Request school access",
+      subprocessorsCta: "View sub-processors",
+      dataRightsCta: "Access and deletion",
+      dpaCta: "DPA template",
     };
   }
 
@@ -143,6 +152,9 @@ function copyFor(locale: string): Copy {
           title: "IA na 321school",
           body: "Em Spaces, alunos normalmente não usam IA diretamente. Eles respondem conteúdo compartilhado pelo professor, e o professor controla a atividade. O professor pode ter usado IA para criar ou adaptar conteúdo antes de compartilhá-lo.",
           points: [
+            "Professores devem revisar e aprovar textos gerados ou colados antes que atividades sejam criadas a partir deles.",
+            "Somente professores podem escolher publicar conteúdo pedagógico na biblioteca pública, e o conteúdo publicado fica vinculado ao nome do professor.",
+            "A 321school mostra avisos nos pontos em que IA ou privacidade podem exigir atenção extra, por exemplo nomes de alunos, imagens e feedback de IA.",
             "Alunos conectados podem usar recursos de IA em estudo individual, por exemplo feedback sobre respostas próprias ou geração de atividades de prática.",
             "Para crianças menores de 13 anos, conta e recursos de IA devem ser esclarecidos pela escola ou responsáveis.",
             "Escolas devem avaliar o uso de IA antes de usá-la sistematicamente com alunos.",
@@ -170,6 +182,9 @@ function copyFor(locale: string): Copy {
       contactTitle: "Para avaliação da escola",
       contactText: "Esta página é uma visão prática. Escolas que desejam usar a 321school de forma mais ampla devem solicitar acordo de tratamento de dados, visão de subprocessadores e rotinas de acesso/exclusão.",
       contactCta: "Solicitar acesso escolar",
+      subprocessorsCta: "Ver subprocessadores",
+      dataRightsCta: "Acesso e exclusão",
+      dpaCta: "Modelo de acordo",
     };
   }
 
@@ -217,6 +232,9 @@ function copyFor(locale: string): Copy {
         title: "KI i 321school",
         body: "I Spaces bruker elever normalt ikke KI direkte. Elever svarer på innhold som lærer har delt, og lærer styrer aktiviteten. Lærer kan ha brukt KI for å lage eller tilpasse læringsinnhold før det deles.",
         points: [
+          "Lærer må lese gjennom og godkjenne generert eller innlimt tekst før det lages oppgaver fra teksten.",
+          "Kun lærere kan velge å publisere læringsinnhold i det åpne biblioteket, og publisert innhold knyttes til lærerens navn.",
+          "321school viser advarsler i arbeidsflyten der KI eller personvern kan kreve ekstra oppmerksomhet, for eksempel ved elevnavn, bilder og KI-tilbakemelding.",
           "Innloggede elever/studenter kan i egenstudie bruke KI-funksjoner, for eksempel tilbakemelding på egne svar eller generering av øvingsoppgaver.",
           "For barn under 13 år bør konto og KI-funksjoner være avklart av skolen eller foresatte.",
           "Skoler bør vurdere KI-bruk før systematisk bruk med elever.",
@@ -244,6 +262,9 @@ function copyFor(locale: string): Copy {
     contactTitle: "For skolevurdering",
     contactText: "Denne siden er en praktisk oversikt. Skoler som ønsker bredere bruk av 321school bør be om databehandleravtale, oversikt over underleverandører og rutiner for innsyn/sletting.",
     contactCta: "Be om skoletilgang",
+    subprocessorsCta: "Se underleverandører",
+    dataRightsCta: "Sletting og innsyn",
+    dpaCta: "Databehandleravtale-mal",
   };
 }
 
@@ -299,9 +320,20 @@ export default async function SchoolPrivacyPage() {
         <div className="rounded-2xl bg-slate-950 p-6 text-white md:p-8">
           <h2 className="text-2xl font-black">{text.contactTitle}</h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/80">{text.contactText}</p>
-          <Link href={localizedPath(locale, "/skoler/bestilling")} className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950 hover:bg-slate-100">
-            {text.contactCta}
-          </Link>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <Link href={localizedPath(locale, "/skoler/bestilling")} className="inline-flex justify-center rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950 hover:bg-slate-100">
+              {text.contactCta}
+            </Link>
+            <Link href={localizedPath(locale, "/school/subprocessors")} className="inline-flex justify-center rounded-xl border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10">
+              {text.subprocessorsCta}
+            </Link>
+            <Link href={localizedPath(locale, "/school/data-rights")} className="inline-flex justify-center rounded-xl border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10">
+              {text.dataRightsCta}
+            </Link>
+            <Link href={localizedPath(locale, "/school/dpa")} className="inline-flex justify-center rounded-xl border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10">
+              {text.dpaCta}
+            </Link>
+          </div>
         </div>
       </section>
     </main>

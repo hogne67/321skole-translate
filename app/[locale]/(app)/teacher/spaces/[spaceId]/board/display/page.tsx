@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
 import { collection, doc, onSnapshot, serverTimestamp, updateDoc, type Firestore } from "firebase/firestore";
@@ -244,6 +244,7 @@ function wordwallPositionStyle(index: number, pinned?: boolean, energy: Wordwall
 export default function TeacherBoardDisplayPage() {
   const t = useTranslations("teacherBoard");
   const locale = useLocale();
+  const router = useRouter();
   const params = useParams<{ spaceId: string }>();
   const spaceId = params?.spaceId;
 
@@ -319,6 +320,28 @@ export default function TeacherBoardDisplayPage() {
       else await document.exitFullscreen();
     } catch {
       //
+    }
+  }
+
+  async function closeDisplay() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+    } catch {
+      //
+    }
+
+    if (window.opener && !window.opener.closed) {
+      window.close();
+      window.setTimeout(() => {
+        if (!window.closed && spaceId) {
+          router.replace(`/${locale}/teacher/spaces/${spaceId}/board`);
+        }
+      }, 120);
+      return;
+    }
+
+    if (spaceId) {
+      router.replace(`/${locale}/teacher/spaces/${spaceId}/board`);
     }
   }
 
@@ -967,11 +990,21 @@ export default function TeacherBoardDisplayPage() {
             ) : null}
             <div className="flex items-start gap-3">
               <button
+                type="button"
                 onClick={toggleFullscreen}
                 className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-zinc-100 hover:bg-white/10"
                 title={isFullscreen ? t("display.exitFullscreen") : t("display.fullscreen")}
               >
                 {isFullscreen ? <Minimize2 className="h-5 w-5" aria-hidden="true" /> : <Maximize2 className="h-5 w-5" aria-hidden="true" />}
+              </button>
+              <button
+                type="button"
+                onClick={closeDisplay}
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-zinc-100 hover:bg-white/10"
+                title={t("display.close")}
+                aria-label={t("display.close")}
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
           </header>

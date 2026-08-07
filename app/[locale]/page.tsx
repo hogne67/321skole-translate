@@ -4,6 +4,7 @@ import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import NorwayLegacyNotice from "@/components/domain/NorwayLegacyNotice";
+import LandingAuthRedirect from "./LandingAuthRedirect";
 
 const brand = {
   name: "321skole",
@@ -367,6 +368,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen text-slate-900">
+      <LandingAuthRedirect locale={locale} />
       <PublicHeader
         locale={locale}
         schoolLabel={tr("brandLogo.school")}
@@ -1666,15 +1668,6 @@ function FloatingLabel(props: {
       <p className="mt-0.5 text-xs md:text-sm font-semibold text-slate-900">
         {props.text}
       </p>
-    </div>
-  );
-}
-
-function SimpleCheck(props: { text: string }) {
-  return (
-    <div className="flex gap-3 text-sm text-white/80">
-      <span className="text-emerald-400">✓</span>
-      <span>{props.text}</span>
     </div>
   );
 }

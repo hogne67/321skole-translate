@@ -1297,6 +1297,32 @@ export default function TeacherBoardPage() {
   const answersHidden = clearedAt !== null;
   const displayHref = spaceId ? `/${locale}/teacher/spaces/${spaceId}/board/display` : "#";
 
+  function openDisplayWindow() {
+    if (!spaceId || displayHref === "#") return;
+
+    const fallbackWidth = 1600;
+    const fallbackHeight = 900;
+    const availableWidth = window.screen?.availWidth || fallbackWidth;
+    const availableHeight = window.screen?.availHeight || fallbackHeight;
+    const width = Math.min(fallbackWidth, availableWidth);
+    const height = Math.min(fallbackHeight, availableHeight);
+    const left = Math.max(0, Math.round((availableWidth - width) / 2));
+    const top = Math.max(0, Math.round((availableHeight - height) / 2));
+
+    const displayWindow = window.open(
+      displayHref,
+      `321skole-board-display-${spaceId}`,
+      `popup=yes,width=${width},height=${height},left=${left},top=${top}`
+    );
+
+    if (displayWindow) {
+      displayWindow.focus();
+      return;
+    }
+
+    window.open(displayHref, "_blank");
+  }
+
   return (
     <AuthGate>
       <div className={present ? "min-h-screen bg-zinc-950 text-zinc-50" : "min-h-screen bg-slate-50 text-foreground"}>
@@ -2214,7 +2240,7 @@ export default function TeacherBoardPage() {
         <div className="fixed inset-x-0 bottom-0 z-20">
           <div
             className={[
-              "flex w-full flex-col gap-2 border-t p-3 shadow-2xl backdrop-blur md:gap-3 md:px-6",
+              "flex w-full flex-col gap-2 border-t p-3 shadow-2xl backdrop-blur md:flex-row md:items-center md:justify-between md:gap-4 md:px-6",
               present ? "border-white/10 bg-zinc-900/95 text-zinc-50" : "border-slate-200 bg-white/95 text-slate-950",
             ].join(" ")}
           >
@@ -2240,7 +2266,7 @@ export default function TeacherBoardPage() {
               </button>
             </div>
 
-            <div className="hidden min-w-0 flex-wrap items-center gap-3 md:flex">
+            <div className="hidden min-w-0 shrink items-center gap-3 md:flex">
               <div
                 className={[
                   "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold",
@@ -2267,7 +2293,7 @@ export default function TeacherBoardPage() {
               ) : null}
             </div>
 
-            <div className="hidden w-full gap-2 md:flex md:w-auto md:flex-wrap md:items-center md:justify-end">
+            <div className="hidden shrink-0 gap-2 md:flex md:flex-nowrap md:items-center md:justify-end">
               {!active ? (
                 <button
                   onClick={newRoundAction}
@@ -2323,15 +2349,14 @@ export default function TeacherBoardPage() {
                 {showTimer ? t("actions.hideTimer") : t("actions.showTimer")}
               </button>
 
-              <Link
-                href={displayHref}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={openDisplayWindow}
                 className={present ? "inline-flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-zinc-950 hover:bg-zinc-200" : "inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"}
               >
                 <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 {t("actions.display")}
-              </Link>
+              </button>
             </div>
 
             {mobileControlsOpen ? (
@@ -2409,16 +2434,17 @@ export default function TeacherBoardPage() {
                   {showTimer ? t("actions.hideTimer") : t("actions.showTimer")}
                 </button>
 
-                <Link
-                  href={displayHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => setMobileControlsOpen(false)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileControlsOpen(false);
+                    openDisplayWindow();
+                  }}
                   className={present ? "inline-flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-zinc-950 hover:bg-zinc-200" : "inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"}
                 >
                   <ExternalLink className="h-4 w-4" aria-hidden="true" />
                   {t("actions.display")}
-                </Link>
+                </button>
               </div>
             ) : null}
           </div>

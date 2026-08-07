@@ -78,6 +78,7 @@ export default async function SchoolsLandingPage() {
           <YearPlansSection locale={locale} />
           <SpacesActivitiesSection locale={locale} />
           <OrderCtaSection locale={locale} />
+          <SchoolInfoLinksSection locale={locale} />
         </>
       )}
     </main>
@@ -537,6 +538,82 @@ function OrderCtaSection(props: { locale: string }) {
           >
             Gå til bestilling
           </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function schoolInfoCopy(locale: string) {
+  if (locale === "pt") {
+    return {
+      eyebrow: "Informações para escolas",
+      title: "Privacidade, segurança e documentos",
+      text: "Reunimos informações práticas para escolas que desejam avaliar a 321school antes de usar a solução de forma mais ampla.",
+      links: [
+        { href: "/school/privacy", label: "Privacidade para escolas" },
+        { href: "/school/subprocessors", label: "Subprocessadores" },
+        { href: "/school/data-rights", label: "Acesso e exclusão" },
+        { href: "/school/dpa", label: "Modelo de acordo" },
+      ],
+    };
+  }
+
+  if (locale === "en") {
+    return {
+      eyebrow: "Information for schools",
+      title: "Privacy, safety and documents",
+      text: "We have gathered practical information for schools that want to assess 321school before using it more broadly.",
+      links: [
+        { href: "/school/privacy", label: "School privacy" },
+        { href: "/school/subprocessors", label: "Sub-processors" },
+        { href: "/school/data-rights", label: "Access and deletion" },
+        { href: "/school/dpa", label: "DPA template" },
+      ],
+    };
+  }
+
+  return {
+    eyebrow: "Informasjon for skoler",
+    title: "Personvern, trygghet og dokumenter",
+    text: "Vi har samlet praktisk informasjon for skoler som ønsker å vurdere 321school før bredere bruk.",
+    links: [
+      { href: "/school/privacy", label: "Personvern for skoler" },
+      { href: "/school/subprocessors", label: "Underleverandører" },
+      { href: "/school/data-rights", label: "Sletting og innsyn" },
+      { href: "/school/dpa", label: "Databehandleravtale-mal" },
+    ],
+  };
+}
+
+function SchoolInfoLinksSection(props: { locale: string }) {
+  const text = schoolInfoCopy(props.locale);
+
+  return (
+    <section className="border-t border-slate-200 bg-white">
+      <div className="mx-auto grid max-w-6xl gap-6 px-6 py-10 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            {text.eyebrow}
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+            {text.title}
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">
+            {text.text}
+          </p>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          {text.links.map((link) => (
+            <Link
+              key={link.href}
+              href={localizedPath(props.locale, link.href)}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+            >
+              {link.label}
+            </Link>
+          ))}
         </div>
       </div>
     </section>

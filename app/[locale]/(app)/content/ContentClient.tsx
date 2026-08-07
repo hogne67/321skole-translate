@@ -369,6 +369,8 @@ export default function ContentClient() {
     sourceId: string;
     mode?: "space" | "board";
   } | null>(null);
+  const [publishConfirm, setPublishConfirm] = useState<{ lessonId: string; title: string } | null>(null);
+  const [publishSigned, setPublishSigned] = useState(false);
 
   const [parentSpaceMeta, setParentSpaceMeta] = useState<Record<string, ParentSpaceMeta>>({});
 
@@ -1186,6 +1188,28 @@ export default function ContentClient() {
     }
   }
 
+  function requestPublishChange(lessonId: string, title: string, nextPublished: boolean) {
+    if (!nextPublished) {
+      void setPublished(lessonId, false);
+      return;
+    }
+
+    setPublishSigned(false);
+    setPublishConfirm({ lessonId, title });
+  }
+
+  function closePublishConfirm() {
+    setPublishConfirm(null);
+    setPublishSigned(false);
+  }
+
+  async function confirmPublish() {
+    if (!publishConfirm || !publishSigned) return;
+    const lessonId = publishConfirm.lessonId;
+    closePublishConfirm();
+    await setPublished(lessonId, true);
+  }
+
   async function openMathAttemptFromLesson(lessonId: string) {
     const key = `openMath:${lessonId}`;
     setErr(null);
@@ -1672,7 +1696,7 @@ export default function ContentClient() {
               key: isPublished ? "unpublish" : "publish",
               label: busy ? t("actions.working") : isPublished ? t("actions.unpublish") : t("actions.publish"),
               disabled: busy || !canPublish,
-              onClick: () => setPublished(ls.id, !isPublished),
+              onClick: () => requestPublishChange(ls.id, titleForCard(ls), !isPublished),
             },
           ]
           : []),
@@ -1735,7 +1759,7 @@ export default function ContentClient() {
                   ? safeMsg("actions.publishToLibrary", "Publiser til Bibliotek")
                   : t("actions.publish"),
             disabled: busy || !canPublish,
-            onClick: () => setPublished(ls.id, !isPublished),
+            onClick: () => requestPublishChange(ls.id, titleForCard(ls), !isPublished),
           },
         ]
         : []),
@@ -2385,86 +2409,16 @@ export default function ContentClient() {
               </button>
             </div>
 
-            <div className="grid gap-4 p-4 sm:grid-cols-[1.3fr_0.7fr]">
+            <div className="grid gap-4 p-4 sm:grid-cols-[1.15fr_0.85fr]">
               <div>
-                <div className="mb-2 text-sm font-black text-slate-900">
-                  {safeMsg("share.shareTextLabel", "Share text")}
+                <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-semibold leading-6 text-slate-800">
+                  {safeMsg(
+                    "share.visibilityNote",
+                    "Anyone with the link can open the task. It is not added to the library."
+                  )}
                 </div>
 
-                {shareKind === "lesson" ? (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    {(
-                      ["example1", "example2", "example3", "example4", "example5", "example6"] as SharePreset[]
-                    ).map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => applySharePreset(preset)}
-                        className={[
-                          "rounded-full border px-3 py-2 text-xs font-extrabold",
-                          sharePreset === preset
-                            ? "border-slate-900 bg-slate-900 text-white"
-                            : "border-slate-300 bg-white text-slate-800 hover:bg-zinc-50",
-                        ].join(" ")}
-                      >
-                        {getSharePresetLabel(preset)}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                <textarea
-                  value={shareText}
-                  onChange={(e) => setShareText(e.target.value)}
-                  rows={5}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-3 font-semibold text-slate-900"
-                  style={{ resize: "vertical" }}
-                />
-
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <PrimaryButton onClick={generateShareTextAI} disabled={aiBusy}>
-                    {aiBusy
-                      ? safeMsg("share.aiLoading", "Generating...")
-                      : safeMsg("share.aiGenerate", "✨ Generate with AI")}
-                  </PrimaryButton>
-                </div>
-
-                {aiError ? (
-                  <div className="mt-2 text-xs text-red-600">{aiError}</div>
-                ) : null}
-
-                {aiVariants.length > 0 ? (
-                  <div className="mt-3 grid gap-2">
-                    {aiVariants.map((variant, i) => (
-                      <button
-                        key={`${i}-${variant.slice(0, 24)}`}
-                        type="button"
-                        onClick={() => setShareText(variant)}
-                        className="rounded-xl border border-slate-300 bg-white p-3 text-left text-sm text-slate-800 hover:bg-slate-50"
-                      >
-                        {variant}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <PrimaryButton onClick={copyShareText}>
-                    {copiedText
-                      ? safeMsg("share.copiedText", "Text copied")
-                      : safeMsg("share.copyText", "Copy text")}
-                  </PrimaryButton>
-
-                  <GhostLink href={facebookShareHref} target="_blank" rel="noreferrer">
-                    {safeMsg("share.facebook", "Facebook")}
-                  </GhostLink>
-
-                  <GhostLink href={linkedInShareHref} target="_blank" rel="noreferrer">
-                    {safeMsg("share.linkedin", "LinkedIn")}
-                  </GhostLink>
-                </div>
-
-                <div className="mt-5 mb-2 text-sm font-black text-slate-900">
+                <div className="mt-4 mb-2 text-sm font-black text-slate-900">
                   {safeMsg("share.linkLabel", "Share link")}
                 </div>
 
@@ -2488,8 +2442,8 @@ export default function ContentClient() {
 
                 <div className="mt-3 text-sm text-slate-500">
                   {safeMsg(
-                    "share.tipExtended",
-                    "Tip: copy the text first, then share the link in social media."
+                    "share.privacyNote",
+                    "Do not share content with student names, personal information or photos of students without clarification."
                   )}
                 </div>
               </div>
@@ -2518,6 +2472,64 @@ export default function ContentClient() {
             <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
               {safeMsg("share.shareUrlLabel", "Share URL")}{" "}
               <code className="break-all">{shareUrl}</code>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {publishConfirm ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closePublishConfirm}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+              <div className="min-w-0">
+                <div className="font-black text-slate-900">{safeMsg("publishConfirm.title", "Publish to library")}</div>
+                <div className="truncate text-sm text-slate-600">{publishConfirm.title}</div>
+              </div>
+              <button
+                onClick={closePublishConfirm}
+                className="rounded-xl border border-slate-300 px-3 py-2 font-black text-slate-800 hover:bg-zinc-50"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid gap-4 p-4">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                <div className="font-black">{safeMsg("publishConfirm.noticeTitle", "You are publishing publicly")}</div>
+                <p className="mt-2">
+                  {safeMsg(
+                    "publishConfirm.noticeBody",
+                    "Your name will be shown as author. Read through the content before publishing."
+                  )}
+                </p>
+              </div>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={publishSigned}
+                  onChange={(e) => setPublishSigned(e.target.checked)}
+                  className="mt-1 h-4 w-4 shrink-0"
+                />
+                <span>{safeMsg("publishConfirm.statement", "I confirm that I have reviewed the content.")}</span>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 p-4">
+              <PrimaryButton onClick={closePublishConfirm}>
+                {safeMsg("publishConfirm.cancel", "Cancel")}
+              </PrimaryButton>
+              <SuccessButton onClick={() => void confirmPublish()} disabled={!publishSigned}>
+                {safeMsg("publishConfirm.confirm", "Publish to library")}
+              </SuccessButton>
             </div>
           </div>
         </div>

@@ -90,6 +90,7 @@
     "feedback": {
       "title": "Tilbakemelding",
       "subtitle": "Send inn svarene dine for å få tilbakemelding.",
+      "privacyHint": "KI vurderer svarene dine og oppgaveteksten for å lage tilbakemeldingen.",
       "submitting": "Sender inn...",
       "generatingNew": "Lager ny tilbakemelding...",
       "usage": "Du har {remaining} av {limit} tilbakemeldinger igjen.",

@@ -12,7 +12,7 @@
       "languageSearchPlaceholder": "Search language (e.g. Norwegian, Somali, ti, pt-BR...)",
       "languageCount": "Showing {count} languages",
       "prompt": "Here you write instructions for the AI",
-      "promptTip": "Tip: This field is the main prompt that drives the AI generation.",
+      "promptTip": "Tip: Write the subject, level, language, topic and desired content. Avoid names and other personal information about students.",
       "textType": "Text type",
       "textTypeOtherPlaceholder": "Describe the text type...",
       "textLength": "Text length (words)",
@@ -137,6 +137,7 @@
       "generatingFactCheckedText": "Fact-checking...",
       "generateTasks": "Generate tasks",
       "generatingTasks": "Generating tasks...",
+      "approveText": "Approve text and create tasks",
       "saveDraft": "Save draft lesson",
       "goToFinishing": "Go to finishing",
       "saveAndGoToFinishing": "Save and go to finishing",
@@ -145,6 +146,7 @@
     "hints": {
       "generateTextFirst": "Generate or write text first.",
       "generateTasks": "Generate tasks based on the current text.",
+      "approveTextFirst": "Approve the text before creating tasks.",
       "enterTextFirst": "Enter text first",
       "tasksDirty": "The text has changed since the tasks were generated.",
       "saveDraft": "Save draft to Firestore"
@@ -170,6 +172,12 @@
       "textbox": "Paste your text here.",
       "textHelp": "Go to step 2 and create tasks once you have checked the text.",
       "wordCount": "Word count: {count}"
+    },
+    "review": {
+      "title": "Review and approve the text",
+      "body": "The teacher must read the text and assess content, level, language and privacy before tasks are generated.",
+      "approvedTitle": "The text is approved",
+      "approvedBody": "You can now generate tasks. If the text changes, it must be approved again."
     },
     "editor": {
       "title": "Tasks editor",
@@ -199,6 +207,7 @@
       "missingTasksInResponse": "Missing tasks in response.",
       "titleRequired": "Title is required.",
       "sourceTextEmpty": "Source text is empty.",
+      "approveTextFirst": "Approve the text before generating tasks.",
       "notSignedIn": "Not signed in. Please log in as teacher/producer.",
       "emptyResponseFromServer": "Empty response from server.",
       "notJsonFromServer": "The server did not return JSON.",
@@ -218,6 +227,8 @@
     "stepStatus": {
       "step1Title": "Step 1: Create or paste text",
       "step1Body": "Start by generating a text or pasting your own. When the text is ready, the next step is unlocked.",
+      "reviewTextTitle": "Review the text",
+      "reviewTextBody": "The teacher must approve the text before tasks can be generated.",
       "textReadyTitle": "The text is ready",
       "textReadyBody": "The next step is to generate tasks for the text. You can adjust the number of tasks before you continue.",
       "tasksReadyTitle": "The tasks are ready",
@@ -229,6 +240,7 @@
       "generateTasksTitle": "Generate tasks",
       "generateTasksBody": "Choose how many tasks you want. This section is unlocked when the text is ready.",
       "enableTaskGeneratorFirst": "Generate or paste text first to activate the task generator.",
+      "approveTextFirst": "Review the text and click “Approve text and create tasks” before generating tasks.",
       "goToFinishingTitle": "Go to finishing",
       "goToFinishingBody": "From here you continue to image, metadata, sharing to Space, and final adjustments.",
       "readyToFinishBody": "When the tasks are generated, you can continue to finishing."

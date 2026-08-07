@@ -382,6 +382,7 @@ export default function QuizEditorPage() {
       <section className="mt-5 rounded-3xl border border-violet-200 bg-violet-50/60 p-5">
         <h2 className="text-xl font-black text-slate-950">2. Forsidebilde og presentasjon</h2>
         <p className="mt-1 text-sm leading-6 text-slate-600">Velg om du vil bruke egen bildeadresse eller generere et bilde med AI.</p>
+        <p className="mt-1 text-xs font-semibold text-slate-500">Ikke bruk bilder eller navn på elever uten avklaring.</p>
 
         <div className="mt-4 flex flex-wrap gap-2">
           <button

@@ -776,6 +776,7 @@ export default function NewTextPage() {
 
   const [title, setTitle] = useState<string>("");
   const [sourceText, setSourceText] = useState<string>("");
+  const [approvedSourceText, setApprovedSourceText] = useState("");
   const [lastFactCheckedText, setLastFactCheckedText] = useState("");
   const [lastGeneratedWith, setLastGeneratedWith] = useState<"standard" | "factcheck" | "manual">("manual");
   const [lessonTasks, setLessonTasks] = useState<LessonTask[]>([]);
@@ -1189,6 +1190,7 @@ export default function NewTextPage() {
 
       setTitle(nextTitle);
       setSourceText(nextText);
+      setApprovedSourceText("");
       setLastGeneratedWith(extraFactCheck ? "factcheck" : "standard");
       setLastFactCheckedText(extraFactCheck ? nextText : "");
       setLessonTasks([]);
@@ -1204,7 +1206,7 @@ export default function NewTextPage() {
     }
   }
 
-  async function generateTasksOnly() {
+  async function generateTasksOnly(approvedTextOverride = "") {
     setLoadingTasks(true);
     setError(null);
     setSavedId(null);
@@ -1212,6 +1214,10 @@ export default function NewTextPage() {
 
     try {
       if (!sourceText.trim()) throw new Error("Generate or write text first.");
+      const approvedText = approvedTextOverride.trim() || approvedSourceText.trim();
+      if (approvedText !== sourceText.trim()) {
+        throw new Error(t("errors.approveTextFirst"));
+      }
 
       const user = getAuth().currentUser;
       if (!user) throw new Error("Not signed in.");
@@ -1299,6 +1305,12 @@ export default function NewTextPage() {
     } finally {
       setLoadingTasks(false);
     }
+  }
+
+  async function approveTextAndGenerateTasks() {
+    const nextApprovedText = sourceText.trim();
+    setApprovedSourceText(nextApprovedText);
+    await generateTasksOnly(nextApprovedText);
   }
 
   async function saveLesson(): Promise<string> {
@@ -1417,7 +1429,8 @@ export default function NewTextPage() {
 
   const hasText = sourceText.trim().length > 0;
   const hasTasks = lessonTasks.length > 0;
-  const step1Done = hasText;
+  const textApproved = hasText && approvedSourceText.trim() === sourceText.trim();
+  const step1Done = textApproved;
   const step2Active = hasText;
   const step2Done = hasTasks;
   const step3Active = hasText && hasTasks;
@@ -1429,6 +1442,13 @@ export default function NewTextPage() {
       tone: "#eff6ff",
       border: "#bfdbfe",
     }
+    : !textApproved
+      ? {
+        title: t("stepStatus.reviewTextTitle"),
+        body: t("stepStatus.reviewTextBody"),
+        tone: "#fff7ed",
+        border: "#fed7aa",
+      }
     : !hasTasks
       ? {
         title: t("stepStatus.textReadyTitle"),
@@ -2155,6 +2175,7 @@ export default function NewTextPage() {
                     value={sourceText}
                     onChange={(e) => {
                       setSourceText(e.target.value);
+                      setApprovedSourceText("");
                       if (lessonTasks.length > 0) setTasksDirty(true);
                     }}
                     rows={14}
@@ -2175,6 +2196,24 @@ export default function NewTextPage() {
                     <span>{t("builder.wordCount", { count: sourceWordCount })}</span>
                   </div>
                 </label>
+                {hasText && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      border: textApproved ? "1px solid #bbf7d0" : "1px solid #fed7aa",
+                      borderRadius: 14,
+                      padding: 12,
+                      background: textApproved ? "#f0fdf4" : "#fff7ed",
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 800, color: textApproved ? "#166534" : "#9a3412" }}>
+                      {textApproved ? t("review.approvedTitle") : t("review.title")}
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.78, marginTop: 4, lineHeight: 1.45 }}>
+                      {textApproved ? t("review.approvedBody") : t("review.body")}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2208,13 +2247,28 @@ export default function NewTextPage() {
                 {t("sections.enableTaskGeneratorFirst")}
               </div>
             )}
+            {hasText && !textApproved && (
+              <div
+                style={{
+                  border: "1px dashed #fed7aa",
+                  borderRadius: 14,
+                  padding: 14,
+                  background: "#fff7ed",
+                  fontSize: 14,
+                  color: "#9a3412",
+                  fontWeight: 700,
+                }}
+              >
+                {t("sections.approveTextFirst")}
+              </div>
+            )}
 
             {!isA1Start && <div
               style={{
                 display: "grid",
                 gridTemplateColumns: isNarrow ? "1fr 1fr" : "repeat(4, 1fr)",
                 gap: 10,
-                marginTop: hasText ? 10 : 14,
+                marginTop: textApproved ? 10 : 14,
               }}
             >
               <label>
@@ -2283,16 +2337,20 @@ export default function NewTextPage() {
               >
                 <button
                   className="actionBtn"
-                  onClick={generateTasksOnly}
+                  onClick={textApproved ? () => generateTasksOnly() : approveTextAndGenerateTasks}
                   disabled={busy || !sourceText.trim()}
                   style={{
                     ...buttonPrimary,
                     opacity: busy || !sourceText.trim() ? 0.55 : 1,
                     cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
                   }}
-                  title={!sourceText.trim() ? t("hints.generateTextFirst") : t("hints.generateTasks")}
+                  title={!sourceText.trim() ? t("hints.generateTextFirst") : !textApproved ? t("hints.approveTextFirst") : t("hints.generateTasks")}
                 >
-                  {loadingTasks ? t("buttons.generatingTasks") : t("buttons.generateTasks")}
+                  {loadingTasks
+                    ? t("buttons.generatingTasks")
+                    : textApproved
+                      ? t("buttons.generateTasks")
+                      : t("buttons.approveText")}
                 </button>
 
                 {tasksDirty && sourceText.trim() && (

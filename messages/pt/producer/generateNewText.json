@@ -12,7 +12,7 @@
       "languageSearchPlaceholder": "Buscar idioma (ex.: norueguês, somali, ti, pt-BR...)",
       "languageCount": "Mostrando {count} idiomas",
       "prompt": "Aqui você escreve as instruções para a IA.",
-      "promptTip": "Dica: Escreva o tópico e especifique o conteúdo desejado. Por favor, especifique o nível e o idioma.",
+      "promptTip": "Dica: escreva a disciplina, o nível, o idioma, o tema e o conteúdo desejado. Evite nomes e outros dados pessoais de alunos.",
       "textType": "Tipo de texto",
       "textTypeOtherPlaceholder": "Descreva o tipo de texto...",
       "textLength": "Tamanho do texto (palavras)",
@@ -137,6 +137,7 @@
       "generatingFactCheckedText": "Verificando fatos...",
       "generateTasks": "Gerar atividades",
       "generatingTasks": "Gerando atividades...",
+      "approveText": "Aprovar texto e criar atividades",
       "saveDraft": "Salvar rascunho",
       "goToFinishing": "Ir para finalização",
       "saveAndGoToFinishing": "Salvar e ir para finalização",
@@ -145,6 +146,7 @@
     "hints": {
       "generateTextFirst": "Gere ou escreva o texto primeiro.",
       "generateTasks": "Gere atividades com base no texto atual.",
+      "approveTextFirst": "Aprove o texto antes de criar atividades.",
       "enterTextFirst": "Digite o texto primeiro",
       "tasksDirty": "O texto foi alterado desde que as atividades foram geradas.",
       "saveDraft": "Salvar rascunho no Firestore"
@@ -170,6 +172,12 @@
       "textbox": "Cole seu texto aqui",
       "textHelp": "Vá para a etapa 2 e crie as tarefas depois de verificar o texto.",
       "wordCount": "Contagem de palavras: {count}"
+    },
+    "review": {
+      "title": "Revisar e aprovar o texto",
+      "body": "O professor deve ler o texto e avaliar conteúdo, nível, idioma e privacidade antes de gerar atividades.",
+      "approvedTitle": "O texto foi aprovado",
+      "approvedBody": "Agora você pode gerar atividades. Se o texto for alterado, ele deve ser aprovado novamente."
     },
     "editor": {
       "title": "Editor de atividades",
@@ -199,6 +207,7 @@
       "missingTasksInResponse": "Faltam atividades na resposta.",
       "titleRequired": "O título é obrigatório.",
       "sourceTextEmpty": "O texto-fonte está vazio.",
+      "approveTextFirst": "Aprove o texto antes de gerar atividades.",
       "notSignedIn": "Não conectado. Faça login como professor/produtor.",
       "emptyResponseFromServer": "Resposta vazia do servidor.",
       "notJsonFromServer": "O servidor não retornou JSON.",
@@ -218,6 +227,8 @@
     "stepStatus": {
       "step1Title": "Etapa 1: Criar ou colar texto",
       "step1Body": "Comece gerando um texto ou colando o seu próprio. Quando o texto estiver pronto, a próxima etapa será desbloqueada.",
+      "reviewTextTitle": "Revise o texto",
+      "reviewTextBody": "O professor deve aprovar o texto antes que as atividades possam ser geradas.",
       "textReadyTitle": "O texto está pronto",
       "textReadyBody": "A próxima etapa é gerar atividades para o texto. Você pode ajustar a quantidade de atividades antes de continuar.",
       "tasksReadyTitle": "As atividades estão prontas",
@@ -229,6 +240,7 @@
       "generateTasksTitle": "Gerar atividades",
       "generateTasksBody": "Escolha quantas atividades você quer. Esta seção é desbloqueada quando o texto está pronto.",
       "enableTaskGeneratorFirst": "Gere ou cole o texto primeiro para ativar o gerador de atividades.",
+      "approveTextFirst": "Revise o texto e clique em “Aprovar texto e criar atividades” antes de gerar atividades.",
       "goToFinishingTitle": "Ir para finalização",
       "goToFinishingBody": "A partir daqui você continua para imagem, metadados, compartilhamento no Space e ajustes finais.",
       "readyToFinishBody": "Quando as atividades forem geradas, você poderá seguir para a finalização."

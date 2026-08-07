@@ -90,6 +90,7 @@
     "feedback": {
       "title": "Feedback",
       "subtitle": "Envie suas respostas para receber feedback.",
+      "privacyHint": "A IA avalia suas respostas e o texto da atividade para criar o feedback.",
       "submitting": "Enviando...",
       "generatingNew": "Gerando novo feedback...",
       "usage": "Você tem {remaining} de {limit} feedbacks restantes.",

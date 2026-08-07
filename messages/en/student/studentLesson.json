@@ -90,6 +90,7 @@
     "feedback": {
       "title": "Feedback",
       "subtitle": "Submit your answers to get feedback.",
+      "privacyHint": "AI evaluates your answers and the task text to create the feedback.",
       "submitting": "Submitting...",
       "generatingNew": "Generating new feedback...",
       "usage": "You have {remaining} of {limit} feedbacks left.",

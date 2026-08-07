@@ -1528,6 +1528,10 @@ export default function ProducerLessonEditorPage() {
             )}
 
             <div style={smallHelpStyle}>
+              {t("help.imagePrivacy")}
+            </div>
+
+            <div style={smallHelpStyle}>
               {t("help.rememberSaveImage")}
             </div>
 

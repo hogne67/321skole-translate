@@ -147,7 +147,7 @@
       "tools": "Ferramentas"
     },
     "share": {
-      "title": "Compartilhar",
+      "title": "Compartilhar link/QR",
       "button": "Compartilhar",
       "shareTextLabel": "Texto de compartilhamento",
       "linkLabel": "Link de compartilhamento",
@@ -162,7 +162,9 @@
       "qrAlt": "QR code",
       "qrNotReady": "O QR code está sendo preparado",
       "shareUrlLabel": "URL de compartilhamento",
-      "tipExtended": "Dica: copie o texto primeiro e depois compartilhe o link nas redes sociais.",
+      "visibilityNote": "Qualquer pessoa com o link pode abrir a atividade. Ela não é adicionada à biblioteca.",
+      "privacyNote": "Não compartilhe conteúdo com nomes de alunos, dados pessoais ou fotos de alunos sem esclarecimento prévio.",
+      "tipExtended": "Não compartilhe conteúdo com nomes de alunos, dados pessoais ou fotos de alunos sem esclarecimento prévio.",
       "aiGenerate": "✨ Gerar com IA",
       "aiLoading": "Gerando...",
       "examples": {
@@ -195,6 +197,14 @@
     },
     "shareQuiz": {
       "text": "Estou compartilhando um quiz do 321quiz."
+    },
+    "publishConfirm": {
+      "title": "Publicar na biblioteca",
+      "noticeTitle": "Você está publicando isto publicamente",
+      "noticeBody": "Seu nome será mostrado como autor. Revise o conteúdo antes de publicar.",
+      "statement": "Confirmo que revisei o conteúdo, que ele é adequado para uso escolar e que não contém discurso de ódio, pregação, persuasão político-partidária, dados pessoais desnecessários ou fotos/nomes de alunos sem esclarecimento prévio. Entendo que meu nome será mostrado como autor.",
+      "cancel": "Cancelar",
+      "confirm": "Publicar na biblioteca"
     },
     "shareToSpace": {
       "title": "Compartilhar com Spaces",

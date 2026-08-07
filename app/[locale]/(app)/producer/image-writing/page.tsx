@@ -77,6 +77,7 @@ const copy = {
       imageUrlShort: "Bilde-URL",
       prompt: "Prompt til AI-bilde",
       promptPlaceholder: "Beskriv bildet du vil lage. Unngå tekst i selve bildet.",
+      imagePrivacyHint: "Ikke bruk bilder eller navn på elever uten avklaring.",
       promptSuggestion: "Velg promptforslag",
       promptSuggestionPlaceholder: "Velg et forslag...",
       generate: "Generer bilde",
@@ -191,6 +192,7 @@ const copy = {
       imageUrlShort: "Image URL",
       prompt: "AI image prompt",
       promptPlaceholder: "Describe the image you want to create. Avoid text inside the image.",
+      imagePrivacyHint: "Do not use photos or names of students without clarification.",
       promptSuggestion: "Choose prompt suggestion",
       promptSuggestionPlaceholder: "Choose a suggestion...",
       generate: "Generate image",
@@ -305,6 +307,7 @@ const copy = {
       imageUrlShort: "URL da imagem",
       prompt: "Prompt da imagem de IA",
       promptPlaceholder: "Descreva a imagem que você quer criar. Evite texto dentro da imagem.",
+      imagePrivacyHint: "Não use fotos ou nomes de alunos sem esclarecimento prévio.",
       promptSuggestion: "Escolher sugestao de prompt",
       promptSuggestionPlaceholder: "Escolha uma sugestao...",
       generate: "Gerar imagem",
@@ -1284,6 +1287,7 @@ export default function ImageWritingProducerPage() {
                 {ui.aiMode}
               </button>
             </div>
+            <p style={{ ...helperText, margin: "8px 0 0" }}>{ui.imagePrivacyHint}</p>
 
             {imageMode === "uploaded" ? (
               <div style={{ marginTop: 14, display: "grid", gap: 10 }}>

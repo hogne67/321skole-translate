@@ -12,7 +12,7 @@
       "languageSearchPlaceholder": "Søk etter språk (f.eks. norsk, somali, ti, pt-BR...)",
       "languageCount": "Viser {count} språk",
       "prompt": "Her skriver du instruksjoner til AI",
-      "promptTip": "Tips: Skriv hvilket tema og spesifiser gjerne hvilket innhold du ønsker. Presiser gjerne nivå og språk",
+      "promptTip": "Tips: Skriv fag, nivå, språk, tema og ønsket innhold. Unngå navn og andre personopplysninger om elever.",
       "textType": "Teksttype",
       "textTypeOtherPlaceholder": "Beskriv teksttypen...",
       "textLength": "Tekstlengde (ord)",
@@ -137,6 +137,7 @@
       "generatingFactCheckedText": "Faktasjekker...",
       "generateTasks": "Generer oppgaver",
       "generatingTasks": "Genererer oppgaver...",
+      "approveText": "Godkjenn tekst og lag oppgaver",
       "saveDraft": "Lagre kladd",
       "goToFinishing": "Gå til ferdigstilling",
       "saveAndGoToFinishing": "Lagre og gå til ferdigstilling",
@@ -145,6 +146,7 @@
     "hints": {
       "generateTextFirst": "Generer eller skriv tekst først.",
       "generateTasks": "Generer oppgaver basert på teksten som er der nå.",
+      "approveTextFirst": "Godkjenn teksten før du lager oppgaver.",
       "enterTextFirst": "Skriv inn tekst først",
       "tasksDirty": "Teksten er endret siden oppgavene ble generert.",
       "saveDraft": "Lagre kladd i Firestore"
@@ -170,6 +172,12 @@
       "textbox": "Lim inn teksten din her",
       "textHelp": "Gå til steg 2 og lag oppgaver når du har sjekket teksten.",
       "wordCount": "Ordtelling: {count}"
+    },
+    "review": {
+      "title": "Les gjennom og godkjenn teksten",
+      "body": "Lærer må lese teksten og vurdere om innhold, nivå, språk og personvern er greit før oppgaver genereres.",
+      "approvedTitle": "Teksten er godkjent",
+      "approvedBody": "Du kan nå generere oppgaver. Hvis teksten endres, må den godkjennes på nytt."
     },
     "editor": {
       "title": "Oppgaveredigering",
@@ -199,6 +207,7 @@
       "missingTasksInResponse": "Mangler oppgaver i svaret.",
       "titleRequired": "Tittel er påkrevd.",
       "sourceTextEmpty": "Kildeteksten er tom.",
+      "approveTextFirst": "Godkjenn teksten før du genererer oppgaver.",
       "notSignedIn": "Ikke logget inn. Logg inn som lærer/produsent.",
       "emptyResponseFromServer": "Tomt svar fra serveren.",
       "notJsonFromServer": "Serveren returnerte ikke JSON.",
@@ -218,6 +227,8 @@
     "stepStatus": {
       "step1Title": "Steg 1: Lag eller lim inn tekst",
       "step1Body": "Start med å generere en tekst eller lime inn din egen. Når teksten er klar, låses neste steg opp.",
+      "reviewTextTitle": "Les gjennom teksten",
+      "reviewTextBody": "Lærer må godkjenne teksten før oppgaver kan genereres.",
       "textReadyTitle": "Teksten er klar",
       "textReadyBody": "Neste steg er å generere oppgaver til teksten. Du kan justere antall oppgaver før du går videre.",
       "tasksReadyTitle": "Oppgavene er klare",
@@ -229,6 +240,7 @@
       "generateTasksTitle": "Generer oppgaver",
       "generateTasksBody": "Velg hvor mange oppgaver du vil ha. Denne delen låses opp når teksten er klar.",
       "enableTaskGeneratorFirst": "Generer eller lim inn tekst først for å aktivere oppgavegeneratoren.",
+      "approveTextFirst": "Les gjennom teksten og trykk «Godkjenn tekst og lag oppgaver» før du genererer oppgaver.",
       "goToFinishingTitle": "Gå til ferdigstilling",
       "goToFinishingBody": "Herfra går du videre til bilde, metadata, deling til Space og siste justeringer.",
       "readyToFinishBody": "Når oppgavene er generert, kan du gå videre til ferdigstilling."

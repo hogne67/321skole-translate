@@ -82,7 +82,7 @@ function normalizeNext(raw: string | null, locale: string): string | null {
 
   if (blocked.has(path)) return null;
 
-  const withLocale = /^\/(en|no|pt)(\/|$)/.test(path) ? rebuilt : `/${locale}${rebuilt}`;
+  const withLocale = /^\/(en|nb|no|pt)(\/|$)/.test(path) ? rebuilt : `/${locale}${rebuilt}`;
 
   const mapped =
     withLocale.startsWith(`/${locale}/content`)

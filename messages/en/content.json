@@ -147,7 +147,7 @@
       "tools": "Tools"
     },
     "share": {
-      "title": "Share",
+      "title": "Share link/QR",
       "button": "Share",
       "shareTextLabel": "Share text",
       "linkLabel": "Share link",
@@ -162,7 +162,9 @@
       "qrAlt": "QR code",
       "qrNotReady": "QR code is being prepared",
       "shareUrlLabel": "Share URL",
-      "tipExtended": "Tip: copy the text first, then share the link in social media.",
+      "visibilityNote": "Anyone with the link can open the task. It is not added to the library.",
+      "privacyNote": "Do not share content with student names, personal information or photos of students without clarification.",
+      "tipExtended": "Do not share content with student names, personal information or photos of students without clarification.",
       "aiGenerate": "✨ Generate with AI",
       "aiLoading": "Generating...",
       "examples": {
@@ -195,6 +197,14 @@
     },
     "shareQuiz": {
       "text": "I'm sharing a quiz from 321quiz."
+    },
+    "publishConfirm": {
+      "title": "Publish to library",
+      "noticeTitle": "You are publishing this publicly",
+      "noticeBody": "Your name will be shown as author. Review the content before publishing.",
+      "statement": "I confirm that I have reviewed the content, that it is suitable for school use, and that it does not contain hate, preaching, party-political persuasion, unnecessary personal information or photos/names of students without clarification. I understand that my name will be shown as author.",
+      "cancel": "Cancel",
+      "confirm": "Publish to library"
     },
     "shareToSpace": {
       "title": "Share to Spaces",

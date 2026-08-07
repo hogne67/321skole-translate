@@ -80,6 +80,7 @@
       "waitingText": "Keep the screen open. The board updates automatically.",
       "fullscreen": "Fullscreen",
       "exitFullscreen": "Exit fullscreen",
+      "close": "Close big screen",
       "previousAnswersHidden": "Previous answers are hidden",
       "previousWordsHidden": "Previous words are hidden",
       "noResponses": "No responses yet.",

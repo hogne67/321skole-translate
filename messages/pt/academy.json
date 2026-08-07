@@ -63,6 +63,14 @@
         "copyFailed": "Não foi possível copiar",
         "preview": "Pré-visualizar"
       },
+      "publishConfirm": {
+        "title": "Publicar curso",
+        "noticeTitle": "Você está publicando isto publicamente",
+        "noticeBody": "O curso pode ficar visível para outras pessoas. Seu nome será mostrado como responsável pelo curso. Revise conteúdo, descrições e recursos antes de publicar.",
+        "statement": "Confirmo que revisei o curso, que o conteúdo é adequado para uso escolar e que não contém discurso de ódio, pregação, persuasão político-partidária, dados pessoais desnecessários ou fotos/nomes de alunos sem esclarecimento prévio. Entendo que meu nome será mostrado como responsável pelo curso.",
+        "cancel": "Cancelar",
+        "confirm": "Publicar curso"
+      },
       "sale": {
         "notPublished": "Não publicado",
         "saleOff": "Venda desativada",

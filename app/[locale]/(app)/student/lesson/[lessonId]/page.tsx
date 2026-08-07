@@ -2938,7 +2938,7 @@ export default function StudentLessonPage() {
             <div style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>
               {isCourseMode
                 ? "KI-feedback lagres sammen med kursbesvarelsen, slik at kursinstruktøren kan følge den opp."
-                : t("feedback.subtitle")}
+                : t("feedback.privacyHint")}
             </div>
           </div>
 

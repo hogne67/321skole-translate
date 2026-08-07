@@ -63,6 +63,14 @@
         "copyFailed": "Could not copy",
         "preview": "Preview"
       },
+      "publishConfirm": {
+        "title": "Publish course",
+        "noticeTitle": "You are publishing this publicly",
+        "noticeBody": "The course may become visible to others. Your name will be shown as responsible course creator. Review content, descriptions and resources before publishing.",
+        "statement": "I confirm that I have reviewed the course, that the content is suitable for school use, and that it does not contain hate, preaching, party-political persuasion, unnecessary personal information or photos/names of students without clarification. I understand that my name will be shown as responsible course creator.",
+        "cancel": "Cancel",
+        "confirm": "Publish course"
+      },
       "sale": {
         "notPublished": "Not published",
         "saleOff": "Sale off",

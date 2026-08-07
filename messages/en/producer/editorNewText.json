@@ -140,6 +140,7 @@
       "fromTextPrompt": "The system will use the lesson title and text as inspiration for the image.",
       "imageLimit": "Image generation: {used} / {limit} used • {remaining} left",
       "generatedLandscape": "The generated image should be landscape in 16:9.",
+      "imagePrivacy": "Do not use photos or names of students without clarification.",
       "rememberSaveImage": "Remember to save the lesson after selecting or generating an image.",
       "coverImageCredit": "Use this field to add a source or credit for an uploaded image."
     },

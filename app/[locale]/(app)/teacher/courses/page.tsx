@@ -70,6 +70,8 @@ function TeacherCoursesContent() {
   const [copyMessageById, setCopyMessageById] = useState<Record<string, string>>({});
   const [shareCourseId, setShareCourseId] = useState("");
   const [error, setError] = useState("");
+  const [publishConfirmCourse, setPublishConfirmCourse] = useState<Course | null>(null);
+  const [publishSigned, setPublishSigned] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -244,6 +246,23 @@ function TeacherCoursesContent() {
     } finally {
       setBusyCourseId("");
     }
+  }
+
+  function requestPublishCourse(course: Course) {
+    setPublishSigned(false);
+    setPublishConfirmCourse(course);
+  }
+
+  function closePublishConfirm() {
+    setPublishConfirmCourse(null);
+    setPublishSigned(false);
+  }
+
+  async function confirmPublishCourse() {
+    if (!publishConfirmCourse || !publishSigned) return;
+    const course = publishConfirmCourse;
+    closePublishConfirm();
+    await updatePublishStatus(course, "publish");
   }
 
   function setCourseCopyMessage(courseId: string, message: string) {
@@ -453,7 +472,7 @@ function TeacherCoursesContent() {
                       <button
                         type="button"
                         disabled={busyCourseId === course.id}
-                        onClick={() => void updatePublishStatus(course, "publish")}
+                        onClick={() => requestPublishCourse(course)}
                         className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-3 text-xs font-bold text-white disabled:opacity-60"
                       >
                         {busyCourseId === course.id
@@ -489,6 +508,69 @@ function TeacherCoursesContent() {
           </div>
         )}
       </section>
+
+      {publishConfirmCourse ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={closePublishConfirm}
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-2xl"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
+              <div className="min-w-0">
+                <div className="font-black text-slate-900">{t("teacherCourses.publishConfirm.title")}</div>
+                <div className="truncate text-sm text-slate-600">{publishConfirmCourse.title}</div>
+              </div>
+              <button
+                type="button"
+                onClick={closePublishConfirm}
+                className="rounded-xl border border-slate-300 px-3 py-2 font-black text-slate-800 hover:bg-zinc-50"
+              >
+                x
+              </button>
+            </div>
+
+            <div className="grid gap-4 p-4">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                <div className="font-black">{t("teacherCourses.publishConfirm.noticeTitle")}</div>
+                <p className="mt-2">{t("teacherCourses.publishConfirm.noticeBody")}</p>
+              </div>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={publishSigned}
+                  onChange={(event) => setPublishSigned(event.target.checked)}
+                  className="mt-1 h-4 w-4 shrink-0"
+                />
+                <span>{t("teacherCourses.publishConfirm.statement")}</span>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 p-4">
+              <button
+                type="button"
+                onClick={closePublishConfirm}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 hover:bg-slate-50"
+              >
+                {t("teacherCourses.publishConfirm.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmPublishCourse()}
+                disabled={!publishSigned}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t("teacherCourses.publishConfirm.confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

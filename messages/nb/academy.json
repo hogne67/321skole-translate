@@ -63,6 +63,14 @@
         "copyFailed": "Kunne ikke kopiere",
         "preview": "Forhåndsvis"
       },
+      "publishConfirm": {
+        "title": "Publiser kurs",
+        "noticeTitle": "Du publiserer dette offentlig",
+        "noticeBody": "Kurset kan bli synlig for andre. Navnet ditt vises som ansvarlig kursholder. Les gjennom innhold, beskrivelser og ressurser før du publiserer.",
+        "statement": "Jeg bekrefter at jeg har gjennomgått kurset, at innholdet er egnet for skolebruk, og at det ikke inneholder hets, forkynnelse, partipolitisk påvirkning, unødvendige personopplysninger eller bilder/navn på elever uten avklaring. Jeg forstår at navnet mitt vises som ansvarlig kursholder.",
+        "cancel": "Avbryt",
+        "confirm": "Publiser kurs"
+      },
       "sale": {
         "notPublished": "Ikke publisert",
         "saleOff": "Salg av",

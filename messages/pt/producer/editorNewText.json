@@ -140,6 +140,7 @@
       "fromTextPrompt": "O sistema usará o título e o texto da atividade como inspiração para a imagem.",
       "imageLimit": "Geração de imagens: {used} / {limit} usadas • {remaining} restantes",
       "generatedLandscape": "A imagem gerada deve ser horizontal em 16:9.",
+      "imagePrivacy": "Não use fotos ou nomes de alunos sem esclarecimento prévio.",
       "rememberSaveImage": "Lembre-se de salvar a atividade depois de escolher ou gerar uma imagem.",
       "coverImageCredit": "Use este campo para informar a fonte ou os créditos de uma imagem enviada."
     },

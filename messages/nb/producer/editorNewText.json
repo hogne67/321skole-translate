@@ -140,6 +140,7 @@
       "fromTextPrompt": "Systemet vil bruke oppgavetittel og tekst som inspirasjon for bildet.",
       "imageLimit": "Bildegenerering: {used} / {limit} brukt • {remaining} igjen",
       "generatedLandscape": "Det genererte bildet skal være liggende i 16:9.",
+      "imagePrivacy": "Ikke bruk bilder eller navn på elever uten avklaring.",
       "rememberSaveImage": "Husk å lagre oppgaven etter at du har valgt eller generert et bilde.",
       "coverImageCredit": "Bruk dette feltet for å oppgi kilde eller kreditering for opplastet bilde."
 

@@ -147,7 +147,7 @@
       "tools": "Verktøy"
     },
     "share": {
-      "title": "Del",
+      "title": "Del lenke/QR",
       "button": "Del",
       "shareTextLabel": "Delingstekst",
       "linkLabel": "Del lenke",
@@ -162,7 +162,9 @@
       "qrAlt": "QR-kode",
       "qrNotReady": "QR-koden klargjøres",
       "shareUrlLabel": "Delingslenke",
-      "tipExtended": "Tips: Kopier teksten først, og del deretter lenken i sosiale medier.",
+      "visibilityNote": "Alle med lenken kan åpne oppgaven. Den legges ikke i biblioteket.",
+      "privacyNote": "Ikke del innhold med elevnavn, personopplysninger eller bilder av elever uten avklaring.",
+      "tipExtended": "Ikke del innhold med elevnavn, personopplysninger eller bilder av elever uten avklaring.",
       "aiGenerate": "✨ Lag med KI",
       "aiLoading": "Lager…",
       "examples": {
@@ -195,6 +197,14 @@
     },
     "shareQuiz": {
       "text": "Jeg deler en quiz fra 321quiz."
+    },
+    "publishConfirm": {
+      "title": "Publiser i biblioteket",
+      "noticeTitle": "Du publiserer dette offentlig",
+      "noticeBody": "Navnet ditt vises som forfatter. Les gjennom innholdet før du publiserer.",
+      "statement": "Jeg bekrefter at jeg har gjennomgått innholdet, at det er egnet for skolebruk, og at det ikke inneholder hets, forkynnelse, partipolitisk påvirkning, unødvendige personopplysninger eller bilder/navn på elever uten avklaring. Jeg forstår at navnet mitt vises som forfatter.",
+      "cancel": "Avbryt",
+      "confirm": "Publiser i biblioteket"
     },
     "shareToSpace": {
       "title": "Del til Spaces",

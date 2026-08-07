@@ -131,6 +131,12 @@ export default function LoginClient() {
   }, []);
 
   useEffect(() => {
+    if (currentUser && !currentUser.isAnonymous && welcome !== "1" && verified !== "1") {
+      router.replace(postLoginUrl);
+    }
+  }, [currentUser, postLoginUrl, router, verified, welcome]);
+
+  useEffect(() => {
     if (welcome === "1") {
       setInfo(
         safeT(
