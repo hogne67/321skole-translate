@@ -985,28 +985,21 @@ export default function TeacherPage() {
         actionSeePlans={t("dashboardIntro.actions.seePlans")}
         actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
         actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
+        rightSlot={
+          showNorwegianIntroVideo ? (
+            <TrainingVideoPlayer
+              title="Introduksjon til 321skole"
+              videoUrl="https://youtu.be/TWwYWnkFbJM"
+              buttonLabel="Se introduksjonsvideo"
+              buttonTitle="Se introduksjonsvideo"
+              closeLabel="Lukk"
+              description="En kort gjennomgang av dashbordet og de viktigste valgene."
+              thumbnail
+              className="max-w-none max-sm:min-h-[70px] max-sm:gap-2 max-sm:p-2"
+            />
+          ) : null
+        }
       />
-
-      {showNorwegianIntroVideo ? (
-        <section
-          style={{
-            marginTop: isMobile ? 12 : 16,
-            display: "flex",
-            justifyContent: "flex-start",
-          }}
-        >
-          <TrainingVideoPlayer
-            title="Introduksjon til 321skole"
-            videoUrl="https://youtu.be/TWwYWnkFbJM"
-            buttonLabel="Se introduksjonsvideo"
-            buttonTitle="Se introduksjonsvideo"
-            closeLabel="Lukk"
-            description="En kort gjennomgang av dashbordet og de viktigste valgene."
-            thumbnail
-            className="max-w-none max-sm:min-h-[70px] max-sm:gap-2 max-sm:p-2"
-          />
-        </section>
-      ) : null}
 
       <InstallAppButton />
 

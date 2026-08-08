@@ -31,6 +31,7 @@ type Props = {
   actionSeePlans: string;
   actionRegisterLogin: string;
   actionOpenLibrary: string;
+  rightSlot?: React.ReactNode;
 };
 
 type Role = "student" | "teacher" | "parent";
@@ -142,24 +143,42 @@ export function DashboardIntro(props: Props) {
         marginBottom: 12,
       }}
     >
-      <h2 style={{ margin: 0, fontSize: "clamp(17px, 5vw, 18px)", lineHeight: 1.18 }}>{helloText}</h2>
-
-      <p
+      <div
         style={{
-          margin: "8px 0 0",
-          opacity: 0.8,
           display: "flex",
-          flexWrap: "wrap",
           alignItems: "center",
-          gap: 8,
+          justifyContent: "space-between",
+          gap: 14,
+          flexWrap: "wrap",
         }}
       >
-        <span>{youAreNode}</span>
-      </p>
+        <div style={{ minWidth: 0, flex: "1 1 320px" }}>
+          <h2 style={{ margin: 0, fontSize: "clamp(17px, 5vw, 18px)", lineHeight: 1.18 }}>{helloText}</h2>
 
-      {activityNode ? (
-        <p style={{ margin: "8px 0 0", opacity: 0.8, lineHeight: 1.45 }}>{activityNode}</p>
-      ) : null}
+          <p
+            style={{
+              margin: "8px 0 0",
+              opacity: 0.8,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <span>{youAreNode}</span>
+          </p>
+
+          {activityNode ? (
+            <p style={{ margin: "8px 0 0", opacity: 0.8, lineHeight: 1.45 }}>{activityNode}</p>
+          ) : null}
+        </div>
+
+        {props.rightSlot ? (
+          <div style={{ flex: "0 1 340px", display: "flex", justifyContent: "flex-end" }}>
+            {props.rightSlot}
+          </div>
+        ) : null}
+      </div>
 
       {props.userIsAnon ? (
         <div style={{ marginTop: 10 }}>
