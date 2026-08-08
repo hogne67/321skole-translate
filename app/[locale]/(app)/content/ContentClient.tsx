@@ -97,10 +97,6 @@ function buildParentSubmissionId(spaceId: string, assignmentId: string, uid: str
   return `${spaceId}_${assignmentId}_${uid}`;
 }
 
-function pickVisibility(v: unknown): "public" | "unlisted" | "private" {
-  return v === "unlisted" || v === "private" || v === "public" ? v : "public";
-}
-
 function StatusPill({
   label,
   variant,
@@ -1039,13 +1035,7 @@ export default function ContentClient() {
       }
 
       if (nextPublished) {
-        const publishObj = isRecord((data as { publish?: unknown }).publish)
-          ? (data as { publish?: Record<string, unknown> }).publish
-          : undefined;
-        const isReadingTest = String((data as { lessonType?: unknown }).lessonType ?? "")
-          .trim()
-          .toLowerCase() === "reading_test";
-        const vis = isReadingTest ? "public" : pickVisibility(publishObj?.visibility);
+        const vis = "public";
 
         const resp = await authedPost<{
           publishedId?: string;
@@ -1054,6 +1044,7 @@ export default function ContentClient() {
         }>("/api/publish", {
           id: lessonId,
           visibility: vis,
+          showInLibrary: vis === "public",
         });
 
         const publishedId = resp.publishedId || resp.publishedLessonId || resp.id || lessonId;
@@ -1061,13 +1052,9 @@ export default function ContentClient() {
         await updateDoc(lessonRef, {
           status: "published",
           activePublishedId: publishedId,
-          ...(isReadingTest
-            ? {
-              publishVisibility: "public",
-              showInLibrary: true,
-              "publish.visibility": "public",
-            }
-            : {}),
+          publishVisibility: vis,
+          showInLibrary: vis === "public",
+          "publish.visibility": vis,
           updatedAt: serverTimestamp(),
         });
       } else {
@@ -1075,7 +1062,10 @@ export default function ContentClient() {
           typeof (data as { activePublishedId?: unknown }).activePublishedId === "string" &&
             (data as { activePublishedId?: string }).activePublishedId
             ? (data as { activePublishedId?: string }).activePublishedId!
-            : lessonId;
+            : typeof (data as { publishedLessonId?: unknown }).publishedLessonId === "string" &&
+                (data as { publishedLessonId?: string }).publishedLessonId
+              ? (data as { publishedLessonId?: string }).publishedLessonId!
+              : lessonId;
 
         await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
 
@@ -1113,7 +1103,10 @@ export default function ContentClient() {
           typeof (d as { activePublishedId?: unknown }).activePublishedId === "string" &&
             (d as { activePublishedId?: string }).activePublishedId
             ? (d as { activePublishedId?: string }).activePublishedId!
-            : lessonId;
+            : typeof (d as { publishedLessonId?: unknown }).publishedLessonId === "string" &&
+                (d as { publishedLessonId?: string }).publishedLessonId
+              ? (d as { publishedLessonId?: string }).publishedLessonId!
+              : lessonId;
 
         await authedPost("/api/unpublish", { id: publishedId, draftId: lessonId });
       } catch {

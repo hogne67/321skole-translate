@@ -60,6 +60,12 @@ const copy = {
       videoTitle: "Instruksjonsvideo",
       videoPlaceholder: "Se hvordan du lager en skriveoppgave",
       closeVideo: "Lukk video",
+      stepTaskTitle: "Oppgave",
+      stepTaskText: "Velg tittel, språk, nivå og hva eleven skal skrive.",
+      stepImageTitle: "Bilde",
+      stepImageText: "Last opp et bilde, lim inn en lenke eller generer med AI.",
+      stepSaveTitle: "Lagre",
+      stepSaveText: "Sjekk instruksjon og støtte før du lagrer til Mitt innhold.",
       title: "Tittel",
       language: "Språk",
       level: "Nivå",
@@ -85,6 +91,7 @@ const copy = {
       storageHint: "Bildet lagres i Firebase Storage og kan brukes før oppgaven lagres.",
       aspectHint: "Standardformatet er 16:9. Bilder vises i denne rammen og kan bli beskåret.",
       imageDescription: "Bildebeskrivelse / imageDescription",
+      copyPromptToDescription: "Hent fra prompt",
       imageDescriptionPlaceholder: "Beskriv motiv, personer, sted, handling og viktige detaljer som AI skal vurdere teksten mot.",
       imagePreviewTitle: "Valgt bilde",
       instruction: "Instruksjon til eleven",
@@ -175,6 +182,12 @@ const copy = {
       videoTitle: "Instruction video",
       videoPlaceholder: "See how to create a writing task",
       closeVideo: "Close video",
+      stepTaskTitle: "Task",
+      stepTaskText: "Choose title, language, level and what the student should write.",
+      stepImageTitle: "Image",
+      stepImageText: "Upload an image, paste a link or generate one with AI.",
+      stepSaveTitle: "Save",
+      stepSaveText: "Review instruction and support before saving to My content.",
       title: "Title",
       language: "Language",
       level: "Level",
@@ -200,6 +213,7 @@ const copy = {
       storageHint: "The image is saved in Firebase Storage and can be used before the task is saved.",
       aspectHint: "The standard format is 16:9. Images are shown in this frame and may be cropped.",
       imageDescription: "Image description / imageDescription",
+      copyPromptToDescription: "Use prompt",
       imageDescriptionPlaceholder: "Describe the motif, people, place, action and important details AI should assess the text against.",
       imagePreviewTitle: "Selected image",
       instruction: "Instruction for the student",
@@ -290,6 +304,12 @@ const copy = {
       videoTitle: "Vídeo de instrução",
       videoPlaceholder: "Veja como criar uma tarefa de escrita",
       closeVideo: "Fechar vídeo",
+      stepTaskTitle: "Tarefa",
+      stepTaskText: "Escolha título, idioma, nível e o que o estudante deve escrever.",
+      stepImageTitle: "Imagem",
+      stepImageText: "Envie uma imagem, cole um link ou gere uma com IA.",
+      stepSaveTitle: "Salvar",
+      stepSaveText: "Revise instrução e apoio antes de salvar em Meu conteúdo.",
       title: "Título",
       language: "Idioma",
       level: "Nível",
@@ -315,6 +335,7 @@ const copy = {
       storageHint: "A imagem é salva no Firebase Storage e pode ser usada antes de salvar a tarefa.",
       aspectHint: "O formato padrao e 16:9. As imagens sao mostradas neste quadro e podem ser cortadas.",
       imageDescription: "Descrição da imagem / imageDescription",
+      copyPromptToDescription: "Usar prompt",
       imageDescriptionPlaceholder: "Descreva o motivo, pessoas, lugar, ação e detalhes importantes que a IA deve usar para avaliar o texto.",
       imagePreviewTitle: "Imagem escolhida",
       instruction: "Instrução para o estudante",
@@ -707,7 +728,7 @@ export default function ImageWritingProducerPage() {
   const [language, setLanguage] = useState<Language>(() => uiLanguage);
   const [level, setLevel] = useState<Level>("A2");
   const [taskType, setTaskType] = useState<TaskType>("describe");
-  const [imageMode, setImageMode] = useState<ImageMode>("uploaded");
+  const [imageMode, setImageMode] = useState<ImageMode>("ai_generated");
   const [imageUrl, setImageUrl] = useState("");
   const [imagePrompt, setImagePrompt] = useState("");
   const [imageDescription, setImageDescription] = useState("");
@@ -1178,7 +1199,7 @@ export default function ImageWritingProducerPage() {
           <div style={videoThumbStyle}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://img.youtube.com/vi/CmAMXZr3y5g/mqdefault.jpg"
+              src="https://img.youtube.com/vi/yGAQHEUqJsU/mqdefault.jpg"
               alt=""
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
@@ -1193,6 +1214,22 @@ export default function ImageWritingProducerPage() {
         </button>
       </header>
 
+      <section style={stepCardsWrap} aria-label="Workflow">
+        {[
+          ["1", ui.stepTaskTitle, ui.stepTaskText],
+          ["2", ui.stepImageTitle, ui.stepImageText],
+          ["3", ui.stepSaveTitle, ui.stepSaveText],
+        ].map(([number, titleText, bodyText]) => (
+          <div key={number} style={stepCard}>
+            <div style={stepNumber}>{number}</div>
+            <div>
+              <div style={stepTitle}>{titleText}</div>
+              <div style={stepText}>{bodyText}</div>
+            </div>
+          </div>
+        ))}
+      </section>
+
       {videoOpen ? (
         <div style={videoOverlay} role="dialog" aria-modal="true" aria-label={ui.videoTitle} onClick={() => setVideoOpen(false)}>
           <div style={videoModal} onClick={(event) => event.stopPropagation()}>
@@ -1204,7 +1241,7 @@ export default function ImageWritingProducerPage() {
             </div>
             <div style={videoFrameShell}>
               <iframe
-                src="https://www.youtube-nocookie.com/embed/CmAMXZr3y5g?autoplay=1&rel=0&modestbranding=1"
+                src="https://www.youtube-nocookie.com/embed/yGAQHEUqJsU?autoplay=1&rel=0&modestbranding=1"
                 title={ui.videoTitle}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
@@ -1352,7 +1389,7 @@ export default function ImageWritingProducerPage() {
                   </span>
                 </div>
                 <label style={field}>
-                  {fieldLabel(ui.imageUrlShort, true)}
+                  {fieldLabel(ui.imageUrlShort)}
                   <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} style={input} />
                 </label>
               </div>
@@ -1372,7 +1409,22 @@ export default function ImageWritingProducerPage() {
             </div>
 
             <label style={{ ...field, marginTop: 14 }}>
-              {fieldLabel(ui.imageDescription, true)}
+              <div style={fieldLabelRow}>
+                {fieldLabel(ui.imageDescription, true)}
+                <button
+                  type="button"
+                  onClick={() => setImageDescription(imagePrompt.trim())}
+                  disabled={!imagePrompt.trim()}
+                  style={{
+                    ...smallButton,
+                    padding: "7px 10px",
+                    fontSize: 12,
+                    opacity: imagePrompt.trim() ? 1 : 0.55,
+                  }}
+                >
+                  {ui.copyPromptToDescription}
+                </button>
+              </div>
               <textarea
                 value={imageDescription}
                 onChange={(e) => setImageDescription(e.target.value)}
@@ -1498,6 +1550,52 @@ const heroHeader: React.CSSProperties = {
   background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 56%, #eef6ff 100%)",
   padding: 22,
   boxShadow: "0 18px 45px rgba(15,23,42,0.07)",
+};
+
+const stepCardsWrap: React.CSSProperties = {
+  marginTop: 14,
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+  gap: 10,
+};
+
+const stepCard: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 10,
+  border: "1px solid #dbeafe",
+  borderRadius: 18,
+  background: "#ffffff",
+  padding: "12px 14px",
+  boxShadow: "0 10px 24px rgba(15,23,42,0.045)",
+};
+
+const stepNumber: React.CSSProperties = {
+  width: 26,
+  height: 26,
+  borderRadius: 999,
+  flex: "0 0 auto",
+  display: "grid",
+  placeItems: "center",
+  background: "#e0f2fe",
+  color: "#075985",
+  fontSize: 13,
+  fontWeight: 950,
+};
+
+const stepTitle: React.CSSProperties = {
+  color: "#0f172a",
+  fontSize: 13,
+  fontWeight: 950,
+  lineHeight: 1.2,
+};
+
+const stepText: React.CSSProperties = {
+  marginTop: 3,
+  color: "#64748b",
+  fontSize: 12,
+  fontWeight: 650,
+  lineHeight: 1.35,
 };
 
 const eyebrow: React.CSSProperties = {
@@ -1637,6 +1735,14 @@ const sectionHeaderRow: React.CSSProperties = {
   gap: 10,
   flexWrap: "wrap",
   marginBottom: 12,
+};
+
+const fieldLabelRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  flexWrap: "wrap",
 };
 
 const sectionTitle: React.CSSProperties = {

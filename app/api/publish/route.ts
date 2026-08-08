@@ -107,6 +107,7 @@ export async function POST(req: Request) {
   const draftId = typeof idRaw === "string" ? idRaw : undefined;
 
   const visibility = pickVisibility(body.visibility);
+  const showInLibrary = visibility === "public" ? body.showInLibrary !== false : false;
 
   if (!draftId) return NextResponse.json({ error: "Missing id/lessonId" }, { status: 400 });
 
@@ -271,7 +272,7 @@ export async function POST(req: Request) {
     // Publish metadata
     visibility,
     publishVisibility: visibility,
-    showInLibrary: visibility === "public" ? draft.showInLibrary !== false : false,
+    showInLibrary,
     status: "published",
     publishedAt: now,
     updatedAt: now,
@@ -293,7 +294,7 @@ export async function POST(req: Request) {
       activePublishedId: publishedId,
       publishedLessonId: publishedId,
       publishVisibility: visibility,
-      showInLibrary: visibility === "public" ? draft.showInLibrary !== false : false,
+      showInLibrary,
       publish: {
         visibility,
         state: "published",
