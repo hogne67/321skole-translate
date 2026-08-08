@@ -232,7 +232,15 @@ export async function POST(req: Request) {
   }
 
   // --- Build published doc (signed snapshot) ---
-  const publishedRef = db.collection("published_lessons").doc();
+  const existingPublishedId =
+    typeof draft.activePublishedId === "string" && draft.activePublishedId.trim()
+      ? draft.activePublishedId.trim()
+      : typeof draft.publishedLessonId === "string" && draft.publishedLessonId.trim()
+        ? draft.publishedLessonId.trim()
+        : null;
+  const publishedRef = existingPublishedId
+    ? db.collection("published_lessons").doc(existingPublishedId)
+    : db.collection("published_lessons").doc();
   const publishedId = publishedRef.id;
 
   const att =
@@ -264,6 +272,7 @@ export async function POST(req: Request) {
     visibility,
     publishVisibility: visibility,
     showInLibrary: visibility === "public" ? draft.showInLibrary !== false : false,
+    status: "published",
     publishedAt: now,
     updatedAt: now,
 
@@ -277,6 +286,23 @@ export async function POST(req: Request) {
   };
 
   await publishedRef.set(publishedDoc, { merge: true });
+
+  await draftSnap.ref.set(
+    {
+      status: "published",
+      activePublishedId: publishedId,
+      publishedLessonId: publishedId,
+      publishVisibility: visibility,
+      showInLibrary: visibility === "public" ? draft.showInLibrary !== false : false,
+      publish: {
+        visibility,
+        state: "published",
+      },
+      publishedAt: now,
+      updatedAt: now,
+    },
+    { merge: true }
+  );
 
   await db.collection("auditEvents").add({
     type: "PUBLISH_SUCCESS",

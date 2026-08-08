@@ -107,12 +107,27 @@ export async function POST(req: Request) {
         ownerId: effectiveOwnerId,
         lessonId: draftLookupId,
         isActive: false,
+        status: "draft",
         updatedAt: now,
         unpublishedAt: now,
         unpublishedBy: { uid, isAdmin },
       },
       { merge: true }
     );
+
+    if (draftSnap?.exists) {
+      await draftSnap.ref.set(
+        {
+          status: "draft",
+          activePublishedId: null,
+          publish: {
+            state: "draft",
+          },
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+    }
 
     // --- Audit ---
     await db.collection("auditEvents").add({

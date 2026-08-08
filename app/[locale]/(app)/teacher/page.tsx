@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
+import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { canAccessAcademy } from "@/lib/courses/academyAccess";
 import { db } from "@/lib/firebase";
@@ -681,6 +682,7 @@ export default function TeacherPage() {
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
   const showCoursesSection = canAccessAcademy(profile);
+  const showNorwegianIntroVideo = locale === "nb" || locale === "no";
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 720);
@@ -984,6 +986,27 @@ export default function TeacherPage() {
         actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
         actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
       />
+
+      {showNorwegianIntroVideo ? (
+        <section
+          style={{
+            marginTop: isMobile ? 12 : 16,
+            display: "flex",
+            justifyContent: "flex-start",
+          }}
+        >
+          <TrainingVideoPlayer
+            title="Introduksjon til 321skole"
+            videoUrl="https://youtu.be/TWwYWnkFbJM"
+            buttonLabel="Se introduksjonsvideo"
+            buttonTitle="Se introduksjonsvideo"
+            closeLabel="Lukk"
+            description="En kort gjennomgang av dashbordet og de viktigste valgene."
+            thumbnail
+            className="max-w-none max-sm:min-h-[70px] max-sm:gap-2 max-sm:p-2"
+          />
+        </section>
+      ) : null}
 
       <InstallAppButton />
 
