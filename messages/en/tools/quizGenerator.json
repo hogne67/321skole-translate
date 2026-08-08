@@ -2,6 +2,13 @@
   "quizGenerator": {
     "title": "Quiz generator",
     "subtitle": "Create an editable quiz from a topic or text. When it is ready, add an image and save it to My content.",
+    "video": {
+      "title": "Quiz instruction video",
+      "text": "A short walkthrough of how to create a quiz.",
+      "button": "Watch quiz video",
+      "buttonTitle": "Watch instruction video for the quiz generator",
+      "close": "Close video"
+    },
     "sourceModes": {
       "topic": "Topic",
       "text": "Text"
@@ -27,12 +34,13 @@
     },
     "source": {
       "title": "Choose source",
-      "text": "Create a new quiz from a topic, paste text, or use text from a task you already made.",
-      "pickContent": "Choose task",
+      "text": "Create a new quiz from a topic, paste text, or use text from a lesson you already made.",
+      "pickContent": "Choose lesson",
       "contentText": "Source text",
       "refresh": "Refresh",
       "loading": "Loading...",
-      "noContent": "No tasks found"
+      "chooseContent": "Click to choose a lesson",
+      "noContent": "No lessons found"
     },
     "sourceChoices": {
       "new": {
@@ -44,8 +52,8 @@
         "text": "Use your own text as the quiz source."
       },
       "content": {
-        "title": "Use task",
-        "text": "Choose a task from My content."
+        "title": "Use lesson",
+        "text": "Choose a lesson from My content."
       }
     },
     "settings": {
@@ -83,6 +91,7 @@
       "math": "Mathematics",
       "science": "Science",
       "social_studies": "Social studies",
+      "history": "History",
       "english": "English",
       "work_life": "Work life",
       "citizenship": "Democracy and citizenship",

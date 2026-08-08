@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Clipboard, Plus, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -8,6 +8,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { db } from "@/lib/firebase";
 import { LANGUAGES } from "@/lib/languages";
+import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 import { getBucketLimit, getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
 import { useUsage } from "@/lib/useUsage";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -69,6 +70,23 @@ function getLanguageLabel(item: unknown, fallback: string): string {
     if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
   }
   return fallback;
+}
+
+function getLocalizedLanguageLabel(code: string, fallback: string, locale: string): string {
+  const displayLocale = locale === "no" ? "nb" : locale;
+  try {
+    const label = new Intl.DisplayNames([displayLocale], { type: "language" }).of(code);
+    if (label) return label.charAt(0).toUpperCase() + label.slice(1);
+  } catch {
+    const baseCode = code.split("-")[0];
+    try {
+      const label = new Intl.DisplayNames([displayLocale], { type: "language" }).of(baseCode);
+      if (label) return label.charAt(0).toUpperCase() + label.slice(1);
+    } catch {
+      // Fall back to the configured language list.
+    }
+  }
+  return fallback.includes("–") ? fallback.split("–").at(-1)?.trim() || fallback : fallback;
 }
 
 function getErrorMessage(e: unknown): string {
@@ -138,6 +156,67 @@ function safePlan(plan?: string): PlanKey {
   if (plan === "plus") return "plus";
   if (plan === "pro") return "pro";
   return "free";
+}
+
+function comparableLanguage(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase().replace("_", "-");
+  if (!normalized) return null;
+  if (normalized === "no" || normalized.startsWith("nb") || normalized.startsWith("nn")) return "nb";
+  if (normalized.startsWith("en")) return "en";
+  if (normalized.startsWith("pt")) return "pt";
+  return normalized.split("-")[0] || null;
+}
+
+function matchesSelectedLanguage(data: Record<string, unknown>, selectedLanguage: string): boolean {
+  const selected = comparableLanguage(selectedLanguage);
+  if (!selected) return true;
+  const quiz = isRecord(data.quiz) ? data.quiz : null;
+  const candidates = [
+    data.language,
+    data.locale,
+    data.lang,
+    data.targetLanguage,
+    quiz?.language,
+    quiz?.locale,
+  ];
+  const documentLanguages = candidates.map(comparableLanguage).filter((item): item is string => item !== null);
+  return documentLanguages.length === 0 || documentLanguages.includes(selected);
+}
+
+function normalizedString(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function isPlainLesson(data: Record<string, unknown>): boolean {
+  const lessonType = normalizedString(data.lessonType);
+  const contentType = normalizedString(data.contentType);
+  const textType = normalizedString(data.textType || data.texttype);
+  const source = normalizedString(data.source);
+  const excludedValues = new Set([
+    "quiz",
+    "reading_test",
+    "reading test",
+    "image_writing",
+    "math_geometry",
+    "geometry_worksheet",
+    "fraction_worksheet",
+    "worksheet",
+    "planner",
+    "board",
+    "classroom",
+  ]);
+  const excludedSources = new Set([
+    "tools-quiz-generator",
+    "321quiz-library",
+    "reading-test-generator",
+    "producer-image-writing",
+    "math-geometry-generator",
+    "math-fractions-generator",
+  ]);
+  if (excludedValues.has(lessonType) || excludedValues.has(contentType) || excludedValues.has(textType)) return false;
+  if (excludedSources.has(source)) return false;
+  return true;
 }
 
 async function generateQuiz(args: {
@@ -212,11 +291,11 @@ export default function QuizGeneratorPage() {
     const mapped = (Array.isArray(LANGUAGES) ? LANGUAGES : [])
       .map((item) => {
         const code = getLanguageCode(item);
-        return code ? { code, label: getLanguageLabel(item, code) } : null;
+        return code ? { code, label: getLocalizedLanguageLabel(code, getLanguageLabel(item, code), locale) } : null;
       })
       .filter((item): item is { code: string; label: string } => item !== null);
     return mapped.length ? mapped : [{ code: "nb", label: "Norsk" }];
-  }, []);
+  }, [locale]);
 
   const defaultLanguage = useMemo(() => {
     return languageOptions.find((item) => item.code === locale)?.code || (locale === "no" ? "nb" : languageOptions[0]?.code || "nb");
@@ -263,16 +342,17 @@ export default function QuizGeneratorPage() {
   const generatorsRemaining = generationQuota?.remaining ?? Math.max(0, generatorsLimit - generatorsUsed);
 
   useEffect(() => {
-    void loadContentOptions();
-  }, []);
-
-  useEffect(() => {
     return onAuthStateChanged(auth, (user) => setUid(user?.uid ?? null));
   }, []);
 
   function selectSourceChoice(next: SourceChoice) {
     setSourceChoice(next);
     setSourceMode(next === "new" ? "topic" : "text");
+    if (next === "content" && !selectedContentId) {
+      setTopic("");
+      setSourceText("");
+      return;
+    }
     if (next === "content" && selectedContentId) {
       const item = contentItems.find((candidate) => candidate.id === selectedContentId);
       if (item) {
@@ -299,7 +379,7 @@ export default function QuizGeneratorPage() {
     }
   }
 
-  async function loadContentOptions() {
+  const loadContentOptions = useCallback(async () => {
     const user = auth.currentUser;
     if (!user) return;
     setContentBusy(true);
@@ -308,7 +388,9 @@ export default function QuizGeneratorPage() {
       const snap = await getDocs(q);
       const next = snap.docs
         .map((item) => {
-          const data = item.data() as { title?: unknown; sourceText?: unknown; text?: unknown; description?: unknown };
+          const data = item.data() as Record<string, unknown>;
+          if (!matchesSelectedLanguage(data, language)) return null;
+          if (!isPlainLesson(data)) return null;
           const title = typeof data.title === "string" && data.title.trim() ? data.title.trim() : "Uten tittel";
           const text =
             typeof data.sourceText === "string" && data.sourceText.trim()
@@ -322,16 +404,36 @@ export default function QuizGeneratorPage() {
         })
         .filter((item): item is SourceContentOption => item !== null);
       setContentItems(next);
-      setSelectedContentId((current) => current || next[0]?.id || "");
+      setSelectedContentId((current) => {
+        const nextId = next.some((item) => item.id === current) ? current : "";
+        if (sourceChoice === "content") {
+          const item = next.find((candidate) => candidate.id === nextId);
+          setTopic(item?.title ?? "");
+          setSourceText(item?.text ?? "");
+        }
+        return nextId;
+      });
     } catch {
       setContentItems([]);
     } finally {
       setContentBusy(false);
     }
-  }
+  }, [language, sourceChoice]);
+
+  useEffect(() => {
+    if (!uid) return;
+    void loadContentOptions();
+  }, [uid, loadContentOptions]);
 
   function applyContentSource(id: string) {
     setSelectedContentId(id);
+    if (!id) {
+      setTopic("");
+      setSourceText("");
+      setSourceMode("text");
+      setSourceChoice("content");
+      return;
+    }
     const item = contentItems.find((candidate) => candidate.id === id);
     if (!item) return;
     setTopic(item.title);
@@ -423,10 +525,22 @@ export default function QuizGeneratorPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-2 py-3 sm:px-4 sm:py-6">
       <section className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 shadow-sm sm:p-6">
-        <div className="max-w-3xl">
-          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-violet-700 sm:text-xs sm:tracking-[0.18em]">321 Quiz Studio</div>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:mt-2 sm:text-3xl">{t("title")}</h1>
-          <p className="mt-2 text-sm leading-5 text-slate-600 sm:mt-3 sm:leading-6">{t("subtitle")}</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-3xl">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-violet-700 sm:text-xs sm:tracking-[0.18em]">321 Quiz Studio</div>
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:mt-2 sm:text-3xl">{t("title")}</h1>
+            <p className="mt-2 text-sm leading-5 text-slate-600 sm:mt-3 sm:leading-6">{t("subtitle")}</p>
+          </div>
+          <TrainingVideoPlayer
+            title={t("video.title")}
+            videoUrl="https://youtu.be/7BnxPVJwbKY"
+            buttonLabel={t("video.button")}
+            buttonTitle={t("video.buttonTitle")}
+            closeLabel={t("video.close")}
+            description={t("video.text")}
+            thumbnail
+            className="md:shrink-0"
+          />
         </div>
       </section>
 
@@ -497,6 +611,7 @@ export default function QuizGeneratorPage() {
               <option value="math">{t("focus.math")}</option>
               <option value="science">{t("focus.science")}</option>
               <option value="social_studies">{t("focus.social_studies")}</option>
+              <option value="history">{t("focus.history")}</option>
               <option value="english">{t("focus.english")}</option>
               <option value="work_life">{t("focus.work_life")}</option>
               <option value="citizenship">{t("focus.citizenship")}</option>
@@ -516,8 +631,11 @@ export default function QuizGeneratorPage() {
               <span className="text-sm font-semibold text-slate-800">{t("fields.topic")}</span>
               <span className="mt-1 block text-xs leading-5 text-slate-500">{t("fields.topicHelp")}</span>
               <input
+                id={`quiz-topic-${locale}`}
+                name={`quiz-topic-${locale}`}
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
+                autoComplete="off"
                 className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-violet-500"
                 placeholder={t("placeholders.topic")}
               />
@@ -546,11 +664,8 @@ export default function QuizGeneratorPage() {
                   onChange={(e) => applyContentSource(e.target.value)}
                   className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm"
                 >
-                  {contentItems.length === 0 ? (
-                    <option value="">{t("source.noContent")}</option>
-                  ) : (
-                    contentItems.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)
-                  )}
+                  <option value="">{contentItems.length === 0 ? t("source.noContent") : t("source.chooseContent")}</option>
+                  {contentItems.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
                 </select>
               </div>
               <label className="block">
@@ -608,7 +723,7 @@ export default function QuizGeneratorPage() {
         {err ? <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{err}</div> : null}
       </section>
 
-      <section className="mt-4 min-h-[360px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:mt-5 sm:min-h-[520px] sm:p-5">
+      <section className="relative mt-4 min-h-[360px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:mt-5 sm:min-h-[520px] sm:p-5">
         <div className="mb-5 flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-black text-violet-800">3</div>
           <div>
@@ -627,7 +742,7 @@ export default function QuizGeneratorPage() {
               </div>
             </div>
           ) : (
-            <div>
+            <div className="pb-24">
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-4">
                 <div className="min-w-0 flex-1">
                   <input
@@ -714,8 +829,8 @@ export default function QuizGeneratorPage() {
                 {t("actions.addQuestion")}
               </button>
 
-              <div className="sticky bottom-3 mt-6 rounded-2xl border border-violet-200 bg-white/95 p-4 shadow-lg backdrop-blur">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-6 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:-mx-5 sm:-mb-5 sm:px-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">{t("finish.kicker")}</div>
                     <h3 className="mt-1 text-lg font-black text-slate-950">{t("finish.title")}</h3>

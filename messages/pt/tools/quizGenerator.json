@@ -2,6 +2,13 @@
   "quizGenerator": {
     "title": "Gerador de quiz",
     "subtitle": "Crie um quiz editável a partir de um tema ou texto. Quando estiver pronto, adicione uma imagem e salve em Meu conteúdo.",
+    "video": {
+      "title": "Vídeo de instrução do quiz",
+      "text": "Um breve passo a passo de como criar um quiz.",
+      "button": "Ver vídeo do quiz",
+      "buttonTitle": "Ver vídeo de instrução do gerador de quiz",
+      "close": "Fechar vídeo"
+    },
     "sourceModes": {
       "topic": "Tema",
       "text": "Texto"
@@ -27,12 +34,13 @@
     },
     "source": {
       "title": "Escolha a fonte",
-      "text": "Crie um novo quiz a partir de um tema, cole texto ou use texto de uma tarefa já criada.",
-      "pickContent": "Escolher tarefa",
+      "text": "Crie um novo quiz a partir de um tema, cole texto ou use texto de uma lição já criada.",
+      "pickContent": "Escolher lição",
       "contentText": "Texto de origem",
       "refresh": "Atualizar",
       "loading": "Carregando...",
-      "noContent": "Nenhuma tarefa encontrada"
+      "chooseContent": "Clique para escolher uma lição",
+      "noContent": "Nenhuma lição encontrada"
     },
     "sourceChoices": {
       "new": {
@@ -44,8 +52,8 @@
         "text": "Use seu próprio texto como base do quiz."
       },
       "content": {
-        "title": "Usar tarefa",
-        "text": "Escolha uma tarefa em Meu conteúdo."
+        "title": "Usar lição",
+        "text": "Escolha uma lição em Meu conteúdo."
       }
     },
     "settings": {
@@ -83,6 +91,7 @@
       "math": "Matemática",
       "science": "Ciências",
       "social_studies": "Estudos sociais",
+      "history": "História",
       "english": "Inglês",
       "work_life": "Vida profissional",
       "citizenship": "Democracia e cidadania",

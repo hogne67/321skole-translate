@@ -2,6 +2,13 @@
   "quizGenerator": {
     "title": "Quiz-generator",
     "subtitle": "Lag en redigerbar quiz fra et tema eller en tekst. Når quizen er klar, legger du til bilde og lagrer den i Mitt innhold.",
+    "video": {
+      "title": "Instruksjonsvideo for quiz",
+      "text": "En kort gjennomgang av hvordan du lager en quiz.",
+      "button": "Se quiz-video",
+      "buttonTitle": "Se instruksjonsvideo for quiz-generatoren",
+      "close": "Lukk video"
+    },
     "sourceModes": {
       "topic": "Tema",
       "text": "Tekst"
@@ -27,12 +34,13 @@
     },
     "source": {
       "title": "Velg grunnlag",
-      "text": "Lag en ny quiz fra et tema, lim inn tekst, eller hent tekst fra en oppgave du allerede har laget.",
-      "pickContent": "Velg oppgave",
+      "text": "Lag en ny quiz fra et tema, lim inn tekst, eller hent tekst fra en leksjon du allerede har laget.",
+      "pickContent": "Velg leksjon",
       "contentText": "Tekstgrunnlag",
       "refresh": "Oppdater",
       "loading": "Laster...",
-      "noContent": "Ingen oppgaver funnet"
+      "chooseContent": "Klikk for å hente tekst fra en leksjon",
+      "noContent": "Ingen leksjoner funnet"
     },
     "sourceChoices": {
       "new": {
@@ -44,8 +52,8 @@
         "text": "Bruk egen tekst som grunnlag for quizen."
       },
       "content": {
-        "title": "Hent fra oppgave",
-        "text": "Velg en oppgave fra Mitt innhold."
+        "title": "Hent fra leksjon",
+        "text": "Velg en leksjon fra Mitt innhold."
       }
     },
     "settings": {
@@ -83,6 +91,7 @@
       "math": "Matematikk",
       "science": "Naturfag",
       "social_studies": "Samfunnsfag",
+      "history": "Historie",
       "english": "Engelsk",
       "work_life": "Arbeidsliv",
       "citizenship": "Demokrati og medborgerskap",

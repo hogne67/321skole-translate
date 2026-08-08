@@ -205,6 +205,40 @@ function formatBillingStatus(
   return t("billing.statuses.none");
 }
 
+function getDashboardIntroVideo(locale: string) {
+  if (locale === "en") {
+    return {
+      title: "Introduction to 321school",
+      videoUrl: "https://youtu.be/bm1DnFLlyWU",
+      buttonLabel: "Watch introduction video",
+      closeLabel: "Close",
+      description: "A short walkthrough of the dashboard and the most important choices.",
+    };
+  }
+
+  if (locale === "pt") {
+    return {
+      title: "Introdução ao 321school",
+      videoUrl: "https://youtu.be/gHGqNLz2Imc",
+      buttonLabel: "Ver vídeo de introdução",
+      closeLabel: "Fechar",
+      description: "Uma breve apresentação do painel e das escolhas mais importantes.",
+    };
+  }
+
+  if (locale === "nb" || locale === "no") {
+    return {
+      title: "Introduksjon til 321skole",
+      videoUrl: "https://youtu.be/TWwYWnkFbJM",
+      buttonLabel: "Se introduksjonsvideo",
+      closeLabel: "Lukk",
+      description: "En kort gjennomgang av dashbordet og de viktigste valgene.",
+    };
+  }
+
+  return null;
+}
+
 type StatCardProps = {
   title: string;
   used: number;
@@ -682,7 +716,7 @@ export default function TeacherPage() {
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
   const showCoursesSection = canAccessAcademy(profile);
-  const showNorwegianIntroVideo = locale === "nb" || locale === "no";
+  const dashboardIntroVideo = getDashboardIntroVideo(locale);
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 720);
@@ -986,14 +1020,14 @@ export default function TeacherPage() {
         actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
         actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
         rightSlot={
-          showNorwegianIntroVideo ? (
+          dashboardIntroVideo ? (
             <TrainingVideoPlayer
-              title="Introduksjon til 321skole"
-              videoUrl="https://youtu.be/TWwYWnkFbJM"
-              buttonLabel="Se introduksjonsvideo"
-              buttonTitle="Se introduksjonsvideo"
-              closeLabel="Lukk"
-              description="En kort gjennomgang av dashbordet og de viktigste valgene."
+              title={dashboardIntroVideo.title}
+              videoUrl={dashboardIntroVideo.videoUrl}
+              buttonLabel={dashboardIntroVideo.buttonLabel}
+              buttonTitle={dashboardIntroVideo.buttonLabel}
+              closeLabel={dashboardIntroVideo.closeLabel}
+              description={dashboardIntroVideo.description}
               thumbnail
               className="max-w-none max-sm:min-h-[70px] max-sm:gap-2 max-sm:p-2"
             />
