@@ -20,9 +20,9 @@ const LOCALES: Array<{ code: string; label: string }> = [
 ];
 
 function publicLabels(locale: string) {
-  if (locale === "pt") return { login: "Entrar", privacy: "Privacidade para escolas" };
-  if (locale === "en") return { login: "Log in", privacy: "School privacy" };
-  return { login: "Logg inn", privacy: "Personvern for skoler" };
+  if (locale === "pt") return { login: "Entrar", privacy: "Central de confiança" };
+  if (locale === "en") return { login: "Log in", privacy: "Trust Center" };
+  return { login: "Logg inn", privacy: "Trust Center" };
 }
 
 function schoolLandingNotice(locale: string) {
@@ -117,7 +117,7 @@ function PublicHeader(props: {
 
         <div className="flex items-center gap-2">
           <Link
-            href={localizedPath(props.locale, "/school/privacy")}
+            href={localizedPath(props.locale, "/school/trust")}
             className="hidden rounded-md px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 sm:inline-flex"
           >
             {props.privacyLabel}
@@ -551,6 +551,7 @@ function schoolInfoCopy(locale: string) {
       title: "Privacidade, segurança e documentos",
       text: "Reunimos informações práticas para escolas que desejam avaliar a 321school antes de usar a solução de forma mais ampla.",
       links: [
+        { href: "/school/trust", label: "Central de confiança" },
         { href: "/school/privacy", label: "Privacidade para escolas" },
         { href: "/school/subprocessors", label: "Subprocessadores" },
         { href: "/school/data-rights", label: "Acesso e exclusão" },
@@ -565,6 +566,7 @@ function schoolInfoCopy(locale: string) {
       title: "Privacy, safety and documents",
       text: "We have gathered practical information for schools that want to assess 321school before using it more broadly.",
       links: [
+        { href: "/school/trust", label: "Trust Center" },
         { href: "/school/privacy", label: "School privacy" },
         { href: "/school/subprocessors", label: "Sub-processors" },
         { href: "/school/data-rights", label: "Access and deletion" },
@@ -578,6 +580,7 @@ function schoolInfoCopy(locale: string) {
     title: "Personvern, trygghet og dokumenter",
     text: "Vi har samlet praktisk informasjon for skoler som ønsker å vurdere 321school før bredere bruk.",
     links: [
+      { href: "/school/trust", label: "Trust Center" },
       { href: "/school/privacy", label: "Personvern for skoler" },
       { href: "/school/subprocessors", label: "Underleverandører" },
       { href: "/school/data-rights", label: "Sletting og innsyn" },

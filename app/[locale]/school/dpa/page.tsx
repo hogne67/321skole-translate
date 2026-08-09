@@ -27,7 +27,7 @@ function copyFor(locale: string): Copy {
       eyebrow: "Template / draft",
       title: "Data processing agreement for schools",
       lead: "A first template showing the topics a school and 321school should clarify before broader school use.",
-      updated: "Draft version. Last updated: 5 August 2026.",
+      updated: "Draft version. Last updated: 9 August 2026.",
       warning: "This is not a final signed legal agreement. Schools should review it with their own administration, ICT/privacy lead or legal adviser before use.",
       sections: [
         {
@@ -49,12 +49,30 @@ function copyFor(locale: string): Copy {
           ],
         },
         {
+          title: "Feide and authentication",
+          body: "When Feide login is used, Feide and the connected identity provider authenticate the user. 321school receives the identity information needed to create and maintain access to the service.",
+          points: [
+            "Feide approval by a school owner allows users from that school owner to sign in; it does not by itself create a paid school agreement.",
+            "321school processes login identity data only to provide account access, security, support and documented school administration.",
+            "321school does not request national identity numbers for ordinary use.",
+          ],
+        },
+        {
           title: "Categories of data",
           body: "The categories depend on how the school uses 321school.",
           points: [
             "Anonymous Spaces: technical user ID, display name, room membership and submitted work.",
-            "Accounts: name, email, role, profile data, saved work, feedback and activity needed for the service.",
+            "Accounts: name, email where available, role, profile data, login provider, saved work, feedback and activity needed for the service.",
             "Teacher/school: rooms, assignments, generated content, administration and support information.",
+          ],
+        },
+        {
+          title: "No commercial resale or advertising",
+          body: "321school does not process school data for sale of personal data, third-party advertising or targeted advertising.",
+          points: [
+            "Student work and profile data are not sold.",
+            "School data is not used to build advertising profiles.",
+            "Personal data is processed for the documented service purposes and according to the agreement with the school/school owner.",
           ],
         },
         {
@@ -91,6 +109,7 @@ function copyFor(locale: string): Copy {
             "Access control for user roles.",
             "Secure authentication through the identity provider in use.",
             "Logging and monitoring appropriate for service operation.",
+            "Feide login where enabled by the school owner.",
           ],
         },
       ],
@@ -109,7 +128,7 @@ function copyFor(locale: string): Copy {
       eyebrow: "Modelo / rascunho",
       title: "Acordo de tratamento de dados para escolas",
       lead: "Um primeiro modelo com os pontos que uma escola e a 321school devem esclarecer antes de uso escolar mais amplo.",
-      updated: "Versão rascunho. Atualizado em: 5 de agosto de 2026.",
+      updated: "Versão rascunho. Atualizado em: 9 de agosto de 2026.",
       warning: "Este não é um contrato jurídico final assinado. Escolas devem revisar com sua administração, responsável de TI/privacidade ou assessor jurídico antes do uso.",
       sections: [
         {
@@ -131,12 +150,30 @@ function copyFor(locale: string): Copy {
           ],
         },
         {
+          title: "Feide e autenticação",
+          body: "Quando o login com Feide é usado, Feide e o provedor de identidade conectado autenticam o usuário. A 321school recebe as informações de identidade necessárias para criar e manter o acesso ao serviço.",
+          points: [
+            "A aprovação do Feide pela mantenedora permite que seus usuários entrem; isso não cria por si só um contrato escolar pago.",
+            "A 321school trata dados de identidade de login apenas para acesso à conta, segurança, suporte e administração escolar documentada.",
+            "A 321school não solicita número de identificação nacional para uso comum.",
+          ],
+        },
+        {
           title: "Categorias de dados",
           body: "As categorias dependem de como a escola usa a 321school.",
           points: [
             "Spaces anônimos: ID técnico de usuário, nome exibido, participação na sala e trabalho enviado.",
-            "Contas: nome, e-mail, função, perfil, trabalho salvo, feedback e atividade necessária para o serviço.",
+            "Contas: nome, e-mail quando disponível, função, perfil, provedor de login, trabalho salvo, feedback e atividade necessária para o serviço.",
             "Professor/escola: salas, tarefas, conteúdo gerado, administração e informações de suporte.",
+          ],
+        },
+        {
+          title: "Sem revenda comercial ou publicidade",
+          body: "A 321school não trata dados escolares para venda de dados pessoais, publicidade de terceiros ou publicidade direcionada.",
+          points: [
+            "Trabalho de alunos e dados de perfil não são vendidos.",
+            "Dados escolares não são usados para criar perfis publicitários.",
+            "Dados pessoais são tratados para as finalidades documentadas do serviço e conforme o acordo com a escola/mantenedora.",
           ],
         },
         {
@@ -173,6 +210,7 @@ function copyFor(locale: string): Copy {
             "Controle de acesso por papéis de usuário.",
             "Autenticação segura pelo provedor de identidade em uso.",
             "Logs e monitoramento adequados para operação do serviço.",
+            "Login com Feide quando ativado pela mantenedora.",
           ],
         },
       ],
@@ -190,7 +228,7 @@ function copyFor(locale: string): Copy {
     eyebrow: "Mal / foreløpig versjon",
     title: "Databehandleravtale for skoler",
     lead: "En første mal som viser punktene en skole og 321school bør avklare før bredere skolebruk.",
-    updated: "Utkast. Sist oppdatert: 5. august 2026.",
+    updated: "Utkast. Sist oppdatert: 9. august 2026.",
     warning: "Dette er ikke en ferdig signert juridisk avtale. Skoler bør gjennomgå den med administrasjon, IKT/personvernansvarlig eller juridisk rådgiver før bruk.",
     sections: [
       {
@@ -212,12 +250,30 @@ function copyFor(locale: string): Copy {
         ],
       },
       {
+        title: "Feide og autentisering",
+        body: "Når Feide-innlogging brukes, autentiserer Feide og tilknyttet identitetsleverandør brukeren. 321school mottar identitetsinformasjonen som trengs for å opprette og opprettholde tilgang til tjenesten.",
+        points: [
+          "Feide-godkjenning fra skoleeier lar deres brukere logge inn; det oppretter ikke i seg selv en betalt skoleavtale.",
+          "321school behandler innloggingsidentitet kun for kontotilgang, sikkerhet, support og dokumentert skoleadministrasjon.",
+          "321school ber ikke om fødselsnummer for ordinær bruk.",
+        ],
+      },
+      {
         title: "Kategorier av data",
         body: "Kategoriene avhenger av hvordan skolen bruker 321school.",
         points: [
           "Anonyme Spaces: teknisk bruker-ID, visningsnavn, romtilknytning og innsendt arbeid.",
-          "Kontoer: navn, e-post, rolle, profil, lagret arbeid, tilbakemelding og aktivitet som trengs for tjenesten.",
+          "Kontoer: navn, e-post der det er tilgjengelig, rolle, profil, innloggingsleverandør, lagret arbeid, tilbakemelding og aktivitet som trengs for tjenesten.",
           "Lærer/skole: rom, oppgaver, generert innhold, administrasjon og supportinformasjon.",
+        ],
+      },
+      {
+        title: "Ingen kommersiell videresalg eller reklame",
+        body: "321school behandler ikke skoledata for salg av personopplysninger, tredjepartsannonsering eller målrettet reklame.",
+        points: [
+          "Elevarbeid og profildata selges ikke.",
+          "Skoledata brukes ikke til å bygge reklameprofiler.",
+          "Personopplysninger behandles for dokumenterte tjenesteformål og i tråd med avtale med skole/skoleeier.",
         ],
       },
       {
@@ -254,6 +310,7 @@ function copyFor(locale: string): Copy {
           "Tilgangsstyring for brukerroller.",
           "Sikker autentisering via identitetsleverandøren som brukes.",
           "Logging og overvåking som er nødvendig for drift av tjenesten.",
+          "Feide-innlogging der dette er aktivert av skoleeier.",
         ],
       },
     ],

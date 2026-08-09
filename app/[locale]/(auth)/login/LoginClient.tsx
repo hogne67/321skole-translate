@@ -375,7 +375,7 @@ export default function LoginClient() {
     }
   }
 
-  async function handleFeide() {
+  async function handleFeide(loginHint = "feide|all") {
     resetMessages();
     if (!requireSignupConfirmation()) return;
     setLoadingFeide(true);
@@ -384,7 +384,7 @@ export default function LoginClient() {
       await applyPersistence();
 
       if (isAnon) {
-        const user = await linkAnonymousWithFeide();
+        const user = await linkAnonymousWithFeide(loginHint);
         await saveLegalConfirmation(user, "feide_anonymous_upgrade");
         await recordExistingLogin(user);
         trackSignUp("anonymous_upgrade");
@@ -394,7 +394,7 @@ export default function LoginClient() {
           type: "anonymous_upgrade",
         });
       } else {
-        const cred = await signInWithFeide();
+        const cred = await signInWithFeide(loginHint);
         if (mode === "signin") {
           await recordExistingLogin(cred.user);
         }
@@ -1024,7 +1024,7 @@ export default function LoginClient() {
 
               <button
                 type="button"
-                onClick={handleFeide}
+                onClick={() => handleFeide()}
                 disabled={busy}
                 style={feideButtonStyle}
               >

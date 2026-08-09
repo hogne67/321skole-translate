@@ -123,10 +123,10 @@ export async function linkAnonymousWithGoogle(): Promise<User> {
 /**
  * Oppgrader anonym bruker til Feide-konto via Firebase OIDC.
  */
-export async function linkAnonymousWithFeide(): Promise<User> {
+export async function linkAnonymousWithFeide(loginHint = "feide|all"): Promise<User> {
   const current = auth.currentUser;
   const provider = new OAuthProvider("oidc.feide");
-  provider.setCustomParameters({ login_hint: "feide|all" });
+  provider.setCustomParameters({ login_hint: loginHint });
 
   const { signInWithPopup, signInWithCredential } = await import("firebase/auth");
 

@@ -21,9 +21,9 @@ export async function signInWithGoogle(): Promise<UserCredential> {
   return await signInWithPopup(auth, provider);
 }
 
-export async function signInWithFeide(): Promise<UserCredential> {
+export async function signInWithFeide(loginHint = "feide|all"): Promise<UserCredential> {
   const provider = new OAuthProvider("oidc.feide");
-  provider.setCustomParameters({ login_hint: "feide|all" });
+  provider.setCustomParameters({ login_hint: loginHint });
   return await signInWithPopup(auth, provider);
 }
 

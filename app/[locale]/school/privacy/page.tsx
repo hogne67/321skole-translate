@@ -32,9 +32,10 @@ function copyFor(locale: string): Copy {
       eyebrow: "Schools, students and privacy",
       title: "Privacy for schools",
       lead: "How 321school works with safe school use, anonymous student access, accounts and AI features.",
-      updated: "First version for school assessment. Last updated: 5 August 2026.",
+      updated: "Working version for school assessment. Last updated: 9 August 2026.",
       cards: [
         { title: "Anonymous access first", text: "Students can join Spaces with a code or QR code without email, account or national identity number." },
+        { title: "Feide-supported login", text: "Schools and school owners can allow users to sign in through Feide when they approve the service." },
         { title: "School-controlled use", text: "In school use, the school should know which digital tools are used with students." },
         { title: "No direct AI in Spaces", text: "Students in Spaces normally answer teacher-controlled activities, not AI directly." },
       ],
@@ -46,6 +47,16 @@ function copyFor(locale: string): Copy {
             "The teacher controls rooms, activities and shared content.",
             "Students join with code/QR or with an account when approved.",
             "Parents/guardians can receive information from the school or teacher about how the room is used.",
+          ],
+        },
+        {
+          title: "Feide and school-controlled access",
+          body: "321school supports Feide login through OpenID Connect. Feide makes login easier and more controlled for schools, but it does not replace the school's privacy assessment of the service.",
+          points: [
+            "A school owner can approve or deny whether its users may sign in to 321school with Feide.",
+            "Feide approval only opens login; it does not create a paid school agreement or give extended school administration features by itself.",
+            "When a user signs in with Feide, 321school receives standard login identity data through Firebase, such as technical user ID, name and email if available.",
+            "321school does not request national identity numbers for ordinary use.",
           ],
         },
         {
@@ -91,6 +102,15 @@ function copyFor(locale: string): Copy {
           ],
         },
         {
+          title: "No sale or advertising use",
+          body: "321school is not built around advertising, sale of user data or profiling of children for commercial purposes.",
+          points: [
+            "321school does not sell personal data.",
+            "321school does not use student work or profile data for third-party advertising or targeted advertising.",
+            "Data is processed to provide the learning service, support, security, billing where relevant and documented school administration.",
+          ],
+        },
+        {
           title: "Deletion and access",
           body: "Students, parents and schools may need access, correction or deletion. Requests should normally go through the teacher or school when the use happens in school.",
           points: [
@@ -115,9 +135,10 @@ function copyFor(locale: string): Copy {
       eyebrow: "Escolas, alunos e privacidade",
       title: "Privacidade para escolas",
       lead: "Como a 321school trabalha com uso seguro na escola, acesso anônimo, contas e recursos de IA.",
-      updated: "Primeira versão para avaliação escolar. Atualizado em: 5 de agosto de 2026.",
+      updated: "Versão de trabalho para avaliação escolar. Atualizado em: 9 de agosto de 2026.",
       cards: [
         { title: "Acesso anônimo primeiro", text: "Alunos podem entrar em Spaces com código ou QR sem e-mail, conta ou número de identificação nacional." },
+        { title: "Login com Feide", text: "Escolas e mantenedoras podem permitir login por Feide quando aprovam o serviço." },
         { title: "Uso controlado pela escola", text: "No uso escolar, a escola deve saber quais ferramentas digitais são usadas com alunos." },
         { title: "Sem IA direta em Spaces", text: "Em Spaces, alunos normalmente respondem atividades controladas pelo professor, não IA diretamente." },
       ],
@@ -129,6 +150,16 @@ function copyFor(locale: string): Copy {
             "O professor controla salas, atividades e conteúdo compartilhado.",
             "Alunos entram com código/QR ou com conta quando isso foi aprovado.",
             "Pais/responsáveis podem receber informações da escola ou do professor sobre o uso da sala.",
+          ],
+        },
+        {
+          title: "Feide e acesso controlado pela escola",
+          body: "A 321school oferece login com Feide via OpenID Connect. Feide torna o login mais simples e mais controlado para escolas, mas não substitui a avaliação de privacidade da própria escola sobre o serviço.",
+          points: [
+            "A mantenedora pode aprovar ou negar se seus usuários podem entrar na 321school com Feide.",
+            "A aprovação no Feide apenas libera o login; ela não cria contrato escolar pago nem recursos ampliados de administração escolar por si só.",
+            "Quando o usuário entra com Feide, a 321school recebe dados padrão de identidade via Firebase, como ID técnico, nome e e-mail quando disponível.",
+            "A 321school não solicita número de identificação nacional para uso comum.",
           ],
         },
         {
@@ -174,6 +205,15 @@ function copyFor(locale: string): Copy {
           ],
         },
         {
+          title: "Sem venda ou uso publicitário",
+          body: "A 321school não é construída sobre publicidade, venda de dados de usuários ou perfilamento de crianças para fins comerciais.",
+          points: [
+            "A 321school não vende dados pessoais.",
+            "A 321school não usa trabalho de alunos ou dados de perfil para publicidade de terceiros ou publicidade direcionada.",
+            "Os dados são tratados para fornecer o serviço de aprendizagem, suporte, segurança, cobrança quando relevante e administração escolar documentada.",
+          ],
+        },
+        {
           title: "Exclusão e acesso",
           body: "Alunos, responsáveis e escolas podem precisar de acesso, correção ou exclusão. Pedidos normalmente devem passar pelo professor ou pela escola quando o uso acontece no contexto escolar.",
           points: [
@@ -197,9 +237,10 @@ function copyFor(locale: string): Copy {
     eyebrow: "Skoler, elever og personvern",
     title: "Personvern for skoler",
     lead: "Slik jobber 321school med trygg skolebruk, anonym elevtilgang, kontoer og KI-funksjoner.",
-    updated: "Første versjon for skolevurdering. Sist oppdatert: 5. august 2026.",
+    updated: "Arbeidsversjon for skolevurdering. Sist oppdatert: 9. august 2026.",
     cards: [
       { title: "Anonym tilgang først", text: "Elever kan bli med i Spaces med kode eller QR uten e-post, konto eller fødselsnummer." },
+      { title: "Feide-støttet innlogging", text: "Skoler og skoleeiere kan åpne for innlogging med Feide når de godkjenner tjenesten." },
       { title: "Skolen styrer bruken", text: "Ved skolebruk bør skolen vite hvilke digitale verktøy som brukes med elever." },
       { title: "Ikke direkte KI i Spaces", text: "I Spaces svarer elever normalt på lærerstyrte aktiviteter, ikke direkte til KI." },
     ],
@@ -211,6 +252,16 @@ function copyFor(locale: string): Copy {
           "Lærer styrer rom, aktiviteter og innhold som deles.",
           "Elever blir med med kode/QR eller med konto når det er avklart.",
           "Foreldre/foresatte kan få informasjon fra skolen eller læreren om hvordan rommet brukes.",
+        ],
+      },
+      {
+        title: "Feide og skolestyrt tilgang",
+        body: "321school støtter Feide-innlogging via OpenID Connect. Feide gjør innlogging enklere og mer kontrollert for skoler, men erstatter ikke skolens vurdering av selve tjenesten.",
+        points: [
+          "Skoleeier kan godkjenne eller nekte om deres brukere får logge inn i 321school med Feide.",
+          "Feide-godkjenning åpner bare for innlogging; den oppretter ikke en betalt skoleavtale eller utvidet skoleadministrasjon i seg selv.",
+          "Når en bruker logger inn med Feide, mottar 321school standard innloggingsdata via Firebase, som teknisk bruker-ID, navn og e-post hvis tilgjengelig.",
+          "321school ber ikke om fødselsnummer for ordinær bruk.",
         ],
       },
       {
@@ -253,6 +304,15 @@ function copyFor(locale: string): Copy {
           "Anonyme Spaces: romtilknytning, valgt visningsnavn, teknisk bruker-ID og arbeid som leveres i rommet.",
           "Elevkonto: profildata, lagret arbeid, tilbakemelding og aktivitet som trengs for å levere tjenesten.",
           "Lærerkonto: rom, oppgaver, generert innhold og administrasjonsdata.",
+        ],
+      },
+      {
+        title: "Ingen salg eller reklamebruk",
+        body: "321school er ikke bygget rundt reklame, salg av brukerdata eller profilering av barn for kommersielle formål.",
+        points: [
+          "321school selger ikke personopplysninger.",
+          "321school bruker ikke elevarbeid eller profildata til tredjepartsannonsering eller målrettet reklame.",
+          "Data behandles for å levere læringstjenesten, support, sikkerhet, betaling der det er relevant og dokumentert skoleadministrasjon.",
         ],
       },
       {
@@ -304,7 +364,7 @@ export default async function SchoolPrivacyPage() {
           </div>
           <div className="grid gap-3">
             {text.cards.map((card, index) => (
-              <TrustCard key={card.title} icon={index === 0 ? <UserRound /> : index === 1 ? <School /> : <Sparkles />} title={card.title} text={card.text} />
+              <TrustCard key={card.title} icon={index === 0 ? <UserRound /> : index === 1 ? <LockKeyhole /> : index === 2 ? <School /> : <Sparkles />} title={card.title} text={card.text} />
             ))}
           </div>
         </div>
@@ -314,7 +374,7 @@ export default async function SchoolPrivacyPage() {
         {text.sections.map((section, index) => (
           <InfoSection
             key={section.title}
-            icon={index === 0 ? <School /> : index === 1 ? <ShieldCheck /> : index === 2 ? <LockKeyhole /> : index === 3 ? <Sparkles /> : index === 4 ? <Database /> : <Eye />}
+            icon={index === 0 ? <School /> : index === 1 ? <LockKeyhole /> : index === 2 ? <ShieldCheck /> : index === 3 ? <LockKeyhole /> : index === 4 ? <Sparkles /> : index === 5 ? <Database /> : index === 6 ? <ShieldCheck /> : <Eye />}
             title={section.title}
             body={section.body}
             points={section.points}
