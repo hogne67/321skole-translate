@@ -116,7 +116,7 @@ function copyFor(locale: string): Copy {
           points: [
             "Teachers can remove or archive students from Spaces.",
             "School-related deletion requests should be handled with the school as the responsible party.",
-            "More formal routines for data processing agreements, sub-processors and school administration will be expanded as school use grows.",
+            "Data processing agreement framework, sub-processor overview and deletion/access routines are documented for school assessment and should be confirmed before broader school use.",
           ],
         },
       ],
@@ -219,7 +219,7 @@ function copyFor(locale: string): Copy {
           points: [
             "Professores podem remover ou arquivar alunos de Spaces.",
             "Pedidos escolares de exclusão devem ser tratados com a escola como responsável.",
-            "Rotinas formais para acordo de tratamento de dados, subprocessadores e administração escolar serão ampliadas à medida que o uso escolar crescer.",
+            "Quadro de acordo de tratamento de dados, visão de subprocessadores e rotinas de exclusão/acesso estão documentados para avaliação escolar e devem ser confirmados antes de uso escolar mais amplo.",
           ],
         },
       ],
@@ -321,7 +321,7 @@ function copyFor(locale: string): Copy {
         points: [
           "Lærere kan fjerne eller arkivere elever fra Spaces.",
           "Skolerelaterte sletteønsker bør håndteres med skolen som ansvarlig part.",
-          "Mer formelle rutiner for databehandleravtale, underleverandører og skoleadministrasjon utvides etter hvert som skolebruk vokser.",
+          "Rammeverk for databehandleravtale, underleverandøroversikt og rutiner for sletting/innsyn er dokumentert for skolevurdering og bør bekreftes før bredere skolebruk.",
         ],
       },
     ],

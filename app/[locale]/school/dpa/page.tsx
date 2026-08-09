@@ -28,7 +28,7 @@ function copyFor(locale: string): Copy {
       title: "Data processing agreement for schools",
       lead: "A first template showing the topics a school and 321school should clarify before broader school use.",
       updated: "Draft version. Last updated: 9 August 2026.",
-      warning: "This is not a final signed legal agreement. Schools should review it with their own administration, ICT/privacy lead or legal adviser before use.",
+      warning: "This is a working DPA framework prepared for school assessment and signing after project-specific details such as regions, contacts and sub-processors are confirmed. Schools should review it with their own administration, ICT/privacy lead or legal adviser before use.",
       sections: [
         {
           title: "Parties and roles",
@@ -67,6 +67,16 @@ function copyFor(locale: string): Copy {
           ],
         },
         {
+          title: "Storage location",
+          body: "The main Firestore database for the active 321school Firebase project is located in europe-west1, Belgium. Other provider-specific processing locations should be confirmed before signing.",
+          points: [
+            "Core Firestore data is stored at rest in europe-west1 (Belgium).",
+            "Firebase Authentication processes authentication data in the United States according to Firebase documentation; transfers should rely on Google's Firebase data processing terms and SCCs where applicable.",
+            "The active school Storage bucket 321skole-storage is located in the EU multi-region.",
+            "AI, hosting, email and payment providers may have separate processing locations described in the sub-processor overview.",
+          ],
+        },
+        {
           title: "No commercial resale or advertising",
           body: "321school does not process school data for sale of personal data, third-party advertising or targeted advertising.",
           points: [
@@ -88,7 +98,7 @@ function copyFor(locale: string): Copy {
           title: "Sub-processors",
           body: "321school may use sub-processors to provide hosting, authentication, storage, AI, payment and email services.",
           points: [
-            "A current sub-processor overview should be available to the school.",
+            "A current sub-processor overview is available and should be confirmed before signing.",
             "321school should notify schools of material changes where required by agreement.",
             "Sub-processors should only be used for documented service purposes.",
           ],
@@ -99,7 +109,7 @@ function copyFor(locale: string): Copy {
           points: [
             "Teachers can remove or archive students from Spaces.",
             "Schools can request deletion of school-related data.",
-            "Backups and technical logs may follow separate retention cycles.",
+            "Backups and technical logs may follow separate retention cycles that should be specified before signing.",
           ],
         },
         {
@@ -129,7 +139,7 @@ function copyFor(locale: string): Copy {
       title: "Acordo de tratamento de dados para escolas",
       lead: "Um primeiro modelo com os pontos que uma escola e a 321school devem esclarecer antes de uso escolar mais amplo.",
       updated: "Versão rascunho. Atualizado em: 9 de agosto de 2026.",
-      warning: "Este não é um contrato jurídico final assinado. Escolas devem revisar com sua administração, responsável de TI/privacidade ou assessor jurídico antes do uso.",
+      warning: "Este é um quadro de acordo em versão de trabalho, preparado para avaliação escolar e assinatura após confirmação de detalhes específicos como regiões, contatos e subprocessadores. Escolas devem revisar com sua administração, responsável de TI/privacidade ou assessor jurídico antes do uso.",
       sections: [
         {
           title: "Partes e papéis",
@@ -168,6 +178,16 @@ function copyFor(locale: string): Copy {
           ],
         },
         {
+          title: "Local de armazenamento",
+          body: "O banco Firestore principal do projeto Firebase ativo da 321school está localizado em europe-west1, Bélgica. Outros locais de tratamento por fornecedor devem ser confirmados antes da assinatura.",
+          points: [
+            "Dados principais no Firestore são armazenados em repouso em europe-west1 (Bélgica).",
+            "Firebase Authentication trata dados de autenticação nos Estados Unidos segundo a documentação Firebase; transferências devem se apoiar nos termos de tratamento de dados Firebase do Google e SCCs quando aplicável.",
+            "O bucket escolar ativo 321skole-storage está localizado na multi-região UE.",
+            "Fornecedores de IA, hospedagem, e-mail e pagamento podem ter locais de tratamento próprios descritos na visão de subprocessadores.",
+          ],
+        },
+        {
           title: "Sem revenda comercial ou publicidade",
           body: "A 321school não trata dados escolares para venda de dados pessoais, publicidade de terceiros ou publicidade direcionada.",
           points: [
@@ -189,7 +209,7 @@ function copyFor(locale: string): Copy {
           title: "Subprocessadores",
           body: "A 321school pode usar subprocessadores para hospedagem, autenticação, armazenamento, IA, pagamento e e-mail.",
           points: [
-            "Uma visão atual dos subprocessadores deve estar disponível para a escola.",
+            "Uma visão atual dos subprocessadores está disponível e deve ser confirmada antes da assinatura.",
             "A 321school deve notificar escolas sobre mudanças materiais quando exigido pelo acordo.",
             "Subprocessadores devem ser usados apenas para finalidades documentadas do serviço.",
           ],
@@ -200,7 +220,7 @@ function copyFor(locale: string): Copy {
           points: [
             "Professores podem remover ou arquivar alunos de Spaces.",
             "Escolas podem solicitar exclusão de dados relacionados à escola.",
-            "Backups e logs técnicos podem seguir ciclos próprios de retenção.",
+            "Backups e logs técnicos podem seguir ciclos próprios de retenção que devem ser especificados antes da assinatura.",
           ],
         },
         {
@@ -229,7 +249,7 @@ function copyFor(locale: string): Copy {
     title: "Databehandleravtale for skoler",
     lead: "En første mal som viser punktene en skole og 321school bør avklare før bredere skolebruk.",
     updated: "Utkast. Sist oppdatert: 9. august 2026.",
-    warning: "Dette er ikke en ferdig signert juridisk avtale. Skoler bør gjennomgå den med administrasjon, IKT/personvernansvarlig eller juridisk rådgiver før bruk.",
+    warning: "Dette er et arbeidsklart avtalerammeverk for skolevurdering og signering etter at prosjektspesifikke detaljer som regioner, kontaktpunkter og underleverandører er bekreftet. Skoler bør gjennomgå den med administrasjon, IKT/personvernansvarlig eller juridisk rådgiver før bruk.",
     sections: [
       {
         title: "Parter og roller",
@@ -268,6 +288,16 @@ function copyFor(locale: string): Copy {
         ],
       },
       {
+        title: "Lagringssted",
+        body: "Hoveddatabasen i Firestore for aktivt 321skole Firebase-prosjekt ligger i europe-west1, Belgia. Andre leverandørspesifikke behandlingssteder bør bekreftes før signering.",
+        points: [
+          "Kjernedata i Firestore lagres kryptert i ro i europe-west1 (Belgia).",
+          "Firebase Authentication behandler autentiseringsdata i USA ifølge Firebase-dokumentasjonen; overføringer bør bygge på Googles Firebase databehandlingsvilkår og SCC-er der det er relevant.",
+          "Aktiv skolebucket for Storage, 321skole-storage, ligger i EU multi-region.",
+          "KI-, hosting-, e-post- og betalingsleverandører kan ha egne behandlingssteder som beskrives i underleverandøroversikten.",
+        ],
+      },
+      {
         title: "Ingen kommersiell videresalg eller reklame",
         body: "321school behandler ikke skoledata for salg av personopplysninger, tredjepartsannonsering eller målrettet reklame.",
         points: [
@@ -289,7 +319,7 @@ function copyFor(locale: string): Copy {
         title: "Underleverandører",
         body: "321school kan bruke underleverandører for hosting, innlogging, lagring, KI, betaling og e-post.",
         points: [
-          "Oppdatert underleverandøroversikt bør være tilgjengelig for skolen.",
+          "Oppdatert underleverandøroversikt er tilgjengelig og bør bekreftes før signering.",
           "321school bør varsle skoler om vesentlige endringer der avtalen krever det.",
           "Underleverandører skal bare brukes til dokumenterte tjenesteformål.",
         ],
@@ -300,7 +330,7 @@ function copyFor(locale: string): Copy {
         points: [
           "Lærere kan fjerne eller arkivere elever fra Spaces.",
           "Skoler kan be om sletting av skolerelaterte data.",
-          "Sikkerhetskopier og tekniske logger kan ha egne lagringssykluser.",
+          "Sikkerhetskopier og tekniske logger kan ha egne lagringssykluser som bør spesifiseres før signering.",
         ],
       },
       {

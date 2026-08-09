@@ -32,6 +32,12 @@ type Copy = {
   audienceTitle: string;
   audience: Array<{ title: string; text: string }>;
   sections: Section[];
+  sovereigntyTitle: string;
+  sovereigntyText: string;
+  sovereigntyPoints: string[];
+  cookiesTitle: string;
+  cookiesText: string;
+  cookiesPoints: string[];
   feideTitle: string;
   feideText: string;
   feidePoints: string[];
@@ -67,6 +73,23 @@ function copyFor(locale: string): Copy {
         { title: "For parents", text: "See how anonymous participation, accounts and student work are handled." },
       ],
       sections: trustSections("en"),
+      sovereigntyTitle: "Data location and data sovereignty",
+      sovereigntyText: "Schools often need to know where personal data and student work are stored. The main Firestore database for the active 321school Firebase project is located in europe-west1, Belgium.",
+      sovereigntyPoints: [
+        "Core app data in Firestore is stored at rest in europe-west1, Belgium.",
+        "Firebase Authentication processes authentication data in the United States according to Firebase documentation. This is described in the sub-processor overview.",
+        "The active school Storage bucket 321skole-storage is located in the EU multi-region.",
+        "Hosting and server functions are delivered through Vercel.",
+        "AI requests are processed by OpenAI only when AI features are used.",
+        "The final school agreement should state all confirmed regions and any processing outside the EU/EEA for the current production setup.",
+      ],
+      cookiesTitle: "Cookies and browser storage",
+      cookiesText: "321school uses necessary browser storage so login, anonymous participation and classroom activities can function. This is not used to sell data or run third-party advertising.",
+      cookiesPoints: [
+        "Firebase Auth may use cookies, IndexedDB and local browser storage to keep users signed in.",
+        "321school uses localStorage/sessionStorage for functional state such as app mode, anonymous classroom participation, quiz/session aliases and unsaved drafts.",
+        "Google Analytics may be used for aggregate product analytics where configured; school-facing pages should describe any analytics in the general privacy policy.",
+      ],
       feideTitle: "Feide login",
       feideText: "Feide lowers the threshold for safe school login because access is controlled by the school owner. Feide approval opens login; paid school agreements and extended school administration are handled separately in 321school.",
       feidePoints: [
@@ -101,6 +124,23 @@ function copyFor(locale: string): Copy {
         { title: "Para responsáveis", text: "Veja como participação anônima, contas e trabalhos de alunos são tratados." },
       ],
       sections: trustSections("pt"),
+      sovereigntyTitle: "Localização de dados e soberania",
+      sovereigntyText: "Escolas normalmente precisam saber onde dados pessoais e trabalhos de alunos são armazenados. O banco Firestore principal do projeto Firebase ativo da 321school está localizado em europe-west1, Bélgica.",
+      sovereigntyPoints: [
+        "Dados principais no Firestore são armazenados em repouso em europe-west1, Bélgica.",
+        "Firebase Authentication trata dados de autenticação nos Estados Unidos segundo a documentação Firebase. Isso é descrito na visão de subprocessadores.",
+        "O bucket escolar ativo 321skole-storage está localizado na multi-região UE.",
+        "Hospedagem e funções de servidor são entregues pela Vercel.",
+        "Pedidos de IA são tratados pela OpenAI apenas quando recursos de IA são usados.",
+        "O acordo final com a escola deve indicar todas as regiões confirmadas e eventual tratamento fora da UE/EEE para a configuração de produção atual.",
+      ],
+      cookiesTitle: "Cookies e armazenamento no navegador",
+      cookiesText: "A 321school usa armazenamento necessário no navegador para que login, participação anônima e atividades de sala funcionem. Isso não é usado para vender dados nem para publicidade de terceiros.",
+      cookiesPoints: [
+        "Firebase Auth pode usar cookies, IndexedDB e armazenamento local para manter usuários conectados.",
+        "A 321school usa localStorage/sessionStorage para estado funcional, como modo do app, participação anônima, apelidos de quiz/sessão e rascunhos não salvos.",
+        "Google Analytics pode ser usado para análise agregada do produto quando configurado; páginas para escolas devem descrever analítica na política geral de privacidade.",
+      ],
       feideTitle: "Login com Feide",
       feideText: "Feide reduz a barreira para login escolar seguro porque o acesso é controlado pela mantenedora. A aprovação no Feide libera o login; contratos pagos e administração escolar ampliada são tratados separadamente na 321school.",
       feidePoints: [
@@ -134,6 +174,23 @@ function copyFor(locale: string): Copy {
       { title: "For foresatte", text: "Se hvordan anonym deltakelse, kontoer og elevarbeid håndteres." },
     ],
     sections: trustSections("nb"),
+    sovereigntyTitle: "Lagringssted og datasuverenitet",
+    sovereigntyText: "Skoler vil ofte vite hvor personopplysninger og elevarbeid lagres. Hoveddatabasen i Firestore for aktivt 321skole Firebase-prosjekt ligger i europe-west1, Belgia.",
+    sovereigntyPoints: [
+      "Kjernedata i Firestore lagres kryptert i ro i europe-west1, Belgia.",
+      "Firebase Authentication behandler autentiseringsdata i USA ifølge Firebase-dokumentasjonen. Dette beskrives i underleverandøroversikten.",
+      "Aktiv skolebucket for Storage, 321skole-storage, ligger i EU multi-region.",
+      "Hosting og serverfunksjoner leveres gjennom Vercel.",
+      "KI-forespørsler behandles av OpenAI bare når KI-funksjoner brukes.",
+      "Endelig skoleavtale bør angi alle bekreftede regioner og eventuell behandling utenfor EU/EØS for gjeldende produksjonsoppsett.",
+    ],
+    cookiesTitle: "Informasjonskapsler og nettleserlagring",
+    cookiesText: "321skole bruker nødvendig nettleserlagring for at innlogging, anonym deltakelse og klasseromsaktiviteter skal fungere. Dette brukes ikke til salg av data eller tredjepartsannonsering.",
+    cookiesPoints: [
+      "Firebase Auth kan bruke informasjonskapsler, IndexedDB og lokal nettleserlagring for å holde brukere innlogget.",
+      "321skole bruker localStorage/sessionStorage til funksjonell tilstand, for eksempel appmodus, anonym klasseromsdeltakelse, quiz-/sesjonsalias og ulagrede utkast.",
+      "Google Analytics kan brukes til aggregert produktanalyse der dette er konfigurert; skolevendte sider bør beskrive analysebruk i generell personvernerklæring.",
+    ],
     feideTitle: "Feide-innlogging",
     feideText: "Feide senker terskelen for trygg skoleinnlogging fordi tilgang styres av skoleeier. Feide-godkjenning åpner for innlogging; betalt skoleavtale og utvidet skoleadministrasjon håndteres separat i 321skole.",
     feidePoints: [
@@ -355,6 +412,21 @@ export default async function SchoolTrustPage() {
         ))}
       </section>
 
+      <section className="mx-auto grid max-w-6xl gap-4 px-6 py-8 md:grid-cols-2">
+        <DetailPanel
+          icon={<Database className="h-5 w-5" />}
+          title={text.sovereigntyTitle}
+          text={text.sovereigntyText}
+          points={text.sovereigntyPoints}
+        />
+        <DetailPanel
+          icon={<LockKeyhole className="h-5 w-5" />}
+          title={text.cookiesTitle}
+          text={text.cookiesText}
+          points={text.cookiesPoints}
+        />
+      </section>
+
       <section className="mx-auto max-w-6xl px-6 py-8">
         <div className="rounded-2xl bg-slate-950 p-6 text-white md:p-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
@@ -414,6 +486,27 @@ function TrustSection(props: { locale: string; section: Section }) {
           </Link>
         ))}
       </div>
+    </article>
+  );
+}
+
+function DetailPanel(props: { icon: ReactNode; title: string; text: string; points: string[] }) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-sky-700">
+          {props.icon}
+        </div>
+        <div>
+          <h2 className="text-xl font-black">{props.title}</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{props.text}</p>
+        </div>
+      </div>
+      <ul className="mt-4 grid gap-2">
+        {props.points.map((point) => (
+          <li key={point} className="text-sm leading-6 text-slate-700">• {point}</li>
+        ))}
+      </ul>
     </article>
   );
 }
