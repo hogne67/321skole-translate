@@ -8,6 +8,7 @@ import TopNav from "@/components/TopNav";
 import LibraryBar from "@/components/LibraryBar";
 import LibraryContentTabs from "@/components/LibraryContentTabs";
 import SectionShell from "@/components/SectionShell";
+import SupportHelpButton from "@/components/SupportHelpButton";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { navItemsForRole } from "@/lib/navItems";
 import { useTranslations } from "next-intl";
@@ -231,6 +232,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </SectionShell>
       )}
+
+      {!hideAppChrome ? <SupportHelpButton locale={locale} /> : null}
 
       <style jsx>{`
         .appShellRoot {

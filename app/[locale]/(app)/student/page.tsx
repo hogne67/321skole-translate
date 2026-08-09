@@ -6,6 +6,7 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { useEffect, useState } from "react";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
+import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { db } from "@/lib/firebase";
@@ -661,6 +662,8 @@ export default function StudentDashboard() {
       ) : null}
 
       <section style={shortcutSectionStyle}>
+        <LaunchCampaignBanner locale={locale} href={`/${locale}/account/billing`} />
+
         {hasActivePartnerAccess ? (
           <DashboardShortcutRow
             title={t("partnerCard.title")}

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import type Stripe from "stripe";
 import { getAdminApp } from "@/lib/firebaseAdmin";
 import { getStripe } from "@/lib/stripe";
 import {
@@ -20,6 +21,7 @@ const USER_COLLECTION = "users";
 type CheckoutBody = {
   plan?: string;
   market?: string;
+  locale?: string;
 };
 
 function readBearerToken(req: NextRequest): string | null {
@@ -35,6 +37,17 @@ function requestHost(req: NextRequest): string | null {
 
 function isBillingMarket(value: unknown): value is BillingMarket {
   return value === "no" || value === "br" || value === "uk";
+}
+
+function expectedCurrencyForMarket(market: BillingMarket): string {
+  if (market === "br") return "brl";
+  if (market === "uk") return "gbp";
+  return "nok";
+}
+
+function checkoutLocale(value: unknown): Stripe.Checkout.SessionCreateParams.Locale {
+  if (value === "nb" || value === "pt-BR" || value === "en-GB") return value;
+  return "auto";
 }
 
 function requestOrigin(req: NextRequest): string {
@@ -237,17 +250,30 @@ export async function POST(req: NextRequest) {
     });
 
     const stripe = getStripe();
+    const price = await stripe.prices.retrieve(priceId);
+    const expectedCurrency = expectedCurrencyForMarket(market);
+
+    if (price.currency !== expectedCurrency) {
+      return NextResponse.json(
+        {
+          error: "Stripe price currency does not match market",
+          errorCode: "wrongCurrency",
+        },
+        { status: 400 }
+      );
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
+      locale: checkoutLocale(body.locale),
       line_items: [
         {
           price: priceId,
           quantity: 1,
         },
       ],
-      allow_promotion_codes: false,
+      allow_promotion_codes: true,
       success_url: accountBillingUrl(req, "?checkout=success"),
       cancel_url: accountBillingUrl(req, "?checkout=cancel"),
       metadata: {

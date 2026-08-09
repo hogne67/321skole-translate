@@ -5,6 +5,7 @@ import { getAdminApp } from "@/lib/firebaseAdmin";
 import {
   getBillingMarketFromHost,
   getPriceConfigsForRole,
+  type BillingMarket,
   type BillingRole,
 } from "@/lib/billing/config";
 import { getStripe } from "@/lib/stripe";
@@ -22,6 +23,10 @@ function readBearerToken(req: NextRequest): string | null {
 
 function requestHost(req: NextRequest): string | null {
   return req.headers.get("x-forwarded-host") || req.headers.get("host");
+}
+
+function isBillingMarket(value: unknown): value is BillingMarket {
+  return value === "no" || value === "br" || value === "uk";
 }
 
 function resolveBillingRoleFromUserData(data: Record<string, unknown>): BillingRole | null {
@@ -87,7 +92,10 @@ async function readRole(uid: string): Promise<BillingRole> {
 
 export async function GET(req: NextRequest) {
   try {
-    const market = getBillingMarketFromHost(requestHost(req));
+    const requestedMarket = req.nextUrl.searchParams.get("market");
+    const market = isBillingMarket(requestedMarket)
+      ? requestedMarket
+      : getBillingMarketFromHost(requestHost(req));
     const { uid } = await verifyUser(req);
     const role = await readRole(uid);
     const stripe = getStripe();

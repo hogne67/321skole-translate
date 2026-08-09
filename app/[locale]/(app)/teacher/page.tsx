@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { DashboardIntro } from "@/components/DashboardIntro";
+import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
@@ -1038,6 +1039,8 @@ export default function TeacherPage() {
       <InstallAppButton />
 
       <section style={shortcutSectionStyle}>
+        <LaunchCampaignBanner locale={locale} href={withLocale(locale, "/account/billing")} />
+
         {hasActivePartnerAccess ? (
           <DashboardShortcutRow
             title={t("partnerCard.title")}

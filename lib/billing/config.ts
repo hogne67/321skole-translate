@@ -49,14 +49,6 @@ function marketEnvName(
   return `STRIPE_PRICE_${market.toUpperCase()}_${role.toUpperCase()}_${plan.toUpperCase()}`;
 }
 
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
-  }
-  return value;
-}
-
 export function getBillingMarketFromHost(host: string | null | undefined): BillingMarket {
   const normalized = String(host ?? "")
     .trim()
@@ -152,7 +144,7 @@ export function getCheckoutPriceId(
   const legacyEnv = PRICE_ENV_BY_ROLE_PLAN[role][plan];
   if (!legacyEnv) return null;
 
-  if (market === "no") return required(legacyEnv);
+  if (market === "no") return process.env[legacyEnv] ?? null;
 
   return null;
 }

@@ -22,6 +22,7 @@ const adminNavItems: AdminNavItem[] = [
   { href: "/admin/partners/inbox", label: "Partner Inbox", section: "Core" },
   { href: "/admin/partners/broadcast", label: "Partner Broadcast", section: "Core" },
   { href: "/admin/trash", label: "Trash", section: "Operations" },
+  { href: "/admin/support", label: "Support", section: "Operations" },
   { href: "/admin/billing", label: "Billing", section: "Operations" },
   { href: "/admin/communication", label: "Communication", section: "Operations" },
   { href: "/admin/stats", label: "Stats", section: "Insights" },

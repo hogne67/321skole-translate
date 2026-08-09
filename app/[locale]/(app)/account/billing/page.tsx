@@ -117,6 +117,12 @@ function marketFromLocale(locale: string): CheckoutMarket {
   return "no";
 }
 
+function checkoutLocaleFromLocale(locale: string): string {
+  if (locale === "pt") return "pt-BR";
+  if (locale === "nb") return "nb";
+  return "en-GB";
+}
+
 function getStatusTone(status: BillingStatus | null | undefined): {
   background: string;
   border: string;
@@ -207,7 +213,7 @@ export default function BillingPage() {
 
       try {
         const token = await user.getIdToken();
-        const res = await fetch("/api/billing/prices", {
+        const res = await fetch(`/api/billing/prices?market=${marketFromLocale(locale)}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -230,7 +236,7 @@ export default function BillingPage() {
     return () => {
       cancelled = true;
     };
-  }, [uid]);
+  }, [uid, locale]);
 
   const role = useMemo(() => resolveRole(userData), [userData]);
   const allowedPlans = useMemo(() => allowedPlansForRole(role), [role]);
@@ -395,7 +401,11 @@ export default function BillingPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ plan, market: marketFromLocale(locale) }),
+        body: JSON.stringify({
+          plan,
+          market: marketFromLocale(locale),
+          locale: checkoutLocaleFromLocale(locale),
+        }),
       });
 
       const text = await res.text();
@@ -411,7 +421,7 @@ export default function BillingPage() {
         const serverError = typeof data.error === "string" ? data.error : null;
         const errorCode = typeof data.errorCode === "string" ? data.errorCode : null;
 
-        if (errorCode === "missingPrice") {
+        if (errorCode === "missingPrice" || errorCode === "wrongCurrency") {
           setMessage(t("errors.missingPrice"));
           return;
         }

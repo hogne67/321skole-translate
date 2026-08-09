@@ -34,6 +34,14 @@ type AdminPartnersResponse = {
   };
 };
 
+type AdminSupportResponse = {
+  ok?: boolean;
+  stats?: {
+    new?: number;
+    open?: number;
+  };
+};
+
 function StatusItem({
   label,
   value,
@@ -77,6 +85,8 @@ export default function AdminPage() {
     activePartners: null as number | null,
     partnerRepliesNeedReview: null as number | null,
     partnersNeedFollowUp: null as number | null,
+    newSupportTickets: null as number | null,
+    openSupportTickets: null as number | null,
   });
 
   const displayName =
@@ -154,17 +164,21 @@ export default function AdminPage() {
 
       try {
         const token = await user.getIdToken();
-        const [schoolsResponse, partnersResponse] = await Promise.all([
+        const [schoolsResponse, partnersResponse, supportResponse] = await Promise.all([
           fetch("/api/admin/schools", {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch("/api/admin/partners", {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          fetch("/api/admin/support?status=new", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         const schoolsData = (await schoolsResponse.json().catch(() => ({}))) as AdminSchoolsResponse;
         const partnersData = (await partnersResponse.json().catch(() => ({}))) as AdminPartnersResponse;
+        const supportData = (await supportResponse.json().catch(() => ({}))) as AdminSupportResponse;
 
         if (!alive) return;
 
@@ -189,6 +203,8 @@ export default function AdminPage() {
               : (partnersData.activePartners ?? []).filter(
                   (partner) => partner.partnerFollowUpStatus === "needs_follow_up"
                 ).length,
+          newSupportTickets: supportData.stats?.new ?? 0,
+          openSupportTickets: supportData.stats?.open ?? 0,
         });
       } catch (error) {
         console.error("Admin operational signals failed", error);
@@ -299,6 +315,12 @@ export default function AdminPage() {
             text="Partner replies waiting for review."
             tone={(signals.partnerRepliesNeedReview ?? 0) > 0 ? "amber" : "green"}
           />
+          <AdminStatCard
+            title="Support tickets"
+            value={signalValue(signals.newSupportTickets)}
+            text="New user reports from the in-app help button."
+            tone={(signals.newSupportTickets ?? 0) > 0 ? "amber" : "green"}
+          />
         </section>
       </AdminSection>
 
@@ -327,6 +349,15 @@ export default function AdminPage() {
                 : "Partner workflow ready"
             }
             tone={(signals.partnerRepliesNeedReview ?? 0) > 0 ? "amber" : "green"}
+          />
+          <StatusItem
+            label="Support"
+            value={
+              (signals.newSupportTickets ?? 0) > 0
+                ? "New user reports need review"
+                : "No new user reports"
+            }
+            tone={(signals.newSupportTickets ?? 0) > 0 ? "amber" : "green"}
           />
           <StatusItem label="Billing" value="Resync tool available" tone="slate" />
           <StatusItem label="Debug" value="Technical info moved off the dashboard" tone="green" />
