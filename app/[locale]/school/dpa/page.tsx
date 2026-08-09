@@ -31,6 +31,15 @@ function copyFor(locale: string): Copy {
       warning: "This is a working DPA framework prepared for school assessment and signing after project-specific details such as regions, contacts and sub-processors are confirmed. Schools should review it with their own administration, ICT/privacy lead or legal adviser before use.",
       sections: [
         {
+          title: "Municipal templates",
+          body: "321school can use this DPA draft directly or complete the municipality's own DPA template, including templates based on KS/SkoleSec or Digdir structure.",
+          points: [
+            "This page provides the information needed to complete common DPA appendices.",
+            "The municipality may request that the same information is transferred into its own template.",
+            "Project-specific details such as contacts, regions and sub-processors should be confirmed before signing.",
+          ],
+        },
+        {
           title: "Parties and roles",
           body: "The school or school owner is normally the controller for school use. 321school acts as processor when processing personal data on behalf of the school.",
           points: [
@@ -142,6 +151,15 @@ function copyFor(locale: string): Copy {
       warning: "Este é um quadro de acordo em versão de trabalho, preparado para avaliação escolar e assinatura após confirmação de detalhes específicos como regiões, contatos e subprocessadores. Escolas devem revisar com sua administração, responsável de TI/privacidade ou assessor jurídico antes do uso.",
       sections: [
         {
+          title: "Modelos municipais",
+          body: "A 321school pode usar este rascunho diretamente ou preencher o modelo próprio do município, incluindo modelos baseados na estrutura KS/SkoleSec ou Digdir.",
+          points: [
+            "Esta página fornece as informações necessárias para preencher anexos comuns de acordos de tratamento.",
+            "O município pode solicitar que as mesmas informações sejam transferidas para seu próprio modelo.",
+            "Detalhes específicos como contatos, regiões e subprocessadores devem ser confirmados antes da assinatura.",
+          ],
+        },
+        {
           title: "Partes e papéis",
           body: "A escola ou mantenedora normalmente é a controladora no uso escolar. A 321school atua como operadora/processadora ao tratar dados pessoais em nome da escola.",
           points: [
@@ -251,6 +269,15 @@ function copyFor(locale: string): Copy {
     updated: "Utkast. Sist oppdatert: 9. august 2026.",
     warning: "Dette er et arbeidsklart avtalerammeverk for skolevurdering og signering etter at prosjektspesifikke detaljer som regioner, kontaktpunkter og underleverandører er bekreftet. Skoler bør gjennomgå den med administrasjon, IKT/personvernansvarlig eller juridisk rådgiver før bruk.",
     sections: [
+      {
+        title: "Kommunale maler",
+        body: "321skole kan bruke dette DPA-utkastet direkte eller fylle ut kommunens egen databehandleravtale, inkludert maler basert på KS/SkoleSec eller Digdir-struktur.",
+        points: [
+          "Denne siden gir informasjonen som trengs for å fylle vanlige DPA-bilag.",
+          "Kommunen kan be om at samme informasjon overføres til deres egen mal.",
+          "Prosjektspesifikke detaljer som kontaktpunkter, regioner og underleverandører bør bekreftes før signering.",
+        ],
+      },
       {
         title: "Parter og roller",
         body: "Skolen eller skoleeier er normalt behandlingsansvarlig ved skolebruk. 321school er databehandler når personopplysninger behandles på vegne av skolen.",

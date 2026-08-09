@@ -38,6 +38,9 @@ type Copy = {
   cookiesTitle: string;
   cookiesText: string;
   cookiesPoints: string[];
+  municipalTemplatesTitle: string;
+  municipalTemplatesText: string;
+  municipalTemplatesPoints: string[];
   feideTitle: string;
   feideText: string;
   feidePoints: string[];
@@ -90,6 +93,13 @@ function copyFor(locale: string): Copy {
         "321school uses localStorage/sessionStorage for functional state such as app mode, anonymous classroom participation, quiz/session aliases and unsaved drafts.",
         "Google Analytics may be used for aggregate product analytics where configured; school-facing pages should describe any analytics in the general privacy policy.",
       ],
+      municipalTemplatesTitle: "DPA and municipal templates",
+      municipalTemplatesText: "321school can enter into a data processing agreement with the school or school owner. We maintain a DPA draft and structured information that can also be used with the municipality's own template or KS/SkoleSec/Digdir-based templates.",
+      municipalTemplatesPoints: [
+        "Available information includes purpose, data categories, sub-processors, processing locations, security, deletion/access routines and AI use.",
+        "If the municipality uses its own DPA template, 321school can use the same information as the basis for completing it.",
+        "The school owner remains responsible for its own assessment, risk review and final approval before systematic school use.",
+      ],
       feideTitle: "Feide login",
       feideText: "Feide lowers the threshold for safe school login because access is controlled by the school owner. Feide approval opens login; paid school agreements and extended school administration are handled separately in 321school.",
       feidePoints: [
@@ -141,6 +151,13 @@ function copyFor(locale: string): Copy {
         "A 321school usa localStorage/sessionStorage para estado funcional, como modo do app, participação anônima, apelidos de quiz/sessão e rascunhos não salvos.",
         "Google Analytics pode ser usado para análise agregada do produto quando configurado; páginas para escolas devem descrever analítica na política geral de privacidade.",
       ],
+      municipalTemplatesTitle: "Acordo de tratamento e modelos municipais",
+      municipalTemplatesText: "A 321school pode firmar acordo de tratamento de dados com a escola ou mantenedora. Mantemos um rascunho de acordo e informações estruturadas que também podem ser usadas com o modelo próprio do município ou modelos baseados em KS/SkoleSec/Digdir.",
+      municipalTemplatesPoints: [
+        "As informações disponíveis incluem finalidade, categorias de dados, subprocessadores, locais de tratamento, segurança, rotinas de exclusão/acesso e uso de IA.",
+        "Se o município usa seu próprio modelo, a 321school pode usar as mesmas informações como base para preenchê-lo.",
+        "A mantenedora continua responsável por sua avaliação, análise de risco e aprovação final antes de uso escolar sistemático.",
+      ],
       feideTitle: "Login com Feide",
       feideText: "Feide reduz a barreira para login escolar seguro porque o acesso é controlado pela mantenedora. A aprovação no Feide libera o login; contratos pagos e administração escolar ampliada são tratados separadamente na 321school.",
       feidePoints: [
@@ -190,6 +207,13 @@ function copyFor(locale: string): Copy {
       "Firebase Auth kan bruke informasjonskapsler, IndexedDB og lokal nettleserlagring for å holde brukere innlogget.",
       "321skole bruker localStorage/sessionStorage til funksjonell tilstand, for eksempel appmodus, anonym klasseromsdeltakelse, quiz-/sesjonsalias og ulagrede utkast.",
       "Google Analytics kan brukes til aggregert produktanalyse der dette er konfigurert; skolevendte sider bør beskrive analysebruk i generell personvernerklæring.",
+    ],
+    municipalTemplatesTitle: "Databehandleravtale og kommunale maler",
+    municipalTemplatesText: "321skole kan inngå databehandleravtale med skole eller skoleeier. Vi har et DPA-utkast og strukturert informasjon som også kan brukes dersom kommunen ønsker egen mal eller KS/SkoleSec/Digdir-basert mal.",
+    municipalTemplatesPoints: [
+      "Tilgjengelig informasjon omfatter formål, datakategorier, underleverandører, behandlingssteder, sikkerhet, sletting/innsyn og KI-bruk.",
+      "Hvis kommunen bruker egen DPA-mal, kan 321skole bruke samme informasjon som grunnlag for utfylling.",
+      "Skoleeier er fortsatt ansvarlig for egen vurdering, risikovurdering og endelig godkjenning før systematisk skolebruk.",
     ],
     feideTitle: "Feide-innlogging",
     feideText: "Feide senker terskelen for trygg skoleinnlogging fordi tilgang styres av skoleeier. Feide-godkjenning åpner for innlogging; betalt skoleavtale og utvidet skoleadministrasjon håndteres separat i 321skole.",
@@ -424,6 +448,15 @@ export default async function SchoolTrustPage() {
           title={text.cookiesTitle}
           text={text.cookiesText}
           points={text.cookiesPoints}
+        />
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 py-8">
+        <DetailPanel
+          icon={<FileText className="h-5 w-5" />}
+          title={text.municipalTemplatesTitle}
+          text={text.municipalTemplatesText}
+          points={text.municipalTemplatesPoints}
         />
       </section>
 
