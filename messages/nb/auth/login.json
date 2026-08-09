@@ -7,7 +7,7 @@
     },
     "intro": {
       "anon": "Opprett konto eller logg inn for å beholde alt du har laget.",
-      "normal": "Logg inn med Google eller e-post.",
+      "normal": "Logg inn med Feide, Google eller e-post.",
       "signup": "Opprett konto først. Etterpå velger du om du er elev, lærer eller forelder."
     },
     "tabs": {
@@ -30,6 +30,9 @@
       "upgradeGoogle": "Lagre med Google",
       "signinGoogle": "Logg inn med Google",
       "signupGoogle": "Opprett konto med Google",
+      "upgradeFeide": "Lagre med Feide",
+      "signinFeide": "Logg inn med Feide",
+      "signupFeide": "Opprett konto med Feide",
       "upgradeEmail": "Lagre med e-post",
       "useEmailSignin": "Logg inn med e-post",
       "useEmailSignup": "Opprett konto med e-post",
@@ -47,12 +50,13 @@
     "messages": {
       "resetSent": "Vi har sendt deg en e-post med en lenke for å tilbakestille passordet.",
       "checkEmail": "Konto opprettet! Sjekk e-posten din for å bekrefte kontoen.",
-      "verified": "E-posten er bekreftet. Du kan nå logge inn."
+      "verified": "E-posten er bekreftet. Du kan nå logge inn.",
+      "verifyRequired": "Bekreft e-posten din før du fortsetter. Vi har sendt deg en ny bekreftelseslenke hvis det var mulig."
     },
     "hints": {
       "anonSignup": "Tips: Hvis e-posten allerede finnes, velg <b>Jeg har allerede en konto</b> i stedet.",
-      "methodSignin": "Bruk Google hvis du registrerte deg med Google tidligere. Ellers velger du e-post.",
-      "methodSignup": "Velg Google for raskest start, eller e-post hvis du vil bruke passord."
+      "methodSignin": "Bruk Feide eller Google hvis det var slik du registrerte deg tidligere. Ellers velger du e-post.",
+      "methodSignup": "Velg Feide hvis du bruker skolekonto, Google for rask start, eller e-post hvis du vil bruke passord."
     },
     "footer": {
       "noAccount": "Har du ikke en konto?",
@@ -72,6 +76,7 @@
       "invalidEmail": "Ugyldig e-postadresse.",
       "tooManyRequests": "For mange forsøk. Prøv igjen senere.",
       "popupClosed": "Innloggingen ble avbrutt.",
+      "ageConfirmationRequired": "Bekreft at du er 13 år eller eldre, eller at du bruker tjenesten med foresatt eller skole.",
       "generic": "Kunne ikke fortsette. Prøv igjen."
     },
     "legal": {
@@ -79,6 +84,7 @@
       "terms": "vilkår",
       "and": "og",
       "privacy": "personvernregler",
+      "ageConfirm": "Jeg er 13 år eller eldre, eller bruker tjenesten med foresatt eller skole.",
       "salesTerms": "salgsvilkår",
       "contact": "Kontakt",
       "close": "Lukk"

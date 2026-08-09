@@ -14,9 +14,20 @@ import {
   browserSessionPersistence,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { signInWithGoogle, signInWithEmail, signUpWithEmail } from "@/lib/auth";
-import { linkAnonymousWithGoogle, linkAnonymousWithEmailPassword } from "@/lib/anonAuth";
-import { recordUserLogin } from "@/lib/userProfile";
+import {
+  logout,
+  sendVerificationEmail,
+  signInWithFeide,
+  signInWithGoogle,
+  signInWithEmail,
+  signUpWithEmail,
+} from "@/lib/auth";
+import {
+  linkAnonymousWithEmailPassword,
+  linkAnonymousWithFeide,
+  linkAnonymousWithGoogle,
+} from "@/lib/anonAuth";
+import { ensureUserProfile, recordUserLogin } from "@/lib/userProfile";
 import { useLocale, useTranslations } from "next-intl";
 import { trackSignUp } from "@/lib/analytics";
 import { trackEvent } from "@/lib/trackEvent";
@@ -56,6 +67,7 @@ function friendlyAuthErrorKey(msg: string): string {
 type Mode = "signin" | "signup";
 type LoginMethod = "choice" | "email";
 type LegalModalType = "terms" | "privacy" | null;
+const LEGAL_VERSION = "2026-08-09";
 
 function GoogleIcon() {
   return (
@@ -77,6 +89,29 @@ function GoogleIcon() {
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
       />
     </svg>
+  );
+}
+
+function FeideIcon() {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        background: "#1f4aa8",
+        color: "#fff",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 13,
+        fontWeight: 900,
+        lineHeight: 1,
+      }}
+    >
+      F
+    </span>
   );
 }
 
@@ -113,6 +148,7 @@ export default function LoginClient() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [legalModal, setLegalModal] = useState<LegalModalType>(null);
 
@@ -120,6 +156,7 @@ export default function LoginClient() {
   const [info, setInfo] = useState<string | null>(null);
 
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingFeide, setLoadingFeide] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
 
@@ -160,6 +197,18 @@ export default function LoginClient() {
       return;
     }
   }, [welcome, verified, safeT]);
+
+  useEffect(() => {
+    if (sp.get("verify") === "required") {
+      setInfo(
+        safeT(
+          "messages.verifyRequired",
+          "Verify your email before continuing. We have sent you a new verification link if we could."
+        )
+      );
+      setError(null);
+    }
+  }, [safeT, sp]);
 
   useEffect(() => {
     if (!legalModal) return;
@@ -204,8 +253,80 @@ export default function LoginClient() {
     }
   }
 
+  function isEmailPasswordUser(user: User): boolean {
+    return user.providerData.some((provider) => provider.providerId === "password");
+  }
+
+  function verificationSettings() {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return origin
+      ? {
+          url: `${origin}/${locale}/login?verified=1`,
+          handleCodeInApp: false,
+        }
+      : undefined;
+  }
+
+  async function sendVerification(user: User) {
+    auth.languageCode = locale;
+    await sendVerificationEmail(user, verificationSettings());
+  }
+
+  function needsSignupConfirmation() {
+    return mode === "signup" || isAnon;
+  }
+
+  function requireSignupConfirmation(): boolean {
+    if (!needsSignupConfirmation()) return true;
+    if (ageConfirmed) return true;
+
+    setError(
+      safeT(
+        "errors.ageConfirmationRequired",
+        "Confirm that you are 13 or older, or that you use the service with a parent/guardian or school."
+      )
+    );
+    return false;
+  }
+
+  async function saveLegalConfirmation(user: User, source: string) {
+    if (!needsSignupConfirmation()) return;
+
+    const now = new Date().toISOString();
+    await ensureUserProfile(user, {
+      displayName: user.displayName || displayName.trim() || "",
+      email: user.email || email.trim() || "",
+      locale,
+      legal: {
+        version: LEGAL_VERSION,
+        termsAcceptedAt: now,
+        privacyAcceptedAt: now,
+        ageConfirmation: "over_13_or_parent_school",
+        ageConfirmedAt: now,
+        acceptedFrom: source,
+      },
+    });
+  }
+
+  async function stopIfEmailNotVerified(user: User): Promise<boolean> {
+    if (!isEmailPasswordUser(user) || user.emailVerified) return false;
+
+    await sendVerification(user).catch((err) => {
+      console.warn("verification email failed", err);
+    });
+    await logout();
+    setInfo(
+      safeT(
+        "messages.verifyRequired",
+        "Verify your email before continuing. We have sent you a new verification link if we could."
+      )
+    );
+    return true;
+  }
+
   async function handleGoogle() {
     resetMessages();
+    if (!requireSignupConfirmation()) return;
     setLoadingGoogle(true);
 
     try {
@@ -213,6 +334,7 @@ export default function LoginClient() {
 
       if (isAnon) {
         const user = await linkAnonymousWithGoogle();
+        await saveLegalConfirmation(user, "google_anonymous_upgrade");
         await recordExistingLogin(user);
         trackSignUp("anonymous_upgrade");
 
@@ -232,6 +354,7 @@ export default function LoginClient() {
         });
 
         if (mode === "signup") {
+          await saveLegalConfirmation(cred.user, "google_signup");
           trackSignUp("google");
         }
       }
@@ -249,6 +372,57 @@ export default function LoginClient() {
       );
     } finally {
       setLoadingGoogle(false);
+    }
+  }
+
+  async function handleFeide() {
+    resetMessages();
+    if (!requireSignupConfirmation()) return;
+    setLoadingFeide(true);
+
+    try {
+      await applyPersistence();
+
+      if (isAnon) {
+        const user = await linkAnonymousWithFeide();
+        await saveLegalConfirmation(user, "feide_anonymous_upgrade");
+        await recordExistingLogin(user);
+        trackSignUp("anonymous_upgrade");
+
+        trackEvent("login", {
+          method: "feide",
+          type: "anonymous_upgrade",
+        });
+      } else {
+        const cred = await signInWithFeide();
+        if (mode === "signin") {
+          await recordExistingLogin(cred.user);
+        }
+
+        trackEvent("login", {
+          method: "feide",
+          type: mode,
+        });
+
+        if (mode === "signup") {
+          await saveLegalConfirmation(cred.user, "feide_signup");
+          trackSignUp("feide");
+        }
+      }
+
+      router.replace(postLoginUrl);
+    } catch (err: unknown) {
+      const key = friendlyAuthErrorKey(toErrorString(err));
+      setError(
+        safeT(
+          `errors.${key}`,
+          key === "popupClosed"
+            ? "Sign-in was cancelled."
+            : "Could not continue with Feide. Please try again."
+        )
+      );
+    } finally {
+      setLoadingFeide(false);
     }
   }
 
@@ -271,6 +445,8 @@ export default function LoginClient() {
       return;
     }
 
+    if (!requireSignupConfirmation()) return;
+
     setLoadingEmail(true);
 
     try {
@@ -278,6 +454,7 @@ export default function LoginClient() {
 
       if (mode === "signin") {
         const cred = await signInWithEmail(e, password);
+        if (await stopIfEmailNotVerified(cred.user)) return;
         await recordExistingLogin(cred.user);
 
         trackEvent("login", {
@@ -291,7 +468,8 @@ export default function LoginClient() {
 
       if (isAnon) {
         const user = await linkAnonymousWithEmailPassword(e, password);
-        await recordExistingLogin(user);
+        await saveLegalConfirmation(user, "email_anonymous_upgrade");
+        await sendVerification(user);
         trackSignUp("anonymous_upgrade");
 
         trackEvent("login", {
@@ -299,11 +477,13 @@ export default function LoginClient() {
           type: "anonymous_upgrade",
         });
 
-        router.replace(postLoginUrl);
+        router.replace(`/${locale}/login?welcome=1`);
         return;
       }
 
-      await signUpWithEmail(e, password, displayName.trim());
+      const cred = await signUpWithEmail(e, password, displayName.trim());
+      await saveLegalConfirmation(cred.user, "email_signup");
+      await sendVerification(cred.user);
       trackSignUp("email");
 
       trackEvent("login", {
@@ -363,7 +543,7 @@ export default function LoginClient() {
     }
   }
 
-  const busy = loadingGoogle || loadingEmail || sendingReset;
+  const busy = loadingGoogle || loadingFeide || loadingEmail || sendingReset;
   const showEmailForm = loginMethod === "email";
 
   const modalTitle =
@@ -640,6 +820,35 @@ export default function LoginClient() {
     color: "rgba(15,23,42,0.62)",
   };
 
+  const feideButtonStyle: React.CSSProperties = {
+    ...googleButtonStyle,
+    background: "#ffffff",
+    border: "1px solid rgba(31,74,168,0.26)",
+  };
+
+  const ageConfirmStyle: React.CSSProperties = {
+    display: needsSignupConfirmation() ? "flex" : "none",
+    alignItems: "flex-start",
+    gap: 10,
+    margin: "0 0 12px",
+    padding: "11px 12px",
+    borderRadius: 14,
+    border: "1px solid rgba(15,23,42,0.10)",
+    background: "rgba(255,255,255,0.62)",
+    color: "#26374f",
+    fontSize: 13,
+    fontWeight: 700,
+    lineHeight: 1.45,
+  };
+
+  const ageCheckboxStyle: React.CSSProperties = {
+    width: 18,
+    height: 18,
+    marginTop: 1,
+    flex: "0 0 auto",
+    accentColor: "#2563eb",
+  };
+
   const modalOverlayStyle: React.CSSProperties = {
     position: "fixed",
     inset: 0,
@@ -705,6 +914,12 @@ export default function LoginClient() {
       ? safeT("buttons.signinGoogle", "Log in with Google")
       : safeT("buttons.signupGoogle", "Create account with Google");
 
+  const feideLabel = isAnon
+    ? safeT("buttons.upgradeFeide", "Save with Feide")
+    : mode === "signin"
+      ? safeT("buttons.signinFeide", "Log in with Feide")
+      : safeT("buttons.signupFeide", "Create account with Feide");
+
   const emailChoiceLabel =
     isAnon
       ? safeT("buttons.upgradeEmail", "Save with email")
@@ -752,7 +967,7 @@ export default function LoginClient() {
                     "Create an account or log in to keep everything you have made."
                   )
                   : mode === "signin"
-                    ? safeT("intro.normal", "Log in with Google or email.")
+                    ? safeT("intro.normal", "Log in with Feide, Google or email.")
                     : safeT(
                       "intro.signup",
                       "Create your account first. Then choose whether you are a student, teacher or parent."
@@ -780,6 +995,22 @@ export default function LoginClient() {
               </button>
             </div>
 
+            <label style={ageConfirmStyle}>
+              <input
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(event) => setAgeConfirmed(event.target.checked)}
+                disabled={busy}
+                style={ageCheckboxStyle}
+              />
+              <span>
+                {safeT(
+                  "legal.ageConfirm",
+                  "I am 13 or older, or I use the service with a parent/guardian or school."
+                )}
+              </span>
+            </label>
+
             <div style={choiceGrid}>
               <button
                 type="button"
@@ -789,6 +1020,16 @@ export default function LoginClient() {
               >
                 {!loadingGoogle ? <GoogleIcon /> : null}
                 <span>{loadingGoogle ? safeT("buttons.working", "Working…") : googleLabel}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFeide}
+                disabled={busy}
+                style={feideButtonStyle}
+              >
+                {!loadingFeide ? <FeideIcon /> : null}
+                <span>{loadingFeide ? safeT("buttons.working", "Working…") : feideLabel}</span>
               </button>
 
               {!showEmailForm ? (
@@ -811,11 +1052,11 @@ export default function LoginClient() {
                   {mode === "signin"
                     ? safeT(
                       "hints.methodSignin",
-                      "Use Google if you signed up with Google before. Otherwise choose email."
+                      "Use Feide or Google if that is how you signed up before. Otherwise choose email."
                     )
                     : safeT(
                       "hints.methodSignup",
-                      "Choose Google for the fastest start, or email if you prefer password login."
+                      "Choose Feide if you use a school account, Google for a fast start, or email if you prefer password login."
                     )}
                 </p>
               ) : null}

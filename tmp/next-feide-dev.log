@@ -1,0 +1,12 @@
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.68.139:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 19.3s
+○ Compiling /[locale] ...
+ GET /nb 200 in 69s (compile: 16.9s, proxy.ts: 619ms, render: 52s)
+ GET /nb/manifest.webmanifest 200 in 2.5s (compile: 2.5s, render: 76ms)
+ GET /nb/login 200 in 1596ms (compile: 1434ms, proxy.ts: 33ms, render: 130ms)
+ GET /nb/manifest.webmanifest 200 in 33ms (compile: 21ms, render: 13ms)

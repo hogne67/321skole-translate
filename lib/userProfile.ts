@@ -27,6 +27,15 @@ export type UserProfile = {
   email?: string;
   locale?: string;
 
+  legal?: {
+    version?: string;
+    termsAcceptedAt?: unknown;
+    privacyAcceptedAt?: unknown;
+    ageConfirmation?: "over_13_or_parent_school";
+    ageConfirmedAt?: unknown;
+    acceptedFrom?: string;
+  };
+
   role?: Role;
   adminLevel?: AdminLevel;
 
@@ -105,6 +114,7 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
       displayName: user.displayName || patch?.displayName || "",
       email: user.email || patch?.email || "",
       locale: patch?.locale || "no",
+      legal: patch?.legal,
 
       role: patch?.role,
       adminLevel: patch?.adminLevel,

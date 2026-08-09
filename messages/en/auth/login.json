@@ -7,7 +7,7 @@
     },
     "intro": {
       "anon": "Create an account or log in to keep everything you have made.",
-      "normal": "Log in with Google or email.",
+      "normal": "Log in with Feide, Google or email.",
       "signup": "Create your account first. Then choose whether you are a student, teacher or parent."
     },
     "tabs": {
@@ -30,6 +30,9 @@
       "upgradeGoogle": "Save with Google",
       "signinGoogle": "Log in with Google",
       "signupGoogle": "Create account with Google",
+      "upgradeFeide": "Save with Feide",
+      "signinFeide": "Log in with Feide",
+      "signupFeide": "Create account with Feide",
       "upgradeEmail": "Save with email",
       "useEmailSignin": "Log in with email",
       "useEmailSignup": "Create account with email",
@@ -47,12 +50,13 @@
     "messages": {
       "resetSent": "We sent you an email with a link to reset your password.",
       "checkEmail": "Account created! Check your email to verify your account.",
-      "verified": "Your email is verified. You can now log in."
+      "verified": "Your email is verified. You can now log in.",
+      "verifyRequired": "Verify your email before continuing. We have sent you a new verification link if we could."
     },
     "hints": {
       "anonSignup": "Tip: If this email already exists, choose <b>I already have an account</b> instead.",
-      "methodSignin": "Use Google if you signed up with Google before. Otherwise choose email.",
-      "methodSignup": "Choose Google for the fastest start, or email if you prefer password login."
+      "methodSignin": "Use Feide or Google if that is how you signed up before. Otherwise choose email.",
+      "methodSignup": "Choose Feide if you use a school account, Google for a fast start, or email if you prefer password login."
     },
     "footer": {
       "noAccount": "Don’t have an account?",
@@ -72,6 +76,7 @@
       "invalidEmail": "Invalid email address.",
       "tooManyRequests": "Too many attempts. Please try again later.",
       "popupClosed": "Sign-in was cancelled.",
+      "ageConfirmationRequired": "Confirm that you are 13 or older, or that you use the service with a parent/guardian or school.",
       "generic": "Could not continue. Please try again."
     },
     "legal": {
@@ -79,6 +84,7 @@
       "terms": "Terms",
       "and": "and",
       "privacy": "Privacy Policy",
+      "ageConfirm": "I am 13 or older, or I use the service with a parent/guardian or school.",
       "salesTerms": "Sales terms",
       "contact": "Contact",
       "close": "Close"

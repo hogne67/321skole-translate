@@ -34,7 +34,7 @@ function copyFor(locale: string): Copy {
       lead: "How 321school works with safe school use, anonymous student access, accounts and AI features.",
       updated: "First version for school assessment. Last updated: 5 August 2026.",
       cards: [
-        { title: "Anonymous access first", text: "Students can join Spaces with a code or QR code without email or account." },
+        { title: "Anonymous access first", text: "Students can join Spaces with a code or QR code without email, account or national identity number." },
         { title: "School-controlled use", text: "In school use, the school should know which digital tools are used with students." },
         { title: "No direct AI in Spaces", text: "Students in Spaces normally answer teacher-controlled activities, not AI directly." },
       ],
@@ -53,6 +53,7 @@ function copyFor(locale: string): Copy {
           body: "Anonymous access is designed for low-friction classroom use. A student can join a Space without email and without creating a personal account.",
           points: [
             "The teacher can see the name the student enters and the work done in the Space.",
+            "321school does not require national identity numbers or private email addresses for anonymous student participation in Spaces.",
             "Anonymous access is usually remembered only on the same device and browser.",
             "Changing device, private browsing, sign-out or clearing browser data may create a new anonymous technical user.",
             "Anonymous work is not saved to a personal account or available across devices.",
@@ -74,6 +75,7 @@ function copyFor(locale: string): Copy {
             "Teachers must review and approve generated or pasted text before tasks are created from it.",
             "Only teachers can choose to publish learning content to the public library, and published content is tied to the teacher's name.",
             "321school shows warnings where AI use or privacy risk may require extra attention, for example around student names, images and AI feedback.",
+            "Data sent to OpenAI through the API is not used to train or improve OpenAI models unless explicit opt-in has been enabled. OpenAI may process and temporarily retain necessary technical logs for safety and abuse prevention under its API data terms.",
             "Signed-in students can use AI features in self-study, for example feedback on their own answers or generating practice tasks.",
             "For children under 13, account use and AI features should be clarified by the school or guardians.",
             "Schools should assess AI use before using it systematically with students.",
@@ -115,7 +117,7 @@ function copyFor(locale: string): Copy {
       lead: "Como a 321school trabalha com uso seguro na escola, acesso anônimo, contas e recursos de IA.",
       updated: "Primeira versão para avaliação escolar. Atualizado em: 5 de agosto de 2026.",
       cards: [
-        { title: "Acesso anônimo primeiro", text: "Alunos podem entrar em Spaces com código ou QR sem e-mail e sem conta." },
+        { title: "Acesso anônimo primeiro", text: "Alunos podem entrar em Spaces com código ou QR sem e-mail, conta ou número de identificação nacional." },
         { title: "Uso controlado pela escola", text: "No uso escolar, a escola deve saber quais ferramentas digitais são usadas com alunos." },
         { title: "Sem IA direta em Spaces", text: "Em Spaces, alunos normalmente respondem atividades controladas pelo professor, não IA diretamente." },
       ],
@@ -134,6 +136,7 @@ function copyFor(locale: string): Copy {
           body: "O acesso anônimo foi criado para uso simples em sala de aula. O aluno pode entrar em um Space sem e-mail e sem criar uma conta pessoal.",
           points: [
             "O professor pode ver o nome informado pelo aluno e o trabalho feito no Space.",
+            "A 321school não exige número de identificação nacional nem e-mail particular para participação anônima de alunos em Spaces.",
             "O acesso anônimo normalmente é lembrado apenas no mesmo dispositivo e navegador.",
             "Trocar de dispositivo, usar navegação privada, sair da conta ou limpar dados do navegador pode criar um novo usuário técnico anônimo.",
             "O trabalho anônimo não é salvo em uma conta pessoal nem fica disponível em diferentes dispositivos.",
@@ -155,6 +158,7 @@ function copyFor(locale: string): Copy {
             "Professores devem revisar e aprovar textos gerados ou colados antes que atividades sejam criadas a partir deles.",
             "Somente professores podem escolher publicar conteúdo pedagógico na biblioteca pública, e o conteúdo publicado fica vinculado ao nome do professor.",
             "A 321school mostra avisos nos pontos em que IA ou privacidade podem exigir atenção extra, por exemplo nomes de alunos, imagens e feedback de IA.",
+            "Dados enviados à OpenAI pela API não são usados para treinar ou melhorar modelos da OpenAI, salvo se uma autorização explícita tiver sido ativada. A OpenAI pode tratar e reter temporariamente logs técnicos necessários para segurança e prevenção de abuso conforme seus termos de dados da API.",
             "Alunos conectados podem usar recursos de IA em estudo individual, por exemplo feedback sobre respostas próprias ou geração de atividades de prática.",
             "Para crianças menores de 13 anos, conta e recursos de IA devem ser esclarecidos pela escola ou responsáveis.",
             "Escolas devem avaliar o uso de IA antes de usá-la sistematicamente com alunos.",
@@ -195,7 +199,7 @@ function copyFor(locale: string): Copy {
     lead: "Slik jobber 321school med trygg skolebruk, anonym elevtilgang, kontoer og KI-funksjoner.",
     updated: "Første versjon for skolevurdering. Sist oppdatert: 5. august 2026.",
     cards: [
-      { title: "Anonym tilgang først", text: "Elever kan bli med i Spaces med kode eller QR uten e-post og uten konto." },
+      { title: "Anonym tilgang først", text: "Elever kan bli med i Spaces med kode eller QR uten e-post, konto eller fødselsnummer." },
       { title: "Skolen styrer bruken", text: "Ved skolebruk bør skolen vite hvilke digitale verktøy som brukes med elever." },
       { title: "Ikke direkte KI i Spaces", text: "I Spaces svarer elever normalt på lærerstyrte aktiviteter, ikke direkte til KI." },
     ],
@@ -214,6 +218,7 @@ function copyFor(locale: string): Copy {
         body: "Anonym tilgang er laget for lav terskel i klasserommet. Eleven kan bli med i et Space uten e-post og uten å opprette personlig konto.",
         points: [
           "Læreren kan se navnet eleven skriver inn og arbeidet som gjøres i rommet.",
+          "321school krever ikke fødselsnummer eller privat e-post for anonym elevdeltakelse i Spaces.",
           "Anonym tilgang huskes vanligvis bare på samme enhet og nettleser.",
           "Bytte av enhet, privat nettlesing, utlogging eller sletting av nettleserdata kan gi en ny anonym teknisk bruker.",
           "Anonymt arbeid lagres ikke i en personlig konto og er ikke tilgjengelig på tvers av enheter.",
@@ -235,6 +240,7 @@ function copyFor(locale: string): Copy {
           "Lærer må lese gjennom og godkjenne generert eller innlimt tekst før det lages oppgaver fra teksten.",
           "Kun lærere kan velge å publisere læringsinnhold i det åpne biblioteket, og publisert innhold knyttes til lærerens navn.",
           "321school viser advarsler i arbeidsflyten der KI eller personvern kan kreve ekstra oppmerksomhet, for eksempel ved elevnavn, bilder og KI-tilbakemelding.",
+          "Data som sendes til OpenAI via API brukes ikke til å trene eller forbedre OpenAI-modeller med mindre dette er eksplisitt aktivert. OpenAI kan behandle og midlertidig lagre nødvendige tekniske logger for sikkerhet og misbruksforebygging i tråd med sine API-datavilkår.",
           "Innloggede elever/studenter kan i egenstudie bruke KI-funksjoner, for eksempel tilbakemelding på egne svar eller generering av øvingsoppgaver.",
           "For barn under 13 år bør konto og KI-funksjoner være avklart av skolen eller foresatte.",
           "Skoler bør vurdere KI-bruk før systematisk bruk med elever.",

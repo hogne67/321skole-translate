@@ -4,6 +4,7 @@ import {
   signInAnonymously,
   type User,
   GoogleAuthProvider,
+  OAuthProvider,
   linkWithPopup,
   linkWithCredential,
   EmailAuthProvider,
@@ -110,6 +111,53 @@ export async function linkAnonymousWithGoogle(): Promise<User> {
         await mergeAnonToUser(db, anonUid, signed.user.uid);
       } catch {
         // ignore (kan logges hvis du vil)
+      }
+
+      return signed.user;
+    }
+
+    throw err;
+  }
+}
+
+/**
+ * Oppgrader anonym bruker til Feide-konto via Firebase OIDC.
+ */
+export async function linkAnonymousWithFeide(): Promise<User> {
+  const current = auth.currentUser;
+  const provider = new OAuthProvider("oidc.feide");
+  provider.setCustomParameters({ login_hint: "feide|all" });
+
+  const { signInWithPopup, signInWithCredential } = await import("firebase/auth");
+
+  if (!current) {
+    const cred = await signInWithPopup(auth, provider);
+    return cred.user;
+  }
+
+  if (!current.isAnonymous) {
+    const cred = await signInWithPopup(auth, provider);
+    return cred.user;
+  }
+
+  try {
+    const linked = await linkWithPopup(current, provider);
+    return linked.user;
+  } catch (err: unknown) {
+    const code = getAuthErrorCode(err);
+
+    if (code === "auth/credential-already-in-use") {
+      const credFromErr = OAuthProvider.credentialFromError(err as AuthError);
+      if (!credFromErr) throw err;
+
+      const anonUid = current.uid;
+      const signed = await signInWithCredential(auth, credFromErr);
+
+      try {
+        const { mergeAnonToUser } = await import("@/lib/mergeAnon");
+        await mergeAnonToUser(db, anonUid, signed.user.uid);
+      } catch {
+        // Best effort: innlogging skal ikke stoppes av en merge-feil.
       }
 
       return signed.user;

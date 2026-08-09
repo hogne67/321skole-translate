@@ -53,6 +53,7 @@ function copyFor(locale: string): Copy {
       notes: [
         "321school does not sell personal data.",
         "321school does not use third-party advertising or targeted advertising in school Spaces.",
+        "Data sent to OpenAI through the API is not used to train or improve OpenAI models unless explicit opt-in has been enabled. Necessary technical logs may be processed and retained temporarily for safety and abuse prevention under OpenAI's API data terms.",
         "Code libraries used inside the app are not listed here unless they process data as an external service.",
         "Schools using 321school broadly should request a data processing agreement and a current sub-processor overview.",
       ],
@@ -80,6 +81,7 @@ function copyFor(locale: string): Copy {
       notes: [
         "A 321school não vende dados pessoais.",
         "A 321school não usa publicidade de terceiros ou publicidade direcionada em Spaces escolares.",
+        "Dados enviados à OpenAI pela API não são usados para treinar ou melhorar modelos da OpenAI, salvo se uma autorização explícita tiver sido ativada. Logs técnicos necessários podem ser tratados e retidos temporariamente para segurança e prevenção de abuso conforme os termos de dados da API da OpenAI.",
         "Bibliotecas de código usadas dentro da aplicação não são listadas aqui, a menos que tratem dados como serviço externo.",
         "Escolas que usam a 321school de forma ampla devem solicitar acordo de tratamento de dados e visão atual dos subprocessadores.",
       ],
@@ -106,6 +108,7 @@ function copyFor(locale: string): Copy {
     notes: [
       "321school selger ikke personopplysninger.",
       "321school bruker ikke tredjepartsannonsering eller målrettet reklame i skole-Spaces.",
+      "Data som sendes til OpenAI via API brukes ikke til å trene eller forbedre OpenAI-modeller med mindre dette er eksplisitt aktivert. Nødvendige tekniske logger kan behandles og lagres midlertidig for sikkerhet og misbruksforebygging i tråd med OpenAIs API-datavilkår.",
       "Kodebiblioteker som brukes inne i appen listes ikke her, med mindre de behandler data som ekstern tjeneste.",
       "Skoler som bruker 321school bredt bør be om databehandleravtale og oppdatert underleverandøroversikt.",
     ],

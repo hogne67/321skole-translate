@@ -19,7 +19,7 @@ export function trackEvent(eventName: string, params?: AnalyticsParams) {
     window.gtag("event", eventName, params);
 }
 
-export function trackSignUp(method: "email" | "google" | "anonymous_upgrade") {
+export function trackSignUp(method: "email" | "google" | "feide" | "anonymous_upgrade") {
     trackEvent("sign_up", {
         method,
     });

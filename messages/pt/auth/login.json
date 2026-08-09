@@ -7,7 +7,7 @@
     },
     "intro": {
       "anon": "Crie uma conta ou entre para manter tudo que você criou.",
-      "normal": "Entre com Google ou e-mail.",
+      "normal": "Entre com Feide, Google ou e-mail.",
       "signup": "Crie sua conta primeiro. Depois escolha se você é aluno, professor ou responsável."
     },
     "tabs": {
@@ -30,6 +30,9 @@
       "upgradeGoogle": "Salvar com Google",
       "signinGoogle": "Entrar com Google",
       "signupGoogle": "Criar conta com Google",
+      "upgradeFeide": "Salvar com Feide",
+      "signinFeide": "Entrar com Feide",
+      "signupFeide": "Criar conta com Feide",
       "upgradeEmail": "Salvar com e-mail",
       "useEmailSignin": "Entrar com e-mail",
       "useEmailSignup": "Criar conta com e-mail",
@@ -47,12 +50,13 @@
     "messages": {
       "resetSent": "Enviamos um e-mail com um link para redefinir sua senha.",
       "checkEmail": "Conta criada! Verifique seu e-mail para confirmar a conta.",
-      "verified": "E-mail verificado. Agora você pode entrar."
+      "verified": "E-mail verificado. Agora você pode entrar.",
+      "verifyRequired": "Confirme seu e-mail antes de continuar. Enviamos um novo link de verificação se foi possível."
     },
     "hints": {
       "anonSignup": "Dica: Se este e-mail já existir, escolha <b>Já tenho uma conta</b>.",
-      "methodSignin": "Use Google se você se cadastrou com Google antes. Caso contrário, use e-mail.",
-      "methodSignup": "Escolha Google para começar mais rápido ou e-mail se preferir usar senha."
+      "methodSignin": "Use Feide ou Google se foi assim que você se cadastrou antes. Caso contrário, use e-mail.",
+      "methodSignup": "Escolha Feide se usa uma conta escolar, Google para começar rápido ou e-mail se preferir usar senha."
     },
     "footer": {
       "noAccount": "Não tem uma conta?",
@@ -72,6 +76,7 @@
       "invalidEmail": "Endereço de e-mail inválido.",
       "tooManyRequests": "Muitas tentativas. Tente novamente mais tarde.",
       "popupClosed": "O login foi cancelado.",
+      "ageConfirmationRequired": "Confirme que você tem 13 anos ou mais, ou que usa o serviço com responsável ou escola.",
       "generic": "Não foi possível continuar. Tente novamente."
     },
     "legal": {
@@ -79,6 +84,7 @@
       "terms": "Termos",
       "and": "e",
       "privacy": "Política de Privacidade",
+      "ageConfirm": "Tenho 13 anos ou mais, ou uso o serviço com responsável ou escola.",
       "salesTerms": "Termos de venda",
       "contact": "Contato",
       "close": "Fechar"
