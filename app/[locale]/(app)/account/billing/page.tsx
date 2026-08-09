@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -163,6 +164,7 @@ function getStatusTone(status: BillingStatus | null | undefined): {
 export default function BillingPage() {
   const t = useTranslations("accountBilling");
   const locale = useLocale();
+  const searchParams = useSearchParams();
 
   const [uid, setUid] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserDocData | null>(null);
@@ -172,6 +174,7 @@ export default function BillingPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [stripePrices, setStripePrices] = useState<BillingPrice[]>([]);
+  const [checkoutSyncAttempted, setCheckoutSyncAttempted] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -237,6 +240,42 @@ export default function BillingPage() {
       cancelled = true;
     };
   }, [uid, locale]);
+
+  useEffect(() => {
+    async function syncCheckoutReturn() {
+      if (!uid || checkoutSyncAttempted) return;
+
+      const checkout = searchParams.get("checkout");
+      const sessionId = searchParams.get("session_id");
+      if (checkout !== "success" || !sessionId) return;
+
+      try {
+        setCheckoutSyncAttempted(true);
+        setMessage(t("statusBox.syncingCheckout"));
+
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) throw new Error("Missing login");
+
+        const token = await user.getIdToken();
+        const response = await fetch("/api/billing/sync-checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ sessionId }),
+        });
+
+        if (!response.ok) throw new Error("Checkout sync failed");
+        setMessage(t("statusBox.checkoutSynced"));
+      } catch {
+        setMessage(t("errors.checkoutSyncFailed"));
+      }
+    }
+
+    void syncCheckoutReturn();
+  }, [checkoutSyncAttempted, searchParams, t, uid]);
 
   const role = useMemo(() => resolveRole(userData), [userData]);
   const allowedPlans = useMemo(() => allowedPlansForRole(role), [role]);

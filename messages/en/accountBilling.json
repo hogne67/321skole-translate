@@ -86,6 +86,8 @@
       "inactive": "No paid plan"
     },
     "statusBox": {
+      "syncingCheckout": "Updating your access after payment ...",
+      "checkoutSynced": "Payment registered. Your access is updating now.",
       "active": "Your subscription is active. You can manage payment details, cancel, or change plan in the billing portal.",
       "paymentIssue": "There is a payment issue on this subscription. Please open the billing portal and review the payment details.",
       "inactive": "You do not currently have an active paid subscription. The free plan, partner access, or a school license may still give you access."
@@ -101,6 +103,7 @@
     "errors": {
       "mustBeSignedIn": "You must be signed in.",
       "checkoutFailed": "Checkout failed ({status})",
+      "checkoutSyncFailed": "The payment completed, but the page could not update your access automatically. Try refreshing the page shortly.",
       "missingPrice": "Payment is not enabled for this plan yet.",
       "portalFailed": "Portal failed ({status})",
       "checkoutMissingUrl": "Checkout returned without a URL.",

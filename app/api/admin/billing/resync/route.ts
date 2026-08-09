@@ -4,7 +4,10 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAdminApp } from "@/lib/firebaseAdmin";
 import { getStripe } from "@/lib/stripe";
-import { syncFromStripeSubscription } from "@/lib/billing/sync";
+import {
+  syncFromCheckoutSession,
+  syncFromStripeSubscription,
+} from "@/lib/billing/sync";
 
 export const runtime = "nodejs";
 
@@ -108,6 +111,50 @@ function pickBestSubscription(subscriptions: Stripe.Subscription[]): Stripe.Subs
   return sorted[0] ?? null;
 }
 
+function getSubscriptionIdFromSession(session: Stripe.Checkout.Session): string | null {
+  if (!session.subscription) return null;
+  return typeof session.subscription === "string"
+    ? session.subscription
+    : session.subscription.id ?? null;
+}
+
+function summarizeCheckoutSession(session: Stripe.Checkout.Session) {
+  return {
+    id: session.id,
+    mode: session.mode ?? null,
+    status: session.status ?? null,
+    paymentStatus: session.payment_status ?? null,
+    customerId:
+      typeof session.customer === "string"
+        ? session.customer
+        : session.customer?.id ?? null,
+    subscriptionId: getSubscriptionIdFromSession(session),
+    uid: session.metadata?.uid ?? null,
+    role: session.metadata?.role ?? null,
+    plan: session.metadata?.plan ?? null,
+    amountTotal: session.amount_total ?? null,
+    currency: session.currency ?? null,
+    created: session.created ?? null,
+  };
+}
+
+async function syncFromCheckoutSessionWithSubscription(
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+  fallbackUid: string | null
+) {
+  await syncFromCheckoutSession(session);
+
+  const subscriptionId = getSubscriptionIdFromSession(session);
+  if (!subscriptionId) {
+    return null;
+  }
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  await syncFromStripeSubscription(subscription, fallbackUid ?? session.metadata?.uid ?? null);
+  return subscription;
+}
+
 export async function POST(req: NextRequest) {
   try {
     await verifyAdmin(req);
@@ -115,6 +162,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json().catch(() => ({}))) as {
       uid?: string;
       customerId?: string;
+      sessionId?: string;
     };
 
     const uidFromBody =
@@ -125,8 +173,66 @@ export async function POST(req: NextRequest) {
         ? body.customerId.trim()
         : null;
 
+    const sessionIdFromBody =
+      typeof body.sessionId === "string" && body.sessionId.trim()
+        ? body.sessionId.trim()
+        : null;
+
     let uid = uidFromBody;
     let customerId = customerIdFromBody;
+    const stripe = getStripe();
+
+    if (sessionIdFromBody) {
+      const session = await stripe.checkout.sessions.retrieve(sessionIdFromBody);
+      const sessionUid = session.metadata?.uid ?? null;
+      const sessionCustomerId =
+        typeof session.customer === "string"
+          ? session.customer
+          : session.customer?.id ?? null;
+
+      uid = uid ?? sessionUid;
+      customerId = customerId ?? sessionCustomerId;
+
+      if (!uid) {
+        return NextResponse.json(
+          {
+            error: "Could not resolve uid from checkout session",
+            session: summarizeCheckoutSession(session),
+          },
+          { status: 404 }
+        );
+      }
+
+      const isCompletedSubscriptionSession =
+        session.mode === "subscription" &&
+        getSubscriptionIdFromSession(session) &&
+        (session.status === "complete" || session.payment_status === "paid");
+
+      if (!isCompletedSubscriptionSession) {
+        return NextResponse.json(
+          {
+            error: "Checkout session is not a completed subscription checkout",
+            uid,
+            customerId,
+            session: summarizeCheckoutSession(session),
+          },
+          { status: 409 }
+        );
+      }
+
+      const subscription = await syncFromCheckoutSessionWithSubscription(stripe, session, uid);
+
+      return NextResponse.json({
+        ok: true,
+        source: "checkout_session",
+        uid,
+        customerId,
+        session: summarizeCheckoutSession(session),
+        subscriptionId: subscription?.id ?? getSubscriptionIdFromSession(session),
+        status: subscription?.status ?? null,
+        priceId: subscription?.items.data[0]?.price?.id ?? null,
+      });
+    }
 
     if (!uid && !customerId) {
       return NextResponse.json(
@@ -157,8 +263,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const stripe = getStripe();
-
     const subscriptionsResponse = await stripe.subscriptions.list({
       customer: customerId,
       status: "all",
@@ -168,11 +272,49 @@ export async function POST(req: NextRequest) {
     const subscription = pickBestSubscription(subscriptionsResponse.data);
 
     if (!subscription) {
+      const sessionsResponse = await stripe.checkout.sessions.list({
+        customer: customerId,
+        limit: 20,
+      });
+
+      const checkoutSessions = sessionsResponse.data.map(summarizeCheckoutSession);
+      const syncableSession = sessionsResponse.data.find(
+        (session) =>
+          session.mode === "subscription" &&
+          getSubscriptionIdFromSession(session) &&
+          (session.status === "complete" || session.payment_status === "paid")
+      );
+
+      if (syncableSession) {
+        const syncedSubscription = await syncFromCheckoutSessionWithSubscription(
+          stripe,
+          syncableSession,
+          uid
+        );
+
+        return NextResponse.json({
+          ok: true,
+          source: "checkout_session_lookup",
+          uid,
+          customerId,
+          session: summarizeCheckoutSession(syncableSession),
+          subscriptionId: syncedSubscription?.id ?? getSubscriptionIdFromSession(syncableSession),
+          status: syncedSubscription?.status ?? null,
+          priceId: syncedSubscription?.items.data[0]?.price?.id ?? null,
+          checkoutSessions,
+        });
+      }
+
       return NextResponse.json(
         {
           error: "No subscriptions found for customer",
           uid,
           customerId,
+          checkoutSessions,
+          hint:
+            checkoutSessions.length === 0
+              ? "Stripe has no subscription checkout sessions for this customer."
+              : "Stripe has checkout sessions for this customer, but none with a completed subscription.",
         },
         { status: 404 }
       );

@@ -86,6 +86,8 @@
       "inactive": "Sem plano pago"
     },
     "statusBox": {
+      "syncingCheckout": "Atualizando seu acesso após o pagamento ...",
+      "checkoutSynced": "Pagamento registrado. Seu acesso está sendo atualizado.",
       "active": "Sua assinatura está ativa. Você pode gerenciar os dados de pagamento, cancelar ou mudar de plano no portal de cobrança.",
       "paymentIssue": "Há um problema de pagamento na sua assinatura. Abra o portal de cobrança e revise as informações de pagamento.",
       "inactive": "Você não tem uma assinatura paga ativa no momento. O plano grátis, acesso de parceiro ou licença escolar ainda podem dar acesso."
@@ -101,6 +103,7 @@
     "errors": {
       "mustBeSignedIn": "Você precisa estar conectado.",
       "checkoutFailed": "O checkout falhou ({status})",
+      "checkoutSyncFailed": "O pagamento foi concluído, mas a página não conseguiu atualizar o acesso automaticamente. Tente atualizar a página em instantes.",
       "missingPrice": "O pagamento ainda não está ativado para este plano.",
       "portalFailed": "O portal falhou ({status})",
       "checkoutMissingUrl": "O checkout retornou sem URL.",

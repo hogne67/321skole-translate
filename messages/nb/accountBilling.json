@@ -86,6 +86,8 @@
       "inactive": "Ingen betalt plan"
     },
     "statusBox": {
+      "syncingCheckout": "Oppdaterer tilgangen etter betaling ...",
+      "checkoutSynced": "Betalingen er registrert. Tilgangen oppdateres nå.",
       "active": "Abonnementet ditt er aktivt. Du kan administrere betalingsdetaljer, kansellere eller endre plan i betalingsportalen.",
       "paymentIssue": "Det er et betalingsproblem på abonnementet ditt. Åpne betalingsportalen og kontroller betalingsinformasjonen.",
       "inactive": "Du har ikke et aktivt betalt abonnement akkurat nå. Gratisplan, partner-tilgang eller skolelisens kan likevel gi deg tilgang."
@@ -101,6 +103,7 @@
     "errors": {
       "mustBeSignedIn": "Du må være logget inn.",
       "checkoutFailed": "Checkout mislyktes ({status})",
+      "checkoutSyncFailed": "Betalingen gikk gjennom, men siden klarte ikke å oppdatere tilgangen automatisk. Prøv å laste siden på nytt om litt.",
       "missingPrice": "Betaling er ikke aktivert for denne planen ennå.",
       "portalFailed": "Portalen mislyktes ({status})",
       "checkoutMissingUrl": "Checkout returnerte uten URL.",

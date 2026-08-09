@@ -49,6 +49,7 @@ const ORDER_ACTIONS: Array<{ value: OrderAction; label: string }> = [
 export default function AdminBillingPage() {
   const [uid, setUid] = useState("");
   const [customerId, setCustomerId] = useState("");
+  const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [result, setResult] = useState<string>("");
@@ -81,6 +82,7 @@ export default function AdminBillingPage() {
         body: JSON.stringify({
           uid: uid || undefined,
           customerId: customerId || undefined,
+          sessionId: sessionId || undefined,
         }),
       });
 
@@ -306,7 +308,7 @@ export default function AdminBillingPage() {
           </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+        <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
           <input
             placeholder="UID (optional)"
             value={uid}
@@ -318,6 +320,13 @@ export default function AdminBillingPage() {
             placeholder="Customer ID (optional)"
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
+            style={inputStyle}
+          />
+
+          <input
+            placeholder="Checkout session ID (optional)"
+            value={sessionId}
+            onChange={(e) => setSessionId(e.target.value)}
             style={inputStyle}
           />
 

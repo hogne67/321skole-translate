@@ -274,7 +274,7 @@ export async function POST(req: NextRequest) {
         },
       ],
       allow_promotion_codes: true,
-      success_url: accountBillingUrl(req, "?checkout=success"),
+      success_url: accountBillingUrl(req, "?checkout=success&session_id={CHECKOUT_SESSION_ID}"),
       cancel_url: accountBillingUrl(req, "?checkout=cancel"),
       metadata: {
         uid: user.uid,
