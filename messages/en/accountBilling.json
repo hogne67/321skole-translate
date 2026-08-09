@@ -101,6 +101,7 @@
     "errors": {
       "mustBeSignedIn": "You must be signed in.",
       "checkoutFailed": "Checkout failed ({status})",
+      "missingPrice": "Payment is not enabled for this plan yet.",
       "portalFailed": "Portal failed ({status})",
       "checkoutMissingUrl": "Checkout returned without a URL.",
       "portalMissingUrl": "Portal returned without a URL.",

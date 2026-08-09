@@ -152,11 +152,9 @@ export function getCheckoutPriceId(
   const legacyEnv = PRICE_ENV_BY_ROLE_PLAN[role][plan];
   if (!legacyEnv) return null;
 
-  if (market === "no") {
-    return required(legacyEnv);
-  }
+  if (market === "no") return required(legacyEnv);
 
-  return process.env[legacyEnv] ?? null;
+  return null;
 }
 
 export function getPriceEnvName(

@@ -101,6 +101,7 @@
     "errors": {
       "mustBeSignedIn": "Du må være logget inn.",
       "checkoutFailed": "Checkout mislyktes ({status})",
+      "missingPrice": "Betaling er ikke aktivert for denne planen ennå.",
       "portalFailed": "Portalen mislyktes ({status})",
       "checkoutMissingUrl": "Checkout returnerte uten URL.",
       "portalMissingUrl": "Portalen returnerte uten URL.",

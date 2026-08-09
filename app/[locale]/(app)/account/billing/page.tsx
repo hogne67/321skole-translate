@@ -55,6 +55,8 @@ type BillingPrice = {
   active: boolean;
 };
 
+type CheckoutMarket = "no" | "br" | "uk";
+
 function resolveRole(data: UserDocData | null): BillingRole | null {
   if (!data) return null;
 
@@ -99,6 +101,20 @@ function isActiveSubscription(status: BillingStatus | null | undefined): boolean
 
 function hasPaymentIssue(status: BillingStatus | null | undefined): boolean {
   return status === "past_due" || status === "unpaid" || status === "incomplete";
+}
+
+function shouldUseStripePrice(locale: string, currency: string | null | undefined): boolean {
+  const normalizedCurrency = String(currency ?? "").toLowerCase();
+
+  if (locale === "pt") return normalizedCurrency === "brl";
+
+  return Boolean(normalizedCurrency);
+}
+
+function marketFromLocale(locale: string): CheckoutMarket {
+  if (locale === "pt") return "br";
+  if (locale === "en") return "uk";
+  return "no";
 }
 
 function getStatusTone(status: BillingStatus | null | undefined): {
@@ -260,7 +276,11 @@ export default function BillingPage() {
 
   function priceForPlan(plan: CheckoutPlan) {
     const stripePrice = stripePrices.find((price) => price.plan === plan);
-    if (stripePrice?.currency && typeof stripePrice.unitAmount === "number") {
+    if (
+      stripePrice?.currency &&
+      typeof stripePrice.unitAmount === "number" &&
+      shouldUseStripePrice(locale, stripePrice.currency)
+    ) {
       const amount = stripePrice.unitAmount / 100;
       const formatted = new Intl.NumberFormat(locale, {
         style: "currency",
@@ -375,7 +395,7 @@ export default function BillingPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, market: marketFromLocale(locale) }),
       });
 
       const text = await res.text();
@@ -389,6 +409,13 @@ export default function BillingPage() {
 
       if (!res.ok) {
         const serverError = typeof data.error === "string" ? data.error : null;
+        const errorCode = typeof data.errorCode === "string" ? data.errorCode : null;
+
+        if (errorCode === "missingPrice") {
+          setMessage(t("errors.missingPrice"));
+          return;
+        }
+
         setMessage(
           serverError
             ? `${t("errors.checkoutFailed", { status: res.status })}: ${serverError}`

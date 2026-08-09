@@ -68,7 +68,7 @@
       "basicDescription": "Um bom nível inicial para uso regular.",
       "plusDescription": "Mais capacidade e mais recursos premium.",
       "proDescription": "Mais relevante para professores com necessidades maiores.",
-      "proDescriptionStudentParent": "Para uso frequente da 321school com mais IA, geradores e impressões."
+      "proDescriptionStudentParent": "Para uso frequente da 321escola com mais IA, geradores e impressões."
     },
     "prices": {
       "basic": "R$ 79 / mês",
@@ -101,6 +101,7 @@
     "errors": {
       "mustBeSignedIn": "Você precisa estar conectado.",
       "checkoutFailed": "O checkout falhou ({status})",
+      "missingPrice": "O pagamento ainda não está ativado para este plano.",
       "portalFailed": "O portal falhou ({status})",
       "checkoutMissingUrl": "O checkout retornou sem URL.",
       "portalMissingUrl": "O portal retornou sem URL.",

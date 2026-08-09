@@ -19,6 +19,7 @@ const USER_COLLECTION = "users";
 
 type CheckoutBody = {
   plan?: string;
+  market?: string;
 };
 
 function readBearerToken(req: NextRequest): string | null {
@@ -30,6 +31,10 @@ function readBearerToken(req: NextRequest): string | null {
 
 function requestHost(req: NextRequest): string | null {
   return req.headers.get("x-forwarded-host") || req.headers.get("host");
+}
+
+function isBillingMarket(value: unknown): value is BillingMarket {
+  return value === "no" || value === "br" || value === "uk";
 }
 
 function requestOrigin(req: NextRequest): string {
@@ -188,12 +193,13 @@ export async function POST(req: NextRequest) {
   } = {};
 
   try {
-    const market = getBillingMarketFromHost(requestHost(req));
-    logContext.market = market;
-
     const { uid } = await verifyUser(req);
     logContext.uid = uid;
     const body = (await req.json().catch(() => ({}))) as CheckoutBody;
+    const market = isBillingMarket(body.market)
+      ? body.market
+      : getBillingMarketFromHost(requestHost(req));
+    logContext.market = market;
 
     const requestedPlanRaw = body.plan;
     if (!isBillingPlan(requestedPlanRaw) || requestedPlanRaw === "free") {
@@ -215,7 +221,13 @@ export async function POST(req: NextRequest) {
     const priceId = getCheckoutPriceId(user.role, requestedPlanRaw, market);
     logContext.priceId = priceId;
     if (!priceId) {
-      return NextResponse.json({ error: "Missing Stripe priceId" }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: "Missing Stripe priceId",
+          errorCode: "missingPrice",
+        },
+        { status: 400 }
+      );
     }
 
     const customerId = await getOrCreateCustomer({
