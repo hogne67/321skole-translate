@@ -250,6 +250,18 @@ export default function PricingPage() {
           t={t}
         />
 
+        <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5 text-sm text-slate-600">
+          <span>{t("footer.note")}</span>
+          <Link className="font-semibold text-slate-800 hover:text-blue-700" href={`/${locale}/sales-terms`}>
+            {t("footer.salesTerms")}
+          </Link>
+          <Link className="font-semibold text-slate-800 hover:text-blue-700" href={`/${locale}/privacy`}>
+            {t("footer.privacy")}
+          </Link>
+          <Link className="font-semibold text-slate-800 hover:text-blue-700" href={`/${locale}/contact`}>
+            {t("footer.contact")}
+          </Link>
+        </div>
       </div>
     </main>
   );

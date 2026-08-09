@@ -28,7 +28,7 @@ const content = {
   pt: {
     back: "Voltar para a página inicial",
     eyebrow: "Contato",
-    title: "Entre em contato com a 321school.",
+    title: "Entre em contato com a 321escola.",
     lead: "Tem perguntas, ideias, feedback ou quer colaborar? Envie um e-mail.",
     email: "Enviar e-mail",
     company: "Informações da empresa",

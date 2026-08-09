@@ -2,7 +2,7 @@
   "pricing": {
     "hero": {
       "title": "Priser og planer",
-      "subtitle": "321 Skole er laget slik at alle kan lære gratis. Når du trenger mer kapasitet, flere AI-funksjoner og mer samarbeid, kan du oppgradere til planen som passer din rolle."
+      "subtitle": "321skole er laget slik at alle kan lære gratis. Når du trenger mer kapasitet, flere AI-funksjoner og mer samarbeid, kan du oppgradere til planen som passer din rolle."
     },
     "buttons": {
       "back": "Til forsiden",
@@ -60,7 +60,10 @@
       "starFeedback": "Feedback med stjerner"
     },
     "footer": {
-      "note": "Priser, grenser og innhold kan bli justert før lansering."
+      "note": "Priser, grenser og innhold kan bli justert før lansering.",
+      "salesTerms": "Salgsvilkår",
+      "privacy": "Personvern",
+      "contact": "Kontakt"
     }
   }
 }

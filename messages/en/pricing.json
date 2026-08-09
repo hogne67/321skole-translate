@@ -60,7 +60,10 @@
       "starFeedback": "Feedback with stars"
     },
     "footer": {
-      "note": "Prices, limits, and content may be adjusted before launch."
+      "note": "Prices, limits, and content may be adjusted before launch.",
+      "salesTerms": "Sales terms",
+      "privacy": "Privacy",
+      "contact": "Contact"
     }
   }
 }

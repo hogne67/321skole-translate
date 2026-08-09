@@ -116,13 +116,13 @@ const content = {
   pt: {
     back: "Voltar para a página inicial",
     eyebrow: "Privacidade",
-    title: "Política de Privacidade da 321school",
+    title: "Política de Privacidade da 321escola",
     intro:
-      "A 321school trata dados pessoais para fornecer login, conteúdo de aprendizagem, ligação com alunos, comunicação e funcionamento necessário do serviço.",
+      "A 321escola trata dados pessoais para fornecer login, conteúdo de aprendizagem, ligação com alunos, comunicação e funcionamento necessário do serviço.",
     updated: "Última atualização: 2 de agosto de 2026",
     controllerTitle: "Responsável e contato",
     controllerText:
-      "A 321school é operada pela Fjord service. Para perguntas sobre privacidade, acesso, correção ou exclusão, entre em contato pelo e-mail post@321skole.no.",
+      "A 321escola é operada pela Fjord service. Para perguntas sobre privacidade, acesso, correção ou exclusão, entre em contato pelo e-mail post@321skole.no.",
     company: "Fjord service",
     org: "N.º da empresa 968 400 789",
     address: "Røysegata 19, 6003 Ålesund, Noruega",
@@ -140,12 +140,12 @@ const content = {
       {
         title: "Escolas, professores e alunos",
         text:
-          "Quando uma escola ou professor usa a 321school com alunos, os dados são tratados para fornecer acesso a salas, atividades, entregas, quadro, feedback e outros conteúdos de aprendizagem. O uso escolar pode ser regulado por acordos e rotinas próprios.",
+          "Quando uma escola ou professor usa a 321escola com alunos, os dados são tratados para fornecer acesso a salas, atividades, entregas, quadro, feedback e outros conteúdos de aprendizagem. O uso escolar pode ser regulado por acordos e rotinas próprios.",
       },
       {
         title: "Operadores e funcionamento",
         text:
-          "A 321school pode usar fornecedores necessários para operação técnica, login, armazenamento, pagamento, segurança e comunicação. Esses fornecedores devem tratar dados apenas para entregar o serviço e conforme acordo.",
+          "A 321escola pode usar fornecedores necessários para operação técnica, login, armazenamento, pagamento, segurança e comunicação. Esses fornecedores devem tratar dados apenas para entregar o serviço e conforme acordo.",
       },
       {
         title: "Armazenamento e exclusão",

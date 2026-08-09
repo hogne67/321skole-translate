@@ -1495,6 +1495,18 @@ function FooterSection(props: { t: TFn; locale: string; currentYear: number }) {
             </Link>
             <Link
               className="text-slate-700 hover:text-slate-900"
+              href={localizedPath(props.locale, "/terms")}
+            >
+              {props.t("footer.terms")}
+            </Link>
+            <Link
+              className="text-slate-700 hover:text-slate-900"
+              href={localizedPath(props.locale, "/sales-terms")}
+            >
+              {props.t("footer.salesTerms")}
+            </Link>
+            <Link
+              className="text-slate-700 hover:text-slate-900"
               href={localizedPath(props.locale, "/contact")}
             >
               {props.t("footer.contact")}

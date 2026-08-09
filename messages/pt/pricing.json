@@ -60,7 +60,10 @@
       "starFeedback": "Feedback com estrelas"
     },
     "footer": {
-      "note": "Preços, limites e conteúdo podem ser ajustados antes do lançamento."
+      "note": "Preços, limites e conteúdo podem ser ajustados antes do lançamento.",
+      "salesTerms": "Termos de venda",
+      "privacy": "Privacidade",
+      "contact": "Contato"
     }
   }
 }

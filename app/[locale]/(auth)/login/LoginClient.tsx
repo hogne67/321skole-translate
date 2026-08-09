@@ -2,6 +2,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import {
@@ -1007,6 +1008,23 @@ export default function LoginClient() {
                 {safeT("legal.privacy", "Privacy Policy")}
               </button>
               .
+            </div>
+            <div style={{ ...legalTextStyle, marginTop: 8 }}>
+              <Link href={`/${locale}/privacy`} style={footerLinkButtonStyle}>
+                {safeT("legal.privacy", "Privacy Policy")}
+              </Link>
+              <span aria-hidden="true"> · </span>
+              <Link href={`/${locale}/terms`} style={footerLinkButtonStyle}>
+                {safeT("legal.terms", "Terms")}
+              </Link>
+              <span aria-hidden="true"> · </span>
+              <Link href={`/${locale}/sales-terms`} style={footerLinkButtonStyle}>
+                {safeT("legal.salesTerms", "Sales terms")}
+              </Link>
+              <span aria-hidden="true"> · </span>
+              <Link href={`/${locale}/contact`} style={footerLinkButtonStyle}>
+                {safeT("legal.contact", "Contact")}
+              </Link>
             </div>
           </div>
         </div>
