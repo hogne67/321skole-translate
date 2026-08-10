@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#f8fafc"/>
+  <circle cx="256" cy="252" r="178" fill="none" stroke="#0f5fa8" stroke-width="26"/>
+  <path d="M104 319c84-78 204-92 304-36" fill="none" stroke="#37a8df" stroke-width="24" stroke-linecap="round"/>
+  <path d="M152 140c86 22 166 81 227 181" fill="none" stroke="#0f5fa8" stroke-width="22" stroke-linecap="round"/>
+  <path d="M275 78c-64 90-78 196-42 325" fill="none" stroke="#37a8df" stroke-width="22" stroke-linecap="round"/>
+  <circle cx="142" cy="158" r="24" fill="#37a8df"/>
+  <circle cx="192" cy="275" r="23" fill="#37a8df"/>
+  <circle cx="334" cy="215" r="26" fill="#0f5fa8"/>
+  <circle cx="349" cy="372" r="21" fill="#37a8df"/>
+  <text x="255" y="276" text-anchor="middle" font-family="Arial, sans-serif" font-size="78" font-weight="900" fill="#0f5fa8" transform="rotate(8 255 276)">321</text>
+  <circle cx="374" cy="374" r="88" fill="#fff"/>
+  <circle cx="374" cy="374" r="75" fill="#16a34a"/>
+  <text x="374" y="401" text-anchor="middle" font-family="Arial, sans-serif" font-size="82" font-weight="900" fill="#fff">B</text>
+</svg>

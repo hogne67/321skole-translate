@@ -15,7 +15,6 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
-  logout,
   sendVerificationEmail,
   signInWithFeide,
   signInWithGoogle,
@@ -253,10 +252,6 @@ export default function LoginClient() {
     }
   }
 
-  function isEmailPasswordUser(user: User): boolean {
-    return user.providerData.some((provider) => provider.providerId === "password");
-  }
-
   function verificationSettings() {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     return origin
@@ -306,22 +301,6 @@ export default function LoginClient() {
         acceptedFrom: source,
       },
     });
-  }
-
-  async function stopIfEmailNotVerified(user: User): Promise<boolean> {
-    if (!isEmailPasswordUser(user) || user.emailVerified) return false;
-
-    await sendVerification(user).catch((err) => {
-      console.warn("verification email failed", err);
-    });
-    await logout();
-    setInfo(
-      safeT(
-        "messages.verifyRequired",
-        "Verify your email before continuing. We have sent you a new verification link if we could."
-      )
-    );
-    return true;
   }
 
   async function handleGoogle() {
@@ -454,7 +433,6 @@ export default function LoginClient() {
 
       if (mode === "signin") {
         const cred = await signInWithEmail(e, password);
-        if (await stopIfEmailNotVerified(cred.user)) return;
         await recordExistingLogin(cred.user);
 
         trackEvent("login", {

@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { logout } from "@/lib/auth";
 import { useLocale } from "next-intl";
 
 type Role = "student" | "teacher" | "admin" | "parent" | "creator";
@@ -48,15 +47,6 @@ function hasRequiredRole(profile: unknown, requireRole: Role): boolean {
   }
 
   return false;
-}
-
-function isUnverifiedEmailPasswordUser(
-  user: NonNullable<ReturnType<typeof useUserProfile>["user"]>
-): boolean {
-  return (
-    !user.emailVerified &&
-    user.providerData.some((provider) => provider.providerId === "password")
-  );
 }
 
 export default function AuthGate({
@@ -138,15 +128,6 @@ export default function AuthGate({
         router.replace(nextUrl);
         return;
       }
-      return;
-    }
-
-    if (isUnverifiedEmailPasswordUser(user)) {
-      logout()
-        .catch((err) => console.warn("logout failed", err))
-        .finally(() => {
-          router.replace(`/${locale}/login?verify=required`);
-        });
       return;
     }
 

@@ -86,9 +86,9 @@ export default function InstallAppButton() {
         return;
       }
 
-      setResultMessage("Installasjonen ble avbrutt.");
+      setResultMessage("Snarveien ble ikke lagt til.");
     } catch {
-      setResultMessage("Kunne ikke åpne installasjonen. Prøv igjen senere.");
+      setResultMessage("Kunne ikke åpne valget for startskjerm. Prøv igjen senere.");
     } finally {
       setIsPrompting(false);
     }
@@ -99,10 +99,10 @@ export default function InstallAppButton() {
   return (
     <Card className="mt-5 flex flex-wrap items-center justify-between gap-3 p-4">
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-extrabold text-slate-900">Ha 321skole lett tilgjengelig</div>
+        <div className="text-sm font-extrabold text-slate-900">Legg 321skole på startskjermen</div>
         {showIosHelp ? (
           <p className="mt-1 text-sm text-slate-600">
-            Trykk Del-knappen og velg Legg til på Hjem-skjerm.
+            Trykk Del-knappen og velg Legg til på Hjem-skjerm. Dette lager en snarvei til nettsiden.
           </p>
         ) : null}
         {resultMessage ? <p className="mt-1 text-sm text-slate-600">{resultMessage}</p> : null}
@@ -110,7 +110,7 @@ export default function InstallAppButton() {
 
       {installPrompt ? (
         <Button type="button" variant="primary" onClick={handleInstall} disabled={isPrompting}>
-          Legg til på startskjerm
+          Legg til snarvei
         </Button>
       ) : null}
     </Card>

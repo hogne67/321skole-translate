@@ -19,16 +19,16 @@ export async function GET(_request: Request, { params }: Props) {
     theme_color: "#16a34a",
     icons: [
       {
-        src: "/pwa-icon-192.png",
-        sizes: "192x192",
-        type: "image/png",
+        src: "/pwa-child-icon.svg",
+        sizes: "512x512",
+        type: "image/svg+xml",
         purpose: "any maskable",
       },
       {
         src: "/pwa-icon-512.png",
         sizes: "512x512",
         type: "image/png",
-        purpose: "any maskable",
+        purpose: "any",
       },
     ],
   }, {
