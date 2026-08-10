@@ -10,6 +10,7 @@ import { logout } from "@/lib/auth";
 import { useLocale } from "next-intl";
 
 type Role = "student" | "teacher" | "admin" | "parent" | "creator";
+const EMAIL_VERIFICATION_REQUIRED_FROM = Date.parse("2026-08-10T00:00:00+02:00");
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -53,8 +54,12 @@ function hasRequiredRole(profile: unknown, requireRole: Role): boolean {
 function isUnverifiedEmailPasswordUser(
   user: NonNullable<ReturnType<typeof useUserProfile>["user"]>
 ): boolean {
+  const createdAt = Date.parse(user.metadata.creationTime || "");
+
   return (
     !user.emailVerified &&
+    Number.isFinite(createdAt) &&
+    createdAt >= EMAIL_VERIFICATION_REQUIRED_FROM &&
     user.providerData.some((provider) => provider.providerId === "password")
   );
 }

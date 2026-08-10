@@ -16,6 +16,7 @@ function requireDb(x: Firestore | null | undefined): Firestore {
 }
 
 type AppRole = "student" | "teacher" | "parent";
+const EMAIL_VERIFICATION_REQUIRED_FROM = Date.parse("2026-08-10T00:00:00+02:00");
 
 function normalizeRole(raw: unknown): AppRole | null {
   const r = String(raw ?? "").toLowerCase();
@@ -113,8 +114,12 @@ function nextMatchesRole(next: string, role: AppRole, locale: string): boolean {
 function isUnverifiedEmailPasswordUser(
   user: NonNullable<ReturnType<typeof useUserProfile>["user"]>
 ): boolean {
+  const createdAt = Date.parse(user.metadata.creationTime || "");
+
   return (
     !user.emailVerified &&
+    Number.isFinite(createdAt) &&
+    createdAt >= EMAIL_VERIFICATION_REQUIRED_FROM &&
     user.providerData.some((provider) => provider.providerId === "password")
   );
 }

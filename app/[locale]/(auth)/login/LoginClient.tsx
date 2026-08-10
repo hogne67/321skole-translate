@@ -68,6 +68,7 @@ type Mode = "signin" | "signup";
 type LoginMethod = "choice" | "email";
 type LegalModalType = "terms" | "privacy" | null;
 const LEGAL_VERSION = "2026-08-09";
+const EMAIL_VERIFICATION_REQUIRED_FROM = Date.parse("2026-08-10T00:00:00+02:00");
 
 function GoogleIcon() {
   return (
@@ -308,8 +309,14 @@ export default function LoginClient() {
     return user.providerData.some((provider) => provider.providerId === "password");
   }
 
+  function shouldRequireEmailVerification(user: User): boolean {
+    const createdAt = Date.parse(user.metadata.creationTime || "");
+    return Number.isFinite(createdAt) && createdAt >= EMAIL_VERIFICATION_REQUIRED_FROM;
+  }
+
   async function stopIfEmailNotVerified(user: User): Promise<boolean> {
     if (!isEmailPasswordUser(user) || user.emailVerified) return false;
+    if (!shouldRequireEmailVerification(user)) return false;
 
     await sendBestVerificationEmail(user).catch((err) => {
       console.warn("verification email failed", err);

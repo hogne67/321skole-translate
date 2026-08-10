@@ -1,8 +1,7 @@
 // app/api/email/welcome/route.ts
 import { NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import "@/lib/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
+import { getAdmin } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -66,7 +65,7 @@ async function logEmailAttempt(data: {
     provider?: "resend";
 }) {
     try {
-        const db = getFirestore();
+        const { db } = getAdmin();
 
         await db.collection("emailLogs").add({
             ...data,
@@ -96,7 +95,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const auth = getAuth();
+        const { auth } = getAdmin();
         const baseUrl = getBaseUrl();
 
         let verifyUrl = `${baseUrl}/${locale}/login`;
