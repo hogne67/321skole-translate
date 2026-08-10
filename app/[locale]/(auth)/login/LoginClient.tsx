@@ -15,6 +15,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
+  logout,
   sendVerificationEmail,
   signInWithFeide,
   signInWithGoogle,
@@ -267,6 +268,62 @@ export default function LoginClient() {
     await sendVerificationEmail(user, verificationSettings());
   }
 
+  async function sendBrandedVerificationEmail(input: {
+    email: string;
+    displayName?: string | null;
+  }): Promise<boolean> {
+    const emailAddress = input.email.trim();
+    if (!emailAddress) return false;
+
+    try {
+      const response = await fetch("/api/email/welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: emailAddress,
+          displayName: input.displayName?.trim() || displayName.trim(),
+          locale,
+        }),
+      });
+
+      return response.ok;
+    } catch (mailErr) {
+      console.error("verification email failed", mailErr);
+      return false;
+    }
+  }
+
+  async function sendBestVerificationEmail(user: User, fallbackEmail?: string) {
+    const sentBranded = await sendBrandedVerificationEmail({
+      email: user.email || fallbackEmail || "",
+      displayName: user.displayName,
+    });
+
+    if (!sentBranded) {
+      await sendVerification(user);
+    }
+  }
+
+  function isEmailPasswordUser(user: User): boolean {
+    return user.providerData.some((provider) => provider.providerId === "password");
+  }
+
+  async function stopIfEmailNotVerified(user: User): Promise<boolean> {
+    if (!isEmailPasswordUser(user) || user.emailVerified) return false;
+
+    await sendBestVerificationEmail(user).catch((err) => {
+      console.warn("verification email failed", err);
+    });
+    await logout();
+    setInfo(
+      safeT(
+        "messages.verifyRequired",
+        "Check your email: You must verify your account before continuing. We have sent you a new verification link if we could."
+      )
+    );
+    return true;
+  }
+
   function needsSignupConfirmation() {
     return mode === "signup" || isAnon;
   }
@@ -433,6 +490,7 @@ export default function LoginClient() {
 
       if (mode === "signin") {
         const cred = await signInWithEmail(e, password);
+        if (await stopIfEmailNotVerified(cred.user)) return;
         await recordExistingLogin(cred.user);
 
         trackEvent("login", {
@@ -447,7 +505,7 @@ export default function LoginClient() {
       if (isAnon) {
         const user = await linkAnonymousWithEmailPassword(e, password);
         await saveLegalConfirmation(user, "email_anonymous_upgrade");
-        await sendVerification(user);
+        await sendBestVerificationEmail(user, e);
         trackSignUp("anonymous_upgrade");
 
         trackEvent("login", {
@@ -461,27 +519,13 @@ export default function LoginClient() {
 
       const cred = await signUpWithEmail(e, password, displayName.trim());
       await saveLegalConfirmation(cred.user, "email_signup");
-      await sendVerification(cred.user);
+      await sendBestVerificationEmail(cred.user, e);
       trackSignUp("email");
 
       trackEvent("login", {
         method: "email",
         type: "signup",
       });
-
-      try {
-        await fetch("/api/email/welcome", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: e,
-            displayName: displayName.trim(),
-            locale,
-          }),
-        });
-      } catch (mailErr) {
-        console.error("welcome email failed", mailErr);
-      }
 
       router.replace(`/${locale}/login?welcome=1`);
     } catch (err: unknown) {
@@ -754,12 +798,15 @@ export default function LoginClient() {
 
   const infoBoxStyle: React.CSSProperties = {
     marginTop: 14,
-    padding: 12,
-    borderRadius: 14,
-    border: "1px solid rgba(16,185,129,0.25)",
-    background: "rgba(16,185,129,0.08)",
-    color: "#065f46",
-    fontSize: 14,
+    padding: "15px 16px",
+    borderRadius: 16,
+    border: "1px solid rgba(13,148,136,0.42)",
+    background: "#ccfbf1",
+    color: "#0f4f46",
+    fontSize: 15,
+    fontWeight: 800,
+    lineHeight: 1.55,
+    boxShadow: "0 10px 24px rgba(13,148,136,0.12)",
   };
 
   const errorBoxStyle: React.CSSProperties = {
@@ -973,21 +1020,23 @@ export default function LoginClient() {
               </button>
             </div>
 
-            <label style={ageConfirmStyle}>
-              <input
-                type="checkbox"
-                checked={ageConfirmed}
-                onChange={(event) => setAgeConfirmed(event.target.checked)}
-                disabled={busy}
-                style={ageCheckboxStyle}
-              />
-              <span>
-                {safeT(
-                  "legal.ageConfirm",
-                  "I am 13 or older, or I use the service with a parent/guardian or school."
-                )}
-              </span>
-            </label>
+            {!showEmailForm ? (
+              <label style={ageConfirmStyle}>
+                <input
+                  type="checkbox"
+                  checked={ageConfirmed}
+                  onChange={(event) => setAgeConfirmed(event.target.checked)}
+                  disabled={busy}
+                  style={ageCheckboxStyle}
+                />
+                <span>
+                  {safeT(
+                    "legal.ageConfirm",
+                    "I am 13 or older, or I use the service with a parent/guardian or school."
+                  )}
+                </span>
+              </label>
+            ) : null}
 
             <div style={choiceGrid}>
               <button
@@ -1150,6 +1199,22 @@ export default function LoginClient() {
                       </button>
                     </div>
                   ) : null}
+
+                  <label style={{ ...ageConfirmStyle, margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={ageConfirmed}
+                      onChange={(event) => setAgeConfirmed(event.target.checked)}
+                      disabled={busy}
+                      style={ageCheckboxStyle}
+                    />
+                    <span>
+                      {safeT(
+                        "legal.ageConfirm",
+                        "I am 13 or older, or I use the service with a parent/guardian or school."
+                      )}
+                    </span>
+                  </label>
 
                   <button
                     type="button"

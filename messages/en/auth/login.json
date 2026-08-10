@@ -49,9 +49,9 @@
     },
     "messages": {
       "resetSent": "We sent you an email with a link to reset your password.",
-      "checkEmail": "Account created! Check your email to verify your account.",
+      "checkEmail": "Next step: Check your email and verify your account before logging in. Also check spam/junk if you cannot find it.",
       "verified": "Your email is verified. You can now log in.",
-      "verifyRequired": "Verify your email before continuing. We have sent you a new verification link if we could."
+      "verifyRequired": "Check your email: You must verify your account before continuing. Also check spam/junk if you cannot find it."
     },
     "hints": {
       "anonSignup": "Tip: If this email already exists, choose <b>I already have an account</b> instead.",

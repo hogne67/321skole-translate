@@ -25,6 +25,28 @@ function normalizeLocale(locale?: string) {
     return "nb";
 }
 
+function brandForLocale(locale: string) {
+    if (locale === "pt") return "321escola";
+    if (locale === "en") return "321school";
+    return "321skole";
+}
+
+function localAuthActionUrl(firebaseActionUrl: string, baseUrl: string, locale: string) {
+    try {
+        const source = new URL(firebaseActionUrl);
+        const params = new URLSearchParams(source.search);
+
+        if (!params.get("mode") || !params.get("oobCode")) {
+            return firebaseActionUrl;
+        }
+
+        params.set("lang", locale);
+        return `${baseUrl}/${locale}/auth/action?${params.toString()}`;
+    } catch {
+        return firebaseActionUrl;
+    }
+}
+
 function escapeHtml(value: string) {
     return value
         .replaceAll("&", "&amp;")
@@ -90,58 +112,70 @@ export async function POST(req: Request) {
 
         const firstName = displayName || "der";
         const safeName = escapeHtml(firstName);
-        const safeVerifyUrl = escapeHtml(verifyUrl);
+        const actionUrl = localAuthActionUrl(verifyUrl, baseUrl, locale);
+        const safeVerifyUrl = escapeHtml(actionUrl);
+        const brand = brandForLocale(locale);
+        const safeBrand = escapeHtml(brand);
 
         subject =
             locale === "pt"
-                ? "Bem-vindo ao 321"
+                ? `Confirme seu e-mail para ${brand}`
                 : locale === "en"
-                    ? "Welcome to 321"
-                    : "Velkommen til 321";
+                    ? `Verify your email for ${brand}`
+                    : `Bekreft e-posten din for ${brand}`;
 
         const html =
             locale === "pt"
                 ? `
           <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111">
-            <h2>Bem-vindo, ${safeName}!</h2>
-            <p>Obrigado por se registrar no 321.</p>
-            <p>Agora você pode entrar e começar a usar a plataforma.</p>
+            <h2>Confirme seu e-mail</h2>
+            <p>Olá, ${safeName}!</p>
+            <p>Obrigado por criar uma conta na ${safeBrand}. Clique no botão abaixo para confirmar seu e-mail antes de entrar.</p>
             <p>
               <a href="${safeVerifyUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
-                Verificar e-mail
+                Confirmar e-mail
               </a>
             </p>
+            <p>Se você não solicitou esta conta, pode ignorar este e-mail.</p>
+            <p>Se não encontrar o e-mail na caixa de entrada, verifique também spam/lixo eletrônico.</p>
             <p>Se o botão não funcionar, copie este link:</p>
             <p>${safeVerifyUrl}</p>
+            <p>Atenciosamente,<br />${safeBrand}</p>
           </div>
         `
                 : locale === "en"
                     ? `
           <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111">
-            <h2>Welcome, ${safeName}!</h2>
-            <p>Thanks for signing up for 321.</p>
-            <p>You can now log in and start using the platform.</p>
+            <h2>Verify your email</h2>
+            <p>Hi, ${safeName}!</p>
+            <p>Thanks for creating an account with ${safeBrand}. Click the button below to verify your email before logging in.</p>
             <p>
               <a href="${safeVerifyUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
                 Verify email
               </a>
             </p>
+            <p>If you did not request this account, you can ignore this email.</p>
+            <p>If you cannot find the email in your inbox, please also check spam or junk.</p>
             <p>If the button does not work, copy this link:</p>
             <p>${safeVerifyUrl}</p>
+            <p>Kind regards,<br />${safeBrand}</p>
           </div>
         `
                     : `
           <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111">
-            <h2>Velkommen, ${safeName}!</h2>
-            <p>Takk for at du registrerte deg på 321.</p>
-            <p>Du kan nå logge inn og begynne å bruke plattformen.</p>
+            <h2>Bekreft e-posten din</h2>
+            <p>Hei, ${safeName}!</p>
+            <p>Takk for at du opprettet konto hos ${safeBrand}. Klikk på knappen under for å bekrefte e-posten før du logger inn.</p>
             <p>
               <a href="${safeVerifyUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">
                 Bekreft e-post
               </a>
             </p>
+            <p>Hvis du ikke har bedt om denne kontoen, kan du ignorere denne e-posten.</p>
+            <p>Finner du ikke e-posten i innboksen, sjekk også søppelpost/junk.</p>
             <p>Hvis knappen ikke virker, kan du kopiere denne lenken:</p>
             <p>${safeVerifyUrl}</p>
+            <p>Vennlig hilsen<br />${safeBrand}</p>
           </div>
         `;
 

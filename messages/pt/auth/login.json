@@ -49,9 +49,9 @@
     },
     "messages": {
       "resetSent": "Enviamos um e-mail com um link para redefinir sua senha.",
-      "checkEmail": "Conta criada! Verifique seu e-mail para confirmar a conta.",
+      "checkEmail": "Próximo passo: verifique seu e-mail e confirme a conta antes de entrar. Veja também spam/lixo eletrônico se não encontrar.",
       "verified": "E-mail verificado. Agora você pode entrar.",
-      "verifyRequired": "Confirme seu e-mail antes de continuar. Enviamos um novo link de verificação se foi possível."
+      "verifyRequired": "Verifique seu e-mail: você precisa confirmar a conta antes de continuar. Veja também spam/lixo eletrônico se não encontrar."
     },
     "hints": {
       "anonSignup": "Dica: Se este e-mail já existir, escolha <b>Já tenho uma conta</b>.",

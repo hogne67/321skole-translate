@@ -49,9 +49,9 @@
     },
     "messages": {
       "resetSent": "Vi har sendt deg en e-post med en lenke for å tilbakestille passordet.",
-      "checkEmail": "Konto opprettet! Sjekk e-posten din for å bekrefte kontoen.",
+      "checkEmail": "Neste steg: Sjekk e-posten din og bekreft kontoen før du logger inn. Se også i søppelpost/junk hvis du ikke finner den.",
       "verified": "E-posten er bekreftet. Du kan nå logge inn.",
-      "verifyRequired": "Bekreft e-posten din før du fortsetter. Vi har sendt deg en ny bekreftelseslenke hvis det var mulig."
+      "verifyRequired": "Sjekk e-posten din: Du må bekrefte kontoen før du kan fortsette. Se også i søppelpost/junk hvis du ikke finner den."
     },
     "hints": {
       "anonSignup": "Tips: Hvis e-posten allerede finnes, velg <b>Jeg har allerede en konto</b> i stedet.",

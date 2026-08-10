@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { recordUserLogin } from "@/lib/userProfile";
 import { db } from "@/lib/firebase";
+import { logout } from "@/lib/auth";
 import { doc, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
@@ -109,6 +110,15 @@ function nextMatchesRole(next: string, role: AppRole, locale: string): boolean {
   return next.startsWith(`/${locale}/student`);
 }
 
+function isUnverifiedEmailPasswordUser(
+  user: NonNullable<ReturnType<typeof useUserProfile>["user"]>
+): boolean {
+  return (
+    !user.emailVerified &&
+    user.providerData.some((provider) => provider.providerId === "password")
+  );
+}
+
 export default function PostLoginPage() {
   const { user, profile, loading } = useUserProfile();
   const loginRecordedRef = useRef(false);
@@ -130,6 +140,15 @@ export default function PostLoginPage() {
     if (user.isAnonymous) {
       const target = `/${locale}/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`;
       router.replace(`/${locale}/login?next=${encodeURIComponent(target)}`);
+      return;
+    }
+
+    if (isUnverifiedEmailPasswordUser(user)) {
+      logout()
+        .catch((err) => console.warn("logout failed", err))
+        .finally(() => {
+          router.replace(`/${locale}/login?verify=required`);
+        });
       return;
     }
 
