@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import "@/lib/firebaseAdmin";
+import { Timestamp } from "firebase-admin/firestore";
+import { getAdmin } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -44,8 +43,8 @@ export async function GET(req: Request) {
             );
         }
 
-        const decoded = await getAuth().verifyIdToken(token);
-        const db = getFirestore();
+        const { auth, db } = getAdmin();
+        const decoded = await auth.verifyIdToken(token);
 
         const userSnap = await db.collection("users").doc(decoded.uid).get();
         const profile = userSnap.data() as UserDoc | undefined;

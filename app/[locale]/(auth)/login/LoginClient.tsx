@@ -124,6 +124,7 @@ export default function LoginClient() {
 
   const welcome = sp.get("welcome");
   const verified = sp.get("verified");
+  const verify = sp.get("verify");
 
   const safeT = useCallback(
     (key: string, fallback: string): string => {
@@ -170,10 +171,16 @@ export default function LoginClient() {
   }, []);
 
   useEffect(() => {
-    if (currentUser && !currentUser.isAnonymous && welcome !== "1" && verified !== "1") {
+    if (
+      currentUser &&
+      !currentUser.isAnonymous &&
+      welcome !== "1" &&
+      verified !== "1" &&
+      verify !== "required"
+    ) {
       router.replace(postLoginUrl);
     }
-  }, [currentUser, postLoginUrl, router, verified, welcome]);
+  }, [currentUser, postLoginUrl, router, verified, verify, welcome]);
 
   useEffect(() => {
     if (welcome === "1") {
@@ -287,7 +294,8 @@ export default function LoginClient() {
         }),
       });
 
-      return response.ok;
+      const result = (await response.json().catch(() => null)) as { ok?: unknown } | null;
+      return response.ok && result?.ok === true;
     } catch (mailErr) {
       console.error("verification email failed", mailErr);
       return false;
@@ -295,14 +303,14 @@ export default function LoginClient() {
   }
 
   async function sendBestVerificationEmail(user: User, fallbackEmail?: string) {
-    const sentBranded = await sendBrandedVerificationEmail({
+    await sendBrandedVerificationEmail({
       email: user.email || fallbackEmail || "",
       displayName: user.displayName,
+    }).catch((err) => {
+      console.warn("branded verification email failed", err);
     });
 
-    if (!sentBranded) {
-      await sendVerification(user);
-    }
+    await sendVerification(user);
   }
 
   function isEmailPasswordUser(user: User): boolean {

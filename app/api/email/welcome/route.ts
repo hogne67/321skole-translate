@@ -192,10 +192,13 @@ export async function POST(req: Request) {
                 provider: "resend",
             });
 
-            return NextResponse.json({
-                ok: false,
-                error: "email_not_configured",
-            });
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "email_not_configured",
+                },
+                { status: 503 }
+            );
         }
 
         const sendRes = await fetch("https://api.resend.com/emails", {
