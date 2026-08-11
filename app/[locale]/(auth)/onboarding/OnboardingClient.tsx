@@ -70,28 +70,10 @@ async function maybeSendParentVerification(user: User, locale: string) {
   if (user.emailVerified || !isEmailPasswordUser(user)) return;
 
   try {
-    const token = await user.getIdToken();
-    const response = await fetch("/api/email/parent-verification", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ locale }),
-    });
-
-    const data = (await response.json().catch(() => null)) as { ok?: unknown } | null;
-    if (!response.ok || data?.ok !== true) {
-      throw new Error("branded_parent_verification_failed");
-    }
+    auth.languageCode = firebaseLanguageCode(locale);
+    await sendEmailVerification(user);
   } catch (error) {
-    console.warn("parent branded email verification send failed", error);
-    try {
-      auth.languageCode = firebaseLanguageCode(locale);
-      await sendEmailVerification(user);
-    } catch (fallbackError) {
-      console.warn("parent firebase email verification send failed", fallbackError);
-    }
+    console.warn("parent firebase email verification send failed", error);
   }
 }
 

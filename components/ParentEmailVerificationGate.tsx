@@ -80,25 +80,6 @@ function daysLeft(user: NonNullable<ReturnType<typeof useUserProfile>["user"]>) 
   return Math.max(0, remaining);
 }
 
-async function sendParentVerificationEmail(locale: string) {
-  if (!auth.currentUser) throw new Error("missing_user");
-
-  const token = await auth.currentUser.getIdToken();
-  const response = await fetch("/api/email/parent-verification", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ locale }),
-  });
-
-  const data = (await response.json().catch(() => null)) as { ok?: unknown; error?: unknown } | null;
-  if (!response.ok || data?.ok !== true) {
-    throw new Error(typeof data?.error === "string" ? data.error : "branded_parent_verification_failed");
-  }
-}
-
 export default function ParentEmailVerificationGate({ children }: { children: ReactNode }) {
   const { user, loading } = useUserProfile();
   const locale = useLocale();
@@ -126,13 +107,8 @@ export default function ParentEmailVerificationGate({ children }: { children: Re
     setError(null);
 
     try {
-      await sendParentVerificationEmail(locale).catch(async (err) => {
-        if (err instanceof Error && err.message === "too_many_attempts") {
-          throw err;
-        }
-        auth.languageCode = firebaseLanguageCode(locale);
-        await sendEmailVerification(auth.currentUser!);
-      });
+      auth.languageCode = firebaseLanguageCode(locale);
+      await sendEmailVerification(auth.currentUser);
       setMessage(t.sent);
     } catch (err) {
       console.warn("parent resend verification failed", err);
