@@ -47,6 +47,10 @@ function getErrMessage(e: unknown, fallback: string): string {
   return fallback;
 }
 
+function isEmailPasswordUser(user: NonNullable<ReturnType<typeof useUserProfile>["user"]>) {
+  return user.providerData.some((provider) => provider.providerId === "password");
+}
+
 export default function ParentNewSpacePage() {
   const t = useTranslations("parentNewSpace");
   const locale = useLocale();
@@ -65,11 +69,24 @@ export default function ParentNewSpacePage() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const canCreate = title.trim().length > 0 && !!user && !user.isAnonymous && !saving;
+  const requiresEmailVerification =
+    !!user && !user.isAnonymous && !user.emailVerified && isEmailPasswordUser(user);
+  const canCreate =
+    title.trim().length > 0 && !!user && !user.isAnonymous && !saving && !requiresEmailVerification;
 
   async function handleCreate() {
     if (!user || user.isAnonymous) {
       setErr(tx("errors.mustBeLoggedIn", "You must be logged in to create a room."));
+      return;
+    }
+
+    if (requiresEmailVerification) {
+      setErr(
+        tx(
+          "errors.emailVerificationRequired",
+          "Bekreft e-posten din før du lager familierom."
+        )
+      );
       return;
     }
 
@@ -166,6 +183,26 @@ export default function ParentNewSpacePage() {
             }}
           >
             {err}
+          </div>
+        ) : null}
+
+        {requiresEmailVerification ? (
+          <div
+            style={{
+              marginTop: 14,
+              padding: 12,
+              borderRadius: 12,
+              border: "1px solid #bae6fd",
+              background: "#f0f9ff",
+              color: "#0f172a",
+              lineHeight: 1.45,
+              fontWeight: 700,
+            }}
+          >
+            {tx(
+              "messages.verifyBeforeCreate",
+              "Du kan lese og se innhold nå, men du må bekrefte e-posten før du lager familierom."
+            )}
           </div>
         ) : null}
 

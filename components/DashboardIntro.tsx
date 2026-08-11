@@ -1,9 +1,11 @@
 // components/DashboardIntro.tsx
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { auth } from "@/lib/firebase";
 
 type Props = {
   userIsAnon: boolean;
@@ -102,9 +104,58 @@ function getRoleLabel(role: Role, props: Props) {
   return props.roleLabelStudent;
 }
 
+function roleRequestCopy(locale: string) {
+  if (locale === "nb" || locale === "no") {
+    return {
+      open: "Endre rolle",
+      intro: "Send en kort forespørsel, så hjelper vi deg å bytte rolle uten at innhold eller abonnement blir feil.",
+      selectLabel: "Jeg vil bytte til",
+      noteLabel: "Kort beskjed",
+      notePlaceholder: "Skriv gjerne hvorfor du vil bytte rolle.",
+      send: "Send forespørsel",
+      sending: "Sender...",
+      cancel: "Avbryt",
+      success: "Forespørselen er sendt. Vi følger den opp manuelt.",
+      error: "Kunne ikke sende forespørselen akkurat nå.",
+    };
+  }
+
+  if (locale === "pt") {
+    return {
+      open: "Alterar perfil",
+      intro: "Envie uma solicitação curta, e ajudaremos a mudar o perfil sem afetar conteúdo ou assinatura.",
+      selectLabel: "Quero mudar para",
+      noteLabel: "Mensagem curta",
+      notePlaceholder: "Conte brevemente por que deseja mudar de perfil.",
+      send: "Enviar solicitação",
+      sending: "Enviando...",
+      cancel: "Cancelar",
+      success: "Solicitação enviada. Vamos acompanhar manualmente.",
+      error: "Não foi possível enviar a solicitação agora.",
+    };
+  }
+
+  return {
+    open: "Change role",
+    intro: "Send a short request and we will help change your role without breaking content or subscriptions.",
+    selectLabel: "I want to change to",
+    noteLabel: "Short message",
+    notePlaceholder: "Briefly tell us why you want to change role.",
+    send: "Send request",
+    sending: "Sending...",
+    cancel: "Cancel",
+    success: "Request sent. We will follow it up manually.",
+    error: "Could not send the request right now.",
+  };
+}
+
 export function DashboardIntro(props: Props) {
   const locale = useLocale();
   const { profile } = useUserProfile();
+  const [roleRequestOpen, setRoleRequestOpen] = useState(false);
+  const [requestedRole, setRequestedRole] = useState<Role>("teacher");
+  const [requestNote, setRequestNote] = useState("");
+  const [requestStatus, setRequestStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const name = (readStringField(profile, "displayName") ?? "").trim();
 
@@ -113,6 +164,14 @@ export function DashboardIntro(props: Props) {
     : safeRole(readStringField(profile, "role"));
 
   const roleLabel = getRoleLabel(role, props) || props.roleFallback;
+  const copy = useMemo(() => roleRequestCopy(locale), [locale]);
+  const roleOptions = useMemo(
+    () =>
+      (["student", "teacher", "parent"] as Role[])
+        .filter((option) => option !== role)
+        .map((value) => ({ value, label: getRoleLabel(value, props) || value })),
+    [props, role]
+  );
 
   const helloText =
     props.userIsAnon || !name
@@ -132,6 +191,49 @@ export function DashboardIntro(props: Props) {
   const activityNode = props.activity.trim()
     ? renderSimpleRichText(props.activity, {})
     : null;
+
+  async function sendRoleRequest() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    setRequestStatus("sending");
+
+    try {
+      const token = await user.getIdToken();
+      const targetLabel = getRoleLabel(requestedRole, props) || requestedRole;
+      const currentLabel = roleLabel || role;
+      const note = requestNote.trim();
+      const message = [
+        `Role change request`,
+        `Current role: ${currentLabel} (${role})`,
+        `Requested role: ${targetLabel} (${requestedRole})`,
+        note ? `Message: ${note}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const response = await fetch("/api/support-tickets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          category: "other",
+          message,
+          locale,
+          page: typeof window !== "undefined" ? window.location.pathname : "",
+        }),
+      });
+
+      if (!response.ok) throw new Error("role_request_failed");
+
+      setRequestStatus("sent");
+      setRequestNote("");
+    } catch {
+      setRequestStatus("error");
+    }
+  }
 
   return (
     <section
@@ -166,6 +268,31 @@ export function DashboardIntro(props: Props) {
             }}
           >
             <span>{youAreNode}</span>
+            {!props.userIsAnon ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setRoleRequestOpen((open) => !open);
+                  setRequestStatus("idle");
+                  const firstOtherRole = (["student", "teacher", "parent"] as Role[]).find(
+                    (option) => option !== role
+                  );
+                  if (firstOtherRole) setRequestedRole(firstOtherRole);
+                }}
+                style={{
+                  border: "1px solid rgba(37,99,235,0.22)",
+                  borderRadius: 999,
+                  background: "rgba(37,99,235,0.06)",
+                  color: "#1d4ed8",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  padding: "4px 8px",
+                }}
+              >
+                {copy.open}
+              </button>
+            ) : null}
           </p>
 
           {activityNode ? (
@@ -179,6 +306,117 @@ export function DashboardIntro(props: Props) {
           </div>
         ) : null}
       </div>
+
+      {!props.userIsAnon && roleRequestOpen ? (
+        <div
+          style={{
+            marginTop: 12,
+            padding: 12,
+            borderRadius: 12,
+            border: "1px solid rgba(37,99,235,0.16)",
+            background: "rgba(255,255,255,0.72)",
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <p style={{ margin: 0, color: "#475569", fontSize: 13, lineHeight: 1.45 }}>
+            {copy.intro}
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              alignItems: "end",
+            }}
+          >
+            <label style={{ display: "grid", gap: 5, fontSize: 12, fontWeight: 800, flex: "0 1 220px" }}>
+              {copy.selectLabel}
+              <select
+                value={requestedRole}
+                onChange={(event) => setRequestedRole(event.target.value as Role)}
+                style={{
+                  minHeight: 38,
+                  borderRadius: 10,
+                  border: "1px solid rgba(15,23,42,0.16)",
+                  padding: "8px 10px",
+                  background: "white",
+                }}
+              >
+                {roleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={{ display: "grid", gap: 5, fontSize: 12, fontWeight: 800, flex: "1 1 260px" }}>
+              {copy.noteLabel}
+              <input
+                value={requestNote}
+                onChange={(event) => setRequestNote(event.target.value)}
+                placeholder={copy.notePlaceholder}
+                style={{
+                  minHeight: 38,
+                  borderRadius: 10,
+                  border: "1px solid rgba(15,23,42,0.16)",
+                  padding: "8px 10px",
+                  background: "white",
+                }}
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={sendRoleRequest}
+              disabled={requestStatus === "sending"}
+              style={{
+                minHeight: 38,
+                border: 0,
+                borderRadius: 10,
+                background: "#0f766e",
+                color: "white",
+                cursor: requestStatus === "sending" ? "not-allowed" : "pointer",
+                fontWeight: 900,
+                padding: "8px 12px",
+                opacity: requestStatus === "sending" ? 0.7 : 1,
+              }}
+            >
+              {requestStatus === "sending" ? copy.sending : copy.send}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRoleRequestOpen(false)}
+              style={{
+                minHeight: 38,
+                borderRadius: 10,
+                border: "1px solid rgba(15,23,42,0.14)",
+                background: "white",
+                cursor: "pointer",
+                fontWeight: 800,
+                padding: "8px 12px",
+              }}
+            >
+              {copy.cancel}
+            </button>
+          </div>
+
+          {requestStatus === "sent" ? (
+            <p style={{ margin: 0, color: "#0f766e", fontSize: 13, fontWeight: 800 }}>
+              {copy.success}
+            </p>
+          ) : null}
+
+          {requestStatus === "error" ? (
+            <p style={{ margin: 0, color: "#b91c1c", fontSize: 13, fontWeight: 800 }}>
+              {copy.error}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {props.userIsAnon ? (
         <div style={{ marginTop: 10 }}>

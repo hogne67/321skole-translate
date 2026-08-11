@@ -21,9 +21,13 @@
       "creating": "Oppretter…",
       "cancel": "Avbryt"
     },
+    "messages": {
+      "verifyBeforeCreate": "Du kan lese og se innhold nå, men du må bekrefte e-posten før du lager familierom."
+    },
     "errors": {
       "mustBeLoggedIn": "Du må være logget inn som forelder for å opprette et rom.",
       "missingTitle": "Skriv inn et romnavn.",
+      "emailVerificationRequired": "Bekreft e-posten din før du lager familierom.",
       "createFailed": "Kunne ikke opprette rommet."
     }
   }

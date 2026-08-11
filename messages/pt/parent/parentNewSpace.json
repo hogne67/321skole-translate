@@ -21,9 +21,13 @@
       "creating": "Criando…",
       "cancel": "Cancelar"
     },
+    "messages": {
+      "verifyBeforeCreate": "Você pode ler e ver conteúdo agora, mas precisa confirmar o e-mail antes de criar salas familiares."
+    },
     "errors": {
       "mustBeLoggedIn": "Você deve estar logado como responsável para criar uma sala.",
       "missingTitle": "Digite um nome para a sala.",
+      "emailVerificationRequired": "Confirme seu e-mail antes de criar salas familiares.",
       "createFailed": "Não foi possível criar a sala."
     }
   }

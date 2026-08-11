@@ -80,6 +80,10 @@ export default function ParentAssignmentDetailPage() {
   const [parentAiMsg, setParentAiMsg] = useState<string | null>(null);
 
   const backHref = `/parent/spaces/${spaceId}`;
+  const parentAiRequiresEmailVerification =
+    !!user &&
+    !user.emailVerified &&
+    user.providerData.some((provider) => provider.providerId === "password");
 
   useEffect(() => {
     const auth = getAuth();
@@ -249,6 +253,10 @@ export default function ParentAssignmentDetailPage() {
 
   async function generateParentFeedbackSuggestion() {
     if (!assignment) return;
+    if (parentAiRequiresEmailVerification) {
+      setParentAiMsg(t("parentAi.verifyRequired"));
+      return;
+    }
 
     setParentAiBusy(true);
     setParentAiMsg(null);
@@ -786,11 +794,14 @@ export default function ParentAssignmentDetailPage() {
             <button
               type="button"
               onClick={generateParentFeedbackSuggestion}
-              disabled={parentAiBusy}
+              disabled={parentAiBusy || parentAiRequiresEmailVerification}
               style={{
                 ...darkBtn,
                 width: "100%",
-                background: parentAiBusy ? "rgba(30,64,175,0.65)" : "rgba(30,64,175,1)",
+                background:
+                  parentAiBusy || parentAiRequiresEmailVerification
+                    ? "rgba(30,64,175,0.55)"
+                    : "rgba(30,64,175,1)",
               }}
             >
               {parentAiBusy ? t("parentAi.generating") : t("parentAi.button")}

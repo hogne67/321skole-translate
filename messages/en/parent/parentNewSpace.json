@@ -21,9 +21,13 @@
       "creating": "Creating…",
       "cancel": "Cancel"
     },
+    "messages": {
+      "verifyBeforeCreate": "You can read and view content now, but you must verify your email before creating family rooms."
+    },
     "errors": {
       "mustBeLoggedIn": "You must be logged in as a parent to create a room.",
       "missingTitle": "Enter a room name.",
+      "emailVerificationRequired": "Verify your email before creating family rooms.",
       "createFailed": "Could not create the room."
     }
   }

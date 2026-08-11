@@ -147,6 +147,7 @@
       "generating": "Lager forslag…",
       "suggestion": "Forslag",
       "useAsComment": "Send til foreldrevurdering",
+      "verifyRequired": "Bekreft e-posten din før du bruker AI-støtte på foreldresiden.",
       "error": "Kunne ikke lage forslag akkurat nå.",
       "empty": "AI laget ikke noe forslag."
     }

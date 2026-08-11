@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, sendEmailVerification, type User } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import GeoSearchSelect from "@/components/geo/GeoSearchSelect";
 import { COUNTRIES } from "@/lib/geo/countries";
@@ -54,6 +54,39 @@ function isInstitutionType(x: unknown): x is InstitutionType {
     x === "workplace" ||
     x === "other"
   );
+}
+
+function isEmailPasswordUser(user: User): boolean {
+  return user.providerData.some((provider) => provider.providerId === "password");
+}
+
+async function maybeSendParentVerification(user: User, locale: string) {
+  if (user.emailVerified || !isEmailPasswordUser(user)) return;
+
+  try {
+    const token = await user.getIdToken();
+    const response = await fetch("/api/email/parent-verification", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ locale }),
+    });
+
+    const data = (await response.json().catch(() => null)) as { ok?: unknown } | null;
+    if (!response.ok || data?.ok !== true) {
+      throw new Error("branded_parent_verification_failed");
+    }
+  } catch (error) {
+    console.warn("parent branded email verification send failed", error);
+    try {
+      auth.languageCode = locale;
+      await sendEmailVerification(user);
+    } catch (fallbackError) {
+      console.warn("parent firebase email verification send failed", fallbackError);
+    }
+  }
 }
 
 function homeForRole(role: Role, locale: string): string {
@@ -372,6 +405,10 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
       await setDoc(ref, payload, { merge: true });
 
+      if (role === "parent" && auth.currentUser) {
+        await maybeSendParentVerification(auth.currentUser, locale);
+      }
+
       const finalNext = normalizeNext(nextUrl, locale, role);
       window.location.href = `/${locale}/post-login?next=${encodeURIComponent(finalNext)}`;
     } catch (e: unknown) {
@@ -687,7 +724,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
               <p style={sectionText}>
                 {safeT(
                   "steps.role.text",
-                  "Tap the role that fits you best. You can change it later."
+                  "Choose the role that fits you best. You can change it later."
                 )}
               </p>
 

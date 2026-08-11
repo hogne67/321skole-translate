@@ -147,6 +147,7 @@
       "generating": "Gerando sugestão…",
       "suggestion": "Sugestão",
       "useAsComment": "Enviar para revisão dos pais",
+      "verifyRequired": "Confirme seu e-mail antes de usar apoio de IA na área dos pais.",
       "error": "Não foi possível gerar uma sugestão agora.",
       "empty": "A IA não gerou uma sugestão."
     }

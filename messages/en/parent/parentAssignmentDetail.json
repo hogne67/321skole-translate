@@ -147,6 +147,7 @@
       "generating": "Generating suggestion…",
       "suggestion": "Suggestion",
       "useAsComment": "Send for parent review",
+      "verifyRequired": "Verify your email before using AI support in the parent area.",
       "error": "Could not generate a suggestion right now.",
       "empty": "The AI did not generate a suggestion."
     }
