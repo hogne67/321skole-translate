@@ -6,11 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
-import { logout } from "@/lib/auth";
 import { useLocale } from "next-intl";
 
 type Role = "student" | "teacher" | "admin" | "parent" | "creator";
-const EMAIL_VERIFICATION_REQUIRED_FROM = Date.parse("2026-08-10T00:00:00+02:00");
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
@@ -49,19 +47,6 @@ function hasRequiredRole(profile: unknown, requireRole: Role): boolean {
   }
 
   return false;
-}
-
-function isUnverifiedEmailPasswordUser(
-  user: NonNullable<ReturnType<typeof useUserProfile>["user"]>
-): boolean {
-  const createdAt = Date.parse(user.metadata.creationTime || "");
-
-  return (
-    !user.emailVerified &&
-    Number.isFinite(createdAt) &&
-    createdAt >= EMAIL_VERIFICATION_REQUIRED_FROM &&
-    user.providerData.some((provider) => provider.providerId === "password")
-  );
 }
 
 export default function AuthGate({
@@ -143,15 +128,6 @@ export default function AuthGate({
         router.replace(nextUrl);
         return;
       }
-      return;
-    }
-
-    if (isUnverifiedEmailPasswordUser(user)) {
-      logout()
-        .catch((err) => console.warn("logout failed", err))
-        .finally(() => {
-          router.replace(`/${locale}/login?verify=required`);
-        });
       return;
     }
 

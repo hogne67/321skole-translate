@@ -7,7 +7,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { recordUserLogin } from "@/lib/userProfile";
 import { db } from "@/lib/firebase";
-import { logout } from "@/lib/auth";
 import { doc, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
@@ -16,7 +15,6 @@ function requireDb(x: Firestore | null | undefined): Firestore {
 }
 
 type AppRole = "student" | "teacher" | "parent";
-const EMAIL_VERIFICATION_REQUIRED_FROM = Date.parse("2026-08-10T00:00:00+02:00");
 
 function normalizeRole(raw: unknown): AppRole | null {
   const r = String(raw ?? "").toLowerCase();
@@ -111,19 +109,6 @@ function nextMatchesRole(next: string, role: AppRole, locale: string): boolean {
   return next.startsWith(`/${locale}/student`);
 }
 
-function isUnverifiedEmailPasswordUser(
-  user: NonNullable<ReturnType<typeof useUserProfile>["user"]>
-): boolean {
-  const createdAt = Date.parse(user.metadata.creationTime || "");
-
-  return (
-    !user.emailVerified &&
-    Number.isFinite(createdAt) &&
-    createdAt >= EMAIL_VERIFICATION_REQUIRED_FROM &&
-    user.providerData.some((provider) => provider.providerId === "password")
-  );
-}
-
 export default function PostLoginPage() {
   const { user, profile, loading } = useUserProfile();
   const loginRecordedRef = useRef(false);
@@ -145,15 +130,6 @@ export default function PostLoginPage() {
     if (user.isAnonymous) {
       const target = `/${locale}/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`;
       router.replace(`/${locale}/login?next=${encodeURIComponent(target)}`);
-      return;
-    }
-
-    if (isUnverifiedEmailPasswordUser(user)) {
-      logout()
-        .catch((err) => console.warn("logout failed", err))
-        .finally(() => {
-          router.replace(`/${locale}/login?verify=required`);
-        });
       return;
     }
 

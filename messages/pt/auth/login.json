@@ -49,9 +49,7 @@
     },
     "messages": {
       "resetSent": "Enviamos um e-mail com um link para redefinir sua senha.",
-      "checkEmail": "Próximo passo: verifique seu e-mail e confirme a conta antes de entrar. Veja também spam/lixo eletrônico se não encontrar.",
-      "verified": "E-mail verificado. Agora você pode entrar.",
-      "verifyRequired": "Verifique seu e-mail: você precisa confirmar a conta antes de continuar. Veja também spam/lixo eletrônico se não encontrar."
+      "checkEmail": "Sua conta foi criada. Você pode continuar."
     },
     "hints": {
       "anonSignup": "Dica: Se este e-mail já existir, escolha <b>Já tenho uma conta</b>.",
@@ -77,7 +75,6 @@
       "tooManyRequests": "Muitas tentativas. Tente novamente mais tarde.",
       "popupClosed": "O login foi cancelado.",
       "ageConfirmationRequired": "Confirme que você tem 13 anos ou mais, ou que usa o serviço com responsável ou escola.",
-      "verificationEmailFailed": "A conta foi criada, mas não conseguimos enviar o e-mail de confirmação. Tente entrar novamente em instantes e enviaremos um novo link.",
       "generic": "Não foi possível continuar. Tente novamente."
     },
     "legal": {

@@ -30,22 +30,6 @@ function brandForLocale(locale: string) {
     return "321skole";
 }
 
-function localAuthActionUrl(firebaseActionUrl: string, baseUrl: string, locale: string) {
-    try {
-        const source = new URL(firebaseActionUrl);
-        const params = new URLSearchParams(source.search);
-
-        if (!params.get("mode") || !params.get("oobCode")) {
-            return firebaseActionUrl;
-        }
-
-        params.set("lang", locale);
-        return `${baseUrl}/${locale}/auth/action?${params.toString()}`;
-    } catch {
-        return firebaseActionUrl;
-    }
-}
-
 function escapeHtml(value: string) {
     return value
         .replaceAll("&", "&amp;")
@@ -111,8 +95,7 @@ export async function POST(req: Request) {
 
         const firstName = displayName || "der";
         const safeName = escapeHtml(firstName);
-        const actionUrl = localAuthActionUrl(verifyUrl, baseUrl, locale);
-        const safeVerifyUrl = escapeHtml(actionUrl);
+        const safeVerifyUrl = escapeHtml(verifyUrl);
         const brand = brandForLocale(locale);
         const safeBrand = escapeHtml(brand);
 

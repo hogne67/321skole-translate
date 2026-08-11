@@ -49,9 +49,7 @@
     },
     "messages": {
       "resetSent": "Vi har sendt deg en e-post med en lenke for å tilbakestille passordet.",
-      "checkEmail": "Neste steg: Sjekk e-posten din og bekreft kontoen før du logger inn. Se også i søppelpost/junk hvis du ikke finner den.",
-      "verified": "E-posten er bekreftet. Du kan nå logge inn.",
-      "verifyRequired": "Sjekk e-posten din: Du må bekrefte kontoen før du kan fortsette. Se også i søppelpost/junk hvis du ikke finner den."
+      "checkEmail": "Kontoen er opprettet. Du kan fortsette."
     },
     "hints": {
       "anonSignup": "Tips: Hvis e-posten allerede finnes, velg <b>Jeg har allerede en konto</b> i stedet.",
@@ -77,7 +75,6 @@
       "tooManyRequests": "For mange forsøk. Prøv igjen senere.",
       "popupClosed": "Innloggingen ble avbrutt.",
       "ageConfirmationRequired": "Bekreft at du er 13 år eller eldre, eller at du bruker tjenesten med foresatt eller skole.",
-      "verificationEmailFailed": "Kontoen ble opprettet, men vi klarte ikke å sende bekreftelsesmail. Prøv å logge inn igjen om litt, så sender vi en ny lenke.",
       "generic": "Kunne ikke fortsette. Prøv igjen."
     },
     "legal": {
