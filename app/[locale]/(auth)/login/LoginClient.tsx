@@ -60,6 +60,7 @@ function friendlyAuthErrorKey(msg: string): string {
   if (m.includes("auth/invalid-email")) return "invalidEmail";
   if (m.includes("auth/too-many-requests")) return "tooManyRequests";
   if (m.includes("popup-closed-by-user")) return "popupClosed";
+  if (m.includes("verification_email_failed")) return "verificationEmailFailed";
 
   return "generic";
 }
@@ -171,9 +172,17 @@ export default function LoginClient() {
   }, []);
 
   useEffect(() => {
+    const isPendingEmailVerification =
+      currentUser &&
+      !currentUser.isAnonymous &&
+      isEmailPasswordUser(currentUser) &&
+      !currentUser.emailVerified &&
+      shouldRequireEmailVerification(currentUser);
+
     if (
       currentUser &&
       !currentUser.isAnonymous &&
+      !isPendingEmailVerification &&
       welcome !== "1" &&
       verified !== "1" &&
       verify !== "required"
@@ -261,19 +270,9 @@ export default function LoginClient() {
     }
   }
 
-  function verificationSettings() {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    return origin
-      ? {
-          url: `${origin}/${locale}/login?verified=1`,
-          handleCodeInApp: false,
-        }
-      : undefined;
-  }
-
   async function sendVerification(user: User) {
     auth.languageCode = locale;
-    await sendVerificationEmail(user, verificationSettings());
+    await sendVerificationEmail(user);
   }
 
   async function sendBrandedVerificationEmail(input: {
@@ -303,14 +302,28 @@ export default function LoginClient() {
   }
 
   async function sendBestVerificationEmail(user: User, fallbackEmail?: string) {
-    await sendBrandedVerificationEmail({
+    let sent = false;
+
+    const sentBranded = await sendBrandedVerificationEmail({
       email: user.email || fallbackEmail || "",
       displayName: user.displayName,
     }).catch((err) => {
       console.warn("branded verification email failed", err);
+      return false;
     });
 
-    await sendVerification(user);
+    sent = sent || sentBranded;
+
+    try {
+      await sendVerification(user);
+      sent = true;
+    } catch (err) {
+      console.warn("firebase verification email failed", err);
+    }
+
+    if (!sent) {
+      throw new Error("verification_email_failed");
+    }
   }
 
   function isEmailPasswordUser(user: User): boolean {
@@ -528,6 +541,7 @@ export default function LoginClient() {
           type: "anonymous_upgrade",
         });
 
+        await logout().catch((err) => console.warn("logout after signup failed", err));
         router.replace(`/${locale}/login?welcome=1`);
         return;
       }
@@ -542,6 +556,7 @@ export default function LoginClient() {
         type: "signup",
       });
 
+      await logout().catch((err) => console.warn("logout after signup failed", err));
       router.replace(`/${locale}/login?welcome=1`);
     } catch (err: unknown) {
       const key = friendlyAuthErrorKey(toErrorString(err));

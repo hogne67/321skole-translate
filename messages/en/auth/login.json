@@ -77,6 +77,7 @@
       "tooManyRequests": "Too many attempts. Please try again later.",
       "popupClosed": "Sign-in was cancelled.",
       "ageConfirmationRequired": "Confirm that you are 13 or older, or that you use the service with a parent/guardian or school.",
+      "verificationEmailFailed": "The account was created, but we could not send the verification email. Try logging in again shortly and we will send a new link.",
       "generic": "Could not continue. Please try again."
     },
     "legal": {
