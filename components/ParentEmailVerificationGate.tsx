@@ -22,6 +22,7 @@ function copyFor(locale: string) {
       resend: "Send verification email again",
       sent: "Verification email sent. Please check your inbox.",
       failed: "We could not send the email right now. Try again in a moment.",
+      tooMany: "Too many attempts right now. Please wait a while before trying again.",
       reload: "I have verified. Check again",
       missingEmail: "I am not receiving the email",
       missingSent: "Thanks. We have received your message and can follow up.",
@@ -39,6 +40,7 @@ function copyFor(locale: string) {
       resend: "Enviar e-mail de confirmação novamente",
       sent: "E-mail de confirmação enviado. Verifique sua caixa de entrada.",
       failed: "Não foi possível enviar o e-mail agora. Tente novamente em instantes.",
+      tooMany: "Muitas tentativas agora. Aguarde um pouco antes de tentar novamente.",
       reload: "Já confirmei. Verificar novamente",
       missingEmail: "Não recebi o e-mail",
       missingSent: "Obrigado. Recebemos sua mensagem e podemos acompanhar.",
@@ -55,11 +57,18 @@ function copyFor(locale: string) {
     resend: "Send bekreftelsesmail på nytt",
     sent: "Bekreftelsesmail er sendt. Sjekk e-posten din.",
     failed: "Vi klarte ikke å sende e-post akkurat nå. Prøv igjen om litt.",
+    tooMany: "Det er gjort for mange forsøk akkurat nå. Vent litt før du prøver igjen.",
     reload: "Jeg har bekreftet. Sjekk på nytt",
     missingEmail: "Jeg får ikke e-post",
     missingSent: "Takk. Vi har mottatt beskjed og kan følge opp.",
     missingFailed: "Kunne ikke sende beskjed akkurat nå.",
   };
+}
+
+function firebaseLanguageCode(locale: string) {
+  if (locale === "nb") return "no";
+  if (locale === "pt") return "pt-BR";
+  return locale;
 }
 
 function daysLeft(user: NonNullable<ReturnType<typeof useUserProfile>["user"]>) {
@@ -84,9 +93,9 @@ async function sendParentVerificationEmail(locale: string) {
     body: JSON.stringify({ locale }),
   });
 
-  const data = (await response.json().catch(() => null)) as { ok?: unknown } | null;
+  const data = (await response.json().catch(() => null)) as { ok?: unknown; error?: unknown } | null;
   if (!response.ok || data?.ok !== true) {
-    throw new Error("branded_parent_verification_failed");
+    throw new Error(typeof data?.error === "string" ? data.error : "branded_parent_verification_failed");
   }
 }
 
@@ -117,14 +126,17 @@ export default function ParentEmailVerificationGate({ children }: { children: Re
     setError(null);
 
     try {
-      await sendParentVerificationEmail(locale).catch(async () => {
-        auth.languageCode = locale;
+      await sendParentVerificationEmail(locale).catch(async (err) => {
+        if (err instanceof Error && err.message === "too_many_attempts") {
+          throw err;
+        }
+        auth.languageCode = firebaseLanguageCode(locale);
         await sendEmailVerification(auth.currentUser!);
       });
       setMessage(t.sent);
     } catch (err) {
       console.warn("parent resend verification failed", err);
-      setError(t.failed);
+      setError(err instanceof Error && err.message === "too_many_attempts" ? t.tooMany : t.failed);
     } finally {
       setBusy(false);
     }

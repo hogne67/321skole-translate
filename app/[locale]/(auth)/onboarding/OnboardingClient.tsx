@@ -60,6 +60,12 @@ function isEmailPasswordUser(user: User): boolean {
   return user.providerData.some((provider) => provider.providerId === "password");
 }
 
+function firebaseLanguageCode(locale: string) {
+  if (locale === "nb") return "no";
+  if (locale === "pt") return "pt-BR";
+  return locale;
+}
+
 async function maybeSendParentVerification(user: User, locale: string) {
   if (user.emailVerified || !isEmailPasswordUser(user)) return;
 
@@ -81,7 +87,7 @@ async function maybeSendParentVerification(user: User, locale: string) {
   } catch (error) {
     console.warn("parent branded email verification send failed", error);
     try {
-      auth.languageCode = locale;
+      auth.languageCode = firebaseLanguageCode(locale);
       await sendEmailVerification(user);
     } catch (fallbackError) {
       console.warn("parent firebase email verification send failed", fallbackError);

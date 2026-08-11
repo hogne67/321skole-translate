@@ -50,6 +50,12 @@ function isParentProfile(profile: FirebaseFirestore.DocumentData | undefined) {
   return Boolean(profile.roles && typeof profile.roles === "object" && profile.roles.parent === true);
 }
 
+function authErrorCode(error: unknown) {
+  if (!error || typeof error !== "object") return "";
+  const rec = error as { code?: unknown; message?: unknown; errorInfo?: { code?: unknown; message?: unknown } };
+  return String(rec.code || rec.errorInfo?.code || rec.message || rec.errorInfo?.message || "");
+}
+
 function emailHtml(params: {
   locale: string;
   displayName: string;
@@ -197,6 +203,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("parent verification email failed", error);
+    const code = authErrorCode(error);
+    if (code.includes("TOO_MANY_ATTEMPTS_TRY_LATER") || code.includes("too-many-requests")) {
+      return NextResponse.json(
+        { ok: false, error: "too_many_attempts" },
+        { status: 429 }
+      );
+    }
 
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "server_error" },
