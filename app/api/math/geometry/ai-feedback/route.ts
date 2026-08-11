@@ -3,6 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import OpenAI from "openai";
+import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 export const runtime = "nodejs";
 
@@ -278,6 +279,9 @@ export async function POST(req: Request) {
 
     const { auth, db } = getAdmin();
     const decoded = await auth.verifyIdToken(token);
+    if (needsEmailVerification(decoded)) {
+      return emailVerificationRequiredResponse();
+    }
     const uid = decoded.uid;
 
     if (!uid) {

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { createHash } from "crypto";
 import { getAdmin } from "@/lib/firebaseAdmin";
+import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 export const runtime = "nodejs";
 
@@ -96,6 +97,9 @@ export async function POST(req: Request) {
   let uid: string;
   try {
     const decoded = await auth.verifyIdToken(token);
+    if (needsEmailVerification(decoded)) {
+      return emailVerificationRequiredResponse();
+    }
     uid = decoded.uid;
   } catch {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });

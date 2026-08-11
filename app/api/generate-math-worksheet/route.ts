@@ -6,6 +6,7 @@ import {
   consumeFeatureAdmin,
 } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 export const runtime = "nodejs";
 
@@ -1343,6 +1344,9 @@ async function getRequestUserContext(
 
   const { auth, db } = getAdmin();
   const decoded = await auth.verifyIdToken(idToken);
+  if (needsEmailVerification(decoded)) {
+    throw new Error("EMAIL_VERIFICATION_REQUIRED");
+  }
   const uid = decoded.uid;
 
   const userSnap = await db.collection("users").doc(uid).get();
@@ -1447,6 +1451,9 @@ export async function POST(req: Request) {
       counted: shouldCountUsage,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "EMAIL_VERIFICATION_REQUIRED") {
+      return emailVerificationRequiredResponse();
+    }
     console.error("generate-math-worksheet failed:", error);
 
     const message =

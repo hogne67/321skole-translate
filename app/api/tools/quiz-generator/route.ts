@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import { emailVerificationRequiredWebResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 export const runtime = "nodejs";
 
@@ -88,6 +89,9 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
 
   const { auth, db } = getAdmin();
   const decoded = await auth.verifyIdToken(idToken);
+  if (needsEmailVerification(decoded)) {
+    throw new Error("EMAIL_VERIFICATION_REQUIRED");
+  }
   const uid = decoded.uid;
   const userSnap = await db.collection("users").doc(uid).get();
   const data = userSnap.exists ? userSnap.data() : undefined;
@@ -318,6 +322,9 @@ export async function POST(req: Request) {
       },
     });
   } catch (error: unknown) {
+    if (error instanceof Error && error.message === "EMAIL_VERIFICATION_REQUIRED") {
+      return emailVerificationRequiredWebResponse();
+    }
     const message = error instanceof Error ? error.message : "Unknown server error";
     console.error("quiz-generator route error:", error);
     return Response.json({ error: message }, { status: 500 });

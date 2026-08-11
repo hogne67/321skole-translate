@@ -2,12 +2,12 @@
 "use client";
 
 import AuthGate from "@/components/AuthGate";
-import ParentEmailVerificationGate from "@/components/ParentEmailVerificationGate";
+import EmailVerificationGate from "@/components/EmailVerificationGate";
 
 export default function ParentLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGate requireRole="parent">
-      <ParentEmailVerificationGate>{children}</ParentEmailVerificationGate>
+      <EmailVerificationGate role="parent">{children}</EmailVerificationGate>
     </AuthGate>
   );
 }

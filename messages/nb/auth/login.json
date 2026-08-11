@@ -40,6 +40,8 @@
       "upgradeAccount": "Lagre anonym konto",
       "createAccount": "Opprett konto",
       "forgotPassword": "Glemt passord?",
+      "showPassword": "Vis passord",
+      "hidePassword": "Skjul passord",
       "sendReset": "Send tilbakestillings-e-post",
       "backToOptions": "Tilbake til innloggingsvalg"
     },

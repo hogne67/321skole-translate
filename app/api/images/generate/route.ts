@@ -9,6 +9,7 @@ import {
   type AppRole,
   type PlanKey,
 } from "@/lib/featureAccess";
+import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 type CoverImageStyle = "illustration" | "realistic";
 type CoverImagePromptMode = "custom" | "fromText";
@@ -143,6 +144,9 @@ export async function POST(req: NextRequest) {
 
     const { auth, db, storage } = getAdmin();
     const decoded = await auth.verifyIdToken(authToken);
+    if (needsEmailVerification(decoded)) {
+      return emailVerificationRequiredResponse();
+    }
     const uid = decoded.uid;
 
     if (!uid) {

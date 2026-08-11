@@ -6,6 +6,7 @@ import {
   getFeatureStatusAdmin,
 } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 export const runtime = "nodejs";
 
@@ -76,6 +77,9 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
 
   const { auth, db } = getAdmin();
   const decoded = await auth.verifyIdToken(idToken);
+  if (needsEmailVerification(decoded)) {
+    throw new Error("EMAIL_VERIFICATION_REQUIRED");
+  }
   const uid = decoded.uid;
 
   const userSnap = await db.collection("users").doc(uid).get();
@@ -2614,6 +2618,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(parsed);
   } catch (err: unknown) {
+  if (err instanceof Error && err.message === "EMAIL_VERIFICATION_REQUIRED") {
+    return emailVerificationRequiredResponse();
+  }
   const message =
     err instanceof Error ? err.message : "Unknown error";
 

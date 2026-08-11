@@ -6,6 +6,7 @@ import { getAdmin } from "@/lib/firebaseAdmin";
 import { canAccessAcademy, hasAdminAccess } from "@/lib/courses/academyAccess";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan } from "@/lib/featureAccess";
+import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 export const runtime = "nodejs";
 
@@ -62,6 +63,9 @@ async function requireAcademyAccess(req: Request) {
 
   const { auth, db } = getAdmin();
   const decoded = await auth.verifyIdToken(token);
+  if (needsEmailVerification(decoded)) {
+    return { error: emailVerificationRequiredResponse() };
+  }
   const uid = decoded.uid;
   const profileSnap = await db.collection("users").doc(uid).get();
   const profile = profileSnap.exists ? (profileSnap.data() ?? {}) : {};

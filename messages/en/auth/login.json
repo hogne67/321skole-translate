@@ -40,6 +40,8 @@
       "upgradeAccount": "Save anonymous account",
       "createAccount": "Create account",
       "forgotPassword": "Forgot password?",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
       "sendReset": "Send reset email",
       "backToOptions": "Back to login options"
     },

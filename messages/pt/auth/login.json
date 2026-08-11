@@ -40,6 +40,8 @@
       "upgradeAccount": "Salvar conta anônima",
       "createAccount": "Criar conta",
       "forgotPassword": "Esqueceu a senha?",
+      "showPassword": "Mostrar senha",
+      "hidePassword": "Ocultar senha",
       "sendReset": "Enviar e-mail de redefinição",
       "backToOptions": "Voltar às opções de login"
     },

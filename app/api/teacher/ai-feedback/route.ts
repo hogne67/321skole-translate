@@ -13,6 +13,7 @@ import {
   buildReadingSignalsPayload,
   countReadingTestWords,
 } from "@/lib/readingTests/readingSignals";
+import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 type SourceType = "myContent" | "library";
 type TaskType = "mcq" | "truefalse" | "open" | "multiple_choice" | "text" | "writing" | "short_answer";
@@ -1299,6 +1300,9 @@ export async function POST(req: Request) {
 
     const { auth, db } = getAdmin();
     const decoded = await auth.verifyIdToken(token);
+    if (needsEmailVerification(decoded)) {
+      return emailVerificationRequiredResponse();
+    }
 
     const uid = decoded.uid;
     if (!uid) return json({ error: "Unauthorized" }, 401);

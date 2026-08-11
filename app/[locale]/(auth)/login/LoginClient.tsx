@@ -29,6 +29,7 @@ import { ensureUserProfile, recordUserLogin } from "@/lib/userProfile";
 import { useLocale, useTranslations } from "next-intl";
 import { trackSignUp } from "@/lib/analytics";
 import { trackEvent } from "@/lib/trackEvent";
+import { Eye, EyeOff } from "lucide-react";
 
 function toErrorString(err: unknown): string {
   if (!err) return "";
@@ -143,6 +144,7 @@ export default function LoginClient() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
@@ -646,6 +648,36 @@ export default function LoginClient() {
     background: "#dbe6ebed",
   };
 
+  const passwordFieldStyle: React.CSSProperties = {
+    position: "relative",
+    width: "95%",
+    display: "block",
+  };
+
+  const passwordInputStyle: React.CSSProperties = {
+    ...inputStyle,
+    width: "100%",
+    boxSizing: "border-box",
+    paddingRight: 54,
+  };
+
+  const passwordToggleStyle: React.CSSProperties = {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: "translateY(-50%)",
+    width: 38,
+    height: 38,
+    border: "0",
+    borderRadius: 12,
+    background: "rgba(255,255,255,0.7)",
+    color: "#334155",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
   const helperRowStyle: React.CSSProperties = {
     display: "flex",
     justifyContent: "space-between",
@@ -1004,7 +1036,13 @@ export default function LoginClient() {
                   ← {safeT("buttons.backToOptions", "Back to login options")}
                 </button>
 
-                <div style={fieldWrapStyle}>
+                <form
+                  style={fieldWrapStyle}
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!busy) void handleEmail();
+                  }}
+                >
                   {mode === "signup" && (
                     <label style={labelStyle}>
                       <span style={labelTextStyle}>
@@ -1039,14 +1077,33 @@ export default function LoginClient() {
                     <span style={labelTextStyle}>
                       {safeT("fields.passwordLabel", "Password")}
                     </span>
-                    <input
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={safeT("fields.passwordPlaceholder", "Password")}
-                      type="password"
-                      autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                      style={inputStyle}
-                    />
+                    <span style={passwordFieldStyle}>
+                      <input
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={safeT("fields.passwordPlaceholder", "Password")}
+                        type={showPassword ? "text" : "password"}
+                        autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                        style={passwordInputStyle}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((value) => !value)}
+                        aria-label={
+                          showPassword
+                            ? safeT("buttons.hidePassword", "Hide password")
+                            : safeT("buttons.showPassword", "Show password")
+                        }
+                        title={
+                          showPassword
+                            ? safeT("buttons.hidePassword", "Hide password")
+                            : safeT("buttons.showPassword", "Show password")
+                        }
+                        style={passwordToggleStyle}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </span>
                   </label>
 
                   <div style={helperRowStyle}>
@@ -1118,8 +1175,7 @@ export default function LoginClient() {
                   </label>
 
                   <button
-                    type="button"
-                    onClick={handleEmail}
+                    type="submit"
                     disabled={busy}
                     style={primaryButtonStyle}
                   >
@@ -1142,7 +1198,7 @@ export default function LoginClient() {
                       }}
                     />
                   ) : null}
-                </div>
+                </form>
               </div>
             ) : null}
 

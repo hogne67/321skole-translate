@@ -6,6 +6,7 @@ import {
   consumeFeatureAdmin,
 } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan, type AppRole, type PlanKey } from "@/lib/featureAccess";
+import { emailVerificationRequiredWebResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 export const runtime = "nodejs";
 
@@ -542,6 +543,9 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
 
   const { auth, db } = getAdmin();
   const decoded = await auth.verifyIdToken(idToken);
+  if (needsEmailVerification(decoded)) {
+    throw new Error("EMAIL_VERIFICATION_REQUIRED");
+  }
   const uid = decoded.uid;
 
   const userSnap = await db.collection("users").doc(uid).get();
@@ -811,6 +815,9 @@ Do not shorten the text below ${min} words.
       },
     });
   } catch (err: unknown) {
+    if (err instanceof Error && err.message === "EMAIL_VERIFICATION_REQUIRED") {
+      return emailVerificationRequiredWebResponse();
+    }
     return NextResponse.json(
       { ok: false, error: getErrorMessage(err) || "Unknown error" },
       { status: 500 }

@@ -7,6 +7,7 @@ import { canAccessAcademy, hasAdminAccess } from "@/lib/courses/academyAccess";
 import { normalizeCourse, normalizeCourseMarketing } from "@/lib/courses/types";
 import { consumeFeatureAdmin, getFeatureStatusAdmin } from "@/lib/featureGuardAdmin";
 import { getEffectivePlan } from "@/lib/featureAccess";
+import { emailVerificationRequiredResponse, needsEmailVerification } from "@/lib/emailVerificationGuard";
 
 export const runtime = "nodejs";
 
@@ -82,6 +83,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ courseId: stri
 
     const { auth, db } = getAdmin();
     const decoded = await auth.verifyIdToken(token);
+    if (needsEmailVerification(decoded)) {
+      return emailVerificationRequiredResponse();
+    }
     const uid = decoded.uid;
 
     const profileSnap = await db.collection("users").doc(uid).get();
