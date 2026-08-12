@@ -220,6 +220,18 @@ function isQuizLesson(it: ContentItem) {
   return it.type === "lesson" && normalizedLessonSignals(it).includes("quiz");
 }
 
+function isImportedQuizLesson(it: ContentItem) {
+  if (!isQuizLesson(it)) return false;
+  const lesson = it as Extract<ContentItem, { type: "lesson" }> & {
+    source?: unknown;
+    sourcePublishedQuizId?: unknown;
+  };
+  return (
+    lesson.source === "321quiz-library" ||
+    (typeof lesson.sourcePublishedQuizId === "string" && lesson.sourcePublishedQuizId.trim().length > 0)
+  );
+}
+
 function newBoardSessionId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -1550,6 +1562,7 @@ export default function ContentClient() {
     const isReadingTest = isReadingTestLesson(ls);
     const isImageWriting = isImageWritingLesson(ls);
     const isQuiz = isQuizLesson(ls);
+    const isImportedQuiz = isImportedQuizLesson(ls);
     const isMath = isMathContent(ls);
     const mathSubtype = getMathSubtype(ls);
     const mathSubtypeText = mathSubtypeLabel(mathSubtype);
@@ -1561,6 +1574,7 @@ export default function ContentClient() {
     const canShareReadingTest = !isDeleted && isReadingTest && (isTeacher || isParent || isStudent);
     const canSharePublic = isTeacher && !isDeleted && !isReadingTest;
     const canPdf = isTeacher && !isDeleted && !isReadingTest;
+    const canStartImageLive = isTeacher && isImageWriting && !isDeleted;
 
     const editHref = lessonEditHref(ls);
     const pdfHref = isMath
@@ -1683,7 +1697,7 @@ export default function ContentClient() {
             },
           ]
           : []),
-        ...(isTeacher
+        ...(isTeacher && !isImportedQuiz
           ? [
             {
               key: isPublished ? "unpublish" : "publish",
@@ -1693,23 +1707,25 @@ export default function ContentClient() {
             },
           ]
           : []),
-        ...(isPublished && ls.activePublishedId
-          ? [
-            {
-              key: "shareQuizPublic",
-              label: safeMsg("actions.shareQuizPublic", "Del lenke/QR"),
-              disabled: busy,
-              onClick: () => openShareForQuiz(ls),
-            },
-          ]
-          : [
-            {
-              key: "shareQuizPublic",
-              label: busy ? t("actions.working") : safeMsg("actions.shareQuizPublic", "Del lenke/QR"),
-              disabled: busy,
-              onClick: () => openShareForQuiz(ls),
-            },
-          ]),
+        ...(!isImportedQuiz
+          ? isPublished && ls.activePublishedId
+            ? [
+              {
+                key: "shareQuizPublic",
+                label: safeMsg("actions.shareQuizPublic", "Del lenke/QR"),
+                disabled: busy,
+                onClick: () => openShareForQuiz(ls),
+              },
+            ]
+            : [
+              {
+                key: "shareQuizPublic",
+                label: busy ? t("actions.working") : safeMsg("actions.shareQuizPublic", "Del lenke/QR"),
+                disabled: busy,
+                onClick: () => openShareForQuiz(ls),
+              },
+            ]
+          : []),
         {
           key: "delete",
           label: t("actions.delete"),
@@ -1785,6 +1801,17 @@ export default function ContentClient() {
         ]
         : []),
 
+      ...(canStartImageLive
+        ? [
+          {
+            key: "startImageLive",
+            label: safeMsg("actions.startImageLive", "Start live"),
+            disabled: busy,
+            onClick: () => startImageLiveSession(ls.id),
+          },
+        ]
+        : []),
+
       ...(isTeacher
         ? [
           {
@@ -1836,6 +1863,7 @@ export default function ContentClient() {
     if (it.type === "space") return ["open", "board", "copyCode", "share", "copyJoinLink"];
     if (isMathArchiveItem(it)) return ["openMath", "previewMath", "edit", "shareToSpace", "pdf", "delete", "restore"];
     if (isQuizLesson(it)) return ["edit", "startQuiz", "shareToBoard", "publish", "unpublish", "shareQuizPublic", "delete", "restore"];
+    if (isImageWritingLesson(it)) return ["open", "edit", "startImageLive", "shareToSpace", "pdf", "delete", "restore"];
     return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "addToCourse", "pdf", "delete", "restore"];
   }
 
@@ -1903,6 +1931,59 @@ export default function ContentClient() {
       router.push(`/${locale}/quiz/host/${res.sessionId}/display`);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Kunne ikke starte quiz.");
+    } finally {
+      setBusy(key, false);
+    }
+  }
+
+  function pickImageLiveSource(data: Record<string, unknown>) {
+    const imageTasks = Array.isArray(data.imageTasks) ? data.imageTasks : [];
+    const firstImageTask = isRecord(imageTasks[0]) ? imageTasks[0] : {};
+    const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+    const firstTask = isRecord(tasks[0]) ? tasks[0] : {};
+
+    const imageUrl =
+      safeString(firstImageTask.imageUrl) ||
+      safeString(firstTask.imageUrl) ||
+      safeString(data.coverImageUrl) ||
+      safeString(data.imageUrl) ||
+      "";
+
+    const prompt =
+      safeString(firstImageTask.instruction) ||
+      safeString(firstTask.prompt) ||
+      safeString(data.title) ||
+      safeString(firstImageTask.imageDescription) ||
+      "";
+
+    return { imageUrl, prompt };
+  }
+
+  async function startImageLiveSession(lessonId: string) {
+    const key = `lesson:${lessonId}`;
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      const lessonSnap = await getDoc(doc(db, "lessons", lessonId));
+      if (!lessonSnap.exists()) throw new Error(t("errors.lessonNotFound"));
+
+      const dataUnknown = lessonSnap.data() as unknown;
+      const data = isRecord(dataUnknown) ? dataUnknown : {};
+      const { imageUrl, prompt } = pickImageLiveSource(data);
+      if (!imageUrl || !prompt) {
+        throw new Error(safeMsg("errors.imageLiveMissing", "Fant ikke bilde og instruksjon for denne bildeoppgaven."));
+      }
+
+      const res = await authedPost<{ sessionId?: string; error?: string }>("/api/image-sessions/start", {
+        prompt,
+        imageUrl,
+        timerSeconds: null,
+      });
+      if (!res.sessionId) throw new Error(res.error || safeMsg("errors.imageLiveStartFailed", "Kunne ikke starte bildeaktivitet."));
+      router.push(`/${locale}/image-live/host/${res.sessionId}/display`);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : safeMsg("errors.imageLiveStartFailed", "Kunne ikke starte bildeaktivitet."));
     } finally {
       setBusy(key, false);
     }

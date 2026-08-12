@@ -1521,7 +1521,8 @@
       "copyJoinCode": "Copiar código de entrada",
       "copyJoinLink": "Copiar link de entrada",
       "shareLinkQr": "Compartilhar (link + QR)",
-      "board": "Quadro"
+      "board": "Quadro",
+      "startImageLive": "Iniciar ao vivo"
     },
     "errors": {
       "label": "Erro",

@@ -25,6 +25,7 @@ type ImageSourceMode = "ai" | "upload" | "url";
 type TimestampLike = { toMillis: () => number };
 type QuizRow = {
   id: string;
+  source: "mine" | "library";
   title: string;
   description: string;
   imageUrl: string;
@@ -91,8 +92,33 @@ function questionCountFrom(data: Record<string, unknown>): number {
   return tasks.length;
 }
 
-function coerceQuiz(id: string, raw: unknown): QuizRow | null {
+function languageDisplayName(value: string, locale: string): string {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[()]/g, " ")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return "";
+  if (["nb", "no", "norwegian", "norwegian bokmal", "norsk bokmal"].includes(normalized)) {
+    return locale.startsWith("en") ? "Norwegian Bokmal" : "Norsk bokmål";
+  }
+  if (["en", "english", "engelsk"].includes(normalized)) return locale.startsWith("en") ? "English" : "Engelsk";
+  if (["pt", "portuguese", "portugisisk"].includes(normalized)) return locale.startsWith("en") ? "Portuguese" : "Portugisisk";
+  if (["pt br", "pt-br", "br", "portuguese brazil", "portugisisk brasil"].includes(normalized)) {
+    return locale.startsWith("en") ? "Portuguese (Brazil)" : "Portugisisk (Brasil)";
+  }
+
+  return value.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function coerceQuiz(id: string, raw: unknown, source: QuizRow["source"]): QuizRow | null {
   const data = isRecord(raw) ? raw : {};
+  if (data.deletedAt) return null;
   const quiz = isRecord(data.quiz) ? data.quiz : {};
   const lessonType = safeString(data.lessonType || data.contentType || data.textType || data.texttype).toLowerCase();
   const isQuiz = lessonType === "quiz" || Array.isArray(quiz.questions);
@@ -100,6 +126,7 @@ function coerceQuiz(id: string, raw: unknown): QuizRow | null {
 
   return {
     id,
+    source,
     title: safeString(data.title || quiz.title, "Quiz uten tittel"),
     description: safeString(data.description || quiz.description),
     imageUrl: safeString(data.coverImageUrl || data.imageUrl),
@@ -284,6 +311,10 @@ function imageActivityCopy(locale: string) {
       imageReady: "Image is ready.",
       uploadFailed: "Upload failed.",
       generateFailed: "Could not generate image.",
+      save: "Save to My content",
+      saving: "Saving...",
+      saved: "Saved to My content.",
+      saveFailed: "Could not save image activity.",
       loginRequired: "You must be signed in first.",
       imageOnly: "Choose an image file.",
       tooLarge: "The file is too large. Max 8 MB.",
@@ -319,6 +350,10 @@ function imageActivityCopy(locale: string) {
       imageReady: "A imagem está pronta.",
       uploadFailed: "Falha ao enviar.",
       generateFailed: "Não foi possível gerar a imagem.",
+      save: "Salvar em Meu conteúdo",
+      saving: "Salvando...",
+      saved: "Salvo em Meu conteúdo.",
+      saveFailed: "Não foi possível salvar a atividade.",
       loginRequired: "Você precisa estar conectado primeiro.",
       imageOnly: "Escolha um arquivo de imagem.",
       tooLarge: "O arquivo é grande demais. Máximo de 8 MB.",
@@ -353,6 +388,10 @@ function imageActivityCopy(locale: string) {
     imageReady: "Bildet er klart.",
     uploadFailed: "Opplasting feilet.",
     generateFailed: "Kunne ikke generere bildet.",
+    save: "Lagre i Mitt innhold",
+    saving: "Lagrer...",
+    saved: "Lagret i Mitt innhold.",
+    saveFailed: "Kunne ikke lagre bildeaktiviteten.",
     loginRequired: "Du må være innlogget først.",
     imageOnly: "Velg en bildefil.",
     tooLarge: "Filen er for stor. Maks 8 MB.",
@@ -404,15 +443,17 @@ function quizLiveCopy(locale: string) {
   if (locale === "en") {
     return {
       kicker: "Live activity",
-      title: "Start quiz",
-      text: "Choose a quiz from My content and start it live on the big screen.",
+      title: "Live quiz",
+      text: "Choose a quiz from My content or 321quiz and start it live on the big screen.",
       create: "Create new quiz",
       search: "Search my quizzes",
+      librarySearch: "Search 321quiz",
       searchPlaceholder: "Search by title, level or language",
       preview: "Preview",
       start: "Start live quiz",
       starting: "Starting...",
       empty: "No quizzes found in My content yet.",
+      libraryEmpty: "No quizzes found in 321quiz yet.",
       noMatch: "No quizzes matched your search.",
       error: "Could not start quiz.",
       questionSuffix: "questions",
@@ -421,15 +462,17 @@ function quizLiveCopy(locale: string) {
   if (locale === "pt") {
     return {
       kicker: "Atividade ao vivo",
-      title: "Iniciar quiz",
-      text: "Escolha um quiz de Meu conteúdo e inicie ao vivo na tela.",
+      title: "Quiz ao vivo",
+      text: "Escolha um quiz de Meu conteúdo ou 321quiz e inicie ao vivo na tela.",
       create: "Criar novo quiz",
       search: "Pesquisar meus quizzes",
+      librarySearch: "Pesquisar 321quiz",
       searchPlaceholder: "Pesquisar por título, nível ou idioma",
       preview: "Pré-visualizar",
       start: "Iniciar quiz ao vivo",
       starting: "Iniciando...",
       empty: "Ainda não há quizzes em Meu conteúdo.",
+      libraryEmpty: "Ainda não há quizzes em 321quiz.",
       noMatch: "Nenhum quiz corresponde à pesquisa.",
       error: "Não foi possível iniciar o quiz.",
       questionSuffix: "perguntas",
@@ -437,15 +480,17 @@ function quizLiveCopy(locale: string) {
   }
   return {
     kicker: "Liveaktivitet",
-    title: "Start quiz",
-    text: "Velg en quiz fra Mitt innhold og start den live på storskjermen.",
+    title: "Livequiz",
+    text: "Velg en quiz fra Mitt innhold eller 321quiz og start den live på storskjermen.",
     create: "Lag ny quiz",
     search: "Søk i mine quizzer",
+    librarySearch: "Søk i 321quiz",
     searchPlaceholder: "Søk på tittel, nivå eller språk",
     preview: "Forhåndsvis",
     start: "Start live quiz",
     starting: "Starter...",
     empty: "Du har ingen quizzer i Mitt innhold enda.",
+    libraryEmpty: "Fant ingen quizzer i 321quiz enda.",
     noMatch: "Ingen quizzer passet søket.",
     error: "Kunne ikke starte quiz.",
     questionSuffix: "spørsmål",
@@ -518,7 +563,9 @@ function TeacherBoardIndexInner() {
   const [spacePage, setSpacePage] = useState(0);
   const [spacePickerOpen, setSpacePickerOpen] = useState(false);
   const [quizzes, setQuizzes] = useState<QuizRow[]>([]);
+  const [libraryQuizzes, setLibraryQuizzes] = useState<QuizRow[]>([]);
   const [quizSearch, setQuizSearch] = useState("");
+  const [libraryQuizSearch, setLibraryQuizSearch] = useState("");
   const [quizBusyId, setQuizBusyId] = useState("");
   const [quizError, setQuizError] = useState("");
   const [wordwallPrompt, setWordwallPrompt] = useState("");
@@ -542,6 +589,7 @@ function TeacherBoardIndexInner() {
   const [imageActivityBusy, setImageActivityBusy] = useState(false);
   const [imageActivityUploading, setImageActivityUploading] = useState(false);
   const [imageActivityGenerating, setImageActivityGenerating] = useState(false);
+  const [imageActivitySaving, setImageActivitySaving] = useState(false);
   const [imageActivityMessage, setImageActivityMessage] = useState("");
   const [imageActivityError, setImageActivityError] = useState("");
   const [timerSeconds, setTimerSeconds] = useState(60);
@@ -606,7 +654,7 @@ function TeacherBoardIndexInner() {
         const byId = new Map<string, QuizRow>();
         snaps
           .flatMap((snap) => snap.docs)
-          .map((item) => coerceQuiz(item.id, item.data()))
+          .map((item) => coerceQuiz(item.id, item.data(), "mine"))
           .filter((item): item is QuizRow => item !== null)
           .forEach((item) => byId.set(item.id, item));
         const next = Array.from(byId.values())
@@ -616,6 +664,22 @@ function TeacherBoardIndexInner() {
       })
       .catch(() => setQuizzes([]));
   }, [canUse, user?.uid]);
+
+  useEffect(() => {
+    if (!canUse) return;
+
+    const libraryQuery = query(collection(db, "published_lessons"), where("lessonType", "==", "quiz"), where("isActive", "==", true), limit(80));
+    getDocs(libraryQuery)
+      .then((snap) => {
+        const next = snap.docs
+          .map((item) => coerceQuiz(item.id, item.data(), "library"))
+          .filter((item): item is QuizRow => item !== null)
+          .sort((a, b) => b.publishedAt - a.publishedAt)
+          .slice(0, 24);
+        setLibraryQuizzes(next);
+      })
+      .catch(() => setLibraryQuizzes([]));
+  }, [canUse]);
 
   const filteredSpaces = useMemo(() => {
     const search = spaceSearch.trim().toLowerCase();
@@ -654,6 +718,15 @@ function TeacherBoardIndexInner() {
         .some((value) => value.toLowerCase().includes(search))
     );
   }, [quizSearch, quizzes]);
+  const filteredLibraryQuizzes = useMemo(() => {
+    const search = libraryQuizSearch.trim().toLowerCase();
+    if (!search) return libraryQuizzes;
+    return libraryQuizzes.filter((quiz) =>
+      [quiz.title, quiz.description, quiz.level, quiz.language]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(search))
+    );
+  }, [libraryQuizSearch, libraryQuizzes]);
 
   async function startWordwall() {
     const prompt = wordwallPrompt.trim();
@@ -821,6 +894,55 @@ function TeacherBoardIndexInner() {
     }
   }
 
+  async function saveImageActivityToContent() {
+    const current = auth.currentUser;
+    if (!current) {
+      setImageActivityError(imageText.loginRequired);
+      return;
+    }
+
+    const prompt = imageActivityPrompt.trim();
+    const imageUrl = imageActivityUrl.trim();
+    if (!prompt || !imageUrl || imageActivitySaving) return;
+
+    setImageActivitySaving(true);
+    setImageActivityError("");
+    setImageActivityMessage("");
+    try {
+      const token = await current.getIdToken();
+      const response = await fetch("/api/producer/save-image-writing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          title: prompt.slice(0, 80),
+          language: locale === "en" || locale === "pt" ? locale : "nb",
+          level: "A2",
+          taskType: "describe",
+          imageTasks: [
+            {
+              imageUrl,
+              imageSource: imageActivitySource === "ai" ? "ai_generated" : "uploaded",
+              imagePrompt: imageActivityAiPrompt.trim() || prompt,
+              imageDescription: prompt,
+              instruction: prompt,
+              supportWords: [],
+              successCriteria: [],
+              printSupportWords: false,
+              printSuccessCriteria: false,
+            },
+          ],
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { error?: unknown };
+      if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : imageText.saveFailed);
+      setImageActivityMessage(imageText.saved);
+    } catch (error) {
+      setImageActivityError(error instanceof Error ? error.message : imageText.saveFailed);
+    } finally {
+      setImageActivitySaving(false);
+    }
+  }
+
   function startTimer() {
     const custom = Number(customTimerSeconds);
     const seconds = customTimerSeconds.trim() ? custom : timerSeconds;
@@ -833,15 +955,30 @@ function TeacherBoardIndexInner() {
     window.location.assign(`/${locale}/timer/display?seconds=${safeSeconds}`);
   }
 
-  async function startQuizSession(lessonId: string) {
+  async function startQuizSession(quiz: QuizRow) {
+    const busyKey = `${quiz.source}:${quiz.id}`;
     if (quizBusyId) return;
     const current = auth.currentUser;
     if (!current) return;
 
-    setQuizBusyId(lessonId);
+    setQuizBusyId(busyKey);
     setQuizError("");
     try {
       const token = await current.getIdToken();
+      let lessonId = quiz.id;
+
+      if (quiz.source === "library") {
+        const importResponse = await fetch("/api/producer/import-published-quiz", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ publishedId: quiz.id }),
+        });
+        const importData = (await importResponse.json().catch(() => ({}))) as { lessonId?: unknown; error?: unknown };
+        if (!importResponse.ok) throw new Error(typeof importData.error === "string" ? importData.error : quizText.error);
+        lessonId = safeString(importData.lessonId);
+        if (!lessonId) throw new Error(quizText.error);
+      }
+
       const response = await fetch("/api/quiz-sessions/start", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -857,6 +994,64 @@ function TeacherBoardIndexInner() {
     } finally {
       setQuizBusyId("");
     }
+  }
+
+  function renderQuizGrid(items: QuizRow[], emptyText: string, originalCount: number) {
+    if (!items.length) {
+      return (
+        <div className="rounded-2xl border border-dashed border-violet-200 bg-white p-5 text-sm font-semibold text-slate-600">
+          {originalCount ? quizText.noMatch : emptyText}
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {items.slice(0, 6).map((quiz) => {
+          const busyKey = `${quiz.source}:${quiz.id}`;
+          const previewHref = quiz.source === "library" ? `/${locale}/321quiz/${quiz.id}` : `/${locale}/producer/quiz/${quiz.id}`;
+          return (
+            <article key={`${quiz.source}:${quiz.id}`} className="overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-sm">
+              <div className="aspect-video bg-violet-50">
+                {quiz.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={quiz.imageUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm font-black uppercase tracking-[0.18em] text-violet-700">321quiz</div>
+                )}
+              </div>
+              <div className="space-y-3 p-4">
+                <div className="flex flex-wrap gap-2 text-xs font-black text-slate-600">
+                  <span className="rounded-full bg-violet-50 px-2.5 py-1 text-violet-800">{quiz.questionCount} {quizText.questionSuffix}</span>
+                  {quiz.level ? <span className="rounded-full bg-slate-100 px-2.5 py-1">{quiz.level}</span> : null}
+                  {quiz.language ? <span className="rounded-full bg-slate-100 px-2.5 py-1">{languageDisplayName(quiz.language, locale)}</span> : null}
+                </div>
+                <div>
+                  <h3 className="line-clamp-2 text-lg font-black leading-tight text-slate-950">{quiz.title}</h3>
+                  {quiz.description ? <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">{quiz.description}</p> : null}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href={previewHref}
+                    className="inline-flex items-center justify-center rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm font-black text-violet-800 no-underline hover:bg-violet-50"
+                  >
+                    {quizText.preview}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void startQuizSession(quiz)}
+                    disabled={Boolean(quizBusyId)}
+                    className="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-3 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+                  >
+                    {quizBusyId === busyKey ? quizText.starting : quizText.start}
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    );
   }
 
   if (loading) {
@@ -907,73 +1102,29 @@ function TeacherBoardIndexInner() {
 
       <CollapsibleActivitySection tone="violet" icon={<Sparkles className="h-4 w-4" aria-hidden="true" />} kicker={quizText.kicker} title={quizText.title} text={quizText.text}>
         <div className="space-y-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <label className="block min-w-0 flex-1">
-              <span className="text-sm font-black text-slate-800">{quizText.search}</span>
-              <input
-                value={quizSearch}
-                onChange={(event) => setQuizSearch(event.target.value)}
-                placeholder={quizText.searchPlaceholder}
-                className="mt-2 w-full rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-violet-500"
-              />
-            </label>
-            <Link
-              href={`/${locale}/tools/quiz`}
-              className="inline-flex items-center justify-center rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white no-underline hover:bg-violet-800"
-            >
+          <div className="flex justify-end">
+            <Link href={`/${locale}/tools/quiz`} className="inline-flex items-center justify-center rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white no-underline hover:bg-violet-800">
               {quizText.create}
             </Link>
           </div>
 
           {quizError ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-700">{quizError}</div> : null}
 
-          {filteredQuizzes.length ? (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {filteredQuizzes.slice(0, 9).map((quiz) => (
-                <article key={quiz.id} className="overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-sm">
-                  <div className="aspect-video bg-violet-50">
-                    {quiz.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={quiz.imageUrl} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm font-black uppercase tracking-[0.18em] text-violet-700">321quiz</div>
-                    )}
-                  </div>
-                  <div className="space-y-3 p-4">
-                    <div className="flex flex-wrap gap-2 text-xs font-black text-slate-600">
-                      <span className="rounded-full bg-violet-50 px-2.5 py-1 text-violet-800">{quiz.questionCount} {quizText.questionSuffix}</span>
-                      {quiz.level ? <span className="rounded-full bg-slate-100 px-2.5 py-1">{quiz.level}</span> : null}
-                      {quiz.language ? <span className="rounded-full bg-slate-100 px-2.5 py-1">{quiz.language}</span> : null}
-                    </div>
-                    <div>
-                      <h3 className="line-clamp-2 text-lg font-black leading-tight text-slate-950">{quiz.title}</h3>
-                      {quiz.description ? <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">{quiz.description}</p> : null}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Link
-                        href={`/${locale}/producer/quiz/${quiz.id}`}
-                        className="inline-flex items-center justify-center rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm font-black text-violet-800 no-underline hover:bg-violet-50"
-                      >
-                        {quizText.preview}
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => void startQuizSession(quiz.id)}
-                        disabled={Boolean(quizBusyId)}
-                        className="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-3 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-                      >
-                        {quizBusyId === quiz.id ? quizText.starting : quizText.start}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-violet-200 bg-white p-5 text-sm font-semibold text-slate-600">
-              {quizzes.length ? quizText.noMatch : quizText.empty}
-            </div>
-          )}
+          <div className="space-y-3 rounded-2xl border border-violet-100 bg-white/60 p-3">
+            <label className="block">
+              <span className="text-sm font-black text-slate-800">{quizText.search}</span>
+              <input value={quizSearch} onChange={(event) => setQuizSearch(event.target.value)} placeholder={quizText.searchPlaceholder} className="mt-2 w-full rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-violet-500" />
+            </label>
+            {renderQuizGrid(filteredQuizzes, quizText.empty, quizzes.length)}
+          </div>
+
+          <div className="space-y-3 rounded-2xl border border-violet-100 bg-white/60 p-3">
+            <label className="block">
+              <span className="text-sm font-black text-slate-800">{quizText.librarySearch}</span>
+              <input value={libraryQuizSearch} onChange={(event) => setLibraryQuizSearch(event.target.value)} placeholder={quizText.searchPlaceholder} className="mt-2 w-full rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 outline-none focus:border-violet-500" />
+            </label>
+            {renderQuizGrid(filteredLibraryQuizzes, quizText.libraryEmpty, libraryQuizzes.length)}
+          </div>
         </div>
       </CollapsibleActivitySection>
 
@@ -1193,6 +1344,14 @@ function TeacherBoardIndexInner() {
               className="mt-4 w-full rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
             >
               {imageActivityBusy ? imageText.starting : imageText.start}
+            </button>
+            <button
+              type="button"
+              onClick={saveImageActivityToContent}
+              disabled={imageActivitySaving || !imageActivityPrompt.trim() || !imageActivityUrl.trim()}
+              className="mt-2 w-full rounded-xl border border-emerald-300 bg-white px-5 py-3 text-sm font-black text-emerald-900 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+            >
+              {imageActivitySaving ? imageText.saving : imageText.save}
             </button>
           </div>
         </div>

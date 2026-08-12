@@ -1521,7 +1521,8 @@
       "copyJoinCode": "Copy join code",
       "copyJoinLink": "Copy join link",
       "shareLinkQr": "Share (link + QR)",
-      "board": "Board"
+      "board": "Board",
+      "startImageLive": "Start live"
     },
     "errors": {
       "label": "Error",

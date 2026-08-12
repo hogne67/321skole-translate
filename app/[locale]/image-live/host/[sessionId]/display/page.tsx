@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { Download, Eye, EyeOff, GripVertical, Pin, Star, X } from "lucide-react";
 import { auth } from "@/lib/firebase";
 
 type ImageSubmission = { id: string; text: string; displayName: string; createdAt: number };
@@ -83,17 +83,20 @@ export default function ImageActivityDisplayPage() {
   const [qrUrl, setQrUrl] = useState("");
   const [error, setError] = useState("");
   const [startBusy, setStartBusy] = useState(false);
+  const [showImage, setShowImage] = useState(true);
+  const [moveMode, setMoveMode] = useState(false);
+  const [orderIds, setOrderIds] = useState<string[]>([]);
+  const [draggingId, setDraggingId] = useState("");
+  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
+  const [featuredId, setFeaturedId] = useState("");
+  const [printBusy, setPrintBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [liveUrlText, setLiveUrlText] = useState("/live");
 
   const joinUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     return `${window.location.origin}/${locale}/image-live/${sessionId}`;
   }, [locale, sessionId]);
-  const liveUrlText = useMemo(() => {
-    if (typeof window === "undefined") return "/live";
-    return `${window.location.host}/live`;
-  }, []);
-
   const load = useCallback(async () => {
     const res = await fetch(`/api/image-sessions/${encodeURIComponent(sessionId)}`, { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as unknown;
@@ -124,6 +127,10 @@ export default function ImageActivityDisplayPage() {
       .catch(() => setQrUrl(""));
   }, [joinUrl]);
 
+  useEffect(() => {
+    setLiveUrlText(`${window.location.host}/live`);
+  }, []);
+
   function closeDisplay() {
     if (window.opener) {
       window.close();
@@ -153,13 +160,100 @@ export default function ImageActivityDisplayPage() {
     }
   }
 
-  const responses = session?.submissions.slice(0, 18) ?? [];
+  const responses = useMemo(() => session?.submissions.slice(0, 18) ?? [], [session?.submissions]);
   const participants = session?.participants ?? [];
   const isLobby = session?.status === "lobby";
   const hasTimer = typeof session?.endsAt === "number" && typeof session.timerSeconds === "number";
   const remaining = hasTimer ? Math.max(0, Math.ceil(((session?.endsAt ?? 0) - now) / 1000)) : null;
   const timerDone = hasTimer && remaining === 0;
   const timerPct = hasTimer && session?.timerSeconds ? Math.max(0, Math.min(100, (((session.timerSeconds - (remaining ?? 0)) / session.timerSeconds) * 100))) : 0;
+  const orderedResponses = useMemo(() => {
+    const order = new Map(orderIds.map((id, index) => [id, index]));
+    return [...responses].sort((a, b) => {
+      const ai = order.has(a.id) ? order.get(a.id)! : Number.MAX_SAFE_INTEGER;
+      const bi = order.has(b.id) ? order.get(b.id)! : Number.MAX_SAFE_INTEGER;
+      if (ai !== bi) return ai - bi;
+      return b.createdAt - a.createdAt;
+    });
+  }, [orderIds, responses]);
+
+  useEffect(() => {
+    setOrderIds((current) => {
+      const existing = new Set(current);
+      const incoming = responses.map((item) => item.id);
+      const next = [...current.filter((id) => incoming.includes(id)), ...incoming.filter((id) => !existing.has(id))];
+      return next.length === current.length && next.every((id, index) => id === current[index]) ? current : next;
+    });
+  }, [responses]);
+
+  function togglePinned(id: string) {
+    setPinnedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [id, ...current].slice(0, 8));
+  }
+
+  function moveResponse(targetId: string) {
+    if (!draggingId || draggingId === targetId) return;
+    setOrderIds((current) => {
+      const next = current.filter((id) => id !== draggingId);
+      const targetIndex = Math.max(0, next.indexOf(targetId));
+      next.splice(targetIndex, 0, draggingId);
+      return next;
+    });
+    setDraggingId("");
+  }
+
+  async function printImageActivity() {
+    if (!session || printBusy) return;
+    setPrintBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/pdf/board-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            title: session.prompt || "Bildeaktivitet",
+            subtitle: "Svar fra live bildeaktivitet",
+            prompt: session.prompt,
+            imageUrl: session.imageUrl,
+            generatedAt: new Date().toLocaleString(locale === "nb" ? "nb-NO" : locale === "pt" ? "pt-BR" : "en-GB"),
+            responseCount: session.total,
+            sentences: orderedResponses.map((item, index) => ({
+              id: item.id,
+              name: item.displayName || `Svar ${index + 1}`,
+              text: item.text,
+              pinned: pinnedIds.includes(item.id),
+              featured: featuredId === item.id,
+            })),
+            labels: {
+              generatedAt: "Laget",
+              prompt: "Oppgave",
+              responses: "Svar",
+              space: "Rom",
+              featured: "Markert svar",
+              pinned: "Holdte svar",
+              allSentences: "Alle svar",
+              noSentences: "Ingen svar enda",
+              site: "321school",
+            },
+          },
+        }),
+      });
+      const blob = await response.blob();
+      if (!response.ok) throw new Error("Kunne ikke lage PDF.");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "bildeaktivitet.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (event) {
+      setError(event instanceof Error ? event.message : "Kunne ikke lage PDF.");
+    } finally {
+      setPrintBusy(false);
+    }
+  }
 
   return (
     <main className="h-screen overflow-hidden bg-[#07130f] px-8 py-6 text-white">
@@ -206,6 +300,35 @@ export default function ImageActivityDisplayPage() {
           </aside>
 
           <div className="relative min-h-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-4">
+            {!isLobby ? (
+              <div className="absolute right-5 top-5 z-20 flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowImage((value) => !value)}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-black/45 px-4 py-2 text-sm font-black text-white backdrop-blur hover:bg-black/60"
+                >
+                  {showImage ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showImage ? "Skjul bilde" : "Vis bilde"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMoveMode((value) => !value)}
+                  className={["inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-black backdrop-blur", moveMode ? "bg-amber-300 text-amber-950" : "bg-black/45 text-white hover:bg-black/60"].join(" ")}
+                >
+                  <GripVertical className="h-4 w-4" />
+                  Flytt svar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void printImageActivity()}
+                  disabled={printBusy || !orderedResponses.length}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-black/45 px-4 py-2 text-sm font-black text-white backdrop-blur hover:bg-black/60 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Download className="h-4 w-4" />
+                  {printBusy ? "Lager..." : "Skriv ut"}
+                </button>
+              </div>
+            ) : null}
             {hasTimer ? (
               <div className="absolute inset-x-6 top-5 z-10 h-3 overflow-hidden rounded-full bg-black/30">
                 <div className={["h-full rounded-full transition-[width]", timerDone ? "bg-rose-400" : "bg-emerald-300"].join(" ")} style={{ width: `${timerPct}%` }} />
@@ -224,9 +347,16 @@ export default function ImageActivityDisplayPage() {
                   {startBusy ? "Starter..." : "Start bildeaktivitet"}
                 </button>
               </div>
-            ) : session?.imageUrl ? (
+            ) : showImage && session?.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={session.imageUrl} alt="" className="h-full w-full rounded-[1.5rem] object-contain" />
+            ) : !showImage ? (
+              <div className="flex h-full items-center justify-center text-center">
+                <div>
+                  <div className="text-5xl font-black">Bildet er skjult</div>
+                  <p className="mt-3 max-w-2xl text-xl font-bold text-white/60">Elevenes bilde står fortsatt fast. Her kan dere fokusere på svarene.</p>
+                </div>
+              </div>
             ) : (
               <div className="flex h-full items-center justify-center text-3xl font-black text-white/50">Venter på bilde...</div>
             )}
@@ -250,13 +380,50 @@ export default function ImageActivityDisplayPage() {
                   </div>
                 </div>
               )
-            ) : responses.length ? (
+            ) : orderedResponses.length ? (
               <div className="grid max-h-full gap-3 overflow-hidden">
-                {responses.map((item, index) => (
-                  <div key={item.id} className={["rounded-3xl px-5 py-4 text-xl font-black leading-snug shadow-lg", noteClass(index)].join(" ")}>
-                    {item.text}
+                {orderedResponses.map((item, index) => {
+                  const pinned = pinnedIds.includes(item.id);
+                  const featured = featuredId === item.id;
+                  return (
+                  <div
+                    key={item.id}
+                    draggable={moveMode}
+                    onDragStart={() => setDraggingId(item.id)}
+                    onDragOver={(event) => {
+                      if (moveMode) event.preventDefault();
+                    }}
+                    onDrop={() => moveResponse(item.id)}
+                    className={[
+                      "group rounded-3xl px-5 py-4 text-xl font-black leading-snug shadow-lg",
+                      featured || pinned ? "bg-amber-200 text-amber-950 ring-4 ring-amber-300/60" : noteClass(index),
+                      moveMode ? "cursor-move" : "",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span>{item.text}</span>
+                      <span className="flex shrink-0 gap-1 opacity-90">
+                        <button
+                          type="button"
+                          onClick={() => setFeaturedId((current) => current === item.id ? "" : item.id)}
+                          className={["inline-flex h-9 w-9 items-center justify-center rounded-full", featured ? "bg-amber-500 text-white" : "bg-white/70 text-slate-800"].join(" ")}
+                          title="Marker svar"
+                        >
+                          <Star className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => togglePinned(item.id)}
+                          className={["inline-flex h-9 w-9 items-center justify-center rounded-full", pinned ? "bg-slate-950 text-white" : "bg-white/70 text-slate-800"].join(" ")}
+                          title="Hold svar"
+                        >
+                          <Pin className="h-4 w-4" />
+                        </button>
+                      </span>
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="flex h-full items-center justify-center text-center">

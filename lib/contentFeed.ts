@@ -40,6 +40,8 @@ export type ContentItem =
     language?: string;
     level?: string;
     authorName?: string;
+    source?: string;
+    sourcePublishedQuizId?: string;
     deletedAt?: Date | null;
   }
   | {
@@ -383,6 +385,8 @@ async function fetchMyLessons(db: Firestore, uid: string, mode: AppMode, locale:
         language: pickLanguage(d),
         level: pickLevel(d) || undefined,
         authorName: pickAuthorName(d),
+        source: typeof d.source === "string" ? d.source : undefined,
+        sourcePublishedQuizId: typeof d.sourcePublishedQuizId === "string" ? d.sourcePublishedQuizId : undefined,
         deletedAt: toDateSafe(d.deletedAt),
       });
     });
@@ -408,6 +412,8 @@ type LessonMeta = {
   texttype?: string;
   meta?: string[];
   authorName?: string;
+  source?: string;
+  sourcePublishedQuizId?: string;
 };
 
 async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
@@ -464,6 +470,8 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
           texttype: pickTexttype(d),
           meta: safeMeta(d),
           authorName: pickAuthorName(d),
+          source: typeof d.source === "string" ? d.source : undefined,
+          sourcePublishedQuizId: typeof d.sourcePublishedQuizId === "string" ? d.sourcePublishedQuizId : undefined,
         });
       });
     } catch {
@@ -541,6 +549,8 @@ function ownLessonItemFromSubmission(args: {
     language: lessonMeta.language,
     level: lessonMeta.level,
     authorName: lessonMeta.authorName,
+    source: lessonMeta.source,
+    sourcePublishedQuizId: lessonMeta.sourcePublishedQuizId,
   };
 }
 

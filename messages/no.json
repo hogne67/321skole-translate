@@ -1521,7 +1521,8 @@
     "copyJoinCode": "Kopier kode",
     "copyJoinLink": "Kopier lenke",
     "shareLinkQr": "Del (lenke + QR)",
-    "board": "Tavle"
+    "board": "Tavle",
+    "startImageLive": "Start live"
   },
   "errors": {
     "label": "Feil",

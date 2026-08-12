@@ -189,6 +189,9 @@ export async function POST(req: Request) {
 
   const draft = ((draftSnap.data() ?? {}) as Record<string, unknown>) || {};
   const ownerId = typeof draft.ownerId === "string" ? draft.ownerId : null;
+  const importedFromQuizLibrary =
+    draft.source === "321quiz-library" ||
+    (typeof draft.sourcePublishedQuizId === "string" && draft.sourcePublishedQuizId.trim().length > 0);
 
   // Ikke-admin kan kun publisere egne utkast
   if (!isAdmin && ownerId && ownerId !== uid) {
@@ -203,6 +206,21 @@ export async function POST(req: Request) {
   }
 
   const effectiveOwnerId = ownerId || uid;
+  if (importedFromQuizLibrary && visibility === "public") {
+    await db.collection("auditEvents").add({
+      type: "PUBLISH_BLOCKED",
+      uid,
+      lessonId: draftId,
+      ts: now,
+      meta: { reason: "IMPORTED_LIBRARY_QUIZ_PUBLIC_PUBLISH_BLOCKED", draftPath },
+    });
+
+    return NextResponse.json(
+      { error: "Quizzes imported from the library cannot be published back to the public library." },
+      { status: 400 }
+    );
+  }
+
   const factCheckRequirement = inferFactCheckRequired(draft);
   if (factCheckRequirement.required) {
     const aiQuality = isRecord(draft.aiQuality) ? draft.aiQuality : {};

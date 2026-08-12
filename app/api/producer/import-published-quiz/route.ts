@@ -57,16 +57,17 @@ export async function POST(req: Request) {
     if (!isQuiz) return json({ ok: false, error: "Not a quiz." }, 400);
     if (source.isActive === false) return json({ ok: false, error: "Quiz is not active." }, 400);
 
-    const existing = await db
-      .collection("lessons")
-      .where("ownerId", "==", uid)
-      .where("sourcePublishedQuizId", "==", publishedId)
-      .limit(1)
-      .get();
-
-    if (!existing.empty) {
-      return json({ ok: true, lessonId: existing.docs[0].id, alreadyExists: true });
-    }
+    const legacySourceLessonId = safeString(source.lessonId);
+    const existingQueries = await Promise.all([
+      db.collection("lessons").where("ownerId", "==", uid).where("sourcePublishedQuizId", "==", publishedId).limit(1).get(),
+      db.collection("lessons").where("ownerId", "==", uid).where("activePublishedId", "==", publishedId).limit(1).get(),
+      db.collection("lessons").where("ownerId", "==", uid).where("publishedLessonId", "==", publishedId).limit(1).get(),
+      legacySourceLessonId
+        ? db.collection("lessons").where("ownerId", "==", uid).where("sourceLibraryLessonId", "==", legacySourceLessonId).limit(1).get()
+        : Promise.resolve(null),
+    ]);
+    const existingDoc = existingQueries.find((snap) => snap && !snap.empty)?.docs[0];
+    if (existingDoc) return json({ ok: true, lessonId: existingDoc.id, alreadyExists: true });
 
     const profileSnap = await db.collection("users").doc(uid).get().catch(() => null);
     const profile = profileSnap?.exists ? (profileSnap.data() as Record<string, unknown>) : null;
@@ -80,8 +81,16 @@ export async function POST(req: Request) {
       ratingCount: _ratingCount,
       ratingSum: _ratingSum,
       publishedAt: _publishedAt,
+      publishedLessonId: _publishedLessonId,
+      activePublishedId: _activePublishedId,
+      publish: _publish,
       publishedBy: _publishedBy,
       signedBy: _signedBy,
+      moderation: _moderation,
+      visibility: _visibility,
+      publishVisibility: _publishVisibility,
+      showInLibrary: _showInLibrary,
+      sourcePublishedQuizId: _sourcePublishedQuizId,
       ...copyable
     } = source;
 
@@ -90,8 +99,16 @@ export async function POST(req: Request) {
     void _ratingCount;
     void _ratingSum;
     void _publishedAt;
+    void _publishedLessonId;
+    void _activePublishedId;
+    void _publish;
     void _publishedBy;
     void _signedBy;
+    void _moderation;
+    void _visibility;
+    void _publishVisibility;
+    void _showInLibrary;
+    void _sourcePublishedQuizId;
 
     await lessonRef.set({
       ...copyable,
@@ -99,10 +116,17 @@ export async function POST(req: Request) {
       uid,
       producerName,
       status: "draft",
+      activePublishedId: null,
+      publishedLessonId: null,
       publishVisibility: "private",
       visibility: "private",
+      showInLibrary: false,
+      publish: { visibility: "private", state: "draft" },
       source: "321quiz-library",
       sourcePublishedQuizId: publishedId,
+      sourceLibraryLessonId: legacySourceLessonId || null,
+      originalOwnerId: safeString(source.ownerId || source.uid) || null,
+      originalProducerName: safeString(source.producerName || source.authorName) || null,
       importedFromLibraryAt: now,
       createdAt: now,
       updatedAt: now,
