@@ -70,6 +70,8 @@ export default function PublicWordwallPage() {
   const [session, setSession] = useState<WordwallSession | null>(null);
   const [participantId, setParticipantId] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [nameSent, setNameSent] = useState(false);
+  const [joinBusy, setJoinBusy] = useState(false);
   const [word, setWord] = useState("");
   const [sentWords, setSentWords] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -102,27 +104,35 @@ export default function PublicWordwallPage() {
     setDisplayName(window.localStorage.getItem(nameStorageKey) || "");
   }, [nameStorageKey]);
 
-  useEffect(() => {
-    if (!participantId) return;
-    let cancelled = false;
-    async function join() {
-      const name = displayName.trim().replace(/\s+/g, " ").slice(0, 32);
-      if (name) window.localStorage.setItem(nameStorageKey, name);
-      await fetch(`/api/wordwall-sessions/${encodeURIComponent(sessionId)}/join`, {
+  const joinWithName = useCallback(async (showMessage = true) => {
+    const name = displayName.trim().replace(/\s+/g, " ").slice(0, 32);
+    if (!participantId || !name) return;
+    setJoinBusy(true);
+    setError("");
+    try {
+      window.localStorage.setItem(nameStorageKey, name);
+      const res = await fetch(`/api/wordwall-sessions/${encodeURIComponent(sessionId)}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ participantId, displayName: name }),
-      }).catch(() => undefined);
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: unknown };
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke sende navnet.");
+      setNameSent(true);
+      if (showMessage) setMessage("Navnet ditt vises på storskjermen. Du er klar.");
+      await load();
+    } catch (event) {
+      setError(event instanceof Error ? event.message : "Kunne ikke sende navnet.");
+    } finally {
+      setJoinBusy(false);
     }
-    void join();
-    const timer = window.setInterval(() => {
-      if (!cancelled) void join();
-    }, 10000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [displayName, nameStorageKey, participantId, sessionId]);
+  }, [displayName, load, nameStorageKey, participantId, sessionId]);
+
+  useEffect(() => {
+    if (!participantId || !nameSent) return;
+    const timer = window.setInterval(() => void joinWithName(false), 10000);
+    return () => window.clearInterval(timer);
+  }, [joinWithName, nameSent, participantId]);
 
   useEffect(() => {
     void load();
@@ -192,15 +202,32 @@ export default function PublicWordwallPage() {
             <label className="text-sm font-black text-slate-700">Navnet ditt på skjermen</label>
             <input
               value={displayName}
-              onChange={(event) => setDisplayName(event.target.value.slice(0, 32))}
+              onChange={(event) => {
+                setDisplayName(event.target.value.slice(0, 32));
+                setNameSent(false);
+                setMessage("");
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void joinWithName();
+              }}
               className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-4 text-xl font-black outline-none focus:border-sky-500"
               placeholder="Skriv fornavn..."
               maxLength={32}
               autoFocus
             />
+            <button
+              type="button"
+              onClick={() => void joinWithName()}
+              disabled={joinBusy || !displayName.trim()}
+              className="mt-4 w-full rounded-2xl bg-emerald-700 px-5 py-4 text-base font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+            >
+              {joinBusy ? "Sender..." : "Jeg er klar"}
+            </button>
             <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
               <div className="text-2xl font-black text-emerald-900">{displayName.trim() || "Klar"}</div>
-              <p className="mt-1 text-sm font-semibold text-emerald-800">Læreren starter om litt.</p>
+              <p className="mt-1 text-sm font-semibold text-emerald-800">
+                {nameSent ? "Du er klar. Vent til læreren starter." : "Trykk Jeg er klar for å vise navnet ditt."}
+              </p>
             </div>
           </section>
         ) : (

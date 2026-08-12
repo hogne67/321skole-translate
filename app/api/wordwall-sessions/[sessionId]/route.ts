@@ -46,11 +46,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ sessionId: str
         return {
           id: doc.id,
           displayName: safeString(data.displayName),
-          joinedAt: asMillis(data.joinedAt),
+          updatedAt: asMillis(data.updatedAt || data.joinedAt),
         };
       })
       .filter((participant) => participant.displayName)
-      .sort((a, b) => b.joinedAt - a.joinedAt)
+      .sort((a, b) => b.updatedAt - a.updatedAt)
       .slice(0, 60);
 
     return json({
