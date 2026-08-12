@@ -134,6 +134,21 @@ function extractJsonObject(text: string): string | null {
   return text.slice(start, end + 1);
 }
 
+function distributeCorrectOption(options: string[], correctIndex: number, questionIndex: number) {
+  if (!options.length) return { options, correctIndex: 0 };
+
+  const boundedCorrectIndex = Math.max(0, Math.min(options.length - 1, correctIndex));
+  const targetIndex = questionIndex % options.length;
+  if (targetIndex === boundedCorrectIndex) {
+    return { options, correctIndex: boundedCorrectIndex };
+  }
+
+  const correctOption = options[boundedCorrectIndex];
+  const nextOptions = options.filter((_, index) => index !== boundedCorrectIndex);
+  nextOptions.splice(targetIndex, 0, correctOption);
+  return { options: nextOptions, correctIndex: targetIndex };
+}
+
 function cleanQuestion(raw: unknown, index: number, fallbackSeconds: number): QuizQuestion | null {
   if (!isRecord(raw)) return null;
   const question = pickString(raw, "question");
@@ -149,11 +164,12 @@ function cleanQuestion(raw: unknown, index: number, fallbackSeconds: number): Qu
   if (!question || !explanation) return null;
   if (type === "true_false") {
     const tfOptions = options.length >= 2 ? options.slice(0, 2) : ["Sant", "Usant"];
+    const distributed = distributeCorrectOption(tfOptions, correctIndex === 1 ? 1 : 0, index);
     return {
       type,
       question,
-      options: tfOptions,
-      correctIndex: correctIndex === 1 ? 1 : 0,
+      options: distributed.options,
+      correctIndex: distributed.correctIndex,
       explanation,
       seconds,
     };
@@ -161,12 +177,13 @@ function cleanQuestion(raw: unknown, index: number, fallbackSeconds: number): Qu
 
   const nextOptions = options.slice(0, 4);
   if (nextOptions.length < 2) return null;
+  const distributed = distributeCorrectOption(nextOptions, correctIndex, index);
 
   return {
     type,
     question,
-    options: nextOptions,
-    correctIndex: Math.max(0, Math.min(nextOptions.length - 1, correctIndex)),
+    options: distributed.options,
+    correctIndex: distributed.correctIndex,
     explanation,
     seconds,
   };
@@ -235,6 +252,7 @@ export async function POST(req: Request) {
       `- True/false must have exactly 2 options, written in the target language.\n` +
       `- Include one short explanation per question.\n` +
       `- Make distractors plausible but clearly wrong.\n` +
+      `- Vary the correct answer position. Do not put the correct answer first every time.\n` +
       `- Return JSON only. No markdown.\n\n` +
       `Return this exact shape:\n` +
       `{\n` +

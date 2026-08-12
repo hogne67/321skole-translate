@@ -113,10 +113,31 @@ export default function QuizSessionDisplayPage() {
 
   const question = session?.questions[session.currentIndex] ?? null;
   const totalAnswers = session?.currentAnswerCount ?? 0;
+  const nextDisplayAction = useMemo(() => {
+    if (!session) return "next";
+    const isLastQuestion = session.currentIndex + 1 >= session.questions.length;
+    if (session.phase === "reveal") return "showResults";
+    if (session.phase === "results") return isLastQuestion ? "finish" : "countdown";
+    if (session.phase === "next") return "next";
+    return isLastQuestion && session.showAnswer ? "showResults" : "next";
+  }, [session]);
+
+  const nextDisplayLabel = useMemo(() => {
+    if (!session) return "Neste";
+    if (nextDisplayAction === "showResults") return "Vis resultat";
+    if (nextDisplayAction === "finish") return "Avslutt quiz";
+    if (nextDisplayAction === "countdown") return "Neste spørsmål";
+    return "Neste";
+  }, [nextDisplayAction, session]);
+
   const joinUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     return `${window.location.origin}/${locale}/quiz/${sessionId}`;
   }, [locale, sessionId]);
+  const liveUrlText = useMemo(() => {
+    if (typeof window === "undefined") return "/live";
+    return `${window.location.host}/live`;
+  }, []);
 
   const secondsLeft = useMemo(() => {
     if (!session || session.status !== "active") return null;
@@ -213,7 +234,7 @@ export default function QuizSessionDisplayPage() {
       return;
     }
     if (session.phase === "reveal" && session.phaseStartedAt && Date.now() - session.phaseStartedAt >= session.revealSeconds * 1000) {
-      void control(session.currentIndex + 1 >= session.questions.length ? "finish" : "showResults");
+      void control("showResults");
       return;
     }
     if (session.phase === "results" && session.phaseStartedAt && Date.now() - session.phaseStartedAt >= session.resultsSeconds * 1000) {
@@ -275,8 +296,8 @@ export default function QuizSessionDisplayPage() {
                         Vis svar
                       </button>
                     ) : null}
-                    <button onClick={() => control("next")} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-4 font-black disabled:opacity-40">
-                      Neste
+                    <button onClick={() => control(nextDisplayAction)} disabled={busy} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-4 font-black disabled:opacity-40">
+                      {nextDisplayLabel}
                       <ArrowRight className="h-5 w-5" />
                     </button>
                   </div>
@@ -332,6 +353,7 @@ export default function QuizSessionDisplayPage() {
             busy={busy}
             timingDirty={timingDirty}
             qrUrl={qrUrl}
+            liveUrlText={liveUrlText}
           />
         )}
 
@@ -370,6 +392,7 @@ function Lobby({
   busy,
   timingDirty,
   qrUrl,
+  liveUrlText,
 }: {
   session: SessionView | null;
   answerSeconds: number;
@@ -386,20 +409,34 @@ function Lobby({
   busy: boolean;
   timingDirty: boolean;
   qrUrl: string;
+  liveUrlText: string;
 }) {
   return (
-    <section className="flex min-h-0 flex-1 items-center py-6">
-      <div className="grid w-full min-h-0 gap-6 xl:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.4fr)]">
-        <div className="rounded-[2rem] bg-white/[0.08] p-5">
+    <section className="flex min-h-0 flex-1 items-center py-3">
+      <div className="grid w-full min-h-0 gap-5 xl:grid-cols-[minmax(260px,0.78fr)_minmax(0,1.4fr)]">
+        <div className="min-w-0 rounded-[2rem] bg-white/[0.08] p-4">
           <div className="text-xs font-black uppercase tracking-[0.22em] text-white/50">Deltakerkode</div>
-          <div className="mt-2 text-7xl font-black tracking-[0.16em] text-white">{session?.code || "------"}</div>
+          <div className="mt-2 font-black tracking-[0.16em] text-white" style={{ fontSize: "clamp(2.7rem, 7vw, 4.5rem)", lineHeight: 1 }}>{session?.code || "------"}</div>
+          <div className="mt-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white/80">
+            Gå til {liveUrlText}
+          </div>
 
-          <div className="mt-5 inline-flex rounded-[1.5rem] bg-white p-2">
+          <div className="mt-4 inline-flex max-w-full rounded-[1.5rem] bg-white p-2">
             {qrUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={qrUrl} alt="" className="mx-auto h-72 w-72" />
+              <img
+                src={qrUrl}
+                alt=""
+                className="mx-auto block"
+                style={{ width: "min(18rem, 32vw, 32vh)", height: "min(18rem, 32vw, 32vh)" }}
+              />
             ) : (
-              <div className="flex h-72 items-center justify-center text-slate-500">Lager QR...</div>
+              <div
+                className="flex items-center justify-center text-slate-500"
+                style={{ width: "min(18rem, 32vw, 32vh)", height: "min(18rem, 32vw, 32vh)" }}
+              >
+                Lager QR...
+              </div>
             )}
           </div>
         </div>
