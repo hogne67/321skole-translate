@@ -120,7 +120,7 @@ export async function POST(req: Request) {
     const instance = pdf(element);
     const out = await instance.toBuffer();
     const buffer = await toNodeBuffer(out);
-    const filename = `${safeFilename(data.title || "ordsamling") || "ordsamling"}.pdf`;
+    const filename = `${safeFilename(data.title || "ordsky") || "ordsky"}.pdf`;
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

@@ -5,7 +5,7 @@ import type { Firestore } from "firebase-admin/firestore";
 export type ImageSessionDoc = {
   ownerId?: string;
   code?: string;
-  status?: "active" | "finished";
+  status?: "lobby" | "active" | "finished";
   prompt?: string;
   imageUrl?: string;
   timerSeconds?: number | null;

@@ -21,7 +21,7 @@ function copyFor(locale: string) {
     return {
       eyebrow: "321school live",
       title: "Bli med på liveaktivitet",
-      text: "Skriv inn koden fra skjermen. Fungerer for quiz, avstemming, ordsamling og bildeaktivitet.",
+      text: "Skriv inn koden fra skjermen. Fungerer for quiz, avstemming, ordsky og bildeaktivitet.",
       label: "Kode",
       invalid: "Skriv inn koden på 6 tegn.",
       missing: "Fant ingen liveaktivitet med denne koden.",

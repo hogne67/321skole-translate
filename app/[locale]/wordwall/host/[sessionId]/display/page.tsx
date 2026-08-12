@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { Download, Move, X } from "lucide-react";
 import { auth } from "@/lib/firebase";
 
 type WordwallWord = { word: string; count: number };
@@ -71,6 +71,17 @@ function motionClass(motion: WordwallSession["motion"], index: number) {
   return index % 2 === 0 ? "animate-[wordFloat_5s_ease-in-out_infinite]" : "animate-[wordFloatAlt_4.5s_ease-in-out_infinite]";
 }
 
+function wordPosition(index: number, count: number, custom?: { x: number; y: number }): CSSProperties {
+  if (custom) return { left: `${custom.x}%`, top: `${custom.y}%`, transform: "translate(-50%, -50%)" };
+  const columns = 5;
+  const col = index % columns;
+  const row = Math.floor(index / columns);
+  const rows = Math.max(1, Math.ceil(count / columns));
+  const x = 10 + col * 20 + (row % 2 ? 7 : 0);
+  const y = 16 + row * (68 / Math.max(1, rows));
+  return { left: `${Math.min(90, x)}%`, top: `${Math.min(88, y)}%`, transform: "translate(-50%, -50%)" };
+}
+
 function formatRemaining(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
@@ -87,6 +98,10 @@ export default function WordwallDisplayPage() {
   const [qrUrl, setQrUrl] = useState("");
   const [error, setError] = useState("");
   const [startBusy, setStartBusy] = useState(false);
+  const [printBusy, setPrintBusy] = useState(false);
+  const [moveMode, setMoveMode] = useState(false);
+  const [wordPositions, setWordPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [draggingWord, setDraggingWord] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
   const joinUrl = useMemo(() => {
@@ -162,6 +177,65 @@ export default function WordwallDisplayPage() {
     }
   }
 
+  async function downloadPdf() {
+    if (!session || printBusy) return;
+    setPrintBusy(true);
+    setError("");
+    try {
+      const generatedAt = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : locale === "pt" ? "pt-BR" : "nb-NO", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date());
+      const res = await fetch("/api/pdf/board-wordwall", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            title: "Ordsky",
+            subtitle: session.prompt,
+            prompt: session.prompt,
+            generatedAt,
+            responseCount: session.total,
+            words: session.words,
+            labels: {
+              generatedAt: "Laget",
+              prompt: "Oppgave",
+              responses: "Svar",
+              space: "Rom",
+              featured: "Fokusord",
+              pinned: "Markerte ord",
+              allWords: "Alle ord",
+              noWords: "Ingen ord ennå",
+              site: "321school.com",
+            },
+          },
+        }),
+      });
+      if (!res.ok) throw new Error("Kunne ikke lage PDF.");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ordsky.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (event) {
+      setError(event instanceof Error ? event.message : "Kunne ikke lage PDF.");
+    } finally {
+      setPrintBusy(false);
+    }
+  }
+
+  function moveWord(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!draggingWord || !moveMode) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.max(4, Math.min(96, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(6, Math.min(94, ((event.clientY - rect.top) / rect.height) * 100));
+    setWordPositions((prev) => ({ ...prev, [draggingWord]: { x, y } }));
+  }
+
   const words = session?.words.slice(0, 42) ?? [];
   const participants = session?.participants.slice(0, 48) ?? [];
   const isLobby = session?.status === "lobby";
@@ -222,9 +296,35 @@ export default function WordwallDisplayPage() {
                 {startBusy ? "Starter..." : "Start ordsky"}
               </button>
             ) : null}
+            {words.length ? (
+              <div className="mt-4 grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMoveMode((value) => !value)}
+                  className={["inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-black", moveMode ? "bg-sky-300 text-slate-950" : "bg-white/10 text-white hover:bg-white/15"].join(" ")}
+                >
+                  <Move className="h-4 w-4" aria-hidden="true" />
+                  {moveMode ? "Flyttemodus på" : "Flytt ord"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void downloadPdf()}
+                  disabled={printBusy}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-950 hover:bg-sky-100 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/50"
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  {printBusy ? "Lager PDF..." : "Skriv ut PDF"}
+                </button>
+              </div>
+            ) : null}
           </aside>
 
-          <div className="relative min-h-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
+          <div
+            className="relative min-h-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-8"
+            onPointerMove={moveWord}
+            onPointerUp={() => setDraggingWord("")}
+            onPointerCancel={() => setDraggingWord("")}
+          >
             {hasTimer ? (
               <div className="absolute inset-x-6 top-5 h-3 overflow-hidden rounded-full bg-white/10">
                 <div className={["h-full rounded-full transition-[width]", timerDone ? "bg-rose-400" : "bg-sky-300"].join(" ")} style={{ width: `${timerPct}%` }} />
@@ -250,19 +350,27 @@ export default function WordwallDisplayPage() {
                 </div>
               </div>
             ) : words.length ? (
-              <div className="flex h-full content-center items-center justify-center gap-x-8 gap-y-5 overflow-hidden p-4 text-center" style={{ flexWrap: "wrap" }}>
+              <div className="relative h-full overflow-hidden p-4 text-center">
                 {words.map((item, index) => (
-                  <span
+                  <button
                     key={item.word}
+                    type="button"
+                    onPointerDown={(event) => {
+                      if (!moveMode) return;
+                      event.preventDefault();
+                      setDraggingWord(item.word);
+                    }}
                     className={[
+                      "absolute",
                       wordSize(item.count),
-                      motionClass(session?.motion ?? "alive", index),
-                      "inline-block rounded-full px-4 py-2 font-black leading-none",
+                      moveMode ? "cursor-grab ring-2 ring-white/30 active:cursor-grabbing" : motionClass(session?.motion ?? "alive", index),
+                      "inline-block rounded-full px-4 py-2 font-black leading-none transition",
                       index % 3 === 0 ? "text-sky-200" : index % 3 === 1 ? "text-emerald-200" : "text-amber-200",
                     ].join(" ")}
+                    style={wordPosition(index, words.length, wordPositions[item.word])}
                   >
                     {item.word}
-                  </span>
+                  </button>
                 ))}
               </div>
             ) : (

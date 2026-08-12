@@ -1,7 +1,7 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import { isRecord, makeUniqueImageCode, safeImageUrl, safeString, safeTimerSeconds } from "@/lib/imageSessions";
 
@@ -39,17 +39,16 @@ export async function POST(req: Request) {
     if (!imageUrl) return json({ error: "Legg inn en gyldig bilde-URL først." }, 400);
 
     const timerSeconds = safeTimerSeconds(body.timerSeconds);
-    const now = Date.now();
     const code = await makeUniqueImageCode(db);
     const sessionRef = db.collection("imageSessions").doc();
     await sessionRef.set({
       ownerId: uid,
       code,
-      status: "active",
+      status: "lobby",
       prompt,
       imageUrl,
       timerSeconds,
-      endsAt: timerSeconds ? Timestamp.fromMillis(now + timerSeconds * 1000) : null,
+      endsAt: null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });

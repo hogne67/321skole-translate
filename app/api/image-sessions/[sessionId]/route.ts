@@ -26,8 +26,21 @@ export async function GET(_req: Request, ctx: { params: Promise<{ sessionId: str
       sessionRef.collection("submissions").orderBy("createdAt", "desc").limit(120).get(),
     ]);
     if (!sessionSnap.exists) return json({ error: "Session not found" }, 404);
+    const participantsSnap = await sessionRef.collection("participants").orderBy("updatedAt", "desc").limit(80).get();
 
     const session = sessionSnap.data() ?? {};
+    const participants = participantsSnap.docs
+      .map((doc) => {
+        const item = doc.data();
+        return {
+          id: doc.id,
+          displayName: safeString(item.displayName),
+          updatedAt: asMillis(item.updatedAt),
+        };
+      })
+      .filter((item) => item.displayName)
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 60);
     const submissions = submissionsSnap.docs
       .map((doc) => {
         const item = doc.data() as ImageSubmission;
@@ -44,13 +57,15 @@ export async function GET(_req: Request, ctx: { params: Promise<{ sessionId: str
       session: {
         id: sessionId,
         code: safeString(session.code),
-        status: session.status === "finished" ? "finished" : "active",
+        status: session.status === "finished" ? "finished" : session.status === "active" ? "active" : "lobby",
         prompt: safeString(session.prompt, "Se på bildet og skriv hva du legger merke til."),
         imageUrl: safeImageUrl(session.imageUrl),
         timerSeconds: typeof session.timerSeconds === "number" && session.timerSeconds > 0 ? session.timerSeconds : null,
         endsAt: asMillis(session.endsAt) || null,
         submissions,
         total: submissionsSnap.size,
+        participants,
+        participantCount: participantsSnap.size,
       },
     });
   } catch (error) {

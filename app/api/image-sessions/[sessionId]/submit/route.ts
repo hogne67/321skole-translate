@@ -23,6 +23,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ sessionId: str
     if (!sessionSnap.exists) return json({ error: "Session not found" }, 404);
     const session = sessionSnap.data() ?? {};
     if (session.status === "finished") return json({ error: "Bildeaktiviteten er avsluttet." }, 409);
+    if (session.status !== "active") return json({ error: "Vent til læreren starter bildeaktiviteten." }, 409);
     const endsAtMs = isRecord(session.endsAt) && typeof session.endsAt.toMillis === "function" ? session.endsAt.toMillis() : 0;
     if (endsAtMs && Date.now() >= endsAtMs) return json({ error: "Tiden er ute." }, 409);
 

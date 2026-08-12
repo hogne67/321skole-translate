@@ -4,16 +4,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 type ImageSubmission = { id: string; text: string; displayName: string; createdAt: number };
+type ImageParticipant = { id: string; displayName: string; updatedAt: number };
 type ImageSession = {
   id: string;
   code: string;
-  status: "active" | "finished";
+  status: "lobby" | "active" | "finished";
   prompt: string;
   imageUrl: string;
   timerSeconds: number | null;
   endsAt: number | null;
   submissions: ImageSubmission[];
   total: number;
+  participants: ImageParticipant[];
+  participantCount: number;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -30,7 +33,7 @@ function normalizeSession(value: unknown): ImageSession | null {
   return {
     id: safeString(session.id),
     code: safeString(session.code),
-    status: session.status === "finished" ? "finished" : "active",
+    status: session.status === "finished" ? "finished" : session.status === "active" ? "active" : "lobby",
     prompt: safeString(session.prompt, "Se på bildet og skriv hva du legger merke til."),
     imageUrl: safeString(session.imageUrl),
     timerSeconds: typeof session.timerSeconds === "number" && session.timerSeconds > 0 ? session.timerSeconds : null,
@@ -44,6 +47,14 @@ function normalizeSession(value: unknown): ImageSession | null {
       })).filter((item) => item.text)
       : [],
     total: typeof session.total === "number" ? session.total : 0,
+    participants: Array.isArray(session.participants)
+      ? session.participants.filter(isRecord).map((item) => ({
+        id: safeString(item.id),
+        displayName: safeString(item.displayName),
+        updatedAt: typeof item.updatedAt === "number" ? item.updatedAt : 0,
+      })).filter((item) => item.displayName)
+      : [],
+    participantCount: typeof session.participantCount === "number" ? session.participantCount : 0,
   };
 }
 
@@ -58,8 +69,12 @@ export default function PublicImageActivityPage() {
   const params = useParams<{ sessionId: string }>();
   const sessionId = params.sessionId;
   const storageKey = `imageActivityParticipant:${sessionId}`;
+  const nameStorageKey = "imageActivityDisplayName";
   const [session, setSession] = useState<ImageSession | null>(null);
   const [participantId, setParticipantId] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [nameSent, setNameSent] = useState(false);
+  const [joinBusy, setJoinBusy] = useState(false);
   const [text, setText] = useState("");
   const [sentTexts, setSentTexts] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -78,6 +93,7 @@ export default function PublicImageActivityPage() {
   }, [sessionId]);
 
   useEffect(() => {
+    setDisplayName(window.localStorage.getItem(nameStorageKey) ?? "");
     const existing = window.localStorage.getItem(storageKey);
     if (existing) {
       setParticipantId(existing);
@@ -86,7 +102,7 @@ export default function PublicImageActivityPage() {
     const next = crypto.randomUUID();
     window.localStorage.setItem(storageKey, next);
     setParticipantId(next);
-  }, [storageKey]);
+  }, [nameStorageKey, storageKey]);
 
   useEffect(() => {
     void load();
@@ -103,6 +119,36 @@ export default function PublicImageActivityPage() {
   const remaining = hasTimer ? Math.max(0, Math.ceil(((session?.endsAt ?? 0) - now) / 1000)) : null;
   const timeIsUp = hasTimer && remaining === 0;
   const latestResponses = useMemo(() => session?.submissions.slice(0, 5) ?? [], [session?.submissions]);
+  const isLobby = session?.status === "lobby";
+
+  const joinWithName = useCallback(async () => {
+    if (!participantId) return;
+    const cleanName = displayName.trim().slice(0, 32);
+    if (cleanName) window.localStorage.setItem(nameStorageKey, cleanName);
+    setJoinBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/image-sessions/${encodeURIComponent(sessionId)}/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participantId, displayName: cleanName || "Klar" }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: unknown };
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke melde deg på.");
+      setNameSent(true);
+      await load();
+    } catch (event) {
+      setError(event instanceof Error ? event.message : "Kunne ikke melde deg på.");
+    } finally {
+      setJoinBusy(false);
+    }
+  }, [displayName, load, nameStorageKey, participantId, sessionId]);
+
+  useEffect(() => {
+    if (!isLobby || !nameSent || !participantId) return;
+    const timer = window.setInterval(() => void joinWithName(), 10000);
+    return () => window.clearInterval(timer);
+  }, [isLobby, joinWithName, nameSent, participantId]);
 
   async function submit() {
     const clean = text.trim();
@@ -114,7 +160,7 @@ export default function PublicImageActivityPage() {
       const res = await fetch(`/api/image-sessions/${encodeURIComponent(sessionId)}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: clean, participantId }),
+        body: JSON.stringify({ text: clean, participantId, displayName: displayName.trim().slice(0, 32) }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: unknown };
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke sende svaret.");
@@ -140,7 +186,9 @@ export default function PublicImageActivityPage() {
           <div className="p-6">
             <div className="text-sm font-black uppercase tracking-[0.2em] text-emerald-700">321school live</div>
             <h1 className="mt-3 text-3xl font-black leading-tight">{session?.prompt ?? "Bildeaktivitet"}</h1>
-            <p className="mt-2 text-sm font-semibold text-slate-600">Skriv et kort svar. Svarene vises anonymt på skjermen.</p>
+            <p className="mt-2 text-sm font-semibold text-slate-600">
+              {isLobby ? "Skriv navnet ditt og trykk klar. Læreren starter når alle er med." : "Skriv et kort svar. Svarene vises anonymt på skjermen."}
+            </p>
             {hasTimer ? (
               <div className={["mt-4 rounded-2xl border px-4 py-3 text-sm font-black", timeIsUp ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-900"].join(" ")}>
                 {timeIsUp ? "Tiden er ute." : `Tid igjen: ${formatRemaining(remaining ?? 0)}`}
@@ -152,6 +200,33 @@ export default function PublicImageActivityPage() {
         {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div> : null}
         {message ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">{message}</div> : null}
 
+        {isLobby ? (
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <label className="text-sm font-black text-slate-700">Navn</label>
+            <input
+              value={displayName}
+              onChange={(event) => {
+                setDisplayName(event.target.value);
+                setNameSent(false);
+              }}
+              className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-4 text-lg font-bold outline-none focus:border-emerald-500"
+              placeholder="Skriv navnet ditt"
+              maxLength={32}
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => void joinWithName()}
+              disabled={joinBusy || !participantId}
+              className="mt-4 w-full rounded-2xl bg-emerald-700 px-5 py-4 text-base font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+            >
+              {nameSent ? "Du er klar" : "Jeg er klar"}
+            </button>
+            <p className="mt-3 text-center text-sm font-bold text-slate-500">
+              {nameSent ? "Vent på at læreren starter bildeaktiviteten." : "Navnet vises bare mens dere gjør dere klare."}
+            </p>
+          </section>
+        ) : (
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <label className="text-sm font-black text-slate-700">Ditt svar</label>
           <textarea
@@ -171,8 +246,9 @@ export default function PublicImageActivityPage() {
             Send svar
           </button>
         </section>
+        )}
 
-        {sentTexts.length ? (
+        {!isLobby && sentTexts.length ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="text-sm font-black text-slate-700">Dine sendte svar</div>
             <div className="mt-3 space-y-2">
@@ -183,7 +259,7 @@ export default function PublicImageActivityPage() {
           </section>
         ) : null}
 
-        {latestResponses.length ? (
+        {!isLobby && latestResponses.length ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="text-sm font-black text-slate-700">Svar som kommer inn</div>
             <div className="mt-3 space-y-2">
