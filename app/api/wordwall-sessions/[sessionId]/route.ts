@@ -21,9 +21,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ sessionId: str
 
     const { db } = getAdmin();
     const sessionRef = db.collection("wordwallSessions").doc(sessionId);
-    const [sessionSnap, submissionsSnap] = await Promise.all([
+    const [sessionSnap, submissionsSnap, participantsSnap] = await Promise.all([
       sessionRef.get(),
       sessionRef.collection("submissions").orderBy("createdAt", "desc").limit(300).get(),
+      sessionRef.collection("participants").orderBy("updatedAt", "desc").limit(300).get(),
     ]);
     if (!sessionSnap.exists) return json({ error: "Session not found" }, 404);
 
@@ -39,18 +40,32 @@ export async function GET(_req: Request, ctx: { params: Promise<{ sessionId: str
       current.latestAt = Math.max(current.latestAt, asMillis(item.createdAt));
       groups.set(key, current);
     });
+    const participants = participantsSnap.docs
+      .map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          displayName: safeString(data.displayName),
+          joinedAt: asMillis(data.joinedAt),
+        };
+      })
+      .filter((participant) => participant.displayName)
+      .sort((a, b) => b.joinedAt - a.joinedAt)
+      .slice(0, 60);
 
     return json({
       session: {
         id: sessionId,
         code: safeString(session.code),
-        status: session.status === "finished" ? "finished" : "active",
+        status: session.status === "finished" ? "finished" : session.status === "active" ? "active" : "lobby",
         prompt: safeString(session.prompt, "Skriv ett ord som passer."),
         motion: safeMotion(session.motion),
         timerSeconds: typeof session.timerSeconds === "number" && session.timerSeconds > 0 ? session.timerSeconds : null,
         endsAt: asMillis(session.endsAt) || null,
         words: [...groups.values()].sort((a, b) => b.count - a.count || b.latestAt - a.latestAt),
         total: submissionsSnap.size,
+        participantCount: participantsSnap.size,
+        participants,
       },
     });
   } catch (error) {

@@ -7,7 +7,7 @@ export type WordwallMotion = "calm" | "alive" | "energy";
 export type WordwallSessionDoc = {
   ownerId?: string;
   code?: string;
-  status?: "active" | "finished";
+  status?: "lobby" | "active" | "finished";
   prompt?: string;
   motion?: WordwallMotion;
   timerSeconds?: number | null;

@@ -4,16 +4,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 type WordwallWord = { word: string; count: number };
+type WordwallParticipant = { id: string; displayName: string };
 type WordwallSession = {
   id: string;
   code: string;
-  status: "active" | "finished";
+  status: "lobby" | "active" | "finished";
   prompt: string;
   motion: "calm" | "alive" | "energy";
   timerSeconds: number | null;
   endsAt: number | null;
   words: WordwallWord[];
   total: number;
+  participantCount: number;
+  participants: WordwallParticipant[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -30,7 +33,7 @@ function normalizeSession(value: unknown): WordwallSession | null {
   return {
     id: safeString(session.id),
     code: safeString(session.code),
-    status: session.status === "finished" ? "finished" : "active",
+    status: session.status === "finished" ? "finished" : session.status === "active" ? "active" : "lobby",
     prompt: safeString(session.prompt, "Skriv ett ord som passer."),
     motion: session.motion === "calm" || session.motion === "energy" ? session.motion : "alive",
     timerSeconds: typeof session.timerSeconds === "number" && session.timerSeconds > 0 ? session.timerSeconds : null,
@@ -42,6 +45,13 @@ function normalizeSession(value: unknown): WordwallSession | null {
       })).filter((word) => word.word)
       : [],
     total: typeof session.total === "number" ? session.total : 0,
+    participantCount: typeof session.participantCount === "number" ? session.participantCount : 0,
+    participants: Array.isArray(session.participants)
+      ? session.participants.filter(isRecord).map((participant) => ({
+        id: safeString(participant.id),
+        displayName: safeString(participant.displayName, "Deltaker"),
+      })).filter((participant) => participant.id)
+      : [],
   };
 }
 
@@ -56,8 +66,10 @@ export default function PublicWordwallPage() {
   const params = useParams<{ sessionId: string }>();
   const sessionId = params.sessionId;
   const storageKey = `wordwallParticipant:${sessionId}`;
+  const nameStorageKey = "wordwallDisplayName";
   const [session, setSession] = useState<WordwallSession | null>(null);
   const [participantId, setParticipantId] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [word, setWord] = useState("");
   const [sentWords, setSentWords] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -69,7 +81,7 @@ export default function PublicWordwallPage() {
     const res = await fetch(`/api/wordwall-sessions/${encodeURIComponent(sessionId)}`, { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as unknown;
     if (!res.ok) {
-      setError(isRecord(data) && typeof data.error === "string" ? data.error : "Fant ikke ordsamlingen.");
+      setError(isRecord(data) && typeof data.error === "string" ? data.error : "Fant ikke ordskyen.");
       return;
     }
     setSession(normalizeSession(data));
@@ -85,6 +97,32 @@ export default function PublicWordwallPage() {
     window.localStorage.setItem(storageKey, next);
     setParticipantId(next);
   }, [storageKey]);
+
+  useEffect(() => {
+    setDisplayName(window.localStorage.getItem(nameStorageKey) || "");
+  }, [nameStorageKey]);
+
+  useEffect(() => {
+    if (!participantId) return;
+    let cancelled = false;
+    async function join() {
+      const name = displayName.trim().replace(/\s+/g, " ").slice(0, 32);
+      if (name) window.localStorage.setItem(nameStorageKey, name);
+      await fetch(`/api/wordwall-sessions/${encodeURIComponent(sessionId)}/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participantId, displayName: name }),
+      }).catch(() => undefined);
+    }
+    void join();
+    const timer = window.setInterval(() => {
+      if (!cancelled) void join();
+    }, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [displayName, nameStorageKey, participantId, sessionId]);
 
   useEffect(() => {
     void load();
@@ -104,7 +142,7 @@ export default function PublicWordwallPage() {
 
   async function submit() {
     const clean = word.trim();
-    if (!clean || !participantId || timeIsUp) return;
+    if (!clean || !participantId || timeIsUp || session?.status !== "active") return;
     setBusy(true);
     setError("");
     setMessage("");
@@ -132,8 +170,13 @@ export default function PublicWordwallPage() {
       <div className="mx-auto max-w-2xl space-y-4">
         <section className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-sm">
           <div className="text-sm font-black uppercase tracking-[0.2em] text-sky-700">321school live</div>
-          <h1 className="mt-3 text-3xl font-black leading-tight">{session?.prompt ?? "Ordsamling"}</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-600">Skriv ett ord eller en kort frase. Ordsamlingen er anonym.</p>
+          <h1 className="mt-3 text-3xl font-black leading-tight">{session?.prompt ?? "Ordsky"}</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-600">Skriv ett ord eller en kort frase. Ordskyen er anonym.</p>
+          {session?.status === "lobby" ? (
+            <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-black text-sky-900">
+              Du er med. Vent til læreren starter ordskyen.
+            </div>
+          ) : null}
           {hasTimer ? (
             <div className={["mt-4 rounded-2xl border px-4 py-3 text-sm font-black", timeIsUp ? "border-rose-200 bg-rose-50 text-rose-700" : "border-sky-200 bg-sky-50 text-sky-900"].join(" ")}>
               {timeIsUp ? "Tiden er ute." : `Tid igjen: ${formatRemaining(remaining ?? 0)}`}
@@ -144,6 +187,23 @@ export default function PublicWordwallPage() {
         {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div> : null}
         {message ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">{message}</div> : null}
 
+        {session?.status === "lobby" ? (
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <label className="text-sm font-black text-slate-700">Navnet ditt på skjermen</label>
+            <input
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value.slice(0, 32))}
+              className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-4 text-xl font-black outline-none focus:border-sky-500"
+              placeholder="Skriv fornavn..."
+              maxLength={32}
+              autoFocus
+            />
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
+              <div className="text-2xl font-black text-emerald-900">{displayName.trim() || "Klar"}</div>
+              <p className="mt-1 text-sm font-semibold text-emerald-800">Læreren starter om litt.</p>
+            </div>
+          </section>
+        ) : (
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <label className="text-sm font-black text-slate-700">Ditt ord</label>
           <input
@@ -160,12 +220,13 @@ export default function PublicWordwallPage() {
           <button
             type="button"
             onClick={submit}
-            disabled={busy || !word.trim() || session?.status === "finished" || timeIsUp}
+            disabled={busy || !word.trim() || session?.status !== "active" || timeIsUp}
             className="mt-4 w-full rounded-2xl bg-sky-700 px-5 py-4 text-base font-black text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
           >
             Send ord
           </button>
         </section>
+        )}
 
         {sentWords.length ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">

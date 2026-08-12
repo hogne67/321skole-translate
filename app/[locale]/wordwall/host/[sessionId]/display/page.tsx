@@ -3,18 +3,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import { auth } from "@/lib/firebase";
 
 type WordwallWord = { word: string; count: number };
+type WordwallParticipant = { id: string; displayName: string };
 type WordwallSession = {
   id: string;
   code: string;
-  status: "active" | "finished";
+  status: "lobby" | "active" | "finished";
   prompt: string;
   motion: "calm" | "alive" | "energy";
   timerSeconds: number | null;
   endsAt: number | null;
   words: WordwallWord[];
   total: number;
+  participantCount: number;
+  participants: WordwallParticipant[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -31,7 +35,7 @@ function normalizeSession(value: unknown): WordwallSession | null {
   return {
     id: safeString(session.id),
     code: safeString(session.code),
-    status: session.status === "finished" ? "finished" : "active",
+    status: session.status === "finished" ? "finished" : session.status === "active" ? "active" : "lobby",
     prompt: safeString(session.prompt, "Skriv ett ord som passer."),
     motion: session.motion === "calm" || session.motion === "energy" ? session.motion : "alive",
     timerSeconds: typeof session.timerSeconds === "number" && session.timerSeconds > 0 ? session.timerSeconds : null,
@@ -43,6 +47,13 @@ function normalizeSession(value: unknown): WordwallSession | null {
       })).filter((word) => word.word)
       : [],
     total: typeof session.total === "number" ? session.total : 0,
+    participantCount: typeof session.participantCount === "number" ? session.participantCount : 0,
+    participants: Array.isArray(session.participants)
+      ? session.participants.filter(isRecord).map((participant) => ({
+        id: safeString(participant.id),
+        displayName: safeString(participant.displayName, "Deltaker"),
+      })).filter((participant) => participant.id)
+      : [],
   };
 }
 
@@ -75,6 +86,7 @@ export default function WordwallDisplayPage() {
   const [session, setSession] = useState<WordwallSession | null>(null);
   const [qrUrl, setQrUrl] = useState("");
   const [error, setError] = useState("");
+  const [startBusy, setStartBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   const joinUrl = useMemo(() => {
@@ -90,7 +102,7 @@ export default function WordwallDisplayPage() {
     const res = await fetch(`/api/wordwall-sessions/${encodeURIComponent(sessionId)}`, { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as unknown;
     if (!res.ok) {
-      setError(isRecord(data) && typeof data.error === "string" ? data.error : "Kunne ikke hente ordsamlingen.");
+      setError(isRecord(data) && typeof data.error === "string" ? data.error : "Kunne ikke hente ordskyen.");
       return;
     }
     setSession(normalizeSession(data));
@@ -124,8 +136,36 @@ export default function WordwallDisplayPage() {
     router.push(`/${locale}/teacher/board`);
   }
 
+  async function startWordwall() {
+    if (startBusy || !session || session.status !== "lobby") return;
+    const current = auth.currentUser;
+    if (!current) {
+      setError("Du må være innlogget for å starte.");
+      return;
+    }
+    setStartBusy(true);
+    setError("");
+    try {
+      const token = await current.getIdToken();
+      const res = await fetch(`/api/wordwall-sessions/${encodeURIComponent(sessionId)}/control`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "start" }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: unknown };
+      if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Kunne ikke starte ordskyen.");
+      await load();
+    } catch (event) {
+      setError(event instanceof Error ? event.message : "Kunne ikke starte ordskyen.");
+    } finally {
+      setStartBusy(false);
+    }
+  }
+
   const words = session?.words.slice(0, 42) ?? [];
-  const hasTimer = typeof session?.endsAt === "number" && typeof session.timerSeconds === "number";
+  const participants = session?.participants.slice(0, 48) ?? [];
+  const isLobby = session?.status === "lobby";
+  const hasTimer = session?.status === "active" && typeof session.endsAt === "number" && typeof session.timerSeconds === "number";
   const remaining = hasTimer ? Math.max(0, Math.ceil(((session?.endsAt ?? 0) - now) / 1000)) : null;
   const timerDone = hasTimer && remaining === 0;
   const timerPct = hasTimer && session?.timerSeconds ? Math.max(0, Math.min(100, (((session.timerSeconds - (remaining ?? 0)) / session.timerSeconds) * 100))) : 0;
@@ -139,9 +179,11 @@ export default function WordwallDisplayPage() {
             <div className="text-3xl font-black tracking-[0.18em]">{session?.code || "------"}</div>
           </div>
           <div>
-            <div className="text-sm font-black uppercase tracking-[0.22em] text-sky-300">321school ordsamling</div>
-            <h1 className="mt-3 max-w-5xl text-4xl font-black leading-tight">{session?.prompt ?? "Ordsamling"}</h1>
-            <p className="mt-2 text-lg font-bold text-white/60">{session?.total ?? 0} ord sendt inn</p>
+            <div className="text-sm font-black uppercase tracking-[0.22em] text-sky-300">321school ordsky</div>
+            <h1 className="mt-3 max-w-5xl text-4xl font-black leading-tight">{session?.prompt ?? "Ordsky"}</h1>
+            <p className="mt-2 text-lg font-bold text-white/60">
+              {isLobby ? `${session?.participantCount ?? 0} deltakere klare` : `${session?.total ?? 0} ord sendt inn`}
+            </p>
           </div>
           {hasTimer ? (
             <div className={["absolute right-16 top-0 rounded-2xl px-5 py-3 text-right", timerDone ? "bg-rose-500/20 text-rose-100" : "bg-white/10 text-white"].join(" ")}>
@@ -170,6 +212,16 @@ export default function WordwallDisplayPage() {
                 <div className="flex items-center justify-center text-slate-500" style={{ width: "min(15rem, 26vw, 30vh)", height: "min(15rem, 26vw, 30vh)" }}>Lager QR...</div>
               )}
             </div>
+            {isLobby ? (
+              <button
+                type="button"
+                onClick={() => void startWordwall()}
+                disabled={startBusy}
+                className="mt-4 w-full rounded-2xl bg-emerald-500 px-5 py-4 text-lg font-black text-white hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/50"
+              >
+                {startBusy ? "Starter..." : "Start ordsky"}
+              </button>
+            ) : null}
           </aside>
 
           <div className="relative min-h-0 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
@@ -178,7 +230,26 @@ export default function WordwallDisplayPage() {
                 <div className={["h-full rounded-full transition-[width]", timerDone ? "bg-rose-400" : "bg-sky-300"].join(" ")} style={{ width: `${timerPct}%` }} />
               </div>
             ) : null}
-            {words.length ? (
+            {isLobby ? (
+              <div className="flex h-full items-center justify-center text-center">
+                <div className="w-full max-w-5xl">
+                  <div className="text-5xl font-black">Venter på deltakere...</div>
+                  <p className="mt-3 text-xl font-bold text-white/60">Elevene skanner QR eller skriver kode. Start når klassen er klar.</p>
+                  <div className="mt-6 inline-flex rounded-2xl bg-white/10 px-6 py-4 text-3xl font-black text-sky-200">
+                    {session?.participantCount ?? 0} klare
+                  </div>
+                  {participants.length ? (
+                    <div className="mt-8 flex max-h-[42vh] flex-wrap justify-center gap-3 overflow-hidden">
+                      {participants.map((participant) => (
+                        <div key={participant.id} className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-xl font-black text-white shadow-sm">
+                          {participant.displayName}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : words.length ? (
               <div className="flex h-full content-center items-center justify-center gap-x-8 gap-y-5 overflow-hidden p-4 text-center" style={{ flexWrap: "wrap" }}>
                 {words.map((item, index) => (
                   <span
