@@ -80,6 +80,31 @@ function getFocusInstruction(focus: string): string {
   return labels[normalized] || focus || "other/general topic";
 }
 
+function hasRecentOrCurrentFactRisk(topic: string): boolean {
+  const normalized = topic
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const currentYear = new Date().getFullYear();
+  const years = Array.from(normalized.matchAll(/\b(20\d{2})\b/g))
+    .map((match) => Number(match[1]))
+    .filter((year) => Number.isFinite(year));
+  if (years.some((year) => year >= currentYear - 1)) return true;
+
+  return /\b(i dag|idag|na|nå|nylig|siste|arets|årets|aktuell|current|latest|recent|today|this year|last year)\b/.test(normalized);
+}
+
+function currentFactRiskError(language: string) {
+  const lower = language.toLowerCase();
+  if (lower === "pt" || lower === "pt-br" || lower === "pt-pt") {
+    return "Para temas recentes ou factuais, cole um texto fonte ou escolha uma aula. Assim o quiz usará fatos verificáveis.";
+  }
+  if (lower === "en") {
+    return "For recent or factual topics, paste a source text or choose a lesson. Then the quiz can use verifiable facts.";
+  }
+  return "For ferske eller faktabaserte tema må du lime inn en kildetekst eller velge en leksjon. Da kan quizen bygge på kontrollerbare fakta.";
+}
+
 async function getRequestUserContext(req: Request): Promise<RequestUserContext | null> {
   const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
@@ -149,16 +174,38 @@ function distributeCorrectOption(options: string[], correctIndex: number, questi
   return { options: nextOptions, correctIndex: targetIndex };
 }
 
+function uniqueOptionsWithCorrectIndex(options: string[], correctIndex: number) {
+  const seen = new Set<string>();
+  const next: string[] = [];
+  const rawCorrect = options[correctIndex]?.trim() || "";
+  let nextCorrectIndex = 0;
+
+  for (let index = 0; index < options.length; index += 1) {
+    const option = options[index];
+    const value = option.trim();
+    const key = value.toLowerCase().replace(/\s+/g, " ");
+    if (!value || seen.has(key)) continue;
+    seen.add(key);
+    if (rawCorrect && value.toLowerCase().replace(/\s+/g, " ") === rawCorrect.toLowerCase().replace(/\s+/g, " ")) {
+      nextCorrectIndex = next.length;
+    }
+    next.push(value);
+  }
+
+  return { options: next, correctIndex: nextCorrectIndex };
+}
+
 function cleanQuestion(raw: unknown, index: number, fallbackSeconds: number): QuizQuestion | null {
   if (!isRecord(raw)) return null;
   const question = pickString(raw, "question");
   const explanation = pickString(raw, "explanation");
   const rawType = pickString(raw, "type", "multiple_choice");
   const type = rawType === "true_false" ? "true_false" : "multiple_choice";
-  const options = Array.isArray(raw.options)
-    ? raw.options.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean)
+  const rawOptions = Array.isArray(raw.options)
+    ? raw.options.filter((item): item is string => typeof item === "string")
     : [];
-  const correctIndex = Math.trunc(pickNumber(raw, "correctIndex", 0));
+  const rawCorrectIndex = Math.trunc(pickNumber(raw, "correctIndex", 0));
+  const { options, correctIndex } = uniqueOptionsWithCorrectIndex(rawOptions, rawCorrectIndex);
   const seconds = Math.max(10, Math.min(120, Math.trunc(pickNumber(raw, "seconds", fallbackSeconds))));
 
   if (!question || !explanation) return null;
@@ -228,6 +275,9 @@ export async function POST(req: Request) {
     if (sourceMode !== "text" && !topic) {
       return Response.json({ error: "Missing topic." }, { status: 400 });
     }
+    if (sourceMode !== "text" && hasRecentOrCurrentFactRisk(topic)) {
+      return Response.json({ error: currentFactRiskError(language), needsSourceText: true }, { status: 400 });
+    }
 
     const prompt =
       `You are creating a classroom quiz for 321school.\n` +
@@ -247,11 +297,17 @@ export async function POST(req: Request) {
       (sourceMode === "text" ? sourceText : topic) +
       `\n\nRules:\n` +
       `- Create a useful classroom quiz, not a worksheet.\n` +
+      (sourceMode === "text"
+        ? `- Use ONLY the source text for factual claims, answers, and explanations. If a fact is not in the source text, do not ask about it.\n`
+        : `- The source is only a topic. Use stable, general knowledge only. Do not ask about recent events, current results, future events, exact statistics, or facts that may have changed.\n`) +
+      `- Do not invent facts, dates, numbers, scores, winners, rankings, or statistics.\n` +
       (questionMode === "mixed" ? `- Use a mix of multiple_choice and true_false when it fits.\n` : `- Every question must use type "${questionMode}".\n`) +
       `- Multiple choice must have 3 or 4 options.\n` +
       `- True/false must have exactly 2 options, written in the target language.\n` +
       `- Include one short explanation per question.\n` +
+      `- The explanation must state why the selected answer is correct.\n` +
       `- Make distractors plausible but clearly wrong.\n` +
+      `- Do not make questions where several options can be correct.\n` +
       `- Vary the correct answer position. Do not put the correct answer first every time.\n` +
       `- Return JSON only. No markdown.\n\n` +
       `Return this exact shape:\n` +
@@ -275,10 +331,12 @@ export async function POST(req: Request) {
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       text: { format: { type: "json_object" } },
+      temperature: 0.2,
       input: [
         {
           role: "system",
-          content: "Create editable classroom quizzes. Return valid JSON only.",
+          content:
+            "Create editable classroom quizzes. Accuracy is more important than variety. Return valid JSON only.",
         },
         { role: "user", content: prompt },
       ],

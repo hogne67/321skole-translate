@@ -158,6 +158,12 @@ function safePlan(plan?: string): PlanKey {
   return "free";
 }
 
+function correctAnswerLabel(locale: string) {
+  if (locale === "en") return "Correct";
+  if (locale === "pt") return "Correta";
+  return "Riktig";
+}
+
 function comparableLanguage(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim().toLowerCase().replace("_", "-");
@@ -340,6 +346,7 @@ export default function QuizGeneratorPage() {
   const generatorsUsed = generationQuota?.used ?? usage.premium_generators ?? 0;
   const generatorsLimit = generationQuota?.limit ?? getBucketLimit(role, plan, "premium_generators");
   const generatorsRemaining = generationQuota?.remaining ?? Math.max(0, generatorsLimit - generatorsUsed);
+  const correctLabel = correctAnswerLabel(locale);
 
   useEffect(() => {
     return onAuthStateChanged(auth, (user) => setUid(user?.uid ?? null));
@@ -785,40 +792,49 @@ export default function QuizGeneratorPage() {
                       className="mt-2 min-h-[70px] w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold leading-6 outline-none focus:border-violet-500"
                     />
                     <div className="mt-3 grid gap-2">
-                      {q.options.map((option, optionIndex) => (
-                        <label key={optionIndex} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <input
-                            type="radio"
-                            name={`correct-${questionIndex}`}
-                            checked={q.correctIndex === optionIndex}
-                            onChange={() => updateQuestion(questionIndex, { correctIndex: optionIndex })}
-                          />
-                          <input
-                            value={option}
-                            onChange={(e) => updateOption(questionIndex, optionIndex, e.target.value)}
-                            className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none"
-                          />
-                        </label>
-                      ))}
+                      {q.options.map((option, optionIndex) => {
+                        const isCorrect = q.correctIndex === optionIndex;
+                        return (
+                          <label
+                            key={optionIndex}
+                            className={[
+                              "flex items-center gap-2 rounded-xl border px-3 py-2 transition",
+                              isCorrect
+                                ? "border-emerald-300 bg-emerald-50 shadow-sm"
+                                : "border-slate-200 bg-white hover:border-slate-300",
+                            ].join(" ")}
+                          >
+                            <input
+                              type="radio"
+                              name={`correct-${questionIndex}`}
+                              checked={isCorrect}
+                              onChange={() => updateQuestion(questionIndex, { correctIndex: optionIndex })}
+                              className="accent-emerald-700"
+                            />
+                            <input
+                              value={option}
+                              onChange={(e) => updateOption(questionIndex, optionIndex, e.target.value)}
+                              className={[
+                                "min-w-0 flex-1 border-0 bg-transparent text-sm outline-none",
+                                isCorrect ? "font-bold text-emerald-950" : "text-slate-950",
+                              ].join(" ")}
+                            />
+                            {isCorrect ? (
+                              <span className="shrink-0 rounded-full bg-emerald-700 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-white">
+                                {correctLabel}
+                              </span>
+                            ) : null}
+                          </label>
+                        );
+                      })}
                     </div>
-                    <div className="mt-3 grid gap-3 md:grid-cols-[1fr_120px]">
+                    <div className="mt-3">
                       <textarea
                         value={q.explanation}
                         onChange={(e) => updateQuestion(questionIndex, { explanation: e.target.value })}
-                        className="min-h-[58px] rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-violet-500"
+                        className="min-h-[58px] w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-violet-500"
                         placeholder={t("placeholders.explanation")}
                       />
-                      <label className="block">
-                        <span className="text-xs font-bold text-slate-500">{t("fields.secondsShort")}</span>
-                        <input
-                          type="number"
-                          min={10}
-                          max={120}
-                          value={q.seconds}
-                          onChange={(e) => updateQuestion(questionIndex, { seconds: Number(e.target.value) })}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-                        />
-                      </label>
                     </div>
                   </article>
                 ))}
