@@ -206,6 +206,16 @@ export async function POST(req: Request) {
   }
 
   const effectiveOwnerId = ownerId || uid;
+  const draftLessonType = typeof draft.lessonType === "string" ? draft.lessonType.trim().toLowerCase() : "";
+  const draftTextType =
+    typeof draft.textType === "string"
+      ? draft.textType.trim().toLowerCase()
+      : typeof draft.texttype === "string"
+        ? draft.texttype.trim().toLowerCase()
+        : "";
+  const isQuizDraft = draftLessonType === "quiz" || draftTextType === "quiz";
+  const effectiveShowInLibrary = isQuizDraft ? false : showInLibrary;
+
   if (importedFromQuizLibrary && visibility === "public") {
     await db.collection("auditEvents").add({
       type: "PUBLISH_BLOCKED",
@@ -294,7 +304,7 @@ export async function POST(req: Request) {
     // Publish metadata
     visibility,
     publishVisibility: visibility,
-    showInLibrary,
+    showInLibrary: effectiveShowInLibrary,
     status: "published",
     publishedAt: now,
     updatedAt: now,
@@ -316,7 +326,7 @@ export async function POST(req: Request) {
       activePublishedId: publishedId,
       publishedLessonId: publishedId,
       publishVisibility: visibility,
-      showInLibrary,
+      showInLibrary: effectiveShowInLibrary,
       publish: {
         visibility,
         state: "published",

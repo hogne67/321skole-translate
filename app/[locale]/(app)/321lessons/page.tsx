@@ -194,7 +194,11 @@ function textTypeOptionLabel(value: string, locale: string, t: (key: string) => 
 
 function shouldShowInLibrary(l: PublishedLesson): boolean {
   const lessonType = String(l.lessonType || "").trim().toLowerCase();
+  const textType = String(l.textType || l.texttype || "").trim().toLowerCase();
   const isReadingTest = lessonType === "reading_test";
+  const isQuiz = lessonType === "quiz" || textType === "quiz";
+
+  if (isQuiz) return false;
 
   const publishVisibility = String(l.publishVisibility || "").trim().toLowerCase();
   const visibility = String(l.visibility || "").trim().toLowerCase();

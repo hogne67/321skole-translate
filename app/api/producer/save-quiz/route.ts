@@ -219,7 +219,7 @@ export async function POST(req: Request) {
       releaseMode: "ALL_AT_ONCE",
       isActive: true,
       publishVisibility: "private",
-      showInLibrary: true,
+      showInLibrary: false,
       meta: ["quiz", "board", "live_quiz"],
       deletedAt: null,
       activePublishedId: null,
