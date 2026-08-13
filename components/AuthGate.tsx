@@ -74,16 +74,6 @@ export default function AuthGate({
   const [anonBootstrapping, setAnonBootstrapping] = useState(false);
 
   useEffect(() => {
-    console.log("AuthGate debug", {
-      userUid: user?.uid ?? null,
-      isAnonymous: user?.isAnonymous ?? null,
-      profile,
-      requireRole,
-      pathname,
-    });
-  }, [user, profile, requireRole, pathname]);
-
-  useEffect(() => {
     if (loading) return;
 
     const p = pathname || "";

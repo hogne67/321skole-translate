@@ -161,6 +161,7 @@ export default function LoginClient() {
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const isAnon = !!currentUser?.isAnonymous;
+  const isAnonUpgrade = isAnon && mode === "signup";
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setCurrentUser(u));
@@ -231,7 +232,7 @@ export default function LoginClient() {
   }
 
   function needsSignupConfirmation() {
-    return mode === "signup" || isAnon;
+    return mode === "signup";
   }
 
   function requireSignupConfirmation(): boolean {
@@ -274,7 +275,7 @@ export default function LoginClient() {
     try {
       await applyPersistence();
 
-      if (isAnon) {
+      if (isAnonUpgrade) {
         const user = await linkAnonymousWithGoogle();
         await saveLegalConfirmation(user, "google_anonymous_upgrade");
         await recordExistingLogin(user);
@@ -325,7 +326,7 @@ export default function LoginClient() {
     try {
       await applyPersistence();
 
-      if (isAnon) {
+      if (isAnonUpgrade) {
         const user = await linkAnonymousWithFeide(loginHint);
         await saveLegalConfirmation(user, "feide_anonymous_upgrade");
         await recordExistingLogin(user);
@@ -407,7 +408,7 @@ export default function LoginClient() {
         return;
       }
 
-      if (isAnon) {
+      if (isAnonUpgrade) {
         const user = await linkAnonymousWithEmailPassword(e, password);
         await saveLegalConfirmation(user, "email_anonymous_upgrade");
         trackSignUp("anonymous_upgrade");
@@ -866,20 +867,20 @@ export default function LoginClient() {
     background: "#fff",
   };
 
-  const googleLabel = isAnon
+  const googleLabel = isAnonUpgrade
     ? safeT("buttons.upgradeGoogle", "Save with Google")
     : mode === "signin"
       ? safeT("buttons.signinGoogle", "Log in with Google")
       : safeT("buttons.signupGoogle", "Create account with Google");
 
-  const feideLabel = isAnon
+  const feideLabel = isAnonUpgrade
     ? safeT("buttons.upgradeFeide", "Save with Feide")
     : mode === "signin"
       ? safeT("buttons.signinFeide", "Log in with Feide")
       : safeT("buttons.signupFeide", "Create account with Feide");
 
   const emailChoiceLabel =
-    isAnon
+    isAnonUpgrade
       ? safeT("buttons.upgradeEmail", "Save with email")
       : mode === "signin"
       ? safeT("buttons.useEmailSignin", "Log in with email")
@@ -889,7 +890,7 @@ export default function LoginClient() {
     ? safeT("buttons.working", "Working…")
     : mode === "signin"
       ? safeT("buttons.signinEmail", "Log in")
-      : isAnon
+      : isAnonUpgrade
         ? safeT("buttons.upgradeAccount", "Save anonymous account")
         : safeT("buttons.createAccount", "Create account");
 
@@ -911,7 +912,7 @@ export default function LoginClient() {
 
             <div style={headerStyle}>
               <h1 style={titleStyle}>
-                {isAnon
+                {isAnonUpgrade
                   ? safeT("title.anon", "Save your work")
                   : mode === "signin"
                   ? safeT("title.signin", "Welcome back")
@@ -919,7 +920,7 @@ export default function LoginClient() {
               </h1>
 
               <p style={subtitleStyle}>
-                {isAnon
+                {isAnonUpgrade
                   ? safeT(
                     "intro.anon",
                     "Create an account or log in to keep everything you have made."
@@ -1158,21 +1159,23 @@ export default function LoginClient() {
                     </div>
                   ) : null}
 
-                  <label style={{ ...ageConfirmStyle, margin: 0 }}>
-                    <input
-                      type="checkbox"
-                      checked={ageConfirmed}
-                      onChange={(event) => setAgeConfirmed(event.target.checked)}
-                      disabled={busy}
-                      style={ageCheckboxStyle}
-                    />
-                    <span>
-                      {safeT(
-                        "legal.ageConfirm",
-                        "I am 13 or older, or I use the service with a parent/guardian or school."
-                      )}
-                    </span>
-                  </label>
+                  {mode === "signup" ? (
+                    <label style={{ ...ageConfirmStyle, margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={ageConfirmed}
+                        onChange={(event) => setAgeConfirmed(event.target.checked)}
+                        disabled={busy}
+                        style={ageCheckboxStyle}
+                      />
+                      <span>
+                        {safeT(
+                          "legal.ageConfirm",
+                          "I am 13 or older, or I use the service with a parent/guardian or school."
+                        )}
+                      </span>
+                    </label>
+                  ) : null}
 
                   <button
                     type="submit"
@@ -1182,7 +1185,7 @@ export default function LoginClient() {
                     {emailSubmitLabel}
                   </button>
 
-                  {mode === "signup" && isAnon ? (
+                  {isAnonUpgrade ? (
                     <p
                       style={{
                         margin: 0,
