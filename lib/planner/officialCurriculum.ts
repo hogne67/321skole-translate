@@ -35,16 +35,19 @@ export type OfficialCurriculumBasis = {
 };
 
 const VERIFIED_PLAN_CODES: Record<string, string> = {
-  Norsk: "NOR01-07",
-  Matematikk: "MAT01-05",
-  Engelsk: "ENG01-05",
-  Naturfag: "NAT01-04",
-  Samfunnsfag: "SAF01-04",
-  KRLE: "RLE01-03",
-  Kroppsøving: "KRO01-05",
-  "Kunst og håndverk": "KHV01-02",
-  Musikk: "MUS01-02",
-  "Mat og helse": "MHE01-02",
+  Norsk: "NOR01-08",
+  Matematikk: "MAT01-06",
+  Engelsk: "ENG01-06",
+  Naturfag: "NAT01-05",
+  Samfunnsfag: "SAF01-05",
+  KRLE: "RLE01-04",
+  Kroppsøving: "KRO01-06",
+  "Kunst og håndverk": "KHV01-03",
+  Musikk: "MUS01-03",
+  "Mat og helse": "MHE01-03",
+  "Matematikk 1P": "MAT08-01",
+  "Matematikk 1T": "MAT09-02",
+  Samfunnskunnskap: "SAK01-01",
   "Norsk - FOV": "NOR10-01",
   "Norsk for språklige minoriteter - FOV": "NOR11-01",
   "Matematikk - FOV": "MAT10-01",
@@ -56,7 +59,8 @@ const VERIFIED_PLAN_CODES: Record<string, string> = {
 const UDIR_ORIGIN = "https://www.udir.no";
 const UDIR_AGENT = new Agent({ keepAlive: true, maxSockets: 1, family: 4 });
 
-export function verifiedPlanCodeForSubject(subject: string): string | null {
+export function verifiedPlanCodeForSubject(subject: string, level = ""): string | null {
+  if (subject === "Samfunnsfag" && /^vg/i.test(level.trim())) return VERIFIED_PLAN_CODES.Samfunnskunnskap;
   return VERIFIED_PLAN_CODES[subject] ?? null;
 }
 
@@ -64,7 +68,7 @@ export async function fetchOfficialCurriculumBasis(input: {
   subject: string;
   level: string;
 }): Promise<OfficialCurriculumBasis> {
-  const planCode = verifiedPlanCodeForSubject(input.subject);
+  const planCode = verifiedPlanCodeForSubject(input.subject, input.level);
   if (!planCode) {
     throw new Error(
       "Dette faget har ikke et verifisert automatisk oppslag ennå. Læreplankode eller offisiell Udir-lenke må legges inn manuelt."
@@ -82,7 +86,7 @@ export async function fetchOfficialCurriculumBasis(input: {
     throw new Error("Udir bekreftet ikke at den valgte læreplanen er gyldig. Oppslaget er derfor stoppet.");
   }
 
-  const competenceLink = findCompetenceLink($front, input.level);
+  const competenceLink = findCompetenceLink($front, input.level, input.subject);
   if (!competenceLink) {
     throw new Error(
       "Riktig kompetansemålsett kunne ikke identifiseres entydig for dette trinnet. Velg læreplankode eller målsett manuelt."
@@ -194,7 +198,8 @@ function metaContent($: cheerio.CheerioAPI, name: string): string {
 
 function findCompetenceLink(
   $: cheerio.CheerioAPI,
-  level: string
+  level: string,
+  subject: string
 ): { href: string; label: string } | null {
   const links = $('a[href*="/kompetansemaal-og-vurdering/"]')
     .map((_, element) => ({
@@ -204,7 +209,7 @@ function findCompetenceLink(
     .get()
     .filter((link) => link.href && link.label);
   const uniqueLinks = Array.from(new Map(links.map((link) => [link.href, link])).values());
-  const targetLabel = competenceMilestone(level);
+  const targetLabel = competenceMilestone(level, subject, uniqueLinks.map((link) => link.label));
   const exactMatches = uniqueLinks.filter(
     (link) => link.label.toLocaleLowerCase("nb-NO") === targetLabel.toLocaleLowerCase("nb-NO")
   );
@@ -216,21 +221,64 @@ function findCompetenceLink(
   return prefixMatches.length === 1 ? prefixMatches[0] : null;
 }
 
-function competenceMilestone(level: string): string {
+function competenceMilestone(level: string, subject = "", availableLabels: string[] = []): string {
   const moduleMatch = level.match(/modul\s+(4[SY]?|\d)/i);
   if (moduleMatch) return `Modul ${moduleMatch[1].toUpperCase()}`;
 
   const gradeMatch = level.match(/^(\d{1,2})\./);
   if (gradeMatch) {
     const grade = Number(gradeMatch[1]);
+    const gradeLabels = availableLabels
+      .map((label) => ({ label, grade: Number(label.match(/^(\d{1,2})\.\s*trinn$/i)?.[1] ?? 0) }))
+      .filter((item) => Number.isFinite(item.grade) && item.grade > 0)
+      .sort((left, right) => left.grade - right.grade);
+    if (gradeLabels.length > 0) {
+      if (subject === "Matematikk") {
+        const exact = gradeLabels.find((item) => item.grade === grade);
+        if (exact) return exact.label;
+      }
+      const nextMilestone = gradeLabels.find((item) => item.grade >= grade);
+      return nextMilestone?.label ?? gradeLabels[gradeLabels.length - 1].label;
+    }
     if (grade <= 2) return "2. trinn";
     if (grade <= 4) return "4. trinn";
     if (grade <= 7) return "7. trinn";
     return "10. trinn";
   }
   if (level.startsWith("Vg3 påbygg")) return "Vg3 påbygg";
-  if (level.startsWith("Vg")) return level.split(" ")[0];
+  if (level.startsWith("Vg")) return competenceMilestoneForUpperSecondary(level, subject, availableLabels);
+  if (/^1[PT](?:-Y)?/i.test(level)) return level;
+  if (level === "Samfunnskunnskap") return "Samfunnskunnskap";
   return level;
+}
+
+function competenceMilestoneForUpperSecondary(level: string, subject: string, availableLabels: string[]): string {
+  if (subject === "Matematikk 1P") return "1P";
+  if (subject === "Matematikk 1T") return "1T";
+  if (subject === "Samfunnskunnskap" || subject === "Samfunnsfag") return "Samfunnskunnskap";
+  if (availableLabels.length === 1) return availableLabels[0];
+
+  const normalizedLevel = level.toLocaleLowerCase("nb-NO");
+  const labels = availableLabels.map((label) => ({ label, normalized: label.toLocaleLowerCase("nb-NO") }));
+  const exact = labels.find((item) => item.normalized === normalizedLevel);
+  if (exact) return exact.label;
+
+  if (normalizedLevel.startsWith("vg3 påbygg")) {
+    return labels.find((item) => item.normalized.includes("påbygg"))?.label ?? "Vg3 påbygg";
+  }
+
+  const vg = normalizedLevel.match(/^(vg\d)/)?.[1] ?? "";
+  if (!vg) return level.split(" ")[0];
+
+  const studyPreparatory = labels.find(
+    (item) =>
+      item.normalized.startsWith(vg) &&
+      (/studieforberedende|\bsf\b/.test(item.normalized))
+  );
+  if (studyPreparatory) return studyPreparatory.label;
+
+  const firstForVg = labels.find((item) => item.normalized.startsWith(vg));
+  return firstForVg?.label ?? level.split(" ")[0];
 }
 
 function extractCompetenceGoals(html: string): string[] {

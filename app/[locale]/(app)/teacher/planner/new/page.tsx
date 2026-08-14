@@ -56,6 +56,16 @@ const FOV_SUBJECT_OPTIONS = [
   { value: "Naturfag - FOV", label: "Naturfag - FOV" },
   { value: "Annet fag / yrkesfag", label: "Annet fag / yrkesfag" },
 ];
+const UPPER_SECONDARY_SUBJECT_OPTIONS = [
+  { value: "Norsk", label: "Norsk" },
+  { value: "Engelsk", label: "Engelsk" },
+  { value: "Naturfag", label: "Naturfag" },
+  { value: "Samfunnskunnskap", label: "Samfunnskunnskap" },
+  { value: "Matematikk 1P", label: "Matematikk 1P" },
+  { value: "Matematikk 1T", label: "Matematikk 1T" },
+  { value: "Kroppsøving", label: "Kroppsøving" },
+  { value: "Annet fag / yrkesfag", label: "Annet fag / yrkesfag" },
+];
 const MUNICIPALITY_OPTIONS = NO_MUNICIPALITIES.map((municipality) => ({
   value: municipality.name,
   label: municipality.name,
@@ -444,7 +454,12 @@ export default function NewPlannerPage() {
 
   if (step === 2) {
     const levelOptions = LEVELS_BY_SCHOOL_TYPE[frame.schoolType] || [];
-    const subjectOptions = frame.schoolType === "Voksenopplæring" ? FOV_SUBJECT_OPTIONS : GENERAL_SUBJECT_OPTIONS;
+    const subjectOptions =
+      frame.schoolType === "Voksenopplæring"
+        ? FOV_SUBJECT_OPTIONS
+        : frame.schoolType === "Videregående"
+          ? UPPER_SECONDARY_SUBJECT_OPTIONS
+          : GENERAL_SUBJECT_OPTIONS;
     return (
       <main className="mx-auto max-w-4xl">
         <form onSubmit={reviewCurriculumSelection} className="grid gap-5">

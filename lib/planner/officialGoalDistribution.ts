@@ -583,7 +583,7 @@ function semanticGoalTags(value: string): string[] {
     ["geography-sustainability", /geograf|verden|global|bærekraft|utvikling|konsekvens|samarbeid mellom land/],
     ["democracy-rights-laws", /demokrati|rettighet|menneskerett|likeverd|likestilling|lover|regler|normer|styresett/],
     ["identity-diversity-belonging", /mangfold|identitet|seksuell|kjønn|grenser|følelser|kropp|fellesskap|fordom|rasisme|diskriminering/],
-    ["conflict-society", /konflikt|håndtere|samfunnet|konsekvenser/],
+    ["conflict-society", /konflikt|håndtere|samfunnet|konsekvenser|radikalisering|terror|folkemord|holocaust|ekstremisme/],
     ["economy-consumption", /forbruk|økonomi|selvbilde|kommersiell|reklame/],
   ];
 
@@ -615,7 +615,7 @@ function primarySemanticGoalTag(value: string): string {
   if (/global|bærekraft|geograf|verden|samarbeid mellom land/.test(text)) return "geography-sustainability";
   if (/identitet|seksuell|kjønn|grenser|følelser|kropp|mangfold|fellesskap|høre til/.test(text)) return "identity-diversity-belonging";
   if (/demokrati|rettighet|menneskerett|likeverd|likestilling|lover|regler|normer|styresett|fordom|rasisme|diskriminering/.test(text)) return "democracy-rights-laws";
-  if (/konflikt|håndtere/.test(text)) return "conflict-society";
+  if (/konflikt|håndtere|radikalisering|terror|folkemord|holocaust|ekstremisme/.test(text)) return "conflict-society";
   if (/forbruk|økonomi|selvbilde|kommersiell|reklame/.test(text)) return "economy-consumption";
   if (/undersøk|presentere resultat/.test(text)) return "method-source-investigation";
   return "";
@@ -715,7 +715,7 @@ function isBadStudentLanguage(value: string, sourceText = "", level = ""): boole
 }
 
 function hasWrongExplicitTopic(value: string, sourceText: string, level: string): boolean {
-  if (!usesStrictStudentLanguage(level) || !sourceText.trim()) return false;
+  if (!usesSimpleTopicLanguage(level) || !sourceText.trim()) return false;
   const studentTopic = explicitStudentTopic(value);
   if (!studentTopic) return false;
   const allowedTopics = semanticStudentTopics(sourceText, level);
@@ -726,11 +726,25 @@ function hasWrongExplicitTopic(value: string, sourceText: string, level: string)
 function explicitStudentTopic(value: string): string {
   const text = value.toLowerCase();
   const topics = [
+    "rim og språklyder",
+    "bokstaver og lyder",
+    "bøker og tekster",
+    "lek og tekstopplevelser",
+    "ord som påvirker andre",
+    "lesing og forståelse",
+    "samtale og meninger",
+    "muntlig og skriftlig fortelling",
+    "skriving for hånd og tastatur",
+    "tegnsetting",
+    "tekst og bilder",
+    "ord og uttrykk",
+    "talespråk og skriftspråk",
     "kilder og påvirkning",
     "identitet og grenser",
     "digital dømmekraft",
     "lover og regler",
     "steder i verden",
+    "konflikter og ekstremisme",
     "demokrati",
     "samisk historie",
     "bærekraft",
@@ -796,7 +810,7 @@ function semanticStudentTopics(value: string, level = ""): string[] {
   add("rim og språklyder", /rim|rytme|språklyd|stavelser/);
   add("bokstaver og lyder", /bokstavlyd|bokstaver|trekke bokstavlyder/);
   add("bøker og tekster", /skjønnlitteratur|sakprosa|bokmål|nynorsk|bøker|bibliotek/);
-  add("lek og tekstopplevelser", /tekstopplevelser|lek|sang|tegning|kreative aktiviteter/);
+  add("lek og tekstopplevelser", /tekstopplevelser|\blek\b|sang|tegning|kreative aktiviteter/);
   add("ord som påvirker andre", /ord vi bruker.*påvirke|påvirke andre/);
   add("lesing og forståelse", /lese med sammenheng|leseforståelse/);
   add("samtale og meninger", /ta ordet|begrunne egne meninger|samtaler/);
@@ -811,7 +825,7 @@ function semanticStudentTopics(value: string, level = ""): string[] {
   add("digital dømmekraft", /digital samhandling|dømmekraft/);
   add("livet før", /fortid|livnærte|teknologi|levekår|bosetting/);
   add("steder i verden", /geograf|verden/);
-  add("konflikter", /konflikt/);
+  add("konflikter og ekstremisme", /konflikt|radikalisering|terror|folkemord|holocaust|ekstremisme/);
   add("mangfold og fellesskap", /mangfold|fellesskap|høre til/);
   add("identitet og grenser", /identitet|seksuell|kjønn|grenser|kropp/);
   add("samisk historie", /samene|minoritet/);

@@ -145,14 +145,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function normalizeStudentLanguageForLevel(value: string, level: string, index: number, sourceText = ""): string {
   const text = ensureSentence(value);
-  if (!usesStrictStudentLanguage(level)) return text;
-  if (!isBadStudentLanguage(text)) return text;
+  if (!usesSimpleTopicLanguage(level)) return text;
+  if (!isBadStudentLanguage(text) && !hasWrongExplicitTopic(text, sourceText, level)) return text;
   return fallbackStudentLanguage(index, sourceText);
 }
 
 function usesStrictStudentLanguage(level: string): boolean {
   const grade = Number(level.match(/\d+/)?.[0] ?? 0);
   return Number.isFinite(grade) && grade >= 1 && grade <= 6;
+}
+
+function usesSimpleTopicLanguage(level: string): boolean {
+  return usesStrictStudentLanguage(level) || /fov|modul|voksenopplæring/i.test(level);
 }
 
 function isBadStudentLanguage(value: string): boolean {
@@ -165,6 +169,20 @@ function isBadStudentLanguage(value: string): boolean {
   if (/sentrale hendelser som har ført til det demokratiet vi har i norge i dag/i.test(value)) return true;
   if (/hvordan møter mellom mennesker har bidratt til å endre hvordan mennesker har tenkt/i.test(value)) return true;
   return false;
+}
+
+function hasWrongExplicitTopic(value: string, sourceText: string, level: string): boolean {
+  if (!usesSimpleTopicLanguage(level) || !sourceText.trim()) return false;
+  const studentTopic = explicitStudentTopic(value);
+  if (!studentTopic) return false;
+  const allowedTopics = semanticStudentTopics(sourceText, level);
+  if (allowedTopics.length === 0) return true;
+  return !allowedTopics.includes(studentTopic);
+}
+
+function explicitStudentTopic(value: string): string {
+  const text = value.toLowerCase();
+  return semanticTopicLabels().find((topic) => text.includes(topic)) ?? "";
 }
 
 function ensureSentence(value: string): string {
@@ -184,6 +202,15 @@ function fallbackStudentLanguage(index: number, sourceText = "", avoidTexts: str
 
 function fallbackCandidates(sourceText = ""): string[] {
   const text = sourceText.toLowerCase();
+  const topic = semanticStudentTopic(sourceText, "FOV");
+  if (topic) {
+    return [
+      `Jeg kan forklare ${topic} med egne ord.`,
+      `Jeg kan finne eksempler på ${topic}.`,
+      `Jeg kan lage et enkelt spørsmål om ${topic}.`,
+      `Jeg kan samtale om ${topic}.`,
+    ];
+  }
   if (/stille spørsmål|hypotes|variabel|samle data|undersøk/.test(text)) {
     return [
       "Jeg kan lage et naturfaglig spørsmål.",
@@ -226,6 +253,93 @@ function fallbackCandidates(sourceText = ""): string[] {
 
 function sourceTextForGoalIds(goalIds: string[], officialGoalsById: Record<string, string> = {}): string {
   return goalIds.map((goalId) => officialGoalsById[goalId] ?? "").filter(Boolean).join(" ");
+}
+
+function semanticStudentTopic(value: string, level = ""): string {
+  return semanticStudentTopics(value, level)[0] ?? "";
+}
+
+function semanticStudentTopics(value: string, level = ""): string[] {
+  if (!usesSimpleTopicLanguage(level)) return [];
+  const text = value.toLowerCase();
+  const topics: string[] = [];
+  const add = (topic: string, pattern: RegExp) => {
+    if (pattern.test(text)) topics.push(topic);
+  };
+  add("rim og språklyder", /rim|rytme|språklyd|stavelser/);
+  add("bokstaver og lyder", /bokstavlyd|bokstaver|trekke bokstavlyder/);
+  add("bøker og tekster", /skjønnlitteratur|sakprosa|bokmål|nynorsk|bøker|bibliotek/);
+  add("lek og tekstopplevelser", /tekstopplevelser|\blek\b|sang|tegning|kreative aktiviteter/);
+  add("ord som påvirker andre", /ord vi bruker.*påvirke|påvirke andre/);
+  add("lesing og forståelse", /lese med sammenheng|leseforståelse/);
+  add("samtale og meninger", /ta ordet|begrunne egne meninger|samtaler/);
+  add("muntlig og skriftlig fortelling", /beskrive og fortelle|fortelle muntlig|skriftlig/);
+  add("skriving for hånd og tastatur", /skrive tekster for hånd|tastatur/);
+  add("tegnsetting", /store og små bokstaver|punktum|spørsmålstegn|utropstegn/);
+  add("tekst og bilder", /skrift med bilder|kombinerer skrift/);
+  add("ord og uttrykk", /ord og uttrykk|betydningen til ord/);
+  add("talespråk og skriftspråk", /talespråk|skriftspråk/);
+  add("en enkel undersøkelse", /undersøk|resultat|digital(e)? verktøy/);
+  add("nyheter og fakta", /nyhet|fakta|mening|medie/);
+  add("digital dømmekraft", /digital samhandling|dømmekraft/);
+  add("livet før", /fortid|livnærte|teknologi|levekår|bosetting/);
+  add("steder i verden", /geograf|verden/);
+  add("konflikter og ekstremisme", /konflikt|radikalisering|terror|folkemord|holocaust|ekstremisme/);
+  add("mangfold og fellesskap", /mangfold|fellesskap|høre til/);
+  add("identitet og grenser", /identitet|seksuell|kjønn|grenser|kropp/);
+  add("samisk historie", /samene|minoritet/);
+  add("rettigheter", /menneskerett|rettigheter/);
+  add("kilder og påvirkning", /kilde|bestemte syn/);
+  add("likeverd og likestilling", /likeverd|likestilling/);
+  add("fordommer og diskriminering", /fordom|rasisme|diskriminering/);
+  add("demokrati", /demokrati|styresett/);
+  add("reklame og forbruk", /kommersiell|forbruk|økonomi|selvbilde|reklame/);
+  add("lover og regler", /lover|regler|normer/);
+  add("møter mellom mennesker", /møter mellom mennesker|samfunn har vært organisert/);
+  add("bærekraft", /global|bærekraft|samarbeid mellom land/);
+  add("arbeidsliv", /arbeidsliv|fagforening|regulering|teknologi påvirker arbeidslivet/);
+  add("norsk økonomi", /norsk økonomi|økonomiske forhold/);
+  add("samfunnsfaglig skriving", /skrive tekster|samfunnsfaglige beskrivelser|forklaringer/);
+  return [...new Set(topics)];
+}
+
+function semanticTopicLabels(): string[] {
+  return [
+    "rim og språklyder",
+    "bokstaver og lyder",
+    "bøker og tekster",
+    "lek og tekstopplevelser",
+    "ord som påvirker andre",
+    "lesing og forståelse",
+    "samtale og meninger",
+    "muntlig og skriftlig fortelling",
+    "skriving for hånd og tastatur",
+    "tegnsetting",
+    "tekst og bilder",
+    "ord og uttrykk",
+    "talespråk og skriftspråk",
+    "en enkel undersøkelse",
+    "nyheter og fakta",
+    "digital dømmekraft",
+    "livet før",
+    "steder i verden",
+    "konflikter og ekstremisme",
+    "mangfold og fellesskap",
+    "identitet og grenser",
+    "samisk historie",
+    "rettigheter",
+    "kilder og påvirkning",
+    "likeverd og likestilling",
+    "fordommer og diskriminering",
+    "demokrati",
+    "reklame og forbruk",
+    "lover og regler",
+    "møter mellom mennesker",
+    "bærekraft",
+    "arbeidsliv",
+    "norsk økonomi",
+    "samfunnsfaglig skriving",
+  ];
 }
 
 function isDuplicateGoalText(value: string, existingTexts: string[]): boolean {
