@@ -21,6 +21,12 @@ type ScoreRow = {
   totalQuestions: number;
 };
 
+type QuizParticipant = {
+  id: string;
+  alias: string;
+  emoji: string;
+};
+
 type SessionView = {
   id: string;
   code: string;
@@ -40,6 +46,7 @@ type SessionView = {
   nextSeconds: number;
   questions: Question[];
   participantCount: number;
+  participants: QuizParticipant[];
   currentAnswerCount: number;
   counts: Record<string, number>;
   scores: ScoreRow[];
@@ -58,6 +65,7 @@ function normalizeSession(value: unknown): SessionView | null {
   const session = isRecord(value.session) ? value.session : {};
   const questions = Array.isArray(session.questions) ? session.questions : [];
   const scores = Array.isArray(session.scores) ? session.scores : [];
+  const participants = Array.isArray(session.participants) ? session.participants : [];
   return {
     id: safeString(session.id),
     code: safeString(session.code),
@@ -82,6 +90,11 @@ function normalizeSession(value: unknown): SessionView | null {
       explanation: safeString(q.explanation),
     })),
     participantCount: typeof session.participantCount === "number" ? session.participantCount : 0,
+    participants: participants.filter(isRecord).map((participant) => ({
+      id: safeString(participant.id),
+      alias: safeString(participant.alias, "Deltaker"),
+      emoji: safeString(participant.emoji),
+    })).filter((participant) => participant.id && participant.alias),
     currentAnswerCount: typeof session.currentAnswerCount === "number" ? session.currentAnswerCount : 0,
     counts: isRecord(session.counts) ? Object.fromEntries(Object.entries(session.counts).map(([key, count]) => [key, typeof count === "number" ? count : 0])) : {},
     scores: scores.filter(isRecord).map((score) => ({
@@ -411,6 +424,8 @@ function Lobby({
   qrUrl: string;
   liveUrlText: string;
 }) {
+  const participants = session?.participants.slice(0, 60) ?? [];
+
   return (
     <section className="flex min-h-0 flex-1 items-center py-3">
       <div className="grid w-full min-h-0 gap-5 xl:grid-cols-[minmax(260px,0.78fr)_minmax(0,1.4fr)]">
@@ -444,7 +459,26 @@ function Lobby({
         <div className="flex min-h-0 flex-col justify-center text-center">
           <div className="text-sm font-black uppercase tracking-[0.24em] text-violet-300">Klar til livequiz</div>
           <h1 className="mt-4 text-6xl font-black tracking-tight">{session?.title ?? "Quiz"}</h1>
-          <div className="mx-auto mt-5 inline-flex rounded-full bg-white/10 px-5 py-2 text-xl font-black">{session?.questions.length ?? 0} spørsmål</div>
+          <div className="mx-auto mt-5 flex flex-wrap justify-center gap-3">
+            <div className="rounded-full bg-white/10 px-5 py-2 text-xl font-black">{session?.questions.length ?? 0} spørsmål</div>
+            <div className="rounded-full bg-emerald-300 px-5 py-2 text-xl font-black text-slate-950">{session?.participantCount ?? 0} deltakere klare</div>
+          </div>
+
+          <div className="mx-auto mt-6 w-full max-w-4xl rounded-[1.5rem] bg-white/[0.07] p-4">
+            {participants.length ? (
+              <div className="flex max-h-[24vh] flex-wrap justify-center gap-2 overflow-hidden">
+                {participants.map((participant) => (
+                  <div key={participant.id} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-lg font-black text-white shadow-sm">
+                    {participant.emoji ? `${participant.emoji} ` : ""}{participant.alias}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-5 text-xl font-black text-white/55">
+                Venter på deltakere...
+              </div>
+            )}
+          </div>
 
           <div className="mx-auto mt-6 grid w-full max-w-3xl gap-2 rounded-[1.5rem] bg-white/10 p-4 sm:grid-cols-2">
             <DarkChoiceGroup label="Svarfrist" value={answerSeconds} values={[15, 30, 60]} onChange={setAnswerSeconds} />

@@ -58,6 +58,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ sessionId: stri
       db.collection("quizSessions").doc(sessionId).collection("answers").get(),
     ]);
 
+    const participants = participantsSnap.docs
+      .map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          alias: safeString(data.alias, "Deltaker"),
+          emoji: safeString(data.emoji),
+        };
+      })
+      .filter((participant) => participant.alias)
+      .sort((a, b) => a.alias.localeCompare(b.alias, "nb"));
+
     const answers = answersSnap.docs.map((doc) => doc.data() as SessionAnswer);
     const scores = scoreRowsFromAnswers(answers, Array.isArray(session.questions) ? session.questions.length : 0);
     const currentIndex = typeof session.currentIndex === "number" ? session.currentIndex : 0;
@@ -91,6 +103,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ sessionId: stri
         nextSeconds: typeof session.nextSeconds === "number" ? session.nextSeconds : 5,
         questions: publicQuestions(session, isHost),
         participantCount: participantsSnap.size,
+        ...(isHost ? { participants } : {}),
         answerCount: answers.length,
         currentAnswerCount: currentAnswers.length,
         counts: Object.fromEntries(counts.entries()),
