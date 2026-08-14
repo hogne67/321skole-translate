@@ -32,7 +32,7 @@
       "mathWorksheet": "Tarefa de matemática",
       "readingTest": "Teste de leitura",
       "quiz": "Quiz",
-      "ownGenerated": "Gerado pelo usuário",
+      "ownGenerated": "Conteúdo próprio",
       "content": "Conteúdo"
     },
     "filterHints": {
@@ -124,6 +124,7 @@
       "lessonNotFound": "Atividade não encontrada",
       "cannotPublishDeleted": "Esta atividade foi excluída ou arquivada e não pode ser publicada.",
       "publishFailed": "Falha ao atualizar o status de publicação",
+      "factCheckRequired": "Este texto factual precisa de uma verificação extra de fatos antes de ser publicado. Abra a atividade, execute a verificação extra e salve a versão verificada antes de publicar.",
       "deleteFailed": "Falha ao excluir (arquivar) a atividade",
       "restoreFailed": "Não foi possível restaurar.",
       "aiShareFailed": "Não foi possível gerar texto de compartilhamento com IA.",

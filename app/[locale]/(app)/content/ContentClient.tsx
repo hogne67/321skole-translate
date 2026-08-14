@@ -418,6 +418,17 @@ export default function ContentClient() {
     setBusyByKey((m) => ({ ...m, [key]: v }));
   }
 
+  function publishErrorMessage(error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+    if (/FACT_CHECK_REQUIRED|Extra fact check is required|fact check/i.test(message)) {
+      return safeMsg(
+        "errors.factCheckRequired",
+        "Denne sakteksten må faktasjekkes før den kan publiseres. Åpne oppgaven, kjør ekstra faktasjekk og lagre den faktasjekkede versjonen før du publiserer."
+      );
+    }
+    return message || t("errors.publishFailed");
+  }
+
   function stripLeadingLocale(path: string) {
     const m = path.match(/^\/([a-z]{2})(\/|$)/i);
     if (!m) return path;
@@ -1090,7 +1101,7 @@ export default function ContentClient() {
 
       await refresh();
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : t("errors.publishFailed"));
+      setErr(publishErrorMessage(e));
       await refresh();
     } finally {
       setBusy(key, false);
@@ -1773,6 +1784,21 @@ export default function ContentClient() {
         ]
         : []),
 
+      ...(isTeacher
+        ? [
+          {
+            key: "pdf",
+            label: isMath
+              ? mathSubtypeText && mathSubtype !== "math"
+                ? `${mathSubtypeText}-PDF`
+                : t("math.pdf")
+              : t("actions.pdf"),
+            disabled: busy || !canPdf,
+            onClick: () => router.push(pdfHref),
+          },
+        ]
+        : []),
+
       ...((canSharePublic || canShareReadingTest)
         ? [
           {
@@ -1823,21 +1849,6 @@ export default function ContentClient() {
         ]
         : []),
 
-      ...(isTeacher
-        ? [
-          {
-            key: "pdf",
-            label: isMath
-              ? mathSubtypeText && mathSubtype !== "math"
-                ? `${mathSubtypeText}-PDF`
-                : t("math.pdf")
-              : t("actions.pdf"),
-            disabled: busy || !canPdf,
-            onClick: () => router.push(pdfHref),
-          },
-        ]
-        : []),
-
       {
         key: "delete",
         label: t("actions.delete"),
@@ -1864,7 +1875,7 @@ export default function ContentClient() {
     if (isMathArchiveItem(it)) return ["openMath", "previewMath", "edit", "shareToSpace", "pdf", "delete", "restore"];
     if (isQuizLesson(it)) return ["edit", "startQuiz", "shareToBoard", "publish", "unpublish", "shareQuizPublic", "delete", "restore"];
     if (isImageWritingLesson(it)) return ["open", "edit", "startImageLive", "shareToSpace", "pdf", "delete", "restore"];
-    return ["open", "edit", "publish", "unpublish", "share", "shareToSpace", "addToCourse", "pdf", "delete", "restore"];
+    return ["open", "edit", "publish", "unpublish", "pdf", "share", "shareToSpace", "addToCourse", "delete", "restore"];
   }
 
   async function sendQuizToBoard(spaceId: string) {
@@ -1991,7 +2002,10 @@ export default function ContentClient() {
 
   function desktopActions(it: ContentItem, actions: ActionItem[]) {
     const visible = visibleDesktopActionKeys(it);
-    return actions.filter((a) => visible.includes(a.key)).slice(0, 6);
+    return visible
+      .map((key) => actions.find((a) => a.key === key))
+      .filter((a): a is ActionItem => Boolean(a))
+      .slice(0, 6);
   }
 
   function desktopOverflowActions(it: ContentItem, actions: ActionItem[]) {
@@ -2236,14 +2250,6 @@ export default function ContentClient() {
             ? filtered.map((it) => {
               const key = `${it.type}:${it.id}`;
               const actions = buildActions(it);
-              console.log("CONTENT CARD", {
-                id: it.id,
-                type: it.type,
-                title: titleForCard(it),
-                status: it.status,
-                meta: it.meta,
-                actions: actions.map((a) => a.key),
-              });
               const desktopMainActions = desktopActions(it, actions);
               const desktopExtraActions = desktopOverflowActions(it, actions);
 

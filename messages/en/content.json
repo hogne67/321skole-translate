@@ -32,7 +32,7 @@
       "mathWorksheet": "Math assignment",
       "readingTest": "Reading test",
       "quiz": "Quiz",
-      "ownGenerated": "Own generated",
+      "ownGenerated": "Own content",
       "content": "Content"
     },
     "filterHints": {
@@ -124,6 +124,7 @@
       "lessonNotFound": "Task not found",
       "cannotPublishDeleted": "This task is deleted or archived and cannot be published.",
       "publishFailed": "Failed to update publish status",
+      "factCheckRequired": "This factual text needs an extra fact check before it can be published. Open the task, run extra fact check, and save the fact-checked version before publishing.",
       "deleteFailed": "Failed to delete (archive) task",
       "restoreFailed": "Could not restore.",
       "aiShareFailed": "Could not generate share text with AI.",

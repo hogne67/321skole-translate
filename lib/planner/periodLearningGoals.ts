@@ -283,7 +283,8 @@ function semanticStudentTopics(value: string, level = ""): string[] {
   add("nyheter og fakta", /nyhet|fakta|mening|medie/);
   add("digital dømmekraft", /digital samhandling|dømmekraft/);
   add("livet før", /fortid|livnærte|teknologi|levekår|bosetting/);
-  add("steder i verden", /geograf|verden/);
+  add("norsk økonomi", /norsk økonomi|økonomiske forhold|økonomi.*resten av verden|påvirkes av økonomi/);
+  add("steder i verden", /geograf|steder i verden|verdensdel|verdenskart|land i verden/);
   add("konflikter og ekstremisme", /konflikt|radikalisering|terror|folkemord|holocaust|ekstremisme/);
   add("mangfold og fellesskap", /mangfold|fellesskap|høre til/);
   add("identitet og grenser", /identitet|seksuell|kjønn|grenser|kropp/);
@@ -298,7 +299,7 @@ function semanticStudentTopics(value: string, level = ""): string[] {
   add("møter mellom mennesker", /møter mellom mennesker|samfunn har vært organisert/);
   add("bærekraft", /global|bærekraft|samarbeid mellom land/);
   add("arbeidsliv", /arbeidsliv|fagforening|regulering|teknologi påvirker arbeidslivet/);
-  add("norsk økonomi", /norsk økonomi|økonomiske forhold/);
+  add("norsk økonomi", /norsk økonomi|økonomiske forhold|økonomi.*resten av verden|påvirkes av økonomi/);
   add("samfunnsfaglig skriving", /skrive tekster|samfunnsfaglige beskrivelser|forklaringer/);
   return [...new Set(topics)];
 }

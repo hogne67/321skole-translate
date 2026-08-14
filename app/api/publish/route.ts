@@ -34,15 +34,20 @@ function containsAny(haystack: string, needles: string[]): boolean {
 }
 
 function inferFactCheckRequired(draft: Record<string, unknown>): { required: boolean; reason: string } {
-  const aiQuality = isRecord(draft.aiQuality) ? draft.aiQuality : {};
+  const rawAiQuality = draft.aiQuality;
+  const hasAiQuality = isRecord(rawAiQuality);
+  const aiQuality: Record<string, unknown> = hasAiQuality ? rawAiQuality : {};
   if (aiQuality.factCheckRequired === true) {
+    if (aiQuality.generatedWith === "manual") {
+      return { required: false, reason: "" };
+    }
     return {
       required: true,
       reason: typeof aiQuality.factCheckReason === "string" ? aiQuality.factCheckReason : "marked",
     };
   }
 
-  if (!isRecord(draft.aiQuality)) {
+  if (hasAiQuality) {
     return { required: false, reason: "" };
   }
 

@@ -32,7 +32,7 @@
       "mathWorksheet": "Matteoppgave",
       "readingTest": "Lesetest",
       "quiz": "Quiz",
-      "ownGenerated": "Egen generert",
+      "ownGenerated": "Eget innhold",
       "content": "Innhold"
     },
     "filterHints": {
@@ -124,6 +124,7 @@
       "lessonNotFound": "Fant ikke oppgaven",
       "cannotPublishDeleted": "Denne oppgaven er slettet eller arkivert og kan ikke publiseres.",
       "publishFailed": "Kunne ikke oppdatere publiseringsstatus",
+      "factCheckRequired": "Denne sakteksten må faktasjekkes før den kan publiseres. Åpne oppgaven, kjør ekstra faktasjekk og lagre den faktasjekkede versjonen før du publiserer.",
       "deleteFailed": "Kunne ikke slette (arkivere) oppgaven",
       "restoreFailed": "Kunne ikke gjenopprette.",
       "aiShareFailed": "Kunne ikke lage delingstekst med KI.",

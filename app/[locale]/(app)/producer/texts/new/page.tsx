@@ -847,8 +847,9 @@ export default function NewTextPage() {
     return "";
   }, [effectiveTopic, isA1Start, prompt, textTypeLabel, textTypeOther, textTypePreset]);
   const factCheckRequired = factCheckReason.length > 0;
+  const publishFactCheckRequired = factCheckRequired && lastGeneratedWith !== "manual";
   const currentTextFactChecked =
-    factCheckRequired && lastFactCheckedText.trim() === sourceText.trim() && sourceText.trim().length > 0;
+    publishFactCheckRequired && lastFactCheckedText.trim() === sourceText.trim() && sourceText.trim().length > 0;
 
   const profileUid =
     profile && typeof profile === "object" && "uid" in profile
@@ -1348,7 +1349,7 @@ export default function NewTextPage() {
         sourceText: sourceText || "",
         tasks: renumberOrders(lessonTasks),
         aiQuality: {
-          factCheckRequired,
+          factCheckRequired: publishFactCheckRequired,
           factChecked: currentTextFactChecked,
           factCheckReason,
           generatedWith: lastGeneratedWith,
@@ -2110,7 +2111,7 @@ export default function NewTextPage() {
                   >
                     {loadingText && textGenerationMode === "standard" ? t("buttons.generatingText") : t("buttons.generateText")}
                   </button>
-                  {!isA1Start && (
+                  {!isA1Start && (!sourceText.trim() || lastGeneratedWith !== "manual") && (
                     <button
                       className="actionBtn"
                       onClick={() => generateTextOnly(true)}
@@ -2129,12 +2130,12 @@ export default function NewTextPage() {
                         : t("buttons.generateFactCheckedText")}
                     </button>
                   )}
-                  {!isA1Start && factCheckRequired && !currentTextFactChecked && sourceText.trim() && (
+                  {!isA1Start && publishFactCheckRequired && !currentTextFactChecked && sourceText.trim() && (
                     <div style={{ fontSize: 12, color: "#92400e", marginTop: 8, lineHeight: 1.45 }}>
                       {t("warnings.factCheckRequiredBeforePublish")}
                     </div>
                   )}
-                  {!isA1Start && factCheckRequired && currentTextFactChecked && (
+                  {!isA1Start && publishFactCheckRequired && currentTextFactChecked && (
                     <div style={{ fontSize: 12, color: "#166534", marginTop: 8, lineHeight: 1.45 }}>
                       {t("warnings.factCheckCompleted")}
                     </div>
@@ -2176,6 +2177,8 @@ export default function NewTextPage() {
                     onChange={(e) => {
                       setSourceText(e.target.value);
                       setApprovedSourceText("");
+                      setLastGeneratedWith("manual");
+                      setLastFactCheckedText("");
                       if (lessonTasks.length > 0) setTasksDirty(true);
                     }}
                     rows={14}
