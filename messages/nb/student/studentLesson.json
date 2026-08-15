@@ -28,6 +28,12 @@
       "noImageTitle": "Ingen bilde ennå",
       "noImageHint": "Denne plassen er reservert for et opplastet bilde."
     },
+    "preReading": {
+      "title": "Før du leser",
+      "prompt": "Se på bildet. Hva legger du merke til? Skriv noen ord, eller si det du tenker på.",
+      "placeholder": "Skriv noen ord her...",
+      "playPrompt": "Spill av førlesing"
+    },
     "actions": {
       "saving": "Lagrer...",
       "saveOnDevice": "Lagre på denne enheten",

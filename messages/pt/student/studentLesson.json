@@ -28,6 +28,12 @@
       "noImageTitle": "Sem imagem ainda",
       "noImageHint": "Este espaço é reservado para uma imagem enviada."
     },
+    "preReading": {
+      "title": "Antes de ler",
+      "prompt": "Olhe para a imagem. O que você percebe? Escreva algumas palavras, ou diga o que está pensando.",
+      "placeholder": "Escreva algumas palavras aqui...",
+      "playPrompt": "Reproduzir antes da leitura"
+    },
     "actions": {
       "saving": "Salvando...",
       "saveOnDevice": "Salvar neste dispositivo",

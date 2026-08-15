@@ -28,6 +28,12 @@
       "noImageTitle": "No image yet",
       "noImageHint": "This space is reserved for an uploaded image."
     },
+    "preReading": {
+      "title": "Before you read",
+      "prompt": "Look at the image. What do you notice? Write a few words, or say what you are thinking.",
+      "placeholder": "Write a few words here...",
+      "playPrompt": "Play before-reading prompt"
+    },
     "actions": {
       "saving": "Saving...",
       "saveOnDevice": "Save on this device",

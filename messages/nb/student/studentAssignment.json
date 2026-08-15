@@ -72,6 +72,12 @@
       "noneTitle": "Ingen bilde",
       "noneDesc": "Denne oppgaven har ikke forsidebilde."
     },
+    "preReading": {
+      "title": "Før du leser",
+      "prompt": "Se på bildet. Hva legger du merke til? Skriv noen ord, eller si det du tenker på.",
+      "placeholder": "Skriv noen ord her...",
+      "playPrompt": "Spill av førlesing"
+    },
     "translate": {
       "title": "Oversettelse",
       "to": "Oversett til",

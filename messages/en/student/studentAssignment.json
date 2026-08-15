@@ -72,6 +72,12 @@
       "noneTitle": "No image",
       "noneDesc": "This lesson has no cover image."
     },
+    "preReading": {
+      "title": "Before you read",
+      "prompt": "Look at the image. What do you notice? Write a few words, or say what you are thinking.",
+      "placeholder": "Write a few words here...",
+      "playPrompt": "Play before-reading prompt"
+    },
     "translate": {
       "title": "Translation",
       "to": "Translate to",

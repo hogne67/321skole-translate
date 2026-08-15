@@ -84,6 +84,8 @@ const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   label: l.label,
 }));
 
+const PRE_READING_ANSWER_KEY = "__preReadingImageResponse";
+
 /* =========================
    Helpers
 ========================= */
@@ -295,6 +297,16 @@ export default function StudentAssignmentPage() {
     return u || null;
   }, [lesson?.coverImageUrl]);
 
+  const showPreReadingPrompt =
+    !!imageUrl &&
+    !isImageWriting &&
+    !isReadingTest &&
+    !isGeometryAssignment &&
+    !isFractionAssignment &&
+    displayedSourceTextSafe.trim().length > 0;
+
+  const preReadingAnswer = String(answers[PRE_READING_ANSWER_KEY] ?? "");
+
   const textFollow = useMemo(() => {
     const original = segmentSentences(displayedSourceTextSafe || "");
     const translation = segmentSentences(translatedText || "");
@@ -471,6 +483,11 @@ export default function StudentAssignmentPage() {
     } finally {
       setTeacherFeedbackTtsBusy(null);
     }
+  }
+
+  async function onPlayPreReadingPrompt() {
+    const prompt = `${tString("preReading.title")}. ${tString("preReading.prompt")}`;
+    await playTTS(prompt, originalLangForTTS, "original");
   }
 
   async function onTranslateTask(tt: Task, idx: number) {
@@ -1257,6 +1274,77 @@ export default function StudentAssignmentPage() {
         >
           <SmartImage src={imageUrl} alt={mainTitle || "Cover"} fit={isImageWriting ? "contain" : "cover"} />
         </div>
+      ) : null}
+
+      {showPreReadingPrompt ? (
+        <section
+          style={{
+            marginTop: 14,
+            padding: 14,
+            borderRadius: 14,
+            border: "1px solid rgba(34,197,94,0.22)",
+            background: "rgba(240,253,244,0.86)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 12,
+              flexWrap: "wrap",
+              marginBottom: 10,
+            }}
+          >
+            <div>
+              <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>{tString("preReading.title")}</h2>
+              <p style={{ margin: 0, color: "#14532d", fontWeight: 650, lineHeight: 1.55 }}>
+                {tString("preReading.prompt")}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onPlayPreReadingPrompt}
+              disabled={ttsBusy != null}
+              style={{
+                border: "1px solid rgba(34,197,94,0.40)",
+                borderRadius: 10,
+                padding: "8px 12px",
+                background: "white",
+                color: "#166534",
+                fontWeight: 900,
+                cursor: ttsBusy != null ? "not-allowed" : "pointer",
+                opacity: ttsBusy != null ? 0.65 : 1,
+              }}
+              title={tString("preReading.playPrompt")}
+              aria-label={tString("preReading.playPrompt")}
+            >
+              {ttsBusy === "original" ? "..." : "🔊"}
+            </button>
+          </div>
+
+          <textarea
+            value={preReadingAnswer}
+            onChange={(event) => setAnswer(PRE_READING_ANSWER_KEY, event.target.value)}
+            placeholder={tString("preReading.placeholder")}
+            rows={2}
+            readOnly={lock || submitted}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              resize: "vertical",
+              minHeight: 74,
+              borderRadius: 12,
+              border: "1px solid rgba(22,101,52,0.22)",
+              padding: "10px 12px",
+              background: lock || submitted ? "rgba(255,255,255,0.68)" : "white",
+              color: "#0f172a",
+              font: "inherit",
+              lineHeight: 1.5,
+            }}
+          />
+        </section>
       ) : null}
 
       {!isReadingTest ? (
