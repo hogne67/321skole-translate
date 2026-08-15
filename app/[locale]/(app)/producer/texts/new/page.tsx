@@ -744,8 +744,7 @@ export default function NewTextPage() {
   const [a1StartHighFrequencyTheme, setA1StartHighFrequencyTheme] = useState("familie");
   const [a1StartHighFrequencyCustomTheme, setA1StartHighFrequencyCustomTheme] = useState("");
   const [a1StartFocusSound, setA1StartFocusSound] = useState("s");
-  const [a1StartSoundSentenceCount, setA1StartSoundSentenceCount] = useState(5);
-  const [a1StartSoundWordCount, setA1StartSoundWordCount] = useState(9);
+  const [a1StartSoundWordCount, setA1StartSoundWordCount] = useState(10);
   const [a1StartTense, setA1StartTense] = useState<A1StartTense>("present");
   const [a1StartSentenceCount, setA1StartSentenceCount] =
     useState<A1StartSentenceCount>(10);
@@ -901,7 +900,6 @@ export default function NewTextPage() {
       highFrequencyLength: a1StartHighFrequencyLength,
       highFrequencyTheme: effectiveA1StartHighFrequencyTheme,
       focusSound: a1StartFocusSound,
-      soundSentenceCount: a1StartSoundSentenceCount,
       soundWordCount: a1StartSoundWordCount,
     }
     : undefined;
@@ -1148,6 +1146,7 @@ export default function NewTextPage() {
           textType: effectiveTextType,
           textLength,
           extraFactCheck,
+          sourceText: extraFactCheck ? sourceText : "",
           a1Start: a1StartConfig,
         }),
       });
@@ -1909,25 +1908,13 @@ export default function NewTextPage() {
                         </select>
                       </label>
                       <label>
-                        {t("a1Start.fields.soundSentenceCount")}
-                        <select
-                          value={a1StartSoundSentenceCount}
-                          onChange={(e) => setA1StartSoundSentenceCount(Number(e.target.value))}
-                          style={fieldStyle}
-                        >
-                          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => (
-                            <option key={count} value={count}>{count}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
                         {t("a1Start.fields.soundWordCount")}
                         <select
                           value={a1StartSoundWordCount}
                           onChange={(e) => setA1StartSoundWordCount(Number(e.target.value))}
                           style={fieldStyle}
                         >
-                          {[0, 3, 6, 9, 12, 15].map((count) => (
+                          {[10, 14, 20].map((count) => (
                             <option key={count} value={count}>{count}</option>
                           ))}
                         </select>
@@ -2111,7 +2098,7 @@ export default function NewTextPage() {
                   >
                     {loadingText && textGenerationMode === "standard" ? t("buttons.generatingText") : t("buttons.generateText")}
                   </button>
-                  {!isA1Start && (!sourceText.trim() || lastGeneratedWith !== "manual") && (
+                  {!isA1Start && factCheckRequired && (!sourceText.trim() || lastGeneratedWith !== "manual") && (
                     <button
                       className="actionBtn"
                       onClick={() => generateTextOnly(true)}

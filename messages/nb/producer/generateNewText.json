@@ -42,7 +42,7 @@
         "highFrequencyLength": "Tekstlengde",
         "focusSound": "Fokuslyd",
         "soundSentenceCount": "Antall setninger med lyden",
-        "soundWordCount": "Antall lydord"
+        "soundWordCount": "Antall lydord og setninger"
       },
       "types": {
         "patternSentences": "Mønstersetninger",
@@ -78,7 +78,7 @@
         "custom": "Eget tema"
       },
       "highFrequencyHelp": "AI lager en sammenhengende A1-tekst. Godt språk er viktigst. Teksten avsluttes med Forklaring og Eksempelsetninger.",
-      "soundLadderHelp": "AI lager tekst, forklaring, lydord og korte setninger med lyden.",
+      "soundLadderHelp": "AI lager lydord først, én setning per ord og deretter en kort tekst med flere av ordene.",
       "soundTasksPreview": {
         "title": "Oppgaver som lages",
         "trueFalse": "5 sant/usant",

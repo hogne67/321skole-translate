@@ -148,6 +148,7 @@ type ImageWritingTask = {
 type Role = "student" | "teacher" | "parent";
 
 type AudioMode =
+  | "pre_reading"
   | "text_original"
   | "text_translation"
   | "task_original"
@@ -191,6 +192,8 @@ type SentenceSeg = {
   startRatio: number;
   endRatio: number;
 };
+
+const PRE_READING_ANSWER_KEY = "__preReadingImageResponse";
 
 function safeRole(role: unknown): Role {
   if (role === "teacher") return "teacher";
@@ -1044,6 +1047,12 @@ export default function StudentLessonPage() {
   );
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest ? "" : sourceTextSafe;
+  const showPreReadingPrompt =
+    !!imageUrl &&
+    !isImageWriting &&
+    !isReadingTest &&
+    displayedSourceTextSafe.trim().length > 0;
+  const preReadingAnswer = String(answers[PRE_READING_ANSWER_KEY] ?? "");
 
   const soundTrainingSections = useMemo(() => {
     return splitSoundTrainingSections(displayedSourceTextSafe, lesson?.language);
@@ -1252,6 +1261,12 @@ export default function StudentLessonPage() {
     if (!txt) return;
     setActiveSoundSectionKey(null);
     await playTTS(txt, originalLangForTTS, "text_original");
+  }
+
+  async function playPreReadingPromptAudio() {
+    if (!requireAudioLogin("pre_reading")) return;
+    const prompt = `${t("preReading.title")}. ${t("preReading.prompt")}`;
+    await playTTS(prompt, originalLangForTTS, "pre_reading");
   }
 
   async function playSoundTrainingSectionAudio(section: LessonTextSection) {
@@ -2266,6 +2281,74 @@ export default function StudentLessonPage() {
           </div>
         </div>
       </section>
+      ) : null}
+
+      {showPreReadingPrompt ? (
+        <section style={{ marginTop: 14 }}>
+          <div
+            style={{
+              ...cardStyle,
+              border: "1px solid rgba(34,197,94,0.22)",
+              background: "rgba(240,253,244,0.86)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "flex-start",
+                flexWrap: "wrap",
+                marginBottom: 10,
+              }}
+            >
+              <div>
+                <h2 style={{ ...sectionHeadingStyle, marginBottom: 4 }}>{t("preReading.title")}</h2>
+                <p style={{ margin: 0, color: "#14532d", lineHeight: 1.55, fontWeight: 650 }}>
+                  {t("preReading.prompt")}
+                </p>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={playPreReadingPromptAudio}
+                  disabled={ttsBusy !== null}
+                  style={{
+                    ...audioIconBtnStyle,
+                    background: "white",
+                    border: "1px solid rgba(34,197,94,0.40)",
+                    color: "#166534",
+                    opacity: ttsBusy !== null ? 0.6 : 1,
+                  }}
+                  title={isAnon ? t("text.loginToPlayAudio") : t("preReading.playPrompt")}
+                  aria-label={isAnon ? t("text.loginToPlayAudio") : t("preReading.playPrompt")}
+                >
+                  <Volume2 size={16} strokeWidth={2.4} />
+                </button>
+                {renderAudioLoginNotice("pre_reading")}
+              </div>
+            </div>
+            <textarea
+              value={preReadingAnswer}
+              onChange={(event) => setAnswer(PRE_READING_ANSWER_KEY, event.target.value)}
+              placeholder={t("preReading.placeholder")}
+              rows={2}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                resize: "vertical",
+                minHeight: 74,
+                borderRadius: 12,
+                border: "1px solid rgba(22,101,52,0.22)",
+                padding: "10px 12px",
+                background: "white",
+                color: "#0f172a",
+                font: "inherit",
+                lineHeight: 1.5,
+              }}
+            />
+          </div>
+        </section>
       ) : null}
 
       <div style={lessonUtilityRowStyle}>

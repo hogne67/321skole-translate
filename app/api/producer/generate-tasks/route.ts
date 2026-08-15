@@ -176,10 +176,24 @@ function clampCount(value: number, min: number, max: number, fallback: number) {
 function buildOpenTaskGuidance(level: string, languageName: string) {
   const normalized = level.trim().toUpperCase();
 
+  if (normalized === "A1") {
+    return `
+A1 open question rules:
+- At A1, reflectionQuestions are NOT real reflection tasks. Treat them as short, concrete open comprehension questions.
+- Ask about something clearly found in the source text.
+- The learner should answer with a word, phrase, or one very short sentence.
+- Do not ask yes/no questions.
+- Do not ask "What do you think...?", "Why do you think...?", "Explain...", "Write about...", or "What is important...?"
+- Do not ask for feelings, values, causes, consequences, comparison, interpretation, or personal reflection.
+- Prefer simple question words such as who, what, where, what does, what likes, what happens.
+- Each reflectionQuestions item must be one short question only, with no follow-up instruction.
+- Example in Norwegian: "Hva liker Lene med jobben sin?"
+- Keep the language natural for ${languageName} and CEFR ${level}.
+`.trim();
+  }
+
   const levelGuidance =
-    normalized === "A1"
-      ? "A1: Use very simple words. Ask for a short personal answer with one simple reason or example."
-      : normalized === "A2"
+    normalized === "A2"
         ? "A2: Use simple everyday language. Ask for an opinion, feeling, or choice, and invite one reason."
         : normalized === "B1"
           ? "B1: Ask the learner to reflect, give a personal opinion, imagine a situation, or explain what people can learn. Invite 2-4 connected sentences."
@@ -264,6 +278,9 @@ function buildA1StartSoundLadderTaskPrompt(args: {
   config: A1StartConfig;
 }) {
   const focusSound = String(args.config.focusSound || "").trim();
+  const soundWordCount = [10, 14, 20].includes(Number(args.config.soundWordCount))
+    ? Number(args.config.soundWordCount)
+    : 10;
   if (!focusSound) throw new Error("A focus sound is required for A1 Start sound ladder.");
 
   return `
@@ -286,8 +303,8 @@ Return valid JSON only in this exact structure:
     ],
     "writeFacts": [],
       "reflectionQuestions": [
-      "Write 10 words with the ${focusSound} sound.",
-      "Write 5 sentences with the ${focusSound} sound.",
+      "Write ${soundWordCount} words with the ${focusSound} sound.",
+      "Write ${soundWordCount} sentences with the ${focusSound} sound.",
       "Write 5 sentences for the picture."
     ]
   }
@@ -299,8 +316,8 @@ Strict rules:
 - Create exactly 5 true/false statements based only on the source text.
 - Each true/false statement must be simple, meaningful, and clearly checkable against the source text.
 - Create exactly these 3 open task meanings:
-  1. Write 10 words with the focus sound.
-  2. Write 5 sentences with the focus sound.
+  1. Write ${soundWordCount} words with the focus sound.
+  2. Write ${soundWordCount} sentences with the focus sound.
   3. Write 5 sentences for the picture.
 - Do not create multiple choice, explanations, factual recall, or extra tasks.
 `.trim();
@@ -330,24 +347,24 @@ function buildA1StartWordPrompt(languageName: string, count: number, word: strin
   return `Write ${count} sentences using the word "${word}".`;
 }
 
-function buildA1StartSoundFallbackTasks(languageName: string, focusSound: string): string[] {
+function buildA1StartSoundFallbackTasks(languageName: string, focusSound: string, soundWordCount: number): string[] {
   if (languageName === "Norwegian") {
     return [
-      `Skriv 10 ord med ${focusSound}-lyden.`,
-      `Skriv 5 setninger med ${focusSound}-lyden.`,
+      `Skriv ${soundWordCount} ord med ${focusSound}-lyden.`,
+      `Skriv ${soundWordCount} setninger med ${focusSound}-lyden.`,
       "Skriv 5 setninger til bildet.",
     ];
   }
   if (languageName === "Portuguese" || languageName === "Brazilian Portuguese") {
     return [
-      `Escreva 10 palavras com o som ${focusSound}.`,
-      `Escreva 5 frases com o som ${focusSound}.`,
+      `Escreva ${soundWordCount} palavras com o som ${focusSound}.`,
+      `Escreva ${soundWordCount} frases com o som ${focusSound}.`,
       "Escreva 5 frases sobre a imagem.",
     ];
   }
   return [
-    `Write 10 words with the ${focusSound} sound.`,
-    `Write 5 sentences with the ${focusSound} sound.`,
+    `Write ${soundWordCount} words with the ${focusSound} sound.`,
+    `Write ${soundWordCount} sentences with the ${focusSound} sound.`,
     "Write 5 sentences for the picture.",
   ];
 }
@@ -427,6 +444,7 @@ export async function POST(req: Request) {
     const facts = clampCount(Number(body.tasks?.facts ?? 6), 0, 10, 6);
     const reflection = clampCount(Number(body.tasks?.reflection ?? 3), 0, 20, 3);
     const isA1Start = level === "A1_START";
+    const isA1 = level.toUpperCase() === "A1";
 
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
@@ -474,7 +492,9 @@ Important rules:
 - answerIndex must point to the correct option.
 - trueFalse statements must be checkable against the source text.
 - writeFacts should be short task prompts suitable for the learner.
-- reflectionQuestions should be open-ended, thoughtful, and relevant to the source text.
+- reflectionQuestions should be ${isA1
+    ? "short, concrete, open comprehension questions based directly on the source text"
+    : "open-ended, thoughtful, and relevant to the source text"}.
 
 ${buildOpenTaskGuidance(level, languageName)}
 
@@ -549,6 +569,9 @@ Counts:
       const isSoundLadder = body.a1Start?.type === "sound_reading_ladder";
       if (isSoundLadder) {
         const focusSound = String(body.a1Start?.focusSound || "").trim();
+        const soundWordCount = [10, 14, 20].includes(Number(body.a1Start?.soundWordCount))
+          ? Number(body.a1Start?.soundWordCount)
+          : 10;
         const generatedTrueFalse = Array.isArray(parsed.tasks.trueFalse)
           ? parsed.tasks.trueFalse.slice(0, 5)
           : [];
@@ -562,7 +585,8 @@ Counts:
           writeFacts: [],
           reflectionQuestions: buildA1StartSoundFallbackTasks(
             languageName,
-            focusSound
+            focusSound,
+            soundWordCount
           ),
         };
       } else {

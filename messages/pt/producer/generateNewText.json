@@ -42,7 +42,7 @@
         "highFrequencyLength": "Tamanho do texto",
         "focusSound": "Som foco",
         "soundSentenceCount": "Número de frases com o som",
-        "soundWordCount": "Número de palavras de som"
+        "soundWordCount": "Número de palavras e frases de som"
       },
       "types": {
         "patternSentences": "Frases-modelo",
@@ -78,7 +78,7 @@
         "custom": "Tema próprio"
       },
       "highFrequencyHelp": "A IA cria um texto A1 coerente. A boa linguagem vem primeiro. O texto termina com Explicação e Frases de exemplo.",
-      "soundLadderHelp": "A IA cria um texto, explicação, palavras de som e frases curtas com o som.",
+      "soundLadderHelp": "A IA cria primeiro palavras de som, uma frase por palavra e depois um texto curto com várias dessas palavras.",
       "soundTasksPreview": {
         "title": "Atividades que serão criadas",
         "trueFalse": "5 verdadeiro/falso",

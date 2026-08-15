@@ -42,7 +42,7 @@
         "highFrequencyLength": "Text length",
         "focusSound": "Focus sound",
         "soundSentenceCount": "Number of sentences with the sound",
-        "soundWordCount": "Number of sound words"
+        "soundWordCount": "Number of sound words and sentences"
       },
       "types": {
         "patternSentences": "Pattern sentences",
@@ -78,7 +78,7 @@
         "custom": "Custom topic"
       },
       "highFrequencyHelp": "The AI creates one coherent A1 text. Good language comes first. The text ends with Explanation and Example sentences.",
-      "soundLadderHelp": "The AI creates a text, explanation, sound words, and short sentences with the sound.",
+      "soundLadderHelp": "AI creates sound words first, one sentence per word, and then a short text using several of the words.",
       "soundTasksPreview": {
         "title": "Tasks that will be created",
         "trueFalse": "5 true/false",

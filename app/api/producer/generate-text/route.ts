@@ -17,6 +17,7 @@ type GenerateTextBody = {
   textType?: string;
   textLength?: number;
   extraFactCheck?: boolean;
+  sourceText?: string;
   a1Start?: A1StartConfig;
 };
 
@@ -116,6 +117,21 @@ function resolveLanguageName(code: string): string {
 function isCefrAtLeastB1(level: string): boolean {
   const normalized = level.trim().toUpperCase();
   return normalized === "B1" || normalized === "B2" || normalized === "C1" || normalized === "C2";
+}
+
+function shouldRunExtraFactCheck(textType: string, topic: string): boolean {
+  const combined = `${textType} ${topic}`.toLocaleLowerCase();
+  return [
+    "factual",
+    "saktekst",
+    "texto informativo",
+    "biografi",
+    "biography",
+    "historisk",
+    "historical",
+    "historie",
+    "history",
+  ].some((term) => combined.includes(term));
 }
 
 function normalizeStringList(value: unknown): string[] {
@@ -320,6 +336,7 @@ ${sourceGrounding}
 
 Selection and fact-check rules:
 - Return one final text, not comments.
+- Treat Draft A as the current teacher-facing text when it is already coherent. Preserve its main content and wording unless a fact, grammar issue, level mismatch, or clarity issue needs a change.
 - Keep the best language, structure and level match from the drafts.
 - If verified source notes are provided, use them as the highest-priority fact basis.
 - Also perform a language quality check: correct grammar, word order, pronoun reference, singular/plural consistency and unnatural collocations.
@@ -522,6 +539,7 @@ function getSoundLadderLabels(languageName: string): {
   explanation: string;
   wordTraining: string;
   soundSentences: string;
+  story: string;
   explanationLine: (sound: string) => string;
   examplesLine: (sound: string) => string;
 } {
@@ -531,6 +549,7 @@ function getSoundLadderLabels(languageName: string): {
       explanation: "Explanation",
       wordTraining: "Words and sound training",
       soundSentences: "Sentences with the sound",
+      story: "Text",
       explanationLine: (sound) => `In this text, we practise the ${sound} sound.`,
       examplesLine: (sound) => `Listen for the ${sound} sound in words and sentences.`,
     };
@@ -541,6 +560,7 @@ function getSoundLadderLabels(languageName: string): {
       explanation: "Explicação",
       wordTraining: "Palavras e treino de som",
       soundSentences: "Frases com o som",
+      story: "Texto",
       explanationLine: (sound) => `Neste texto, praticamos o som ${sound}.`,
       examplesLine: (sound) => `Escute o som ${sound} nas palavras e frases.`,
     };
@@ -550,6 +570,7 @@ function getSoundLadderLabels(languageName: string): {
     explanation: "Forklaring",
     wordTraining: "Ord og lydtrening",
     soundSentences: "Setninger med lyden",
+    story: "Tekst",
     explanationLine: (sound) => `I denne teksten øver vi på ${sound}-lyden.`,
     examplesLine: (sound) => `Lytt etter ${sound}-lyden i ord og setninger.`,
   };
@@ -558,74 +579,96 @@ function getSoundLadderLabels(languageName: string): {
 function buildA1StartSoundLadderPrompt(languageName: string, config: A1StartConfig): string {
   const focusSound = String(config.focusSound || "").trim();
   const theme = String(config.topic || "").trim() || "everyday life";
-  const soundSentenceCount = Math.max(0, Math.min(10, Math.round(Number(config.soundSentenceCount) || 0)));
-  const soundWordCount = [0, 3, 6, 9, 12, 15].includes(Number(config.soundWordCount))
+  const soundWordCount = [10, 14, 20].includes(Number(config.soundWordCount))
     ? Number(config.soundWordCount)
-    : 9;
+    : 10;
+  const firstGroupCount = Math.floor(soundWordCount / 2);
+  const secondGroupCount = soundWordCount - firstGroupCount;
   const labels = getSoundLadderLabels(languageName);
 
   if (!focusSound) throw new Error("Focus sound is required for A1 Start sound ladder.");
 
   return `
-Create A1 Start sound training in natural reading context.
+Create A1 Start sound training from sound words to sentences to a short text.
 
 Target language: ${languageName}
 Focus sound: ${focusSound}
 Theme: ${theme}
-Main text length: about 100 words
-Number of sound words after the explanation: ${soundWordCount}
-Number of sound sentences after the word training: ${soundSentenceCount}
+Number of sound words: ${soundWordCount}
+Number of sound sentences: ${soundWordCount}
+Short text length: about 80-110 words
 
-This is not pure sound drilling and not a phonics-copy system. The goal is to read, listen and notice the focus sound in natural language.
+The goal is to build a coherent sound ladder:
+sound words -> one sentence per word -> one short A1 text using several of the same words.
 
 Use this structure:
 1. A natural title that fits the theme and text.
-2. A coherent A1 text of about 100 words where the focus sound appears several times without hurting content or quality.
-3. Heading "${labels.explanation}" with a very simple A1 explanation.
-4. Heading "${labels.wordTraining}" with exactly ${soundWordCount} simple sound words if the selected number is greater than 0.
-5. Heading "${labels.soundSentences}" with exactly ${soundSentenceCount} short sentences using words with the focus sound if the selected number is greater than 0.
+2. Heading "${labels.wordTraining}" with exactly ${soundWordCount} simple theme-relevant words.
+3. Heading "${labels.soundSentences}" with exactly ${soundWordCount} short sentences, one sentence for each word in the same order.
+4. Heading "${labels.story}" with one coherent A1 text about the theme.
+5. Heading "${labels.explanation}" with a very simple A1 explanation.
 
 Language quality rules:
 - Write everything in ${languageName}.
 - Natural language is more important than many uses of the focus sound.
-- Still, try to include several natural words with the focus sound in the main text.
 - Prefer everyday words with the focus sound when they fit the theme naturally.
 - Do not make strange sentences to include the sound.
 - If you are unsure, choose an easier word or sentence.
 - Use high-frequency, concrete, easy-to-read words.
 - Do not use difficult or rare words only to include the sound.
 - Use short sentences suitable for beginners.
+- Keep the text clearly A1: short sentences, concrete situations and common words.
 - Do not use phonetic symbols.
 - Do not ask the voice to pronounce the sound alone.
 - Audio playback should read words and sentences, not isolated sounds.
 - Do not explain the Norwegian sound system unless the target language is Norwegian.
 - The text should sound natural to a native speaker writing for a child or a new language learner.
+- Keep the content school-safe for young learners. Avoid alcohol, smoking, drugs, violence, romance/sexual content and idioms.
+- If the target language is Norwegian, use Norwegian words and natural Norwegian grammar. Do not use English words such as "oven", "shop", "sun", "mom", "dad", "bus", "school", "house" or "book".
+- For Norwegian, be careful with prepositions and definite/indefinite noun forms. Prefer natural phrases such as "i maten", "på bordet", "i boka", "til skolen", "døra", "sjøen" and "dagboka".
+
+Word training guidance:
+- Make the words fit the theme "${theme}" as much as possible.
+- Aim for about 40% nouns/names/things, 40% verbs/actions, and 20% adjectives/simple describing words.
+- HARD RULE: Every word in "${labels.wordTraining}" must contain the exact focus sound "${focusSound}". A word without "${focusSound}" is invalid.
+- HARD RULE: The first ${firstGroupCount} words must start with "${focusSound}". Do not use words where "${focusSound}" only appears later in the word in this first group.
+- The last ${secondGroupCount} words must contain "${focusSound}" and should preferably have the sound inside or later in the word.
+- For vowels, the first group should contain words where the vowel comes first or early, and the second group should contain words where the vowel comes inside the word.
+- Do not repeat a word.
+- Write the words as comma-separated lines, preferably 5 words per line.
+- Before returning, check every word silently. Remove and replace any word that does not contain "${focusSound}".
+- For Norwegian s, examples such as "pappa", "far" and "leke" are invalid because they do not contain s. "hus" is not valid for the first group because s is not first.
+- For Norwegian k, do not use words with kj or skj, such as "kjøkken" or "skjorte". They belong to a different focus sound.
+- For Norwegian kj, use words with kj, such as "kjøkken", "kjole", "kjeks", "kjøpe" and "kjøre". Do not mix with plain k words such as "katt", "kopp" or "kake".
+
+Sound sentence guidance:
+- Use simple, natural A1 sentences.
+- Use exactly one sentence for each word in "${labels.wordTraining}", in the same order.
+- The sentence should practise the same focus sound and connect to the word, but it does not have to repeat the exact word form if that makes the sentence unnatural.
+- You may use a natural inflected form or a very close form, for example Norwegian "sjø" -> "sjøen", "dør" -> "døra", "dagbok" -> "dagboka".
+- Context and natural meaning are more important than repeating the exact sound word.
+- Do not use repetitive template sentences such as "Her er ..." or "Jeg ser en/et ..." unless that is truly the most natural A1 sentence.
+- Keep each sentence short.
+- The sentences should fit the theme.
+- Do not write meta sentences like "X is a sound word", "We say X aloud", or "I listen for the sound in X".
+
+Text guidance:
+- Write one small A1 story or factual everyday text about "${theme}".
+- Use several words from the word list, but do not force all words into the text.
+- The text must be coherent and natural, not a list.
+- For Norwegian, double-check prepositions and noun forms. Avoid unnatural phrases such as "spiser olje på maten" if "bruker olje i maten" is more natural.
+- Avoid abstract or awkward sound words if they force unnatural A1 sentences. For Norwegian sj, avoid "sjel" and "sjuke"; choose concrete, common words instead.
+- For Norwegian A1, avoid words such as "øl", "røyk", "sjel" and idiomatic phrases such as "øre for musikk".
 
 Explanation guidance:
 - ${labels.explanationLine(focusSound)}
 - ${labels.examplesLine(focusSound)}
-- Mention 2-4 concrete words from the text or word training list.
-
-Word training guidance:
-- Prefer small, simple words.
-- Prefer words where the focus sound comes early in the word when that is natural.
-- Write the sound words three and three on each line, separated by commas.
-- Do not use rare or difficult words just to include the sound.
-- If the selected number is 0, omit the "${labels.wordTraining}" section.
-
-Sound sentence guidance:
-- Use simple, natural A1 sentences.
-- Use normal standalone sentences. They do not need to explain the sound.
-- Do not write meta sentences like "X is a sound word", "We say X aloud", or "I listen for the sound in X".
-- Use at least one word with the focus sound in each sentence.
-- It is good if a sentence has several words with the same sound, as long as it sounds natural.
-- The sentences may be connected to each other, but they can also be free-standing.
-- If the selected number is 0, omit the "${labels.soundSentences}" section.
+- Mention 2-4 concrete words from the word training list.
 
 Return valid JSON only:
 {
   "title": "${labels.titlePrefix} – ${focusSound}",
-  "text": "coherent text\\n\\n${labels.explanation}\\n...\\n\\n${labels.wordTraining}\\n...\\n\\n${labels.soundSentences}\\n..."
+  "text": "${labels.wordTraining}\\n...\\n\\n${labels.soundSentences}\\n...\\n\\n${labels.story}\\n...\\n\\n${labels.explanation}\\n..."
 }
 `.trim();
 }
@@ -1263,10 +1306,327 @@ function getSoundTrainingSentences(languageName: string, focusSound: string, cou
 
 function formatSoundWords(words: string[]): string {
   const lines: string[] = [];
-  for (let index = 0; index < words.length; index += 3) {
-    lines.push(words.slice(index, index + 3).join(", "));
+  for (let index = 0; index < words.length; index += 5) {
+    lines.push(words.slice(index, index + 5).join(", "));
   }
   return lines.join("\n");
+}
+
+function parseSoundWordsFromSection(text: string, heading: string): string[] {
+  const lines = text.split(/\r?\n/);
+  const headingIndex = lines.findIndex(
+    (line) => line.trim().toLocaleLowerCase() === heading.toLocaleLowerCase()
+  );
+  if (headingIndex < 0) return [];
+
+  const words: string[] = [];
+  for (const line of lines.slice(headingIndex + 1)) {
+    const trimmed = line.trim();
+    if (!trimmed) break;
+    if (/^[\p{Lu}A-ZÆØÅ][\p{L}\s]+$/u.test(trimmed) && !trimmed.includes(",")) break;
+    words.push(
+      ...trimmed
+        .split(/[,;|]/)
+        .map((word) => cleanA1StartLine(word).replace(/^["']|["']$/g, "").trim())
+        .filter(Boolean)
+    );
+  }
+  return words;
+}
+
+function isNorwegianWordCompatibleWithFocusSound(word: string, focusSound: string, languageName: string): boolean {
+  if (languageName !== "Norwegian") return true;
+
+  const normalizedWord = word.toLocaleLowerCase();
+  const normalizedSound = focusSound.toLocaleLowerCase();
+  const blockedWords = new Set([
+    "øl",
+    "vin",
+    "røyk",
+    "røyke",
+    "sigarett",
+    "snus",
+    "vold",
+    "blod",
+    "kyss",
+    "sexy",
+    "oven",
+    "shop",
+    "sun",
+    "mom",
+    "dad",
+    "bus",
+    "school",
+    "house",
+    "book",
+    "car",
+    "cat",
+    "dog",
+    "food",
+  ]);
+  if (blockedWords.has(normalizedWord)) return false;
+
+  const blockedBySound: Record<string, string[]> = {
+    sj: ["sjel", "sjuke"],
+    ø: ["øl", "røyk"],
+  };
+  if ((blockedBySound[normalizedSound] || []).includes(normalizedWord)) {
+    return false;
+  }
+
+  if (normalizedSound === "k") {
+    return !normalizedWord.includes("kj") && !normalizedWord.includes("skj");
+  }
+  if (normalizedSound === "s") {
+    return !normalizedWord.includes("sj") && !normalizedWord.includes("skj");
+  }
+  if (normalizedSound === "sj") {
+    return normalizedWord.includes("sj") || normalizedWord.includes("skj");
+  }
+  if (normalizedSound === "kj") {
+    return normalizedWord.includes("kj");
+  }
+
+  return true;
+}
+
+function startsWithFocusSound(word: string, focusSound: string, languageName: string): boolean {
+  return (
+    isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
+    word.toLocaleLowerCase().startsWith(focusSound.toLocaleLowerCase())
+  );
+}
+
+function containsFocusSound(word: string, focusSound: string, languageName: string): boolean {
+  return (
+    isNorwegianWordCompatibleWithFocusSound(word, focusSound, languageName) &&
+    word.toLocaleLowerCase().includes(focusSound.toLocaleLowerCase())
+  );
+}
+
+function uniqueSoundWords(words: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of words) {
+    const word = cleanA1StartLine(raw);
+    const key = word.toLocaleLowerCase();
+    if (!word || seen.has(key)) continue;
+    seen.add(key);
+    out.push(word);
+  }
+  return out;
+}
+
+function normalizeSoundWords(words: string[], languageName: string, focusSound: string, count: number): string[] {
+  const fallback = [
+    ...getSoundTrainingWords(languageName, focusSound, Math.max(count * 2, 20)),
+    ...getInsideSoundFallbackWords(languageName, focusSound),
+  ];
+  const candidates = uniqueSoundWords([...words, ...fallback]);
+  const firstGroupCount = Math.floor(count / 2);
+  const firstGroup = candidates
+    .filter((word) => startsWithFocusSound(word, focusSound, languageName))
+    .slice(0, firstGroupCount);
+  const firstKeys = new Set(firstGroup.map((word) => word.toLocaleLowerCase()));
+  const secondGroupTarget = count - firstGroup.length;
+  const secondGroupInside = candidates
+    .filter(
+      (word) =>
+        containsFocusSound(word, focusSound, languageName) &&
+        !startsWithFocusSound(word, focusSound, languageName) &&
+        !firstKeys.has(word.toLocaleLowerCase())
+    )
+    .slice(0, secondGroupTarget);
+  const secondKeys = new Set(secondGroupInside.map((word) => word.toLocaleLowerCase()));
+  const secondGroupFallback = candidates
+    .filter(
+      (word) =>
+        containsFocusSound(word, focusSound, languageName) &&
+        !firstKeys.has(word.toLocaleLowerCase()) &&
+        !secondKeys.has(word.toLocaleLowerCase())
+    )
+    .slice(0, secondGroupTarget - secondGroupInside.length);
+  const secondGroup = [...secondGroupInside, ...secondGroupFallback];
+  const normalized = [...firstGroup, ...secondGroup];
+  return normalized.slice(0, count);
+}
+
+function getInsideSoundFallbackWords(languageName: string, focusSound: string): string[] {
+  const key = focusSound.toLocaleLowerCase();
+  const nb: Record<string, string[]> = {
+    s: ["hus", "pose", "lese", "reise", "is", "ost", "lys", "fisk", "kasse", "buss"],
+    m: ["rom", "hjem", "lampe", "sammen", "svømme", "klemme", "komme", "tomat", "sommer", "familie"],
+    b: ["jobb", "jobbe", "nabo", "baby", "robot", "sebra", "krabbe", "kebab", "kube", "labb"],
+    d: ["med", "bad", "rød", "glad", "brød", "bord", "hund", "sand", "bade", "middag"],
+    f: ["sofa", "kaffe", "vaffel", "telefon", "saft", "løfte", "hjelpe", "skuff", "tøff", "graf"],
+    g: ["dag", "sag", "tog", "hage", "mage", "farge", "morgen", "legge", "ligge", "fugl"],
+    k: ["bok", "tak", "pakke", "sokker", "drikke", "skole", "voksen", "lek", "kake", "frokost"],
+    n: ["banan", "vann", "venn", "mann", "hund", "kanin", "måne", "panne", "fin", "grønn"],
+    a: ["mat", "Sara", "banan", "kake", "glad", "dag", "pappa", "mamma", "familie", "salat"],
+    e: ["se", "leke", "lese", "seng", "bestemor", "eple", "venn", "melk", "hest", "lek"],
+    o: ["sol", "sko", "bok", "bord", "mor", "bror", "pose", "jobb", "robot", "ost"],
+    u: ["hus", "buss", "suppe", "gul", "ut", "tur", "hund", "lunsj", "frukt", "brun"],
+    æ: ["lærer", "vær", "bær", "nær", "kjær", "klær", "tær", "ærlig"],
+    ø: ["søt", "brød", "grøt", "rød", "grønn", "møte", "høre", "løpe", "søster", "følge", "bøker", "dør"],
+    å: ["båt", "blå", "får", "går", "står", "må", "nå", "på", "måne", "låne"],
+    sj: ["kanskje", "skjorte", "skje", "sjø", "sjokolade", "sju", "sjef", "sjampo"],
+    kj: ["kjøkken", "kjole", "kjeks", "kjøpe", "kjøre", "kjenne", "kjære", "kjøtt"],
+  };
+  const en: Record<string, string[]> = {
+    s: ["bus", "house", "pencil", "listen", "dress", "yes", "horse", "mouse", "class", "music"],
+    b: ["baby", "robot", "table", "rabbit", "cabin", "neighbor", "job", "tub", "cable", "zebra"],
+    m: ["home", "family", "summer", "swim", "room", "game", "name", "come", "lemon", "woman"],
+  };
+  const pt: Record<string, string[]> = {
+    s: ["casa", "mesa", "massa", "ônibus", "pessoa", "vestido", "doce", "passa", "osso", "salsicha"],
+    b: ["bebê", "saber", "cabeça", "trabalho", "robô", "sábado", "abacate", "bobo", "barba", "subir"],
+    m: ["comer", "cama", "amigo", "família", "tomate", "mamãe", "limão", "nome", "soma", "mundo"],
+  };
+  if (languageName === "English") return en[key] || [];
+  if (languageName === "Brazilian Portuguese") return pt[key] || [];
+  return nb[key] || [];
+}
+
+function simpleSoundSentence(languageName: string, word: string): string {
+  const normalized = word.toLocaleLowerCase();
+  if (languageName === "English") return `I see ${word}.`;
+  if (languageName === "Brazilian Portuguese") return `Eu vejo ${word}.`;
+
+  const norwegianSpecificPhrases: Record<string, string> = {
+    sjø: "Vi går til sjøen.",
+    sjokolade: "Jeg liker sjokolade.",
+    sju: "Jeg ser sju biler.",
+    sjef: "Hun er sjef.",
+    sjakk: "Vi spiller sjakk.",
+    sjal: "Hun har et sjal.",
+    sjåfør: "Han er sjåfør.",
+    sjampo: "Jeg bruker sjampo.",
+    sjelden: "Det skjer sjelden.",
+    sjarm: "Hun har sjarm.",
+    sjiraff: "Jeg ser en sjiraff.",
+    sjekke: "Vi kan sjekke det.",
+    sjansen: "Vi får sjansen.",
+    massasje: "Massasje kan hjelpe.",
+    spørsmål: "Jeg har et spørsmål.",
+    dør: "Døra er åpen.",
+    datamaskin: "Jeg bruker datamaskin.",
+    drikk: "Vi har drikk i sekken.",
+    dagbok: "Jeg skriver i dagboka.",
+    deilig: "Maten er deilig.",
+    bilde: "Jeg ser et bilde.",
+    skolegård: "Vi leker i skolegården.",
+    med: "Jeg er med Sara.",
+    bad: "Vi går på badet.",
+    øye: "Jeg ser med øyet.",
+    øre: "Jeg hører med øret.",
+    ønske: "Jeg ønsker meg en bok.",
+    øse: "Jeg øser suppe.",
+    kjøtt: "Vi spiser kjøtt.",
+    grønnsaker: "Vi spiser grønnsaker.",
+    søt: "Kaken er søt.",
+    høne: "Høna går i hagen.",
+    bøker: "Jeg leser bøker.",
+    olje: "Vi bruker olje i maten.",
+    ost: "Jeg spiser ost.",
+    om: "Vi snakker om mat.",
+    opp: "Jeg går opp trappa.",
+    ord: "Jeg skriver et ord.",
+    sko: "Jeg tar på sko.",
+    bok: "Jeg leser en bok.",
+    god: "Maten er god.",
+    lomme: "Jeg har en lomme.",
+    sol: "Sola skinner.",
+  };
+  if (norwegianSpecificPhrases[normalized]) return norwegianSpecificPhrases[normalized];
+
+  const norwegianVerbPhrases: Record<string, string> = {
+    bake: "Vi kan bake.",
+    bygge: "Vi kan bygge.",
+    bli: "Jeg vil bli stor.",
+    bo: "Vi kan bo her.",
+    jobbe: "Jeg kan jobbe.",
+    lese: "Vi kan lese.",
+    reise: "Vi kan reise.",
+    leke: "Vi kan leke.",
+    drikke: "Vi kan drikke.",
+    komme: "Du kan komme.",
+    svømme: "Vi kan svømme.",
+    klemme: "Jeg kan klemme mamma.",
+    ligge: "Boka kan ligge her.",
+    legge: "Jeg kan legge boka her.",
+    høre: "Jeg kan høre deg.",
+    løpe: "Vi kan løpe.",
+    følge: "Jeg kan følge deg.",
+  };
+  if (norwegianVerbPhrases[normalized]) return norwegianVerbPhrases[normalized];
+
+  const norwegianAdjectives = new Set([
+    "snill",
+    "søt",
+    "blå",
+    "glad",
+    "rød",
+    "grønn",
+    "gul",
+    "brun",
+    "bitter",
+    "deilig",
+    "fin",
+    "god",
+    "tøff",
+    "ærlig",
+  ]);
+  if (norwegianAdjectives.has(normalized)) return `Den er ${word}.`;
+
+  const norwegianFunctionWords: Record<string, string> = {
+    med: "Jeg er med Sara.",
+    ved: "Jeg står ved døra.",
+    under: "Boka er under bordet.",
+    over: "Lampa er over bordet.",
+    mellom: "Jeg sitter mellom to venner.",
+    til: "Jeg går til skolen.",
+    fra: "Jeg går fra skolen.",
+    på: "Boka ligger på bordet.",
+    i: "Jeg er i huset.",
+    om: "Vi snakker om skolen.",
+    opp: "Jeg går opp trappa.",
+    av: "Jeg går av bussen.",
+    alt: "Alt er bra.",
+  };
+  if (norwegianFunctionWords[normalized]) return norwegianFunctionWords[normalized];
+
+  const norwegianNumberWords = new Set(["en", "to", "tre", "fire", "fem", "seks", "sju", "åtte", "ni", "ti"]);
+  if (norwegianNumberWords.has(normalized)) return `Jeg har ${word} bøker.`;
+
+  return `Ordet er ${word}.`;
+}
+
+function replaceA1StartSection(
+  text: string,
+  heading: string,
+  nextHeadings: string[],
+  replacementBody: string
+): string {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex(
+    (line) => line.trim().toLocaleLowerCase() === heading.toLocaleLowerCase()
+  );
+  if (start < 0) return text;
+
+  const nextHeadingSet = new Set(nextHeadings.map((item) => item.toLocaleLowerCase()));
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (nextHeadingSet.has(lines[index].trim().toLocaleLowerCase())) {
+      end = index;
+      break;
+    }
+  }
+
+  return [
+    ...lines.slice(0, start + 1),
+    ...replacementBody.split(/\r?\n/),
+    ...lines.slice(end),
+  ].join("\n").trim();
 }
 
 function cleanA1StartLine(value: string): string {
@@ -1833,42 +2193,54 @@ function normalizeA1StartSoundLadderResult(
   const focusSound = cleanA1StartLine(String(config.focusSound || ""));
   const labels = getSoundLadderLabels(languageName);
   const text = stringifyGeneratedText(result.text);
-  const soundSentenceCount = Math.max(0, Math.min(10, Math.round(Number(config.soundSentenceCount) || 0)));
-  const soundWordCount = [0, 3, 6, 9, 12, 15].includes(Number(config.soundWordCount))
+  const soundWordCount = [10, 14, 20].includes(Number(config.soundWordCount))
     ? Number(config.soundWordCount)
-    : 9;
+    : 10;
 
   if (!focusSound || !text) {
     throw new Error("A1 Start response did not contain usable sound ladder text.");
   }
 
-  const lowerText = text.toLocaleLowerCase();
+  let normalizedText = text;
+  const generatedWords = parseSoundWordsFromSection(normalizedText, labels.wordTraining);
+  const normalizedWords = normalizeSoundWords(generatedWords, languageName, focusSound, soundWordCount);
+
+  if (normalizedText.toLocaleLowerCase().includes(labels.wordTraining.toLocaleLowerCase())) {
+    normalizedText = replaceA1StartSection(
+      normalizedText,
+      labels.wordTraining,
+      [labels.soundSentences, labels.story, labels.explanation],
+      formatSoundWords(normalizedWords)
+    );
+  }
+
+  const lowerText = normalizedText.toLocaleLowerCase();
   const explanation = [
     labels.explanation,
     labels.explanationLine(focusSound),
     labels.examplesLine(focusSound),
   ].join("\n");
-  const soundWords = soundWordCount > 0
-    ? [
-      labels.wordTraining,
-      formatSoundWords(getSoundTrainingWords(languageName, focusSound, soundWordCount)),
-    ].join("\n")
-    : "";
-  const soundSentences = soundSentenceCount > 0
-    ? [
-      labels.soundSentences,
-      ...getSoundTrainingSentences(languageName, focusSound, soundSentenceCount),
-    ].join("\n")
-    : "";
+  const soundWords = [
+    labels.wordTraining,
+    formatSoundWords(normalizedWords),
+  ].join("\n");
+  const fallbackSentences = getSoundTrainingSentences(languageName, focusSound, soundWordCount);
+  const normalizedSentences = normalizedWords.length
+    ? normalizedWords.map((word) => simpleSoundSentence(languageName, word))
+    : fallbackSentences;
+  const soundSentences = [
+    labels.soundSentences,
+    ...normalizedSentences,
+  ].join("\n");
   const extraSections = [
-    lowerText.includes(labels.explanation.toLocaleLowerCase()) ? "" : explanation,
-    soundWordCount > 0 && !lowerText.includes(labels.wordTraining.toLocaleLowerCase()) ? soundWords : "",
-    soundSentenceCount > 0 && !lowerText.includes(labels.soundSentences.toLocaleLowerCase()) ? soundSentences : "",
+    !lowerText.includes(labels.wordTraining.toLocaleLowerCase()) ? soundWords : "",
+    !lowerText.includes(labels.soundSentences.toLocaleLowerCase()) ? soundSentences : "",
+    !lowerText.includes(labels.explanation.toLocaleLowerCase()) ? explanation : "",
   ].filter(Boolean).join("\n\n");
 
   return {
     title: `${labels.titlePrefix} – ${focusSound}`,
-    text: extraSections ? `${text}\n\n${extraSections}` : text,
+    text: extraSections ? `${normalizedText}\n\n${extraSections}` : normalizedText,
   };
 }
 
@@ -2474,7 +2846,9 @@ export async function POST(req: Request) {
     const textType = body.textType || "Story";
     const textLength = body.textLength || 200;
     const isA1Start = level === "A1_START";
-    const extraFactCheck = !isA1Start && body.extraFactCheck === true;
+    const sourceText = String(body.sourceText || "").trim();
+    const extraFactCheck =
+      !isA1Start && body.extraFactCheck === true && shouldRunExtraFactCheck(textType, topic);
     const isA1StartHighFrequency = isA1Start && body.a1Start?.type === "high_frequency_words";
     const isA1StartSoundLadder = isA1Start && body.a1Start?.type === "sound_reading_ladder";
     const highFrequencyLanguageAllowed =
@@ -2576,8 +2950,10 @@ export async function POST(req: Request) {
 
     const parsed = extraFactCheck
       ? await (async () => {
-          const [draftA, draftB, sourceGrounding] = await Promise.all([
-            createResponse(userPrompt, 0.25),
+          const [generatedDraftA, draftB, sourceGrounding] = await Promise.all([
+            sourceText
+              ? Promise.resolve({ title: topic, text: sourceText })
+              : createResponse(userPrompt, 0.25),
             createResponse(userPrompt, 0.35),
             createSourceGrounding(),
           ]);
@@ -2588,7 +2964,7 @@ export async function POST(req: Request) {
               topic,
               textType,
               textLength,
-              draftA,
+              draftA: generatedDraftA,
               draftB,
               sourceGrounding,
             }),
