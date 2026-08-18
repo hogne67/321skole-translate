@@ -278,37 +278,13 @@ function TeacherSpacesInner() {
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
-              <Link
-                href={withLocale(locale, "/teacher/spaces/new")}
-                title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
-                className={[
-                  "inline-flex shrink-0 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold shadow-sm no-underline hover:shadow-md sm:hidden",
-                  canCreateSpace
-                    ? "bg-green-600 text-white hover:bg-green-500"
-                    : "border border-slate-300 bg-white text-slate-800",
-                ].join(" ")}
-              >
-                {canCreateSpace ? t("newSpaceShort") : t("newSpaceLockedShort")}
-              </Link>
             </div>
             <p className="mt-1 break-words text-sm text-slate-600 sm:mt-2">{t("subtitle")}</p>
           </div>
 
           <div className="flex w-full min-w-0 flex-wrap gap-2 sm:items-center lg:w-auto lg:justify-end">
-            <Link
-              href={withLocale(locale, "/teacher/spaces/new")}
-              title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
-              className={[
-                "hidden items-center justify-center rounded-xl px-4 py-2 text-base font-semibold shadow-sm no-underline hover:shadow-md sm:inline-flex",
-                canCreateSpace
-                  ? "bg-green-600 text-white hover:bg-green-500"
-                  : "border border-slate-300 bg-white text-slate-800",
-              ].join(" ")}
-            >
-              {canCreateSpace ? t("newSpace") : t("newSpaceLocked")}
-            </Link>
             <TrainingVideoPlayer
               title={t("trainingVideo.title")}
               videoUrl="https://youtu.be/7zjhziVmGvc"
@@ -401,6 +377,19 @@ function TeacherSpacesInner() {
               {t("controls.filters.showing", { n: filtered.length })}
             </div>
           </div>
+          <Link
+            href={withLocale(locale, "/teacher/spaces/new")}
+            title={canCreateSpace ? t("newSpaceTitle") : t("newSpaceLockedTitle")}
+            className={[
+              "inline-flex shrink-0 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold shadow-sm no-underline hover:shadow-md sm:px-4",
+              canCreateSpace
+                ? "bg-green-600 text-white hover:bg-green-500"
+                : "border border-slate-300 bg-white text-slate-800",
+            ].join(" ")}
+          >
+            <span className="sm:hidden">{canCreateSpace ? t("newSpaceShort") : t("newSpaceLockedShort")}</span>
+            <span className="hidden sm:inline">{canCreateSpace ? t("newSpace") : t("newSpaceLocked")}</span>
+          </Link>
         </div>
 
         <div className="grid min-w-0 gap-3">

@@ -12,6 +12,38 @@
     "openLibrary": "Åpne Mitt innhold for deling.",
     "saving": "Lagrer...",
     "save": "Lagre i Mitt innhold",
+    "video": {
+      "title": "Instruksjonsvideo",
+      "text": "Plass til en kort video som viser hvordan tekstbyggeren brukes.",
+      "play": "▶"
+    },
+    "steps": {
+      "frame": {
+        "title": "Ramme",
+        "text": "Velg sjanger, språk, nivå, progresjon og omtrent hvor lang teksten skal være."
+      },
+      "assignment": {
+        "title": "Oppgave",
+        "text": "Skriv oppgavetekst, tema, kriterier og eventuelle kompetansemål."
+      },
+      "support": {
+        "title": "Støtte",
+        "text": "Bestem hjelpeord, KI-bruk og om eleven kan bruke bilde i sluttproduktet."
+      }
+    },
+    "frame": {
+      "title": "Kontroll",
+      "subtitle": "Disse valgene styrer elevflyten og hvilken støtte som blir tilgjengelig.",
+      "languageHelp": "Foreløpig bruker vi plattformspråkene fordi maler, støtteord og elevtekst er språkstyrt."
+    },
+    "genres": {
+      "story": "Skjønnlitterær",
+      "storyDescription": "Fortelling og skildring med planlegging, skriverom og kontrollrom."
+    },
+    "story": {
+      "title": "Skjønnlitterær tekst",
+      "subtitle": "Oppgave, tema og kriterier for fortelling eller skildring."
+    },
     "assignment": {
       "title": "Oppgave"
     },
@@ -20,7 +52,7 @@
       "subtitle": "Én linje per punkt. Disse brukes i elevens kontrollrom og som ramme for KI-støtte."
     },
     "support": {
-      "title": "Støtteord",
+      "title": "Hjelpeord og startere",
       "subtitle": "Én linje per ord eller setningsstarter. Læreren kan gjøre støtten smalere eller rikere."
     },
     "settings": {
@@ -30,9 +62,20 @@
       "printImage": "Tillat bilde i utskrift",
       "aiImage": "Tillat KI-bilde"
     },
+    "aiControl": {
+      "title": "KI-kontroll",
+      "subtitle": "Sett tydelige rammer før aktiviteten deles. Eleven skal tenke først og bruke KI som støtte.",
+      "totalHelp": "Gjelder hele aktiviteten for én elev.",
+      "sectionHelp": "Gjelder hvert skrive- eller kontrollfelt."
+    },
+    "bottom": {
+      "title": "Tekstbygger",
+      "summary": "Aktiviteten lagres i Mitt innhold og kan deles til space derfra."
+    },
     "fields": {
       "libraryTitle": "Bibliotektittel",
       "libraryTitlePlaceholder": "For eksempel: Døra lukket seg",
+      "genre": "Sjanger",
       "theme": "Tema",
       "customTheme": "Eget tema",
       "assignmentText": "Oppgavetekst til eleven",
@@ -41,6 +84,7 @@
       "goalsPlaceholder": "Lim inn ett kompetansemål per linje.",
       "level": "Nivå",
       "language": "Språk",
+      "targetWordCount": "Antall ord",
       "progression": "Progresjon",
       "aiTotal": "Maks KI-bruk totalt",
       "aiSection": "Maks KI per seksjon"
@@ -54,9 +98,14 @@
       "languageCheck": "Språksjekk"
     },
     "progression": {
+      "title": "Progresjon",
+      "subtitle": "Velg hvor mye struktur eleven skal møte i prosessen.",
       "guided": "Veiledet flyt",
+      "guidedText": "Eleven kan gå fram og tilbake, men rommene holder en tydelig rekkefølge.",
       "free": "Fri flyt",
-      "locked": "Låst steg-for-steg"
+      "freeText": "Eleven kan arbeide mer åpent og hoppe mellom rommene etter behov.",
+      "locked": "Låst steg-for-steg",
+      "lockedText": "Neste steg kan låses til eleven har skrevet eller sendt inn nok arbeid."
     }
   }
 }

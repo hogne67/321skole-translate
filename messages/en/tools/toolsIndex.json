@@ -29,7 +29,7 @@
           "description": "Create structured assignments with AI support."
         },
         "writingActivityGenerator": {
-          "title": "Text builder",
+          "title": "Writing activity",
           "description": "Create writing activities with planning, feedback, control room, and final text."
         },
         "imageWritingGenerator": {

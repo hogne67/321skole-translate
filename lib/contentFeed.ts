@@ -87,6 +87,7 @@ export type ContentItem =
     genre?: string;
     aiEnabled?: boolean;
     aiMaxUsesTotal?: number;
+    targetWordCount?: number;
     deletedAt?: Date | null;
   };
 
@@ -528,7 +529,9 @@ async function fetchMyWritingActivities(db: Firestore, uid: string, locale: stri
       const language = pickLanguage(d);
       const theme = typeof d.theme === "string" ? d.theme.trim() : "";
       const genre = typeof d.genre === "string" ? d.genre.trim() : "story";
-      const meta = ["Tekst", genre, level, language, theme].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+      const targetWordCount = typeof d.targetWordCount === "number" ? d.targetWordCount : undefined;
+      const wordCountMeta = targetWordCount ? `${targetWordCount} ord` : "";
+      const meta = ["Tekst", genre, level, language, theme, wordCountMeta].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
 
       results.push({
         type: "writingActivity",
@@ -545,6 +548,7 @@ async function fetchMyWritingActivities(db: Firestore, uid: string, locale: stri
         genre,
         aiEnabled: aiPolicy.enabled !== false,
         aiMaxUsesTotal: typeof aiPolicy.maxUsesTotal === "number" ? aiPolicy.maxUsesTotal : undefined,
+        targetWordCount,
         deletedAt: toDateSafe(d.deletedAt),
       });
     });

@@ -17,6 +17,8 @@ type CreateWritingActivityBody = {
   level?: string;
   language?: string;
   theme?: string;
+  genre?: string;
+  targetWordCount?: number;
   progression?: WritingProgression;
   aiEnabled?: boolean;
   assignmentText?: string;
@@ -191,6 +193,7 @@ export async function POST(req: Request) {
     const level = normalizeLevel(body.level);
     const language = safeString(body.language).trim() || "nb";
     const theme = safeString(body.theme).trim();
+    const targetWordCount = clampNumber(body.targetWordCount, 140, 20, 2000);
     const progression = normalizeProgression(body.progression);
     const aiEnabled = body.aiEnabled !== false;
     const assignmentText = safeString(body.assignmentText).trim();
@@ -256,6 +259,7 @@ export async function POST(req: Request) {
         language,
         level,
         theme: theme || null,
+        targetWordCount,
         assignmentText: assignmentText || null,
         criteria,
         competenceGoals,

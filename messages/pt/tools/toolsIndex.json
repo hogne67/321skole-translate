@@ -29,7 +29,7 @@
           "description": "Crie tarefas estruturadas com suporte de IA."
         },
         "writingActivityGenerator": {
-          "title": "Construtor de texto",
+          "title": "Atividade de escrita",
           "description": "Crie atividades de escrita com planejamento, feedback, sala de controle e texto final."
         },
         "imageWritingGenerator": {

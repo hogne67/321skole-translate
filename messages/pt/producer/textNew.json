@@ -12,6 +12,38 @@
     "openLibrary": "Abrir Meu conteúdo para atribuir.",
     "saving": "Salvando...",
     "save": "Salvar em Meu conteúdo",
+    "video": {
+      "title": "Vídeo de instrução",
+      "text": "Espaço para um vídeo curto mostrando como usar o construtor de texto.",
+      "play": "▶"
+    },
+    "steps": {
+      "frame": {
+        "title": "Moldura",
+        "text": "Escolha gênero, idioma, nível, progressão e tamanho aproximado do texto."
+      },
+      "assignment": {
+        "title": "Tarefa",
+        "text": "Escreva o enunciado, tema, critérios e objetivos de competência opcionais."
+      },
+      "support": {
+        "title": "Apoio",
+        "text": "Defina palavras de apoio, uso de IA e se os alunos podem usar imagens no produto final."
+      }
+    },
+    "frame": {
+      "title": "Controle",
+      "subtitle": "Essas escolhas controlam o fluxo do aluno e o apoio disponível.",
+      "languageHelp": "Por enquanto usamos os idiomas da plataforma porque modelos, palavras de apoio e fluxo do aluno dependem do idioma."
+    },
+    "genres": {
+      "story": "Texto literário",
+      "storyDescription": "Narrativa e descrição com planejamento, sala de escrita e sala de controle."
+    },
+    "story": {
+      "title": "Texto literário",
+      "subtitle": "Tarefa, tema e critérios para narrativa ou descrição."
+    },
     "assignment": {
       "title": "Tarefa"
     },
@@ -20,7 +52,7 @@
       "subtitle": "Um item por linha. Eles são usados na sala de controle do aluno e como moldura para o apoio de IA."
     },
     "support": {
-      "title": "Palavras de apoio",
+      "title": "Palavras de apoio e inícios",
       "subtitle": "Uma palavra ou início de frase por linha. O professor pode tornar o apoio mais específico ou mais rico."
     },
     "settings": {
@@ -30,9 +62,20 @@
       "printImage": "Permitir imagem na impressão",
       "aiImage": "Permitir imagem com IA"
     },
+    "aiControl": {
+      "title": "Controle de IA",
+      "subtitle": "Defina limites claros antes de compartilhar. O aluno deve pensar primeiro e usar IA como apoio.",
+      "totalHelp": "Vale para toda a atividade de um aluno.",
+      "sectionHelp": "Vale para cada campo de escrita ou controle."
+    },
+    "bottom": {
+      "title": "Construtor de texto",
+      "summary": "A atividade é salva em Meu conteúdo e pode ser atribuída a um space a partir daí."
+    },
     "fields": {
       "libraryTitle": "Título da biblioteca",
       "libraryTitlePlaceholder": "Por exemplo: A porta se fechou",
+      "genre": "Gênero",
       "theme": "Tema",
       "customTheme": "Tema próprio",
       "assignmentText": "Texto da tarefa para o aluno",
@@ -41,6 +84,7 @@
       "goalsPlaceholder": "Cole um objetivo por linha.",
       "level": "Nível",
       "language": "Idioma",
+      "targetWordCount": "Número de palavras",
       "progression": "Progressão",
       "aiTotal": "Máximo de usos de IA no total",
       "aiSection": "Máximo de IA por seção"
@@ -54,9 +98,14 @@
       "languageCheck": "Verificação de língua"
     },
     "progression": {
+      "title": "Progressão",
+      "subtitle": "Escolha quanta estrutura os alunos encontrarão no processo.",
       "guided": "Fluxo guiado",
+      "guidedText": "Os alunos podem ir e voltar, enquanto as salas mantêm uma ordem clara.",
       "free": "Fluxo livre",
-      "locked": "Bloqueado passo a passo"
+      "freeText": "Os alunos podem trabalhar de forma mais aberta e circular entre as salas conforme necessário.",
+      "locked": "Bloqueado passo a passo",
+      "lockedText": "O próximo passo pode ser bloqueado até que os alunos tenham escrito ou enviado trabalho suficiente."
     }
   }
 }

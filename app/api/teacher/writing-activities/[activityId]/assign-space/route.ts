@@ -91,6 +91,7 @@ export async function POST(
       language: source.language || "nb",
       level: source.level || "A2",
       theme: source.theme ?? null,
+      targetWordCount: typeof source.targetWordCount === "number" ? source.targetWordCount : null,
       assignmentText: source.assignmentText ?? null,
       criteria: Array.isArray(source.criteria) ? source.criteria : [],
       competenceGoals: Array.isArray(source.competenceGoals) ? source.competenceGoals : [],

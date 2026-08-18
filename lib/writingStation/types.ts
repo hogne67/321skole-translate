@@ -96,6 +96,7 @@ export type WritingActivity = {
   language: WritingLanguage;
   level: WritingLevel | string;
   theme?: string;
+  targetWordCount?: number;
   assignmentText?: string;
   criteria?: string[];
   competenceGoals?: string[];
