@@ -3,7 +3,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   collection,
   doc,
@@ -26,7 +26,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { getOrigin } from "@/lib/url";
 
 type LessonStatus = "draft" | "published";
-type FilterType = "all" | "library" | "math" | "lesson" | "submission" | "space";
+type FilterType = "all" | "library" | "math" | "lesson" | "writing" | "submission" | "space";
 type SharePreset = "example1" | "example2" | "example3" | "example4" | "example5" | "example6";
 type ShareTone = "short" | "professional" | "friendly";
 
@@ -321,6 +321,7 @@ type LoadMyContentArgs = {
 
 export default function ContentClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, profile } = useUserProfile();
 
   const isAuthReady = user !== undefined;
@@ -349,23 +350,15 @@ export default function ContentClient() {
   const [err, setErr] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<FilterType>("all");
+  const initialFilter = searchParams.get("filter") === "writing" ? "writing" : "all";
+  const [filter, setFilter] = useState<FilterType>(initialFilter);
   const [showDeleted, setShowDeleted] = useState(false);
 
   const [shareOpen, setShareOpen] = useState(false);
   const [shareTitle, setShareTitle] = useState("");
   const [shareUrl, setShareUrl] = useState("");
-  const [shareText, setShareText] = useState("");
-  const [shareTone, setShareTone] = useState<ShareTone>("professional");
-  const [sharePreset, setSharePreset] = useState<SharePreset>("example1");
-  const [shareKind, setShareKind] = useState<"lesson" | "space" | "generic">("generic");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [copied, setCopied] = useState(false);
-  const [copiedText, setCopiedText] = useState(false);
-
-  const [aiBusy, setAiBusy] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiVariants, setAiVariants] = useState<string[]>([]);
 
   const [pickSpaceOpen, setPickSpaceOpen] = useState(false);
   const [pickSpaceQuery, setPickSpaceQuery] = useState("");
@@ -375,7 +368,7 @@ export default function ContentClient() {
     title: string;
     sourceType: "myContent" | "library";
     sourceId: string;
-    mode?: "space" | "board";
+    mode?: "space" | "board" | "writing";
   } | null>(null);
   const [publishConfirm, setPublishConfirm] = useState<{ lessonId: string; title: string } | null>(null);
   const [publishSigned, setPublishSigned] = useState(false);
@@ -403,15 +396,6 @@ export default function ContentClient() {
 
   function getSharePresetText(preset: SharePreset) {
     return safeMsg(`share.examples.${preset}.text`, "");
-  }
-
-  function getSharePresetLabel(preset: SharePreset) {
-    return safeMsg(`share.examples.${preset}.label`, preset);
-  }
-
-  function applySharePreset(preset: SharePreset) {
-    setSharePreset(preset);
-    setShareText(getSharePresetText(preset));
   }
 
   function setBusy(key: string, v: boolean) {
@@ -486,6 +470,8 @@ export default function ContentClient() {
     switch (it.type) {
       case "lesson":
         return lessonOpenHref(it);
+      case "writingActivity":
+        return `/${locale}/teacher/writing`;
       case "submission":
         return normalizeInternalHref(it.href);
       case "space":
@@ -516,6 +502,7 @@ export default function ContentClient() {
 
   const cardTypeLabel = useCallback((it: ContentItem): string => {
     if (it.type === "space") return safeMsg("cardTypes.space", "Space");
+    if (it.type === "writingActivity") return safeMsg("cardTypes.writingActivity", "Skriveaktivitet");
 
     if (it.type === "submission") {
       if (isLibraryPractice(it)) return safeMsg("cardTypes.fromLibrary", "Fra bibliotek");
@@ -570,9 +557,10 @@ export default function ContentClient() {
       }
 
       if (it.type === "space") return t("titles.space");
+      if (it.type === "writingActivity") return safeMsg("titles.writingActivity", "Skriveaktivitet");
       return t("titles.lesson");
     },
-    [t]
+    [safeMsg, t]
   );
 
   function buildSpaceShareText(it: Extract<ContentItem, { type: "space" }>) {
@@ -778,20 +766,10 @@ export default function ContentClient() {
     lesson?: Extract<ContentItem, { type: "lesson" }> | null;
     tone?: ShareTone;
   }) {
-    const defaultPreset: SharePreset = "example1";
-
     setCopied(false);
-    setCopiedText(false);
     setQrDataUrl("");
     setShareTitle(opts.title);
     setShareUrl(opts.url);
-    setShareText(opts.text || getSharePresetText(defaultPreset));
-    setShareKind(opts.kind || "generic");
-    setShareTone(opts.tone || "professional");
-    setSharePreset(defaultPreset);
-    setAiBusy(false);
-    setAiError(null);
-    setAiVariants([]);
     setShareOpen(true);
 
     try {
@@ -810,16 +788,8 @@ export default function ContentClient() {
     setShareOpen(false);
     setShareTitle("");
     setShareUrl("");
-    setShareText("");
-    setShareTone("professional");
-    setSharePreset("example1");
-    setShareKind("generic");
     setQrDataUrl("");
     setCopied(false);
-    setCopiedText(false);
-    setAiBusy(false);
-    setAiError(null);
-    setAiVariants([]);
   }
 
   async function copyShareUrl() {
@@ -831,56 +801,6 @@ export default function ContentClient() {
       setCopied(false);
     }
   }
-
-  async function copyShareText() {
-    try {
-      await navigator.clipboard.writeText(shareText);
-      setCopiedText(true);
-      setTimeout(() => setCopiedText(false), 1200);
-    } catch {
-      setCopiedText(false);
-    }
-  }
-
-  async function generateShareTextAI() {
-    if (!shareTitle) return;
-
-    setAiBusy(true);
-    setAiError(null);
-
-    try {
-      const res = await authedPost<{ variants?: string[] }>("/api/ai/share-text", {
-        title: shareTitle,
-        tone: shareTone,
-        locale,
-        kind: shareKind,
-        url: shareUrl,
-      });
-
-      if (res?.variants?.length) {
-        setAiVariants(res.variants);
-        setShareText(res.variants[0]);
-      } else {
-        throw new Error("No variants returned");
-      }
-    } catch (e: unknown) {
-      setAiError(e instanceof Error ? e.message : safeMsg("errors.aiShareFailed", "AI failed"));
-    } finally {
-      setAiBusy(false);
-    }
-  }
-
-  const facebookShareHref = useMemo(() => {
-    return shareUrl
-      ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
-      : "#";
-  }, [shareUrl]);
-
-  const linkedInShareHref = useMemo(() => {
-    return shareUrl
-      ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
-      : "#";
-  }, [shareUrl]);
 
   async function openShareForLesson(it: Extract<ContentItem, { type: "lesson" }>) {
     const title = titleForCard(it);
@@ -987,7 +907,7 @@ export default function ContentClient() {
     title: string;
     sourceType: "myContent" | "library";
     sourceId: string;
-    mode?: "space" | "board";
+    mode?: "space" | "board" | "writing";
   }) {
     setPickLesson(opts);
     setPickSpaceQuery("");
@@ -1007,6 +927,23 @@ export default function ContentClient() {
 
     if (pickLesson.mode === "board") {
       await sendQuizToBoard(spaceId);
+      return;
+    }
+
+    if (pickLesson.mode === "writing") {
+      const key = `writingToSpace:${spaceId}:${pickLesson.sourceId}`;
+      setErr(null);
+      setBusy(key, true);
+
+      try {
+        await authedPost(`/api/teacher/writing-activities/${pickLesson.sourceId}/assign-space`, { spaceId });
+        closePickSpace();
+        router.push(`/${locale}/teacher/spaces/${spaceId}`);
+      } catch (e: unknown) {
+        setErr(e instanceof Error ? e.message : t("errors.assignFailed"));
+      } finally {
+        setBusy(key, false);
+      }
       return;
     }
 
@@ -1566,6 +1503,43 @@ export default function ContentClient() {
       ];
     }
 
+    if (it.type === "writingActivity") {
+      const wa = it as Extract<ContentItem, { type: "writingActivity" }>;
+      const canAssignWriting = isTeacher && mySpaces.length > 0;
+
+      return [
+        {
+          key: "open",
+          label: t("actions.open"),
+          disabled: busy,
+          onClick: () => router.push(itemOpenHref(wa)),
+        },
+        {
+          key: "edit",
+          label: safeMsg("actions.newWritingActivity", "Ny skriveaktivitet"),
+          disabled: busy,
+          onClick: () => router.push(`/${locale}/producer/text/new`),
+        },
+        ...(canAssignWriting
+          ? [
+            {
+              key: "shareToSpace",
+              label: t("actions.shareToSpace"),
+              disabled: busy,
+              onClick: () =>
+                openPickSpace({
+                  lessonId: wa.id,
+                  title: titleForCard(wa),
+                  sourceType: "myContent",
+                  sourceId: wa.id,
+                  mode: "writing",
+                }),
+            },
+          ]
+          : []),
+      ];
+    }
+
     const ls = it as Extract<ContentItem, { type: "lesson" }>;
     const status = (ls.status ?? "draft") as LessonStatus;
     const isPublished = status === "published";
@@ -1872,6 +1846,7 @@ export default function ContentClient() {
       ];
     }
     if (it.type === "space") return ["open", "board", "copyCode", "share", "copyJoinLink"];
+    if (it.type === "writingActivity") return ["open", "shareToSpace", "edit"];
     if (isMathArchiveItem(it)) return ["openMath", "previewMath", "edit", "shareToSpace", "pdf", "delete", "restore"];
     if (isQuizLesson(it)) return ["edit", "startQuiz", "shareToBoard", "publish", "unpublish", "shareQuizPublic", "delete", "restore"];
     if (isImageWritingLesson(it)) return ["open", "edit", "startImageLive", "shareToSpace", "pdf", "delete", "restore"];
@@ -2014,10 +1989,11 @@ export default function ContentClient() {
   }
 
   const counts = useMemo(() => {
-    const c = { lesson: 0, submission: 0, space: 0, library: 0, math: 0 };
+    const c = { lesson: 0, writing: 0, submission: 0, space: 0, library: 0, math: 0 };
 
     for (const it of items) {
       if (it.type === "lesson") c.lesson += 1;
+      else if (it.type === "writingActivity") c.writing += 1;
       else if (it.type === "submission") {
         c.submission += 1;
         if (isLibraryPractice(it)) c.library += 1;
@@ -2052,6 +2028,7 @@ export default function ContentClient() {
         if (filter === "library") return isLibraryPractice(it);
         if (filter === "math") return isMathContent(it);
         if (filter === "lesson") return it.type === "lesson";
+        if (filter === "writing") return it.type === "writingActivity";
         if (filter === "submission") return it.type === "submission";
         if (filter === "space") return it.type === "space";
         return true;
@@ -2096,19 +2073,22 @@ export default function ContentClient() {
               ? (t("filters.lessons") as string)
               : ft === "submission"
                 ? (t("filters.submissions") as string)
-                : (t("filters.spaces") as string);
+                : ft === "writing"
+                  ? safeMsg("filters.writing", "SKRIVING")
+                  : (t("filters.spaces") as string);
 
     if (ft === "lesson") return `${label} (${counts.lesson})`;
+    if (ft === "writing") return `${label} (${counts.writing})`;
     if (ft === "submission") return `${label} (${counts.submission})`;
     if (ft === "space") return `${label} (${counts.space})`;
     if (ft === "library") return `${label} (${counts.library})`;
     if (ft === "math") return `${label} (${counts.math})`;
 
-    return `${label} (${counts.lesson + counts.submission + counts.space})`;
+    return `${label} (${counts.lesson + counts.writing + counts.submission + counts.space})`;
   }
 
   const mobileFilterActions: ActionItem[] = [
-    ...(["library", "math", "lesson", "submission", "space"] as const).map((ft) => ({
+    ...(["library", "math", "lesson", "writing", "submission", "space"] as const).map((ft) => ({
       key: `mobile-filter-${ft}`,
       label: labelWithCount(ft),
       onClick: () => setFilter(ft),
@@ -2146,7 +2126,7 @@ export default function ContentClient() {
 
           <div className="mt-3 hidden flex-wrap items-center justify-between gap-2 sm:flex">
             <div className="flex flex-wrap gap-2">
-              {(["all", "library", "math", "lesson", "submission", "space"] as const).map((ft) => (
+              {(["all", "library", "math", "lesson", "writing", "submission", "space"] as const).map((ft) => (
                 <button
                   key={ft}
                   onClick={() => setFilter(ft)}
@@ -2628,7 +2608,13 @@ export default function ContentClient() {
           >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
               <div className="min-w-0">
-                <div className="font-black text-slate-900">{pickLesson.mode === "board" ? safeMsg("shareToBoard.title", "Del til tavle") : t("shareToSpace.title")}</div>
+                <div className="font-black text-slate-900">
+                  {pickLesson.mode === "board"
+                    ? safeMsg("shareToBoard.title", "Del til tavle")
+                    : pickLesson.mode === "writing"
+                      ? safeMsg("writing.shareTitle", "Tildel skriveaktivitet")
+                      : t("shareToSpace.title")}
+                </div>
                 <div className="truncate text-sm text-slate-600">{pickLesson.title}</div>
               </div>
               <button
@@ -2691,8 +2677,18 @@ export default function ContentClient() {
             </div>
 
             <div className="border-t border-slate-200 p-4 text-xs text-slate-500">
-              {pickLesson.mode === "board" ? safeMsg("shareToBoard.createsLabel", "Sender til:") : t("shareToSpace.createsLabel")}{" "}
-              <code>{pickLesson.mode === "board" ? "spaces/{spaceId}/board/state" : `spaces/{spaceId}/lessons/${pickLesson.lessonId}`}</code>
+              {pickLesson.mode === "board"
+                ? safeMsg("shareToBoard.createsLabel", "Sender til:")
+                : pickLesson.mode === "writing"
+                  ? safeMsg("writing.createsLabel", "Oppretter:")
+                  : t("shareToSpace.createsLabel")}{" "}
+              <code>
+                {pickLesson.mode === "board"
+                  ? "spaces/{spaceId}/board/state"
+                  : pickLesson.mode === "writing"
+                    ? "spaces/{spaceId}/writingActivities/{activityId}"
+                    : `spaces/{spaceId}/lessons/${pickLesson.lessonId}`}
+              </code>
             </div>
           </div>
         </div>

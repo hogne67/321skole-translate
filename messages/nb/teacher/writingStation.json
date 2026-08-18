@@ -1,0 +1,193 @@
+{
+  "teacherWritingStation": {
+    "actions": {
+      "backToSpace": "Tilbake til space",
+      "backToSubmissions": "Tilbake til innleveringer",
+      "openSubmission": "Åpne innlevering"
+    },
+    "hub": {
+      "title": "Teksten i bruk",
+      "beta": "Beta",
+      "subtitle": "Planlegg, bygg og del tekstaktiviteter der elevene arbeider med tekstproduksjon, respons og ferdig produkt.",
+      "newTitle": "Ny skriveaktivitet",
+      "newSubtitle": "Bygg oppgaven i tekstbyggeren, lagre den i biblioteket og del den til space når klassen skal starte.",
+      "libraryTitle": "Mine skriveaktiviteter",
+      "librarySubtitle": "{n} aktiviteter i biblioteket",
+      "libraryMoved": "Lagrede skriveaktiviteter ligger nå i Mitt innhold. Derfra kan du tildele dem til spaces.",
+      "openMyContent": "Åpne Mitt innhold",
+      "empty": "Ingen skriveaktiviteter ennå. Lag den første malen over.",
+      "readFailed": "Kunne ikke lese skriveaktivitetene.",
+      "createFailed": "Kunne ikke lage skriveaktivitet.",
+      "assignFailed": "Kunne ikke tildele skriveaktivitet.",
+      "assigned": "Tildelt til {space}.",
+      "created": "Skriveaktivitet lagret i biblioteket.",
+      "form": {
+        "title": "Tittel",
+        "titlePlaceholder": "For eksempel: En uventet oppdagelse",
+        "theme": "Tema",
+        "themePlaceholder": "Valgfritt tema",
+        "level": "Nivå",
+        "language": "Språk",
+        "progression": "Progresjon",
+        "aiEnabled": "KI-støtte",
+        "aiEnabledOn": "KI-støtte på",
+        "aiEnabledOff": "KI-støtte av",
+        "create": "Åpne tekstbygger",
+        "creating": "Lagrer..."
+      },
+      "progression": {
+        "guided": "Veiledet flyt",
+        "free": "Fri flyt",
+        "locked": "Låst steg-for-steg"
+      },
+      "ai": {
+        "on": "KI-støtte på · maks {n} ganger",
+        "off": "KI-støtte av"
+      },
+      "actions": {
+        "assign": "Tildel til space",
+        "assigning": "Tildeler...",
+        "openSpace": "Åpne space"
+      },
+      "assign": {
+        "label": "Velg space",
+        "placeholder": "Velg space",
+        "noSpaces": "Du har ingen spaces å tildele til ennå."
+      },
+      "badges": {
+        "template": "Mal",
+        "archived": "Arkivert"
+      }
+    },
+    "genre": {
+      "story": "Fortelling"
+    },
+    "status": {
+      "draft": "Utkast",
+      "planning_submitted": "Plan sendt",
+      "planning_reviewed": "Plan vurdert",
+      "submitted": "Levert",
+      "reviewed": "Gjennomgått",
+      "needs_work": "Trenger arbeid",
+      "unknown": "Ukjent status",
+      "needsWork": "Trenger arbeid",
+      "approved": "Godkjent"
+    },
+    "tabs": {
+      "planning": "Planlegging",
+      "drafting": "Skriverom",
+      "revision": "Kontrollrom",
+      "final": "Ferdig tekst",
+      "aiLog": "KI-logg"
+    },
+    "feedback": {
+      "title": "Lærerrespons",
+      "statusLabel": "Status",
+      "placeholder": "Skriv en kort respons til eleven...",
+      "needTextToChangeStatus": "For å endre status må du skrive en kort kommentar.",
+      "saving": "Lagrer...",
+      "saveButton": "Lagre respons",
+      "saved": "Respons lagret.",
+      "saveFailed": "Kunne ikke lagre respons: {msg}",
+      "insertTimingData": "Sett inn leseinfo",
+      "rulesHint": "Lagrer bare"
+    },
+    "planningFeedback": {
+      "title": "Underveisvurdering av plan",
+      "subtitle": "Gi kort respons før eleven går videre i skrivingen.",
+      "placeholder": "For eksempel: Dette er en god start. Legg til mer om problemet og hva hovedpersonen vil.",
+      "saveButton": "Lagre planrespons"
+    },
+    "sectionFeedback": {
+      "title": "Respons på denne delen",
+      "placeholder": "Skriv kort hva eleven kan beholde eller forbedre.",
+      "approved": "Godkjent",
+      "improve": "Forbedre",
+      "save": "Send elevrespons",
+      "sent": "Elevrespons sendt",
+      "improvementSubmitted": "Forbedring sendt fra elev",
+      "saved": "Seksjonsrespons lagret.",
+      "status": {
+        "approved": "Markert som godkjent",
+        "improve": "Markert for forbedring"
+      }
+    },
+    "sectionAi": {
+      "planButton": "Få vurderingsforslag fra KI",
+      "draftingButton": "Få skriveforslag fra KI",
+      "revisionButton": "Få kontrollforslag fra KI",
+      "finalButton": "Få totalvurdering fra KI",
+      "helpTitle": "KI som kladd.",
+      "helpText": "KI lager korte forslag du kan endre, supplere eller fjerne før du godkjenner eller ber eleven forbedre.",
+      "draftingHelpText": "KI lager korte forslag til respons på elevens utkast. Du kan endre, supplere eller fjerne før eleven ser noe.",
+      "processHelpText": "KI lager korte forslag til respons på utkast, innholdssjekk og språksjekk. Du redigerer før eleven ser noe.",
+      "revisionHelpText": "KI lager korte forslag til respons på elevens innholdssjekk, språksjekk og egenvurdering.",
+      "finalHelpText": "KI lager et kort forslag til samlet vurdering av teksten. Læreren redigerer og lagrer selv.",
+      "working": "Lager forslag...",
+      "inserted": "KI-forslag er lagt inn som utkast. Se over før du lagrer.",
+      "overallInserted": "KI-forslag til totalvurdering er lagt inn som utkast.",
+      "empty": "Fant ingen utfylte planseksjoner å vurdere.",
+      "emptyFinal": "Fant ingen ferdig tekst å vurdere.",
+      "failed": "Kunne ikke lage KI-forslag: {msg}"
+    },
+    "submissions": {
+      "count": "{n} innleveringer",
+      "empty": "Ingen elever har levert denne skriveaktiviteten ennå.",
+      "aiUses": "KI brukt {n} ganger"
+    },
+    "detail": {
+      "planningTitle": "Planleggingsfelter",
+      "planningSubtitle": "Elevens ideer og rammer før selve teksten.",
+      "emptyPlanning": "Denne skriveaktiviteten har ingen planleggingsfelter.",
+      "emptyAnswer": "Ikke fylt ut.",
+      "finalTitle": "Ferdig tekst",
+      "finalSubtitle": "Samlet tekst og totalvurdering.",
+      "emptyFinal": "Eleven har ikke lagret ferdig tekst ennå.",
+      "processTitle": "Skriveprosess",
+      "processSubtitle": "Elevens utkast og revisjon, med respons per del.",
+      "revisionTitle": "Kontrollrom",
+      "revisionSubtitle": "Elevens innholdssjekk, språksjekk og egenvurdering.",
+      "emptyProcess": "Ingen utkast eller revisjonsnotater er lagret."
+    },
+    "printProduct": {
+      "title": "Utskriftsversjon",
+      "teacherSubtitle": "Dette er elevens ferdige produkt slik det kan skrives ut.",
+      "print": "Skriv ut elevtekst",
+      "untitled": "Uten tittel"
+    },
+    "aiLog": {
+      "title": "Full KI-logg",
+      "subtitle": "Alle forespørsler og svar eleven har fått i denne skriveaktiviteten.",
+      "count": "{n} loggføringer",
+      "empty": "Ingen KI-bruk er loggført.",
+      "prompt": "Forespørsel",
+      "response": "KI-svar",
+      "emptyPrompt": "Ingen forespørsel lagret.",
+      "emptyResponse": "Ingen KI-svar lagret.",
+      "unknownSection": "Ukjent seksjon"
+    },
+    "aiActions": {
+      "ask_questions": "Spørsmål",
+      "suggest_words": "Hjelpeord",
+      "sentence_starters": "Setningsstartere",
+      "check_requirements": "Sjekk rammer",
+      "continue_guidance": "Videre veiledning",
+      "revision_feedback": "Revisjon",
+      "unknown": "KI-støtte"
+    },
+    "fallback": {
+      "space": "Space",
+      "activity": "Skriveaktivitet",
+      "student": "Elev",
+      "unknownStudent": "Ukjent elev",
+      "unknownDate": "Ukjent dato",
+      "unknownError": "Ukjent feil"
+    },
+    "errors": {
+      "readActivity": "Kunne ikke lese skriveaktiviteten.",
+      "readSubmission": "Kunne ikke lese innleveringen.",
+      "readSubmissions": "Kunne ikke lese innleveringene.",
+      "notFound": "Fant ikke skriveaktiviteten eller innleveringen."
+    }
+  }
+}

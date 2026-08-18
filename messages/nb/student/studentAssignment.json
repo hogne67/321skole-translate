@@ -74,7 +74,7 @@
     },
     "preReading": {
       "title": "Før du leser",
-      "prompt": "Se på bildet. Hva legger du merke til? Skriv noen ord, eller si det du tenker på.",
+      "prompt": "Se på bildet og tittelen. Hva legger du merke til? Skriv noen ord, eller si det du tenker på.",
       "placeholder": "Skriv noen ord her...",
       "playPrompt": "Spill av førlesing"
     },

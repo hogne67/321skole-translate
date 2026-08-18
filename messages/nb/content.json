@@ -19,6 +19,7 @@
       "math": "MATTE",
       "lesson": "Oppgave",
       "lessons": "GENERERT",
+      "writing": "SKRIVING",
       "submission": "Innlevering",
       "submissions": "INNLEVERINGER",
       "space": "Spaces",
@@ -32,6 +33,7 @@
       "mathWorksheet": "Matteoppgave",
       "readingTest": "Lesetest",
       "quiz": "Quiz",
+      "writingActivity": "Skriveaktivitet",
       "ownGenerated": "Eget innhold",
       "content": "Innhold"
     },
@@ -102,6 +104,7 @@
       "share": "Del",
       "shareTitle": "Del (lenke + QR)",
       "shareToSpace": "Del til Spaces",
+      "newWritingActivity": "Ny skriveaktivitet",
       "startQuiz": "Start livequiz",
       "startImageLive": "Start live",
       "shareToBoard": "Del til tavle",
@@ -132,6 +135,7 @@
     },
     "titles": {
       "lesson": "Oppgave",
+      "writingActivity": "Skriveaktivitet",
       "space": "Spaces",
       "submission": "Innlevering",
       "submissionWithLesson": "{lessonTitle} – Innlevering",
@@ -215,6 +219,10 @@
       "searchPlaceholder": "Søk etter rom...",
       "noMatches": "Ingen rom matcher søket.",
       "showMore": "Vis flere rom"
+    },
+    "writing": {
+      "shareTitle": "Tildel skriveaktivitet",
+      "createsLabel": "Oppretter:"
     },
     "shareToBoard": {
       "title": "Del til tavle",

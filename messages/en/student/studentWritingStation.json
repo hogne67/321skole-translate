@@ -1,0 +1,137 @@
+{
+  "studentWritingStation": {
+    "loading": "Loading…",
+    "actions": {
+      "back": "← Back to space",
+      "saveDraft": "Save draft",
+      "saving": "Saving…",
+      "sendPlan": "Send plan to teacher",
+      "sendToTeacher": "Send to teacher",
+      "sendImprovements": "Send improvements to teacher",
+      "approved": "Approved by teacher",
+      "print": "Print",
+      "submit": "Submit to teacher"
+    },
+    "rooms": {
+      "revision": "Control room"
+    },
+    "genre": {
+      "story": "Story"
+    },
+    "assignment": {
+      "title": "Assignment",
+      "criteria": "Criteria",
+      "goals": "Competence goals"
+    },
+    "phase": {
+      "planning": "Plan your text before writing.",
+      "drafting": "Write the text in parts.",
+      "revision": "Review and improve your text.",
+      "final": "Gather the text and submit."
+    },
+    "fields": {
+      "choose": "Choose…"
+    },
+    "otherCharacters": {
+      "person": "Person {n}",
+      "name": "Name or who",
+      "namePlaceholder": "For example: Nora",
+      "role": "Role",
+      "description": "Short description",
+      "descriptionPlaceholder": "What does this person do in the story?",
+      "add": "+ Add person"
+    },
+    "progress": {
+      "ready": "Ready",
+      "keepWorking": "Keep working",
+      "approved": "Approved",
+      "started": "Started",
+      "notStarted": "Not started"
+    },
+    "wordStats": {
+      "section": "{count} words · {percent}%",
+      "total": "{count} words total"
+    },
+    "support": {
+      "title": "Support",
+      "subtitle": "Choose support when you need it.",
+      "wordsTitle": "Helper words and starters",
+      "showWords": "Show helper words",
+      "hideWords": "Hide helper words",
+      "empty": "No fixed helper words in this part yet."
+    },
+    "ai": {
+      "working": "Working…",
+      "responseTitle": "AI support",
+      "mainAction": "Get AI help",
+      "controlAction": "Help me check",
+      "usedUp": "AI used up",
+      "usage": "AI {used}/{max}",
+      "actions": {
+        "ask_questions": "Ask me questions",
+        "suggest_words": "Helper words",
+        "sentence_starters": "Sentence starters",
+        "check_requirements": "Check requirements",
+        "continue_guidance": "Help me continue",
+        "revision_feedback": "Revision advice"
+      }
+    },
+    "final": {
+      "preview": "Preview",
+      "empty": "Write the introduction, main part and ending first."
+    },
+    "printProduct": {
+      "title": "Print version",
+      "subtitle": "Prepare the text as a finished product you can be proud of.",
+      "studentName": "Name on printout",
+      "school": "School",
+      "className": "Class",
+      "writtenDate": "Date written",
+      "imageUrl": "Image",
+      "imageUrlPlaceholder": "Paste an image link if your teacher has given you one.",
+      "save": "Save print info",
+      "uploadLocked": "Upload image",
+      "aiImageLocked": "Create AI image",
+      "lockedHint": "This feature must be unlocked by the teacher first.",
+      "untitled": "Untitled"
+    },
+    "messages": {
+      "saved": "Draft saved.",
+      "planningSubmitted": "The plan has been sent to the teacher.",
+      "improvementSubmitted": "The improvement has been sent to the teacher.",
+      "printSaved": "Print info saved.",
+      "submitted": "Submitted to teacher."
+    },
+    "status": {
+      "draft": "Draft",
+      "planning_submitted": "Plan sent to teacher",
+      "planning_reviewed": "Plan reviewed",
+      "submitted": "Submitted",
+      "reviewed": "Reviewed",
+      "needs_work": "Needs work"
+    },
+    "teacherFeedback": {
+      "title": "Teacher feedback",
+      "reviewed": "Reviewed",
+      "needsWork": "Needs work",
+      "updatedAt": "Updated {at}"
+    },
+    "sectionFeedback": {
+      "show": "Teacher feedback",
+      "hide": "Hide feedback",
+      "none": "No teacher feedback",
+      "approved": "Approved by teacher",
+      "improve": "Teacher suggests improvement",
+      "sendImprovement": "Send improvement to teacher",
+      "improvementSent": "Improvement sent, waiting for response"
+    },
+    "errors": {
+      "title": "Could not open Writing Station",
+      "auth": "Could not sign in anonymously.",
+      "notFound": "Could not find the writing activity.",
+      "readActivity": "Could not read the writing activity.",
+      "save": "Could not save.",
+      "ai": "Could not get AI support."
+    }
+  }
+}

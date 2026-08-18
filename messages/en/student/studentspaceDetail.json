@@ -52,6 +52,21 @@
       "message": "✉️ message",
       "notSubmitted": "You haven’t submitted this yet."
     },
+    "writingStation": {
+      "title": "Writing Station",
+      "subtitle": "Writing activities from your teacher.",
+      "showArchived": "Show archived",
+      "none": "No writing activities here yet.",
+      "fallbackTitle": "Story",
+      "open": "Open",
+      "genre": {
+        "story": "Story"
+      },
+      "ai": {
+        "on": "AI support available",
+        "off": "AI support off"
+      }
+    },
     "status": {
       "submitted": "Submitted",
       "needsWork": "Needs work",
@@ -75,6 +90,8 @@
       "listenStart": "Could not start listening",
       "readAssignments": "Could not read assignments",
       "listenAssignmentsStart": "Could not start listening to assignments",
+      "readWritingActivities": "Could not read writing activities",
+      "listenWritingActivitiesStart": "Could not start listening to writing activities",
       "readSubmissions": "Could not load submissions",
       "archiveMove": "Could not move to archive",
       "archiveRestore": "Could not restore"

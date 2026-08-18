@@ -46,6 +46,50 @@
       "emptyHtml": "Ainda não há atividades. Vá para <b>Meu conteúdo</b> para atribuir atividades a este space.",
       "count": "{count} · {label}"
     },
+    "writingStation": {
+      "title": "Estação de escrita",
+      "subtitle": "Atividades de escrita atribuídas a este space.",
+      "manageTitle": "Criar e atribuir pela Estação de escrita",
+      "manageText": "As atividades de escrita são criadas em uma aba própria e depois atribuídas aqui quando a turma for usar.",
+      "showArchived": "Mostrar atividades de escrita arquivadas",
+      "empty": "Ainda não há atividades de escrita.",
+      "created": "Atividade de escrita criada.",
+      "createFailed": "Não foi possível criar a atividade de escrita.",
+      "updateFailed": "Não foi possível atualizar a atividade de escrita.",
+      "readFailed": "Não foi possível ler as atividades de escrita.",
+      "fallbackTitle": "Narrativa",
+      "form": {
+        "title": "Título",
+        "titlePlaceholder": "Por exemplo: Uma descoberta inesperada",
+        "theme": "Tema",
+        "themePlaceholder": "Tema opcional",
+        "level": "Nível",
+        "language": "Idioma",
+        "progression": "Progressão",
+        "aiEnabled": "Apoio de IA",
+        "create": "Criar atividade de escrita",
+        "creating": "Criando…"
+      },
+      "progression": {
+        "guided": "Fluxo guiado",
+        "free": "Fluxo livre",
+        "locked": "Bloqueado passo a passo"
+      },
+      "genre": {
+        "story": "Narrativa"
+      },
+      "badges": {
+        "assigned": "Atribuída"
+      },
+      "ai": {
+        "on": "Apoio de IA ativo · máximo {n} usos",
+        "off": "Apoio de IA desativado"
+      },
+      "actions": {
+        "submissions": "Respostas",
+        "openHub": "Abrir Estação de escrita"
+      }
+    },
     "assignTrainingVideo": {
       "button": "Ver guia",
       "buttonTitle": "Ver guia sobre como atribuir atividades",

@@ -19,6 +19,7 @@
       "math": "MATH",
       "lesson": "Task",
       "lessons": "GENERATED",
+      "writing": "WRITING",
       "submission": "Submission",
       "submissions": "SUBMISSIONS",
       "space": "Spaces",
@@ -32,6 +33,7 @@
       "mathWorksheet": "Math assignment",
       "readingTest": "Reading test",
       "quiz": "Quiz",
+      "writingActivity": "Writing activity",
       "ownGenerated": "Own content",
       "content": "Content"
     },
@@ -102,6 +104,7 @@
       "share": "Share",
       "shareTitle": "Share (link + QR)",
       "shareToSpace": "Share to Spaces",
+      "newWritingActivity": "New writing activity",
       "startQuiz": "Start live quiz",
       "startImageLive": "Start live",
       "shareToBoard": "Share to board",
@@ -132,6 +135,7 @@
     },
     "titles": {
       "lesson": "Task",
+      "writingActivity": "Writing activity",
       "space": "Spaces",
       "submission": "Submission",
       "submissionWithLesson": "{lessonTitle} – Submission",
@@ -215,6 +219,10 @@
       "searchPlaceholder": "Search rooms...",
       "noMatches": "No rooms match your search.",
       "showMore": "Show more rooms"
+    },
+    "writing": {
+      "shareTitle": "Assign writing activity",
+      "createsLabel": "Creates:"
     },
     "shareToBoard": {
       "title": "Share to board",

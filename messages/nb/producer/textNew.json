@@ -1,0 +1,62 @@
+{
+  "producerTextNew": {
+    "loading": "Laster...",
+    "noAccess": "Du må være lærer eller admin for å lage skriveaktiviteter.",
+    "eyebrow": "Tekstbygger",
+    "title": "Ny skriveaktivitet",
+    "beta": "Beta",
+    "subtitle": "Lag en skriveoppgave med oppgavetekst, kriterier, støtteord og KI-rammer. Elevene lager overskrift selv i skriverommet.",
+    "backToWriting": "Til Tekst",
+    "fallbackTitle": "Ny skriveaktivitet",
+    "saved": "Skriveaktiviteten er lagret.",
+    "openLibrary": "Åpne Mitt innhold for deling.",
+    "saving": "Lagrer...",
+    "save": "Lagre i Mitt innhold",
+    "assignment": {
+      "title": "Oppgave"
+    },
+    "criteria": {
+      "title": "Krav og kriterier",
+      "subtitle": "Én linje per punkt. Disse brukes i elevens kontrollrom og som ramme for KI-støtte."
+    },
+    "support": {
+      "title": "Støtteord",
+      "subtitle": "Én linje per ord eller setningsstarter. Læreren kan gjøre støtten smalere eller rikere."
+    },
+    "settings": {
+      "title": "Ramme",
+      "aiOn": "KI-støtte på",
+      "aiOff": "KI-støtte av",
+      "printImage": "Tillat bilde i utskrift",
+      "aiImage": "Tillat KI-bilde"
+    },
+    "fields": {
+      "libraryTitle": "Bibliotektittel",
+      "libraryTitlePlaceholder": "For eksempel: Døra lukket seg",
+      "theme": "Tema",
+      "customTheme": "Eget tema",
+      "assignmentText": "Oppgavetekst til eleven",
+      "criteria": "Kriterier",
+      "goals": "Kompetansemål",
+      "goalsPlaceholder": "Lim inn ett kompetansemål per linje.",
+      "level": "Nivå",
+      "language": "Språk",
+      "progression": "Progresjon",
+      "aiTotal": "Maks KI-bruk totalt",
+      "aiSection": "Maks KI per seksjon"
+    },
+    "sections": {
+      "title": "Overskrift",
+      "introduction": "Innledning",
+      "mainPart": "Hoveddel",
+      "ending": "Avslutning",
+      "contentCheck": "Innholdssjekk",
+      "languageCheck": "Språksjekk"
+    },
+    "progression": {
+      "guided": "Veiledet flyt",
+      "free": "Fri flyt",
+      "locked": "Låst steg-for-steg"
+    }
+  }
+}

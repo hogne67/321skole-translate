@@ -71,6 +71,23 @@ export type ContentItem =
     ownerUid?: string;
     joinCode?: string;
     deletedAt?: Date | null;
+  }
+  | {
+    type: "writingActivity";
+    id: string;
+    title: string;
+    status?: string;
+    updatedAt?: Date | null;
+    href: string;
+    meta?: string[];
+    ownerUid?: string;
+    level?: string;
+    language?: string;
+    theme?: string | null;
+    genre?: string;
+    aiEnabled?: boolean;
+    aiMaxUsesTotal?: number;
+    deletedAt?: Date | null;
   };
 
 function isArchived(d: unknown): boolean {
@@ -490,6 +507,52 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
   }
 
   return metaById;
+}
+
+async function fetchMyWritingActivities(db: Firestore, uid: string, locale: string) {
+  const results: ContentItem[] = [];
+
+  try {
+    const qy = query(
+      collection(db, "writingActivities"),
+      where("ownerUid", "==", uid),
+      orderBy("updatedAt", "desc"),
+      limit(MY_CONTENT_QUERY_LIMIT)
+    );
+    const snap = await getDocs(qy);
+
+    snap.forEach((docSnap) => {
+      const d = docSnap.data() as Record<string, unknown>;
+      const aiPolicy = d.aiPolicy && typeof d.aiPolicy === "object" ? d.aiPolicy as Record<string, unknown> : {};
+      const level = pickLevel(d) || undefined;
+      const language = pickLanguage(d);
+      const theme = typeof d.theme === "string" ? d.theme.trim() : "";
+      const genre = typeof d.genre === "string" ? d.genre.trim() : "story";
+      const meta = ["Tekst", genre, level, language, theme].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+
+      results.push({
+        type: "writingActivity",
+        id: docSnap.id,
+        title: pickTitle(d) || "Skriveaktivitet",
+        status: pickStatus(d),
+        updatedAt: pickUpdated(d),
+        href: withLocale(locale, `/producer/text/new`),
+        meta,
+        ownerUid: typeof d.ownerUid === "string" ? d.ownerUid : undefined,
+        level,
+        language,
+        theme: theme || null,
+        genre,
+        aiEnabled: aiPolicy.enabled !== false,
+        aiMaxUsesTotal: typeof aiPolicy.maxUsesTotal === "number" ? aiPolicy.maxUsesTotal : undefined,
+        deletedAt: toDateSafe(d.deletedAt),
+      });
+    });
+  } catch {
+    // ignore
+  }
+
+  return results;
 }
 
 function ownLessonItemFromSubmission(args: {
@@ -1027,8 +1090,9 @@ export async function loadMyContent(opts: {
 
   const warnings: string[] = [];
 
-  const [lessons, submissions, practiceSubs, spaceSubs, spaces] = await Promise.all([
+  const [lessons, writingActivities, submissions, practiceSubs, spaceSubs, spaces] = await Promise.all([
     fetchMyLessons(db, uid, mode, locale),
+    mode === "teacher" || mode === "creator" ? fetchMyWritingActivities(db, uid, locale) : Promise.resolve([] as ContentItem[]),
     fetchMySubmissions(db, uid, mode, locale),
     fetchMyPracticeSubmissions(db, uid, mode, locale),
     mode === "student" ? fetchMySpaceSubmissions(db, uid, locale, warnings) : Promise.resolve([] as ContentItem[]),
@@ -1037,7 +1101,7 @@ export async function loadMyContent(opts: {
 
   const seen = new Set<string>();
 
-  const merged = [...lessons, ...submissions, ...practiceSubs, ...spaceSubs, ...spaces].filter((it) => {
+  const merged = [...lessons, ...writingActivities, ...submissions, ...practiceSubs, ...spaceSubs, ...spaces].filter((it) => {
     const k = `${it.type}:${it.id}`;
     if (seen.has(k)) return false;
     seen.add(k);

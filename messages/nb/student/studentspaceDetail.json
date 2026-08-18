@@ -52,6 +52,21 @@
       "message": "✉️ melding",
       "notSubmitted": "Du har ikke levert denne ennå."
     },
+    "writingStation": {
+      "title": "Tekst",
+      "subtitle": "Skriveaktiviteter fra læreren din.",
+      "showArchived": "Vis arkiverte",
+      "none": "Ingen skriveaktiviteter her ennå.",
+      "fallbackTitle": "Fortelling",
+      "open": "Åpne",
+      "genre": {
+        "story": "Fortelling"
+      },
+      "ai": {
+        "on": "KI-støtte tilgjengelig",
+        "off": "KI-støtte av"
+      }
+    },
     "status": {
       "submitted": "Levert",
       "needsWork": "Må forbedres",
@@ -75,6 +90,8 @@
       "listenStart": "Kunne ikke starte lytting",
       "readAssignments": "Kunne ikke lese oppgaver",
       "listenAssignmentsStart": "Kunne ikke starte lytting til oppgaver",
+      "readWritingActivities": "Kunne ikke lese skriveaktiviteter",
+      "listenWritingActivitiesStart": "Kunne ikke starte lytting til skriveaktiviteter",
       "readSubmissions": "Kunne ikke laste innleveringer",
       "archiveMove": "Kunne ikke flytte til arkiv",
       "archiveRestore": "Kunne ikke gjenopprette"

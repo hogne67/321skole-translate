@@ -28,6 +28,10 @@
           "title": "Oppgavegenerator",
           "description": "Lag strukturerte oppgaver med AI-støtte."
         },
+        "writingActivityGenerator": {
+          "title": "Tekstbygger",
+          "description": "Lag skriveaktiviteter med planlegging, respons, kontrollrom og ferdig tekst."
+        },
         "imageWritingGenerator": {
           "title": "Skriv til bilde",
           "description": "Lag skriveoppgaver der elever skriver tekst til et bilde."

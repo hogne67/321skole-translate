@@ -46,6 +46,50 @@
       "emptyHtml": "Ingen oppgaver ennå. Gå til <b>Mitt innhold</b> for å tildele oppgaver til dette spacet.",
       "count": "{count} · {label}"
     },
+    "writingStation": {
+      "title": "Teksten i bruk",
+      "subtitle": "Skriveaktiviteter som er tildelt dette spacet.",
+      "manageTitle": "Lag og tildel tekstaktivitet",
+      "manageText": "Skriveaktiviteter lages i egen fane, og tildeles hit når klassen skal bruke dem.",
+      "showArchived": "Vis arkiverte skriveaktiviteter",
+      "empty": "Ingen skriveaktiviteter ennå.",
+      "created": "Skriveaktivitet opprettet.",
+      "createFailed": "Kunne ikke opprette skriveaktivitet.",
+      "updateFailed": "Kunne ikke oppdatere skriveaktivitet.",
+      "readFailed": "Kunne ikke lese skriveaktivitetene.",
+      "fallbackTitle": "Fortelling",
+      "form": {
+        "title": "Tittel",
+        "titlePlaceholder": "For eksempel: En uventet oppdagelse",
+        "theme": "Tema",
+        "themePlaceholder": "Valgfritt tema",
+        "level": "Nivå",
+        "language": "Språk",
+        "progression": "Progresjon",
+        "aiEnabled": "KI-støtte",
+        "create": "Lag skriveaktivitet",
+        "creating": "Lager…"
+      },
+      "progression": {
+        "guided": "Veiledet flyt",
+        "free": "Fri flyt",
+        "locked": "Låst steg-for-steg"
+      },
+      "genre": {
+        "story": "Fortelling"
+      },
+      "badges": {
+        "assigned": "Tildelt"
+      },
+      "ai": {
+        "on": "KI-støtte på · maks {n} ganger",
+        "off": "KI-støtte av"
+      },
+      "actions": {
+        "submissions": "Innleveringer",
+        "openHub": "Åpne Tekst"
+      }
+    },
     "assignTrainingVideo": {
       "button": "Se opplæring",
       "buttonTitle": "Se opplæring om å tildele oppgaver",

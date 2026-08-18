@@ -44,6 +44,22 @@ type AssignmentDoc = {
 
 type AssignmentRow = { id: string; data: AssignmentDoc };
 
+type WritingActivityDoc = {
+  status: "assigned" | "archived" | "draft";
+  title: string;
+  genre?: string;
+  level?: string;
+  language?: string;
+  theme?: string | null;
+  progression?: string;
+  aiPolicy?: { enabled?: boolean; maxUsesTotal?: number };
+  assignedAt?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+};
+
+type WritingActivityRow = { id: string; data: WritingActivityDoc };
+
 type SubmissionData = { createdAt?: unknown; status?: unknown };
 
 type SpaceDocSafe = SpaceDoc & {
@@ -186,6 +202,10 @@ function Inner() {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [showArchived, setShowArchived] = useState(false);
 
+  const [writingActivities, setWritingActivities] = useState<WritingActivityRow[]>([]);
+  const [showArchivedWriting, setShowArchivedWriting] = useState(false);
+  const [writingErr, setWritingErr] = useState<string | null>(null);
+
   const [messageDrafts, setMessageDrafts] = useState<Record<string, string>>({});
   const [messageSavingId, setMessageSavingId] = useState<string | null>(null);
 
@@ -272,11 +292,42 @@ function Inner() {
         return copy;
       });
     });
-  }, [access, spaceId]);
+  }, [access, spaceId, t]);
+
+  useEffect(() => {
+    if (access !== "allowed") return;
+
+    const qy = query(collection(db, "spaces", spaceId, "writingActivities"), orderBy("assignedAt", "desc"));
+    return onSnapshot(
+      qy,
+      (snap) => {
+        const next: WritingActivityRow[] = snap.docs.map((d) => ({
+          id: d.id,
+          data: (d.data() as WritingActivityDoc) ?? ({} as WritingActivityDoc),
+        }));
+
+        setWritingActivities(next);
+        setWritingErr(null);
+      },
+      (err) => {
+        setWritingActivities([]);
+        setWritingErr(err instanceof Error ? err.message : t("writingStation.readFailed"));
+      }
+    );
+  }, [access, spaceId, t]);
 
   const visibleAssignments = useMemo(
     () => (showArchived ? assignments : assignments.filter((a) => a.data.status !== "archived")),
     [assignments, showArchived]
+  );
+
+  const visibleWritingActivities = useMemo(
+    () => (
+      showArchivedWriting
+        ? writingActivities
+        : writingActivities.filter((a) => a.data.status !== "archived")
+    ),
+    [showArchivedWriting, writingActivities]
   );
 
   useEffect(() => {
@@ -396,6 +447,27 @@ function Inner() {
     }
   }
 
+  async function setWritingActivityStatus(activityId: string, status: "assigned" | "archived") {
+    setSaveErr(null);
+
+    if (access !== "allowed" || !canManage) {
+      setSaveErr(t("errors.noManageAccess"));
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, "spaces", spaceId, "writingActivities", activityId), {
+        status,
+        updatedAt: Timestamp.now(),
+      });
+    } catch (e: unknown) {
+      setSaveErr(getErrorInfo(e).message || t("writingStation.updateFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
   if (!space) return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
 
@@ -495,6 +567,139 @@ function Inner() {
               }}
             />
           </div>
+        </div>
+      </div>
+
+      <div className="w-full min-w-0 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="text-base font-semibold text-emerald-950">{t("writingStation.title")}</div>
+            <div className="mt-1 max-w-2xl break-words text-sm text-emerald-900">
+              {t("writingStation.subtitle")}
+            </div>
+          </div>
+
+          <label
+            className={[
+              "inline-flex min-h-[42px] select-none items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold",
+              showArchivedWriting
+                ? "border-emerald-500 bg-white text-emerald-950 shadow-sm ring-2 ring-emerald-200"
+                : "border-emerald-200 bg-white text-emerald-900",
+            ].join(" ")}
+          >
+            <input
+              type="checkbox"
+              checked={showArchivedWriting}
+              onChange={(e) => setShowArchivedWriting(e.target.checked)}
+              className="h-4 w-4 rounded border-emerald-300 accent-emerald-700"
+            />
+            <span className="whitespace-nowrap">{t("writingStation.showArchived")}</span>
+          </label>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-3 sm:p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-emerald-950">{t("writingStation.manageTitle")}</div>
+              <div className="mt-1 max-w-2xl break-words text-sm text-emerald-900">
+                {t("writingStation.manageText")}
+              </div>
+            </div>
+            <Link
+              href={withLocale(locale, "/teacher/writing")}
+              className="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+            >
+              {t("writingStation.actions.openHub")}
+            </Link>
+          </div>
+
+          {writingErr ? (
+            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+              {writingErr}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-4 grid min-w-0 gap-3">
+          {visibleWritingActivities.length === 0 ? (
+            <div className="rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-900 sm:p-4">
+              {t("writingStation.empty")}
+            </div>
+          ) : (
+            visibleWritingActivities.map((activity) => {
+              const assignedAt = formatMaybeDate(activity.data.assignedAt || activity.data.createdAt);
+              const status = activity.data.status ?? "assigned";
+
+              return (
+                <div key={activity.id} className="rounded-xl border border-emerald-200 bg-white p-3 shadow-sm sm:p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="break-words font-semibold text-slate-950">
+                          {activity.data.title || t("writingStation.fallbackTitle")}
+                        </div>
+                        {status === "archived" ? (
+                          <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                            {t("badges.archived")}
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                            {t("writingStation.badges.assigned")}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-2 break-words text-sm text-slate-600">
+                        {t("writingStation.genre.story")}
+                        {activity.data.level ? ` · ${activity.data.level}` : ""}
+                        {activity.data.language ? ` · ${activity.data.language}` : ""}
+                        {activity.data.theme ? ` · ${activity.data.theme}` : ""}
+                        {assignedAt ? ` · ${assignedAt}` : ""}
+                      </div>
+
+                      <div className="mt-2 text-xs text-slate-500">
+                        {activity.data.aiPolicy?.enabled === false
+                          ? t("writingStation.ai.off")
+                          : t("writingStation.ai.on", {
+                            n: activity.data.aiPolicy?.maxUsesTotal ?? 20,
+                          })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => router.push(withLocale(locale, `/teacher/spaces/${spaceId}/writing/${activity.id}`))}
+                        className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                      >
+                        {t("writingStation.actions.submissions")}
+                      </button>
+
+                      {status !== "archived" ? (
+                        <button
+                          type="button"
+                          onClick={() => setWritingActivityStatus(activity.id, "archived")}
+                          disabled={saving || !canManage}
+                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          {t("actions.archive")}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setWritingActivityStatus(activity.id, "assigned")}
+                          disabled={saving || !canManage}
+                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          {t("actions.restore")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

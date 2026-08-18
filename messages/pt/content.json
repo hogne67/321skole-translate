@@ -19,6 +19,7 @@
       "math": "MATEMÁTICA",
       "lesson": "Atividade",
       "lessons": "GERADO",
+      "writing": "ESCRITA",
       "submission": "Envio",
       "submissions": "ENVIOS",
       "space": "Spaces",
@@ -32,6 +33,7 @@
       "mathWorksheet": "Tarefa de matemática",
       "readingTest": "Teste de leitura",
       "quiz": "Quiz",
+      "writingActivity": "Atividade de escrita",
       "ownGenerated": "Conteúdo próprio",
       "content": "Conteúdo"
     },
@@ -102,6 +104,7 @@
       "share": "Compartilhar",
       "shareTitle": "Compartilhar (link + QR)",
       "shareToSpace": "Compartilhar com Spaces",
+      "newWritingActivity": "Nova atividade de escrita",
       "startQuiz": "Iniciar quiz ao vivo",
       "startImageLive": "Iniciar ao vivo",
       "shareToBoard": "Compartilhar com quadro",
@@ -132,6 +135,7 @@
     },
     "titles": {
       "lesson": "Atividade",
+      "writingActivity": "Atividade de escrita",
       "space": "Spaces",
       "submission": "Envio",
       "submissionWithLesson": "{lessonTitle} – Envio",
@@ -215,6 +219,10 @@
       "searchPlaceholder": "Buscar salas...",
       "noMatches": "Nenhuma sala corresponde à busca.",
       "showMore": "Mostrar mais salas"
+    },
+    "writing": {
+      "shareTitle": "Atribuir atividade de escrita",
+      "createsLabel": "Cria:"
     },
     "shareToBoard": {
       "title": "Compartilhar com quadro",

@@ -41,6 +41,8 @@ export type FeatureKey =
   | "producer_create_quiz"
   | "producer_create_writing_task"
   | "producer_create_math_worksheet"
+  | "writing_station_create_activity"
+  | "writing_station_ai_support"
   | "teacher_assign_task"
   | "ai_feedback"
   | "ai_generate_text"
@@ -174,6 +176,7 @@ export function getQuotaBucket(feature: FeatureKey): QuotaBucket {
     case "producer_create_quiz":
     case "producer_create_writing_task":
     case "producer_create_math_worksheet":
+    case "writing_station_create_activity":
     case "teacher_assign_task":
     case "ai_generate_text":
     case "ai_generate_reading_test":
@@ -183,6 +186,7 @@ export function getQuotaBucket(feature: FeatureKey): QuotaBucket {
       return "image_generation";
 
     case "ai_feedback":
+    case "writing_station_ai_support":
       return "ai_feedback";
 
     case "image_download":
@@ -520,6 +524,10 @@ export function costForFeature(feature: FeatureKey): number {
       return 4;
     case "producer_create_math_worksheet":
       return 4;
+    case "writing_station_create_activity":
+      return 4;
+    case "writing_station_ai_support":
+      return 1;
     case "teacher_assign_task":
       return 1;
     case "ai_feedback":

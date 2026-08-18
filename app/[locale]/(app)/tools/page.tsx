@@ -15,6 +15,7 @@ type Tool = {
 const premiumTools: Tool[] = [
   { id: "quizGenerator", href: "/tools/quiz", badge: "NEW" },
   { id: "assignmentGenerator", href: "/producer/texts/new", badge: "PREMIUM" },
+  { id: "writingActivityGenerator", href: "/producer/text/new", badge: "NEW" },
   { id: "imageWritingGenerator", href: "/producer/image-writing", badge: "NEW" },
   { id: "readingTestGenerator", href: "/producer/reading-tests/new", badge: "PREMIUM" },
   { id: "geometryGenerator", href: "/producer/math/geometry?new=1", badge: "NEW" },

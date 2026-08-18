@@ -1,0 +1,62 @@
+{
+  "producerTextNew": {
+    "loading": "Carregando...",
+    "noAccess": "Você precisa ser professor ou admin para criar atividades de escrita.",
+    "eyebrow": "Construtor de texto",
+    "title": "Nova atividade de escrita",
+    "beta": "Beta",
+    "subtitle": "Crie uma tarefa com enunciado, critérios, palavras de apoio e limites de IA. Os alunos criam o próprio título na sala de escrita.",
+    "backToWriting": "Para Texto",
+    "fallbackTitle": "Nova atividade de escrita",
+    "saved": "A atividade de escrita foi salva.",
+    "openLibrary": "Abrir Meu conteúdo para atribuir.",
+    "saving": "Salvando...",
+    "save": "Salvar em Meu conteúdo",
+    "assignment": {
+      "title": "Tarefa"
+    },
+    "criteria": {
+      "title": "Requisitos e critérios",
+      "subtitle": "Um item por linha. Eles são usados na sala de controle do aluno e como moldura para o apoio de IA."
+    },
+    "support": {
+      "title": "Palavras de apoio",
+      "subtitle": "Uma palavra ou início de frase por linha. O professor pode tornar o apoio mais específico ou mais rico."
+    },
+    "settings": {
+      "title": "Moldura",
+      "aiOn": "Apoio de IA ativo",
+      "aiOff": "Apoio de IA desativado",
+      "printImage": "Permitir imagem na impressão",
+      "aiImage": "Permitir imagem com IA"
+    },
+    "fields": {
+      "libraryTitle": "Título da biblioteca",
+      "libraryTitlePlaceholder": "Por exemplo: A porta se fechou",
+      "theme": "Tema",
+      "customTheme": "Tema próprio",
+      "assignmentText": "Texto da tarefa para o aluno",
+      "criteria": "Critérios",
+      "goals": "Objetivos de competência",
+      "goalsPlaceholder": "Cole um objetivo por linha.",
+      "level": "Nível",
+      "language": "Idioma",
+      "progression": "Progressão",
+      "aiTotal": "Máximo de usos de IA no total",
+      "aiSection": "Máximo de IA por seção"
+    },
+    "sections": {
+      "title": "Título",
+      "introduction": "Introdução",
+      "mainPart": "Desenvolvimento",
+      "ending": "Conclusão",
+      "contentCheck": "Verificação de conteúdo",
+      "languageCheck": "Verificação de língua"
+    },
+    "progression": {
+      "guided": "Fluxo guiado",
+      "free": "Fluxo livre",
+      "locked": "Bloqueado passo a passo"
+    }
+  }
+}

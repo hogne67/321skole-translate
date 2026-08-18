@@ -154,6 +154,20 @@ type AssignmentDoc = {
   [k: string]: unknown;
 };
 
+type WritingActivityDoc = {
+  title?: string;
+  status?: string;
+  genre?: string;
+  level?: string;
+  language?: string;
+  theme?: string | null;
+  progression?: string;
+  aiPolicy?: { enabled?: boolean; maxUsesTotal?: number };
+  assignedAt?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+};
+
 function assignmentSnippet(d: AssignmentDoc) {
   const asRec: Record<string, unknown> = d;
   const s = safeString(d.description ?? asRec.summary ?? asRec.subtitle);
@@ -210,6 +224,10 @@ export default function StudentSpaceDetailPage() {
   const [assignments, setAssignments] = useState<Array<{ id: string; data: AssignmentDoc }>>([]);
   const [assignErr, setAssignErr] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+
+  const [writingActivities, setWritingActivities] = useState<Array<{ id: string; data: WritingActivityDoc }>>([]);
+  const [writingErr, setWritingErr] = useState<string | null>(null);
+  const [showArchivedWriting, setShowArchivedWriting] = useState(false);
 
   const [subsLoading, setSubsLoading] = useState(true);
   const [subsErr, setSubsErr] = useState<string | null>(null);
@@ -363,6 +381,31 @@ export default function StudentSpaceDetailPage() {
   }, [spaceId, t]);
 
   useEffect(() => {
+    setWritingErr(null);
+
+    let unsub: (() => void) | null = null;
+    try {
+      const dbx = requireDb(db);
+      const qy = query(collection(dbx, "spaces", spaceId, "writingActivities"), orderBy("updatedAt", "desc"));
+      unsub = onSnapshot(
+        qy,
+        (snap) => {
+          const out: Array<{ id: string; data: WritingActivityDoc }> = [];
+          snap.forEach((d: QueryDocumentSnapshot<DocumentData>) =>
+            out.push({ id: d.id, data: d.data() as WritingActivityDoc })
+          );
+          setWritingActivities(out);
+        },
+        (e: unknown) => setWritingErr(errMessage(e, t("errors.readWritingActivities")))
+      );
+    } catch (e: unknown) {
+      setWritingErr(errMessage(e, t("errors.listenWritingActivitiesStart")));
+    }
+
+    return () => unsub?.();
+  }, [spaceId, t]);
+
+  useEffect(() => {
     setSubsErr(null);
     setArchiveMsg(null);
 
@@ -470,6 +513,14 @@ export default function StudentSpaceDetailPage() {
       return (db ?? 0) - (da ?? 0);
     });
   }, [assignments, showArchived]);
+
+  const visibleWritingActivities = useMemo(() => {
+    const list = showArchivedWriting
+      ? writingActivities
+      : writingActivities.filter((x) => String(x.data.status ?? "").toLowerCase() !== "archived");
+
+    return [...list].sort((a, b) => toMillisAny(b.data.assignedAt || b.data.createdAt) - toMillisAny(a.data.assignedAt || a.data.createdAt));
+  }, [showArchivedWriting, writingActivities]);
 
   const latestByAssignment = useMemo(() => {
     const m = new Map<string, SpaceSubRow>();
@@ -619,6 +670,80 @@ export default function StudentSpaceDetailPage() {
           {archiveMsg}
         </div>
       ) : null}
+
+      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-md sm:p-5">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-base font-semibold text-emerald-950">{t("writingStation.title")}</div>
+            <div className="mt-1 text-sm text-emerald-900">{t("writingStation.subtitle")}</div>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-emerald-900">
+            <input
+              type="checkbox"
+              checked={showArchivedWriting}
+              onChange={(e) => setShowArchivedWriting(e.target.checked)}
+            />
+            {t("writingStation.showArchived")}
+          </label>
+        </div>
+
+        {writingErr ? (
+          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{writingErr}</div>
+        ) : visibleWritingActivities.length === 0 ? (
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-900 sm:p-4">
+            {t("writingStation.none")}
+          </div>
+        ) : (
+          <div className="mt-4 grid min-w-0 gap-3">
+            {visibleWritingActivities.map((activity) => {
+              const archived = String(activity.data.status ?? "").toLowerCase() === "archived";
+              const assignedAt = fmtDate(toMillisAny(activity.data.assignedAt || activity.data.createdAt));
+
+              return (
+                <div
+                  key={activity.id}
+                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-emerald-200 bg-white p-3 shadow-sm sm:p-4"
+                >
+                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="break-words text-base font-semibold text-slate-950">
+                          {safeString(activity.data.title) ?? t("writingStation.fallbackTitle")}
+                        </div>
+                        {archived ? (
+                          <span className="text-sm font-medium text-slate-500">{t("all.archivedTag")}</span>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-2 break-words text-sm text-slate-600">
+                        {t("writingStation.genre.story")}
+                        {activity.data.level ? ` · ${activity.data.level}` : ""}
+                        {activity.data.language ? ` · ${activity.data.language}` : ""}
+                        {activity.data.theme ? ` · ${activity.data.theme}` : ""}
+                        {assignedAt ? ` · ${assignedAt}` : ""}
+                      </div>
+
+                      <div className="mt-2 text-xs text-emerald-800">
+                        {activity.data.aiPolicy?.enabled === false
+                          ? t("writingStation.ai.off")
+                          : t("writingStation.ai.on")}
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/student/spaces/${spaceId}/writing/${activity.id}`}
+                      className="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white no-underline hover:bg-emerald-800"
+                    >
+                      {t("writingStation.open")}
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

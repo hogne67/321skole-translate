@@ -39,6 +39,7 @@ import studentSpaceDetail from "./student/studentspaceDetail.json";
 import studentAssignment from "./student/studentAssignment.json";
 import studentSubmission from "./student/studentSubmission.json";
 import studentLesson from "./student/studentLesson.json";
+import studentWritingStation from "./student/studentWritingStation.json";
 import studentDashboard from "./student/dashboard.json";
 import studentDashboardIntro from "./student/dashboardIntro.json";
 import studentBoard from "./student/studentBoard.json";
@@ -54,6 +55,7 @@ import dashboardPage from "./parent/dashboardPage.json";
 import teacherSpaces from "./teacher/spaces.json";
 import teacherSpacesNew from "./teacher/spacesNew.json";
 import teacherSpaceDetail from "./teacher/spaceDetail.json";
+import teacherWritingStation from "./teacher/writingStation.json";
 import teacherAssignedTask from "./teacher/assignedTask.json";
 import teacherSubmission from "./teacher/submission.json";
 import teacherBoard from "./teacher/teacherBoard.json";
@@ -64,6 +66,7 @@ import teacherPage from "./teacher/teacherPage.json";
 import producerGenerateNewText from "./producer/generateNewText.json";
 import producerEditorNewText from "./producer/editorNewText.json";
 import producerLessonPrint from "./producer/lessonPrint.json";
+import producerTextNew from "./producer/textNew.json";
 import producerReadingTestsNew from "./producer/readingTestsNew.json";
 import producerReadingTestsEditor from "./producer/readingTestsEditor.json";
 
@@ -109,6 +112,7 @@ const messages = {
   ...studentAssignment,
   ...studentSubmission,
   ...studentLesson,
+  ...studentWritingStation,
   ...studentDashboard,
   ...studentDashboardIntro,
   ...studentBoard,
@@ -124,6 +128,7 @@ const messages = {
   ...teacherSpaces,
   ...teacherSpacesNew,
   ...teacherSpaceDetail,
+  ...teacherWritingStation,
   ...teacherAssignedTask,
   ...teacherSubmission,
   ...teacherBoard,
@@ -134,6 +139,7 @@ const messages = {
   ...producerGenerateNewText,
   ...producerEditorNewText,
   ...producerLessonPrint,
+  ...producerTextNew,
   ...producerReadingTestsNew,
   ...producerReadingTestsEditor,
 };

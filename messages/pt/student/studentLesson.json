@@ -30,7 +30,7 @@
     },
     "preReading": {
       "title": "Antes de ler",
-      "prompt": "Olhe para a imagem. O que você percebe? Escreva algumas palavras, ou diga o que está pensando.",
+      "prompt": "Olhe para a imagem e o título. O que você percebe? Escreva algumas palavras, ou diga o que está pensando.",
       "placeholder": "Escreva algumas palavras aqui...",
       "playPrompt": "Reproduzir antes da leitura"
     },

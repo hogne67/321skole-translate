@@ -1,0 +1,62 @@
+{
+  "producerTextNew": {
+    "loading": "Loading...",
+    "noAccess": "You must be a teacher or admin to create writing activities.",
+    "eyebrow": "Text builder",
+    "title": "New writing activity",
+    "beta": "Beta",
+    "subtitle": "Create a writing task with assignment text, criteria, support words, and AI limits. Students create their own title in the writing room.",
+    "backToWriting": "To Text",
+    "fallbackTitle": "New writing activity",
+    "saved": "The writing activity has been saved.",
+    "openLibrary": "Open My content to assign it.",
+    "saving": "Saving...",
+    "save": "Save to My content",
+    "assignment": {
+      "title": "Assignment"
+    },
+    "criteria": {
+      "title": "Requirements and criteria",
+      "subtitle": "One item per line. These are used in the student's control room and as a frame for AI support."
+    },
+    "support": {
+      "title": "Support words",
+      "subtitle": "One word or sentence starter per line. The teacher can make support narrower or richer."
+    },
+    "settings": {
+      "title": "Frame",
+      "aiOn": "AI support on",
+      "aiOff": "AI support off",
+      "printImage": "Allow image in printout",
+      "aiImage": "Allow AI image"
+    },
+    "fields": {
+      "libraryTitle": "Library title",
+      "libraryTitlePlaceholder": "For example: The door closed",
+      "theme": "Theme",
+      "customTheme": "Custom theme",
+      "assignmentText": "Assignment text for the student",
+      "criteria": "Criteria",
+      "goals": "Competence goals",
+      "goalsPlaceholder": "Paste one competence goal per line.",
+      "level": "Level",
+      "language": "Language",
+      "progression": "Progression",
+      "aiTotal": "Max total AI uses",
+      "aiSection": "Max AI per section"
+    },
+    "sections": {
+      "title": "Title",
+      "introduction": "Introduction",
+      "mainPart": "Main part",
+      "ending": "Ending",
+      "contentCheck": "Content check",
+      "languageCheck": "Language check"
+    },
+    "progression": {
+      "guided": "Guided flow",
+      "free": "Free flow",
+      "locked": "Locked step by step"
+    }
+  }
+}

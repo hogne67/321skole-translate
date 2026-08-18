@@ -1,0 +1,1 @@
+export { storyWritingTemplate } from "./story";

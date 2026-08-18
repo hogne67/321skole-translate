@@ -46,6 +46,50 @@
       "emptyHtml": "No assignments yet. Go to <b>My Content</b> to assign tasks to this space.",
       "count": "{count} · {label}"
     },
+    "writingStation": {
+      "title": "Writing Station",
+      "subtitle": "Writing activities assigned to this space.",
+      "manageTitle": "Create and assign from Writing Station",
+      "manageText": "Writing activities are created in their own tab, then assigned here when the class will use them.",
+      "showArchived": "Show archived writing activities",
+      "empty": "No writing activities yet.",
+      "created": "Writing activity created.",
+      "createFailed": "Could not create writing activity.",
+      "updateFailed": "Could not update writing activity.",
+      "readFailed": "Could not read writing activities.",
+      "fallbackTitle": "Story",
+      "form": {
+        "title": "Title",
+        "titlePlaceholder": "For example: An unexpected discovery",
+        "theme": "Theme",
+        "themePlaceholder": "Optional theme",
+        "level": "Level",
+        "language": "Language",
+        "progression": "Progression",
+        "aiEnabled": "AI support",
+        "create": "Create writing activity",
+        "creating": "Creating…"
+      },
+      "progression": {
+        "guided": "Guided flow",
+        "free": "Free flow",
+        "locked": "Locked step by step"
+      },
+      "genre": {
+        "story": "Story"
+      },
+      "badges": {
+        "assigned": "Assigned"
+      },
+      "ai": {
+        "on": "AI support on · max {n} uses",
+        "off": "AI support off"
+      },
+      "actions": {
+        "submissions": "Submissions",
+        "openHub": "Open Writing Station"
+      }
+    },
     "assignTrainingVideo": {
       "button": "Watch guide",
       "buttonTitle": "Watch the guide for assigning tasks",

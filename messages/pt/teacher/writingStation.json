@@ -1,0 +1,193 @@
+{
+  "teacherWritingStation": {
+    "actions": {
+      "backToSpace": "Voltar ao space",
+      "backToSubmissions": "Voltar às respostas",
+      "openSubmission": "Abrir resposta"
+    },
+    "hub": {
+      "title": "Texto em uso",
+      "beta": "Beta",
+      "subtitle": "Planeje, construa e atribua atividades de texto em que os alunos trabalham com produção textual, feedback e produto final.",
+      "newTitle": "Nova atividade de escrita",
+      "newSubtitle": "Construa a tarefa no construtor de texto, salve na biblioteca e atribua a um space quando a turma for começar.",
+      "libraryTitle": "Minhas atividades de escrita",
+      "librarySubtitle": "{n} atividades na biblioteca",
+      "libraryMoved": "As atividades de escrita salvas agora ficam em Conteúdo. Atribua aos spaces a partir dali.",
+      "openMyContent": "Abrir Conteúdo",
+      "empty": "Ainda não há atividades de escrita. Crie o primeiro modelo acima.",
+      "readFailed": "Não foi possível ler as atividades de escrita.",
+      "createFailed": "Não foi possível criar a atividade de escrita.",
+      "assignFailed": "Não foi possível atribuir a atividade de escrita.",
+      "assigned": "Atribuída a {space}.",
+      "created": "Atividade de escrita salva na biblioteca.",
+      "form": {
+        "title": "Título",
+        "titlePlaceholder": "Por exemplo: Uma descoberta inesperada",
+        "theme": "Tema",
+        "themePlaceholder": "Tema opcional",
+        "level": "Nível",
+        "language": "Idioma",
+        "progression": "Progressão",
+        "aiEnabled": "Apoio de IA",
+        "aiEnabledOn": "Apoio de IA ativo",
+        "aiEnabledOff": "Apoio de IA desativado",
+        "create": "Abrir construtor de texto",
+        "creating": "Salvando..."
+      },
+      "progression": {
+        "guided": "Fluxo guiado",
+        "free": "Fluxo livre",
+        "locked": "Bloqueado passo a passo"
+      },
+      "ai": {
+        "on": "Apoio de IA ativo · máximo {n} usos",
+        "off": "Apoio de IA desativado"
+      },
+      "actions": {
+        "assign": "Atribuir ao space",
+        "assigning": "Atribuindo...",
+        "openSpace": "Abrir space"
+      },
+      "assign": {
+        "label": "Escolher space",
+        "placeholder": "Escolher space",
+        "noSpaces": "Você ainda não tem spaces para atribuir."
+      },
+      "badges": {
+        "template": "Modelo",
+        "archived": "Arquivada"
+      }
+    },
+    "genre": {
+      "story": "Narrativa"
+    },
+    "status": {
+      "draft": "Rascunho",
+      "planning_submitted": "Plano enviado",
+      "planning_reviewed": "Plano revisado",
+      "submitted": "Enviada",
+      "reviewed": "Revisada",
+      "needs_work": "Precisa melhorar",
+      "unknown": "Status desconhecido",
+      "needsWork": "Precisa melhorar",
+      "approved": "Aprovada"
+    },
+    "tabs": {
+      "planning": "Planejamento",
+      "drafting": "Sala de escrita",
+      "revision": "Sala de revisão",
+      "final": "Texto final",
+      "aiLog": "Log de IA"
+    },
+    "feedback": {
+      "title": "Feedback do professor",
+      "statusLabel": "Status",
+      "placeholder": "Escreva uma resposta curta para o aluno...",
+      "needTextToChangeStatus": "Para alterar o status, escreva um comentário curto.",
+      "saving": "Salvando...",
+      "saveButton": "Salvar feedback",
+      "saved": "Feedback salvo.",
+      "saveFailed": "Não foi possível salvar o feedback: {msg}",
+      "insertTimingData": "Inserir informação de leitura",
+      "rulesHint": "Salva apenas"
+    },
+    "planningFeedback": {
+      "title": "Feedback do planejamento",
+      "subtitle": "Dê uma resposta curta antes de o aluno continuar escrevendo.",
+      "placeholder": "Por exemplo: Este é um bom começo. Acrescente mais sobre o problema e o que o personagem principal quer.",
+      "saveButton": "Salvar feedback do plano"
+    },
+    "sectionFeedback": {
+      "title": "Feedback desta parte",
+      "placeholder": "Escreva brevemente o que o aluno pode manter ou melhorar.",
+      "approved": "Aprovado",
+      "improve": "Melhorar",
+      "save": "Enviar feedback ao aluno",
+      "sent": "Feedback enviado ao aluno",
+      "improvementSubmitted": "Melhoria enviada pelo aluno",
+      "saved": "Feedback da seção salvo.",
+      "status": {
+        "approved": "Marcado como aprovado",
+        "improve": "Marcado para melhoria"
+      }
+    },
+    "sectionAi": {
+      "planButton": "Obter sugestões de IA",
+      "draftingButton": "Obter sugestões de escrita da IA",
+      "revisionButton": "Obter sugestões de revisão da IA",
+      "finalButton": "Obter feedback geral da IA",
+      "helpTitle": "IA como rascunho.",
+      "helpText": "A IA cria sugestões curtas que você pode editar, complementar ou remover antes de aprovar ou pedir que o aluno melhore.",
+      "draftingHelpText": "A IA cria rascunhos curtos de feedback para o texto do aluno. Você pode editar, complementar ou remover antes que o aluno veja qualquer coisa.",
+      "processHelpText": "A IA cria rascunhos curtos para escrita, verificação de conteúdo e verificação de língua. Você edita antes que o aluno veja qualquer coisa.",
+      "revisionHelpText": "A IA cria rascunhos curtos para a verificação de conteúdo, verificação de língua e autoavaliação do aluno.",
+      "finalHelpText": "A IA cria um rascunho curto de feedback geral do texto. O professor edita e salva.",
+      "working": "Criando sugestões...",
+      "inserted": "As sugestões de IA foram inseridas como rascunhos. Revise antes de salvar.",
+      "overallInserted": "O feedback geral da IA foi inserido como rascunho.",
+      "empty": "Nenhuma seção de planejamento preenchida foi encontrada.",
+      "emptyFinal": "Nenhum texto final foi encontrado para revisar.",
+      "failed": "Não foi possível criar sugestões de IA: {msg}"
+    },
+    "submissions": {
+      "count": "{n} respostas",
+      "empty": "Nenhum aluno enviou esta atividade de escrita ainda.",
+      "aiUses": "IA usada {n} vezes"
+    },
+    "detail": {
+      "planningTitle": "Campos de planejamento",
+      "planningSubtitle": "As ideias e a estrutura do aluno antes do texto principal.",
+      "emptyPlanning": "Esta atividade de escrita não tem campos de planejamento.",
+      "emptyAnswer": "Não preenchido.",
+      "finalTitle": "Texto final",
+      "finalSubtitle": "Texto completo e feedback geral.",
+      "emptyFinal": "O aluno ainda não salvou um texto final.",
+      "processTitle": "Processo de escrita",
+      "processSubtitle": "Os rascunhos e a revisão do aluno, com feedback para cada parte.",
+      "revisionTitle": "Sala de revisão",
+      "revisionSubtitle": "Verificação de conteúdo, verificação de língua e autoavaliação do aluno.",
+      "emptyProcess": "Nenhum rascunho ou nota de revisão foi salvo."
+    },
+    "printProduct": {
+      "title": "Versão para impressão",
+      "teacherSubtitle": "Este é o produto final do aluno como pode ser impresso.",
+      "print": "Imprimir texto do aluno",
+      "untitled": "Sem título"
+    },
+    "aiLog": {
+      "title": "Log completo de IA",
+      "subtitle": "Todos os pedidos e respostas que o aluno recebeu nesta atividade de escrita.",
+      "count": "{n} registros",
+      "empty": "Nenhum uso de IA foi registrado.",
+      "prompt": "Pedido",
+      "response": "Resposta da IA",
+      "emptyPrompt": "Nenhum pedido salvo.",
+      "emptyResponse": "Nenhuma resposta de IA salva.",
+      "unknownSection": "Seção desconhecida"
+    },
+    "aiActions": {
+      "ask_questions": "Perguntas",
+      "suggest_words": "Palavras de apoio",
+      "sentence_starters": "Inícios de frase",
+      "check_requirements": "Verificar estrutura",
+      "continue_guidance": "Mais orientação",
+      "revision_feedback": "Revisão",
+      "unknown": "Apoio de IA"
+    },
+    "fallback": {
+      "space": "Space",
+      "activity": "Atividade de escrita",
+      "student": "Aluno",
+      "unknownStudent": "Aluno desconhecido",
+      "unknownDate": "Data desconhecida",
+      "unknownError": "Erro desconhecido"
+    },
+    "errors": {
+      "readActivity": "Não foi possível ler a atividade de escrita.",
+      "readSubmission": "Não foi possível ler a resposta.",
+      "readSubmissions": "Não foi possível ler as respostas.",
+      "notFound": "Não foi possível encontrar a atividade de escrita ou a resposta."
+    }
+  }
+}

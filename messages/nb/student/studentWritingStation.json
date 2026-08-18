@@ -1,0 +1,137 @@
+{
+  "studentWritingStation": {
+    "loading": "Laster…",
+    "actions": {
+      "back": "← Tilbake til spacet",
+      "saveDraft": "Lagre kladd",
+      "saving": "Lagrer…",
+      "sendPlan": "Send plan til lærer",
+      "sendToTeacher": "Send til lærer",
+      "sendImprovements": "Send forbedringer til lærer",
+      "approved": "Godkjent av lærer",
+      "print": "Skriv ut",
+      "submit": "Lever til lærer"
+    },
+    "rooms": {
+      "revision": "Kontrollrom"
+    },
+    "genre": {
+      "story": "Fortelling"
+    },
+    "assignment": {
+      "title": "Oppgave",
+      "criteria": "Kriterier",
+      "goals": "Kompetansemål"
+    },
+    "phase": {
+      "planning": "Planlegg teksten før du skriver.",
+      "drafting": "Skriv teksten i deler.",
+      "revision": "Se over og forbedre teksten.",
+      "final": "Samle teksten og lever."
+    },
+    "fields": {
+      "choose": "Velg…"
+    },
+    "otherCharacters": {
+      "person": "Person {n}",
+      "name": "Navn eller hvem",
+      "namePlaceholder": "For eksempel: Nora",
+      "role": "Rolle",
+      "description": "Kort beskrivelse",
+      "descriptionPlaceholder": "Hva gjør personen i fortellingen?",
+      "add": "+ Legg til person"
+    },
+    "progress": {
+      "ready": "Klar",
+      "keepWorking": "Arbeid videre",
+      "approved": "Godkjent",
+      "started": "Påbegynt",
+      "notStarted": "Ikke startet"
+    },
+    "wordStats": {
+      "section": "{count} ord · {percent} %",
+      "total": "{count} ord totalt"
+    },
+    "support": {
+      "title": "Støtte",
+      "subtitle": "Velg støtte når du trenger det.",
+      "wordsTitle": "Hjelpeord og startere",
+      "showWords": "Vis hjelpeord",
+      "hideWords": "Skjul hjelpeord",
+      "empty": "Ingen faste hjelpeord i denne delen ennå."
+    },
+    "ai": {
+      "working": "Jobber…",
+      "responseTitle": "KI-støtte",
+      "mainAction": "Få KI-hjelp",
+      "controlAction": "Hjelp meg å kontrollere",
+      "usedUp": "KI brukt opp",
+      "usage": "KI {used}/{max}",
+      "actions": {
+        "ask_questions": "Spør meg videre",
+        "suggest_words": "Hjelpeord",
+        "sentence_starters": "Setningsstartere",
+        "check_requirements": "Sjekk krav",
+        "continue_guidance": "Hjelp meg videre",
+        "revision_feedback": "Revisjonsråd"
+      }
+    },
+    "final": {
+      "preview": "Forhåndsvisning",
+      "empty": "Skriv innledning, hoveddel og avslutning først."
+    },
+    "printProduct": {
+      "title": "Utskriftsversjon",
+      "subtitle": "Gjør teksten klar som et ferdig produkt du kan være stolt av.",
+      "studentName": "Navn på utskrift",
+      "school": "Skole",
+      "className": "Klasse",
+      "writtenDate": "Dato skrevet",
+      "imageUrl": "Bilde",
+      "imageUrlPlaceholder": "Lim inn bildelenke hvis læreren har gitt deg et bilde.",
+      "save": "Lagre utskriftsinfo",
+      "uploadLocked": "Last opp bilde",
+      "aiImageLocked": "Lag KI-bilde",
+      "lockedHint": "Denne funksjonen må åpnes av lærer først.",
+      "untitled": "Uten tittel"
+    },
+    "messages": {
+      "saved": "Kladd lagret.",
+      "planningSubmitted": "Planen er sendt til lærer.",
+      "improvementSubmitted": "Forbedringen er sendt til lærer.",
+      "printSaved": "Utskriftsinfo lagret.",
+      "submitted": "Levert til lærer."
+    },
+    "status": {
+      "draft": "Kladd",
+      "planning_submitted": "Plan sendt til lærer",
+      "planning_reviewed": "Plan vurdert",
+      "submitted": "Levert",
+      "reviewed": "Gjennomgått",
+      "needs_work": "Trenger arbeid"
+    },
+    "teacherFeedback": {
+      "title": "Respons fra lærer",
+      "reviewed": "Gjennomgått",
+      "needsWork": "Trenger arbeid",
+      "updatedAt": "Oppdatert {at}"
+    },
+    "sectionFeedback": {
+      "show": "Lærerrespons",
+      "hide": "Skjul respons",
+      "none": "Ingen lærerrespons",
+      "approved": "Godkjent av lærer",
+      "improve": "Lærer foreslår forbedring",
+      "sendImprovement": "Send forbedring til lærer",
+      "improvementSent": "Forbedring sendt, venter respons"
+    },
+    "errors": {
+      "title": "Kunne ikke åpne tekstaktiviteten",
+      "auth": "Kunne ikke logge inn anonymt.",
+      "notFound": "Fant ikke skriveaktiviteten.",
+      "readActivity": "Kunne ikke lese skriveaktiviteten.",
+      "save": "Kunne ikke lagre.",
+      "ai": "Kunne ikke hente KI-støtte."
+    }
+  }
+}

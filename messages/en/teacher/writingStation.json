@@ -1,0 +1,193 @@
+{
+  "teacherWritingStation": {
+    "actions": {
+      "backToSpace": "Back to space",
+      "backToSubmissions": "Back to submissions",
+      "openSubmission": "Open submission"
+    },
+    "hub": {
+      "title": "Text in Use",
+      "beta": "Beta",
+      "subtitle": "Plan, build, and assign text activities where students work with text production, feedback, and finished products.",
+      "newTitle": "New writing activity",
+      "newSubtitle": "Build the task in the text builder, save it to the library, and assign it to a space when the class is ready.",
+      "libraryTitle": "My writing activities",
+      "librarySubtitle": "{n} activities in the library",
+      "libraryMoved": "Saved writing activities now live in My content. Assign them to spaces from there.",
+      "openMyContent": "Open My content",
+      "empty": "No writing activities yet. Create the first template above.",
+      "readFailed": "Could not read writing activities.",
+      "createFailed": "Could not create writing activity.",
+      "assignFailed": "Could not assign writing activity.",
+      "assigned": "Assigned to {space}.",
+      "created": "Writing activity saved to the library.",
+      "form": {
+        "title": "Title",
+        "titlePlaceholder": "For example: An unexpected discovery",
+        "theme": "Theme",
+        "themePlaceholder": "Optional theme",
+        "level": "Level",
+        "language": "Language",
+        "progression": "Progression",
+        "aiEnabled": "AI support",
+        "aiEnabledOn": "AI support on",
+        "aiEnabledOff": "AI support off",
+        "create": "Open text builder",
+        "creating": "Saving..."
+      },
+      "progression": {
+        "guided": "Guided flow",
+        "free": "Free flow",
+        "locked": "Locked step by step"
+      },
+      "ai": {
+        "on": "AI support on · max {n} uses",
+        "off": "AI support off"
+      },
+      "actions": {
+        "assign": "Assign to space",
+        "assigning": "Assigning...",
+        "openSpace": "Open space"
+      },
+      "assign": {
+        "label": "Choose space",
+        "placeholder": "Choose space",
+        "noSpaces": "You do not have any spaces to assign to yet."
+      },
+      "badges": {
+        "template": "Template",
+        "archived": "Archived"
+      }
+    },
+    "genre": {
+      "story": "Story"
+    },
+    "status": {
+      "draft": "Draft",
+      "planning_submitted": "Plan sent",
+      "planning_reviewed": "Plan reviewed",
+      "submitted": "Submitted",
+      "reviewed": "Reviewed",
+      "needs_work": "Needs work",
+      "unknown": "Unknown status",
+      "needsWork": "Needs work",
+      "approved": "Approved"
+    },
+    "tabs": {
+      "planning": "Planning",
+      "drafting": "Writing room",
+      "revision": "Check room",
+      "final": "Final text",
+      "aiLog": "AI log"
+    },
+    "feedback": {
+      "title": "Teacher feedback",
+      "statusLabel": "Status",
+      "placeholder": "Write a short response to the student...",
+      "needTextToChangeStatus": "To change status, you must write a short comment.",
+      "saving": "Saving...",
+      "saveButton": "Save feedback",
+      "saved": "Feedback saved.",
+      "saveFailed": "Could not save feedback: {msg}",
+      "insertTimingData": "Insert reading info",
+      "rulesHint": "Only saves"
+    },
+    "planningFeedback": {
+      "title": "Planning feedback",
+      "subtitle": "Give a short response before the student continues writing.",
+      "placeholder": "For example: This is a good start. Add more about the problem and what the main character wants.",
+      "saveButton": "Save plan feedback"
+    },
+    "sectionFeedback": {
+      "title": "Feedback on this part",
+      "placeholder": "Write briefly what the student can keep or improve.",
+      "approved": "Approved",
+      "improve": "Improve",
+      "save": "Send student feedback",
+      "sent": "Student feedback sent",
+      "improvementSubmitted": "Improvement sent by student",
+      "saved": "Section feedback saved.",
+      "status": {
+        "approved": "Marked as approved",
+        "improve": "Marked for improvement"
+      }
+    },
+    "sectionAi": {
+      "planButton": "Get AI feedback suggestions",
+      "draftingButton": "Get AI writing suggestions",
+      "revisionButton": "Get AI check suggestions",
+      "finalButton": "Get overall AI feedback",
+      "helpTitle": "AI as a draft.",
+      "helpText": "AI creates short suggestions that you can edit, add to, or remove before you approve or ask the student to improve.",
+      "draftingHelpText": "AI creates short draft feedback for the student's writing. You can edit, add to, or remove it before the student sees anything.",
+      "processHelpText": "AI creates short feedback drafts for writing, content check, and language check. You edit before the student sees anything.",
+      "revisionHelpText": "AI creates short feedback drafts for the student's content check, language check, and self-assessment.",
+      "finalHelpText": "AI creates a short draft for overall text feedback. The teacher edits and saves it.",
+      "working": "Creating suggestions...",
+      "inserted": "AI suggestions were inserted as drafts. Review them before saving.",
+      "overallInserted": "AI overall feedback was inserted as a draft.",
+      "empty": "No completed planning sections were found.",
+      "emptyFinal": "No final text was found to review.",
+      "failed": "Could not create AI suggestions: {msg}"
+    },
+    "submissions": {
+      "count": "{n} submissions",
+      "empty": "No students have submitted this writing activity yet.",
+      "aiUses": "AI used {n} times"
+    },
+    "detail": {
+      "planningTitle": "Planning fields",
+      "planningSubtitle": "The student's ideas and frame before the main text.",
+      "emptyPlanning": "This writing activity has no planning fields.",
+      "emptyAnswer": "Not filled in.",
+      "finalTitle": "Final text",
+      "finalSubtitle": "Complete text and overall feedback.",
+      "emptyFinal": "The student has not saved a final text yet.",
+      "processTitle": "Writing process",
+      "processSubtitle": "The student's drafts and revision, with feedback for each part.",
+      "revisionTitle": "Check room",
+      "revisionSubtitle": "The student's content check, language check, and self-assessment.",
+      "emptyProcess": "No drafts or revision notes are saved."
+    },
+    "printProduct": {
+      "title": "Print version",
+      "teacherSubtitle": "This is the student's finished product as it can be printed.",
+      "print": "Print student text",
+      "untitled": "Untitled"
+    },
+    "aiLog": {
+      "title": "Full AI log",
+      "subtitle": "Every request and response the student has received in this writing activity.",
+      "count": "{n} log entries",
+      "empty": "No AI use has been logged.",
+      "prompt": "Prompt",
+      "response": "AI response",
+      "emptyPrompt": "No prompt saved.",
+      "emptyResponse": "No AI response saved.",
+      "unknownSection": "Unknown section"
+    },
+    "aiActions": {
+      "ask_questions": "Questions",
+      "suggest_words": "Support words",
+      "sentence_starters": "Sentence starters",
+      "check_requirements": "Check frame",
+      "continue_guidance": "Further guidance",
+      "revision_feedback": "Revision",
+      "unknown": "AI support"
+    },
+    "fallback": {
+      "space": "Space",
+      "activity": "Writing activity",
+      "student": "Student",
+      "unknownStudent": "Unknown student",
+      "unknownDate": "Unknown date",
+      "unknownError": "Unknown error"
+    },
+    "errors": {
+      "readActivity": "Could not read the writing activity.",
+      "readSubmission": "Could not read the submission.",
+      "readSubmissions": "Could not read the submissions.",
+      "notFound": "Could not find the writing activity or submission."
+    }
+  }
+}

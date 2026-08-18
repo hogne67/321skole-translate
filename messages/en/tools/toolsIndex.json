@@ -28,6 +28,10 @@
           "title": "Worksheet generator",
           "description": "Create structured assignments with AI support."
         },
+        "writingActivityGenerator": {
+          "title": "Text builder",
+          "description": "Create writing activities with planning, feedback, control room, and final text."
+        },
         "imageWritingGenerator": {
           "title": "Image writing",
           "description": "Create writing tasks where students write from an image."

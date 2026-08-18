@@ -52,6 +52,21 @@
       "message": "✉️ mensagem",
       "notSubmitted": "Você ainda não enviou esta atividade."
     },
+    "writingStation": {
+      "title": "Estação de escrita",
+      "subtitle": "Atividades de escrita do seu professor.",
+      "showArchived": "Mostrar arquivadas",
+      "none": "Ainda não há atividades de escrita.",
+      "fallbackTitle": "Narrativa",
+      "open": "Abrir",
+      "genre": {
+        "story": "Narrativa"
+      },
+      "ai": {
+        "on": "Apoio de IA disponível",
+        "off": "Apoio de IA desativado"
+      }
+    },
     "status": {
       "submitted": "Enviado",
       "needsWork": "Precisa melhorar",
@@ -75,6 +90,8 @@
       "listenStart": "Não foi possível iniciar a escuta",
       "readAssignments": "Não foi possível ler as atividades",
       "listenAssignmentsStart": "Não foi possível iniciar a escuta das atividades",
+      "readWritingActivities": "Não foi possível ler as atividades de escrita",
+      "listenWritingActivitiesStart": "Não foi possível iniciar a escuta das atividades de escrita",
       "readSubmissions": "Não foi possível carregar as entregas",
       "archiveMove": "Não foi possível mover para o arquivo",
       "archiveRestore": "Não foi possível restaurar"

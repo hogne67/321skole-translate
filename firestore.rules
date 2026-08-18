@@ -474,6 +474,23 @@ allow update: if signedIn()
     }
 
     /* =========================
+       TEACHER WRITING LIBRARY
+    ========================= */
+    match /writingActivities/{activityId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.ownerUid == myUid());
+
+      allow create: if isAdmin()
+        || (
+          isTeacher()
+          && request.resource.data.ownerUid == myUid()
+        );
+
+      allow update, delete: if isAdmin()
+        || (signedIn() && resource.data.ownerUid == myUid());
+    }
+
+    /* =========================
        PUBLISHED LESSONS
     ========================= */
     match /published_lessons/{id} {
@@ -742,6 +759,96 @@ allow update: if signedIn()
     match /spaces/{spaceId}/lessons/{assignmentId} {
       allow read: if isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
       allow create, update, delete: if isAdmin() || isSpaceOwner(spaceId);
+    }
+
+    /* =========================
+       SPACE-LOCAL WRITING ACTIVITIES
+    ========================= */
+    match /spaces/{spaceId}/writingActivities/{activityId} {
+      allow read: if isAdmin() || isSpaceOwner(spaceId) || isSpaceMember(spaceId) || spaceIsOpen(spaceId);
+      allow create, update, delete: if isAdmin() || isSpaceOwner(spaceId);
+    }
+
+    match /spaces/{spaceId}/writingActivities/{activityId}/submissions/{subId} {
+      function canWritingTeacherRead() {
+        return signedIn() && (
+          isSpaceOwner(spaceId)
+          || isAdmin()
+          || (isTeacher() && isSpaceMember(spaceId))
+        );
+      }
+
+      function isWritingSubOwner() {
+        return signedIn()
+          && resource != null
+          && ("studentUid" in resource.data)
+          && (resource.data.studentUid is string)
+          && resource.data.studentUid == myUid();
+      }
+
+      function isOwnWritingSubmissionId() {
+        return signedIn()
+          && subId == (spaceId + "_" + activityId + "_" + myUid());
+      }
+
+      function validStudentWritingStatus() {
+        return !("status" in request.resource.data)
+          || request.resource.data.status == "draft"
+          || request.resource.data.status == "planning_submitted"
+          || request.resource.data.status == "planning_reviewed"
+          || request.resource.data.status == "submitted"
+          || request.resource.data.status == "needs_work"
+          || request.resource.data.status == "reviewed";
+      }
+
+      function writingTeacherFeedbackUnchanged() {
+        return !request.resource.data.diff(resource.data).affectedKeys().hasAny(["teacherFeedback", "sectionFeedback"]);
+      }
+
+      function writingTeacherReviewUpdateOnly() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "teacherFeedback", "sectionFeedback", "updatedAt"])
+          && (
+            request.resource.data.status == "reviewed"
+            || request.resource.data.status == "needs_work"
+            || request.resource.data.status == "planning_reviewed"
+          )
+          && ("teacherFeedback" in request.resource.data)
+          && (request.resource.data.teacherFeedback is map)
+          && ("text" in request.resource.data.teacherFeedback)
+          && (request.resource.data.teacherFeedback.text is string)
+          && (!("sectionFeedback" in request.resource.data) || (request.resource.data.sectionFeedback is map));
+      }
+
+      function writingTeacherSectionFeedbackUpdateOnly() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["sectionFeedback", "updatedAt"])
+          && ("sectionFeedback" in request.resource.data)
+          && (request.resource.data.sectionFeedback is map);
+      }
+
+      allow read: if canWritingTeacherRead() || isWritingSubOwner();
+      allow create: if signedIn()
+        && isSpaceMember(spaceId)
+        && isOwnWritingSubmissionId()
+        && (request.resource.data.studentUid is string)
+        && request.resource.data.studentUid == myUid()
+        && validStudentWritingStatus()
+        && !("teacherFeedback" in request.resource.data);
+      allow update: if (
+        signedIn()
+        && isSpaceMember(spaceId)
+        && isOwnWritingSubmissionId()
+        && (request.resource.data.studentUid is string)
+        && request.resource.data.studentUid == myUid()
+        && validStudentWritingStatus()
+        && writingTeacherFeedbackUnchanged()
+      ) || (
+        canWritingTeacherRead()
+        && writingTeacherReviewUpdateOnly()
+      ) || (
+        canWritingTeacherRead()
+        && writingTeacherSectionFeedbackUpdateOnly()
+      );
+      allow delete: if isAdmin() || isSpaceOwner(spaceId);
     }
 
     /* =========================

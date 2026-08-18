@@ -1,0 +1,137 @@
+{
+  "studentWritingStation": {
+    "loading": "Carregando…",
+    "actions": {
+      "back": "← Voltar para o space",
+      "saveDraft": "Salvar rascunho",
+      "saving": "Salvando…",
+      "sendPlan": "Enviar plano ao professor",
+      "sendToTeacher": "Enviar ao professor",
+      "sendImprovements": "Enviar melhorias ao professor",
+      "approved": "Aprovado pelo professor",
+      "print": "Imprimir",
+      "submit": "Enviar ao professor"
+    },
+    "rooms": {
+      "revision": "Sala de controle"
+    },
+    "genre": {
+      "story": "Narrativa"
+    },
+    "assignment": {
+      "title": "Tarefa",
+      "criteria": "Critérios",
+      "goals": "Objetivos de competência"
+    },
+    "phase": {
+      "planning": "Planeje o texto antes de escrever.",
+      "drafting": "Escreva o texto em partes.",
+      "revision": "Revise e melhore o texto.",
+      "final": "Junte o texto e envie."
+    },
+    "fields": {
+      "choose": "Escolha…"
+    },
+    "otherCharacters": {
+      "person": "Pessoa {n}",
+      "name": "Nome ou quem",
+      "namePlaceholder": "Por exemplo: Nora",
+      "role": "Papel",
+      "description": "Descrição curta",
+      "descriptionPlaceholder": "O que essa pessoa faz na história?",
+      "add": "+ Adicionar pessoa"
+    },
+    "progress": {
+      "ready": "Pronto",
+      "keepWorking": "Continue trabalhando",
+      "approved": "Aprovado",
+      "started": "Iniciado",
+      "notStarted": "Não iniciado"
+    },
+    "wordStats": {
+      "section": "{count} palavras · {percent}%",
+      "total": "{count} palavras no total"
+    },
+    "support": {
+      "title": "Apoio",
+      "subtitle": "Escolha apoio quando precisar.",
+      "wordsTitle": "Palavras de apoio e inícios",
+      "showWords": "Mostrar palavras de apoio",
+      "hideWords": "Ocultar palavras de apoio",
+      "empty": "Ainda não há palavras de apoio fixas nesta parte."
+    },
+    "ai": {
+      "working": "Processando…",
+      "responseTitle": "Apoio de IA",
+      "mainAction": "Obter ajuda de IA",
+      "controlAction": "Ajude-me a revisar",
+      "usedUp": "IA esgotada",
+      "usage": "IA {used}/{max}",
+      "actions": {
+        "ask_questions": "Faça perguntas",
+        "suggest_words": "Palavras de apoio",
+        "sentence_starters": "Inícios de frase",
+        "check_requirements": "Verificar critérios",
+        "continue_guidance": "Ajude-me a continuar",
+        "revision_feedback": "Conselhos de revisão"
+      }
+    },
+    "final": {
+      "preview": "Prévia",
+      "empty": "Escreva a introdução, o desenvolvimento e a conclusão primeiro."
+    },
+    "printProduct": {
+      "title": "Versão para impressão",
+      "subtitle": "Prepare o texto como um produto final do qual você possa se orgulhar.",
+      "studentName": "Nome na impressão",
+      "school": "Escola",
+      "className": "Turma",
+      "writtenDate": "Data escrita",
+      "imageUrl": "Imagem",
+      "imageUrlPlaceholder": "Cole um link de imagem se o professor tiver fornecido um.",
+      "save": "Salvar dados da impressão",
+      "uploadLocked": "Enviar imagem",
+      "aiImageLocked": "Criar imagem com IA",
+      "lockedHint": "Esta função precisa ser liberada pelo professor primeiro.",
+      "untitled": "Sem título"
+    },
+    "messages": {
+      "saved": "Rascunho salvo.",
+      "planningSubmitted": "O plano foi enviado ao professor.",
+      "improvementSubmitted": "A melhoria foi enviada ao professor.",
+      "printSaved": "Dados da impressão salvos.",
+      "submitted": "Enviado ao professor."
+    },
+    "status": {
+      "draft": "Rascunho",
+      "planning_submitted": "Plano enviado ao professor",
+      "planning_reviewed": "Plano revisado",
+      "submitted": "Enviado",
+      "reviewed": "Revisado",
+      "needs_work": "Precisa melhorar"
+    },
+    "teacherFeedback": {
+      "title": "Feedback do professor",
+      "reviewed": "Revisado",
+      "needsWork": "Precisa melhorar",
+      "updatedAt": "Atualizado {at}"
+    },
+    "sectionFeedback": {
+      "show": "Feedback do professor",
+      "hide": "Ocultar feedback",
+      "none": "Sem feedback do professor",
+      "approved": "Aprovado pelo professor",
+      "improve": "O professor sugere melhoria",
+      "sendImprovement": "Enviar melhoria ao professor",
+      "improvementSent": "Melhoria enviada, aguardando resposta"
+    },
+    "errors": {
+      "title": "Não foi possível abrir a Estação de escrita",
+      "auth": "Não foi possível entrar anonimamente.",
+      "notFound": "Não foi possível encontrar a atividade de escrita.",
+      "readActivity": "Não foi possível ler a atividade de escrita.",
+      "save": "Não foi possível salvar.",
+      "ai": "Não foi possível obter apoio de IA."
+    }
+  }
+}

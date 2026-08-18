@@ -28,6 +28,7 @@ export function navItemsForRole(role: Role): NavItem[] {
     return [
       ...base,
       { href: "/teacher/board", labelKey: "board" },
+      { href: "/teacher/writing", labelKey: "writingStation" },
       { href: "/teacher/spaces", labelKey: "spaces" },
       { href: "/tools", labelKey: "tools" },
     ];
