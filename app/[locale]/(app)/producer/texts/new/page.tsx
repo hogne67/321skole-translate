@@ -52,6 +52,7 @@ type LessonTask = {
 type GenerateTextResp = {
   title?: string;
   text?: unknown;
+  factCheckReport?: unknown;
   error?: string;
   raw?: string;
 };
@@ -777,6 +778,7 @@ export default function NewTextPage() {
   const [sourceText, setSourceText] = useState<string>("");
   const [approvedSourceText, setApprovedSourceText] = useState("");
   const [lastFactCheckedText, setLastFactCheckedText] = useState("");
+  const [factCheckReport, setFactCheckReport] = useState("");
   const [lastGeneratedWith, setLastGeneratedWith] = useState<"standard" | "factcheck" | "manual">("manual");
   const [lessonTasks, setLessonTasks] = useState<LessonTask[]>([]);
   const [pack, setPack] = useState<ContentPack | null>(null);
@@ -1147,6 +1149,7 @@ export default function NewTextPage() {
           textLength,
           extraFactCheck,
           sourceText: extraFactCheck ? sourceText : "",
+          reportLanguage: locale,
           a1Start: a1StartConfig,
         }),
       });
@@ -1188,11 +1191,25 @@ export default function NewTextPage() {
       const nextText = stringifyGeneratedText(data.text);
       if (!nextText) throw new Error("Missing text in response.");
 
+      if (extraFactCheck) {
+        const nextReport = stringifyGeneratedText(data.factCheckReport);
+        if (nextTitle) setTitle(nextTitle);
+        setSourceText(nextText);
+        setApprovedSourceText("");
+        setFactCheckReport(nextReport || t("warnings.factCheckCompleted"));
+        setLastGeneratedWith("factcheck");
+        setLastFactCheckedText(nextText.trim());
+        if (lessonTasks.length > 0) setTasksDirty(true);
+        await refreshFeatureStatus(user.uid);
+        return;
+      }
+
       setTitle(nextTitle);
       setSourceText(nextText);
       setApprovedSourceText("");
+      setFactCheckReport("");
       setLastGeneratedWith(extraFactCheck ? "factcheck" : "standard");
-      setLastFactCheckedText(extraFactCheck ? nextText : "");
+      setLastFactCheckedText("");
       setLessonTasks([]);
       setPack(null);
       setTasksDirty(false);
@@ -2102,14 +2119,14 @@ export default function NewTextPage() {
                     <button
                       className="actionBtn"
                       onClick={() => generateTextOnly(true)}
-                      disabled={busy}
+                      disabled={busy || !sourceText.trim()}
                       style={{
                         ...buttonSecondary,
                         width: isNarrow ? "100%" : "auto",
                         marginLeft: isNarrow ? 0 : 8,
                         marginTop: isNarrow ? 8 : 0,
-                        opacity: busy ? 0.7 : 1,
-                        cursor: busy ? "not-allowed" : "pointer",
+                        opacity: busy || !sourceText.trim() ? 0.7 : 1,
+                        cursor: busy || !sourceText.trim() ? "not-allowed" : "pointer",
                       }}
                     >
                       {loadingText && textGenerationMode === "factcheck"
@@ -2166,6 +2183,7 @@ export default function NewTextPage() {
                       setApprovedSourceText("");
                       setLastGeneratedWith("manual");
                       setLastFactCheckedText("");
+                      setFactCheckReport("");
                       if (lessonTasks.length > 0) setTasksDirty(true);
                     }}
                     rows={14}
@@ -2186,6 +2204,27 @@ export default function NewTextPage() {
                     <span>{t("builder.wordCount", { count: sourceWordCount })}</span>
                   </div>
                 </label>
+                {factCheckReport.trim() && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      border: "1px solid #bbf7d0",
+                      borderRadius: 14,
+                      padding: 12,
+                      background: "#f0fdf4",
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#166534" }}>
+                      {t("warnings.factCheckReportTitle")}
+                    </div>
+                    <div style={{ marginTop: 4, whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.55, color: "#14532d" }}>
+                      {factCheckReport}
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 12, color: "#166534", lineHeight: 1.45 }}>
+                      {t("warnings.factCheckReportHelp")}
+                    </div>
+                  </div>
+                )}
                 {hasText && (
                   <div
                     style={{

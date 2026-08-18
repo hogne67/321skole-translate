@@ -155,6 +155,8 @@
       "checkTextBeforeTasks": "Please check the text before you generate tasks.",
       "factCheckRequiredBeforePublish": "This text should be extra fact-checked before publishing.",
       "factCheckCompleted": "Extra fact check has been run for this text.",
+      "factCheckReportTitle": "Fact-check report",
+      "factCheckReportHelp": "The report shows whether the text was left unchanged, or which small factual and language corrections were made.",
       "soonEmpty": "(running low)"
     },
     "status": {

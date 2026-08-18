@@ -155,6 +155,8 @@
       "checkTextBeforeTasks": "Verifique o texto antes de gerar atividades.",
       "factCheckRequiredBeforePublish": "Este texto deve passar por verificação extra antes da publicação.",
       "factCheckCompleted": "A verificação extra foi feita para este texto.",
+      "factCheckReportTitle": "Relatório de verificação de fatos",
+      "factCheckReportHelp": "O relatório mostra se o texto ficou inalterado ou quais pequenas correções factuais e linguísticas foram feitas.",
       "soonEmpty": "(quase acabando)"
     },
     "status": {

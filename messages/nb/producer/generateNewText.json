@@ -155,6 +155,8 @@
       "checkTextBeforeTasks": "Sjekk teksten før du genererer oppgaver.",
       "factCheckRequiredBeforePublish": "Denne teksten bør ekstrasjekkes før publisering.",
       "factCheckCompleted": "Ekstra faktasjekk er kjørt for denne teksten.",
+      "factCheckReportTitle": "Faktasjekkrapport",
+      "factCheckReportHelp": "Rapporten viser om teksten ble stående uendret, eller hvilke små fakta- og språkrettelser som ble gjort.",
       "soonEmpty": "(begynner å bli tomt)"
     },
     "status": {

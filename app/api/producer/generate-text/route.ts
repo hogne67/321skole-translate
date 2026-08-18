@@ -18,6 +18,7 @@ type GenerateTextBody = {
   textLength?: number;
   extraFactCheck?: boolean;
   sourceText?: string;
+  reportLanguage?: string;
   a1Start?: A1StartConfig;
 };
 
@@ -39,11 +40,7 @@ type A1StartConfig = {
 type GenerateTextResult = {
   title: string;
   text: unknown;
-};
-
-type SourceGroundingResult = {
-  facts?: unknown;
-  cautions?: unknown;
+  factCheckReport?: unknown;
 };
 
 type RequestUserContext = {
@@ -114,11 +111,6 @@ function resolveLanguageName(code: string): string {
   return code;
 }
 
-function isCefrAtLeastB1(level: string): boolean {
-  const normalized = level.trim().toUpperCase();
-  return normalized === "B1" || normalized === "B2" || normalized === "C1" || normalized === "C2";
-}
-
 function shouldRunExtraFactCheck(textType: string, topic: string): boolean {
   const combined = `${textType} ${topic}`.toLocaleLowerCase();
   return [
@@ -132,34 +124,6 @@ function shouldRunExtraFactCheck(textType: string, topic: string): boolean {
     "historie",
     "history",
   ].some((term) => combined.includes(term));
-}
-
-function normalizeStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => String(item || "").trim())
-    .filter(Boolean)
-    .slice(0, 10);
-}
-
-function stringifySourceGrounding(value: SourceGroundingResult | null): string {
-  if (!value) return "";
-  const facts = normalizeStringList(value.facts);
-  const cautions = normalizeStringList(value.cautions);
-  const lines: string[] = [];
-
-  if (facts.length) {
-    lines.push("Source-grounded facts:");
-    facts.forEach((fact) => lines.push(`- ${fact}`));
-  }
-
-  if (cautions.length) {
-    if (lines.length) lines.push("");
-    lines.push("Source cautions:");
-    cautions.forEach((caution) => lines.push(`- ${caution}`));
-  }
-
-  return lines.join("\n");
 }
 
 function buildCefrLevelGuidance(level: string): string {
@@ -296,106 +260,76 @@ Return valid JSON only:
           `.trim();
 }
 
-function buildCefrSelectionPrompt(args: {
+function buildFactCheckReviewPrompt(args: {
   languageName: string;
+  reportLanguageName: string;
   level: string;
   topic: string;
   textType: string;
-  textLength: number;
-  draftA: GenerateTextResult;
-  draftB: GenerateTextResult;
-  sourceGrounding?: string;
+  sourceText: string;
 }): string {
-  const { languageName, level, topic, textType, textLength, draftA, draftB, sourceGrounding } = args;
-  const minWords = Math.max(1, Math.round(textLength * 0.9));
-  const maxWords = Math.max(minWords, Math.round(textLength * 1.1));
+  const { languageName, reportLanguageName, level, topic, textType, sourceText } = args;
 
   return `
-Create the final learner text from two drafts.
+Fact-check and lightly correct the teacher's current learner text.
 
-Language: ${languageName}
-Level: ${level}
-Topic: ${topic}
-Text type: ${textType}
-Target length: ${textLength} words
-Allowed length: ${minWords}-${maxWords} words
-
-Draft A:
-Title: ${String(draftA.title || "").trim()}
-Text:
-${stringifyGeneratedText(draftA.text)}
-
-Draft B:
-Title: ${String(draftB.title || "").trim()}
-Text:
-${stringifyGeneratedText(draftB.text)}
-
-${sourceGrounding ? `Verified source notes:
-${sourceGrounding}
-` : ""}
-
-Selection and fact-check rules:
-- Return one final text, not comments.
-- Treat Draft A as the current teacher-facing text when it is already coherent. Preserve its main content and wording unless a fact, grammar issue, level mismatch, or clarity issue needs a change.
-- Keep the best language, structure and level match from the drafts.
-- If verified source notes are provided, use them as the highest-priority fact basis.
-- Also perform a language quality check: correct grammar, word order, pronoun reference, singular/plural consistency and unnatural collocations.
-- Keep grammar corrections simple and natural. Do not make the text more advanced when improving the language.
-- After fact-checking, perform a final CEFR level check. Simplify words, sentence length and sentence structure until the text clearly matches ${level}.
-- Do not let more precise facts make the text harder than the requested level.
-- If a precise fact requires a difficult phrase, split it into two short sentences or explain it with simpler words.
-- For long organization names, historical terms or specialist terms, either explain them simply nearby or use a simpler description if the exact name is not necessary.
-- At A1-A2, do not stack several difficult terms in one sentence.
-- Remove or generalize facts that are suspicious, too specific, unstable, or appear in only one draft unless they are clearly high-confidence.
-- For named people, be very careful with birthplaces, schools, exact jobs, dates, current roles, family details and named organizations.
-- For living people, avoid present-tense job or role claims unless the teacher supplied the role. Prefer past-tense role descriptions with years when known.
-- Do not add new specific facts that are not in the drafts, unless they are in the verified source notes.
-- If verified source notes correct or update a draft, follow the verified source notes.
-- Preserve the requested CEFR level, text type and word count.
-- If the drafts disagree or feel uncertain, choose a simpler, safer sentence.
-- Silently count the words before returning.
-
-Return valid JSON only:
-{
-  "title": "...",
-  "text": "..."
-}
-          `.trim();
-}
-
-function buildSourceGroundingPrompt(args: {
-  languageName: string;
-  level: string;
-  topic: string;
-  textType: string;
-}): string {
-  const { languageName, level, topic, textType } = args;
-
-  return `
-Find a small source-grounded fact basis for a learner text.
-
-Language of the final learner text: ${languageName}
-CEFR level: ${level}
+Language of the learner text: ${languageName}
+Language for the change report: ${reportLanguageName}
+CEFR level of the learner text: ${level}
 Topic: ${topic}
 Text type: ${textType}
 
-Task:
-- Use web search to verify the most important facts for this topic.
-- Focus especially on named people, historical events, public roles, dates, places, organizations and current roles.
-- Prefer official or high-quality reference sources when available.
-- Keep the result short. Do not write the learner text.
-- If the topic is a living person, include current role only if it is clearly supported by sources.
-- If facts are uncertain, controversial or recently changed, put that in cautions instead of facts.
+Current text to check:
+${sourceText}
+
+Hard rules:
+- Keep the learner text in ${languageName}.
+- Start by identifying risk facts: years, dates, ages, places, birthplaces, names, titles, jobs, work history, positions, current roles, quotes, statistics, historical claims, named organizations and current administrative geography.
+- Treat risk facts as claims that must be verified or marked as uncertain.
+- Treat current administrative geography as high risk: country, region, state, county, municipality, district and city/town relationships may change over time.
+- Do not assume an old region/county/state name is still the current administrative location. It may be historically meaningful, but current wording must be checked or made cautious.
+- For Norwegian places, be especially careful with county and municipality claims after municipal/county reforms. For example, old county names can be historically relevant but should not be presented as current county names without checking.
+- Apply the same principle globally rather than memorizing a country-specific list: administrative borders and names can change in any country.
+- If web search/source checking is available, use it for risk facts. Prefer official, encyclopedic or otherwise reliable sources.
+- Approximate wording such as "about", "around", "ca." or "approximately" can make a number safer, but the number is still a risk fact and must be mentioned in the report.
+- If there are no clear factual errors and no clear language errors, return the original learner text unchanged.
+- Do not improve, expand or enrich a text just because it could be better.
+- Do not add new examples, new explanations or new paragraphs unless a tiny wording change is necessary to remove a factual risk.
+- Preserve paragraph structure, level, length, voice and main wording.
+- You may correct only clear spelling, punctuation, verb tense, preposition, agreement, word choice or sentence errors.
+- Do not correct acceptable wording just because a different phrasing is more polished.
+- Do not change informal but valid learner-level phrasing.
+- For example, do not change Norwegian "trodde på at" to "trodde at" unless the sentence is actually unclear or ungrammatical.
+- When in doubt about a language change, leave the wording unchanged and mention no language error.
+- You may correct concrete factual errors only when you have strong evidence.
+- If a factual claim cannot be verified, do not invent a correction. Keep the text unchanged or make it slightly more cautious only if the original wording is clearly risky.
+- Do not make the language more advanced than ${level}.
+
+Report rules:
+- The report must be very short and concrete.
+- Do not assess content quality, pedagogy, structure or whether the text could be richer.
+- Always include a factual status and a language status.
+- For every obvious risk fact in the text, especially numbers, dates, years, places, administrative geography, named people, jobs, work history and roles, give one short status: verified, changed, or should be checked before publishing.
+- When the text contains risk facts and no factual errors are found, briefly name what was checked. Example: "Ingen tydelige faktafeil funnet. Sjekket fødselsår, dødsår, ekte navn, arbeid i Burma og kjente verk."
+- Keep this risk-fact trace short: one sentence or parenthesis is enough.
+- If no factual errors are found, write the ${reportLanguageName} equivalent of: "Ingen tydelige faktafeil funnet."
+- If no clear spelling, sentence or word errors are found, write that too.
+- Do not report style improvements as language errors.
+- List only actual changes, for example: "Endret fødested fra Os til Bergen" or "Endret 'Spise' til 'spiste'."
+- If you used sources for a correction, include a short source reference or URL when available.
+- If you made no changes, the report should normally be only 1-2 short sentences.
+- If you did make changes, the report should normally be 2-4 short sentences.
+- Preferred report shape:
+  "Fakta: ...
+  Språk: ...
+  Endringer: ...
+  Kilder/sjekkpunkter: ..."
 
 Return valid JSON only:
 {
-  "facts": [
-    "short verified fact",
-    "short verified fact"
-  ],
-  "cautions": [
-    "short caution about unstable or uncertain facts"
-  ]
+  "title": "same title or a short suitable title",
+  "text": "the minimally corrected learner text",
+  "factCheckReport": "short concrete change report in ${reportLanguageName}"
 }
           `.trim();
 }
@@ -2842,6 +2776,7 @@ export async function POST(req: Request) {
 
     const level = body.level || "A2";
     const languageName = resolveLanguageName(body.language || "en");
+    const reportLanguageName = resolveLanguageName(body.reportLanguage || "nb");
     const topic = body.topic || "Untitled";
     const textType = body.textType || "Story";
     const textLength = body.textLength || 200;
@@ -2910,68 +2845,27 @@ export async function POST(req: Request) {
       const out = resp.output_text?.trim() || "";
       return JSON.parse(out) as GenerateTextResult;
     };
-    const createSourceGrounding = async (): Promise<string> => {
-      if (!extraFactCheck || !isCefrAtLeastB1(level)) return "";
-
-      try {
-        const resp = await client.responses.create({
-          model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-          text: { format: { type: "json_object" } },
-          temperature: 0.1,
-          tools: [{ type: "web_search_preview" }],
-          input: [
-            {
-              role: "system",
-              content:
-                "You verify facts for learner texts. Use web search for current or specific facts. Return JSON only.",
-            },
-            {
-              role: "user",
-              content: buildSourceGroundingPrompt({
-                languageName,
-                level,
-                topic,
-                textType,
-              }),
-            },
-          ],
-        });
-
-        const out = resp.output_text?.trim() || "";
-        return stringifySourceGrounding(JSON.parse(out) as SourceGroundingResult);
-      } catch (error) {
-        console.warn(
-          "Source grounding failed; continuing with draft comparison only:",
-          error instanceof Error ? error.message : String(error)
-        );
-        return "";
+    if (extraFactCheck) {
+      if (!sourceText) {
+        return NextResponse.json({ error: "Source text is empty." }, { status: 400 });
       }
-    };
 
-    const parsed = extraFactCheck
-      ? await (async () => {
-          const [generatedDraftA, draftB, sourceGrounding] = await Promise.all([
-            sourceText
-              ? Promise.resolve({ title: topic, text: sourceText })
-              : createResponse(userPrompt, 0.25),
-            createResponse(userPrompt, 0.35),
-            createSourceGrounding(),
-          ]);
-          return createResponse(
-            buildCefrSelectionPrompt({
-              languageName,
-              level,
-              topic,
-              textType,
-              textLength,
-              draftA: generatedDraftA,
-              draftB,
-              sourceGrounding,
-            }),
-            0.15
-          );
-        })()
-      : await createResponse(userPrompt, isA1Start ? 0.2 : 0.45);
+      const parsed = await createResponse(
+        buildFactCheckReviewPrompt({
+          languageName,
+          reportLanguageName,
+          level,
+          topic,
+          textType,
+          sourceText,
+        }),
+        0.1
+      );
+
+      return NextResponse.json(parsed);
+    }
+
+    const parsed = await createResponse(userPrompt, isA1Start ? 0.2 : 0.45);
 
     if (isA1Start) {
       if (isA1StartSoundLadder) {
