@@ -15,6 +15,9 @@ function isAnonymousAllowedPath(pathname: string | null): boolean {
     pathname === "/nb/321quiz" ||
     pathname === "/en/321quiz" ||
     pathname === "/pt/321quiz" ||
+    pathname === "/nb/student" ||
+    pathname === "/en/student" ||
+    pathname === "/pt/student" ||
     pathname === "/nb/academy/courses/marketplace" ||
     pathname === "/en/academy/courses/marketplace" ||
     pathname === "/pt/academy/courses/marketplace" ||

@@ -539,6 +539,13 @@ function HeroSection(props: { t: TFn; locale: string }) {
           </Link>
 
           <Link
+            href={localizedPath(props.locale, "/student")}
+            className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-400"
+          >
+            {props.t("hero.ctaStudent")}
+          </Link>
+
+          <Link
             href={localizedPath(props.locale, "/321lessons")}
             className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/15"
           >
@@ -562,7 +569,7 @@ function RoleGatewaySection(props: { t: TFn; locale: string }) {
       key: "student",
       image: "/landing/symbol_student_ny.png",
       learnHref: "#for-students",
-      startHref: "/login",
+      startHref: "/student",
     },
     {
       key: "parent",
