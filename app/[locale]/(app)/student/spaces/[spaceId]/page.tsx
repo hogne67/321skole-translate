@@ -22,6 +22,7 @@ import {
 } from "firebase/firestore";
 import type { SpaceDoc } from "@/lib/spacesClient";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { saveLastStudentSpaceId } from "@/lib/studentLastSpace";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -241,6 +242,10 @@ export default function StudentSpaceDetailPage() {
     if (locale === "en") return "en-GB";
     return locale;
   }, [locale]);
+
+  useEffect(() => {
+    if (spaceId) saveLastStudentSpaceId(spaceId);
+  }, [spaceId]);
 
   function fmtDate(ms: number) {
     if (!ms || !isFinite(ms)) return null;

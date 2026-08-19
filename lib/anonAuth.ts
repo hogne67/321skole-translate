@@ -2,6 +2,8 @@
 import { auth, db } from "@/lib/firebase";
 import {
   signInAnonymously,
+  browserLocalPersistence,
+  setPersistence,
   type User,
   GoogleAuthProvider,
   OAuthProvider,
@@ -37,6 +39,7 @@ export async function ensureAnonymousUser(): Promise<User> {
 
   ensureAnonPromise = (async () => {
     try {
+      await setPersistence(auth, browserLocalPersistence);
       const cred = await signInAnonymously(auth);
       return cred.user;
     } finally {

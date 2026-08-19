@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
+import { saveLastStudentSpaceId } from "@/lib/studentLastSpace";
 import { useLocale, useTranslations } from "next-intl";
 
 type JoinApiSuccess = {
@@ -129,6 +130,7 @@ export default function JoinClient() {
 
         const okData = data as JoinApiSuccess;
         if (okData.alreadyMember && okData.spaceId) {
+          saveLastStudentSpaceId(okData.spaceId);
           router.replace(`/${locale}/student/spaces/${okData.spaceId}`);
         }
       } catch {
@@ -192,6 +194,7 @@ export default function JoinClient() {
         throw new Error(t("errors.missingSpaceId"));
       }
 
+      saveLastStudentSpaceId(okData.spaceId);
       router.push(`/${locale}/student/spaces/${okData.spaceId}`);
     } catch (e2: unknown) {
       setErr(errToText(e2));

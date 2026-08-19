@@ -10,7 +10,7 @@ export default function LandingAuthRedirect({ locale }: { locale: string }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user && !user.isAnonymous) {
+      if (user) {
         router.replace(`/${locale}/post-login`);
       }
     });

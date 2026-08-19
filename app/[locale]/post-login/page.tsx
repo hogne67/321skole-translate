@@ -8,6 +8,8 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { recordUserLogin } from "@/lib/userProfile";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
+import { listMySpaceIds } from "@/lib/spaceMembership";
+import { readLastStudentSpaceId } from "@/lib/studentLastSpace";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
   if (!x) throw new Error("Firestore is not initialized (db is null).");
@@ -128,9 +130,32 @@ export default function PostLoginPage() {
     }
 
     if (user.isAnonymous) {
-      const target = `/${locale}/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`;
-      router.replace(`/${locale}/login?next=${encodeURIComponent(target)}`);
-      return;
+      if (next && nextMatchesRole(next, "student", locale)) {
+        router.replace(next);
+        return;
+      }
+
+      const rememberedSpaceId = readLastStudentSpaceId();
+      if (rememberedSpaceId) {
+        router.replace(`/${locale}/student/spaces/${rememberedSpaceId}`);
+        return;
+      }
+
+      let cancelled = false;
+
+      (async () => {
+        try {
+          const ids = await listMySpaceIds(requireDb(db), user.uid);
+          if (cancelled) return;
+          router.replace(ids[0] ? `/${locale}/student/spaces/${ids[0]}` : `/${locale}/student`);
+        } catch {
+          if (!cancelled) router.replace(`/${locale}/student`);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
     }
 
     if (!profile) return;
