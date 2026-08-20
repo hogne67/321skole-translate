@@ -9,6 +9,26 @@
       "newSpace": "Criar space",
       "parentGroups": "+ Criar nova sala"
     },
+    "guestPreview": {
+      "title": "Quer criar uma sala familiar?",
+      "subtitle": "Como convidado, você pode ver como os parent spaces funcionam. Entre quando quiser criar salas e salvar o trabalho.",
+      "text": "Parent spaces reúnem atividades, cursos e tarefas de casa em um só lugar. As crianças podem continuar trabalhando com o conteúdo, e você pode acompanhar e apoiar.",
+      "loginCreate": "Entrar para criar sala",
+      "cards": {
+        "family": {
+          "title": "Reunir a família",
+          "text": "Crie salas para crianças, grupos ou prática em casa."
+        },
+        "share": {
+          "title": "Partilhar conteúdo",
+          "text": "Use biblioteca, quizzes e atividades junto com as crianças."
+        },
+        "follow": {
+          "title": "Acompanhar o trabalho",
+          "text": "Veja a atividade, apoie a aprendizagem e mantenha a visão geral."
+        }
+      }
+    },
     "meta": {
       "code": "Código"
     },

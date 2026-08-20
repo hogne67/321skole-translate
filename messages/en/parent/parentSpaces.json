@@ -9,6 +9,26 @@
       "newSpace": "Create space",
       "parentGroups": "+ Create new room"
     },
+    "guestPreview": {
+      "title": "Want to create a family room?",
+      "subtitle": "As a guest, you can see how parent spaces work. Sign in when you want to create rooms and save your work.",
+      "text": "Parent spaces bring assignments, courses and home activities together in one place. Children can keep working with the content, and you can follow along and support them.",
+      "loginCreate": "Sign in to create a room",
+      "cards": {
+        "family": {
+          "title": "Gather the family",
+          "text": "Create rooms for children, groups or home practice."
+        },
+        "share": {
+          "title": "Share content",
+          "text": "Use the library, quizzes and assignments together with children."
+        },
+        "follow": {
+          "title": "Follow the work",
+          "text": "See activity, support learning and keep an overview in one place."
+        }
+      }
+    },
     "meta": {
       "code": "Code"
     },

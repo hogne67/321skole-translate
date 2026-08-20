@@ -79,6 +79,7 @@ function TeacherSpacesInner() {
   const router = useRouter();
 
   const { user, profile, loading } = useUserProfile();
+  const isGuestPreview = Boolean(user?.isAnonymous);
   const [rows, setRows] = useState<Row[]>([]);
 
   const [search, setSearch] = useState("");
@@ -101,7 +102,7 @@ function TeacherSpacesInner() {
   const [qrBusy, setQrBusy] = useState(false);
   const [qrErr, setQrErr] = useState<string | null>(null);
 
-  const canUseTeacherSpaces = profile?.role === "teacher" || profile?.role === "admin";
+  const canUseTeacherSpaces = !isGuestPreview && (profile?.role === "teacher" || profile?.role === "admin");
   const canCreateSpace = Boolean(user?.uid && canUseTeacherSpaces);
 
   useEffect(() => {
@@ -265,6 +266,70 @@ function TeacherSpacesInner() {
   }
 
   if (!canUseTeacherSpaces) {
+    if (isGuestPreview) {
+      return (
+        <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+          <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
+            <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0 flex-1">
+                <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
+                <p className="mt-1 break-words text-sm text-slate-600 sm:mt-2">{t("guestPreview.subtitle")}</p>
+              </div>
+
+              <TrainingVideoPlayer
+                title={t("trainingVideo.title")}
+                videoUrl="https://youtu.be/7zjhziVmGvc"
+                buttonLabel={t("trainingVideo.button")}
+                buttonTitle={t("trainingVideo.buttonTitle")}
+                closeLabel={t("trainingVideo.close")}
+                description={t("trainingVideo.description")}
+                thumbnail
+              />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <h2 className="m-0 text-xl font-semibold text-slate-950">{t("guestPreview.title")}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">{t("guestPreview.body")}</p>
+              </div>
+
+              <Link
+                href={withLocale(locale, `/login?next=/${locale}/teacher/spaces/new`)}
+                className="inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline shadow-sm hover:bg-blue-500"
+              >
+                {t("guestPreview.loginCreate")}
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-sm font-semibold text-slate-950">{t("guestPreview.cards.organize.title")}</div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{t("guestPreview.cards.organize.text")}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-sm font-semibold text-slate-950">{t("guestPreview.cards.share.title")}</div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{t("guestPreview.cards.share.text")}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-sm font-semibold text-slate-950">{t("guestPreview.cards.follow.title")}</div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{t("guestPreview.cards.follow.text")}</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-300 bg-white p-4 text-sm leading-6 text-slate-700 shadow-sm sm:p-5">
+            <b className="text-slate-950">{t("guestPreview.lockedTitle")}</b>{" "}
+            {t("guestPreview.lockedText")}{" "}
+            <Link href={withLocale(locale, `/login?next=/${locale}/teacher/spaces/new`)} className="font-semibold text-blue-700 underline">
+              {t("guestPreview.loginLink")}
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="mx-auto box-border w-full max-w-3xl min-w-0 rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-md">
         <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("access.title")}</h1>

@@ -43,6 +43,29 @@
         "title": "Spaces are for teachers",
         "subtitle": "Sign in with a teacher account to create and manage your own rooms. Students join by code or link."
       },
+      "guestPreview": {
+        "title": "Want to create a Space?",
+        "subtitle": "As a guest, you can see how Spaces work. Sign in when you want to create rooms, invite students and save your work.",
+        "body": "Spaces bring your class, assignments, board activities and submissions together in one place. Creating a Space is free. Students can join with a code or QR, also anonymously.",
+        "loginCreate": "Sign in to create a Space",
+        "lockedTitle": "Creation is locked for guests.",
+        "lockedText": "You can explore the flow here, but you need to be signed in as a teacher to create rooms and invite students.",
+        "loginLink": "Sign in / create account",
+        "cards": {
+          "organize": {
+            "title": "Organize the class",
+            "text": "Create rooms for a class, group or course, and keep tasks and activity together."
+          },
+          "share": {
+            "title": "Share with code",
+            "text": "Students can join with a class code, link or QR code on their own device."
+          },
+          "follow": {
+            "title": "Follow the work",
+            "text": "See who has started, submitted and needs follow-up from the teacher."
+          }
+        }
+      },
       "list": {
         "untitled": "Untitled space",
         "open": "Open",

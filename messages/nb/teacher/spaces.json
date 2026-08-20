@@ -43,6 +43,29 @@
       "title": "Spaces er for lærere",
       "subtitle": "Logg inn med en lærerbruker for å opprette og administrere egne rom. Elever blir med via kode eller lenke."
     },
+    "guestPreview": {
+      "title": "Vil du opprette et Space?",
+      "subtitle": "Som gjest kan du se hvordan Spaces fungerer. Logg inn når du vil opprette rom, invitere elever og lagre arbeidet.",
+      "body": "Spaces samler klassen, oppgaver, tavleaktiviteter og innleveringer på ett sted. Det er gratis å opprette Space. Elever kan bli med med kode eller QR, også anonymt.",
+      "loginCreate": "Logg inn for å opprette Space",
+      "lockedTitle": "Opprettelse er låst for gjester.",
+      "lockedText": "Du kan utforske flyten her, men må være innlogget som lærer for å opprette rom og invitere elever.",
+      "loginLink": "Logg inn / registrer deg",
+      "cards": {
+        "organize": {
+          "title": "Samle klassen",
+          "text": "Lag rom for klasse, gruppe eller kurs, og hold oppgaver og aktivitet samlet."
+        },
+        "share": {
+          "title": "Del med kode",
+          "text": "Elever kan bli med med klassekode, lenke eller QR-kode på egen enhet."
+        },
+        "follow": {
+          "title": "Følg arbeidet",
+          "text": "Se hvem som er i gang, har levert og trenger oppfølging fra lærer."
+        }
+      }
+    },
     "list": {
       "untitled": "Uten navn",
       "open": "Åpen",

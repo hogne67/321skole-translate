@@ -65,7 +65,7 @@ export default function SectionShell({
   }
 
   function handleNavClick(event: MouseEvent<HTMLAnchorElement>, href: string) {
-    if (!blockedToolsMessage || !isToolsItem(href)) return;
+    if (!blockedToolsMessage || href === "/tools" || !isToolsItem(href)) return;
     event.preventDefault();
     setNavNotice(blockedToolsMessage);
   }

@@ -3,6 +3,7 @@
     "title": "Tools",
     "subtitle": "Learning resources for school and home.",
     "open": "Open tool",
+    "loginOpen": "Sign in to open",
     "badges": {
       "NEW": "New",
       "POPULAR": "Popular",

@@ -10,6 +10,7 @@ import LibraryContentTabs from "@/components/LibraryContentTabs";
 import SectionShell from "@/components/SectionShell";
 import SupportHelpButton from "@/components/SupportHelpButton";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { readGuestRole, roleFromPathname, saveGuestRole, type GuestRole } from "@/lib/guestRole";
 import { navItemsForRole } from "@/lib/navItems";
 import { useTranslations } from "next-intl";
 
@@ -17,8 +18,8 @@ type AppRole = "student" | "teacher" | "parent" | "admin" | "creator";
 
 const PERSONAL_ADMIN_LINK_UIDS = new Set(["x9gRQLihwobfyXaoPIl6OZBd5Ov1"]);
 
-function normalizeRole(role: unknown, isAnonymous: boolean): AppRole {
-  if (isAnonymous) return "student";
+function normalizeRole(role: unknown, isAnonymous: boolean, guestRole: GuestRole): AppRole {
+  if (isAnonymous) return guestRole;
   if (role === "teacher") return "teacher";
   if (role === "parent") return "parent";
   if (role === "admin") return "admin";
@@ -56,11 +57,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [pathname]);
 
-  const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous);
-
   const cleanPathname = (pathname || "").split("?")[0].replace(/\/+$/, "");
   const locale = cleanPathname.match(/^\/(en|no|nb|pt)(?=\/|$)/)?.[1] ?? "nb";
   const pathWithoutLocale = cleanPathname.replace(/^\/(en|no|nb|pt)(?=\/|$)/, "") || "/";
+  const pathGuestRole = roleFromPathname(pathname);
+  const guestRole = pathGuestRole ?? readGuestRole();
+  const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous, guestRole);
+
+  useEffect(() => {
+    if (user?.isAnonymous && pathGuestRole) saveGuestRole(pathGuestRole);
+  }, [pathGuestRole, user?.isAnonymous]);
   const isLibrary = cleanPathname.endsWith("/321lessons");
   const isLibraryContentPage =
     pathWithoutLocale === "/321lessons" ||

@@ -497,6 +497,31 @@ function quizLiveCopy(locale: string) {
   };
 }
 
+function guestBoardCopy(locale: string) {
+  if (locale === "en") {
+    return {
+      banner: "You can explore the board as a guest and open the shared live entry. Sign in as a teacher when you want to start an activity.",
+      loginStart: "Sign in to start",
+      loginCreate: "Sign in to create",
+      loginOpenBoard: "Sign in to open a board",
+    };
+  }
+  if (locale === "pt") {
+    return {
+      banner: "Você pode explorar o quadro como convidado e abrir a entrada live comum. Entre como professor quando quiser iniciar uma atividade.",
+      loginStart: "Entrar para iniciar",
+      loginCreate: "Entrar para criar",
+      loginOpenBoard: "Entrar para abrir quadro",
+    };
+  }
+  return {
+    banner: "Som gjest kan du utforske Tavle og åpne felles live-inngang. Logg inn som lærer når du vil starte en aktivitet.",
+    loginStart: "Logg inn for å starte",
+    loginCreate: "Logg inn for å lage",
+    loginOpenBoard: "Logg inn for å åpne tavle",
+  };
+}
+
 function CollapsibleActivitySection({
   tone,
   icon,
@@ -596,13 +621,22 @@ function TeacherBoardIndexInner() {
   const [customTimerSeconds, setCustomTimerSeconds] = useState("");
   const [timerError, setTimerError] = useState("");
 
-  const canUse = profile?.role === "teacher" || profile?.role === "admin";
+  const isGuestPreview = Boolean(user?.isAnonymous);
+  const canUse = !isGuestPreview && (profile?.role === "teacher" || profile?.role === "admin");
+  const loginHref = `/${locale}/login?next=${encodeURIComponent(`/${locale}/teacher/board`)}`;
   const wordwallText = wordwallCopy(locale);
   const pollText = pollCopy(locale);
   const imageText = imageActivityCopy(locale);
   const boardText = boardLiveCopy(locale);
   const timerText = timerCopy(locale);
   const quizText = quizLiveCopy(locale);
+  const guestText = guestBoardCopy(locale);
+
+  function requireTeacherLogin() {
+    if (!isGuestPreview) return false;
+    window.location.assign(loginHref);
+    return true;
+  }
 
   useEffect(() => {
     if (!user?.uid || !canUse) return;
@@ -666,7 +700,7 @@ function TeacherBoardIndexInner() {
   }, [canUse, user?.uid]);
 
   useEffect(() => {
-    if (!canUse) return;
+    if (!canUse && !isGuestPreview) return;
 
     const libraryQuery = query(collection(db, "published_lessons"), where("lessonType", "==", "quiz"), where("isActive", "==", true), limit(80));
     getDocs(libraryQuery)
@@ -679,7 +713,7 @@ function TeacherBoardIndexInner() {
         setLibraryQuizzes(next);
       })
       .catch(() => setLibraryQuizzes([]));
-  }, [canUse]);
+  }, [canUse, isGuestPreview]);
 
   const filteredSpaces = useMemo(() => {
     const search = spaceSearch.trim().toLowerCase();
@@ -729,6 +763,7 @@ function TeacherBoardIndexInner() {
   }, [libraryQuizSearch, libraryQuizzes]);
 
   async function startWordwall() {
+    if (requireTeacherLogin()) return;
     const prompt = wordwallPrompt.trim();
     if (!prompt || wordwallBusy) return;
     const current = auth.currentUser;
@@ -758,6 +793,7 @@ function TeacherBoardIndexInner() {
   }
 
   async function startPoll() {
+    if (requireTeacherLogin()) return;
     const question = pollQuestion.trim();
     const options = normalizePollOptionsText(pollOptionsRaw);
     if (!question || options.length < 2 || pollBusy) return;
@@ -788,6 +824,7 @@ function TeacherBoardIndexInner() {
   }
 
   async function startImageActivity() {
+    if (requireTeacherLogin()) return;
     const prompt = imageActivityPrompt.trim();
     const imageUrl = imageActivityUrl.trim();
     if (!prompt || !imageUrl || imageActivityBusy) return;
@@ -818,6 +855,7 @@ function TeacherBoardIndexInner() {
   }
 
   async function uploadImageActivityFile(file: File) {
+    if (requireTeacherLogin()) return;
     const current = auth.currentUser;
     if (!current) {
       setImageActivityError(imageText.loginRequired);
@@ -852,6 +890,7 @@ function TeacherBoardIndexInner() {
   }
 
   async function generateImageActivityImage() {
+    if (requireTeacherLogin()) return;
     const current = auth.currentUser;
     if (!current) {
       setImageActivityError(imageText.loginRequired);
@@ -895,6 +934,7 @@ function TeacherBoardIndexInner() {
   }
 
   async function saveImageActivityToContent() {
+    if (requireTeacherLogin()) return;
     const current = auth.currentUser;
     if (!current) {
       setImageActivityError(imageText.loginRequired);
@@ -944,6 +984,7 @@ function TeacherBoardIndexInner() {
   }
 
   function startTimer() {
+    if (requireTeacherLogin()) return;
     const custom = Number(customTimerSeconds);
     const seconds = customTimerSeconds.trim() ? custom : timerSeconds;
     const safeSeconds = Math.max(5, Math.min(60 * 60, Math.trunc(seconds)));
@@ -956,6 +997,7 @@ function TeacherBoardIndexInner() {
   }
 
   async function startQuizSession(quiz: QuizRow) {
+    if (requireTeacherLogin()) return;
     const busyKey = `${quiz.source}:${quiz.id}`;
     if (quizBusyId) return;
     const current = auth.currentUser;
@@ -1040,10 +1082,10 @@ function TeacherBoardIndexInner() {
                   <button
                     type="button"
                     onClick={() => void startQuizSession(quiz)}
-                    disabled={Boolean(quizBusyId)}
+                    disabled={!isGuestPreview && Boolean(quizBusyId)}
                     className="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-3 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
                   >
-                    {quizBusyId === busyKey ? quizText.starting : quizText.start}
+                    {isGuestPreview ? guestText.loginStart : quizBusyId === busyKey ? quizText.starting : quizText.start}
                   </button>
                 </div>
               </div>
@@ -1058,7 +1100,7 @@ function TeacherBoardIndexInner() {
     return <div className="mx-auto w-full max-w-6xl px-4 py-6 text-sm text-slate-600">{t("loading")}</div>;
   }
 
-  if (!canUse) {
+  if (!canUse && !isGuestPreview) {
     return (
       <div className="mx-auto w-full max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-950">{t("access.title")}</h1>
@@ -1099,12 +1141,17 @@ function TeacherBoardIndexInner() {
         </Link>
       </section>
 
+      {isGuestPreview ? (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold leading-6 text-blue-900">
+          {guestText.banner}
+        </div>
+      ) : null}
 
       <CollapsibleActivitySection tone="violet" icon={<Sparkles className="h-4 w-4" aria-hidden="true" />} kicker={quizText.kicker} title={quizText.title} text={quizText.text}>
         <div className="space-y-4">
           <div className="flex justify-end">
-            <Link href={`/${locale}/tools/quiz`} className="inline-flex items-center justify-center rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white no-underline hover:bg-violet-800">
-              {quizText.create}
+            <Link href={isGuestPreview ? loginHref : `/${locale}/tools/quiz`} className="inline-flex items-center justify-center rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white no-underline hover:bg-violet-800">
+              {isGuestPreview ? guestText.loginCreate : quizText.create}
             </Link>
           </div>
 
@@ -1197,10 +1244,10 @@ function TeacherBoardIndexInner() {
             <button
               type="button"
               onClick={startWordwall}
-              disabled={wordwallBusy || !wordwallPrompt.trim()}
+              disabled={!isGuestPreview && (wordwallBusy || !wordwallPrompt.trim())}
               className="mt-4 w-full rounded-xl bg-sky-700 px-5 py-3 text-sm font-black text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
             >
-              {wordwallBusy ? wordwallText.starting : wordwallText.start}
+              {isGuestPreview ? guestText.loginStart : wordwallBusy ? wordwallText.starting : wordwallText.start}
             </button>
           </div>
         </div>
@@ -1260,30 +1307,45 @@ function TeacherBoardIndexInner() {
                 <button
                   type="button"
                   onClick={generateImageActivityImage}
-                  disabled={imageActivityGenerating || (!imageActivityAiPrompt.trim() && !imageActivityPrompt.trim())}
+                  disabled={!isGuestPreview && (imageActivityGenerating || (!imageActivityAiPrompt.trim() && !imageActivityPrompt.trim()))}
                   className="mt-3 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
                 >
-                  {imageActivityGenerating ? imageText.generating : imageText.generate}
+                  {isGuestPreview ? guestText.loginCreate : imageActivityGenerating ? imageText.generating : imageText.generate}
                 </button>
               </div>
             ) : null}
 
             {imageActivitySource === "upload" ? (
-              <label className="mt-4 block rounded-2xl border border-emerald-100 bg-white/70 p-3">
-                <span className="text-sm font-black text-slate-800">{imageText.uploadImage}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  disabled={imageActivityUploading}
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0];
-                    if (file) void uploadImageActivityFile(file);
-                    event.currentTarget.value = "";
-                  }}
-                  className="mt-2 w-full text-sm font-bold text-slate-700"
-                />
-                {imageActivityUploading ? <div className="mt-2 text-sm font-black text-emerald-800">{imageText.uploading}</div> : null}
-              </label>
+              isGuestPreview ? (
+                <div className="mt-4 rounded-2xl border border-emerald-100 bg-white/70 p-3">
+                  <div className="text-sm font-black text-slate-800">{imageText.uploadImage}</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      requireTeacherLogin();
+                    }}
+                    className="mt-3 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800"
+                  >
+                    {guestText.loginCreate}
+                  </button>
+                </div>
+              ) : (
+                <label className="mt-4 block rounded-2xl border border-emerald-100 bg-white/70 p-3">
+                  <span className="text-sm font-black text-slate-800">{imageText.uploadImage}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={imageActivityUploading}
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      if (file) void uploadImageActivityFile(file);
+                      event.currentTarget.value = "";
+                    }}
+                    className="mt-2 w-full text-sm font-bold text-slate-700"
+                  />
+                  {imageActivityUploading ? <div className="mt-2 text-sm font-black text-emerald-800">{imageText.uploading}</div> : null}
+                </label>
+              )
             ) : null}
 
             {imageActivitySource === "url" ? (
@@ -1340,18 +1402,18 @@ function TeacherBoardIndexInner() {
             <button
               type="button"
               onClick={startImageActivity}
-              disabled={imageActivityBusy || !imageActivityPrompt.trim() || !imageActivityUrl.trim()}
+              disabled={!isGuestPreview && (imageActivityBusy || !imageActivityPrompt.trim() || !imageActivityUrl.trim())}
               className="mt-4 w-full rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
             >
-              {imageActivityBusy ? imageText.starting : imageText.start}
+              {isGuestPreview ? guestText.loginStart : imageActivityBusy ? imageText.starting : imageText.start}
             </button>
             <button
               type="button"
               onClick={saveImageActivityToContent}
-              disabled={imageActivitySaving || !imageActivityPrompt.trim() || !imageActivityUrl.trim()}
+              disabled={!isGuestPreview && (imageActivitySaving || !imageActivityPrompt.trim() || !imageActivityUrl.trim())}
               className="mt-2 w-full rounded-xl border border-emerald-300 bg-white px-5 py-3 text-sm font-black text-emerald-900 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
             >
-              {imageActivitySaving ? imageText.saving : imageText.save}
+              {isGuestPreview ? guestText.loginCreate : imageActivitySaving ? imageText.saving : imageText.save}
             </button>
           </div>
         </div>
@@ -1369,10 +1431,13 @@ function TeacherBoardIndexInner() {
           </div>
           <button
             type="button"
-            onClick={() => setSpacePickerOpen(true)}
+            onClick={() => {
+              if (requireTeacherLogin()) return;
+              setSpacePickerOpen(true);
+            }}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 sm:w-auto"
           >
-            {t("rooms.openPicker")}
+            {isGuestPreview ? guestText.loginOpenBoard : t("rooms.openPicker")}
             <ChevronDown className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
@@ -1450,10 +1515,10 @@ function TeacherBoardIndexInner() {
             <button
               type="button"
               onClick={startPoll}
-              disabled={pollBusy || !pollQuestion.trim() || normalizePollOptionsText(pollOptionsRaw).length < 2}
+              disabled={!isGuestPreview && (pollBusy || !pollQuestion.trim() || normalizePollOptionsText(pollOptionsRaw).length < 2)}
               className="mt-4 w-full rounded-xl bg-violet-700 px-5 py-3 text-sm font-black text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
             >
-              {pollBusy ? pollText.starting : pollText.start}
+              {isGuestPreview ? guestText.loginStart : pollBusy ? pollText.starting : pollText.start}
             </button>
           </div>
         </div>
@@ -1499,7 +1564,7 @@ function TeacherBoardIndexInner() {
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 py-3 text-sm font-black text-white hover:bg-amber-700"
             >
               <Play className="h-4 w-4" aria-hidden="true" />
-              {timerText.start}
+              {isGuestPreview ? guestText.loginStart : timerText.start}
             </button>
           </div>
         </div>

@@ -9,6 +9,26 @@
       "newSpace": "Opprett space",
       "parentGroups": "+ Opprett nytt rom"
     },
+    "guestPreview": {
+      "title": "Vil du opprette et familierom?",
+      "subtitle": "Som gjest kan du se hvordan parent spaces fungerer. Logg inn når du vil opprette rom og lagre arbeidet.",
+      "text": "Parent spaces samler oppgaver, kurs og hjemmeaktiviteter på ett sted. Barn kan jobbe videre med innholdet, og du kan følge med og støtte underveis.",
+      "loginCreate": "Logg inn for å opprette rom",
+      "cards": {
+        "family": {
+          "title": "Samle familien",
+          "text": "Lag rom for barn, grupper eller hjemmeøving."
+        },
+        "share": {
+          "title": "Del innhold",
+          "text": "Bruk bibliotek, quiz og oppgaver sammen med barna."
+        },
+        "follow": {
+          "title": "Følg arbeidet",
+          "text": "Se aktivitet, gi støtte og hold oversikt på ett sted."
+        }
+      }
+    },
     "meta": {
       "code": "Kode"
     },

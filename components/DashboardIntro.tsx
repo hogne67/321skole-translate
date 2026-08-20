@@ -9,6 +9,7 @@ import { auth } from "@/lib/firebase";
 
 type Props = {
   userIsAnon: boolean;
+  guestRole?: Role;
 
   helloAnon: string;
   helloUser: string;
@@ -32,6 +33,7 @@ type Props = {
 
   actionSeePlans: string;
   actionRegisterLogin: string;
+  actionRegisterHref?: string;
   actionOpenLibrary: string;
   rightSlot?: React.ReactNode;
 };
@@ -160,7 +162,7 @@ export function DashboardIntro(props: Props) {
   const name = (readStringField(profile, "displayName") ?? "").trim();
 
   const role: Role = props.userIsAnon
-    ? "student"
+    ? props.guestRole ?? "student"
     : safeRole(readStringField(profile, "role"));
 
   const roleLabel = getRoleLabel(role, props) || props.roleFallback;
@@ -181,7 +183,7 @@ export function DashboardIntro(props: Props) {
   const youAreNode = props.userIsAnon
     ? renderSimpleRichText(props.youAreAnon || props.youAre, {
       state: props.guestLabel,
-      role: props.guestLabel,
+      role: roleLabel,
     })
     : renderSimpleRichText(props.youAre, {
       state: props.loggedInLabel,
@@ -431,7 +433,7 @@ export function DashboardIntro(props: Props) {
             }}
           >
             <Link
-              href={withLocale(locale, "/join")}
+              href={withLocale(locale, props.actionRegisterHref ?? "/join")}
               style={{
                 padding: "8px 12px",
                 borderRadius: 10,

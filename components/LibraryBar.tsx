@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { readGuestRole, roleFromPathname, saveGuestRole } from "@/lib/guestRole";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { navItemsForRole } from "@/lib/navItems";
 import { useTranslations } from "next-intl";
@@ -40,9 +42,10 @@ function withLocale(locale: Locale | null, href: string): string {
   return href;
 }
 
-type Role = "student" | "teacher";
+type Role = "student" | "teacher" | "parent";
 
 function safeRole(role: unknown): Role {
+  if (role === "parent") return "parent";
   return role === "teacher" ? "teacher" : "student";
 }
 
@@ -62,9 +65,14 @@ export default function LibraryBar() {
   const pathname = usePathname();
   const { user, profile } = useUserProfile();
 
-  // anon -> student
   const roleStr = readStringField(profile, "role");
-  const role: Role = user?.isAnonymous ? "student" : safeRole(roleStr);
+  const pathGuestRole = roleFromPathname(pathname);
+  const guestRole = pathGuestRole ?? readGuestRole();
+  const role: Role = user?.isAnonymous ? guestRole : safeRole(roleStr);
+
+  useEffect(() => {
+    if (user?.isAnonymous && pathGuestRole) saveGuestRole(pathGuestRole);
+  }, [pathGuestRole, user?.isAnonymous]);
 
   const locale = getLocaleFromPathname(pathname);
 
@@ -83,7 +91,8 @@ export default function LibraryBar() {
     navItemsForRole(role).find((x) => x.labelKey === "nav.dashboard")?.href ?? null;
 
   // fallback
-  const dashboardFallback = role === "teacher" ? "/teacher" : "/student";
+  const dashboardFallback =
+    role === "teacher" ? "/teacher" : role === "parent" ? "/parent" : "/student";
 
   const dashboardRaw = dashboardFromNav ?? dashboardFallback;
   const dashboardHref = withLocale(locale, dashboardRaw);

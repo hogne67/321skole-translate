@@ -6,6 +6,7 @@ import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { useEffect, useState } from "react";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
+import DashboardInfoLinks from "@/components/DashboardInfoLinks";
 import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
@@ -1092,6 +1093,7 @@ export default function StudentDashboard() {
           </div>
         </div>
       </section>
+      <DashboardInfoLinks locale={locale} />
     </main>
   );
 }

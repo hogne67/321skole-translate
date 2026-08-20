@@ -16,9 +16,28 @@ function withLocale(locale: string, href: string): string {
   return `/${locale}${href}`;
 }
 
+function guestWritingCopy(locale: string) {
+  if (locale === "en") {
+    return {
+      banner: "You can explore Text as a guest. Sign in as a teacher when you want to create and save writing activities.",
+      loginCreate: "Sign in to create",
+    };
+  }
+  if (locale === "pt") {
+    return {
+      banner: "Você pode explorar Texto como convidado. Entre como professor quando quiser criar e salvar atividades de escrita.",
+      loginCreate: "Entrar para criar",
+    };
+  }
+  return {
+    banner: "Som gjest kan du utforske Tekst. Logg inn som lærer når du vil lage og lagre skriveaktiviteter.",
+    loginCreate: "Logg inn for å lage",
+  };
+}
+
 export default function TeacherWritingPage() {
   return (
-    <AuthGate>
+    <AuthGate allowAnonymous>
       <TeacherWritingInner />
     </AuthGate>
   );
@@ -28,15 +47,18 @@ function TeacherWritingInner() {
   const t = useTranslations("teacherWritingStation");
   const tCommon = useTranslations("common");
   const locale = useLocale();
-  const { profile, loading } = useUserProfile();
+  const { user, profile, loading } = useUserProfile();
 
-  const canUse = profile?.role === "teacher" || profile?.role === "admin";
+  const isGuestPreview = Boolean(user?.isAnonymous);
+  const canUse = !isGuestPreview && (profile?.role === "teacher" || profile?.role === "admin");
+  const loginHref = withLocale(locale, `/login?next=${encodeURIComponent(`/${locale}/teacher/writing`)}`);
+  const guestText = guestWritingCopy(locale);
 
   if (loading) {
     return <div className="w-full py-4 text-sm text-slate-600">{tCommon("loading")}</div>;
   }
 
-  if (!canUse) {
+  if (!canUse && !isGuestPreview) {
     return (
       <div className="mx-auto w-full max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-950">
         {t("fallback.unknownError")}
@@ -71,6 +93,12 @@ function TeacherWritingInner() {
         </div>
       </section>
 
+      {isGuestPreview ? (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold leading-6 text-blue-900">
+          {guestText.banner}
+        </div>
+      ) : null}
+
       <section className="space-y-4">
         <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:p-5">
           <div className="flex h-full flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -79,10 +107,10 @@ function TeacherWritingInner() {
               <p className="mt-1 text-sm leading-5 text-emerald-900">{t("hub.newSubtitle")}</p>
             </div>
             <Link
-              href={withLocale(locale, "/producer/text/new")}
+              href={isGuestPreview ? loginHref : withLocale(locale, "/producer/text/new")}
               className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800"
             >
-              {t("hub.form.create")}
+              {isGuestPreview ? guestText.loginCreate : t("hub.form.create")}
             </Link>
           </div>
         </article>
@@ -94,10 +122,10 @@ function TeacherWritingInner() {
               <p className="mt-1 text-sm leading-5 text-sky-900">{t("hub.imageWritingSubtitle")}</p>
             </div>
             <Link
-              href={withLocale(locale, "/producer/image-writing")}
+              href={isGuestPreview ? loginHref : withLocale(locale, "/producer/image-writing")}
               className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-black text-white hover:bg-sky-800"
             >
-              {t("hub.imageWritingAction")}
+              {isGuestPreview ? guestText.loginCreate : t("hub.imageWritingAction")}
             </Link>
           </div>
         </article>

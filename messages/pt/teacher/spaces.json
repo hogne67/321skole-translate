@@ -43,6 +43,29 @@
       "title": "Spaces são para professores",
       "subtitle": "Entre com uma conta de professor para criar e gerenciar suas salas. Alunos entram por código ou link."
     },
+    "guestPreview": {
+      "title": "Quer criar um Space?",
+      "subtitle": "Como visitante, você pode ver como os Spaces funcionam. Entre quando quiser criar salas, convidar alunos e salvar seu trabalho.",
+      "body": "Spaces reúnem turma, atividades, quadro e entregas em um só lugar. Criar um Space é grátis. Alunos podem entrar com código ou QR, também anonimamente.",
+      "loginCreate": "Entrar para criar um Space",
+      "lockedTitle": "Criação bloqueada para visitantes.",
+      "lockedText": "Você pode explorar o fluxo aqui, mas precisa entrar como professor para criar salas e convidar alunos.",
+      "loginLink": "Entrar / criar conta",
+      "cards": {
+        "organize": {
+          "title": "Organize a turma",
+          "text": "Crie salas para turma, grupo ou curso, e mantenha atividades e movimento juntos."
+        },
+        "share": {
+          "title": "Compartilhe com código",
+          "text": "Alunos podem entrar com código da turma, link ou QR code no próprio dispositivo."
+        },
+        "follow": {
+          "title": "Acompanhe o trabalho",
+          "text": "Veja quem começou, entregou e precisa de acompanhamento do professor."
+        }
+      }
+    },
     "list": {
       "untitled": "Sem título",
       "open": "Aberto",

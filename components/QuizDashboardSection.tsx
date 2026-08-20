@@ -4,6 +4,7 @@ import Link from "next/link";
 
 type QuizDashboardSectionProps = {
   locale: string;
+  isGuestPreview?: boolean;
 };
 
 const copy = {
@@ -12,6 +13,7 @@ const copy = {
     title: "Lag og bruk quiz",
     text: "Lag quiz med AI, finn publiserte quizer i biblioteket, og bruk dem på tavla eller som egen quiz med kode.",
     create: "Lag quiz",
+    loginCreate: "Logg inn for å lage",
     library: "Bibliotek",
   },
   en: {
@@ -19,6 +21,7 @@ const copy = {
     title: "Create and use quizzes",
     text: "Create quizzes with AI, find published quizzes in the library, and use them on the board or as a standalone quiz with a code.",
     create: "Create quiz",
+    loginCreate: "Sign in to create",
     library: "Library",
   },
   pt: {
@@ -26,6 +29,7 @@ const copy = {
     title: "Criar e usar quizzes",
     text: "Crie quizzes com IA, encontre quizzes publicados na biblioteca e use-os no quadro ou como quiz com codigo.",
     create: "Criar quiz",
+    loginCreate: "Entrar para criar",
     library: "Biblioteca",
   },
 };
@@ -36,8 +40,10 @@ function getCopy(locale: string) {
   return copy.nb;
 }
 
-export function QuizDashboardSection({ locale }: QuizDashboardSectionProps) {
+export function QuizDashboardSection({ locale, isGuestPreview = false }: QuizDashboardSectionProps) {
   const c = getCopy(locale);
+  const createHref = `/${locale}/tools/quiz`;
+  const loginCreateHref = `/${locale}/login?next=${encodeURIComponent(createHref)}`;
 
   return (
     <section
@@ -107,7 +113,7 @@ export function QuizDashboardSection({ locale }: QuizDashboardSectionProps) {
           }}
         >
           <Link
-            href={`/${locale}/tools/quiz`}
+            href={isGuestPreview ? loginCreateHref : createHref}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -123,7 +129,7 @@ export function QuizDashboardSection({ locale }: QuizDashboardSectionProps) {
               boxShadow: "0 1px 2px rgba(15,23,42,0.12)",
             }}
           >
-            {c.create}
+            {isGuestPreview ? c.loginCreate : c.create}
           </Link>
 
           <Link

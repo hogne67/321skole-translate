@@ -18,6 +18,27 @@ function isAnonymousAllowedPath(pathname: string | null): boolean {
     pathname === "/nb/student" ||
     pathname === "/en/student" ||
     pathname === "/pt/student" ||
+    pathname === "/nb/teacher" ||
+    pathname === "/en/teacher" ||
+    pathname === "/pt/teacher" ||
+    pathname === "/nb/teacher/spaces" ||
+    pathname === "/en/teacher/spaces" ||
+    pathname === "/pt/teacher/spaces" ||
+    pathname === "/nb/teacher/board" ||
+    pathname === "/en/teacher/board" ||
+    pathname === "/pt/teacher/board" ||
+    pathname === "/nb/teacher/writing" ||
+    pathname === "/en/teacher/writing" ||
+    pathname === "/pt/teacher/writing" ||
+    pathname === "/nb/parent" ||
+    pathname === "/en/parent" ||
+    pathname === "/pt/parent" ||
+    pathname === "/nb/parent/spaces" ||
+    pathname === "/en/parent/spaces" ||
+    pathname === "/pt/parent/spaces" ||
+    pathname === "/nb/tools" ||
+    pathname === "/en/tools" ||
+    pathname === "/pt/tools" ||
     pathname === "/nb/academy/courses/marketplace" ||
     pathname === "/en/academy/courses/marketplace" ||
     pathname === "/pt/academy/courses/marketplace" ||

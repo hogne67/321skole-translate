@@ -7,9 +7,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { DashboardIntro } from "@/components/DashboardIntro";
 import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
+import DashboardInfoLinks from "@/components/DashboardInfoLinks";
 import TrainingVideoPlayer from "@/components/TrainingVideoPlayer";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
-import { canAccessAcademy } from "@/lib/courses/academyAccess";
 import { db } from "@/lib/firebase";
 import {
   getBucketLimit,
@@ -716,8 +716,13 @@ export default function TeacherPage() {
 
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
-  const showCoursesSection = canAccessAcademy(profile);
+  const showCoursesSection = false;
   const dashboardIntroVideo = getDashboardIntroVideo(locale);
+  const teacherLoginHref = withLocale(locale, `/login?next=${encodeURIComponent(`/${locale}/teacher`)}`);
+  const billingHref = isAnon ? teacherLoginHref : withLocale(locale, "/account/billing");
+  const plannerHref = withLocale(locale, "/teacher/planner");
+  const plannerNewHref = withLocale(locale, "/teacher/planner/new");
+  const plannerLoginHref = withLocale(locale, `/login?next=${encodeURIComponent(plannerHref)}`);
 
   useEffect(() => {
     const update = () => setIsMobile(window.innerWidth < 720);
@@ -817,7 +822,7 @@ export default function TeacherPage() {
     let cancelled = false;
 
     async function loadStudents() {
-      if (!user?.uid || !db) {
+      if (!user?.uid || user.isAnonymous || !db) {
         if (!cancelled) {
           setStudentsUsed(0);
           setStudentItems([]);
@@ -859,13 +864,13 @@ export default function TeacherPage() {
     return () => {
       cancelled = true;
     };
-  }, [user?.uid]);
+  }, [user?.isAnonymous, user?.uid]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadSubmissionStats() {
-      if (!user?.uid || !db) {
+      if (!user?.uid || user.isAnonymous || !db) {
         if (!cancelled) {
           setSubmissionStats(emptyStats());
           setTeacherSpaceCount(0);
@@ -900,7 +905,7 @@ export default function TeacherPage() {
     return () => {
       cancelled = true;
     };
-  }, [user?.uid]);
+  }, [user?.isAnonymous, user?.uid]);
 
   const filteredStudents = useMemo(() => {
     const q = studentSearch.trim().toLowerCase();
@@ -1001,6 +1006,7 @@ export default function TeacherPage() {
     <main style={dashboardShellStyle}>
       <DashboardIntro
         userIsAnon={isAnon}
+        guestRole="teacher"
         helloAnon={t("dashboardIntro.helloAnon")}
         helloUser={t.raw("dashboardIntro.helloUser")}
         guestLabel={t("dashboardIntro.guest")}
@@ -1019,6 +1025,7 @@ export default function TeacherPage() {
         planPro={t("dashboardIntro.plans.pro")}
         actionSeePlans={t("dashboardIntro.actions.seePlans")}
         actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
+        actionRegisterHref={`/login?next=/${locale}/teacher`}
         actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
         rightSlot={
           dashboardIntroVideo ? (
@@ -1039,7 +1046,7 @@ export default function TeacherPage() {
       <InstallAppButton />
 
       <section style={shortcutSectionStyle}>
-        <LaunchCampaignBanner locale={locale} href={withLocale(locale, "/account/billing")} />
+        <LaunchCampaignBanner locale={locale} href={billingHref} />
 
         {hasActivePartnerAccess ? (
           <DashboardShortcutRow
@@ -1054,41 +1061,43 @@ export default function TeacherPage() {
         <DashboardShortcutRow
           title={t("billing.title")}
           text={billingSummary}
-          href={withLocale(locale, "/account/billing")}
-          actionLabel={t("billing.actions.open")}
+          href={billingHref}
+          actionLabel={isAnon ? t("dashboardIntro.actions.registerLogin") : t("billing.actions.open")}
         />
       </section>
 
-      <section style={statGridStyle}>
-        <StatCard
-          title={t("cards.premiumGenerators")}
-          used={generatorsUsed}
-          limit={generatorsLimit}
-          accent="violet"
-          t={t}
-        />
-        <StatCard
-          title={t("cards.imageGeneration")}
-          used={imagesUsed}
-          limit={imagesLimit}
-          accent="emerald"
-          t={t}
-        />
-        <StatCard
-          title={t("cards.aiFeedback")}
-          used={feedbackUsed}
-          limit={feedbackLimit}
-          accent="slate"
-          t={t}
-        />
-        <StatCard
-          title={t("cards.downloads")}
-          used={downloadsUsed}
-          limit={downloadsLimit}
-          accent="blue"
-          t={t}
-        />
-      </section>
+      {!isAnon ? (
+        <section style={statGridStyle}>
+          <StatCard
+            title={t("cards.premiumGenerators")}
+            used={generatorsUsed}
+            limit={generatorsLimit}
+            accent="violet"
+            t={t}
+          />
+          <StatCard
+            title={t("cards.imageGeneration")}
+            used={imagesUsed}
+            limit={imagesLimit}
+            accent="emerald"
+            t={t}
+          />
+          <StatCard
+            title={t("cards.aiFeedback")}
+            used={feedbackUsed}
+            limit={feedbackLimit}
+            accent="slate"
+            t={t}
+          />
+          <StatCard
+            title={t("cards.downloads")}
+            used={downloadsUsed}
+            limit={downloadsLimit}
+            accent="blue"
+            t={t}
+          />
+        </section>
+      ) : null}
 
       <section style={dashboardSectionStyle}>
         <div style={sectionInsetStyle}>
@@ -1670,7 +1679,7 @@ export default function TeacherPage() {
         </div>
       </section>
 
-      <QuizDashboardSection locale={locale} />
+      <QuizDashboardSection locale={locale} isGuestPreview={isAnon} />
 
       {showCoursesSection ? (
         <section style={dashboardSectionStyle}>
@@ -1938,7 +1947,7 @@ export default function TeacherPage() {
                 }}
               >
                 <Link
-                  href={withLocale(locale, "/teacher/planner")}
+                  href={isAnon ? plannerLoginHref : plannerHref}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -1953,11 +1962,11 @@ export default function TeacherPage() {
                     boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
                   }}
                 >
-                  {t("planner.actions.open")}
+                  {isAnon ? t("dashboardIntro.actions.registerLogin") : t("planner.actions.open")}
                 </Link>
 
                 <Link
-                  href={withLocale(locale, "/teacher/planner/new")}
+                  href={isAnon ? plannerLoginHref : plannerNewHref}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -1972,13 +1981,14 @@ export default function TeacherPage() {
                     border: "1px solid #cbd5e1",
                   }}
                 >
-                  {t("planner.actions.new")}
+                  {isAnon ? t("dashboardIntro.actions.registerLogin") : t("planner.actions.new")}
                 </Link>
               </div>
             </div>
           </div>
         </section>
       ) : null}
+      <DashboardInfoLinks locale={locale} />
     </main>
   );
 }

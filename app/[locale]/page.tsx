@@ -532,7 +532,7 @@ function HeroSection(props: { t: TFn; locale: string }) {
 
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row md:mt-8">
           <Link
-            href={localizedPath(props.locale, "/login")}
+            href={localizedPath(props.locale, "/#role-gateway")}
             className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-white/90"
           >
             {props.t("hero.ctaPrimary")}
@@ -563,7 +563,7 @@ function RoleGatewaySection(props: { t: TFn; locale: string }) {
       key: "teacher",
       image: "/landing/symbol_teacher_ny.png",
       learnHref: "#ai-support",
-      startHref: "/login",
+      startHref: "/teacher",
     },
     {
       key: "student",
@@ -575,7 +575,7 @@ function RoleGatewaySection(props: { t: TFn; locale: string }) {
       key: "parent",
       image: "/landing/symbol_parent_ny.png",
       learnHref: "#for-parents",
-      startHref: "/login",
+      startHref: "/parent",
     },
     {
       key: "school",
@@ -586,7 +586,7 @@ function RoleGatewaySection(props: { t: TFn; locale: string }) {
   ];
 
   return (
-    <section className="bg-white">
+    <section id="role-gateway" className="bg-white scroll-mt-24">
       <div className="mx-auto max-w-6xl px-6 py-10 md:py-14">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase text-sky-700">
@@ -753,7 +753,7 @@ function AiSupportSection(props: { t: TFn; locale: string }) {
 
             <SectionButtons
               locale={props.locale}
-              primaryHref="/login"
+              primaryHref="/teacher"
               primaryLabel={props.t("aiSupport.ctaPrimary")}
               secondaryHref="/321lessons"
               secondaryLabel={props.t("aiSupport.ctaSecondary")}
@@ -828,7 +828,7 @@ function PrintOrDigitalSection(props: { t: TFn; locale: string }) {
 
             <SectionButtons
               locale={props.locale}
-              primaryHref="/login"
+              primaryHref="/teacher"
               primaryLabel={props.t("printDigital.ctaPrimary")}
               secondaryHref="/321lessons"
               secondaryLabel={props.t("printDigital.ctaSecondary")}
@@ -873,7 +873,7 @@ function QuizLiveSection(props: { t: TFn; locale: string }) {
 
             <SectionButtons
               locale={props.locale}
-              primaryHref="/tools/quiz"
+              primaryHref="/tools"
               primaryLabel={props.t("quizLive.ctaPrimary")}
               secondaryHref="/321quiz"
               secondaryLabel={props.t("quizLive.ctaSecondary")}
@@ -966,7 +966,7 @@ function WowSection(props: { t: TFn; locale: string }) {
 
             <SectionButtons
               locale={props.locale}
-              primaryHref="/login"
+              primaryHref="/#role-gateway"
               primaryLabel={props.t("wow.ctaPrimary")}
               secondaryHref="/tools"
               secondaryLabel={props.t("wow.ctaSecondary")}
@@ -1056,7 +1056,7 @@ function TeacherPowerSection(props: { t: TFn; locale: string }) {
 
             <SectionButtons
               locale={props.locale}
-              primaryHref="/login"
+              primaryHref="/teacher"
               primaryLabel={props.t("teacherPower.ctaPrimary")}
               secondaryHref="/321lessons"
               secondaryLabel={props.t("teacherPower.ctaSecondary")}
@@ -1145,7 +1145,7 @@ function LanguageLearningSection(props: { t: TFn; locale: string }) {
               locale={props.locale}
               primaryHref="/321lessons"
               primaryLabel={props.t("languageLearning.ctaPrimary")}
-              secondaryHref="/login"
+              secondaryHref="/student"
               secondaryLabel={props.t("languageLearning.ctaSecondary")}
               variant="light"
             />
@@ -1213,7 +1213,7 @@ function SpacesSection(props: { t: TFn; locale: string }) {
 
             <SectionButtons
               locale={props.locale}
-              primaryHref="/login"
+              primaryHref="/teacher/spaces"
               primaryLabel={props.t("spacesNew.ctaPrimary")}
               secondaryHref="/321lessons"
               secondaryLabel={props.t("spacesNew.ctaSecondary")}
@@ -1344,7 +1344,7 @@ function ParentHomeSection(props: { t: TFn; locale: string }) {
 
             <SectionButtons
               locale={props.locale}
-              primaryHref="/login"
+              primaryHref="/parent"
               primaryLabel={props.t("parentHome.ctaPrimary")}
               secondaryHref="/321lessons"
               secondaryLabel={props.t("parentHome.ctaSecondary")}
@@ -1427,7 +1427,7 @@ function StudentFlowSection(props: { t: TFn; locale: string }) {
 
             <SectionButtons
               locale={props.locale}
-              primaryHref="/321lessons"
+              primaryHref="/student"
               primaryLabel={props.t("studentFlow.ctaPrimary")}
               secondaryHref="/login"
               secondaryLabel={props.t("studentFlow.ctaSecondary")}
@@ -1453,7 +1453,7 @@ function FinalCtaSection(props: { t: TFn; locale: string }) {
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
-                href={localizedPath(props.locale, "/login")}
+                href={localizedPath(props.locale, "/#role-gateway")}
                 className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-white/90"
               >
                 {props.t("ctaLite.primary")}

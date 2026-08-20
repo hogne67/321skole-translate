@@ -7,6 +7,7 @@ import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { readGuestRole, roleFromPathname, saveGuestRole } from "@/lib/guestRole";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useTranslations } from "next-intl";
 import NotificationBell from "@/components/NotificationBell";
@@ -137,12 +138,18 @@ export default function TopNav() {
 
   const isAnon = !!authUser?.isAnonymous;
   const isLoggedIn = !!authUser && !isAnon;
+  const pathGuestRole = roleFromPathname(pathname);
+  const guestRole = pathGuestRole ?? readGuestRole();
+
+  useEffect(() => {
+    if (isAnon && pathGuestRole) saveGuestRole(pathGuestRole);
+  }, [isAnon, pathGuestRole]);
 
   const role = useMemo<AppRole | null>(() => {
-    if (isAnon) return "student";
+    if (isAnon) return guestRole;
     const roleStr = readStringField(profile, "role");
     return safeRole(roleStr);
-  }, [isAnon, profile]);
+  }, [guestRole, isAnon, profile]);
 
   const needsOnboarding = isLoggedIn && !loading && !role;
 

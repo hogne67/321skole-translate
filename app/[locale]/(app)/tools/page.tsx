@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { useLocale, useTranslations } from "next-intl";
 
 type ToolBadge = "NEW" | "POPULAR" | "BETA" | "PREMIUM";
@@ -42,10 +43,18 @@ function badgeClass(badge?: ToolBadge) {
 export default function ToolsPage() {
   const locale = useLocale();
   const t = useTranslations("toolsIndex");
+  const { user } = useUserProfile();
+  const isGuestPreview = Boolean(user?.isAnonymous);
   const visiblePremiumTools =
     locale === "nb"
       ? [...premiumTools, { id: "plannerGenerator", href: "/teacher/planner", badge: "PREMIUM" as const }]
       : premiumTools;
+
+  function toolHref(href: string) {
+    const localizedHref = `/${locale}${href}`;
+    if (!isGuestPreview) return localizedHref;
+    return `/${locale}/login?next=${encodeURIComponent(localizedHref)}`;
+  }
 
   return (
     <main className="mx-auto w-full max-w-5xl min-w-0 px-3 py-6 sm:px-4 sm:py-8">
@@ -67,7 +76,7 @@ export default function ToolsPage() {
           {visiblePremiumTools.map((tool) => (
             <Link
               key={tool.id}
-              href={`/${locale}${tool.href}`}
+              href={toolHref(tool.href)}
               className="group relative flex min-h-[160px] flex-col justify-between rounded-2xl border border-sky-300 bg-sky-100 p-4 sm:p-5 no-underline shadow-sm transition-all hover:border-sky-400 hover:bg-sky-200 hover:shadow-md"
             >
               <div className="absolute left-0 top-0 h-1 w-full rounded-t-2xl bg-sky-500" />
@@ -89,7 +98,7 @@ export default function ToolsPage() {
               </p>
 
               <div className="mt-4 text-sm font-semibold text-slate-900 group-hover:text-sky-800">
-                {t("open")}
+                {isGuestPreview ? t("loginOpen") : t("open")}
               </div>
             </Link>
           ))}
@@ -102,7 +111,7 @@ export default function ToolsPage() {
           {tools.map((tool) => (
             <Link
               key={tool.id}
-              href={`/${locale}${tool.href}`}
+              href={toolHref(tool.href)}
               className="group relative flex min-h-[150px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 no-underline shadow-sm transition-all hover:border-sky-200 hover:bg-sky-50 hover:shadow-md"
             >
               <div className="absolute left-0 top-0 h-1 w-full rounded-t-2xl bg-transparent transition group-hover:bg-sky-400" />
@@ -124,7 +133,7 @@ export default function ToolsPage() {
               </p>
 
               <div className="mt-4 text-sm font-semibold text-slate-800">
-                {t("open")}
+                {isGuestPreview ? t("loginOpen") : t("open")}
               </div>
             </Link>
           ))}

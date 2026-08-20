@@ -9,6 +9,7 @@ import { recordUserLogin } from "@/lib/userProfile";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp, type Firestore } from "firebase/firestore";
 import { listMySpaceIds } from "@/lib/spaceMembership";
+import { readGuestRole, saveGuestRole } from "@/lib/guestRole";
 import { readLastStudentSpaceId } from "@/lib/studentLastSpace";
 
 function requireDb(x: Firestore | null | undefined): Firestore {
@@ -111,6 +112,21 @@ function nextMatchesRole(next: string, role: AppRole, locale: string): boolean {
   return next.startsWith(`/${locale}/student`);
 }
 
+function isGuestPreviewPath(next: string, role: "teacher" | "parent", locale: string): boolean {
+  const clean = next.replace(/\/+$/, "");
+
+  if (role === "teacher") {
+    return (
+      clean === `/${locale}/teacher` ||
+      clean === `/${locale}/teacher/spaces` ||
+      clean === `/${locale}/teacher/board` ||
+      clean === `/${locale}/teacher/writing`
+    );
+  }
+
+  return clean === `/${locale}/parent` || clean === `/${locale}/parent/spaces`;
+}
+
 export default function PostLoginPage() {
   const { user, profile, loading } = useUserProfile();
   const loginRecordedRef = useRef(false);
@@ -130,8 +146,27 @@ export default function PostLoginPage() {
     }
 
     if (user.isAnonymous) {
-      if (next && nextMatchesRole(next, "student", locale)) {
+      if (next && isGuestPreviewPath(next, "teacher", locale)) {
+        saveGuestRole("teacher");
         router.replace(next);
+        return;
+      }
+
+      if (next && isGuestPreviewPath(next, "parent", locale)) {
+        saveGuestRole("parent");
+        router.replace(next);
+        return;
+      }
+
+      if (next && nextMatchesRole(next, "student", locale)) {
+        saveGuestRole("student");
+        router.replace(next);
+        return;
+      }
+
+      const guestRole = readGuestRole();
+      if (guestRole === "teacher" || guestRole === "parent") {
+        router.replace(`/${locale}/${guestRole}`);
         return;
       }
 

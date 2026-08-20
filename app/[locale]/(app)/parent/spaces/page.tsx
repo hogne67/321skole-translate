@@ -405,6 +405,55 @@ export default function ParentSpacesPage() {
 
   if (loading) return <div className="w-full py-4 text-sm text-slate-600">{t("loading")}</div>;
 
+  const isGuestPreview = Boolean(user?.isAnonymous);
+  const createHref = isGuestPreview
+    ? `/login?next=${encodeURIComponent(`/${locale}/parent/spaces/new`)}`
+    : "/parent/spaces/new";
+
+  if (isGuestPreview) {
+    return (
+      <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
+          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <h1 className="m-0 break-words text-2xl font-semibold text-slate-900">{t("title")}</h1>
+              <div className="mt-2 break-words text-sm text-slate-600">{t("guestPreview.subtitle")}</div>
+            </div>
+
+            <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
+              <Link
+                href={createHref}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-green-600 px-4 py-2 text-base font-semibold text-white no-underline shadow-sm hover:bg-green-500 hover:shadow-md sm:w-auto"
+              >
+                {t("guestPreview.loginCreate")}
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:p-5">
+          <h2 className="m-0 text-xl font-black text-emerald-950">{t("guestPreview.title")}</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-emerald-900">{t("guestPreview.text")}</p>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-black text-slate-950">{t("guestPreview.cards.family.title")}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t("guestPreview.cards.family.text")}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-black text-slate-950">{t("guestPreview.cards.share.title")}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t("guestPreview.cards.share.text")}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-black text-slate-950">{t("guestPreview.cards.follow.title")}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t("guestPreview.cards.follow.text")}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto box-border w-full max-w-5xl min-w-0 space-y-3 sm:space-y-4">
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-md sm:p-5">
@@ -416,7 +465,7 @@ export default function ParentSpacesPage() {
 
           <div className="flex w-full min-w-0 justify-start lg:w-auto lg:justify-end">
             <Link
-              href="/parent/spaces/new"
+              href={createHref}
               className="inline-flex w-full items-center justify-center rounded-xl bg-green-600 px-4 py-2 text-base font-semibold text-white no-underline shadow-sm hover:bg-green-500 hover:shadow-md sm:w-auto"
             >
               {t("actions.parentGroups")}

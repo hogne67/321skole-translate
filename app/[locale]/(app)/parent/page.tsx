@@ -7,6 +7,7 @@ import { DashboardIntro } from "@/components/DashboardIntro";
 import { DashboardShortcutRow } from "@/components/DashboardShortcutRow";
 import LaunchCampaignBanner from "@/components/LaunchCampaignBanner";
 import { QuizDashboardSection } from "@/components/QuizDashboardSection";
+import DashboardInfoLinks from "@/components/DashboardInfoLinks";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { useUsage } from "@/lib/useUsage";
 import {
@@ -312,6 +313,9 @@ export default function ParentPage() {
 
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
+  const showCoursesSection = false;
+  const parentLoginHref = `/${locale}/login?next=${encodeURIComponent(`/${locale}/parent`)}`;
+  const billingHref = isAnon ? parentLoginHref : `/${locale}/account/billing`;
 
   const role = "parent" as const;
 
@@ -373,6 +377,7 @@ export default function ParentPage() {
     <main style={dashboardShellStyle}>
       <DashboardIntro
         userIsAnon={isAnon}
+        guestRole="parent"
         helloAnon={t("dashboardIntro.helloAnon")}
         helloUser={t.raw("dashboardIntro.helloUser")}
         guestLabel={t("dashboardIntro.guest")}
@@ -391,13 +396,14 @@ export default function ParentPage() {
         planPro={t("dashboardIntro.plans.pro")}
         actionSeePlans={t("dashboardIntro.actions.seePlans")}
         actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
+        actionRegisterHref={`/login?next=/${locale}/parent`}
         actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
       />
 
       <InstallAppButton />
 
       <section style={shortcutSectionStyle}>
-        <LaunchCampaignBanner locale={locale} href={`/${locale}/account/billing`} />
+        <LaunchCampaignBanner locale={locale} href={billingHref} />
 
         {hasActivePartnerAccess ? (
           <DashboardShortcutRow
@@ -412,14 +418,14 @@ export default function ParentPage() {
         <DashboardShortcutRow
           title={t("billing.title")}
           text={billingSummary}
-          href={`/${locale}/account/billing`}
-          actionLabel={t("billing.actions.open")}
+          href={billingHref}
+          actionLabel={isAnon ? t("dashboardIntro.actions.registerLogin") : t("billing.actions.open")}
         />
       </section>
 
-      <QuizDashboardSection locale={locale} />
+      <QuizDashboardSection locale={locale} isGuestPreview={isAnon} />
 
-      {!loading && (
+      {!isAnon && !loading ? (
         <section style={statGridStyle}>
           <StatCard
             title={t("usage.cards.premiumGenerators")}
@@ -452,8 +458,9 @@ export default function ParentPage() {
             t={t}
           />
         </section>
-      )}
+      ) : null}
 
+      {showCoursesSection ? (
       <section style={dashboardSectionStyle}>
         <div style={sectionInsetStyle}>
           <div style={sectionCardStyle}>
@@ -532,7 +539,7 @@ export default function ParentPage() {
               }}
             >
               <Link
-                href={`/${locale}/academy/courses`}
+                href={isAnon ? parentLoginHref : `/${locale}/academy/courses`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -547,7 +554,7 @@ export default function ParentPage() {
                   boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
                 }}
               >
-                {t("academy.actions.myCourses")}
+                {isAnon ? t("dashboardIntro.actions.registerLogin") : t("academy.actions.myCourses")}
               </Link>
 
               <Link
@@ -572,6 +579,8 @@ export default function ParentPage() {
           </div>
         </div>
       </section>
+      ) : null}
+      <DashboardInfoLinks locale={locale} />
     </main>
   );
 }
