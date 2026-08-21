@@ -12,6 +12,12 @@
     "openLibrary": "Abrir Meu conteúdo para atribuir.",
     "saving": "Salvando...",
     "save": "Salvar em Meu conteúdo",
+    "draftGenerator": {
+      "button": "Criar sugestão com IA",
+      "generating": "Criando sugestão...",
+      "help": "Preenche tarefa, critérios e palavras de apoio. Você pode editar tudo depois.",
+      "applied": "A sugestão foi inserida. Revise e edite antes de salvar."
+    },
     "video": {
       "title": "Vídeo de instrução",
       "text": "Espaço para um vídeo curto mostrando como usar o construtor de texto.",
@@ -24,7 +30,7 @@
       },
       "assignment": {
         "title": "Tarefa",
-        "text": "Escreva o enunciado, tema, critérios e objetivos de competência opcionais."
+        "text": "Escreva o enunciado, gênero, critérios e objetivos de competência opcionais."
       },
       "support": {
         "title": "Apoio",
@@ -38,22 +44,33 @@
     },
     "genres": {
       "story": "Texto literário",
-      "storyDescription": "Narrativa e descrição com planejamento, sala de escrita e sala de controle."
+      "storyDescription": "Narrativa e descrição com planejamento, sala de escrita e sala de controle.",
+      "factual": "Texto factual",
+      "factualDescription": "Texto informativo, explicativo e de discussão com fatos, estrutura e verificação de fontes."
     },
-    "story": {
-      "title": "Texto literário",
-      "subtitle": "Tarefa, tema e critérios para narrativa ou descrição."
+    "writingType": {
+      "story": {
+        "title": "Texto literário",
+        "subtitle": "Tarefa, gênero e critérios para narrativa ou descrição."
+      },
+      "factual": {
+        "title": "Texto factual",
+        "subtitle": "Tarefa, gênero e critérios para texto informativo, explicativo ou de discussão."
+      }
     },
     "assignment": {
       "title": "Tarefa"
     },
     "criteria": {
       "title": "Requisitos e critérios",
-      "subtitle": "Um item por linha. Eles são usados na sala de controle do aluno e como moldura para o apoio de IA."
+      "subtitle": "Um critério por linha. Os critérios mostram ao aluno o que o texto deve conter e são usados como base para apoio de IA e avaliação."
     },
     "support": {
       "title": "Palavras de apoio e inícios",
-      "subtitle": "Uma palavra ou início de frase por linha. O professor pode tornar o apoio mais específico ou mais rico."
+      "subtitle": "Uma palavra ou início de frase por linha. O professor pode tornar o apoio mais específico ou mais rico.",
+      "summary": "{active} de {total} seções têm palavras de apoio.",
+      "open": "Personalizar palavras de apoio",
+      "close": "Ocultar palavras de apoio"
     },
     "settings": {
       "title": "Moldura",
@@ -63,10 +80,18 @@
       "aiImage": "Permitir imagem com IA"
     },
     "aiControl": {
-      "title": "Controle de IA",
+      "title": "Apoio ao aluno e permissões",
       "subtitle": "Defina limites claros antes de compartilhar. O aluno deve pensar primeiro e usar IA como apoio.",
       "totalHelp": "Vale para toda a atividade de um aluno.",
-      "sectionHelp": "Vale para cada campo de escrita ou controle."
+      "sectionHelp": "Vale para cada campo de escrita ou controle.",
+      "open": "Personalizar apoio ao aluno",
+      "close": "Ocultar apoio ao aluno",
+      "summaryTotal": "{count} no total",
+      "summarySection": "{count} por seção",
+      "summaryPrintOn": "imagem na impressão ativada",
+      "summaryPrintOff": "imagem na impressão desativada",
+      "summaryImageOn": "imagem com IA ativada",
+      "summaryImageOff": "imagem com IA desativada"
     },
     "bottom": {
       "title": "Construtor de texto",
@@ -74,10 +99,15 @@
     },
     "fields": {
       "libraryTitle": "Título da biblioteca",
-      "libraryTitlePlaceholder": "Por exemplo: A porta se fechou",
+      "libraryTitlePlaceholder": {
+        "story": "Por exemplo: Um acontecimento inesperado",
+        "factual": "Por exemplo: Por que o corpo precisa dormir?"
+      },
       "genre": "Gênero",
-      "theme": "Tema",
-      "customTheme": "Tema próprio",
+      "theme": "Gênero",
+      "customTheme": "Gênero próprio",
+      "draftPrompt": "Tema ou pedido",
+      "draftPromptPlaceholder": "Por exemplo: amizade, um novo aluno, a floresta no outono, conto de fadas, escola do futuro",
       "assignmentText": "Texto da tarefa para o aluno",
       "criteria": "Critérios",
       "goals": "Objetivos de competência",
@@ -90,12 +120,29 @@
       "aiSection": "Máximo de IA por seção"
     },
     "sections": {
+      "idea": "Ideia",
+      "mainCharacter": "Personagem principal",
+      "otherCharacters": "Outras personagens",
+      "setting": "Ambiente",
+      "conflict": "Problema ou conflito",
+      "solution": "Solução",
+      "openingType": "Tipo de início",
+      "topic": "Tema",
+      "purposeAudience": "Objetivo e leitor",
+      "keyTerms": "Palavras-chave",
+      "factsExamples": "Fatos e exemplos",
+      "discussion": "Discussão",
+      "structure": "Estrutura",
+      "sources": "Fontes",
       "title": "Título",
       "introduction": "Introdução",
       "mainPart": "Desenvolvimento",
       "ending": "Conclusão",
       "contentCheck": "Verificação de conteúdo",
-      "languageCheck": "Verificação de língua"
+      "structureCheck": "Verificação de estrutura",
+      "factCheck": "Verificação de fatos",
+      "languageCheck": "Verificação de língua",
+      "selfAssessment": "Autoavaliação"
     },
     "progression": {
       "title": "Progressão",

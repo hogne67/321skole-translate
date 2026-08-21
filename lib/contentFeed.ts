@@ -512,6 +512,36 @@ async function fetchLessonMetaByIds(db: Firestore, ids: string[]) {
 
 async function fetchMyWritingActivities(db: Firestore, uid: string, locale: string) {
   const results: ContentItem[] = [];
+  const addActivity = (docSnap: { id: string; data: () => Record<string, unknown> }) => {
+    const d = docSnap.data();
+    const aiPolicy = d.aiPolicy && typeof d.aiPolicy === "object" ? d.aiPolicy as Record<string, unknown> : {};
+    const level = pickLevel(d) || undefined;
+    const language = pickLanguage(d);
+    const theme = typeof d.theme === "string" ? d.theme.trim() : "";
+    const genre = typeof d.genre === "string" ? d.genre.trim() : "story";
+    const targetWordCount = typeof d.targetWordCount === "number" ? d.targetWordCount : undefined;
+    const wordCountMeta = targetWordCount ? `${targetWordCount} ord` : "";
+    const meta = ["Tekst", genre, level, language, theme, wordCountMeta].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+
+    results.push({
+      type: "writingActivity",
+      id: docSnap.id,
+      title: pickTitle(d) || "Skriveaktivitet",
+      status: pickStatus(d),
+      updatedAt: pickUpdated(d),
+      href: withLocale(locale, `/content?filter=writing`),
+      meta,
+      ownerUid: typeof d.ownerUid === "string" ? d.ownerUid : undefined,
+      level,
+      language,
+      theme: theme || null,
+      genre,
+      aiEnabled: aiPolicy.enabled !== false,
+      aiMaxUsesTotal: typeof aiPolicy.maxUsesTotal === "number" ? aiPolicy.maxUsesTotal : undefined,
+      targetWordCount,
+      deletedAt: toDateSafe(d.deletedAt),
+    });
+  };
 
   try {
     const qy = query(
@@ -522,38 +552,24 @@ async function fetchMyWritingActivities(db: Firestore, uid: string, locale: stri
     );
     const snap = await getDocs(qy);
 
-    snap.forEach((docSnap) => {
-      const d = docSnap.data() as Record<string, unknown>;
-      const aiPolicy = d.aiPolicy && typeof d.aiPolicy === "object" ? d.aiPolicy as Record<string, unknown> : {};
-      const level = pickLevel(d) || undefined;
-      const language = pickLanguage(d);
-      const theme = typeof d.theme === "string" ? d.theme.trim() : "";
-      const genre = typeof d.genre === "string" ? d.genre.trim() : "story";
-      const targetWordCount = typeof d.targetWordCount === "number" ? d.targetWordCount : undefined;
-      const wordCountMeta = targetWordCount ? `${targetWordCount} ord` : "";
-      const meta = ["Tekst", genre, level, language, theme, wordCountMeta].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
-
-      results.push({
-        type: "writingActivity",
-        id: docSnap.id,
-        title: pickTitle(d) || "Skriveaktivitet",
-        status: pickStatus(d),
-        updatedAt: pickUpdated(d),
-        href: withLocale(locale, `/producer/text/new`),
-        meta,
-        ownerUid: typeof d.ownerUid === "string" ? d.ownerUid : undefined,
-        level,
-        language,
-        theme: theme || null,
-        genre,
-        aiEnabled: aiPolicy.enabled !== false,
-        aiMaxUsesTotal: typeof aiPolicy.maxUsesTotal === "number" ? aiPolicy.maxUsesTotal : undefined,
-        targetWordCount,
-        deletedAt: toDateSafe(d.deletedAt),
-      });
-    });
+    snap.forEach(addActivity);
   } catch {
-    // ignore
+    try {
+      const fallbackQuery = query(
+        collection(db, "writingActivities"),
+        where("ownerUid", "==", uid),
+        limit(MY_CONTENT_QUERY_LIMIT)
+      );
+      const fallbackSnap = await getDocs(fallbackQuery);
+      fallbackSnap.forEach(addActivity);
+      results.sort((a, b) => {
+        const ta = a.updatedAt ? a.updatedAt.getTime() : 0;
+        const tb = b.updatedAt ? b.updatedAt.getTime() : 0;
+        return tb - ta;
+      });
+    } catch {
+      // ignore
+    }
   }
 
   return results;

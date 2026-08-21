@@ -9,7 +9,7 @@ import {
   type AppRole,
   type PlanKey,
 } from "@/lib/featureAccess";
-import { buildStoryWritingTemplate, storyWritingTemplate } from "@/lib/writingStation";
+import { buildWritingTemplate, factualWritingTemplate, storyWritingTemplate } from "@/lib/writingStation";
 import type { WritingLevel, WritingProgression } from "@/lib/writingStation";
 
 type CreateWritingActivityBody = {
@@ -108,6 +108,7 @@ function normalizeLevel(level: unknown): WritingLevel {
   if (value === "B1") return "B1";
   if (value === "B2") return "B2";
   if (value === "C1") return "C1";
+  if (value === "C2") return "C2";
   return "A2";
 }
 
@@ -115,6 +116,10 @@ function normalizeProgression(value: unknown): WritingProgression {
   if (value === "free") return "free";
   if (value === "locked") return "locked";
   return "guided";
+}
+
+function normalizeWritingGenre(value: unknown): "story" | "factual" {
+  return safeString(value).trim() === "factual" ? "factual" : "story";
 }
 
 function currentPeriodOslo(d = new Date()): string {
@@ -189,7 +194,9 @@ export async function POST(req: Request) {
     const period = currentPeriodOslo();
     const limit = getFeatureLimit(profile.role, profile.plan, feature);
 
-    const title = safeString(body.title).trim() || storyWritingTemplate.title;
+    const genre = normalizeWritingGenre(body.genre);
+    const baseTemplate = genre === "factual" ? factualWritingTemplate : storyWritingTemplate;
+    const title = safeString(body.title).trim() || baseTemplate.title;
     const level = normalizeLevel(body.level);
     const language = safeString(body.language).trim() || "nb";
     const theme = safeString(body.theme).trim();
@@ -204,7 +211,7 @@ export async function POST(req: Request) {
     const aiMaxUsesPerSection = clampNumber(body.aiMaxUsesPerSection, 2, 0, 5);
     const allowPrintImageUpload = body.allowPrintImageUpload === true;
     const allowAiImage = body.allowAiImage === true;
-    const template = buildStoryWritingTemplate({
+    const template = buildWritingTemplate(genre, {
       supportWordsBySection,
       criteria,
       maxUsesPerSection: aiMaxUsesPerSection,

@@ -1064,6 +1064,7 @@ function Inner() {
                 lessonLevel={lessonLevel}
                 cover={cover}
                 sourceText={sourceText}
+                audioReading={sub.audioReading}
                 tasksOriginal={tasksOriginal}
                 answersMap={answersMap}
                 auto={auto}

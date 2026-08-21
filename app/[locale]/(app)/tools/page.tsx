@@ -28,6 +28,7 @@ const tools: Tool[] = [
   { id: "generator", href: "/tools/generator", badge: "NEW" },
   { id: "fractionGenerator", href: "/producer/math/fractions", badge: "NEW" },
   { id: "vocab", href: "/tools/vocab", badge: "BETA" },
+  { id: "audioReading", href: "/tools/audio-reading", badge: "BETA" },
   { id: "sentenceFixer", href: "/tools/sentence-fixer", badge: "NEW" },
   { id: "speakingTopic", href: "/tools/speaking-topic", badge: "NEW" },
 ];

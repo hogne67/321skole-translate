@@ -5,7 +5,7 @@ export type WritingGenre =
   | "article"
   | "message";
 
-export type WritingLevel = "A1" | "A2" | "B1" | "B2" | "C1";
+export type WritingLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
 export type WritingLanguage = "nb" | "en" | "pt" | string;
 

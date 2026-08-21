@@ -1,0 +1,96 @@
+{
+  "audioReadingTool": {
+    "eyebrow": "321 Tools",
+    "beta": "Beta",
+    "title": "Audio reading",
+    "subtitle": "Paste a text, let the learner read aloud, and record audio. In this first beta, the recording stays in the browser while we test the flow before adding assessment, saving, and Space sharing.",
+    "source": {
+      "title": "Choose text",
+      "paste": "Paste text",
+      "lesson": "From lesson",
+      "generate": "AI-generate",
+      "lessonPickerTitle": "Fetch from your lessons",
+      "lessonPickerHelp": "Choose a lesson from My content. Title and text are filled in automatically.",
+      "refresh": "Fetch lessons",
+      "loading": "Loading...",
+      "selectLesson": "Lesson",
+      "selectPlaceholder": "Choose lesson",
+      "untitled": "Untitled",
+      "empty": "No lessons with text were found.",
+      "signIn": "Sign in to fetch your lessons.",
+      "loadFailed": "Could not fetch lessons right now."
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "For example: Reading about winter",
+      "text": "Text to read",
+      "textPlaceholder": "Paste the text the learner should read aloud..."
+    },
+    "record": {
+      "title": "Record reading",
+      "subtitle": "Start recording when the text is ready. The learner can listen back before the next step.",
+      "start": "Start recording",
+      "pause": "Pause",
+      "resume": "Resume",
+      "stop": "Stop",
+      "reset": "Reset",
+      "preview": "Recording",
+      "delete": "Delete"
+    },
+    "listen": {
+      "title": "Practice with audio",
+      "subtitle": "Listen to the text before recording. This can support fluency, pronunciation, and confidence.",
+      "play": "Listen to text",
+      "loading": "Creating audio...",
+      "pause": "Pause",
+      "resume": "Resume audio",
+      "stop": "Stop audio",
+      "failed": "Could not play the text."
+    },
+    "stats": {
+      "title": "Text overview",
+      "words": "Words",
+      "estimate": "Est. time"
+    },
+    "review": {
+      "title": "Beta assessment",
+      "subtitle": "For now, the tool only gives simple support based on text length and recording time. A later version can transcribe audio and compare it with the source text.",
+      "duration": "Duration",
+      "signals": {
+        "pending": "Record audio to see a signal.",
+        "short": "The recording seems short compared with the text.",
+        "long": "The recording seems long compared with the text.",
+        "ok": "The recording time roughly fits the text."
+      },
+      "checks": {
+        "one": "Listen for clear pronunciation and whether the words are in order.",
+        "two": "Notice whether the learner stops often or skips parts of the text.",
+        "three": "Use the feedback as support, not as a final grade."
+      }
+    },
+    "next": {
+      "title": "Next connection",
+      "body": "Planned: fetch text from Lessons, save to My content, assign in Space, and send audio for transcription/assessment."
+    },
+    "save": {
+      "title": "My content",
+      "subtitle": "Save audio reading as a beta activity. The recording is not saved yet.",
+      "action": "Save to My content",
+      "update": "Update activity",
+      "saving": "Saving...",
+      "saved": "Saved.",
+      "openContent": "Open My content",
+      "signIn": "Sign in to save the activity.",
+      "failed": "Could not save the activity.",
+      "loadingActivity": "Loading saved audio reading...",
+      "loadFailed": "Could not load saved audio reading.",
+      "notFound": "Saved audio reading was not found."
+    },
+    "errors": {
+      "missingText": "Paste a text before recording.",
+      "unsupported": "This browser does not support audio recording here.",
+      "permission": "Microphone access was not approved.",
+      "default": "Could not start recording."
+    }
+  }
+}

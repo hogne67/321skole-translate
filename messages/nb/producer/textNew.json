@@ -12,6 +12,12 @@
     "openLibrary": "Åpne Mitt innhold for deling.",
     "saving": "Lagrer...",
     "save": "Lagre i Mitt innhold",
+    "draftGenerator": {
+      "button": "Lag forslag med KI",
+      "generating": "Lager forslag...",
+      "help": "Fyller oppgave, kriterier og støtteord. Du kan redigere alt etterpå.",
+      "applied": "Forslaget er lagt inn. Se over og rediger før du lagrer."
+    },
     "video": {
       "title": "Instruksjonsvideo",
       "text": "Plass til en kort video som viser hvordan tekstbyggeren brukes.",
@@ -24,7 +30,7 @@
       },
       "assignment": {
         "title": "Oppgave",
-        "text": "Skriv oppgavetekst, tema, kriterier og eventuelle kompetansemål."
+        "text": "Skriv oppgavetekst, sjanger, kriterier og eventuelle kompetansemål."
       },
       "support": {
         "title": "Støtte",
@@ -38,22 +44,33 @@
     },
     "genres": {
       "story": "Skjønnlitterær",
-      "storyDescription": "Fortelling og skildring med planlegging, skriverom og kontrollrom."
+      "storyDescription": "Fortelling og skildring med planlegging, skriverom og kontrollrom.",
+      "factual": "Faktatekst",
+      "factualDescription": "Informerende, forklarende og drøftende tekst med fakta, struktur og kildesjekk."
     },
-    "story": {
-      "title": "Skjønnlitterær tekst",
-      "subtitle": "Oppgave, tema og kriterier for fortelling eller skildring."
+    "writingType": {
+      "story": {
+        "title": "Skjønnlitterær tekst",
+        "subtitle": "Oppgave, sjanger og kriterier for fortelling eller skildring."
+      },
+      "factual": {
+        "title": "Faktatekst",
+        "subtitle": "Oppgave, sjanger og kriterier for informerende, forklarende eller drøftende tekst."
+      }
     },
     "assignment": {
       "title": "Oppgave"
     },
     "criteria": {
       "title": "Krav og kriterier",
-      "subtitle": "Én linje per punkt. Disse brukes i elevens kontrollrom og som ramme for KI-støtte."
+      "subtitle": "Én linje per kriterium. Kriteriene viser eleven hva teksten skal inneholde, og brukes som grunnlag for KI-støtte og vurdering."
     },
     "support": {
       "title": "Hjelpeord og startere",
-      "subtitle": "Én linje per ord eller setningsstarter. Læreren kan gjøre støtten smalere eller rikere."
+      "subtitle": "Én linje per ord eller setningsstarter. Læreren kan gjøre støtten smalere eller rikere.",
+      "summary": "{active} av {total} seksjoner har støtteord.",
+      "open": "Tilpass hjelpeord",
+      "close": "Skjul hjelpeord"
     },
     "settings": {
       "title": "Ramme",
@@ -63,10 +80,18 @@
       "aiImage": "Tillat KI-bilde"
     },
     "aiControl": {
-      "title": "KI-kontroll",
+      "title": "Elevstøtte og tillatelser",
       "subtitle": "Sett tydelige rammer før aktiviteten deles. Eleven skal tenke først og bruke KI som støtte.",
       "totalHelp": "Gjelder hele aktiviteten for én elev.",
-      "sectionHelp": "Gjelder hvert skrive- eller kontrollfelt."
+      "sectionHelp": "Gjelder hvert skrive- eller kontrollfelt.",
+      "open": "Tilpass elevstøtte",
+      "close": "Skjul elevstøtte",
+      "summaryTotal": "{count} totalt",
+      "summarySection": "{count} per seksjon",
+      "summaryPrintOn": "bilde i utskrift på",
+      "summaryPrintOff": "bilde i utskrift av",
+      "summaryImageOn": "KI-bilde på",
+      "summaryImageOff": "KI-bilde av"
     },
     "bottom": {
       "title": "Tekstbygger",
@@ -74,10 +99,15 @@
     },
     "fields": {
       "libraryTitle": "Bibliotektittel",
-      "libraryTitlePlaceholder": "For eksempel: Døra lukket seg",
+      "libraryTitlePlaceholder": {
+        "story": "For eksempel: En uventet hendelse",
+        "factual": "For eksempel: Hvorfor trenger kroppen søvn?"
+      },
       "genre": "Sjanger",
-      "theme": "Tema",
-      "customTheme": "Eget tema",
+      "theme": "Sjanger",
+      "customTheme": "Egen sjanger",
+      "draftPrompt": "Tema eller ønske",
+      "draftPromptPlaceholder": "For eksempel: vennskap, en ny elev, skogen om høsten, eventyr, framtidsskole",
       "assignmentText": "Oppgavetekst til eleven",
       "criteria": "Kriterier",
       "goals": "Kompetansemål",
@@ -90,12 +120,29 @@
       "aiSection": "Maks KI per seksjon"
     },
     "sections": {
+      "idea": "Ide",
+      "mainCharacter": "Hovedperson",
+      "otherCharacters": "Andre personer",
+      "setting": "Miljø",
+      "conflict": "Problem eller konflikt",
+      "solution": "Løsning",
+      "openingType": "Starttype",
+      "topic": "Tema",
+      "purposeAudience": "Formål og mottaker",
+      "keyTerms": "Nøkkelord",
+      "factsExamples": "Fakta og eksempler",
+      "discussion": "Drøfting og diskusjon",
+      "structure": "Struktur",
+      "sources": "Kilder",
       "title": "Overskrift",
       "introduction": "Innledning",
       "mainPart": "Hoveddel",
       "ending": "Avslutning",
       "contentCheck": "Innholdssjekk",
-      "languageCheck": "Språksjekk"
+      "structureCheck": "Struktursjekk",
+      "factCheck": "Faktasjekk",
+      "languageCheck": "Språksjekk",
+      "selfAssessment": "Egenvurdering"
     },
     "progression": {
       "title": "Progresjon",

@@ -1,18 +1,18 @@
 {
   "login": {
     "title": {
-      "anon": "Salve seu trabalho",
+      "anon": "Criar conta",
       "signin": "Bem-vindo de volta",
       "signup": "Crie sua conta"
     },
     "intro": {
-      "anon": "Crie uma conta ou entre para manter tudo que você criou.",
+      "anon": "Crie uma conta para manter tudo que você salvou.",
       "normal": "Entre com Feide, Google ou e-mail.",
       "signup": "Crie sua conta primeiro. Depois escolha se você é aluno, professor ou responsável."
     },
     "tabs": {
       "signin": "Já tenho uma conta",
-      "signup": "Sou novo aqui"
+      "signup": "Criar conta"
     },
     "separator": "ou",
     "fields": {
@@ -27,13 +27,13 @@
     "buttons": {
       "working": "Processando…",
       "sending": "Enviando…",
-      "upgradeGoogle": "Salvar com Google",
+      "upgradeGoogle": "Criar conta com Google",
       "signinGoogle": "Entrar com Google",
       "signupGoogle": "Criar conta com Google",
-      "upgradeFeide": "Salvar com Feide",
+      "upgradeFeide": "Criar conta com Feide",
       "signinFeide": "Entrar com Feide",
       "signupFeide": "Criar conta com Feide",
-      "upgradeEmail": "Salvar com e-mail",
+      "upgradeEmail": "Criar conta com e-mail",
       "useEmailSignin": "Entrar com e-mail",
       "useEmailSignup": "Criar conta com e-mail",
       "signinEmail": "Entrar",
@@ -55,6 +55,7 @@
     },
     "hints": {
       "anonSignup": "Dica: Se este e-mail já existir, escolha <b>Já tenho uma conta</b>.",
+      "feideAvailability": "Para municípios e escolas com acordo Feide.",
       "methodSignin": "Use Feide ou Google se foi assim que você se cadastrou antes. Caso contrário, use e-mail.",
       "methodSignup": "Escolha Feide se usa uma conta escolar, Google para começar rápido ou e-mail se preferir usar senha."
     },

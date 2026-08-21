@@ -785,6 +785,15 @@ export default function LoginClient() {
     border: "1px solid rgba(31,74,168,0.26)",
   };
 
+  const feideHintStyle: React.CSSProperties = {
+    margin: "-4px 8px 2px",
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: 650,
+    lineHeight: 1.4,
+    textAlign: "center",
+  };
+
   const ageConfirmStyle: React.CSSProperties = {
     display: needsSignupConfirmation() ? "flex" : "none",
     alignItems: "flex-start",
@@ -992,6 +1001,9 @@ export default function LoginClient() {
                 {!loadingFeide ? <FeideIcon /> : null}
                 <span>{loadingFeide ? safeT("buttons.working", "Working…") : feideLabel}</span>
               </button>
+              <p style={feideHintStyle}>
+                {safeT("hints.feideAvailability", "For municipalities and schools with a Feide agreement.")}
+              </p>
 
               {!showEmailForm ? (
                 <button

@@ -123,6 +123,22 @@
       "resume": "Retomar",
       "time": "{cur}s / {dur}s"
     },
+    "audioReading": {
+      "title": "Gravar leitura",
+      "subtitle": "Grave você lendo o texto em voz alta. Ouça primeiro se quiser, pratique um pouco e envie a gravação ao professor quando estiver pronto.",
+      "start": "Iniciar gravação",
+      "pause": "Pausar",
+      "resume": "Continuar",
+      "stop": "Parar",
+      "delete": "Excluir gravação",
+      "preview": "Sua gravação",
+      "required": "Você precisa gravar áudio antes de enviar ao professor.",
+      "errors": {
+        "unsupported": "Este navegador não suporta gravação de áudio aqui.",
+        "permission": "O acesso ao microfone não foi aprovado.",
+        "default": "Não foi possível iniciar a gravação."
+      }
+    },
     "text": {
       "title": "Texto",
       "noText": "Sem texto",

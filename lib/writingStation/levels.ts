@@ -6,6 +6,7 @@ export const WRITING_AI_MIN_WORDS_BY_LEVEL: Record<WritingLevel, number> = {
   B1: 25,
   B2: 40,
   C1: 60,
+  C2: 60,
 };
 
 export function normalizeWritingLevel(level: unknown): WritingLevel | null {
@@ -15,6 +16,7 @@ export function normalizeWritingLevel(level: unknown): WritingLevel | null {
   if (value === "B1") return "B1";
   if (value === "B2") return "B2";
   if (value === "C1") return "C1";
+  if (value === "C2") return "C2";
   return null;
 }
 

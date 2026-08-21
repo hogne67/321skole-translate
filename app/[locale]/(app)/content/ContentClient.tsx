@@ -220,6 +220,10 @@ function isQuizLesson(it: ContentItem) {
   return it.type === "lesson" && normalizedLessonSignals(it).includes("quiz");
 }
 
+function isAudioReadingLesson(it: ContentItem) {
+  return it.type === "lesson" && normalizedLessonSignals(it).includes("audio_reading");
+}
+
 function isImportedQuizLesson(it: ContentItem) {
   if (!isQuizLesson(it)) return false;
   const lesson = it as Extract<ContentItem, { type: "lesson" }> & {
@@ -316,7 +320,7 @@ type LoadMyContentArgs = {
   db: typeof db;
   uid: string | null;
   isAnon: boolean;
-  mode: "student" | "teacher";
+  mode: "student" | "teacher" | "creator";
 };
 
 export default function ContentClient() {
@@ -330,11 +334,12 @@ export default function ContentClient() {
 
   type AppRole = "student" | "teacher" | "parent" | "admin" | "creator";
   const role: AppRole = isAnon ? "student" : (profile?.role as AppRole) || "student";
-  const isTeacher = role === "teacher";
+  const isTeacher = role === "teacher" || role === "admin";
+  const isCreator = role === "creator";
   const isParent = role === "parent";
   const isStudent = role === "student";
 
-  const contentMode: "student" | "teacher" = isTeacher ? "teacher" : "student";
+  const contentMode: "student" | "teacher" | "creator" = isTeacher ? "teacher" : isCreator ? "creator" : "student";
   const isTeacherApproved = isTeacher;
 
   const t = useTranslations("content");
@@ -431,6 +436,9 @@ export default function ContentClient() {
   }
 
   function lessonOpenHref(it: Extract<ContentItem, { type: "lesson" }>) {
+    if (isAudioReadingLesson(it)) {
+      return `/${locale}/tools/audio-reading?activityId=${encodeURIComponent(it.id)}`;
+    }
     if (isReadingTestLesson(it)) {
       return readingTestPlayHref(it.activePublishedId || it.id);
     }
@@ -446,6 +454,9 @@ export default function ContentClient() {
   }
 
   function lessonEditHref(it: Extract<ContentItem, { type: "lesson" }>) {
+    if (isAudioReadingLesson(it)) {
+      return `/${locale}/tools/audio-reading?activityId=${encodeURIComponent(it.id)}`;
+    }
     if (isReadingTestLesson(it)) {
       return `/${locale}/producer/reading-tests/${it.id}`;
     }
@@ -471,7 +482,7 @@ export default function ContentClient() {
       case "lesson":
         return lessonOpenHref(it);
       case "writingActivity":
-        return `/${locale}/teacher/writing`;
+        return `/${locale}/content?filter=writing`;
       case "submission":
         return normalizeInternalHref(it.href);
       case "space":
@@ -514,6 +525,7 @@ export default function ContentClient() {
       if (isMathContent(it)) return safeMsg("cardTypes.mathWorksheet", "Matteoppgave");
       if (isReadingTestLesson(it)) return safeMsg("cardTypes.readingTest", "Lesetest");
       if (isQuizLesson(it)) return safeMsg("cardTypes.quiz", "Quiz");
+      if (isAudioReadingLesson(it)) return safeMsg("cardTypes.audioReading", "Lydlesing");
       if (isImageWritingLesson(it)) return "Skriveoppgave med bilde";
       return safeMsg("cardTypes.ownGenerated", "Egen generert");
     }
@@ -1258,6 +1270,9 @@ export default function ContentClient() {
       "equations",
       "measurement",
       "reading_test",
+      "audio_reading",
+      "lydlesing",
+      "read_aloud",
       "practice",
     ]);
 

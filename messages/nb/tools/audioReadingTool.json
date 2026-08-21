@@ -1,0 +1,96 @@
+{
+  "audioReadingTool": {
+    "eyebrow": "321 Tools",
+    "beta": "Beta",
+    "title": "Lydlesing",
+    "subtitle": "Lim inn en tekst, la eleven lese høyt og ta opp lyd. I denne første betaen blir opptaket værende i nettleseren, slik at flyten kan testes før vi kobler på vurdering, lagring og Space.",
+    "source": {
+      "title": "Velg tekst",
+      "paste": "Lim inn tekst",
+      "lesson": "Fra lesson",
+      "generate": "KI-generer",
+      "lessonPickerTitle": "Hent fra egne lessons",
+      "lessonPickerHelp": "Velg en lesson fra Mitt innhold. Tittel og tekst fylles inn automatisk.",
+      "refresh": "Hent lessons",
+      "loading": "Henter...",
+      "selectLesson": "Lesson",
+      "selectPlaceholder": "Velg lesson",
+      "untitled": "Uten tittel",
+      "empty": "Fant ingen lessons med tekst.",
+      "signIn": "Logg inn for å hente egne lessons.",
+      "loadFailed": "Kunne ikke hente lessons akkurat nå."
+    },
+    "fields": {
+      "title": "Tittel",
+      "titlePlaceholder": "For eksempel: Lesing om vinteren",
+      "text": "Tekst som skal leses",
+      "textPlaceholder": "Lim inn teksten eleven skal lese høyt..."
+    },
+    "record": {
+      "title": "Ta opp lesing",
+      "subtitle": "Start opptak når teksten er klar. Eleven kan lytte gjennom før neste steg.",
+      "start": "Start opptak",
+      "pause": "Pause",
+      "resume": "Fortsett",
+      "stop": "Stopp",
+      "reset": "Nullstill",
+      "preview": "Opptak",
+      "delete": "Slett"
+    },
+    "listen": {
+      "title": "Øv med lyd",
+      "subtitle": "Lytt til teksten før du leser den inn. Dette kan hjelpe med flyt, uttale og trygghet.",
+      "play": "Lytt til teksten",
+      "loading": "Lager lyd...",
+      "pause": "Pause",
+      "resume": "Fortsett lyd",
+      "stop": "Stopp lyd",
+      "failed": "Kunne ikke spille av teksten."
+    },
+    "stats": {
+      "title": "Tekstoversikt",
+      "words": "Ord",
+      "estimate": "Ca. tid"
+    },
+    "review": {
+      "title": "Beta-vurdering",
+      "subtitle": "Foreløpig gir verktøyet bare en enkel støtte basert på tekstlengde og opptakstid. Neste versjon kan transkribere lyd og sammenligne med originaltekst.",
+      "duration": "Varighet",
+      "signals": {
+        "pending": "Ta opp lyd for å se signal.",
+        "short": "Opptaket virker kort sammenlignet med teksten.",
+        "long": "Opptaket virker langt sammenlignet med teksten.",
+        "ok": "Opptakstiden passer omtrent til teksten."
+      },
+      "checks": {
+        "one": "Lytt etter tydelig uttale og om ordene kommer i riktig rekkefølge.",
+        "two": "Se om eleven stopper ofte eller hopper over deler av teksten.",
+        "three": "Bruk responsen som støtte, ikke som endelig karakter."
+      }
+    },
+    "next": {
+      "title": "Neste kobling",
+      "body": "Planlagt: hente tekst fra Lessons, lagre til Mitt innhold, sende i Space og sende lyd til transkribering/vurdering."
+    },
+    "save": {
+      "title": "Mitt innhold",
+      "subtitle": "Lagre lydlesingen som en beta-aktivitet. Opptaket lagres ikke ennå.",
+      "action": "Lagre til Mitt innhold",
+      "update": "Oppdater aktivitet",
+      "saving": "Lagrer...",
+      "saved": "Lagret.",
+      "openContent": "Åpne Mitt innhold",
+      "signIn": "Logg inn for å lagre aktiviteten.",
+      "failed": "Kunne ikke lagre aktiviteten.",
+      "loadingActivity": "Laster lagret lydlesing...",
+      "loadFailed": "Kunne ikke laste lagret lydlesing.",
+      "notFound": "Fant ikke lagret lydlesing."
+    },
+    "errors": {
+      "missingText": "Lim inn en tekst før opptak.",
+      "unsupported": "Nettleseren støtter ikke lydopptak her.",
+      "permission": "Mikrofontilgang ble ikke godkjent.",
+      "default": "Kunne ikke starte opptak."
+    }
+  }
+}

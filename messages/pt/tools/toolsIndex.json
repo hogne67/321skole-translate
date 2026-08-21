@@ -68,6 +68,10 @@
         "title": "Gerador de vocabulário",
         "description": "Crie listas de vocabulário a partir de um tema ou texto."
       },
+      "audioReading": {
+        "title": "Leitura com áudio",
+        "description": "Deixe alunos lerem um texto em voz alta e gravarem áudio para feedback."
+      },
       "sentenceFixer": {
         "title": "Corretor de frases",
         "description": "Corrija a gramática e melhore a clareza das frases."

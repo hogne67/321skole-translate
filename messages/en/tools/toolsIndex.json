@@ -68,6 +68,10 @@
         "title": "Glossary generator",
         "description": "Build vocabulary lists from a topic or text."
       },
+      "audioReading": {
+        "title": "Audio reading",
+        "description": "Let learners read a text aloud and record audio for feedback."
+      },
       "sentenceFixer": {
         "title": "Sentence fixer",
         "description": "Fix grammar and make sentences clearer."

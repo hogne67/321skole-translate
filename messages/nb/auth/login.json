@@ -1,18 +1,18 @@
 {
   "login": {
     "title": {
-      "anon": "Lagre arbeidet ditt",
+      "anon": "Registrer deg",
       "signin": "Velkommen tilbake",
       "signup": "Opprett konto"
     },
     "intro": {
-      "anon": "Opprett konto eller logg inn for å beholde alt du har laget.",
+      "anon": "Opprett konto for å beholde alt du har lagret.",
       "normal": "Logg inn med Feide, Google eller e-post.",
       "signup": "Opprett konto først. Etterpå velger du om du er elev, lærer eller forelder."
     },
     "tabs": {
       "signin": "Jeg har allerede en konto",
-      "signup": "Jeg er ny her"
+      "signup": "Registrer deg"
     },
     "separator": "eller",
     "fields": {
@@ -27,13 +27,13 @@
     "buttons": {
       "working": "Jobber…",
       "sending": "Sender…",
-      "upgradeGoogle": "Lagre med Google",
+      "upgradeGoogle": "Registrer deg med Google",
       "signinGoogle": "Logg inn med Google",
       "signupGoogle": "Opprett konto med Google",
-      "upgradeFeide": "Lagre med Feide",
+      "upgradeFeide": "Registrer deg med Feide",
       "signinFeide": "Logg inn med Feide",
       "signupFeide": "Opprett konto med Feide",
-      "upgradeEmail": "Lagre med e-post",
+      "upgradeEmail": "Registrer deg med e-post",
       "useEmailSignin": "Logg inn med e-post",
       "useEmailSignup": "Opprett konto med e-post",
       "signinEmail": "Logg inn",
@@ -55,6 +55,7 @@
     },
     "hints": {
       "anonSignup": "Tips: Hvis e-posten allerede finnes, velg <b>Jeg har allerede en konto</b> i stedet.",
+      "feideAvailability": "For kommuner og skoler med Feide-avtale.",
       "methodSignin": "Bruk Feide eller Google hvis det var slik du registrerte deg tidligere. Ellers velger du e-post.",
       "methodSignup": "Velg Feide hvis du bruker skolekonto, Google for rask start, eller e-post hvis du vil bruke passord."
     },

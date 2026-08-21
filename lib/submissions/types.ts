@@ -106,6 +106,8 @@ export type SubmissionDoc = {
     readingTestTimedOut?: unknown;
     readingTestSubmittedManually?: unknown;
     readingTimerResult?: unknown;
+
+    audioReading?: unknown;
 };
 
 export type AssignmentDoc = {

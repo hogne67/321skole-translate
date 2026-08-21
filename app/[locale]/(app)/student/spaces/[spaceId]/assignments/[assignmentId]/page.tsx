@@ -75,6 +75,9 @@ import AssignmentFooterActions from "./AssignmentFooterActions";
 import AssignmentPageHeader from "./AssignmentPageHeader";
 import AssignmentPageState from "./AssignmentPageState";
 import StandardAssignmentSection from "./StandardAssignmentSection";
+import AudioReadingStudentSection, {
+  type AudioReadingSubmission,
+} from "./AudioReadingStudentSection";
 import { getAssignmentDerivedState } from "./assignmentDerivedState";
 import { useAssignmentAudio } from "./useAssignmentAudio";
 import { DraftButton } from "./AssignmentActionButtons";
@@ -138,6 +141,30 @@ function readReadingTimerResult(sd: unknown): ReadingTestTimerResult | null {
     timedOut,
     submittedManually,
   };
+}
+
+function isAudioReadingType(value: unknown): boolean {
+  return String(value ?? "").trim().toLowerCase() === "audio_reading";
+}
+
+function readAudioReadingSubmission(value: unknown): AudioReadingSubmission | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const data = value as Record<string, unknown>;
+  const audioDataUrl = typeof data.audioDataUrl === "string" ? data.audioDataUrl : "";
+  if (!audioDataUrl) return null;
+
+  const mimeType = typeof data.mimeType === "string" ? data.mimeType : "audio/webm";
+  const durationSeconds =
+    typeof data.durationSeconds === "number" && Number.isFinite(data.durationSeconds)
+      ? data.durationSeconds
+      : 0;
+  const recordedAt =
+    typeof data.recordedAt === "number" && Number.isFinite(data.recordedAt)
+      ? data.recordedAt
+      : Date.now();
+
+  return { audioDataUrl, mimeType, durationSeconds, recordedAt };
 }
 
 async function resolveUserForStudentPage(): Promise<User> {
@@ -207,6 +234,8 @@ export default function StudentAssignmentPage() {
 
   const [answers, setAnswers] = useState<AnswersMap>({});
   const answersRef = useRef<AnswersMap>({});
+  const [audioReadingSubmission, setAudioReadingSubmission] =
+    useState<AudioReadingSubmission | null>(null);
   const [draftSaving, setDraftSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -271,6 +300,24 @@ export default function StudentAssignmentPage() {
   const isImageWriting = useMemo(
     () => String(lesson?.lessonType ?? assignment?.lessonType ?? "").trim().toLowerCase() === "image_writing",
     [lesson?.lessonType, assignment?.lessonType]
+  );
+
+  const isAudioReading = useMemo(
+    () =>
+      isAudioReadingType(lesson?.lessonType) ||
+      isAudioReadingType(lesson?.taskType) ||
+      isAudioReadingType(lesson?.contentType) ||
+      isAudioReadingType(assignment?.lessonType) ||
+      isAudioReadingType(assignment?.taskType) ||
+      isAudioReadingType(assignment?.contentType),
+    [
+      assignment?.contentType,
+      assignment?.lessonType,
+      assignment?.taskType,
+      lesson?.contentType,
+      lesson?.lessonType,
+      lesson?.taskType,
+    ]
   );
 
   const displayedSourceTextSafe = isImageWriting || isReadingTest ? "" : sourceTextSafe;
@@ -686,6 +733,7 @@ export default function StudentAssignmentPage() {
         setSubmissionId(null);
         setMsg(null);
         setAnswers({});
+        setAudioReadingSubmission(null);
 
         setReadingTestStarted(false);
         setReadingTestFinished(false);
@@ -728,6 +776,10 @@ export default function StudentAssignmentPage() {
           if (Object.keys(nextAnswers).length > 0) {
             setAnswers(nextAnswers);
           }
+
+          setAudioReadingSubmission(
+            readAudioReadingSubmission((sd as Record<string, unknown>).audioReading)
+          );
 
           if (isGeometryResolved) {
             setLiveGeometryAuto((sd.auto as GeometryAutoResult | null) ?? null);
@@ -835,6 +887,10 @@ export default function StudentAssignmentPage() {
           setLiveGeometryAuto(null);
         }
 
+        setAudioReadingSubmission(
+          readAudioReadingSubmission((sd as Record<string, unknown>).audioReading)
+        );
+
         if (sStatus === "needs_work" || sStatus === "draft") {
           setEditingSubmissionId(activeSubId);
         } else {
@@ -892,10 +948,12 @@ export default function StudentAssignmentPage() {
 
           taskType: isGeometryDraft ? "math_geometry" : null,
           lessonType: isGeometryDraft ? "math_geometry" : lesson?.lessonType ?? null,
+          contentType: isGeometryDraft ? null : lesson?.contentType ?? null,
           mathWorksheet: isGeometryDraft ? geometryWorksheet : null,
 
           answers: isGeometryDraft ? normalizedGeometryAnswers : answers,
           answersByTaskId: isGeometryDraft ? normalizedGeometryAnswers : undefined,
+          audioReading: isAudioReading ? audioReadingSubmission : null,
 
           auto: null,
           aiFeedback: null,
@@ -950,6 +1008,8 @@ export default function StudentAssignmentPage() {
       isGeometryAssignment,
       geometryWorksheet,
       answers,
+      isAudioReading,
+      audioReadingSubmission,
       liveStatus,
       assignment,
       lesson,
@@ -1090,6 +1150,7 @@ export default function StudentAssignmentPage() {
 
           answers: isGeometryAssignment ? normalizedGeometryAnswers : finalAnswers,
           answersByTaskId: isGeometryAssignment ? normalizedGeometryAnswers : undefined,
+          audioReading: isAudioReading ? audioReadingSubmission : null,
 
           auto,
           aiFeedback,
@@ -1175,6 +1236,8 @@ export default function StudentAssignmentPage() {
       lesson,
       isAnon,
       isReadingTest,
+      isAudioReading,
+      audioReadingSubmission,
       readingTestTotalSeconds,
       readingTestSecondsLeft,
       tasksOriginal,
@@ -1233,6 +1296,7 @@ export default function StudentAssignmentPage() {
     submitting ||
     lock ||
     !uid ||
+    (isAudioReading && !audioReadingSubmission?.audioDataUrl) ||
     (isReadingTest && !readingTestStarted) ||
     (isReadingTest && readingTestFinished);
 
@@ -1505,6 +1569,15 @@ export default function StudentAssignmentPage() {
             onTranslateTask={onTranslateTask}
             showTaskTranslations={showTaskTranslations}
             onToggleTaskTranslations={() => setShowTaskTranslations((v) => !v)}
+          />
+        ) : null}
+
+        {isAudioReading ? (
+          <AudioReadingStudentSection
+            disabled={lock || submitted || submitting}
+            existing={audioReadingSubmission}
+            t={tString}
+            onRecordingReady={setAudioReadingSubmission}
           />
         ) : null}
       </div>

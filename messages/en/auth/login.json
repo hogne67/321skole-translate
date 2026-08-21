@@ -1,18 +1,18 @@
 {
   "login": {
     "title": {
-      "anon": "Save your work",
+      "anon": "Sign up",
       "signin": "Welcome back",
       "signup": "Create your account"
     },
     "intro": {
-      "anon": "Create an account or log in to keep everything you have made.",
+      "anon": "Create an account to keep everything you have saved.",
       "normal": "Log in with Feide, Google or email.",
       "signup": "Create your account first. Then choose whether you are a student, teacher or parent."
     },
     "tabs": {
       "signin": "I already have an account",
-      "signup": "I’m new here"
+      "signup": "Sign up"
     },
     "separator": "or",
     "fields": {
@@ -27,13 +27,13 @@
     "buttons": {
       "working": "Working…",
       "sending": "Sending…",
-      "upgradeGoogle": "Save with Google",
+      "upgradeGoogle": "Sign up with Google",
       "signinGoogle": "Log in with Google",
       "signupGoogle": "Create account with Google",
-      "upgradeFeide": "Save with Feide",
+      "upgradeFeide": "Sign up with Feide",
       "signinFeide": "Log in with Feide",
       "signupFeide": "Create account with Feide",
-      "upgradeEmail": "Save with email",
+      "upgradeEmail": "Sign up with email",
       "useEmailSignin": "Log in with email",
       "useEmailSignup": "Create account with email",
       "signinEmail": "Log in",
@@ -55,6 +55,7 @@
     },
     "hints": {
       "anonSignup": "Tip: If this email already exists, choose <b>I already have an account</b> instead.",
+      "feideAvailability": "For municipalities and schools with a Feide agreement.",
       "methodSignin": "Use Feide or Google if that is how you signed up before. Otherwise choose email.",
       "methodSignup": "Choose Feide if you use a school account, Google for a fast start, or email if you prefer password login."
     },

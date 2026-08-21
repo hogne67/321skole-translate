@@ -59,6 +59,7 @@
       "noImageTitle": "Ingen bilde",
       "noImageDesc": "Denne oppgaven har ikke noe forsidebilde.",
       "textTitle": "Tekst",
+      "audioReadingTitle": "Lydopptak fra elev",
       "tasksTitle": "Oppgaver",
       "noTasks": "Ingen oppgaver i denne leksjonen (eller leksjonen ble ikke funnet).",
       "noTasksHint": "Dette betyr vanligvis at assignment.sourceId mangler eller at lesson.tasks er tom.",

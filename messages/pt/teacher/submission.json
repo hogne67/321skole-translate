@@ -59,6 +59,7 @@
       "noImageTitle": "Sem imagem",
       "noImageDesc": "Esta atividade não tem imagem de capa.",
       "textTitle": "Texto",
+      "audioReadingTitle": "Gravação de áudio do aluno",
       "tasksTitle": "Atividades",
       "noTasks": "Nenhuma atividade nesta lição (ou a lição não foi encontrada).",
       "noTasksHint": "Isso geralmente significa que assignment.sourceId está ausente ou lesson.tasks está vazio.",

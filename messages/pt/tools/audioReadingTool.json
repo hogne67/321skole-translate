@@ -1,0 +1,96 @@
+{
+  "audioReadingTool": {
+    "eyebrow": "321 Tools",
+    "beta": "Beta",
+    "title": "Leitura com áudio",
+    "subtitle": "Cole um texto, deixe o aluno ler em voz alta e grave o áudio. Nesta primeira beta, a gravação fica no navegador enquanto testamos o fluxo antes de adicionar avaliação, salvamento e Space.",
+    "source": {
+      "title": "Escolher texto",
+      "paste": "Colar texto",
+      "lesson": "De lesson",
+      "generate": "Gerar com IA",
+      "lessonPickerTitle": "Buscar nas suas lessons",
+      "lessonPickerHelp": "Escolha uma lesson em Meu conteúdo. Título e texto são preenchidos automaticamente.",
+      "refresh": "Buscar lessons",
+      "loading": "Carregando...",
+      "selectLesson": "Lesson",
+      "selectPlaceholder": "Escolher lesson",
+      "untitled": "Sem título",
+      "empty": "Nenhuma lesson com texto foi encontrada.",
+      "signIn": "Entre para buscar suas lessons.",
+      "loadFailed": "Não foi possível buscar lessons agora."
+    },
+    "fields": {
+      "title": "Título",
+      "titlePlaceholder": "Por exemplo: Leitura sobre o inverno",
+      "text": "Texto para ler",
+      "textPlaceholder": "Cole o texto que o aluno deve ler em voz alta..."
+    },
+    "record": {
+      "title": "Gravar leitura",
+      "subtitle": "Comece a gravação quando o texto estiver pronto. O aluno pode ouvir antes do próximo passo.",
+      "start": "Iniciar gravação",
+      "pause": "Pausar",
+      "resume": "Continuar",
+      "stop": "Parar",
+      "reset": "Reiniciar",
+      "preview": "Gravação",
+      "delete": "Excluir"
+    },
+    "listen": {
+      "title": "Praticar com áudio",
+      "subtitle": "Ouça o texto antes de gravar. Isso pode ajudar com fluência, pronúncia e confiança.",
+      "play": "Ouvir o texto",
+      "loading": "Criando áudio...",
+      "pause": "Pausar",
+      "resume": "Continuar áudio",
+      "stop": "Parar áudio",
+      "failed": "Não foi possível reproduzir o texto."
+    },
+    "stats": {
+      "title": "Resumo do texto",
+      "words": "Palavras",
+      "estimate": "Tempo aprox."
+    },
+    "review": {
+      "title": "Avaliação beta",
+      "subtitle": "Por enquanto, a ferramenta oferece apenas apoio simples com base no tamanho do texto e no tempo de gravação. Uma versão posterior pode transcrever o áudio e comparar com o texto original.",
+      "duration": "Duração",
+      "signals": {
+        "pending": "Grave áudio para ver um sinal.",
+        "short": "A gravação parece curta em relação ao texto.",
+        "long": "A gravação parece longa em relação ao texto.",
+        "ok": "O tempo da gravação combina aproximadamente com o texto."
+      },
+      "checks": {
+        "one": "Ouça se a pronúncia é clara e se as palavras estão na ordem correta.",
+        "two": "Observe se o aluno pausa muitas vezes ou pula partes do texto.",
+        "three": "Use o feedback como apoio, não como nota final."
+      }
+    },
+    "next": {
+      "title": "Próxima ligação",
+      "body": "Planejado: buscar texto de Lessons, salvar em Meu conteúdo, enviar em Space e mandar áudio para transcrição/avaliação."
+    },
+    "save": {
+      "title": "Meu conteúdo",
+      "subtitle": "Salve a leitura com áudio como atividade beta. A gravação ainda não é salva.",
+      "action": "Salvar em Meu conteúdo",
+      "update": "Atualizar atividade",
+      "saving": "Salvando...",
+      "saved": "Salvo.",
+      "openContent": "Abrir Meu conteúdo",
+      "signIn": "Entre para salvar a atividade.",
+      "failed": "Não foi possível salvar a atividade.",
+      "loadingActivity": "Carregando leitura com áudio salva...",
+      "loadFailed": "Não foi possível carregar a leitura com áudio salva.",
+      "notFound": "A leitura com áudio salva não foi encontrada."
+    },
+    "errors": {
+      "missingText": "Cole um texto antes de gravar.",
+      "unsupported": "Este navegador não suporta gravação de áudio aqui.",
+      "permission": "O acesso ao microfone não foi aprovado.",
+      "default": "Não foi possível iniciar a gravação."
+    }
+  }
+}

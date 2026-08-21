@@ -123,6 +123,22 @@
       "resume": "Fortsett",
       "time": "{cur}s / {dur}s"
     },
+    "audioReading": {
+      "title": "Les inn lyd",
+      "subtitle": "Ta opp at du leser teksten høyt. Lytt gjerne til teksten først, øv litt, og send opptaket til lærer når du er fornøyd.",
+      "start": "Start opptak",
+      "pause": "Pause",
+      "resume": "Fortsett",
+      "stop": "Stopp",
+      "delete": "Slett opptak",
+      "preview": "Ditt opptak",
+      "required": "Du må ta opp lyd før du kan sende til lærer.",
+      "errors": {
+        "unsupported": "Nettleseren støtter ikke lydopptak her.",
+        "permission": "Mikrofontilgang ble ikke godkjent.",
+        "default": "Kunne ikke starte opptak."
+      }
+    },
     "text": {
       "title": "Tekst",
       "noText": "Ingen tekst",

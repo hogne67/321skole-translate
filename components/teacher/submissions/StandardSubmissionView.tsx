@@ -12,6 +12,7 @@ type Props = {
     lessonLevel: string;
     cover: string | null;
     sourceText: string;
+    audioReading?: unknown;
 
     tasksOriginal: Task[];
     answersMap: AnswersMap;
@@ -33,11 +34,34 @@ type Props = {
     renderValue: (value: unknown) => string;
 };
 
+function readAudioReading(value: unknown): {
+    audioDataUrl: string;
+    durationSeconds: number;
+} | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const data = value as Record<string, unknown>;
+    const audioDataUrl = typeof data.audioDataUrl === "string" ? data.audioDataUrl : "";
+    if (!audioDataUrl) return null;
+    const durationSeconds =
+        typeof data.durationSeconds === "number" && Number.isFinite(data.durationSeconds)
+            ? data.durationSeconds
+            : 0;
+    return { audioDataUrl, durationSeconds };
+}
+
+function formatDuration(totalSeconds: number) {
+    const safe = Math.max(0, Math.floor(totalSeconds));
+    const minutes = Math.floor(safe / 60);
+    const seconds = safe % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
 export default function StandardSubmissionView({
     lessonTitle,
     lessonLevel,
     cover,
     sourceText,
+    audioReading,
     tasksOriginal,
     answersMap,
     auto,
@@ -46,6 +70,8 @@ export default function StandardSubmissionView({
     getAutoEntry,
     renderValue,
 }: Props) {
+    const audio = readAudioReading(audioReading);
+
     return (
         <div className="grid gap-4">
             <div className="grid gap-1">
@@ -96,6 +122,20 @@ export default function StandardSubmissionView({
                     <div className="whitespace-pre-wrap leading-7 text-slate-800">
                         {sourceText}
                     </div>
+                </div>
+            ) : null}
+
+            {audio ? (
+                <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm font-black text-emerald-950">
+                            {t("studentView.audioReadingTitle")}
+                        </div>
+                        <div className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-bold text-emerald-900">
+                            {formatDuration(audio.durationSeconds)}
+                        </div>
+                    </div>
+                    <audio controls src={audio.audioDataUrl} className="w-full" />
                 </div>
             ) : null}
 

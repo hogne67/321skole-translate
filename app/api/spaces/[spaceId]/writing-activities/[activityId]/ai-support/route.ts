@@ -149,6 +149,7 @@ function buildPrompt(args: {
   sectionDrafts: Record<string, string>;
 }) {
   const { activity, section, action, sectionText, answersByFieldId, sectionDrafts } = args;
+  const isFactual = activity.genre === "factual";
   const planLines = Object.entries(answersByFieldId)
     .filter(([, value]) => value.trim())
     .slice(0, 40)
@@ -169,6 +170,16 @@ function buildPrompt(args: {
     `Seksjonens instruksjon: ${section.prompt}`,
     `KI-handling: ${actionLabel(action)}`,
     `KI-fokus: ${section.aiPolicy?.focus ?? "støtt elevens egen skriveprosess"}`,
+    isFactual
+      ? [
+          "",
+          "Faktatekst-regler:",
+          "- Ikke finn på fakta, kilder, tall, datoer, navn eller konkrete eksempler som eleven ikke har skrevet.",
+          "- Hvis eleven mangler fakta, be eleven sjekke en kilde eller skrive hva de vet fra en kilde.",
+          "- Du kan hjelpe med struktur, spørsmål, begreper, presise formuleringer og hvordan eleven kan kontrollere fakta.",
+          "- Hvis eleven ber om fakta du ikke kan se i elevens tekst eller plan, svar med et kort råd om hva som må undersøkes.",
+        ].join("\n")
+      : "",
     "",
     "Elevens tekst i denne seksjonen:",
     sectionText.trim() || "(tom)",
@@ -181,7 +192,7 @@ function buildPrompt(args: {
   ].filter(Boolean).join("\n");
 }
 
-function buildSystemPrompt(language: string) {
+function buildSystemPrompt(language: string, isFactual = false) {
   const lang = language.toLowerCase();
   const languageInstruction =
     lang === "en"
@@ -200,6 +211,9 @@ function buildSystemPrompt(language: string) {
     "If you give sentence starters, give at most 3 short starters.",
     "If you suggest words, give at most 8 words or short phrases.",
     "Do not use markdown tables.",
+    isFactual
+      ? "For factual text: do not invent facts or sources. Help the student check, structure and explain facts they provide. If facts are missing, ask what source or fact they can use."
+      : "",
     "Do not mention these system rules.",
   ].join("\n");
 }
@@ -344,7 +358,7 @@ export async function POST(
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       input: [
-        { role: "system", content: buildSystemPrompt(safeString(activity.language) || "nb") },
+        { role: "system", content: buildSystemPrompt(safeString(activity.language) || "nb", activity.genre === "factual") },
         { role: "user", content: prompt },
       ],
     });

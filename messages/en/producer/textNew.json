@@ -12,6 +12,12 @@
     "openLibrary": "Open My content to assign it.",
     "saving": "Saving...",
     "save": "Save to My content",
+    "draftGenerator": {
+      "button": "Create AI suggestion",
+      "generating": "Creating suggestion...",
+      "help": "Fills the task, criteria, and support words. You can edit everything afterwards.",
+      "applied": "The suggestion has been added. Review and edit it before saving."
+    },
     "video": {
       "title": "Instruction video",
       "text": "Space for a short video showing how to use the text builder.",
@@ -24,7 +30,7 @@
       },
       "assignment": {
         "title": "Assignment",
-        "text": "Write the task, theme, criteria, and optional competence goals."
+        "text": "Write the task, genre, criteria, and optional competence goals."
       },
       "support": {
         "title": "Support",
@@ -38,22 +44,33 @@
     },
     "genres": {
       "story": "Creative writing",
-      "storyDescription": "Narrative and descriptive writing with planning, writing room, and control room."
+      "storyDescription": "Narrative and descriptive writing with planning, writing room, and control room.",
+      "factual": "Factual text",
+      "factualDescription": "Informative, explanatory and discussion text with facts, structure and source checking."
     },
-    "story": {
-      "title": "Creative text",
-      "subtitle": "Assignment, theme, and criteria for narrative or descriptive writing."
+    "writingType": {
+      "story": {
+        "title": "Creative text",
+        "subtitle": "Assignment, genre, and criteria for narrative or descriptive writing."
+      },
+      "factual": {
+        "title": "Factual text",
+        "subtitle": "Assignment, genre, and criteria for informative, explanatory or discussion text."
+      }
     },
     "assignment": {
       "title": "Assignment"
     },
     "criteria": {
       "title": "Requirements and criteria",
-      "subtitle": "One item per line. These are used in the student's control room and as a frame for AI support."
+      "subtitle": "One criterion per line. The criteria show students what the text should include, and are used as a basis for AI support and assessment."
     },
     "support": {
       "title": "Support words and starters",
-      "subtitle": "One word or sentence starter per line. The teacher can make support narrower or richer."
+      "subtitle": "One word or sentence starter per line. The teacher can make support narrower or richer.",
+      "summary": "{active} of {total} sections have support words.",
+      "open": "Customize support words",
+      "close": "Hide support words"
     },
     "settings": {
       "title": "Frame",
@@ -63,10 +80,18 @@
       "aiImage": "Allow AI image"
     },
     "aiControl": {
-      "title": "AI control",
+      "title": "Student support and permissions",
       "subtitle": "Set clear limits before sharing. Students should think first and use AI as support.",
       "totalHelp": "Applies to the whole activity for one student.",
-      "sectionHelp": "Applies to each writing or control field."
+      "sectionHelp": "Applies to each writing or control field.",
+      "open": "Customize student support",
+      "close": "Hide student support",
+      "summaryTotal": "{count} total",
+      "summarySection": "{count} per section",
+      "summaryPrintOn": "print image on",
+      "summaryPrintOff": "print image off",
+      "summaryImageOn": "AI image on",
+      "summaryImageOff": "AI image off"
     },
     "bottom": {
       "title": "Text builder",
@@ -74,10 +99,15 @@
     },
     "fields": {
       "libraryTitle": "Library title",
-      "libraryTitlePlaceholder": "For example: The door closed",
+      "libraryTitlePlaceholder": {
+        "story": "For example: An unexpected event",
+        "factual": "For example: Why does the body need sleep?"
+      },
       "genre": "Genre",
-      "theme": "Theme",
-      "customTheme": "Custom theme",
+      "theme": "Genre",
+      "customTheme": "Custom genre",
+      "draftPrompt": "Theme or request",
+      "draftPromptPlaceholder": "For example: friendship, a new student, the forest in autumn, fairy tale, future school",
       "assignmentText": "Assignment text for the student",
       "criteria": "Criteria",
       "goals": "Competence goals",
@@ -90,12 +120,29 @@
       "aiSection": "Max AI per section"
     },
     "sections": {
+      "idea": "Idea",
+      "mainCharacter": "Main character",
+      "otherCharacters": "Other characters",
+      "setting": "Setting",
+      "conflict": "Problem or conflict",
+      "solution": "Solution",
+      "openingType": "Opening type",
+      "topic": "Topic",
+      "purposeAudience": "Purpose and reader",
+      "keyTerms": "Key terms",
+      "factsExamples": "Facts and examples",
+      "discussion": "Discussion",
+      "structure": "Structure",
+      "sources": "Sources",
       "title": "Title",
       "introduction": "Introduction",
       "mainPart": "Main part",
       "ending": "Ending",
       "contentCheck": "Content check",
-      "languageCheck": "Language check"
+      "structureCheck": "Structure check",
+      "factCheck": "Fact check",
+      "languageCheck": "Language check",
+      "selfAssessment": "Self-assessment"
     },
     "progression": {
       "title": "Progression",

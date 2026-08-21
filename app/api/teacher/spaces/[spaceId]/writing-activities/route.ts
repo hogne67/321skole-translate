@@ -9,7 +9,7 @@ import {
   type AppRole,
   type PlanKey,
 } from "@/lib/featureAccess";
-import { storyWritingTemplate } from "@/lib/writingStation";
+import { factualWritingTemplate, storyWritingTemplate } from "@/lib/writingStation";
 import type { WritingLevel, WritingProgression } from "@/lib/writingStation";
 
 type CreateWritingActivityBody = {
@@ -17,6 +17,7 @@ type CreateWritingActivityBody = {
   level?: string;
   language?: string;
   theme?: string;
+  genre?: string;
   progression?: WritingProgression;
   aiEnabled?: boolean;
 };
@@ -75,6 +76,7 @@ function normalizeLevel(level: unknown): WritingLevel {
   if (value === "B1") return "B1";
   if (value === "B2") return "B2";
   if (value === "C1") return "C1";
+  if (value === "C2") return "C2";
   return "A2";
 }
 
@@ -82,6 +84,10 @@ function normalizeProgression(value: unknown): WritingProgression {
   if (value === "free") return "free";
   if (value === "locked") return "locked";
   return "guided";
+}
+
+function normalizeWritingGenre(value: unknown): "story" | "factual" {
+  return safeString(value).trim() === "factual" ? "factual" : "story";
 }
 
 function currentPeriodOslo(d = new Date()): string {
@@ -177,7 +183,9 @@ export async function POST(
     const period = currentPeriodOslo();
     const limit = getFeatureLimit(profile.role, profile.plan, feature);
 
-    const title = safeString(body.title).trim() || storyWritingTemplate.title;
+    const genre = normalizeWritingGenre(body.genre);
+    const template = genre === "factual" ? factualWritingTemplate : storyWritingTemplate;
+    const title = safeString(body.title).trim() || template.title;
     const level = normalizeLevel(body.level);
     const language = safeString(body.language).trim() || "nb";
     const theme = safeString(body.theme).trim();
@@ -235,13 +243,13 @@ export async function POST(
         assignedByUid: uid,
         spaceId,
         title,
-        genre: storyWritingTemplate.genre,
+        genre: template.genre,
         language,
         level,
         theme: theme || null,
-        templateVersion: storyWritingTemplate.templateVersion,
-        templateTitle: storyWritingTemplate.title,
-        rooms: storyWritingTemplate.rooms,
+        templateVersion: template.templateVersion,
+        templateTitle: template.title,
+        rooms: template.rooms,
         progression,
         aiPolicy: {
           enabled: aiEnabled,

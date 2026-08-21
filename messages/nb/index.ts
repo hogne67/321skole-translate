@@ -35,6 +35,7 @@ import toolsSpeakingTopicFree from "./tools/speakingTopicFree.json";
 import toolsTranslateFree from "./tools/translateFree.json";
 import toolsVocabFree from "./tools/vocabFree.json";
 import toolsQuizGenerator from "./tools/quizGenerator.json";
+import toolsAudioReadingTool from "./tools/audioReadingTool.json";
 
 import studentSpaces from "./student/studentSpaces.json";
 import studentSpaceDetail from "./student/studentspaceDetail.json";
@@ -130,6 +131,7 @@ const nbMessages = {
   ...toolsTranslateFree,
   ...toolsVocabFree,
   ...toolsQuizGenerator,
+  ...toolsAudioReadingTool,
 
   ...studentSpaces,
   ...studentSpaceDetail,

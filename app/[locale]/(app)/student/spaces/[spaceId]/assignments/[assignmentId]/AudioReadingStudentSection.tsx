@@ -1,0 +1,316 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+export type AudioReadingSubmission = {
+  audioDataUrl: string;
+  mimeType: string;
+  durationSeconds: number;
+  recordedAt: number;
+};
+
+type Props = {
+  disabled: boolean;
+  existing: AudioReadingSubmission | null;
+  t: (key: string, values?: Record<string, unknown>) => string;
+  onRecordingReady: (recording: AudioReadingSubmission | null) => void;
+};
+
+type RecorderStatus = "idle" | "recording" | "paused" | "ready";
+
+function formatDuration(totalSeconds: number) {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function getSupportedMimeType() {
+  if (typeof MediaRecorder === "undefined") return "";
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/ogg;codecs=opus",
+  ];
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
+function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Could not read audio."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+export default function AudioReadingStudentSection({
+  disabled,
+  existing,
+  t,
+  onRecordingReady,
+}: Props) {
+  const [status, setStatus] = useState<RecorderStatus>(existing ? "ready" : "idle");
+  const [elapsedSeconds, setElapsedSeconds] = useState(existing?.durationSeconds ?? 0);
+  const [previewUrl, setPreviewUrl] = useState(existing?.audioDataUrl ?? "");
+  const [error, setError] = useState<string | null>(null);
+
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const startedAtRef = useRef<number | null>(null);
+  const accumulatedMsRef = useRef(0);
+
+  useEffect(() => {
+    if (!existing) return;
+    setStatus("ready");
+    setElapsedSeconds(existing.durationSeconds);
+    setPreviewUrl(existing.audioDataUrl);
+  }, [existing]);
+
+  useEffect(() => {
+    if (status !== "recording" || startedAtRef.current == null) return;
+
+    const interval = window.setInterval(() => {
+      const activeMs = Date.now() - (startedAtRef.current ?? Date.now());
+      setElapsedSeconds(Math.floor((accumulatedMsRef.current + activeMs) / 1000));
+    }, 250);
+
+    return () => window.clearInterval(interval);
+  }, [status]);
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  function resetRecording() {
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      recorderRef.current.ondataavailable = null;
+      recorderRef.current.onstop = null;
+      recorderRef.current.stop();
+    }
+
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    recorderRef.current = null;
+    chunksRef.current = [];
+    startedAtRef.current = null;
+    accumulatedMsRef.current = 0;
+    setElapsedSeconds(0);
+    setPreviewUrl("");
+    setStatus("idle");
+    setError(null);
+    onRecordingReady(null);
+  }
+
+  async function startRecording() {
+    setError(null);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError(t("audioReading.errors.unsupported"));
+      return;
+    }
+
+    try {
+      resetRecording();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mimeType = getSupportedMimeType();
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        const durationSeconds = Math.max(1, Math.floor(accumulatedMsRef.current / 1000));
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        const audioDataUrl = await blobToDataUrl(blob);
+
+        setPreviewUrl(audioDataUrl);
+        setElapsedSeconds(durationSeconds);
+        setStatus("ready");
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        recorderRef.current = null;
+        startedAtRef.current = null;
+
+        onRecordingReady({
+          audioDataUrl,
+          mimeType: recorder.mimeType || "audio/webm",
+          durationSeconds,
+          recordedAt: Date.now(),
+        });
+      };
+
+      recorder.start();
+      accumulatedMsRef.current = 0;
+      startedAtRef.current = Date.now();
+      setElapsedSeconds(0);
+      setStatus("recording");
+    } catch (err: unknown) {
+      const name = err instanceof DOMException ? err.name : "";
+      setError(name === "NotAllowedError" ? t("audioReading.errors.permission") : t("audioReading.errors.default"));
+      setStatus("idle");
+    }
+  }
+
+  function pauseRecording() {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "recording") return;
+    accumulatedMsRef.current += Date.now() - (startedAtRef.current ?? Date.now());
+    startedAtRef.current = null;
+    recorder.pause();
+    setStatus("paused");
+  }
+
+  function resumeRecording() {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "paused") return;
+    recorder.resume();
+    startedAtRef.current = Date.now();
+    setStatus("recording");
+  }
+
+  function stopRecording() {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+
+    if (startedAtRef.current != null) {
+      accumulatedMsRef.current += Date.now() - startedAtRef.current;
+      setElapsedSeconds(Math.floor(accumulatedMsRef.current / 1000));
+    }
+
+    recorder.stop();
+  }
+
+  return (
+    <section
+      style={{
+        marginTop: 18,
+        border: "1px solid rgba(15,23,42,0.12)",
+        borderRadius: 16,
+        background: "white",
+        padding: 16,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>
+            {t("audioReading.title")}
+          </h2>
+          <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 14, lineHeight: 1.55 }}>
+            {t("audioReading.subtitle")}
+          </p>
+        </div>
+        <div
+          style={{
+            border: "1px solid rgba(15,23,42,0.10)",
+            borderRadius: 12,
+            background: "#f8fafc",
+            padding: "8px 12px",
+            fontWeight: 900,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatDuration(elapsedSeconds)}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+        {(status === "idle" || status === "ready") && !disabled ? (
+          <button type="button" onClick={startRecording} style={primaryButtonStyle}>
+            {t("audioReading.start")}
+          </button>
+        ) : null}
+
+        {status === "recording" ? (
+          <button type="button" onClick={pauseRecording} style={secondaryButtonStyle}>
+            {t("audioReading.pause")}
+          </button>
+        ) : null}
+
+        {status === "paused" ? (
+          <button type="button" onClick={resumeRecording} style={primaryButtonStyle}>
+            {t("audioReading.resume")}
+          </button>
+        ) : null}
+
+        {status === "recording" || status === "paused" ? (
+          <button type="button" onClick={stopRecording} style={secondaryButtonStyle}>
+            {t("audioReading.stop")}
+          </button>
+        ) : null}
+
+        {!disabled && previewUrl ? (
+          <button type="button" onClick={resetRecording} style={secondaryButtonStyle}>
+            {t("audioReading.delete")}
+          </button>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div
+          style={{
+            marginTop: 12,
+            border: "1px solid rgba(225,29,72,0.25)",
+            borderRadius: 12,
+            background: "#fff1f2",
+            color: "#be123c",
+            padding: "10px 12px",
+            fontWeight: 700,
+            fontSize: 14,
+          }}
+        >
+          {error}
+        </div>
+      ) : null}
+
+      {previewUrl ? (
+        <div
+          style={{
+            marginTop: 14,
+            border: "1px solid rgba(15,23,42,0.10)",
+            borderRadius: 14,
+            background: "#f8fafc",
+            padding: 12,
+          }}
+        >
+          <div style={{ marginBottom: 8, fontWeight: 850 }}>
+            {t("audioReading.preview")}
+          </div>
+          <audio controls src={previewUrl} style={{ width: "100%" }} />
+        </div>
+      ) : (
+        <div style={{ marginTop: 12, color: "#64748b", fontSize: 14 }}>
+          {t("audioReading.required")}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const primaryButtonStyle = {
+  border: "1px solid #be123c",
+  borderRadius: 12,
+  background: "#be123c",
+  color: "white",
+  padding: "10px 14px",
+  fontWeight: 900,
+  cursor: "pointer",
+};
+
+const secondaryButtonStyle = {
+  border: "1px solid rgba(15,23,42,0.22)",
+  borderRadius: 12,
+  background: "white",
+  color: "#0f172a",
+  padding: "10px 14px",
+  fontWeight: 900,
+  cursor: "pointer",
+};
