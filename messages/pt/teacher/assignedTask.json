@@ -23,7 +23,8 @@
     "submissions": {
       "title": "Entregas",
       "loading": "Buscando entregas…",
-      "empty": "Ainda não há entregas."
+      "empty": "Ainda não há entregas.",
+      "audioDelivered": "Áudio enviado"
     },
     "status": {
       "submitted": "Enviado",

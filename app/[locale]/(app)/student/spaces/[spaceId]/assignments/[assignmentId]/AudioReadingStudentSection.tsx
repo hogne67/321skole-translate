@@ -8,6 +8,7 @@ export type AudioReadingSubmission = StudentAudioAsset;
 type Props = {
   disabled: boolean;
   required: boolean;
+  submitted: boolean;
   existing: AudioReadingSubmission | null;
   t: (key: string, values?: Record<string, unknown>) => string;
   onRecordingReady: (recording: AudioReadingSubmission | null) => void;
@@ -52,6 +53,7 @@ function statusLabel(status: RecorderStatus, t: Props["t"]) {
 export default function AudioReadingStudentSection({
   disabled,
   required,
+  submitted,
   existing,
   t,
   onRecordingReady,
@@ -216,7 +218,7 @@ export default function AudioReadingStudentSection({
             {t("audioReading.subtitle")}
           </p>
           <p style={{ margin: "6px 0 0", color: "#0f766e", fontSize: 13, fontWeight: 750, lineHeight: 1.45 }}>
-            {t("audioReading.privacy")}
+            {submitted ? t("audioReading.submittedPrivacy") : t("audioReading.privacy")}
           </p>
         </div>
         <div

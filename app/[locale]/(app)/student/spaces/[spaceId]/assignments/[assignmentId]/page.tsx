@@ -1101,17 +1101,21 @@ export default function StudentAssignmentPage() {
 
         const nestedRef = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", subId);
         const indexRef = doc(db, "spaceSubmissions", subId);
-        const persistedAudioReading =
-          audioReadingEnabled && audioReadingSubmission
-            ? await uploadStudentAudioAsset({
-                spaceId,
-                assignmentId,
-                submissionId: subId,
-                uid,
-                activityType: "audio_reading",
-                asset: audioReadingSubmission,
-              })
-            : null;
+        let persistedAudioReading: AudioReadingSubmission | null = null;
+        if (audioReadingEnabled && audioReadingSubmission) {
+          try {
+            persistedAudioReading = await uploadStudentAudioAsset({
+              spaceId,
+              assignmentId,
+              submissionId: subId,
+              uid,
+              activityType: "audio_reading",
+              asset: audioReadingSubmission,
+            });
+          } catch {
+            throw new Error(t("audioReading.errors.uploadFailed"));
+          }
+        }
 
         let auto: unknown = computeAutoGrade(tasksOriginal, finalAnswers);
         const aiFeedback: unknown = null;
@@ -1542,6 +1546,7 @@ export default function StudentAssignmentPage() {
           <AudioReadingStudentSection
             disabled={lock || submitted || submitting}
             required={audioReadingRequired}
+            submitted={submitted}
             existing={audioReadingSubmission}
             t={tString}
             onRecordingReady={setAudioReadingSubmission}
@@ -1629,6 +1634,7 @@ export default function StudentAssignmentPage() {
                 <AudioReadingStudentSection
                   disabled={lock || submitted || submitting}
                   required={audioReadingRequired}
+                  submitted={submitted}
                   existing={audioReadingSubmission}
                   t={tString}
                   onRecordingReady={setAudioReadingSubmission}

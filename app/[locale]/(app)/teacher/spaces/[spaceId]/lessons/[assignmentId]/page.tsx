@@ -20,6 +20,7 @@ import {
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { useLocale, useTranslations } from "next-intl";
+import { readStudentAudioAsset } from "@/lib/audio/studentAudio";
 
 /* =========================
    Types
@@ -64,6 +65,7 @@ type SubmissionDoc = {
   status?: string;
   auth?: unknown;
   answers?: unknown;
+  audioReading?: unknown;
   studentName?: unknown;
   name?: unknown;
   userName?: unknown;
@@ -558,6 +560,7 @@ export default function TeacherSpaceAssignedTaskPage() {
 
                 const createdAt = formatMaybeDate(s.data.createdAt, locale) || dash;
                 const badge = statusBadge(s.data.status, (k) => t(k), dash);
+                const hasAudio = !!readStudentAudioAsset(s.data.audioReading, "audio_reading");
 
                 const openHref = withLocale(
                   locale,
@@ -575,12 +578,17 @@ export default function TeacherSpaceAssignedTaskPage() {
                         <div className="mt-1 break-words text-sm text-slate-600">{createdAt}</div>
                       </div>
 
-                      <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-[auto_auto] sm:items-center">
+                      <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto] sm:items-center">
                         <span
                           className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-sm font-semibold ${badge.cls}`}
                         >
                           {badge.label}
                         </span>
+                        {hasAudio ? (
+                          <span className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800">
+                            {t("submissions.audioDelivered")}
+                          </span>
+                        ) : null}
 
                         <button
                           type="button"

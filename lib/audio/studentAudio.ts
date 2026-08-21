@@ -1,4 +1,4 @@
-import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 
 export type StudentAudioActivityType = "audio_reading" | "podcast" | string;
@@ -94,6 +94,11 @@ function extensionForMimeType(mimeType: string) {
   return "webm";
 }
 
+function storageContentType(mimeType: string) {
+  const clean = mimeType.split(";")[0]?.trim().toLowerCase();
+  return clean && clean.startsWith("audio/") ? clean : "audio/webm";
+}
+
 async function dataUrlToBlob(dataUrl: string) {
   const response = await fetch(dataUrl);
   return await response.blob();
@@ -119,7 +124,7 @@ export async function uploadStudentAudioAsset({
   }
 
   const blob = await dataUrlToBlob(asset.audioDataUrl);
-  const mimeType = blob.type || asset.mimeType || "audio/webm";
+  const mimeType = storageContentType(blob.type || asset.mimeType || "audio/webm");
   const maxBytes = 25 * 1024 * 1024;
 
   if (blob.size > maxBytes) {
@@ -163,4 +168,11 @@ export async function uploadStudentAudioAsset({
     visibility: "teacher",
     retentionPolicy: "review_plus_30_days",
   };
+}
+
+export async function deleteStudentAudioAsset(
+  asset: StudentAudioAsset | null
+): Promise<void> {
+  if (!asset?.storagePath) return;
+  await deleteObject(storageRef(storage, asset.storagePath));
 }

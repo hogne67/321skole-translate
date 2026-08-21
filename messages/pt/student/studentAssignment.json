@@ -139,11 +139,13 @@
       "pausedHint": "Toque em Continuar quando estiver pronto novamente.",
       "ready": "Gravação pronta",
       "privacy": "A gravação só é salva quando você envia. Apenas o professor pode ouvi-la.",
+      "submittedPrivacy": "A gravação foi enviada. Apenas o professor pode ouvi-la.",
       "required": "Você precisa gravar áudio antes de enviar ao professor.",
       "optional": "Você pode excluir a gravação e tentar de novo. Ela só é enviada quando você envia a tarefa.",
       "errors": {
         "unsupported": "Este navegador não suporta gravação de áudio aqui.",
         "permission": "O acesso ao microfone não foi aprovado.",
+        "uploadFailed": "A gravação não foi enviada. Tente novamente.",
         "default": "Não foi possível iniciar a gravação."
       }
     },

@@ -139,11 +139,13 @@
       "pausedHint": "Trykk Fortsett når du er klar igjen.",
       "ready": "Opptak klart",
       "privacy": "Opptaket lagres først når du sender inn. Bare lærer kan høre det.",
+      "submittedPrivacy": "Opptaket er sendt inn. Bare lærer kan høre det.",
       "required": "Du må ta opp lyd før du kan sende til lærer.",
       "optional": "Du kan slette opptaket og ta et nytt. Det sendes først når du sender til lærer.",
       "errors": {
         "unsupported": "Nettleseren støtter ikke lydopptak her.",
         "permission": "Mikrofontilgang ble ikke godkjent.",
+        "uploadFailed": "Opptaket ble ikke sendt. Prøv igjen.",
         "default": "Kunne ikke starte opptak."
       }
     },

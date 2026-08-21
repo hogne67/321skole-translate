@@ -23,7 +23,8 @@
     "submissions": {
       "title": "Innleveringer",
       "loading": "Henter innleveringer…",
-      "empty": "Ingen innleveringer ennå."
+      "empty": "Ingen innleveringer ennå.",
+      "audioDelivered": "Lyd levert"
     },
     "status": {
       "submitted": "Levert",

@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import AuthGate from "@/components/AuthGate";
 import { db } from "@/lib/firebase";
 import {
+  deleteField,
   doc,
   getDoc,
   onSnapshot,
@@ -63,6 +64,7 @@ import {
 } from "@/lib/submissions/readers";
 import { countReadingTestWords } from "@/lib/readingTests/readingSignals";
 import {
+  deleteStudentAudioAsset,
   readStudentAudioAsset,
   resolveStudentAudioForPlayback,
   type StudentAudioAsset,
@@ -102,9 +104,17 @@ function withLocale(locale: string, href: string): string {
 
 function StudentAudioReadingPanel({
   audioReading,
+  canDelete,
+  deleting,
+  deleteMsg,
+  onDelete,
   t,
 }: {
   audioReading: unknown;
+  canDelete: boolean;
+  deleting: boolean;
+  deleteMsg: string | null;
+  onDelete: () => void;
   t: (key: string, values?: Record<string, unknown>) => string;
 }) {
   const [audio, setAudio] = useState<StudentAudioAsset | null>(null);
@@ -131,12 +141,24 @@ function StudentAudioReadingPanel({
     <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-sm sm:p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-sm font-black text-emerald-950">
-            {t("studentView.audioReadingTitle")}
+          <div>
+            <div className="text-sm font-black text-emerald-950">
+              {t("studentView.audioReadingTitle")}
+            </div>
+            <div className="mt-1 text-xs font-semibold text-emerald-900">
+              {t("studentView.audioReadingHint")}
+            </div>
           </div>
-          <div className="mt-1 text-xs font-semibold text-emerald-900">
-            {t("studentView.audioReadingHint")}
-          </div>
+          {canDelete ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={deleting}
+              className="mt-2 rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-black text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {deleting ? t("studentView.audioDeleteDeleting") : t("studentView.audioDeleteButton")}
+            </button>
+          ) : null}
         </div>
         <div className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-black text-emerald-950">
           {formatDuration(audio.durationSeconds)}
@@ -144,6 +166,11 @@ function StudentAudioReadingPanel({
       </div>
       {audio.audioDataUrl ? (
         <audio controls src={audio.audioDataUrl} className="w-full" />
+      ) : null}
+      {deleteMsg ? (
+        <div className="mt-2 text-xs font-semibold text-emerald-950">
+          {deleteMsg}
+        </div>
       ) : null}
     </div>
   );
@@ -292,6 +319,8 @@ function Inner() {
 
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [deletingAudio, setDeletingAudio] = useState(false);
+  const [audioDeleteMsg, setAudioDeleteMsg] = useState<string | null>(null);
 
   const nestedRef = useMemo(
     () =>
@@ -654,6 +683,55 @@ function Inner() {
     } finally {
       setAiSaving(false);
       setTimeout(() => setAiMsg(null), 2200);
+    }
+  }
+
+  async function deleteAudioReading() {
+    if (!canOperate) return;
+    if (!nestedRef && !indexRef) return;
+
+    const asset = readStudentAudioAsset(sub?.audioReading, "audio_reading");
+    if (!asset) return;
+
+    setDeletingAudio(true);
+    setAudioDeleteMsg(null);
+
+    try {
+      await deleteStudentAudioAsset(asset).catch(() => undefined);
+
+      const dbx = requireDb(db);
+      const payload = {
+        audioReading: deleteField(),
+        audioReadingDeletedAt: serverTimestamp(),
+        audioReadingDeletedByUid: user?.uid ?? null,
+        updatedAt: serverTimestamp(),
+      };
+
+      const batch = writeBatch(dbx);
+      if (nestedRef) batch.set(nestedRef, payload, { merge: true });
+      if (indexRef) batch.set(indexRef, payload, { merge: true });
+      await batch.commit();
+
+      setSub((current) =>
+        current
+          ? {
+              ...current,
+              audioReading: undefined,
+              audioReadingDeletedByUid: user?.uid ?? null,
+            }
+          : current
+      );
+      setAudioDeleteMsg(t("studentView.audioDeleteSaved"));
+    } catch (e: unknown) {
+      const info = getErrorInfo(e);
+      setAudioDeleteMsg(
+        t("studentView.audioDeleteFailed", {
+          msg: info.message || t("fallback.unknownError"),
+        })
+      );
+    } finally {
+      setDeletingAudio(false);
+      setTimeout(() => setAudioDeleteMsg(null), 2500);
     }
   }
 
@@ -1245,6 +1323,10 @@ function Inner() {
 
           <StudentAudioReadingPanel
             audioReading={sub.audioReading}
+            canDelete={canOperate}
+            deleting={deletingAudio}
+            deleteMsg={audioDeleteMsg}
+            onDelete={deleteAudioReading}
             t={tAny}
           />
 

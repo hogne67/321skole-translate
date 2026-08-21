@@ -23,7 +23,8 @@
     "submissions": {
       "title": "Submissions",
       "loading": "Fetching submissions…",
-      "empty": "No submissions yet."
+      "empty": "No submissions yet.",
+      "audioDelivered": "Audio submitted"
     },
     "status": {
       "submitted": "Submitted",
