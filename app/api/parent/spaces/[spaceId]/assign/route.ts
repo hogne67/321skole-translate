@@ -8,6 +8,8 @@ type AssignBody = {
   sourceType?: string;
   sourceId?: string;
   title?: string;
+  audioReadingEnabled?: boolean;
+  audioReadingRequired?: boolean;
 };
 
 function readBearerToken(req: NextRequest): string | null {
@@ -92,6 +94,9 @@ export async function POST(
     const sourceType = safeString(body?.sourceType);
     const sourceId = safeString(body?.sourceId);
     const requestedTitle = safeString(body?.title);
+    const audioReadingEnabled = body?.audioReadingEnabled === true;
+    const audioReadingRequired =
+      audioReadingEnabled && body?.audioReadingRequired !== false;
 
     const normalizedSourceType =
       sourceType === "library" ? "library" : "myContent";
@@ -184,6 +189,8 @@ export async function POST(
       sourceId,
       sourceType: normalizedSourceType,
       sourceCollection: source.sourceCollection,
+      audioReadingEnabled,
+      audioReadingRequired,
 
       assignedByUid: uid,
       assignedByRole: role === "admin" ? "admin" : "parent",

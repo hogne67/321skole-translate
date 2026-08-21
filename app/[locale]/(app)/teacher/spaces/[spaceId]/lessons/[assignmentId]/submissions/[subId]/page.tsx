@@ -62,6 +62,11 @@ import {
   requireDb,
 } from "@/lib/submissions/readers";
 import { countReadingTestWords } from "@/lib/readingTests/readingSignals";
+import {
+  readStudentAudioAsset,
+  resolveStudentAudioForPlayback,
+  type StudentAudioAsset,
+} from "@/lib/audio/studentAudio";
 
 function scoreTextClass(percent: number | null | undefined) {
   if (percent == null) return "text-slate-950";
@@ -93,6 +98,55 @@ function withLocale(locale: string, href: string): string {
 
   if (href === "/") return `/${locale}`;
   return `/${locale}${href}`;
+}
+
+function StudentAudioReadingPanel({
+  audioReading,
+  t,
+}: {
+  audioReading: unknown;
+  t: (key: string, values?: Record<string, unknown>) => string;
+}) {
+  const [audio, setAudio] = useState<StudentAudioAsset | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+
+    void resolveStudentAudioForPlayback(
+      readStudentAudioAsset(audioReading, "audio_reading")
+    )
+      .catch(() => null)
+      .then((nextAudio) => {
+        if (alive) setAudio(nextAudio);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [audioReading]);
+
+  if (!audio) return null;
+
+  return (
+    <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-sm sm:p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-sm font-black text-emerald-950">
+            {t("studentView.audioReadingTitle")}
+          </div>
+          <div className="mt-1 text-xs font-semibold text-emerald-900">
+            {t("studentView.audioReadingHint")}
+          </div>
+        </div>
+        <div className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-black text-emerald-950">
+          {formatDuration(audio.durationSeconds)}
+        </div>
+      </div>
+      {audio.audioDataUrl ? (
+        <audio controls src={audio.audioDataUrl} className="w-full" />
+      ) : null}
+    </div>
+  );
 }
 
 async function safeCopyToClipboard(text: string): Promise<boolean> {
@@ -1064,7 +1118,6 @@ function Inner() {
                 lessonLevel={lessonLevel}
                 cover={cover}
                 sourceText={sourceText}
-                audioReading={sub.audioReading}
                 tasksOriginal={tasksOriginal}
                 answersMap={answersMap}
                 auto={auto}
@@ -1187,6 +1240,11 @@ function Inner() {
               setAiMsg(t("ai.inserted"));
               setTimeout(() => setAiMsg(null), 1500);
             }}
+            t={tAny}
+          />
+
+          <StudentAudioReadingPanel
+            audioReading={sub.audioReading}
             t={tAny}
           />
 

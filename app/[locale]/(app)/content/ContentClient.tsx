@@ -374,6 +374,8 @@ export default function ContentClient() {
     sourceType: "myContent" | "library";
     sourceId: string;
     mode?: "space" | "board" | "writing";
+    audioReadingEnabled?: boolean;
+    audioReadingRequired?: boolean;
   } | null>(null);
   const [publishConfirm, setPublishConfirm] = useState<{ lessonId: string; title: string } | null>(null);
   const [publishSigned, setPublishSigned] = useState(false);
@@ -921,7 +923,11 @@ export default function ContentClient() {
     sourceId: string;
     mode?: "space" | "board" | "writing";
   }) {
-    setPickLesson(opts);
+    setPickLesson({
+      ...opts,
+      audioReadingEnabled: false,
+      audioReadingRequired: true,
+    });
     setPickSpaceQuery("");
     setPickSpaceVisibleCount(8);
     setPickSpaceOpen(true);
@@ -973,6 +979,10 @@ export default function ContentClient() {
         sourceType: pickLesson.sourceType,
         sourceId: pickLesson.sourceId,
         title: pickLesson.title || t("fallback.untitledTask"),
+        audioReadingEnabled: pickLesson.audioReadingEnabled === true,
+        audioReadingRequired:
+          pickLesson.audioReadingEnabled === true &&
+          pickLesson.audioReadingRequired !== false,
       });
 
       closePickSpace();
@@ -2654,6 +2664,96 @@ export default function ContentClient() {
                     className="mb-3 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm font-semibold outline-none focus:border-slate-500"
                     placeholder={safeMsg("shareToSpace.searchPlaceholder", "Søk etter rom...")}
                   />
+
+                  {pickLesson.mode !== "board" && pickLesson.mode !== "writing" ? (
+                    <div
+                      className={[
+                        "mb-3 rounded-2xl border p-3 transition",
+                        pickLesson.audioReadingEnabled === true
+                          ? "border-emerald-300 bg-emerald-50"
+                          : "border-slate-200 bg-slate-50",
+                      ].join(" ")}
+                    >
+                      <label className="flex cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={pickLesson.audioReadingEnabled === true}
+                          onChange={(e) =>
+                            setPickLesson((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    audioReadingEnabled: e.target.checked,
+                                    audioReadingRequired: e.target.checked
+                                      ? current.audioReadingRequired !== false
+                                      : true,
+                                  }
+                                : current
+                            )
+                          }
+                          className="sr-only"
+                        />
+                        <span
+                          className={[
+                            "mt-0.5 inline-flex h-7 min-w-14 items-center justify-center rounded-full border px-2 text-xs font-black",
+                            pickLesson.audioReadingEnabled === true
+                              ? "border-emerald-500 bg-emerald-600 text-white"
+                              : "border-slate-300 bg-white text-slate-600",
+                          ].join(" ")}
+                        >
+                          {pickLesson.audioReadingEnabled === true
+                            ? safeMsg("shareToSpace.on", "På")
+                            : safeMsg("shareToSpace.off", "Av")}
+                        </span>
+                        <span>
+                          <span className="block text-sm font-black text-slate-900">
+                            {safeMsg("shareToSpace.audioReadingEnabled", "Legg til lydinnlesing")}
+                          </span>
+                          <span className="mt-0.5 block text-xs font-semibold text-slate-600">
+                            {safeMsg(
+                              "shareToSpace.audioReadingHint",
+                              "Eleven kan lytte til teksten, lese inn lyd og sende opptaket til lærer."
+                            )}
+                          </span>
+                        </span>
+                      </label>
+
+                      {pickLesson.audioReadingEnabled === true ? (
+                        <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                          <span className="text-sm font-bold text-slate-800">
+                            {safeMsg(
+                              "shareToSpace.audioReadingRequired",
+                              "Krev lydopptak før innsending"
+                            )}
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={pickLesson.audioReadingRequired !== false}
+                            onChange={(e) =>
+                              setPickLesson((current) =>
+                                current
+                                  ? { ...current, audioReadingRequired: e.target.checked }
+                                  : current
+                              )
+                            }
+                            className="sr-only"
+                          />
+                          <span
+                            className={[
+                              "inline-flex h-7 min-w-14 items-center justify-center rounded-full border px-2 text-xs font-black",
+                              pickLesson.audioReadingRequired !== false
+                                ? "border-slate-900 bg-slate-900 text-white"
+                                : "border-slate-300 bg-white text-slate-600",
+                            ].join(" ")}
+                          >
+                            {pickLesson.audioReadingRequired !== false
+                              ? safeMsg("shareToSpace.on", "På")
+                              : safeMsg("shareToSpace.off", "Av")}
+                          </span>
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {filteredPickSpaces.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-600">

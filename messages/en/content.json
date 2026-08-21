@@ -219,7 +219,12 @@
       "createsLabel": "Creates:",
       "searchPlaceholder": "Search rooms...",
       "noMatches": "No rooms match your search.",
-      "showMore": "Show more rooms"
+      "showMore": "Show more rooms",
+      "audioReadingEnabled": "Add read-aloud recording",
+      "audioReadingHint": "The student can listen to the text, record their reading, and send it to the teacher.",
+      "audioReadingRequired": "Require audio before submission",
+      "on": "On",
+      "off": "Off"
     },
     "writing": {
       "shareTitle": "Assign writing activity",

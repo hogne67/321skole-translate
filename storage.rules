@@ -1,0 +1,143 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myUid() {
+      return request.auth.uid;
+    }
+
+    function userPath(uid) {
+      return /databases/(default)/documents/users/$(uid);
+    }
+
+    function myUserExists() {
+      return signedIn() && exists(userPath(myUid()));
+    }
+
+    function myUser() {
+      return myUserExists() ? get(userPath(myUid())).data : {};
+    }
+
+    function memberDocId(spaceId, uid) {
+      return spaceId + "_" + uid;
+    }
+
+    function spacePath(spaceId) {
+      return /databases/(default)/documents/spaces/$(spaceId);
+    }
+
+    function spaceExists(spaceId) {
+      return exists(spacePath(spaceId));
+    }
+
+    function spaceData(spaceId) {
+      return spaceExists(spaceId) ? get(spacePath(spaceId)).data : {};
+    }
+
+    function isSpaceOwner(spaceId) {
+      return signedIn()
+        && spaceExists(spaceId)
+        && ("ownerId" in spaceData(spaceId))
+        && spaceData(spaceId).ownerId == myUid();
+    }
+
+    function isSpaceMember(spaceId) {
+      return signedIn()
+        && exists(/databases/(default)/documents/spaceMembers/$(memberDocId(spaceId, myUid())));
+    }
+
+    function hasRole(roleName) {
+      return ("roles" in myUser())
+        && (myUser().roles is map)
+        && (roleName in myUser().roles)
+        && myUser().roles[roleName] == true;
+    }
+
+    function myRole() {
+      return ("role" in myUser() && (myUser().role is string))
+        ? myUser().role
+        : "student";
+    }
+
+    function isTeacher() {
+      return signedIn() && myRole() == "teacher";
+    }
+
+    function isAdmin() {
+      return signedIn() && (myRole() == "admin" || hasRole("admin"));
+    }
+
+    function canReadStudentAudio(spaceId, studentUid) {
+      return signedIn()
+        && (
+          myUid() == studentUid
+          || isAdmin()
+          || isSpaceOwner(spaceId)
+          || (isTeacher() && isSpaceMember(spaceId))
+        );
+    }
+
+    function assignmentExists(spaceId, assignmentId) {
+      return exists(/databases/(default)/documents/spaces/$(spaceId)/lessons/$(assignmentId));
+    }
+
+    match /spaces/{spaceId}/assignments/{assignmentId}/submissions/{studentUid}/audio/{fileName} {
+      allow read: if canReadStudentAudio(spaceId, studentUid);
+
+      allow create, update: if signedIn()
+        && myUid() == studentUid
+        && isSpaceMember(spaceId)
+        && assignmentExists(spaceId, assignmentId)
+        && request.resource.size < 25 * 1024 * 1024
+        && request.resource.contentType.matches('audio/.*');
+
+      allow delete: if signedIn()
+        && (
+          myUid() == studentUid
+          || isAdmin()
+          || isSpaceOwner(spaceId)
+        );
+    }
+
+    match /covers/{ownerUid}/{rest=**} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && myUid() == ownerUid
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if signedIn() && (myUid() == ownerUid || isAdmin());
+    }
+
+    match /board-images/{ownerUid}/{spaceId}/{fileName} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && myUid() == ownerUid
+        && (isSpaceOwner(spaceId) || (isTeacher() && isSpaceMember(spaceId)) || isAdmin())
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if signedIn()
+        && (
+          isAdmin()
+          || myUid() == ownerUid
+          || isSpaceOwner(spaceId)
+        );
+    }
+
+    match /live-image-activities/{ownerUid}/{fileName} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && myUid() == ownerUid
+        && (isTeacher() || isAdmin())
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if signedIn() && (myUid() == ownerUid || isAdmin());
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

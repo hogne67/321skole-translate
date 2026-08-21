@@ -1,16 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
 
-export type AudioReadingSubmission = {
-  audioDataUrl: string;
-  mimeType: string;
-  durationSeconds: number;
-  recordedAt: number;
-};
+export type AudioReadingSubmission = StudentAudioAsset;
 
 type Props = {
   disabled: boolean;
+  required: boolean;
   existing: AudioReadingSubmission | null;
   t: (key: string, values?: Record<string, unknown>) => string;
   onRecordingReady: (recording: AudioReadingSubmission | null) => void;
@@ -45,8 +42,16 @@ function blobToDataUrl(blob: Blob) {
   });
 }
 
+function statusLabel(status: RecorderStatus, t: Props["t"]) {
+  if (status === "recording") return t("audioReading.recording");
+  if (status === "paused") return t("audioReading.paused");
+  if (status === "ready") return t("audioReading.ready");
+  return t("audioReading.waiting");
+}
+
 export default function AudioReadingStudentSection({
   disabled,
+  required,
   existing,
   t,
   onRecordingReady,
@@ -66,7 +71,7 @@ export default function AudioReadingStudentSection({
     if (!existing) return;
     setStatus("ready");
     setElapsedSeconds(existing.durationSeconds);
-    setPreviewUrl(existing.audioDataUrl);
+    setPreviewUrl(existing.audioDataUrl ?? "");
   }, [existing]);
 
   useEffect(() => {
@@ -141,10 +146,14 @@ export default function AudioReadingStudentSection({
         startedAtRef.current = null;
 
         onRecordingReady({
+          version: 1,
+          activityType: "audio_reading",
           audioDataUrl,
           mimeType: recorder.mimeType || "audio/webm",
           durationSeconds,
           recordedAt: Date.now(),
+          visibility: "teacher",
+          retentionPolicy: "review_plus_30_days",
         });
       };
 
@@ -192,7 +201,6 @@ export default function AudioReadingStudentSection({
   return (
     <section
       style={{
-        marginTop: 18,
         border: "1px solid rgba(15,23,42,0.12)",
         borderRadius: 16,
         background: "white",
@@ -206,6 +214,9 @@ export default function AudioReadingStudentSection({
           </h2>
           <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 14, lineHeight: 1.55 }}>
             {t("audioReading.subtitle")}
+          </p>
+          <p style={{ margin: "6px 0 0", color: "#0f766e", fontSize: 13, fontWeight: 750, lineHeight: 1.45 }}>
+            {t("audioReading.privacy")}
           </p>
         </div>
         <div
@@ -254,6 +265,54 @@ export default function AudioReadingStudentSection({
         ) : null}
       </div>
 
+      {status === "recording" || status === "paused" ? (
+        <div
+          style={{
+            marginTop: 14,
+            border: status === "recording"
+              ? "1px solid rgba(225,29,72,0.24)"
+              : "1px solid rgba(15,23,42,0.14)",
+            borderRadius: 14,
+            background: status === "recording" ? "#fff1f2" : "#f8fafc",
+            padding: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <span
+                className={status === "recording" ? "audioReadingDot isRecording" : "audioReadingDot"}
+                aria-hidden="true"
+              />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: status === "recording" ? "#9f1239" : "#334155" }}>
+                  {statusLabel(status, t)}
+                </div>
+                <div style={{ marginTop: 2, fontSize: 12, fontWeight: 650, color: "#64748b" }}>
+                  {status === "recording" ? t("audioReading.recordingHint") : t("audioReading.pausedHint")}
+                </div>
+              </div>
+            </div>
+            <div style={{ fontWeight: 950, fontVariantNumeric: "tabular-nums", color: "#0f172a" }}>
+              {formatDuration(elapsedSeconds)}
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: 10,
+              height: 8,
+              overflow: "hidden",
+              borderRadius: 999,
+              background: "rgba(15,23,42,0.10)",
+            }}
+          >
+            <div
+              className={status === "recording" ? "audioReadingMeter isRecording" : "audioReadingMeter"}
+            />
+          </div>
+        </div>
+      ) : null}
+
       {error ? (
         <div
           style={{
@@ -288,9 +347,61 @@ export default function AudioReadingStudentSection({
         </div>
       ) : (
         <div style={{ marginTop: 12, color: "#64748b", fontSize: 14 }}>
-          {t("audioReading.required")}
+          {required ? t("audioReading.required") : t("audioReading.optional")}
         </div>
       )}
+
+      <style jsx>{`
+        .audioReadingDot {
+          width: 12px;
+          height: 12px;
+          border-radius: 999px;
+          background: #94a3b8;
+          box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.14);
+          flex: 0 0 auto;
+        }
+
+        .audioReadingDot.isRecording {
+          background: #e11d48;
+          box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.16);
+          animation: audioReadingPulse 1.05s ease-in-out infinite;
+        }
+
+        .audioReadingMeter {
+          width: 100%;
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #94a3b8, #cbd5e1, #94a3b8);
+          opacity: 0.8;
+        }
+
+        .audioReadingMeter.isRecording {
+          background: linear-gradient(90deg, #be123c 0%, #fb7185 45%, #be123c 90%);
+          background-size: 180% 100%;
+          animation: audioReadingMove 1.1s linear infinite;
+        }
+
+        @keyframes audioReadingPulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(0.72);
+            opacity: 0.75;
+          }
+        }
+
+        @keyframes audioReadingMove {
+          from {
+            background-position: 0% 0;
+          }
+          to {
+            background-position: 180% 0;
+          }
+        }
+      `}</style>
     </section>
   );
 }

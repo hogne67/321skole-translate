@@ -219,7 +219,12 @@
       "createsLabel": "Oppretter:",
       "searchPlaceholder": "Søk etter rom...",
       "noMatches": "Ingen rom matcher søket.",
-      "showMore": "Vis flere rom"
+      "showMore": "Vis flere rom",
+      "audioReadingEnabled": "Legg til lydinnlesing",
+      "audioReadingHint": "Eleven kan lytte til teksten, lese inn lyd og sende opptaket til lærer.",
+      "audioReadingRequired": "Krev lydopptak før innsending",
+      "on": "På",
+      "off": "Av"
     },
     "writing": {
       "shareTitle": "Tildel skriveaktivitet",

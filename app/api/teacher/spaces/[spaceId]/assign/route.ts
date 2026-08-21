@@ -19,6 +19,8 @@ type AssignBody = {
   title?: string;
   level?: string;
   language?: string;
+  audioReadingEnabled?: boolean;
+  audioReadingRequired?: boolean;
 };
 
 type UsageDoc = {
@@ -256,6 +258,9 @@ export async function POST(
     const titleOverride = safeString(body.title).trim();
     const levelOverride = safeString(body.level).trim();
     const languageOverride = safeString(body.language).trim();
+    const audioReadingEnabled = body.audioReadingEnabled === true;
+    const audioReadingRequired =
+      audioReadingEnabled && body.audioReadingRequired !== false;
 
     if (!sourceId) return json({ error: "Missing body.sourceId" }, 400);
 
@@ -392,6 +397,8 @@ export async function POST(
         contentType: isFractions
           ? "fraction_worksheet"
           : source.contentType ?? null,
+        audioReadingEnabled,
+        audioReadingRequired,
 
         assignedAt: now,
         createdAt: now,

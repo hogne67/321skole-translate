@@ -24,6 +24,8 @@ export type Lesson = {
     fractionWorksheet?: FractionWorksheet | null;
     mathType?: string;
     contentType?: string;
+    audioReadingEnabled?: boolean;
+    audioReadingRequired?: boolean;
 };
 
 export type SourceType = "myContent" | "library";
@@ -56,6 +58,8 @@ export type AssignmentDoc = {
 
     mathType?: string;
     contentType?: string;
+    audioReadingEnabled?: boolean;
+    audioReadingRequired?: boolean;
 };
 
 export type TaskType = "mcq" | "truefalse" | "open";

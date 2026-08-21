@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import StudentAssignmentTextSection from "./StudentAssignmentTextSection";
 import AssignmentTasksHeader from "./AssignmentTasksHeader";
 import AssignmentTaskCard from "./AssignmentTaskCard";
@@ -98,6 +99,10 @@ type Props = {
     showTaskTranslations: boolean;
 
     onToggleTaskTranslations: () => void;
+
+    beforeText?: ReactNode;
+
+    hideTasksWhenEmpty?: boolean;
 };
 
 export default function StandardAssignmentSection({
@@ -140,9 +145,15 @@ export default function StandardAssignmentSection({
     onTranslateTask,
     showTaskTranslations,
     onToggleTaskTranslations,
+    beforeText,
+    hideTasksWhenEmpty = false,
 }: Props) {
+    const shouldShowTasks = tasksOriginal.length > 0 || !hideTasksWhenEmpty;
+
     return (
         <div style={{ display: "grid", gap: 18 }}>
+            {beforeText}
+
             {sourceTextSafe.trim() ? (
                 <StudentAssignmentTextSection
                     sourceTextSafe={sourceTextSafe}
@@ -172,7 +183,8 @@ export default function StandardAssignmentSection({
                 />
             ) : null}
 
-            <section>
+            {shouldShowTasks ? (
+                <section>
                 <AssignmentTasksHeader
                     tasksCount={tasksOriginal.length}
                     hasTranslatedTasks={translatedTasksMap.size > 0}
@@ -221,7 +233,8 @@ export default function StandardAssignmentSection({
                         })
                     )}
                 </div>
-            </section>
+                </section>
+            ) : null}
         </div>
     );
 }
