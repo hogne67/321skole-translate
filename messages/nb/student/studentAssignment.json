@@ -197,6 +197,7 @@
       "introSound": "Intro",
       "transitionSound": "Overgang",
       "outroSound": "Outro",
+      "previewSound": "Lytt",
       "sounds": {
         "none": "Ingen lyd",
         "intro_warm": "Intro varm",

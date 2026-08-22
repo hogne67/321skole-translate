@@ -1378,28 +1378,6 @@ function ProductionPanel({
           gap: 8px;
         }
 
-        .podcastSoundSelect {
-          display: grid;
-          gap: 6px;
-          margin-top: 10px;
-        }
-
-        .podcastSoundSelect label {
-          color: #334155;
-          font-size: 12px;
-          font-weight: 900;
-        }
-
-        .podcastSoundSelect select {
-          width: 100%;
-          border: 1px solid rgba(15, 23, 42, 0.16);
-          border-radius: 10px;
-          background: white;
-          padding: 9px 10px;
-          color: #0f172a;
-          font-weight: 800;
-        }
-
         .podcastProductionStats div {
           border-radius: 12px;
           background: rgba(248, 250, 252, 0.95);
@@ -1486,19 +1464,84 @@ function SoundSelect({
   t: TFn;
   onChange: (soundId: PodcastSoundId) => void;
 }) {
+  const selected = value || "";
+
   return (
     <div className="podcastSoundSelect">
       <label>{label}</label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value as PodcastSoundId)}
-      >
-        {options.map((soundId) => (
-          <option key={soundId || "none"} value={soundId}>
-            {soundId ? t(`podcastWorkshop.sounds.${soundId}`) : t("podcastWorkshop.sounds.none")}
-          </option>
-        ))}
-      </select>
+      <div className="podcastSoundRow">
+        <select
+          value={selected}
+          onChange={(event) => onChange(event.target.value as PodcastSoundId)}
+        >
+          {options.map((soundId) => (
+            <option key={soundId || "none"} value={soundId}>
+              {soundId ? t(`podcastWorkshop.sounds.${soundId}`) : t("podcastWorkshop.sounds.none")}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          disabled={!selected}
+          onClick={() => void playPodcastSound(selected as PodcastSoundId)}
+        >
+          {t("podcastWorkshop.previewSound")}
+        </button>
+      </div>
+
+      <style jsx>{`
+        .podcastSoundSelect {
+          display: grid;
+          gap: 6px;
+          margin-top: 10px;
+        }
+
+        .podcastSoundSelect label {
+          color: #334155;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastSoundRow {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .podcastSoundRow select {
+          width: 100%;
+          min-width: 0;
+          border: 1px solid rgba(15, 23, 42, 0.16);
+          border-radius: 10px;
+          background: white;
+          padding: 9px 10px;
+          color: #0f172a;
+          font-weight: 800;
+        }
+
+        .podcastSoundRow button {
+          border: 1px solid rgba(15, 23, 42, 0.16);
+          border-radius: 10px;
+          background: white;
+          color: #0f172a;
+          padding: 9px 10px;
+          font-weight: 900;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        .podcastSoundRow button:disabled {
+          cursor: not-allowed;
+          opacity: 0.45;
+        }
+
+        @media (max-width: 440px) {
+          .podcastSoundRow {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }

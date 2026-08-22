@@ -197,6 +197,7 @@
       "introSound": "Intro",
       "transitionSound": "Transição",
       "outroSound": "Outro",
+      "previewSound": "Ouvir",
       "sounds": {
         "none": "Sem som",
         "intro_warm": "Intro suave",
