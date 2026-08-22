@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import type {
   PodcastWorkshopConfig,
   PodcastWorkshopFeedback,
+  PodcastSoundId,
   PodcastWorkshopRoomKey,
   PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
@@ -107,6 +108,57 @@ function blobToDataUrl(blob: Blob) {
   });
 }
 
+const PODCAST_SOUND_GROUPS: Record<"intro" | "transition" | "outro", PodcastSoundId[]> = {
+  intro: ["", "intro_warm", "intro_bright"],
+  transition: ["", "transition_ding", "transition_clap"],
+  outro: ["", "outro_soft"],
+};
+
+function playToneSequence(soundId: PodcastSoundId) {
+  if (!soundId) return Promise.resolve();
+  if (typeof window === "undefined") return Promise.resolve();
+
+  const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return Promise.resolve();
+
+  const context = new AudioContextClass();
+  const master = context.createGain();
+  master.gain.value = 0.16;
+  master.connect(context.destination);
+
+  const now = context.currentTime;
+  const tonesBySound: Record<Exclude<PodcastSoundId, "">, Array<[number, number, number]>> = {
+    intro_warm: [[261.63, 0, 0.24], [329.63, 0.22, 0.24], [392, 0.44, 0.34]],
+    intro_bright: [[523.25, 0, 0.16], [659.25, 0.15, 0.16], [783.99, 0.3, 0.22]],
+    transition_ding: [[880, 0, 0.18], [1174.66, 0.13, 0.28]],
+    transition_clap: [[180, 0, 0.06], [220, 0.05, 0.06], [160, 0.1, 0.08]],
+    outro_soft: [[392, 0, 0.24], [329.63, 0.22, 0.24], [261.63, 0.44, 0.42]],
+  };
+
+  const tones = tonesBySound[soundId];
+  tones.forEach(([frequency, start, duration]) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = soundId === "transition_clap" ? "triangle" : "sine";
+    oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, now + start);
+    gain.gain.exponentialRampToValueAtTime(0.9, now + start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
+    oscillator.connect(gain);
+    gain.connect(master);
+    oscillator.start(now + start);
+    oscillator.stop(now + start + duration + 0.03);
+  });
+
+  const totalMs = Math.max(...tones.map(([, start, duration]) => start + duration)) * 1000 + 80;
+  return new Promise<void>((resolve) => {
+    window.setTimeout(() => {
+      void context.close();
+      resolve();
+    }, totalMs);
+  });
+}
+
 export default function PodcastWorkshopStudentSection({
   title,
   config,
@@ -162,6 +214,15 @@ export default function PodcastWorkshopStudentSection({
           ...current,
           voice,
         },
+      },
+    });
+  }
+
+  function patchProductionMix(key: "introSoundId" | "transitionSoundId" | "outroSoundId", soundId: PodcastSoundId) {
+    patch({
+      productionMix: {
+        ...value.productionMix,
+        [key]: soundId,
       },
     });
   }
@@ -334,6 +395,8 @@ export default function PodcastWorkshopStudentSection({
         <SupportPanel
           activeRoom={activeRoom}
           config={config}
+          value={value}
+          onMixChange={patchProductionMix}
           feedback={feedback ?? null}
           t={t}
         />
@@ -851,20 +914,377 @@ function PodcastSegmentPlayback({
   );
 }
 
+function ProductionPanel({
+  config,
+  value,
+  onMixChange,
+  t,
+}: {
+  config: PodcastWorkshopConfig;
+  value: PodcastWorkshopSubmission;
+  onMixChange: (key: "introSoundId" | "transitionSoundId" | "outroSoundId", soundId: PodcastSoundId) => void;
+  t: TFn;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const playerRef = useRef<HTMLAudioElement | null>(null);
+  const cancelledRef = useRef(false);
+  const segmentsWithAudio = config.segments.filter((segment) => {
+    const voice = value.productionSegments[segment.id]?.voice;
+    return !!voice?.audioDataUrl;
+  });
+  const missingCount = config.segments.length - segmentsWithAudio.length;
+  const totalSeconds = segmentsWithAudio.reduce((sum, segment) => {
+    return sum + (value.productionSegments[segment.id]?.voice?.durationSeconds ?? 0);
+  }, 0);
+
+  useEffect(() => {
+    return () => {
+      playerRef.current?.pause();
+      playerRef.current = null;
+    };
+  }, []);
+
+  function stopPlayback() {
+    cancelledRef.current = true;
+    playerRef.current?.pause();
+    playerRef.current = null;
+    setPlaying(false);
+  }
+
+  async function playAudioUrl(url: string) {
+    return new Promise<void>((resolve) => {
+      const audio = new Audio(url);
+      playerRef.current = audio;
+      audio.onended = () => resolve();
+      audio.onerror = () => resolve();
+      void audio.play();
+    });
+  }
+
+  async function playWholePodcast() {
+    if (playing) {
+      stopPlayback();
+      return;
+    }
+
+    if (segmentsWithAudio.length === 0 && !value.productionMix.introSoundId && !value.productionMix.outroSoundId) return;
+
+    cancelledRef.current = false;
+    setPlaying(true);
+    await playToneSequence(value.productionMix.introSoundId);
+    for (let index = 0; index < config.segments.length; index += 1) {
+      if (cancelledRef.current) break;
+      const segment = config.segments[index];
+      const url = value.productionSegments[segment.id]?.voice?.audioDataUrl;
+      if (url) await playAudioUrl(url);
+      const hasNextVoice = config.segments.slice(index + 1).some((nextSegment) => {
+        return !!value.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
+      });
+      if (!cancelledRef.current && hasNextVoice) {
+        await playToneSequence(value.productionMix.transitionSoundId);
+      }
+    }
+    if (!cancelledRef.current) await playToneSequence(value.productionMix.outroSoundId);
+    if (!cancelledRef.current) setPlaying(false);
+  }
+
+  return (
+    <aside className="podcastProductionPanel">
+      <div className="podcastProductionCard isPrimary">
+        <div className="podcastProductionHeader">
+          <h3>{t("podcastWorkshop.productionControlTitle")}</h3>
+          <span>{formatDuration(totalSeconds)}</span>
+        </div>
+        <button
+          type="button"
+          onClick={playWholePodcast}
+          disabled={segmentsWithAudio.length === 0}
+          className="podcastProductionPlay"
+        >
+          {playing ? t("podcastWorkshop.stopFullPodcast") : t("podcastWorkshop.playFullPodcast")}
+        </button>
+      </div>
+
+      <div className="podcastProductionCard">
+        <h3>{t("podcastWorkshop.soundLibraryTitle")}</h3>
+        <SoundSelect
+          label={t("podcastWorkshop.introSound")}
+          value={value.productionMix.introSoundId}
+          options={PODCAST_SOUND_GROUPS.intro}
+          t={t}
+          onChange={(soundId) => onMixChange("introSoundId", soundId)}
+        />
+        <SoundSelect
+          label={t("podcastWorkshop.transitionSound")}
+          value={value.productionMix.transitionSoundId}
+          options={PODCAST_SOUND_GROUPS.transition}
+          t={t}
+          onChange={(soundId) => onMixChange("transitionSoundId", soundId)}
+        />
+        <SoundSelect
+          label={t("podcastWorkshop.outroSound")}
+          value={value.productionMix.outroSoundId}
+          options={PODCAST_SOUND_GROUPS.outro}
+          t={t}
+          onChange={(soundId) => onMixChange("outroSoundId", soundId)}
+        />
+      </div>
+
+      <div className="podcastProductionCard">
+        <h3>{t("podcastWorkshop.productionStatusTitle")}</h3>
+        <div className="podcastProductionStats">
+          <div>
+            <strong>{segmentsWithAudio.length}</strong>
+            <span>{t("podcastWorkshop.productionReady")}</span>
+          </div>
+          <div>
+            <strong>{missingCount}</strong>
+            <span>{t("podcastWorkshop.productionMissing")}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="podcastProductionCard">
+        <h3>{t("podcastWorkshop.productionOrderTitle")}</h3>
+        <div className="podcastProductionOrder">
+          {config.segments.map((segment, index) => {
+            const voice = value.productionSegments[segment.id]?.voice ?? null;
+            return (
+              <div key={segment.id} className={voice ? "isReady" : ""}>
+                <span>{index + 1}</span>
+                <strong>{segment.title}</strong>
+                <em>{voice ? formatDuration(voice.durationSeconds) : t("podcastWorkshop.productionNoClip")}</em>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .podcastProductionPanel {
+          display: grid;
+          gap: 12px;
+          align-self: start;
+          position: sticky;
+          top: 12px;
+        }
+
+        .podcastProductionCard {
+          border: 1px solid rgba(15, 23, 42, 0.10);
+          border-radius: 14px;
+          background: white;
+          padding: 14px;
+        }
+
+        .podcastProductionCard.isPrimary {
+          border-color: rgba(20, 184, 166, 0.22);
+          background: rgba(240, 253, 250, 0.95);
+        }
+
+        .podcastProductionCard h3 {
+          margin: 0 0 10px;
+          font-size: 15px;
+          color: #0f172a;
+        }
+
+        .podcastProductionHeader {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .podcastProductionHeader h3 {
+          margin: 0;
+        }
+
+        .podcastProductionHeader span {
+          border-radius: 999px;
+          background: white;
+          color: #0f766e;
+          padding: 5px 8px;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastProductionPlay {
+          margin-top: 12px;
+          width: 100%;
+          border: 1px solid #0f172a;
+          border-radius: 12px;
+          background: #0f172a;
+          color: white;
+          padding: 10px 12px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .podcastProductionPlay:disabled {
+          cursor: not-allowed;
+          opacity: 0.55;
+        }
+
+        .podcastProductionStats {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .podcastSoundSelect {
+          display: grid;
+          gap: 6px;
+          margin-top: 10px;
+        }
+
+        .podcastSoundSelect label {
+          color: #334155;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastSoundSelect select {
+          width: 100%;
+          border: 1px solid rgba(15, 23, 42, 0.16);
+          border-radius: 10px;
+          background: white;
+          padding: 9px 10px;
+          color: #0f172a;
+          font-weight: 800;
+        }
+
+        .podcastProductionStats div {
+          border-radius: 12px;
+          background: rgba(248, 250, 252, 0.95);
+          padding: 10px;
+        }
+
+        .podcastProductionStats strong {
+          display: block;
+          font-size: 24px;
+          line-height: 1;
+        }
+
+        .podcastProductionStats span {
+          display: block;
+          margin-top: 4px;
+          color: #475569;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .podcastProductionOrder {
+          display: grid;
+          gap: 8px;
+        }
+
+        .podcastProductionOrder div {
+          display: grid;
+          grid-template-columns: 26px minmax(0, 1fr);
+          gap: 8px;
+          border-radius: 12px;
+          background: rgba(248, 250, 252, 0.95);
+          padding: 9px;
+        }
+
+        .podcastProductionOrder div.isReady {
+          background: rgba(236, 253, 245, 0.95);
+        }
+
+        .podcastProductionOrder span {
+          display: inline-flex;
+          width: 24px;
+          height: 24px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: white;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastProductionOrder strong,
+        .podcastProductionOrder em {
+          min-width: 0;
+        }
+
+        .podcastProductionOrder em {
+          grid-column: 2;
+          color: #64748b;
+          font-size: 12px;
+          font-style: normal;
+          font-weight: 800;
+        }
+
+        @media (max-width: 820px) {
+          .podcastProductionPanel {
+            position: static;
+          }
+        }
+      `}</style>
+    </aside>
+  );
+}
+
+function SoundSelect({
+  label,
+  value,
+  options,
+  t,
+  onChange,
+}: {
+  label: string;
+  value: PodcastSoundId;
+  options: PodcastSoundId[];
+  t: TFn;
+  onChange: (soundId: PodcastSoundId) => void;
+}) {
+  return (
+    <div className="podcastSoundSelect">
+      <label>{label}</label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as PodcastSoundId)}
+      >
+        {options.map((soundId) => (
+          <option key={soundId || "none"} value={soundId}>
+            {soundId ? t(`podcastWorkshop.sounds.${soundId}`) : t("podcastWorkshop.sounds.none")}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function SupportPanel({
   activeRoom,
   config,
+  value,
+  onMixChange,
   feedback,
   t,
 }: {
   activeRoom: PodcastWorkshopRoomKey;
   config: PodcastWorkshopConfig;
+  value: PodcastWorkshopSubmission;
+  onMixChange: (key: "introSoundId" | "transitionSoundId" | "outroSoundId", soundId: PodcastSoundId) => void;
   feedback: PodcastWorkshopFeedback | null;
   t: TFn;
 }) {
   const roomFeedback = feedback?.rooms?.[activeRoom] ?? null;
   const feedbackText = String(roomFeedback?.text ?? "").trim();
   const feedbackStatus = roomFeedback?.status ?? "";
+
+  if (activeRoom === "production") {
+    return (
+      <ProductionPanel
+        config={config}
+        value={value}
+        onMixChange={onMixChange}
+        t={t}
+      />
+    );
+  }
 
   return (
     <aside className="podcastWorkshopSupport">

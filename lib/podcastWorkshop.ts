@@ -26,7 +26,22 @@ export type PodcastWorkshopSubmission = {
     segmentPlans: Record<string, string>;
     segmentScripts: Record<string, string>;
     productionSegments: Record<string, PodcastWorkshopProductionSegment>;
+    productionMix: PodcastWorkshopProductionMix;
     selfAssessment: Record<string, boolean>;
+};
+
+export type PodcastSoundId =
+    | ""
+    | "intro_warm"
+    | "intro_bright"
+    | "transition_ding"
+    | "transition_clap"
+    | "outro_soft";
+
+export type PodcastWorkshopProductionMix = {
+    introSoundId: PodcastSoundId;
+    transitionSoundId: PodcastSoundId;
+    outroSoundId: PodcastSoundId;
 };
 
 export type PodcastWorkshopProductionSegment = {
@@ -120,6 +135,32 @@ function readProductionSegments(value: unknown): Record<string, PodcastWorkshopP
     return out;
 }
 
+function readSoundId(value: unknown): PodcastSoundId {
+    const raw = String(value ?? "").trim();
+    if (
+        raw === "intro_warm" ||
+        raw === "intro_bright" ||
+        raw === "transition_ding" ||
+        raw === "transition_clap" ||
+        raw === "outro_soft"
+    ) {
+        return raw;
+    }
+    return "";
+}
+
+function readProductionMix(value: unknown): PodcastWorkshopProductionMix {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return { introSoundId: "", transitionSoundId: "", outroSoundId: "" };
+    }
+    const data = value as Record<string, unknown>;
+    return {
+        introSoundId: readSoundId(data.introSoundId),
+        transitionSoundId: readSoundId(data.transitionSoundId),
+        outroSoundId: readSoundId(data.outroSoundId),
+    };
+}
+
 export function isPodcastWorkshopType(value: unknown): boolean {
     return String(value ?? "").trim().toLowerCase() === "podcast_workshop";
 }
@@ -186,6 +227,7 @@ export function createPodcastWorkshopSubmission(
         segmentPlans: {},
         segmentScripts: {},
         productionSegments: {},
+        productionMix: { introSoundId: "", transitionSoundId: "", outroSoundId: "" },
         selfAssessment,
     };
 }
@@ -214,6 +256,7 @@ export function readPodcastWorkshopSubmission(
             ...base.productionSegments,
             ...readProductionSegments(data.productionSegments),
         },
+        productionMix: readProductionMix(data.productionMix),
         selfAssessment: {
             ...base.selfAssessment,
             ...readBoolMap(data.selfAssessment),
