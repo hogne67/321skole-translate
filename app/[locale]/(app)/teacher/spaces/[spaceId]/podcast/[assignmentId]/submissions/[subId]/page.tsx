@@ -9,6 +9,7 @@ import PodcastWorkshopSubmissionView from "@/components/teacher/submissions/Podc
 import { db } from "@/lib/firebase";
 import { doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from "firebase/firestore";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { resolveStudentAudioForPlayback } from "@/lib/audio/studentAudio";
 import {
   createPodcastWorkshopFeedback,
   readPodcastWorkshopConfig,
@@ -58,6 +59,22 @@ function formatMaybeDate(value: unknown) {
   } catch {
     return "";
   }
+}
+
+async function resolvePodcastAudioForPlayback(
+  submission: PodcastWorkshopSubmission
+): Promise<PodcastWorkshopSubmission> {
+  const entries = await Promise.all(
+    Object.entries(submission.productionSegments).map(async ([segmentId, segment]) => {
+      const voice = await resolveStudentAudioForPlayback(segment.voice).catch(() => segment.voice);
+      return [segmentId, { ...segment, voice }] as const;
+    })
+  );
+
+  return {
+    ...submission,
+    productionSegments: Object.fromEntries(entries),
+  };
 }
 
 export default function TeacherPodcastSubmissionPage() {
@@ -145,7 +162,9 @@ function Inner() {
       }
 
       const data = (snap.data() as SubmissionDoc) ?? {};
-      setSubmission(readPodcastWorkshopSubmission(data.podcastWorkshop, config));
+      void resolvePodcastAudioForPlayback(
+        readPodcastWorkshopSubmission(data.podcastWorkshop, config)
+      ).then(setSubmission);
       setFeedback(readPodcastWorkshopFeedback(data.podcastWorkshopFeedback));
       setCreatedAt(formatMaybeDate(data.createdAt));
 

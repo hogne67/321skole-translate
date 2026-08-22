@@ -106,6 +106,7 @@
       "bulletsTitle": "Talking points",
       "productionTitle": "Production room",
       "productionLater": "Audio production will come in the next step. For now, review preparation, plan and script/talking points.",
+      "noAudio": "No audio recording in this part.",
       "finalRoomTitle": "Final room",
       "part": "Part {n}",
       "empty": "Not filled in",

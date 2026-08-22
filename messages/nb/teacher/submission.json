@@ -84,6 +84,7 @@
       "bulletsTitle": "Stikkord",
       "productionTitle": "Produksjonsrom",
       "productionLater": "Lydproduksjon kommer i neste steg. Foreløpig vurderes forarbeid, plan og manus/stikkord.",
+      "noAudio": "Ingen lydopptak i denne delen.",
       "finalRoomTitle": "Sluttrom",
       "part": "Del {n}",
       "empty": "Ikke fylt ut",

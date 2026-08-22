@@ -1,3 +1,5 @@
+import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
+
 export type PodcastWorkshopSegment = {
     id: string;
     title: string;
@@ -23,7 +25,15 @@ export type PodcastWorkshopSubmission = {
     notes: string;
     segmentPlans: Record<string, string>;
     segmentScripts: Record<string, string>;
+    productionSegments: Record<string, PodcastWorkshopProductionSegment>;
     selfAssessment: Record<string, boolean>;
+};
+
+export type PodcastWorkshopProductionSegment = {
+    voice: StudentAudioAsset | null;
+    volume: number;
+    fadeInSeconds: number;
+    fadeOutSeconds: number;
 };
 
 export type PodcastWorkshopRoomKey = "ideas" | "plan" | "script" | "production" | "final";
@@ -63,6 +73,49 @@ function readBoolMap(value: unknown): Record<string, boolean> {
         const safeKey = String(key ?? "").trim();
         if (!safeKey) return;
         out[safeKey] = item === true;
+    });
+    return out;
+}
+
+function readNumber(value: unknown, fallback: number, min: number, max: number): number {
+    const n = typeof value === "number" && Number.isFinite(value) ? value : fallback;
+    return Math.max(min, Math.min(max, n));
+}
+
+function readAudioAsset(value: unknown): StudentAudioAsset | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const data = value as Record<string, unknown>;
+    const audioDataUrl = typeof data.audioDataUrl === "string" ? data.audioDataUrl : "";
+    const storagePath = typeof data.storagePath === "string" ? data.storagePath : "";
+    if (!audioDataUrl && !storagePath) return null;
+    return {
+        version: 1,
+        activityType: "podcast",
+        audioDataUrl: audioDataUrl || undefined,
+        storagePath: storagePath || undefined,
+        mimeType: typeof data.mimeType === "string" ? data.mimeType : "audio/webm",
+        durationSeconds: readNumber(data.durationSeconds, 0, 0, 60 * 60),
+        sizeBytes: typeof data.sizeBytes === "number" && Number.isFinite(data.sizeBytes) ? data.sizeBytes : undefined,
+        recordedAt: typeof data.recordedAt === "number" && Number.isFinite(data.recordedAt) ? data.recordedAt : Date.now(),
+        uploadedAt: typeof data.uploadedAt === "number" && Number.isFinite(data.uploadedAt) ? data.uploadedAt : undefined,
+        visibility: "teacher",
+        retentionPolicy: "review_plus_30_days",
+    };
+}
+
+function readProductionSegments(value: unknown): Record<string, PodcastWorkshopProductionSegment> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const out: Record<string, PodcastWorkshopProductionSegment> = {};
+    Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
+        const safeKey = String(key ?? "").trim();
+        if (!safeKey || !item || typeof item !== "object" || Array.isArray(item)) return;
+        const data = item as Record<string, unknown>;
+        out[safeKey] = {
+            voice: readAudioAsset(data.voice),
+            volume: readNumber(data.volume, 1, 0, 1.5),
+            fadeInSeconds: readNumber(data.fadeInSeconds, 0, 0, 5),
+            fadeOutSeconds: readNumber(data.fadeOutSeconds, 0, 0, 5),
+        };
     });
     return out;
 }
@@ -132,6 +185,7 @@ export function createPodcastWorkshopSubmission(
         notes: "",
         segmentPlans: {},
         segmentScripts: {},
+        productionSegments: {},
         selfAssessment,
     };
 }
@@ -155,6 +209,10 @@ export function readPodcastWorkshopSubmission(
         segmentScripts: {
             ...base.segmentScripts,
             ...readStringMap(data.segmentScripts),
+        },
+        productionSegments: {
+            ...base.productionSegments,
+            ...readProductionSegments(data.productionSegments),
         },
         selfAssessment: {
             ...base.selfAssessment,

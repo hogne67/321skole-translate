@@ -110,6 +110,7 @@ export async function uploadStudentAudioAsset({
   submissionId,
   uid,
   activityType,
+  assetId,
   asset,
 }: {
   spaceId: string;
@@ -117,6 +118,7 @@ export async function uploadStudentAudioAsset({
   submissionId: string;
   uid: string;
   activityType: StudentAudioActivityType;
+  assetId?: string;
   asset: StudentAudioAsset;
 }): Promise<StudentAudioAsset> {
   if (!asset.audioDataUrl || !asset.audioDataUrl.startsWith("data:")) {
@@ -132,6 +134,8 @@ export async function uploadStudentAudioAsset({
   }
 
   const extension = extensionForMimeType(mimeType);
+  const safeActivityType = String(activityType).replace(/[^a-z0-9_-]/gi, "_");
+  const safeAssetId = assetId ? `-${String(assetId).replace(/[^a-z0-9_-]/gi, "_")}` : "";
   const path = [
     "spaces",
     spaceId,
@@ -140,7 +144,7 @@ export async function uploadStudentAudioAsset({
     "submissions",
     uid,
     "audio",
-    `${submissionId}-${activityType}.${extension}`,
+    `${submissionId}-${safeActivityType}${safeAssetId}.${extension}`,
   ].join("/");
 
   await uploadBytes(storageRef(storage, path), blob, {

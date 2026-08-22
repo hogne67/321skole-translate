@@ -84,6 +84,7 @@
       "bulletsTitle": "Pontos de fala",
       "productionTitle": "Sala de produção",
       "productionLater": "A produção de áudio virá no próximo passo. Por enquanto, avalie preparação, plano e roteiro/pontos de fala.",
+      "noAudio": "Nenhuma gravação de áudio nesta parte.",
       "finalRoomTitle": "Sala final",
       "part": "Parte {n}",
       "empty": "Não preenchido",

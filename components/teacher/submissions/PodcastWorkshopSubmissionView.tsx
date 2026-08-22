@@ -254,8 +254,25 @@ function renderRoom(
                 <h3 className="mb-3 text-base font-black text-slate-950">
                     {t("podcastWorkshop.productionTitle")}
                 </h3>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-600">
-                    {t("podcastWorkshop.productionLater")}
+                <div className="grid gap-3">
+                    {config.segments.map((segment, index) => {
+                        const voice = submission.productionSegments[segment.id]?.voice ?? null;
+                        return (
+                            <div key={segment.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                                <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                                    {t("podcastWorkshop.part", { n: index + 1 })}
+                                </div>
+                                <div className="mb-2 font-black text-slate-950">{segment.title}</div>
+                                {voice?.audioDataUrl ? (
+                                    <audio controls src={voice.audioDataUrl} className="w-full" />
+                                ) : (
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-600">
+                                        {t("podcastWorkshop.noAudio")}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </section>
         );

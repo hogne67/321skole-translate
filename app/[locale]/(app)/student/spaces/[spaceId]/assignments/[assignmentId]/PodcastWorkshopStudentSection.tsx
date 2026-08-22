@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import type {
   PodcastWorkshopConfig,
@@ -8,6 +8,7 @@ import type {
   PodcastWorkshopRoomKey,
   PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
+import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
 
 type TFn = (key: string, values?: Record<string, unknown>) => string;
 type RoomKey = PodcastWorkshopRoomKey;
@@ -79,6 +80,33 @@ function statusLabel(t: TFn, status: string) {
   return t("podcastWorkshop.statusEmpty");
 }
 
+function formatDuration(totalSeconds: number) {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function getSupportedMimeType() {
+  if (typeof MediaRecorder === "undefined") return "";
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/ogg;codecs=opus",
+  ];
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
+function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Could not read audio."));
+    reader.readAsDataURL(blob);
+  });
+}
+
 export default function PodcastWorkshopStudentSection({
   title,
   config,
@@ -118,6 +146,24 @@ export default function PodcastWorkshopStudentSection({
 
   function patchScript(segmentId: string, text: string) {
     patch({ segmentScripts: { ...value.segmentScripts, [segmentId]: text } });
+  }
+
+  function patchProductionVoice(segmentId: string, voice: StudentAudioAsset | null) {
+    const current = value.productionSegments[segmentId] ?? {
+      voice: null,
+      volume: 1,
+      fadeInSeconds: 0,
+      fadeOutSeconds: 0,
+    };
+    patch({
+      productionSegments: {
+        ...value.productionSegments,
+        [segmentId]: {
+          ...current,
+          voice,
+        },
+      },
+    });
   }
 
   function toggleCriterion(key: string) {
@@ -180,16 +226,25 @@ export default function PodcastWorkshopStudentSection({
     if (activeRoom === "production") {
       return (
         <RoomCard title={t("podcastWorkshop.productionTitle")} help={t("podcastWorkshop.productionHelp")}>
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gap: 12 }}>
             {config.segments.map((segment, index) => (
               <div key={segment.id} className="podcastWorkshopSegmentShell">
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <p style={{ margin: "0 0 2px", color: "#64748b", fontSize: 12, fontWeight: 900 }}>
                     {t("podcastWorkshop.part", { n: index + 1 })}
                   </p>
                   <strong>{segment.title}</strong>
+                  <p style={{ margin: "6px 0 0", color: "#475569", lineHeight: 1.45 }}>
+                    {value.segmentScripts[segment.id] || value.segmentPlans[segment.id] || segment.hint}
+                  </p>
                 </div>
-                <span className="podcastWorkshopLater">{t("podcastWorkshop.statusLater")}</span>
+                <PodcastSegmentRecorder
+                  disabled={readOnly}
+                  segmentId={segment.id}
+                  existing={value.productionSegments[segment.id]?.voice ?? null}
+                  t={t}
+                  onChange={(voice) => patchProductionVoice(segment.id, voice)}
+                />
               </div>
             ))}
           </div>
@@ -387,9 +442,8 @@ export default function PodcastWorkshopStudentSection({
         }
 
         .podcastWorkshopSegmentShell {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
           gap: 12px;
           padding: 12px 14px;
           border-radius: 12px;
@@ -429,6 +483,197 @@ export default function PodcastWorkshopStudentSection({
         }
       `}</style>
     </section>
+  );
+}
+
+function PodcastSegmentRecorder({
+  disabled,
+  existing,
+  t,
+  onChange,
+}: {
+  disabled: boolean;
+  segmentId: string;
+  existing: StudentAudioAsset | null;
+  t: TFn;
+  onChange: (asset: StudentAudioAsset | null) => void;
+}) {
+  const [recording, setRecording] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(existing?.durationSeconds ?? 0);
+  const [error, setError] = useState<string | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const startedAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  async function startRecording() {
+    setError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError(t("audioReading.errors.unsupported"));
+      return;
+    }
+
+    try {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mimeType = getSupportedMimeType();
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+      startedAtRef.current = Date.now();
+      setElapsedSeconds(0);
+
+      const timer = window.setInterval(() => {
+        if (startedAtRef.current != null) {
+          setElapsedSeconds(Math.floor((Date.now() - startedAtRef.current) / 1000));
+        }
+      }, 250);
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        window.clearInterval(timer);
+        const durationSeconds = Math.max(1, Math.floor((Date.now() - (startedAtRef.current ?? Date.now())) / 1000));
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        const audioDataUrl = await blobToDataUrl(blob);
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        recorderRef.current = null;
+        startedAtRef.current = null;
+        setRecording(false);
+        setElapsedSeconds(durationSeconds);
+        onChange({
+          version: 1,
+          activityType: "podcast",
+          audioDataUrl,
+          mimeType: recorder.mimeType || "audio/webm",
+          durationSeconds,
+          recordedAt: Date.now(),
+          visibility: "teacher",
+          retentionPolicy: "review_plus_30_days",
+        });
+      };
+
+      recorder.start();
+      setRecording(true);
+    } catch (err: unknown) {
+      const name = err instanceof DOMException ? err.name : "";
+      setError(name === "NotAllowedError" ? t("audioReading.errors.permission") : t("audioReading.errors.default"));
+      setRecording(false);
+    }
+  }
+
+  function stopRecording() {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+    recorder.stop();
+  }
+
+  function deleteRecording() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    recorderRef.current = null;
+    chunksRef.current = [];
+    startedAtRef.current = null;
+    setRecording(false);
+    setElapsedSeconds(0);
+    setError(null);
+    onChange(null);
+  }
+
+  const playableUrl = existing?.audioDataUrl ?? "";
+
+  return (
+    <div className="podcastSegmentRecorder">
+      <div className="podcastSegmentRecorderTop">
+        <strong>{t("podcastWorkshop.voiceRecording")}</strong>
+        <span>{formatDuration(recording ? elapsedSeconds : existing?.durationSeconds ?? elapsedSeconds)}</span>
+      </div>
+      <div className="podcastSegmentRecorderActions">
+        {!recording && !disabled ? (
+          <button type="button" onClick={startRecording}>
+            {existing ? t("podcastWorkshop.recordAgain") : t("podcastWorkshop.recordVoice")}
+          </button>
+        ) : null}
+        {recording ? (
+          <button type="button" onClick={stopRecording}>
+            {t("audioReading.stop")}
+          </button>
+        ) : null}
+        {!recording && existing && !disabled ? (
+          <button type="button" onClick={deleteRecording}>
+            {t("audioReading.delete")}
+          </button>
+        ) : null}
+      </div>
+      {recording ? (
+        <div className="podcastSegmentRecording">{t("audioReading.recording")}</div>
+      ) : null}
+      {playableUrl ? (
+        <audio controls src={playableUrl} style={{ width: "100%", marginTop: 8 }} />
+      ) : null}
+      {error ? <div className="podcastSegmentError">{error}</div> : null}
+
+      <style jsx>{`
+        .podcastSegmentRecorder {
+          border: 1px solid rgba(15, 23, 42, 0.12);
+          border-radius: 12px;
+          background: white;
+          padding: 10px;
+        }
+
+        .podcastSegmentRecorderTop {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          color: #0f172a;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .podcastSegmentRecorderActions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 8px;
+        }
+
+        .podcastSegmentRecorderActions button {
+          border: 1px solid rgba(15, 23, 42, 0.18);
+          border-radius: 10px;
+          background: white;
+          padding: 8px 10px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .podcastSegmentRecording {
+          margin-top: 8px;
+          border-radius: 10px;
+          background: #fff1f2;
+          color: #9f1239;
+          padding: 8px 10px;
+          font-weight: 900;
+        }
+
+        .podcastSegmentError {
+          margin-top: 8px;
+          border-radius: 10px;
+          background: #fff1f2;
+          color: #be123c;
+          padding: 8px 10px;
+          font-weight: 800;
+        }
+      `}</style>
+    </div>
   );
 }
 

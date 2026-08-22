@@ -9,6 +9,10 @@ import { doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from "firebase/f
 
 import { auth, db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
+import {
+  resolveStudentAudioForPlayback,
+  uploadStudentAudioAsset,
+} from "@/lib/audio/studentAudio";
 import PodcastWorkshopStudentSection from "@/app/[locale]/(app)/student/spaces/[spaceId]/assignments/[assignmentId]/PodcastWorkshopStudentSection";
 import {
   createPodcastWorkshopSubmission,
@@ -69,6 +73,57 @@ function hasPodcastTeacherFeedback(feedback: PodcastWorkshopFeedback | null): bo
   return Object.values(feedback.rooms).some((room) => {
     return String(room.text ?? "").trim().length > 0 || !!room.status;
   });
+}
+
+async function resolvePodcastAudioForPlayback(
+  submission: PodcastWorkshopSubmission
+): Promise<PodcastWorkshopSubmission> {
+  const entries = await Promise.all(
+    Object.entries(submission.productionSegments).map(async ([segmentId, segment]) => {
+      const voice = await resolveStudentAudioForPlayback(segment.voice).catch(() => segment.voice);
+      return [segmentId, { ...segment, voice }] as const;
+    })
+  );
+
+  return {
+    ...submission,
+    productionSegments: Object.fromEntries(entries),
+  };
+}
+
+async function uploadPodcastAudio({
+  spaceId,
+  assignmentId,
+  submissionId,
+  uid,
+  submission,
+}: {
+  spaceId: string;
+  assignmentId: string;
+  submissionId: string;
+  uid: string;
+  submission: PodcastWorkshopSubmission;
+}): Promise<PodcastWorkshopSubmission> {
+  const entries = await Promise.all(
+    Object.entries(submission.productionSegments).map(async ([segmentId, segment]) => {
+      if (!segment.voice) return [segmentId, segment] as const;
+      const voice = await uploadStudentAudioAsset({
+        spaceId,
+        assignmentId,
+        submissionId,
+        uid,
+        activityType: "podcast",
+        assetId: segmentId,
+        asset: segment.voice,
+      });
+      return [segmentId, { ...segment, voice }] as const;
+    })
+  );
+
+  return {
+    ...submission,
+    productionSegments: Object.fromEntries(entries),
+  };
 }
 
 export default function StudentPodcastWorkshopPage() {
@@ -157,7 +212,9 @@ export default function StudentPodcastWorkshopPage() {
       if (!snap.exists()) return;
       const data = (snap.data() as SubmissionDoc) ?? {};
       setStatus(String(data.status ?? ""));
-      setSubmission(readPodcastWorkshopSubmission(data.podcastWorkshop, config));
+      void resolvePodcastAudioForPlayback(
+        readPodcastWorkshopSubmission(data.podcastWorkshop, config)
+      ).then(setSubmission);
       setFeedback(readPodcastWorkshopFeedback(data.podcastWorkshopFeedback));
     });
   }, [assignmentId, config, spaceId, submissionId]);
@@ -169,6 +226,14 @@ export default function StudentPodcastWorkshopPage() {
     setErr(null);
 
     try {
+      const persistedSubmission = await uploadPodcastAudio({
+        spaceId,
+        assignmentId,
+        submissionId,
+        uid,
+        submission,
+      });
+
       const payload = {
         spaceId,
         assignmentId,
@@ -182,7 +247,7 @@ export default function StudentPodcastWorkshopPage() {
         status: nextStatus,
         lessonType: "podcast_workshop",
         contentType: "podcast_workshop",
-        podcastWorkshop: submission,
+        podcastWorkshop: persistedSubmission,
         submittedAt: nextStatus === "submitted" ? Date.now() : null,
         updatedAt: serverTimestamp(),
         auth: { isAnon, uid },
@@ -195,6 +260,25 @@ export default function StudentPodcastWorkshopPage() {
       batch.set(indexRef, { ...payload, createdAt: serverTimestamp() }, { merge: true });
       await batch.commit();
       setStatus(nextStatus);
+      setSubmission(
+        await resolvePodcastAudioForPlayback({
+            ...persistedSubmission,
+            productionSegments: Object.fromEntries(
+              Object.entries(persistedSubmission.productionSegments).map(([segmentId, segment]) => [
+                segmentId,
+                {
+                  ...segment,
+                  voice: segment.voice
+                    ? {
+                      ...segment.voice,
+                      audioDataUrl: submission.productionSegments[segmentId]?.voice?.audioDataUrl,
+                    }
+                    : null,
+                },
+              ])
+            ),
+          })
+      );
       setMsg(nextStatus === "submitted" ? t("messages.submitted") : "Kladd lagret.");
     } catch (error) {
       setErr(error instanceof Error ? error.message : t("errors.submitFailed"));
