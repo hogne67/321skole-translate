@@ -22,6 +22,10 @@ export type PodcastWorkshopConfig = {
 export type PodcastWorkshopSubmission = {
     version: 1;
     ideas: string;
+    podcastName: string;
+    participants: string;
+    interviewees: string;
+    ideaQuestionNotes: Record<string, string>;
     notes: string;
     customSegments: PodcastWorkshopSegment[];
     segmentPlans: Record<string, string>;
@@ -249,6 +253,10 @@ export function createPodcastWorkshopSubmission(
     return {
         version: 1,
         ideas: "",
+        podcastName: "",
+        participants: "",
+        interviewees: "",
+        ideaQuestionNotes: {},
         notes: "",
         customSegments: [],
         segmentPlans: {},
@@ -270,6 +278,13 @@ export function readPodcastWorkshopSubmission(
     return {
         version: 1,
         ideas: String(data.ideas ?? ""),
+        podcastName: String(data.podcastName ?? ""),
+        participants: String(data.participants ?? ""),
+        interviewees: String(data.interviewees ?? ""),
+        ideaQuestionNotes: {
+            ...base.ideaQuestionNotes,
+            ...readStringMap(data.ideaQuestionNotes),
+        },
         notes: String(data.notes ?? ""),
         customSegments: readSegments(data.customSegments),
         segmentPlans: {

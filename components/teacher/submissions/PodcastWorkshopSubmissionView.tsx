@@ -393,7 +393,27 @@ function renderRoom(
                 <h3 className="mb-3 text-base font-black text-slate-950">
                     {t("podcastWorkshop.ideasTitle")}
                 </h3>
-                {textBlock(submission.ideas, t)}
+                <div className="grid gap-3">
+                    <InfoBlock label={t("podcastWorkshop.podcastNameLabel")} value={submission.podcastName} t={t} />
+                    <InfoBlock label={t("podcastWorkshop.participantsLabel")} value={submission.participants} t={t} />
+                    <InfoBlock label={t("podcastWorkshop.intervieweesLabel")} value={submission.interviewees} t={t} />
+                    <InfoBlock label={t("podcastWorkshop.ideasLabel")} value={submission.ideas} t={t} />
+                    {config.guidingQuestions.length > 0 ? (
+                        <div className="grid gap-3">
+                            <div className="text-xs font-black uppercase tracking-wide text-slate-500">
+                                {t("podcastWorkshop.questionsTitle")}
+                            </div>
+                            {config.guidingQuestions.map((question) => (
+                                <InfoBlock
+                                    key={question}
+                                    label={question}
+                                    value={submission.ideaQuestionNotes?.[question] ?? ""}
+                                    t={t}
+                                />
+                            ))}
+                        </div>
+                    ) : null}
+                </div>
             </section>
         );
     }
@@ -551,6 +571,25 @@ function SegmentList({
                     {textBlock(getText(segment.id), t)}
                 </div>
             ))}
+        </div>
+    );
+}
+
+function InfoBlock({
+    label,
+    value,
+    t,
+}: {
+    label: string;
+    value: string;
+    t: Props["t"];
+}) {
+    return (
+        <div>
+            <div className="mb-1 text-xs font-black uppercase tracking-wide text-slate-500">
+                {label}
+            </div>
+            {textBlock(value, t)}
         </div>
     );
 }

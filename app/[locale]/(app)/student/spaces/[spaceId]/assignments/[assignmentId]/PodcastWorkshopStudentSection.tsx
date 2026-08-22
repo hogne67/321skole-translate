@@ -195,6 +195,15 @@ export default function PodcastWorkshopStudentSection({
     patch({ segmentScripts: { ...value.segmentScripts, [segmentId]: text } });
   }
 
+  function patchIdeaQuestion(question: string, text: string) {
+    patch({
+      ideaQuestionNotes: {
+        ...(value.ideaQuestionNotes ?? {}),
+        [question]: text,
+      },
+    });
+  }
+
   function patchProductionVoice(segmentId: string, voice: StudentAudioAsset | null) {
     const current = value.productionSegments[segmentId] ?? {
       voice: null,
@@ -258,16 +267,75 @@ export default function PodcastWorkshopStudentSection({
     if (activeRoom === "ideas") {
       return (
         <RoomCard title={t("podcastWorkshop.ideasTitle")} help={t("podcastWorkshop.ideasHelp")}>
-          <label style={labelStyle} htmlFor="podcast-ideas">{t("podcastWorkshop.ideasLabel")}</label>
-          <textarea
-            id="podcast-ideas"
-            value={value.ideas}
-            onChange={(event) => patch({ ideas: event.target.value })}
-            placeholder={t("podcastWorkshop.ideasPlaceholder")}
-            readOnly={readOnly}
-            rows={8}
-            style={{ ...textareaStyle, minHeight: 210, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
-          />
+          <div className="podcastIdeaGrid">
+            <div>
+              <label style={labelStyle} htmlFor="podcast-name">{t("podcastWorkshop.podcastNameLabel")}</label>
+              <input
+                id="podcast-name"
+                value={value.podcastName ?? ""}
+                onChange={(event) => patch({ podcastName: event.target.value })}
+                placeholder={t("podcastWorkshop.podcastNamePlaceholder")}
+                readOnly={readOnly}
+                className="podcastIdeaInput"
+              />
+            </div>
+            <div>
+              <label style={labelStyle} htmlFor="podcast-participants">{t("podcastWorkshop.participantsLabel")}</label>
+              <input
+                id="podcast-participants"
+                value={value.participants ?? ""}
+                onChange={(event) => patch({ participants: event.target.value })}
+                placeholder={t("podcastWorkshop.participantsPlaceholder")}
+                readOnly={readOnly}
+                className="podcastIdeaInput"
+              />
+            </div>
+            <div>
+              <label style={labelStyle} htmlFor="podcast-interviewees">{t("podcastWorkshop.intervieweesLabel")}</label>
+              <input
+                id="podcast-interviewees"
+                value={value.interviewees ?? ""}
+                onChange={(event) => patch({ interviewees: event.target.value })}
+                placeholder={t("podcastWorkshop.intervieweesPlaceholder")}
+                readOnly={readOnly}
+                className="podcastIdeaInput"
+              />
+            </div>
+            <div>
+              <label style={labelStyle} htmlFor="podcast-ideas">{t("podcastWorkshop.ideasLabel")}</label>
+              <textarea
+                id="podcast-ideas"
+                value={value.ideas}
+                onChange={(event) => patch({ ideas: event.target.value })}
+                placeholder={t("podcastWorkshop.ideasPlaceholder")}
+                readOnly={readOnly}
+                rows={6}
+                style={{ ...textareaStyle, minHeight: 150, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
+              />
+            </div>
+            {config.guidingQuestions.length > 0 ? (
+              <div className="podcastIdeaQuestions">
+                <h4>{t("podcastWorkshop.questionsTitle")}</h4>
+                {config.guidingQuestions.map((question, index) => {
+                  const key = `question-${index}`;
+                  return (
+                    <div key={question}>
+                      <label style={labelStyle} htmlFor={key}>{question}</label>
+                      <textarea
+                        id={key}
+                        value={value.ideaQuestionNotes?.[question] ?? ""}
+                        onChange={(event) => patchIdeaQuestion(question, event.target.value)}
+                        placeholder={t("podcastWorkshop.questionAnswerPlaceholder")}
+                        readOnly={readOnly}
+                        rows={3}
+                        style={{ ...textareaStyle, minHeight: 76, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
         </RoomCard>
       );
     }
@@ -392,6 +460,16 @@ export default function PodcastWorkshopStudentSection({
         </div>
 
         <div className="podcastWorkshopAssignment">
+          {config.criteria.length > 0 ? (
+            <div className="podcastWorkshopHeroCriteria">
+              <strong>{t("podcastWorkshop.criteria")}</strong>
+              <div>
+                {config.criteria.map((criterion) => (
+                  <span key={criterion}>{criterion}</span>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <strong>{t("podcastWorkshop.assignmentTitle")}</strong>
           <div>{config.assignmentText || t("podcastWorkshop.noAssignmentText")}</div>
         </div>
@@ -490,6 +568,54 @@ export default function PodcastWorkshopStudentSection({
           margin-bottom: 7px;
           font-size: 12px;
           color: #065f46;
+        }
+
+        .podcastWorkshopHeroCriteria {
+          margin-bottom: 12px;
+        }
+
+        .podcastWorkshopHeroCriteria div {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+        }
+
+        .podcastWorkshopHeroCriteria span {
+          border-radius: 999px;
+          background: rgba(236, 253, 245, 0.98);
+          color: #065f46;
+          padding: 6px 9px;
+          font-size: 12px;
+          font-weight: 850;
+        }
+
+        .podcastIdeaGrid {
+          display: grid;
+          gap: 14px;
+        }
+
+        .podcastIdeaInput {
+          width: 100%;
+          box-sizing: border-box;
+          border: 1px solid rgba(15, 23, 42, 0.16);
+          border-radius: 12px;
+          background: white;
+          color: #0f172a;
+          padding: 10px 12px;
+          font: inherit;
+        }
+
+        .podcastIdeaQuestions {
+          display: grid;
+          gap: 12px;
+          border-top: 1px solid rgba(15, 23, 42, 0.08);
+          padding-top: 14px;
+        }
+
+        .podcastIdeaQuestions h4 {
+          margin: 0;
+          color: #0f172a;
+          font-size: 16px;
         }
 
         .podcastWorkshopRooms {
@@ -1798,14 +1924,6 @@ function SupportPanel({
           {t("podcastWorkshop.supportHint")}
         </p>
       </div>
-
-      {config.guidingQuestions.length > 0 ? (
-        <SupportCard title={t("podcastWorkshop.questionsTitle")}>
-          {config.guidingQuestions.map((question) => (
-            <SupportItem key={question}>{question}</SupportItem>
-          ))}
-        </SupportCard>
-      ) : null}
 
       {config.vocabulary.length > 0 ? (
         <SupportCard title={t("podcastWorkshop.vocabulary")}>
