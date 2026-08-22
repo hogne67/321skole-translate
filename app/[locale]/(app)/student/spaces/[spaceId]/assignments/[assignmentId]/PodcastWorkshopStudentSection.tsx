@@ -266,8 +266,19 @@ export default function PodcastWorkshopStudentSection({
   function renderRoom() {
     if (activeRoom === "ideas") {
       return (
-        <RoomCard title={t("podcastWorkshop.ideasTitle")} help={t("podcastWorkshop.ideasHelp")}>
-          <div className="podcastIdeaGrid">
+        <div className="podcastRoomStack">
+          <div className="podcastRoomIntro">
+            <h3>{t("podcastWorkshop.ideasTitle")}</h3>
+            <p>{t("podcastWorkshop.ideasHelp")}</p>
+          </div>
+
+          <IdeaWorkCard
+            title={t("podcastWorkshop.podcastNameLabel")}
+            help={t("podcastWorkshop.podcastNameHelp")}
+            status={statusLabel(t, hasText(value.podcastName) ? "working" : "empty")}
+            config={config}
+            t={t}
+          >
             <div>
               <label style={labelStyle} htmlFor="podcast-name">{t("podcastWorkshop.podcastNameLabel")}</label>
               <input
@@ -279,6 +290,15 @@ export default function PodcastWorkshopStudentSection({
                 className="podcastIdeaInput"
               />
             </div>
+          </IdeaWorkCard>
+
+          <IdeaWorkCard
+            title={t("podcastWorkshop.participantsLabel")}
+            help={t("podcastWorkshop.participantsHelp")}
+            status={statusLabel(t, hasText(value.participants) ? "working" : "empty")}
+            config={config}
+            t={t}
+          >
             <div>
               <label style={labelStyle} htmlFor="podcast-participants">{t("podcastWorkshop.participantsLabel")}</label>
               <input
@@ -290,6 +310,15 @@ export default function PodcastWorkshopStudentSection({
                 className="podcastIdeaInput"
               />
             </div>
+          </IdeaWorkCard>
+
+          <IdeaWorkCard
+            title={t("podcastWorkshop.intervieweesLabel")}
+            help={t("podcastWorkshop.intervieweesHelp")}
+            status={statusLabel(t, hasText(value.interviewees) ? "working" : "empty")}
+            config={config}
+            t={t}
+          >
             <div>
               <label style={labelStyle} htmlFor="podcast-interviewees">{t("podcastWorkshop.intervieweesLabel")}</label>
               <input
@@ -301,6 +330,15 @@ export default function PodcastWorkshopStudentSection({
                 className="podcastIdeaInput"
               />
             </div>
+          </IdeaWorkCard>
+
+          <IdeaWorkCard
+            title={t("podcastWorkshop.ideasLabel")}
+            help={t("podcastWorkshop.ideasSectionHelp")}
+            status={statusLabel(t, hasText(value.ideas) ? "working" : "empty")}
+            config={config}
+            t={t}
+          >
             <div>
               <label style={labelStyle} htmlFor="podcast-ideas">{t("podcastWorkshop.ideasLabel")}</label>
               <textarea
@@ -313,30 +351,36 @@ export default function PodcastWorkshopStudentSection({
                 style={{ ...textareaStyle, minHeight: 150, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
               />
             </div>
-            {config.guidingQuestions.length > 0 ? (
-              <div className="podcastIdeaQuestions">
-                <h4>{t("podcastWorkshop.questionsTitle")}</h4>
-                {config.guidingQuestions.map((question, index) => {
-                  const key = `question-${index}`;
-                  return (
-                    <div key={question}>
-                      <label style={labelStyle} htmlFor={key}>{question}</label>
-                      <textarea
-                        id={key}
-                        value={value.ideaQuestionNotes?.[question] ?? ""}
-                        onChange={(event) => patchIdeaQuestion(question, event.target.value)}
-                        placeholder={t("podcastWorkshop.questionAnswerPlaceholder")}
-                        readOnly={readOnly}
-                        rows={3}
-                        style={{ ...textareaStyle, minHeight: 76, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-        </RoomCard>
+          </IdeaWorkCard>
+
+          {config.guidingQuestions.map((question, index) => {
+            const key = `question-${index}`;
+            const answer = value.ideaQuestionNotes?.[question] ?? "";
+            return (
+              <IdeaWorkCard
+                key={question}
+                title={question}
+                help={t("podcastWorkshop.questionSectionHelp")}
+                status={statusLabel(t, hasText(answer) ? "working" : "empty")}
+                config={config}
+                t={t}
+              >
+                <div>
+                  <label style={labelStyle} htmlFor={key}>{question}</label>
+                  <textarea
+                    id={key}
+                    value={answer}
+                    onChange={(event) => patchIdeaQuestion(question, event.target.value)}
+                    placeholder={t("podcastWorkshop.questionAnswerPlaceholder")}
+                    readOnly={readOnly}
+                    rows={3}
+                    style={{ ...textareaStyle, minHeight: 92, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
+                  />
+                </div>
+              </IdeaWorkCard>
+            );
+          })}
+        </div>
       );
     }
 
@@ -589,9 +633,21 @@ export default function PodcastWorkshopStudentSection({
           font-weight: 850;
         }
 
-        .podcastIdeaGrid {
+        .podcastRoomStack {
           display: grid;
           gap: 14px;
+        }
+
+        .podcastRoomIntro h3 {
+          margin: 0;
+          color: #0f172a;
+          font-size: 22px;
+        }
+
+        .podcastRoomIntro p {
+          margin: 6px 0 0;
+          color: #475569;
+          line-height: 1.5;
         }
 
         .podcastIdeaInput {
@@ -603,19 +659,6 @@ export default function PodcastWorkshopStudentSection({
           color: #0f172a;
           padding: 10px 12px;
           font: inherit;
-        }
-
-        .podcastIdeaQuestions {
-          display: grid;
-          gap: 12px;
-          border-top: 1px solid rgba(15, 23, 42, 0.08);
-          padding-top: 14px;
-        }
-
-        .podcastIdeaQuestions h4 {
-          margin: 0;
-          color: #0f172a;
-          font-size: 16px;
         }
 
         .podcastWorkshopRooms {
@@ -903,6 +946,158 @@ function RoomCard({
       <p style={{ margin: "0 0 14px", color: "#475569", lineHeight: 1.5 }}>{help}</p>
       {children}
     </div>
+  );
+}
+
+function IdeaWorkCard({
+  title,
+  help,
+  status,
+  config,
+  t,
+  children,
+}: {
+  title: string;
+  help: string;
+  status: string;
+  config: PodcastWorkshopConfig;
+  t: TFn;
+  children: ReactNode;
+}) {
+  return (
+    <section className="podcastIdeaWorkCard">
+      <div className="podcastIdeaMain">
+        <div className="podcastIdeaHeader">
+          <h4>{title}</h4>
+          <span>{status}</span>
+        </div>
+        <p>{help}</p>
+        {children}
+      </div>
+      <aside className="podcastIdeaSupport">
+        <div className="podcastIdeaSupportTop">
+          <strong>{t("podcastWorkshop.supportTitle").toUpperCase()}</strong>
+          <span>{config.aiSupport === "off" ? t("podcastWorkshop.aiOff") : t("podcastWorkshop.aiCoach")}</span>
+        </div>
+        <p>{t("podcastWorkshop.supportHint")}</p>
+        <div className="podcastIdeaSupportActions">
+          <button type="button">{t("podcastWorkshop.showVocabulary")}</button>
+          <button type="button" disabled={config.aiSupport === "off"}>{t("podcastWorkshop.getAiHelp")}</button>
+        </div>
+        <div className="podcastIdeaResponseBadge">{t("podcastWorkshop.noTeacherResponse")}</div>
+      </aside>
+
+      <style jsx>{`
+        .podcastIdeaWorkCard {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(230px, 320px);
+          gap: 16px;
+          align-items: start;
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          border-radius: 16px;
+          background: white;
+          padding: 14px;
+        }
+
+        .podcastIdeaMain {
+          min-width: 0;
+        }
+
+        .podcastIdeaHeader {
+          display: flex;
+          align-items: baseline;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-bottom: 6px;
+        }
+
+        .podcastIdeaHeader h4 {
+          margin: 0;
+          color: #0f172a;
+          font-size: 18px;
+          line-height: 1.25;
+        }
+
+        .podcastIdeaHeader span {
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastIdeaMain > p {
+          margin: 0 0 14px;
+          color: #475569;
+          line-height: 1.45;
+        }
+
+        .podcastIdeaSupport {
+          display: grid;
+          gap: 10px;
+          border-radius: 15px;
+          background: rgba(220, 252, 231, 0.62);
+          padding: 13px;
+          color: #064e3b;
+        }
+
+        .podcastIdeaSupportTop {
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .podcastIdeaSupportTop strong {
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .podcastIdeaSupportTop span,
+        .podcastIdeaResponseBadge {
+          border-radius: 999px;
+          background: white;
+          padding: 6px 9px;
+          color: #0f766e;
+          font-size: 12px;
+          font-weight: 900;
+          text-align: center;
+        }
+
+        .podcastIdeaSupport p {
+          margin: 0;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.45;
+        }
+
+        .podcastIdeaSupportActions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .podcastIdeaSupportActions button {
+          border: 1px solid rgba(5, 150, 105, 0.42);
+          border-radius: 999px;
+          background: white;
+          color: #047857;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .podcastIdeaSupportActions button:disabled {
+          cursor: not-allowed;
+          opacity: 0.55;
+        }
+
+        @media (max-width: 860px) {
+          .podcastIdeaWorkCard {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+    </section>
   );
 }
 
