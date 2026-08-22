@@ -201,9 +201,14 @@
         "none": "Ingen lyd",
         "intro_warm": "Intro varm",
         "intro_bright": "Intro lys",
+        "intro_news": "Intro nyhet",
         "transition_ding": "Ding",
+        "transition_soft": "Myk overgang",
         "transition_clap": "Klapp",
-        "outro_soft": "Outro rolig"
+        "effect_success": "Suksess",
+        "effect_wow": "Wow",
+        "outro_soft": "Outro rolig",
+        "outro_bright": "Outro lys"
       },
       "productionStatusTitle": "Status",
       "productionReady": "klare deler",

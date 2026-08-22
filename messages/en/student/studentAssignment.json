@@ -201,9 +201,14 @@
         "none": "No sound",
         "intro_warm": "Warm intro",
         "intro_bright": "Bright intro",
+        "intro_news": "News intro",
         "transition_ding": "Ding",
+        "transition_soft": "Soft transition",
         "transition_clap": "Clap",
-        "outro_soft": "Soft outro"
+        "effect_success": "Success",
+        "effect_wow": "Wow",
+        "outro_soft": "Soft outro",
+        "outro_bright": "Bright outro"
       },
       "productionStatusTitle": "Status",
       "productionReady": "parts ready",

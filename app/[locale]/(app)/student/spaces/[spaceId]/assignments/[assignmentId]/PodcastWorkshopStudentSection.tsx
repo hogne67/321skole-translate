@@ -10,6 +10,7 @@ import type {
   PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
 import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
+import { getSoundDuration, playPodcastSound, PODCAST_SOUND_GROUPS } from "@/lib/podcastSoundLibrary";
 
 type TFn = (key: string, values?: Record<string, unknown>) => string;
 type RoomKey = PodcastWorkshopRoomKey;
@@ -101,6 +102,17 @@ function getVoiceDuration(config: PodcastWorkshopConfig, value: PodcastWorkshopS
   }, 0);
 }
 
+function getPodcastDuration(config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
+  const voicedSegments = getVoiceSegments(config, value);
+  if (voicedSegments.length === 0) return 0;
+  const voiceSeconds = getVoiceDuration(config, value);
+  const transitionCount = Math.max(0, voicedSegments.length - 1);
+  return voiceSeconds
+    + getSoundDuration(value.productionMix.introSoundId)
+    + getSoundDuration(value.productionMix.outroSoundId)
+    + transitionCount * getSoundDuration(value.productionMix.transitionSoundId);
+}
+
 function getSupportedMimeType() {
   if (typeof MediaRecorder === "undefined") return "";
   const candidates = [
@@ -118,57 +130,6 @@ function blobToDataUrl(blob: Blob) {
     reader.onload = () => resolve(String(reader.result ?? ""));
     reader.onerror = () => reject(new Error("Could not read audio."));
     reader.readAsDataURL(blob);
-  });
-}
-
-const PODCAST_SOUND_GROUPS: Record<"intro" | "transition" | "outro", PodcastSoundId[]> = {
-  intro: ["", "intro_warm", "intro_bright"],
-  transition: ["", "transition_ding", "transition_clap"],
-  outro: ["", "outro_soft"],
-};
-
-function playToneSequence(soundId: PodcastSoundId) {
-  if (!soundId) return Promise.resolve();
-  if (typeof window === "undefined") return Promise.resolve();
-
-  const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioContextClass) return Promise.resolve();
-
-  const context = new AudioContextClass();
-  const master = context.createGain();
-  master.gain.value = 0.16;
-  master.connect(context.destination);
-
-  const now = context.currentTime;
-  const tonesBySound: Record<Exclude<PodcastSoundId, "">, Array<[number, number, number]>> = {
-    intro_warm: [[261.63, 0, 0.24], [329.63, 0.22, 0.24], [392, 0.44, 0.34]],
-    intro_bright: [[523.25, 0, 0.16], [659.25, 0.15, 0.16], [783.99, 0.3, 0.22]],
-    transition_ding: [[880, 0, 0.18], [1174.66, 0.13, 0.28]],
-    transition_clap: [[180, 0, 0.06], [220, 0.05, 0.06], [160, 0.1, 0.08]],
-    outro_soft: [[392, 0, 0.24], [329.63, 0.22, 0.24], [261.63, 0.44, 0.42]],
-  };
-
-  const tones = tonesBySound[soundId];
-  tones.forEach(([frequency, start, duration]) => {
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = soundId === "transition_clap" ? "triangle" : "sine";
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(0.0001, now + start);
-    gain.gain.exponentialRampToValueAtTime(0.9, now + start + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
-    oscillator.connect(gain);
-    gain.connect(master);
-    oscillator.start(now + start);
-    oscillator.stop(now + start + duration + 0.03);
-  });
-
-  const totalMs = Math.max(...tones.map(([, start, duration]) => start + duration)) * 1000 + 80;
-  return new Promise<void>((resolve) => {
-    window.setTimeout(() => {
-      void context.close();
-      resolve();
-    }, totalMs);
   });
 }
 
@@ -914,7 +875,8 @@ function PodcastFullPlayback({
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const cancelledRef = useRef(false);
   const segmentsWithAudio = getVoiceSegments(config, value);
-  const totalSeconds = getVoiceDuration(config, value);
+  const totalSeconds = getPodcastDuration(config, value);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
     return () => {
@@ -928,12 +890,16 @@ function PodcastFullPlayback({
     playerRef.current?.pause();
     playerRef.current = null;
     setPlaying(false);
+    setElapsedSeconds(0);
   }
 
-  async function playAudioUrl(url: string) {
+  async function playAudioUrl(url: string, offsetSeconds: number) {
     return new Promise<void>((resolve) => {
       const audio = new Audio(url);
       playerRef.current = audio;
+      audio.ontimeupdate = () => {
+        setElapsedSeconds(Math.min(totalSeconds, offsetSeconds + audio.currentTime));
+      };
       audio.onended = () => resolve();
       audio.onerror = () => resolve();
       void audio.play();
@@ -950,22 +916,41 @@ function PodcastFullPlayback({
 
     cancelledRef.current = false;
     setPlaying(true);
-    await playToneSequence(value.productionMix.introSoundId);
+    setElapsedSeconds(0);
+    await playPodcastSound(value.productionMix.introSoundId);
+    let elapsed = getSoundDuration(value.productionMix.introSoundId);
+    setElapsedSeconds(Math.min(totalSeconds, elapsed));
     for (let index = 0; index < config.segments.length; index += 1) {
       if (cancelledRef.current) break;
       const segment = config.segments[index];
-      const url = value.productionSegments[segment.id]?.voice?.audioDataUrl;
-      if (url) await playAudioUrl(url);
+      const voice = value.productionSegments[segment.id]?.voice ?? null;
+      const url = voice?.audioDataUrl;
+      if (url) {
+        await playAudioUrl(url, elapsed);
+        elapsed += voice.durationSeconds;
+        setElapsedSeconds(Math.min(totalSeconds, elapsed));
+      }
       const hasNextVoice = config.segments.slice(index + 1).some((nextSegment) => {
         return !!value.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
       });
       if (!cancelledRef.current && hasNextVoice) {
-        await playToneSequence(value.productionMix.transitionSoundId);
+        await playPodcastSound(value.productionMix.transitionSoundId);
+        elapsed += getSoundDuration(value.productionMix.transitionSoundId);
+        setElapsedSeconds(Math.min(totalSeconds, elapsed));
       }
     }
-    if (!cancelledRef.current) await playToneSequence(value.productionMix.outroSoundId);
-    if (!cancelledRef.current) setPlaying(false);
+    if (!cancelledRef.current) {
+      await playPodcastSound(value.productionMix.outroSoundId);
+      elapsed += getSoundDuration(value.productionMix.outroSoundId);
+      setElapsedSeconds(Math.min(totalSeconds, elapsed));
+    }
+    if (!cancelledRef.current) {
+      setPlaying(false);
+      window.setTimeout(() => setElapsedSeconds(0), 700);
+    }
   }
+
+  const progressPercent = totalSeconds > 0 ? Math.min(100, Math.max(0, (elapsedSeconds / totalSeconds) * 100)) : 0;
 
   return (
     <div className="podcastProductionPlayback">
@@ -981,6 +966,13 @@ function PodcastFullPlayback({
       >
         {playing ? t("podcastWorkshop.stopFullPodcast") : t("podcastWorkshop.playFullPodcast")}
       </button>
+      <div className="podcastPlaybackProgress" aria-hidden="true">
+        <div style={{ width: `${progressPercent}%` }} />
+      </div>
+      <div className="podcastPlaybackTime">
+        <span>{formatDuration(elapsedSeconds)}</span>
+        <span>{formatDuration(totalSeconds)}</span>
+      </div>
 
       <style jsx>{`
         .podcastProductionPlayback {
@@ -1025,6 +1017,30 @@ function PodcastFullPlayback({
         .podcastProductionPlay:disabled {
           cursor: not-allowed;
           opacity: 0.55;
+        }
+
+        .podcastPlaybackProgress {
+          height: 9px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: rgba(15, 23, 42, 0.12);
+        }
+
+        .podcastPlaybackProgress div {
+          height: 100%;
+          border-radius: inherit;
+          background: #0f766e;
+          transition: width 180ms linear;
+        }
+
+        .podcastPlaybackTime {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          color: #475569;
+          font-size: 12px;
+          font-weight: 900;
+          font-variant-numeric: tabular-nums;
         }
       `}</style>
     </div>

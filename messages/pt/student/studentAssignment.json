@@ -201,9 +201,14 @@
         "none": "Sem som",
         "intro_warm": "Intro suave",
         "intro_bright": "Intro brilhante",
+        "intro_news": "Intro notícia",
         "transition_ding": "Ding",
+        "transition_soft": "Transição suave",
         "transition_clap": "Palmas",
-        "outro_soft": "Outro calmo"
+        "effect_success": "Sucesso",
+        "effect_wow": "Uau",
+        "outro_soft": "Outro calmo",
+        "outro_bright": "Outro brilhante"
       },
       "productionStatusTitle": "Status",
       "productionReady": "partes prontas",

@@ -34,9 +34,14 @@ export type PodcastSoundId =
     | ""
     | "intro_warm"
     | "intro_bright"
+    | "intro_news"
     | "transition_ding"
+    | "transition_soft"
     | "transition_clap"
-    | "outro_soft";
+    | "effect_success"
+    | "effect_wow"
+    | "outro_soft"
+    | "outro_bright";
 
 export type PodcastWorkshopProductionMix = {
     introSoundId: PodcastSoundId;
@@ -140,9 +145,14 @@ function readSoundId(value: unknown): PodcastSoundId {
     if (
         raw === "intro_warm" ||
         raw === "intro_bright" ||
+        raw === "intro_news" ||
         raw === "transition_ding" ||
+        raw === "transition_soft" ||
         raw === "transition_clap" ||
-        raw === "outro_soft"
+        raw === "effect_success" ||
+        raw === "effect_wow" ||
+        raw === "outro_soft" ||
+        raw === "outro_bright"
     ) {
         return raw;
     }

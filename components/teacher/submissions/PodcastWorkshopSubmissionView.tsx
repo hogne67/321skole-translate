@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
     PodcastWorkshopConfig,
@@ -9,6 +9,7 @@ import type {
     PodcastWorkshopRoomKey,
     PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
+import { getSoundDuration, playPodcastSound } from "@/lib/podcastSoundLibrary";
 
 type Props = {
     title: string;
@@ -35,6 +36,32 @@ function textBlock(value: string, t: Props["t"]) {
             {text ? text : emptyText(t)}
         </div>
     );
+}
+
+function formatDuration(totalSeconds: number) {
+    const safe = Math.max(0, Math.floor(totalSeconds));
+    const minutes = Math.floor(safe / 60);
+    const seconds = safe % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function getVoiceSegments(config: PodcastWorkshopConfig, submission: PodcastWorkshopSubmission) {
+    return config.segments.filter((segment) => {
+        const voice = submission.productionSegments[segment.id]?.voice;
+        return !!voice?.audioDataUrl;
+    });
+}
+
+function getPodcastDuration(config: PodcastWorkshopConfig, submission: PodcastWorkshopSubmission) {
+    const voicedSegments = getVoiceSegments(config, submission);
+    if (voicedSegments.length === 0) return 0;
+    const voiceSeconds = voicedSegments.reduce((sum, segment) => {
+        return sum + (submission.productionSegments[segment.id]?.voice?.durationSeconds ?? 0);
+    }, 0);
+    return voiceSeconds
+        + getSoundDuration(submission.productionMix.introSoundId)
+        + getSoundDuration(submission.productionMix.outroSoundId)
+        + Math.max(0, voicedSegments.length - 1) * getSoundDuration(submission.productionMix.transitionSoundId);
 }
 
 export default function PodcastWorkshopSubmissionView({
@@ -199,6 +226,137 @@ export default function PodcastWorkshopSubmissionView({
     );
 }
 
+function PodcastFullPlayback({
+    config,
+    submission,
+    t,
+}: {
+    config: PodcastWorkshopConfig;
+    submission: PodcastWorkshopSubmission;
+    t: Props["t"];
+}) {
+    const [playing, setPlaying] = useState(false);
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const playerRef = useRef<HTMLAudioElement | null>(null);
+    const cancelledRef = useRef(false);
+    const segmentsWithAudio = getVoiceSegments(config, submission);
+    const totalSeconds = getPodcastDuration(config, submission);
+    const progressPercent = totalSeconds > 0 ? Math.min(100, Math.max(0, (elapsedSeconds / totalSeconds) * 100)) : 0;
+
+    useEffect(() => {
+        return () => {
+            playerRef.current?.pause();
+            playerRef.current = null;
+        };
+    }, []);
+
+    function stopPlayback() {
+        cancelledRef.current = true;
+        playerRef.current?.pause();
+        playerRef.current = null;
+        setPlaying(false);
+        setElapsedSeconds(0);
+    }
+
+    async function playAudioUrl(url: string, offsetSeconds: number) {
+        return new Promise<void>((resolve) => {
+            const audio = new Audio(url);
+            playerRef.current = audio;
+            audio.ontimeupdate = () => {
+                setElapsedSeconds(Math.min(totalSeconds, offsetSeconds + audio.currentTime));
+            };
+            audio.onended = () => resolve();
+            audio.onerror = () => resolve();
+            void audio.play();
+        });
+    }
+
+    async function playWholePodcast() {
+        if (playing) {
+            stopPlayback();
+            return;
+        }
+
+        if (segmentsWithAudio.length === 0) return;
+
+        cancelledRef.current = false;
+        setPlaying(true);
+        setElapsedSeconds(0);
+
+        await playPodcastSound(submission.productionMix.introSoundId);
+        let elapsed = getSoundDuration(submission.productionMix.introSoundId);
+        setElapsedSeconds(Math.min(totalSeconds, elapsed));
+
+        for (let index = 0; index < config.segments.length; index += 1) {
+            if (cancelledRef.current) break;
+            const segment = config.segments[index];
+            const voice = submission.productionSegments[segment.id]?.voice ?? null;
+            const url = voice?.audioDataUrl;
+            if (url) {
+                await playAudioUrl(url, elapsed);
+                elapsed += voice.durationSeconds;
+                setElapsedSeconds(Math.min(totalSeconds, elapsed));
+            }
+
+            const hasNextVoice = config.segments.slice(index + 1).some((nextSegment) => {
+                return !!submission.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
+            });
+            if (!cancelledRef.current && hasNextVoice) {
+                await playPodcastSound(submission.productionMix.transitionSoundId);
+                elapsed += getSoundDuration(submission.productionMix.transitionSoundId);
+                setElapsedSeconds(Math.min(totalSeconds, elapsed));
+            }
+        }
+
+        if (!cancelledRef.current) {
+            await playPodcastSound(submission.productionMix.outroSoundId);
+            elapsed += getSoundDuration(submission.productionMix.outroSoundId);
+            setElapsedSeconds(Math.min(totalSeconds, elapsed));
+        }
+        if (!cancelledRef.current) {
+            setPlaying(false);
+            window.setTimeout(() => setElapsedSeconds(0), 700);
+        }
+    }
+
+    return (
+        <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4">
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <div className="text-xs font-black uppercase tracking-wide text-teal-800">
+                        {t("podcastWorkshop.fullPodcast")}
+                    </div>
+                    <div className="mt-1 text-lg font-black text-slate-950">
+                        {t("podcastWorkshop.readyToReview")}
+                    </div>
+                </div>
+                <div className="rounded-full bg-white px-3 py-1 text-sm font-black tabular-nums text-teal-800">
+                    {formatDuration(totalSeconds)}
+                </div>
+            </div>
+
+            <button
+                type="button"
+                onClick={playWholePodcast}
+                disabled={segmentsWithAudio.length === 0}
+                className="mt-3 w-full rounded-xl border border-slate-950 bg-slate-950 px-3 py-2 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                {playing ? t("podcastWorkshop.stopFullPodcast") : t("podcastWorkshop.playFullPodcast")}
+            </button>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div
+                    className="h-full rounded-full bg-teal-700 transition-[width] duration-150"
+                    style={{ width: `${progressPercent}%` }}
+                />
+            </div>
+            <div className="mt-2 flex justify-between gap-3 text-xs font-black tabular-nums text-slate-600">
+                <span>{formatDuration(elapsedSeconds)}</span>
+                <span>{formatDuration(totalSeconds)}</span>
+            </div>
+        </div>
+    );
+}
+
 function renderRoom(
     room: PodcastWorkshopRoomKey,
     config: PodcastWorkshopConfig,
@@ -279,14 +437,56 @@ function renderRoom(
     }
 
     return (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4">
-            <h3 className="mb-3 text-base font-black text-slate-950">
-                {t("podcastWorkshop.finalRoomTitle")}
-            </h3>
-            {textBlock(submission.notes, t)}
+        <FinalReview config={config} submission={submission} t={t} />
+    );
+}
+
+function FinalReview({
+    config,
+    submission,
+    t,
+}: {
+    config: PodcastWorkshopConfig;
+    submission: PodcastWorkshopSubmission;
+    t: Props["t"];
+}) {
+    const readyCount = getVoiceSegments(config, submission).length;
+    const missingCount = config.segments.length - readyCount;
+
+    return (
+        <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4">
+            <div>
+                <h3 className="mb-1 text-base font-black text-slate-950">
+                    {t("podcastWorkshop.finalRoomTitle")}
+                </h3>
+                <div className="text-sm font-semibold text-slate-600">
+                    {t("podcastWorkshop.finalReviewHint")}
+                </div>
+            </div>
+
+            <PodcastFullPlayback config={config} submission={submission} t={t} />
+
+            <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800">
+                    {t("podcastWorkshop.productionReady")}: {readyCount}
+                </span>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                    {t("podcastWorkshop.productionMissing")}: {missingCount}
+                </span>
+            </div>
+
+            <div>
+                <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                    {t("podcastWorkshop.studentNotes")}
+                </div>
+                {textBlock(submission.notes, t)}
+            </div>
 
             {config.criteria.length > 0 ? (
-                <div className="mt-4 grid gap-2">
+                <div className="grid gap-2">
+                    <div className="text-xs font-black uppercase tracking-wide text-slate-500">
+                        {t("podcastWorkshop.finalChecklist")}
+                    </div>
                     {config.criteria.map((criterion, index) => {
                         const checked = submission.selfAssessment[`criterion_${index}`] === true;
                         return (
