@@ -1,0 +1,729 @@
+"use client";
+
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+
+import type {
+  PodcastWorkshopConfig,
+  PodcastWorkshopFeedback,
+  PodcastWorkshopRoomKey,
+  PodcastWorkshopSubmission,
+} from "@/lib/podcastWorkshop";
+
+type TFn = (key: string, values?: Record<string, unknown>) => string;
+type RoomKey = PodcastWorkshopRoomKey;
+
+type Props = {
+  title: string;
+  config: PodcastWorkshopConfig;
+  value: PodcastWorkshopSubmission;
+  disabled: boolean;
+  submitted: boolean;
+  feedback?: PodcastWorkshopFeedback | null;
+  t: TFn;
+  onChange: (next: PodcastWorkshopSubmission) => void;
+};
+
+const cardStyle: CSSProperties = {
+  border: "1px solid rgba(15,23,42,0.10)",
+  borderRadius: 14,
+  background: "white",
+  padding: 16,
+};
+
+const labelStyle: CSSProperties = {
+  display: "block",
+  marginBottom: 7,
+  fontSize: 12,
+  fontWeight: 900,
+  letterSpacing: 0,
+  color: "#334155",
+};
+
+const textareaStyle: CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  resize: "vertical",
+  minHeight: 96,
+  borderRadius: 12,
+  border: "1px solid rgba(15,23,42,0.16)",
+  padding: "10px 12px",
+  background: "white",
+  color: "#0f172a",
+  font: "inherit",
+  lineHeight: 1.5,
+};
+
+function formatMinutes(seconds: number) {
+  return `${Math.max(1, Math.round(seconds / 60))} min`;
+}
+
+function hasText(value: string | undefined) {
+  return String(value ?? "").trim().length > 0;
+}
+
+function roomStatus(room: RoomKey, config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
+  if (room === "ideas") return hasText(value.ideas) ? "working" : "empty";
+  if (room === "plan") {
+    return config.segments.some((segment) => hasText(value.segmentPlans[segment.id])) ? "working" : "empty";
+  }
+  if (room === "script") {
+    return config.segments.some((segment) => hasText(value.segmentScripts[segment.id])) ? "working" : "empty";
+  }
+  if (room === "production") return "later";
+  return hasText(value.notes) || Object.values(value.selfAssessment).some(Boolean) ? "working" : "empty";
+}
+
+function statusLabel(t: TFn, status: string) {
+  if (status === "working") return t("podcastWorkshop.statusWorking");
+  if (status === "later") return t("podcastWorkshop.statusLater");
+  return t("podcastWorkshop.statusEmpty");
+}
+
+export default function PodcastWorkshopStudentSection({
+  title,
+  config,
+  value,
+  disabled,
+  submitted,
+  feedback,
+  t,
+  onChange,
+}: Props) {
+  const [activeRoom, setActiveRoom] = useState<RoomKey>("ideas");
+  const readOnly = disabled || submitted;
+
+  const rooms = useMemo(
+    () => [
+      { key: "ideas" as const, label: t("podcastWorkshop.roomIdeas") },
+      { key: "plan" as const, label: t("podcastWorkshop.roomPlan") },
+      {
+        key: "script" as const,
+        label: config.scriptMode === "script"
+          ? t("podcastWorkshop.roomScript")
+          : t("podcastWorkshop.roomBullets"),
+      },
+      { key: "production" as const, label: t("podcastWorkshop.roomProduction") },
+      { key: "final" as const, label: t("podcastWorkshop.roomFinal") },
+    ],
+    [config.scriptMode, t]
+  );
+
+  function patch(next: Partial<PodcastWorkshopSubmission>) {
+    onChange({ ...value, ...next });
+  }
+
+  function patchPlan(segmentId: string, text: string) {
+    patch({ segmentPlans: { ...value.segmentPlans, [segmentId]: text } });
+  }
+
+  function patchScript(segmentId: string, text: string) {
+    patch({ segmentScripts: { ...value.segmentScripts, [segmentId]: text } });
+  }
+
+  function toggleCriterion(key: string) {
+    patch({ selfAssessment: { ...value.selfAssessment, [key]: !value.selfAssessment[key] } });
+  }
+
+  function renderRoom() {
+    if (activeRoom === "ideas") {
+      return (
+        <RoomCard title={t("podcastWorkshop.ideasTitle")} help={t("podcastWorkshop.ideasHelp")}>
+          <label style={labelStyle} htmlFor="podcast-ideas">{t("podcastWorkshop.ideasLabel")}</label>
+          <textarea
+            id="podcast-ideas"
+            value={value.ideas}
+            onChange={(event) => patch({ ideas: event.target.value })}
+            placeholder={t("podcastWorkshop.ideasPlaceholder")}
+            readOnly={readOnly}
+            rows={8}
+            style={{ ...textareaStyle, minHeight: 210, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
+          />
+        </RoomCard>
+      );
+    }
+
+    if (activeRoom === "plan") {
+      return (
+        <RoomCard title={t("podcastWorkshop.planTitle")} help={t("podcastWorkshop.planHelp")}>
+          <SegmentFields
+            config={config}
+            value={value}
+            readOnly={readOnly}
+            t={t}
+            mode="plan"
+            onPlan={patchPlan}
+            onScript={patchScript}
+          />
+        </RoomCard>
+      );
+    }
+
+    if (activeRoom === "script") {
+      return (
+        <RoomCard
+          title={config.scriptMode === "script" ? t("podcastWorkshop.scriptTitle") : t("podcastWorkshop.bulletsTitle")}
+          help={config.scriptMode === "script" ? t("podcastWorkshop.scriptHelp") : t("podcastWorkshop.bulletsHelp")}
+        >
+          <SegmentFields
+            config={config}
+            value={value}
+            readOnly={readOnly}
+            t={t}
+            mode="script"
+            onPlan={patchPlan}
+            onScript={patchScript}
+          />
+        </RoomCard>
+      );
+    }
+
+    if (activeRoom === "production") {
+      return (
+        <RoomCard title={t("podcastWorkshop.productionTitle")} help={t("podcastWorkshop.productionHelp")}>
+          <div style={{ display: "grid", gap: 10 }}>
+            {config.segments.map((segment, index) => (
+              <div key={segment.id} className="podcastWorkshopSegmentShell">
+                <div>
+                  <p style={{ margin: "0 0 2px", color: "#64748b", fontSize: 12, fontWeight: 900 }}>
+                    {t("podcastWorkshop.part", { n: index + 1 })}
+                  </p>
+                  <strong>{segment.title}</strong>
+                </div>
+                <span className="podcastWorkshopLater">{t("podcastWorkshop.statusLater")}</span>
+              </div>
+            ))}
+          </div>
+        </RoomCard>
+      );
+    }
+
+    return (
+      <RoomCard title={t("podcastWorkshop.finalRoomTitle")} help={t("podcastWorkshop.finalHelp")}>
+        <label style={labelStyle} htmlFor="podcast-notes">{t("podcastWorkshop.finalNotesLabel")}</label>
+        <textarea
+          id="podcast-notes"
+          value={value.notes}
+          onChange={(event) => patch({ notes: event.target.value })}
+          placeholder={t("podcastWorkshop.finalNotesPlaceholder")}
+          readOnly={readOnly}
+          rows={4}
+          style={{ ...textareaStyle, minHeight: 108, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
+        />
+
+        {config.criteria.length > 0 ? (
+          <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+            {config.criteria.map((criterion, index) => {
+              const key = `criterion_${index}`;
+              return (
+                <label
+                  key={key}
+                  className={value.selfAssessment[key] ? "podcastWorkshopCheck isChecked" : "podcastWorkshopCheck"}
+                >
+                  <input
+                    type="checkbox"
+                    checked={value.selfAssessment[key] === true}
+                    disabled={readOnly}
+                    onChange={() => toggleCriterion(key)}
+                    style={{ marginTop: 3 }}
+                  />
+                  <span>{criterion}</span>
+                </label>
+              );
+            })}
+          </div>
+        ) : null}
+      </RoomCard>
+    );
+  }
+
+  const activeStatus = roomStatus(activeRoom, config, value);
+
+  return (
+    <section className="podcastWorkshopShell">
+      <div className="podcastWorkshopHero">
+        <div className="podcastWorkshopHeroTop">
+          <div>
+            <p className="podcastWorkshopKicker">{t("podcastWorkshop.kicker")}</p>
+            <h2 className="podcastWorkshopTitle">{title}</h2>
+            <p className="podcastWorkshopMeta">
+              {config.subject || t("podcastWorkshop.subjectFallback")} · {formatMinutes(config.targetDurationSeconds)}
+            </p>
+          </div>
+          <div className="podcastWorkshopStatus">{statusLabel(t, activeStatus)}</div>
+        </div>
+
+        <div className="podcastWorkshopAssignment">
+          <strong>{t("podcastWorkshop.assignmentTitle")}</strong>
+          <div>{config.assignmentText || t("podcastWorkshop.noAssignmentText")}</div>
+        </div>
+      </div>
+
+      <nav aria-label={t("podcastWorkshop.roomsLabel")} className="podcastWorkshopRooms">
+        {rooms.map((room) => {
+          const active = room.key === activeRoom;
+          const status = roomStatus(room.key, config, value);
+          return (
+            <button
+              key={room.key}
+              type="button"
+              onClick={() => setActiveRoom(room.key)}
+              className={active ? "podcastWorkshopRoomButton isActive" : "podcastWorkshopRoomButton"}
+              title={statusLabel(t, status)}
+            >
+              {room.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="podcastWorkshopGrid">
+        <div style={{ minWidth: 0 }}>{renderRoom()}</div>
+        <SupportPanel
+          activeRoom={activeRoom}
+          config={config}
+          feedback={feedback ?? null}
+          t={t}
+        />
+      </div>
+
+      <style jsx>{`
+        .podcastWorkshopShell {
+          display: grid;
+          gap: 14px;
+        }
+
+        .podcastWorkshopHero {
+          border: 1px solid rgba(16, 185, 129, 0.18);
+          border-radius: 14px;
+          background: linear-gradient(180deg, rgba(236, 253, 245, 0.95), white);
+          padding: 16px;
+        }
+
+        .podcastWorkshopHeroTop {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .podcastWorkshopKicker {
+          margin: 0 0 5px;
+          color: #047857;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastWorkshopTitle {
+          margin: 0;
+          font-size: 24px;
+          line-height: 1.18;
+        }
+
+        .podcastWorkshopMeta {
+          margin: 7px 0 0;
+          color: #0f766e;
+          font-weight: 750;
+        }
+
+        .podcastWorkshopStatus {
+          border: 1px solid rgba(16, 185, 129, 0.18);
+          border-radius: 12px;
+          padding: 8px 10px;
+          background: white;
+          color: #0f172a;
+          font-weight: 900;
+        }
+
+        .podcastWorkshopAssignment {
+          margin-top: 14px;
+          padding: 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(15, 23, 42, 0.10);
+          background: white;
+          white-space: pre-wrap;
+          line-height: 1.6;
+        }
+
+        .podcastWorkshopAssignment strong {
+          display: block;
+          margin-bottom: 7px;
+          font-size: 12px;
+          color: #065f46;
+        }
+
+        .podcastWorkshopRooms {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding: 8px;
+          border-radius: 14px;
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          background: rgba(255, 255, 255, 0.92);
+        }
+
+        .podcastWorkshopRoomButton {
+          border: 1px solid rgba(15, 23, 42, 0.14);
+          border-radius: 11px;
+          padding: 9px 12px;
+          background: white;
+          color: #0f172a;
+          font-weight: 900;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        .podcastWorkshopRoomButton.isActive {
+          border-color: rgba(245, 158, 11, 0.80);
+          background: #facc15;
+          box-shadow: 0 8px 18px rgba(245, 158, 11, 0.18);
+        }
+
+        .podcastWorkshopGrid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+          gap: 14px;
+          align-items: start;
+        }
+
+        .podcastWorkshopSegmentShell {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          border-radius: 12px;
+          border: 1px solid rgba(15, 23, 42, 0.10);
+          background: rgba(248, 250, 252, 0.75);
+        }
+
+        .podcastWorkshopLater {
+          border-radius: 999px;
+          padding: 6px 10px;
+          background: rgba(226, 232, 240, 0.9);
+          color: #334155;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .podcastWorkshopCheck {
+          display: flex;
+          align-items: flex-start;
+          gap: 9px;
+          padding: 9px 10px;
+          border-radius: 10px;
+          background: rgba(248, 250, 252, 0.95);
+          color: #0f172a;
+          font-weight: 750;
+        }
+
+        .podcastWorkshopCheck.isChecked {
+          background: rgba(220, 252, 231, 0.9);
+        }
+
+        @media (max-width: 820px) {
+          .podcastWorkshopGrid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+    </section>
+  );
+}
+
+function RoomCard({
+  title,
+  help,
+  children,
+}: {
+  title: string;
+  help: string;
+  children: ReactNode;
+}) {
+  return (
+    <div style={cardStyle}>
+      <h3 style={{ margin: "0 0 6px", fontSize: 20 }}>{title}</h3>
+      <p style={{ margin: "0 0 14px", color: "#475569", lineHeight: 1.5 }}>{help}</p>
+      {children}
+    </div>
+  );
+}
+
+function SegmentFields({
+  config,
+  value,
+  readOnly,
+  t,
+  mode,
+  onPlan,
+  onScript,
+}: {
+  config: PodcastWorkshopConfig;
+  value: PodcastWorkshopSubmission;
+  readOnly: boolean;
+  t: TFn;
+  mode: "plan" | "script";
+  onPlan: (segmentId: string, text: string) => void;
+  onScript: (segmentId: string, text: string) => void;
+}) {
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      {config.segments.map((segment, index) => (
+        <div
+          key={segment.id}
+          style={{
+            border: "1px solid rgba(15,23,42,0.10)",
+            borderRadius: 12,
+            background: "rgba(248,250,252,0.58)",
+            padding: 12,
+          }}
+        >
+          <p style={{ margin: "0 0 3px", color: "#64748b", fontSize: 12, fontWeight: 900 }}>
+            {t("podcastWorkshop.part", { n: index + 1 })}
+          </p>
+          <h4 style={{ margin: "0 0 5px", fontSize: 16 }}>{segment.title}</h4>
+          {segment.hint ? (
+            <p style={{ margin: "0 0 10px", color: "#475569", lineHeight: 1.45 }}>{segment.hint}</p>
+          ) : null}
+
+          {mode === "plan" ? (
+            <>
+              <label style={labelStyle} htmlFor={`podcast-plan-${segment.id}`}>
+                {t("podcastWorkshop.planLabel")}
+              </label>
+              <textarea
+                id={`podcast-plan-${segment.id}`}
+                value={value.segmentPlans[segment.id] ?? ""}
+                onChange={(event) => onPlan(segment.id, event.target.value)}
+                placeholder={t("podcastWorkshop.planPlaceholder")}
+                readOnly={readOnly}
+                rows={3}
+                style={{
+                  ...textareaStyle,
+                  minHeight: 82,
+                  background: readOnly ? "rgba(248,250,252,0.78)" : "white",
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <label style={labelStyle} htmlFor={`podcast-script-${segment.id}`}>
+                {config.scriptMode === "script"
+                  ? t("podcastWorkshop.scriptLabel")
+                  : t("podcastWorkshop.bulletsLabel")}
+              </label>
+              <textarea
+                id={`podcast-script-${segment.id}`}
+                value={value.segmentScripts[segment.id] ?? ""}
+                onChange={(event) => onScript(segment.id, event.target.value)}
+                placeholder={
+                  config.scriptMode === "script"
+                    ? t("podcastWorkshop.scriptPlaceholder")
+                    : t("podcastWorkshop.bulletsPlaceholder")
+                }
+                readOnly={readOnly}
+                rows={5}
+                style={{
+                  ...textareaStyle,
+                  background: readOnly ? "rgba(248,250,252,0.78)" : "white",
+                }}
+              />
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SupportPanel({
+  activeRoom,
+  config,
+  feedback,
+  t,
+}: {
+  activeRoom: PodcastWorkshopRoomKey;
+  config: PodcastWorkshopConfig;
+  feedback: PodcastWorkshopFeedback | null;
+  t: TFn;
+}) {
+  const roomFeedback = feedback?.rooms?.[activeRoom] ?? null;
+  const feedbackText = String(roomFeedback?.text ?? "").trim();
+  const feedbackStatus = roomFeedback?.status ?? "";
+
+  return (
+    <aside className="podcastWorkshopSupport">
+      {feedbackText || feedbackStatus ? (
+        <div
+          style={{
+            ...cardStyle,
+            borderColor:
+              feedbackStatus === "needs_work"
+                ? "rgba(245,158,11,0.28)"
+                : "rgba(16,185,129,0.24)",
+            background:
+              feedbackStatus === "needs_work"
+                ? "rgba(255,251,235,0.96)"
+                : "rgba(236,253,245,0.96)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 14,
+                color: feedbackStatus === "needs_work" ? "#92400e" : "#065f46",
+              }}
+            >
+              {t("podcastWorkshop.teacherFeedbackTitle")}
+            </h3>
+            {feedbackStatus ? (
+              <span
+                style={{
+                  borderRadius: 999,
+                  padding: "5px 8px",
+                  background: "white",
+                  color: feedbackStatus === "needs_work" ? "#92400e" : "#047857",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {feedbackStatus === "needs_work"
+                  ? t("podcastWorkshop.teacherNeedsWork")
+                  : t("podcastWorkshop.teacherApproved")}
+              </span>
+            ) : null}
+          </div>
+          {feedbackText ? (
+            <div
+              style={{
+                marginTop: 10,
+                whiteSpace: "pre-wrap",
+                color: "#0f172a",
+                lineHeight: 1.55,
+                fontWeight: 650,
+              }}
+            >
+              {feedbackText}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div
+        style={{
+          ...cardStyle,
+          borderColor: "rgba(20,184,166,0.20)",
+          background: "rgba(240,253,250,0.94)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+          <h3 style={{ margin: 0, fontSize: 14, color: "#115e59" }}>{t("podcastWorkshop.supportTitle")}</h3>
+          <span className="podcastWorkshopAiBadge">
+            {config.aiSupport === "off" ? t("podcastWorkshop.aiOff") : t("podcastWorkshop.aiCoach")}
+          </span>
+        </div>
+        <p style={{ margin: "8px 0 0", color: "#134e4a", fontWeight: 700, lineHeight: 1.45 }}>
+          {t("podcastWorkshop.supportHint")}
+        </p>
+      </div>
+
+      {config.guidingQuestions.length > 0 ? (
+        <SupportCard title={t("podcastWorkshop.questionsTitle")}>
+          {config.guidingQuestions.map((question) => (
+            <SupportItem key={question}>{question}</SupportItem>
+          ))}
+        </SupportCard>
+      ) : null}
+
+      {config.vocabulary.length > 0 ? (
+        <SupportCard title={t("podcastWorkshop.vocabulary")}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {config.vocabulary.map((word) => (
+              <span key={word} className="podcastWorkshopWord">{word}</span>
+            ))}
+          </div>
+        </SupportCard>
+      ) : null}
+
+      {config.criteria.length > 0 ? (
+        <SupportCard title={t("podcastWorkshop.criteria")}>
+          {config.criteria.map((criterion) => (
+            <SupportItem key={criterion}>{criterion}</SupportItem>
+          ))}
+        </SupportCard>
+      ) : null}
+
+      <style jsx>{`
+        .podcastWorkshopSupport {
+          display: grid;
+          gap: 12px;
+          align-self: start;
+          position: sticky;
+          top: 12px;
+        }
+
+        .podcastWorkshopAiBadge {
+          border-radius: 999px;
+          padding: 5px 8px;
+          background: white;
+          color: #0f766e;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .podcastWorkshopWord {
+          border: 1px solid rgba(22, 101, 52, 0.18);
+          border-radius: 999px;
+          padding: 7px 10px;
+          background: rgba(240, 253, 244, 0.92);
+          color: #14532d;
+          font-weight: 850;
+        }
+
+        @media (max-width: 820px) {
+          .podcastWorkshopSupport {
+            position: static;
+          }
+        }
+      `}</style>
+    </aside>
+  );
+}
+
+function SupportCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div style={cardStyle}>
+      <h3 style={{ margin: "0 0 10px", fontSize: 15 }}>{title}</h3>
+      <div style={{ display: "grid", gap: 7 }}>{children}</div>
+    </div>
+  );
+}
+
+function SupportItem({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        borderRadius: 10,
+        padding: "8px 10px",
+        background: "rgba(248,250,252,0.95)",
+        color: "#334155",
+        fontWeight: 700,
+        lineHeight: 1.4,
+      }}
+    >
+      {children}
+    </div>
+  );
+}

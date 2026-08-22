@@ -224,6 +224,10 @@ function isAudioReadingLesson(it: ContentItem) {
   return it.type === "lesson" && normalizedLessonSignals(it).includes("audio_reading");
 }
 
+function isPodcastWorkshopLesson(it: ContentItem) {
+  return it.type === "lesson" && normalizedLessonSignals(it).includes("podcast_workshop");
+}
+
 function isImportedQuizLesson(it: ContentItem) {
   if (!isQuizLesson(it)) return false;
   const lesson = it as Extract<ContentItem, { type: "lesson" }> & {
@@ -438,6 +442,9 @@ export default function ContentClient() {
   }
 
   function lessonOpenHref(it: Extract<ContentItem, { type: "lesson" }>) {
+    if (isPodcastWorkshopLesson(it)) {
+      return `/${locale}/tools/podcast-workshop?activityId=${encodeURIComponent(it.id)}`;
+    }
     if (isAudioReadingLesson(it)) {
       return `/${locale}/tools/audio-reading?activityId=${encodeURIComponent(it.id)}`;
     }
@@ -456,6 +463,9 @@ export default function ContentClient() {
   }
 
   function lessonEditHref(it: Extract<ContentItem, { type: "lesson" }>) {
+    if (isPodcastWorkshopLesson(it)) {
+      return `/${locale}/tools/podcast-workshop?activityId=${encodeURIComponent(it.id)}`;
+    }
     if (isAudioReadingLesson(it)) {
       return `/${locale}/tools/audio-reading?activityId=${encodeURIComponent(it.id)}`;
     }
@@ -528,6 +538,7 @@ export default function ContentClient() {
       if (isReadingTestLesson(it)) return safeMsg("cardTypes.readingTest", "Lesetest");
       if (isQuizLesson(it)) return safeMsg("cardTypes.quiz", "Quiz");
       if (isAudioReadingLesson(it)) return safeMsg("cardTypes.audioReading", "Lydlesing");
+      if (isPodcastWorkshopLesson(it)) return safeMsg("cardTypes.podcastWorkshop", "Podcastverksted");
       if (isImageWritingLesson(it)) return "Skriveoppgave med bilde";
       return safeMsg("cardTypes.ownGenerated", "Egen generert");
     }

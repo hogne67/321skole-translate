@@ -76,6 +76,10 @@
         "title": "Lydlesing",
         "description": "La elever lese en tekst høyt og ta opp lyd for respons."
       },
+      "podcastWorkshop": {
+        "title": "Podcastverksted",
+        "description": "Lag muntlige produksjonsoppgaver fra idé og plan til manus, opptak og levering."
+      },
       "sentenceFixer": {
         "title": "Setningsretter",
         "description": "Rett grammatikk og gjør setninger tydeligere."

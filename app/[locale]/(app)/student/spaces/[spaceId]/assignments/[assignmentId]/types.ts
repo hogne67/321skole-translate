@@ -26,6 +26,7 @@ export type Lesson = {
     contentType?: string;
     audioReadingEnabled?: boolean;
     audioReadingRequired?: boolean;
+    podcastWorkshopConfig?: unknown;
 };
 
 export type SourceType = "myContent" | "library";
@@ -60,6 +61,7 @@ export type AssignmentDoc = {
     contentType?: string;
     audioReadingEnabled?: boolean;
     audioReadingRequired?: boolean;
+    podcastWorkshopConfig?: unknown;
 };
 
 export type TaskType = "mcq" | "truefalse" | "open";
@@ -157,6 +159,7 @@ export type SubmissionDoc = {
     answersByTaskId?: AnswersMap | unknown;
     auto?: AutoGrade | FractionAutoGrade | unknown;
     aiFeedback?: unknown;
+    podcastWorkshop?: unknown;
 };
 
 export type SentenceSeg = {

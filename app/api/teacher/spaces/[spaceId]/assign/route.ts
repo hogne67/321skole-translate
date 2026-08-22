@@ -51,6 +51,7 @@ type SourceLessonData = {
   fractionWorksheet?: unknown;
   mathType?: string;
   contentType?: string;
+  podcastWorkshopConfig?: unknown;
 };
 
 type UserProfileAccess = {
@@ -397,6 +398,7 @@ export async function POST(
         contentType: isFractions
           ? "fraction_worksheet"
           : source.contentType ?? null,
+        podcastWorkshopConfig: source.podcastWorkshopConfig ?? null,
         audioReadingEnabled,
         audioReadingRequired,
 

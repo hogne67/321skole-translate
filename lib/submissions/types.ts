@@ -108,6 +108,8 @@ export type SubmissionDoc = {
     readingTimerResult?: unknown;
 
     audioReading?: unknown;
+    podcastWorkshop?: unknown;
+    podcastWorkshopFeedback?: unknown;
 };
 
 export type AssignmentDoc = {
@@ -139,6 +141,7 @@ export type AssignmentDoc = {
 
     mathType?: string;
     contentType?: string;
+    podcastWorkshopConfig?: unknown;
 };
 
 export type Lesson = {
@@ -164,6 +167,7 @@ export type Lesson = {
 
     mathType?: string;
     contentType?: string;
+    podcastWorkshopConfig?: unknown;
 };
 
 export type SpaceMemberDoc = {

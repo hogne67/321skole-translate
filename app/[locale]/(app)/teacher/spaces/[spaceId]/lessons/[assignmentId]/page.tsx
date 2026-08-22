@@ -21,6 +21,7 @@ import {
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { readStudentAudioAsset } from "@/lib/audio/studentAudio";
+import { isPodcastWorkshopType } from "@/lib/podcastWorkshop";
 
 /* =========================
    Types
@@ -56,6 +57,10 @@ type SpaceAssignmentDoc = {
   createdAt?: unknown;
   assignedAt?: unknown;
   assignedByUid?: string;
+  lessonType?: string;
+  taskType?: string;
+  contentType?: string;
+  podcastWorkshopConfig?: unknown;
 };
 
 type SubmissionDoc = {
@@ -562,9 +567,17 @@ export default function TeacherSpaceAssignedTaskPage() {
                 const badge = statusBadge(s.data.status, (k) => t(k), dash);
                 const hasAudio = !!readStudentAudioAsset(s.data.audioReading, "audio_reading");
 
+                const isPodcastWorkshop =
+                  isPodcastWorkshopType(assignment?.lessonType) ||
+                  isPodcastWorkshopType(assignment?.taskType) ||
+                  isPodcastWorkshopType(assignment?.contentType) ||
+                  !!assignment?.podcastWorkshopConfig;
+
                 const openHref = withLocale(
                   locale,
-                  `/teacher/spaces/${spaceId}/lessons/${assignmentId}/submissions/${s.id}`
+                  isPodcastWorkshop
+                    ? `/teacher/spaces/${spaceId}/podcast/${assignmentId}/submissions/${s.id}`
+                    : `/teacher/spaces/${spaceId}/lessons/${assignmentId}/submissions/${s.id}`
                 );
 
                 return (

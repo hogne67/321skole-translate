@@ -55,8 +55,15 @@ export function hasSnapshotContent(a: AssignmentDoc | null): boolean {
     const hasImage = String(a.coverImageUrl ?? "").trim().length > 0;
     const hasMathWorksheet = !!a.mathWorksheet && typeof a.mathWorksheet === "object";
     const hasFractionWorksheet = !!a.fractionWorksheet && typeof a.fractionWorksheet === "object";
+    const hasPodcastWorkshop = !!a.podcastWorkshopConfig && typeof a.podcastWorkshopConfig === "object";
+    const isPodcastWorkshop =
+        String(a.lessonType ?? "").trim().toLowerCase() === "podcast_workshop" ||
+        String(a.taskType ?? "").trim().toLowerCase() === "podcast_workshop" ||
+        String(a.contentType ?? "").trim().toLowerCase() === "podcast_workshop";
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet;
+    if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
+
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasPodcastWorkshop;
 }
 
 export function assignmentToLesson(a: AssignmentDoc): Lesson {
@@ -79,6 +86,9 @@ export function assignmentToLesson(a: AssignmentDoc): Lesson {
         fractionWorksheet: a.fractionWorksheet ?? null,
         mathType: a.mathType,
         contentType: a.contentType,
+        audioReadingEnabled: a.audioReadingEnabled,
+        audioReadingRequired: a.audioReadingRequired,
+        podcastWorkshopConfig: a.podcastWorkshopConfig,
     };
 }
 

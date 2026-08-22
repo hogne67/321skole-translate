@@ -12,6 +12,7 @@ import type {
     Task,
 } from "./types";
 import { safeBoolean, safeNumber, safeTasksArray } from "./helpers";
+import { isPodcastWorkshopType } from "@/lib/podcastWorkshop";
 
 export function isMathWorksheet(value: unknown): value is MathWorksheet {
     if (!value || typeof value !== "object") return false;
@@ -53,8 +54,15 @@ export function hasAssignmentSnapshotContent(a: AssignmentDoc | null): boolean {
             (a.mathType === "fractions" || a.contentType === "fraction_worksheet") &&
             isFractionWorksheet(a.mathWorksheet)
         );
+    const hasPodcastWorkshop = !!a.podcastWorkshopConfig && typeof a.podcastWorkshopConfig === "object";
+    const isPodcastWorkshop =
+        isPodcastWorkshopType(a.lessonType) ||
+        isPodcastWorkshopType(a.taskType) ||
+        isPodcastWorkshopType(a.contentType);
 
-    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet;
+    if (isPodcastWorkshop && !hasPodcastWorkshop) return false;
+
+    return hasText || hasTasks || hasImage || hasMathWorksheet || hasFractionWorksheet || hasPodcastWorkshop;
 }
 
 export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
@@ -77,6 +85,7 @@ export function assignmentSnapshotToLesson(a: AssignmentDoc): Lesson {
 
         mathType: a.mathType,
         contentType: a.contentType,
+        podcastWorkshopConfig: a.podcastWorkshopConfig,
     };
 }
 

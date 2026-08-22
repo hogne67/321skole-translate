@@ -47,6 +47,7 @@ import {
 import AiFeedbackPanel from "@/components/teacher/submissions/AiFeedbackPanel";
 import TeacherFeedbackPanel from "@/components/teacher/submissions/TeacherFeedbackPanel";
 import StandardSubmissionView from "@/components/teacher/submissions/StandardSubmissionView";
+import PodcastWorkshopSubmissionView from "@/components/teacher/submissions/PodcastWorkshopSubmissionView";
 import GeometrySubmissionView from "@/components/teacher/submissions/GeometrySubmissionView";
 import FractionWorksheetView from "@/components/generators/math/fractions/FractionWorksheetView";
 import {
@@ -69,6 +70,16 @@ import {
   resolveStudentAudioForPlayback,
   type StudentAudioAsset,
 } from "@/lib/audio/studentAudio";
+import {
+  createPodcastWorkshopFeedback,
+  isPodcastWorkshopType,
+  readPodcastWorkshopFeedback,
+  readPodcastWorkshopConfig,
+  readPodcastWorkshopSubmission,
+  type PodcastWorkshopFeedback,
+  type PodcastWorkshopRoomFeedback,
+  type PodcastWorkshopRoomKey,
+} from "@/lib/podcastWorkshop";
 
 function scoreTextClass(percent: number | null | undefined) {
   if (percent == null) return "text-slate-950";
@@ -319,6 +330,10 @@ function Inner() {
 
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [podcastFeedbackSaving, setPodcastFeedbackSaving] = useState(false);
+  const [podcastFeedbackMsg, setPodcastFeedbackMsg] = useState<string | null>(null);
+  const [podcastWorkshopFeedback, setPodcastWorkshopFeedback] =
+    useState<PodcastWorkshopFeedback>(() => createPodcastWorkshopFeedback());
   const [deletingAudio, setDeletingAudio] = useState(false);
   const [audioDeleteMsg, setAudioDeleteMsg] = useState<string | null>(null);
 
@@ -460,6 +475,7 @@ function Inner() {
 
         const seededAi = readAiFeedbackText(data);
         setAiText(seededAi);
+        setPodcastWorkshopFeedback(readPodcastWorkshopFeedback(data.podcastWorkshopFeedback));
       },
       (err) => {
         setLoading(false);
@@ -565,6 +581,8 @@ function Inner() {
             null,
           mathType: assignment?.mathType ?? sourceLesson.mathType,
           contentType: assignment?.contentType ?? sourceLesson.contentType,
+          podcastWorkshopConfig:
+            assignment?.podcastWorkshopConfig ?? sourceLesson.podcastWorkshopConfig,
         });
       } catch (e) {
         const info = getErrorInfo(e);
@@ -871,6 +889,21 @@ function Inner() {
   );
 
   const isReadingTest = isReadingTestLesson(assignment, lesson, tasksOriginal);
+  const isPodcastWorkshop =
+    isPodcastWorkshopType(lesson?.lessonType) ||
+    isPodcastWorkshopType(lesson?.taskType) ||
+    isPodcastWorkshopType(lesson?.contentType) ||
+    isPodcastWorkshopType(assignment?.lessonType) ||
+    isPodcastWorkshopType(assignment?.taskType) ||
+    isPodcastWorkshopType(assignment?.contentType);
+  const podcastWorkshopConfig = readPodcastWorkshopConfig(
+    lesson?.podcastWorkshopConfig ?? assignment?.podcastWorkshopConfig,
+    sourceText
+  );
+  const podcastWorkshopSubmission = readPodcastWorkshopSubmission(
+    sub.podcastWorkshop,
+    podcastWorkshopConfig
+  );
   const cover = isReadingTest ? null : rawCover;
   const readingMeta = readReadingTestMeta(sub);
   const readingTextWordCount = sourceText
@@ -919,6 +952,56 @@ function Inner() {
     !aiSaving &&
     !usageLoading &&
     aiFeedbackRemaining > 0;
+
+  function updatePodcastRoomFeedback(
+    room: PodcastWorkshopRoomKey,
+    next: PodcastWorkshopRoomFeedback
+  ) {
+    setPodcastWorkshopFeedback((current) => ({
+      ...current,
+      rooms: {
+        ...current.rooms,
+        [room]: next,
+      },
+    }));
+  }
+
+  async function savePodcastWorkshopFeedback() {
+    if (!canOperate) return;
+    if (!nestedRef && !indexRef) return;
+
+    setPodcastFeedbackSaving(true);
+    setPodcastFeedbackMsg(null);
+
+    try {
+      const dbx = requireDb(db);
+      const payload = {
+        podcastWorkshopFeedback: {
+          ...podcastWorkshopFeedback,
+          updatedAt: serverTimestamp(),
+          teacherUid: user?.uid ?? null,
+        },
+        updatedAt: serverTimestamp(),
+      };
+
+      const batch = writeBatch(dbx);
+      if (nestedRef) batch.set(nestedRef, payload, { merge: true });
+      if (indexRef) batch.set(indexRef, payload, { merge: true });
+      await batch.commit();
+
+      setPodcastFeedbackMsg(t("podcastWorkshop.feedbackSaved"));
+    } catch (e: unknown) {
+      const info = getErrorInfo(e);
+      setPodcastFeedbackMsg(
+        t("podcastWorkshop.feedbackSaveFailed", {
+          msg: info.message || t("fallback.unknownError"),
+        })
+      );
+    } finally {
+      setPodcastFeedbackSaving(false);
+      setTimeout(() => setPodcastFeedbackMsg(null), 2000);
+    }
+  }
 
   return (
     <div className="mx-auto box-border w-full max-w-6xl min-w-0 space-y-3">
@@ -1190,7 +1273,23 @@ function Inner() {
               </div>
             ) : null}
 
-            {!isGeometryAssignment ? (
+            {isPodcastWorkshop && podcastWorkshopConfig ? (
+              <PodcastWorkshopSubmissionView
+                title={lessonTitle}
+                level={lessonLevel}
+                config={podcastWorkshopConfig}
+                submission={podcastWorkshopSubmission}
+                feedback={podcastWorkshopFeedback}
+                canOperate={canOperate}
+                saving={podcastFeedbackSaving}
+                saveMsg={podcastFeedbackMsg}
+                onFeedbackChange={updatePodcastRoomFeedback}
+                onSaveFeedback={savePodcastWorkshopFeedback}
+                t={tAny}
+              />
+            ) : null}
+
+            {!isGeometryAssignment && !isPodcastWorkshop ? (
               <StandardSubmissionView
                 lessonTitle={lessonTitle}
                 lessonLevel={lessonLevel}

@@ -1,0 +1,110 @@
+{
+  "podcastWorkshopTool": {
+    "back": "← Back to tools",
+    "title": "Podcast workshop",
+    "subtitle": "Create an oral production task where students move from ideas and planning to script, recording, and a finished podcast.",
+    "assignment": {
+      "title": "Assignment"
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "For example: AI in everyday life",
+      "subject": "Subject",
+      "subjectPlaceholder": "For example: English, social studies",
+      "level": "Level",
+      "levelPlaceholder": "For example: B1, grade 8",
+      "language": "Language",
+      "assignmentText": "Assignment text",
+      "assignmentPlaceholder": "Create a podcast where you explain the topic and use your own examples.",
+      "duration": "Recommended length in minutes"
+    },
+    "criteria": {
+      "title": "Criteria",
+      "add": "Add criterion",
+      "placeholder": "Write a criterion..."
+    },
+    "support": {
+      "title": "Support material",
+      "addVocabulary": "Add term",
+      "addQuestion": "Add question",
+      "vocabularyPlaceholder": "Subject term or support word...",
+      "questionPlaceholder": "Question students can use..."
+    },
+    "segments": {
+      "title": "Podcast structure",
+      "add": "Add part",
+      "newTitle": "Part {n}",
+      "hintPlaceholder": "Hint for the student..."
+    },
+    "settings": {
+      "title": "Settings",
+      "scriptMode": "Script mode",
+      "bulletPoints": "Bullet points",
+      "fullScript": "Full script",
+      "aiSupport": "AI support",
+      "aiCoach": "Coach",
+      "aiOff": "Off",
+      "locked": "Beta v1 is individual and private: only the teacher/owner can see the final product when the student flow is connected."
+    },
+    "overview": {
+      "title": "Overview",
+      "segments": "Parts",
+      "duration": "Length",
+      "minutes": "{n} min",
+      "principleTitle": "Principle",
+      "principle": "The teacher sets the frame. The student builds the line.",
+      "next": "Next connection: save to My content, share to Space, student flow with ideas, script, segment recording, and final room."
+    },
+    "save": {
+      "create": "Save to My content",
+      "update": "Update activity",
+      "saving": "Saving...",
+      "saved": "Podcast workshop saved.",
+      "failed": "Could not save Podcast workshop.",
+      "loading": "Loading activity...",
+      "loadFailed": "Could not load the activity.",
+      "notFound": "Activity not found.",
+      "openContent": "Open My content"
+    },
+    "defaults": {
+      "criteria": {
+        "intro": "The podcast has a clear intro",
+        "assignment": "The content answers the assignment",
+        "vocabulary": "I use subject terms",
+        "examples": "I use examples",
+        "ending": "The podcast has a clear ending",
+        "audio": "The audio is understandable"
+      },
+      "vocabulary": {
+        "term": "subject term",
+        "example": "example",
+        "source": "source"
+      },
+      "questions": {
+        "topic": "What is the topic about?",
+        "everyday": "Where do we meet this in everyday life?",
+        "explain": "What is important to explain?",
+        "examples": "Which examples can you use?",
+        "takeaway": "What do you want the listener to remember?"
+      },
+      "segments": {
+        "intro": {
+          "title": "Intro",
+          "hint": "Present the topic and bring the listener in."
+        },
+        "part1": {
+          "title": "Part 1",
+          "hint": "Explain the first main point."
+        },
+        "part2": {
+          "title": "Part 2",
+          "hint": "Explain the next point or another perspective."
+        },
+        "ending": {
+          "title": "Ending",
+          "hint": "Summarize what the listener should take away."
+        }
+      }
+    }
+  }
+}

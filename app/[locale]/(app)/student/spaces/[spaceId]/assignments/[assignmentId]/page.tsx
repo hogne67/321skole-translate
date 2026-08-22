@@ -2,8 +2,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { deleteField, doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from "firebase/firestore";
 import { onAuthStateChanged, type User } from "firebase/auth";
 
@@ -78,6 +78,14 @@ import StandardAssignmentSection from "./StandardAssignmentSection";
 import AudioReadingStudentSection, {
   type AudioReadingSubmission,
 } from "./AudioReadingStudentSection";
+import PodcastWorkshopStudentSection from "./PodcastWorkshopStudentSection";
+import {
+  createPodcastWorkshopSubmission,
+  isPodcastWorkshopType,
+  readPodcastWorkshopConfig,
+  readPodcastWorkshopSubmission,
+  type PodcastWorkshopSubmission,
+} from "@/lib/podcastWorkshop";
 import {
   readStudentAudioAsset,
   resolveStudentAudioForPlayback,
@@ -193,6 +201,8 @@ async function resolveUserForStudentPage(): Promise<User> {
 
 export default function StudentAssignmentPage() {
   const t = useTranslations("studentAssignment");
+  const locale = useLocale();
+  const router = useRouter();
   const tString = t as unknown as (
     key: string,
     values?: Record<string, unknown>
@@ -225,6 +235,8 @@ export default function StudentAssignmentPage() {
   const answersRef = useRef<AnswersMap>({});
   const [audioReadingSubmission, setAudioReadingSubmission] =
     useState<AudioReadingSubmission | null>(null);
+  const [podcastWorkshopSubmission, setPodcastWorkshopSubmission] =
+    useState<PodcastWorkshopSubmission>(() => createPodcastWorkshopSubmission(null));
   const [draftSaving, setDraftSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -339,7 +351,48 @@ export default function StudentAssignmentPage() {
     ]
   );
 
-  const displayedSourceTextSafe = isImageWriting || isReadingTest ? "" : sourceTextSafe;
+  const isPodcastWorkshop = useMemo(
+    () =>
+      isPodcastWorkshopType(lesson?.lessonType) ||
+      isPodcastWorkshopType(lesson?.taskType) ||
+      isPodcastWorkshopType(lesson?.contentType) ||
+      isPodcastWorkshopType(assignment?.lessonType) ||
+      isPodcastWorkshopType(assignment?.taskType) ||
+      isPodcastWorkshopType(assignment?.contentType),
+    [
+      assignment?.contentType,
+      assignment?.lessonType,
+      assignment?.taskType,
+      lesson?.contentType,
+      lesson?.lessonType,
+      lesson?.taskType,
+    ]
+  );
+
+  const podcastWorkshopConfig = useMemo(
+    () =>
+      readPodcastWorkshopConfig(
+        lesson?.podcastWorkshopConfig ?? assignment?.podcastWorkshopConfig,
+        String(lesson?.sourceText ?? lesson?.text ?? assignment?.sourceText ?? assignment?.text ?? "")
+      ),
+    [
+      assignment?.podcastWorkshopConfig,
+      assignment?.sourceText,
+      assignment?.text,
+      lesson?.podcastWorkshopConfig,
+      lesson?.sourceText,
+      lesson?.text,
+    ]
+  );
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isPodcastWorkshop) return;
+    if (!spaceId || !assignmentId) return;
+    router.replace(`/${locale}/student/spaces/${spaceId}/podcast/${assignmentId}`);
+  }, [assignmentId, isPodcastWorkshop, loading, locale, router, spaceId]);
+
+  const displayedSourceTextSafe = isImageWriting || isReadingTest || isPodcastWorkshop ? "" : sourceTextSafe;
 
   const lessonTextSections = useMemo(
     () => splitLessonTextSections(displayedSourceTextSafe, lesson?.language || assignment?.language),
@@ -726,10 +779,18 @@ export default function StudentAssignmentPage() {
             fractionWorksheet: aDoc.fractionWorksheet ?? d.fractionWorksheet ?? null,
             mathType: aDoc.mathType ?? d.mathType,
             contentType: aDoc.contentType ?? d.contentType,
+            audioReadingEnabled: aDoc.audioReadingEnabled ?? d.audioReadingEnabled,
+            audioReadingRequired: aDoc.audioReadingRequired ?? d.audioReadingRequired,
+            podcastWorkshopConfig: aDoc.podcastWorkshopConfig ?? d.podcastWorkshopConfig,
           };
         }
 
         setLesson(resolvedLesson);
+        const resolvedPodcastConfig = readPodcastWorkshopConfig(
+          resolvedLesson?.podcastWorkshopConfig ?? aDoc.podcastWorkshopConfig,
+          String(resolvedLesson?.sourceText ?? resolvedLesson?.text ?? "")
+        );
+        setPodcastWorkshopSubmission(createPodcastWorkshopSubmission(resolvedPodcastConfig));
 
         const isGeometryResolved =
           String(resolvedLesson?.lessonType ?? "").trim().toLowerCase() === "math_geometry" ||
@@ -753,6 +814,7 @@ export default function StudentAssignmentPage() {
         setMsg(null);
         setAnswers({});
         setAudioReadingSubmission(null);
+        setPodcastWorkshopSubmission(createPodcastWorkshopSubmission(resolvedPodcastConfig));
 
         setReadingTestStarted(false);
         setReadingTestFinished(false);
@@ -802,6 +864,12 @@ export default function StudentAssignmentPage() {
           if (storedAudioReading || sStatus !== "draft") {
             setAudioReadingSubmission(storedAudioReading);
           }
+          setPodcastWorkshopSubmission(
+            readPodcastWorkshopSubmission(
+              (sd as Record<string, unknown>).podcastWorkshop,
+              resolvedPodcastConfig
+            )
+          );
 
           if (isGeometryResolved) {
             setLiveGeometryAuto((sd.auto as GeometryAutoResult | null) ?? null);
@@ -919,6 +987,13 @@ export default function StudentAssignmentPage() {
             }
           });
 
+        setPodcastWorkshopSubmission((current) =>
+          readPodcastWorkshopSubmission(
+            (sd as Record<string, unknown>).podcastWorkshop ?? current,
+            podcastWorkshopConfig
+          )
+        );
+
         if (sStatus === "needs_work" || sStatus === "draft") {
           setEditingSubmissionId(activeSubId);
         } else {
@@ -934,7 +1009,16 @@ export default function StudentAssignmentPage() {
     );
 
     return () => unsub();
-  }, [spaceId, assignmentId, uid, sid, submissionId, editingSubmissionId, isGeometryAssignment]);
+  }, [
+    spaceId,
+    assignmentId,
+    uid,
+    sid,
+    submissionId,
+    editingSubmissionId,
+    isGeometryAssignment,
+    podcastWorkshopConfig,
+  ]);
 
   const saveDraft = useCallback(
     async (manual = false) => {
@@ -982,6 +1066,7 @@ export default function StudentAssignmentPage() {
           answers: isGeometryDraft ? normalizedGeometryAnswers : answers,
           answersByTaskId: isGeometryDraft ? normalizedGeometryAnswers : undefined,
           audioReading: undefined,
+          podcastWorkshop: isPodcastWorkshop ? podcastWorkshopSubmission : undefined,
 
           auto: null,
           aiFeedback: null,
@@ -1037,6 +1122,8 @@ export default function StudentAssignmentPage() {
       isGeometryAssignment,
       geometryWorksheet,
       answers,
+      isPodcastWorkshop,
+      podcastWorkshopSubmission,
       liveStatus,
       assignment,
       lesson,
@@ -1053,7 +1140,7 @@ export default function StudentAssignmentPage() {
     if (submitting) return;
     if (isLockedByTeacher()) return;
     if (isReadingTest) return;
-    if (!answers || Object.keys(answers).length === 0) return;
+    if (!isPodcastWorkshop && (!answers || Object.keys(answers).length === 0)) return;
 
     const now = Date.now();
     if (now - lastAutoSaveRef.current < 1200) return;
@@ -1064,7 +1151,19 @@ export default function StudentAssignmentPage() {
     }, 900);
 
     return () => window.clearTimeout(timer);
-  }, [answers, uid, spaceId, assignmentId, submitted, submitting, isReadingTest, isLockedByTeacher, saveDraft]);
+  }, [
+    answers,
+    podcastWorkshopSubmission,
+    isPodcastWorkshop,
+    uid,
+    spaceId,
+    assignmentId,
+    submitted,
+    submitting,
+    isReadingTest,
+    isLockedByTeacher,
+    saveDraft,
+  ]);
 
   const submitToSpace = useCallback(
     async (
@@ -1193,6 +1292,7 @@ export default function StudentAssignmentPage() {
           answers: isGeometryAssignment ? normalizedGeometryAnswers : finalAnswers,
           answersByTaskId: isGeometryAssignment ? normalizedGeometryAnswers : undefined,
           audioReading: audioReadingEnabled ? persistedAudioReading : null,
+          podcastWorkshop: isPodcastWorkshop ? podcastWorkshopSubmission : undefined,
 
           auto,
           aiFeedback,
@@ -1286,6 +1386,8 @@ export default function StudentAssignmentPage() {
       isReadingTest,
       audioReadingEnabled,
       audioReadingSubmission,
+      isPodcastWorkshop,
+      podcastWorkshopSubmission,
       readingTestTotalSeconds,
       readingTestSecondsLeft,
       tasksOriginal,
@@ -1459,7 +1561,7 @@ export default function StudentAssignmentPage() {
         </section>
       ) : null}
 
-      {!isReadingTest ? (
+      {!isReadingTest && !isPodcastWorkshop ? (
         <div
           style={{
             marginTop: 12,
@@ -1581,7 +1683,19 @@ export default function StudentAssignmentPage() {
           />
         ) : null}
 
-        {!isReadingTest && !isGeometryAssignment && !isFractionAssignment ? (
+        {!isReadingTest && isPodcastWorkshop && podcastWorkshopConfig ? (
+          <PodcastWorkshopStudentSection
+            title={mainTitle}
+            config={podcastWorkshopConfig}
+            value={podcastWorkshopSubmission}
+            disabled={lock || submitting}
+            submitted={submitted}
+            t={tString}
+            onChange={setPodcastWorkshopSubmission}
+          />
+        ) : null}
+
+        {!isReadingTest && !isGeometryAssignment && !isFractionAssignment && !isPodcastWorkshop ? (
           <StandardAssignmentSection
             lessonLanguage={String(lesson?.language ?? assignment?.language ?? "")}
             textSize={normalizeTextSize(lesson?.textSize ?? assignment?.textSize)}

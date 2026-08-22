@@ -1,0 +1,110 @@
+{
+  "podcastWorkshopTool": {
+    "back": "← Tilbake til verktøy",
+    "title": "Podcastverksted",
+    "subtitle": "Lag en muntlig produksjonsoppgave der elevene går fra idé og plan til manus, opptak og ferdig podcast.",
+    "assignment": {
+      "title": "Oppdrag"
+    },
+    "fields": {
+      "title": "Tittel",
+      "titlePlaceholder": "For eksempel: KI i hverdagen",
+      "subject": "Fag",
+      "subjectPlaceholder": "For eksempel: Norsk, samfunnsfag",
+      "level": "Nivå",
+      "levelPlaceholder": "For eksempel: B1, 8. trinn",
+      "language": "Språk",
+      "assignmentText": "Oppgavetekst",
+      "assignmentPlaceholder": "Lag en podcast der du forklarer temaet og bruker egne eksempler.",
+      "duration": "Anbefalt lengde i minutter"
+    },
+    "criteria": {
+      "title": "Kriterier",
+      "add": "Legg til kriterium",
+      "placeholder": "Skriv kriterium..."
+    },
+    "support": {
+      "title": "Hjelpestoff",
+      "addVocabulary": "Legg til begrep",
+      "addQuestion": "Legg til spørsmål",
+      "vocabularyPlaceholder": "Fagbegrep eller hjelpeord...",
+      "questionPlaceholder": "Spørsmål eleven kan bruke..."
+    },
+    "segments": {
+      "title": "Podcaststruktur",
+      "add": "Legg til del",
+      "newTitle": "Del {n}",
+      "hintPlaceholder": "Hint til eleven..."
+    },
+    "settings": {
+      "title": "Innstillinger",
+      "scriptMode": "Manusmodus",
+      "bulletPoints": "Stikkord",
+      "fullScript": "Fullt manus",
+      "aiSupport": "KI-støtte",
+      "aiCoach": "Veileder",
+      "aiOff": "Av",
+      "locked": "Beta v1 er individuell og privat: bare lærer/eier kan se sluttproduktet når elevflyten kobles på."
+    },
+    "overview": {
+      "title": "Oversikt",
+      "segments": "Deler",
+      "duration": "Lengde",
+      "minutes": "{n} min",
+      "principleTitle": "Prinsipp",
+      "principle": "Lærer setter rammene. Eleven lager linja.",
+      "next": "Neste kobling: lagre til Mitt innhold, dele til Space, elevflyt med idérom, manus, segmentopptak og sluttrom."
+    },
+    "save": {
+      "create": "Lagre til Mitt innhold",
+      "update": "Oppdater aktivitet",
+      "saving": "Lagrer...",
+      "saved": "Podcastverksted lagret.",
+      "failed": "Kunne ikke lagre Podcastverksted.",
+      "loading": "Henter aktivitet...",
+      "loadFailed": "Kunne ikke hente aktiviteten.",
+      "notFound": "Fant ikke aktiviteten.",
+      "openContent": "Åpne Mitt innhold"
+    },
+    "defaults": {
+      "criteria": {
+        "intro": "Podcasten har en tydelig intro",
+        "assignment": "Innholdet svarer på oppdraget",
+        "vocabulary": "Jeg bruker fagbegreper",
+        "examples": "Jeg bruker eksempler",
+        "ending": "Podcasten har en tydelig avslutning",
+        "audio": "Lyden er forståelig"
+      },
+      "vocabulary": {
+        "term": "fagbegrep",
+        "example": "eksempel",
+        "source": "kilde"
+      },
+      "questions": {
+        "topic": "Hva handler temaet om?",
+        "everyday": "Hvor møter vi dette i hverdagen?",
+        "explain": "Hva er viktig å forklare?",
+        "examples": "Hvilke eksempler kan du bruke?",
+        "takeaway": "Hva vil du at lytteren skal sitte igjen med?"
+      },
+      "segments": {
+        "intro": {
+          "title": "Intro",
+          "hint": "Presenter temaet og få lytteren inn."
+        },
+        "part1": {
+          "title": "Del 1",
+          "hint": "Forklar første hovedpoeng."
+        },
+        "part2": {
+          "title": "Del 2",
+          "hint": "Forklar neste poeng eller et annet perspektiv."
+        },
+        "ending": {
+          "title": "Avslutning",
+          "hint": "Oppsummer hva lytteren skal sitte igjen med."
+        }
+      }
+    }
+  }
+}

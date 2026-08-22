@@ -1,0 +1,110 @@
+{
+  "podcastWorkshopTool": {
+    "back": "← Voltar às ferramentas",
+    "title": "Oficina de podcast",
+    "subtitle": "Crie uma atividade de produção oral em que os estudantes passam de ideias e planejamento para roteiro, gravação e podcast final.",
+    "assignment": {
+      "title": "Tarefa"
+    },
+    "fields": {
+      "title": "Título",
+      "titlePlaceholder": "Por exemplo: IA no dia a dia",
+      "subject": "Disciplina",
+      "subjectPlaceholder": "Por exemplo: Português, estudos sociais",
+      "level": "Nível",
+      "levelPlaceholder": "Por exemplo: B1, 8º ano",
+      "language": "Idioma",
+      "assignmentText": "Texto da tarefa",
+      "assignmentPlaceholder": "Crie um podcast em que você explica o tema e usa seus próprios exemplos.",
+      "duration": "Duração recomendada em minutos"
+    },
+    "criteria": {
+      "title": "Critérios",
+      "add": "Adicionar critério",
+      "placeholder": "Escreva um critério..."
+    },
+    "support": {
+      "title": "Material de apoio",
+      "addVocabulary": "Adicionar termo",
+      "addQuestion": "Adicionar pergunta",
+      "vocabularyPlaceholder": "Termo da disciplina ou palavra de apoio...",
+      "questionPlaceholder": "Pergunta que o estudante pode usar..."
+    },
+    "segments": {
+      "title": "Estrutura do podcast",
+      "add": "Adicionar parte",
+      "newTitle": "Parte {n}",
+      "hintPlaceholder": "Dica para o estudante..."
+    },
+    "settings": {
+      "title": "Configurações",
+      "scriptMode": "Modo de roteiro",
+      "bulletPoints": "Tópicos",
+      "fullScript": "Roteiro completo",
+      "aiSupport": "Apoio de IA",
+      "aiCoach": "Orientador",
+      "aiOff": "Desligado",
+      "locked": "A beta v1 é individual e privada: apenas o professor/responsável pode ver o produto final quando o fluxo do estudante for conectado."
+    },
+    "overview": {
+      "title": "Visão geral",
+      "segments": "Partes",
+      "duration": "Duração",
+      "minutes": "{n} min",
+      "principleTitle": "Princípio",
+      "principle": "O professor define a estrutura. O estudante constrói a linha.",
+      "next": "Próxima conexão: salvar em Meu conteúdo, compartilhar com Space, fluxo do estudante com ideias, roteiro, gravação por segmentos e sala final."
+    },
+    "save": {
+      "create": "Salvar em Meu conteúdo",
+      "update": "Atualizar atividade",
+      "saving": "Salvando...",
+      "saved": "Oficina de podcast salva.",
+      "failed": "Não foi possível salvar a Oficina de podcast.",
+      "loading": "Carregando atividade...",
+      "loadFailed": "Não foi possível carregar a atividade.",
+      "notFound": "Atividade não encontrada.",
+      "openContent": "Abrir Meu conteúdo"
+    },
+    "defaults": {
+      "criteria": {
+        "intro": "O podcast tem uma introdução clara",
+        "assignment": "O conteúdo responde à tarefa",
+        "vocabulary": "Eu uso termos da disciplina",
+        "examples": "Eu uso exemplos",
+        "ending": "O podcast tem uma conclusão clara",
+        "audio": "O áudio é compreensível"
+      },
+      "vocabulary": {
+        "term": "termo da disciplina",
+        "example": "exemplo",
+        "source": "fonte"
+      },
+      "questions": {
+        "topic": "Sobre o que é o tema?",
+        "everyday": "Onde encontramos isso no dia a dia?",
+        "explain": "O que é importante explicar?",
+        "examples": "Quais exemplos você pode usar?",
+        "takeaway": "O que você quer que o ouvinte lembre?"
+      },
+      "segments": {
+        "intro": {
+          "title": "Introdução",
+          "hint": "Apresente o tema e traga o ouvinte para dentro."
+        },
+        "part1": {
+          "title": "Parte 1",
+          "hint": "Explique o primeiro ponto principal."
+        },
+        "part2": {
+          "title": "Parte 2",
+          "hint": "Explique o próximo ponto ou outra perspectiva."
+        },
+        "ending": {
+          "title": "Conclusão",
+          "hint": "Resuma o que o ouvinte deve levar consigo."
+        }
+      }
+    }
+  }
+}

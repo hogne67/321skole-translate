@@ -72,6 +72,10 @@
         "title": "Audio reading",
         "description": "Let learners read a text aloud and record audio for feedback."
       },
+      "podcastWorkshop": {
+        "title": "Podcast workshop",
+        "description": "Create oral production tasks from ideas and planning to script, recording, and submission."
+      },
       "sentenceFixer": {
         "title": "Sentence fixer",
         "description": "Fix grammar and make sentences clearer."

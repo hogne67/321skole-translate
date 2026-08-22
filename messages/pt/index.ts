@@ -36,6 +36,7 @@ import toolsTranslateFree from "./tools/translateFree.json";
 import toolsVocabFree from "./tools/vocabFree.json";
 import toolsQuizGenerator from "./tools/quizGenerator.json";
 import toolsAudioReadingTool from "./tools/audioReadingTool.json";
+import toolsPodcastWorkshopTool from "./tools/podcastWorkshopTool.json";
 
 import studentSpaces from "./student/studentSpaces.json";
 import studentSpaceDetail from "./student/studentspaceDetail.json";
@@ -132,6 +133,7 @@ const ptMessages = {
   ...toolsVocabFree,
   ...toolsQuizGenerator,
   ...toolsAudioReadingTool,
+  ...toolsPodcastWorkshopTool,
 
   ...studentSpaces,
   ...studentSpaceDetail,
