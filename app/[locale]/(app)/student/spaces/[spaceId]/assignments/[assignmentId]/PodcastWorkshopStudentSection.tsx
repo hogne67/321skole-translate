@@ -537,15 +537,17 @@ export default function PodcastWorkshopStudentSection({
         })}
       </nav>
 
-      <div className="podcastWorkshopGrid">
+      <div className={activeRoom === "production" ? "podcastWorkshopGrid hasSidePanel" : "podcastWorkshopGrid"}>
         <div style={{ minWidth: 0 }}>{renderRoom()}</div>
-        <SupportPanel
-          activeRoom={activeRoom}
-          config={config}
-          value={value}
-          feedback={feedback ?? null}
-          t={t}
-        />
+        {activeRoom === "production" ? (
+          <SupportPanel
+            activeRoom={activeRoom}
+            config={config}
+            value={value}
+            feedback={feedback ?? null}
+            t={t}
+          />
+        ) : null}
       </div>
 
       <style jsx>{`
@@ -690,9 +692,12 @@ export default function PodcastWorkshopStudentSection({
 
         .podcastWorkshopGrid {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
           gap: 14px;
           align-items: start;
+        }
+
+        .podcastWorkshopGrid.hasSidePanel {
+          grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
         }
 
         .podcastWorkshopSegmentShell {
@@ -731,7 +736,7 @@ export default function PodcastWorkshopStudentSection({
         }
 
         @media (max-width: 820px) {
-          .podcastWorkshopGrid {
+          .podcastWorkshopGrid.hasSidePanel {
             grid-template-columns: 1fr;
           }
         }
