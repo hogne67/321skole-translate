@@ -72,6 +72,7 @@ export type PodcastWorkshopRoomFeedback = {
 export type PodcastWorkshopFeedback = {
     version: 1;
     rooms: Record<PodcastWorkshopRoomKey, PodcastWorkshopRoomFeedback>;
+    fields: Record<string, PodcastWorkshopRoomFeedback>;
 };
 
 function readStringArray(value: unknown): string[] {
@@ -337,7 +338,27 @@ export function createPodcastWorkshopFeedback(): PodcastWorkshopFeedback {
             production: { text: "", status: "" },
             final: { text: "", status: "" },
         },
+        fields: {},
     };
+}
+
+function readFeedbackMap(value: unknown): Record<string, PodcastWorkshopRoomFeedback> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const out: Record<string, PodcastWorkshopRoomFeedback> = {};
+    Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
+        const safeKey = String(key ?? "").trim();
+        if (!safeKey || !item || typeof item !== "object" || Array.isArray(item)) return;
+        const data = item as Record<string, unknown>;
+        const rawStatus = String(data.status ?? "").trim();
+        out[safeKey] = {
+            text: String(data.text ?? ""),
+            status:
+                rawStatus === "approved" || rawStatus === "needs_work"
+                    ? rawStatus
+                    : "",
+        };
+    });
+    return out;
 }
 
 export function readPodcastWorkshopFeedback(value: unknown): PodcastWorkshopFeedback {
@@ -365,5 +386,9 @@ export function readPodcastWorkshopFeedback(value: unknown): PodcastWorkshopFeed
         };
     });
 
-    return { version: 1, rooms };
+    return {
+        version: 1,
+        rooms,
+        fields: readFeedbackMap(data.fields),
+    };
 }

@@ -966,6 +966,19 @@ function Inner() {
     }));
   }
 
+  function updatePodcastFieldFeedback(
+    fieldKey: string,
+    next: PodcastWorkshopRoomFeedback
+  ) {
+    setPodcastWorkshopFeedback((current) => ({
+      ...current,
+      fields: {
+        ...(current.fields ?? {}),
+        [fieldKey]: next,
+      },
+    }));
+  }
+
   async function savePodcastWorkshopFeedback() {
     if (!canOperate) return;
     if (!nestedRef && !indexRef) return;
@@ -1284,6 +1297,7 @@ function Inner() {
                 saving={podcastFeedbackSaving}
                 saveMsg={podcastFeedbackMsg}
                 onFeedbackChange={updatePodcastRoomFeedback}
+                onFieldFeedbackChange={updatePodcastFieldFeedback}
                 onSaveFeedback={savePodcastWorkshopFeedback}
                 t={tAny}
               />

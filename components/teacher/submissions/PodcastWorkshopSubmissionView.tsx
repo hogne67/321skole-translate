@@ -22,6 +22,7 @@ type Props = {
     saving: boolean;
     saveMsg: string | null;
     onFeedbackChange: (room: PodcastWorkshopRoomKey, next: PodcastWorkshopRoomFeedback) => void;
+    onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
     onSaveFeedback: () => void;
     t: (key: string, values?: Record<string, unknown>) => string;
 };
@@ -94,6 +95,7 @@ export default function PodcastWorkshopSubmissionView({
     saving,
     saveMsg,
     onFeedbackChange,
+    onFieldFeedbackChange,
     onSaveFeedback,
     t,
 }: Props) {
@@ -171,7 +173,19 @@ export default function PodcastWorkshopSubmissionView({
             </nav>
 
             <div className="podcastTeacherGrid">
-                <div className="min-w-0">{renderRoom(activeRoom, config, submission, t)}</div>
+                <div className="min-w-0">
+                    {renderRoom({
+                        room: activeRoom,
+                        config,
+                        submission,
+                        feedback,
+                        canOperate,
+                        saving,
+                        onFieldFeedbackChange,
+                        onSaveFeedback,
+                        t,
+                    })}
+                </div>
 
                 <aside className="min-w-0 rounded-2xl border border-violet-100 bg-violet-50 p-4">
                     <div className="mb-2 text-xs font-black uppercase tracking-wide text-violet-800">
@@ -379,12 +393,27 @@ function PodcastFullPlayback({
     );
 }
 
-function renderRoom(
-    room: PodcastWorkshopRoomKey,
-    config: PodcastWorkshopConfig,
-    submission: PodcastWorkshopSubmission,
-    t: Props["t"]
-) {
+function renderRoom({
+    room,
+    config,
+    submission,
+    feedback,
+    canOperate,
+    saving,
+    onFieldFeedbackChange,
+    onSaveFeedback,
+    t,
+}: {
+    room: PodcastWorkshopRoomKey;
+    config: PodcastWorkshopConfig;
+    submission: PodcastWorkshopSubmission;
+    feedback: PodcastWorkshopFeedback;
+    canOperate: boolean;
+    saving: boolean;
+    onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
+    onSaveFeedback: () => void;
+    t: Props["t"];
+}) {
     const segments = getPodcastWorkshopSegments(config, submission);
 
     if (room === "ideas") {
@@ -394,20 +423,66 @@ function renderRoom(
                     {t("podcastWorkshop.ideasTitle")}
                 </h3>
                 <div className="grid gap-3">
-                    <InfoBlock label={t("podcastWorkshop.podcastNameLabel")} value={submission.podcastName} t={t} />
-                    <InfoBlock label={t("podcastWorkshop.participantsLabel")} value={submission.participants} t={t} />
-                    <InfoBlock label={t("podcastWorkshop.intervieweesLabel")} value={submission.interviewees} t={t} />
-                    <InfoBlock label={t("podcastWorkshop.ideasLabel")} value={submission.ideas} t={t} />
+                    <InfoBlock
+                        fieldKey="ideas.podcastName"
+                        label={t("podcastWorkshop.podcastNameLabel")}
+                        value={submission.podcastName}
+                        feedback={feedback}
+                        canOperate={canOperate}
+                        saving={saving}
+                        onFieldFeedbackChange={onFieldFeedbackChange}
+                        onSaveFeedback={onSaveFeedback}
+                        t={t}
+                    />
+                    <InfoBlock
+                        fieldKey="ideas.participants"
+                        label={t("podcastWorkshop.participantsLabel")}
+                        value={submission.participants}
+                        feedback={feedback}
+                        canOperate={canOperate}
+                        saving={saving}
+                        onFieldFeedbackChange={onFieldFeedbackChange}
+                        onSaveFeedback={onSaveFeedback}
+                        t={t}
+                    />
+                    <InfoBlock
+                        fieldKey="ideas.interviewees"
+                        label={t("podcastWorkshop.intervieweesLabel")}
+                        value={submission.interviewees}
+                        feedback={feedback}
+                        canOperate={canOperate}
+                        saving={saving}
+                        onFieldFeedbackChange={onFieldFeedbackChange}
+                        onSaveFeedback={onSaveFeedback}
+                        t={t}
+                    />
+                    <InfoBlock
+                        fieldKey="ideas.ideas"
+                        label={t("podcastWorkshop.ideasLabel")}
+                        value={submission.ideas}
+                        feedback={feedback}
+                        canOperate={canOperate}
+                        saving={saving}
+                        onFieldFeedbackChange={onFieldFeedbackChange}
+                        onSaveFeedback={onSaveFeedback}
+                        t={t}
+                    />
                     {config.guidingQuestions.length > 0 ? (
                         <div className="grid gap-3">
                             <div className="text-xs font-black uppercase tracking-wide text-slate-500">
                                 {t("podcastWorkshop.questionsTitle")}
                             </div>
-                            {config.guidingQuestions.map((question) => (
+                            {config.guidingQuestions.map((question, index) => (
                                 <InfoBlock
                                     key={question}
+                                    fieldKey={`ideas.question.${index}`}
                                     label={question}
                                     value={submission.ideaQuestionNotes?.[question] ?? ""}
+                                    feedback={feedback}
+                                    canOperate={canOperate}
+                                    saving={saving}
+                                    onFieldFeedbackChange={onFieldFeedbackChange}
+                                    onSaveFeedback={onSaveFeedback}
                                     t={t}
                                 />
                             ))}
@@ -425,9 +500,15 @@ function renderRoom(
                     {t("podcastWorkshop.planTitle")}
                 </h3>
                 <SegmentList
+                    fieldPrefix="plan"
                     segments={segments}
+                    feedback={feedback}
+                    canOperate={canOperate}
+                    saving={saving}
                     t={t}
                     getText={(segmentId) => submission.segmentPlans[segmentId] ?? ""}
+                    onFieldFeedbackChange={onFieldFeedbackChange}
+                    onSaveFeedback={onSaveFeedback}
                 />
             </section>
         );
@@ -442,9 +523,15 @@ function renderRoom(
                         : t("podcastWorkshop.bulletsTitle")}
                 </h3>
                 <SegmentList
+                    fieldPrefix="script"
                     segments={segments}
+                    feedback={feedback}
+                    canOperate={canOperate}
+                    saving={saving}
                     t={t}
                     getText={(segmentId) => submission.segmentScripts[segmentId] ?? ""}
+                    onFieldFeedbackChange={onFieldFeedbackChange}
+                    onSaveFeedback={onSaveFeedback}
                 />
             </section>
         );
@@ -472,6 +559,15 @@ function renderRoom(
                                         {t("podcastWorkshop.noAudio")}
                                     </div>
                                 )}
+                                <FieldFeedbackBox
+                                    fieldKey={`production.${segment.id}`}
+                                    feedback={feedback}
+                                    canOperate={canOperate}
+                                    saving={saving}
+                                    onFieldFeedbackChange={onFieldFeedbackChange}
+                                    onSaveFeedback={onSaveFeedback}
+                                    t={t}
+                                />
                             </div>
                         );
                     })}
@@ -481,17 +577,36 @@ function renderRoom(
     }
 
     return (
-        <FinalReview config={config} submission={submission} t={t} />
+        <FinalReview
+            config={config}
+            submission={submission}
+            feedback={feedback}
+            canOperate={canOperate}
+            saving={saving}
+            onFieldFeedbackChange={onFieldFeedbackChange}
+            onSaveFeedback={onSaveFeedback}
+            t={t}
+        />
     );
 }
 
 function FinalReview({
     config,
     submission,
+    feedback,
+    canOperate,
+    saving,
+    onFieldFeedbackChange,
+    onSaveFeedback,
     t,
 }: {
     config: PodcastWorkshopConfig;
     submission: PodcastWorkshopSubmission;
+    feedback: PodcastWorkshopFeedback;
+    canOperate: boolean;
+    saving: boolean;
+    onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
+    onSaveFeedback: () => void;
     t: Props["t"];
 }) {
     const readyCount = getVoiceSegments(config, submission).length;
@@ -524,6 +639,15 @@ function FinalReview({
                     {t("podcastWorkshop.studentNotes")}
                 </div>
                 {textBlock(submission.notes, t)}
+                <FieldFeedbackBox
+                    fieldKey="final.notes"
+                    feedback={feedback}
+                    canOperate={canOperate}
+                    saving={saving}
+                    onFieldFeedbackChange={onFieldFeedbackChange}
+                    onSaveFeedback={onSaveFeedback}
+                    t={t}
+                />
             </div>
 
             {config.criteria.length > 0 ? (
@@ -542,6 +666,15 @@ function FinalReview({
                                     }`}
                             >
                                 {checked ? t("podcastWorkshop.checked") : t("podcastWorkshop.notChecked")} · {criterion}
+                                <FieldFeedbackBox
+                                    fieldKey={`final.criterion.${index}`}
+                                    feedback={feedback}
+                                    canOperate={canOperate}
+                                    saving={saving}
+                                    onFieldFeedbackChange={onFieldFeedbackChange}
+                                    onSaveFeedback={onSaveFeedback}
+                                    t={t}
+                                />
                             </div>
                         );
                     })}
@@ -552,13 +685,25 @@ function FinalReview({
 }
 
 function SegmentList({
+    fieldPrefix,
     segments,
+    feedback,
+    canOperate,
+    saving,
     t,
     getText,
+    onFieldFeedbackChange,
+    onSaveFeedback,
 }: {
+    fieldPrefix: string;
     segments: PodcastWorkshopConfig["segments"];
+    feedback: PodcastWorkshopFeedback;
+    canOperate: boolean;
+    saving: boolean;
     t: Props["t"];
     getText: (segmentId: string) => string;
+    onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
+    onSaveFeedback: () => void;
 }) {
     return (
         <div className="grid gap-3">
@@ -569,6 +714,15 @@ function SegmentList({
                     </div>
                     <div className="mb-2 font-black text-slate-950">{segment.title}</div>
                     {textBlock(getText(segment.id), t)}
+                    <FieldFeedbackBox
+                        fieldKey={`${fieldPrefix}.${segment.id}`}
+                        feedback={feedback}
+                        canOperate={canOperate}
+                        saving={saving}
+                        onFieldFeedbackChange={onFieldFeedbackChange}
+                        onSaveFeedback={onSaveFeedback}
+                        t={t}
+                    />
                 </div>
             ))}
         </div>
@@ -576,20 +730,116 @@ function SegmentList({
 }
 
 function InfoBlock({
+    fieldKey,
     label,
     value,
+    feedback,
+    canOperate,
+    saving,
+    onFieldFeedbackChange,
+    onSaveFeedback,
     t,
 }: {
+    fieldKey: string;
     label: string;
     value: string;
+    feedback: PodcastWorkshopFeedback;
+    canOperate: boolean;
+    saving: boolean;
+    onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
+    onSaveFeedback: () => void;
     t: Props["t"];
 }) {
     return (
-        <div>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
             <div className="mb-1 text-xs font-black uppercase tracking-wide text-slate-500">
                 {label}
             </div>
             {textBlock(value, t)}
+            <FieldFeedbackBox
+                fieldKey={fieldKey}
+                feedback={feedback}
+                canOperate={canOperate}
+                saving={saving}
+                onFieldFeedbackChange={onFieldFeedbackChange}
+                onSaveFeedback={onSaveFeedback}
+                t={t}
+            />
+        </div>
+    );
+}
+
+function FieldFeedbackBox({
+    fieldKey,
+    feedback,
+    canOperate,
+    saving,
+    onFieldFeedbackChange,
+    onSaveFeedback,
+    t,
+}: {
+    fieldKey: string;
+    feedback: PodcastWorkshopFeedback;
+    canOperate: boolean;
+    saving: boolean;
+    onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
+    onSaveFeedback: () => void;
+    t: Props["t"];
+}) {
+    const fieldFeedback = feedback.fields?.[fieldKey] ?? { text: "", status: "" };
+
+    function patch(next: Partial<PodcastWorkshopRoomFeedback>) {
+        onFieldFeedbackChange(fieldKey, {
+            ...fieldFeedback,
+            ...next,
+        });
+    }
+
+    return (
+        <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50 p-3">
+            <div className="mb-2 text-xs font-black uppercase tracking-wide text-violet-800">
+                {t("podcastWorkshop.feedbackForField")}
+            </div>
+            <textarea
+                value={fieldFeedback.text}
+                onChange={(event) => patch({ text: event.target.value })}
+                placeholder={t("podcastWorkshop.fieldFeedbackPlaceholder")}
+                disabled={!canOperate}
+                rows={3}
+                className="box-border w-full resize-y rounded-xl border border-violet-200 bg-white p-3 text-sm leading-6 text-slate-900 disabled:opacity-60"
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    disabled={!canOperate}
+                    onClick={() => patch({ status: "approved" })}
+                    className={`rounded-xl border px-3 py-2 text-xs font-black disabled:opacity-60 ${fieldFeedback.status === "approved"
+                        ? "border-emerald-500 bg-emerald-600 text-white"
+                        : "border-emerald-200 bg-white text-emerald-800"
+                        }`}
+                >
+                    {t("podcastWorkshop.approved")}
+                </button>
+                <button
+                    type="button"
+                    disabled={!canOperate}
+                    onClick={() => patch({ status: "needs_work" })}
+                    className={`rounded-xl border px-3 py-2 text-xs font-black disabled:opacity-60 ${fieldFeedback.status === "needs_work"
+                        ? "border-amber-400 bg-amber-400 text-slate-950"
+                        : "border-amber-200 bg-white text-amber-800"
+                        }`}
+                >
+                    {t("podcastWorkshop.needsWork")}
+                </button>
+                <button
+                    type="button"
+                    disabled={!canOperate || saving}
+                    onClick={onSaveFeedback}
+                    className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-black text-violet-800 disabled:opacity-60"
+                >
+                    {saving ? t("podcastWorkshop.saving") : t("podcastWorkshop.saveFieldFeedback")}
+                </button>
+            </div>
         </div>
     );
 }

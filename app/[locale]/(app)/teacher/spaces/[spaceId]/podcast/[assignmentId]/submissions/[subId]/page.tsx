@@ -196,6 +196,16 @@ function Inner() {
     }));
   }
 
+  function updateFieldFeedback(fieldKey: string, next: PodcastWorkshopRoomFeedback) {
+    setFeedback((current) => ({
+      ...current,
+      fields: {
+        ...(current.fields ?? {}),
+        [fieldKey]: next,
+      },
+    }));
+  }
+
   async function saveFeedback() {
     setSaving(true);
     setMsg(null);
@@ -268,6 +278,7 @@ function Inner() {
           saving={saving}
           saveMsg={msg}
           onFeedbackChange={updateRoomFeedback}
+          onFieldFeedbackChange={updateFieldFeedback}
           onSaveFeedback={saveFeedback}
           t={tAny}
         />

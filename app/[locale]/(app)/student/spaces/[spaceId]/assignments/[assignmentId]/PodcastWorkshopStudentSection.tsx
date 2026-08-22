@@ -504,6 +504,8 @@ export default function PodcastWorkshopStudentSection({
         </div>
 
         <div className="podcastWorkshopAssignment">
+          <strong>{t("podcastWorkshop.assignmentTitle")}</strong>
+          <div>{config.assignmentText || t("podcastWorkshop.noAssignmentText")}</div>
           {config.criteria.length > 0 ? (
             <div className="podcastWorkshopHeroCriteria">
               <strong>{t("podcastWorkshop.criteria")}</strong>
@@ -514,8 +516,6 @@ export default function PodcastWorkshopStudentSection({
               </div>
             </div>
           ) : null}
-          <strong>{t("podcastWorkshop.assignmentTitle")}</strong>
-          <div>{config.assignmentText || t("podcastWorkshop.noAssignmentText")}</div>
         </div>
       </div>
 
@@ -617,7 +617,7 @@ export default function PodcastWorkshopStudentSection({
         }
 
         .podcastWorkshopHeroCriteria {
-          margin-bottom: 12px;
+          margin-top: 12px;
         }
 
         .podcastWorkshopHeroCriteria div {
@@ -653,7 +653,10 @@ export default function PodcastWorkshopStudentSection({
         }
 
         .podcastIdeaInput {
+          display: block;
           width: 100%;
+          min-width: 0;
+          height: 42px;
           box-sizing: border-box;
           border: 1px solid rgba(15, 23, 42, 0.16);
           border-radius: 12px;
@@ -661,6 +664,7 @@ export default function PodcastWorkshopStudentSection({
           color: #0f172a;
           padding: 10px 12px;
           font: inherit;
+          line-height: 1.4;
         }
 
         .podcastWorkshopRooms {
@@ -1005,6 +1009,10 @@ function IdeaWorkCard({
         }
 
         .podcastIdeaMain {
+          min-width: 0;
+        }
+
+        .podcastIdeaMain div {
           min-width: 0;
         }
 
