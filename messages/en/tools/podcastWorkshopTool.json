@@ -1,10 +1,17 @@
 {
   "podcastWorkshopTool": {
     "back": "← Back to tools",
+    "kicker": "321 Podcast Studio",
+    "beta": "Beta",
     "title": "Podcast workshop",
     "subtitle": "Create an oral production task where students move from ideas and planning to script, recording, and a finished podcast.",
+    "video": {
+      "title": "Watch podcast video",
+      "text": "Placeholder for a short walkthrough of how to create a podcast workshop."
+    },
     "assignment": {
-      "title": "Assignment"
+      "title": "Assignment",
+      "description": "Set the frame for the podcast students will create."
     },
     "fields": {
       "title": "Title",
@@ -20,11 +27,15 @@
     },
     "criteria": {
       "title": "Criteria",
+      "description": "The criteria follow the student through the work and appear again in the final room.",
       "add": "Add criterion",
       "placeholder": "Write a criterion..."
     },
     "support": {
       "title": "Support material",
+      "description": "Add terms and questions students can use in the idea room and studio.",
+      "vocabularyTitle": "Helpful words and concepts",
+      "questionsTitle": "Questions",
       "addVocabulary": "Add term",
       "addQuestion": "Add question",
       "vocabularyPlaceholder": "Subject term or support word...",
@@ -32,12 +43,16 @@
     },
     "segments": {
       "title": "Podcast structure",
+      "description": "Split the podcast into intro, content parts, and ending.",
       "add": "Add part",
       "newTitle": "Part {n}",
+      "partTitle": "Part",
+      "hint": "Hint",
       "hintPlaceholder": "Hint for the student..."
     },
     "settings": {
       "title": "Settings",
+      "description": "Choose how students work with script, AI support, and recommended length.",
       "scriptMode": "Script mode",
       "bulletPoints": "Bullet points",
       "fullScript": "Full script",

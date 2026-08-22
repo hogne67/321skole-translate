@@ -547,18 +547,20 @@ function renderRoom({
                     {segments.map((segment, index) => {
                         const voice = submission.productionSegments[segment.id]?.voice ?? null;
                         return (
-                            <div key={segment.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                                <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                                    {getSegmentEyebrow(segment.title, index, t)}
-                                </div>
-                                <div className="mb-2 font-black text-slate-950">{segment.title}</div>
-                                {voice?.audioDataUrl ? (
-                                    <audio controls src={voice.audioDataUrl} className="w-full" />
-                                ) : (
-                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-600">
-                                        {t("podcastWorkshop.noAudio")}
+                            <div key={segment.id} className="podcastTeacherFieldRow">
+                                <div className="min-w-0">
+                                    <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                                        {getSegmentEyebrow(segment.title, index, t)}
                                     </div>
-                                )}
+                                    <div className="mb-2 font-black text-slate-950">{segment.title}</div>
+                                    {voice?.audioDataUrl ? (
+                                        <audio controls src={voice.audioDataUrl} className="w-full" />
+                                    ) : (
+                                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-600">
+                                            {t("podcastWorkshop.noAudio")}
+                                        </div>
+                                    )}
+                                </div>
                                 <FieldFeedbackBox
                                     fieldKey={`production.${segment.id}`}
                                     feedback={feedback}
@@ -572,6 +574,7 @@ function renderRoom({
                         );
                     })}
                 </div>
+                <TeacherFieldRowStyle />
             </section>
         );
     }
@@ -634,11 +637,13 @@ function FinalReview({
                 </span>
             </div>
 
-            <div>
-                <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                    {t("podcastWorkshop.studentNotes")}
+            <div className="podcastTeacherFieldRow">
+                <div className="min-w-0">
+                    <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                        {t("podcastWorkshop.studentNotes")}
+                    </div>
+                    {textBlock(submission.notes, t)}
                 </div>
-                {textBlock(submission.notes, t)}
                 <FieldFeedbackBox
                     fieldKey="final.notes"
                     feedback={feedback}
@@ -660,12 +665,14 @@ function FinalReview({
                         return (
                             <div
                                 key={criterion}
-                                className={`rounded-xl border px-3 py-2 text-sm font-bold ${checked
+                                className={`podcastTeacherFieldRow text-sm font-bold ${checked
                                     ? "border-emerald-200 bg-emerald-50 text-emerald-950"
                                     : "border-slate-200 bg-slate-50 text-slate-600"
                                     }`}
                             >
-                                {checked ? t("podcastWorkshop.checked") : t("podcastWorkshop.notChecked")} · {criterion}
+                                <div className="min-w-0">
+                                    {checked ? t("podcastWorkshop.checked") : t("podcastWorkshop.notChecked")} · {criterion}
+                                </div>
                                 <FieldFeedbackBox
                                     fieldKey={`final.criterion.${index}`}
                                     feedback={feedback}
@@ -680,6 +687,7 @@ function FinalReview({
                     })}
                 </div>
             ) : null}
+            <TeacherFieldRowStyle />
         </section>
     );
 }
@@ -708,12 +716,14 @@ function SegmentList({
     return (
         <div className="grid gap-3">
             {segments.map((segment, index) => (
-                <div key={segment.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                    <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                        {getSegmentEyebrow(segment.title, index, t)}
+                <div key={segment.id} className="podcastTeacherFieldRow">
+                    <div className="min-w-0">
+                        <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                            {getSegmentEyebrow(segment.title, index, t)}
+                        </div>
+                        <div className="mb-2 font-black text-slate-950">{segment.title}</div>
+                        {textBlock(getText(segment.id), t)}
                     </div>
-                    <div className="mb-2 font-black text-slate-950">{segment.title}</div>
-                    {textBlock(getText(segment.id), t)}
                     <FieldFeedbackBox
                         fieldKey={`${fieldPrefix}.${segment.id}`}
                         feedback={feedback}
@@ -725,6 +735,7 @@ function SegmentList({
                     />
                 </div>
             ))}
+            <TeacherFieldRowStyle />
         </div>
     );
 }
@@ -751,11 +762,13 @@ function InfoBlock({
     t: Props["t"];
 }) {
     return (
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="mb-1 text-xs font-black uppercase tracking-wide text-slate-500">
-                {label}
+        <div className="podcastTeacherFieldRow">
+            <div className="min-w-0">
+                <div className="mb-1 text-xs font-black uppercase tracking-wide text-slate-500">
+                    {label}
+                </div>
+                {textBlock(value, t)}
             </div>
-            {textBlock(value, t)}
             <FieldFeedbackBox
                 fieldKey={fieldKey}
                 feedback={feedback}
@@ -765,7 +778,31 @@ function InfoBlock({
                 onSaveFeedback={onSaveFeedback}
                 t={t}
             />
+            <TeacherFieldRowStyle />
         </div>
+    );
+}
+
+function TeacherFieldRowStyle() {
+    return (
+        <style jsx>{`
+            .podcastTeacherFieldRow {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+                gap: 14px;
+                align-items: start;
+                border-radius: 14px;
+                border: 1px solid rgba(226, 232, 240, 1);
+                background: white;
+                padding: 12px;
+            }
+
+            @media (max-width: 850px) {
+                .podcastTeacherFieldRow {
+                    grid-template-columns: 1fr;
+                }
+            }
+        `}</style>
     );
 }
 
@@ -796,8 +833,8 @@ function FieldFeedbackBox({
     }
 
     return (
-        <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50 p-3">
-            <div className="mb-2 text-xs font-black uppercase tracking-wide text-violet-800">
+        <div className="rounded-xl border border-violet-100 bg-violet-50 p-3">
+            <div className="mb-2 text-[11px] font-black uppercase tracking-wide text-violet-800">
                 {t("podcastWorkshop.feedbackForField")}
             </div>
             <textarea
@@ -805,15 +842,15 @@ function FieldFeedbackBox({
                 onChange={(event) => patch({ text: event.target.value })}
                 placeholder={t("podcastWorkshop.fieldFeedbackPlaceholder")}
                 disabled={!canOperate}
-                rows={3}
-                className="box-border w-full resize-y rounded-xl border border-violet-200 bg-white p-3 text-sm leading-6 text-slate-900 disabled:opacity-60"
+                rows={4}
+                className="box-border w-full resize-y rounded-xl border border-violet-200 bg-white p-2 text-sm leading-5 text-slate-900 disabled:opacity-60"
             />
             <div className="mt-2 flex flex-wrap gap-2">
                 <button
                     type="button"
                     disabled={!canOperate}
                     onClick={() => patch({ status: "approved" })}
-                    className={`rounded-xl border px-3 py-2 text-xs font-black disabled:opacity-60 ${fieldFeedback.status === "approved"
+                    className={`rounded-full border px-3 py-1.5 text-xs font-black disabled:opacity-60 ${fieldFeedback.status === "approved"
                         ? "border-emerald-500 bg-emerald-600 text-white"
                         : "border-emerald-200 bg-white text-emerald-800"
                         }`}
@@ -824,7 +861,7 @@ function FieldFeedbackBox({
                     type="button"
                     disabled={!canOperate}
                     onClick={() => patch({ status: "needs_work" })}
-                    className={`rounded-xl border px-3 py-2 text-xs font-black disabled:opacity-60 ${fieldFeedback.status === "needs_work"
+                    className={`rounded-full border px-3 py-1.5 text-xs font-black disabled:opacity-60 ${fieldFeedback.status === "needs_work"
                         ? "border-amber-400 bg-amber-400 text-slate-950"
                         : "border-amber-200 bg-white text-amber-800"
                         }`}
@@ -835,7 +872,7 @@ function FieldFeedbackBox({
                     type="button"
                     disabled={!canOperate || saving}
                     onClick={onSaveFeedback}
-                    className="rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-black text-violet-800 disabled:opacity-60"
+                    className="rounded-full border border-violet-200 bg-white px-3 py-1.5 text-xs font-black text-violet-800 disabled:opacity-60"
                 >
                     {saving ? t("podcastWorkshop.saving") : t("podcastWorkshop.saveFieldFeedback")}
                 </button>

@@ -1,10 +1,17 @@
 {
   "podcastWorkshopTool": {
     "back": "← Voltar às ferramentas",
+    "kicker": "321 Podcast Studio",
+    "beta": "Beta",
     "title": "Oficina de podcast",
     "subtitle": "Crie uma atividade de produção oral em que os estudantes passam de ideias e planejamento para roteiro, gravação e podcast final.",
+    "video": {
+      "title": "Ver vídeo de podcast",
+      "text": "Espaço reservado para uma breve explicação de como criar uma oficina de podcast."
+    },
     "assignment": {
-      "title": "Tarefa"
+      "title": "Tarefa",
+      "description": "Defina a estrutura do podcast que os estudantes vão criar."
     },
     "fields": {
       "title": "Título",
@@ -20,11 +27,15 @@
     },
     "criteria": {
       "title": "Critérios",
+      "description": "Os critérios acompanham o estudante durante o trabalho e aparecem novamente na sala final.",
       "add": "Adicionar critério",
       "placeholder": "Escreva um critério..."
     },
     "support": {
       "title": "Material de apoio",
+      "description": "Adicione termos e perguntas que os estudantes podem usar na sala de ideias e no estúdio.",
+      "vocabularyTitle": "Palavras e conceitos de apoio",
+      "questionsTitle": "Perguntas",
       "addVocabulary": "Adicionar termo",
       "addQuestion": "Adicionar pergunta",
       "vocabularyPlaceholder": "Termo da disciplina ou palavra de apoio...",
@@ -32,12 +43,16 @@
     },
     "segments": {
       "title": "Estrutura do podcast",
+      "description": "Divida o podcast em introdução, partes de conteúdo e conclusão.",
       "add": "Adicionar parte",
       "newTitle": "Parte {n}",
+      "partTitle": "Parte",
+      "hint": "Dica",
       "hintPlaceholder": "Dica para o estudante..."
     },
     "settings": {
       "title": "Configurações",
+      "description": "Escolha como os estudantes trabalham com roteiro, apoio de IA e duração recomendada.",
       "scriptMode": "Modo de roteiro",
       "bulletPoints": "Tópicos",
       "fullScript": "Roteiro completo",

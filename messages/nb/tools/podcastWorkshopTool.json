@@ -1,10 +1,17 @@
 {
   "podcastWorkshopTool": {
     "back": "← Tilbake til verktøy",
+    "kicker": "321 Podcast Studio",
+    "beta": "Beta",
     "title": "Podcastverksted",
     "subtitle": "Lag en muntlig produksjonsoppgave der elevene går fra idé og plan til manus, opptak og ferdig podcast.",
+    "video": {
+      "title": "Se podcast-video",
+      "text": "Plassholder for en kort gjennomgang av hvordan du lager et podcastverksted."
+    },
     "assignment": {
-      "title": "Oppdrag"
+      "title": "Oppdrag",
+      "description": "Sett rammene for podcasten elevene skal lage."
     },
     "fields": {
       "title": "Tittel",
@@ -20,11 +27,15 @@
     },
     "criteria": {
       "title": "Kriterier",
+      "description": "Kriteriene følger eleven gjennom arbeidet og vises igjen i sluttrommet.",
       "add": "Legg til kriterium",
       "placeholder": "Skriv kriterium..."
     },
     "support": {
       "title": "Hjelpestoff",
+      "description": "Legg inn begreper og spørsmål elevene kan bruke i idérom og studio.",
+      "vocabularyTitle": "Hjelpeord og begreper",
+      "questionsTitle": "Spørsmål",
       "addVocabulary": "Legg til begrep",
       "addQuestion": "Legg til spørsmål",
       "vocabularyPlaceholder": "Fagbegrep eller hjelpeord...",
@@ -32,12 +43,16 @@
     },
     "segments": {
       "title": "Podcaststruktur",
+      "description": "Del opp podcasten i intro, innholdsdeler og avslutning.",
       "add": "Legg til del",
       "newTitle": "Del {n}",
+      "partTitle": "Del",
+      "hint": "Hint",
       "hintPlaceholder": "Hint til eleven..."
     },
     "settings": {
       "title": "Innstillinger",
+      "description": "Velg hvordan elevene skal arbeide med manus, KI-støtte og anbefalt lengde.",
       "scriptMode": "Manusmodus",
       "bulletPoints": "Stikkord",
       "fullScript": "Fullt manus",
