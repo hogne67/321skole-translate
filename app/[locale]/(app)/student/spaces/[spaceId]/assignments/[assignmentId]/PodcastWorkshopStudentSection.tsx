@@ -88,6 +88,19 @@ function formatDuration(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
+function getVoiceSegments(config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
+  return config.segments.filter((segment) => {
+    const voice = value.productionSegments[segment.id]?.voice;
+    return !!voice?.audioDataUrl;
+  });
+}
+
+function getVoiceDuration(config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
+  return getVoiceSegments(config, value).reduce((sum, segment) => {
+    return sum + (value.productionSegments[segment.id]?.voice?.durationSeconds ?? 0);
+  }, 0);
+}
+
 function getSupportedMimeType() {
   if (typeof MediaRecorder === "undefined") return "";
   const candidates = [
@@ -312,41 +325,15 @@ export default function PodcastWorkshopStudentSection({
     }
 
     return (
-      <RoomCard title={t("podcastWorkshop.finalRoomTitle")} help={t("podcastWorkshop.finalHelp")}>
-        <label style={labelStyle} htmlFor="podcast-notes">{t("podcastWorkshop.finalNotesLabel")}</label>
-        <textarea
-          id="podcast-notes"
-          value={value.notes}
-          onChange={(event) => patch({ notes: event.target.value })}
-          placeholder={t("podcastWorkshop.finalNotesPlaceholder")}
-          readOnly={readOnly}
-          rows={4}
-          style={{ ...textareaStyle, minHeight: 108, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
-        />
-
-        {config.criteria.length > 0 ? (
-          <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
-            {config.criteria.map((criterion, index) => {
-              const key = `criterion_${index}`;
-              return (
-                <label
-                  key={key}
-                  className={value.selfAssessment[key] ? "podcastWorkshopCheck isChecked" : "podcastWorkshopCheck"}
-                >
-                  <input
-                    type="checkbox"
-                    checked={value.selfAssessment[key] === true}
-                    disabled={readOnly}
-                    onChange={() => toggleCriterion(key)}
-                    style={{ marginTop: 3 }}
-                  />
-                  <span>{criterion}</span>
-                </label>
-              );
-            })}
-          </div>
-        ) : null}
-      </RoomCard>
+      <FinalRoom
+        config={config}
+        value={value}
+        readOnly={readOnly}
+        feedback={feedback ?? null}
+        t={t}
+        onNotesChange={(notes) => patch({ notes })}
+        onCriterionToggle={toggleCriterion}
+      />
     );
   }
 
@@ -914,28 +901,20 @@ function PodcastSegmentPlayback({
   );
 }
 
-function ProductionPanel({
+function PodcastFullPlayback({
   config,
   value,
-  onMixChange,
   t,
 }: {
   config: PodcastWorkshopConfig;
   value: PodcastWorkshopSubmission;
-  onMixChange: (key: "introSoundId" | "transitionSoundId" | "outroSoundId", soundId: PodcastSoundId) => void;
   t: TFn;
 }) {
   const [playing, setPlaying] = useState(false);
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const cancelledRef = useRef(false);
-  const segmentsWithAudio = config.segments.filter((segment) => {
-    const voice = value.productionSegments[segment.id]?.voice;
-    return !!voice?.audioDataUrl;
-  });
-  const missingCount = config.segments.length - segmentsWithAudio.length;
-  const totalSeconds = segmentsWithAudio.reduce((sum, segment) => {
-    return sum + (value.productionSegments[segment.id]?.voice?.durationSeconds ?? 0);
-  }, 0);
+  const segmentsWithAudio = getVoiceSegments(config, value);
+  const totalSeconds = getVoiceDuration(config, value);
 
   useEffect(() => {
     return () => {
@@ -967,7 +946,7 @@ function ProductionPanel({
       return;
     }
 
-    if (segmentsWithAudio.length === 0 && !value.productionMix.introSoundId && !value.productionMix.outroSoundId) return;
+    if (segmentsWithAudio.length === 0) return;
 
     cancelledRef.current = false;
     setPlaying(true);
@@ -989,20 +968,272 @@ function ProductionPanel({
   }
 
   return (
+    <div className="podcastProductionPlayback">
+      <div className="podcastProductionHeader">
+        <h3>{t("podcastWorkshop.productionControlTitle")}</h3>
+        <span>{formatDuration(totalSeconds)}</span>
+      </div>
+      <button
+        type="button"
+        onClick={playWholePodcast}
+        disabled={segmentsWithAudio.length === 0}
+        className="podcastProductionPlay"
+      >
+        {playing ? t("podcastWorkshop.stopFullPodcast") : t("podcastWorkshop.playFullPodcast")}
+      </button>
+
+      <style jsx>{`
+        .podcastProductionPlayback {
+          display: grid;
+          gap: 12px;
+        }
+
+        .podcastProductionHeader {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .podcastProductionHeader h3 {
+          margin: 0;
+          font-size: 15px;
+          color: #0f172a;
+        }
+
+        .podcastProductionHeader span {
+          border-radius: 999px;
+          background: white;
+          color: #0f766e;
+          padding: 5px 8px;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastProductionPlay {
+          width: 100%;
+          border: 1px solid #0f172a;
+          border-radius: 12px;
+          background: #0f172a;
+          color: white;
+          padding: 10px 12px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .podcastProductionPlay:disabled {
+          cursor: not-allowed;
+          opacity: 0.55;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function FinalRoom({
+  config,
+  value,
+  readOnly,
+  feedback,
+  t,
+  onNotesChange,
+  onCriterionToggle,
+}: {
+  config: PodcastWorkshopConfig;
+  value: PodcastWorkshopSubmission;
+  readOnly: boolean;
+  feedback: PodcastWorkshopFeedback | null;
+  t: TFn;
+  onNotesChange: (notes: string) => void;
+  onCriterionToggle: (key: string) => void;
+}) {
+  const segmentsWithAudio = getVoiceSegments(config, value);
+  const missingCount = config.segments.length - segmentsWithAudio.length;
+  const finalFeedback = feedback?.rooms?.final ?? null;
+  const finalFeedbackText = String(finalFeedback?.text ?? "").trim();
+  const finalFeedbackStatus = finalFeedback?.status ?? "";
+
+  return (
+    <RoomCard title={t("podcastWorkshop.finalRoomTitle")} help={t("podcastWorkshop.finalHelp")}>
+      <div className="podcastFinalPreview">
+        <div>
+          <p>{t("podcastWorkshop.finalProductLabel")}</p>
+          <h3>{t("podcastWorkshop.finalPodcastTitle")}</h3>
+          <div className="podcastFinalStats">
+            <span>{t("podcastWorkshop.productionReady")}: {segmentsWithAudio.length}</span>
+            <span>{t("podcastWorkshop.productionMissing")}: {missingCount}</span>
+          </div>
+        </div>
+        <PodcastFullPlayback config={config} value={value} t={t} />
+      </div>
+
+      {finalFeedbackText || finalFeedbackStatus ? (
+        <div className={finalFeedbackStatus === "needs_work" ? "podcastFinalFeedback needsWork" : "podcastFinalFeedback"}>
+          <strong>{t("podcastWorkshop.teacherFeedbackTitle")}</strong>
+          {finalFeedbackStatus ? (
+            <span>
+              {finalFeedbackStatus === "needs_work"
+                ? t("podcastWorkshop.teacherNeedsWork")
+                : t("podcastWorkshop.teacherApproved")}
+            </span>
+          ) : null}
+          {finalFeedbackText ? <p>{finalFeedbackText}</p> : null}
+        </div>
+      ) : null}
+
+      <label style={{ ...labelStyle, marginTop: 16 }} htmlFor="podcast-notes">
+        {t("podcastWorkshop.finalNotesLabel")}
+      </label>
+      <textarea
+        id="podcast-notes"
+        value={value.notes}
+        onChange={(event) => onNotesChange(event.target.value)}
+        placeholder={t("podcastWorkshop.finalNotesPlaceholder")}
+        readOnly={readOnly}
+        rows={4}
+        style={{ ...textareaStyle, minHeight: 108, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
+      />
+
+      {config.criteria.length > 0 ? (
+        <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+          <h4 style={{ margin: "0 0 2px", fontSize: 15 }}>{t("podcastWorkshop.finalChecklistTitle")}</h4>
+          {config.criteria.map((criterion, index) => {
+            const key = `criterion_${index}`;
+            return (
+              <label
+                key={key}
+                className={value.selfAssessment[key] ? "podcastWorkshopCheck isChecked" : "podcastWorkshopCheck"}
+              >
+                <input
+                  type="checkbox"
+                  checked={value.selfAssessment[key] === true}
+                  disabled={readOnly}
+                  onChange={() => onCriterionToggle(key)}
+                  style={{ marginTop: 3 }}
+                />
+                <span>{criterion}</span>
+              </label>
+            );
+          })}
+        </div>
+      ) : null}
+
+      <style jsx>{`
+        .podcastFinalPreview {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+          gap: 14px;
+          align-items: stretch;
+          border: 1px solid rgba(20, 184, 166, 0.20);
+          border-radius: 14px;
+          background: rgba(240, 253, 250, 0.94);
+          padding: 14px;
+        }
+
+        .podcastFinalPreview p {
+          margin: 0 0 6px;
+          color: #0f766e;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastFinalPreview h3 {
+          margin: 0;
+          color: #0f172a;
+          font-size: 21px;
+        }
+
+        .podcastFinalStats {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 12px;
+        }
+
+        .podcastFinalStats span {
+          border-radius: 999px;
+          background: white;
+          color: #0f766e;
+          padding: 6px 9px;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastFinalFeedback {
+          display: grid;
+          gap: 8px;
+          margin-top: 14px;
+          border: 1px solid rgba(16, 185, 129, 0.24);
+          border-radius: 14px;
+          background: rgba(236, 253, 245, 0.96);
+          padding: 13px;
+          color: #0f172a;
+        }
+
+        .podcastFinalFeedback.needsWork {
+          border-color: rgba(245, 158, 11, 0.28);
+          background: rgba(255, 251, 235, 0.96);
+        }
+
+        .podcastFinalFeedback strong {
+          color: #065f46;
+          font-size: 14px;
+        }
+
+        .podcastFinalFeedback.needsWork strong {
+          color: #92400e;
+        }
+
+        .podcastFinalFeedback span {
+          justify-self: start;
+          border-radius: 999px;
+          background: white;
+          color: #047857;
+          padding: 5px 8px;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastFinalFeedback.needsWork span {
+          color: #92400e;
+        }
+
+        .podcastFinalFeedback p {
+          margin: 0;
+          white-space: pre-wrap;
+          line-height: 1.55;
+          font-weight: 650;
+        }
+
+        @media (max-width: 760px) {
+          .podcastFinalPreview {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+    </RoomCard>
+  );
+}
+
+function ProductionPanel({
+  config,
+  value,
+  onMixChange,
+  t,
+}: {
+  config: PodcastWorkshopConfig;
+  value: PodcastWorkshopSubmission;
+  onMixChange: (key: "introSoundId" | "transitionSoundId" | "outroSoundId", soundId: PodcastSoundId) => void;
+  t: TFn;
+}) {
+  const segmentsWithAudio = getVoiceSegments(config, value);
+  const missingCount = config.segments.length - segmentsWithAudio.length;
+
+  return (
     <aside className="podcastProductionPanel">
       <div className="podcastProductionCard isPrimary">
-        <div className="podcastProductionHeader">
-          <h3>{t("podcastWorkshop.productionControlTitle")}</h3>
-          <span>{formatDuration(totalSeconds)}</span>
-        </div>
-        <button
-          type="button"
-          onClick={playWholePodcast}
-          disabled={segmentsWithAudio.length === 0}
-          className="podcastProductionPlay"
-        >
-          {playing ? t("podcastWorkshop.stopFullPodcast") : t("podcastWorkshop.playFullPodcast")}
-        </button>
+        <PodcastFullPlayback config={config} value={value} t={t} />
       </div>
 
       <div className="podcastProductionCard">
