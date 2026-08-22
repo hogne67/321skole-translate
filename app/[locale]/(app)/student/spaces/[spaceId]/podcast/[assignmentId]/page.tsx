@@ -64,6 +64,13 @@ function buildSubmissionId(spaceId: string, assignmentId: string, uid: string) {
   return `${spaceId}_${assignmentId}_${uid}`;
 }
 
+function hasPodcastTeacherFeedback(feedback: PodcastWorkshopFeedback | null): boolean {
+  if (!feedback) return false;
+  return Object.values(feedback.rooms).some((room) => {
+    return String(room.text ?? "").trim().length > 0 || !!room.status;
+  });
+}
+
 export default function StudentPodcastWorkshopPage() {
   const t = useTranslations("studentAssignment");
   const tAny = t as unknown as (key: string, values?: Record<string, unknown>) => string;
@@ -211,7 +218,15 @@ export default function StudentPodcastWorkshopPage() {
     );
   }
 
-  const submitted = status === "submitted" || status === "reviewed" || status === "approved";
+  const normalizedStatus = status.trim().toLowerCase();
+  const hasTeacherFeedback = hasPodcastTeacherFeedback(feedback);
+  const lockedByFinalReview = normalizedStatus === "reviewed" || normalizedStatus === "approved";
+  const waitingForTeacher = normalizedStatus === "submitted" && !hasTeacherFeedback;
+  const canEdit = !lockedByFinalReview && !waitingForTeacher;
+  const submitLabel =
+    normalizedStatus === "submitted" && hasTeacherFeedback
+      ? t("actions.resubmit")
+      : t("actions.submit");
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 p-3 pb-28">
@@ -225,7 +240,7 @@ export default function StudentPodcastWorkshopPage() {
         value={submission}
         feedback={feedback}
         disabled={saving}
-        submitted={submitted}
+        submitted={!canEdit}
         t={tAny}
         onChange={setSubmission}
       />
@@ -236,7 +251,7 @@ export default function StudentPodcastWorkshopPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              disabled={saving || submitted}
+              disabled={saving || !canEdit}
               onClick={() => save("draft")}
               className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-900 disabled:opacity-60"
             >
@@ -244,11 +259,11 @@ export default function StudentPodcastWorkshopPage() {
             </button>
             <button
               type="button"
-              disabled={saving || submitted}
+              disabled={saving || !canEdit}
               onClick={() => save("submitted")}
               className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white disabled:opacity-60"
             >
-              {saving ? t("actions.saving") : t("actions.submit")}
+              {saving ? t("actions.saving") : submitLabel}
             </button>
           </div>
         </div>
