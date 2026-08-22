@@ -117,6 +117,7 @@
       "finalReviewHint": "Listen to the full product and review the final work.",
       "studentNotes": "Student notes",
       "finalChecklist": "Self-assessment",
+      "sequencePart": "Part {n}",
       "part": "Part {n}",
       "empty": "Not filled in",
       "checked": "Checked",

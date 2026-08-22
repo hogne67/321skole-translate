@@ -9,6 +9,7 @@ import type {
     PodcastWorkshopRoomKey,
     PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
+import { getPodcastWorkshopSegments } from "@/lib/podcastWorkshop";
 import { getSoundDuration, playPodcastSound } from "@/lib/podcastSoundLibrary";
 
 type Props = {
@@ -46,7 +47,7 @@ function formatDuration(totalSeconds: number) {
 }
 
 function getVoiceSegments(config: PodcastWorkshopConfig, submission: PodcastWorkshopSubmission) {
-    return config.segments.filter((segment) => {
+    return getPodcastWorkshopSegments(config, submission).filter((segment) => {
         const voice = submission.productionSegments[segment.id]?.voice;
         return !!voice?.audioDataUrl;
     });
@@ -62,6 +63,12 @@ function getPodcastDuration(config: PodcastWorkshopConfig, submission: PodcastWo
         + getSoundDuration(submission.productionMix.introSoundId)
         + getSoundDuration(submission.productionMix.outroSoundId)
         + Math.max(0, voicedSegments.length - 1) * getSoundDuration(submission.productionMix.transitionSoundId);
+}
+
+function getSegmentEyebrow(title: string, index: number, t: Props["t"]) {
+    const normalized = title.trim().toLowerCase();
+    if (normalized === "intro" || normalized === "avslutning") return title;
+    return t("podcastWorkshop.sequencePart", { n: index + 1 });
 }
 
 export default function PodcastWorkshopSubmissionView({
@@ -239,6 +246,7 @@ function PodcastFullPlayback({
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const playerRef = useRef<HTMLAudioElement | null>(null);
     const cancelledRef = useRef(false);
+    const segments = getPodcastWorkshopSegments(config, submission);
     const segmentsWithAudio = getVoiceSegments(config, submission);
     const totalSeconds = getPodcastDuration(config, submission);
     const progressPercent = totalSeconds > 0 ? Math.min(100, Math.max(0, (elapsedSeconds / totalSeconds) * 100)) : 0;
@@ -283,13 +291,13 @@ function PodcastFullPlayback({
         setPlaying(true);
         setElapsedSeconds(0);
 
-        await playPodcastSound(submission.productionMix.introSoundId);
+        await playPodcastSound(submission.productionMix.introSoundId, { overlapSeconds: 0.35 });
         let elapsed = getSoundDuration(submission.productionMix.introSoundId);
         setElapsedSeconds(Math.min(totalSeconds, elapsed));
 
-        for (let index = 0; index < config.segments.length; index += 1) {
+        for (let index = 0; index < segments.length; index += 1) {
             if (cancelledRef.current) break;
-            const segment = config.segments[index];
+            const segment = segments[index];
             const voice = submission.productionSegments[segment.id]?.voice ?? null;
             const url = voice?.audioDataUrl;
             if (url) {
@@ -298,11 +306,11 @@ function PodcastFullPlayback({
                 setElapsedSeconds(Math.min(totalSeconds, elapsed));
             }
 
-            const hasNextVoice = config.segments.slice(index + 1).some((nextSegment) => {
+            const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
                 return !!submission.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
             });
             if (!cancelledRef.current && hasNextVoice) {
-                await playPodcastSound(submission.productionMix.transitionSoundId);
+                await playPodcastSound(submission.productionMix.transitionSoundId, { overlapSeconds: 0.2 });
                 elapsed += getSoundDuration(submission.productionMix.transitionSoundId);
                 setElapsedSeconds(Math.min(totalSeconds, elapsed));
             }
@@ -363,6 +371,8 @@ function renderRoom(
     submission: PodcastWorkshopSubmission,
     t: Props["t"]
 ) {
+    const segments = getPodcastWorkshopSegments(config, submission);
+
     if (room === "ideas") {
         return (
             <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -381,7 +391,7 @@ function renderRoom(
                     {t("podcastWorkshop.planTitle")}
                 </h3>
                 <SegmentList
-                    config={config}
+                    segments={segments}
                     t={t}
                     getText={(segmentId) => submission.segmentPlans[segmentId] ?? ""}
                 />
@@ -398,7 +408,7 @@ function renderRoom(
                         : t("podcastWorkshop.bulletsTitle")}
                 </h3>
                 <SegmentList
-                    config={config}
+                    segments={segments}
                     t={t}
                     getText={(segmentId) => submission.segmentScripts[segmentId] ?? ""}
                 />
@@ -413,12 +423,12 @@ function renderRoom(
                     {t("podcastWorkshop.productionTitle")}
                 </h3>
                 <div className="grid gap-3">
-                    {config.segments.map((segment, index) => {
+                    {segments.map((segment, index) => {
                         const voice = submission.productionSegments[segment.id]?.voice ?? null;
                         return (
                             <div key={segment.id} className="rounded-xl border border-slate-200 bg-white p-3">
                                 <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                                    {t("podcastWorkshop.part", { n: index + 1 })}
+                                    {getSegmentEyebrow(segment.title, index, t)}
                                 </div>
                                 <div className="mb-2 font-black text-slate-950">{segment.title}</div>
                                 {voice?.audioDataUrl ? (
@@ -451,7 +461,7 @@ function FinalReview({
     t: Props["t"];
 }) {
     const readyCount = getVoiceSegments(config, submission).length;
-    const missingCount = config.segments.length - readyCount;
+    const missingCount = getPodcastWorkshopSegments(config, submission).length - readyCount;
 
     return (
         <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4">
@@ -508,20 +518,20 @@ function FinalReview({
 }
 
 function SegmentList({
-    config,
+    segments,
     t,
     getText,
 }: {
-    config: PodcastWorkshopConfig;
+    segments: PodcastWorkshopConfig["segments"];
     t: Props["t"];
     getText: (segmentId: string) => string;
 }) {
     return (
         <div className="grid gap-3">
-            {config.segments.map((segment, index) => (
+            {segments.map((segment, index) => (
                 <div key={segment.id} className="rounded-xl border border-slate-200 bg-white p-3">
                     <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
-                        {t("podcastWorkshop.part", { n: index + 1 })}
+                        {getSegmentEyebrow(segment.title, index, t)}
                     </div>
                     <div className="mb-2 font-black text-slate-950">{segment.title}</div>
                     {textBlock(getText(segment.id), t)}

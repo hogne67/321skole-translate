@@ -95,6 +95,7 @@
       "finalReviewHint": "Ouça o produto completo e avalie o trabalho final.",
       "studentNotes": "Notas do aluno",
       "finalChecklist": "Autoavaliação",
+      "sequencePart": "Parte {n}",
       "part": "Parte {n}",
       "empty": "Não preenchido",
       "checked": "Marcado",

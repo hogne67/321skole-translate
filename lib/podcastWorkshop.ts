@@ -23,6 +23,7 @@ export type PodcastWorkshopSubmission = {
     version: 1;
     ideas: string;
     notes: string;
+    customSegments: PodcastWorkshopSegment[];
     segmentPlans: Record<string, string>;
     segmentScripts: Record<string, string>;
     productionSegments: Record<string, PodcastWorkshopProductionSegment>;
@@ -84,6 +85,24 @@ function readStringMap(value: unknown): Record<string, string> {
         out[safeKey] = String(item ?? "");
     });
     return out;
+}
+
+function readSegments(value: unknown): PodcastWorkshopSegment[] {
+    const rawSegments = Array.isArray(value) ? value : [];
+    return rawSegments
+        .map((item, index): PodcastWorkshopSegment | null => {
+            if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+            const segment = item as Record<string, unknown>;
+            const title = String(segment.title ?? "").trim();
+            if (!title) return null;
+            const id = String(segment.id ?? `segment_${index + 1}`).trim() || `segment_${index + 1}`;
+            return {
+                id,
+                title,
+                hint: String(segment.hint ?? "").trim(),
+            };
+        })
+        .filter((item): item is PodcastWorkshopSegment => !!item);
 }
 
 function readBoolMap(value: unknown): Record<string, boolean> {
@@ -182,21 +201,7 @@ export function readPodcastWorkshopConfig(
     if (!value || typeof value !== "object" || Array.isArray(value)) return null;
     const data = value as Record<string, unknown>;
 
-    const rawSegments = Array.isArray(data.segments) ? data.segments : [];
-    const segments = rawSegments
-        .map((item, index): PodcastWorkshopSegment | null => {
-            if (!item || typeof item !== "object" || Array.isArray(item)) return null;
-            const segment = item as Record<string, unknown>;
-            const title = String(segment.title ?? "").trim();
-            if (!title) return null;
-            const id = String(segment.id ?? `segment_${index + 1}`).trim() || `segment_${index + 1}`;
-            return {
-                id,
-                title,
-                hint: String(segment.hint ?? "").trim(),
-            };
-        })
-        .filter((item): item is PodcastWorkshopSegment => !!item);
+    const segments = readSegments(data.segments);
 
     if (segments.length === 0) return null;
 
@@ -234,6 +239,7 @@ export function createPodcastWorkshopSubmission(
         version: 1,
         ideas: "",
         notes: "",
+        customSegments: [],
         segmentPlans: {},
         segmentScripts: {},
         productionSegments: {},
@@ -254,6 +260,7 @@ export function readPodcastWorkshopSubmission(
         version: 1,
         ideas: String(data.ideas ?? ""),
         notes: String(data.notes ?? ""),
+        customSegments: readSegments(data.customSegments),
         segmentPlans: {
             ...base.segmentPlans,
             ...readStringMap(data.segmentPlans),
@@ -272,6 +279,13 @@ export function readPodcastWorkshopSubmission(
             ...readBoolMap(data.selfAssessment),
         },
     };
+}
+
+export function getPodcastWorkshopSegments(
+    config: PodcastWorkshopConfig,
+    submission?: PodcastWorkshopSubmission | null
+): PodcastWorkshopSegment[] {
+    return [...config.segments, ...(submission?.customSegments ?? [])];
 }
 
 export function createPodcastWorkshopFeedback(): PodcastWorkshopFeedback {

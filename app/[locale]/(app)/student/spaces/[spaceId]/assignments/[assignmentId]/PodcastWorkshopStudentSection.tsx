@@ -9,6 +9,7 @@ import type {
   PodcastWorkshopRoomKey,
   PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
+import { getPodcastWorkshopSegments } from "@/lib/podcastWorkshop";
 import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
 import { getSoundDuration, playPodcastSound, PODCAST_SOUND_GROUPS } from "@/lib/podcastSoundLibrary";
 
@@ -65,12 +66,13 @@ function hasText(value: string | undefined) {
 }
 
 function roomStatus(room: RoomKey, config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
+  const segments = getPodcastWorkshopSegments(config, value);
   if (room === "ideas") return hasText(value.ideas) ? "working" : "empty";
   if (room === "plan") {
-    return config.segments.some((segment) => hasText(value.segmentPlans[segment.id])) ? "working" : "empty";
+    return segments.some((segment) => hasText(value.segmentPlans[segment.id])) ? "working" : "empty";
   }
   if (room === "script") {
-    return config.segments.some((segment) => hasText(value.segmentScripts[segment.id])) ? "working" : "empty";
+    return segments.some((segment) => hasText(value.segmentScripts[segment.id])) ? "working" : "empty";
   }
   if (room === "production") return "later";
   return hasText(value.notes) || Object.values(value.selfAssessment).some(Boolean) ? "working" : "empty";
@@ -90,7 +92,7 @@ function formatDuration(totalSeconds: number) {
 }
 
 function getVoiceSegments(config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
-  return config.segments.filter((segment) => {
+  return getPodcastWorkshopSegments(config, value).filter((segment) => {
     const voice = value.productionSegments[segment.id]?.voice;
     return !!voice?.audioDataUrl;
   });
@@ -111,6 +113,12 @@ function getPodcastDuration(config: PodcastWorkshopConfig, value: PodcastWorksho
     + getSoundDuration(value.productionMix.introSoundId)
     + getSoundDuration(value.productionMix.outroSoundId)
     + transitionCount * getSoundDuration(value.productionMix.transitionSoundId);
+}
+
+function getSegmentEyebrow(title: string, index: number, t: TFn) {
+  const normalized = title.trim().toLowerCase();
+  if (normalized === "intro" || normalized === "avslutning") return title;
+  return t("podcastWorkshop.sequencePart", { n: index + 1 });
 }
 
 function getSupportedMimeType() {
@@ -145,6 +153,7 @@ export default function PodcastWorkshopStudentSection({
 }: Props) {
   const [activeRoom, setActiveRoom] = useState<RoomKey>("ideas");
   const readOnly = disabled || submitted;
+  const segments = useMemo(() => getPodcastWorkshopSegments(config, value), [config, value]);
 
   const rooms = useMemo(
     () => [
@@ -205,6 +214,22 @@ export default function PodcastWorkshopStudentSection({
     patch({ selfAssessment: { ...value.selfAssessment, [key]: !value.selfAssessment[key] } });
   }
 
+  function addCustomSegment() {
+    const customSegments = value.customSegments ?? [];
+    const nextNumber = customSegments.length + 1;
+    const id = `custom_${Date.now().toString(36)}_${nextNumber}`;
+    patch({
+      customSegments: [
+        ...customSegments,
+        {
+          id,
+          title: t("podcastWorkshop.customSegmentTitle", { n: nextNumber }),
+          hint: "",
+        },
+      ],
+    });
+  }
+
   function renderRoom() {
     if (activeRoom === "ideas") {
       return (
@@ -228,6 +253,7 @@ export default function PodcastWorkshopStudentSection({
         <RoomCard title={t("podcastWorkshop.planTitle")} help={t("podcastWorkshop.planHelp")}>
           <SegmentFields
             config={config}
+            segments={segments}
             value={value}
             readOnly={readOnly}
             t={t}
@@ -247,6 +273,7 @@ export default function PodcastWorkshopStudentSection({
         >
           <SegmentFields
             config={config}
+            segments={segments}
             value={value}
             readOnly={readOnly}
             t={t}
@@ -254,6 +281,7 @@ export default function PodcastWorkshopStudentSection({
             onVoiceChange={patchProductionVoice}
             onPlan={patchPlan}
             onScript={patchScript}
+            onAddSegment={addCustomSegment}
           />
         </RoomCard>
       );
@@ -263,23 +291,48 @@ export default function PodcastWorkshopStudentSection({
       return (
         <RoomCard title={t("podcastWorkshop.productionTitle")} help={t("podcastWorkshop.productionHelp")}>
           <div style={{ display: "grid", gap: 12 }}>
-            {config.segments.map((segment, index) => (
-              <div key={segment.id} className="podcastWorkshopSegmentShell">
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ margin: "0 0 2px", color: "#64748b", fontSize: 12, fontWeight: 900 }}>
-                    {t("podcastWorkshop.part", { n: index + 1 })}
-                  </p>
-                  <strong>{segment.title}</strong>
-                  <p style={{ margin: "6px 0 0", color: "#475569", lineHeight: 1.45 }}>
-                    {value.segmentScripts[segment.id] || value.segmentPlans[segment.id] || segment.hint}
-                  </p>
+            <InlineSoundBlock
+              label={t("podcastWorkshop.introSound")}
+              value={value.productionMix.introSoundId}
+              options={PODCAST_SOUND_GROUPS.intro}
+              t={t}
+              onChange={(soundId) => patchProductionMix("introSoundId", soundId)}
+            />
+            {segments.map((segment, index) => (
+              <div key={segment.id} style={{ display: "grid", gap: 10 }}>
+                <div className="podcastWorkshopSegmentShell">
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ margin: "0 0 2px", color: "#64748b", fontSize: 12, fontWeight: 900 }}>
+                      {getSegmentEyebrow(segment.title, index, t)}
+                    </p>
+                    <strong>{segment.title}</strong>
+                    <p style={{ margin: "6px 0 0", color: "#475569", lineHeight: 1.45 }}>
+                      {value.segmentScripts[segment.id] || value.segmentPlans[segment.id] || segment.hint}
+                    </p>
+                  </div>
+                  <PodcastSegmentPlayback
+                    asset={value.productionSegments[segment.id]?.voice ?? null}
+                    t={t}
+                  />
                 </div>
-                <PodcastSegmentPlayback
-                  asset={value.productionSegments[segment.id]?.voice ?? null}
-                  t={t}
-                />
+                {index < segments.length - 1 ? (
+                  <InlineSoundBlock
+                    label={t("podcastWorkshop.transitionSound")}
+                    value={value.productionMix.transitionSoundId}
+                    options={PODCAST_SOUND_GROUPS.transition}
+                    t={t}
+                    onChange={(soundId) => patchProductionMix("transitionSoundId", soundId)}
+                  />
+                ) : null}
               </div>
             ))}
+            <InlineSoundBlock
+              label={t("podcastWorkshop.outroSound")}
+              value={value.productionMix.outroSoundId}
+              options={PODCAST_SOUND_GROUPS.outro}
+              t={t}
+              onChange={(soundId) => patchProductionMix("outroSoundId", soundId)}
+            />
           </div>
         </RoomCard>
       );
@@ -344,7 +397,6 @@ export default function PodcastWorkshopStudentSection({
           activeRoom={activeRoom}
           config={config}
           value={value}
-          onMixChange={patchProductionMix}
           feedback={feedback ?? null}
           t={t}
         />
@@ -706,6 +758,7 @@ function RoomCard({
 
 function SegmentFields({
   config,
+  segments,
   value,
   readOnly,
   t,
@@ -713,8 +766,10 @@ function SegmentFields({
   onVoiceChange,
   onPlan,
   onScript,
+  onAddSegment,
 }: {
   config: PodcastWorkshopConfig;
+  segments: PodcastWorkshopConfig["segments"];
   value: PodcastWorkshopSubmission;
   readOnly: boolean;
   t: TFn;
@@ -722,10 +777,11 @@ function SegmentFields({
   onVoiceChange?: (segmentId: string, voice: StudentAudioAsset | null) => void;
   onPlan: (segmentId: string, text: string) => void;
   onScript: (segmentId: string, text: string) => void;
+  onAddSegment?: () => void;
 }) {
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      {config.segments.map((segment, index) => (
+      {segments.map((segment, index) => (
         <div
           key={segment.id}
           style={{
@@ -736,7 +792,7 @@ function SegmentFields({
           }}
         >
           <p style={{ margin: "0 0 3px", color: "#64748b", fontSize: 12, fontWeight: 900 }}>
-            {t("podcastWorkshop.part", { n: index + 1 })}
+            {getSegmentEyebrow(segment.title, index, t)}
           </p>
           <h4 style={{ margin: "0 0 5px", fontSize: 16 }}>{segment.title}</h4>
           {segment.hint ? (
@@ -800,6 +856,24 @@ function SegmentFields({
           )}
         </div>
       ))}
+      {mode === "script" && onAddSegment && !readOnly ? (
+        <button type="button" onClick={onAddSegment} className="podcastAddSegmentButton">
+          {t("podcastWorkshop.addSegment")}
+        </button>
+      ) : null}
+
+      <style jsx>{`
+        .podcastAddSegmentButton {
+          justify-self: start;
+          border: 1px solid rgba(15, 23, 42, 0.16);
+          border-radius: 12px;
+          background: white;
+          color: #0f172a;
+          padding: 10px 12px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+      `}</style>
     </div>
   );
 }
@@ -874,6 +948,7 @@ function PodcastFullPlayback({
   const [playing, setPlaying] = useState(false);
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const cancelledRef = useRef(false);
+  const segments = getPodcastWorkshopSegments(config, value);
   const segmentsWithAudio = getVoiceSegments(config, value);
   const totalSeconds = getPodcastDuration(config, value);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -917,12 +992,12 @@ function PodcastFullPlayback({
     cancelledRef.current = false;
     setPlaying(true);
     setElapsedSeconds(0);
-    await playPodcastSound(value.productionMix.introSoundId);
+    await playPodcastSound(value.productionMix.introSoundId, { overlapSeconds: 0.35 });
     let elapsed = getSoundDuration(value.productionMix.introSoundId);
     setElapsedSeconds(Math.min(totalSeconds, elapsed));
-    for (let index = 0; index < config.segments.length; index += 1) {
+    for (let index = 0; index < segments.length; index += 1) {
       if (cancelledRef.current) break;
-      const segment = config.segments[index];
+      const segment = segments[index];
       const voice = value.productionSegments[segment.id]?.voice ?? null;
       const url = voice?.audioDataUrl;
       if (url) {
@@ -930,17 +1005,17 @@ function PodcastFullPlayback({
         elapsed += voice.durationSeconds;
         setElapsedSeconds(Math.min(totalSeconds, elapsed));
       }
-      const hasNextVoice = config.segments.slice(index + 1).some((nextSegment) => {
+      const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
         return !!value.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
       });
       if (!cancelledRef.current && hasNextVoice) {
-        await playPodcastSound(value.productionMix.transitionSoundId);
+        await playPodcastSound(value.productionMix.transitionSoundId, { overlapSeconds: 0.2 });
         elapsed += getSoundDuration(value.productionMix.transitionSoundId);
         setElapsedSeconds(Math.min(totalSeconds, elapsed));
       }
     }
     if (!cancelledRef.current) {
-      await playPodcastSound(value.productionMix.outroSoundId);
+      await playPodcastSound(value.productionMix.outroSoundId, { overlapSeconds: 0 });
       elapsed += getSoundDuration(value.productionMix.outroSoundId);
       setElapsedSeconds(Math.min(totalSeconds, elapsed));
     }
@@ -1065,7 +1140,7 @@ function FinalRoom({
   onCriterionToggle: (key: string) => void;
 }) {
   const segmentsWithAudio = getVoiceSegments(config, value);
-  const missingCount = config.segments.length - segmentsWithAudio.length;
+  const missingCount = getPodcastWorkshopSegments(config, value).length - segmentsWithAudio.length;
   const finalFeedback = feedback?.rooms?.final ?? null;
   const finalFeedbackText = String(finalFeedback?.text ?? "").trim();
   const finalFeedbackStatus = finalFeedback?.status ?? "";
@@ -1235,46 +1310,20 @@ function FinalRoom({
 function ProductionPanel({
   config,
   value,
-  onMixChange,
   t,
 }: {
   config: PodcastWorkshopConfig;
   value: PodcastWorkshopSubmission;
-  onMixChange: (key: "introSoundId" | "transitionSoundId" | "outroSoundId", soundId: PodcastSoundId) => void;
   t: TFn;
 }) {
   const segmentsWithAudio = getVoiceSegments(config, value);
-  const missingCount = config.segments.length - segmentsWithAudio.length;
+  const segments = getPodcastWorkshopSegments(config, value);
+  const missingCount = segments.length - segmentsWithAudio.length;
 
   return (
     <aside className="podcastProductionPanel">
       <div className="podcastProductionCard isPrimary">
         <PodcastFullPlayback config={config} value={value} t={t} />
-      </div>
-
-      <div className="podcastProductionCard">
-        <h3>{t("podcastWorkshop.soundLibraryTitle")}</h3>
-        <SoundSelect
-          label={t("podcastWorkshop.introSound")}
-          value={value.productionMix.introSoundId}
-          options={PODCAST_SOUND_GROUPS.intro}
-          t={t}
-          onChange={(soundId) => onMixChange("introSoundId", soundId)}
-        />
-        <SoundSelect
-          label={t("podcastWorkshop.transitionSound")}
-          value={value.productionMix.transitionSoundId}
-          options={PODCAST_SOUND_GROUPS.transition}
-          t={t}
-          onChange={(soundId) => onMixChange("transitionSoundId", soundId)}
-        />
-        <SoundSelect
-          label={t("podcastWorkshop.outroSound")}
-          value={value.productionMix.outroSoundId}
-          options={PODCAST_SOUND_GROUPS.outro}
-          t={t}
-          onChange={(soundId) => onMixChange("outroSoundId", soundId)}
-        />
       </div>
 
       <div className="podcastProductionCard">
@@ -1294,7 +1343,7 @@ function ProductionPanel({
       <div className="podcastProductionCard">
         <h3>{t("podcastWorkshop.productionOrderTitle")}</h3>
         <div className="podcastProductionOrder">
-          {config.segments.map((segment, index) => {
+          {segments.map((segment, index) => {
             const voice = value.productionSegments[segment.id]?.voice ?? null;
             return (
               <div key={segment.id} className={voice ? "isReady" : ""}>
@@ -1457,18 +1506,20 @@ function SoundSelect({
   options,
   t,
   onChange,
+  compact = false,
 }: {
   label: string;
   value: PodcastSoundId;
   options: PodcastSoundId[];
   t: TFn;
   onChange: (soundId: PodcastSoundId) => void;
+  compact?: boolean;
 }) {
   const selected = value || "";
 
   return (
     <div className="podcastSoundSelect">
-      <label>{label}</label>
+      {compact ? null : <label>{label}</label>}
       <div className="podcastSoundRow">
         <select
           value={selected}
@@ -1546,18 +1597,80 @@ function SoundSelect({
   );
 }
 
+function InlineSoundBlock({
+  label,
+  value,
+  options,
+  t,
+  onChange,
+}: {
+  label: string;
+  value: PodcastSoundId;
+  options: PodcastSoundId[];
+  t: TFn;
+  onChange: (soundId: PodcastSoundId) => void;
+}) {
+  return (
+    <div className="podcastInlineSoundBlock">
+      <div>
+        <span>{label}</span>
+        <strong>{value ? t(`podcastWorkshop.sounds.${value}`) : t("podcastWorkshop.sounds.none")}</strong>
+      </div>
+      <SoundSelect
+        label={label}
+        value={value}
+        options={options}
+        t={t}
+        onChange={onChange}
+        compact
+      />
+
+      <style jsx>{`
+        .podcastInlineSoundBlock {
+          display: grid;
+          grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1fr);
+          gap: 12px;
+          align-items: center;
+          border: 1px dashed rgba(20, 184, 166, 0.34);
+          border-radius: 12px;
+          background: rgba(240, 253, 250, 0.78);
+          padding: 10px 12px;
+        }
+
+        .podcastInlineSoundBlock span {
+          display: block;
+          color: #0f766e;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .podcastInlineSoundBlock strong {
+          display: block;
+          margin-top: 2px;
+          color: #0f172a;
+          font-size: 14px;
+        }
+
+        @media (max-width: 620px) {
+          .podcastInlineSoundBlock {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 function SupportPanel({
   activeRoom,
   config,
   value,
-  onMixChange,
   feedback,
   t,
 }: {
   activeRoom: PodcastWorkshopRoomKey;
   config: PodcastWorkshopConfig;
   value: PodcastWorkshopSubmission;
-  onMixChange: (key: "introSoundId" | "transitionSoundId" | "outroSoundId", soundId: PodcastSoundId) => void;
   feedback: PodcastWorkshopFeedback | null;
   t: TFn;
 }) {
@@ -1570,7 +1683,6 @@ function SupportPanel({
       <ProductionPanel
         config={config}
         value={value}
-        onMixChange={onMixChange}
         t={t}
       />
     );

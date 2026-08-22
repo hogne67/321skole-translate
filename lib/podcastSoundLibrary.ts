@@ -91,24 +91,47 @@ function playToneFallback(soundId: PodcastSoundId) {
     });
 }
 
-export function playPodcastSound(soundId: PodcastSoundId) {
+export function playPodcastSound(soundId: PodcastSoundId, options: { overlapSeconds?: number } = {}) {
     const sound = getPodcastSound(soundId);
     if (!sound) return Promise.resolve();
 
     return new Promise<void>((resolve) => {
         const audio = new Audio(sound.src);
+        const maxSeconds = Math.max(0.1, sound.durationSeconds);
+        const overlapSeconds = Math.max(0, Math.min(options.overlapSeconds ?? 0, maxSeconds - 0.05));
+        const resolveAfterMs = Math.max(80, (maxSeconds - overlapSeconds) * 1000);
+        const stopAfterMs = Math.max(resolveAfterMs, maxSeconds * 1000);
         let settled = false;
+        let resolved = false;
+        let stopTimer = 0;
+        let resolveTimer = 0;
         const finish = () => {
             if (settled) return;
             settled = true;
+            window.clearTimeout(stopTimer);
+            window.clearTimeout(resolveTimer);
             resolve();
         };
-        audio.onended = finish;
+        const resolveEarly = () => {
+            if (resolved) return;
+            resolved = true;
+            resolve();
+        };
+        audio.onended = () => {
+            resolveEarly();
+            finish();
+        };
         audio.onerror = () => {
             void playToneFallback(soundId).then(finish);
         };
         void audio.play().catch(() => {
             void playToneFallback(soundId).then(finish);
         });
+        resolveTimer = window.setTimeout(resolveEarly, resolveAfterMs);
+        stopTimer = window.setTimeout(() => {
+            audio.pause();
+            audio.currentTime = 0;
+            finish();
+        }, stopAfterMs);
     });
 }
