@@ -216,6 +216,7 @@ export default function PodcastWorkshopStudentSection({
             readOnly={readOnly}
             t={t}
             mode="script"
+            onVoiceChange={patchProductionVoice}
             onPlan={patchPlan}
             onScript={patchScript}
           />
@@ -238,12 +239,9 @@ export default function PodcastWorkshopStudentSection({
                     {value.segmentScripts[segment.id] || value.segmentPlans[segment.id] || segment.hint}
                   </p>
                 </div>
-                <PodcastSegmentRecorder
-                  disabled={readOnly}
-                  segmentId={segment.id}
-                  existing={value.productionSegments[segment.id]?.voice ?? null}
+                <PodcastSegmentPlayback
+                  asset={value.productionSegments[segment.id]?.voice ?? null}
                   t={t}
-                  onChange={(voice) => patchProductionVoice(segment.id, voice)}
                 />
               </div>
             ))}
@@ -701,6 +699,7 @@ function SegmentFields({
   readOnly,
   t,
   mode,
+  onVoiceChange,
   onPlan,
   onScript,
 }: {
@@ -709,6 +708,7 @@ function SegmentFields({
   readOnly: boolean;
   t: TFn;
   mode: "plan" | "script";
+  onVoiceChange?: (segmentId: string, voice: StudentAudioAsset | null) => void;
   onPlan: (segmentId: string, text: string) => void;
   onScript: (segmentId: string, text: string) => void;
 }) {
@@ -774,10 +774,79 @@ function SegmentFields({
                   background: readOnly ? "rgba(248,250,252,0.78)" : "white",
                 }}
               />
+              {onVoiceChange ? (
+                <div style={{ marginTop: 12 }}>
+                  <PodcastSegmentRecorder
+                    disabled={readOnly}
+                    segmentId={segment.id}
+                    existing={value.productionSegments[segment.id]?.voice ?? null}
+                    t={t}
+                    onChange={(voice) => onVoiceChange(segment.id, voice)}
+                  />
+                </div>
+              ) : null}
             </>
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function PodcastSegmentPlayback({
+  asset,
+  t,
+}: {
+  asset: StudentAudioAsset | null;
+  t: TFn;
+}) {
+  if (!asset) {
+    return (
+      <div className="podcastSegmentMissing">
+        {t("podcastWorkshop.noVoiceRecording")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="podcastSegmentPlayback">
+      <div className="podcastSegmentPlaybackTop">
+        <strong>{t("podcastWorkshop.voiceRecording")}</strong>
+        <span>{formatDuration(asset.durationSeconds)}</span>
+      </div>
+      {asset.audioDataUrl ? (
+        <audio controls src={asset.audioDataUrl} style={{ width: "100%", marginTop: 8 }} />
+      ) : (
+        <div className="podcastSegmentMissing" style={{ marginTop: 8 }}>
+          {t("podcastWorkshop.audioSaved")}
+        </div>
+      )}
+
+      <style jsx>{`
+        .podcastSegmentPlayback {
+          border: 1px solid rgba(15, 23, 42, 0.12);
+          border-radius: 12px;
+          background: white;
+          padding: 10px;
+        }
+
+        .podcastSegmentPlaybackTop {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          color: #0f172a;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .podcastSegmentMissing {
+          border: 1px dashed rgba(15, 23, 42, 0.18);
+          border-radius: 12px;
+          background: rgba(248, 250, 252, 0.9);
+          color: #64748b;
+          padding: 10px;
+          font-weight: 800;
+        }
+      `}</style>
     </div>
   );
 }
