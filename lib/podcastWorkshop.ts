@@ -47,6 +47,7 @@ export type PodcastSoundId =
 export type PodcastWorkshopProductionMix = {
     introSoundId: PodcastSoundId;
     transitionSoundId: PodcastSoundId;
+    transitionSoundIds: Record<string, PodcastSoundId>;
     outroSoundId: PodcastSoundId;
 };
 
@@ -180,12 +181,22 @@ function readSoundId(value: unknown): PodcastSoundId {
 
 function readProductionMix(value: unknown): PodcastWorkshopProductionMix {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-        return { introSoundId: "", transitionSoundId: "", outroSoundId: "" };
+        return { introSoundId: "", transitionSoundId: "", transitionSoundIds: {}, outroSoundId: "" };
     }
     const data = value as Record<string, unknown>;
+    const transitionSoundIds: Record<string, PodcastSoundId> = {};
+    if (data.transitionSoundIds && typeof data.transitionSoundIds === "object" && !Array.isArray(data.transitionSoundIds)) {
+        Object.entries(data.transitionSoundIds as Record<string, unknown>).forEach(([key, item]) => {
+            const safeKey = String(key ?? "").trim();
+            if (!safeKey) return;
+            transitionSoundIds[safeKey] = readSoundId(item);
+        });
+    }
+
     return {
         introSoundId: readSoundId(data.introSoundId),
         transitionSoundId: readSoundId(data.transitionSoundId),
+        transitionSoundIds,
         outroSoundId: readSoundId(data.outroSoundId),
     };
 }
@@ -243,7 +254,7 @@ export function createPodcastWorkshopSubmission(
         segmentPlans: {},
         segmentScripts: {},
         productionSegments: {},
-        productionMix: { introSoundId: "", transitionSoundId: "", outroSoundId: "" },
+        productionMix: { introSoundId: "", transitionSoundId: "", transitionSoundIds: {}, outroSoundId: "" },
         selfAssessment,
     };
 }
@@ -285,7 +296,20 @@ export function getPodcastWorkshopSegments(
     config: PodcastWorkshopConfig,
     submission?: PodcastWorkshopSubmission | null
 ): PodcastWorkshopSegment[] {
-    return [...config.segments, ...(submission?.customSegments ?? [])];
+    const customSegments = submission?.customSegments ?? [];
+    if (customSegments.length === 0) return config.segments;
+
+    const outroIndex = config.segments.findIndex((segment) => {
+        const title = segment.title.trim().toLowerCase();
+        return title === "avslutning" || title === "outro";
+    });
+
+    if (outroIndex < 0) return [...config.segments, ...customSegments];
+    return [
+        ...config.segments.slice(0, outroIndex),
+        ...customSegments,
+        ...config.segments.slice(outroIndex),
+    ];
 }
 
 export function createPodcastWorkshopFeedback(): PodcastWorkshopFeedback {

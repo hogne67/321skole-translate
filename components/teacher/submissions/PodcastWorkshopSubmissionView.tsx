@@ -56,19 +56,32 @@ function getVoiceSegments(config: PodcastWorkshopConfig, submission: PodcastWork
 function getPodcastDuration(config: PodcastWorkshopConfig, submission: PodcastWorkshopSubmission) {
     const voicedSegments = getVoiceSegments(config, submission);
     if (voicedSegments.length === 0) return 0;
+    const segments = getPodcastWorkshopSegments(config, submission);
     const voiceSeconds = voicedSegments.reduce((sum, segment) => {
         return sum + (submission.productionSegments[segment.id]?.voice?.durationSeconds ?? 0);
+    }, 0);
+    const transitionSeconds = segments.reduce((sum, segment, index) => {
+        const voice = submission.productionSegments[segment.id]?.voice;
+        const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
+            return !!submission.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
+        });
+        if (!voice?.audioDataUrl || !hasNextVoice) return sum;
+        return sum + getSoundDuration(getTransitionSoundId(submission, segment.id));
     }, 0);
     return voiceSeconds
         + getSoundDuration(submission.productionMix.introSoundId)
         + getSoundDuration(submission.productionMix.outroSoundId)
-        + Math.max(0, voicedSegments.length - 1) * getSoundDuration(submission.productionMix.transitionSoundId);
+        + transitionSeconds;
 }
 
 function getSegmentEyebrow(title: string, index: number, t: Props["t"]) {
     const normalized = title.trim().toLowerCase();
     if (normalized === "intro" || normalized === "avslutning") return title;
     return t("podcastWorkshop.sequencePart", { n: index + 1 });
+}
+
+function getTransitionSoundId(submission: PodcastWorkshopSubmission, segmentId: string) {
+    return submission.productionMix.transitionSoundIds?.[segmentId] ?? submission.productionMix.transitionSoundId ?? "";
 }
 
 export default function PodcastWorkshopSubmissionView({
@@ -291,7 +304,7 @@ function PodcastFullPlayback({
         setPlaying(true);
         setElapsedSeconds(0);
 
-        await playPodcastSound(submission.productionMix.introSoundId, { overlapSeconds: 0.35 });
+        await playPodcastSound(submission.productionMix.introSoundId);
         let elapsed = getSoundDuration(submission.productionMix.introSoundId);
         setElapsedSeconds(Math.min(totalSeconds, elapsed));
 
@@ -310,8 +323,9 @@ function PodcastFullPlayback({
                 return !!submission.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
             });
             if (!cancelledRef.current && hasNextVoice) {
-                await playPodcastSound(submission.productionMix.transitionSoundId, { overlapSeconds: 0.2 });
-                elapsed += getSoundDuration(submission.productionMix.transitionSoundId);
+                const transitionSoundId = getTransitionSoundId(submission, segment.id);
+                await playPodcastSound(transitionSoundId);
+                elapsed += getSoundDuration(transitionSoundId);
                 setElapsedSeconds(Math.min(totalSeconds, elapsed));
             }
         }

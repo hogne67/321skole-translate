@@ -108,17 +108,29 @@ function getPodcastDuration(config: PodcastWorkshopConfig, value: PodcastWorksho
   const voicedSegments = getVoiceSegments(config, value);
   if (voicedSegments.length === 0) return 0;
   const voiceSeconds = getVoiceDuration(config, value);
-  const transitionCount = Math.max(0, voicedSegments.length - 1);
+  const segments = getPodcastWorkshopSegments(config, value);
+  const transitionSeconds = segments.reduce((sum, segment, index) => {
+    const voice = value.productionSegments[segment.id]?.voice;
+    const hasNextVoice = segments.slice(index + 1).some((nextSegment) => {
+      return !!value.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
+    });
+    if (!voice?.audioDataUrl || !hasNextVoice) return sum;
+    return sum + getSoundDuration(getTransitionSoundId(value, segment.id));
+  }, 0);
   return voiceSeconds
     + getSoundDuration(value.productionMix.introSoundId)
     + getSoundDuration(value.productionMix.outroSoundId)
-    + transitionCount * getSoundDuration(value.productionMix.transitionSoundId);
+    + transitionSeconds;
 }
 
 function getSegmentEyebrow(title: string, index: number, t: TFn) {
   const normalized = title.trim().toLowerCase();
   if (normalized === "intro" || normalized === "avslutning") return title;
   return t("podcastWorkshop.sequencePart", { n: index + 1 });
+}
+
+function getTransitionSoundId(value: PodcastWorkshopSubmission, segmentId: string) {
+  return value.productionMix.transitionSoundIds?.[segmentId] ?? value.productionMix.transitionSoundId ?? "";
 }
 
 function getSupportedMimeType() {
@@ -206,6 +218,18 @@ export default function PodcastWorkshopStudentSection({
       productionMix: {
         ...value.productionMix,
         [key]: soundId,
+      },
+    });
+  }
+
+  function patchTransitionSound(segmentId: string, soundId: PodcastSoundId) {
+    patch({
+      productionMix: {
+        ...value.productionMix,
+        transitionSoundIds: {
+          ...(value.productionMix.transitionSoundIds ?? {}),
+          [segmentId]: soundId,
+        },
       },
     });
   }
@@ -318,10 +342,10 @@ export default function PodcastWorkshopStudentSection({
                 {index < segments.length - 1 ? (
                   <InlineSoundBlock
                     label={t("podcastWorkshop.transitionSound")}
-                    value={value.productionMix.transitionSoundId}
+                    value={getTransitionSoundId(value, segment.id)}
                     options={PODCAST_SOUND_GROUPS.transition}
                     t={t}
-                    onChange={(soundId) => patchProductionMix("transitionSoundId", soundId)}
+                    onChange={(soundId) => patchTransitionSound(segment.id, soundId)}
                   />
                 ) : null}
               </div>
@@ -992,7 +1016,7 @@ function PodcastFullPlayback({
     cancelledRef.current = false;
     setPlaying(true);
     setElapsedSeconds(0);
-    await playPodcastSound(value.productionMix.introSoundId, { overlapSeconds: 0.35 });
+    await playPodcastSound(value.productionMix.introSoundId);
     let elapsed = getSoundDuration(value.productionMix.introSoundId);
     setElapsedSeconds(Math.min(totalSeconds, elapsed));
     for (let index = 0; index < segments.length; index += 1) {
@@ -1009,13 +1033,14 @@ function PodcastFullPlayback({
         return !!value.productionSegments[nextSegment.id]?.voice?.audioDataUrl;
       });
       if (!cancelledRef.current && hasNextVoice) {
-        await playPodcastSound(value.productionMix.transitionSoundId, { overlapSeconds: 0.2 });
-        elapsed += getSoundDuration(value.productionMix.transitionSoundId);
+        const transitionSoundId = getTransitionSoundId(value, segment.id);
+        await playPodcastSound(transitionSoundId);
+        elapsed += getSoundDuration(transitionSoundId);
         setElapsedSeconds(Math.min(totalSeconds, elapsed));
       }
     }
     if (!cancelledRef.current) {
-      await playPodcastSound(value.productionMix.outroSoundId, { overlapSeconds: 0 });
+      await playPodcastSound(value.productionMix.outroSoundId);
       elapsed += getSoundDuration(value.productionMix.outroSoundId);
       setElapsedSeconds(Math.min(totalSeconds, elapsed));
     }
