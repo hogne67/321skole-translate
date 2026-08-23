@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -48,12 +48,14 @@ export default function JoinClient() {
   const router = useRouter();
 
   const initialCode = useMemo(() => (sp.get("code") ?? "").trim(), [sp]);
+  const hasPrefilledCode = initialCode.length > 0;
 
   const [code, setCode] = useState(initialCode);
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   async function waitForUser(): Promise<User> {
     const current = auth.currentUser;
@@ -148,6 +150,11 @@ export default function JoinClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCode, locale, router]);
 
+  useEffect(() => {
+    if (!hasPrefilledCode || checkingExisting) return;
+    nameInputRef.current?.focus();
+  }, [checkingExisting, hasPrefilledCode]);
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -224,10 +231,19 @@ export default function JoinClient() {
             id="space-code"
             name="spaceCode"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={(e) => {
+              if (!hasPrefilledCode) setCode(e.target.value);
+            }}
             placeholder={t("fields.spaceCode.placeholder")}
-            className="mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none"
+            className={[
+              "mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none",
+              hasPrefilledCode
+                ? "cursor-not-allowed border-slate-200 bg-slate-100 font-black text-slate-700"
+                : "bg-white",
+            ].join(" ")}
             disabled={busy}
+            readOnly={hasPrefilledCode}
+            aria-readonly={hasPrefilledCode}
             autoCapitalize="characters"
             autoCorrect="off"
           />
@@ -238,12 +254,18 @@ export default function JoinClient() {
             {t("fields.name.label")}
           </label>
           <input
+            ref={nameInputRef}
             id="displayName"
             name="displayName"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder={t("fields.name.placeholder")}
-            className="mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none"
+            className={[
+              "mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none",
+              hasPrefilledCode
+                ? "border-emerald-200 bg-emerald-50 focus:border-emerald-500 focus:bg-white"
+                : "bg-white",
+            ].join(" ")}
             disabled={busy}
           />
           <div className="mt-1 text-xs text-muted-foreground">{t("fields.name.tip")}</div>

@@ -8,11 +8,16 @@ import Link from "next/link";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { db, auth } from "@/lib/firebase";
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  limit,
+  query,
   serverTimestamp,
   updateDoc,
   setDoc,
+  where,
   type DocumentData,
   type Timestamp,
 } from "firebase/firestore";
@@ -83,6 +88,7 @@ type SubmissionDoc = {
 };
 
 type PublishedLessonDoc = {
+  lessonId?: string;
   title?: string;
   level?: string;
   topic?: string;
@@ -427,6 +433,7 @@ function getStudentReadingTextStyle(textSize: TextSize): React.CSSProperties {
 function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
   const d = data as Partial<PublishedLessonDoc>;
   return {
+    lessonId: typeof d.lessonId === "string" ? d.lessonId : undefined,
     title: typeof d.title === "string" ? d.title : undefined,
     level: typeof d.level === "string" ? d.level : undefined,
     topic: typeof d.topic === "string" ? d.topic : undefined,
@@ -441,6 +448,27 @@ function asPublishedLessonDoc(data: DocumentData): PublishedLessonDoc {
     readingTestConfig: d.readingTestConfig,
     isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
     textSize: normalizeTextSize(d.textSize),
+  };
+}
+
+async function findActivePublishedReplacement(rawData: PublishedLessonDoc) {
+  const sourceLessonId = rawData.lessonId?.trim();
+  if (!sourceLessonId) return null;
+
+  const replacements = await getDocs(
+    query(
+      collection(db, "published_lessons"),
+      where("lessonId", "==", sourceLessonId),
+      where("isActive", "==", true),
+      limit(1)
+    )
+  );
+
+  if (replacements.empty) return null;
+  const replacement = replacements.docs[0];
+  return {
+    id: replacement.id,
+    data: asPublishedLessonDoc(replacement.data()),
   };
 }
 
@@ -1495,13 +1523,21 @@ export default function StudentLessonPage() {
           const publishedSnap = await getDoc(doc(db, "published_lessons", lessonId));
 
           if (publishedSnap.exists()) {
-            const rawData = asPublishedLessonDoc(publishedSnap.data());
+            let effectiveLessonId = lessonId;
+            let rawData = asPublishedLessonDoc(publishedSnap.data());
 
             if (rawData?.isActive === false) {
-              setLesson(null);
-              setError(t("errors.notPublished"));
-              if (alive) setLoading(false);
-              return;
+              const replacement = await findActivePublishedReplacement(rawData);
+
+              if (replacement?.data) {
+                effectiveLessonId = replacement.id;
+                rawData = replacement.data;
+              } else {
+                setLesson(null);
+                setError(t("errors.notPublished"));
+                if (alive) setLoading(false);
+                return;
+              }
             }
 
             loadedLesson = {
@@ -1521,7 +1557,7 @@ export default function StudentLessonPage() {
               text: rawData.text,
               status: "published",
               sourceCollection: "published_lessons",
-              publishedLessonId: lessonId,
+              publishedLessonId: effectiveLessonId,
             };
           }
         } catch (e: unknown) {
@@ -1735,7 +1771,7 @@ export default function StudentLessonPage() {
         ? `${uid}_course_${courseContext.courseId}_${courseContext.resourceId || lessonId}`
         : `${uid}_${lessonId}`;
       const publishedLessonId =
-        lesson.sourceCollection === "published_lessons" ? lessonId : null;
+        lesson.sourceCollection === "published_lessons" ? lesson.publishedLessonId || lessonId : null;
       const source =
         courseContext
           ? "course"
@@ -1748,7 +1784,7 @@ export default function StudentLessonPage() {
         practiceRef,
         {
           uid,
-          lessonId,
+          lessonId: publishedLessonId || lessonId,
           publishedLessonId,
           courseId: courseContext?.courseId ?? null,
           courseSessionNumber: courseContext?.sessionNumber ?? null,
@@ -1806,7 +1842,7 @@ export default function StudentLessonPage() {
         : `${uid}_${lessonId}`;
       const ref = doc(db, "practiceSubmissions", stableId);
       const publishedLessonId =
-        lesson.sourceCollection === "published_lessons" ? lessonId : null;
+        lesson.sourceCollection === "published_lessons" ? lesson.publishedLessonId || lessonId : null;
       const source =
         courseContext
           ? "course"
@@ -1818,7 +1854,7 @@ export default function StudentLessonPage() {
         ref,
         {
           uid,
-          lessonId,
+          lessonId: publishedLessonId || lessonId,
           publishedLessonId,
           courseId: courseContext?.courseId ?? null,
           courseSessionNumber: courseContext?.sessionNumber ?? null,

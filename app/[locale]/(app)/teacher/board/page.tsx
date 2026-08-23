@@ -205,7 +205,8 @@ function boardLiveCopy(locale: string) {
       videoText: "A new short walkthrough will be added here when the live board flow is ready.",
       liveKicker: "321school live",
       liveTitle: "Shared student entry",
-      liveText: "Students can go to /live and enter the code from the screen. Works for quiz, poll, word cloud and image activity.",
+      liveText: "For students, teachers and parents on a computer who cannot scan a QR code.",
+      liveUrlLabel: "Go to",
       liveButton: "Open live entry",
     };
   }
@@ -215,7 +216,8 @@ function boardLiveCopy(locale: string) {
       videoText: "Um novo guia curto será colocado aqui quando o fluxo ao vivo estiver pronto.",
       liveKicker: "321school live",
       liveTitle: "Entrada comum para alunos",
-      liveText: "Os alunos podem acessar /live e digitar o código da tela. Funciona para quiz, votação, nuvem de palavras e atividade com imagem.",
+      liveText: "Para alunos, professores e responsáveis no computador que não conseguem escanear um QR code.",
+      liveUrlLabel: "Acesse",
       liveButton: "Abrir entrada live",
     };
   }
@@ -224,7 +226,8 @@ function boardLiveCopy(locale: string) {
     videoText: "Her legger vi inn en ny kort gjennomgang når liveflyten er klar.",
     liveKicker: "321school live",
     liveTitle: "Felles inngang for elever",
-    liveText: "Elever kan gå til /live og skrive inn koden fra skjermen. Fungerer for quiz, avstemming, ordsky og bildeaktivitet.",
+    liveText: "For elever, lærere og foreldre som sitter på PC og ikke kan scanne QR-kode.",
+    liveUrlLabel: "Gå til",
     liveButton: "Åpne live-inngang",
   };
 }
@@ -631,6 +634,8 @@ function TeacherBoardIndexInner() {
   const timerText = timerCopy(locale);
   const quizText = quizLiveCopy(locale);
   const guestText = guestBoardCopy(locale);
+  const liveEntryHref = `https://321school.com/${locale}/live`;
+  const liveEntryDisplay = `321school.com/${locale}/live`;
 
   function requireTeacherLogin() {
     if (!isGuestPreview) return false;
@@ -1127,19 +1132,36 @@ function TeacherBoardIndexInner() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
-        <div>
-          <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">{boardText.liveKicker}</div>
-          <h2 className="mt-1 text-lg font-black text-slate-950">{boardText.liveTitle}</h2>
-          <p className="mt-1 text-sm font-semibold text-slate-600">{boardText.liveText}</p>
+      <details className="group rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
+          <div className="min-w-0">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">{boardText.liveKicker}</div>
+            <h2 className="mt-1 text-lg font-black text-slate-950">{boardText.liveTitle}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-600">{boardText.liveText}</p>
+          </div>
+          <ChevronDown className="h-5 w-5 shrink-0 text-slate-600 transition group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">{boardText.liveUrlLabel}</div>
+            <a
+              href={liveEntryHref}
+              className="mt-2 block break-words text-2xl font-black leading-tight text-emerald-950 no-underline hover:text-emerald-700 sm:text-3xl"
+            >
+              {liveEntryDisplay}
+            </a>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+              {boardText.liveText}
+            </p>
+            <a
+              href={liveEntryHref}
+              className="mt-4 inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-900 no-underline hover:bg-emerald-100"
+            >
+              {boardText.liveButton}
+            </a>
+          </div>
         </div>
-        <Link
-          href={`/${locale}/live`}
-          className="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 py-3 text-sm font-black text-emerald-900 no-underline hover:bg-emerald-100"
-        >
-          {boardText.liveButton}
-        </Link>
-      </section>
+      </details>
 
       {isGuestPreview ? (
         <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold leading-6 text-blue-900">

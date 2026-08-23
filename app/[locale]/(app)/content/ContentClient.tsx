@@ -240,6 +240,20 @@ function isImportedQuizLesson(it: ContentItem) {
   );
 }
 
+function isLibraryLessonCopy(it: ContentItem) {
+  if (it.type !== "lesson") return false;
+  const lesson = it as Extract<ContentItem, { type: "lesson" }> & {
+    source?: unknown;
+    sourcePublishedQuizId?: unknown;
+  };
+
+  return (
+    lesson.source === "321quiz-library" ||
+    lesson.source === "library" ||
+    (typeof lesson.sourcePublishedQuizId === "string" && lesson.sourcePublishedQuizId.trim().length > 0)
+  );
+}
+
 function newBoardSessionId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -534,6 +548,7 @@ export default function ContentClient() {
     }
 
     if (it.type === "lesson") {
+      if (isLibraryLessonCopy(it)) return safeMsg("cardTypes.fromLibrary", "Fra bibliotek");
       if (isMathContent(it)) return safeMsg("cardTypes.mathWorksheet", "Matteoppgave");
       if (isReadingTestLesson(it)) return safeMsg("cardTypes.readingTest", "Lesetest");
       if (isQuizLesson(it)) return safeMsg("cardTypes.quiz", "Quiz");
@@ -2289,7 +2304,9 @@ export default function ContentClient() {
               if (isDeletedItem(it)) {
                 pill = <StatusPill label={deletedLabel} variant="amber" />;
               } else if (it.type === "lesson") {
-                if (isReadingTestLesson(it)) {
+                if (isLibraryLessonCopy(it)) {
+                  pill = <StatusPill label={t("pills.library")} variant="gray" />;
+                } else if (isReadingTestLesson(it)) {
                   pill = <StatusPill label={t("pills.readingTest")} variant="gray" />;
                 } else if (isImageWritingLesson(it)) {
                   pill = <StatusPill label="Skriveoppgave med bilde" variant="gray" />;
@@ -2309,7 +2326,7 @@ export default function ContentClient() {
                       <StatusPill label={t("pills.unpublished")} variant="red" />
                     );
                 }
-              } else if (it.status) {
+              } else if (it.status && !isLibraryPractice(it)) {
                 pill = <StatusPill label={it.status} variant="gray" />;
               }
 
