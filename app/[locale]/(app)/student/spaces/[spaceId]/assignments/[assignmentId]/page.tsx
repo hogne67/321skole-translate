@@ -93,7 +93,6 @@ import {
 } from "@/lib/audio/studentAudio";
 import { getAssignmentDerivedState } from "./assignmentDerivedState";
 import { useAssignmentAudio } from "./useAssignmentAudio";
-import { DraftButton } from "./AssignmentActionButtons";
 
 const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({
   value: l.code,
@@ -1590,12 +1589,6 @@ export default function StudentAssignmentPage() {
             />
           </div>
 
-          <DraftButton
-            show={showDraftButton}
-            disabled={draftSaving || submitting || lock || !uid}
-            saving={draftSaving}
-            onClick={() => saveDraft(true)}
-          />
         </div>
       ) : null}
 
@@ -1766,7 +1759,7 @@ export default function StudentAssignmentPage() {
       />
 
       <StudentAssignmentAudioBar
-        visible={(showSubmitButton && !isReadingTest && !lock && !!uid) || !!audioRef.current}
+        visible={(((showDraftButton || showSubmitButton) && !isReadingTest && !lock && !!uid) || !!audioRef.current)}
         audioActive={!!audioRef.current}
         playbackRate={playbackRate}
         isPlaying={isPlaying}
@@ -1791,6 +1784,10 @@ export default function StudentAssignmentPage() {
           if (!a) return;
           a.currentTime = value;
         }}
+        showDraftButton={showDraftButton && !isReadingTest && !lock && !!uid}
+        draftSaving={draftSaving}
+        draftDisabled={draftSaving || submitting || lock || !uid}
+        onSaveDraft={() => saveDraft(true)}
         showSubmitButton={showSubmitButton && !isReadingTest && !lock && !!uid}
         submitting={submitting}
         submitLabel={submitLabel}

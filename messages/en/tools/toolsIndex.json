@@ -48,6 +48,10 @@
         "academyGenerator": {
           "title": "Create course",
           "description": "Build courses with sessions, resources and a clear structure for participants."
+        },
+        "podcastWorkshop": {
+          "title": "Podcast workshop",
+          "description": "Create oral production tasks from ideas and planning to script, recording, and submission."
         }
       }
     },
@@ -71,10 +75,6 @@
       "audioReading": {
         "title": "Audio reading",
         "description": "Let learners read a text aloud and record audio for feedback."
-      },
-      "podcastWorkshop": {
-        "title": "Podcast workshop",
-        "description": "Create oral production tasks from ideas and planning to script, recording, and submission."
       },
       "sentenceFixer": {
         "title": "Sentence fixer",

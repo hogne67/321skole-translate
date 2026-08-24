@@ -21,15 +21,14 @@ const premiumTools: Tool[] = [
   { id: "readingTestGenerator", href: "/producer/reading-tests/new", badge: "PREMIUM" },
   { id: "geometryGenerator", href: "/producer/math/geometry?new=1", badge: "NEW" },
   { id: "academyGenerator", href: "/teacher/courses/generate", badge: "PREMIUM" },
+  { id: "podcastWorkshop", href: "/tools/podcast-workshop", badge: "BETA" },
 ];
 
 const tools: Tool[] = [
   { id: "translate", href: "/tools/translate", badge: "POPULAR" },
   { id: "generator", href: "/tools/generator", badge: "NEW" },
-  { id: "fractionGenerator", href: "/producer/math/fractions", badge: "NEW" },
-  { id: "vocab", href: "/tools/vocab", badge: "BETA" },
-  { id: "audioReading", href: "/tools/audio-reading", badge: "BETA" },
-  { id: "podcastWorkshop", href: "/tools/podcast-workshop", badge: "BETA" },
+  { id: "vocab", href: "/tools/vocab", badge: "NEW" },
+  { id: "audioReading", href: "/tools/audio-reading", badge: "NEW" },
   { id: "sentenceFixer", href: "/tools/sentence-fixer", badge: "NEW" },
   { id: "speakingTopic", href: "/tools/speaking-topic", badge: "NEW" },
 ];

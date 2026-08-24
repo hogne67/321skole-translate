@@ -99,6 +99,7 @@ export default function PublicQuizSessionPage() {
   const [alias, setAlias] = useState("");
   const [emoji, setEmoji] = useState("😀");
   const [participantId, setParticipantId] = useState("");
+  const [editingIdentity, setEditingIdentity] = useState(false);
   const [choice, setChoice] = useState("");
   const [sentKey, setSentKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -183,6 +184,7 @@ export default function PublicQuizSessionPage() {
       const nextId = safeString(data.participantId);
       setParticipantId(nextId);
       window.localStorage.setItem(storageKey, JSON.stringify({ participantId: nextId, alias, emoji }));
+      setEditingIdentity(false);
     } catch (event) {
       setError(event instanceof Error ? event.message : "Kunne ikke bli med.");
     } finally {
@@ -222,9 +224,9 @@ export default function PublicQuizSessionPage() {
 
         {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div> : null}
 
-        {!participantId ? (
+        {!participantId || editingIdentity ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-3xl font-black">Skriv navn eller gruppenavn</h2>
+            <h2 className="text-3xl font-black">{participantId ? "Endre navn eller gruppenavn" : "Skriv navn eller gruppenavn"}</h2>
             <p className="mt-2 text-slate-600">Dette vises i resultatlisten.</p>
             <input
               value={alias}
@@ -241,7 +243,7 @@ export default function PublicQuizSessionPage() {
               ))}
             </div>
             <button onClick={join} disabled={busy || !alias.trim()} className="mt-6 w-full rounded-2xl bg-emerald-600 px-5 py-4 text-base font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600">
-              Bli med
+              {participantId ? "Lagre navn" : "Bli med"}
             </button>
           </section>
         ) : session?.status === "finished" ? (
@@ -261,7 +263,7 @@ export default function PublicQuizSessionPage() {
             <Clock3 className="mx-auto h-10 w-10 text-violet-700" />
             <h2 className="mt-4 text-3xl font-black">Du er med</h2>
             <p className="mt-2 text-slate-600">Venter på at host starter quizen.</p>
-            <button onClick={() => setParticipantId("")} className="mt-5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold">Endre navn</button>
+            <button onClick={() => setEditingIdentity(true)} className="mt-5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold">Endre navn</button>
           </section>
         ) : question ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">

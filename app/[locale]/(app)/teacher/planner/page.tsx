@@ -178,19 +178,12 @@ export default function TeacherPlannerPage() {
             <TrainingVideoPlayer
               title="Slik lager du en plan i 321Planner"
               videoUrl="https://youtu.be/jhzmYK11m1U"
-              buttonLabel="Se video"
+              buttonLabel="Se introduksjonsvideo"
               buttonTitle="Se instruksjonsvideo for 321Planner"
               closeLabel="Lukk"
-              iconOnly
-              className="h-12 w-12"
+              description="En kort gjennomgang av 321Planner og de viktigste valgene."
+              thumbnail
             />
-            <Link
-              href={withLocale(locale, "/teacher/planner/new")}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-bold text-white no-underline hover:bg-emerald-800"
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Lag ny plan
-            </Link>
           </div>
         </div>
       </section>
@@ -208,9 +201,18 @@ export default function TeacherPlannerPage() {
             <h2 className="m-0 text-lg font-extrabold text-slate-950">Oversikt</h2>
             <p className="mt-1 text-sm text-slate-600">{visiblePlanners.length} planer vises</p>
           </div>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
-            {planners.length} totalt
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
+              {planners.length} totalt
+            </span>
+            <Link
+              href={withLocale(locale, "/teacher/planner/new")}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-4 text-sm font-bold text-white no-underline hover:bg-emerald-800"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Lag ny plan
+            </Link>
+          </div>
         </div>
 
         <div className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_auto_auto]">

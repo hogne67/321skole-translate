@@ -48,6 +48,10 @@
         "academyGenerator": {
           "title": "Criar curso",
           "description": "Crie cursos com sessões, recursos e uma estrutura clara para participantes."
+        },
+        "podcastWorkshop": {
+          "title": "Oficina de podcast",
+          "description": "Crie tarefas de produção oral desde ideias e planejamento até roteiro, gravação e entrega."
         }
       }
     },
@@ -71,10 +75,6 @@
       "audioReading": {
         "title": "Leitura com áudio",
         "description": "Deixe alunos lerem um texto em voz alta e gravarem áudio para feedback."
-      },
-      "podcastWorkshop": {
-        "title": "Oficina de podcast",
-        "description": "Crie tarefas de produção oral desde ideias e planejamento até roteiro, gravação e entrega."
       },
       "sentenceFixer": {
         "title": "Corretor de frases",

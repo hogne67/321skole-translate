@@ -55,6 +55,8 @@
     "anonymousCreate": {
       "title": "Quer criar suas próprias atividades?",
       "body": "Você precisa entrar para criar atividades. Como visitante, você ainda pode ler atividades abertas e explorar a biblioteca.",
+      "draftNotice": "Os rascunhos salvos como visitante ficam neste dispositivo e podem ser abertos novamente em Spaces.",
+      "draftNoticeLink": "Abrir Spaces",
       "login": "Entrar / criar conta",
       "library": "Abrir biblioteca"
     },

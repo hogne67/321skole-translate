@@ -55,6 +55,8 @@
     "anonymousCreate": {
       "title": "Vil du lage egne oppgaver?",
       "body": "Du må være innlogget for å kunne lage oppgaver. Som gjest kan du fortsatt lese åpne oppgaver og utforske biblioteket.",
+      "draftNotice": "Kladder du lagrer som gjest, lagres på denne enheten og kan åpnes igjen i Spaces.",
+      "draftNoticeLink": "Åpne Spaces",
       "login": "Logg inn / opprett konto",
       "library": "Åpne bibliotek"
     },

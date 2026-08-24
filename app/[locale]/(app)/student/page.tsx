@@ -617,6 +617,33 @@ export default function StudentDashboard() {
               >
                 {t("anonymousCreate.body")}
               </p>
+
+              <div
+                style={{
+                  marginTop: 10,
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 12,
+                  background: "#f0fdf4",
+                  color: "#14532d",
+                  padding: "9px 10px",
+                  fontSize: 13,
+                  lineHeight: 1.45,
+                  fontWeight: 700,
+                }}
+              >
+                {t("anonymousCreate.draftNotice")}{" "}
+                <Link
+                  href={`/${locale}/student/spaces`}
+                  style={{
+                    color: "#047857",
+                    fontWeight: 900,
+                    textDecoration: "underline",
+                    textUnderlineOffset: 2,
+                  }}
+                >
+                  {t("anonymousCreate.draftNoticeLink")}
+                </Link>
+              </div>
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>

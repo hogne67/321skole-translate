@@ -27,6 +27,10 @@ type Props = {
     onStop: () => void;
     onReplay: () => void;
     onSeek: (value: number) => void;
+    showDraftButton: boolean;
+    draftSaving: boolean;
+    draftDisabled: boolean;
+    onSaveDraft: () => void;
     showSubmitButton: boolean;
     submitting: boolean;
     submitLabel: string;
@@ -52,6 +56,10 @@ export default function StudentAssignmentAudioBar({
     onStop,
     onReplay,
     onSeek,
+    showDraftButton,
+    draftSaving,
+    draftDisabled,
+    onSaveDraft,
     showSubmitButton,
     submitting,
     submitLabel,
@@ -200,15 +208,17 @@ export default function StudentAssignmentAudioBar({
                     </button>
                 </div>
 
-                {showSubmitButton ? (
-                    <button
-                        type="button"
-                        disabled={submitDisabled}
-                        onClick={onSubmit}
+                {showDraftButton || showSubmitButton ? (
+                    <div
                         style={{
-                            ...submitButtonStyle,
-                            opacity: submitDisabled ? 0.6 : 1,
-                            cursor: submitDisabled ? "not-allowed" : "pointer",
+                            display: "grid",
+                            gridTemplateColumns:
+                                showDraftButton && showSubmitButton
+                                    ? isMobileView
+                                        ? "minmax(0, 0.44fr) minmax(0, 0.56fr)"
+                                        : "auto auto"
+                                    : "1fr",
+                            gap: 8,
                             flex: isMobileView ? "1 1 100%" : "0 0 auto",
                             width: isMobileView ? "100%" : undefined,
                             minWidth: isMobileView ? "100%" : undefined,
@@ -216,8 +226,41 @@ export default function StudentAssignmentAudioBar({
                             marginTop: isMobileView ? 2 : 0,
                         }}
                     >
-                        {submitting ? t("actions.saving") : submitLabel}
-                    </button>
+                        {showDraftButton ? (
+                            <button
+                                type="button"
+                                disabled={draftDisabled}
+                                onClick={onSaveDraft}
+                                title="Lagrer uten å sende til lærer"
+                                style={{
+                                    ...draftButtonStyle,
+                                    opacity: draftDisabled ? 0.6 : 1,
+                                    cursor: draftDisabled ? "not-allowed" : "pointer",
+                                    width: "100%",
+                                    minWidth: 0,
+                                }}
+                            >
+                                {draftSaving ? "Lagrer kladd..." : "Lagre kladd"}
+                            </button>
+                        ) : null}
+
+                        {showSubmitButton ? (
+                            <button
+                                type="button"
+                                disabled={submitDisabled}
+                                onClick={onSubmit}
+                                style={{
+                                    ...submitButtonStyle,
+                                    opacity: submitDisabled ? 0.6 : 1,
+                                    cursor: submitDisabled ? "not-allowed" : "pointer",
+                                    width: "100%",
+                                    minWidth: 0,
+                                }}
+                            >
+                                {submitting ? t("actions.saving") : submitLabel}
+                            </button>
+                        ) : null}
+                    </div>
                 ) : null}
             </div>
         </div>
@@ -303,4 +346,17 @@ const submitButtonStyle: CSSProperties = {
     fontWeight: 900,
     fontSize: 14,
     whiteSpace: "nowrap",
+};
+
+const draftButtonStyle: CSSProperties = {
+    border: "1px solid rgba(15,23,42,0.18)",
+    background: "#ffffff",
+    color: "#0f172a",
+    borderRadius: 12,
+    minHeight: 40,
+    padding: "8px 12px",
+    fontWeight: 900,
+    fontSize: 14,
+    lineHeight: 1.15,
+    whiteSpace: "normal",
 };

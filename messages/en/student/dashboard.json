@@ -55,6 +55,8 @@
     "anonymousCreate": {
       "title": "Want to create your own lessons?",
       "body": "You need to be logged in to create lessons. As a guest, you can still read open lessons and explore the library.",
+      "draftNotice": "Drafts you save as a guest stay on this device and can be opened again in Spaces.",
+      "draftNoticeLink": "Open Spaces",
       "login": "Log in / create account",
       "library": "Open library"
     },
