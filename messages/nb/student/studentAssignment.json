@@ -214,6 +214,7 @@
       "voiceRecording": "Taleopptak",
       "recordVoice": "Ta opp tale",
       "recordAgain": "Ta opp på nytt",
+      "recordingControlsHint": "Når opptaket starter, får du valg for pause og stopp.",
       "noVoiceRecording": "Ingen taleopptak ennå. Gå til studio og spill inn denne delen.",
       "audioSaved": "Opptaket er lagret og kan spilles av etter innsending.",
       "productionControlTitle": "Produksjon",

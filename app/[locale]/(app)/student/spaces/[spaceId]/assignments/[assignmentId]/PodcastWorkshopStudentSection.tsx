@@ -751,19 +751,44 @@ function PodcastSegmentRecorder({
   t: TFn;
   onChange: (asset: StudentAudioAsset | null) => void;
 }) {
-  const [recording, setRecording] = useState(false);
+  const [recorderStatus, setRecorderStatus] = useState<"idle" | "recording" | "paused">("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(existing?.durationSeconds ?? 0);
   const [error, setError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef<number | null>(null);
+  const elapsedBeforePauseRef = useRef(0);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
+      if (timerRef.current != null) window.clearInterval(timerRef.current);
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
+
+  const recording = recorderStatus === "recording";
+  const paused = recorderStatus === "paused";
+
+  function clearRecordingTimer() {
+    if (timerRef.current != null) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+
+  function currentElapsedSeconds() {
+    if (startedAtRef.current == null) return elapsedBeforePauseRef.current;
+    return elapsedBeforePauseRef.current + Math.floor((Date.now() - startedAtRef.current) / 1000);
+  }
+
+  function startRecordingTimer() {
+    clearRecordingTimer();
+    timerRef.current = window.setInterval(() => {
+      setElapsedSeconds(currentElapsedSeconds());
+    }, 250);
+  }
 
   async function startRecording() {
     setError(null);
@@ -780,29 +805,25 @@ function PodcastSegmentRecorder({
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       recorderRef.current = recorder;
       chunksRef.current = [];
+      elapsedBeforePauseRef.current = 0;
       startedAtRef.current = Date.now();
       setElapsedSeconds(0);
-
-      const timer = window.setInterval(() => {
-        if (startedAtRef.current != null) {
-          setElapsedSeconds(Math.floor((Date.now() - startedAtRef.current) / 1000));
-        }
-      }, 250);
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) chunksRef.current.push(event.data);
       };
 
       recorder.onstop = async () => {
-        window.clearInterval(timer);
-        const durationSeconds = Math.max(1, Math.floor((Date.now() - (startedAtRef.current ?? Date.now())) / 1000));
+        clearRecordingTimer();
+        const durationSeconds = Math.max(1, currentElapsedSeconds());
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         const audioDataUrl = await blobToDataUrl(blob);
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
         recorderRef.current = null;
         startedAtRef.current = null;
-        setRecording(false);
+        elapsedBeforePauseRef.current = 0;
+        setRecorderStatus("idle");
         setElapsedSeconds(durationSeconds);
         onChange({
           version: 1,
@@ -817,17 +838,41 @@ function PodcastSegmentRecorder({
       };
 
       recorder.start();
-      setRecording(true);
+      setRecorderStatus("recording");
+      startRecordingTimer();
     } catch (err: unknown) {
       const name = err instanceof DOMException ? err.name : "";
       setError(name === "NotAllowedError" ? t("audioReading.errors.permission") : t("audioReading.errors.default"));
-      setRecording(false);
+      setRecorderStatus("idle");
     }
+  }
+
+  function pauseRecording() {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "recording") return;
+    elapsedBeforePauseRef.current = currentElapsedSeconds();
+    startedAtRef.current = null;
+    recorder.pause();
+    clearRecordingTimer();
+    setElapsedSeconds(elapsedBeforePauseRef.current);
+    setRecorderStatus("paused");
+  }
+
+  function resumeRecording() {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "paused") return;
+    startedAtRef.current = Date.now();
+    recorder.resume();
+    setRecorderStatus("recording");
+    startRecordingTimer();
   }
 
   function stopRecording() {
     const recorder = recorderRef.current;
     if (!recorder || recorder.state === "inactive") return;
+    elapsedBeforePauseRef.current = currentElapsedSeconds();
+    startedAtRef.current = null;
+    clearRecordingTimer();
     recorder.stop();
   }
 
@@ -837,39 +882,72 @@ function PodcastSegmentRecorder({
     recorderRef.current = null;
     chunksRef.current = [];
     startedAtRef.current = null;
-    setRecording(false);
+    elapsedBeforePauseRef.current = 0;
+    clearRecordingTimer();
+    setRecorderStatus("idle");
     setElapsedSeconds(0);
     setError(null);
     onChange(null);
   }
 
   const playableUrl = existing?.audioDataUrl ?? "";
+  const canStart = !recording && !paused && !disabled;
+  const canPause = recording && !disabled;
+  const canResume = paused && !disabled;
+  const canStop = (recording || paused) && !disabled;
+  const canDelete = !recording && !paused && !!existing && !disabled;
 
   return (
     <div className="podcastSegmentRecorder">
       <div className="podcastSegmentRecorderTop">
         <strong>{t("podcastWorkshop.voiceRecording")}</strong>
-        <span>{formatDuration(recording ? elapsedSeconds : existing?.durationSeconds ?? elapsedSeconds)}</span>
+        <span>{formatDuration(recording || paused ? elapsedSeconds : existing?.durationSeconds ?? elapsedSeconds)}</span>
       </div>
       <div className="podcastSegmentRecorderActions">
-        {!recording && !disabled ? (
-          <button type="button" onClick={startRecording}>
-            {existing ? t("podcastWorkshop.recordAgain") : t("podcastWorkshop.recordVoice")}
-          </button>
-        ) : null}
-        {recording ? (
-          <button type="button" onClick={stopRecording}>
-            {t("audioReading.stop")}
-          </button>
-        ) : null}
-        {!recording && existing && !disabled ? (
-          <button type="button" onClick={deleteRecording}>
-            {t("audioReading.delete")}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="isPrimary"
+          disabled={!canStart}
+          onClick={startRecording}
+        >
+          {existing ? t("podcastWorkshop.recordAgain") : t("podcastWorkshop.recordVoice")}
+        </button>
+        <button
+          type="button"
+          className={paused ? "isResume" : "isPause"}
+          disabled={!(canPause || canResume)}
+          onClick={paused ? resumeRecording : pauseRecording}
+        >
+          {paused ? t("audioReading.resume") : t("audioReading.pause")}
+        </button>
+        <button
+          type="button"
+          className="isStop"
+          disabled={!canStop}
+          onClick={stopRecording}
+        >
+          {t("audioReading.stop")}
+        </button>
+        <button
+          type="button"
+          className="isDelete"
+          disabled={!canDelete}
+          onClick={deleteRecording}
+        >
+          {t("audioReading.delete")}
+        </button>
       </div>
       {recording ? (
-        <div className="podcastSegmentRecording">{t("audioReading.recording")}</div>
+        <div className="podcastSegmentRecording">
+          <strong>{t("audioReading.recording")}</strong>
+          <span>{t("audioReading.recordingHint")}</span>
+        </div>
+      ) : null}
+      {paused ? (
+        <div className="podcastSegmentRecording isPaused">
+          <strong>{t("audioReading.paused")}</strong>
+          <span>{t("audioReading.pausedHint")}</span>
+        </div>
       ) : null}
       {playableUrl ? (
         <audio controls src={playableUrl} style={{ width: "100%", marginTop: 8 }} />
@@ -903,18 +981,66 @@ function PodcastSegmentRecorder({
           border: 1px solid rgba(15, 23, 42, 0.18);
           border-radius: 10px;
           background: white;
+          color: #0f172a;
           padding: 8px 10px;
           font-weight: 900;
           cursor: pointer;
         }
 
+        .podcastSegmentRecorderActions button:disabled {
+          cursor: not-allowed;
+          opacity: 0.42;
+        }
+
+        .podcastSegmentRecorderActions button.isPrimary {
+          border-color: rgba(190, 18, 60, 0.35);
+          background: #be123c;
+          color: white;
+        }
+
+        .podcastSegmentRecorderActions button.isPause {
+          border-color: rgba(245, 158, 11, 0.42);
+          background: #fffbeb;
+          color: #92400e;
+        }
+
+        .podcastSegmentRecorderActions button.isResume {
+          border-color: rgba(5, 150, 105, 0.35);
+          background: #ecfdf5;
+          color: #047857;
+        }
+
+        .podcastSegmentRecorderActions button.isStop {
+          border-color: rgba(15, 23, 42, 0.18);
+          background: #f8fafc;
+          color: #0f172a;
+        }
+
+        .podcastSegmentRecorderActions button.isDelete {
+          border-color: rgba(225, 29, 72, 0.20);
+          background: white;
+          color: #be123c;
+        }
+
         .podcastSegmentRecording {
+          display: grid;
+          gap: 2px;
           margin-top: 8px;
           border-radius: 10px;
           background: #fff1f2;
           color: #9f1239;
           padding: 8px 10px;
           font-weight: 900;
+        }
+
+        .podcastSegmentRecording span {
+          font-size: 12px;
+          font-weight: 750;
+        }
+
+        .podcastSegmentRecording.isPaused {
+          background: #fffbeb;
+          color: #92400e;
         }
 
         .podcastSegmentError {

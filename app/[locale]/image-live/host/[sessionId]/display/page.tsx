@@ -160,7 +160,7 @@ export default function ImageActivityDisplayPage() {
     }
   }
 
-  const responses = useMemo(() => session?.submissions.slice(0, 18) ?? [], [session?.submissions]);
+  const responses = useMemo(() => session?.submissions ?? [], [session?.submissions]);
   const participants = session?.participants ?? [];
   const isLobby = session?.status === "lobby";
   const hasTimer = typeof session?.endsAt === "number" && typeof session.timerSeconds === "number";
@@ -180,8 +180,8 @@ export default function ImageActivityDisplayPage() {
   useEffect(() => {
     setOrderIds((current) => {
       const existing = new Set(current);
-      const incoming = responses.map((item) => item.id);
-      const next = [...current.filter((id) => incoming.includes(id)), ...incoming.filter((id) => !existing.has(id))];
+      const incoming = [...responses].sort((a, b) => b.createdAt - a.createdAt).map((item) => item.id);
+      const next = [...incoming.filter((id) => !existing.has(id)), ...current.filter((id) => incoming.includes(id))];
       return next.length === current.length && next.every((id, index) => id === current[index]) ? current : next;
     });
   }, [responses]);
@@ -381,7 +381,7 @@ export default function ImageActivityDisplayPage() {
                 </div>
               )
             ) : orderedResponses.length ? (
-              <div className="grid max-h-full gap-3 overflow-hidden">
+              <div className="grid h-full min-h-0 content-start gap-3 overflow-y-auto pr-2">
                 {orderedResponses.map((item, index) => {
                   const pinned = pinnedIds.includes(item.id);
                   const featured = featuredId === item.id;
