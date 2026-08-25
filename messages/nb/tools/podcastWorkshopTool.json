@@ -17,7 +17,7 @@
       "title": "Tittel",
       "titlePlaceholder": "For eksempel: KI i hverdagen",
       "subject": "Fag",
-      "subjectPlaceholder": "For eksempel: Norsk, samfunnsfag",
+      "subjectPlaceholder": "Velg fag",
       "level": "Nivå",
       "levelPlaceholder": "For eksempel: B1, 8. trinn",
       "language": "Språk",
@@ -25,34 +25,84 @@
       "assignmentPlaceholder": "Lag en podcast der du forklarer temaet og bruker egne eksempler.",
       "duration": "Anbefalt lengde i minutter"
     },
+    "subjects": {
+      "norwegian": "Norsk",
+      "english": "Engelsk",
+      "mathematics": "Matematikk",
+      "socialStudies": "Samfunnsfag",
+      "science": "Naturfag",
+      "krle": "KRLE / religion og etikk",
+      "artsAndCrafts": "Kunst og håndverk",
+      "music": "Musikk",
+      "foodAndHealth": "Mat og helse",
+      "physicalEducation": "Kroppsøving",
+      "interdisciplinary": "Tverrfaglig",
+      "other": "Annet"
+    },
     "criteria": {
       "title": "Kriterier",
       "description": "Kriteriene følger eleven gjennom arbeidet og vises igjen i sluttrommet.",
       "add": "Legg til kriterium",
       "placeholder": "Skriv kriterium..."
     },
+    "sectionToggle": {
+      "show": "Vis valg",
+      "hide": "Skjul valg"
+    },
     "support": {
       "title": "Hjelpestoff",
-      "description": "Legg inn begreper og spørsmål elevene kan bruke i idérom og studio.",
+      "description": "Legg inn spørsmål og konkrete startere elevene kan bruke i arbeid og refleksjon.",
       "vocabularyTitle": "Hjelpeord og begreper",
       "questionsTitle": "Spørsmål",
+      "questionsDescription": "Spørsmålene kan hjelpe eleven å tenke gjennom innholdet og vurdere arbeidet før levering.",
+      "sectionWordsTitle": "Hjelpeord og startere per seksjon",
+      "sectionWordsDescription": "Én linje per ord eller setningsstarter. Disse vises når eleven trykker Vis hjelpeord i riktig felt.",
+      "sectionWordsCount": "{n} seksjoner har støtteord",
+      "sectionWordsPlaceholder": "Skriv ett hjelpeord eller én starter per linje...",
       "addVocabulary": "Legg til begrep",
       "addQuestion": "Legg til spørsmål",
       "vocabularyPlaceholder": "Fagbegrep eller hjelpeord...",
       "questionPlaceholder": "Spørsmål eleven kan bruke..."
+    },
+    "supportSections": {
+      "podcastName": {
+        "title": "Navn på podcasten",
+        "help": "Ord som hjelper eleven å finne en tydelig tittel."
+      },
+      "participants": {
+        "title": "Hvem skal være med?",
+        "help": "Roller og formuleringer for programleder, gjest, intervjuer og deltaker."
+      },
+      "ideas": {
+        "title": "Mine ideer",
+        "help": "Startere for ideer, fakta, eksempler og undersøkelser."
+      },
+      "importantPoints": {
+        "title": "Hva er viktig å få fram?",
+        "help": "Startere som hjelper eleven å velge hovedpoeng."
+      },
+      "listenerTakeaway": {
+        "title": "Hva skal lytteren sitte igjen med?",
+        "help": "Startere for avsluttende tanke, budskap eller spørsmål."
+      },
+      "segment": {
+        "title": "Del: {title}",
+        "help": "Hjelpeord for denne delen av podcasten."
+      }
     },
     "segments": {
       "title": "Podcaststruktur",
       "description": "Del opp podcasten i intro, innholdsdeler og avslutning.",
       "add": "Legg til del",
       "newTitle": "Del {n}",
-      "partTitle": "Del",
-      "hint": "Hint",
+      "defaultPartTitle": "Del {n}",
+      "partTitle": "Tittel",
+      "hint": "Hva skal eleven gjøre her?",
       "hintPlaceholder": "Hint til eleven..."
     },
     "settings": {
-      "title": "Innstillinger",
-      "description": "Velg hvordan elevene skal arbeide med manus, KI-støtte og anbefalt lengde.",
+      "title": "Arbeidsmåte og KI",
+      "description": "Styr hvor fritt elevene skal arbeide med manus, og om KI skal være tilgjengelig som veileder.",
       "scriptMode": "Manusmodus",
       "bulletPoints": "Stikkord",
       "fullScript": "Fullt manus",
@@ -79,7 +129,8 @@
       "loading": "Henter aktivitet...",
       "loadFailed": "Kunne ikke hente aktiviteten.",
       "notFound": "Fant ikke aktiviteten.",
-      "openContent": "Åpne Mitt innhold"
+      "openContent": "Åpne Mitt innhold",
+      "bottomHint": "Lagre når oppdraget er klart."
     },
     "defaults": {
       "criteria": {
@@ -87,6 +138,7 @@
         "assignment": "Innholdet svarer på oppdraget",
         "vocabulary": "Jeg bruker fagbegreper",
         "examples": "Jeg bruker eksempler",
+        "duration": "Podcasten holder seg omtrent til anbefalt lengde",
         "ending": "Podcasten har en tydelig avslutning",
         "audio": "Lyden er forståelig"
       },
@@ -119,6 +171,14 @@
           "title": "Avslutning",
           "hint": "Oppsummer hva lytteren skal sitte igjen med."
         }
+      },
+      "supportWords": {
+        "podcastName": "Politikkpraten\nKort forklart\nUngdom spør\nTema på 5 minutter\nHva betyr det?",
+        "participants": "programleder\ngjest\nekspert\nelev\nintervjuer\nforteller",
+        "ideas": "jeg vil forklare\net eksempel er\ndette møter vi i hverdagen\njeg må undersøke\nkilden sier\npå den ene siden\npå den andre siden",
+        "importantPoints": "det viktigste er\nlytteren må forstå\nhovedpoenget er\ndette henger sammen med\ndette bør forklares tydelig",
+        "listenerTakeaway": "til slutt skal lytteren\njeg vil at lytteren skal huske\netter podcasten skal man forstå\net spørsmål å tenke videre på er",
+        "segment": "først\nvidere\nfor eksempel\net viktig poeng\nsamtidig\npå den andre siden\ntil slutt"
       }
     }
   }

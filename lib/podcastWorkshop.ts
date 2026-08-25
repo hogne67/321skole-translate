@@ -16,6 +16,7 @@ export type PodcastWorkshopConfig = {
     criteria: string[];
     vocabulary: string[];
     guidingQuestions: string[];
+    supportWordsBySection: Record<string, string[]>;
     segments: PodcastWorkshopSegment[];
 };
 
@@ -25,6 +26,8 @@ export type PodcastWorkshopSubmission = {
     podcastName: string;
     participants: string;
     interviewees: string;
+    importantPoints: string;
+    listenerTakeaway: string;
     ideaQuestionNotes: Record<string, string>;
     notes: string;
     customSegments: PodcastWorkshopSegment[];
@@ -89,6 +92,18 @@ function readStringMap(value: unknown): Record<string, string> {
         const safeKey = String(key ?? "").trim();
         if (!safeKey) return;
         out[safeKey] = String(item ?? "");
+    });
+    return out;
+}
+
+function readStringListMap(value: unknown): Record<string, string[]> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const out: Record<string, string[]> = {};
+    Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
+        const safeKey = String(key ?? "").trim();
+        if (!safeKey) return;
+        const words = readStringArray(item).slice(0, 16);
+        if (words.length > 0) out[safeKey] = words;
     });
     return out;
 }
@@ -239,6 +254,7 @@ export function readPodcastWorkshopConfig(
         criteria: readStringArray(data.criteria),
         vocabulary: readStringArray(data.vocabulary),
         guidingQuestions: readStringArray(data.guidingQuestions),
+        supportWordsBySection: readStringListMap(data.supportWordsBySection),
         segments,
     };
 }
@@ -257,6 +273,8 @@ export function createPodcastWorkshopSubmission(
         podcastName: "",
         participants: "",
         interviewees: "",
+        importantPoints: "",
+        listenerTakeaway: "",
         ideaQuestionNotes: {},
         notes: "",
         customSegments: [],
@@ -282,6 +300,8 @@ export function readPodcastWorkshopSubmission(
         podcastName: String(data.podcastName ?? ""),
         participants: String(data.participants ?? ""),
         interviewees: String(data.interviewees ?? ""),
+        importantPoints: String(data.importantPoints ?? ""),
+        listenerTakeaway: String(data.listenerTakeaway ?? ""),
         ideaQuestionNotes: {
             ...base.ideaQuestionNotes,
             ...readStringMap(data.ideaQuestionNotes),

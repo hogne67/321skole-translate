@@ -21,6 +21,7 @@ import {
   readPodcastWorkshopSubmission,
   type PodcastWorkshopFeedback,
   type PodcastWorkshopConfig,
+  type PodcastWorkshopRoomKey,
   type PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
 
@@ -138,6 +139,7 @@ export default function StudentPodcastWorkshopPage() {
   const [assignment, setAssignment] = useState<AssignmentDoc | null>(null);
   const [config, setConfig] = useState<PodcastWorkshopConfig | null>(null);
   const [submission, setSubmission] = useState<PodcastWorkshopSubmission>(() => createPodcastWorkshopSubmission(null));
+  const [activeRoom, setActiveRoom] = useState<PodcastWorkshopRoomKey>("ideas");
   const [feedback, setFeedback] = useState<PodcastWorkshopFeedback | null>(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
@@ -208,19 +210,29 @@ export default function StudentPodcastWorkshopPage() {
   useEffect(() => {
     if (!submissionId || !config) return;
     const ref = doc(db, "spaces", spaceId, "lessons", assignmentId, "submissions", submissionId);
-    return onSnapshot(ref, (snap) => {
-      if (!snap.exists()) return;
-      const data = (snap.data() as SubmissionDoc) ?? {};
-      setStatus(String(data.status ?? ""));
-      void resolvePodcastAudioForPlayback(
-        readPodcastWorkshopSubmission(data.podcastWorkshop, config)
-      ).then(setSubmission);
-      setFeedback(readPodcastWorkshopFeedback(data.podcastWorkshopFeedback));
-    });
+    return onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = (snap.data() as SubmissionDoc) ?? {};
+        setStatus(String(data.status ?? ""));
+        void resolvePodcastAudioForPlayback(
+          readPodcastWorkshopSubmission(data.podcastWorkshop, config)
+        ).then(setSubmission);
+        setFeedback(readPodcastWorkshopFeedback(data.podcastWorkshopFeedback));
+      },
+      () => {
+        // The first draft may not exist yet. Firestore rules still protect writes.
+      }
+    );
   }, [assignmentId, config, spaceId, submissionId]);
 
   async function save(nextStatus: "draft" | "submitted") {
     if (!uid || !config) return;
+    if (nextStatus === "submitted" && activeRoom !== "final") {
+      setMsg(t("podcastWorkshop.goToFinalBeforeSubmit"));
+      return;
+    }
     setSaving(true);
     setMsg(null);
     setErr(null);
@@ -311,6 +323,10 @@ export default function StudentPodcastWorkshopPage() {
     normalizedStatus === "submitted" && hasTeacherFeedback
       ? t("actions.resubmit")
       : t("actions.submit");
+  const showSubmitButton = activeRoom === "final";
+  const footerHint = showSubmitButton
+    ? t("podcastWorkshop.submitFooterHint")
+    : t("podcastWorkshop.draftFooterHint");
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 p-3 pb-28">
@@ -327,11 +343,12 @@ export default function StudentPodcastWorkshopPage() {
         submitted={!canEdit}
         t={tAny}
         onChange={setSubmission}
+        onRoomChange={setActiveRoom}
       />
 
       <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 p-3 shadow-lg">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2">
-          <div className="text-sm font-semibold text-slate-700">{msg ?? ""}</div>
+          <div className="text-sm font-semibold text-slate-700">{msg ?? footerHint}</div>
           <div className="flex gap-2">
             <button
               type="button"
@@ -341,14 +358,16 @@ export default function StudentPodcastWorkshopPage() {
             >
               {saving ? t("actions.saving") : t("actions.saveDraft")}
             </button>
-            <button
-              type="button"
-              disabled={saving || !canEdit}
-              onClick={() => save("submitted")}
-              className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white disabled:opacity-60"
-            >
-              {saving ? t("actions.saving") : submitLabel}
-            </button>
+            {showSubmitButton ? (
+              <button
+                type="button"
+                disabled={saving || !canEdit}
+                onClick={() => save("submitted")}
+                className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white disabled:opacity-60"
+              >
+                {saving ? t("actions.saving") : submitLabel}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

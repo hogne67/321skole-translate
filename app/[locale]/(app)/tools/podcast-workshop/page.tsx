@@ -8,6 +8,7 @@ import { doc, getDoc } from "firebase/firestore";
 import {
   BookOpen,
   CheckCircle2,
+  ChevronDown,
   ListPlus,
   Mic2,
   Save,
@@ -27,6 +28,12 @@ type Segment = {
   title: string;
   hint: string;
   order: number;
+};
+
+type SupportSection = {
+  id: string;
+  title: string;
+  help: string;
 };
 
 type SavePodcastWorkshopResponse = {
@@ -60,6 +67,34 @@ function minutesFromSeconds(seconds: unknown) {
   return String(Math.round(seconds / 60));
 }
 
+function isEndingSegmentTitle(title: string) {
+  const normalized = title.trim().toLowerCase();
+  return normalized === "avslutning" || normalized === "ending" || normalized === "conclusão" || normalized === "conclusao";
+}
+
+function linesFromText(value: string) {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function readSupportWords(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, string[]> = {};
+  Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
+    const safeKey = key.trim();
+    if (!safeKey) return;
+    const words = stringArray(item).slice(0, 16);
+    if (words.length > 0) out[safeKey] = words;
+  });
+  return out;
+}
+
+function supportKeyForSegment(segmentId: string) {
+  return `segment:${segmentId}`;
+}
+
 export default function PodcastWorkshopPage() {
   const t = useTranslations("podcastWorkshopTool");
   const locale = useLocale();
@@ -72,6 +107,8 @@ export default function PodcastWorkshopPage() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [segmentsOpen, setSegmentsOpen] = useState(false);
 
   const [title, setTitle] = useState("");
   const [assignmentText, setAssignmentText] = useState("");
@@ -86,6 +123,7 @@ export default function PodcastWorkshopPage() {
     t("defaults.criteria.assignment"),
     t("defaults.criteria.vocabulary"),
     t("defaults.criteria.examples"),
+    t("defaults.criteria.duration"),
     t("defaults.criteria.ending"),
     t("defaults.criteria.audio"),
   ]);
@@ -94,13 +132,15 @@ export default function PodcastWorkshopPage() {
     t("defaults.vocabulary.example"),
     t("defaults.vocabulary.source"),
   ]);
-  const [guidingQuestions, setGuidingQuestions] = useState<string[]>(() => [
-    t("defaults.questions.topic"),
-    t("defaults.questions.everyday"),
-    t("defaults.questions.explain"),
-    t("defaults.questions.examples"),
-    t("defaults.questions.takeaway"),
-  ]);
+  const [guidingQuestions, setGuidingQuestions] = useState<string[]>([]);
+  const [supportWordsBySection, setSupportWordsBySection] = useState<Record<string, string[]>>(() => ({
+    podcastName: linesFromText(t("defaults.supportWords.podcastName")),
+    participants: linesFromText(t("defaults.supportWords.participants")),
+    ideas: linesFromText(t("defaults.supportWords.ideas")),
+    importantPoints: linesFromText(t("defaults.supportWords.importantPoints")),
+    listenerTakeaway: linesFromText(t("defaults.supportWords.listenerTakeaway")),
+    segment: linesFromText(t("defaults.supportWords.segment")),
+  }));
   const [segments, setSegments] = useState<Segment[]>(() => [
     { id: "intro", title: t("defaults.segments.intro.title"), hint: t("defaults.segments.intro.hint"), order: 0 },
     { id: "part_1", title: t("defaults.segments.part1.title"), hint: t("defaults.segments.part1.hint"), order: 1 },
@@ -110,6 +150,21 @@ export default function PodcastWorkshopPage() {
 
   const targetDurationSeconds = useMemo(() => normalizeSeconds(targetMinutes), [targetMinutes]);
   const canSave = title.trim().length > 0 && assignmentText.trim().length > 0 && segments.some((s) => s.title.trim());
+  const subjectOptions = [
+    "",
+    t("subjects.norwegian"),
+    t("subjects.english"),
+    t("subjects.mathematics"),
+    t("subjects.socialStudies"),
+    t("subjects.science"),
+    t("subjects.krle"),
+    t("subjects.artsAndCrafts"),
+    t("subjects.music"),
+    t("subjects.foodAndHealth"),
+    t("subjects.physicalEducation"),
+    t("subjects.interdisciplinary"),
+    t("subjects.other"),
+  ];
   const levelOptions = ["", "A1", "A2", "B1", "B2", "1.-4. trinn", "5.-7. trinn", "8.-10. trinn", "VGS"];
   const languageOptions = [
     ["nb", "Norsk bokmål"],
@@ -118,9 +173,43 @@ export default function PodcastWorkshopPage() {
     ["pt", "Português"],
   ];
   const durationOptions = ["2", "3", "4", "5", "6", "8", "10"];
+  const visibleSubjectOptions =
+    subject && !subjectOptions.includes(subject) ? [...subjectOptions, subject] : subjectOptions;
   const visibleLevelOptions = level && !levelOptions.includes(level) ? [...levelOptions, level] : levelOptions;
   const visibleDurationOptions =
     targetMinutes && !durationOptions.includes(targetMinutes) ? [...durationOptions, targetMinutes] : durationOptions;
+  const supportSections: SupportSection[] = [
+    {
+      id: "podcastName",
+      title: t("supportSections.podcastName.title"),
+      help: t("supportSections.podcastName.help"),
+    },
+    {
+      id: "ideas",
+      title: t("supportSections.ideas.title"),
+      help: t("supportSections.ideas.help"),
+    },
+    {
+      id: "participants",
+      title: t("supportSections.participants.title"),
+      help: t("supportSections.participants.help"),
+    },
+    {
+      id: "importantPoints",
+      title: t("supportSections.importantPoints.title"),
+      help: t("supportSections.importantPoints.help"),
+    },
+    {
+      id: "listenerTakeaway",
+      title: t("supportSections.listenerTakeaway.title"),
+      help: t("supportSections.listenerTakeaway.help"),
+    },
+    ...segments.map((segment) => ({
+      id: supportKeyForSegment(segment.id),
+      title: t("supportSections.segment.title", { title: segment.title }),
+      help: segment.hint || t("supportSections.segment.help"),
+    })),
+  ];
 
   useEffect(() => {
     setSavedId(activityId);
@@ -159,7 +248,9 @@ export default function PodcastWorkshopPage() {
         setAiSupport(config.aiSupport === "off" ? "off" : "coach");
         setCriteria(stringArray(config.criteria));
         setVocabulary(stringArray(config.vocabulary));
-        setGuidingQuestions(stringArray(config.guidingQuestions));
+        setGuidingQuestions([]);
+        const loadedSupportWords = readSupportWords(config.supportWordsBySection);
+        if (Object.keys(loadedSupportWords).length > 0) setSupportWordsBySection(loadedSupportWords);
 
         const loadedSegments = Array.isArray(config.segments)
           ? config.segments
@@ -204,16 +295,31 @@ export default function PodcastWorkshopPage() {
     setter(rows.filter((_, i) => i !== index));
   }
 
-  function addSegment() {
-    setSegments((current) => [
+  function updateSupportWords(sectionId: string, value: string) {
+    setSupportWordsBySection((current) => ({
       ...current,
-      {
+      [sectionId]: linesFromText(value).slice(0, 16),
+    }));
+  }
+
+  function addSegment() {
+    setSegments((current) => {
+      const nextPartNumber = current.filter((segment) => {
+        const normalizedTitle = segment.title.trim().toLowerCase();
+        return normalizedTitle !== "intro" && !isEndingSegmentTitle(segment.title);
+      }).length + 1;
+      const newSegment = {
         id: makeId("segment"),
-        title: t("segments.newTitle", { n: current.length + 1 }),
+        title: t("segments.defaultPartTitle", { n: nextPartNumber }),
         hint: "",
         order: current.length,
-      },
-    ]);
+      };
+      const endingIndex = current.findIndex((segment) => isEndingSegmentTitle(segment.title));
+      const next = endingIndex >= 0
+        ? [...current.slice(0, endingIndex), newSegment, ...current.slice(endingIndex)]
+        : [...current, newSegment];
+      return next.map((segment, order) => ({ ...segment, order }));
+    });
   }
 
   function updateSegment(index: number, patch: Partial<Segment>) {
@@ -249,6 +355,7 @@ export default function PodcastWorkshopPage() {
         criteria,
         vocabulary,
         guidingQuestions,
+        supportWordsBySection,
         segments,
       });
 
@@ -263,7 +370,7 @@ export default function PodcastWorkshopPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8">
+    <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-8">
       <Link href={`/${locale}/tools`} className="text-sm font-bold text-slate-600 hover:text-slate-950">
         {t("back")}
       </Link>
@@ -303,7 +410,13 @@ export default function PodcastWorkshopPage() {
               <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("fields.titlePlaceholder")} className={inputClass} />
             </Field>
             <Field label={t("fields.subject")}>
-              <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={t("fields.subjectPlaceholder")} className={inputClass} />
+              <select value={subject} onChange={(e) => setSubject(e.target.value)} className={inputClass}>
+                {visibleSubjectOptions.map((option) => (
+                  <option key={option || "empty"} value={option}>
+                    {option || t("fields.subjectPlaceholder")}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label={t("fields.level")}>
               <select value={level} onChange={(e) => setLevel(e.target.value)} className={inputClass}>
@@ -321,6 +434,13 @@ export default function PodcastWorkshopPage() {
                 ))}
               </select>
             </Field>
+            <Field label={t("fields.duration")}>
+              <select value={targetMinutes} onChange={(e) => setTargetMinutes(e.target.value)} className={inputClass}>
+                {visibleDurationOptions.map((option) => (
+                  <option key={option} value={option}>{t("overview.minutes", { n: Number(option) })}</option>
+                ))}
+              </select>
+            </Field>
           </div>
           <Field label={t("fields.assignmentText")}>
             <textarea value={assignmentText} onChange={(e) => setAssignmentText(e.target.value)} placeholder={t("fields.assignmentPlaceholder")} className={`${inputClass} min-h-36 resize-y leading-7`} />
@@ -331,20 +451,50 @@ export default function PodcastWorkshopPage() {
           <EditableList rows={criteria} addLabel={t("criteria.add")} placeholder={t("criteria.placeholder")} onChange={setCriteria} />
         </Section>
 
-        <Section icon={<BookOpen size={18} />} title={t("support.title")} description={t("support.description")}>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <h3 className="mb-2 text-sm font-black text-slate-900">{t("support.vocabularyTitle")}</h3>
-              <EditableList rows={vocabulary} addLabel={t("support.addVocabulary")} placeholder={t("support.vocabularyPlaceholder")} onChange={setVocabulary} />
+        <CollapsibleSection
+          icon={<BookOpen size={18} />}
+          title={t("support.title")}
+          description={t("support.description")}
+          open={supportOpen}
+          onToggle={() => setSupportOpen((current) => !current)}
+          showLabel={t("sectionToggle.show")}
+          hideLabel={t("sectionToggle.hide")}
+        >
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-slate-950">{t("support.sectionWordsTitle")}</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-600">{t("support.sectionWordsDescription")}</p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600">
+                {t("support.sectionWordsCount", { n: supportSections.length })}
+              </span>
             </div>
-            <div>
-              <h3 className="mb-2 text-sm font-black text-slate-900">{t("support.questionsTitle")}</h3>
-              <EditableList rows={guidingQuestions} addLabel={t("support.addQuestion")} placeholder={t("support.questionPlaceholder")} onChange={setGuidingQuestions} />
+            <div className="grid gap-3 lg:grid-cols-2">
+              {supportSections.map((section) => (
+                <Field key={section.id} label={section.title}>
+                  <p className="-mt-1 mb-1 text-xs font-semibold leading-5 text-slate-500">{section.help}</p>
+                  <textarea
+                    value={(supportWordsBySection[section.id] ?? supportWordsBySection.segment ?? vocabulary).join("\n")}
+                    onChange={(event) => updateSupportWords(section.id, event.target.value)}
+                    placeholder={t("support.sectionWordsPlaceholder")}
+                    className={`${inputClass} min-h-28 resize-y font-mono leading-6`}
+                  />
+                </Field>
+              ))}
             </div>
           </div>
-        </Section>
+        </CollapsibleSection>
 
-        <Section icon={<ListPlus size={18} />} title={t("segments.title")} description={t("segments.description")}>
+        <CollapsibleSection
+          icon={<ListPlus size={18} />}
+          title={t("segments.title")}
+          description={t("segments.description")}
+          open={segmentsOpen}
+          onToggle={() => setSegmentsOpen((current) => !current)}
+          showLabel={t("sectionToggle.show")}
+          hideLabel={t("sectionToggle.hide")}
+        >
           <div className="grid gap-3">
             {segments.map((segment, index) => (
               <div key={segment.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -365,17 +515,10 @@ export default function PodcastWorkshopPage() {
               <ListPlus size={16} /> {t("segments.add")}
             </button>
           </div>
-        </Section>
+        </CollapsibleSection>
 
         <Section icon={<Sparkles size={18} />} title={t("settings.title")} description={t("settings.description")}>
-          <div className="grid gap-3 md:grid-cols-3">
-            <Field label={t("fields.duration")}>
-              <select value={targetMinutes} onChange={(e) => setTargetMinutes(e.target.value)} className={inputClass}>
-                {visibleDurationOptions.map((option) => (
-                  <option key={option} value={option}>{t("overview.minutes", { n: Number(option) })}</option>
-                ))}
-              </select>
-            </Field>
+          <div className="grid gap-3 md:grid-cols-2">
             <Field label={t("settings.scriptMode")}>
               <select value={scriptMode} onChange={(e) => setScriptMode(e.target.value as ScriptMode)} className={inputClass}>
                 <option value="bullet_points">{t("settings.bulletPoints")}</option>
@@ -395,31 +538,37 @@ export default function PodcastWorkshopPage() {
         </Section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <h2 className="flex items-center gap-2 text-lg font-black text-slate-950">
-                <Mic2 size={20} /> {t("overview.title")}
-              </h2>
-              <div className="mt-3 grid max-w-md grid-cols-2 gap-2">
-                <Stat label={t("overview.segments")} value={String(segments.length)} />
-                <Stat label={t("overview.duration")} value={targetDurationSeconds ? t("overview.minutes", { n: Math.round(targetDurationSeconds / 60) }) : "-"} />
-              </div>
-              {loadingSaved ? <div className="mt-3 text-sm font-bold text-slate-500">{t("save.loading")}</div> : null}
-              {saveError ? <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-700">{saveError}</div> : null}
-              {saveMessage ? <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">{saveMessage}</div> : null}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:min-w-80 lg:grid-cols-1">
-              <button type="button" onClick={saveWorkshop} disabled={!canSave || saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
-                <Save size={17} /> {saving ? t("save.saving") : savedId ? t("save.update") : t("save.create")}
-              </button>
-              {savedId ? (
-                <Link href={`/${locale}/content`} className="inline-flex w-full justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-black text-slate-800 no-underline hover:bg-slate-50">
-                  {t("save.openContent")}
-                </Link>
-              ) : null}
-            </div>
+          <h2 className="flex items-center gap-2 text-lg font-black text-slate-950">
+            <Mic2 size={20} /> {t("overview.title")}
+          </h2>
+          <div className="mt-3 grid max-w-md grid-cols-2 gap-2">
+            <Stat label={t("overview.segments")} value={String(segments.length)} />
+            <Stat label={t("overview.duration")} value={targetDurationSeconds ? t("overview.minutes", { n: Math.round(targetDurationSeconds / 60) }) : "-"} />
           </div>
         </section>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.10)] backdrop-blur">
+        <div className="mx-auto grid w-full max-w-6xl gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className="min-w-0">
+            {loadingSaved ? <div className="text-sm font-bold text-slate-500">{t("save.loading")}</div> : null}
+            {saveError ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">{saveError}</div> : null}
+            {saveMessage ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">{saveMessage}</div> : null}
+            {!loadingSaved && !saveError && !saveMessage ? (
+              <div className="text-sm font-bold text-slate-600">{t("save.bottomHint")}</div>
+            ) : null}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-[auto_auto]">
+            {savedId ? (
+              <Link href={`/${locale}/content`} className="inline-flex justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-800 no-underline hover:bg-slate-50">
+                {t("save.openContent")}
+              </Link>
+            ) : null}
+            <button type="button" onClick={saveWorkshop} disabled={!canSave || saving} className="inline-flex min-w-64 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
+              <Save size={17} /> {saving ? t("save.saving") : savedId ? t("save.update") : t("save.create")}
+            </button>
+            </div>
+        </div>
       </div>
     </main>
   );
@@ -463,6 +612,49 @@ function Section({ icon, title, description, children }: { icon: React.ReactNode
         {description ? <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p> : null}
       </div>
       <div className="grid gap-4">{children}</div>
+    </section>
+  );
+}
+
+function CollapsibleSection({
+  icon,
+  title,
+  description,
+  open,
+  onToggle,
+  showLabel,
+  hideLabel,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  open: boolean;
+  onToggle: () => void;
+  showLabel: string;
+  hideLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-xl font-black text-slate-950">
+            {icon} {title}
+          </h2>
+          {description ? <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p> : null}
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-800 hover:bg-slate-50"
+        >
+          {open ? hideLabel : showLabel}
+          <ChevronDown size={16} className={open ? "rotate-180 transition-transform" : "transition-transform"} />
+        </button>
+      </div>
+      {open ? <div className="mt-4 grid gap-4">{children}</div> : null}
     </section>
   );
 }

@@ -17,7 +17,7 @@
       "title": "Título",
       "titlePlaceholder": "Por exemplo: IA no dia a dia",
       "subject": "Disciplina",
-      "subjectPlaceholder": "Por exemplo: Português, estudos sociais",
+      "subjectPlaceholder": "Escolha a disciplina",
       "level": "Nível",
       "levelPlaceholder": "Por exemplo: B1, 8º ano",
       "language": "Idioma",
@@ -25,34 +25,84 @@
       "assignmentPlaceholder": "Crie um podcast em que você explica o tema e usa seus próprios exemplos.",
       "duration": "Duração recomendada em minutos"
     },
+    "subjects": {
+      "norwegian": "Norueguês",
+      "english": "Inglês",
+      "mathematics": "Matemática",
+      "socialStudies": "Estudos sociais",
+      "science": "Ciências",
+      "krle": "Religião e ética",
+      "artsAndCrafts": "Artes e artesanato",
+      "music": "Música",
+      "foodAndHealth": "Alimentação e saúde",
+      "physicalEducation": "Educação física",
+      "interdisciplinary": "Interdisciplinar",
+      "other": "Outro"
+    },
     "criteria": {
       "title": "Critérios",
       "description": "Os critérios acompanham o estudante durante o trabalho e aparecem novamente na sala final.",
       "add": "Adicionar critério",
       "placeholder": "Escreva um critério..."
     },
+    "sectionToggle": {
+      "show": "Mostrar opções",
+      "hide": "Ocultar opções"
+    },
     "support": {
       "title": "Material de apoio",
-      "description": "Adicione termos e perguntas que os estudantes podem usar na sala de ideias e no estúdio.",
+      "description": "Adicione perguntas e inícios concretos que os estudantes podem usar durante o trabalho e a reflexão.",
       "vocabularyTitle": "Palavras e conceitos de apoio",
       "questionsTitle": "Perguntas",
+      "questionsDescription": "As perguntas podem ajudar os estudantes a pensar sobre o conteúdo e rever o trabalho antes da entrega.",
+      "sectionWordsTitle": "Palavras de apoio e inícios por seção",
+      "sectionWordsDescription": "Uma palavra ou início de frase por linha. Eles aparecem quando o estudante clica em Mostrar palavras de apoio no campo certo.",
+      "sectionWordsCount": "{n} seções têm palavras de apoio",
+      "sectionWordsPlaceholder": "Escreva uma palavra de apoio ou início por linha...",
       "addVocabulary": "Adicionar termo",
       "addQuestion": "Adicionar pergunta",
       "vocabularyPlaceholder": "Termo da disciplina ou palavra de apoio...",
       "questionPlaceholder": "Pergunta que o estudante pode usar..."
+    },
+    "supportSections": {
+      "podcastName": {
+        "title": "Nome do podcast",
+        "help": "Palavras que ajudam o estudante a encontrar um título claro."
+      },
+      "participants": {
+        "title": "Quem deve participar?",
+        "help": "Papéis e formulações para apresentador, convidado, entrevistador e participante."
+      },
+      "ideas": {
+        "title": "Minhas ideias",
+        "help": "Inícios para ideias, fatos, exemplos e coisas a investigar."
+      },
+      "importantPoints": {
+        "title": "O que é importante destacar?",
+        "help": "Inícios que ajudam o estudante a escolher os pontos principais."
+      },
+      "listenerTakeaway": {
+        "title": "Com o que o ouvinte deve ficar?",
+        "help": "Inícios para pensamento final, mensagem ou pergunta."
+      },
+      "segment": {
+        "title": "Parte: {title}",
+        "help": "Palavras de apoio para esta parte do podcast."
+      }
     },
     "segments": {
       "title": "Estrutura do podcast",
       "description": "Divida o podcast em introdução, partes de conteúdo e conclusão.",
       "add": "Adicionar parte",
       "newTitle": "Parte {n}",
-      "partTitle": "Parte",
-      "hint": "Dica",
+      "defaultPartTitle": "Parte {n}",
+      "partTitle": "Título",
+      "hint": "O que o estudante deve fazer aqui?",
       "hintPlaceholder": "Dica para o estudante..."
     },
     "settings": {
-      "title": "Configurações",
-      "description": "Escolha como os estudantes trabalham com roteiro, apoio de IA e duração recomendada.",
+      "title": "Modo de trabalho e IA",
+      "description": "Controle quão livremente os estudantes trabalham com roteiro e se a IA fica disponível como orientadora.",
       "scriptMode": "Modo de roteiro",
       "bulletPoints": "Tópicos",
       "fullScript": "Roteiro completo",
@@ -79,7 +129,8 @@
       "loading": "Carregando atividade...",
       "loadFailed": "Não foi possível carregar a atividade.",
       "notFound": "Atividade não encontrada.",
-      "openContent": "Abrir Meu conteúdo"
+      "openContent": "Abrir Meu conteúdo",
+      "bottomHint": "Salve quando a tarefa estiver pronta."
     },
     "defaults": {
       "criteria": {
@@ -87,6 +138,7 @@
         "assignment": "O conteúdo responde à tarefa",
         "vocabulary": "Eu uso termos da disciplina",
         "examples": "Eu uso exemplos",
+        "duration": "O podcast fica próximo da duração recomendada",
         "ending": "O podcast tem uma conclusão clara",
         "audio": "O áudio é compreensível"
       },
@@ -119,6 +171,14 @@
           "title": "Conclusão",
           "hint": "Resuma o que o ouvinte deve levar consigo."
         }
+      },
+      "supportWords": {
+        "podcastName": "Conversa sobre o tema\nExplicado de forma simples\nEstudantes perguntam\nCinco minutos sobre\nO que isso significa?",
+        "participants": "apresentador\nconvidado\nespecialista\nestudante\nentrevistador\nnarrador",
+        "ideas": "quero explicar\num exemplo é\nencontramos isso no dia a dia\npreciso investigar\na fonte diz\npor um lado\npor outro lado",
+        "importantPoints": "o mais importante é\no ouvinte precisa entender\no ponto principal é\nisso se relaciona com\nisso deve ser explicado com clareza",
+        "listenerTakeaway": "no final, o ouvinte deve\neu quero que o ouvinte lembre\ndepois do podcast, deve-se entender\numa pergunta para continuar pensando é",
+        "segment": "primeiro\ndepois\npor exemplo\num ponto importante\nao mesmo tempo\npor outro lado\npor fim"
       }
     }
   }

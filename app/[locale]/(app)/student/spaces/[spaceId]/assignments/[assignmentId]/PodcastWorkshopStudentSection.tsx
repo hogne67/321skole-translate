@@ -25,6 +25,7 @@ type Props = {
   feedback?: PodcastWorkshopFeedback | null;
   t: TFn;
   onChange: (next: PodcastWorkshopSubmission) => void;
+  onRoomChange?: (room: PodcastWorkshopRoomKey) => void;
 };
 
 const cardStyle: CSSProperties = {
@@ -67,7 +68,11 @@ function hasText(value: string | undefined) {
 
 function roomStatus(room: RoomKey, config: PodcastWorkshopConfig, value: PodcastWorkshopSubmission) {
   const segments = getPodcastWorkshopSegments(config, value);
-  if (room === "ideas") return hasText(value.ideas) ? "working" : "empty";
+  if (room === "ideas") {
+    return [value.podcastName, value.ideas, value.participants, value.importantPoints, value.listenerTakeaway].some(hasText)
+      ? "working"
+      : "empty";
+  }
   if (room === "plan") {
     return segments.some((segment) => hasText(value.segmentPlans[segment.id])) ? "working" : "empty";
   }
@@ -123,14 +128,17 @@ function getPodcastDuration(config: PodcastWorkshopConfig, value: PodcastWorksho
     + transitionSeconds;
 }
 
-function getSegmentEyebrow(title: string, index: number, t: TFn) {
-  const normalized = title.trim().toLowerCase();
-  if (normalized === "intro" || normalized === "avslutning") return title;
-  return t("podcastWorkshop.sequencePart", { n: index + 1 });
-}
-
 function getTransitionSoundId(value: PodcastWorkshopSubmission, segmentId: string) {
   return value.productionMix.transitionSoundIds?.[segmentId] ?? value.productionMix.transitionSoundId ?? "";
+}
+
+function supportKeyForSegment(segmentId: string) {
+  return `segment:${segmentId}`;
+}
+
+function getSupportWords(config: PodcastWorkshopConfig, sectionId: string, fallbackId?: string) {
+  const words = config.supportWordsBySection?.[sectionId] ?? (fallbackId ? config.supportWordsBySection?.[fallbackId] : undefined);
+  return words && words.length > 0 ? words : [];
 }
 
 function getSupportedMimeType() {
@@ -162,10 +170,15 @@ export default function PodcastWorkshopStudentSection({
   feedback,
   t,
   onChange,
+  onRoomChange,
 }: Props) {
   const [activeRoom, setActiveRoom] = useState<RoomKey>("ideas");
   const readOnly = disabled || submitted;
   const segments = useMemo(() => getPodcastWorkshopSegments(config, value), [config, value]);
+
+  useEffect(() => {
+    onRoomChange?.(activeRoom);
+  }, [activeRoom, onRoomChange]);
 
   const rooms = useMemo(
     () => [
@@ -193,15 +206,6 @@ export default function PodcastWorkshopStudentSection({
 
   function patchScript(segmentId: string, text: string) {
     patch({ segmentScripts: { ...value.segmentScripts, [segmentId]: text } });
-  }
-
-  function patchIdeaQuestion(question: string, text: string) {
-    patch({
-      ideaQuestionNotes: {
-        ...(value.ideaQuestionNotes ?? {}),
-        [question]: text,
-      },
-    });
   }
 
   function patchProductionVoice(segmentId: string, voice: StudentAudioAsset | null) {
@@ -277,57 +281,20 @@ export default function PodcastWorkshopStudentSection({
             help={t("podcastWorkshop.podcastNameHelp")}
             status={statusLabel(t, hasText(value.podcastName) ? "working" : "empty")}
             config={config}
+            supportWords={getSupportWords(config, "podcastName")}
+            allowAi={false}
             t={t}
           >
             <div>
               <label style={labelStyle} htmlFor="podcast-name">{t("podcastWorkshop.podcastNameLabel")}</label>
-              <input
+              <textarea
                 id="podcast-name"
                 value={value.podcastName ?? ""}
                 onChange={(event) => patch({ podcastName: event.target.value })}
                 placeholder={t("podcastWorkshop.podcastNamePlaceholder")}
                 readOnly={readOnly}
-                className="podcastIdeaInput"
-              />
-            </div>
-          </IdeaWorkCard>
-
-          <IdeaWorkCard
-            title={t("podcastWorkshop.participantsLabel")}
-            help={t("podcastWorkshop.participantsHelp")}
-            status={statusLabel(t, hasText(value.participants) ? "working" : "empty")}
-            config={config}
-            t={t}
-          >
-            <div>
-              <label style={labelStyle} htmlFor="podcast-participants">{t("podcastWorkshop.participantsLabel")}</label>
-              <input
-                id="podcast-participants"
-                value={value.participants ?? ""}
-                onChange={(event) => patch({ participants: event.target.value })}
-                placeholder={t("podcastWorkshop.participantsPlaceholder")}
-                readOnly={readOnly}
-                className="podcastIdeaInput"
-              />
-            </div>
-          </IdeaWorkCard>
-
-          <IdeaWorkCard
-            title={t("podcastWorkshop.intervieweesLabel")}
-            help={t("podcastWorkshop.intervieweesHelp")}
-            status={statusLabel(t, hasText(value.interviewees) ? "working" : "empty")}
-            config={config}
-            t={t}
-          >
-            <div>
-              <label style={labelStyle} htmlFor="podcast-interviewees">{t("podcastWorkshop.intervieweesLabel")}</label>
-              <input
-                id="podcast-interviewees"
-                value={value.interviewees ?? ""}
-                onChange={(event) => patch({ interviewees: event.target.value })}
-                placeholder={t("podcastWorkshop.intervieweesPlaceholder")}
-                readOnly={readOnly}
-                className="podcastIdeaInput"
+                rows={3}
+                style={{ ...textareaStyle, minHeight: 92, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
               />
             </div>
           </IdeaWorkCard>
@@ -337,6 +304,7 @@ export default function PodcastWorkshopStudentSection({
             help={t("podcastWorkshop.ideasSectionHelp")}
             status={statusLabel(t, hasText(value.ideas) ? "working" : "empty")}
             config={config}
+            supportWords={getSupportWords(config, "ideas")}
             t={t}
           >
             <div>
@@ -353,33 +321,71 @@ export default function PodcastWorkshopStudentSection({
             </div>
           </IdeaWorkCard>
 
-          {config.guidingQuestions.map((question, index) => {
-            const key = `question-${index}`;
-            const answer = value.ideaQuestionNotes?.[question] ?? "";
-            return (
-              <IdeaWorkCard
-                key={question}
-                title={question}
-                help={t("podcastWorkshop.questionSectionHelp")}
-                status={statusLabel(t, hasText(answer) ? "working" : "empty")}
-                config={config}
-                t={t}
-              >
-                <div>
-                  <label style={labelStyle} htmlFor={key}>{question}</label>
-                  <textarea
-                    id={key}
-                    value={answer}
-                    onChange={(event) => patchIdeaQuestion(question, event.target.value)}
-                    placeholder={t("podcastWorkshop.questionAnswerPlaceholder")}
-                    readOnly={readOnly}
-                    rows={3}
-                    style={{ ...textareaStyle, minHeight: 92, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
-                  />
-                </div>
-              </IdeaWorkCard>
-            );
-          })}
+          <IdeaWorkCard
+            title={t("podcastWorkshop.participantsLabel")}
+            help={t("podcastWorkshop.participantsHelp")}
+            status={statusLabel(t, hasText(value.participants) ? "working" : "empty")}
+            config={config}
+            supportWords={getSupportWords(config, "participants")}
+            t={t}
+          >
+            <div>
+              <label style={labelStyle} htmlFor="podcast-participants">{t("podcastWorkshop.participantsLabel")}</label>
+              <textarea
+                id="podcast-participants"
+                value={value.participants ?? ""}
+                onChange={(event) => patch({ participants: event.target.value })}
+                placeholder={t("podcastWorkshop.participantsPlaceholder")}
+                readOnly={readOnly}
+                rows={3}
+                style={{ ...textareaStyle, minHeight: 92, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
+              />
+            </div>
+          </IdeaWorkCard>
+
+          <IdeaWorkCard
+            title={t("podcastWorkshop.importantPointsLabel")}
+            help={t("podcastWorkshop.importantPointsHelp")}
+            status={statusLabel(t, hasText(value.importantPoints) ? "working" : "empty")}
+            config={config}
+            supportWords={getSupportWords(config, "importantPoints")}
+            t={t}
+          >
+            <div>
+              <label style={labelStyle} htmlFor="podcast-important-points">{t("podcastWorkshop.importantPointsLabel")}</label>
+              <textarea
+                id="podcast-important-points"
+                value={value.importantPoints ?? ""}
+                onChange={(event) => patch({ importantPoints: event.target.value })}
+                placeholder={t("podcastWorkshop.importantPointsPlaceholder")}
+                readOnly={readOnly}
+                rows={4}
+                style={{ ...textareaStyle, minHeight: 120, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
+              />
+            </div>
+          </IdeaWorkCard>
+
+          <IdeaWorkCard
+            title={t("podcastWorkshop.listenerTakeawayLabel")}
+            help={t("podcastWorkshop.listenerTakeawayHelp")}
+            status={statusLabel(t, hasText(value.listenerTakeaway) ? "working" : "empty")}
+            config={config}
+            supportWords={getSupportWords(config, "listenerTakeaway")}
+            t={t}
+          >
+            <div>
+              <label style={labelStyle} htmlFor="podcast-listener-takeaway">{t("podcastWorkshop.listenerTakeawayLabel")}</label>
+              <textarea
+                id="podcast-listener-takeaway"
+                value={value.listenerTakeaway ?? ""}
+                onChange={(event) => patch({ listenerTakeaway: event.target.value })}
+                placeholder={t("podcastWorkshop.listenerTakeawayPlaceholder")}
+                readOnly={readOnly}
+                rows={4}
+                style={{ ...textareaStyle, minHeight: 120, background: readOnly ? "rgba(248,250,252,0.78)" : "white" }}
+              />
+            </div>
+          </IdeaWorkCard>
         </div>
       );
     }
@@ -396,6 +402,7 @@ export default function PodcastWorkshopStudentSection({
             mode="plan"
             onPlan={patchPlan}
             onScript={patchScript}
+            supportFallbackId="segment"
           />
         </RoomCard>
       );
@@ -418,6 +425,7 @@ export default function PodcastWorkshopStudentSection({
             onPlan={patchPlan}
             onScript={patchScript}
             onAddSegment={addCustomSegment}
+            supportFallbackId="segment"
           />
         </RoomCard>
       );
@@ -438,9 +446,6 @@ export default function PodcastWorkshopStudentSection({
               <div key={segment.id} style={{ display: "grid", gap: 10 }}>
                 <div className="podcastWorkshopSegmentShell">
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ margin: "0 0 2px", color: "#64748b", fontSize: 12, fontWeight: 900 }}>
-                      {getSegmentEyebrow(segment.title, index, t)}
-                    </p>
                     <strong>{segment.title}</strong>
                     <p style={{ margin: "6px 0 0", color: "#475569", lineHeight: 1.45 }}>
                       {value.segmentScripts[segment.id] || value.segmentPlans[segment.id] || segment.hint}
@@ -650,21 +655,6 @@ export default function PodcastWorkshopStudentSection({
           margin: 6px 0 0;
           color: #475569;
           line-height: 1.5;
-        }
-
-        .podcastIdeaInput {
-          display: block;
-          width: 100%;
-          min-width: 0;
-          height: 42px;
-          box-sizing: border-box;
-          border: 1px solid rgba(15, 23, 42, 0.16);
-          border-radius: 12px;
-          background: white;
-          color: #0f172a;
-          padding: 10px 12px;
-          font: inherit;
-          line-height: 1.4;
         }
 
         .podcastWorkshopRooms {
@@ -963,6 +953,8 @@ function IdeaWorkCard({
   help,
   status,
   config,
+  supportWords,
+  allowAi = true,
   t,
   children,
 }: {
@@ -970,9 +962,14 @@ function IdeaWorkCard({
   help: string;
   status: string;
   config: PodcastWorkshopConfig;
+  supportWords: string[];
+  allowAi?: boolean;
   t: TFn;
   children: ReactNode;
 }) {
+  const [showSupportWords, setShowSupportWords] = useState(false);
+  const visibleWords = supportWords.filter(Boolean);
+
   return (
     <section className="podcastIdeaWorkCard">
       <div className="podcastIdeaMain">
@@ -990,9 +987,22 @@ function IdeaWorkCard({
         </div>
         <p>{t("podcastWorkshop.supportHint")}</p>
         <div className="podcastIdeaSupportActions">
-          <button type="button">{t("podcastWorkshop.showVocabulary")}</button>
-          <button type="button" disabled={config.aiSupport === "off"}>{t("podcastWorkshop.getAiHelp")}</button>
+          <button type="button" onClick={() => setShowSupportWords((current) => !current)}>
+            {showSupportWords ? t("podcastWorkshop.hideVocabulary") : t("podcastWorkshop.showVocabulary")}
+          </button>
+          {allowAi ? (
+            <button type="button" disabled={config.aiSupport === "off"}>{t("podcastWorkshop.getAiHelp")}</button>
+          ) : null}
         </div>
+        {showSupportWords ? (
+          <div className="podcastIdeaSupportWords">
+            {visibleWords.length > 0 ? (
+              visibleWords.map((word) => <span key={word}>{word}</span>)
+            ) : (
+              <em>{t("podcastWorkshop.noVocabulary")}</em>
+            )}
+          </div>
+        ) : null}
         <div className="podcastIdeaResponseBadge">{t("podcastWorkshop.noTeacherResponse")}</div>
       </aside>
 
@@ -1104,6 +1114,23 @@ function IdeaWorkCard({
           opacity: 0.55;
         }
 
+        .podcastIdeaSupportWords {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .podcastIdeaSupportWords span,
+        .podcastIdeaSupportWords em {
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.82);
+          color: #065f46;
+          padding: 5px 8px;
+          font-size: 12px;
+          font-style: normal;
+          font-weight: 850;
+        }
+
         @media (max-width: 860px) {
           .podcastIdeaWorkCard {
             grid-template-columns: 1fr;
@@ -1125,6 +1152,7 @@ function SegmentFields({
   onPlan,
   onScript,
   onAddSegment,
+  supportFallbackId,
 }: {
   config: PodcastWorkshopConfig;
   segments: PodcastWorkshopConfig["segments"];
@@ -1136,10 +1164,11 @@ function SegmentFields({
   onPlan: (segmentId: string, text: string) => void;
   onScript: (segmentId: string, text: string) => void;
   onAddSegment?: () => void;
+  supportFallbackId: string;
 }) {
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      {segments.map((segment, index) => (
+      {segments.map((segment) => (
         <div
           key={segment.id}
           style={{
@@ -1149,69 +1178,75 @@ function SegmentFields({
             padding: 12,
           }}
         >
-          <p style={{ margin: "0 0 3px", color: "#64748b", fontSize: 12, fontWeight: 900 }}>
-            {getSegmentEyebrow(segment.title, index, t)}
-          </p>
-          <h4 style={{ margin: "0 0 5px", fontSize: 16 }}>{segment.title}</h4>
-          {segment.hint ? (
-            <p style={{ margin: "0 0 10px", color: "#475569", lineHeight: 1.45 }}>{segment.hint}</p>
-          ) : null}
-
-          {mode === "plan" ? (
-            <>
-              <label style={labelStyle} htmlFor={`podcast-plan-${segment.id}`}>
-                {t("podcastWorkshop.planLabel")}
-              </label>
-              <textarea
-                id={`podcast-plan-${segment.id}`}
-                value={value.segmentPlans[segment.id] ?? ""}
-                onChange={(event) => onPlan(segment.id, event.target.value)}
-                placeholder={t("podcastWorkshop.planPlaceholder")}
-                readOnly={readOnly}
-                rows={3}
-                style={{
-                  ...textareaStyle,
-                  minHeight: 82,
-                  background: readOnly ? "rgba(248,250,252,0.78)" : "white",
-                }}
-              />
-            </>
-          ) : (
-            <>
-              <label style={labelStyle} htmlFor={`podcast-script-${segment.id}`}>
-                {config.scriptMode === "script"
-                  ? t("podcastWorkshop.scriptLabel")
-                  : t("podcastWorkshop.bulletsLabel")}
-              </label>
-              <textarea
-                id={`podcast-script-${segment.id}`}
-                value={value.segmentScripts[segment.id] ?? ""}
-                onChange={(event) => onScript(segment.id, event.target.value)}
-                placeholder={
-                  config.scriptMode === "script"
-                    ? t("podcastWorkshop.scriptPlaceholder")
-                    : t("podcastWorkshop.bulletsPlaceholder")
-                }
-                readOnly={readOnly}
-                rows={5}
-                style={{
-                  ...textareaStyle,
-                  background: readOnly ? "rgba(248,250,252,0.78)" : "white",
-                }}
-              />
-              {onVoiceChange ? (
-                <div style={{ marginTop: 12 }}>
-                  <PodcastSegmentRecorder
-                    disabled={readOnly}
-                    segmentId={segment.id}
-                    existing={value.productionSegments[segment.id]?.voice ?? null}
-                    t={t}
-                    onChange={(voice) => onVoiceChange(segment.id, voice)}
-                  />
-                </div>
+          <div className="podcastSegmentWorkGrid">
+            <div style={{ minWidth: 0 }}>
+              <h4 style={{ margin: "0 0 5px", fontSize: 16 }}>{segment.title}</h4>
+              {segment.hint ? (
+                <p style={{ margin: "0 0 10px", color: "#475569", lineHeight: 1.45 }}>{segment.hint}</p>
               ) : null}
-            </>
-          )}
+
+              {mode === "plan" ? (
+                <>
+                  <label style={labelStyle} htmlFor={`podcast-plan-${segment.id}`}>
+                    {t("podcastWorkshop.planLabel")}
+                  </label>
+                  <textarea
+                    id={`podcast-plan-${segment.id}`}
+                    value={value.segmentPlans[segment.id] ?? ""}
+                    onChange={(event) => onPlan(segment.id, event.target.value)}
+                    placeholder={t("podcastWorkshop.planPlaceholder")}
+                    readOnly={readOnly}
+                    rows={3}
+                    style={{
+                      ...textareaStyle,
+                      minHeight: 82,
+                      background: readOnly ? "rgba(248,250,252,0.78)" : "white",
+                    }}
+                  />
+                </>
+              ) : (
+                <>
+                  <label style={labelStyle} htmlFor={`podcast-script-${segment.id}`}>
+                    {config.scriptMode === "script"
+                      ? t("podcastWorkshop.scriptLabel")
+                      : t("podcastWorkshop.bulletsLabel")}
+                  </label>
+                  <textarea
+                    id={`podcast-script-${segment.id}`}
+                    value={value.segmentScripts[segment.id] ?? ""}
+                    onChange={(event) => onScript(segment.id, event.target.value)}
+                    placeholder={
+                      config.scriptMode === "script"
+                        ? t("podcastWorkshop.scriptPlaceholder")
+                        : t("podcastWorkshop.bulletsPlaceholder")
+                    }
+                    readOnly={readOnly}
+                    rows={5}
+                    style={{
+                      ...textareaStyle,
+                      background: readOnly ? "rgba(248,250,252,0.78)" : "white",
+                    }}
+                  />
+                  {onVoiceChange ? (
+                    <div style={{ marginTop: 12 }}>
+                      <PodcastSegmentRecorder
+                        disabled={readOnly}
+                        segmentId={segment.id}
+                        existing={value.productionSegments[segment.id]?.voice ?? null}
+                        t={t}
+                        onChange={(voice) => onVoiceChange(segment.id, voice)}
+                      />
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+            <SegmentSupportCard
+              config={config}
+              supportWords={getSupportWords(config, supportKeyForSegment(segment.id), supportFallbackId)}
+              t={t}
+            />
+          </div>
         </div>
       ))}
       {mode === "script" && onAddSegment && !readOnly ? (
@@ -1231,8 +1266,138 @@ function SegmentFields({
           font-weight: 900;
           cursor: pointer;
         }
+
+        .podcastSegmentWorkGrid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(210px, 280px);
+          gap: 14px;
+          align-items: start;
+        }
+
+        @media (max-width: 860px) {
+          .podcastSegmentWorkGrid {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
     </div>
+  );
+}
+
+function SegmentSupportCard({
+  config,
+  supportWords,
+  t,
+}: {
+  config: PodcastWorkshopConfig;
+  supportWords: string[];
+  t: TFn;
+}) {
+  const [showSupportWords, setShowSupportWords] = useState(false);
+  const visibleWords = supportWords.filter(Boolean);
+
+  return (
+    <aside className="segmentSupportCard">
+      <div className="segmentSupportTop">
+        <strong>{t("podcastWorkshop.supportTitle").toUpperCase()}</strong>
+        <span>{config.aiSupport === "off" ? t("podcastWorkshop.aiOff") : t("podcastWorkshop.aiCoach")}</span>
+      </div>
+      <p>{t("podcastWorkshop.supportHint")}</p>
+      <div className="segmentSupportActions">
+        <button type="button" onClick={() => setShowSupportWords((current) => !current)}>
+          {showSupportWords ? t("podcastWorkshop.hideVocabulary") : t("podcastWorkshop.showVocabulary")}
+        </button>
+        <button type="button" disabled={config.aiSupport === "off"}>{t("podcastWorkshop.getAiHelp")}</button>
+      </div>
+      {showSupportWords ? (
+        <div className="segmentSupportWords">
+          {visibleWords.length > 0 ? (
+            visibleWords.map((word) => <span key={word}>{word}</span>)
+          ) : (
+            <em>{t("podcastWorkshop.noVocabulary")}</em>
+          )}
+        </div>
+      ) : null}
+
+      <style jsx>{`
+        .segmentSupportCard {
+          display: grid;
+          gap: 10px;
+          border-radius: 15px;
+          background: rgba(220, 252, 231, 0.62);
+          padding: 13px;
+          color: #064e3b;
+        }
+
+        .segmentSupportTop {
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .segmentSupportTop strong {
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .segmentSupportTop span {
+          border-radius: 999px;
+          background: white;
+          padding: 6px 9px;
+          color: #0f766e;
+          font-size: 12px;
+          font-weight: 900;
+          text-align: center;
+        }
+
+        .segmentSupportCard p {
+          margin: 0;
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1.45;
+        }
+
+        .segmentSupportActions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .segmentSupportActions button {
+          border: 1px solid rgba(5, 150, 105, 0.42);
+          border-radius: 999px;
+          background: white;
+          color: #047857;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .segmentSupportActions button:disabled {
+          cursor: not-allowed;
+          opacity: 0.55;
+        }
+
+        .segmentSupportWords {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .segmentSupportWords span,
+        .segmentSupportWords em {
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.82);
+          color: #065f46;
+          padding: 5px 8px;
+          font-size: 12px;
+          font-style: normal;
+          font-weight: 850;
+        }
+      `}</style>
+    </aside>
   );
 }
 

@@ -19,6 +19,7 @@ type SavePodcastWorkshopBody = {
   criteria?: unknown;
   vocabulary?: unknown;
   guidingQuestions?: unknown;
+  supportWordsBySection?: unknown;
   segments?: unknown;
 };
 
@@ -49,6 +50,18 @@ function cleanStringList(value: unknown, limit: number): string[] {
     .map((item) => safeString(item))
     .filter(Boolean)
     .slice(0, limit);
+}
+
+function cleanStringListMap(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, string[]> = {};
+  Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
+    const safeKey = safeString(key).slice(0, 80);
+    if (!safeKey) return;
+    const words = cleanStringList(item, 16);
+    if (words.length > 0) out[safeKey] = words;
+  });
+  return out;
 }
 
 function cleanSegments(value: unknown): Segment[] {
@@ -101,6 +114,7 @@ export async function POST(req: Request) {
     const criteria = cleanStringList(body.criteria, 12);
     const vocabulary = cleanStringList(body.vocabulary, 20);
     const guidingQuestions = cleanStringList(body.guidingQuestions, 16);
+    const supportWordsBySection = cleanStringListMap(body.supportWordsBySection);
     const segments = cleanSegments(body.segments);
 
     if (!assignmentText) return json({ ok: false, error: "Assignment text is required." }, 400);
@@ -148,6 +162,7 @@ export async function POST(req: Request) {
         criteria,
         vocabulary,
         guidingQuestions,
+        supportWordsBySection,
         segments,
       },
       estimatedMinutes: targetDurationSeconds ? Math.ceil(targetDurationSeconds / 60) : null,

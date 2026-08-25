@@ -17,7 +17,7 @@
       "title": "Title",
       "titlePlaceholder": "For example: AI in everyday life",
       "subject": "Subject",
-      "subjectPlaceholder": "For example: English, social studies",
+      "subjectPlaceholder": "Choose subject",
       "level": "Level",
       "levelPlaceholder": "For example: B1, grade 8",
       "language": "Language",
@@ -25,34 +25,84 @@
       "assignmentPlaceholder": "Create a podcast where you explain the topic and use your own examples.",
       "duration": "Recommended length in minutes"
     },
+    "subjects": {
+      "norwegian": "Norwegian",
+      "english": "English",
+      "mathematics": "Mathematics",
+      "socialStudies": "Social studies",
+      "science": "Science",
+      "krle": "Religion and ethics",
+      "artsAndCrafts": "Arts and crafts",
+      "music": "Music",
+      "foodAndHealth": "Food and health",
+      "physicalEducation": "Physical education",
+      "interdisciplinary": "Interdisciplinary",
+      "other": "Other"
+    },
     "criteria": {
       "title": "Criteria",
       "description": "The criteria follow the student through the work and appear again in the final room.",
       "add": "Add criterion",
       "placeholder": "Write a criterion..."
     },
+    "sectionToggle": {
+      "show": "Show options",
+      "hide": "Hide options"
+    },
     "support": {
       "title": "Support material",
-      "description": "Add terms and questions students can use in the idea room and studio.",
+      "description": "Add questions and concrete starters students can use while working and reflecting.",
       "vocabularyTitle": "Helpful words and concepts",
       "questionsTitle": "Questions",
+      "questionsDescription": "The questions can help students think through the content and review their work before submission.",
+      "sectionWordsTitle": "Support words and starters by section",
+      "sectionWordsDescription": "One word or sentence starter per line. These appear when the student clicks Show support words in the matching field.",
+      "sectionWordsCount": "{n} sections have support words",
+      "sectionWordsPlaceholder": "Write one support word or starter per line...",
       "addVocabulary": "Add term",
       "addQuestion": "Add question",
       "vocabularyPlaceholder": "Subject term or support word...",
       "questionPlaceholder": "Question students can use..."
+    },
+    "supportSections": {
+      "podcastName": {
+        "title": "Podcast name",
+        "help": "Words that help the student find a clear title."
+      },
+      "participants": {
+        "title": "Who should be involved?",
+        "help": "Roles and phrases for host, guest, interviewer, and participant."
+      },
+      "ideas": {
+        "title": "My ideas",
+        "help": "Starters for ideas, facts, examples, and things to investigate."
+      },
+      "importantPoints": {
+        "title": "What is important to bring out?",
+        "help": "Starters that help the student choose main points."
+      },
+      "listenerTakeaway": {
+        "title": "What should the listener take away?",
+        "help": "Starters for a final thought, message, or question."
+      },
+      "segment": {
+        "title": "Part: {title}",
+        "help": "Support words for this part of the podcast."
+      }
     },
     "segments": {
       "title": "Podcast structure",
       "description": "Split the podcast into intro, content parts, and ending.",
       "add": "Add part",
       "newTitle": "Part {n}",
-      "partTitle": "Part",
-      "hint": "Hint",
+      "defaultPartTitle": "Part {n}",
+      "partTitle": "Title",
+      "hint": "What should the student do here?",
       "hintPlaceholder": "Hint for the student..."
     },
     "settings": {
-      "title": "Settings",
-      "description": "Choose how students work with script, AI support, and recommended length.",
+      "title": "Work mode and AI",
+      "description": "Control how freely students work with script, and whether AI is available as a coach.",
       "scriptMode": "Script mode",
       "bulletPoints": "Bullet points",
       "fullScript": "Full script",
@@ -79,7 +129,8 @@
       "loading": "Loading activity...",
       "loadFailed": "Could not load the activity.",
       "notFound": "Activity not found.",
-      "openContent": "Open My content"
+      "openContent": "Open My content",
+      "bottomHint": "Save when the assignment is ready."
     },
     "defaults": {
       "criteria": {
@@ -87,6 +138,7 @@
         "assignment": "The content answers the assignment",
         "vocabulary": "I use subject terms",
         "examples": "I use examples",
+        "duration": "The podcast stays close to the recommended length",
         "ending": "The podcast has a clear ending",
         "audio": "The audio is understandable"
       },
@@ -119,6 +171,14 @@
           "title": "Ending",
           "hint": "Summarize what the listener should take away."
         }
+      },
+      "supportWords": {
+        "podcastName": "The topic talk\nExplained simply\nStudents ask\nFive minutes about\nWhat does it mean?",
+        "participants": "host\nguest\nexpert\nstudent\ninterviewer\nnarrator",
+        "ideas": "I want to explain\none example is\nwe meet this in everyday life\nI need to investigate\nthe source says\non one hand\non the other hand",
+        "importantPoints": "the most important thing is\nthe listener needs to understand\nthe main point is\nthis connects to\nthis should be explained clearly",
+        "listenerTakeaway": "in the end, the listener should\nI want the listener to remember\nafter the podcast, you should understand\na question to think about next is",
+        "segment": "first\nnext\nfor example\nan important point\nat the same time\non the other hand\nfinally"
       }
     }
   }

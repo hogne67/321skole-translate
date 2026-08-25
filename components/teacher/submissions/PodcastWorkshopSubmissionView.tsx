@@ -34,7 +34,7 @@ function emptyText(t: Props["t"]) {
 function textBlock(value: string, t: Props["t"]) {
     const text = value.trim();
     return (
-        <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-3 leading-7 text-slate-800">
+        <div className="whitespace-pre-wrap rounded-xl bg-white p-3 leading-7 text-slate-800">
             {text ? text : emptyText(t)}
         </div>
     );
@@ -81,6 +81,15 @@ function getSegmentEyebrow(title: string, index: number, t: Props["t"]) {
     return t("podcastWorkshop.sequencePart", { n: index + 1 });
 }
 
+function supportKeyForSegment(segmentId: string) {
+    return `segment:${segmentId}`;
+}
+
+function getSupportWords(config: PodcastWorkshopConfig, sectionId: string, fallbackId?: string) {
+    const words = config.supportWordsBySection?.[sectionId] ?? (fallbackId ? config.supportWordsBySection?.[fallbackId] : undefined);
+    return words && words.length > 0 ? words : [];
+}
+
 function getTransitionSoundId(submission: PodcastWorkshopSubmission, segmentId: string) {
     return submission.productionMix.transitionSoundIds?.[segmentId] ?? submission.productionMix.transitionSoundId ?? "";
 }
@@ -100,7 +109,6 @@ export default function PodcastWorkshopSubmissionView({
     t,
 }: Props) {
     const [activeRoom, setActiveRoom] = useState<PodcastWorkshopRoomKey>("ideas");
-
     const rooms = useMemo(
         () => [
             { key: "ideas" as const, label: t("podcastWorkshop.ideasTitle") },
@@ -116,15 +124,6 @@ export default function PodcastWorkshopSubmissionView({
         ],
         [config.scriptMode, t]
     );
-
-    const roomFeedback = feedback.rooms[activeRoom] ?? { text: "", status: "" };
-
-    function patchRoom(next: Partial<PodcastWorkshopRoomFeedback>) {
-        onFeedbackChange(activeRoom, {
-            ...roomFeedback,
-            ...next,
-        });
-    }
 
     return (
         <div className="grid gap-4">
@@ -172,90 +171,29 @@ export default function PodcastWorkshopSubmissionView({
                 })}
             </nav>
 
-            <div className="podcastTeacherGrid">
-                <div className="min-w-0">
-                    {renderRoom({
-                        room: activeRoom,
-                        config,
-                        submission,
-                        feedback,
-                        canOperate,
-                        saving,
-                        onFieldFeedbackChange,
-                        onSaveFeedback,
-                        t,
-                    })}
-                </div>
-
-                <aside className="min-w-0 rounded-2xl border border-violet-100 bg-violet-50 p-4">
-                    <div className="mb-2 text-xs font-black uppercase tracking-wide text-violet-800">
-                        {t("podcastWorkshop.feedbackForRoom")}
-                    </div>
-                    <textarea
-                        value={roomFeedback.text}
-                        onChange={(event) => patchRoom({ text: event.target.value })}
-                        placeholder={t("podcastWorkshop.feedbackPlaceholder")}
-                        disabled={!canOperate}
-                        rows={9}
-                        className="box-border w-full resize-y rounded-xl border border-violet-200 bg-white p-3 text-sm leading-6 text-slate-900 disabled:opacity-60"
-                    />
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            disabled={!canOperate}
-                            onClick={() => patchRoom({ status: "approved" })}
-                            className={`rounded-xl border px-3 py-2 text-sm font-black disabled:opacity-60 ${roomFeedback.status === "approved"
-                                ? "border-emerald-500 bg-emerald-600 text-white"
-                                : "border-emerald-200 bg-white text-emerald-800"
-                                }`}
-                        >
-                            {t("podcastWorkshop.approved")}
-                        </button>
-                        <button
-                            type="button"
-                            disabled={!canOperate}
-                            onClick={() => patchRoom({ status: "needs_work" })}
-                            className={`rounded-xl border px-3 py-2 text-sm font-black disabled:opacity-60 ${roomFeedback.status === "needs_work"
-                                ? "border-amber-400 bg-amber-400 text-slate-950"
-                                : "border-amber-200 bg-white text-amber-800"
-                                }`}
-                        >
-                            {t("podcastWorkshop.needsWork")}
-                        </button>
-                    </div>
-
-                    <button
-                        type="button"
-                        disabled={!canOperate || saving}
-                        onClick={onSaveFeedback}
-                        className="mt-3 w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm font-black text-violet-800 disabled:opacity-60"
-                    >
-                        {saving ? t("podcastWorkshop.saving") : t("podcastWorkshop.saveFeedback")}
-                    </button>
-
-                    {saveMsg ? (
-                        <div className="mt-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-xs font-bold text-violet-900">
-                            {saveMsg}
-                        </div>
-                    ) : null}
-                </aside>
+            <div className="grid gap-3">
+                <RoomFeedbackBox
+                    room={activeRoom}
+                    feedback={feedback}
+                    canOperate={canOperate}
+                    saving={saving}
+                    saveMsg={saveMsg}
+                    onFeedbackChange={onFeedbackChange}
+                    onSaveFeedback={onSaveFeedback}
+                    t={t}
+                />
+                {renderRoom({
+                    room: activeRoom,
+                    config,
+                    submission,
+                    feedback,
+                    canOperate,
+                    saving,
+                    onFieldFeedbackChange,
+                    onSaveFeedback,
+                    t,
+                })}
             </div>
-
-            <style jsx>{`
-                .podcastTeacherGrid {
-                    display: grid;
-                    grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
-                    gap: 14px;
-                    align-items: start;
-                }
-
-                @media (max-width: 900px) {
-                    .podcastTeacherGrid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-            `}</style>
         </div>
     );
 }
@@ -427,28 +365,8 @@ function renderRoom({
                         fieldKey="ideas.podcastName"
                         label={t("podcastWorkshop.podcastNameLabel")}
                         value={submission.podcastName}
-                        feedback={feedback}
-                        canOperate={canOperate}
-                        saving={saving}
-                        onFieldFeedbackChange={onFieldFeedbackChange}
-                        onSaveFeedback={onSaveFeedback}
-                        t={t}
-                    />
-                    <InfoBlock
-                        fieldKey="ideas.participants"
-                        label={t("podcastWorkshop.participantsLabel")}
-                        value={submission.participants}
-                        feedback={feedback}
-                        canOperate={canOperate}
-                        saving={saving}
-                        onFieldFeedbackChange={onFieldFeedbackChange}
-                        onSaveFeedback={onSaveFeedback}
-                        t={t}
-                    />
-                    <InfoBlock
-                        fieldKey="ideas.interviewees"
-                        label={t("podcastWorkshop.intervieweesLabel")}
-                        value={submission.interviewees}
+                        supportWords={getSupportWords(config, "podcastName")}
+                        tone="warm"
                         feedback={feedback}
                         canOperate={canOperate}
                         saving={saving}
@@ -460,6 +378,8 @@ function renderRoom({
                         fieldKey="ideas.ideas"
                         label={t("podcastWorkshop.ideasLabel")}
                         value={submission.ideas}
+                        supportWords={getSupportWords(config, "ideas")}
+                        tone="green"
                         feedback={feedback}
                         canOperate={canOperate}
                         saving={saving}
@@ -467,27 +387,45 @@ function renderRoom({
                         onSaveFeedback={onSaveFeedback}
                         t={t}
                     />
-                    {config.guidingQuestions.length > 0 ? (
-                        <div className="grid gap-3">
-                            <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                                {t("podcastWorkshop.questionsTitle")}
-                            </div>
-                            {config.guidingQuestions.map((question, index) => (
-                                <InfoBlock
-                                    key={question}
-                                    fieldKey={`ideas.question.${index}`}
-                                    label={question}
-                                    value={submission.ideaQuestionNotes?.[question] ?? ""}
-                                    feedback={feedback}
-                                    canOperate={canOperate}
-                                    saving={saving}
-                                    onFieldFeedbackChange={onFieldFeedbackChange}
-                                    onSaveFeedback={onSaveFeedback}
-                                    t={t}
-                                />
-                            ))}
-                        </div>
-                    ) : null}
+                    <InfoBlock
+                        fieldKey="ideas.participants"
+                        label={t("podcastWorkshop.participantsLabel")}
+                        value={submission.participants}
+                        supportWords={getSupportWords(config, "participants")}
+                        tone="warm"
+                        feedback={feedback}
+                        canOperate={canOperate}
+                        saving={saving}
+                        onFieldFeedbackChange={onFieldFeedbackChange}
+                        onSaveFeedback={onSaveFeedback}
+                        t={t}
+                    />
+                    <InfoBlock
+                        fieldKey="ideas.importantPoints"
+                        label={t("podcastWorkshop.importantPointsLabel")}
+                        value={submission.importantPoints}
+                        supportWords={getSupportWords(config, "importantPoints")}
+                        tone="green"
+                        feedback={feedback}
+                        canOperate={canOperate}
+                        saving={saving}
+                        onFieldFeedbackChange={onFieldFeedbackChange}
+                        onSaveFeedback={onSaveFeedback}
+                        t={t}
+                    />
+                    <InfoBlock
+                        fieldKey="ideas.listenerTakeaway"
+                        label={t("podcastWorkshop.listenerTakeawayLabel")}
+                        value={submission.listenerTakeaway}
+                        supportWords={getSupportWords(config, "listenerTakeaway")}
+                        tone="warm"
+                        feedback={feedback}
+                        canOperate={canOperate}
+                        saving={saving}
+                        onFieldFeedbackChange={onFieldFeedbackChange}
+                        onSaveFeedback={onSaveFeedback}
+                        t={t}
+                    />
                 </div>
             </section>
         );
@@ -507,6 +445,7 @@ function renderRoom({
                     saving={saving}
                     t={t}
                     getText={(segmentId) => submission.segmentPlans[segmentId] ?? ""}
+                    getSupportWords={(segmentId) => getSupportWords(config, supportKeyForSegment(segmentId), "segment")}
                     onFieldFeedbackChange={onFieldFeedbackChange}
                     onSaveFeedback={onSaveFeedback}
                 />
@@ -530,6 +469,7 @@ function renderRoom({
                     saving={saving}
                     t={t}
                     getText={(segmentId) => submission.segmentScripts[segmentId] ?? ""}
+                    getSupportWords={(segmentId) => getSupportWords(config, supportKeyForSegment(segmentId), "segment")}
                     onFieldFeedbackChange={onFieldFeedbackChange}
                     onSaveFeedback={onSaveFeedback}
                 />
@@ -547,7 +487,7 @@ function renderRoom({
                     {segments.map((segment, index) => {
                         const voice = submission.productionSegments[segment.id]?.voice ?? null;
                         return (
-                            <div key={segment.id} className="podcastTeacherFieldRow">
+                            <div key={segment.id} className={`podcastTeacherFieldRow ${index % 2 === 0 ? "isWarm" : "isGreen"}`}>
                                 <div className="min-w-0">
                                     <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
                                         {getSegmentEyebrow(segment.title, index, t)}
@@ -583,11 +523,6 @@ function renderRoom({
         <FinalReview
             config={config}
             submission={submission}
-            feedback={feedback}
-            canOperate={canOperate}
-            saving={saving}
-            onFieldFeedbackChange={onFieldFeedbackChange}
-            onSaveFeedback={onSaveFeedback}
             t={t}
         />
     );
@@ -596,20 +531,10 @@ function renderRoom({
 function FinalReview({
     config,
     submission,
-    feedback,
-    canOperate,
-    saving,
-    onFieldFeedbackChange,
-    onSaveFeedback,
     t,
 }: {
     config: PodcastWorkshopConfig;
     submission: PodcastWorkshopSubmission;
-    feedback: PodcastWorkshopFeedback;
-    canOperate: boolean;
-    saving: boolean;
-    onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
-    onSaveFeedback: () => void;
     t: Props["t"];
 }) {
     const readyCount = getVoiceSegments(config, submission).length;
@@ -637,57 +562,45 @@ function FinalReview({
                 </span>
             </div>
 
-            <div className="podcastTeacherFieldRow">
-                <div className="min-w-0">
+            <div className="podcastTeacherFinalReview">
+                <div>
                     <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
                         {t("podcastWorkshop.studentNotes")}
                     </div>
                     {textBlock(submission.notes, t)}
                 </div>
-                <FieldFeedbackBox
-                    fieldKey="final.notes"
-                    feedback={feedback}
-                    canOperate={canOperate}
-                    saving={saving}
-                    onFieldFeedbackChange={onFieldFeedbackChange}
-                    onSaveFeedback={onSaveFeedback}
-                    t={t}
-                />
+
+                {config.criteria.length > 0 ? (
+                    <div>
+                        <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+                            {t("podcastWorkshop.finalChecklist")}
+                        </div>
+                        <div className="grid gap-2">
+                            {config.criteria.map((criterion, index) => {
+                                const checked = submission.selfAssessment[`criterion_${index}`] === true;
+                                return (
+                                    <div
+                                        key={criterion}
+                                        className={`rounded-xl bg-white px-3 py-2 text-sm font-bold ${checked ? "text-emerald-950" : "text-slate-600"}`}
+                                    >
+                                        {checked ? t("podcastWorkshop.checked") : t("podcastWorkshop.notChecked")} · {criterion}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ) : null}
             </div>
 
-            {config.criteria.length > 0 ? (
-                <div className="grid gap-2">
-                    <div className="text-xs font-black uppercase tracking-wide text-slate-500">
-                        {t("podcastWorkshop.finalChecklist")}
-                    </div>
-                    {config.criteria.map((criterion, index) => {
-                        const checked = submission.selfAssessment[`criterion_${index}`] === true;
-                        return (
-                            <div
-                                key={criterion}
-                                className={`podcastTeacherFieldRow text-sm font-bold ${checked
-                                    ? "border-emerald-200 bg-emerald-50 text-emerald-950"
-                                    : "border-slate-200 bg-slate-50 text-slate-600"
-                                    }`}
-                            >
-                                <div className="min-w-0">
-                                    {checked ? t("podcastWorkshop.checked") : t("podcastWorkshop.notChecked")} · {criterion}
-                                </div>
-                                <FieldFeedbackBox
-                                    fieldKey={`final.criterion.${index}`}
-                                    feedback={feedback}
-                                    canOperate={canOperate}
-                                    saving={saving}
-                                    onFieldFeedbackChange={onFieldFeedbackChange}
-                                    onSaveFeedback={onSaveFeedback}
-                                    t={t}
-                                />
-                            </div>
-                        );
-                    })}
-                </div>
-            ) : null}
-            <TeacherFieldRowStyle />
+            <style jsx>{`
+                .podcastTeacherFinalReview {
+                    display: grid;
+                    gap: 14px;
+                    border-radius: 16px;
+                    background: rgba(236, 253, 245, 0.72);
+                    padding: 14px;
+                }
+            `}</style>
         </section>
     );
 }
@@ -700,6 +613,7 @@ function SegmentList({
     saving,
     t,
     getText,
+    getSupportWords,
     onFieldFeedbackChange,
     onSaveFeedback,
 }: {
@@ -710,19 +624,21 @@ function SegmentList({
     saving: boolean;
     t: Props["t"];
     getText: (segmentId: string) => string;
+    getSupportWords: (segmentId: string) => string[];
     onFieldFeedbackChange: (fieldKey: string, next: PodcastWorkshopRoomFeedback) => void;
     onSaveFeedback: () => void;
 }) {
     return (
         <div className="grid gap-3">
             {segments.map((segment, index) => (
-                <div key={segment.id} className="podcastTeacherFieldRow">
+                <div key={segment.id} className={`podcastTeacherFieldRow ${index % 2 === 0 ? "isWarm" : "isGreen"}`}>
                     <div className="min-w-0">
                         <div className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
                             {getSegmentEyebrow(segment.title, index, t)}
                         </div>
                         <div className="mb-2 font-black text-slate-950">{segment.title}</div>
                         {textBlock(getText(segment.id), t)}
+                        <SupportWords words={getSupportWords(segment.id)} t={t} />
                     </div>
                     <FieldFeedbackBox
                         fieldKey={`${fieldPrefix}.${segment.id}`}
@@ -744,6 +660,8 @@ function InfoBlock({
     fieldKey,
     label,
     value,
+    supportWords,
+    tone = "green",
     feedback,
     canOperate,
     saving,
@@ -754,6 +672,8 @@ function InfoBlock({
     fieldKey: string;
     label: string;
     value: string;
+    supportWords?: string[];
+    tone?: "green" | "warm";
     feedback: PodcastWorkshopFeedback;
     canOperate: boolean;
     saving: boolean;
@@ -762,12 +682,13 @@ function InfoBlock({
     t: Props["t"];
 }) {
     return (
-        <div className="podcastTeacherFieldRow">
+        <div className={`podcastTeacherFieldRow ${tone === "warm" ? "isWarm" : "isGreen"}`}>
             <div className="min-w-0">
                 <div className="mb-1 text-xs font-black uppercase tracking-wide text-slate-500">
                     {label}
                 </div>
                 {textBlock(value, t)}
+                <SupportWords words={supportWords ?? []} t={t} />
             </div>
             <FieldFeedbackBox
                 fieldKey={fieldKey}
@@ -783,18 +704,46 @@ function InfoBlock({
     );
 }
 
+function SupportWords({ words, t }: { words: string[]; t: Props["t"] }) {
+    const cleanWords = words.map((word) => word.trim()).filter(Boolean);
+    if (cleanWords.length === 0) return null;
+
+    return (
+        <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+            <div className="mb-2 text-[11px] font-black uppercase tracking-wide text-emerald-800">
+                {t("podcastWorkshop.supportWords")}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+                {cleanWords.map((word) => (
+                    <span key={word} className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-800">
+                        {word}
+                    </span>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function TeacherFieldRowStyle() {
     return (
-        <style jsx>{`
+        <style jsx global>{`
             .podcastTeacherFieldRow {
                 display: grid;
-                grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
-                gap: 14px;
+                grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+                gap: 18px;
                 align-items: start;
-                border-radius: 14px;
-                border: 1px solid rgba(226, 232, 240, 1);
-                background: white;
-                padding: 12px;
+                border-radius: 16px;
+                background: rgba(236, 253, 245, 0.72);
+                padding: 14px;
+                min-height: 170px;
+            }
+
+            .podcastTeacherFieldRow.isWarm {
+                background: rgba(255, 251, 235, 0.70);
+            }
+
+            .podcastTeacherFieldRow.isGreen {
+                background: rgba(236, 253, 245, 0.72);
             }
 
             @media (max-width: 850px) {
@@ -803,6 +752,91 @@ function TeacherFieldRowStyle() {
                 }
             }
         `}</style>
+    );
+}
+
+function RoomFeedbackBox({
+    room,
+    feedback,
+    canOperate,
+    saving,
+    saveMsg,
+    onFeedbackChange,
+    onSaveFeedback,
+    t,
+}: {
+    room: PodcastWorkshopRoomKey;
+    feedback: PodcastWorkshopFeedback;
+    canOperate: boolean;
+    saving: boolean;
+    saveMsg: string | null;
+    onFeedbackChange: (room: PodcastWorkshopRoomKey, next: PodcastWorkshopRoomFeedback) => void;
+    onSaveFeedback: () => void;
+    t: Props["t"];
+}) {
+    const roomFeedback = feedback.rooms[room] ?? { text: "", status: "" };
+
+    function patch(next: Partial<PodcastWorkshopRoomFeedback>) {
+        onFeedbackChange(room, {
+            ...roomFeedback,
+            ...next,
+        });
+    }
+
+    return (
+        <section className="min-w-0 rounded-2xl border border-violet-100 bg-violet-50 p-4">
+            <div className="mb-2 text-xs font-black uppercase tracking-wide text-violet-800">
+                {t("podcastWorkshop.feedbackForRoom")}
+            </div>
+            <textarea
+                value={roomFeedback.text}
+                onChange={(event) => patch({ text: event.target.value })}
+                placeholder={t("podcastWorkshop.feedbackPlaceholder")}
+                disabled={!canOperate}
+                rows={8}
+                className="box-border w-full resize-y rounded-xl border border-violet-200 bg-white p-3 text-sm leading-6 text-slate-900 disabled:opacity-60"
+            />
+
+            <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    disabled={!canOperate}
+                    onClick={() => patch({ status: "approved" })}
+                    className={`rounded-xl border px-3 py-2 text-sm font-black disabled:opacity-60 ${roomFeedback.status === "approved"
+                        ? "border-emerald-500 bg-emerald-600 text-white"
+                        : "border-emerald-200 bg-white text-emerald-800"
+                        }`}
+                >
+                    {t("podcastWorkshop.approved")}
+                </button>
+                <button
+                    type="button"
+                    disabled={!canOperate}
+                    onClick={() => patch({ status: "needs_work" })}
+                    className={`rounded-xl border px-3 py-2 text-sm font-black disabled:opacity-60 ${roomFeedback.status === "needs_work"
+                        ? "border-amber-400 bg-amber-400 text-slate-950"
+                        : "border-amber-200 bg-white text-amber-800"
+                        }`}
+                >
+                    {t("podcastWorkshop.needsWork")}
+                </button>
+            </div>
+
+            <button
+                type="button"
+                disabled={!canOperate || saving}
+                onClick={onSaveFeedback}
+                className="mt-3 w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm font-black text-violet-800 disabled:opacity-60"
+            >
+                {saving ? t("podcastWorkshop.saving") : t("podcastWorkshop.saveFeedback")}
+            </button>
+
+            {saveMsg ? (
+                <div className="mt-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-xs font-bold text-violet-900">
+                    {saveMsg}
+                </div>
+            ) : null}
+        </section>
     );
 }
 
@@ -833,7 +867,7 @@ function FieldFeedbackBox({
     }
 
     return (
-        <div className="rounded-xl border border-violet-100 bg-violet-50 p-3">
+        <div className="rounded-2xl bg-violet-50 p-3">
             <div className="mb-2 text-[11px] font-black uppercase tracking-wide text-violet-800">
                 {t("podcastWorkshop.feedbackForField")}
             </div>
@@ -842,8 +876,8 @@ function FieldFeedbackBox({
                 onChange={(event) => patch({ text: event.target.value })}
                 placeholder={t("podcastWorkshop.fieldFeedbackPlaceholder")}
                 disabled={!canOperate}
-                rows={4}
-                className="box-border w-full resize-y rounded-xl border border-violet-200 bg-white p-2 text-sm leading-5 text-slate-900 disabled:opacity-60"
+                rows={5}
+                className="box-border w-full resize-y rounded-xl border border-violet-200 bg-white p-3 text-sm leading-6 text-slate-900 disabled:opacity-60"
             />
             <div className="mt-2 flex flex-wrap gap-2">
                 <button

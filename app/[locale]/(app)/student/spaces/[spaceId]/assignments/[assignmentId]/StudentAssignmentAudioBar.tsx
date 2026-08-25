@@ -35,6 +35,7 @@ type Props = {
     submitting: boolean;
     submitLabel: string;
     submitDisabled: boolean;
+    footerHint?: string;
     onSubmit: () => void;
 };
 
@@ -64,9 +65,11 @@ export default function StudentAssignmentAudioBar({
     submitting,
     submitLabel,
     submitDisabled,
+    footerHint,
     onSubmit,
 }: Props) {
     const [isMobileView, setIsMobileView] = useState(false);
+    const canShowSubmitButton = showSubmitButton && !submitDisabled;
 
     useEffect(() => {
         const update = () => setIsMobileView(window.innerWidth < 720);
@@ -208,12 +211,28 @@ export default function StudentAssignmentAudioBar({
                     </button>
                 </div>
 
-                {showDraftButton || showSubmitButton ? (
+                {footerHint ? (
+                    <div
+                        style={{
+                            flex: isMobileView ? "1 1 100%" : "1 1 260px",
+                            order: isMobileView ? 4 : 0,
+                            color: "#475569",
+                            fontSize: isMobileView ? 12 : 13,
+                            fontWeight: 750,
+                            lineHeight: 1.35,
+                            minWidth: isMobileView ? "100%" : 220,
+                        }}
+                    >
+                        {footerHint}
+                    </div>
+                ) : null}
+
+                {showDraftButton || canShowSubmitButton ? (
                     <div
                         style={{
                             display: "grid",
                             gridTemplateColumns:
-                                showDraftButton && showSubmitButton
+                                showDraftButton && canShowSubmitButton
                                     ? isMobileView
                                         ? "minmax(0, 0.44fr) minmax(0, 0.56fr)"
                                         : "auto auto"
@@ -222,7 +241,7 @@ export default function StudentAssignmentAudioBar({
                             flex: isMobileView ? "1 1 100%" : "0 0 auto",
                             width: isMobileView ? "100%" : undefined,
                             minWidth: isMobileView ? "100%" : undefined,
-                            order: isMobileView ? 4 : 0,
+                            order: isMobileView ? 5 : 0,
                             marginTop: isMobileView ? 2 : 0,
                         }}
                     >
@@ -244,7 +263,7 @@ export default function StudentAssignmentAudioBar({
                             </button>
                         ) : null}
 
-                        {showSubmitButton ? (
+                        {canShowSubmitButton ? (
                             <button
                                 type="button"
                                 disabled={submitDisabled}

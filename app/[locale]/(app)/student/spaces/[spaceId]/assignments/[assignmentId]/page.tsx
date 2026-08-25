@@ -84,6 +84,7 @@ import {
   isPodcastWorkshopType,
   readPodcastWorkshopConfig,
   readPodcastWorkshopSubmission,
+  type PodcastWorkshopRoomKey,
   type PodcastWorkshopSubmission,
 } from "@/lib/podcastWorkshop";
 import {
@@ -236,6 +237,8 @@ export default function StudentAssignmentPage() {
     useState<AudioReadingSubmission | null>(null);
   const [podcastWorkshopSubmission, setPodcastWorkshopSubmission] =
     useState<PodcastWorkshopSubmission>(() => createPodcastWorkshopSubmission(null));
+  const [podcastWorkshopActiveRoom, setPodcastWorkshopActiveRoom] =
+    useState<PodcastWorkshopRoomKey>("ideas");
   const [draftSaving, setDraftSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -1173,6 +1176,12 @@ export default function StudentAssignmentPage() {
       if (!spaceId || !assignmentId || !uid) return;
       if (submitted) return;
 
+      if (isPodcastWorkshop && podcastWorkshopActiveRoom !== "final") {
+        setErr(null);
+        setMsg(t("podcastWorkshop.goToFinalBeforeSubmit"));
+        return;
+      }
+
       if ((sid || editingSubmissionId) && editingSubmissionId == null) {
         setErr(null);
         setMsg(t("messages.lockedNoChanges"));
@@ -1387,6 +1396,7 @@ export default function StudentAssignmentPage() {
       audioReadingSubmission,
       isPodcastWorkshop,
       podcastWorkshopSubmission,
+      podcastWorkshopActiveRoom,
       readingTestTotalSeconds,
       readingTestSecondsLeft,
       tasksOriginal,
@@ -1433,6 +1443,11 @@ export default function StudentAssignmentPage() {
     (!isReadingTest || readingTestStarted) &&
     (!isSubmittedStatus || isNeedsWorkStatus);
 
+  const podcastSubmitBlocked = isPodcastWorkshop && podcastWorkshopActiveRoom !== "final";
+  const showPodcastSubmitButton =
+    showSubmitButton &&
+    !podcastSubmitBlocked;
+
   const submitLabel = submitting
     ? t("actions.saving")
     : canResubmit
@@ -1445,6 +1460,7 @@ export default function StudentAssignmentPage() {
     submitting ||
     lock ||
     !uid ||
+    podcastSubmitBlocked ||
     (audioReadingRequired && !audioReadingSubmission?.audioDataUrl) ||
     (isReadingTest && !readingTestStarted) ||
     (isReadingTest && readingTestFinished);
@@ -1685,6 +1701,7 @@ export default function StudentAssignmentPage() {
             submitted={submitted}
             t={tString}
             onChange={setPodcastWorkshopSubmission}
+            onRoomChange={setPodcastWorkshopActiveRoom}
           />
         ) : null}
 
@@ -1759,7 +1776,7 @@ export default function StudentAssignmentPage() {
       />
 
       <StudentAssignmentAudioBar
-        visible={(((showDraftButton || showSubmitButton) && !isReadingTest && !lock && !!uid) || !!audioRef.current)}
+        visible={(((showDraftButton || showPodcastSubmitButton) && !isReadingTest && !lock && !!uid) || !!audioRef.current)}
         audioActive={!!audioRef.current}
         playbackRate={playbackRate}
         isPlaying={isPlaying}
@@ -1788,10 +1805,15 @@ export default function StudentAssignmentPage() {
         draftSaving={draftSaving}
         draftDisabled={draftSaving || submitting || lock || !uid}
         onSaveDraft={() => saveDraft(true)}
-        showSubmitButton={showSubmitButton && !isReadingTest && !lock && !!uid}
+        showSubmitButton={showPodcastSubmitButton && !isReadingTest && !lock && !!uid}
         submitting={submitting}
         submitLabel={submitLabel}
         submitDisabled={submitDisabled}
+        footerHint={isPodcastWorkshop
+          ? podcastWorkshopActiveRoom === "final"
+            ? tString("podcastWorkshop.submitFooterHint")
+            : tString("podcastWorkshop.draftFooterHint")
+          : undefined}
         onSubmit={() => submitToSpace("manual")}
       />
     </main>
