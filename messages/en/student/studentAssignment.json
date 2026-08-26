@@ -127,6 +127,7 @@
       "title": "Record reading",
       "subtitle": "Record yourself reading the text aloud. Listen first if you want, practice a little, and send the recording to your teacher when you are ready.",
       "start": "Start recording",
+      "recordAgain": "Record again",
       "pause": "Pause",
       "resume": "Resume",
       "stop": "Stop",

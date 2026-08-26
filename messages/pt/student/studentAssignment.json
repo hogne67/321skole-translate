@@ -127,6 +127,7 @@
       "title": "Gravar leitura",
       "subtitle": "Grave você lendo o texto em voz alta. Ouça primeiro se quiser, pratique um pouco e envie a gravação ao professor quando estiver pronto.",
       "start": "Iniciar gravação",
+      "recordAgain": "Gravar novamente",
       "pause": "Pausar",
       "resume": "Continuar",
       "stop": "Parar",

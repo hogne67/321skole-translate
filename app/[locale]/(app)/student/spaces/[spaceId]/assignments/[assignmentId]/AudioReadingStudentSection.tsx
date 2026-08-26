@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Mic, Pause, Play, Square, Trash2 } from "lucide-react";
 import type { StudentAudioAsset } from "@/lib/audio/studentAudio";
 
 export type AudioReadingSubmission = StudentAudioAsset;
@@ -200,6 +201,13 @@ export default function AudioReadingStudentSection({
     recorder.stop();
   }
 
+  const canStart = (status === "idle" || status === "ready") && !disabled;
+  const canPause = status === "recording" && !disabled;
+  const canResume = status === "paused" && !disabled;
+  const canStop = (status === "recording" || status === "paused") && !disabled;
+  const canDelete = !disabled && !!previewUrl && status !== "recording" && status !== "paused";
+  const pauseResumeLabel = status === "paused" ? t("audioReading.resume") : t("audioReading.pause");
+
   return (
     <section
       style={{
@@ -235,36 +243,46 @@ export default function AudioReadingStudentSection({
         </div>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
-        {(status === "idle" || status === "ready") && !disabled ? (
-          <button type="button" onClick={startRecording} style={primaryButtonStyle}>
-            {t("audioReading.start")}
-          </button>
-        ) : null}
+      <div className="audioReadingActions">
+        <button
+          type="button"
+          onClick={startRecording}
+          disabled={!canStart}
+          className="audioReadingAction isStart"
+        >
+          <Mic size={18} aria-hidden="true" />
+          {previewUrl ? t("audioReading.recordAgain") : t("audioReading.start")}
+        </button>
 
-        {status === "recording" ? (
-          <button type="button" onClick={pauseRecording} style={secondaryButtonStyle}>
-            {t("audioReading.pause")}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={status === "paused" ? resumeRecording : pauseRecording}
+          disabled={!(canPause || canResume)}
+          className={`audioReadingAction ${status === "paused" ? "isResume" : "isPause"}`}
+        >
+          {status === "paused" ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}
+          {pauseResumeLabel}
+        </button>
 
-        {status === "paused" ? (
-          <button type="button" onClick={resumeRecording} style={primaryButtonStyle}>
-            {t("audioReading.resume")}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={stopRecording}
+          disabled={!canStop}
+          className="audioReadingAction isStop"
+        >
+          <Square size={18} aria-hidden="true" />
+          {t("audioReading.stop")}
+        </button>
 
-        {status === "recording" || status === "paused" ? (
-          <button type="button" onClick={stopRecording} style={secondaryButtonStyle}>
-            {t("audioReading.stop")}
-          </button>
-        ) : null}
-
-        {!disabled && previewUrl ? (
-          <button type="button" onClick={resetRecording} style={secondaryButtonStyle}>
-            {t("audioReading.delete")}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={resetRecording}
+          disabled={!canDelete}
+          className="audioReadingAction isDelete"
+        >
+          <Trash2 size={18} aria-hidden="true" />
+          {t("audioReading.delete")}
+        </button>
       </div>
 
       {status === "recording" || status === "paused" ? (
@@ -354,6 +372,66 @@ export default function AudioReadingStudentSection({
       )}
 
       <style jsx>{`
+        .audioReadingActions {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          margin-top: 14px;
+        }
+
+        .audioReadingAction {
+          align-items: center;
+          border: 1px solid rgba(15, 23, 42, 0.18);
+          border-radius: 12px;
+          display: inline-flex;
+          font-weight: 900;
+          gap: 8px;
+          justify-content: center;
+          min-height: 44px;
+          padding: 10px 12px;
+          transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+          white-space: nowrap;
+        }
+
+        .audioReadingAction:disabled {
+          cursor: not-allowed;
+          opacity: 0.45;
+        }
+
+        .audioReadingAction.isStart {
+          background: #be123c;
+          border-color: #be123c;
+          color: white;
+        }
+
+        .audioReadingAction.isPause {
+          background: #fff7ed;
+          border-color: #fdba74;
+          color: #9a3412;
+        }
+
+        .audioReadingAction.isResume {
+          background: #ecfdf5;
+          border-color: #6ee7b7;
+          color: #065f46;
+        }
+
+        .audioReadingAction.isStop {
+          background: #0f172a;
+          border-color: #0f172a;
+          color: white;
+        }
+
+        .audioReadingAction.isDelete {
+          background: white;
+          border-color: rgba(15, 23, 42, 0.18);
+          color: #334155;
+        }
+
+        .audioReadingAction:not(:disabled):hover {
+          filter: brightness(0.97);
+        }
+
         .audioReadingDot {
           width: 12px;
           height: 12px;
@@ -403,27 +481,13 @@ export default function AudioReadingStudentSection({
             background-position: 180% 0;
           }
         }
+
+        @media (max-width: 720px) {
+          .audioReadingActions {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
       `}</style>
     </section>
   );
 }
-
-const primaryButtonStyle = {
-  border: "1px solid #be123c",
-  borderRadius: 12,
-  background: "#be123c",
-  color: "white",
-  padding: "10px 14px",
-  fontWeight: 900,
-  cursor: "pointer",
-};
-
-const secondaryButtonStyle = {
-  border: "1px solid rgba(15,23,42,0.22)",
-  borderRadius: 12,
-  background: "white",
-  color: "#0f172a",
-  padding: "10px 14px",
-  fontWeight: 900,
-  cursor: "pointer",
-};

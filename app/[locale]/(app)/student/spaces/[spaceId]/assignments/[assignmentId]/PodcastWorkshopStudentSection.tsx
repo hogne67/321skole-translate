@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Mic, Pause, Play, Square, Trash2 } from "lucide-react";
 
 import type {
   PodcastWorkshopConfig,
@@ -906,34 +907,38 @@ function PodcastSegmentRecorder({
       <div className="podcastSegmentRecorderActions">
         <button
           type="button"
-          className="isPrimary"
+          className="podcastSegmentRecorderAction isStart"
           disabled={!canStart}
           onClick={startRecording}
         >
-          {existing ? t("podcastWorkshop.recordAgain") : t("podcastWorkshop.recordVoice")}
+          <Mic size={18} aria-hidden="true" />
+          {existing ? t("audioReading.recordAgain") : t("audioReading.start")}
         </button>
         <button
           type="button"
-          className={paused ? "isResume" : "isPause"}
+          className={`podcastSegmentRecorderAction ${paused ? "isResume" : "isPause"}`}
           disabled={!(canPause || canResume)}
           onClick={paused ? resumeRecording : pauseRecording}
         >
+          {paused ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}
           {paused ? t("audioReading.resume") : t("audioReading.pause")}
         </button>
         <button
           type="button"
-          className="isStop"
+          className="podcastSegmentRecorderAction isStop"
           disabled={!canStop}
           onClick={stopRecording}
         >
+          <Square size={18} aria-hidden="true" />
           {t("audioReading.stop")}
         </button>
         <button
           type="button"
-          className="isDelete"
+          className="podcastSegmentRecorderAction isDelete"
           disabled={!canDelete}
           onClick={deleteRecording}
         >
+          <Trash2 size={18} aria-hidden="true" />
           {t("audioReading.delete")}
         </button>
       </div>
@@ -971,55 +976,66 @@ function PodcastSegmentRecorder({
         }
 
         .podcastSegmentRecorderActions {
-          display: flex;
+          display: grid;
           gap: 8px;
-          flex-wrap: wrap;
-          margin-top: 8px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          margin-top: 14px;
         }
 
-        .podcastSegmentRecorderActions button {
+        .podcastSegmentRecorderAction {
+          align-items: center;
           border: 1px solid rgba(15, 23, 42, 0.18);
-          border-radius: 10px;
+          border-radius: 12px;
           background: white;
           color: #0f172a;
-          padding: 8px 10px;
+          display: inline-flex;
           font-weight: 900;
+          gap: 8px;
+          justify-content: center;
+          min-height: 44px;
+          padding: 10px 12px;
+          transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+          white-space: nowrap;
           cursor: pointer;
         }
 
-        .podcastSegmentRecorderActions button:disabled {
+        .podcastSegmentRecorderAction:disabled {
           cursor: not-allowed;
-          opacity: 0.42;
+          opacity: 0.45;
         }
 
-        .podcastSegmentRecorderActions button.isPrimary {
-          border-color: rgba(190, 18, 60, 0.35);
+        .podcastSegmentRecorderAction.isStart {
           background: #be123c;
+          border-color: #be123c;
           color: white;
         }
 
-        .podcastSegmentRecorderActions button.isPause {
-          border-color: rgba(245, 158, 11, 0.42);
-          background: #fffbeb;
-          color: #92400e;
+        .podcastSegmentRecorderAction.isPause {
+          background: #fff7ed;
+          border-color: #fdba74;
+          color: #9a3412;
         }
 
-        .podcastSegmentRecorderActions button.isResume {
-          border-color: rgba(5, 150, 105, 0.35);
+        .podcastSegmentRecorderAction.isResume {
           background: #ecfdf5;
-          color: #047857;
+          border-color: #6ee7b7;
+          color: #065f46;
         }
 
-        .podcastSegmentRecorderActions button.isStop {
-          border-color: rgba(15, 23, 42, 0.18);
-          background: #f8fafc;
-          color: #0f172a;
+        .podcastSegmentRecorderAction.isStop {
+          background: #0f172a;
+          border-color: #0f172a;
+          color: white;
         }
 
-        .podcastSegmentRecorderActions button.isDelete {
-          border-color: rgba(225, 29, 72, 0.20);
+        .podcastSegmentRecorderAction.isDelete {
           background: white;
-          color: #be123c;
+          border-color: rgba(15, 23, 42, 0.18);
+          color: #334155;
+        }
+
+        .podcastSegmentRecorderAction:not(:disabled):hover {
+          filter: brightness(0.97);
         }
 
         .podcastSegmentRecording {
@@ -1050,6 +1066,12 @@ function PodcastSegmentRecorder({
           color: #be123c;
           padding: 8px 10px;
           font-weight: 800;
+        }
+
+        @media (max-width: 720px) {
+          .podcastSegmentRecorderActions {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
       `}</style>
     </div>

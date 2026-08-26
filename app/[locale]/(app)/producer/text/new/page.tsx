@@ -14,7 +14,6 @@ type WritingProgression = "free" | "guided" | "locked";
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 const LANGUAGES = ["nb", "en", "pt"] as const;
 const GENRES = ["story", "factual"] as const;
-const PROGRESSION_OPTIONS: WritingProgression[] = ["guided", "free", "locked"];
 const DEFAULT_WORD_COUNT_BY_LEVEL: Record<(typeof LEVELS)[number], number> = {
   A1: 100,
   A2: 200,
@@ -58,6 +57,8 @@ const FACTUAL_SECTIONS = [
   { id: "language_check", labelKey: "sections.languageCheck" },
   { id: "self_assessment", labelKey: "sections.selfAssessment" },
 ];
+const HIDDEN_FACTUAL_PLANNING_SECTION_IDS = new Set(["purpose_audience", "key_terms", "structure"]);
+const DISCUSSION_FACTUAL_GENRE_PATTERN = /argument|drøft|droft|discussion|discuss|debate|opinion|mening|sammenligning|comparison|compara/i;
 
 type WritingLanguage = (typeof LANGUAGES)[number];
 type WritingGenre = (typeof GENRES)[number];
@@ -353,6 +354,15 @@ function sectionsForGenre(genre: WritingGenre): SectionConfig[] {
   return genre === "factual" ? FACTUAL_SECTIONS : STORY_SECTIONS;
 }
 
+function editableSectionsForGenre(genre: WritingGenre, selectedTheme: string): SectionConfig[] {
+  if (genre !== "factual") return sectionsForGenre(genre);
+  return sectionsForGenre(genre).filter((section) => {
+    if (HIDDEN_FACTUAL_PLANNING_SECTION_IDS.has(section.id)) return false;
+    if (section.id === "discussion") return DISCUSSION_FACTUAL_GENRE_PATTERN.test(selectedTheme);
+    return true;
+  });
+}
+
 function lines(value: string, maxItems = 16): string[] {
   return value
     .split(/\r?\n/)
@@ -506,8 +516,9 @@ function ProducerTextNewInner() {
 
   const canUse = profile?.role === "teacher" || profile?.role === "admin";
   const currentDefaults = defaultsFor(language, genre);
-  const activeSections = sectionsForGenre(genre);
+  const allSections = sectionsForGenre(genre);
   const selectedTheme = theme === currentDefaults.customTheme ? customTheme.trim() : theme;
+  const activeSections = editableSectionsForGenre(genre, selectedTheme);
   const supportSectionsWithWords = activeSections.filter((section) => lines(supportBySection[section.id] ?? "").length > 0).length;
   const aiControlSummary = [
     aiEnabled ? t("settings.aiOn") : t("settings.aiOff"),
@@ -588,7 +599,7 @@ function ProducerTextNewInner() {
     });
     setSupportBySection((current) => {
       const nextSupport = { ...current };
-      for (const section of activeSections) {
+      for (const section of allSections) {
         const sectionId = section.id;
         if (current[sectionId] === previousDefaults.support[sectionId]) {
           nextSupport[sectionId] = nextDefaults.support[sectionId];
@@ -598,7 +609,7 @@ function ProducerTextNewInner() {
     });
 
     previousLanguageRef.current = language;
-  }, [activeSections, genre, language]);
+  }, [allSections, genre, language]);
 
   useEffect(() => {
     const previousGenre = previousGenreRef.current;
@@ -631,6 +642,7 @@ function ProducerTextNewInner() {
 
     try {
       const draft = await authedPost<GeneratedWritingDraft>("/api/teacher/writing-activities/generate-draft", {
+        title,
         language,
         level,
         genre: selectedTheme || currentDefaults.theme,
@@ -750,12 +762,6 @@ function ProducerTextNewInner() {
                 <p className="mt-1 text-xs leading-5 text-slate-600">{t("video.text")}</p>
               </div>
             </div>
-            <Link
-              href={`/${locale}/teacher/writing`}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50"
-            >
-              {t("backToWriting")}
-            </Link>
           </div>
         </div>
 
@@ -851,37 +857,6 @@ function ProducerTextNewInner() {
           </label>
         </div>
 
-        <div className="mt-5">
-          <h3 className="text-base font-black text-slate-950">{t("progression.title")}</h3>
-          <p className="mt-1 text-sm text-slate-600">{t("progression.subtitle")}</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
-            {PROGRESSION_OPTIONS.map((value) => {
-              const selected = progression === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setProgression(value)}
-                  className={`rounded-2xl border p-4 text-left transition ${
-                    selected
-                      ? "border-emerald-500 bg-emerald-50 shadow-sm"
-                      : "border-slate-200 bg-slate-50 hover:border-emerald-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-black text-slate-950">{t(`progression.${value}`)}</span>
-                    <span
-                      className={`h-4 w-4 rounded-full border ${
-                        selected ? "border-emerald-700 bg-emerald-700" : "border-slate-300 bg-white"
-                      }`}
-                    />
-                  </div>
-                  <p className="mt-2 text-sm leading-5 text-slate-600">{t(`progression.${value}Text`)}</p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

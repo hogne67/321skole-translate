@@ -163,7 +163,7 @@ export default function SupportHelpButton({ locale }: { locale: string }) {
       </button>
 
       {open ? (
-        <div className="fixed bottom-40 right-4 z-50 w-[calc(100vw-2rem)] max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/20">
+        <div className="fixed bottom-20 right-4 z-50 max-h-[calc(100dvh-6rem)] w-[calc(100vw-2rem)] max-w-sm overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/20 overscroll-contain sm:bottom-24">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="m-0 text-lg font-black text-slate-950">{text.title}</h2>

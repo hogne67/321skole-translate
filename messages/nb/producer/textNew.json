@@ -26,7 +26,7 @@
     "steps": {
       "frame": {
         "title": "Ramme",
-        "text": "Velg sjanger, språk, nivå, progresjon og omtrent hvor lang teksten skal være."
+        "text": "Velg sjanger, språk, nivå og omtrent hvor lang teksten skal være."
       },
       "assignment": {
         "title": "Oppgave",
@@ -98,15 +98,15 @@
       "summary": "Aktiviteten lagres i Mitt innhold og kan deles til space derfra."
     },
     "fields": {
-      "libraryTitle": "Bibliotektittel",
+      "libraryTitle": "Tittel i Mitt innhold",
       "libraryTitlePlaceholder": {
         "story": "For eksempel: En uventet hendelse",
         "factual": "For eksempel: Hvorfor trenger kroppen søvn?"
       },
       "genre": "Sjanger",
-      "theme": "Sjanger",
-      "customTheme": "Egen sjanger",
-      "draftPrompt": "Tema eller ønske",
+      "theme": "Teksttype",
+      "customTheme": "Egen teksttype",
+      "draftPrompt": "Tema, person eller ønske",
       "draftPromptPlaceholder": "For eksempel: vennskap, en ny elev, skogen om høsten, eventyr, framtidsskole",
       "assignmentText": "Oppgavetekst til eleven",
       "criteria": "Kriterier",

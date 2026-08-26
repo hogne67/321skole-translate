@@ -49,6 +49,7 @@ type RequestUserContext = {
 };
 
 type GenerateDraftBody = {
+  title?: string;
   language?: string;
   level?: string;
   genre?: string;
@@ -134,6 +135,67 @@ function levelGuidance(level: string): string {
     return "B2: varied language, more nuance, causes, consequences and richer descriptions.";
   }
   return "C1/C2: advanced, nuanced language and room for interpretation, style and precise reflection.";
+}
+
+function normalizeGenreForGuidance(genre: string): string {
+  return genre.trim().toLowerCase();
+}
+
+function factualGenreGuidance(genre: string): string {
+  const normalized = normalizeGenreForGuidance(genre);
+
+  if (/biografi|biography|biografia/.test(normalized)) {
+    return [
+      "For biography: focus on who the person is/was, background, important events, work/contributions and why the person matters.",
+      "Use chronological or thematic structure.",
+      "Do not add discussion/debate sections unless the teacher explicitly asks for different perspectives.",
+    ].join(" ");
+  }
+
+  if (/instruksjon|instruction|instru/.test(normalized)) {
+    return [
+      "For instruction text: focus on purpose, materials/what is needed, clear steps, sequence words and safety/checkpoints where relevant.",
+      "Do not add discussion/debate sections.",
+    ].join(" ");
+  }
+
+  if (/rapport|report|relat.rio/.test(normalized)) {
+    return [
+      "For report: focus on purpose, method/process, observations/findings and conclusion.",
+      "Use factual, precise language and do not add opinion or debate unless requested.",
+    ].join(" ");
+  }
+
+  if (/argument|dr.ft|discussion|discuss|debate|opinion|mening/.test(normalized)) {
+    return [
+      "For argumentative or discussion text: include claim/question, reasons, examples, possible counterarguments, and a clear conclusion.",
+      "This is the main factual genre where different perspectives and discussion are expected.",
+    ].join(" ");
+  }
+
+  if (/artikkel|article|artigo/.test(normalized)) {
+    return [
+      "For article: focus on a clear angle, introduction, relevant facts/examples, short subtopics and a rounded ending.",
+      "Include different perspectives only if they fit the chosen angle.",
+    ].join(" ");
+  }
+
+  if (/sammenligning|comparison|compara/.test(normalized)) {
+    return [
+      "For comparison: focus on what is compared, similarities, differences, examples and a concluding comparison.",
+      "Use comparison connectors and avoid unrelated debate.",
+    ].join(" ");
+  }
+
+  return [
+    "For factual text: include a clear topic, purpose, reader, relevant facts, examples, structure and fact/source checking.",
+    "Only include discussion or different perspectives when the chosen genre or teacher request calls for it.",
+  ].join(" ");
+}
+
+function factualGenreUsesDiscussion(genre: string): boolean {
+  const normalized = normalizeGenreForGuidance(genre);
+  return /argument|dr.ft|discussion|discuss|debate|opinion|mening|sammenligning|comparison|compara/.test(normalized);
 }
 
 function extractJsonObject(text: string): string | null {
@@ -232,11 +294,16 @@ export async function POST(req: Request) {
     const body = (await req.json().catch(() => ({}))) as GenerateDraftBody;
     const language = pickString(body, "language", "nb");
     const level = normalizeLevel(pickString(body, "level", "A2"));
+    const titleContext = pickString(body, "title").slice(0, 160);
     const genre = pickString(body, "genre", "Fortelling").slice(0, 80);
     const writingGenre = pickString(body, "writingGenre", "story") === "factual" ? "factual" : "story";
-    const supportSections = cleanSupportSectionIds(body.supportSectionIds);
+    let supportSections = cleanSupportSectionIds(body.supportSectionIds);
     const teacherPrompt = pickString(body, "prompt").slice(0, 1000);
     const targetWordCount = Math.max(20, Math.min(2000, pickNumber(body, "targetWordCount", defaultWordCount(level))));
+
+    if (writingGenre === "factual" && !factualGenreUsesDiscussion(genre)) {
+      supportSections = supportSections.filter((sectionId) => sectionId !== "discussion");
+    }
 
     const prompt = [
       "Create a teacher-editable writing activity draft for 321school.",
@@ -245,16 +312,23 @@ export async function POST(req: Request) {
       `Level guidance: ${levelGuidance(level)}`,
       `Main writing type: ${writingGenre === "factual" ? "factual text" : "creative/literary text"}`,
       `Genre: ${genre}`,
+      titleContext ? `Teacher library title/context: ${titleContext}` : "Teacher library title/context: none.",
       `Target length: ${targetWordCount} words`,
-      teacherPrompt ? `Teacher theme/request: ${teacherPrompt}` : "Teacher theme/request: none. Choose a broad, usable idea.",
+      teacherPrompt
+        ? `Teacher theme/request: ${teacherPrompt}`
+        : titleContext
+          ? "Teacher theme/request: none. If the library title contains a topic, person or place, use it as the activity context."
+          : "Teacher theme/request: none. Choose a broad, usable idea.",
       "",
       "The task is for a structured writing process with planning room, writing room and control room.",
       writingGenre === "factual"
-        ? "For factual text: include topic, purpose, reader, facts, examples, structure, possible discussion and fact/source checking. Do not invent unstable or current facts."
+        ? factualGenreGuidance(genre)
         : "For creative/literary text: include genre, main character, conflict/challenge, change/development, ending, description, senses/thoughts/feelings and target length.",
+      writingGenre === "factual" ? "Do not invent unstable or current facts." : "",
       "Criteria must be assessable student-facing criteria, one criterion per line.",
       "Support words should be useful for students at the requested CEFR level.",
       "For each support section, return 4-8 short support words or sentence starters.",
+      "Do not create competing task interpretations. Treat main writing type, genre, title context and teacher request as one coherent brief.",
       "Avoid copyrighted characters, brands, named public figures, current facts, exact statistics and news-sensitive claims.",
       "Return JSON only. No markdown.",
       "",

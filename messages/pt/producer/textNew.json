@@ -26,7 +26,7 @@
     "steps": {
       "frame": {
         "title": "Moldura",
-        "text": "Escolha gênero, idioma, nível, progressão e tamanho aproximado do texto."
+        "text": "Escolha gênero, idioma, nível e tamanho aproximado do texto."
       },
       "assignment": {
         "title": "Tarefa",
@@ -98,15 +98,15 @@
       "summary": "A atividade é salva em Meu conteúdo e pode ser atribuída a um space a partir daí."
     },
     "fields": {
-      "libraryTitle": "Título da biblioteca",
+      "libraryTitle": "Título em Meu conteúdo",
       "libraryTitlePlaceholder": {
         "story": "Por exemplo: Um acontecimento inesperado",
         "factual": "Por exemplo: Por que o corpo precisa dormir?"
       },
       "genre": "Gênero",
-      "theme": "Gênero",
-      "customTheme": "Gênero próprio",
-      "draftPrompt": "Tema ou pedido",
+      "theme": "Tipo de texto",
+      "customTheme": "Tipo de texto próprio",
+      "draftPrompt": "Tema, pessoa ou pedido",
       "draftPromptPlaceholder": "Por exemplo: amizade, um novo aluno, a floresta no outono, conto de fadas, escola do futuro",
       "assignmentText": "Texto da tarefa para o aluno",
       "criteria": "Critérios",

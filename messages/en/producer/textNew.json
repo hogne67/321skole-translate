@@ -26,7 +26,7 @@
     "steps": {
       "frame": {
         "title": "Frame",
-        "text": "Choose genre, language, level, progression, and approximate text length."
+        "text": "Choose genre, language, level, and approximate text length."
       },
       "assignment": {
         "title": "Assignment",
@@ -98,15 +98,15 @@
       "summary": "The activity is saved to My content and can be assigned to a space from there."
     },
     "fields": {
-      "libraryTitle": "Library title",
+      "libraryTitle": "Title in My content",
       "libraryTitlePlaceholder": {
         "story": "For example: An unexpected event",
         "factual": "For example: Why does the body need sleep?"
       },
       "genre": "Genre",
-      "theme": "Genre",
-      "customTheme": "Custom genre",
-      "draftPrompt": "Theme or request",
+      "theme": "Text type",
+      "customTheme": "Custom text type",
+      "draftPrompt": "Topic, person or request",
       "draftPromptPlaceholder": "For example: friendship, a new student, the forest in autumn, fairy tale, future school",
       "assignmentText": "Assignment text for the student",
       "criteria": "Criteria",
