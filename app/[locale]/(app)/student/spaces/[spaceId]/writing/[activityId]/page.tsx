@@ -30,6 +30,7 @@ type SectionDrafts = Record<string, string>;
 
 const EMPTY_ROOMS: WritingRoomTemplate[] = [];
 const OTHER_CHARACTER_MAX = 5;
+const HIDDEN_FACTUAL_PLANNING_SECTION_IDS = new Set(["purpose_audience", "key_terms", "structure"]);
 const EMPTY_PRINT_PROFILE: WritingPrintProfile = {
   studentName: "",
   school: "",
@@ -175,6 +176,15 @@ function roomIsDone(
   const sectionIds = room.sections.map((section) => section.id);
   if (sectionIds.length > 0 && sectionIds.every((id) => sectionFeedback?.[id]?.status === "approved")) return true;
   return room.sections.length > 0 && room.sections.every((section) => hasSectionInput(section, answers, sectionDrafts));
+}
+
+function visibleSectionsForRoom(activity: WritingActivity, room: WritingRoomTemplate) {
+  if (activity.genre !== "factual" || room.phase !== "planning") return room.sections;
+  return room.sections.filter((section) => !HIDDEN_FACTUAL_PLANNING_SECTION_IDS.has(section.id));
+}
+
+function roomWithVisibleSections(activity: WritingActivity, room: WritingRoomTemplate): WritingRoomTemplate {
+  return { ...room, sections: visibleSectionsForRoom(activity, room) };
 }
 
 function defaultSupportWords(section: WritingSectionTemplate): string[] {
@@ -613,13 +623,14 @@ export default function StudentWritingActivityPage() {
 
   if (!activity || !activeRoom) return null;
 
-  const roomImprovementSections = activeRoom.sections.filter((section) => {
+  const visibleActiveRoom = roomWithVisibleSections(activity, activeRoom);
+  const roomImprovementSections = visibleActiveRoom.sections.filter((section) => {
     const feedback = sectionFeedback?.[section.id];
     const summary = sectionAnswerSummary(section, answersByFieldId, sectionDrafts).trim();
     const sent = sectionImprovementRequests?.[section.id];
     return feedback?.status === "improve" && summary && sent?.answerSummary !== summary;
   });
-  const roomAllApproved = activeRoom.sections.length > 0 && activeRoom.sections.every((section) => sectionFeedback?.[section.id]?.status === "approved");
+  const roomAllApproved = visibleActiveRoom.sections.length > 0 && visibleActiveRoom.sections.every((section) => sectionFeedback?.[section.id]?.status === "approved");
   const bottomPrimaryStatus =
     activeRoom.phase === "planning"
       ? "planning_submitted"
@@ -641,7 +652,7 @@ export default function StudentWritingActivityPage() {
     roomAllApproved ||
     (activeRoom.phase === "final" && !finalText.trim());
   const roomTitle = (room: WritingRoomTemplate) => (room.phase === "revision" ? t("rooms.revision") : room.title);
-  const activeRoomDone = roomIsDone(activeRoom, answersByFieldId, sectionDrafts, sectionFeedback, finalText, submissionStatus);
+  const activeRoomDone = roomIsDone(visibleActiveRoom, answersByFieldId, sectionDrafts, sectionFeedback, finalText, submissionStatus);
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 pb-28">
@@ -705,7 +716,8 @@ export default function StudentWritingActivityPage() {
       <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
         {rooms.map((room) => {
           const isActive = room.id === activeRoom.id;
-          const isDone = roomIsDone(room, answersByFieldId, sectionDrafts, sectionFeedback, finalText, submissionStatus);
+          const visibleRoom = roomWithVisibleSections(activity, room);
+          const isDone = roomIsDone(visibleRoom, answersByFieldId, sectionDrafts, sectionFeedback, finalText, submissionStatus);
           return (
             <button
               key={room.id}
@@ -761,7 +773,7 @@ export default function StudentWritingActivityPage() {
           </div>
         </div>
 
-        {activeRoom.sections.map((section) => {
+        {visibleActiveRoom.sections.map((section) => {
           const supportWords = defaultSupportWords(section);
           const aiUses = aiUsage.filter((item) => item.sectionId === section.id).length;
           const aiMax = section.aiPolicy?.maxUses ?? 2;

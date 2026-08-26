@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { getAuth } from "firebase/auth";
 import AuthGate from "@/components/AuthGate";
 import { authedPost } from "@/lib/authedPost";
 import { useUserProfile } from "@/lib/useUserProfile";
@@ -66,6 +68,23 @@ type GeneratedWritingDraft = {
   criteria?: string[];
   targetWordCount?: number;
   supportWordsBySection?: Record<string, string[]>;
+};
+type SavedWritingActivity = {
+  id?: string;
+  title?: string;
+  assignmentText?: string | null;
+  theme?: string | null;
+  genre?: string;
+  level?: string;
+  language?: string;
+  targetWordCount?: number | null;
+  progression?: string;
+  criteria?: unknown;
+  competenceGoals?: unknown;
+  rooms?: unknown;
+  aiPolicy?: unknown;
+  allowPrintImageUpload?: boolean;
+  allowAiImage?: boolean;
 };
 
 const WRITING_DEFAULTS: Record<
@@ -348,6 +367,59 @@ function getErrorMessage(err: unknown): string {
   return String(err);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function supportWordsFromRooms(value: unknown): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!Array.isArray(value)) return result;
+
+  for (const room of value) {
+    if (!isRecord(room) || !Array.isArray(room.sections)) continue;
+    for (const section of room.sections) {
+      if (!isRecord(section) || typeof section.id !== "string") continue;
+      const words = stringList(section.supportWords);
+      if (words.length) result[section.id] = words.join("\n");
+    }
+  }
+
+  return result;
+}
+
+async function authedJson<T = unknown>(url: string, init: RequestInit = {}): Promise<T> {
+  const user = getAuth().currentUser;
+  if (!user) throw new Error("Not signed in");
+
+  const token = await user.getIdToken();
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      ...(init.headers ?? {}),
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const raw = await res.text();
+  let data: unknown = {};
+  try {
+    data = raw ? (JSON.parse(raw) as unknown) : {};
+  } catch {
+    data = {};
+  }
+
+  if (!res.ok) {
+    const msg = isRecord(data) && typeof data.error === "string" ? data.error : raw || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return data as T;
+}
+
 function ToggleControl({
   label,
   checked,
@@ -396,7 +468,9 @@ export default function ProducerTextNewPage() {
 function ProducerTextNewInner() {
   const t = useTranslations("producerTextNew");
   const locale = useLocale();
+  const searchParams = useSearchParams();
   const { profile, loading } = useUserProfile();
+  const editId = searchParams.get("edit")?.trim() || "";
   const initialLanguage = normalizeWritingLanguage(locale);
   const initialGenre: WritingGenre = "story";
   const initialDefaults = defaultsFor(initialLanguage, initialGenre);
@@ -420,6 +494,7 @@ function ProducerTextNewInner() {
   const [allowPrintImageUpload, setAllowPrintImageUpload] = useState(false);
   const [allowAiImage, setAllowAiImage] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingActivity, setLoadingActivity] = useState(false);
   const [generatingDraft, setGeneratingDraft] = useState(false);
   const [message, setMessage] = useState<{ text: string; showLibraryLink?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -441,6 +516,60 @@ function ProducerTextNewInner() {
     allowPrintImageUpload ? t("aiControl.summaryPrintOn") : t("aiControl.summaryPrintOff"),
     allowAiImage ? t("aiControl.summaryImageOn") : t("aiControl.summaryImageOff"),
   ].join(" · ");
+
+  useEffect(() => {
+    if (!editId || loading) return;
+
+    let cancelled = false;
+    setLoadingActivity(true);
+    setError(null);
+
+    authedJson<{ activity?: SavedWritingActivity }>(`/api/teacher/writing-activities/${encodeURIComponent(editId)}`)
+      .then(({ activity }) => {
+        if (cancelled || !activity) return;
+
+        const loadedGenre: WritingGenre = activity.genre === "factual" ? "factual" : "story";
+        const loadedLanguage = normalizeWritingLanguage(typeof activity.language === "string" ? activity.language : locale);
+        const loadedLevel = typeof activity.level === "string" ? activity.level : "A2";
+        const defaults = defaultsFor(loadedLanguage, loadedGenre);
+        const loadedTheme = typeof activity.theme === "string" && activity.theme.trim() ? activity.theme.trim() : defaults.theme;
+        const themeIsPreset = defaults.themes.includes(loadedTheme);
+        const supportWords = supportWordsFromRooms(activity.rooms);
+        const aiPolicy = isRecord(activity.aiPolicy) ? activity.aiPolicy : {};
+
+        previousGenreRef.current = loadedGenre;
+        previousLanguageRef.current = loadedLanguage;
+        previousLevelRef.current = loadedLevel;
+
+        setGenre(loadedGenre);
+        setLanguage(loadedLanguage);
+        setLevel(loadedLevel);
+        setTitle(typeof activity.title === "string" ? activity.title : "");
+        setAssignmentText(typeof activity.assignmentText === "string" ? activity.assignmentText : "");
+        setTheme(themeIsPreset ? loadedTheme : defaults.customTheme);
+        setCustomTheme(themeIsPreset ? "" : loadedTheme);
+        setTargetWordCount(typeof activity.targetWordCount === "number" ? activity.targetWordCount : wordCountForLevel(loadedLevel));
+        setProgression(activity.progression === "free" || activity.progression === "locked" ? activity.progression : "guided");
+        setCriteriaText(stringList(activity.criteria).join("\n") || defaults.criteria.join("\n"));
+        setGoalsText(stringList(activity.competenceGoals).join("\n"));
+        setSupportBySection({ ...defaults.support, ...supportWords });
+        setAiEnabled(aiPolicy.enabled !== false);
+        setAiMaxUsesTotal(typeof aiPolicy.maxUsesTotal === "number" ? aiPolicy.maxUsesTotal : 20);
+        setAiMaxUsesPerSection(2);
+        setAllowPrintImageUpload(activity.allowPrintImageUpload === true);
+        setAllowAiImage(activity.allowAiImage === true);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(getErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingActivity(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, loading, locale]);
 
   useEffect(() => {
     const previousLanguage = previousLanguageRef.current;
@@ -566,7 +695,15 @@ function ProducerTextNewInner() {
         allowAiImage,
       };
 
-      await authedPost<{ activityId?: string }>("/api/teacher/writing-activities", payload);
+      if (editId) {
+        await authedJson<{ activityId?: string }>(`/api/teacher/writing-activities/${encodeURIComponent(editId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await authedPost<{ activityId?: string }>("/api/teacher/writing-activities", payload);
+      }
       setMessage({ text: t("saved"), showLibraryLink: true });
     } catch (err) {
       setError(getErrorMessage(err));
@@ -575,7 +712,7 @@ function ProducerTextNewInner() {
     }
   }
 
-  if (loading) {
+  if (loading || loadingActivity) {
     return <div className="mx-auto w-full max-w-5xl py-6 text-sm text-slate-600">{t("loading")}</div>;
   }
 

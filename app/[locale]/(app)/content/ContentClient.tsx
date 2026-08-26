@@ -508,7 +508,7 @@ export default function ContentClient() {
       case "lesson":
         return lessonOpenHref(it);
       case "writingActivity":
-        return `/${locale}/content?filter=writing`;
+        return `/${locale}/producer/text/new?edit=${encodeURIComponent(it.id)}`;
       case "submission":
         return normalizeInternalHref(it.href);
       case "space":
@@ -1189,6 +1189,30 @@ export default function ContentClient() {
     }
   }
 
+  async function deleteWritingActivitySoft(activityId: string, title: string) {
+    const msg = t("confirm.deleteLesson", { title: title ? `: "${title}"` : "" });
+    const ok = confirm(msg);
+    if (!ok) return;
+
+    const key = `writing:${activityId}`;
+    setErr(null);
+    setBusy(key, true);
+
+    try {
+      await updateDoc(doc(db, "writingActivities", activityId), {
+        status: "draft",
+        deletedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      await refresh();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : t("errors.deleteFailed"));
+    } finally {
+      setBusy(key, false);
+    }
+  }
+
   function requestPublishChange(lessonId: string, title: string, nextPublished: boolean) {
     if (!nextPublished) {
       void setPublished(lessonId, false);
@@ -1557,6 +1581,7 @@ export default function ContentClient() {
     if (it.type === "writingActivity") {
       const wa = it as Extract<ContentItem, { type: "writingActivity" }>;
       const canAssignWriting = isTeacher && mySpaces.length > 0;
+      const isDeleted = isDeletedItem(wa);
 
       return [
         {
@@ -1567,9 +1592,9 @@ export default function ContentClient() {
         },
         {
           key: "edit",
-          label: safeMsg("actions.newWritingActivity", "Ny skriveaktivitet"),
+          label: t("actions.edit"),
           disabled: busy,
-          onClick: () => router.push(`/${locale}/producer/text/new`),
+          onClick: () => router.push(itemOpenHref(wa)),
         },
         ...(canAssignWriting
           ? [
@@ -1585,6 +1610,17 @@ export default function ContentClient() {
                   sourceId: wa.id,
                   mode: "writing",
                 }),
+            },
+          ]
+          : []),
+        ...(!isDeleted
+          ? [
+            {
+              key: "delete",
+              label: t("actions.delete"),
+              danger: true,
+              disabled: busy,
+              onClick: () => deleteWritingActivitySoft(wa.id, titleForCard(wa)),
             },
           ]
           : []),
@@ -1897,7 +1933,7 @@ export default function ContentClient() {
       ];
     }
     if (it.type === "space") return ["open", "board", "copyCode", "share", "copyJoinLink"];
-    if (it.type === "writingActivity") return ["open", "shareToSpace", "edit"];
+    if (it.type === "writingActivity") return ["open", "shareToSpace", "edit", "delete"];
     if (isMathArchiveItem(it)) return ["openMath", "previewMath", "edit", "shareToSpace", "pdf", "delete", "restore"];
     if (isQuizLesson(it)) return ["edit", "startQuiz", "shareToBoard", "publish", "unpublish", "shareQuizPublic", "delete", "restore"];
     if (isImageWritingLesson(it)) return ["open", "edit", "startImageLive", "shareToSpace", "pdf", "delete", "restore"];
