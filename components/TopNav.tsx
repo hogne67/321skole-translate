@@ -201,13 +201,13 @@ export default function TopNav() {
             height={34}
             style={{ display: "block" }}
           />
-          <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.2 }}>
+          <span className="brandText" style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.2 }}>
             321 <span style={{ color: "#7cc7ff" }}>{tBrand("school")}</span>
           </span>
         </Link>
       </div>
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <div className="topNavActions" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <label className="langWrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span className="langIcon" aria-hidden="true" style={{ fontSize: 18, opacity: 0.85 }}>
             🌐
@@ -239,7 +239,7 @@ export default function TopNav() {
         {isAnon && (
           <>
             <span style={{ fontSize: 13, opacity: 0.7 }}>{tTop("guestMode")}</span>
-            <Link href={withLocale(locale, `/login?next=${loginNext}`)} style={btnStyle}>
+            <Link href={withLocale(locale, `/login?next=${loginNext}`)} className="authButton" style={btnStyle}>
               {tTop("loginOrCreate")}
             </Link>
           </>
@@ -248,19 +248,19 @@ export default function TopNav() {
         {isLoggedIn && (
           <>
             {needsOnboarding && (
-              <Link href={onboardingHref} style={btnStyle}>
+              <Link href={onboardingHref} className="authButton" style={btnStyle}>
                 {tTop("completeProfile")}
               </Link>
             )}
 
-            <button onClick={handleLogout} style={btnStyle}>
+            <button onClick={handleLogout} className="authButton" style={btnStyle}>
               {tTop("logout")}
             </button>
           </>
         )}
 
         {!authUser && (
-          <Link href={withLocale(locale, `/login?next=${loginNext}`)} style={btnStyle}>
+          <Link href={withLocale(locale, `/login?next=${loginNext}`)} className="authButton" style={btnStyle}>
             {tTop("login")}
           </Link>
         )}
@@ -268,6 +268,13 @@ export default function TopNav() {
 
       <style jsx>{`
         @media (max-width: 520px) {
+          .brandText {
+            display: none;
+          }
+          .topNavActions {
+            gap: 8px !important;
+            flex-wrap: nowrap !important;
+          }
           .langIcon {
             display: none;
           }
@@ -279,6 +286,12 @@ export default function TopNav() {
           .liveLink {
             padding: 6px 8px !important;
             font-size: 13px !important;
+          }
+          .authButton {
+            padding: 6px 8px !important;
+            border-radius: 10px !important;
+            font-size: 13px !important;
+            white-space: nowrap;
           }
         }
       `}</style>
