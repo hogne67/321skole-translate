@@ -2,6 +2,7 @@
   "topNav": {
     "language": "Språk",
     "guestMode": "Gjest",
+    "live": "Live",
     "loginOrCreate": "Logg inn / Registrer deg",
     "completeProfile": "Fullfør profil",
     "logout": "Logg ut",

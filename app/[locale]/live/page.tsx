@@ -15,6 +15,7 @@ function copyFor(locale: string) {
       checking: "Verificando código...",
       submit: "Entrar",
       hint: "Você também pode escanear o QR code na tela.",
+      close: "Fechar",
     };
   }
   if (locale === "nb") {
@@ -28,6 +29,7 @@ function copyFor(locale: string) {
       checking: "Sjekker kode...",
       submit: "Bli med",
       hint: "Du kan også skanne QR-koden på skjermen.",
+      close: "Lukk",
     };
   }
   return {
@@ -40,6 +42,7 @@ function copyFor(locale: string) {
     checking: "Checking code...",
     submit: "Join",
     hint: "You can also scan the QR code on the screen.",
+    close: "Close",
   };
 }
 
@@ -51,6 +54,14 @@ export default function LiveCodePage() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  function closeLive() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push(`/${locale}`);
+  }
 
   async function joinByCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -89,6 +100,17 @@ export default function LiveCodePage() {
 
   return (
     <main className="min-h-screen bg-slate-950 px-5 py-10 text-white">
+      <button
+        type="button"
+        onClick={closeLive}
+        className="fixed right-4 top-4 z-10 inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 bg-white/10 px-4 text-sm font-black text-white shadow-xl backdrop-blur transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-sky-300 sm:right-6 sm:top-6"
+        aria-label={t.close}
+      >
+        <span aria-hidden="true" className="mr-2 text-lg leading-none">
+          ×
+        </span>
+        {t.close}
+      </button>
       <div className="mx-auto flex min-h-[80vh] max-w-2xl flex-col justify-center">
         <div className="mb-8">
           <div className="text-sm font-black uppercase tracking-[0.22em] text-sky-300">{t.eyebrow}</div>

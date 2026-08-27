@@ -60,6 +60,10 @@ type WritingActivityDoc = {
 
 type WritingActivityRow = { id: string; data: WritingActivityDoc };
 
+type SpaceTaskItem =
+  | { kind: "assignment"; id: string; data: AssignmentDoc }
+  | { kind: "writing"; id: string; data: WritingActivityDoc };
+
 type SubmissionData = { createdAt?: unknown; status?: unknown };
 
 type SpaceDocSafe = SpaceDoc & {
@@ -108,6 +112,24 @@ function formatMaybeDate(v: unknown) {
     return d ? d.toLocaleString() : "";
   } catch {
     return "";
+  }
+}
+
+function toMillisAny(v: unknown) {
+  try {
+    if (!v) return 0;
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    const d: Date | null =
+      v instanceof Date
+        ? v
+        : isRecord(v) && typeof v["toDate"] === "function"
+          ? (v as { toDate: () => Date }).toDate()
+          : v instanceof Timestamp
+            ? v.toDate()
+            : null;
+    return d ? d.getTime() : 0;
+  } catch {
+    return 0;
   }
 }
 
@@ -203,7 +225,6 @@ function Inner() {
   const [showArchived, setShowArchived] = useState(false);
 
   const [writingActivities, setWritingActivities] = useState<WritingActivityRow[]>([]);
-  const [showArchivedWriting, setShowArchivedWriting] = useState(false);
   const [writingErr, setWritingErr] = useState<string | null>(null);
 
   const [messageDrafts, setMessageDrafts] = useState<Record<string, string>>({});
@@ -323,12 +344,28 @@ function Inner() {
 
   const visibleWritingActivities = useMemo(
     () => (
-      showArchivedWriting
+      showArchived
         ? writingActivities
         : writingActivities.filter((a) => a.data.status !== "archived")
     ),
-    [showArchivedWriting, writingActivities]
+    [showArchived, writingActivities]
   );
+
+  const visibleSpaceTasks = useMemo<SpaceTaskItem[]>(() => {
+    const items: SpaceTaskItem[] = [
+      ...visibleAssignments.map((assignment) => ({ kind: "assignment" as const, ...assignment })),
+      ...visibleWritingActivities.map((activity) => ({ kind: "writing" as const, ...activity })),
+    ];
+
+    return items.sort((a, b) => {
+      const dateOf = (item: SpaceTaskItem) =>
+        item.kind === "assignment"
+          ? toMillisAny(item.data.assignedAt || item.data.createdAt || item.data.updatedAt)
+          : toMillisAny(item.data.assignedAt || item.data.createdAt || item.data.updatedAt);
+
+      return dateOf(b) - dateOf(a);
+    });
+  }, [visibleAssignments, visibleWritingActivities]);
 
   useEffect(() => {
     if (access !== "allowed") return;
@@ -570,146 +607,13 @@ function Inner() {
         </div>
       </div>
 
-      <div className="w-full min-w-0 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="text-base font-semibold text-emerald-950">{t("writingStation.title")}</div>
-            <div className="mt-1 max-w-2xl break-words text-sm text-emerald-900">
-              {t("writingStation.subtitle")}
-            </div>
-          </div>
-
-          <label
-            className={[
-              "inline-flex min-h-[42px] select-none items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold",
-              showArchivedWriting
-                ? "border-emerald-500 bg-white text-emerald-950 shadow-sm ring-2 ring-emerald-200"
-                : "border-emerald-200 bg-white text-emerald-900",
-            ].join(" ")}
-          >
-            <input
-              type="checkbox"
-              checked={showArchivedWriting}
-              onChange={(e) => setShowArchivedWriting(e.target.checked)}
-              className="h-4 w-4 rounded border-emerald-300 accent-emerald-700"
-            />
-            <span className="whitespace-nowrap">{t("writingStation.showArchived")}</span>
-          </label>
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-3 sm:p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-emerald-950">{t("writingStation.manageTitle")}</div>
-              <div className="mt-1 max-w-2xl break-words text-sm text-emerald-900">
-                {t("writingStation.manageText")}
-              </div>
-            </div>
-            <Link
-              href={withLocale(locale, "/teacher/writing")}
-              className="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-            >
-              {t("writingStation.actions.openHub")}
-            </Link>
-          </div>
-
-          {writingErr ? (
-            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-              {writingErr}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="mt-4 grid min-w-0 gap-3">
-          {visibleWritingActivities.length === 0 ? (
-            <div className="rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-900 sm:p-4">
-              {t("writingStation.empty")}
-            </div>
-          ) : (
-            visibleWritingActivities.map((activity) => {
-              const assignedAt = formatMaybeDate(activity.data.assignedAt || activity.data.createdAt);
-              const status = activity.data.status ?? "assigned";
-
-              return (
-                <div key={activity.id} className="rounded-xl border border-emerald-200 bg-white p-3 shadow-sm sm:p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="break-words font-semibold text-slate-950">
-                          {activity.data.title || t("writingStation.fallbackTitle")}
-                        </div>
-                        {status === "archived" ? (
-                          <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
-                            {t("badges.archived")}
-                          </span>
-                        ) : (
-                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">
-                            {t("writingStation.badges.assigned")}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="mt-2 break-words text-sm text-slate-600">
-                        {t("writingStation.genre.story")}
-                        {activity.data.level ? ` · ${activity.data.level}` : ""}
-                        {activity.data.language ? ` · ${activity.data.language}` : ""}
-                        {activity.data.theme ? ` · ${activity.data.theme}` : ""}
-                        {assignedAt ? ` · ${assignedAt}` : ""}
-                      </div>
-
-                      <div className="mt-2 text-xs text-slate-500">
-                        {activity.data.aiPolicy?.enabled === false
-                          ? t("writingStation.ai.off")
-                          : t("writingStation.ai.on", {
-                            n: activity.data.aiPolicy?.maxUsesTotal ?? 20,
-                          })}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => router.push(withLocale(locale, `/teacher/spaces/${spaceId}/writing/${activity.id}`))}
-                        className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-                      >
-                        {t("writingStation.actions.submissions")}
-                      </button>
-
-                      {status !== "archived" ? (
-                        <button
-                          type="button"
-                          onClick={() => setWritingActivityStatus(activity.id, "archived")}
-                          disabled={saving || !canManage}
-                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
-                        >
-                          {t("actions.archive")}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setWritingActivityStatus(activity.id, "assigned")}
-                          disabled={saving || !canManage}
-                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
-                        >
-                          {t("actions.restore")}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
       <div className="w-full min-w-0 rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="text-base font-semibold text-slate-900">{t("assignments.title")}</div>
             <div className="mt-1 break-words text-sm text-slate-600">
               {t("assignments.count", {
-                count: visibleAssignments.length,
+                count: visibleSpaceTasks.length,
                 label: t("assignments.title"),
               })}
             </div>
@@ -733,13 +637,97 @@ function Inner() {
           </label>
         </div>
 
+        {writingErr ? (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            {writingErr}
+          </div>
+        ) : null}
+
         <div className="mt-4 grid min-w-0 gap-3">
-          {visibleAssignments.length === 0 ? (
+          {visibleSpaceTasks.length === 0 ? (
             <div className="rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
               {t.rich("assignments.emptyHtml", { b: (chunks) => <b>{chunks}</b> })}
             </div>
           ) : (
-            visibleAssignments.map((a) => {
+            visibleSpaceTasks.map((item) => {
+              if (item.kind === "writing") {
+                const assignedAt = formatMaybeDate(item.data.assignedAt || item.data.createdAt);
+                const status = item.data.status ?? "assigned";
+
+                return (
+                  <div key={`writing-${item.id}`} className="min-w-0 rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4">
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <div className="break-words font-semibold text-slate-900">
+                          {item.data.title || t("writingStation.fallbackTitle")}
+                        </div>
+
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                          {t("badges.writing")}
+                        </span>
+
+                        {status === "archived" ? (
+                          <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                            {t("badges.archived")}
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                            {t("writingStation.badges.assigned")}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-2 break-words text-sm text-slate-600">
+                        {item.data.genre || t("writingStation.genre.story")}
+                        {item.data.level ? ` · ${item.data.level}` : ""}
+                        {item.data.language ? ` · ${item.data.language}` : ""}
+                        {item.data.theme ? ` · ${item.data.theme}` : ""}
+                        {assignedAt ? ` · ${assignedAt}` : ""}
+                      </div>
+
+                      <div className="mt-2 text-xs text-slate-500">
+                        {item.data.aiPolicy?.enabled === false
+                          ? t("writingStation.ai.off")
+                          : t("writingStation.ai.on", {
+                            n: item.data.aiPolicy?.maxUsesTotal ?? 20,
+                          })}
+                      </div>
+
+                      <div className="mt-4 grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+                        {status !== "archived" ? (
+                          <button
+                            type="button"
+                            onClick={() => setWritingActivityStatus(item.id, "archived")}
+                            disabled={saving || !canManage}
+                            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            {t("actions.archive")}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setWritingActivityStatus(item.id, "assigned")}
+                            disabled={saving || !canManage}
+                            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            {t("actions.restore")}
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => router.push(withLocale(locale, `/teacher/spaces/${spaceId}/writing/${item.id}`))}
+                          className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                        >
+                          {t("writingStation.actions.submissions")}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              const a = item;
               const assignedAt = formatMaybeDate(a.data.assignedAt || a.data.createdAt);
               const status = a.data.status ?? "active";
               const sourceLabel = a.data.sourceType === "library" ? t("labels.library") : t("labels.myContent");

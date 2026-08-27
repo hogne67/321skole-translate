@@ -231,6 +231,9 @@ export default function TopNav() {
             <option value="pt">PT</option>
           </select>
         </label>
+        <Link href={withLocale(locale, "/live")} className="liveLink" style={liveLinkStyle}>
+          {tTop("live")}
+        </Link>
         <NotificationBell />
 
         {isAnon && (
@@ -273,6 +276,10 @@ export default function TopNav() {
             border-radius: 10px !important;
             font-size: 13px !important;
           }
+          .liveLink {
+            padding: 6px 8px !important;
+            font-size: 13px !important;
+          }
         }
       `}</style>
     </header>
@@ -285,5 +292,16 @@ const btnStyle: React.CSSProperties = {
   borderRadius: 10,
   padding: "8px 10px",
   cursor: "pointer",
+  textDecoration: "none",
+};
+
+const liveLinkStyle: React.CSSProperties = {
+  border: "1px solid rgba(5, 150, 105, 0.35)",
+  background: "rgba(220, 252, 231, 0.95)",
+  borderRadius: 999,
+  color: "#065f46",
+  cursor: "pointer",
+  fontWeight: 900,
+  padding: "8px 12px",
   textDecoration: "none",
 };

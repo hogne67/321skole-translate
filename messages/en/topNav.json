@@ -2,6 +2,7 @@
   "topNav": {
     "language": "Language",
     "guestMode": "Guest mode",
+    "live": "Live",
     "loginOrCreate": "Log in / Create account",
     "completeProfile": "Complete profile",
     "logout": "Log out",

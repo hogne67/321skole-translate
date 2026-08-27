@@ -169,6 +169,10 @@ type WritingActivityDoc = {
   updatedAt?: unknown;
 };
 
+type SpaceTaskItem =
+  | { kind: "assignment"; id: string; data: AssignmentDoc }
+  | { kind: "writing"; id: string; data: WritingActivityDoc };
+
 function assignmentSnippet(d: AssignmentDoc) {
   const asRec: Record<string, unknown> = d;
   const s = safeString(d.description ?? asRec.summary ?? asRec.subtitle);
@@ -228,7 +232,6 @@ export default function StudentSpaceDetailPage() {
 
   const [writingActivities, setWritingActivities] = useState<Array<{ id: string; data: WritingActivityDoc }>>([]);
   const [writingErr, setWritingErr] = useState<string | null>(null);
-  const [showArchivedWriting, setShowArchivedWriting] = useState(false);
 
   const [subsLoading, setSubsLoading] = useState(true);
   const [subsErr, setSubsErr] = useState<string | null>(null);
@@ -520,12 +523,45 @@ export default function StudentSpaceDetailPage() {
   }, [assignments, showArchived]);
 
   const visibleWritingActivities = useMemo(() => {
-    const list = showArchivedWriting
+    const list = showArchived
       ? writingActivities
       : writingActivities.filter((x) => String(x.data.status ?? "").toLowerCase() !== "archived");
 
     return [...list].sort((a, b) => toMillisAny(b.data.assignedAt || b.data.createdAt) - toMillisAny(a.data.assignedAt || a.data.createdAt));
-  }, [showArchivedWriting, writingActivities]);
+  }, [showArchived, writingActivities]);
+
+  const visibleSpaceTasks = useMemo<SpaceTaskItem[]>(() => {
+    const items: SpaceTaskItem[] = [
+      ...visibleAssignments.map((assignment) => ({ kind: "assignment" as const, ...assignment })),
+      ...visibleWritingActivities.map((activity) => ({ kind: "writing" as const, ...activity })),
+    ];
+
+    return items.sort((a, b) => {
+      const getDue = (v: unknown) => {
+        if (!v || typeof v !== "object" || !("toDate" in v)) return null;
+        return (v as { toDate: () => Date }).toDate().getTime();
+      };
+
+      const now = Date.now();
+      const score = (item: SpaceTaskItem) => {
+        if (item.kind !== "assignment") return 3;
+        const time = getDue(item.data.dueAt);
+        if (!time) return 3;
+        if (time < now) return 0;
+        if (time - now < 48 * 60 * 60 * 1000) return 1;
+        return 2;
+      };
+      const dateOf = (item: SpaceTaskItem) =>
+        item.kind === "assignment"
+          ? toMillisAny(item.data.updatedAt || item.data.assignedAt || item.data.createdAt)
+          : toMillisAny(item.data.updatedAt || item.data.assignedAt || item.data.createdAt);
+
+      const sa = score(a);
+      const sb = score(b);
+      if (sa !== sb) return sa - sb;
+      return dateOf(b) - dateOf(a);
+    });
+  }, [visibleAssignments, visibleWritingActivities]);
 
   const latestByAssignment = useMemo(() => {
     const m = new Map<string, SpaceSubRow>();
@@ -676,80 +712,6 @@ export default function StudentSpaceDetailPage() {
         </div>
       ) : null}
 
-      <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-md sm:p-5">
-        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-base font-semibold text-emerald-950">{t("writingStation.title")}</div>
-            <div className="mt-1 text-sm text-emerald-900">{t("writingStation.subtitle")}</div>
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-emerald-900">
-            <input
-              type="checkbox"
-              checked={showArchivedWriting}
-              onChange={(e) => setShowArchivedWriting(e.target.checked)}
-            />
-            {t("writingStation.showArchived")}
-          </label>
-        </div>
-
-        {writingErr ? (
-          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{writingErr}</div>
-        ) : visibleWritingActivities.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-900 sm:p-4">
-            {t("writingStation.none")}
-          </div>
-        ) : (
-          <div className="mt-4 grid min-w-0 gap-3">
-            {visibleWritingActivities.map((activity) => {
-              const archived = String(activity.data.status ?? "").toLowerCase() === "archived";
-              const assignedAt = fmtDate(toMillisAny(activity.data.assignedAt || activity.data.createdAt));
-
-              return (
-                <div
-                  key={activity.id}
-                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-emerald-200 bg-white p-3 shadow-sm sm:p-4"
-                >
-                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="break-words text-base font-semibold text-slate-950">
-                          {safeString(activity.data.title) ?? t("writingStation.fallbackTitle")}
-                        </div>
-                        {archived ? (
-                          <span className="text-sm font-medium text-slate-500">{t("all.archivedTag")}</span>
-                        ) : null}
-                      </div>
-
-                      <div className="mt-2 break-words text-sm text-slate-600">
-                        {t("writingStation.genre.story")}
-                        {activity.data.level ? ` · ${activity.data.level}` : ""}
-                        {activity.data.language ? ` · ${activity.data.language}` : ""}
-                        {activity.data.theme ? ` · ${activity.data.theme}` : ""}
-                        {assignedAt ? ` · ${assignedAt}` : ""}
-                      </div>
-
-                      <div className="mt-2 text-xs text-emerald-800">
-                        {activity.data.aiPolicy?.enabled === false
-                          ? t("writingStation.ai.off")
-                          : t("writingStation.ai.on")}
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/student/spaces/${spaceId}/writing/${activity.id}`}
-                      className="inline-flex items-center justify-center rounded-xl bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white no-underline hover:bg-emerald-800"
-                    >
-                      {t("writingStation.open")}
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       <div className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-300 bg-slate-200 p-3 shadow-md sm:p-5">
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-base font-semibold text-slate-900">{t("all.title")}</div>
@@ -760,15 +722,61 @@ export default function StudentSpaceDetailPage() {
           </label>
         </div>
 
-        {assignErr ? (
-          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{assignErr}</div>
-        ) : visibleAssignments.length === 0 ? (
+        {assignErr || writingErr ? (
+          <div className="mt-4 whitespace-pre-wrap text-sm text-red-700">{[assignErr, writingErr].filter(Boolean).join("\n")}</div>
+        ) : visibleSpaceTasks.length === 0 ? (
           <div className="mt-4 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-600 sm:p-4">
             {t("all.none")}
           </div>
         ) : (
           <div className="mt-4 grid min-w-0 gap-3">
-            {visibleAssignments.map((it) => {
+            {visibleSpaceTasks.map((it) => {
+              if (it.kind === "writing") {
+                const archived = String(it.data.status ?? "").toLowerCase() === "archived";
+                const assignedAt = fmtDate(toMillisAny(it.data.assignedAt || it.data.createdAt));
+                const title = safeString(it.data.title) ?? t("writingStation.fallbackTitle");
+
+                return (
+                  <div
+                    key={`writing-${it.id}`}
+                    className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex flex-wrap items-center gap-2">
+                          <div className="break-words text-base font-semibold text-slate-900">{title}</div>
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                            {t("all.typeWriting")}
+                          </span>
+                          {archived ? (
+                            <span className="text-sm font-medium text-slate-500">{t("all.archivedTag")}</span>
+                          ) : null}
+                        </div>
+
+                        <Link
+                          href={`/student/spaces/${spaceId}/writing/${it.id}`}
+                          className="inline-flex items-center justify-center rounded-xl bg-green-600 px-3 py-1.5 text-sm font-semibold text-white no-underline hover:bg-green-700"
+                        >
+                          {t("actions.open")}
+                        </Link>
+                      </div>
+
+                      <div className="mt-2 break-words text-sm text-slate-600">
+                        {safeString(it.data.genre) ?? t("writingStation.genre.story")}
+                        {it.data.level ? ` · ${it.data.level}` : ""}
+                        {it.data.language ? ` · ${it.data.language}` : ""}
+                        {it.data.theme ? ` · ${it.data.theme}` : ""}
+                        {assignedAt ? ` · ${assignedAt}` : ""}
+                      </div>
+
+                      <div className="mt-3 text-xs text-emerald-800">
+                        {it.data.aiPolicy?.enabled === false ? t("writingStation.ai.off") : t("writingStation.ai.on")}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
               const title = safeString(it.data.title) ?? it.id;
               const snippet = assignmentSnippet(it.data);
               const archived = isArchived(it.data);

@@ -113,7 +113,8 @@
       "allReviewed": "Todas revisadas",
       "newCount": "{n} nova resposta",
       "submissionsCount": "{n} respostas",
-      "submissionsError": "Respostas: erro"
+      "submissionsError": "Respostas: erro",
+      "writing": "Escrita"
     },
     "assignModal": {
       "title": "Atribuir nova atividade",

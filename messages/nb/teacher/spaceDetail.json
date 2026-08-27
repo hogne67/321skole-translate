@@ -113,7 +113,8 @@
       "allReviewed": "Alle er vurdert",
       "newCount": "{n} ny besvarelse",
       "submissionsCount": "{n} besvarelser",
-      "submissionsError": "Besvarelser: feil"
+      "submissionsError": "Besvarelser: feil",
+      "writing": "Skriving"
     },
     "assignModal": {
       "title": "Tildel ny oppgave",

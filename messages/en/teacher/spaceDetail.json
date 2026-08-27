@@ -113,7 +113,8 @@
       "allReviewed": "All reviewed",
       "newCount": "{n} new submission",
       "submissionsCount": "{n} submissions",
-      "submissionsError": "Submissions: error"
+      "submissionsError": "Submissions: error",
+      "writing": "Writing"
     },
     "assignModal": {
       "title": "Assign new task",
