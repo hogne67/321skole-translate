@@ -121,18 +121,20 @@ export default function SchoolTeachersPage() {
   const filteredTeachers = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return teachers.filter((teacher) => {
-      const matchesStatus = statusFilter === "all" || teacher.status === statusFilter;
-      const matchesSearch =
-        !q ||
-        [teacher.email, teacher.displayName, teacher.role, teacher.status, teacher.uid, teacher.id]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(q);
+    return teachers
+      .filter((teacher) => {
+        const matchesStatus = statusFilter === "all" || teacher.status === statusFilter;
+        const matchesSearch =
+          !q ||
+          [teacher.email, teacher.displayName, teacher.role, teacher.status, teacher.uid, teacher.id]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(q);
 
-      return matchesStatus && matchesSearch;
-    });
+        return matchesStatus && matchesSearch;
+      })
+      .sort((a, b) => teacherStatusRank(a.status) - teacherStatusRank(b.status));
   }, [teachers, search, statusFilter]);
 
   useEffect(() => {
@@ -382,6 +384,45 @@ export default function SchoolTeachersPage() {
     }
   }
 
+  async function revokeInvite(invite: SchoolInvite) {
+    if (!user || user.isAnonymous || !hasSchoolAdminAccess || actionId) return;
+
+    const inviteId = invite.id ?? "";
+    if (!inviteId) return;
+
+    const label = invite.email || inviteId;
+    if (!window.confirm(t("invites.revokeConfirm", { label }))) return;
+
+    setActionId(`revoke-invite:${inviteId}`);
+    setActionMessage("");
+    setActionError("");
+
+    try {
+      const authToken = await user.getIdToken();
+      const response = await fetch("/api/schools/revoke-invite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ schoolId, inviteId }),
+      });
+      const data = (await response.json().catch(() => ({}))) as ActionResponse;
+
+      if (!response.ok || !data.ok) {
+        setActionError(getInviteLinkErrorMessage(data, t));
+        return;
+      }
+
+      setActionMessage(t("invites.revokedMessage"));
+      setRefreshKey((current) => current + 1);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : t("invites.revokeError"));
+    } finally {
+      setActionId(null);
+    }
+  }
+
   if (loading) {
     return <main style={styles.page}>{t("access.loading")}</main>;
   }
@@ -529,6 +570,36 @@ export default function SchoolTeachersPage() {
           <section style={styles.card}>
             <div style={styles.cardHeader}>
               <div>
+                <h2 style={styles.sectionTitle}>{t("teachers.pendingInvitesTitle")}</h2>
+                <p style={styles.mutedCompact}>{t("teachers.pendingInvitesText")}</p>
+              </div>
+            </div>
+
+            {pendingInvites.length === 0 ? (
+              <p style={styles.muted}>{t("teachers.noPendingInvites")}</p>
+            ) : (
+              <div style={styles.list}>
+                {pendingInvites.map((invite) => (
+                  <InviteRow
+                    key={invite.id ?? invite.email ?? "invite"}
+                    invite={invite}
+                    locale={locale}
+                    schoolName={schoolName}
+                    adminName={profile?.displayName || user?.displayName || user?.email || ""}
+                    loading={actionId === `invite-link:${invite.id}`}
+                    removing={actionId === `revoke-invite:${invite.id}`}
+                    onCreateLink={createAndOpenInvitePrint}
+                    onRevoke={revokeInvite}
+                    t={t}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section style={styles.card}>
+            <div style={styles.cardHeader}>
+              <div>
                 <h2 style={styles.sectionTitle}>{t("teachers.listTitle")}</h2>
                 <p style={styles.mutedCompact}>{t("teachers.listText")}</p>
               </div>
@@ -577,34 +648,6 @@ export default function SchoolTeachersPage() {
                     actionId={actionId}
                     onActivate={activateTeacher}
                     onDisable={disableTeacher}
-                    t={t}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section style={styles.card}>
-            <div style={styles.cardHeader}>
-              <div>
-                <h2 style={styles.sectionTitle}>{t("teachers.pendingInvitesTitle")}</h2>
-                <p style={styles.mutedCompact}>{t("teachers.pendingInvitesText")}</p>
-              </div>
-            </div>
-
-            {pendingInvites.length === 0 ? (
-              <p style={styles.muted}>{t("teachers.noPendingInvites")}</p>
-            ) : (
-              <div style={styles.list}>
-                {pendingInvites.map((invite) => (
-                  <InviteRow
-                    key={invite.id ?? invite.email ?? "invite"}
-                    invite={invite}
-                    locale={locale}
-                    schoolName={schoolName}
-                    adminName={profile?.displayName || user?.displayName || user?.email || ""}
-                    loading={actionId === `invite-link:${invite.id}`}
-                    onCreateLink={createAndOpenInvitePrint}
                     t={t}
                   />
                 ))}
@@ -713,7 +756,9 @@ function InviteRow({
   schoolName,
   adminName,
   loading,
+  removing,
   onCreateLink,
+  onRevoke,
   t,
 }: {
   invite: SchoolInvite;
@@ -721,7 +766,9 @@ function InviteRow({
   schoolName: string;
   adminName: string;
   loading: boolean;
+  removing: boolean;
   onCreateLink: (invite: SchoolInvite) => void;
+  onRevoke: (invite: SchoolInvite) => void;
   t: SchoolAdminTranslator;
 }) {
   const printHref = invite.inviteToken
@@ -744,20 +791,30 @@ function InviteRow({
         </div>
       </div>
       <StatusPill status={invite.status ?? "-"} />
-      {printHref ? (
-        <Link href={printHref} target="_blank" style={styles.secondaryLinkButton}>
-          {t("invites.print")}
-        </Link>
-      ) : (
+      <div style={styles.rowActions}>
+        {printHref ? (
+          <Link href={printHref} target="_blank" style={styles.secondaryLinkButton}>
+            {t("invites.print")}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onCreateLink(invite)}
+            disabled={loading || removing}
+            style={styles.secondaryButton}
+          >
+            {loading ? t("invites.creatingLink") : t("invites.createLink")}
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => onCreateLink(invite)}
-          disabled={loading}
-          style={styles.secondaryButton}
+          onClick={() => onRevoke(invite)}
+          disabled={loading || removing}
+          style={styles.dangerOutlineButton}
         >
-          {loading ? t("invites.creatingLink") : t("invites.createLink")}
+          {removing ? t("invites.revoking") : t("invites.revoke")}
         </button>
-      )}
+      </div>
     </article>
   );
 }
@@ -781,6 +838,12 @@ function StatusPill({ status }: { status: string }) {
         : styles.disabledPill;
 
   return <span style={style}>{status}</span>;
+}
+
+function teacherStatusRank(status: string | undefined) {
+  if (status === "active") return 0;
+  if (status === "disabled") return 2;
+  return 1;
 }
 
 function Notice({ title, text }: { title: string; text: string }) {
@@ -1112,6 +1175,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     fontWeight: 800,
   },
+  dangerOutlineButton: {
+    border: "1px solid #fecaca",
+    borderRadius: 10,
+    padding: "8px 11px",
+    background: "#ffffff",
+    color: "#b91c1c",
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 800,
+  },
   statsGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -1188,6 +1261,12 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#64748b",
     fontSize: 12,
     whiteSpace: "nowrap",
+  },
+  rowActions: {
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: 8,
   },
   errorBox: {
     marginTop: 12,
