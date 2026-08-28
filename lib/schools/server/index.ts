@@ -1,4 +1,5 @@
 export * from "@/lib/schools/server/acceptSchoolInvite";
+export * from "@/lib/schools/server/activateSchoolTeacher";
 export * from "@/lib/schools/server/canActivateTeacher";
 export * from "@/lib/schools/server/countActiveTeachers";
 export * from "@/lib/schools/server/createSchool";

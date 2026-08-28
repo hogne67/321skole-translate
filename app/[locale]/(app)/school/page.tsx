@@ -365,7 +365,7 @@ function SchoolNav({
   t,
 }: {
   locale: string;
-  active: "overview" | "teachers" | "invites";
+  active: "overview" | "teachers";
   t: SchoolAdminTranslator;
 }) {
   return (
@@ -375,9 +375,6 @@ function SchoolNav({
       </SchoolNavLink>
       <SchoolNavLink href={`/${locale}/school/teachers`} active={active === "teachers"}>
         {t("nav.teachers")}
-      </SchoolNavLink>
-      <SchoolNavLink href={`/${locale}/school/invites`} active={active === "invites"}>
-        {t("nav.invites")}
       </SchoolNavLink>
     </nav>
   );
@@ -606,8 +603,8 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.35,
   },
   metricValue: {
-    fontSize: 30,
-    lineHeight: 1,
+    fontSize: 24,
+    lineHeight: 1.12,
     fontWeight: 900,
     color: "#0f172a",
     wordBreak: "break-word",

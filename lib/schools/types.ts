@@ -62,6 +62,7 @@ export type SchoolInviteDoc = {
   invitedByUid: string;
   acceptedByUid?: string | null;
   inviteTokenHash?: string;
+  inviteToken?: string;
   expiresAt?: Timestamp | null;
   acceptedAt?: Timestamp | null;
   revokedAt?: Timestamp | null;

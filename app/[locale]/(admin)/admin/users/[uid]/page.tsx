@@ -31,6 +31,8 @@ type UserDetail = {
 
   onboardingComplete?: boolean;
   disabled?: boolean;
+  emailVerified?: boolean;
+  emailVerifiedAt?: unknown;
   mode?: string | null;
 
   attestation?: {
@@ -179,6 +181,8 @@ function coerceUserDetail(id: string, data: DocumentData): UserDetail {
 
     onboardingComplete: toBool(obj.onboardingComplete),
     disabled: toBool(obj.disabled),
+    emailVerified: toBool(obj.emailVerified),
+    emailVerifiedAt: obj.emailVerifiedAt,
     mode: toStringOrNull(obj.mode),
 
     attestation,
@@ -313,6 +317,7 @@ export default function AdminUserDetailPage() {
 
   const [tempPassword, setTempPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [emailVerifying, setEmailVerifying] = useState(false);
 
   const canWrite = isSuperAdmin(currentProfile);
 
@@ -454,6 +459,53 @@ export default function AdminUserDetailPage() {
     }
   }
 
+  async function markEmailVerified() {
+    if (!uid) return;
+
+    if (!canWrite) {
+      setErr("Only superadmin can verify email.");
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+      setErr("You must be signed in.");
+      return;
+    }
+
+    setEmailVerifying(true);
+    setErr(null);
+    setMsg(null);
+
+    try {
+      const token = await getIdToken(user);
+
+      const res = await fetch("/api/admin/users/verify-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ uid }),
+      });
+
+      const responseData = (await res.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!res.ok) {
+        throw new Error(responseData.error || "Could not verify email");
+      }
+
+      setMsg("Email has been marked as verified.");
+      await load();
+    } catch (e: unknown) {
+      setErr(errorMessage(e));
+    } finally {
+      setEmailVerifying(false);
+    }
+  }
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -492,14 +544,16 @@ export default function AdminUserDetailPage() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
               onClick={load}
-              disabled={loading || saving || passwordSaving}
+              disabled={loading || saving || passwordSaving || emailVerifying}
               style={{
                 padding: "10px 14px",
                 borderRadius: 10,
                 border: "1px solid rgba(0,0,0,0.12)",
                 background: "white",
                 cursor:
-                  loading || saving || passwordSaving ? "not-allowed" : "pointer",
+                  loading || saving || passwordSaving || emailVerifying
+                    ? "not-allowed"
+                    : "pointer",
                 fontWeight: 800,
               }}
             >
@@ -650,7 +704,7 @@ export default function AdminUserDetailPage() {
                     setEditRole(nextRole);
                     if (nextRole !== "admin") setEditAdminLevel("");
                   }}
-                  disabled={!canWrite || saving || passwordSaving}
+                  disabled={!canWrite || saving || passwordSaving || emailVerifying}
                   style={{
                     width: "100%",
                     padding: "10px 12px",
@@ -684,7 +738,11 @@ export default function AdminUserDetailPage() {
                     setEditAdminLevel(e.target.value as "" | AdminLevel)
                   }
                   disabled={
-                    !canWrite || saving || passwordSaving || editRole !== "admin"
+                    !canWrite ||
+                    saving ||
+                    passwordSaving ||
+                    emailVerifying ||
+                    editRole !== "admin"
                   }
                   style={{
                     width: "100%",
@@ -759,7 +817,7 @@ export default function AdminUserDetailPage() {
                   background: canWrite ? "#111827" : "rgba(0,0,0,0.08)",
                   color: canWrite ? "white" : "rgba(0,0,0,0.45)",
                   cursor:
-                    !canWrite || saving || passwordSaving
+                    !canWrite || saving || passwordSaving || emailVerifying
                       ? "not-allowed"
                       : "pointer",
                   fontWeight: 800,
@@ -773,6 +831,51 @@ export default function AdminUserDetailPage() {
                   ? "Only superadmins can save changes."
                   : "You have read access, but not write access."}
               </div>
+            </div>
+          </Section>
+
+          <Section title="Email verification">
+            <p style={{ marginTop: 0, opacity: 0.75 }}>
+              This updates Firebase Auth directly. The user may need to press
+              "I have verified. Check again", refresh, or sign in again before
+              their current session sees the change.
+            </p>
+
+            <Row
+              label="Email verified"
+              value={data.emailVerified ? "Yes" : "No"}
+            />
+            <Row
+              label="Verified at"
+              value={formatDate(data.emailVerifiedAt)}
+            />
+
+            <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={markEmailVerified}
+                disabled={!canWrite || emailVerifying || data.emailVerified === true}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  background:
+                    !canWrite || emailVerifying || data.emailVerified === true
+                      ? "rgba(0,0,0,0.08)"
+                      : "#111827",
+                  color:
+                    !canWrite || emailVerifying || data.emailVerified === true
+                      ? "rgba(0,0,0,0.45)"
+                      : "white",
+                  cursor:
+                    !canWrite || emailVerifying || data.emailVerified === true
+                      ? "not-allowed"
+                      : "pointer",
+                  fontWeight: 800,
+                }}
+              >
+                {emailVerifying ? "Verifying..." : "Mark email verified"}
+              </button>
             </div>
           </Section>
 

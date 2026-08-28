@@ -82,6 +82,7 @@ export async function createSchoolInvite(
     invitedByUid: input.invitedBy,
     acceptedByUid: null,
     inviteTokenHash: hashInviteToken(token),
+    inviteToken: token,
     expiresAt: getInviteExpiresAt(),
     acceptedAt: null,
     revokedAt: null,
