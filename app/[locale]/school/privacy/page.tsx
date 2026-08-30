@@ -18,6 +18,7 @@ type Copy = {
   subprocessorsCta: string;
   dataRightsCta: string;
   dpaCta: string;
+  aiGuidelinesCta: string;
 };
 
 function localizedPath(locale: string, path: string) {
@@ -126,6 +127,7 @@ function copyFor(locale: string): Copy {
       subprocessorsCta: "View sub-processors",
       dataRightsCta: "Access and deletion",
       dpaCta: "DPA template",
+      aiGuidelinesCta: "AI guidelines",
     };
   }
 
@@ -229,6 +231,7 @@ function copyFor(locale: string): Copy {
       subprocessorsCta: "Ver subprocessadores",
       dataRightsCta: "Acesso e exclusão",
       dpaCta: "Modelo de acordo",
+      aiGuidelinesCta: "Diretrizes de IA",
     };
   }
 
@@ -331,6 +334,7 @@ function copyFor(locale: string): Copy {
     subprocessorsCta: "Se underleverandører",
     dataRightsCta: "Sletting og innsyn",
     dpaCta: "Databehandleravtale-mal",
+    aiGuidelinesCta: "KI-retningslinjer",
   };
 }
 
@@ -398,6 +402,9 @@ export default async function SchoolPrivacyPage() {
             </Link>
             <Link href={localizedPath(locale, "/school/dpa")} className="inline-flex justify-center rounded-xl border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10">
               {text.dpaCta}
+            </Link>
+            <Link href={localizedPath(locale, "/school/ai-guidelines")} className="inline-flex justify-center rounded-xl border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10">
+              {text.aiGuidelinesCta}
             </Link>
           </div>
         </div>

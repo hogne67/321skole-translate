@@ -262,7 +262,10 @@ function trustSections(locale: string): Section[] {
         title: "AI features",
         text: "What AI functions may do, who controls them and why schools should assess AI before systematic student use.",
         icon: <Sparkles />,
-        links: [{ href: "/school/privacy", label: "AI in 321school", note: "Section on school privacy page" }],
+        links: [
+          { href: "/school/ai-guidelines", label: "AI guidelines" },
+          { href: "/school/privacy", label: "AI in 321school", note: "Section on school privacy page" },
+        ],
       },
       {
         title: "Terms and contact",
@@ -310,7 +313,10 @@ function trustSections(locale: string): Section[] {
         title: "Recursos de IA",
         text: "O que recursos de IA podem fazer, quem controla e por que escolas devem avaliar IA antes de uso sistemático com alunos.",
         icon: <Sparkles />,
-        links: [{ href: "/school/privacy", label: "IA na 321school", note: "Seção na página de privacidade escolar" }],
+        links: [
+          { href: "/school/ai-guidelines", label: "Diretrizes de IA" },
+          { href: "/school/privacy", label: "IA na 321school", note: "Seção na página de privacidade escolar" },
+        ],
       },
       {
         title: "Termos e contato",
@@ -357,7 +363,10 @@ function trustSections(locale: string): Section[] {
       title: "KI-funksjoner",
       text: "Hva KI-funksjoner kan gjøre, hvem som styrer dem, og hvorfor skoler bør vurdere KI før systematisk elevbruk.",
       icon: <Sparkles />,
-      links: [{ href: "/school/privacy", label: "KI i 321skole", note: "Seksjon på skolepersonvern-siden" }],
+      links: [
+        { href: "/school/ai-guidelines", label: "KI-retningslinjer" },
+        { href: "/school/privacy", label: "KI i 321skole", note: "Seksjon på skolepersonvern-siden" },
+      ],
     },
     {
       title: "Vilkår og kontakt",

@@ -634,19 +634,24 @@ export default function QuizGeneratorPage() {
 
         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
           {sourceChoice === "new" ? (
-            <label className="block">
-              <span className="text-sm font-semibold text-slate-800">{t("fields.topic")}</span>
-              <span className="mt-1 block text-xs leading-5 text-slate-500">{t("fields.topicHelp")}</span>
-              <input
-                id={`quiz-topic-${locale}`}
-                name={`quiz-topic-${locale}`}
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                autoComplete="off"
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-violet-500"
-                placeholder={t("placeholders.topic")}
-              />
-            </label>
+            <div className="space-y-3">
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-800">{t("fields.topic")}</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">{t("fields.topicHelp")}</span>
+                <input
+                  id={`quiz-topic-${locale}`}
+                  name={`quiz-topic-${locale}`}
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  autoComplete="off"
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-violet-500"
+                  placeholder={t("placeholders.topic")}
+                />
+              </label>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-900">
+                {t("source.accuracyHint")}
+              </div>
+            </div>
           ) : sourceChoice === "paste" ? (
             <label className="block">
               <span className="text-sm font-semibold text-slate-800">{t("fields.sourceText")}</span>

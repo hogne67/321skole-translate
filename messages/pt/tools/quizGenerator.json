@@ -40,7 +40,8 @@
       "refresh": "Atualizar",
       "loading": "Carregando...",
       "chooseContent": "Clique para escolher uma lição",
-      "noContent": "Nenhuma lição encontrada"
+      "noContent": "Nenhuma lição encontrada",
+      "accuracyHint": "Para quizzes com fatos concretos, anos ou respostas que precisam ser precisas, prefira usar texto ou uma lição como fonte."
     },
     "sourceChoices": {
       "new": {

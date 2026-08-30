@@ -40,7 +40,8 @@
       "refresh": "Refresh",
       "loading": "Loading...",
       "chooseContent": "Click to choose a lesson",
-      "noContent": "No lessons found"
+      "noContent": "No lessons found",
+      "accuracyHint": "For quizzes with concrete facts, years, or answer keys that must be precise, preferably use text or a lesson as the source."
     },
     "sourceChoices": {
       "new": {

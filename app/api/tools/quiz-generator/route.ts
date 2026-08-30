@@ -67,6 +67,7 @@ function getFocusInstruction(focus: string): string {
     math: "mathematics",
     science: "science",
     social_studies: "social studies",
+    history: "history",
     english: "English as a school subject",
     work_life: "work life and careers",
     citizenship: "democracy and citizenship",
@@ -78,6 +79,27 @@ function getFocusInstruction(focus: string): string {
     other: "other/general topic",
   };
   return labels[normalized] || focus || "other/general topic";
+}
+
+function getLevelInstruction(level: string): string {
+  const normalized = level.trim().toUpperCase();
+  const labels: Record<string, string> = {
+    A1:
+      "A1: Use very short, concrete questions with simple everyday words. Ask about one fact or idea at a time. Keep answer options short and clearly different.",
+    A2:
+      "A2: Use simple questions with familiar wording. One short context sentence is okay, but avoid dense phrasing and abstract traps.",
+    B1:
+      "B1: Use moderate context in many questions. Ask students to connect a fact to a cause, consequence, person, place, or period. Options may be more similar, but the correct answer must still be clear.",
+    B2:
+      "B2: Use richer question stems with context, contrast, or cause-and-effect. Prefer questions that require interpretation, comparison, or recognizing significance. Distractors should be plausible within the same topic, not random.",
+    C1:
+      "C1: Use nuanced, information-rich questions. Ask for significance, relationships between events, precise concepts, or implications. The language may be advanced, but the factual claim must remain easy for a teacher to verify.",
+  };
+  return labels[normalized] || labels.B1;
+}
+
+function requiresContextRichQuestions(level: string): boolean {
+  return ["B1", "B2", "C1"].includes(level.trim().toUpperCase());
 }
 
 function hasRecentOrCurrentFactRisk(topic: string): boolean {
@@ -103,6 +125,23 @@ function currentFactRiskError(language: string) {
     return "For recent or factual topics, paste a source text or choose a lesson. Then the quiz can use verifiable facts.";
   }
   return "For ferske eller faktabaserte tema må du lime inn en kildetekst eller velge en leksjon. Da kan quizen bygge på kontrollerbare fakta.";
+}
+
+function hasHistoricalYear(topic: string): boolean {
+  return /\b(1[5-9]\d{2}|20[0-1]\d|202[0-4])\b/.test(topic);
+}
+
+function isUnsafeHistoricalTopicQuestion(question: QuizQuestion): boolean {
+  const text = `${question.question} ${question.explanation}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  return (
+    /\b(dode|dodde|died|faleceu|morreu|born|fodt|nasceu)\b/.test(text) ||
+    /\b(exact date|dato|day and month|dag og maned|dia e mes)\b/.test(text) ||
+    /\b(sales figure|sales figures|salgstall|ranking|rankings|rangering)\b/.test(text)
+  );
 }
 
 async function getRequestUserContext(req: Request): Promise<RequestUserContext | null> {
@@ -268,6 +307,8 @@ export async function POST(req: Request) {
     const questionMode = pickQuestionMode(pickString(body, "questionMode", "mixed"));
     const count = Math.max(3, Math.min(12, Math.trunc(pickNumber(body, "count", 6))));
     const seconds = Math.max(10, Math.min(120, Math.trunc(pickNumber(body, "seconds", 30))));
+    const topicHasHistoricalYear = sourceMode !== "text" && hasHistoricalYear(topic);
+    const contextRichLevel = requiresContextRichQuestions(level);
 
     if (sourceMode === "text" && sourceText.length < 40) {
       return Response.json({ error: "Add a little more lesson text first." }, { status: 400 });
@@ -283,6 +324,7 @@ export async function POST(req: Request) {
       `You are creating a classroom quiz for 321school.\n` +
       `${getLanguageInstruction(language)}\n` +
       `Learner level: ${level}\n` +
+      `Level guidance: ${getLevelInstruction(level)}\n` +
       `Number of questions: ${count}\n` +
       `Default seconds per question: ${seconds}\n` +
       `Category: ${getFocusInstruction(focus)}\n\n` +
@@ -299,8 +341,17 @@ export async function POST(req: Request) {
       `- Create a useful classroom quiz, not a worksheet.\n` +
       (sourceMode === "text"
         ? `- Use ONLY the source text for factual claims, answers, and explanations. If a fact is not in the source text, do not ask about it.\n`
-        : `- The source is only a topic. Use stable, general knowledge only. Do not ask about recent events, current results, future events, exact statistics, or facts that may have changed.\n`) +
+        : `- The source is only a topic. Use only stable, widely documented general knowledge that a teacher can reasonably verify. Do not ask about recent events, current results, future events, exact statistics, or facts that may have changed.\n`) +
+      (topicHasHistoricalYear
+        ? `- This is a historical-year topic without source text. Prefer major public events, politics, culture, sports, technology, and everyday-life markers from that year. Avoid narrow trivia such as "who died in this year", birth years, exact dates, minor awards, obscure rankings, sales figures, or claims that require a source table.\n`
+        : "") +
+      `- If the user gives a concrete example or angle in the source, include it or make one question clearly inspired by it when it is safe and factual.\n` +
+      (contextRichLevel
+        ? `- For ${level.toUpperCase()} and higher-level learners, many question stems should be longer and include enough context for students to reason before choosing. Do not make every question a one-line recall question.\n`
+        : "") +
+      `- Hard questions should be hard because they require context or comparison, not because they rely on obscure or fragile facts.\n` +
       `- Do not invent facts, dates, numbers, scores, winners, rankings, or statistics.\n` +
+      `- Before returning, silently check every correct answer against the explanation and replace any question you are not highly confident is true.\n` +
       (questionMode === "mixed" ? `- Use a mix of multiple_choice and true_false when it fits.\n` : `- Every question must use type "${questionMode}".\n`) +
       `- Multiple choice must have 3 or 4 options.\n` +
       `- True/false must have exactly 2 options, written in the target language.\n` +
@@ -336,7 +387,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content:
-            "Create editable classroom quizzes. Accuracy is more important than variety. Return valid JSON only.",
+            "Create editable classroom quizzes. Accuracy is more important than variety or difficulty. Return valid JSON only.",
         },
         { role: "user", content: prompt },
       ],
@@ -360,10 +411,11 @@ export async function POST(req: Request) {
     const questions = (Array.isArray(parsed.questions) ? parsed.questions : [])
       .map((item, index) => cleanQuestion(item, index, seconds))
       .filter((item): item is QuizQuestion => item !== null)
+      .filter((item) => !topicHasHistoricalYear || !isUnsafeHistoricalTopicQuestion(item))
       .slice(0, count);
 
     if (questions.length < 3) {
-      return Response.json({ error: "Model response missing usable questions.", raw }, { status: 500 });
+      return Response.json({ error: "Model response missing usable questions. Try adding source text for more precise factual quizzes.", raw }, { status: 500 });
     }
 
     await consumeFeatureAdmin({

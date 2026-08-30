@@ -40,7 +40,8 @@
       "refresh": "Oppdater",
       "loading": "Laster...",
       "chooseContent": "Klikk for å hente tekst fra en leksjon",
-      "noContent": "Ingen leksjoner funnet"
+      "noContent": "Ingen leksjoner funnet",
+      "accuracyHint": "For quizzer med konkrete fakta, årstall eller fasit som må være helt presis, bruk helst tekst eller leksjon som kilde."
     },
     "sourceChoices": {
       "new": {
