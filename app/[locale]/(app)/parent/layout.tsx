@@ -22,7 +22,11 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   const allowGuestPreview = isParentDashboard(pathname);
 
   if (allowGuestPreview) {
-    return <AuthGate allowAnonymous>{children}</AuthGate>;
+    return (
+      <AuthGate allowAnonymous>
+        <EmailVerificationGate role="parent">{children}</EmailVerificationGate>
+      </AuthGate>
+    );
   }
 
   return (

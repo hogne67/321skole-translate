@@ -29,9 +29,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   if (allowGuestPreview) {
     return (
       <AuthGate allowAnonymous>
-        <main className="w-full min-w-0">
-          {children}
-        </main>
+        <EmailVerificationGate role="teacher">
+          <main className="w-full min-w-0">
+            {children}
+          </main>
+        </EmailVerificationGate>
       </AuthGate>
     );
   }

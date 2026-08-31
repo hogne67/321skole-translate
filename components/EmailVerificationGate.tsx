@@ -6,6 +6,7 @@ import { sendEmailVerification } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useLocale } from "next-intl";
+import { usePathname } from "next/navigation";
 
 type GateRole = "parent" | "teacher" | "student";
 
@@ -101,6 +102,11 @@ function daysLeft(user: NonNullable<ReturnType<typeof useUserProfile>["user"]>) 
   return Math.max(0, remaining);
 }
 
+function isRoleDashboard(pathname: string | null, locale: string, role: GateRole): boolean {
+  const path = (pathname || "").split("?")[0].replace(/\/+$/, "");
+  return path === `/${locale}/${role}`;
+}
+
 export default function EmailVerificationGate({
   children,
   role,
@@ -110,12 +116,14 @@ export default function EmailVerificationGate({
 }) {
   const { user, loading } = useUserProfile();
   const locale = useLocale();
+  const pathname = usePathname();
   const t = copyFor(locale, role);
   const [busy, setBusy] = useState(false);
   const [helpBusy, setHelpBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  if (!isRoleDashboard(pathname, locale, role)) return <>{children}</>;
   if (loading || !user) return null;
 
   const shouldVerify = !user.emailVerified && isEmailPasswordUser(user);

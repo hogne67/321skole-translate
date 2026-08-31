@@ -595,7 +595,7 @@ function TeacherSpacesInner() {
                     </div>
                   </div>
 
-                  <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:w-auto xl:min-w-[330px]">
+                  <div className="grid w-full min-w-0 grid-cols-2 gap-2 xl:w-auto xl:min-w-[260px]">
                     <button
                       type="button"
                       onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/members`))}
@@ -603,15 +603,6 @@ function TeacherSpacesInner() {
                       title={t("list.seeMembersTitle")}
                     >
                       {t("list.seeMembers")}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => router.push(withLocale(locale, `/teacher/spaces/${r.id}/board`))}
-                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-                      title={t("list.boardTitle")}
-                    >
-                      {t("list.board")}
                     </button>
 
                     <button

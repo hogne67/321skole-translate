@@ -175,7 +175,6 @@ export default function StudentSpacesPage() {
               const code = codeOfSpace(s.data);
 
               const openHref = `/student/spaces/${s.id}`;
-              const boardHref = `/student/spaces/${s.id}/board`;
 
               return (
                 <div
@@ -201,16 +200,7 @@ export default function StudentSpacesPage() {
                       <div className="mt-3 break-words text-sm text-slate-500">{t("actions.openSpace")}</div>
                     </div>
 
-                    <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:min-w-[320px]">
-                      <Link
-                        href={boardHref}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 no-underline hover:bg-slate-50"
-                        title={t("actions.openBoard")}
-                      >
-                        {t("actions.board")}
-                      </Link>
-
+                    <div className="grid w-full min-w-0 grid-cols-1 gap-2 xl:w-auto xl:min-w-[180px]">
                       <Link
                         href={openHref}
                         onClick={(e) => e.stopPropagation()}
