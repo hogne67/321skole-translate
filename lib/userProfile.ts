@@ -15,6 +15,7 @@ import { db } from "@/lib/firebase";
  */
 
 export type Role = "student" | "teacher" | "admin" | "parent" | "creator";
+export type StudentAccessMode = "space_only" | "self_study";
 export type AdminLevel = "moderator" | "admin" | "superadmin";
 
 /** Legacy-only (ikke bruk til gating) */
@@ -37,6 +38,7 @@ export type UserProfile = {
   };
 
   role?: Role;
+  studentAccessMode?: StudentAccessMode;
   adminLevel?: AdminLevel;
 
   onboardingComplete?: boolean;
@@ -117,6 +119,7 @@ export async function ensureUserProfile(user: User, patch?: Partial<UserProfile>
       legal: patch?.legal,
 
       role: patch?.role,
+      studentAccessMode: patch?.studentAccessMode,
       adminLevel: patch?.adminLevel,
 
       onboardingComplete: patch?.onboardingComplete ?? false,

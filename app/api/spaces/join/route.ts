@@ -214,6 +214,28 @@ export async function POST(req: NextRequest) {
       { merge: true }
     );
 
+    if (!isAnonymous) {
+      const userRef = adminDb.collection("users").doc(uid);
+      const userSnap = await userRef.get();
+      const userData = userSnap.exists ? userSnap.data() : null;
+      const existingRole = safeString(userData?.role);
+      const existingMode = safeString(userData?.studentAccessMode);
+
+      if (!existingRole || existingRole === "student") {
+        await userRef.set(
+          {
+            role: "student",
+            roles: {
+              student: true,
+            },
+            studentAccessMode: existingMode === "self_study" ? "self_study" : "space_only",
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       spaceId,

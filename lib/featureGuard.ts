@@ -10,6 +10,7 @@ import {
   type BillingSnapshot,
   type PartnerAccessSnapshot,
   type SchoolAccessSnapshot,
+  type StudentAccessSnapshot,
 } from "@/lib/featureAccess";
 import { getUsage, incrementUsage } from "@/lib/usage";
 
@@ -33,7 +34,7 @@ type GuardParams = {
   role: AppRole | string;
   plan: PlanKey | string;
   feature: FeatureKey;
-};
+} & StudentAccessSnapshot;
 
 type GuardProfileParams = {
   uid: string;
@@ -42,7 +43,7 @@ type GuardProfileParams = {
   billing?: BillingSnapshot | null;
 } & PartnerAccessSnapshot & SchoolAccessSnapshot & {
   feature: FeatureKey;
-};
+} & StudentAccessSnapshot;
 
 type ConsumeParams = {
   uid: string;
@@ -98,7 +99,9 @@ export async function getFeatureStatus(
 ): Promise<FeatureStatus> {
   const { uid, role, plan, feature } = params;
 
-  const decision = getFeatureDecision(role, plan, feature);
+  const decision = getFeatureDecision(role, plan, feature, {
+    studentAccessMode: params.studentAccessMode,
+  });
   const bucket = getQuotaBucket(feature);
 
   if (!decision.allowed || decision.limit <= 0) {
@@ -140,6 +143,7 @@ export async function getFeatureStatusFromProfile(
     schoolId,
     schoolRole,
     schoolStatus,
+    studentAccessMode,
     feature,
   } = params;
 
@@ -152,6 +156,7 @@ export async function getFeatureStatusFromProfile(
     schoolId,
     schoolRole,
     schoolStatus,
+    studentAccessMode,
     feature,
   });
 

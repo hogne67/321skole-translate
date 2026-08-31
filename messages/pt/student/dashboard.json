@@ -25,7 +25,8 @@
       "actions": {
         "seePlans": "Ver planos",
         "registerLogin": "Registrar / entrar",
-        "openLibrary": "Abrir biblioteca"
+        "openLibrary": "Abrir biblioteca",
+        "completeProfile": "Completar perfil"
       }
     },
     "usage": {
@@ -50,6 +51,7 @@
     "quickLinks": {
       "title": "Acessos rápidos",
       "library": "Abrir biblioteca",
+      "joinSpace": "Entrar em uma turma",
       "myContent": "Meu conteúdo"
     },
     "anonymousCreate": {
@@ -113,9 +115,10 @@
       "approved": "Concluídas",
       "spacesLabel": "Turmas",
       "noClassTitle": "Você ainda não está conectado a uma turma",
-      "noClassText": "Mesmo assim, você pode estudar sozinho, usar a biblioteca e salvar seu próprio conteúdo.",
+      "noClassText": "Recebeu um código ou link do professor? Entre em uma turma para ver suas tarefas aqui.",
       "actions": {
         "openSpaces": "Abrir turmas",
+        "joinSpace": "Entrar em uma turma",
         "library": "Biblioteca",
         "myContent": "Meu conteúdo"
       }

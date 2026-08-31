@@ -19,6 +19,7 @@ import {
 } from "@/lib/featureAccess";
 import { useUsage } from "@/lib/useUsage";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { getStudentAccessMode } from "@/lib/studentAccessMode";
 import { useLocale, useTranslations } from "next-intl";
 import {
   getStudentDashboardStats,
@@ -490,6 +491,10 @@ export default function StudentDashboard() {
   const hasActivePartnerAccess =
     profile?.partnerAccess === true && profile?.partnerStatus === "active";
 
+  const studentAccessMode = getStudentAccessMode(profile, { isAnonymous: isAnon });
+  const isSpaceOnly = studentAccessMode === "space_only";
+  const needsOnboarding = !isAnon && profile?.onboardingComplete !== true;
+
   const role = "student" as const;
 
   const generatorsUsed = usage["premium_generators"] ?? 0;
@@ -575,6 +580,29 @@ export default function StudentDashboard() {
         actionSeePlans={t("dashboardIntro.actions.seePlans")}
         actionRegisterLogin={t("dashboardIntro.actions.registerLogin")}
         actionOpenLibrary={t("dashboardIntro.actions.openLibrary")}
+        rightSlot={
+          needsOnboarding ? (
+            <Link
+              href={`/${locale}/onboarding`}
+              style={{
+                display: "inline-flex",
+                minHeight: 40,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 12,
+                border: "1px solid rgba(37,99,235,0.24)",
+                background: "#2563eb",
+                color: "#ffffff",
+                fontSize: 14,
+                fontWeight: 900,
+                padding: "9px 12px",
+                textDecoration: "none",
+              }}
+            >
+              {t("dashboardIntro.actions.completeProfile")}
+            </Link>
+          ) : null
+        }
       />
 
       <InstallAppButton />
@@ -671,7 +699,7 @@ export default function StudentDashboard() {
               </Link>
 
               <Link
-                href={`/${locale}/academy/courses/marketplace`}
+                href={`/${locale}/student/spaces`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -686,37 +714,41 @@ export default function StudentDashboard() {
                   border: "1px solid #cbd5e1",
                 }}
               >
-                {t("anonymousCreate.library")}
+                {t("anonymousCreate.draftNoticeLink")}
               </Link>
             </div>
           </div>
         </section>
       ) : null}
 
-      <section style={shortcutSectionStyle}>
-        {showStudentLaunchCampaign ? (
-          <LaunchCampaignBanner locale={locale} href={`/${locale}/account/billing`} />
-        ) : null}
+      {!isSpaceOnly || hasActivePartnerAccess ? (
+        <section style={shortcutSectionStyle}>
+          {showStudentLaunchCampaign ? (
+            <LaunchCampaignBanner locale={locale} href={`/${locale}/account/billing`} />
+          ) : null}
 
-        {hasActivePartnerAccess ? (
-          <DashboardShortcutRow
-            title={t("partnerCard.title")}
-            text={t("partnerCard.text")}
-            href={`/${locale}/partner`}
-            actionLabel={t("billing.actions.open")}
-            tone="teal"
-          />
-        ) : null}
+          {hasActivePartnerAccess ? (
+            <DashboardShortcutRow
+              title={t("partnerCard.title")}
+              text={t("partnerCard.text")}
+              href={`/${locale}/partner`}
+              actionLabel={t("billing.actions.open")}
+              tone="teal"
+            />
+          ) : null}
 
-        <DashboardShortcutRow
-          title={t("billing.title")}
-          text={billingSummary}
-          href={`/${locale}/account/billing`}
-          actionLabel={t("billing.actions.open")}
-        />
-      </section>
+          {!isSpaceOnly ? (
+            <DashboardShortcutRow
+              title={t("billing.title")}
+              text={billingSummary}
+              href={`/${locale}/account/billing`}
+              actionLabel={t("billing.actions.open")}
+            />
+          ) : null}
+        </section>
+      ) : null}
 
-      {!usageLoading && (
+      {!usageLoading && !isSpaceOnly && (
         <section
           style={statGridStyle}
         >
@@ -894,28 +926,50 @@ export default function StudentDashboard() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                   }}
                 >
-                  <Link
-                    href={`/${locale}/321lessons`}
-                    style={{
-                      display: "inline-flex",
-                      width: "100%",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: 12,
-                      padding: "12px 14px",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      background: "#ffffff",
-                      color: "#0f172a",
-                      border: "1px solid #cbd5e1",
-                    }}
-                  >
-                    {t("submissions.actions.library")}
-                  </Link>
+                  {isSpaceOnly ? (
+                    <Link
+                      href={`/${locale}/join`}
+                      style={{
+                        display: "inline-flex",
+                        width: "100%",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 12,
+                        padding: "12px 14px",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        textDecoration: "none",
+                        background: "#ffffff",
+                        color: "#0f172a",
+                        border: "1px solid #cbd5e1",
+                      }}
+                    >
+                      {t("submissions.actions.joinSpace")}
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/${locale}/321lessons`}
+                      style={{
+                        display: "inline-flex",
+                        width: "100%",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 12,
+                        padding: "12px 14px",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        textDecoration: "none",
+                        background: "#ffffff",
+                        color: "#0f172a",
+                        border: "1px solid #cbd5e1",
+                      }}
+                    >
+                      {t("submissions.actions.library")}
+                    </Link>
+                  )}
 
                   <Link
-                    href={`/${locale}/student/content`}
+                    href={`/${locale}/content`}
                     style={{
                       display: "inline-flex",
                       width: "100%",
@@ -942,71 +996,73 @@ export default function StudentDashboard() {
 
       {showStudentQuizSection ? <QuizDashboardSection locale={locale} /> : null}
 
-      <section style={dashboardSectionStyle}>
-        <div style={sectionInsetStyle}>
-          <div style={sectionCardBlueStyle}>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 20,
-                fontWeight: 800,
-                color: "#0f172a",
-              }}
-            >
-              {t("quickLinks.title")}
-            </h2>
-
-            <div
-              style={{
-                marginTop: 12,
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              }}
-            >
-              <Link
-                href={`/${locale}/321lessons`}
+      {!isSpaceOnly ? (
+        <section style={dashboardSectionStyle}>
+          <div style={sectionInsetStyle}>
+            <div style={sectionCardBlueStyle}>
+              <h2
                 style={{
-                  display: "inline-flex",
-                  width: "100%",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  background: "#ffffff",
+                  margin: 0,
+                  fontSize: 20,
+                  fontWeight: 800,
                   color: "#0f172a",
-                  border: "1px solid #cbd5e1",
                 }}
               >
-                {t("quickLinks.library")}
-              </Link>
+                {t("quickLinks.title")}
+              </h2>
 
-              <Link
-                href={`/${locale}/student/content`}
+              <div
                 style={{
-                  display: "inline-flex",
-                  width: "100%",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  background: "#ffffff",
-                  color: "#0f172a",
-                  border: "1px solid #cbd5e1",
+                  marginTop: 12,
+                  display: "grid",
+                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                 }}
               >
-                {t("quickLinks.myContent")}
-              </Link>
+                <Link
+                  href={`/${locale}/321lessons`}
+                  style={{
+                    display: "inline-flex",
+                    width: "100%",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    background: "#ffffff",
+                    color: "#0f172a",
+                    border: "1px solid #cbd5e1",
+                  }}
+                >
+                  {t("quickLinks.library")}
+                </Link>
+
+                <Link
+                  href={`/${locale}/content`}
+                  style={{
+                    display: "inline-flex",
+                    width: "100%",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    background: "#ffffff",
+                    color: "#0f172a",
+                    border: "1px solid #cbd5e1",
+                  }}
+                >
+                  {t("quickLinks.myContent")}
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {showStudentCoursesSection ? (
         <section style={dashboardSectionStyle}>

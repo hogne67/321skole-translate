@@ -133,6 +133,18 @@ export default function LoginClient() {
     [t]
   );
 
+  const safeRawT = useCallback(
+    (key: string, fallback: string): string => {
+      try {
+        const value = t.raw(key);
+        return typeof value === "string" ? value : fallback;
+      } catch {
+        return fallback;
+      }
+    },
+    [t]
+  );
+
   const postLoginUrl = useMemo(() => {
     const rawNext = sp.get("next");
     const q = rawNext ? `?next=${encodeURIComponent(rawNext)}` : "";
@@ -1206,7 +1218,7 @@ export default function LoginClient() {
                         lineHeight: 1.5,
                       }}
                       dangerouslySetInnerHTML={{
-                        __html: safeT(
+                        __html: safeRawT(
                           "hints.anonSignup",
                           "Tip: If this email already exists, choose <b>I already have an account</b> instead."
                         ),

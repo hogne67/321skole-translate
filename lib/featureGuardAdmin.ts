@@ -7,6 +7,7 @@ import {
   type AppRole,
   type FeatureKey,
   type PlanKey,
+  type StudentAccessSnapshot,
 } from "@/lib/featureAccess";
 import { getUsageAdmin, incrementUsageAdmin } from "@/lib/usageAdmin";
 
@@ -30,7 +31,7 @@ type GuardParams = {
   role: AppRole | string;
   plan: PlanKey | string;
   feature: FeatureKey;
-};
+} & StudentAccessSnapshot;
 
 function toUsedValue(
   usage: Record<string, number>,
@@ -45,7 +46,9 @@ export async function getFeatureStatusAdmin(
 ): Promise<FeatureStatus> {
   const { uid, role, plan, feature } = params;
 
-  const decision = getFeatureDecision(role, plan, feature);
+  const decision = getFeatureDecision(role, plan, feature, {
+    studentAccessMode: params.studentAccessMode,
+  });
   const bucket = getQuotaBucket(feature);
 
   if (!decision.allowed || decision.limit <= 0) {

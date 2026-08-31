@@ -47,6 +47,7 @@ type RequestUserContext = {
   uid: string;
   role: AppRole | string;
   plan: PlanKey | string;
+  studentAccessMode?: string | null;
 };
 
 function stringifyGeneratedText(value: unknown): string {
@@ -98,6 +99,8 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
     uid,
     role: data?.role ?? "anonymous",
     plan,
+    studentAccessMode:
+      typeof data?.studentAccessMode === "string" ? data.studentAccessMode : null,
   };
 }
 
@@ -2765,6 +2768,7 @@ export async function POST(req: Request) {
       uid: user.uid,
       role: user.role,
       plan: user.plan,
+      studentAccessMode: user.studentAccessMode,
       feature: "producer_create_lesson",
     });
 

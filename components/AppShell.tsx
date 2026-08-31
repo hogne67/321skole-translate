@@ -8,10 +8,12 @@ import TopNav from "@/components/TopNav";
 import LibraryBar from "@/components/LibraryBar";
 import LibraryContentTabs from "@/components/LibraryContentTabs";
 import SectionShell from "@/components/SectionShell";
+import StudentSelfStudyPrompt from "@/components/StudentSelfStudyPrompt";
 import SupportHelpButton from "@/components/SupportHelpButton";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { readGuestRole, roleFromPathname, saveGuestRole, type GuestRole } from "@/lib/guestRole";
 import { navItemsForRole } from "@/lib/navItems";
+import { getStudentAccessMode, isSpaceOnlyStudent } from "@/lib/studentAccessMode";
 import { useTranslations } from "next-intl";
 
 type AppRole = "student" | "teacher" | "parent" | "admin" | "creator";
@@ -63,6 +65,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathGuestRole = roleFromPathname(pathname);
   const guestRole = pathGuestRole ?? readGuestRole();
   const role: AppRole = normalizeRole(profile?.role, !!user?.isAnonymous, guestRole);
+  const studentAccessMode = getStudentAccessMode(profile, {
+    isAnonymous: !!user?.isAnonymous && role === "student",
+  });
+  const hideStudentLibraryEntry = isSpaceOnlyStudent(profile, {
+    isAnonymous: !!user?.isAnonymous && role === "student",
+  });
 
   useEffect(() => {
     if (user?.isAnonymous && pathGuestRole) saveGuestRole(pathGuestRole);
@@ -106,7 +114,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           : tModes("student");
 
   const items = useMemo(() => {
-    const baseItems = navItemsForRole(role).map((it) => ({
+    const baseItems = navItemsForRole(role, { studentAccessMode }).map((it) => ({
       href: it.href,
       label: tNav(it.labelKey),
     }));
@@ -140,6 +148,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     profile?.schoolRole,
     profile?.schoolStatus,
     role,
+    studentAccessMode,
     showPersonalAdminLink,
     tNav,
   ]);
@@ -212,14 +221,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-scope tw-scope appShellRoot">
       {!hideAppChrome ? <TopNav /> : null}
-      {!hideAppChrome ? <LibraryBar /> : null}
+      {!hideAppChrome && !hideStudentLibraryEntry ? <LibraryBar /> : null}
 
       {isLibraryContentPage ? (
         <div className={`libraryWrap ${showLibraryClosePanel ? "libraryWrapWithClose" : ""}`}>
-          <LibraryContentTabs />
+          {!hideStudentLibraryEntry ? <LibraryContentTabs /> : null}
           {showSchoolTeacherIndicator && !hideAppChrome ? <SchoolTeacherIndicator /> : null}
-          {children}
-          {showLibraryClosePanel ? <LibraryClosePanel href={libraryCloseHref} label={tLibrary("close")} /> : null}
+          {hideStudentLibraryEntry ? (
+            <StudentSelfStudyPrompt
+              isAnonymous={!!user?.isAnonymous}
+              nextHref={`/${locale}${pathWithoutLocale}`}
+            />
+          ) : (
+            children
+          )}
+          {showLibraryClosePanel && !hideStudentLibraryEntry ? (
+            <LibraryClosePanel href={libraryCloseHref} label={tLibrary("close")} />
+          ) : null}
         </div>
       ) : (
         <SectionShell

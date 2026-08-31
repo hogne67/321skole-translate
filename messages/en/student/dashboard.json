@@ -25,7 +25,8 @@
       "actions": {
         "seePlans": "See plans",
         "registerLogin": "Register / log in",
-        "openLibrary": "Open library"
+        "openLibrary": "Open library",
+        "completeProfile": "Complete profile"
       }
     },
     "usage": {
@@ -50,6 +51,7 @@
     "quickLinks": {
       "title": "Quick links",
       "library": "Open library",
+      "joinSpace": "Join a class",
       "myContent": "My content"
     },
     "anonymousCreate": {
@@ -113,9 +115,10 @@
       "approved": "Done",
       "spacesLabel": "Classes",
       "noClassTitle": "You are not connected to a classroom yet",
-      "noClassText": "You can still study on your own, use the library, and save your own content.",
+      "noClassText": "Got a code or link from your teacher? Join a class to see your assignments here.",
       "actions": {
         "openSpaces": "Open classes",
+        "joinSpace": "Join a class",
         "library": "Library",
         "myContent": "My content"
       }

@@ -151,7 +151,10 @@ export default function TopNav() {
     return safeRole(roleStr);
   }, [guestRole, isAnon, profile]);
 
-  const needsOnboarding = isLoggedIn && !loading && !role;
+  const needsOnboarding =
+    isLoggedIn &&
+    !loading &&
+    (!role || profile?.onboardingComplete !== true);
 
   async function handleLogout() {
     await signOut(auth);

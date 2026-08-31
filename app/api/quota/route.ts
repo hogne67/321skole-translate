@@ -41,6 +41,7 @@ type UserProfileDoc = {
   schoolId?: unknown;
   schoolRole?: unknown;
   schoolStatus?: unknown;
+  studentAccessMode?: unknown;
 };
 
 function json(data: unknown, status = 200) {
@@ -163,6 +164,7 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
   let schoolId = safeString(decoded.schoolId);
   let schoolRole = safeString(decoded.schoolRole);
   let schoolStatus = safeString(decoded.schoolStatus);
+  let studentAccessMode = safeString(decoded.studentAccessMode);
 
   if (isAppRole(decoded.role)) {
     role = decoded.role;
@@ -203,6 +205,7 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
       schoolId = safeString(userData.schoolId);
       schoolRole = safeString(userData.schoolRole);
       schoolStatus = safeString(userData.schoolStatus);
+      studentAccessMode = safeString(userData.studentAccessMode);
     }
   } catch {
     // keep fallbacks
@@ -218,7 +221,7 @@ async function resolveRoleAndPlan(uid: string, decoded: Record<string, unknown>)
     schoolStatus,
   });
 
-  return { role, plan, billing };
+  return { role, plan, billing, studentAccessMode };
 }
 
 export async function GET(req: Request) {
@@ -242,9 +245,9 @@ export async function GET(req: Request) {
     const uid = safeString(decoded.uid);
     if (!uid) return json({ error: "Invalid token uid" }, 401);
 
-    const { role, plan } = await resolveRoleAndPlan(uid, decoded);
+    const { role, plan, studentAccessMode } = await resolveRoleAndPlan(uid, decoded);
     const period = currentPeriodOslo();
-    const limit = getBucketLimit(role, plan, bucket);
+    const limit = getBucketLimit(role, plan, bucket, { studentAccessMode });
 
     const ref = db.collection("users").doc(uid).collection("usage").doc(period);
     const snap = await ref.get();
@@ -299,9 +302,9 @@ export async function POST(req: Request) {
     const uid = safeString(decoded.uid);
     if (!uid) return json({ error: "Invalid token uid" }, 401);
 
-    const { role, plan } = await resolveRoleAndPlan(uid, decoded);
+    const { role, plan, studentAccessMode } = await resolveRoleAndPlan(uid, decoded);
     const period = currentPeriodOslo();
-    const limit = getBucketLimit(role, plan, bucket);
+    const limit = getBucketLimit(role, plan, bucket, { studentAccessMode });
 
     const ref = db.collection("users").doc(uid).collection("usage").doc(period);
 

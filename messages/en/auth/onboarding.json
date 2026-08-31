@@ -28,6 +28,14 @@
           "teacherHint": "Learning platform for teaching staff with classes, classrooms and digital whiteboard.",
           "parentHint": "For parents and guardians who want to support learning at home. Create your own study spaces and give adapted tasks."
         },
+        "studentAccess": {
+          "title": "How will you use 321school?",
+          "text": "Choose what fits you now. You can open self study later if you need it.",
+          "spaceOnlyTitle": "I have a code or link from a teacher",
+          "spaceOnlyHint": "Use Spaces, assignments and content your teacher shares.",
+          "selfStudyTitle": "I want to study on my own",
+          "selfStudyHint": "Open the library, tools and your own practice activities."
+        },
         "fullName": {
           "label": "Full name *"
         },
@@ -45,6 +53,7 @@
       },
       "errors": {
         "missingRole": "Choose a role (Learner / student, Teacher or Parent / guardian).",
+        "missingStudentAccess": "Choose whether you have a teacher code or want to study on your own.",
         "missingName": "Enter your full name.",
         "missingCountry": "Choose a country.",
         "missingMunicipalityNo": "Choose a municipality.",

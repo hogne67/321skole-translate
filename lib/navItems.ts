@@ -1,5 +1,6 @@
 // lib/navItems.ts
 export type Role = "student" | "teacher" | "parent" | "admin" | "creator";
+export type StudentAccessMode = "space_only" | "self_study";
 
 export type NavItem = { href: string; labelKey: string };
 
@@ -18,7 +19,12 @@ function homeForRole(role: Role) {
  * - hrefs are internal and WITHOUT locale prefix
  * - labelKey must exist inside the "nav" namespace
  */
-export function navItemsForRole(role: Role): NavItem[] {
+export function navItemsForRole(
+  role: Role,
+  opts?: {
+    studentAccessMode?: StudentAccessMode;
+  }
+): NavItem[] {
   const base: NavItem[] = [
     { href: homeForRole(role), labelKey: "dashboard" },
     { href: "/content", labelKey: "myContent" },
@@ -61,9 +67,14 @@ export function navItemsForRole(role: Role): NavItem[] {
   }
 
   // student
-  return [
+  const studentItems: NavItem[] = [
     ...base,
     { href: "/student/spaces", labelKey: "mySpaces" },
-    { href: "/tools", labelKey: "tools" },
   ];
+
+  if (opts?.studentAccessMode !== "space_only") {
+    studentItems.push({ href: "/tools", labelKey: "tools" });
+  }
+
+  return studentItems;
 }

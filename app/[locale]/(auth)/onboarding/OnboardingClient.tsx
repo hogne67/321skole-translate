@@ -32,9 +32,14 @@ function toErrorString(err: unknown): string {
 }
 
 type Role = "student" | "teacher" | "parent";
+type StudentAccessMode = "space_only" | "self_study";
 
 function isRole(x: unknown): x is Role {
   return x === "student" || x === "teacher" || x === "parent";
+}
+
+function isStudentAccessMode(x: unknown): x is StudentAccessMode {
+  return x === "space_only" || x === "self_study";
 }
 
 type InstitutionType =
@@ -131,6 +136,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
   const [role, setRole] = useState<Role | "">("");
   const [roleTouched, setRoleTouched] = useState(false);
+  const [studentAccessMode, setStudentAccessMode] = useState<StudentAccessMode | "">("");
+  const [studentAccessTouched, setStudentAccessTouched] = useState(false);
 
   const [displayName, setDisplayName] = useState("");
   const [country, setCountry] = useState("NO");
@@ -177,7 +184,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
   const countryOk = !!country.trim();
   const municipalityOk = !!municipality.trim();
   const roleOk = !!role;
-  const canSubmit = roleOk && nameOk && countryOk && municipalityOk;
+  const studentAccessOk = role !== "student" || !!studentAccessMode;
+  const canSubmit = roleOk && studentAccessOk && nameOk && countryOk && municipalityOk;
   const showRoleHint = roleTouched && !roleOk;
 
   function totalStepsForRole(currentRole: Role | "") {
@@ -222,6 +230,11 @@ export default function OnboardingClient({ nextUrl }: Props) {
           setRole(r);
           setRoleTouched(!!r);
 
+          const pStudentAccessMode = p.studentAccessMode;
+          const accessMode = isStudentAccessMode(pStudentAccessMode) ? pStudentAccessMode : "";
+          setStudentAccessMode(accessMode);
+          setStudentAccessTouched(!!accessMode);
+
           const org = (p.org ?? {}) as Record<string, unknown>;
           const orgCountry = typeof org.country === "string" ? org.country : "NO";
           const orgMunicipality = typeof org.municipality === "string" ? org.municipality : "";
@@ -247,6 +260,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
           setDisplayName(authName);
           setRole("");
           setRoleTouched(false);
+          setStudentAccessMode("");
+          setStudentAccessTouched(false);
           setCountry("NO");
           setMunicipality("");
           setInstitutionType("");
@@ -276,6 +291,17 @@ export default function OnboardingClient({ nextUrl }: Props) {
     }
 
     if (currentStep === 2) {
+      if (role === "student" && !studentAccessMode) {
+        setStudentAccessTouched(true);
+        setErr(
+          safeT(
+            "errors.missingStudentAccess",
+            "Choose whether you have a teacher code or want to study on your own."
+          )
+        );
+        return false;
+      }
+
       if (!displayName.trim()) {
         setErr(safeT("errors.missingName", "Enter your full name."));
         return false;
@@ -330,6 +356,8 @@ export default function OnboardingClient({ nextUrl }: Props) {
   function chooseRole(nextRole: Role) {
     setRoleTouched(true);
     setRole(nextRole);
+    setStudentAccessMode("");
+    setStudentAccessTouched(false);
     setErr(null);
     setStep(2);
   }
@@ -342,6 +370,18 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
     if (!role) {
       setErr(safeT("errors.missingRole", "Choose a role (Learner / student, Teacher or Parent / guardian)."));
+      return;
+    }
+
+    if (role === "student" && !studentAccessMode) {
+      setStep(2);
+      setStudentAccessTouched(true);
+      setErr(
+        safeT(
+          "errors.missingStudentAccess",
+          "Choose whether you have a teacher code or want to study on your own."
+        )
+      );
       return;
     }
 
@@ -380,6 +420,7 @@ export default function OnboardingClient({ nextUrl }: Props) {
         displayName: name,
         locale,
         role,
+        studentAccessMode: role === "student" ? studentAccessMode : undefined,
         org: stripUndefined({
           country: c,
           municipality: m,
@@ -503,6 +544,12 @@ export default function OnboardingClient({ nextUrl }: Props) {
     gap: 12,
   };
 
+  const studentAccessGrid: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 12,
+  };
+
   const roleCard = (active: boolean): React.CSSProperties => ({
     border: active ? "2px solid #2563eb" : "1px solid rgba(15,23,42,0.10)",
     borderRadius: 18,
@@ -521,6 +568,11 @@ export default function OnboardingClient({ nextUrl }: Props) {
     minHeight: 142,
     position: "relative",
     transition: "all 160ms ease",
+  });
+
+  const studentAccessCard = (active: boolean): React.CSSProperties => ({
+    ...roleCard(active),
+    minHeight: 118,
   });
 
   const selectedBadge = (active: boolean): React.CSSProperties => ({
@@ -800,6 +852,79 @@ export default function OnboardingClient({ nextUrl }: Props) {
                 )}
               </p>
 
+              {role === "student" ? (
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div>
+                    <h3 style={{ ...sectionTitle, fontSize: 17 }}>
+                      {safeT("fields.studentAccess.title", "How will you use 321school?")}
+                    </h3>
+                    <p style={{ ...sectionText, marginTop: 4 }}>
+                      {safeT(
+                        "fields.studentAccess.text",
+                        "Choose what fits you now. You can open self study later if you need it."
+                      )}
+                    </p>
+                  </div>
+
+                  <div style={studentAccessGrid}>
+                    <button
+                      type="button"
+                      className="role-card"
+                      aria-pressed={studentAccessMode === "space_only"}
+                      onClick={() => {
+                        setStudentAccessMode("space_only");
+                        setStudentAccessTouched(true);
+                        setErr(null);
+                      }}
+                      style={studentAccessCard(studentAccessMode === "space_only")}
+                    >
+                      <span style={selectedBadge(studentAccessMode === "space_only")}>✓</span>
+                      <div style={roleTitle}>
+                        {safeT("fields.studentAccess.spaceOnlyTitle", "I have a code or link from a teacher")}
+                      </div>
+                      <div style={roleHint}>
+                        {safeT(
+                          "fields.studentAccess.spaceOnlyHint",
+                          "Use Spaces, assignments and content your teacher shares."
+                        )}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="role-card"
+                      aria-pressed={studentAccessMode === "self_study"}
+                      onClick={() => {
+                        setStudentAccessMode("self_study");
+                        setStudentAccessTouched(true);
+                        setErr(null);
+                      }}
+                      style={studentAccessCard(studentAccessMode === "self_study")}
+                    >
+                      <span style={selectedBadge(studentAccessMode === "self_study")}>✓</span>
+                      <div style={roleTitle}>
+                        {safeT("fields.studentAccess.selfStudyTitle", "I want to study on my own")}
+                      </div>
+                      <div style={roleHint}>
+                        {safeT(
+                          "fields.studentAccess.selfStudyHint",
+                          "Open the library, tools and your own practice activities."
+                        )}
+                      </div>
+                    </button>
+                  </div>
+
+                  {studentAccessTouched && !studentAccessMode ? (
+                    <div style={hintBox}>
+                      {safeT(
+                        "errors.missingStudentAccess",
+                        "Choose whether you have a teacher code or want to study on your own."
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
               <label style={labelStyle}>
                 <span style={labelTextStyle}>
                   {safeT("fields.fullName.label", "Full name *")}
@@ -971,6 +1096,10 @@ export default function OnboardingClient({ nextUrl }: Props) {
 
         @media (max-width: 860px) {
           div[style*="repeat(3, minmax(0, 1fr))"] {
+            grid-template-columns: 1fr !important;
+          }
+
+          div[style*="repeat(2, minmax(0, 1fr))"] {
             grid-template-columns: 1fr !important;
           }
         }

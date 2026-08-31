@@ -28,6 +28,14 @@
         "teacherHint": "Læringsplattform for lærere med klasser, grupper og digital tavle.",
         "parentHint": "For foreldre og foresatte som vil støtte læring hjemme. Opprett egne læringsrom og gi tilpassede oppgaver."
       },
+      "studentAccess": {
+        "title": "Hvordan skal du bruke 321skole?",
+        "text": "Velg det som passer nå. Du kan åpne egenstudie senere hvis du trenger det.",
+        "spaceOnlyTitle": "Jeg har fått kode eller lenke fra lærer",
+        "spaceOnlyHint": "Bruk Spaces, oppgaver og innhold læreren deler med deg.",
+        "selfStudyTitle": "Jeg vil studere på egenhånd",
+        "selfStudyHint": "Åpne bibliotek, verktøy og egne øvingsoppgaver."
+      },
       "fullName": {
         "label": "Fullt navn *"
       },
@@ -45,6 +53,7 @@
     },
     "errors": {
       "missingRole": "Velg en rolle (Elev / student, Lærer eller Forelder / foresatt).",
+      "missingStudentAccess": "Velg om du har kode fra lærer eller vil studere på egenhånd.",
       "missingName": "Skriv inn fullt navn.",
       "missingCountry": "Velg et land.",
       "missingMunicipalityNo": "Velg en kommune.",

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { readGuestRole, roleFromPathname, saveGuestRole } from "@/lib/guestRole";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { navItemsForRole } from "@/lib/navItems";
+import { getStudentAccessMode } from "@/lib/studentAccessMode";
 import { useTranslations } from "next-intl";
 
 /* =========================
@@ -69,6 +70,9 @@ export default function LibraryBar() {
   const pathGuestRole = roleFromPathname(pathname);
   const guestRole = pathGuestRole ?? readGuestRole();
   const role: Role = user?.isAnonymous ? guestRole : safeRole(roleStr);
+  const studentAccessMode = getStudentAccessMode(profile, {
+    isAnonymous: !!user?.isAnonymous && role === "student",
+  });
 
   useEffect(() => {
     if (user?.isAnonymous && pathGuestRole) saveGuestRole(pathGuestRole);
@@ -88,7 +92,7 @@ export default function LibraryBar() {
 
   // dashboard link from nav items (avoid fallback "/")
   const dashboardFromNav =
-    navItemsForRole(role).find((x) => x.labelKey === "nav.dashboard")?.href ?? null;
+    navItemsForRole(role, { studentAccessMode }).find((x) => x.labelKey === "dashboard")?.href ?? null;
 
   // fallback
   const dashboardFallback =

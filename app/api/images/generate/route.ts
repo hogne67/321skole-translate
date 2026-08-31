@@ -168,7 +168,10 @@ export async function POST(req: NextRequest) {
       schoolStatus: typeof userData?.schoolStatus === "string" ? userData.schoolStatus : null,
     });
 
-    const imageLimit = getBucketLimit(role, plan, "image_generation");
+    const imageLimit = getBucketLimit(role, plan, "image_generation", {
+      studentAccessMode:
+        typeof userData?.studentAccessMode === "string" ? userData.studentAccessMode : null,
+    });
     if (imageLimit <= 0) {
       return NextResponse.json(
         { error: "Image generation is not available on your current plan." },

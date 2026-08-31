@@ -25,6 +25,7 @@ type RequestUserContext = {
   uid: string;
   role: AppRole | string;
   plan: PlanKey | string;
+  studentAccessMode?: string | null;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -178,7 +179,13 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
     schoolStatus: typeof data?.schoolStatus === "string" ? data.schoolStatus : null,
   });
 
-  return { uid, role, plan };
+  return {
+    uid,
+    role,
+    plan,
+    studentAccessMode:
+      typeof data?.studentAccessMode === "string" ? data.studentAccessMode : null,
+  };
 }
 
 function quotaErrorResponse(status: Awaited<ReturnType<typeof getFeatureStatusAdmin>>) {
@@ -290,6 +297,7 @@ export async function POST(req: Request) {
       uid: user.uid,
       role: user.role,
       plan: user.plan,
+      studentAccessMode: user.studentAccessMode,
       feature: "producer_create_quiz",
     });
 
@@ -427,6 +435,7 @@ export async function POST(req: Request) {
       uid: user.uid,
       role: user.role,
       plan: user.plan,
+      studentAccessMode: user.studentAccessMode,
       feature: "producer_create_quiz",
     });
 

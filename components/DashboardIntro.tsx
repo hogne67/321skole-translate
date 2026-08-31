@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { auth } from "@/lib/firebase";
+import { authedPost } from "@/lib/authedPost";
+import { getStudentAccessMode } from "@/lib/studentAccessMode";
 
 type Props = {
   userIsAnon: boolean;
@@ -39,6 +41,7 @@ type Props = {
 };
 
 type Role = "student" | "teacher" | "parent";
+type RequestedRole = Role | "student_self_study";
 
 function safeRole(role: unknown): Role {
   if (role === "teacher") return "teacher";
@@ -112,12 +115,14 @@ function roleRequestCopy(locale: string) {
       open: "Endre rolle",
       intro: "Send en kort forespørsel, så hjelper vi deg å bytte rolle uten at innhold eller abonnement blir feil.",
       selectLabel: "Jeg vil bytte til",
+      selfStudyRole: "Selvstuderende elev",
       noteLabel: "Kort beskjed",
       notePlaceholder: "Skriv gjerne hvorfor du vil bytte rolle.",
       send: "Send forespørsel",
       sending: "Sender...",
       cancel: "Avbryt",
       success: "Forespørselen er sendt. Vi følger den opp manuelt.",
+      selfStudySuccess: "Egenstudie er åpnet for kontoen din.",
       error: "Kunne ikke sende forespørselen akkurat nå.",
     };
   }
@@ -127,12 +132,14 @@ function roleRequestCopy(locale: string) {
       open: "Alterar perfil",
       intro: "Envie uma solicitação curta, e ajudaremos a mudar o perfil sem afetar conteúdo ou assinatura.",
       selectLabel: "Quero mudar para",
+      selfStudyRole: "Aluno em estudo individual",
       noteLabel: "Mensagem curta",
       notePlaceholder: "Conte brevemente por que deseja mudar de perfil.",
       send: "Enviar solicitação",
       sending: "Enviando...",
       cancel: "Cancelar",
       success: "Solicitação enviada. Vamos acompanhar manualmente.",
+      selfStudySuccess: "O estudo individual foi ativado para sua conta.",
       error: "Não foi possível enviar a solicitação agora.",
     };
   }
@@ -141,12 +148,14 @@ function roleRequestCopy(locale: string) {
     open: "Change role",
     intro: "Send a short request and we will help change your role without breaking content or subscriptions.",
     selectLabel: "I want to change to",
+    selfStudyRole: "Self-study student",
     noteLabel: "Short message",
     notePlaceholder: "Briefly tell us why you want to change role.",
     send: "Send request",
     sending: "Sending...",
     cancel: "Cancel",
     success: "Request sent. We will follow it up manually.",
+    selfStudySuccess: "Self study is now open for your account.",
     error: "Could not send the request right now.",
   };
 }
@@ -155,7 +164,7 @@ export function DashboardIntro(props: Props) {
   const locale = useLocale();
   const { profile } = useUserProfile();
   const [roleRequestOpen, setRoleRequestOpen] = useState(false);
-  const [requestedRole, setRequestedRole] = useState<Role>("teacher");
+  const [requestedRole, setRequestedRole] = useState<RequestedRole>("teacher");
   const [requestNote, setRequestNote] = useState("");
   const [requestStatus, setRequestStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
@@ -166,13 +175,23 @@ export function DashboardIntro(props: Props) {
     : safeRole(readStringField(profile, "role"));
 
   const roleLabel = getRoleLabel(role, props) || props.roleFallback;
+  const studentAccessMode = getStudentAccessMode(profile, {
+    isAnonymous: props.userIsAnon,
+  });
   const copy = useMemo(() => roleRequestCopy(locale), [locale]);
   const roleOptions = useMemo(
-    () =>
-      (["student", "teacher", "parent"] as Role[])
+    () => {
+      const base = (["student", "teacher", "parent"] as Role[])
         .filter((option) => option !== role)
-        .map((value) => ({ value, label: getRoleLabel(value, props) || value })),
-    [props, role]
+        .map((value) => ({ value: value as RequestedRole, label: getRoleLabel(value, props) || value }));
+
+      if (role === "student" && studentAccessMode !== "self_study") {
+        return [{ value: "student_self_study" as const, label: copy.selfStudyRole }, ...base];
+      }
+
+      return base;
+    },
+    [copy.selfStudyRole, props, role, studentAccessMode]
   );
 
   const helloText =
@@ -201,6 +220,16 @@ export function DashboardIntro(props: Props) {
     setRequestStatus("sending");
 
     try {
+      if (requestedRole === "student_self_study") {
+        await authedPost("/api/student/access-mode", {
+          studentAccessMode: "self_study",
+        });
+        setRequestStatus("sent");
+        setRequestNote("");
+        window.location.reload();
+        return;
+      }
+
       const token = await user.getIdToken();
       const targetLabel = getRoleLabel(requestedRole, props) || requestedRole;
       const currentLabel = roleLabel || role;
@@ -279,7 +308,11 @@ export function DashboardIntro(props: Props) {
                   const firstOtherRole = (["student", "teacher", "parent"] as Role[]).find(
                     (option) => option !== role
                   );
-                  if (firstOtherRole) setRequestedRole(firstOtherRole);
+                  if (role === "student" && studentAccessMode !== "self_study") {
+                    setRequestedRole("student_self_study");
+                  } else if (firstOtherRole) {
+                    setRequestedRole(firstOtherRole);
+                  }
                 }}
                 style={{
                   border: "1px solid rgba(37,99,235,0.22)",
@@ -337,7 +370,7 @@ export function DashboardIntro(props: Props) {
               {copy.selectLabel}
               <select
                 value={requestedRole}
-                onChange={(event) => setRequestedRole(event.target.value as Role)}
+                onChange={(event) => setRequestedRole(event.target.value as RequestedRole)}
                 style={{
                   minHeight: 38,
                   borderRadius: 10,
@@ -408,7 +441,7 @@ export function DashboardIntro(props: Props) {
 
           {requestStatus === "sent" ? (
             <p style={{ margin: 0, color: "#0f766e", fontSize: 13, fontWeight: 800 }}>
-              {copy.success}
+              {requestedRole === "student_self_study" ? copy.selfStudySuccess : copy.success}
             </p>
           ) : null}
 

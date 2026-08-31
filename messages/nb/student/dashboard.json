@@ -25,7 +25,8 @@
       "actions": {
         "seePlans": "Se abonnement",
         "registerLogin": "Registrer / logg inn",
-        "openLibrary": "Åpne bibliotek"
+        "openLibrary": "Åpne bibliotek",
+        "completeProfile": "Fullfør profil"
       }
     },
     "usage": {
@@ -50,6 +51,7 @@
     "quickLinks": {
       "title": "Hurtiglenker",
       "library": "Åpne bibliotek",
+      "joinSpace": "Bli med i klasserom",
       "myContent": "Mitt innhold"
     },
     "anonymousCreate": {
@@ -113,9 +115,10 @@
       "approved": "Ferdig",
       "spacesLabel": "Klasserom",
       "noClassTitle": "Du er ikke koblet til et klasserom ennå",
-      "noClassText": "Du kan fortsatt jobbe på egen hånd, bruke biblioteket og lagre ditt eget innhold.",
+      "noClassText": "Har du fått kode eller lenke fra lærer? Bli med i et klasserom for å se oppgavene dine her.",
       "actions": {
         "openSpaces": "Åpne klasserom",
+        "joinSpace": "Bli med i klasserom",
         "library": "Bibliotek",
         "myContent": "Mitt innhold"
       }

@@ -101,7 +101,7 @@ async function resolveRoleAndPlan(params: {
     firestore: FirebaseFirestore.Firestore;
     uid: string;
     decoded: Record<string, unknown>;
-}): Promise<{ role: AppRole; plan: PlanKey }> {
+}): Promise<{ role: AppRole; plan: PlanKey; studentAccessMode: string }> {
     const { firestore, uid, decoded } = params;
 
     let role: AppRole = "anonymous";
@@ -112,6 +112,7 @@ async function resolveRoleAndPlan(params: {
     let schoolId = readString(decoded.schoolId);
     let schoolRole = readString(decoded.schoolRole);
     let schoolStatus = readString(decoded.schoolStatus);
+    let studentAccessMode = readString(decoded.studentAccessMode);
 
     if (isAppRole(decoded.role)) {
         role = decoded.role;
@@ -151,6 +152,7 @@ async function resolveRoleAndPlan(params: {
         schoolId = readString(userData.schoolId);
         schoolRole = readString(userData.schoolRole);
         schoolStatus = readString(userData.schoolStatus);
+        studentAccessMode = readString(userData.studentAccessMode);
     }
 
     const plan = getEffectivePlan({
@@ -163,7 +165,7 @@ async function resolveRoleAndPlan(params: {
         schoolStatus,
     });
 
-    return { role, plan };
+    return { role, plan, studentAccessMode };
 }
 
 export async function POST(req: Request) {
@@ -193,12 +195,12 @@ export async function POST(req: Request) {
         const bucket = getQuotaBucket(feature);
         const amount = costForFeature(feature);
         const monthId = getMonthId();
-        const { role, plan } = await resolveRoleAndPlan({
+        const { role, plan, studentAccessMode } = await resolveRoleAndPlan({
             firestore,
             uid,
             decoded: decodedRecord,
         });
-        const limit = getBucketLimit(role, plan, bucket as QuotaBucket);
+        const limit = getBucketLimit(role, plan, bucket as QuotaBucket, { studentAccessMode });
 
         const contentId = readString(body.contentId);
         const contentType = readString(body.contentType, "unknown");

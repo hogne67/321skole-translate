@@ -9,6 +9,7 @@ export type AppRole =
   | "anonymous";
 
 export type PlanKey = "free" | "basic" | "plus" | "pro";
+export type StudentAccessMode = "space_only" | "self_study";
 
 export type BillingStatus =
   | "inactive"
@@ -33,6 +34,10 @@ export type SchoolAccessSnapshot = {
   schoolId?: string | null;
   schoolRole?: string | null;
   schoolStatus?: string | null;
+};
+
+export type StudentAccessSnapshot = {
+  studentAccessMode?: string | null;
 };
 
 export type FeatureKey =
@@ -83,6 +88,12 @@ function normalizePlan(plan?: string | null): PlanKey {
   if (plan === "plus") return "plus";
   if (plan === "pro") return "pro";
   return "free";
+}
+
+function normalizeStudentAccessMode(mode?: string | null): StudentAccessMode | null {
+  if (mode === "space_only") return "space_only";
+  if (mode === "self_study") return "self_study";
+  return null;
 }
 
 function normalizeBillingStatus(status?: string | null): BillingStatus {
@@ -210,10 +221,12 @@ export function getQuotaBucket(feature: FeatureKey): QuotaBucket {
 export function getBucketLimit(
   roleInput: AppRole | string,
   planInput: PlanKey | string,
-  bucket: QuotaBucket
+  bucket: QuotaBucket,
+  opts?: StudentAccessSnapshot
 ): number {
   const role = normalizeRole(roleInput);
   const plan = normalizePlan(planInput);
+  const studentAccessMode = normalizeStudentAccessMode(opts?.studentAccessMode);
 
   if (role === "admin") return UNLIMITED;
 
@@ -224,6 +237,8 @@ export function getBucketLimit(
   }
 
   if (bucket === "premium_generators") {
+    if (role === "student" && studentAccessMode === "space_only") return 0;
+
     if (role === "teacher" || role === "creator") {
       if (plan === "free") return 3;
       if (plan === "basic") return 30;
@@ -247,6 +262,8 @@ export function getBucketLimit(
   }
 
   if (bucket === "image_generation") {
+    if (role === "student" && studentAccessMode === "space_only") return 0;
+
     if (role === "teacher" || role === "creator") {
       if (plan === "free") return 2;
       if (plan === "basic") return 30;
@@ -263,6 +280,8 @@ export function getBucketLimit(
   }
 
   if (bucket === "ai_feedback") {
+    if (role === "student" && studentAccessMode === "space_only") return 0;
+
     if (role === "teacher" || role === "creator") {
       if (plan === "free") return 3;
       if (plan === "basic") return 100;
@@ -340,7 +359,7 @@ export function getBucketLimitFromProfile(input: {
   schoolRole?: string | null;
   schoolStatus?: string | null;
   bucket: QuotaBucket;
-}): number {
+} & StudentAccessSnapshot): number {
   const role = normalizeRole(input.role ?? undefined);
   const plan = getEffectivePlan({
     plan: input.plan,
@@ -352,7 +371,9 @@ export function getBucketLimitFromProfile(input: {
     schoolStatus: input.schoolStatus,
   });
 
-  return getBucketLimit(role, plan, input.bucket);
+  return getBucketLimit(role, plan, input.bucket, {
+    studentAccessMode: input.studentAccessMode,
+  });
 }
 
 /**
@@ -361,7 +382,8 @@ export function getBucketLimitFromProfile(input: {
 export function getFeatureLimit(
   roleInput: AppRole | string,
   planInput: PlanKey | string,
-  feature: FeatureKey
+  feature: FeatureKey,
+  opts?: StudentAccessSnapshot
 ): number {
   const role = normalizeRole(roleInput);
 
@@ -375,7 +397,7 @@ export function getFeatureLimit(
   }
 
   const bucket = getQuotaBucket(feature);
-  return getBucketLimit(role, planInput, bucket);
+  return getBucketLimit(role, planInput, bucket, opts);
 }
 
 /**
@@ -391,7 +413,7 @@ export function getFeatureLimitFromProfile(input: {
   schoolRole?: string | null;
   schoolStatus?: string | null;
   feature: FeatureKey;
-}): number {
+} & StudentAccessSnapshot): number {
   const role = normalizeRole(input.role ?? undefined);
 
   if (
@@ -414,7 +436,9 @@ export function getFeatureLimitFromProfile(input: {
   });
 
   const bucket = getQuotaBucket(input.feature);
-  return getBucketLimit(role, effectivePlan, bucket);
+  return getBucketLimit(role, effectivePlan, bucket, {
+    studentAccessMode: input.studentAccessMode,
+  });
 }
 
 export function canAccessFeature(
@@ -442,10 +466,11 @@ export function canAccessFeatureFromProfile(input: {
 export function getFeatureDecision(
   roleInput: AppRole | string,
   planInput: PlanKey | string,
-  feature: FeatureKey
+  feature: FeatureKey,
+  opts?: StudentAccessSnapshot
 ): FeatureDecision {
   const role = normalizeRole(roleInput);
-  const limit = getFeatureLimit(role, planInput, feature);
+  const limit = getFeatureLimit(role, planInput, feature, opts);
 
   if (limit > 0) {
     return {
@@ -484,7 +509,7 @@ export function getFeatureDecisionFromProfile(input: {
   schoolRole?: string | null;
   schoolStatus?: string | null;
   feature: FeatureKey;
-}): FeatureDecision {
+} & StudentAccessSnapshot): FeatureDecision {
   const role = normalizeRole(input.role ?? undefined);
   const limit = getFeatureLimitFromProfile(input);
 

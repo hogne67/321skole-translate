@@ -2,6 +2,8 @@
 "use client";
 
 import Link from "next/link";
+import StudentSelfStudyPrompt from "@/components/StudentSelfStudyPrompt";
+import { isSpaceOnlyStudent } from "@/lib/studentAccessMode";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -44,8 +46,12 @@ function badgeClass(badge?: ToolBadge) {
 export default function ToolsPage() {
   const locale = useLocale();
   const t = useTranslations("toolsIndex");
-  const { user } = useUserProfile();
+  const { user, profile, loading } = useUserProfile();
   const isGuestPreview = Boolean(user?.isAnonymous);
+  const role = profile?.role === "student" || isGuestPreview ? "student" : profile?.role;
+  const spaceOnlyStudent = role === "student" && isSpaceOnlyStudent(profile, {
+    isAnonymous: isGuestPreview,
+  });
   const visiblePremiumTools =
     locale === "nb"
       ? [...premiumTools, { id: "plannerGenerator", href: "/teacher/planner", badge: "PREMIUM" as const }]
@@ -56,6 +62,12 @@ export default function ToolsPage() {
     if (!isGuestPreview) return localizedHref;
     return `/${locale}/login?next=${encodeURIComponent(localizedHref)}`;
   }
+
+  if (spaceOnlyStudent) {
+    return <StudentSelfStudyPrompt isAnonymous={isGuestPreview} nextHref={`/${locale}/tools`} />;
+  }
+
+  if (loading) return null;
 
   return (
     <main className="mx-auto w-full max-w-5xl min-w-0 px-3 py-6 sm:px-4 sm:py-8">

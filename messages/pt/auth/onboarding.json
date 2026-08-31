@@ -28,6 +28,14 @@
         "teacherHint": "Plataforma de aprendizagem para professores com turmas, salas e quadro digital.",
         "parentHint": "Para pais e responsáveis que querem apoiar a aprendizagem em casa. Crie espaços de estudo e ofereça atividades adaptadas."
       },
+      "studentAccess": {
+        "title": "Como você vai usar o 321school?",
+        "text": "Escolha o que combina com você agora. Você pode ativar o estudo individual depois, se precisar.",
+        "spaceOnlyTitle": "Tenho um código ou link de um professor",
+        "spaceOnlyHint": "Use Spaces, tarefas e conteúdo compartilhado pelo professor.",
+        "selfStudyTitle": "Quero estudar por conta própria",
+        "selfStudyHint": "Abra a biblioteca, ferramentas e atividades de prática próprias."
+      },
       "fullName": {
         "label": "Nome completo *"
       },
@@ -45,6 +53,7 @@
     },
     "errors": {
       "missingRole": "Escolha um perfil (Aluno / estudante, Professor ou Pais / responsável).",
+      "missingStudentAccess": "Escolha se você tem um código de professor ou quer estudar por conta própria.",
       "missingName": "Digite seu nome completo.",
       "missingCountry": "Escolha um país.",
       "missingMunicipalityNo": "Escolha um município.",

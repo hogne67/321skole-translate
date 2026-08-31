@@ -7,6 +7,9 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import type { User } from "firebase/auth";
+import StudentSelfStudyPrompt from "@/components/StudentSelfStudyPrompt";
+import { isSpaceOnlyStudent } from "@/lib/studentAccessMode";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { useTranslations } from "next-intl";
 
 type LessonRow = {
@@ -41,6 +44,7 @@ function getErrorMessage(e: unknown): string {
 
 export default function StudentBrowsePage() {
   const t = useTranslations("studentBrowse");
+  const { user, profile, loading: profileLoading } = useUserProfile();
 
   const [loading, setLoading] = useState(true);
   const [lessons, setLessons] = useState<LessonRow[]>([]);
@@ -122,6 +126,12 @@ export default function StudentBrowsePage() {
     if (!hideOpened) return lessons;
     return lessons.filter((l) => !openedIds.has(l.id));
   }, [lessons, hideOpened, openedIds]);
+
+  if (isSpaceOnlyStudent(profile, { isAnonymous: !!user?.isAnonymous })) {
+    return <StudentSelfStudyPrompt isAnonymous={!!user?.isAnonymous} />;
+  }
+
+  if (profileLoading) return null;
 
   return (
     <main style={{ maxWidth: 900, margin: "10px auto", padding: 10 }}>

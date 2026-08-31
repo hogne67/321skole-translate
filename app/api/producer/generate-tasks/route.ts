@@ -59,6 +59,7 @@ type RequestUserContext = {
   uid: string;
   role: AppRole | string;
   plan: PlanKey | string;
+  studentAccessMode?: string | null;
 };
 
 function getErrorMessage(err: unknown): string {
@@ -112,7 +113,13 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
     schoolStatus: typeof data?.schoolStatus === "string" ? data.schoolStatus : null,
   });
 
-  return { uid, role, plan };
+  return {
+    uid,
+    role,
+    plan,
+    studentAccessMode:
+      typeof data?.studentAccessMode === "string" ? data.studentAccessMode : null,
+  };
 }
 
 function mapStatusToResponse(
@@ -416,6 +423,7 @@ export async function POST(req: Request) {
       uid: user.uid,
       role: user.role,
       plan: user.plan,
+      studentAccessMode: user.studentAccessMode,
       feature: "producer_create_lesson",
     });
 
@@ -626,6 +634,7 @@ Counts:
       uid: user.uid,
       role: user.role,
       plan: user.plan,
+      studentAccessMode: user.studentAccessMode,
       feature: "producer_create_lesson",
     });
 

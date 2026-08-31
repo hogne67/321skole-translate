@@ -79,6 +79,7 @@ type RequestUserContext = {
   uid: string;
   role: AppRole | string;
   plan: PlanKey | string;
+  studentAccessMode?: string | null;
 };
 
 const REQUIRED_TASK_TYPES: ReadingTestTaskType[] = ["mcq", "true_false", "best_summary"];
@@ -569,7 +570,13 @@ async function getRequestUserContext(req: Request): Promise<RequestUserContext |
     schoolStatus: typeof data?.schoolStatus === "string" ? data.schoolStatus : null,
   });
 
-  return { uid, role, plan };
+  return {
+    uid,
+    role,
+    plan,
+    studentAccessMode:
+      typeof data?.studentAccessMode === "string" ? data.studentAccessMode : null,
+  };
 }
 
 function mapStatusToResponse(
@@ -626,6 +633,7 @@ export async function POST(req: Request) {
       uid: user.uid,
       role: user.role,
       plan: user.plan,
+      studentAccessMode: user.studentAccessMode,
       feature: "producer_create_reading_test",
     });
 
@@ -800,6 +808,7 @@ Do not shorten the text below ${min} words.
       uid: user.uid,
       role: user.role,
       plan: user.plan,
+      studentAccessMode: user.studentAccessMode,
       feature: "producer_create_reading_test",
     });
 
