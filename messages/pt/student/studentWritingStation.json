@@ -103,17 +103,52 @@
       "preview": "Prévia",
       "empty": "Escreva a introdução, o desenvolvimento e a conclusão primeiro."
     },
-    "draftPreview": {
-      "title": "Rascunho completo",
-      "drafting": "Aqui você vê o texto completo montado a partir das partes que está escrevendo.",
-      "revision": "Leia o rascunho completo antes de revisar e melhorar o texto.",
-      "empty": "Escreva primeiro na sala de escrita, então o rascunho completo aparecerá aqui."
-    },
     "sources": {
       "title": "Fontes e verificação",
       "list": "Fontes",
       "check": "O que precisa ser verificado?",
       "empty": "Adicione fontes na sala de planejamento e verifique se imagens e fatos podem ser usados com segurança."
+    },
+    "sourcesBuilder": {
+      "addTitle": "Adicionar uma fonte",
+      "add": "Adicionar fonte",
+      "registered": "Fontes registradas",
+      "count": "{count} fontes",
+      "empty": "Nenhuma fonte adicionada ainda.",
+      "remove": "Remover",
+      "types": {
+        "website": "Site",
+        "book": "Livro",
+        "article": "Artigo",
+        "image": "Imagem",
+        "other": "Outro"
+      },
+      "fields": {
+        "title": "Título ou nome",
+        "url": "Link",
+        "site": "Site",
+        "author": "Autor",
+        "publisher": "Editora",
+        "year": "Ano",
+        "note": "Nota",
+        "check": "Verificação da fonte"
+      },
+      "placeholders": {
+        "website": { "title": "Por exemplo: Rei Harald V" },
+        "book": { "title": "Escreva o título do livro" },
+        "article": { "title": "Escreva o título do artigo" },
+        "image": { "title": "Escreva o nome da imagem ou o que ela mostra" },
+        "other": { "title": "Escreva que tipo de fonte é" },
+        "site": "Por exemplo: Store norske leksikon",
+        "author": "Escreva o nome se souber",
+        "publisher": "Editora, jornal ou organização",
+        "year": "Por exemplo: 2024",
+        "note": "Para que você usou esta fonte?",
+        "check": "Por que as fontes são adequadas? Com o que você deve ter cuidado?"
+      },
+      "errors": {
+        "empty": "Escreva primeiro algumas informações sobre a fonte."
+      }
     },
     "printProduct": {
       "title": "Visualização final e impressão",

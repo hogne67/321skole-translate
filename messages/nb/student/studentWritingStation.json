@@ -103,17 +103,52 @@
       "preview": "Forhåndsvisning",
       "empty": "Skriv innledning, hoveddel og avslutning først."
     },
-    "draftPreview": {
-      "title": "Samlet utkast",
-      "drafting": "Her ser du hele teksten satt sammen av delene du skriver.",
-      "revision": "Les hele utkastet før du kontrollerer og forbedrer teksten.",
-      "empty": "Skriv i skriverommet først, så vises hele utkastet her."
-    },
     "sources": {
       "title": "Kilder og kildekritikk",
       "list": "Kilder",
       "check": "Hva må sjekkes?",
       "empty": "Legg inn kilder i planleggingsrommet, og sjekk at bilde og fakta kan brukes trygt."
+    },
+    "sourcesBuilder": {
+      "addTitle": "Legg inn en kilde",
+      "add": "Legg til kilde",
+      "registered": "Registrerte kilder",
+      "count": "{count} kilder",
+      "empty": "Ingen kilder lagt til ennå.",
+      "remove": "Fjern",
+      "types": {
+        "website": "Nettside",
+        "book": "Bok",
+        "article": "Artikkel",
+        "image": "Bilde",
+        "other": "Annet"
+      },
+      "fields": {
+        "title": "Tittel eller navn",
+        "url": "Nettlenke",
+        "site": "Nettside",
+        "author": "Forfatter",
+        "publisher": "Utgiver",
+        "year": "År",
+        "note": "Notat",
+        "check": "Kildekritikk"
+      },
+      "placeholders": {
+        "website": { "title": "For eksempel: Kong Harald V" },
+        "book": { "title": "Skriv boktittel" },
+        "article": { "title": "Skriv artikkeltittel" },
+        "image": { "title": "Skriv hva bildet heter eller viser" },
+        "other": { "title": "Skriv hva kilden er" },
+        "site": "For eksempel: Store norske leksikon",
+        "author": "Skriv navn hvis du vet det",
+        "publisher": "Forlag, avis eller organisasjon",
+        "year": "For eksempel: 2024",
+        "note": "Hva brukte du kilden til?",
+        "check": "Hvorfor passer kildene? Hva må du være litt forsiktig med?"
+      },
+      "errors": {
+        "empty": "Skriv inn litt informasjon om kilden først."
+      }
     },
     "printProduct": {
       "title": "Ferdig visning og utskrift",

@@ -103,17 +103,52 @@
       "preview": "Preview",
       "empty": "Write the introduction, main part and ending first."
     },
-    "draftPreview": {
-      "title": "Complete draft",
-      "drafting": "Here you see the full text assembled from the parts you are writing.",
-      "revision": "Read the full draft before checking and improving the text.",
-      "empty": "Write in the writing room first, then the full draft appears here."
-    },
     "sources": {
       "title": "Sources and source check",
       "list": "Sources",
       "check": "What must be checked?",
       "empty": "Add sources in the planning room, and check that images and facts can be used safely."
+    },
+    "sourcesBuilder": {
+      "addTitle": "Add a source",
+      "add": "Add source",
+      "registered": "Registered sources",
+      "count": "{count} sources",
+      "empty": "No sources added yet.",
+      "remove": "Remove",
+      "types": {
+        "website": "Website",
+        "book": "Book",
+        "article": "Article",
+        "image": "Image",
+        "other": "Other"
+      },
+      "fields": {
+        "title": "Title or name",
+        "url": "Link",
+        "site": "Website",
+        "author": "Author",
+        "publisher": "Publisher",
+        "year": "Year",
+        "note": "Note",
+        "check": "Source check"
+      },
+      "placeholders": {
+        "website": { "title": "For example: King Harald V" },
+        "book": { "title": "Write the book title" },
+        "article": { "title": "Write the article title" },
+        "image": { "title": "Write what the image is called or shows" },
+        "other": { "title": "Write what the source is" },
+        "site": "For example: Store norske leksikon",
+        "author": "Write the name if you know it",
+        "publisher": "Publisher, newspaper or organization",
+        "year": "For example: 2024",
+        "note": "What did you use this source for?",
+        "check": "Why do the sources fit? What should you be a little careful about?"
+      },
+      "errors": {
+        "empty": "Write a little information about the source first."
+      }
     },
     "printProduct": {
       "title": "Finished view and print",

@@ -173,6 +173,53 @@ function selfAssessmentSection(existingPolicy?: WritingSectionTemplate["aiPolicy
   };
 }
 
+function factualSourcesSection(existing?: WritingSectionTemplate, existingPolicy?: WritingSectionTemplate["aiPolicy"]): WritingSectionTemplate {
+  return {
+    id: "sources",
+    title: existing?.title ?? "Kilder",
+    prompt: "Gjør kildene klare til den ferdige teksten.",
+    supportWords: ["nettlenke", "side", "bok", "forfatter", "tittel", "jeg brukte", "jeg sjekket"],
+    fields: [
+      {
+        id: "source_web_url",
+        label: "Nettlenke",
+        kind: "short_text",
+        placeholder: "Lim inn lenke til nettsiden.",
+      },
+      {
+        id: "source_web_title",
+        label: "Navn på nettside eller artikkel",
+        kind: "short_text",
+        placeholder: "For eksempel: Store norske leksikon - Kong Harald V",
+      },
+      {
+        id: "source_book_title",
+        label: "Tittel på bok",
+        kind: "short_text",
+      },
+      {
+        id: "source_author",
+        label: "Forfatter",
+        kind: "short_text",
+      },
+      {
+        id: "sources_list",
+        label: "Andre kilder eller notater",
+        kind: "long_text",
+        placeholder: "Skriv andre kilder, bilder eller hvor fakta er hentet fra.",
+      },
+      {
+        id: "sources_check",
+        label: "Kildekritikk",
+        kind: "long_text",
+        placeholder: "Hvorfor passer kildene? Hva må du være litt forsiktig med?",
+      },
+    ],
+    gate: { requiredSectionIds: ["ending"] },
+    aiPolicy: existing?.aiPolicy ?? existingPolicy,
+  };
+}
+
 function finalRoom() {
   return {
     id: "final",
@@ -205,6 +252,7 @@ export function upgradeWritingActivityForRuntime(activity: WritingActivity): Wri
   const draftingRoom = rooms.find((room) => room.phase === "drafting");
   const planningRoom = rooms.find((room) => room.phase === "planning");
   const hasFinalRoom = rooms.some((room) => room.phase === "final");
+  const isFactual = activity.genre === "factual";
   if (!revisionRoom && !draftingRoom && !planningRoom) return activity;
 
   const content = revisionRoom?.sections.find((section) => section.id === "content_check");
@@ -212,23 +260,30 @@ export function upgradeWritingActivityForRuntime(activity: WritingActivity): Wri
   const self = revisionRoom?.sections.find((section) => section.id === "self_assessment");
   const otherCharacters = planningRoom?.sections.find((section) => section.id === "other_characters");
   const hasTitle = draftingRoom?.sections.some((section) => section.id === "title");
+  const draftingSources = draftingRoom?.sections.find((section) => section.id === "sources");
+  const hasDraftingSources = draftingSources?.fields.some((field) => field.id === "source_web_url") ?? false;
   const planningUpgraded = otherCharacters?.fields.some((field) => field.id === "other_character_1_name") ?? true;
   const revisionUpgraded =
     content?.fields.some((field) => field.id === "content_found") &&
     language?.fields.some((field) => field.id === "language_sentence") &&
     self?.fields.some((field) => field.id === "self_assessment_ready");
 
-  if (hasTitle && planningUpgraded && revisionUpgraded && hasFinalRoom) return activity;
+  if (hasTitle && (!isFactual || hasDraftingSources) && planningUpgraded && revisionUpgraded && hasFinalRoom) return activity;
 
   return {
     ...activity,
     rooms: rooms.map((room) => {
       if (room.phase === "drafting") {
-        if (room.sections.some((section) => section.id === "title")) return room;
         const policy = room.sections[0]?.aiPolicy;
+        const withTitle = room.sections.some((section) => section.id === "title")
+          ? room.sections
+          : [titleSection(policy), ...room.sections];
+        const withSources = !isFactual || hasDraftingSources
+          ? withTitle
+          : [...withTitle, factualSourcesSection(draftingSources, policy)];
         return {
           ...room,
-          sections: [titleSection(policy), ...room.sections],
+          sections: withSources,
         };
       }
 

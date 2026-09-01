@@ -28,6 +28,19 @@ import { upgradeWritingActivityForRuntime } from "@/lib/writingStation";
 
 type AnswersByFieldId = Record<string, string>;
 type SectionDrafts = Record<string, string>;
+type SourceKind = "website" | "book" | "article" | "image" | "other";
+
+type SourceEntry = {
+  id: string;
+  kind: SourceKind;
+  title: string;
+  url?: string;
+  author?: string;
+  site?: string;
+  publisher?: string;
+  year?: string;
+  note?: string;
+};
 
 const EMPTY_ROOMS: WritingRoomTemplate[] = [];
 const OTHER_CHARACTER_MAX = 5;
@@ -40,6 +53,16 @@ const EMPTY_PRINT_PROFILE: WritingPrintProfile = {
   imageUrl: "",
   imagePrompt: "",
   aiImageGenerated: false,
+};
+const EMPTY_SOURCE_DRAFT: Omit<SourceEntry, "id"> = {
+  kind: "website",
+  title: "",
+  url: "",
+  author: "",
+  site: "",
+  publisher: "",
+  year: "",
+  note: "",
 };
 
 type WritingSubmissionDoc = {
@@ -67,6 +90,10 @@ type WritingSubmissionDoc = {
 
 function safeString(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+function isSourceKind(value: unknown): value is SourceKind {
+  return value === "website" || value === "book" || value === "article" || value === "image" || value === "other";
 }
 
 function normalizePrintProfile(value: unknown): WritingPrintProfile {
@@ -167,6 +194,61 @@ function buildFinalText(rooms: WritingRoomTemplate[], answers: AnswersByFieldId,
   return [title, body].filter(Boolean).join("\n\n");
 }
 
+function parseSourceEntries(raw: string): SourceEntry[] {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item): SourceEntry | null => {
+        if (!item || typeof item !== "object") return null;
+        const data = item as Record<string, unknown>;
+        const title = safeString(data.title).trim();
+        const kind = isSourceKind(data.kind) ? data.kind : "other";
+        if (!title && !safeString(data.url).trim() && !safeString(data.note).trim()) return null;
+        return {
+          id: safeString(data.id).trim() || crypto.randomUUID(),
+          kind,
+          title,
+          url: safeString(data.url).trim(),
+          author: safeString(data.author).trim(),
+          site: safeString(data.site).trim(),
+          publisher: safeString(data.publisher).trim(),
+          year: safeString(data.year).trim(),
+          note: safeString(data.note).trim(),
+        };
+      })
+      .filter((item): item is SourceEntry => item != null);
+  } catch {
+    return [];
+  }
+}
+
+function formatSourceEntry(entry: SourceEntry): string {
+  const parts =
+    entry.kind === "website" || entry.kind === "image"
+      ? [entry.title, entry.site, entry.url]
+      : entry.kind === "book"
+        ? [entry.title, entry.author, entry.publisher, entry.year]
+        : entry.kind === "article"
+          ? [entry.title, entry.author, entry.site || entry.publisher, entry.year, entry.url]
+          : [entry.title, entry.author, entry.url];
+  const main = parts.filter(Boolean).join(" - ");
+  return [main, entry.note].filter(Boolean).join("\n  ");
+}
+
+function buildSourceListText(answers: AnswersByFieldId) {
+  const entries = parseSourceEntries(safeString(answers.sources_entries_json));
+  const webUrl = safeString(answers.source_web_url).trim();
+  const webTitle = safeString(answers.source_web_title).trim();
+  const bookTitle = safeString(answers.source_book_title).trim();
+  const author = safeString(answers.source_author).trim();
+  const notes = safeString(answers.sources_list).trim();
+  const webLine = [webTitle, webUrl].filter(Boolean).join(" - ");
+  const bookLine = [bookTitle, author].filter(Boolean).join(" - ");
+
+  return [...entries.map(formatSourceEntry), webLine, bookLine, notes].filter(Boolean).join("\n");
+}
+
 function countWords(text: string): number {
   return text.match(/[\p{L}\p{N}]+(?:[-'][\p{L}\p{N}]+)*/gu)?.length ?? 0;
 }
@@ -227,6 +309,7 @@ async function cropImageToPrintFormat(file: File): Promise<Blob> {
 
 function hasSectionInput(section: WritingSectionTemplate, answers: AnswersByFieldId, sectionDrafts: SectionDrafts) {
   if (safeString(sectionDrafts[section.id]).trim()) return true;
+  if (section.id === "sources" && parseSourceEntries(safeString(answers.sources_entries_json)).length > 0) return true;
   if (section.id === "other_characters") {
     return Boolean(sectionTextForAi(section, answers, sectionDrafts).trim());
   }
@@ -363,6 +446,7 @@ export default function StudentWritingActivityPage() {
   const [printProfile, setPrintProfile] = useState<WritingPrintProfile>(EMPTY_PRINT_PROFILE);
   const [savingPrintProfile, setSavingPrintProfile] = useState(false);
   const [printImageBusy, setPrintImageBusy] = useState<"upload" | "ai" | null>(null);
+  const [sourceDraft, setSourceDraft] = useState<Omit<SourceEntry, "id">>(EMPTY_SOURCE_DRAFT);
 
   useEffect(() => {
     let alive = true;
@@ -439,10 +523,13 @@ export default function StudentWritingActivityPage() {
   const activeRoom = rooms.find((room) => room.id === activeRoomId) ?? rooms[0] ?? null;
   const finalText = useMemo(() => buildFinalText(rooms, answersByFieldId, sectionDrafts), [answersByFieldId, rooms, sectionDrafts]);
   const printableTitle = getDraftTitle(rooms, answersByFieldId, sectionDrafts) || activity?.title || "";
-  const sourceListText = safeString(answersByFieldId.sources_list).trim();
+  const sourceListText = buildSourceListText(answersByFieldId);
   const sourceCheckText = safeString(answersByFieldId.sources_check).trim();
-  const showSourceNotes = activity?.genre === "factual";
   const hasSourceNotes = Boolean(sourceListText || sourceCheckText);
+  const sourceEntries = useMemo(
+    () => parseSourceEntries(safeString(answersByFieldId.sources_entries_json)),
+    [answersByFieldId.sources_entries_json]
+  );
   const draftingSections = useMemo(
     () => rooms.filter((room) => room.phase === "drafting").flatMap((room) => room.sections).filter((section) => section.id !== "title"),
     [rooms]
@@ -459,6 +546,32 @@ export default function StudentWritingActivityPage() {
     if (isDraftField(section)) {
       setSectionDrafts((current) => ({ ...current, [section.id]: value }));
     }
+  }
+
+  function addSourceEntry(section: WritingSectionTemplate) {
+    const nextEntry: SourceEntry = {
+      id: crypto.randomUUID(),
+      kind: sourceDraft.kind,
+      title: safeString(sourceDraft.title).trim(),
+      url: safeString(sourceDraft.url).trim(),
+      author: safeString(sourceDraft.author).trim(),
+      site: safeString(sourceDraft.site).trim(),
+      publisher: safeString(sourceDraft.publisher).trim(),
+      year: safeString(sourceDraft.year).trim(),
+      note: safeString(sourceDraft.note).trim(),
+    };
+    if (!nextEntry.title && !nextEntry.url && !nextEntry.note) {
+      setErr(t("sourcesBuilder.errors.empty"));
+      window.setTimeout(() => setErr(null), 2500);
+      return;
+    }
+
+    updateField(section, "sources_entries_json", JSON.stringify([...sourceEntries, nextEntry]));
+    setSourceDraft({ ...EMPTY_SOURCE_DRAFT, kind: sourceDraft.kind });
+  }
+
+  function removeSourceEntry(section: WritingSectionTemplate, sourceId: string) {
+    updateField(section, "sources_entries_json", JSON.stringify(sourceEntries.filter((entry) => entry.id !== sourceId)));
   }
 
   async function saveDraft(status: "draft" | "planning_submitted" | "submitted" = "draft") {
@@ -563,7 +676,7 @@ export default function StudentWritingActivityPage() {
 
       const fileRef = storageRef(
         storage,
-        `writing-print-images/${user.uid}/${spaceId}/${activityId}/${Date.now()}-${safeStorageName(file.name)}.webp`
+        `covers/${user.uid}/writing-print-${spaceId}/${activityId}/${Date.now()}-${safeStorageName(file.name)}.webp`
       );
       await uploadBytes(fileRef, croppedImage, {
         contentType: "image/webp",
@@ -1025,7 +1138,155 @@ export default function StudentWritingActivityPage() {
                   <p className="mt-1 text-sm text-slate-600">{section.prompt}</p>
 
                   <div className="mt-4 grid gap-3">
-                    {section.id === "other_characters" ? (
+                    {section.id === "sources" && activeRoom.phase === "drafting" && activity.genre === "factual" ? (
+                      <div className="grid gap-4">
+                        <div className="rounded-xl border border-amber-200 bg-white/80 p-3">
+                          <div className="text-sm font-black text-slate-900">{t("sourcesBuilder.addTitle")}</div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {(["website", "book", "article", "image", "other"] as SourceKind[]).map((kind) => (
+                              <button
+                                key={kind}
+                                type="button"
+                                onClick={() => setSourceDraft((current) => ({ ...current, kind }))}
+                                className={[
+                                  "rounded-full border px-3 py-1 text-sm font-semibold",
+                                  sourceDraft.kind === kind
+                                    ? "border-emerald-600 bg-emerald-600 text-white"
+                                    : "border-slate-300 bg-white text-slate-800",
+                                ].join(" ")}
+                              >
+                                {t(`sourcesBuilder.types.${kind}`)}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <label className="block sm:col-span-2">
+                              <span className="text-sm font-semibold text-slate-900">{t("sourcesBuilder.fields.title")}</span>
+                              <input
+                                value={sourceDraft.title}
+                                onChange={(e) => setSourceDraft((current) => ({ ...current, title: e.target.value }))}
+                                placeholder={t(`sourcesBuilder.placeholders.${sourceDraft.kind}.title`)}
+                                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                              />
+                            </label>
+                            {sourceDraft.kind === "website" || sourceDraft.kind === "article" || sourceDraft.kind === "image" ? (
+                              <label className="block">
+                                <span className="text-sm font-semibold text-slate-900">{t("sourcesBuilder.fields.url")}</span>
+                                <input
+                                  value={sourceDraft.url}
+                                  onChange={(e) => setSourceDraft((current) => ({ ...current, url: e.target.value }))}
+                                  placeholder="https://..."
+                                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                                />
+                              </label>
+                            ) : null}
+                            {sourceDraft.kind === "website" || sourceDraft.kind === "article" || sourceDraft.kind === "image" ? (
+                              <label className="block">
+                                <span className="text-sm font-semibold text-slate-900">{t("sourcesBuilder.fields.site")}</span>
+                                <input
+                                  value={sourceDraft.site}
+                                  onChange={(e) => setSourceDraft((current) => ({ ...current, site: e.target.value }))}
+                                  placeholder={t("sourcesBuilder.placeholders.site")}
+                                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                                />
+                              </label>
+                            ) : null}
+                            {sourceDraft.kind === "book" || sourceDraft.kind === "article" || sourceDraft.kind === "other" ? (
+                              <label className="block">
+                                <span className="text-sm font-semibold text-slate-900">{t("sourcesBuilder.fields.author")}</span>
+                                <input
+                                  value={sourceDraft.author}
+                                  onChange={(e) => setSourceDraft((current) => ({ ...current, author: e.target.value }))}
+                                  placeholder={t("sourcesBuilder.placeholders.author")}
+                                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                                />
+                              </label>
+                            ) : null}
+                            {sourceDraft.kind === "book" || sourceDraft.kind === "article" ? (
+                              <label className="block">
+                                <span className="text-sm font-semibold text-slate-900">{t("sourcesBuilder.fields.publisher")}</span>
+                                <input
+                                  value={sourceDraft.publisher}
+                                  onChange={(e) => setSourceDraft((current) => ({ ...current, publisher: e.target.value }))}
+                                  placeholder={t("sourcesBuilder.placeholders.publisher")}
+                                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                                />
+                              </label>
+                            ) : null}
+                            {sourceDraft.kind === "book" || sourceDraft.kind === "article" ? (
+                              <label className="block">
+                                <span className="text-sm font-semibold text-slate-900">{t("sourcesBuilder.fields.year")}</span>
+                                <input
+                                  value={sourceDraft.year}
+                                  onChange={(e) => setSourceDraft((current) => ({ ...current, year: e.target.value }))}
+                                  placeholder={t("sourcesBuilder.placeholders.year")}
+                                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                                />
+                              </label>
+                            ) : null}
+                            <label className="block sm:col-span-2">
+                              <span className="text-sm font-semibold text-slate-900">{t("sourcesBuilder.fields.note")}</span>
+                              <textarea
+                                value={sourceDraft.note}
+                                onChange={(e) => setSourceDraft((current) => ({ ...current, note: e.target.value }))}
+                                placeholder={t("sourcesBuilder.placeholders.note")}
+                                rows={3}
+                                className="mt-1 w-full resize-y rounded-xl border border-slate-300 px-3 py-2 text-sm leading-6 outline-none focus:border-emerald-500"
+                              />
+                            </label>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addSourceEntry(section)}
+                            className="mt-3 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                          >
+                            {t("sourcesBuilder.add")}
+                          </button>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 bg-white p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-sm font-black text-slate-900">{t("sourcesBuilder.registered")}</div>
+                            <span className="rounded-full border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600">
+                              {t("sourcesBuilder.count", { count: sourceEntries.length })}
+                            </span>
+                          </div>
+                          {sourceEntries.length > 0 ? (
+                            <div className="mt-3 grid gap-2">
+                              {sourceEntries.map((entry) => (
+                                <div key={entry.id} className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-start sm:justify-between">
+                                  <div className="min-w-0 text-sm leading-6 text-slate-800">
+                                    <div className="font-black text-slate-950">{entry.title || t(`sourcesBuilder.types.${entry.kind}`)}</div>
+                                    <div className="whitespace-pre-wrap">{formatSourceEntry(entry)}</div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeSourceEntry(section, entry.id)}
+                                    className="w-fit rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-700 hover:border-rose-400"
+                                  >
+                                    {t("sourcesBuilder.remove")}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-3 text-sm text-slate-600">{t("sourcesBuilder.empty")}</p>
+                          )}
+                        </div>
+
+                        <label className="block">
+                          <span className="text-sm font-semibold text-slate-900">{t("sourcesBuilder.fields.check")}</span>
+                          <textarea
+                            value={safeString(answersByFieldId.sources_check)}
+                            onChange={(e) => updateField(section, "sources_check", e.target.value)}
+                            placeholder={t("sourcesBuilder.placeholders.check")}
+                            rows={3}
+                            className="mt-1 w-full resize-y rounded-xl border border-slate-300 px-3 py-2 text-sm leading-6 outline-none focus:border-emerald-500"
+                          />
+                        </label>
+                      </div>
+                    ) : section.id === "other_characters" ? (
                       <div className="grid gap-3">
                         {Array.from({ length: otherCharacterCount(answersByFieldId) }, (_, index) => {
                           const n = index + 1;
@@ -1308,83 +1569,8 @@ export default function StudentWritingActivityPage() {
           );
         })}
 
-        {activeRoom.phase === "drafting" || activeRoom.phase === "revision" ? (
-          <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 className="m-0 text-lg font-semibold text-slate-950">{t("draftPreview.title")}</h3>
-                <p className="mt-1 text-sm text-slate-600">{t(`draftPreview.${activeRoom.phase}`)}</p>
-              </div>
-              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
-                {t("wordStats.total", { count: finalWordTotal })}
-              </span>
-            </div>
-            <div className="mt-3 whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900">
-              {finalText || t("draftPreview.empty")}
-            </div>
-            {showSourceNotes ? (
-              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-                <div className="font-black text-amber-950">{t("sources.title")}</div>
-                {hasSourceNotes ? (
-                  <div className="mt-2 grid gap-2">
-                    {sourceListText ? (
-                      <div>
-                        <div className="text-xs font-black uppercase text-amber-900">{t("sources.list")}</div>
-                        <div className="mt-1 whitespace-pre-wrap">{sourceListText}</div>
-                      </div>
-                    ) : null}
-                    {sourceCheckText ? (
-                      <div>
-                        <div className="text-xs font-black uppercase text-amber-900">{t("sources.check")}</div>
-                        <div className="mt-1 whitespace-pre-wrap">{sourceCheckText}</div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="mt-1">{t("sources.empty")}</div>
-                )}
-              </div>
-            ) : null}
-          </article>
-        ) : null}
-
         {activeRoom.phase === "final" ? (
           <div className="space-y-4">
-            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="m-0 text-lg font-semibold text-slate-950">{t("final.preview")}</h3>
-                <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
-                  {t("wordStats.total", { count: finalWordTotal })}
-                </span>
-              </div>
-              <div className="mt-3 whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900">
-                {finalText || t("final.empty")}
-              </div>
-              {showSourceNotes ? (
-                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-                  <div className="font-black text-amber-950">{t("sources.title")}</div>
-                  {hasSourceNotes ? (
-                    <div className="mt-2 grid gap-2">
-                      {sourceListText ? (
-                        <div>
-                          <div className="text-xs font-black uppercase text-amber-900">{t("sources.list")}</div>
-                          <div className="mt-1 whitespace-pre-wrap">{sourceListText}</div>
-                        </div>
-                      ) : null}
-                      {sourceCheckText ? (
-                        <div>
-                          <div className="text-xs font-black uppercase text-amber-900">{t("sources.check")}</div>
-                          <div className="mt-1 whitespace-pre-wrap">{sourceCheckText}</div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <div className="mt-1">{t("sources.empty")}</div>
-                  )}
-                </div>
-              ) : null}
-            </article>
-
             <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
