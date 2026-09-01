@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -12,7 +12,8 @@ import {
   setDoc,
   type DocumentData,
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
+import { auth, db, storage } from "@/lib/firebase";
 import { ensureAnonymousUser } from "@/lib/anonAuth";
 import { authedPost } from "@/lib/authedPost";
 import type {
@@ -37,6 +38,8 @@ const EMPTY_PRINT_PROFILE: WritingPrintProfile = {
   className: "",
   writtenDate: "",
   imageUrl: "",
+  imagePrompt: "",
+  aiImageGenerated: false,
 };
 
 type WritingSubmissionDoc = {
@@ -75,6 +78,8 @@ function normalizePrintProfile(value: unknown): WritingPrintProfile {
     className: safeString(data.className),
     writtenDate: safeString(data.writtenDate),
     imageUrl: safeString(data.imageUrl),
+    imagePrompt: safeString(data.imagePrompt),
+    aiImageGenerated: data.aiImageGenerated === true,
   };
 }
 
@@ -133,11 +138,26 @@ function isDraftField(section: WritingSectionTemplate) {
   return section.fields.length === 1 && section.fields[0]?.kind === "long_text";
 }
 
+function getDraftTitle(rooms: WritingRoomTemplate[], answers: AnswersByFieldId, sectionDrafts: SectionDrafts) {
+  const draftingRoom = rooms.find((room) => room.phase === "drafting");
+  const titleSection = draftingRoom?.sections.find((section) => section.id === "title");
+  const titleFromSection = titleSection?.fields
+    .map((field) => safeString(answers[field.id]).trim())
+    .find(Boolean);
+
+  return (
+    safeString(answers.story_title).trim() ||
+    safeString(answers.factual_title).trim() ||
+    titleFromSection ||
+    safeString(sectionDrafts.title).trim()
+  );
+}
+
 function buildFinalText(rooms: WritingRoomTemplate[], answers: AnswersByFieldId, sectionDrafts: SectionDrafts) {
   const draftingRoom = rooms.find((room) => room.phase === "drafting");
   if (!draftingRoom) return "";
 
-  const title = safeString(answers.story_title).trim();
+  const title = getDraftTitle(rooms, answers, sectionDrafts);
   const body = draftingRoom.sections
     .filter((section) => section.id !== "title")
     .map((section) => safeString(sectionDrafts[section.id]).trim())
@@ -153,6 +173,56 @@ function countWords(text: string): number {
 
 function sectionWordCount(sectionId: string, sectionDrafts: SectionDrafts): number {
   return countWords(safeString(sectionDrafts[sectionId]));
+}
+
+function safeStorageName(name: string) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\p{L}\p{N}._-]+/gu, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "image";
+}
+
+async function cropImageToPrintFormat(file: File): Promise<Blob> {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Could not read image."));
+      img.src = objectUrl;
+    });
+
+    const targetWidth = 1536;
+    const targetHeight = 864;
+    const targetRatio = targetWidth / targetHeight;
+    const sourceRatio = image.naturalWidth / image.naturalHeight;
+    const sourceWidth = sourceRatio > targetRatio ? image.naturalHeight * targetRatio : image.naturalWidth;
+    const sourceHeight = sourceRatio > targetRatio ? image.naturalHeight : image.naturalWidth / targetRatio;
+    const sourceX = (image.naturalWidth - sourceWidth) / 2;
+    const sourceY = (image.naturalHeight - sourceHeight) / 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not crop image.");
+    ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
+
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Could not crop image."));
+        },
+        "image/webp",
+        0.9
+      );
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 function hasSectionInput(section: WritingSectionTemplate, answers: AnswersByFieldId, sectionDrafts: SectionDrafts) {
@@ -263,9 +333,11 @@ function sectionAnswerSummary(section: WritingSectionTemplate, answers: AnswersB
 
 export default function StudentWritingActivityPage() {
   const t = useTranslations("studentWritingStation");
-  const params = useParams<{ spaceId: string; activityId: string }>();
+  const params = useParams<{ locale: string; spaceId: string; activityId: string }>();
+  const locale = params.locale || "nb";
   const spaceId = params.spaceId;
   const activityId = params.activityId;
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const [uid, setUid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -290,6 +362,7 @@ export default function StudentWritingActivityPage() {
   const [improvementBusySectionId, setImprovementBusySectionId] = useState<string | null>(null);
   const [printProfile, setPrintProfile] = useState<WritingPrintProfile>(EMPTY_PRINT_PROFILE);
   const [savingPrintProfile, setSavingPrintProfile] = useState(false);
+  const [printImageBusy, setPrintImageBusy] = useState<"upload" | "ai" | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -365,7 +438,11 @@ export default function StudentWritingActivityPage() {
   const rooms = activity?.rooms ?? EMPTY_ROOMS;
   const activeRoom = rooms.find((room) => room.id === activeRoomId) ?? rooms[0] ?? null;
   const finalText = useMemo(() => buildFinalText(rooms, answersByFieldId, sectionDrafts), [answersByFieldId, rooms, sectionDrafts]);
-  const printableTitle = safeString(answersByFieldId.story_title).trim() || activity?.title || "";
+  const printableTitle = getDraftTitle(rooms, answersByFieldId, sectionDrafts) || activity?.title || "";
+  const sourceListText = safeString(answersByFieldId.sources_list).trim();
+  const sourceCheckText = safeString(answersByFieldId.sources_check).trim();
+  const showSourceNotes = activity?.genre === "factual";
+  const hasSourceNotes = Boolean(sourceListText || sourceCheckText);
   const draftingSections = useMemo(
     () => rooms.filter((room) => room.phase === "drafting").flatMap((room) => room.sections).filter((section) => section.id !== "title"),
     [rooms]
@@ -427,7 +504,7 @@ export default function StudentWritingActivityPage() {
     }
   }
 
-  async function savePrintProfile() {
+  async function savePrintProfileData(nextPrintProfile: WritingPrintProfile, successMessage = t("messages.printSaved")) {
     if (!uid || !activity) return;
 
     setSavingPrintProfile(true);
@@ -446,19 +523,102 @@ export default function StudentWritingActivityPage() {
           answersByFieldId,
           sectionDrafts,
           finalText,
-          printProfile,
+          printProfile: nextPrintProfile,
           status: submissionStatus || "draft",
           updatedAt: serverTimestamp(),
           createdAt: serverTimestamp(),
         },
         { merge: true }
       );
-      setMsg(t("messages.printSaved"));
+      setPrintProfile(nextPrintProfile);
+      setMsg(successMessage);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : t("errors.save"));
     } finally {
       setSavingPrintProfile(false);
       window.setTimeout(() => setMsg(null), 2500);
+    }
+  }
+
+  async function savePrintProfile() {
+    await savePrintProfileData(printProfile);
+  }
+
+  async function removePrintImage() {
+    await savePrintProfileData({ ...printProfile, imageUrl: "" }, t("messages.printImageRemoved"));
+  }
+
+  async function uploadPrintImage(file: File | null) {
+    if (!file || !activity) return;
+
+    setPrintImageBusy("upload");
+    setMsg(null);
+    setErr(null);
+
+    try {
+      const user = await resolveUser();
+      if (!file.type.startsWith("image/")) throw new Error(t("printProduct.errors.imageOnly"));
+      if (file.size > 8 * 1024 * 1024) throw new Error(t("printProduct.errors.tooLarge"));
+      const croppedImage = await cropImageToPrintFormat(file);
+
+      const fileRef = storageRef(
+        storage,
+        `writing-print-images/${user.uid}/${spaceId}/${activityId}/${Date.now()}-${safeStorageName(file.name)}.webp`
+      );
+      await uploadBytes(fileRef, croppedImage, {
+        contentType: "image/webp",
+        cacheControl: "public,max-age=31536000",
+        customMetadata: {
+          ownerId: user.uid,
+          activityId,
+          spaceId,
+          context: "student-writing-print",
+        },
+      });
+      const imageUrl = await getDownloadURL(fileRef);
+      await savePrintProfileData({ ...printProfile, imageUrl }, t("messages.printImageUploaded"));
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : t("printProduct.errors.uploadFailed"));
+    } finally {
+      setPrintImageBusy(null);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  }
+
+  async function generatePrintImage() {
+    if (!activity || printImageBusy === "ai") return;
+
+    setPrintImageBusy("ai");
+    setMsg(null);
+    setErr(null);
+
+    try {
+      if (printProfile.aiImageGenerated) throw new Error(t("printProduct.errors.aiLimitReached"));
+      const imagePrompt = safeString(printProfile.imagePrompt).trim();
+      if (!imagePrompt) throw new Error(t("printProduct.errors.promptRequired"));
+
+      const data = await authedPost<{ imageUrl?: unknown; error?: unknown }>("/api/images/generate", {
+        context: "student_writing_print",
+        spaceId,
+        activityId,
+        lessonId: `writing-${spaceId}-${activityId}`,
+        format: "16:9",
+        style: "illustration",
+        promptMode: "custom",
+        customPrompt: `${t("printProduct.aiPromptPrefix")}\n\n${imagePrompt.slice(0, 1000)}`,
+        title: printableTitle || activity.title,
+        language: locale,
+      });
+      const imageUrl = typeof data.imageUrl === "string" ? data.imageUrl : "";
+      if (!imageUrl) throw new Error(t("printProduct.errors.noImage"));
+      await savePrintProfileData(
+        { ...printProfile, imageUrl, aiImageGenerated: true },
+        t("messages.printImageGenerated")
+      );
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : t("printProduct.errors.generateFailed"));
+    } finally {
+      setPrintImageBusy(null);
     }
   }
 
@@ -631,6 +791,12 @@ export default function StudentWritingActivityPage() {
     return feedback?.status === "improve" && summary && sent?.answerSummary !== summary;
   });
   const roomAllApproved = visibleActiveRoom.sections.length > 0 && visibleActiveRoom.sections.every((section) => sectionFeedback?.[section.id]?.status === "approved");
+  const hasRoomTeacherFeedback =
+    activeRoom.phase === "final"
+      ? Boolean(teacherFeedbackText.trim())
+      : visibleActiveRoom.sections.some((section) => Boolean(sectionFeedback?.[section.id]?.text?.trim()));
+  const planHasBeenSent = submissionStatus === "planning_submitted" || submissionStatus === "planning_reviewed";
+  const textHasBeenSent = submissionStatus === "submitted" || submissionStatus === "reviewed" || submissionStatus === "needs_work";
   const bottomPrimaryStatus =
     activeRoom.phase === "planning"
       ? "planning_submitted"
@@ -643,14 +809,42 @@ export default function StudentWritingActivityPage() {
       : roomImprovementSections.length > 0
         ? t("actions.sendImprovements")
         : activeRoom.phase === "planning"
-      ? t("actions.sendPlan")
-      : activeRoom.phase === "final"
-        ? t("actions.submit")
-        : t("actions.sendToTeacher");
+          ? hasRoomTeacherFeedback
+            ? t("actions.sendRevisedPlan")
+            : planHasBeenSent
+              ? t("actions.sendUpdatedPlan")
+              : t("actions.sendPlan")
+          : activeRoom.phase === "drafting"
+            ? hasRoomTeacherFeedback
+              ? t("actions.sendRevisedDraft")
+              : textHasBeenSent
+                ? t("actions.sendUpdatedDraft")
+                : t("actions.sendDraft")
+            : activeRoom.phase === "final"
+              ? hasRoomTeacherFeedback
+                ? t("actions.submitRevised")
+                : textHasBeenSent
+                  ? t("actions.updateSubmission")
+                  : t("actions.submit")
+              : hasRoomTeacherFeedback
+                ? t("actions.sendRevision")
+                : t("actions.sendControl");
   const bottomPrimaryDisabled =
     saving ||
     roomAllApproved ||
     (activeRoom.phase === "final" && !finalText.trim());
+  const bottomHint =
+    roomImprovementSections.length > 0
+      ? t("footerHints.improvements")
+      : hasRoomTeacherFeedback
+        ? t(`footerHints.${activeRoom.phase}Feedback`)
+        : activeRoom.phase === "planning" && planHasBeenSent
+          ? t("footerHints.planningSent")
+          : activeRoom.phase === "drafting" && textHasBeenSent
+            ? t("footerHints.draftingSent")
+            : activeRoom.phase === "final" && textHasBeenSent
+              ? t("footerHints.finalSent")
+              : t(`footerHints.${activeRoom.phase}`);
   const roomTitle = (room: WritingRoomTemplate) => (room.phase === "revision" ? t("rooms.revision") : room.title);
   const activeRoomDone = roomIsDone(visibleActiveRoom, answersByFieldId, sectionDrafts, sectionFeedback, finalText, submissionStatus);
 
@@ -1114,6 +1308,46 @@ export default function StudentWritingActivityPage() {
           );
         })}
 
+        {activeRoom.phase === "drafting" || activeRoom.phase === "revision" ? (
+          <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="m-0 text-lg font-semibold text-slate-950">{t("draftPreview.title")}</h3>
+                <p className="mt-1 text-sm text-slate-600">{t(`draftPreview.${activeRoom.phase}`)}</p>
+              </div>
+              <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
+                {t("wordStats.total", { count: finalWordTotal })}
+              </span>
+            </div>
+            <div className="mt-3 whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900">
+              {finalText || t("draftPreview.empty")}
+            </div>
+            {showSourceNotes ? (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+                <div className="font-black text-amber-950">{t("sources.title")}</div>
+                {hasSourceNotes ? (
+                  <div className="mt-2 grid gap-2">
+                    {sourceListText ? (
+                      <div>
+                        <div className="text-xs font-black uppercase text-amber-900">{t("sources.list")}</div>
+                        <div className="mt-1 whitespace-pre-wrap">{sourceListText}</div>
+                      </div>
+                    ) : null}
+                    {sourceCheckText ? (
+                      <div>
+                        <div className="text-xs font-black uppercase text-amber-900">{t("sources.check")}</div>
+                        <div className="mt-1 whitespace-pre-wrap">{sourceCheckText}</div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="mt-1">{t("sources.empty")}</div>
+                )}
+              </div>
+            ) : null}
+          </article>
+        ) : null}
+
         {activeRoom.phase === "final" ? (
           <div className="space-y-4">
             <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -1126,6 +1360,29 @@ export default function StudentWritingActivityPage() {
               <div className="mt-3 whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900">
                 {finalText || t("final.empty")}
               </div>
+              {showSourceNotes ? (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+                  <div className="font-black text-amber-950">{t("sources.title")}</div>
+                  {hasSourceNotes ? (
+                    <div className="mt-2 grid gap-2">
+                      {sourceListText ? (
+                        <div>
+                          <div className="text-xs font-black uppercase text-amber-900">{t("sources.list")}</div>
+                          <div className="mt-1 whitespace-pre-wrap">{sourceListText}</div>
+                        </div>
+                      ) : null}
+                      {sourceCheckText ? (
+                        <div>
+                          <div className="text-xs font-black uppercase text-amber-900">{t("sources.check")}</div>
+                          <div className="mt-1 whitespace-pre-wrap">{sourceCheckText}</div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="mt-1">{t("sources.empty")}</div>
+                  )}
+                </div>
+              ) : null}
             </article>
 
             <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
@@ -1137,20 +1394,48 @@ export default function StudentWritingActivityPage() {
                 <div className="flex flex-wrap gap-2 print:hidden">
                   <button
                     type="button"
-                    disabled
-                    className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-500"
-                    title={t("printProduct.lockedHint")}
+                    onClick={() => window.print()}
+                    className="rounded-full border border-emerald-700 bg-emerald-700 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-800"
                   >
-                    {t("printProduct.uploadLocked")}
+                    {t("printProduct.printNow")}
                   </button>
                   <button
                     type="button"
-                    disabled
-                    className="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-500"
-                    title={t("printProduct.lockedHint")}
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={Boolean(printImageBusy)}
+                    className="rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-emerald-400 disabled:opacity-60"
                   >
-                    {t("printProduct.aiImageLocked")}
+                    {printImageBusy === "upload" ? t("printProduct.uploading") : t("printProduct.uploadImage")}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => void generatePrintImage()}
+                    disabled={Boolean(printImageBusy) || printProfile.aiImageGenerated === true}
+                    className="rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-emerald-400 disabled:opacity-60"
+                  >
+                    {printImageBusy === "ai"
+                      ? t("printProduct.generatingImage")
+                      : printProfile.aiImageGenerated
+                        ? t("printProduct.aiImageUsed")
+                        : t("printProduct.aiImage")}
+                  </button>
+                  {printProfile.imageUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => void removePrintImage()}
+                      disabled={Boolean(printImageBusy) || savingPrintProfile}
+                      className="rounded-full border border-rose-200 bg-white/90 px-3 py-1 text-xs font-semibold text-rose-700 hover:border-rose-400 disabled:opacity-60"
+                    >
+                      {t("printProduct.removeImage")}
+                    </button>
+                  ) : null}
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => void uploadPrintImage(e.target.files?.[0] ?? null)}
+                  />
                 </div>
               </div>
 
@@ -1197,6 +1482,30 @@ export default function StudentWritingActivityPage() {
                     className="mt-1 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-normal"
                   />
                 </label>
+                <label className="text-sm font-semibold text-slate-900 sm:col-span-2">
+                  {t("printProduct.imagePrompt")}
+                  <textarea
+                    value={printProfile.imagePrompt ?? ""}
+                    onChange={(e) => setPrintProfile((current) => ({ ...current, imagePrompt: e.target.value }))}
+                    placeholder={t("printProduct.imagePromptPlaceholder")}
+                    disabled={printProfile.aiImageGenerated === true}
+                    rows={3}
+                    className="mt-1 w-full resize-y rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-normal leading-6 disabled:bg-slate-50 disabled:text-slate-500"
+                  />
+                  {printProfile.aiImageGenerated ? (
+                    <span className="mt-1 block text-xs font-medium leading-5 text-emerald-900">
+                      {t("printProduct.aiLimitHint")}
+                    </span>
+                  ) : null}
+                </label>
+                <div className="rounded-xl border border-emerald-200 bg-white/70 p-3 text-xs font-semibold leading-5 text-emerald-950 sm:col-span-2">
+                  <div className="font-black text-emerald-900">{t("printProduct.imageChecklistTitle")}</div>
+                  <div className="mt-1 grid gap-1 sm:grid-cols-3">
+                    <span>{t("printProduct.imageChecklist.format")}</span>
+                    <span>{t("printProduct.imageChecklist.rights")}</span>
+                    <span>{t("printProduct.imageChecklist.noPersonal")}</span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => void savePrintProfile()}
@@ -1207,26 +1516,56 @@ export default function StudentWritingActivityPage() {
                 </button>
               </div>
 
-              <article className="writingPrintProduct mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <article className="writingPrintProduct mx-auto mt-5 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 {printProfile.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={printProfile.imageUrl}
-                    alt=""
-                    className="mb-5 max-h-72 w-full rounded-xl object-cover"
-                  />
+                  <figure className="m-0 mb-6">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={printProfile.imageUrl}
+                      alt=""
+                      className="max-h-80 w-full rounded-xl border border-slate-200 object-cover"
+                    />
+                    <figcaption className="mt-2 text-xs leading-5 text-slate-500">{t("printProduct.imageNote")}</figcaption>
+                  </figure>
                 ) : null}
-                <h2 className="m-0 text-3xl font-bold text-slate-950">{printableTitle || t("printProduct.untitled")}</h2>
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-                  {printProfile.studentName ? <span>{printProfile.studentName}</span> : null}
-                  {printProfile.school ? <span>{printProfile.school}</span> : null}
-                  {printProfile.className ? <span>{printProfile.className}</span> : null}
-                  {printProfile.writtenDate ? <span>{printProfile.writtenDate}</span> : null}
-                  <span>{t("wordStats.total", { count: finalWordTotal })}</span>
-                </div>
-                <div className="mt-6 whitespace-pre-wrap text-base leading-8 text-slate-950">
+                <header className="border-b border-slate-200 pb-5">
+                  <h2 className="m-0 text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">{printableTitle || t("printProduct.untitled")}</h2>
+                  <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                    {printProfile.studentName ? (
+                      <div><span className="font-semibold text-slate-500">{t("printProduct.studentName")}:</span> {printProfile.studentName}</div>
+                    ) : null}
+                    {printProfile.school ? (
+                      <div><span className="font-semibold text-slate-500">{t("printProduct.school")}:</span> {printProfile.school}</div>
+                    ) : null}
+                    {printProfile.className ? (
+                      <div><span className="font-semibold text-slate-500">{t("printProduct.className")}:</span> {printProfile.className}</div>
+                    ) : null}
+                    {printProfile.writtenDate ? (
+                      <div><span className="font-semibold text-slate-500">{t("printProduct.writtenDate")}:</span> {printProfile.writtenDate}</div>
+                    ) : null}
+                    <div><span className="font-semibold text-slate-500">{t("printProduct.length")}:</span> {t("wordStats.total", { count: finalWordTotal })}</div>
+                  </div>
+                </header>
+                <div className="mt-6 whitespace-pre-wrap text-base leading-8 text-slate-950 sm:text-[17px]">
                   {finalText || t("final.empty")}
                 </div>
+                {hasSourceNotes ? (
+                  <footer className="mt-8 border-t border-slate-200 pt-4 text-sm leading-6 text-slate-800">
+                    <h3 className="m-0 text-base font-bold text-slate-950">{t("sources.title")}</h3>
+                    {sourceListText ? (
+                      <div className="mt-3">
+                        <div className="text-xs font-bold uppercase text-slate-500">{t("sources.list")}</div>
+                        <div className="mt-1 whitespace-pre-wrap">{sourceListText}</div>
+                      </div>
+                    ) : null}
+                    {sourceCheckText ? (
+                      <div className="mt-3">
+                        <div className="text-xs font-bold uppercase text-slate-500">{t("sources.check")}</div>
+                        <div className="mt-1 whitespace-pre-wrap">{sourceCheckText}</div>
+                      </div>
+                    ) : null}
+                  </footer>
+                ) : null}
               </article>
             </section>
           </div>
@@ -1238,6 +1577,7 @@ export default function StudentWritingActivityPage() {
           <div className="text-sm text-slate-700">
             <span className="font-semibold text-slate-950">{roomTitle(activeRoom)}</span>
             {msg ? <span className="ml-2 text-emerald-800">{msg}</span> : null}
+            {bottomHint ? <div className="mt-1 max-w-xl text-xs font-medium leading-5 text-slate-600">{bottomHint}</div> : null}
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -1279,6 +1619,16 @@ export default function StudentWritingActivityPage() {
       </div>
       <style jsx global>{`
         @media print {
+          @page {
+            size: A4;
+            margin: 18mm;
+          }
+
+          html,
+          body {
+            background: #ffffff !important;
+          }
+
           body * {
             visibility: hidden !important;
           }
@@ -1292,7 +1642,19 @@ export default function StudentWritingActivityPage() {
             width: 100% !important;
             border: 0 !important;
             box-shadow: none !important;
-            padding: 24px !important;
+            padding: 0 !important;
+            color: #0f172a !important;
+          }
+
+          .writingPrintProduct img {
+            max-height: 70mm !important;
+            break-inside: avoid !important;
+          }
+
+          .writingPrintProduct header,
+          .writingPrintProduct footer,
+          .writingPrintProduct figure {
+            break-inside: avoid !important;
           }
         }
       `}</style>

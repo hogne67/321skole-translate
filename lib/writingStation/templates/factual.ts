@@ -222,5 +222,28 @@ export const factualWritingTemplate: WritingActivityTemplate = {
         },
       ],
     },
+    {
+      id: "final",
+      title: "Ferdig tekst",
+      phase: "final",
+      sections: [
+        {
+          id: "final_text",
+          title: "Samlet tekst",
+          prompt: "Les gjennom hele teksten før du leverer.",
+          fields: [
+            {
+              id: "final_text",
+              label: "Ferdig tekst",
+              kind: "long_text",
+              required: true,
+            },
+          ],
+          gate: {
+            requiredSectionIds: ["title", "introduction", "main_part", "ending"],
+          },
+        },
+      ],
+    },
   ],
 };

@@ -5,15 +5,38 @@
       "back": "← Back to space",
       "saveDraft": "Save draft",
       "saving": "Saving…",
-      "sendPlan": "Send plan to teacher",
+      "sendPlan": "Send plan draft to teacher",
+      "sendUpdatedPlan": "Send updated plan draft",
+      "sendRevisedPlan": "Send revised plan draft",
+      "sendDraft": "Send text draft to teacher",
+      "sendUpdatedDraft": "Send updated text draft",
+      "sendRevisedDraft": "Send revised text draft",
+      "sendControl": "Send check to teacher",
+      "sendRevision": "Send revision to teacher",
       "sendToTeacher": "Send to teacher",
       "sendImprovements": "Send improvements to teacher",
       "approved": "Approved by teacher",
       "print": "Print",
-      "submit": "Submit to teacher"
+      "submit": "Submit finished text to teacher",
+      "submitRevised": "Submit revised text",
+      "updateSubmission": "Update submitted text"
     },
     "rooms": {
       "revision": "Control room"
+    },
+    "footerHints": {
+      "planning": "Planning room: Send your plan draft to the teacher for feedback while you work. You can keep writing and save drafts afterwards.",
+      "planningSent": "The plan draft has been sent. If you change the plan, you can send an updated draft to the teacher.",
+      "planningFeedback": "Your teacher has responded to the plan. Adjust it and send a revised draft when you want new feedback.",
+      "drafting": "Writing room: Send a text draft to the teacher for feedback while you work. This is not the same as submitting the finished text.",
+      "draftingSent": "The text draft has been sent. You can keep writing and send an updated draft after changes.",
+      "draftingFeedback": "Your teacher has responded to the text draft. Keep working and send a revised draft when you are ready.",
+      "revision": "Control room: Send your checks and improvements to the teacher when you want to show what changed.",
+      "revisionFeedback": "Your teacher has responded. Use the control room to improve the text and send a revision.",
+      "final": "Submit only when the text is finished. Use Save draft while you are still working.",
+      "finalSent": "The text has been submitted. If your teacher has opened it for changes, you can update the submitted text.",
+      "finalFeedback": "Your teacher has responded to the finished product. Make changes and submit a revised text when you are ready.",
+      "improvements": "Your teacher has asked for improvements in this room. Send the improvements after you have made changes."
     },
     "genre": {
       "story": "Story"
@@ -80,26 +103,66 @@
       "preview": "Preview",
       "empty": "Write the introduction, main part and ending first."
     },
+    "draftPreview": {
+      "title": "Complete draft",
+      "drafting": "Here you see the full text assembled from the parts you are writing.",
+      "revision": "Read the full draft before checking and improving the text.",
+      "empty": "Write in the writing room first, then the full draft appears here."
+    },
+    "sources": {
+      "title": "Sources and source check",
+      "list": "Sources",
+      "check": "What must be checked?",
+      "empty": "Add sources in the planning room, and check that images and facts can be used safely."
+    },
     "printProduct": {
-      "title": "Print version",
-      "subtitle": "Prepare the text as a finished product you can be proud of.",
+      "title": "Finished view and print",
+      "subtitle": "Prepare the text as a finished product. Remember to check sources, image use and facts before printing.",
       "studentName": "Name on printout",
       "school": "School",
       "className": "Class",
       "writtenDate": "Date written",
       "imageUrl": "Image",
       "imageUrlPlaceholder": "Paste an image link if your teacher has given you one.",
+      "imagePrompt": "Image idea for AI",
+      "imagePromptPlaceholder": "Write what the image should show. For example: A friendly illustration of King Harald in front of the Royal Palace, with a Norwegian flag in the background.",
+      "imageChecklistTitle": "Check before using an image",
+      "imageChecklist": {
+        "format": "The image is cropped to a wide 16:9 format.",
+        "rights": "Only use images you are allowed to use.",
+        "noPersonal": "Do not use names or images of private people."
+      },
       "save": "Save print info",
-      "uploadLocked": "Upload image",
-      "aiImageLocked": "Create AI image",
-      "lockedHint": "This feature must be unlocked by the teacher first.",
-      "untitled": "Untitled"
+      "printNow": "Print now",
+      "imageNote": "Check that the image can be used, and cite the source if your teacher asks for it.",
+      "length": "Length",
+      "uploadImage": "Upload image",
+      "uploading": "Uploading...",
+      "aiImage": "Create AI image",
+      "aiImageUsed": "AI image used",
+      "aiLimitHint": "You can create one AI image. If it does not fit, delete it and upload your own image instead.",
+      "generatingImage": "Creating image...",
+      "removeImage": "Delete image",
+      "aiPromptPrefix": "Create a school-safe illustration in wide 16:9 format. Follow the student's image idea, but do not create text, logos, watermarks, famous characters or realistic images of private people.",
+      "untitled": "Untitled",
+      "errors": {
+        "imageOnly": "Choose an image file.",
+        "tooLarge": "The image is too large. Max 8 MB.",
+        "uploadFailed": "Could not upload the image.",
+        "generateFailed": "Could not create an AI image.",
+        "noImage": "The image generator did not return an image.",
+        "promptRequired": "Write an image idea first.",
+        "aiLimitReached": "You can only create one AI image for this printout."
+      }
     },
     "messages": {
       "saved": "Draft saved.",
       "planningSubmitted": "The plan has been sent to the teacher.",
       "improvementSubmitted": "The improvement has been sent to the teacher.",
       "printSaved": "Print info saved.",
+      "printImageUploaded": "The image was uploaded and added to the printout.",
+      "printImageGenerated": "The AI image was created and added to the printout.",
+      "printImageRemoved": "The image was removed from the printout.",
       "submitted": "Submitted to teacher."
     },
     "status": {

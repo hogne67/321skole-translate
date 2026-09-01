@@ -5,15 +5,38 @@
       "back": "← Voltar para o space",
       "saveDraft": "Salvar rascunho",
       "saving": "Salvando…",
-      "sendPlan": "Enviar plano ao professor",
+      "sendPlan": "Enviar rascunho do plano ao professor",
+      "sendUpdatedPlan": "Enviar plano atualizado",
+      "sendRevisedPlan": "Enviar plano revisado",
+      "sendDraft": "Enviar rascunho do texto ao professor",
+      "sendUpdatedDraft": "Enviar rascunho atualizado",
+      "sendRevisedDraft": "Enviar rascunho revisado",
+      "sendControl": "Enviar revisão ao professor",
+      "sendRevision": "Enviar versão revisada ao professor",
       "sendToTeacher": "Enviar ao professor",
       "sendImprovements": "Enviar melhorias ao professor",
       "approved": "Aprovado pelo professor",
       "print": "Imprimir",
-      "submit": "Enviar ao professor"
+      "submit": "Enviar texto final ao professor",
+      "submitRevised": "Enviar texto revisado",
+      "updateSubmission": "Atualizar texto enviado"
     },
     "rooms": {
       "revision": "Sala de controle"
+    },
+    "footerHints": {
+      "planning": "Sala de planejamento: envie o rascunho do plano ao professor para feedback durante o trabalho. Você pode continuar escrevendo e salvar rascunhos depois.",
+      "planningSent": "O rascunho do plano foi enviado. Se você alterar o plano, pode enviar uma versão atualizada ao professor.",
+      "planningFeedback": "O professor respondeu ao plano. Ajuste o plano e envie uma versão revisada quando quiser novo feedback.",
+      "drafting": "Sala de escrita: envie um rascunho do texto ao professor para feedback durante o trabalho. Isso não é o mesmo que entregar o texto final.",
+      "draftingSent": "O rascunho do texto foi enviado. Você pode continuar escrevendo e enviar uma versão atualizada depois das mudanças.",
+      "draftingFeedback": "O professor respondeu ao rascunho do texto. Continue trabalhando e envie uma versão revisada quando estiver pronto.",
+      "revision": "Sala de controle: envie suas verificações e melhorias ao professor quando quiser mostrar o que mudou.",
+      "revisionFeedback": "O professor respondeu. Use a sala de controle para melhorar o texto e enviar uma revisão.",
+      "final": "Envie somente quando o texto estiver finalizado. Use Salvar rascunho enquanto ainda estiver trabalhando.",
+      "finalSent": "O texto foi enviado. Se o professor abriu para alterações, você pode atualizar o texto enviado.",
+      "finalFeedback": "O professor respondeu ao produto final. Faça alterações e envie o texto revisado quando estiver pronto.",
+      "improvements": "O professor pediu melhorias nesta sala. Envie as melhorias depois de fazer as alterações."
     },
     "genre": {
       "story": "Narrativa"
@@ -80,26 +103,66 @@
       "preview": "Prévia",
       "empty": "Escreva a introdução, o desenvolvimento e a conclusão primeiro."
     },
+    "draftPreview": {
+      "title": "Rascunho completo",
+      "drafting": "Aqui você vê o texto completo montado a partir das partes que está escrevendo.",
+      "revision": "Leia o rascunho completo antes de revisar e melhorar o texto.",
+      "empty": "Escreva primeiro na sala de escrita, então o rascunho completo aparecerá aqui."
+    },
+    "sources": {
+      "title": "Fontes e verificação",
+      "list": "Fontes",
+      "check": "O que precisa ser verificado?",
+      "empty": "Adicione fontes na sala de planejamento e verifique se imagens e fatos podem ser usados com segurança."
+    },
     "printProduct": {
-      "title": "Versão para impressão",
-      "subtitle": "Prepare o texto como um produto final do qual você possa se orgulhar.",
+      "title": "Visualização final e impressão",
+      "subtitle": "Prepare o texto como produto final. Lembre-se de verificar fontes, uso de imagens e fatos antes de imprimir.",
       "studentName": "Nome na impressão",
       "school": "Escola",
       "className": "Turma",
       "writtenDate": "Data escrita",
       "imageUrl": "Imagem",
       "imageUrlPlaceholder": "Cole um link de imagem se o professor tiver fornecido um.",
+      "imagePrompt": "Ideia de imagem para IA",
+      "imagePromptPlaceholder": "Escreva o que a imagem deve mostrar. Por exemplo: Uma ilustração amigável do rei Harald em frente ao Palácio Real, com uma bandeira norueguesa ao fundo.",
+      "imageChecklistTitle": "Verifique antes de usar imagem",
+      "imageChecklist": {
+        "format": "A imagem é recortada para formato largo 16:9.",
+        "rights": "Use apenas imagens que você tem permissão para usar.",
+        "noPersonal": "Não use nomes ou imagens de pessoas privadas."
+      },
       "save": "Salvar dados da impressão",
-      "uploadLocked": "Enviar imagem",
-      "aiImageLocked": "Criar imagem com IA",
-      "lockedHint": "Esta função precisa ser liberada pelo professor primeiro.",
-      "untitled": "Sem título"
+      "printNow": "Imprimir agora",
+      "imageNote": "Verifique se a imagem pode ser usada e indique a fonte se o professor pedir.",
+      "length": "Tamanho",
+      "uploadImage": "Enviar imagem",
+      "uploading": "Enviando...",
+      "aiImage": "Criar imagem com IA",
+      "aiImageUsed": "Imagem com IA usada",
+      "aiLimitHint": "Você pode criar uma imagem com IA. Se ela não servir, exclua-a e envie sua própria imagem.",
+      "generatingImage": "Criando imagem...",
+      "removeImage": "Excluir imagem",
+      "aiPromptPrefix": "Crie uma ilustração segura para a escola em formato largo 16:9. Siga a ideia de imagem do aluno, mas não crie texto, logotipos, marcas-d'água, personagens famosos ou imagens realistas de pessoas privadas.",
+      "untitled": "Sem título",
+      "errors": {
+        "imageOnly": "Escolha um arquivo de imagem.",
+        "tooLarge": "A imagem é grande demais. Máximo 8 MB.",
+        "uploadFailed": "Não foi possível enviar a imagem.",
+        "generateFailed": "Não foi possível criar a imagem com IA.",
+        "noImage": "O gerador de imagens não retornou uma imagem.",
+        "promptRequired": "Escreva primeiro uma ideia de imagem.",
+        "aiLimitReached": "Você só pode criar uma imagem com IA para esta impressão."
+      }
     },
     "messages": {
       "saved": "Rascunho salvo.",
       "planningSubmitted": "O plano foi enviado ao professor.",
       "improvementSubmitted": "A melhoria foi enviada ao professor.",
       "printSaved": "Dados da impressão salvos.",
+      "printImageUploaded": "A imagem foi enviada e adicionada à impressão.",
+      "printImageGenerated": "A imagem com IA foi criada e adicionada à impressão.",
+      "printImageRemoved": "A imagem foi removida da impressão.",
       "submitted": "Enviado ao professor."
     },
     "status": {

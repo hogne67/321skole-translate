@@ -134,6 +134,8 @@ export type WritingPrintProfile = {
   className?: string;
   writtenDate?: string;
   imageUrl?: string;
+  imagePrompt?: string;
+  aiImageGenerated?: boolean;
 };
 
 export type WritingSubmission = {

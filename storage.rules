@@ -49,6 +49,23 @@ service firebase.storage {
         && firestore.exists(/databases/(default)/documents/spaceMembers/$(memberDocId(spaceId, myUid())));
     }
 
+    function spaceMemberData(spaceId) {
+      return isSpaceMember(spaceId)
+        ? firestore.get(/databases/(default)/documents/spaceMembers/$(memberDocId(spaceId, myUid()))).data
+        : {};
+    }
+
+    function isActiveSpaceMember(spaceId) {
+      return isSpaceMember(spaceId)
+        && !("archived" in spaceMemberData(spaceId) && spaceMemberData(spaceId).archived == true)
+        && !("active" in spaceMemberData(spaceId) && spaceMemberData(spaceId).active == false)
+        && !("status" in spaceMemberData(spaceId) && (
+          spaceMemberData(spaceId).status == "removed"
+          || spaceMemberData(spaceId).status == "disabled"
+          || spaceMemberData(spaceId).status == "inactive"
+        ));
+    }
+
     function hasRole(roleName) {
       return ("roles" in myUser())
         && (myUser().roles is map)
@@ -82,6 +99,10 @@ service firebase.storage {
 
     function assignmentExists(spaceId, assignmentId) {
       return firestore.exists(/databases/(default)/documents/spaces/$(spaceId)/lessons/$(assignmentId));
+    }
+
+    function writingActivityExists(spaceId, activityId) {
+      return firestore.exists(/databases/(default)/documents/spaces/$(spaceId)/writingActivities/$(activityId));
     }
 
     function isAudioUpload() {
@@ -122,6 +143,22 @@ service firebase.storage {
       allow create, update: if signedIn()
         && myUid() == ownerUid
         && (isSpaceOwner(spaceId) || (isTeacher() && isSpaceMember(spaceId)) || isAdmin())
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if signedIn()
+        && (
+          isAdmin()
+          || myUid() == ownerUid
+          || isSpaceOwner(spaceId)
+        );
+    }
+
+    match /writing-print-images/{ownerUid}/{spaceId}/{activityId}/{fileName} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && myUid() == ownerUid
+        && (isAdmin() || isSpaceOwner(spaceId) || isActiveSpaceMember(spaceId))
+        && writingActivityExists(spaceId, activityId)
         && request.resource.size < 8 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
       allow delete: if signedIn()

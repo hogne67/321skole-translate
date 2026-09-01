@@ -5,15 +5,38 @@
       "back": "← Tilbake til spacet",
       "saveDraft": "Lagre kladd",
       "saving": "Lagrer…",
-      "sendPlan": "Send plan til lærer",
+      "sendPlan": "Send planutkast til lærer",
+      "sendUpdatedPlan": "Send oppdatert planutkast",
+      "sendRevisedPlan": "Send revidert planutkast",
+      "sendDraft": "Send tekstutkast til lærer",
+      "sendUpdatedDraft": "Send oppdatert tekstutkast",
+      "sendRevisedDraft": "Send revidert tekstutkast",
+      "sendControl": "Send kontroll til lærer",
+      "sendRevision": "Send revidering til lærer",
       "sendToTeacher": "Send til lærer",
       "sendImprovements": "Send forbedringer til lærer",
       "approved": "Godkjent av lærer",
       "print": "Skriv ut",
-      "submit": "Lever til lærer"
+      "submit": "Lever ferdig tekst til lærer",
+      "submitRevised": "Lever revidert tekst",
+      "updateSubmission": "Oppdater levert tekst"
     },
     "rooms": {
       "revision": "Kontrollrom"
+    },
+    "footerHints": {
+      "planning": "Planleggingsrom: Send planutkastet til lærer for underveisvurdering. Du kan fortsette å skrive og lagre kladd etterpå.",
+      "planningSent": "Planutkastet er sendt. Hvis du endrer planen, kan du sende et oppdatert utkast til lærer.",
+      "planningFeedback": "Læreren har gitt respons på planen. Juster planen og send revidert utkast når du vil ha ny vurdering.",
+      "drafting": "Skriverom: Send tekstutkast til lærer for respons underveis. Dette er ikke det samme som å levere ferdig tekst.",
+      "draftingSent": "Tekstutkastet er sendt. Du kan skrive videre og sende oppdatert utkast når noe er endret.",
+      "draftingFeedback": "Læreren har gitt respons på tekstutkastet. Arbeid videre og send revidert utkast når du er klar.",
+      "revision": "Kontrollrom: Send kontroll og forbedringer til lærer når du vil vise hva du har endret.",
+      "revisionFeedback": "Læreren har gitt respons. Bruk kontrollrommet til å forbedre teksten og send revidering.",
+      "final": "Lever først når teksten er ferdig. Bruk Lagre kladd mens du fortsatt jobber.",
+      "finalSent": "Teksten er levert. Hvis læreren har åpnet for endringer, kan du oppdatere den leverte teksten.",
+      "finalFeedback": "Læreren har gitt respons på sluttproduktet. Gjør endringer og lever revidert tekst når du er klar.",
+      "improvements": "Læreren har bedt om forbedringer i dette rommet. Send forbedringene når du har gjort endringer."
     },
     "genre": {
       "story": "Fortelling"
@@ -80,26 +103,66 @@
       "preview": "Forhåndsvisning",
       "empty": "Skriv innledning, hoveddel og avslutning først."
     },
+    "draftPreview": {
+      "title": "Samlet utkast",
+      "drafting": "Her ser du hele teksten satt sammen av delene du skriver.",
+      "revision": "Les hele utkastet før du kontrollerer og forbedrer teksten.",
+      "empty": "Skriv i skriverommet først, så vises hele utkastet her."
+    },
+    "sources": {
+      "title": "Kilder og kildekritikk",
+      "list": "Kilder",
+      "check": "Hva må sjekkes?",
+      "empty": "Legg inn kilder i planleggingsrommet, og sjekk at bilde og fakta kan brukes trygt."
+    },
     "printProduct": {
-      "title": "Utskriftsversjon",
-      "subtitle": "Gjør teksten klar som et ferdig produkt du kan være stolt av.",
+      "title": "Ferdig visning og utskrift",
+      "subtitle": "Gjør teksten klar som et ferdig produkt. Husk å sjekke kilder, bildebruk og fakta før utskrift.",
       "studentName": "Navn på utskrift",
       "school": "Skole",
       "className": "Klasse",
       "writtenDate": "Dato skrevet",
       "imageUrl": "Bilde",
       "imageUrlPlaceholder": "Lim inn bildelenke hvis læreren har gitt deg et bilde.",
+      "imagePrompt": "Bildeidé til KI",
+      "imagePromptPlaceholder": "Skriv hva bildet skal vise. For eksempel: En vennlig illustrasjon av Kong Harald foran Slottet, med norsk flagg i bakgrunnen.",
+      "imageChecklistTitle": "Pass på før du bruker bilde",
+      "imageChecklist": {
+        "format": "Bildet beskjæres til bredt 16:9-format.",
+        "rights": "Bruk bare bilder du har lov til å bruke.",
+        "noPersonal": "Ikke bruk navn eller bilder av private personer."
+      },
       "save": "Lagre utskriftsinfo",
-      "uploadLocked": "Last opp bilde",
-      "aiImageLocked": "Lag KI-bilde",
-      "lockedHint": "Denne funksjonen må åpnes av lærer først.",
-      "untitled": "Uten tittel"
+      "printNow": "Skriv ut nå",
+      "imageNote": "Sjekk at bildet kan brukes, og oppgi kilde hvis læreren ber om det.",
+      "length": "Lengde",
+      "uploadImage": "Last opp bilde",
+      "uploading": "Laster opp...",
+      "aiImage": "Lag KI-bilde",
+      "aiImageUsed": "KI-bilde brukt",
+      "aiLimitHint": "Du kan lage ett KI-bilde. Hvis bildet ikke passer, kan du slette det og laste opp et eget bilde i stedet.",
+      "generatingImage": "Lager bilde...",
+      "removeImage": "Slett bilde",
+      "aiPromptPrefix": "Lag et skolevennlig illustrasjonsbilde i bredt 16:9-format. Følg elevens bildeidé, men ikke lag tekst, logoer, vannmerker, kjente figurer eller realistiske bilder av private personer.",
+      "untitled": "Uten tittel",
+      "errors": {
+        "imageOnly": "Velg en bildefil.",
+        "tooLarge": "Bildet er for stort. Maks 8 MB.",
+        "uploadFailed": "Kunne ikke laste opp bildet.",
+        "generateFailed": "Kunne ikke lage KI-bilde.",
+        "noImage": "Bildegeneratoren returnerte ikke et bilde.",
+        "promptRequired": "Skriv en bildeidé først.",
+        "aiLimitReached": "Du kan bare lage ett KI-bilde til denne utskriften."
+      }
     },
     "messages": {
       "saved": "Kladd lagret.",
       "planningSubmitted": "Planen er sendt til lærer.",
       "improvementSubmitted": "Forbedringen er sendt til lærer.",
       "printSaved": "Utskriftsinfo lagret.",
+      "printImageUploaded": "Bildet er lastet opp og lagt inn i utskriften.",
+      "printImageGenerated": "KI-bildet er laget og lagt inn i utskriften.",
+      "printImageRemoved": "Bildet er fjernet fra utskriften.",
       "submitted": "Levert til lærer."
     },
     "status": {

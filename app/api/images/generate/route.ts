@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
+import type { Firestore } from "firebase-admin/firestore";
 import { getAdmin } from "@/lib/firebaseAdmin";
 import {
   getBucketLimit,
@@ -15,6 +16,9 @@ type CoverImageStyle = "illustration" | "realistic";
 type CoverImagePromptMode = "custom" | "fromText";
 
 type GenerateImageBody = {
+  context?: "student_writing_print";
+  spaceId?: string;
+  activityId?: string;
   lessonId?: string;
   uid?: string;
   format?: "16:9";
@@ -30,6 +34,17 @@ type GenerateImageBody = {
 type UsageDoc = Partial<Record<"image_generation", number>> & {
   updatedAt?: unknown;
 };
+
+type StudentWritingAccess =
+  | {
+      ok: true;
+      ownerUid: string;
+      activity: Record<string, unknown>;
+    }
+  | {
+      ok: false;
+      response: NextResponse;
+    };
 
 function readBearerToken(req: NextRequest): string | null {
   const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
@@ -144,33 +159,47 @@ export async function POST(req: NextRequest) {
 
     const { auth, db, storage } = getAdmin();
     const decoded = await auth.verifyIdToken(authToken);
-    if (needsEmailVerification(decoded)) {
-      return emailVerificationRequiredResponse();
-    }
     const uid = decoded.uid;
 
     if (!uid) {
       return NextResponse.json({ error: "Invalid auth token." }, { status: 401 });
     }
 
+    const body = (await req.json()) as GenerateImageBody;
+
     const userSnap = await db.doc(`users/${uid}`).get();
     const userData = userSnap.exists ? userSnap.data() : {};
+    const profile = (userData ?? {}) as Record<string, unknown>;
+    const studentWritingAccess = await verifyStudentWritingAccess(db, uid, profile, body);
 
-    const role = normalizeRole(userData?.role);
+    if (studentWritingAccess?.ok === false) {
+      return studentWritingAccess.response;
+    }
+
+    if (needsEmailVerification(decoded) && !studentWritingAccess?.ok) {
+      return emailVerificationRequiredResponse();
+    }
+
+    const quotaUid = studentWritingAccess?.ok ? studentWritingAccess.ownerUid : uid;
+    const quotaUserSnap =
+      quotaUid === uid ? userSnap : await db.doc(`users/${quotaUid}`).get();
+    const quotaUserData = quotaUserSnap.exists ? quotaUserSnap.data() : {};
+
+    const role = normalizeRole(quotaUserData?.role);
     const plan = getEffectivePlan({
-      plan: normalizePlan(userData?.plan),
+      plan: normalizePlan(quotaUserData?.plan),
       billing:
-        userData?.billing && typeof userData.billing === "object"
-          ? (userData.billing as { plan?: string | null; status?: string | null })
+        quotaUserData?.billing && typeof quotaUserData.billing === "object"
+          ? (quotaUserData.billing as { plan?: string | null; status?: string | null })
           : null,
-      schoolId: typeof userData?.schoolId === "string" ? userData.schoolId : null,
-      schoolRole: typeof userData?.schoolRole === "string" ? userData.schoolRole : null,
-      schoolStatus: typeof userData?.schoolStatus === "string" ? userData.schoolStatus : null,
+      schoolId: typeof quotaUserData?.schoolId === "string" ? quotaUserData.schoolId : null,
+      schoolRole: typeof quotaUserData?.schoolRole === "string" ? quotaUserData.schoolRole : null,
+      schoolStatus: typeof quotaUserData?.schoolStatus === "string" ? quotaUserData.schoolStatus : null,
     });
 
     const imageLimit = getBucketLimit(role, plan, "image_generation", {
       studentAccessMode:
-        typeof userData?.studentAccessMode === "string" ? userData.studentAccessMode : null,
+        typeof quotaUserData?.studentAccessMode === "string" ? quotaUserData.studentAccessMode : null,
     });
     if (imageLimit <= 0) {
       return NextResponse.json(
@@ -180,7 +209,7 @@ export async function POST(req: NextRequest) {
     }
 
     const monthId = getMonthId();
-    const usageRef = db.doc(`users/${uid}/usage/${monthId}`);
+    const usageRef = db.doc(`users/${quotaUid}/usage/${monthId}`);
     const usageSnap = await usageRef.get();
     const usageData = (usageSnap.exists ? usageSnap.data() : {}) as UsageDoc;
     const imagesUsed = typeof usageData.image_generation === "number" ? usageData.image_generation : 0;
@@ -191,8 +220,6 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
-
-    const body = (await req.json()) as GenerateImageBody;
 
     const lessonId = typeof body.lessonId === "string" ? body.lessonId.trim() : "";
     if (!lessonId) {
@@ -298,4 +325,72 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function safeString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isAdminProfile(data: Record<string, unknown>) {
+  return data.role === "admin" || data.admin === true || data.isAdmin === true;
+}
+
+function isActiveMember(data: Record<string, unknown>) {
+  const status = safeString(data.status).toLowerCase();
+  if (data.archived === true || data.active === false) return false;
+  return !status || status === "active";
+}
+
+async function verifyStudentWritingAccess(
+  db: Firestore,
+  uid: string,
+  profile: Record<string, unknown>,
+  body: GenerateImageBody
+): Promise<StudentWritingAccess | null> {
+  if (body.context !== "student_writing_print") return null;
+
+  const spaceId = safeString(body.spaceId);
+  const activityId = safeString(body.activityId);
+  if (!spaceId || !activityId) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Missing spaceId or activityId." }, { status: 400 }),
+    };
+  }
+
+  const [spaceSnap, memberSnap, activitySnap] = await Promise.all([
+    db.collection("spaces").doc(spaceId).get(),
+    db.collection("spaceMembers").doc(`${spaceId}_${uid}`).get(),
+    db.collection("spaces").doc(spaceId).collection("writingActivities").doc(activityId).get(),
+  ]);
+
+  if (!spaceSnap.exists) {
+    return { ok: false, response: NextResponse.json({ error: "Space not found." }, { status: 404 }) };
+  }
+  if (!activitySnap.exists) {
+    return { ok: false, response: NextResponse.json({ error: "Writing activity not found." }, { status: 404 }) };
+  }
+
+  const space = (spaceSnap.data() ?? {}) as Record<string, unknown>;
+  const activity = (activitySnap.data() ?? {}) as Record<string, unknown>;
+  const ownerUid =
+    safeString(activity.ownerUid) ||
+    safeString(space.ownerUid) ||
+    safeString(space.ownerId) ||
+    safeString(space.teacherId);
+  const member = (memberSnap.data() ?? {}) as Record<string, unknown>;
+  const isOwner = ownerUid === uid || safeString(space.ownerId) === uid || safeString(space.ownerUid) === uid;
+  const hasMemberAccess = memberSnap.exists && isActiveMember(member);
+
+  if (!ownerUid) {
+    return { ok: false, response: NextResponse.json({ error: "Space owner missing." }, { status: 403 }) };
+  }
+  if (!isOwner && !isAdminProfile(profile) && !hasMemberAccess) {
+    return { ok: false, response: NextResponse.json({ error: "No access to this space." }, { status: 403 }) };
+  }
+  if ((activity.aiPolicy as { enabled?: unknown } | undefined)?.enabled === false) {
+    return { ok: false, response: NextResponse.json({ error: "AI is disabled for this activity." }, { status: 403 }) };
+  }
+
+  return { ok: true, ownerUid, activity };
 }

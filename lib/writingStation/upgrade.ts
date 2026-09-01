@@ -173,11 +173,38 @@ function selfAssessmentSection(existingPolicy?: WritingSectionTemplate["aiPolicy
   };
 }
 
+function finalRoom() {
+  return {
+    id: "final",
+    title: "Ferdig tekst",
+    phase: "final" as const,
+    sections: [
+      {
+        id: "final_text",
+        title: "Samlet tekst",
+        prompt: "Les gjennom hele teksten før du leverer.",
+        fields: [
+          {
+            id: "final_text",
+            label: "Ferdig tekst",
+            kind: "long_text" as const,
+            required: true,
+          },
+        ],
+        gate: {
+          requiredSectionIds: ["title", "introduction", "main_part", "ending"],
+        },
+      },
+    ],
+  };
+}
+
 export function upgradeWritingActivityForRuntime(activity: WritingActivity): WritingActivity {
   const rooms = activity.rooms ?? [];
   const revisionRoom = rooms.find((room) => room.phase === "revision");
   const draftingRoom = rooms.find((room) => room.phase === "drafting");
   const planningRoom = rooms.find((room) => room.phase === "planning");
+  const hasFinalRoom = rooms.some((room) => room.phase === "final");
   if (!revisionRoom && !draftingRoom && !planningRoom) return activity;
 
   const content = revisionRoom?.sections.find((section) => section.id === "content_check");
@@ -191,7 +218,7 @@ export function upgradeWritingActivityForRuntime(activity: WritingActivity): Wri
     language?.fields.some((field) => field.id === "language_sentence") &&
     self?.fields.some((field) => field.id === "self_assessment_ready");
 
-  if (hasTitle && planningUpgraded && revisionUpgraded) return activity;
+  if (hasTitle && planningUpgraded && revisionUpgraded && hasFinalRoom) return activity;
 
   return {
     ...activity,
@@ -227,6 +254,6 @@ export function upgradeWritingActivityForRuntime(activity: WritingActivity): Wri
           self?.fields.some((field) => field.id === "self_assessment_ready") ? self : selfAssessmentSection(policy),
         ],
       };
-    }),
+    }).concat(hasFinalRoom ? [] : [finalRoom()]),
   };
 }
