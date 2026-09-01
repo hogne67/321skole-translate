@@ -158,10 +158,18 @@
       "emptyProcess": "Ingen utkast eller revisjonsnotater er lagret."
     },
     "printProduct": {
-      "title": "Utskriftsversjon",
-      "teacherSubtitle": "Dette er elevens ferdige produkt slik det kan skrives ut.",
       "print": "Skriv ut elevtekst",
-      "untitled": "Uten tittel"
+      "untitled": "Uten tittel",
+      "studentName": "Navn på utskrift",
+      "school": "Skole",
+      "className": "Klasse",
+      "writtenDate": "Dato skrevet",
+      "imageNote": "Eleven skal sjekke at bildet kan brukes, og oppgi kilde hvis læreren ber om det."
+    },
+    "sources": {
+      "title": "Kilder og kildekritikk",
+      "list": "Kilder",
+      "check": "Kildekritikk"
     },
     "aiLog": {
       "title": "Full KI-logg",

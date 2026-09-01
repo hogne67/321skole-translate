@@ -158,10 +158,18 @@
       "emptyProcess": "No drafts or revision notes are saved."
     },
     "printProduct": {
-      "title": "Print version",
-      "teacherSubtitle": "This is the student's finished product as it can be printed.",
       "print": "Print student text",
-      "untitled": "Untitled"
+      "untitled": "Untitled",
+      "studentName": "Name on printout",
+      "school": "School",
+      "className": "Class",
+      "writtenDate": "Date written",
+      "imageNote": "The student should check that the image can be used, and cite the source if the teacher asks for it."
+    },
+    "sources": {
+      "title": "Sources and source check",
+      "list": "Sources",
+      "check": "Source check"
     },
     "aiLog": {
       "title": "Full AI log",

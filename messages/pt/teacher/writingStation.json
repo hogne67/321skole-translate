@@ -158,10 +158,18 @@
       "emptyProcess": "Nenhum rascunho ou nota de revisão foi salvo."
     },
     "printProduct": {
-      "title": "Versão para impressão",
-      "teacherSubtitle": "Este é o produto final do aluno como pode ser impresso.",
       "print": "Imprimir texto do aluno",
-      "untitled": "Sem título"
+      "untitled": "Sem título",
+      "studentName": "Nome na impressão",
+      "school": "Escola",
+      "className": "Turma",
+      "writtenDate": "Data escrita",
+      "imageNote": "O aluno deve verificar se a imagem pode ser usada e citar a fonte se o professor pedir."
+    },
+    "sources": {
+      "title": "Fontes e verificação",
+      "list": "Fontes",
+      "check": "Verificação da fonte"
     },
     "aiLog": {
       "title": "Log completo de IA",

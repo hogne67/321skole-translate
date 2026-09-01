@@ -26,6 +26,8 @@ type OverallSuggestion = {
   status: "reviewed" | "needs_work";
 };
 
+const HIDDEN_FACTUAL_PLANNING_SECTION_IDS = new Set(["purpose_audience", "key_terms", "structure"]);
+
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
 }
@@ -70,6 +72,16 @@ function textValue(value: unknown): string {
   if (Array.isArray(value)) return value.map(String).join(", ").trim();
   if (value === null || value === undefined) return "";
   return String(value).trim();
+}
+
+function visibleSectionsForPhase(activity: WritingActivity, phase: WritingPhase) {
+  return (activity.rooms ?? [])
+    .filter((room) => room.phase === phase)
+    .flatMap((room) => room.sections)
+    .filter((section) => {
+      if (activity.genre !== "factual" || phase !== "planning") return true;
+      return !HIDDEN_FACTUAL_PLANNING_SECTION_IDS.has(section.id);
+    });
 }
 
 function getSectionText(submission: Partial<WritingSubmission>, section: WritingSectionTemplate): string {
@@ -120,9 +132,7 @@ function buildPrompt(args: {
   phase: WritingPhase;
 }) {
   const { activity, submission, phase } = args;
-  const sections = (activity.rooms ?? [])
-    .filter((room) => room.phase === phase)
-    .flatMap((room) => room.sections)
+  const sections = visibleSectionsForPhase(activity, phase)
     .map((section) => ({
       id: section.id,
       title: section.title,
@@ -350,9 +360,7 @@ export async function POST(
       });
     }
 
-    const sectionsWithText = (activity.rooms ?? [])
-      .filter((room) => room.phase === phase)
-      .flatMap((room) => room.sections)
+    const sectionsWithText = visibleSectionsForPhase(activity, phase)
       .filter((section) => getSectionText(submission, section).trim());
 
     if (!sectionsWithText.length) {

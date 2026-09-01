@@ -54,6 +54,21 @@ type OverallFeedbackSuggestion = {
 };
 
 type TeacherTab = "planning" | "drafting" | "revision" | "final" | "aiLog";
+type SourceKind = "website" | "book" | "article" | "image" | "other";
+
+type SourceEntry = {
+  id: string;
+  kind: SourceKind;
+  title: string;
+  url?: string;
+  author?: string;
+  site?: string;
+  publisher?: string;
+  year?: string;
+  note?: string;
+};
+
+const HIDDEN_FACTUAL_PLANNING_SECTION_IDS = new Set(["purpose_audience", "key_terms", "structure"]);
 
 function withLocale(locale: string, href: string): string {
   if (!href.startsWith("/")) return href;
@@ -111,6 +126,67 @@ function textValue(value: unknown): string {
   return String(value).trim();
 }
 
+function isSourceKind(value: unknown): value is SourceKind {
+  return value === "website" || value === "book" || value === "article" || value === "image" || value === "other";
+}
+
+function parseSourceEntries(raw: string): SourceEntry[] {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item): SourceEntry | null => {
+        if (!item || typeof item !== "object") return null;
+        const data = item as Record<string, unknown>;
+        const title = textValue(data.title);
+        const url = textValue(data.url);
+        const note = textValue(data.note);
+        if (!title && !url && !note) return null;
+        return {
+          id: textValue(data.id) || `${title}-${url}-${note}`,
+          kind: isSourceKind(data.kind) ? data.kind : "other",
+          title,
+          url,
+          author: textValue(data.author),
+          site: textValue(data.site),
+          publisher: textValue(data.publisher),
+          year: textValue(data.year),
+          note,
+        };
+      })
+      .filter((entry): entry is SourceEntry => entry != null);
+  } catch {
+    return [];
+  }
+}
+
+function formatSourceEntry(entry: SourceEntry): string {
+  const parts =
+    entry.kind === "website" || entry.kind === "image"
+      ? [entry.title, entry.site, entry.url]
+      : entry.kind === "book"
+        ? [entry.title, entry.author, entry.publisher, entry.year]
+        : entry.kind === "article"
+          ? [entry.title, entry.author, entry.site || entry.publisher, entry.year, entry.url]
+          : [entry.title, entry.author, entry.url];
+  const main = parts.filter(Boolean).join(" - ");
+  return [main, entry.note].filter(Boolean).join("\n  ");
+}
+
+function buildSourceListText(submission: SubmissionData | null) {
+  const answers = submission?.answersByFieldId ?? {};
+  const entries = parseSourceEntries(textValue(answers.sources_entries_json));
+  const webUrl = textValue(answers.source_web_url);
+  const webTitle = textValue(answers.source_web_title);
+  const bookTitle = textValue(answers.source_book_title);
+  const author = textValue(answers.source_author);
+  const notes = textValue(answers.sources_list);
+  const webLine = [webTitle, webUrl].filter(Boolean).join(" - ");
+  const bookLine = [bookTitle, author].filter(Boolean).join(" - ");
+
+  return [...entries.map(formatSourceEntry), webLine, bookLine, notes].filter(Boolean).join("\n");
+}
+
 function getFieldAnswer(submission: SubmissionData | null, field: WritingFieldTemplate, section: WritingSectionTemplate): string {
   if (!submission) return "";
   const answers = submission.answersByFieldId ?? {};
@@ -159,9 +235,26 @@ function getSectionAnswerSummary(submission: SubmissionData, section: WritingSec
     .join("\n\n");
 }
 
+function getDraftTitle(activity: WritingActivity | null, submission: SubmissionData | null) {
+  const answers = submission?.answersByFieldId ?? {};
+  const drafts = submission?.sectionDrafts ?? {};
+  const draftingRoom = activity?.rooms?.find((room) => room.phase === "drafting");
+  const titleSection = draftingRoom?.sections.find((section) => section.id === "title");
+  const titleFromSection = titleSection?.fields
+    .map((field) => textValue(answers[field.id]))
+    .find(Boolean);
+
+  return (
+    textValue(answers.story_title) ||
+    textValue(answers.factual_title) ||
+    titleFromSection ||
+    textValue(drafts.title)
+  );
+}
+
 function buildFinalText(activity: WritingActivity | null, submission: SubmissionData | null): string {
   const saved = textValue(submission?.finalText);
-  const title = textValue(submission?.answersByFieldId?.story_title);
+  const title = getDraftTitle(activity, submission);
   if (saved) {
     if (title && !saved.trim().startsWith(title)) return `${title}\n\n${saved}`;
     return saved;
@@ -179,6 +272,15 @@ function buildFinalText(activity: WritingActivity | null, submission: Submission
 
 function roomsByPhase(rooms: WritingRoomTemplate[], phase: WritingRoomTemplate["phase"]) {
   return rooms.filter((room) => room.phase === phase);
+}
+
+function visibleSectionsForRoom(activity: WritingActivity, room: WritingRoomTemplate) {
+  if (activity.genre !== "factual" || room.phase !== "planning") return room.sections;
+  return room.sections.filter((section) => !HIDDEN_FACTUAL_PLANNING_SECTION_IDS.has(section.id));
+}
+
+function roomWithVisibleSections(activity: WritingActivity, room: WritingRoomTemplate): WritingRoomTemplate {
+  return { ...room, sections: visibleSectionsForRoom(activity, room) };
 }
 
 function actionKey(action: unknown): string {
@@ -310,7 +412,10 @@ export default function TeacherWritingSubmissionDetailPage() {
     }));
   }, [submission?.sectionFeedback]);
 
-  const planningRooms = useMemo(() => roomsByPhase(activity?.rooms ?? [], "planning"), [activity?.rooms]);
+  const planningRooms = useMemo(
+    () => (activity ? roomsByPhase(activity.rooms ?? [], "planning").map((room) => roomWithVisibleSections(activity, room)) : []),
+    [activity]
+  );
   const draftingRooms = useMemo(() => roomsByPhase(activity?.rooms ?? [], "drafting"), [activity?.rooms]);
   const revisionRooms = useMemo(() => roomsByPhase(activity?.rooms ?? [], "revision"), [activity?.rooms]);
   const finalText = useMemo(() => buildFinalText(activity, submission), [activity, submission]);
@@ -322,7 +427,10 @@ export default function TeacherWritingSubmissionDetailPage() {
     member?.email?.trim() ||
     (submission?.studentUid ? `${t("fallback.student")} (${submission.studentUid.slice(0, 6)}...)` : t("fallback.unknownStudent"));
   const printProfile = submission?.printProfile ?? {};
-  const printableTitle = textValue(submission?.answersByFieldId?.story_title) || activity?.title || t("printProduct.untitled");
+  const printableTitle = getDraftTitle(activity, submission) || activity?.title || t("printProduct.untitled");
+  const sourceListText = buildSourceListText(submission);
+  const sourceCheckText = textValue(submission?.answersByFieldId?.sources_check);
+  const hasSourceNotes = Boolean(sourceListText || sourceCheckText);
   const aiUsage = Array.isArray(submission?.aiUsage) ? submission.aiUsage : [];
   const delivered = formatMaybeDate(submission?.submittedAt || submission?.updatedAt || submission?.createdAt, locale);
   const reviewStatusChanged = reviewStatus !== initialReviewStatus;
@@ -736,9 +844,54 @@ export default function TeacherWritingSubmissionDetailPage() {
                 </div>
               </div>
               <div className={["mt-3 grid gap-4", !isPlanningReview ? "lg:grid-cols-[minmax(0,1fr)_380px]" : ""].join(" ")}>
-                <div className="min-h-40 whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-base leading-7 text-slate-950">
-                  {finalText || t("detail.emptyFinal")}
-                </div>
+                <article className="writingPrintProduct rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                  {textValue(printProfile.imageUrl) ? (
+                    <figure className="m-0 mb-6">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={textValue(printProfile.imageUrl)}
+                        alt=""
+                        className="max-h-80 w-full rounded-xl border border-slate-200 object-cover"
+                      />
+                      <figcaption className="mt-2 text-xs leading-5 text-slate-500">{t("printProduct.imageNote")}</figcaption>
+                    </figure>
+                  ) : null}
+                  <header className="border-b border-slate-200 pb-5">
+                    <h2 className="m-0 text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">{printableTitle}</h2>
+                    <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                      <div><span className="font-semibold text-slate-500">{t("printProduct.studentName")}:</span> {textValue(printProfile.studentName) || studentName}</div>
+                      {textValue(printProfile.school) ? (
+                        <div><span className="font-semibold text-slate-500">{t("printProduct.school")}:</span> {textValue(printProfile.school)}</div>
+                      ) : null}
+                      {textValue(printProfile.className) ? (
+                        <div><span className="font-semibold text-slate-500">{t("printProduct.className")}:</span> {textValue(printProfile.className)}</div>
+                      ) : null}
+                      {textValue(printProfile.writtenDate) ? (
+                        <div><span className="font-semibold text-slate-500">{t("printProduct.writtenDate")}:</span> {textValue(printProfile.writtenDate)}</div>
+                      ) : null}
+                    </div>
+                  </header>
+                  <div className="mt-6 whitespace-pre-wrap text-base leading-8 text-slate-950 sm:text-[17px]">
+                    {finalText || t("detail.emptyFinal")}
+                  </div>
+                  {hasSourceNotes ? (
+                    <footer className="mt-8 border-t border-slate-200 pt-4 text-sm leading-6 text-slate-800">
+                      <h3 className="m-0 text-base font-bold text-slate-950">{t("sources.title")}</h3>
+                      {sourceListText ? (
+                        <div className="mt-3">
+                          <div className="text-xs font-bold uppercase text-slate-500">{t("sources.list")}</div>
+                          <div className="mt-1 whitespace-pre-wrap">{sourceListText}</div>
+                        </div>
+                      ) : null}
+                      {sourceCheckText ? (
+                        <div className="mt-3">
+                          <div className="text-xs font-bold uppercase text-slate-500">{t("sources.check")}</div>
+                          <div className="mt-1 whitespace-pre-wrap">{sourceCheckText}</div>
+                        </div>
+                      ) : null}
+                    </footer>
+                  ) : null}
+                </article>
                 {!isPlanningReview ? (
                   <TeacherFeedbackPanel
                     text={feedbackText}
@@ -758,32 +911,6 @@ export default function TeacherWritingSubmissionDetailPage() {
                   />
                 ) : null}
               </div>
-              <section className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                <div className="mb-3">
-                  <h3 className="m-0 text-base font-semibold text-slate-950">{t("printProduct.title")}</h3>
-                  <p className="mt-1 text-sm text-emerald-950">{t("printProduct.teacherSubtitle")}</p>
-                </div>
-                <article className="writingPrintProduct rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  {textValue(printProfile.imageUrl) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={textValue(printProfile.imageUrl)}
-                      alt=""
-                      className="mb-5 max-h-72 w-full rounded-xl object-cover"
-                    />
-                  ) : null}
-                  <h2 className="m-0 text-3xl font-bold text-slate-950">{printableTitle}</h2>
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-                    <span>{textValue(printProfile.studentName) || studentName}</span>
-                    {textValue(printProfile.school) ? <span>{textValue(printProfile.school)}</span> : null}
-                    {textValue(printProfile.className) ? <span>{textValue(printProfile.className)}</span> : null}
-                    {textValue(printProfile.writtenDate) ? <span>{textValue(printProfile.writtenDate)}</span> : null}
-                  </div>
-                  <div className="mt-6 whitespace-pre-wrap text-base leading-8 text-slate-950">
-                    {finalText || t("detail.emptyFinal")}
-                  </div>
-                </article>
-              </section>
             </section>
             ) : null}
 
@@ -866,9 +993,22 @@ export default function TeacherWritingSubmissionDetailPage() {
                             <div>
                               <div className="text-xs font-semibold uppercase text-slate-500">{room.title}</div>
                               <h3 className="m-0 mt-1 text-base font-semibold text-slate-950">{section.title}</h3>
-                              <div className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900">
-                                {value || t("detail.emptyAnswer")}
-                              </div>
+                              {section.id === "sources" ? (
+                                <div className="mt-2 grid gap-2">
+                                  <div className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900">
+                                    <div className="text-xs font-semibold uppercase text-slate-500">{t("sources.list")}</div>
+                                    <div className="mt-1">{sourceListText || t("detail.emptyAnswer")}</div>
+                                  </div>
+                                  <div className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900">
+                                    <div className="text-xs font-semibold uppercase text-slate-500">{t("sources.check")}</div>
+                                    <div className="mt-1">{sourceCheckText || t("detail.emptyAnswer")}</div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-900">
+                                  {value || t("detail.emptyAnswer")}
+                                </div>
+                              )}
                             </div>
 
                             <aside className="rounded-xl border border-purple-200 bg-purple-50 p-3">
@@ -1018,6 +1158,16 @@ export default function TeacherWritingSubmissionDetailPage() {
       </main>
       <style jsx global>{`
         @media print {
+          @page {
+            size: A4;
+            margin: 18mm;
+          }
+
+          html,
+          body {
+            background: #ffffff !important;
+          }
+
           body * {
             visibility: hidden !important;
           }
@@ -1031,7 +1181,19 @@ export default function TeacherWritingSubmissionDetailPage() {
             width: 100% !important;
             border: 0 !important;
             box-shadow: none !important;
-            padding: 24px !important;
+            padding: 0 !important;
+            color: #0f172a !important;
+          }
+
+          .writingPrintProduct img {
+            max-height: 70mm !important;
+            break-inside: avoid !important;
+          }
+
+          .writingPrintProduct header,
+          .writingPrintProduct footer,
+          .writingPrintProduct figure {
+            break-inside: avoid !important;
           }
         }
       `}</style>
