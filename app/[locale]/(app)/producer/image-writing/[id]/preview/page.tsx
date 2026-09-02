@@ -308,11 +308,7 @@ export default function ImageWritingPreviewPage() {
         {mode !== "short" && supportWords.length ? (
           <div style={{ marginTop: 18 }}>
             <div style={sectionLabel}>{text.supportWords}</div>
-            <div style={chipWrap}>
-              {supportWords.map((word) => (
-                <span key={word} style={chip}>{word}</span>
-              ))}
-            </div>
+            <p style={supportLine}>{supportWords.join(" · ")}</p>
           </div>
         ) : null}
 
@@ -444,22 +440,12 @@ const instructionBox: React.CSSProperties = {
   whiteSpace: "pre-wrap",
 };
 
-const chipWrap: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 8,
-  marginTop: 10,
-};
-
-const chip: React.CSSProperties = {
-  display: "inline-flex",
-  border: "1px solid #bfdbfe",
-  borderRadius: 999,
-  padding: "7px 10px",
-  background: "#eff6ff",
-  color: "#1d4ed8",
+const supportLine: React.CSSProperties = {
+  margin: "7px 0 0",
+  color: "#475569",
   fontSize: 13,
-  fontWeight: 900,
+  fontWeight: 750,
+  lineHeight: 1.5,
 };
 
 const criteriaList: React.CSSProperties = {

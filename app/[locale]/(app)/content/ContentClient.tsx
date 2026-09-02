@@ -216,6 +216,10 @@ function isImageWritingLesson(it: ContentItem) {
   return it.type === "lesson" && normalizedLessonSignals(it).includes("image_writing");
 }
 
+function isWritingContentItem(it: ContentItem) {
+  return it.type === "writingActivity" || isImageWritingLesson(it);
+}
+
 function isQuizLesson(it: ContentItem) {
   return it.type === "lesson" && normalizedLessonSignals(it).includes("quiz");
 }
@@ -2079,8 +2083,8 @@ export default function ContentClient() {
     const c = { lesson: 0, writing: 0, submission: 0, space: 0, library: 0, math: 0 };
 
     for (const it of items) {
-      if (it.type === "lesson") c.lesson += 1;
-      else if (it.type === "writingActivity") c.writing += 1;
+      if (isWritingContentItem(it)) c.writing += 1;
+      else if (it.type === "lesson") c.lesson += 1;
       else if (it.type === "submission") {
         c.submission += 1;
         if (isLibraryPractice(it)) c.library += 1;
@@ -2114,8 +2118,8 @@ export default function ContentClient() {
         if (filter === "all") return true;
         if (filter === "library") return isLibraryPractice(it);
         if (filter === "math") return isMathContent(it);
-        if (filter === "lesson") return it.type === "lesson";
-        if (filter === "writing") return it.type === "writingActivity";
+        if (filter === "lesson") return it.type === "lesson" && !isImageWritingLesson(it);
+        if (filter === "writing") return isWritingContentItem(it);
         if (filter === "submission") return it.type === "submission";
         if (filter === "space") return it.type === "space";
         return true;

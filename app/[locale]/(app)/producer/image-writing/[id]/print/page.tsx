@@ -479,15 +479,9 @@ export default function ImageWritingPrintPage() {
       </section>
 
       {showSupportWordsOnPrint && supportWords.length > 0 ? (
-        <section style={{ marginBottom: 14 }}>
-          <h2 style={{ fontSize: 16, margin: "0 0 8px" }}>{text.supportWords}</h2>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {supportWords.map((word) => (
-              <span key={word} style={pillStyle}>
-                {word}
-              </span>
-            ))}
-          </div>
+        <section style={{ marginBottom: 12 }}>
+          <h2 style={{ fontSize: 14, margin: "0 0 5px" }}>{text.supportWords}</h2>
+          <p style={supportLineStyle}>{supportWords.join(" · ")}</p>
         </section>
       ) : null}
 
@@ -523,10 +517,10 @@ const buttonStyle: React.CSSProperties = {
   fontWeight: 800,
 };
 
-const pillStyle: React.CSSProperties = {
-  border: "1px solid #cbd5e1",
-  borderRadius: 999,
-  padding: "5px 9px",
-  fontWeight: 700,
-  background: "#f8fafc",
+const supportLineStyle: React.CSSProperties = {
+  margin: 0,
+  color: "#475569",
+  fontSize: 12,
+  fontWeight: 650,
+  lineHeight: 1.45,
 };

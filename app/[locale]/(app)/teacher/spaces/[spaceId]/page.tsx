@@ -135,7 +135,12 @@ function toMillisAny(v: unknown) {
 
 function isReviewedStatus(statusRaw: unknown): boolean {
   const s = typeof statusRaw === "string" ? statusRaw.toLowerCase().trim() : "";
-  return s === "reviewed" || s === "approved" || s === "needs_work" || s === "needswork";
+  return s === "reviewed" || s === "approved" || s === "ok" || s === "needs_work" || s === "needswork" || s === "need_work";
+}
+
+function isVisibleSubmissionStatus(statusRaw: unknown): boolean {
+  const s = typeof statusRaw === "string" ? statusRaw.toLowerCase().trim() : "";
+  return s !== "draft";
 }
 
 function withLocale(locale: string, href: string): string {
@@ -402,12 +407,15 @@ function Inner() {
         qy,
         (snap) => {
           let newCount = 0;
+          let total = 0;
           snap.docs.forEach((d) => {
             const data = (d.data() as SubmissionData) ?? {};
+            if (!isVisibleSubmissionStatus(data.status)) return;
+            total += 1;
             if (!isReviewedStatus(data.status)) newCount += 1;
           });
 
-          setSubSummaryByAssignment((m) => ({ ...m, [a.id]: { total: snap.size, newCount } }));
+          setSubSummaryByAssignment((m) => ({ ...m, [a.id]: { total, newCount } }));
         },
         (err: unknown) => {
           const info = getErrorInfo(err);
